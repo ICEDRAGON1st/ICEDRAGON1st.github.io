@@ -1,0 +1,171 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #0f0a1a;
+  --panel: #1a1230;
+  --text: #f4eeff;
+  --muted: #a89bc7;
+  --accent: #ff6bcb;
+  --border: #3d2f66;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  padding: 1rem;
+  font-family: "Courier New", "Segoe UI", monospace;
+  background:
+    radial-gradient(ellipse at top, #3b1f6e 0%, transparent 55%),
+    var(--bg);
+  color: var(--text);
+}
+
+.hud {
+  width: min(780px, 96vw);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.menu-btn {
+  color: var(--text);
+  background: transparent;
+  font-weight: 700;
+  font-size: 1.1rem;
+  padding: 0.6rem 1rem;
+  border-radius: 4px;
+  border: 2px solid var(--border);
+  cursor: pointer;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+
+.menu-btn:hover {
+  border-color: var(--accent);
+}
+
+.hud-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem 0.85rem;
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+.hud-stats strong {
+  color: var(--text);
+}
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+  text-align: center;
+  max-width: 780px;
+}
+
+#game {
+  width: min(780px, 96vw);
+  height: auto;
+  border: 3px solid var(--border);
+  border-radius: 4px;
+  background: #12091f;
+  image-rendering: pixelated;
+  touch-action: none;
+  display: block;
+  box-shadow: 0 0 24px rgba(255, 107, 203, 0.15);
+}
+
+.message {
+  min-height: 1.4rem;
+  margin: 0;
+  font-weight: 700;
+  color: var(--accent);
+  text-align: center;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(10, 6, 18, 0.78);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  padding: 1rem;
+}
+
+.overlay.hidden {
+  display: none;
+}
+
+.overlay-card {
+  width: min(420px, 100%);
+  background: var(--panel);
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  padding: 1.6rem;
+}
+
+.overlay-card h1 {
+  margin: 0 0 0.55rem;
+  font-size: 1.9rem;
+  letter-spacing: 0.04em;
+}
+
+.overlay-card p {
+  margin: 0 0 1.2rem;
+  color: var(--muted);
+  line-height: 1.45;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.btn {
+  appearance: none;
+  border: none;
+  border-radius: 4px;
+  padding: 0.75rem 1.15rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--accent);
+  color: #1a0a14;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 2px solid var(--border);
+}
+
+.btn:hover {
+  filter: brightness(1.08);
+}
+
+.hidden {
+  display: none !important;
+}

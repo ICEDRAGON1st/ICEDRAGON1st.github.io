@@ -1,0 +1,368 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #10131a;
+  --panel: #181d28;
+  --text: #eef2ff;
+  --muted: #94a3b8;
+  --accent: #6366f1;
+  --accent-soft: #818cf8;
+  --given: #f8fafc;
+  --cell: #1e2433;
+  --cell-hover: #252b3d;
+  --selected: #312e81;
+  --highlight: #1e293b;
+  --match: #334155;
+  --error: #f87171;
+  --error-bg: #3f1d1d;
+  --border: #334155;
+  --border-strong: #64748b;
+  --win: #4ade80;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  padding: 1rem;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background:
+    radial-gradient(ellipse at top, #1e1b4b 0%, transparent 55%),
+    var(--bg);
+  color: var(--text);
+}
+
+.hud {
+  width: min(520px, 96vw);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.menu-btn {
+  color: var(--text);
+  background: transparent;
+  font-weight: 700;
+  font-size: 1rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.menu-btn:hover {
+  border-color: var(--accent-soft);
+}
+
+.hud-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem 1rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.hud-stats strong {
+  color: var(--text);
+}
+
+#hud-diff {
+  color: var(--accent-soft);
+  font-weight: 700;
+}
+
+.shell {
+  width: min(520px, 96vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.board {
+  width: 100%;
+  aspect-ratio: 1;
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  border: 3px solid var(--border-strong);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--cell);
+}
+
+.cell {
+  position: relative;
+  aspect-ratio: 1;
+  border: 1px solid var(--border);
+  background: var(--cell);
+  color: var(--text);
+  font-size: clamp(1rem, 4.2vw, 1.65rem);
+  font-weight: 700;
+  padding: 0;
+  cursor: pointer;
+}
+
+.cell:hover:not(.given) {
+  background: var(--cell-hover);
+}
+
+.cell.given {
+  background: #151922;
+  color: var(--given);
+  cursor: default;
+}
+
+.cell.locked {
+  color: var(--win);
+  cursor: default;
+}
+
+.cell.locked:hover {
+  background: var(--cell);
+}
+
+.cell.locked.selected,
+.cell.given.selected {
+  background: var(--selected);
+}
+
+.cell.selected {
+  background: var(--selected);
+}
+
+.cell.related {
+  background: var(--highlight);
+}
+
+.cell.same-value {
+  background: var(--match);
+}
+
+.cell.error {
+  color: var(--error);
+  background: var(--error-bg);
+}
+
+.cell.hinted {
+  color: var(--win);
+}
+
+.cell.box-right {
+  border-right: 2px solid var(--border-strong);
+}
+
+.cell.box-bottom {
+  border-bottom: 2px solid var(--border-strong);
+}
+
+.cell-value {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+}
+
+.notes-grid {
+  position: absolute;
+  inset: 2px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  pointer-events: none;
+}
+
+.note {
+  display: grid;
+  place-items: center;
+  font-size: clamp(0.45rem, 1.6vw, 0.62rem);
+  font-weight: 700;
+  color: var(--muted);
+}
+
+.controls {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.numpad {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 0.4rem;
+}
+
+.num-btn {
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 800;
+  font-size: clamp(0.95rem, 3.5vw, 1.15rem);
+  padding: 0.65rem 0;
+  cursor: pointer;
+}
+
+.num-btn:hover {
+  border-color: var(--accent-soft);
+}
+
+.num-btn.complete {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.action-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+}
+
+.action-btn {
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.95rem;
+  padding: 0.65rem 0.5rem;
+  cursor: pointer;
+}
+
+.action-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.action-btn:hover {
+  border-color: var(--accent-soft);
+}
+
+.message {
+  min-height: 1.4rem;
+  margin: 0;
+  font-weight: 700;
+  color: var(--accent-soft);
+  text-align: center;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(8, 10, 16, 0.72);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  padding: 1rem;
+}
+
+.overlay.hidden {
+  display: none;
+}
+
+.overlay-card {
+  width: min(420px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.6rem;
+}
+
+.overlay-card h1 {
+  margin: 0 0 0.55rem;
+  font-size: 1.9rem;
+}
+
+.overlay-card p {
+  margin: 0 0 1rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.difficulty-picker {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1.1rem;
+}
+
+.diff-btn {
+  flex: 1;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 0.55rem 0.5rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.diff-btn.active {
+  background: var(--accent);
+  border-color: var(--accent-soft);
+  color: #fff;
+}
+
+.overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.btn {
+  appearance: none;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.15rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn:hover {
+  filter: brightness(1.08);
+}
+
+.hidden {
+  display: none !important;
+}
+
+@media (max-width: 420px) {
+  .numpad {
+    grid-template-columns: repeat(5, 1fr);
+  }
+
+  .numpad .num-btn:nth-child(n + 6) {
+    grid-column: span 1;
+  }
+}

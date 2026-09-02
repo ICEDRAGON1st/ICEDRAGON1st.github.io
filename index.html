@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <title>My Games</title>
+  <script src="site-config.js"></script>
+  <link rel="stylesheet" href="styles.css?v=20260902h">
+</head>
+<body>
+  <div class="app">
+    <header>
+      <button id="hint-btn" type="button" class="hint-btn" aria-label="Get a hint" title="Reveal a letter not in the word">Hint</button>
+      <h1 id="title">Wordle</h1>
+      <div class="header-right">
+        <button id="length-btn" type="button" class="length-btn" aria-label="Switch word length" title="Switch between 4, 5 and 6 letter words">5</button>
+        <button id="theme-btn" type="button" class="theme-btn" aria-label="Toggle light background" title="Toggle light background">☀</button>
+        <button id="lang-btn" type="button" class="lang-btn" aria-label="Switch language" title="Switch language">EN</button>
+        <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu" title="Menu">☰</button>
+      </div>
+    </header>
+
+    <div id="message" class="message" role="status" aria-live="polite"></div>
+
+    <div id="board" class="board" aria-label="Game board"></div>
+
+    <div id="keyboard" class="keyboard" aria-label="On-screen keyboard"></div>
+  </div>
+
+  <canvas id="confetti" aria-hidden="true"></canvas>
+
+  <div id="menu-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="menu-title">
+    <div class="modal-content">
+      <h2 id="menu-title">Menu</h2>
+      <p id="menu-subtitle" class="modal-subtitle"></p>
+      <p id="streak-reminder" class="streak-reminder hidden" role="status"></p>
+      <div class="stats-grid">
+        <div class="stat">
+          <span class="stat-value" id="stat-wins">0</span>
+          <span class="stat-label">Wins</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-win-pct">0</span>
+          <span class="stat-label">Win %</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-streak">0</span>
+          <span class="stat-label">Streak</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="stat-played">0</span>
+          <span class="stat-label">Played</span>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button id="menu-resume" type="button" class="modal-btn modal-btn-secondary">Resume</button>
+        <button id="menu-new-word" type="button" class="modal-btn">New Word</button>
+        <button id="menu-games" type="button" class="modal-btn modal-btn-secondary">Games</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="whats-new-modal" class="modal whats-new-modal hidden" role="dialog" aria-modal="true" aria-labelledby="whats-new-title">
+    <div class="modal-content">
+      <h2 id="whats-new-title">What's new</h2>
+      <p class="modal-subtitle">Updated to <strong id="whats-new-build"></strong></p>
+      <ul id="whats-new-list" class="whats-new-list"></ul>
+      <div class="modal-actions">
+        <button id="whats-new-ok" type="button" class="modal-btn">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="games-screen" class="games-screen hidden" role="dialog" aria-modal="true" aria-labelledby="games-title">
+    <div class="games-screen-inner">
+      <header class="games-header">
+        <button id="games-back" type="button" class="games-back" aria-label="Back to menu">← Back</button>
+        <h2 id="games-title">My Games</h2>
+        <div id="hub-streak-badge" class="hub-streak-badge" title="Play any game within 48 hours to keep your streak">
+          <span class="hub-streak-icon" aria-hidden="true">🔥</span>
+          <span id="hub-streak-count">0</span>
+          <span class="hub-streak-label">day streak</span>
+        </div>
+      </header>
+      <p id="games-message" class="games-message" role="status" aria-live="polite"></p>
+
+      <div class="games-toolbar">
+        <button id="continue-last-btn" type="button" class="hub-btn hub-btn-primary hidden">Continue last game</button>
+        <button id="toggle-scores-btn" type="button" class="hub-btn">High scores</button>
+      </div>
+
+      <div id="high-scores-panel" class="high-scores-panel hidden">
+        <h3>High scores</h3>
+        <ul id="high-scores-list" class="high-scores-list"></ul>
+      </div>
+
+      <div class="games-grid" id="games-grid">
+        <button type="button" class="game-card" data-game="wordle">
+          <span class="game-card-top">
+            <span class="game-card-name">Wordle</span>
+            <span class="fav-btn" data-fav="wordle" role="button" tabindex="0" aria-label="Favorite Wordle">☆</span>
+          </span>
+          <span class="game-card-desc">Guess the word</span>
+          <span class="game-card-score" data-score-for="wordle"></span>
+        </button>
+        <button type="button" class="game-card" data-game="space">
+          <span class="game-card-top">
+            <span class="game-card-name">Space Shooter</span>
+            <span class="fav-btn" data-fav="space" role="button" tabindex="0" aria-label="Favorite Space Shooter">☆</span>
+          </span>
+          <span class="game-card-desc">Fly, dodge, and shoot</span>
+          <span class="game-card-score" data-score-for="space"></span>
+        </button>
+        <button type="button" class="game-card" data-game="quiz">
+          <span class="game-card-top">
+            <span class="game-card-name">Quizmaster</span>
+            <span class="fav-btn" data-fav="quiz" role="button" tabindex="0" aria-label="Favorite Quizmaster">☆</span>
+          </span>
+          <span class="game-card-desc">General knowledge quiz</span>
+          <span class="game-card-score" data-score-for="quiz"></span>
+        </button>
+        <button type="button" class="game-card" data-game="breakout">
+          <span class="game-card-top">
+            <span class="game-card-name">Brick Breaker</span>
+            <span class="fav-btn" data-fav="breakout" role="button" tabindex="0" aria-label="Favorite Brick Breaker">☆</span>
+          </span>
+          <span class="game-card-desc">Bounce and smash bricks</span>
+          <span class="game-card-score" data-score-for="breakout"></span>
+        </button>
+        <button type="button" class="game-card" data-game="hangman">
+          <span class="game-card-top">
+            <span class="game-card-name">Hangman</span>
+            <span class="fav-btn" data-fav="hangman" role="button" tabindex="0" aria-label="Favorite Hangman">☆</span>
+          </span>
+          <span class="game-card-desc">Guess the word</span>
+          <span class="game-card-score" data-score-for="hangman"></span>
+        </button>
+        <button type="button" class="game-card" data-game="2048">
+          <span class="game-card-top">
+            <span class="game-card-name">2048</span>
+            <span class="fav-btn" data-fav="2048" role="button" tabindex="0" aria-label="Favorite 2048">☆</span>
+          </span>
+          <span class="game-card-desc">Slide and merge tiles</span>
+          <span class="game-card-score" data-score-for="2048"></span>
+        </button>
+        <button type="button" class="game-card" data-game="snake">
+          <span class="game-card-top">
+            <span class="game-card-name">Snake</span>
+            <span class="fav-btn" data-fav="snake" role="button" tabindex="0" aria-label="Favorite Snake">☆</span>
+          </span>
+          <span class="game-card-desc">Eat food and grow</span>
+          <span class="game-card-score" data-score-for="snake"></span>
+        </button>
+        <button type="button" class="game-card" data-game="memory">
+          <span class="game-card-top">
+            <span class="game-card-name">Memory Match</span>
+            <span class="fav-btn" data-fav="memory" role="button" tabindex="0" aria-label="Favorite Memory Match">☆</span>
+          </span>
+          <span class="game-card-desc">Flip cards and find pairs</span>
+          <span class="game-card-score" data-score-for="memory"></span>
+        </button>
+        <button type="button" class="game-card" data-game="connect-four">
+          <span class="game-card-top">
+            <span class="game-card-name">Connect Four</span>
+            <span class="fav-btn" data-fav="connect-four" role="button" tabindex="0" aria-label="Favorite Connect Four">☆</span>
+          </span>
+          <span class="game-card-desc">Connect four in a row</span>
+          <span class="game-card-score" data-score-for="connect-four"></span>
+        </button>
+        <button type="button" class="game-card" data-game="math">
+          <span class="game-card-top">
+            <span class="game-card-name">Math Sprint</span>
+            <span class="fav-btn" data-fav="math" role="button" tabindex="0" aria-label="Favorite Math Sprint">☆</span>
+          </span>
+          <span class="game-card-desc">Quick arithmetic quiz</span>
+          <span class="game-card-score" data-score-for="math"></span>
+        </button>
+        <button type="button" class="game-card" data-game="sudoku">
+          <span class="game-card-top">
+            <span class="game-card-name">Sudoku</span>
+            <span class="fav-btn" data-fav="sudoku" role="button" tabindex="0" aria-label="Favorite Sudoku">☆</span>
+          </span>
+          <span class="game-card-desc">Classic 9×9 logic puzzle</span>
+          <span class="game-card-score" data-score-for="sudoku"></span>
+        </button>
+        <button type="button" class="game-card" data-game="flappy">
+          <span class="game-card-top">
+            <span class="game-card-name">Flappy Bird</span>
+            <span class="fav-btn" data-fav="flappy" role="button" tabindex="0" aria-label="Favorite Flappy Bird">☆</span>
+          </span>
+          <span class="game-card-desc">Tap to fly through pipes</span>
+          <span class="game-card-score" data-score-for="flappy"></span>
+        </button>
+        <button type="button" class="game-card" data-game="tictactoe">
+          <span class="game-card-top">
+            <span class="game-card-name">Tic Tac Toe</span>
+            <span class="fav-btn" data-fav="tictactoe" role="button" tabindex="0" aria-label="Favorite Tic Tac Toe">☆</span>
+          </span>
+          <span class="game-card-desc">Three in a row to win</span>
+          <span class="game-card-score" data-score-for="tictactoe"></span>
+        </button>
+        <button type="button" class="game-card" data-game="pixletris">
+          <span class="game-card-top">
+            <span class="game-card-name">Pixletris</span>
+            <span class="fav-btn" data-fav="pixletris" role="button" tabindex="0" aria-label="Favorite Pixletris">☆</span>
+          </span>
+          <span class="game-card-desc">Pixel Tetris blocks</span>
+          <span class="game-card-score" data-score-for="pixletris"></span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+<script>
+    // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
+    window.WORDLE_BUILD = "20260902h";
+    const scripts = [
+      "hub-streak.js",
+      "words.js",
+      "dictionary.js",
+      "words-4.js",
+      "dictionary-4.js",
+      "words-6.js",
+      "dictionary-6.js",
+      "words-da.js",
+      "dictionary-da.js",
+      "words-da-4.js",
+      "dictionary-da-4.js",
+      "words-da-6.js",
+      "dictionary-da-6.js",
+      "words-is.js",
+      "dictionary-is.js",
+      "words-is-4.js",
+      "dictionary-is-4.js",
+      "words-is-6.js",
+      "dictionary-is-6.js",
+      "script.js"
+    ];
+    function loadNext(i) {
+      if (i >= scripts.length) return;
+      const el = document.createElement("script");
+      el.src = scripts[i] + "?v=" + window.WORDLE_BUILD;
+      el.onload = function () { loadNext(i + 1); };
+      el.onerror = function () {
+        console.error("Failed to load", scripts[i]);
+        loadNext(i + 1);
+      };
+      document.body.appendChild(el);
+    }
+    loadNext(0);
+  </script>
+</body>
+</html>

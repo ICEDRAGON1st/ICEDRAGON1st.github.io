@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Brick Breaker</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="hud">
+    <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
+    <div class="hud-stats">
+      <span>Score: <strong id="score">0</strong></span>
+      <span>High: <strong id="high-score">0</strong></span>
+      <span>Lives: <strong id="lives">3</strong></span>
+    </div>
+  </div>
+
+  <canvas id="game" width="960" height="640" aria-label="Brick breaker game"></canvas>
+
+  <div id="overlay" class="overlay">
+    <div class="overlay-card">
+      <h1 id="overlay-title">Brick Breaker</h1>
+      <p id="overlay-text">
+        Move the paddle with your mouse or A/D / arrows. Bounce the ball to smash every brick.
+      </p>
+      <div class="overlay-actions">
+        <button id="resume-btn" type="button" class="btn btn-secondary hidden">Resume</button>
+        <button id="start-btn" type="button" class="btn">Start</button>
+        <button id="games-btn" type="button" class="btn btn-secondary">Games</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../hub-streak.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

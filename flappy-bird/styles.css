@@ -1,0 +1,141 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #0c1624;
+  --panel: #152238;
+  --text: #eef6ff;
+  --muted: #8fb0d0;
+  --accent: #fbbf24;
+  --border: #2a4566;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  padding: 1rem;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background:
+    radial-gradient(ellipse at top, #1e4a7a 0%, transparent 55%),
+    var(--bg);
+  color: var(--text);
+}
+
+.hud {
+  width: min(600px, 96vw);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.menu-btn {
+  color: var(--text);
+  background: transparent;
+  font-weight: 700;
+  font-size: 1.1rem;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+}
+
+.menu-btn:hover {
+  border-color: var(--accent);
+}
+
+.hud-stats {
+  display: flex;
+  gap: 1rem;
+  font-size: 1.15rem;
+  color: var(--muted);
+}
+
+.hud-stats strong {
+  color: var(--text);
+}
+
+#game {
+  width: min(600px, 96vw);
+  height: auto;
+  border: 3px solid var(--border);
+  border-radius: 16px;
+  background: #70c5ce;
+  touch-action: manipulation;
+  display: block;
+  cursor: pointer;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(8, 14, 24, 0.72);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  padding: 1rem;
+}
+
+.overlay.hidden {
+  display: none;
+}
+
+.overlay-card {
+  width: min(420px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.6rem;
+}
+
+.overlay-card h1 {
+  margin: 0 0 0.55rem;
+  font-size: 1.9rem;
+}
+
+.overlay-card p {
+  margin: 0 0 1.2rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.btn {
+  appearance: none;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.15rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--accent);
+  color: #1a1200;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn:hover {
+  filter: brightness(1.08);
+}
+
+.hidden {
+  display: none !important;
+}

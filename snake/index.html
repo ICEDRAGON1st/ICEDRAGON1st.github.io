@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Snake</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="hud">
+    <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
+    <div class="hud-stats">
+      <span>Score: <strong id="score">0</strong></span>
+      <span>High: <strong id="high-score">0</strong></span>
+    </div>
+  </div>
+
+  <canvas id="game" width="640" height="640" aria-label="Snake game"></canvas>
+
+  <div id="overlay" class="overlay">
+    <div class="overlay-card">
+      <h1 id="overlay-title">Snake</h1>
+      <p id="overlay-text">Use arrow keys or WASD to move. Eat the 4 apples, grow longer, and don't hit the walls or yourself.</p>
+      <div class="overlay-actions">
+        <button id="resume-btn" type="button" class="btn btn-secondary hidden">Resume</button>
+        <button id="start-btn" type="button" class="btn">Start</button>
+        <button id="games-btn" type="button" class="btn btn-secondary">Games</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../hub-streak.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

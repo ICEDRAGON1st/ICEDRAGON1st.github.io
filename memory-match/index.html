@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Memory Match</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="hud">
+    <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
+    <div class="hud-stats">
+      <span id="hud-diff">Easy</span>
+      <span>Moves: <strong id="moves">0</strong></span>
+      <span>Time: <strong id="timer">0:00</strong></span>
+      <span>Best: <strong id="best">—</strong></span>
+    </div>
+  </div>
+
+  <main class="shell">
+    <p class="hint">Flip two cards at a time and find all matching pairs.</p>
+    <div id="board" class="board" role="grid" aria-label="Memory match board"></div>
+    <p id="message" class="message" role="status" aria-live="polite"></p>
+  </main>
+
+  <div id="overlay" class="overlay">
+    <div class="overlay-card">
+      <h1 id="overlay-title">Memory Match</h1>
+      <p id="overlay-text">Find all matching pairs in as few moves and as little time as you can.</p>
+      <div id="difficulty-picker" class="difficulty-picker" role="group" aria-label="Difficulty">
+        <button type="button" class="diff-btn active" data-diff="easy">Easy</button>
+        <button type="button" class="diff-btn" data-diff="medium">Medium</button>
+        <button type="button" class="diff-btn" data-diff="hard">Hard</button>
+      </div>
+      <div class="overlay-actions">
+        <button id="resume-btn" type="button" class="btn btn-secondary hidden">Resume</button>
+        <button id="start-btn" type="button" class="btn">New Game</button>
+        <button id="games-btn" type="button" class="btn btn-secondary">Games</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../hub-streak.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flappy Bird</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="hud">
+    <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
+    <div class="hud-stats">
+      <span>Score: <strong id="score">0</strong></span>
+      <span>Best: <strong id="high-score">0</strong></span>
+    </div>
+  </div>
+
+  <canvas id="game" width="600" height="900" aria-label="Flappy Bird game"></canvas>
+
+  <div id="overlay" class="overlay">
+    <div class="overlay-card">
+      <h1 id="overlay-title">Flappy Bird</h1>
+      <p id="overlay-text">Tap, click, or press Space to flap. Fly through the gaps and don't hit the pipes.</p>
+      <div class="overlay-actions">
+        <button id="resume-btn" type="button" class="btn btn-secondary hidden">Resume</button>
+        <button id="start-btn" type="button" class="btn">Start</button>
+        <button id="games-btn" type="button" class="btn btn-secondary">Games</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../hub-streak.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

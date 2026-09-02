@@ -1,0 +1,245 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root {
+  --bg: #12141c;
+  --panel: #1a1f2e;
+  --text: #f3f6ff;
+  --muted: #9aa8c7;
+  --x: #60a5fa;
+  --o: #f472b6;
+  --board: #232a3d;
+  --border: #3a4663;
+  --accent: #818cf8;
+  --win: #4ade80;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  padding: 1rem;
+  font-family: "Segoe UI", system-ui, sans-serif;
+  background:
+    radial-gradient(ellipse at top, #2a2f55 0%, transparent 55%),
+    var(--bg);
+  color: var(--text);
+}
+
+.hud {
+  width: min(520px, 96vw);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.menu-btn {
+  color: var(--text);
+  background: transparent;
+  font-weight: 700;
+  font-size: 1.05rem;
+  padding: 0.55rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.menu-btn:hover {
+  border-color: var(--accent);
+}
+
+.hud-stats {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem 1rem;
+  font-size: 1rem;
+  color: var(--muted);
+}
+
+.hud-stats strong {
+  color: var(--text);
+}
+
+#hud-mode {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+#turn-label.x {
+  color: var(--x);
+}
+
+#turn-label.o {
+  color: var(--o);
+}
+
+.shell {
+  width: min(520px, 96vw);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 1rem;
+  text-align: center;
+}
+
+.board {
+  width: min(520px, 92vw);
+  aspect-ratio: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  padding: 12px;
+  border-radius: 20px;
+  background: var(--board);
+  border: 2px solid var(--border);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+}
+
+.cell {
+  border: none;
+  border-radius: 16px;
+  background: #151925;
+  color: var(--text);
+  font-size: clamp(3rem, 14vw, 5.5rem);
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.12s ease, background 0.12s ease;
+}
+
+.cell:hover:not(:disabled) {
+  transform: scale(1.03);
+  background: #1b2130;
+}
+
+.cell:disabled {
+  cursor: default;
+}
+
+.cell.x {
+  color: var(--x);
+}
+
+.cell.o {
+  color: var(--o);
+}
+
+.cell.win {
+  background: rgba(74, 222, 128, 0.16);
+  box-shadow: inset 0 0 0 2px var(--win);
+}
+
+.message {
+  min-height: 1.4rem;
+  margin: 0;
+  font-weight: 700;
+  color: var(--accent);
+  text-align: center;
+  font-size: 1.05rem;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgba(10, 12, 18, 0.72);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  padding: 1rem;
+}
+
+.overlay.hidden {
+  display: none;
+}
+
+.overlay-card {
+  width: min(420px, 100%);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 1.6rem;
+}
+
+.overlay-card h1 {
+  margin: 0 0 0.55rem;
+  font-size: 1.9rem;
+}
+
+.overlay-card p {
+  margin: 0 0 1rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.picker {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.pick-btn {
+  flex: 1;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--muted);
+  border-radius: 8px;
+  padding: 0.55rem 0.5rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pick-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.overlay-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.btn {
+  appearance: none;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.15rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn:hover {
+  filter: brightness(1.08);
+}
+
+.hidden {
+  display: none !important;
+}

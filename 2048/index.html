@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2048</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="hud">
+    <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
+    <div class="hud-stats">
+      <span>Score: <strong id="score">0</strong></span>
+      <span>Best: <strong id="best">0</strong></span>
+    </div>
+  </div>
+
+  <main class="shell">
+    <p class="hint">Use arrow keys or swipe to slide tiles. Merge numbers to reach 2048!</p>
+    <div id="board" class="board" aria-label="2048 game board">
+      <div id="grid" class="grid"></div>
+      <div id="tiles" class="tiles"></div>
+    </div>
+    <p id="message" class="message" role="status" aria-live="polite"></p>
+  </main>
+
+  <div id="overlay" class="overlay">
+    <div class="overlay-card">
+      <h1 id="overlay-title">2048</h1>
+      <p id="overlay-text">Slide tiles and merge matching numbers. Can you reach 2048?</p>
+      <div class="overlay-actions">
+        <button id="resume-btn" type="button" class="btn btn-secondary hidden">Resume</button>
+        <button id="start-btn" type="button" class="btn">New Game</button>
+        <button id="games-btn" type="button" class="btn btn-secondary">Games</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../hub-streak.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>

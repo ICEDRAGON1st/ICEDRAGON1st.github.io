@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Quizmaster</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="top-bar">
+    <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
+    <h1>Quizmaster Challenge</h1>
+    <div class="top-stats">
+      <span id="hud-diff">Easy</span>
+      · Best: <strong id="hud-high">0</strong>/<span id="hud-total">8</span>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section id="quiz-screen" class="card" aria-live="polite">
+      <div class="progress-meta">
+        <span id="progress-label">Question 1/8</span>
+        <span id="live-score">Score: 0</span>
+        <span id="timer-label" class="timer-label hidden">12s</span>
+      </div>
+      <div class="progress-track" aria-hidden="true">
+        <div id="progress-fill" class="progress-fill"></div>
+      </div>
+      <h2 id="question-text" class="question">Press Start in the menu.</h2>
+      <div id="answers" class="answers" role="group" aria-label="Answer choices"></div>
+    </section>
+  </main>
+
+  <div id="overlay" class="overlay">
+    <div class="overlay-card">
+      <p class="eyebrow" id="overlay-eyebrow">General knowledge</p>
+      <h2 id="overlay-title">Quizmaster</h2>
+      <p id="overlay-text" class="lead">
+        10 questions · mixed topics. Pick A–D and beat your best score.
+      </p>
+      <p class="score-line">Best: <strong id="overlay-high">0</strong>/<span id="overlay-total">10</span></p>
+      <div id="difficulty-picker" class="difficulty-picker" role="group" aria-label="Difficulty">
+        <button type="button" class="diff-btn active" data-diff="easy">Easy</button>
+        <button type="button" class="diff-btn" data-diff="medium">Medium</button>
+        <button type="button" class="diff-btn" data-diff="hard">Hard</button>
+      </div>
+      <div class="overlay-actions">
+        <button id="resume-btn" type="button" class="btn btn-ghost hidden">Resume</button>
+        <button id="start-btn" type="button" class="btn">Start Quiz</button>
+        <button id="games-btn" type="button" class="btn btn-ghost">Games</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="questions.js"></script>
+  <script src="../hub-streak.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
