@@ -1205,10 +1205,10 @@ applySiteConfig();
 showMessage(`Loaded · ${sixCount} six-letter words`);
 
 let afterWhatsNew = null;
-if (state.gameStatus === "won" || state.gameStatus === "lost") {
-  afterWhatsNew = showMenu;
-} else if (location.hash === "#games") {
+if (location.hash === "#games") {
   afterWhatsNew = showGamesScreen;
+} else {
+  afterWhatsNew = showMenu;
 }
 
 if (showWhatsNew()) {
