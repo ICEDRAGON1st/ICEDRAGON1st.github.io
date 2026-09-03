@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <title>My Games</title>
   <script src="site-config.js"></script>
-  <link rel="stylesheet" href="styles.css?v=20260903q">
+  <link rel="stylesheet" href="styles.css?v=20260903r">
 </head>
 <body>
   <div class="app">
@@ -120,8 +120,15 @@
       </div>
 
       <div id="players-panel" class="players-panel hidden">
-        <h3>Who's playing <span id="players-online" class="players-online" aria-live="polite"></span><span id="players-alltime" class="players-alltime" aria-live="polite"></span></h3>
-        <p class="players-intro">Nicknames are unique. Online updates every minute. All-time counts each player only once.</p>
+        <h3>Who's playing
+          <button type="button" id="players-online" class="players-online players-stat-btn" aria-expanded="false" aria-controls="players-roster">0 online</button>
+          <button type="button" id="players-alltime" class="players-alltime players-stat-btn" aria-expanded="false" aria-controls="players-roster">· 0 all-time</button>
+        </h3>
+        <p class="players-intro">Tap online or all-time to see the name list. Nicknames are unique.</p>
+        <div id="players-roster" class="players-roster hidden">
+          <h4 id="players-roster-title" class="players-roster-title"></h4>
+          <ul id="players-roster-list" class="players-roster-list"></ul>
+        </div>
         <div class="players-name-row">
           <label for="player-name-input">Your name</label>
           <input id="player-name-input" type="text" maxlength="16" placeholder="Enter a nickname" autocomplete="nickname">
@@ -256,7 +263,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260903q";
+    window.WORDLE_BUILD = "20260903r";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js",
       "words.js",

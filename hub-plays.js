@@ -461,6 +461,28 @@
     return countOnline(presenceCache);
   }
 
+  function getOnlinePlayers() {
+    const now = Date.now();
+    return Object.entries(presenceCache || {})
+      .filter(([, p]) => p && now - (p.at || 0) < ONLINE_TTL_MS)
+      .map(([playerId, p]) => ({
+        playerId,
+        name: sanitizeName(p.name || "") || "Guest",
+        at: Number(p.at) || 0
+      }))
+      .sort((a, b) => (b.at || 0) - (a.at || 0));
+  }
+
+  function getAllTimePlayers() {
+    return Object.entries(allTimeCache || {})
+      .map(([playerId, p]) => ({
+        playerId,
+        name: sanitizeName(p.name || "") || "Guest",
+        firstAt: Number(p.firstAt) || 0
+      }))
+      .sort((a, b) => (a.firstAt || 0) - (b.firstAt || 0));
+  }
+
   /**
    * Ping the shared presence store. Returns current online count.
    */
@@ -754,7 +776,9 @@ body.light .menu-credit {
     getPlayerId,
     heartbeat,
     getOnlineCount,
+    getOnlinePlayers,
     getAllTimeCount,
+    getAllTimePlayers,
     registerAllTime,
     startPresence
   };

@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260903r": [
+    "Tap online or all-time on the Players board to see name lists"
+  ],
   "20260903q": [
     "Username required to play — no more skipping"
   ],
@@ -1644,6 +1647,67 @@ function updateOnlineCountDisplay(onlineCount, allTimeCount) {
       ? `Hide players · ${n}/${total}`
       : `Players · ${n}/${total}`;
   }
+  if (playersRosterMode) renderPlayersRoster(playersRosterMode);
+}
+
+let playersRosterMode = null; // "online" | "alltime" | null
+
+function setPlayersRosterMode(mode) {
+  const roster = document.getElementById("players-roster");
+  const onlineEl = document.getElementById("players-online");
+  const allTimeEl = document.getElementById("players-alltime");
+  if (playersRosterMode === mode) {
+    playersRosterMode = null;
+  } else {
+    playersRosterMode = mode;
+  }
+  onlineEl?.setAttribute("aria-expanded", playersRosterMode === "online" ? "true" : "false");
+  allTimeEl?.setAttribute("aria-expanded", playersRosterMode === "alltime" ? "true" : "false");
+  if (!playersRosterMode) {
+    roster?.classList.add("hidden");
+    return;
+  }
+  renderPlayersRoster(playersRosterMode);
+}
+
+function renderPlayersRoster(mode) {
+  const roster = document.getElementById("players-roster");
+  const title = document.getElementById("players-roster-title");
+  const list = document.getElementById("players-roster-list");
+  if (!roster || !title || !list || typeof HubPlays === "undefined") return;
+
+  const players =
+    mode === "online"
+      ? HubPlays.getOnlinePlayers()
+      : HubPlays.getAllTimePlayers();
+
+  title.textContent =
+    mode === "online"
+      ? players.length === 1
+        ? "Online now · 1 player"
+        : `Online now · ${players.length} players`
+      : players.length === 1
+        ? "All-time players · 1"
+        : `All-time players · ${players.length}`;
+
+  if (!players.length) {
+    list.innerHTML = `<li class="players-empty">${
+      mode === "online" ? "Nobody online right now." : "No players recorded yet."
+    }</li>`;
+  } else {
+    list.innerHTML = players
+      .map((p) => {
+        const when =
+          mode === "online"
+            ? HubPlays.formatWhen(p.at)
+            : p.firstAt
+              ? `joined ${HubPlays.formatWhen(p.firstAt)}`
+              : "";
+        return `<li><span>${formatPlayerNameHtml(p.name)}</span><span class="players-when">${escapeHtml(when)}</span></li>`;
+      })
+      .join("");
+  }
+  roster.classList.remove("hidden");
 }
 
 async function refreshOnlineCount() {
@@ -1682,6 +1746,7 @@ async function renderPlayersPanel() {
   try {
     await refreshOnlineCount();
   } catch {}
+  if (playersRosterMode) renderPlayersRoster(playersRosterMode);
   const status = HubPlays.getStatus();
   const countEntries = Object.entries(status.counts || {})
     .sort((a, b) => b[1] - a[1])
@@ -1733,6 +1798,18 @@ function formatPlayerNameHtml(name) {
 
 savePlayerNameBtn?.addEventListener("click", () => savePlayerNameFrom(playerNameInput?.value));
 playerNameSaveBtn?.addEventListener("click", () => savePlayerNameFrom(playerNameModalInput?.value));
+document.getElementById("players-online")?.addEventListener("click", async () => {
+  try {
+    await refreshOnlineCount();
+  } catch {}
+  setPlayersRosterMode("online");
+});
+document.getElementById("players-alltime")?.addEventListener("click", async () => {
+  try {
+    await refreshOnlineCount();
+  } catch {}
+  setPlayersRosterMode("alltime");
+});
 playerNameModalInput?.addEventListener("keydown", (e) => {
   if (e.key === "Enter") savePlayerNameFrom(playerNameModalInput.value);
 });
