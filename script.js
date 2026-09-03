@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260903n": [
+    "Side credit: created by ICE_DRAGON"
+  ],
   "20260903m": [
     "ICE_DRAGON shows in blue on the Players board as the site creator"
   ],

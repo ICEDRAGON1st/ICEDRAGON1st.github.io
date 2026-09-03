@@ -614,6 +614,61 @@
 
   getPlayerId();
   startPresence();
+  injectCreatorCredit();
+
+  function injectCreatorCredit() {
+    if (document.getElementById("site-credit")) return;
+    if (!document.getElementById("site-credit-style")) {
+      const style = document.createElement("style");
+      style.id = "site-credit-style";
+      style.textContent = `
+.site-credit {
+  position: fixed;
+  z-index: 40;
+  right: 0.55rem;
+  top: 50%;
+  transform: translateY(-50%);
+  margin: 0;
+  padding: 0;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  letter-spacing: 0.12em;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(160, 170, 185, 0.85);
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+}
+.site-credit .player-name-creator {
+  color: #1c7ed6;
+  font-weight: 800;
+}
+body.light .site-credit {
+  color: rgba(90, 100, 115, 0.8);
+}
+@media (max-width: 640px) {
+  .site-credit {
+    right: auto;
+    left: 50%;
+    top: auto;
+    bottom: 0.35rem;
+    transform: translateX(-50%);
+    writing-mode: horizontal-tb;
+    letter-spacing: 0.04em;
+    font-size: 0.68rem;
+  }
+}`;
+      document.head.appendChild(style);
+    }
+    const el = document.createElement("p");
+    el.id = "site-credit";
+    el.className = "site-credit";
+    el.setAttribute("aria-label", "Created by ICE_DRAGON");
+    el.innerHTML =
+      'created by <span class="player-name-creator">ICE_DRAGON</span>';
+    document.body.appendChild(el);
+  }
 
   window.HubPlays = {
     getName,
