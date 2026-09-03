@@ -166,6 +166,7 @@ function gameOver() {
     if (score >= 10) HubAchievements.unlock("snake_score_10");
     if (score >= 50) HubAchievements.unlock("snake_score_50");
   }
+  window.HubSound?.play("lose");
   showMenu(
     "gameover",
     "Game Over",
@@ -193,6 +194,7 @@ function step() {
   const foodIndex = foods.findIndex((f) => f.x === next.x && f.y === next.y);
   if (foodIndex >= 0) {
     score += 10;
+    window.HubSound?.play("eat");
     if (score > highScore) {
       highScore = score;
       saveHighScore();

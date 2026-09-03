@@ -269,6 +269,7 @@ function chooseAnswer(picked, correctAnswer, pickedBtn) {
 
   const correct = picked === correctAnswer;
   if (correct) score += 1;
+  window.HubSound?.play(correct ? "match" : "error");
 
   revealAnswers(correctAnswer, pickedBtn);
   liveScore.textContent = `Score: ${score}`;
@@ -294,6 +295,7 @@ function finishRound() {
 
   const pct = Math.round((score / total) * 100);
   if (window.HubAchievements && score === total) HubAchievements.unlock("math_perfect");
+  window.HubSound?.play(score === total ? "win" : score === 0 ? "lose" : "hint");
   questionText.textContent = `Round complete!`;
   answersEl.innerHTML = "";
   timerLabel.classList.add("hidden");

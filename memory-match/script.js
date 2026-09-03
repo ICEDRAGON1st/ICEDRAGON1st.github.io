@@ -223,6 +223,7 @@ function checkWin() {
     HubAchievements.unlock("memory_win_easy");
     if (difficulty === "hard") HubAchievements.unlock("memory_win_hard");
   }
+  window.HubSound?.play("win");
   messageEl.textContent = isNew ? "New best time!" : "All pairs matched!";
   showMenu(
     "win",
@@ -235,6 +236,7 @@ function checkWin() {
 
 function resolveMismatch(firstIndex, secondIndex) {
   lockBoard = true;
+  window.HubSound?.play("error");
   setTimeout(() => {
     const firstBtn = boardEl.children[firstIndex];
     const secondBtn = boardEl.children[secondIndex];
@@ -254,6 +256,7 @@ function flipCard(index) {
   if (!btn || btn.classList.contains("flipped") || btn.classList.contains("matched")) return;
 
   btn.classList.add("flipped");
+  window.HubSound?.play("flip", "present");
   btn.setAttribute("aria-label", `Card showing ${cards[index].symbol}`);
   flipped.push(index);
 
@@ -272,6 +275,7 @@ function flipCard(index) {
     boardEl.children[b].disabled = true;
     matchedCount += 2;
     flipped = [];
+    window.HubSound?.play("match");
     checkWin();
   } else {
     boardEl.children[a].disabled = true;

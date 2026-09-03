@@ -138,11 +138,13 @@ function endGame(result) {
       else recordCpuResult("losses");
     }
     showMenu("over", `${PLAYER[result.winner].label} Wins!`, `${PLAYER[result.winner].label} got three in a row.`);
+    window.HubSound?.play("win");
     return;
   }
 
   messageEl.textContent = "It's a draw!";
   if (mode === "cpu") recordCpuResult("draws");
+  window.HubSound?.play("draw");
   showMenu("over", "Draw", "No more moves — it's a tie.");
 }
 
@@ -150,6 +152,7 @@ function applyMove(index, player) {
   if (board[index] !== EMPTY) return false;
 
   board[index] = player;
+  window.HubSound?.play("place");
   const result = getWinner(board);
   if (result) {
     winLine = result.line;

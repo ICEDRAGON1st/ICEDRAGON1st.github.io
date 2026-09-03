@@ -418,9 +418,11 @@ function pickAnswer(choiceIndex, btn) {
       score += 1;
       updateLiveScore();
       btn.classList.add("correct");
+      window.HubSound?.play("match");
     } else {
       btn.classList.add("wrong");
       correctBtn.classList.add("correct");
+      window.HubSound?.play("error");
     }
 
     const t2 = window.setTimeout(() => {
@@ -456,6 +458,8 @@ function finishQuiz() {
   if (score === total) title = "Perfect!";
   else if (score >= Math.ceil(total * 0.7)) title = "Great run!";
   else if (score >= Math.ceil(total * 0.4)) title = "Nice try!";
+
+  window.HubSound?.play(score === total ? "win" : score === 0 ? "lose" : "hint");
 
   showMenu(
     "result",

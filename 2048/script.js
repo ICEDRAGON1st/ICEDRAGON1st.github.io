@@ -272,6 +272,7 @@ function move(direction) {
   if (!result.moved) return;
 
   grid = result.grid;
+  window.HubSound?.play(result.mergedCells?.length ? "merge" : "place");
 
   if (window.HubAchievements) {
     const maxTile = Math.max(...grid.flat());
@@ -289,6 +290,8 @@ function move(direction) {
 
   if (!won && hasWon()) {
     won = true;
+    if (window.HubAchievements) HubAchievements.unlock("2048_tile_2048");
+    window.HubSound?.play("win");
     messageEl.textContent = "You reached 2048! Keep going for a higher score.";
   }
 
@@ -296,6 +299,7 @@ function move(direction) {
     playing = false;
     menuMode = "gameover";
     messageEl.textContent = "No moves left.";
+    window.HubSound?.play("lose");
     showMenu("gameover", "Game Over", `Final score: ${score}. Best: ${best}.`);
   }
 }

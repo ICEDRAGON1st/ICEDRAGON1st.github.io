@@ -182,6 +182,7 @@ function lockPiece() {
     }
   }
   current = null;
+  window.HubSound?.play("place");
 }
 
 function simulateSandStep(mode = "both") {
@@ -285,6 +286,7 @@ function startClearFlash() {
     duration: CLEAR_FLASH_DURATION
   };
   messageEl.textContent = lineCount > 1 ? `${lineCount} lines!` : "Line clear!";
+  window.HubSound?.play("clear");
   return true;
 }
 
@@ -401,6 +403,7 @@ function gameOver() {
   }
   updateHud();
   messageEl.textContent = "Game over!";
+  window.HubSound?.play("lose");
   showMenu(
     "over",
     "Game Over",

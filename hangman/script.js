@@ -347,6 +347,7 @@ function endGame(won) {
       HubAchievements.unlock("hangman_win");
       if (wrong === 0) HubAchievements.unlock("hangman_no_miss");
     }
+    window.HubSound?.play("win");
     setStatus("You got it!", "win");
     showMenu(
       "result",
@@ -359,6 +360,7 @@ function endGame(won) {
     updateStatsUi();
     setStatus(`Out of misses — it was “${secret.toLocaleUpperCase()}”`, "lose");
     renderWord();
+    window.HubSound?.play("lose");
     showMenu(
       "result",
       "Game Over",
@@ -382,6 +384,7 @@ function guessLetter(letter) {
     }
     renderWord();
     setStatus("Nice!");
+    window.HubSound?.play("match");
     if ([...secret].every((c) => guessed.has(c))) endGame(true);
   } else {
     wrong += 1;
@@ -392,6 +395,7 @@ function guessLetter(letter) {
     updateGallows();
     missesEl.textContent = String(Math.max(0, maxWrong() - wrong));
     setStatus("Not in the word");
+    window.HubSound?.play("error");
     if (wrong >= maxWrong()) endGame(false);
   }
 }

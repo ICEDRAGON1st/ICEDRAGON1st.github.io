@@ -258,6 +258,7 @@ function endGame(winner, isDrawGame) {
   if (isDrawGame) {
     messageEl.textContent = "It's a draw!";
     if (mode === "cpu") recordCpuResult("draws");
+    window.HubSound?.play("draw");
     showMenu("over", "Draw", "The board is full with no winner.");
     return;
   }
@@ -271,12 +272,14 @@ function endGame(winner, isDrawGame) {
   }
 
   if (window.HubAchievements) HubAchievements.unlock("connect4_win");
+  window.HubSound?.play("win");
   showMenu("over", `${player.name} Wins!`, `${player.name} connected four in a row.`);
 }
 
 function applyMove(col, player) {
   const row = dropInColumn(board, col, player);
   if (row < 0) return false;
+  window.HubSound?.play("place");
 
   const winCells = findWinningCells(board, row, col, player);
   if (winCells) {

@@ -446,6 +446,7 @@ function shootPlayer() {
   } else {
     bullets.push({ x: player.x, y, vy, r: 3 });
   }
+  window.HubSound?.play("shoot");
 }
 
 function hitPlayer() {
@@ -454,6 +455,7 @@ function hitPlayer() {
   invuln = cfg().invuln;
   spawnBurst(player.x, player.y, "#ff5c7a");
   updateHud();
+  window.HubSound?.play(lives <= 0 ? "lose" : "hit");
   if (lives <= 0) {
     const isNewHigh = maybeUpdateHighScore();
     const highText = isNewHigh
@@ -639,6 +641,7 @@ function update(dt) {
         meteors.splice(j, 1);
         score += 15;
         maybeUpdateHighScore();
+        window.HubSound?.play("hit");
         hit = true;
         break;
       }
@@ -655,6 +658,7 @@ function update(dt) {
             score += 35;
             maybeUpdateHighScore();
             spawnBurst(e.x, e.y, "#6ecbff");
+            window.HubSound?.play("hit");
             if (Math.random() < cfg().powerupChance) spawnPowerup(e.x, e.y);
           }
           hit = true;

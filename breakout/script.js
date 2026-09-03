@@ -205,6 +205,7 @@ function loseLife() {
   lives -= 1;
   updateHud();
   spawnBurst(ball.x, H - 10, "#fc8181");
+  window.HubSound?.play(lives <= 0 ? "lose" : "error");
   if (lives <= 0) {
     const isNew = maybeUpdateHighScore();
     showMenu(
@@ -298,6 +299,7 @@ function update(dt) {
       maybeUpdateHighScore();
       updateHud();
       spawnBurst(brick.x + brick.w / 2, brick.y + brick.h / 2, brick.color);
+      window.HubSound?.play("hit");
 
       const overlapLeft = ball.x + ball.r - brick.x;
       const overlapRight = brick.x + brick.w - (ball.x - ball.r);
@@ -317,6 +319,7 @@ function update(dt) {
     }
 
     if (bricks.every((b) => !b.alive)) {
+      window.HubSound?.play("clear");
       score += 100;
       maybeUpdateHighScore();
       updateHud();

@@ -121,6 +121,7 @@ function goToGames() {
 function flap() {
   if (!running) return;
   bird.vy = FLAP;
+  window.HubSound?.play("flap");
 }
 
 function circleRectHit(cx, cy, r, rx, ry, rw, rh) {
@@ -162,6 +163,7 @@ function gameOver() {
   updateHud();
   draw();
   if (window.HubAchievements && score >= 5) HubAchievements.unlock("flappy_score_5");
+  window.HubSound?.play("lose");
   showMenu(
     "over",
     "Game Over",
@@ -188,6 +190,7 @@ function update(dt) {
     if (!pipe.scored && pipe.x + PIPE_WIDTH < BIRD_X) {
       pipe.scored = true;
       score += 1;
+      window.HubSound?.play("eat");
       if (score > highScore) {
         highScore = score;
         saveHighScore();

@@ -365,6 +365,7 @@ function inputNumber(num) {
   hinted[row][col] = 0;
   messageEl.textContent = "";
   renderBoard();
+  window.HubSound?.play(isCellWrong(row, col) ? "error" : "place");
 
   if (isBoardComplete()) {
     winGame();
@@ -416,6 +417,7 @@ function winGame() {
   saveBestTime();
   updateBestDisplay();
   if (window.HubAchievements) HubAchievements.unlock("sudoku_win");
+  window.HubSound?.play("win");
   messageEl.textContent = "Puzzle solved!";
   showMenu(
     "win",
