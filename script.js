@@ -8,8 +8,13 @@ const HUB_FAVORITES_KEY = "hub-favorites";
 const HUB_LAST_GAME_KEY = "hub-last-game";
 const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
+const SOUND_KEY = "wordle-sound";
 
 const CHANGELOG = {
+  "20260903f": [
+    "Sound effects in Wordle — keys, flips, win, and lose",
+    "Mute button next to the theme toggle"
+  ],
   "20260903e": [
     "Daily Wordle — everyone gets the same word each day",
     "Practice mode still lets you play extra random words",
@@ -96,6 +101,7 @@ const hubStreakCount = document.getElementById("hub-streak-count");
 const hintBtn = document.getElementById("hint-btn");
 const langBtn = document.getElementById("lang-btn");
 const themeBtn = document.getElementById("theme-btn");
+const soundBtn = document.getElementById("sound-btn");
 const lengthBtn = document.getElementById("length-btn");
 const modeBtn = document.getElementById("mode-btn");
 const menuDailyBtn = document.getElementById("menu-daily");
@@ -128,6 +134,8 @@ let currentLang = localStorage.getItem(LANG_KEY) || "en";
 const savedLength = Number(localStorage.getItem(LENGTH_KEY));
 let currentLength = LENGTHS.includes(savedLength) ? savedLength : 5;
 let playMode = localStorage.getItem(MODE_KEY) === "practice" ? "practice" : "daily";
+let soundsEnabled = localStorage.getItem(SOUND_KEY) !== "off";
+let audioCtx = null;
 let COLS = currentLength;
 let state = loadState();
 let confettiAnimationId = null;
@@ -217,6 +225,75 @@ function toggleTheme() {
   const next = document.body.classList.contains("light") ? "dark" : "light";
   localStorage.setItem(THEME_KEY, next);
   applyTheme(next);
+}
+
+function getAudio() {
+  if (!soundsEnabled) return null;
+  const AC = window.AudioContext || window.webkitAudioContext;
+  if (!AC) return null;
+  if (!audioCtx) audioCtx = new AC();
+  if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+  return audioCtx;
+}
+
+function playTone({ freq, dur = 0.08, type = "square", vol = 0.07, slide = 0, delay = 0 }) {
+  const ctx = getAudio();
+  if (!ctx) return;
+  const t = ctx.currentTime + delay;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, t);
+  if (slide) osc.frequency.linearRampToValueAtTime(Math.max(40, freq + slide), t + dur);
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(vol, t + 0.012);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + dur + 0.03);
+}
+
+function playSound(kind, extra) {
+  if (!soundsEnabled) return;
+  if (kind === "click") playTone({ freq: 760, dur: 0.045, vol: 0.045 });
+  else if (kind === "back") playTone({ freq: 280, dur: 0.055, type: "triangle", vol: 0.05, slide: -80 });
+  else if (kind === "error") {
+    playTone({ freq: 180, dur: 0.16, type: "sawtooth", vol: 0.05, slide: -70 });
+    playTone({ freq: 140, dur: 0.18, type: "square", vol: 0.03, delay: 0.04 });
+  } else if (kind === "flip") {
+    const freq = extra === "correct" ? 620 : extra === "present" ? 390 : 210;
+    playTone({ freq, dur: 0.09, type: "triangle", vol: 0.055 });
+  } else if (kind === "win") {
+    [523, 659, 784, 1046].forEach((freq, i) => {
+      playTone({ freq, dur: 0.16, type: "triangle", vol: 0.07, delay: i * 0.11 });
+    });
+  } else if (kind === "lose") {
+    [330, 247, 196].forEach((freq, i) => {
+      playTone({ freq, dur: 0.2, type: "triangle", vol: 0.06, delay: i * 0.14 });
+    });
+  } else if (kind === "hint") {
+    playTone({ freq: 520, dur: 0.08, type: "triangle", vol: 0.05 });
+    playTone({ freq: 390, dur: 0.1, type: "triangle", vol: 0.04, delay: 0.07 });
+  } else if (kind === "achieve") {
+    [659, 784, 988].forEach((freq, i) => {
+      playTone({ freq, dur: 0.12, type: "triangle", vol: 0.06, delay: i * 0.08 });
+    });
+  }
+}
+
+function updateSoundButton() {
+  if (!soundBtn) return;
+  soundBtn.textContent = soundsEnabled ? "🔊" : "🔇";
+  soundBtn.title = soundsEnabled ? "Mute sounds" : "Unmute sounds";
+  soundBtn.setAttribute("aria-label", soundsEnabled ? "Mute sounds" : "Unmute sounds");
+}
+
+function toggleSound() {
+  soundsEnabled = !soundsEnabled;
+  localStorage.setItem(SOUND_KEY, soundsEnabled ? "on" : "off");
+  updateSoundButton();
+  if (soundsEnabled) playSound("click");
 }
 
 function switchLanguage() {
@@ -1071,6 +1148,7 @@ function useHint() {
   renderKeyboard();
   updateHintButton();
   showMessage(`${letter} is not in the word`);
+  playSound("hint");
 }
 
 function render() {
@@ -1088,6 +1166,7 @@ async function submitGuess() {
   if (state.currentCol < COLS) {
     showMessage("Not enough letters", true);
     shakeRow(state.currentRow);
+    playSound("error");
     return;
   }
 
@@ -1095,6 +1174,7 @@ async function submitGuess() {
   if (!isValidGuess(guess)) {
     showMessage(`Not in dictionary (${currentLength} ${currentLang.toUpperCase()})`, true);
     shakeRow(state.currentRow);
+    playSound("error");
     return;
   }
 
@@ -1152,6 +1232,7 @@ function handleWin(row) {
   renderKeyboard();
   updateHintButton();
   launchConfetti();
+  playSound("win");
   setTimeout(checkPendingAchievements, 600);
   showMenu();
 }
@@ -1164,6 +1245,7 @@ function handleLoss() {
   saveState();
   renderKeyboard();
   updateHintButton();
+  playSound("lose");
   showMenu();
 }
 
@@ -1253,6 +1335,7 @@ async function animateRowFlip(rowIndex) {
   for (let i = 0; i < tiles.length; i++) {
     await new Promise((resolve) => {
       tiles[i].classList.add("flip");
+      playSound("flip", state.board[rowIndex][i].status);
       tiles[i].addEventListener(
         "animationend",
         () => {
@@ -1283,6 +1366,7 @@ function addLetter(letter) {
   state.currentCol++;
   saveState();
   renderBoard();
+  playSound("click");
 }
 
 function removeLetter() {
@@ -1293,6 +1377,7 @@ function removeLetter() {
   state.board[state.currentRow][state.currentCol].letter = "";
   saveState();
   renderBoard();
+  playSound("back");
 }
 
 function handleKey(key) {
@@ -1436,10 +1521,13 @@ async function shareDailyResult() {
 injectShakeAnimation();
 resizeConfettiCanvas();
 window.addEventListener("resize", resizeConfettiCanvas);
+document.addEventListener("pointerdown", () => getAudio(), { once: true });
+document.addEventListener("keydown", () => getAudio(), { once: true });
 updateLangButton();
 updateLengthButton();
 updateModeButton();
 applyTheme(localStorage.getItem(THEME_KEY) || "dark");
+updateSoundButton();
 render();
 document.addEventListener("keydown", handlePhysicalKeyboard);
 menuBtn.addEventListener("click", () => showMenu());
@@ -1496,6 +1584,7 @@ function showAchievementToast(id) {
   // Force reflow then animate in
   achievementToast.getBoundingClientRect();
   achievementToast.classList.add("show");
+  playSound("achieve");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     achievementToast.classList.remove("show");
@@ -1542,6 +1631,7 @@ document.querySelectorAll(".fav-btn").forEach((btn) => {
 hintBtn.addEventListener("click", () => useHint());
 langBtn.addEventListener("click", () => switchLanguage());
 themeBtn.addEventListener("click", () => toggleTheme());
+soundBtn?.addEventListener("click", () => toggleSound());
 lengthBtn.addEventListener("click", () => switchLength());
 modeBtn?.addEventListener("click", () => togglePlayMode());
 

@@ -106,6 +106,7 @@ header h1 {
 .menu-btn,
 .lang-btn,
 .theme-btn,
+.sound-btn,
 .length-btn {
   height: 2.5rem;
   border: none;
@@ -147,7 +148,8 @@ header h1 {
   letter-spacing: 0.04rem;
 }
 
-.theme-btn {
+.theme-btn,
+.sound-btn {
   width: 2.5rem;
   font-size: 1.15rem;
 }
@@ -161,6 +163,7 @@ header h1 {
 .menu-btn:hover,
 .lang-btn:hover,
 .theme-btn:hover,
+.sound-btn:hover,
 .length-btn:hover {
   background: var(--tile-border);
 }
