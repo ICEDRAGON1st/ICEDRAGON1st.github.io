@@ -224,6 +224,7 @@ function resetGame() {
 
 function startGame() {
   if (window.HubStreak) HubStreak.recordPlay();
+  if (window.HubPlays) HubPlays.record("connect-four");
   resetGame();
   overlay.classList.add("hidden");
   menuMode = "playing";

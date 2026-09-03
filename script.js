@@ -10,6 +10,10 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260903i": [
+    "Players board — see recent nicknames and which games they opened",
+    "Pick a player name once; it syncs across visitors"
+  ],
   "20260903h": [
     "Confetti on wins in every game",
     "New high scores also get a confetti burst"
@@ -94,9 +98,19 @@ const gamesMessageEl = document.getElementById("games-message");
 const continueLastBtn = document.getElementById("continue-last-btn");
 const toggleScoresBtn = document.getElementById("toggle-scores-btn");
 const toggleAchievementsBtn = document.getElementById("toggle-achievements-btn");
+const togglePlayersBtn = document.getElementById("toggle-players-btn");
 const shareMomentBtn = document.getElementById("share-moment-btn");
 const highScoresPanel = document.getElementById("high-scores-panel");
 const highScoresList = document.getElementById("high-scores-list");
+const playersPanel = document.getElementById("players-panel");
+const playersList = document.getElementById("players-list");
+const playersTotals = document.getElementById("players-totals");
+const playerNameInput = document.getElementById("player-name-input");
+const savePlayerNameBtn = document.getElementById("save-player-name-btn");
+const playerNameModal = document.getElementById("player-name-modal");
+const playerNameModalInput = document.getElementById("player-name-modal-input");
+const playerNameSaveBtn = document.getElementById("player-name-save");
+const playerNameSkipBtn = document.getElementById("player-name-skip");
 const achievementsPanel = document.getElementById("achievements-panel");
 const achievementsGrid = document.getElementById("achievements-grid");
 const achievementsCount = document.getElementById("achievements-count");
@@ -897,6 +911,8 @@ function showGamesScreen() {
   refreshGamesHub();
   gamesScreen.classList.remove("hidden");
   setTimeout(checkPendingAchievements, 400);
+  maybeAskPlayerName();
+  if (window.HubPlays) HubPlays.sync().catch(() => {});
 }
 
 function hideGamesScreen() {
@@ -917,6 +933,7 @@ function selectGame(gameId) {
 
   setLastGameId(gameId);
   recordHubDailyPlay();
+  if (window.HubPlays) HubPlays.record(gameId);
   // Track all-rounder achievement
   if (window.HubAchievements) {
     try {
@@ -1427,6 +1444,91 @@ toggleAchievementsBtn?.addEventListener("click", () => {
   const open = achievementsPanel.classList.toggle("hidden") === false;
   toggleAchievementsBtn.textContent = open ? "Hide achievements" : "🏆 Achievements";
   if (open) renderAchievementsPanel();
+});
+
+togglePlayersBtn?.addEventListener("click", () => {
+  if (!playersPanel) return;
+  const open = playersPanel.classList.toggle("hidden") === false;
+  togglePlayersBtn.textContent = open ? "Hide players" : "Players";
+  if (open) {
+    maybeAskPlayerName();
+    renderPlayersPanel();
+  }
+});
+
+function maybeAskPlayerName() {
+  if (typeof HubPlays === "undefined") return;
+  if (HubPlays.getName()) return;
+  playerNameModal?.classList.remove("hidden");
+  playerNameModalInput?.focus();
+}
+
+function hidePlayerNameModal() {
+  playerNameModal?.classList.add("hidden");
+}
+
+function savePlayerNameFrom(value) {
+  if (typeof HubPlays === "undefined") return;
+  const name = HubPlays.setName(value || "Player");
+  if (playerNameInput) playerNameInput.value = name;
+  hidePlayerNameModal();
+  renderPlayersPanel();
+  showGamesMessage(`Playing as ${name}`, 1800);
+}
+
+async function renderPlayersPanel() {
+  if (!playersList || typeof HubPlays === "undefined") return;
+  if (playerNameInput && !playerNameInput.value) {
+    playerNameInput.value = HubPlays.getName() || "";
+  }
+  try {
+    await HubPlays.sync();
+  } catch {}
+  const status = HubPlays.getStatus();
+  const countEntries = Object.entries(status.counts || {})
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
+  if (playersTotals) {
+    if (!countEntries.length) {
+      playersTotals.textContent = "No plays logged yet — open a game to appear here.";
+    } else {
+      playersTotals.textContent = countEntries
+        .map(([id, n]) => `${HubPlays.gameLabel(id)}: ${n}`)
+        .join(" · ");
+    }
+  }
+  const plays = status.plays || [];
+  if (!plays.length) {
+    playersList.innerHTML = `<li class="players-empty">No recent players yet.</li>`;
+    return;
+  }
+  playersList.innerHTML = plays
+    .slice(0, 25)
+    .map(
+      (p) =>
+        `<li><span class="players-who"><strong>${escapeHtml(p.name)}</strong> played ${escapeHtml(p.gameName || p.game)}</span><span class="players-when">${HubPlays.formatWhen(p.at)}</span></li>`
+    )
+    .join("");
+}
+
+function escapeHtml(text) {
+  return String(text || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+savePlayerNameBtn?.addEventListener("click", () => savePlayerNameFrom(playerNameInput?.value));
+playerNameSaveBtn?.addEventListener("click", () => savePlayerNameFrom(playerNameModalInput?.value));
+playerNameSkipBtn?.addEventListener("click", () => {
+  savePlayerNameFrom("Player");
+});
+playerNameModalInput?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") savePlayerNameFrom(playerNameModalInput.value);
+});
+playerNameInput?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") savePlayerNameFrom(playerNameInput.value);
 });
 
 function renderAchievementsPanel() {

@@ -452,6 +452,7 @@ function openPauseMenu() {
 
 function startGame() {
   if (window.HubStreak) HubStreak.recordPlay();
+  if (window.HubPlays) HubPlays.record("pixletris");
   resetGame();
   overlay.classList.add("hidden");
   menuMode = "playing";

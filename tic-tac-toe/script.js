@@ -323,6 +323,7 @@ function openPauseMenu() {
 
 function startGame() {
   if (window.HubStreak) HubStreak.recordPlay();
+  if (window.HubPlays) HubPlays.record("tictactoe");
   board = Array(9).fill(EMPTY);
   current = X;
   winLine = null;

@@ -182,6 +182,7 @@ function openPauseMenu() {
 
 function startGame() {
   if (window.HubStreak) HubStreak.recordPlay();
+  if (window.HubPlays) HubPlays.record("memory");
   resetGameState();
   overlay.classList.add("hidden");
   menuMode = "playing";

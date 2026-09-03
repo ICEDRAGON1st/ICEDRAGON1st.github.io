@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <title>My Games</title>
   <script src="site-config.js"></script>
-  <link rel="stylesheet" href="styles.css?v=20260903h">
+  <link rel="stylesheet" href="styles.css?v=20260903i">
 </head>
 <body>
   <div class="app">
@@ -69,6 +69,18 @@
     </div>
   </div>
 
+  <div id="player-name-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="player-name-title">
+    <div class="modal-content">
+      <h2 id="player-name-title">Pick a player name</h2>
+      <p class="modal-subtitle">So the site owner can see who played. Use a nickname — no email needed.</p>
+      <input id="player-name-modal-input" type="text" maxlength="16" placeholder="e.g. Alex" autocomplete="nickname" class="player-name-modal-input">
+      <div class="modal-actions">
+        <button id="player-name-save" type="button" class="modal-btn">Save name</button>
+        <button id="player-name-skip" type="button" class="modal-btn modal-btn-secondary">Skip for now</button>
+      </div>
+    </div>
+  </div>
+
   <div id="whats-new-modal" class="modal whats-new-modal hidden" role="dialog" aria-modal="true" aria-labelledby="whats-new-title">
     <div class="modal-content">
       <h2 id="whats-new-title">What's new</h2>
@@ -97,12 +109,25 @@
         <button id="continue-last-btn" type="button" class="hub-btn hub-btn-primary hidden">Continue last game</button>
         <button id="toggle-scores-btn" type="button" class="hub-btn">High scores</button>
         <button id="toggle-achievements-btn" type="button" class="hub-btn">🏆 Achievements</button>
+        <button id="toggle-players-btn" type="button" class="hub-btn">Players</button>
         <button id="share-moment-btn" type="button" class="hub-btn">Share moment</button>
       </div>
 
       <div id="high-scores-panel" class="high-scores-panel hidden">
         <h3>High scores</h3>
         <ul id="high-scores-list" class="high-scores-list"></ul>
+      </div>
+
+      <div id="players-panel" class="players-panel hidden">
+        <h3>Who's playing</h3>
+        <p class="players-intro">Players pick a nickname. Recent games show up here for everyone.</p>
+        <div class="players-name-row">
+          <label for="player-name-input">Your name</label>
+          <input id="player-name-input" type="text" maxlength="16" placeholder="Enter a nickname" autocomplete="nickname">
+          <button id="save-player-name-btn" type="button" class="hub-btn">Save</button>
+        </div>
+        <p id="players-totals" class="players-totals"></p>
+        <ul id="players-list" class="players-list"></ul>
       </div>
 
       <div id="achievements-panel" class="achievements-panel hidden">
@@ -229,9 +254,9 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260903h";
+    window.WORDLE_BUILD = "20260903i";
     const scripts = [
-      "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js",
+      "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js",
       "words.js",
       "dictionary.js",
       "words-4.js",

@@ -460,6 +460,7 @@ function openPauseMenu() {
 
 function startGame() {
   if (window.HubStreak) HubStreak.recordPlay();
+  if (window.HubPlays) HubPlays.record("sudoku");
   const generated = generatePuzzle();
   puzzle = generated.puzzle;
   solution = generated.solution;

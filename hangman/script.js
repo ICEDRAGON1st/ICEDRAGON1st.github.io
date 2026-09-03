@@ -317,6 +317,7 @@ function setStatus(text, kind = "") {
 
 function startGame() {
   if (window.HubStreak) HubStreak.recordPlay();
+  if (window.HubPlays) HubPlays.record("hangman");
   wordPool = buildPool();
   secret = randomWord();
   guessed = new Set();

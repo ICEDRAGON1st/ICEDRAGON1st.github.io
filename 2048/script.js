@@ -306,6 +306,7 @@ function move(direction) {
 
 function newGame() {
   if (window.HubStreak) HubStreak.recordPlay();
+  if (window.HubPlays) HubPlays.record("2048");
   grid = emptyGrid();
   score = 0;
   won = false;

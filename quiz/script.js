@@ -355,6 +355,7 @@ function timeOutQuestion() {
 
 function startQuiz() {
   if (window.HubStreak) HubStreak.recordPlay();
+  if (window.HubPlays) HubPlays.record("quiz");
   clearAnswerTimers();
   deck = pickDeck();
   index = 0;

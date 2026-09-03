@@ -781,6 +781,99 @@ header h1 {
   background: var(--modal-bg);
 }
 
+.players-panel {
+  margin: 0 0 1.25rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--tile-border);
+  border-radius: 12px;
+  background: var(--modal-bg);
+}
+
+.players-panel h3 {
+  margin: 0 0 0.85rem;
+  font-size: 1.1rem;
+  letter-spacing: 0.04rem;
+}
+
+.players-intro {
+  margin: -0.35rem 0 0.9rem;
+  color: var(--subtitle);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.players-name-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.85rem;
+}
+
+.players-name-row label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--subtitle);
+}
+
+.players-name-row input,
+.player-name-modal-input {
+  flex: 1 1 8rem;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--tile-border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.player-name-modal-input {
+  width: 100%;
+  margin-bottom: 1rem;
+  box-sizing: border-box;
+}
+
+.players-totals {
+  margin: 0 0 0.75rem;
+  color: var(--subtitle);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+.players-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+  max-height: 16rem;
+  overflow-y: auto;
+}
+
+.players-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--tile-border);
+  font-size: 0.9rem;
+}
+
+.players-list li:last-child {
+  border-bottom: none;
+}
+
+.players-when {
+  color: var(--subtitle);
+  white-space: nowrap;
+  font-size: 0.8rem;
+}
+
+.players-empty {
+  color: var(--subtitle);
+}
+
 .achievements-panel h3 {
   margin: 0 0 0.85rem;
   font-size: 1.1rem;

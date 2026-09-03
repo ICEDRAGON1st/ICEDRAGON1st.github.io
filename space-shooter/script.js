@@ -363,6 +363,7 @@ function resumeGame() {
 
 function startGame() {
   if (window.HubStreak) HubStreak.recordPlay();
+  if (window.HubPlays) HubPlays.record("space");
   resetGame();
   overlay.classList.add("hidden");
   paused = false;

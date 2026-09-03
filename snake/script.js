@@ -134,6 +134,7 @@ function resumeGame() {
 
 function startGame() {
   if (window.HubStreak) HubStreak.recordPlay();
+  if (window.HubPlays) HubPlays.record("snake");
   resetGame();
   overlay.classList.add("hidden");
   menuMode = "playing";

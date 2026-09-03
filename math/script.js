@@ -334,6 +334,7 @@ function openPauseMenu() {
 
 function startRound() {
   if (window.HubStreak) HubStreak.recordPlay();
+  if (window.HubPlays) HubPlays.record("math");
   deck = buildDeck();
   index = 0;
   score = 0;

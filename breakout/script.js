@@ -189,6 +189,7 @@ function resumeGame() {
 
 function startGame() {
   if (window.HubStreak) HubStreak.recordPlay();
+  if (window.HubPlays) HubPlays.record("breakout");
   resetGame();
   overlay.classList.add("hidden");
   menuMode = "playing";
