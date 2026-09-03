@@ -9,14 +9,14 @@
   let animId = 0;
 
   function ensureCanvas() {
-    canvas = document.getElementById("confetti") || document.getElementById("hub-confetti");
+    canvas = document.getElementById("hub-confetti") || document.getElementById("confetti");
     if (!canvas) {
       canvas = document.createElement("canvas");
       canvas.id = "hub-confetti";
       canvas.setAttribute("aria-hidden", "true");
-      canvas.style.cssText = "position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:9998;";
-      document.body.appendChild(canvas);
     }
+    canvas.style.cssText = "position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:10050;";
+    document.body.appendChild(canvas);
     ctx = canvas.getContext("2d");
     resize();
   }

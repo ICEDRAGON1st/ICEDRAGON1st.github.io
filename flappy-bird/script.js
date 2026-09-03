@@ -159,12 +159,12 @@ function gameOver() {
   if (isNew) {
     highScore = score;
     saveHighScore();
-    window.HubConfetti?.burst();
   }
   updateHud();
   draw();
   if (window.HubAchievements && score >= 5) HubAchievements.unlock("flappy_score_5");
   window.HubSound?.play("lose");
+  window.HubConfetti?.burst();
   showMenu(
     "over",
     "Game Over",
