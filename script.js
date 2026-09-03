@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260903t": [
+    "Updates list in the Games menu — tap a version to see what changed"
+  ],
   "20260903s": [
     "Lock your username so it can’t be changed until you unlock it"
   ],
@@ -133,9 +136,13 @@ const continueLastBtn = document.getElementById("continue-last-btn");
 const toggleScoresBtn = document.getElementById("toggle-scores-btn");
 const toggleAchievementsBtn = document.getElementById("toggle-achievements-btn");
 const togglePlayersBtn = document.getElementById("toggle-players-btn");
+const toggleUpdatesBtn = document.getElementById("toggle-updates-btn");
 const shareMomentBtn = document.getElementById("share-moment-btn");
 const highScoresPanel = document.getElementById("high-scores-panel");
 const highScoresList = document.getElementById("high-scores-list");
+const updatesPanel = document.getElementById("updates-panel");
+const updatesList = document.getElementById("updates-list");
+const updatesCount = document.getElementById("updates-count");
 const playersPanel = document.getElementById("players-panel");
 const playersList = document.getElementById("players-list");
 const playersTotals = document.getElementById("players-totals");
@@ -538,6 +545,86 @@ function showWhatsNew() {
 function hideWhatsNew() {
   whatsNewModal?.classList.add("hidden");
   markBuildSeen();
+}
+
+function getChangelogEntries() {
+  return Object.keys(CHANGELOG)
+    .filter((id) => Array.isArray(CHANGELOG[id]) && CHANGELOG[id].length)
+    .sort((a, b) => b.localeCompare(a))
+    .map((id) => ({ id, notes: CHANGELOG[id] }));
+}
+
+function formatUpdateBuildLabel(build) {
+  const raw = String(build || "");
+  // 20260903t → Sep 3, 2026
+  const m = raw.match(/^(\d{4})(\d{2})(\d{2})([a-z]?)$/i);
+  if (!m) return raw;
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const month = months[Number(m[2]) - 1] || m[2];
+  const day = String(Number(m[3]));
+  const letter = m[4] ? ` · ${m[4].toUpperCase()}` : "";
+  return `${month} ${day}, ${m[1]}${letter}`;
+}
+
+function countUnseenUpdates() {
+  const seen = getSeenBuild();
+  const current = window.WORDLE_BUILD || "";
+  if (!current || current === seen) return 0;
+  return getChangelogEntries().filter((e) => e.id.localeCompare(seen) > 0).length;
+}
+
+function updateUpdatesButtonLabel(open = false) {
+  if (!toggleUpdatesBtn) return;
+  const unseen = countUnseenUpdates();
+  if (open) {
+    toggleUpdatesBtn.textContent = unseen > 0 ? `Hide updates · ${unseen} new` : "Hide updates";
+  } else {
+    toggleUpdatesBtn.textContent = unseen > 0 ? `Updates · ${unseen} new` : "Updates";
+  }
+}
+
+function renderUpdatesPanel() {
+  if (!updatesList) return;
+  const entries = getChangelogEntries();
+  const seen = getSeenBuild();
+  const current = window.WORDLE_BUILD || "";
+  if (updatesCount) updatesCount.textContent = `${entries.length}`;
+
+  if (!entries.length) {
+    updatesList.innerHTML = `<li class="updates-empty">No updates listed yet.</li>`;
+    updateUpdatesButtonLabel(!updatesPanel?.classList.contains("hidden"));
+    return;
+  }
+
+  updatesList.innerHTML = entries
+    .map((entry, index) => {
+      const isLatest = entry.id === current || index === 0;
+      const isUnseen = entry.id.localeCompare(seen) > 0;
+      const badges = [
+        isLatest ? `<span class="updates-badge is-latest">Latest</span>` : "",
+        isUnseen ? `<span class="updates-badge is-new">New</span>` : ""
+      ]
+        .filter(Boolean)
+        .join("");
+      const notes = entry.notes
+        .map((note) => `<li>${escapeHtml(note)}</li>`)
+        .join("");
+      return `<li class="updates-item${isUnseen ? " is-unseen" : ""}">
+        <details ${isLatest ? "open" : ""}>
+          <summary>
+            <span class="updates-summary-main">
+              <span class="updates-build">${escapeHtml(formatUpdateBuildLabel(entry.id))}</span>
+              <span class="updates-build-id">${escapeHtml(entry.id)}</span>
+            </span>
+            <span class="updates-badges">${badges}</span>
+          </summary>
+          <ul class="updates-notes">${notes}</ul>
+        </details>
+      </li>`;
+    })
+    .join("");
+
+  updateUpdatesButtonLabel(!updatesPanel?.classList.contains("hidden"));
 }
 
 function applySiteConfig() {
@@ -969,6 +1056,7 @@ function showGamesScreen() {
   if (window.HubPlays) HubPlays.sync().catch(() => {});
   refreshOnlineCount();
   startOnlineCountPolling();
+  updateUpdatesButtonLabel(false);
 }
 
 function hideGamesScreen() {
@@ -1524,6 +1612,17 @@ toggleAchievementsBtn?.addEventListener("click", () => {
   const open = achievementsPanel.classList.toggle("hidden") === false;
   toggleAchievementsBtn.textContent = open ? "Hide achievements" : "🏆 Achievements";
   if (open) renderAchievementsPanel();
+});
+
+toggleUpdatesBtn?.addEventListener("click", () => {
+  if (!updatesPanel) return;
+  const open = updatesPanel.classList.toggle("hidden") === false;
+  if (open) {
+    renderUpdatesPanel();
+    markBuildSeen();
+    renderUpdatesPanel();
+  }
+  updateUpdatesButtonLabel(open);
 });
 
 togglePlayersBtn?.addEventListener("click", () => {

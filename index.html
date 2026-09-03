@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <title>My Games</title>
   <script src="site-config.js"></script>
-  <link rel="stylesheet" href="styles.css?v=20260903s">
+  <link rel="stylesheet" href="styles.css?v=20260903t">
 </head>
 <body>
   <div class="app">
@@ -111,12 +111,19 @@
         <button id="toggle-scores-btn" type="button" class="hub-btn">High scores</button>
         <button id="toggle-achievements-btn" type="button" class="hub-btn">🏆 Achievements</button>
         <button id="toggle-players-btn" type="button" class="hub-btn">Players</button>
+        <button id="toggle-updates-btn" type="button" class="hub-btn">Updates</button>
         <button id="share-moment-btn" type="button" class="hub-btn">Share moment</button>
       </div>
 
       <div id="high-scores-panel" class="high-scores-panel hidden">
         <h3>High scores</h3>
         <ul id="high-scores-list" class="high-scores-list"></ul>
+      </div>
+
+      <div id="updates-panel" class="updates-panel hidden">
+        <h3>Updates <span id="updates-count" class="updates-count"></span></h3>
+        <p class="updates-intro">Tap a version to see what changed. Newest are at the top.</p>
+        <ul id="updates-list" class="updates-list"></ul>
       </div>
 
       <div id="players-panel" class="players-panel hidden">
@@ -265,7 +272,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260903s";
+    window.WORDLE_BUILD = "20260903t";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js",
       "words.js",

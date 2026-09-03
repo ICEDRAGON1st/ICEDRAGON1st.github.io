@@ -781,6 +781,135 @@ header h1 {
   background: var(--modal-bg);
 }
 
+.updates-panel {
+  margin: 0 0 1.25rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--tile-border);
+  border-radius: 12px;
+  background: var(--modal-bg);
+}
+
+.updates-panel h3 {
+  margin: 0 0 0.85rem;
+  font-size: 1.1rem;
+  letter-spacing: 0.04rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.updates-count {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--subtitle);
+  background: var(--tile-border);
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+}
+
+.updates-intro {
+  margin: -0.35rem 0 0.9rem;
+  color: var(--subtitle);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.updates-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.updates-item details {
+  border: 1px solid var(--tile-border);
+  border-radius: 10px;
+  background: var(--bg);
+  overflow: hidden;
+}
+
+.updates-item.is-unseen details {
+  border-color: #1c7ed6;
+}
+
+.updates-item summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+}
+
+.updates-item summary::-webkit-details-marker {
+  display: none;
+}
+
+.updates-summary-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.updates-build {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.updates-build-id {
+  font-size: 0.75rem;
+  color: var(--subtitle);
+}
+
+.updates-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
+.updates-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  padding: 0.15rem 0.45rem;
+  background: var(--tile-border);
+  color: var(--subtitle);
+}
+
+.updates-badge.is-latest {
+  background: rgba(28, 126, 214, 0.18);
+  color: #1c7ed6;
+}
+
+.updates-badge.is-new {
+  background: rgba(47, 158, 68, 0.18);
+  color: #2f9e44;
+}
+
+.updates-notes {
+  margin: 0;
+  padding: 0 0.85rem 0.75rem 1.6rem;
+  color: var(--text);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.updates-notes li + li {
+  margin-top: 0.35rem;
+}
+
+.updates-empty {
+  color: var(--subtitle);
+  font-size: 0.9rem;
+}
+
 .players-panel {
   margin: 0 0 1.25rem;
   padding: 1rem 1.1rem;
