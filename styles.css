@@ -71,6 +71,37 @@ header h1 {
   font-weight: 700;
 }
 
+.header-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.mode-badge {
+  appearance: none;
+  border: 1px solid var(--tile-border);
+  background: transparent;
+  color: var(--subtitle);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.22rem 0.6rem;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.mode-badge.is-daily {
+  border-color: var(--correct);
+  color: var(--correct);
+}
+
+.mode-badge:hover {
+  background: var(--tile-border);
+}
+
 .hint-btn,
 .menu-btn,
 .lang-btn,
@@ -871,7 +902,12 @@ header h1 {
   }
 
   header h1 {
-    font-size: clamp(1.4rem, 7vw, 2rem);
+    font-size: clamp(1.25rem, 6vw, 1.85rem);
+  }
+
+  .mode-badge {
+    font-size: 0.62rem;
+    padding: 0.18rem 0.5rem;
   }
 
   .message {

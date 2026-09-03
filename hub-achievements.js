@@ -19,6 +19,7 @@
     { id: "wordle_guess_2",      emoji: "⚡", name: "Sharp Mind",      desc: "Win a Wordle in 2 guesses or fewer" },
     { id: "wordle_guess_1",      emoji: "🎯", name: "Lucky Shot",      desc: "Win a Wordle in 1 guess" },
     { id: "wordle_win_5",        emoji: "📚", name: "Word Nerd",        desc: "Win 5 Wordles" },
+    { id: "wordle_daily",        emoji: "📅", name: "Daily Solver",     desc: "Solve today's Daily Wordle" },
     // Streaks
     { id: "streak_3",            emoji: "🔥", name: "On Fire",         desc: "Reach a 3-day streak" },
     { id: "streak_7",            emoji: "🏅", name: "Dedicated",       desc: "Reach a 7-day streak" },

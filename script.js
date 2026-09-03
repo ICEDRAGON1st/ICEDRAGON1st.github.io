@@ -7,8 +7,14 @@ const LENGTH_KEY = "wordle-length";
 const HUB_FAVORITES_KEY = "hub-favorites";
 const HUB_LAST_GAME_KEY = "hub-last-game";
 const SEEN_BUILD_KEY = "wordle-seen-build";
+const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260903e": [
+    "Daily Wordle — everyone gets the same word each day",
+    "Practice mode still lets you play extra random words",
+    "Share today's colored-square result from the menu"
+  ],
   "20260903d": [
     "Achievements across all games — unlock badges as you play",
     "New Achievements button in the games hub",
@@ -91,6 +97,9 @@ const hintBtn = document.getElementById("hint-btn");
 const langBtn = document.getElementById("lang-btn");
 const themeBtn = document.getElementById("theme-btn");
 const lengthBtn = document.getElementById("length-btn");
+const modeBtn = document.getElementById("mode-btn");
+const menuDailyBtn = document.getElementById("menu-daily");
+const menuShareDailyBtn = document.getElementById("menu-share-daily");
 
 const KEYBOARD_EN = [
   ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
@@ -118,6 +127,7 @@ const LENGTHS = [4, 5, 6];
 let currentLang = localStorage.getItem(LANG_KEY) || "en";
 const savedLength = Number(localStorage.getItem(LENGTH_KEY));
 let currentLength = LENGTHS.includes(savedLength) ? savedLength : 5;
+let playMode = localStorage.getItem(MODE_KEY) === "practice" ? "practice" : "daily";
 let COLS = currentLength;
 let state = loadState();
 let confettiAnimationId = null;
@@ -194,7 +204,7 @@ function switchLength() {
   COLS = currentLength;
   localStorage.setItem(LENGTH_KEY, String(currentLength));
   updateLengthButton();
-  startNewGame();
+  reloadBoard();
 }
 
 function applyTheme(theme) {
@@ -214,10 +224,35 @@ function switchLanguage() {
   currentLang = LANGUAGES[(idx + 1) % LANGUAGES.length];
   localStorage.setItem(LANG_KEY, currentLang);
   updateLangButton();
-  startNewGame();
+  reloadBoard();
 }
 
 const CONFETTI_COLORS = ["#538d4e", "#b59f3b", "#ffffff", "#6aaa64", "#c9b458", "#ff6b6b"];
+
+function todayLocal() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function formatDailyShort(dateStr) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric"
+  });
+}
+
+function hashSeed(str) {
+  let h = 2166136261;
+  for (let i = 0; i < str.length; i++) {
+    h ^= str.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
 
 function createEmptyBoard() {
   return Array.from({ length: ROWS }, () =>
@@ -228,6 +263,41 @@ function createEmptyBoard() {
 function pickSecretWord() {
   const words = getWordList();
   return words[Math.floor(Math.random() * words.length)];
+}
+
+function pickDailyWord() {
+  const words = getWordList();
+  if (!words.length) return pickSecretWord();
+  const seed = hashSeed(`wordle-daily|${todayLocal()}|${currentLang}|${currentLength}`);
+  return words[seed % words.length];
+}
+
+function isDailyMode() {
+  return playMode === "daily";
+}
+
+function setPlayMode(mode) {
+  playMode = mode === "practice" ? "practice" : "daily";
+  localStorage.setItem(MODE_KEY, playMode);
+}
+
+function updateModeButton() {
+  if (!modeBtn) return;
+  if (isDailyMode()) {
+    modeBtn.textContent = `Daily · ${formatDailyShort(todayLocal())}`;
+    modeBtn.classList.add("is-daily");
+    modeBtn.title = "Playing today's shared word. Tap to switch to Practice.";
+  } else {
+    modeBtn.textContent = "Practice";
+    modeBtn.classList.remove("is-daily");
+    modeBtn.title = "Random words. Tap to play today's Daily Wordle.";
+  }
+}
+
+function togglePlayMode() {
+  setPlayMode(isDailyMode() ? "practice" : "daily");
+  reloadBoard();
+  showMessage(isDailyMode() ? "Today's Daily Wordle" : "Practice mode");
 }
 
 function loadState() {
@@ -241,7 +311,8 @@ function loadState() {
         parsed.board &&
         typeof parsed.currentRow === "number" &&
         typeof parsed.currentCol === "number" &&
-        parsed.gameStatus
+        parsed.gameStatus &&
+        (!isDailyMode() || parsed.dailyDate === todayLocal())
       ) {
         return parsed;
       }
@@ -254,16 +325,20 @@ function loadState() {
 
 function newGameState() {
   return {
-    secretWord: pickSecretWord(),
+    secretWord: isDailyMode() ? pickDailyWord() : pickSecretWord(),
     board: createEmptyBoard(),
     currentRow: 0,
     currentCol: 0,
     gameStatus: "playing",
-    keyStates: {}
+    keyStates: {},
+    dailyDate: isDailyMode() ? todayLocal() : null
   };
 }
 
 function storageKey() {
+  if (isDailyMode()) {
+    return `${STORAGE_KEY}-daily-${currentLang}-${currentLength}-${todayLocal()}`;
+  }
   return `${STORAGE_KEY}-${currentLang}-${currentLength}`;
 }
 
@@ -401,19 +476,29 @@ function showMenu() {
   const stats = loadStats();
   const won = state.gameStatus === "won";
   const lost = state.gameStatus === "lost";
+  const finished = won || lost;
 
   if (won) {
-    menuTitle.textContent = "You Won!";
+    menuTitle.textContent = isDailyMode() ? "Daily solved!" : "You Won!";
     menuSubtitle.textContent = getWinMessage(Math.max(0, state.currentRow));
   } else if (lost) {
-    menuTitle.textContent = "Game Over";
+    menuTitle.textContent = isDailyMode() ? "Daily complete" : "Game Over";
     menuSubtitle.textContent = `The word was ${state.secretWord.toUpperCase()}`;
+  } else if (isDailyMode()) {
+    menuTitle.textContent = "Daily Wordle";
+    menuSubtitle.textContent = `Today's shared ${currentLength}-letter word · ${currentLang.toUpperCase()}. Same for everyone.`;
   } else {
     menuTitle.textContent = "Menu";
-    menuSubtitle.textContent = "Resume your game or start a new word.";
+    menuSubtitle.textContent = "Resume your practice game or start a new word.";
   }
 
   menuResumeBtn.classList.toggle("hidden", won);
+  if (menuNewWordBtn) {
+    menuNewWordBtn.textContent = isDailyMode() ? "Practice" : "New Word";
+  }
+  menuDailyBtn?.classList.toggle("hidden", isDailyMode());
+  menuShareDailyBtn?.classList.toggle("hidden", !(isDailyMode() && finished));
+
   statWins.textContent = stats.wins;
   statWinPct.textContent = getWinPercent(stats);
   statStreak.textContent = stats.currentStreak;
@@ -456,16 +541,44 @@ function formatSeconds(total) {
   return m > 0 ? `${m}:${String(r).padStart(2, "0")}` : `${r}s`;
 }
 
+function getTodayDailyHubLabel() {
+  const today = todayLocal();
+  const prefix = `${STORAGE_KEY}-daily-`;
+  const suffix = `-${today}`;
+  let inProgress = false;
+  let lost = false;
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key || !key.startsWith(prefix) || !key.endsWith(suffix)) continue;
+      const data = readJsonKey(key);
+      if (!data) continue;
+      if (data.gameStatus === "won") return "Daily solved";
+      if (data.gameStatus === "lost") lost = true;
+      if (data.gameStatus === "playing" && data.currentRow > 0) inProgress = true;
+    }
+  } catch {
+    return "";
+  }
+  if (lost) return "Daily finished";
+  if (inProgress) return "Daily in progress";
+  return "";
+}
+
 function getHubScore(gameId) {
   switch (gameId) {
     case "wordle": {
       const stats = readJsonKey(STATS_KEY, null);
-      if (!stats || !stats.gamesPlayed) return { label: "No games yet", sort: 0 };
+      const daily = getTodayDailyHubLabel();
+      if (!stats || !stats.gamesPlayed) {
+        return { label: daily || "No games yet", sort: 0 };
+      }
       const pct = stats.gamesPlayed
         ? Math.round((stats.wins / stats.gamesPlayed) * 100)
         : 0;
+      const base = `${stats.wins} wins · ${pct}% · streak ${stats.currentStreak || 0}`;
       return {
-        label: `${stats.wins} wins · ${pct}% · streak ${stats.currentStreak || 0}`,
+        label: daily ? `${daily} · ${base}` : base,
         sort: stats.wins || 0
       };
     }
@@ -804,6 +917,9 @@ function selectGame(gameId) {
   }
 
   if (!game.path) {
+    setPlayMode("daily");
+    reloadBoard();
+    hideMenu();
     hideGamesScreen();
     return;
   }
@@ -925,11 +1041,21 @@ function getUnusedAbsentLetters() {
 }
 
 function updateHintButton() {
-  const available = state.gameStatus === "playing" && getUnusedAbsentLetters().length > 0;
+  const available =
+    !isDailyMode() &&
+    state.gameStatus === "playing" &&
+    getUnusedAbsentLetters().length > 0;
   hintBtn.disabled = !available;
+  hintBtn.title = isDailyMode()
+    ? "Hints are off for Daily Wordle"
+    : "Reveal a letter not in the word";
 }
 
 function useHint() {
+  if (isDailyMode()) {
+    showMessage("No hints on Daily Wordle", true);
+    return;
+  }
   if (state.gameStatus !== "playing" || isMenuOpen()) return;
 
   const candidates = getUnusedAbsentLetters();
@@ -1019,6 +1145,7 @@ function handleWin(row) {
     if (row === 0) HubAchievements.unlock("wordle_guess_1");
     if (row <= 1) HubAchievements.unlock("wordle_guess_2");
     if (stats.wins >= 5) HubAchievements.unlock("wordle_win_5");
+    if (isDailyMode()) HubAchievements.unlock("wordle_daily");
   }
   showMessage(getWinMessage(row), false, 0);
   saveState();
@@ -1232,7 +1359,8 @@ function injectShakeAnimation() {
   document.head.appendChild(style);
 }
 
-function startNewGame() {
+function startPracticeGame() {
+  setPlayMode("practice");
   stopConfetti();
   submitting = false;
   hideMenu();
@@ -1240,9 +1368,27 @@ function startNewGame() {
   state = newGameState();
   saveState();
   render();
+  updateModeButton();
   messageEl.classList.remove("visible");
   messageEl.textContent = "";
-  showMessage("New game started");
+  showMessage("Practice game started");
+}
+
+function goToDaily() {
+  setPlayMode("daily");
+  reloadBoard();
+  hideMenu();
+  hideGamesScreen();
+  showMessage("Today's Daily Wordle");
+}
+
+function reloadBoard() {
+  stopConfetti();
+  submitting = false;
+  state = loadState();
+  saveState();
+  render();
+  updateModeButton();
 }
 
 function resumeGame() {
@@ -1250,17 +1396,57 @@ function resumeGame() {
   hideGamesScreen();
 }
 
+function buildDailyShareText() {
+  const cfg = window.SITE_CONFIG || { name: "My Games" };
+  const guesses = state.gameStatus === "won" ? state.currentRow + 1 : "X";
+  const rows = state.board
+    .filter((row) => row.some((cell) => cell.status))
+    .map((row) =>
+      row
+        .map((cell) => {
+          if (cell.status === "correct") return "🟩";
+          if (cell.status === "present") return "🟨";
+          return "⬛";
+        })
+        .join("")
+    )
+    .join("\n");
+  return `${cfg.name} Daily ${currentLength}\n${guesses}/${ROWS}\n${rows}`;
+}
+
+async function shareDailyResult() {
+  const text = buildDailyShareText();
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: "Daily Wordle", text });
+      showMessage("Shared!");
+      return;
+    }
+  } catch {
+    // clipboard fallback
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    showMessage("Result copied");
+  } catch {
+    showMessage("Sharing not available", true);
+  }
+}
+
 injectShakeAnimation();
 resizeConfettiCanvas();
 window.addEventListener("resize", resizeConfettiCanvas);
 updateLangButton();
 updateLengthButton();
+updateModeButton();
 applyTheme(localStorage.getItem(THEME_KEY) || "dark");
 render();
 document.addEventListener("keydown", handlePhysicalKeyboard);
 menuBtn.addEventListener("click", () => showMenu());
 menuResumeBtn.addEventListener("click", () => resumeGame());
-menuNewWordBtn.addEventListener("click", () => startNewGame());
+menuNewWordBtn.addEventListener("click", () => startPracticeGame());
+menuDailyBtn?.addEventListener("click", () => goToDaily());
+menuShareDailyBtn?.addEventListener("click", () => shareDailyResult());
 menuGamesBtn.addEventListener("click", () => showGamesScreen());
 gamesBackBtn.addEventListener("click", () => backFromGames());
 continueLastBtn?.addEventListener("click", () => {
@@ -1357,6 +1543,7 @@ hintBtn.addEventListener("click", () => useHint());
 langBtn.addEventListener("click", () => switchLanguage());
 themeBtn.addEventListener("click", () => toggleTheme());
 lengthBtn.addEventListener("click", () => switchLength());
+modeBtn?.addEventListener("click", () => togglePlayMode());
 
 // Confirm the newest files loaded (helps when browser cache sticks).
 const sixCount = typeof WORDS_6 !== "undefined" ? WORDS_6.length : 0;
