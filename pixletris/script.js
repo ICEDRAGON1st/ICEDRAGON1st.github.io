@@ -400,6 +400,7 @@ function gameOver() {
   if (isNew) {
     highScore = score;
     saveHighScore();
+    window.HubConfetti?.burst();
   }
   updateHud();
   messageEl.textContent = "Game over!";

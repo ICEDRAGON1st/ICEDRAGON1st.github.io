@@ -10,6 +10,10 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260903h": [
+    "Confetti on wins in every game",
+    "New high scores also get a confetti burst"
+  ],
   "20260903g": [
     "Sound effects in every game — shared mute button",
     "Mute choice is remembered across the whole site"
@@ -68,7 +72,6 @@ const HUB_GAMES = [
 const boardEl = document.getElementById("board");
 const keyboardEl = document.getElementById("keyboard");
 const messageEl = document.getElementById("message");
-const confettiCanvas = document.getElementById("confetti");
 const menuModal = document.getElementById("menu-modal");
 const menuTitle = document.getElementById("menu-title");
 const menuSubtitle = document.getElementById("menu-subtitle");
@@ -138,7 +141,6 @@ let currentLength = LENGTHS.includes(savedLength) ? savedLength : 5;
 let playMode = localStorage.getItem(MODE_KEY) === "practice" ? "practice" : "daily";
 let COLS = currentLength;
 let state = loadState();
-let confettiAnimationId = null;
 let submitting = false;
 
 function getKeyboardRows() {
@@ -238,8 +240,6 @@ function switchLanguage() {
   updateLangButton();
   reloadBoard();
 }
-
-const CONFETTI_COLORS = ["#538d4e", "#b59f3b", "#ffffff", "#6aaa64", "#c9b458", "#ff6b6b"];
 
 function todayLocal() {
   const d = new Date();
@@ -1166,7 +1166,6 @@ function handleWin(row) {
   saveState();
   renderKeyboard();
   updateHintButton();
-  launchConfetti();
   playSound("win");
   setTimeout(checkPendingAchievements, 600);
   showMenu();
@@ -1184,67 +1183,12 @@ function handleLoss() {
   showMenu();
 }
 
-function resizeConfettiCanvas() {
-  confettiCanvas.width = window.innerWidth;
-  confettiCanvas.height = window.innerHeight;
-}
-
 function stopConfetti() {
-  if (confettiAnimationId) {
-    cancelAnimationFrame(confettiAnimationId);
-    confettiAnimationId = null;
-  }
-  const ctx = confettiCanvas.getContext("2d");
-  ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+  window.HubConfetti?.stop();
 }
 
 function launchConfetti() {
-  stopConfetti();
-  resizeConfettiCanvas();
-
-  const ctx = confettiCanvas.getContext("2d");
-  const particles = Array.from({ length: 160 }, () => ({
-    x: Math.random() * confettiCanvas.width,
-    y: Math.random() * confettiCanvas.height - confettiCanvas.height,
-    size: Math.random() * 8 + 4,
-    color: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)],
-    tilt: Math.random() * Math.PI,
-    tiltSpeed: (Math.random() - 0.5) * 0.2,
-    velocityX: (Math.random() - 0.5) * 3,
-    velocityY: Math.random() * 3 + 2,
-    rotation: Math.random() * Math.PI * 2,
-    rotationSpeed: (Math.random() - 0.5) * 0.25
-  }));
-
-  const startTime = performance.now();
-  const duration = 2800;
-
-  function animate(now) {
-    ctx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
-
-    for (const p of particles) {
-      p.x += p.velocityX;
-      p.y += p.velocityY;
-      p.velocityY += 0.08;
-      p.tilt += p.tiltSpeed;
-      p.rotation += p.rotationSpeed;
-
-      ctx.save();
-      ctx.translate(p.x, p.y);
-      ctx.rotate(p.rotation);
-      ctx.fillStyle = p.color;
-      ctx.fillRect(-p.size / 2, -p.size / 4, p.size, p.size / 2);
-      ctx.restore();
-    }
-
-    if (now - startTime < duration) {
-      confettiAnimationId = requestAnimationFrame(animate);
-    } else {
-      stopConfetti();
-    }
-  }
-
-  confettiAnimationId = requestAnimationFrame(animate);
+  window.HubConfetti?.burst();
 }
 
 function shakeRow(rowIndex) {
@@ -1454,8 +1398,6 @@ async function shareDailyResult() {
 }
 
 injectShakeAnimation();
-resizeConfettiCanvas();
-window.addEventListener("resize", resizeConfettiCanvas);
 updateLangButton();
 updateLengthButton();
 updateModeButton();

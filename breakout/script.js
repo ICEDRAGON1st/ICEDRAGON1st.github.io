@@ -208,6 +208,7 @@ function loseLife() {
   window.HubSound?.play(lives <= 0 ? "lose" : "error");
   if (lives <= 0) {
     const isNew = maybeUpdateHighScore();
+    if (isNew) window.HubConfetti?.burst();
     showMenu(
       "gameover",
       "Game Over",
@@ -320,6 +321,7 @@ function update(dt) {
 
     if (bricks.every((b) => !b.alive)) {
       window.HubSound?.play("clear");
+      window.HubConfetti?.burst({ count: 100, duration: 2000 });
       score += 100;
       maybeUpdateHighScore();
       updateHud();

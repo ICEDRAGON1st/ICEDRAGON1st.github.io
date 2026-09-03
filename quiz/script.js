@@ -446,6 +446,7 @@ function finishQuiz() {
   if (isNew) {
     highScore = score;
     saveHighScore();
+    window.HubConfetti?.burst();
   }
   updateHighScoreUi();
 

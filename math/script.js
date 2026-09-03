@@ -290,6 +290,7 @@ function finishRound() {
   if (isNew) {
     highScore = score;
     saveHighScore();
+    window.HubConfetti?.burst();
   }
   updateHud();
 

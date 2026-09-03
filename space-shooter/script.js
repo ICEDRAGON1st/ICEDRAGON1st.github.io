@@ -458,6 +458,7 @@ function hitPlayer() {
   window.HubSound?.play(lives <= 0 ? "lose" : "hit");
   if (lives <= 0) {
     const isNewHigh = maybeUpdateHighScore();
+    if (isNewHigh) window.HubConfetti?.burst();
     const highText = isNewHigh
       ? `New high score: ${highScore}!`
       : `High score: ${highScore}.`;

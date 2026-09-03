@@ -63,6 +63,7 @@
       [523, 659, 784, 1046].forEach((freq, i) => {
         tone({ freq, dur: 0.16, type: "triangle", vol: 0.07, delay: i * 0.11 });
       });
+      window.HubConfetti?.burst();
     } else if (kind === "lose") {
       [330, 247, 196].forEach((freq, i) => {
         tone({ freq, dur: 0.2, type: "triangle", vol: 0.06, delay: i * 0.14 });
@@ -74,6 +75,7 @@
       [659, 784, 988].forEach((freq, i) => {
         tone({ freq, dur: 0.12, type: "triangle", vol: 0.06, delay: i * 0.08 });
       });
+      window.HubConfetti?.burst({ count: 90, duration: 1800 });
     } else if (kind === "eat" || kind === "match") {
       tone({ freq: 640, dur: 0.07, type: "triangle", vol: 0.06 });
       tone({ freq: 820, dur: 0.08, type: "triangle", vol: 0.05, delay: 0.05 });

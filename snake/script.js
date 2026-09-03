@@ -157,9 +157,10 @@ function gameOver() {
   running = false;
   menuMode = "gameover";
   const isNew = score > highScore;
-  if (isNew) {
+    if (isNew) {
     highScore = score;
     saveHighScore();
+    window.HubConfetti?.burst();
   }
   updateHud();
   if (window.HubAchievements) {
