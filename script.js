@@ -10,6 +10,10 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260903k": [
+    "See how many players are online right now",
+    "Online count refreshes every minute"
+  ],
   "20260903j": [
     "Player nicknames are unique — once taken, nobody else can use that name",
     "Case does not matter (ICE_DRAGON and ice_dragon are the same)"
@@ -917,6 +921,8 @@ function showGamesScreen() {
   setTimeout(checkPendingAchievements, 400);
   maybeAskPlayerName();
   if (window.HubPlays) HubPlays.sync().catch(() => {});
+  refreshOnlineCount();
+  startOnlineCountPolling();
 }
 
 function hideGamesScreen() {
@@ -1453,7 +1459,9 @@ toggleAchievementsBtn?.addEventListener("click", () => {
 togglePlayersBtn?.addEventListener("click", () => {
   if (!playersPanel) return;
   const open = playersPanel.classList.toggle("hidden") === false;
-  togglePlayersBtn.textContent = open ? "Hide players" : "Players";
+  updateOnlineCountDisplay(
+    typeof HubPlays !== "undefined" ? HubPlays.getOnlineCount() : 0
+  );
   if (open) {
     maybeAskPlayerName();
     renderPlayersPanel();
@@ -1523,6 +1531,42 @@ async function savePlayerNameFrom(value, opts = {}) {
   }
 }
 
+function updateOnlineCountDisplay(count) {
+  const onlineEl = document.getElementById("players-online");
+  const n = Math.max(0, Number(count) || 0);
+  if (onlineEl) {
+    onlineEl.textContent = n === 1 ? "1 online" : `${n} online`;
+    onlineEl.classList.toggle("is-empty", n === 0);
+  }
+  if (togglePlayersBtn) {
+    const open = playersPanel && !playersPanel.classList.contains("hidden");
+    togglePlayersBtn.textContent = open
+      ? `Hide players · ${n}`
+      : `Players · ${n}`;
+  }
+}
+
+async function refreshOnlineCount() {
+  if (typeof HubPlays === "undefined") return;
+  try {
+    const n = await HubPlays.heartbeat();
+    updateOnlineCountDisplay(n);
+  } catch {
+    updateOnlineCountDisplay(HubPlays.getOnlineCount());
+  }
+}
+
+let onlineCountTimer = null;
+function startOnlineCountPolling() {
+  if (onlineCountTimer) return;
+  onlineCountTimer = setInterval(() => {
+    refreshOnlineCount();
+    if (playersPanel && !playersPanel.classList.contains("hidden")) {
+      renderPlayersPanel();
+    }
+  }, 60_000);
+}
+
 async function renderPlayersPanel() {
   if (!playersList || typeof HubPlays === "undefined") return;
   if (playerNameInput && !playerNameInput.value) {
@@ -1530,6 +1574,9 @@ async function renderPlayersPanel() {
   }
   try {
     await HubPlays.sync();
+  } catch {}
+  try {
+    await refreshOnlineCount();
   } catch {}
   const status = HubPlays.getStatus();
   const countEntries = Object.entries(status.counts || {})

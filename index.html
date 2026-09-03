@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <title>My Games</title>
   <script src="site-config.js"></script>
-  <link rel="stylesheet" href="styles.css?v=20260903j">
+  <link rel="stylesheet" href="styles.css?v=20260903k">
 </head>
 <body>
   <div class="app">
@@ -120,8 +120,8 @@
       </div>
 
       <div id="players-panel" class="players-panel hidden">
-        <h3>Who's playing</h3>
-        <p class="players-intro">Nicknames are unique (case doesn’t matter). Recent games show up here for everyone.</p>
+        <h3>Who's playing <span id="players-online" class="players-online" aria-live="polite"></span></h3>
+        <p class="players-intro">Nicknames are unique (case doesn’t matter). Online count updates every minute.</p>
         <div class="players-name-row">
           <label for="player-name-input">Your name</label>
           <input id="player-name-input" type="text" maxlength="16" placeholder="Enter a nickname" autocomplete="nickname">
@@ -256,7 +256,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260903j";
+    window.WORDLE_BUILD = "20260903k";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js",
       "words.js",

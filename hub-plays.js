@@ -10,10 +10,16 @@
   const NS = "icedragon1st-mygames";
   const PLAYS_PATH = "plays-log";
   const NAMES_PATH = "name-registry";
+  const PRESENCE_PATH = "presence";
   const PLAYS_API = `https://mantledb.sh/v2/${NS}/${PLAYS_PATH}`;
   const NAMES_API = `https://mantledb.sh/v2/${NS}/${NAMES_PATH}`;
+  const PRESENCE_API = `https://mantledb.sh/v2/${NS}/${PRESENCE_PATH}`;
   const MAX_PLAYS = 60;
   const SYNC_GAP_MS = 4000;
+  const HEARTBEAT_MS = 60_000;
+  const ONLINE_TTL_MS = 150_000; // count as online for ~2.5 min
+  const PRESENCE_KEEP_MS = 10 * 60_000;
+  const MAX_PRESENCE = 120;
 
   const GAME_NAMES = {
     wordle: "Wordle",
@@ -36,6 +42,9 @@
   let lastSync = 0;
   let cache = { plays: [], counts: {} };
   let namesCache = {};
+  let presenceCache = {};
+  let presenceTimer = null;
+  let heartbeatBusy = false;
 
   function sanitizeName(raw) {
     return String(raw || "")
@@ -369,7 +378,113 @@
     return `${days}d ago`;
   }
 
+  async function fetchPresenceRemote() {
+    const data = await fetchJson(PRESENCE_API);
+    if (!data || typeof data !== "object") return {};
+    const players = data.players && typeof data.players === "object" ? data.players : data;
+    const out = {};
+    Object.entries(players).forEach(([id, p]) => {
+      if (!id || !p || typeof p !== "object") return;
+      const at = Number(p.at) || 0;
+      if (!at) return;
+      out[id] = { at, name: sanitizeName(p.name || "") || "Guest" };
+    });
+    return out;
+  }
+
+  async function pushPresenceRemote(players) {
+    await postJson(PRESENCE_API, { players });
+  }
+
+  function mergePresence(a, b) {
+    const out = { ...(a || {}) };
+    Object.entries(b || {}).forEach(([id, p]) => {
+      if (!p) return;
+      const existing = out[id];
+      if (!existing || (p.at || 0) >= (existing.at || 0)) out[id] = p;
+    });
+    return out;
+  }
+
+  function prunePresence(map, now = Date.now()) {
+    const entries = Object.entries(map || {})
+      .filter(([, p]) => p && now - (p.at || 0) < PRESENCE_KEEP_MS)
+      .sort((a, b) => (b[1].at || 0) - (a[1].at || 0))
+      .slice(0, MAX_PRESENCE);
+    const out = {};
+    entries.forEach(([id, p]) => {
+      out[id] = p;
+    });
+    return out;
+  }
+
+  function countOnline(map, now = Date.now()) {
+    return Object.values(map || {}).filter((p) => p && now - (p.at || 0) < ONLINE_TTL_MS).length;
+  }
+
+  function getOnlineCount() {
+    return countOnline(presenceCache);
+  }
+
+  /**
+   * Ping the shared presence store. Returns current online count.
+   */
+  async function heartbeat() {
+    if (heartbeatBusy) return getOnlineCount();
+    heartbeatBusy = true;
+    try {
+      const me = getPlayerId();
+      let remote = {};
+      try {
+        remote = await fetchPresenceRemote();
+      } catch {
+        return getOnlineCount();
+      }
+
+      const now = Date.now();
+      const next = prunePresence(
+        mergePresence(remote, {
+          [me]: { at: now, name: getName() || "Guest" }
+        }),
+        now
+      );
+
+      try {
+        await pushPresenceRemote(next);
+      } catch {
+        presenceCache = mergePresence(presenceCache, next);
+        return countOnline(presenceCache, now);
+      }
+
+      // Reconcile races: keep newest ping per player
+      let confirmed = next;
+      try {
+        confirmed = prunePresence(mergePresence(next, await fetchPresenceRemote()), now);
+        await pushPresenceRemote(confirmed);
+      } catch {
+        confirmed = next;
+      }
+
+      presenceCache = confirmed;
+      return countOnline(confirmed, now);
+    } finally {
+      heartbeatBusy = false;
+    }
+  }
+
+  function startPresence() {
+    if (presenceTimer) return;
+    heartbeat().catch(() => {});
+    presenceTimer = setInterval(() => {
+      heartbeat().catch(() => {});
+    }, HEARTBEAT_MS);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) heartbeat().catch(() => {});
+    });
+  }
+
   getPlayerId();
+  startPresence();
 
   window.HubPlays = {
     getName,
@@ -383,6 +498,9 @@
     gameLabel,
     formatWhen,
     sanitizeName,
-    getPlayerId
+    getPlayerId,
+    heartbeat,
+    getOnlineCount,
+    startPresence
   };
 })();

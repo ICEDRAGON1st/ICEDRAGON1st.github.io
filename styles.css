@@ -793,6 +793,22 @@ header h1 {
   margin: 0 0 0.85rem;
   font-size: 1.1rem;
   letter-spacing: 0.04rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.45rem 0.75rem;
+}
+
+.players-online {
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02rem;
+  color: #2f9e44;
+}
+
+.players-online.is-empty {
+  color: var(--subtitle);
+  font-weight: 600;
 }
 
 .players-intro {
