@@ -616,8 +616,11 @@
   startPresence();
   injectCreatorCredit();
 
+  function creatorCreditHtml() {
+    return 'created by <span class="player-name-creator">ICE_DRAGON</span>';
+  }
+
   function injectCreatorCredit() {
-    if (document.getElementById("site-credit")) return;
     if (!document.getElementById("site-credit-style")) {
       const style = document.createElement("style");
       style.id = "site-credit-style";
@@ -625,27 +628,37 @@
 .site-credit {
   position: fixed;
   z-index: 40;
-  right: 0.55rem;
+  right: 0.85rem;
   top: 50%;
   transform: translateY(-50%);
   margin: 0;
   padding: 0;
   writing-mode: vertical-rl;
   text-orientation: mixed;
-  letter-spacing: 0.12em;
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: rgba(160, 170, 185, 0.85);
+  letter-spacing: 0.16em;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: rgba(160, 170, 185, 0.9);
   pointer-events: none;
   user-select: none;
   white-space: nowrap;
 }
-.site-credit .player-name-creator {
+.site-credit .player-name-creator,
+.menu-credit .player-name-creator {
   color: #1c7ed6;
   font-weight: 800;
 }
-body.light .site-credit {
-  color: rgba(90, 100, 115, 0.8);
+body.light .site-credit,
+body.light .menu-credit {
+  color: rgba(90, 100, 115, 0.85);
+}
+.menu-credit {
+  margin: 1rem 0 0;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: rgba(160, 170, 185, 0.95);
 }
 @media (max-width: 640px) {
   .site-credit {
@@ -656,18 +669,45 @@ body.light .site-credit {
     transform: translateX(-50%);
     writing-mode: horizontal-tb;
     letter-spacing: 0.04em;
-    font-size: 0.68rem;
+    font-size: 0.72rem;
+  }
+  .menu-credit {
+    font-size: 0.9rem;
   }
 }`;
       document.head.appendChild(style);
     }
-    const el = document.createElement("p");
-    el.id = "site-credit";
-    el.className = "site-credit";
-    el.setAttribute("aria-label", "Created by ICE_DRAGON");
-    el.innerHTML =
-      'created by <span class="player-name-creator">ICE_DRAGON</span>';
-    document.body.appendChild(el);
+
+    if (!document.getElementById("site-credit")) {
+      const el = document.createElement("p");
+      el.id = "site-credit";
+      el.className = "site-credit";
+      el.setAttribute("aria-label", "Created by ICE_DRAGON");
+      el.innerHTML = creatorCreditHtml();
+      document.body.appendChild(el);
+    }
+
+    const menus = document.querySelectorAll(
+      "#menu-modal .modal-content, .overlay-card, #games-screen .games-screen-inner"
+    );
+    menus.forEach((box) => {
+      if (box.querySelector(".menu-credit")) return;
+      const credit = document.createElement("p");
+      credit.className = "menu-credit";
+      credit.setAttribute("aria-label", "Created by ICE_DRAGON");
+      credit.innerHTML = creatorCreditHtml();
+      // Games hub: put under header; menus/overlays: at the bottom
+      if (box.classList.contains("games-screen-inner")) {
+        const header = box.querySelector(".games-header");
+        if (header && header.nextSibling) {
+          box.insertBefore(credit, header.nextSibling);
+        } else {
+          box.appendChild(credit);
+        }
+      } else {
+        box.appendChild(credit);
+      }
+    });
   }
 
   window.HubPlays = {

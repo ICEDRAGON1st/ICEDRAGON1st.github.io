@@ -10,6 +10,10 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260903o": [
+    "Bigger created-by credit on computer screens",
+    "Created by ICE_DRAGON also shows in the menu"
+  ],
   "20260903n": [
     "Side credit: created by ICE_DRAGON"
   ],
