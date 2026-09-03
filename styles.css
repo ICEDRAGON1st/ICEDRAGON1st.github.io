@@ -904,6 +904,11 @@ header h1 {
   font-size: 0.8rem;
 }
 
+.player-name-creator {
+  color: #1c7ed6;
+  font-weight: 800;
+}
+
 .players-empty {
   color: var(--subtitle);
 }

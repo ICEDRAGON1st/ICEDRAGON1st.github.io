@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260903m": [
+    "ICE_DRAGON shows in blue on the Players board as the site creator"
+  ],
   "20260903l": [
     "All-time player count — each person only adds +1 once",
     "Coming back online later does not increase the total again"
@@ -1620,7 +1623,7 @@ async function renderPlayersPanel() {
     .slice(0, 25)
     .map(
       (p) =>
-        `<li><span class="players-who"><strong>${escapeHtml(p.name)}</strong> played ${escapeHtml(p.gameName || p.game)}</span><span class="players-when">${HubPlays.formatWhen(p.at)}</span></li>`
+        `<li><span class="players-who">${formatPlayerNameHtml(p.name)} played ${escapeHtml(p.gameName || p.game)}</span><span class="players-when">${HubPlays.formatWhen(p.at)}</span></li>`
     )
     .join("");
 }
@@ -1631,6 +1634,20 @@ function escapeHtml(text) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+const CREATOR_NAME = "ICE_DRAGON";
+
+function isCreatorName(name) {
+  return String(name || "").trim().toLowerCase() === CREATOR_NAME.toLowerCase();
+}
+
+function formatPlayerNameHtml(name) {
+  const safe = escapeHtml(name);
+  if (isCreatorName(name)) {
+    return `<strong class="player-name-creator" title="Site creator">${safe}</strong>`;
+  }
+  return `<strong>${safe}</strong>`;
 }
 
 savePlayerNameBtn?.addEventListener("click", () => savePlayerNameFrom(playerNameInput?.value));
