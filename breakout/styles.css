@@ -69,6 +69,7 @@ body {
 #game {
   width: min(960px, 96vw);
   height: auto;
+  max-height: 86vh;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: #070d18;
