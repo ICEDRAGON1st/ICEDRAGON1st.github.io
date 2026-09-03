@@ -161,6 +161,7 @@ function gameOver() {
   }
   updateHud();
   draw();
+  if (window.HubAchievements && score >= 5) HubAchievements.unlock("flappy_score_5");
   showMenu(
     "over",
     "Game Over",

@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <title>My Games</title>
   <script src="site-config.js"></script>
-  <link rel="stylesheet" href="styles.css?v=20260902h">
+  <link rel="stylesheet" href="styles.css?v=20260903d">
 </head>
 <body>
   <div class="app">
@@ -90,12 +90,18 @@
       <div class="games-toolbar">
         <button id="continue-last-btn" type="button" class="hub-btn hub-btn-primary hidden">Continue last game</button>
         <button id="toggle-scores-btn" type="button" class="hub-btn">High scores</button>
+        <button id="toggle-achievements-btn" type="button" class="hub-btn">🏆 Achievements</button>
         <button id="share-moment-btn" type="button" class="hub-btn">Share moment</button>
       </div>
 
       <div id="high-scores-panel" class="high-scores-panel hidden">
         <h3>High scores</h3>
         <ul id="high-scores-list" class="high-scores-list"></ul>
+      </div>
+
+      <div id="achievements-panel" class="achievements-panel hidden">
+        <h3>Achievements <span id="achievements-count" class="achievements-count"></span></h3>
+        <div id="achievements-grid" class="achievements-grid"></div>
       </div>
 
       <div class="games-grid" id="games-grid">
@@ -217,9 +223,9 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260903a";
+    window.WORDLE_BUILD = "20260903d";
     const scripts = [
-      "hub-streak.js",
+      "hub-streak.js", "hub-achievements.js",
       "words.js",
       "dictionary.js",
       "words-4.js",
@@ -253,5 +259,8 @@
     }
     loadNext(0);
   </script>
+
+  <!-- Achievement toast container -->
+  <div id="achievement-toast" class="achievement-toast hidden" role="status" aria-live="polite"></div>
 </body>
 </html>

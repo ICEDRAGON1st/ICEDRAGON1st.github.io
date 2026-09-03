@@ -270,6 +270,7 @@ function endGame(winner, isDrawGame) {
     else recordCpuResult("losses");
   }
 
+  if (window.HubAchievements) HubAchievements.unlock("connect4_win");
   showMenu("over", `${player.name} Wins!`, `${player.name} connected four in a row.`);
 }
 

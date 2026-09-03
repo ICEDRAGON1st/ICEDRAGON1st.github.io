@@ -415,6 +415,7 @@ function winGame() {
   stopTimer();
   saveBestTime();
   updateBestDisplay();
+  if (window.HubAchievements) HubAchievements.unlock("sudoku_win");
   messageEl.textContent = "Puzzle solved!";
   showMenu(
     "win",

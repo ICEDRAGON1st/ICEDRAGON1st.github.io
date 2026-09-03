@@ -219,6 +219,10 @@ function checkWin() {
   }
 
   updateHud();
+  if (window.HubAchievements) {
+    HubAchievements.unlock("memory_win_easy");
+    if (difficulty === "hard") HubAchievements.unlock("memory_win_hard");
+  }
   messageEl.textContent = isNew ? "New best time!" : "All pairs matched!";
   showMenu(
     "win",

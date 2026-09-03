@@ -293,6 +293,7 @@ function finishRound() {
   updateHud();
 
   const pct = Math.round((score / total) * 100);
+  if (window.HubAchievements && score === total) HubAchievements.unlock("math_perfect");
   questionText.textContent = `Round complete!`;
   answersEl.innerHTML = "";
   timerLabel.classList.add("hidden");

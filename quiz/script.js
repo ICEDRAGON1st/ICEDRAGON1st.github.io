@@ -448,6 +448,11 @@ function finishQuiz() {
   updateHighScoreUi();
 
   let title = "Keep practicing!";
+  if (window.HubAchievements) {
+    if (score === total) HubAchievements.unlock("quiz_perfect");
+    const quizWins = (Number(localStorage.getItem("quiz-wins-count")||0));
+    if (score === total) { const w2 = quizWins+1; localStorage.setItem("quiz-wins-count",w2); if(w2>=3) HubAchievements.unlock("quiz_win_3"); }
+  }
   if (score === total) title = "Perfect!";
   else if (score >= Math.ceil(total * 0.7)) title = "Great run!";
   else if (score >= Math.ceil(total * 0.4)) title = "Nice try!";

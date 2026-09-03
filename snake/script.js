@@ -162,6 +162,10 @@ function gameOver() {
     saveHighScore();
   }
   updateHud();
+  if (window.HubAchievements) {
+    if (score >= 10) HubAchievements.unlock("snake_score_10");
+    if (score >= 50) HubAchievements.unlock("snake_score_50");
+  }
   showMenu(
     "gameover",
     "Game Over",

@@ -9,6 +9,11 @@ const HUB_LAST_GAME_KEY = "hub-last-game";
 const SEEN_BUILD_KEY = "wordle-seen-build";
 
 const CHANGELOG = {
+  "20260903d": [
+    "Achievements across all games — unlock badges as you play",
+    "New Achievements button in the games hub",
+    "Toast popup when you unlock a badge"
+  ],
   "20260903a": [
     "New Share moment button in the games hub",
     "Share sheet support on phone and copy fallback on desktop"
@@ -71,9 +76,14 @@ const gamesBackBtn = document.getElementById("games-back");
 const gamesMessageEl = document.getElementById("games-message");
 const continueLastBtn = document.getElementById("continue-last-btn");
 const toggleScoresBtn = document.getElementById("toggle-scores-btn");
+const toggleAchievementsBtn = document.getElementById("toggle-achievements-btn");
 const shareMomentBtn = document.getElementById("share-moment-btn");
 const highScoresPanel = document.getElementById("high-scores-panel");
 const highScoresList = document.getElementById("high-scores-list");
+const achievementsPanel = document.getElementById("achievements-panel");
+const achievementsGrid = document.getElementById("achievements-grid");
+const achievementsCount = document.getElementById("achievements-count");
+const achievementToast = document.getElementById("achievement-toast");
 const gamesGrid = document.getElementById("games-grid");
 const hubStreakBadge = document.getElementById("hub-streak-badge");
 const hubStreakCount = document.getElementById("hub-streak-count");
@@ -711,7 +721,13 @@ async function shareMoment() {
 
 function recordHubDailyPlay() {
   if (typeof HubStreak === "undefined") return null;
-  return HubStreak.recordPlay();
+  const result = HubStreak.recordPlay();
+  if (window.HubAchievements && result) {
+    if (result.streak >= 3)  HubAchievements.unlock("streak_3");
+    if (result.streak >= 7)  HubAchievements.unlock("streak_7");
+    if (result.streak >= 30) HubAchievements.unlock("streak_30");
+  }
+  return result;
 }
 
 function renderDailyStreak() {
@@ -755,6 +771,7 @@ function showGamesScreen() {
   if (highScoresPanel) highScoresPanel.classList.add("hidden");
   refreshGamesHub();
   gamesScreen.classList.remove("hidden");
+  setTimeout(checkPendingAchievements, 400);
 }
 
 function hideGamesScreen() {
@@ -775,6 +792,16 @@ function selectGame(gameId) {
 
   setLastGameId(gameId);
   recordHubDailyPlay();
+  // Track all-rounder achievement
+  if (window.HubAchievements) {
+    try {
+      const played = JSON.parse(localStorage.getItem("hub-played-games") || "[]");
+      if (!played.includes(gameId)) played.push(gameId);
+      localStorage.setItem("hub-played-games", JSON.stringify(played));
+      const allIds = HUB_GAMES.map(g => g.id);
+      if (allIds.every(id => played.includes(id))) HubAchievements.unlock("all_rounder");
+    } catch {}
+  }
 
   if (!game.path) {
     hideGamesScreen();
@@ -986,12 +1013,19 @@ function getWinMessage(row) {
 
 function handleWin(row) {
   state.gameStatus = "won";
-  recordGameResult(true);
+  const stats = recordGameResult(true);
+  if (window.HubAchievements) {
+    HubAchievements.unlock("wordle_first_win");
+    if (row === 0) HubAchievements.unlock("wordle_guess_1");
+    if (row <= 1) HubAchievements.unlock("wordle_guess_2");
+    if (stats.wins >= 5) HubAchievements.unlock("wordle_win_5");
+  }
   showMessage(getWinMessage(row), false, 0);
   saveState();
   renderKeyboard();
   updateHintButton();
   launchConfetti();
+  setTimeout(checkPendingAchievements, 600);
   showMenu();
 }
 
@@ -1239,6 +1273,68 @@ toggleScoresBtn?.addEventListener("click", () => {
   toggleScoresBtn.textContent = open ? "Hide scores" : "High scores";
   if (open) renderHighScoresList();
 });
+
+toggleAchievementsBtn?.addEventListener("click", () => {
+  if (!achievementsPanel) return;
+  const open = achievementsPanel.classList.toggle("hidden") === false;
+  toggleAchievementsBtn.textContent = open ? "Hide achievements" : "🏆 Achievements";
+  if (open) renderAchievementsPanel();
+});
+
+function renderAchievementsPanel() {
+  if (!achievementsGrid || typeof HubAchievements === "undefined") return;
+  const all = HubAchievements.getAll();
+  const unlocked = all.filter(a => a.unlocked).length;
+  if (achievementsCount) achievementsCount.textContent = `${unlocked}/${all.length}`;
+  achievementsGrid.innerHTML = "";
+  // Show unlocked first, then locked
+  const sorted = [...all.filter(a => a.unlocked), ...all.filter(a => !a.unlocked)];
+  for (const a of sorted) {
+    const card = document.createElement("div");
+    card.className = "achievement-card " + (a.unlocked ? "unlocked" : "locked");
+    card.title = a.desc;
+    card.innerHTML = `<span class="achievement-emoji">${a.emoji}</span>` +
+      `<span class="achievement-name">${a.name}</span>` +
+      `<span class="achievement-desc">${a.desc}</span>`;
+    achievementsGrid.appendChild(card);
+  }
+}
+
+let toastTimer = null;
+function showAchievementToast(id) {
+  if (!achievementToast || typeof HubAchievements === "undefined") return;
+  const def = HubAchievements.getDefinition(id);
+  if (!def) return;
+  achievementToast.classList.remove("hidden");
+  achievementToast.textContent = `${def.emoji} Achievement unlocked: ${def.name}`;
+  // Force reflow then animate in
+  achievementToast.getBoundingClientRect();
+  achievementToast.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => {
+    achievementToast.classList.remove("show");
+    setTimeout(() => achievementToast.classList.add("hidden"), 350);
+  }, 3000);
+}
+
+// Poll for pending achievements every time we return to the hub
+function checkPendingAchievements() {
+  if (typeof HubAchievements === "undefined") return;
+  const pending = HubAchievements.getPending();
+  if (pending.length > 0) {
+    // Show toasts sequentially
+    let delay = 0;
+    for (const id of pending) {
+      setTimeout(() => showAchievementToast(id), delay);
+      delay += 3500;
+    }
+    // Re-render panel if open
+    if (achievementsPanel && !achievementsPanel.classList.contains("hidden")) {
+      renderAchievementsPanel();
+    }
+  }
+}
+
 shareMomentBtn?.addEventListener("click", () => shareMoment());
 document.querySelectorAll(".game-card[data-game]").forEach((card) => {
   card.addEventListener("click", (event) => {
