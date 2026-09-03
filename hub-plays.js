@@ -6,6 +6,7 @@
 (function () {
   const NAME_KEY = "hub-player-name";
   const PLAYER_ID_KEY = "hub-player-id";
+  const NAME_LOCK_KEY = "hub-player-name-locked";
   const LOCAL_KEY = "hub-plays-local-v1";
   const NS = "icedragon1st-mygames";
   const PLAYS_PATH = "plays-log";
@@ -93,6 +94,23 @@
       if (name) localStorage.setItem(NAME_KEY, name);
       else localStorage.removeItem(NAME_KEY);
     } catch {}
+  }
+
+  function isNameLocked() {
+    try {
+      return localStorage.getItem(NAME_LOCK_KEY) === "1";
+    } catch {
+      return false;
+    }
+  }
+
+  function setNameLocked(locked) {
+    const next = !!locked;
+    try {
+      if (next) localStorage.setItem(NAME_LOCK_KEY, "1");
+      else localStorage.removeItem(NAME_LOCK_KEY);
+    } catch {}
+    return next;
   }
 
   function loadLocal() {
@@ -246,6 +264,11 @@
     }
     if (/^guest-/i.test(next)) {
       return { ok: false, error: "Pick a real username — guest names aren’t allowed" };
+    }
+
+    const current = getName();
+    if (isNameLocked() && current && nameKey(current) !== nameKey(next)) {
+      return { ok: false, error: "Name is locked — unlock it to change" };
     }
 
     const me = getPlayerId();
@@ -763,6 +786,8 @@ body.light .menu-credit {
   window.HubPlays = {
     getName,
     setName,
+    isNameLocked,
+    setNameLocked,
     claimName,
     makeGuestName,
     hasRequiredName,

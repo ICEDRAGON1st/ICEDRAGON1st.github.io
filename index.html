@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <title>My Games</title>
   <script src="site-config.js"></script>
-  <link rel="stylesheet" href="styles.css?v=20260903r">
+  <link rel="stylesheet" href="styles.css?v=20260903s">
 </head>
 <body>
   <div class="app">
@@ -133,7 +133,9 @@
           <label for="player-name-input">Your name</label>
           <input id="player-name-input" type="text" maxlength="16" placeholder="Enter a nickname" autocomplete="nickname">
           <button id="save-player-name-btn" type="button" class="hub-btn">Save</button>
+          <button id="lock-player-name-btn" type="button" class="hub-btn name-lock-btn" aria-pressed="false" title="Lock your name so it can't be changed">🔓 Unlock</button>
         </div>
+        <p id="player-name-lock-hint" class="player-name-lock-hint">Lock your name to stop accidental changes.</p>
         <p id="player-name-status" class="player-name-status hidden" aria-live="polite"></p>
         <p id="players-totals" class="players-totals"></p>
         <ul id="players-list" class="players-list"></ul>
@@ -263,7 +265,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260903r";
+    window.WORDLE_BUILD = "20260903s";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js",
       "words.js",

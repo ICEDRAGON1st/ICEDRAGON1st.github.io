@@ -884,13 +884,34 @@ header h1 {
   flex-wrap: wrap;
   gap: 0.5rem;
   align-items: center;
-  margin-bottom: 0.85rem;
+  margin-bottom: 0.35rem;
+}
+
+.name-lock-btn {
+  min-width: 6.5rem;
+}
+
+.name-lock-btn.is-locked {
+  border-color: #1c7ed6;
+  color: #1c7ed6;
+}
+
+.player-name-lock-hint {
+  margin: 0 0 0.85rem;
+  color: var(--subtitle);
+  font-size: 0.8rem;
+  line-height: 1.35;
 }
 
 .players-name-row label {
   font-size: 0.85rem;
   font-weight: 700;
   color: var(--subtitle);
+}
+
+.players-name-row input.is-locked {
+  opacity: 0.75;
+  cursor: not-allowed;
 }
 
 .players-name-row input,

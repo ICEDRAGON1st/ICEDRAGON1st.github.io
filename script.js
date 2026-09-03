@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260903s": [
+    "Lock your username so it can’t be changed until you unlock it"
+  ],
   "20260903r": [
     "Tap online or all-time on the Players board to see name lists"
   ],
@@ -138,6 +141,8 @@ const playersList = document.getElementById("players-list");
 const playersTotals = document.getElementById("players-totals");
 const playerNameInput = document.getElementById("player-name-input");
 const savePlayerNameBtn = document.getElementById("save-player-name-btn");
+const lockPlayerNameBtn = document.getElementById("lock-player-name-btn");
+const playerNameLockHint = document.getElementById("player-name-lock-hint");
 const playerNameModal = document.getElementById("player-name-modal");
 const playerNameModalInput = document.getElementById("player-name-modal-input");
 const playerNameSaveBtn = document.getElementById("player-name-save");
@@ -1600,6 +1605,16 @@ function setPlayerNameStatus(msg, isError) {
 
 async function savePlayerNameFrom(value) {
   if (typeof HubPlays === "undefined") return;
+  if (HubPlays.isNameLocked() && HubPlays.hasRequiredName()) {
+    const current = HubPlays.getName();
+    const next = HubPlays.sanitizeName(value || "");
+    if (next.toLowerCase() !== current.toLowerCase()) {
+      setPlayerNameStatus("Name is locked — unlock it to change", true);
+      showGamesMessage("Name is locked — unlock it to change", 2200);
+      applyNameLockUI();
+      return;
+    }
+  }
   setPlayerNameStatus("Checking name…", false);
   savePlayerNameBtn && (savePlayerNameBtn.disabled = true);
   playerNameSaveBtn && (playerNameSaveBtn.disabled = true);
@@ -1615,12 +1630,59 @@ async function savePlayerNameFrom(value) {
     if (playerNameModalInput) playerNameModalInput.value = result.name;
     setPlayerNameStatus(`Playing as ${result.name}`, false);
     playerNameModal?.classList.add("hidden");
+    applyNameLockUI();
     renderPlayersPanel();
     showGamesMessage(`Playing as ${result.name}`, 1800);
   } finally {
     savePlayerNameBtn && (savePlayerNameBtn.disabled = false);
     playerNameSaveBtn && (playerNameSaveBtn.disabled = false);
+    applyNameLockUI();
   }
+}
+
+function applyNameLockUI() {
+  if (typeof HubPlays === "undefined") return;
+  const locked = HubPlays.isNameLocked();
+  const hasName = hasPlayerName();
+  if (playerNameInput) {
+    playerNameInput.readOnly = locked && hasName;
+    playerNameInput.classList.toggle("is-locked", locked && hasName);
+  }
+  if (savePlayerNameBtn) {
+    savePlayerNameBtn.disabled = locked && hasName;
+    savePlayerNameBtn.title = locked && hasName ? "Unlock your name to change it" : "Save name";
+  }
+  if (lockPlayerNameBtn) {
+    lockPlayerNameBtn.disabled = !hasName;
+    lockPlayerNameBtn.classList.toggle("is-locked", locked);
+    lockPlayerNameBtn.setAttribute("aria-pressed", locked ? "true" : "false");
+    lockPlayerNameBtn.textContent = locked ? "🔒 Locked" : "🔓 Unlock";
+    lockPlayerNameBtn.title = locked
+      ? "Name is locked. Tap to unlock and allow changes."
+      : "Lock your name so it can't be changed";
+  }
+  if (playerNameLockHint) {
+    playerNameLockHint.textContent = locked
+      ? "Name locked — unlock to change it."
+      : "Lock your name to stop accidental changes.";
+  }
+}
+
+function togglePlayerNameLock() {
+  if (typeof HubPlays === "undefined") return;
+  if (!hasPlayerName()) {
+    setPlayerNameStatus("Pick a username before locking", true);
+    maybeAskPlayerName(true);
+    return;
+  }
+  const next = !HubPlays.isNameLocked();
+  HubPlays.setNameLocked(next);
+  applyNameLockUI();
+  setPlayerNameStatus(
+    next ? `Locked as ${HubPlays.getName()}` : "Name unlocked — you can change it",
+    false
+  );
+  showGamesMessage(next ? "Name locked" : "Name unlocked", 1600);
 }
 
 function updateOnlineCountDisplay(onlineCount, allTimeCount) {
@@ -1740,6 +1802,7 @@ async function renderPlayersPanel() {
   if (playerNameInput && !playerNameInput.value) {
     playerNameInput.value = HubPlays.getName() || "";
   }
+  applyNameLockUI();
   try {
     await HubPlays.sync();
   } catch {}
@@ -1797,6 +1860,7 @@ function formatPlayerNameHtml(name) {
 }
 
 savePlayerNameBtn?.addEventListener("click", () => savePlayerNameFrom(playerNameInput?.value));
+lockPlayerNameBtn?.addEventListener("click", () => togglePlayerNameLock());
 playerNameSaveBtn?.addEventListener("click", () => savePlayerNameFrom(playerNameModalInput?.value));
 document.getElementById("players-online")?.addEventListener("click", async () => {
   try {
@@ -1814,7 +1878,10 @@ playerNameModalInput?.addEventListener("keydown", (e) => {
   if (e.key === "Enter") savePlayerNameFrom(playerNameModalInput.value);
 });
 playerNameInput?.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") savePlayerNameFrom(playerNameInput.value);
+  if (e.key === "Enter") {
+    if (typeof HubPlays !== "undefined" && HubPlays.isNameLocked()) return;
+    savePlayerNameFrom(playerNameInput.value);
+  }
 });
 
 function renderAchievementsPanel() {
