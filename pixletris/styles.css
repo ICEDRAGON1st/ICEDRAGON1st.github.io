@@ -85,6 +85,7 @@ body {
 #game {
   width: min(780px, 96vw);
   height: auto;
+  max-height: 82vh;
   border: 3px solid var(--border);
   border-radius: 4px;
   background: #12091f;
@@ -168,4 +169,43 @@ body {
 
 .hidden {
   display: none !important;
+}
+
+@media (max-width: 600px) {
+  body {
+    padding: 0.5rem;
+    gap: 0.4rem;
+  }
+
+  .hud {
+    width: 96vw;
+    flex-wrap: wrap;
+  }
+
+  .hud-stats {
+    font-size: 0.85rem;
+    gap: 0.35rem 0.65rem;
+  }
+
+  .hint {
+    font-size: 0.82rem;
+  }
+
+  .overlay-card {
+    padding: 1.25rem;
+  }
+
+  .overlay-card h1 {
+    font-size: 1.5rem;
+  }
+
+  .overlay-card p {
+    font-size: 0.95rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .btn {
+    padding: 0.7rem 1rem;
+    font-size: 1rem;
+  }
 }
