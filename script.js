@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260903p": [
+    "Wordle opens in Practice after you finish today's Daily"
+  ],
   "20260903o": [
     "Bigger created-by credit on computer screens",
     "Created by ICE_DRAGON also shows in the menu"
@@ -176,6 +179,13 @@ const savedLength = Number(localStorage.getItem(LENGTH_KEY));
 let currentLength = LENGTHS.includes(savedLength) ? savedLength : 5;
 let playMode = localStorage.getItem(MODE_KEY) === "practice" ? "practice" : "daily";
 let COLS = currentLength;
+// Prefer Practice once today's Daily (this language + length) is finished
+if (isTodayDailyFinished()) {
+  playMode = "practice";
+  try {
+    localStorage.setItem(MODE_KEY, "practice");
+  } catch {}
+}
 let state = loadState();
 let submitting = false;
 
@@ -322,6 +332,18 @@ function pickDailyWord() {
 
 function isDailyMode() {
   return playMode === "daily";
+}
+
+function isTodayDailyFinished(lang = currentLang, length = currentLength) {
+  try {
+    const key = `${STORAGE_KEY}-daily-${lang}-${length}-${todayLocal()}`;
+    const raw = localStorage.getItem(key);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    return data && (data.gameStatus === "won" || data.gameStatus === "lost");
+  } catch {
+    return false;
+  }
 }
 
 function setPlayMode(mode) {
@@ -970,10 +992,13 @@ function selectGame(gameId) {
   }
 
   if (!game.path) {
-    setPlayMode("daily");
+    setPlayMode(isTodayDailyFinished() ? "practice" : "daily");
     reloadBoard();
     hideMenu();
     hideGamesScreen();
+    if (isTodayDailyFinished()) {
+      showMessage("Daily done — Practice mode");
+    }
     return;
   }
 
