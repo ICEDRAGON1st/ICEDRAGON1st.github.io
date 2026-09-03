@@ -9,6 +9,10 @@ const HUB_LAST_GAME_KEY = "hub-last-game";
 const SEEN_BUILD_KEY = "wordle-seen-build";
 
 const CHANGELOG = {
+  "20260903a": [
+    "New Share moment button in the games hub",
+    "Share sheet support on phone and copy fallback on desktop"
+  ],
   "20260902h": [
     "Site ready for mygames.com hosting",
     "Site name and domain live in site-config.js — easy to change later"
@@ -67,6 +71,7 @@ const gamesBackBtn = document.getElementById("games-back");
 const gamesMessageEl = document.getElementById("games-message");
 const continueLastBtn = document.getElementById("continue-last-btn");
 const toggleScoresBtn = document.getElementById("toggle-scores-btn");
+const shareMomentBtn = document.getElementById("share-moment-btn");
 const highScoresPanel = document.getElementById("high-scores-panel");
 const highScoresList = document.getElementById("high-scores-list");
 const gamesGrid = document.getElementById("games-grid");
@@ -647,6 +652,63 @@ function renderHighScoresList() {
     .join("");
 }
 
+function getShareRows(limit = 3) {
+  return HUB_GAMES.map((game) => {
+    const score = getHubScore(game.id);
+    return { name: game.name, label: score.label, sort: score.sort };
+  })
+    .filter((row) => row.sort > 0)
+    .sort((a, b) => b.sort - a.sort)
+    .slice(0, limit);
+}
+
+function buildShareMomentText() {
+  const cfg = window.SITE_CONFIG || { name: "My Games" };
+  const status = typeof HubStreak !== "undefined" ? HubStreak.getStatus() : null;
+  const streak = status?.streak || 0;
+  const rows = getShareRows(3);
+  const url = window.location.origin + "/#games";
+
+  const lines = [
+    `🎮 ${cfg.name}`,
+    `🔥 Daily streak: ${streak} ${streak === 1 ? "day" : "days"}`
+  ];
+  if (rows.length) {
+    lines.push("🏆 Top scores:");
+    rows.forEach((row) => lines.push(`• ${row.name}: ${row.label}`));
+  }
+  lines.push(url);
+  return lines.join("\n");
+}
+
+async function shareMoment() {
+  const cfg = window.SITE_CONFIG || { name: "My Games" };
+  const text = buildShareMomentText();
+  const url = window.location.origin + "/#games";
+  const payload = {
+    title: cfg.name,
+    text,
+    url
+  };
+
+  try {
+    if (navigator.share) {
+      await navigator.share(payload);
+      showGamesMessage("Shared! 🚀", 1800);
+      return;
+    }
+  } catch {
+    // fall back to clipboard
+  }
+
+  try {
+    await navigator.clipboard.writeText(text);
+    showGamesMessage("Share text copied. Paste it anywhere!", 2600);
+  } catch {
+    showGamesMessage("Sharing not available on this browser yet.", 2600);
+  }
+}
+
 function recordHubDailyPlay() {
   if (typeof HubStreak === "undefined") return null;
   return HubStreak.recordPlay();
@@ -1177,6 +1239,7 @@ toggleScoresBtn?.addEventListener("click", () => {
   toggleScoresBtn.textContent = open ? "Hide scores" : "High scores";
   if (open) renderHighScoresList();
 });
+shareMomentBtn?.addEventListener("click", () => shareMoment());
 document.querySelectorAll(".game-card[data-game]").forEach((card) => {
   card.addEventListener("click", (event) => {
     if (event.target.closest(".fav-btn")) return;

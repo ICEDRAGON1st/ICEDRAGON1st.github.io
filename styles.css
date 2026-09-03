@@ -577,6 +577,10 @@ header h1 {
   color: #fff;
 }
 
+#share-moment-btn {
+  margin-left: auto;
+}
+
 .hub-btn.hidden,
 .high-scores-panel.hidden {
   display: none !important;
@@ -736,6 +740,10 @@ header h1 {
 
   .games-grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+
+  #share-moment-btn {
+    margin-left: 0;
   }
 
   .games-header h2 {
