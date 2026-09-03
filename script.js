@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260903u": [
+    "Hide old Guest placeholder names from the Players board"
+  ],
   "20260903t": [
     "Updates list in the Games menu — tap a version to see what changed"
   ],
@@ -1841,22 +1844,23 @@ function renderPlayersRoster(mode) {
     mode === "online"
       ? HubPlays.getOnlinePlayers()
       : HubPlays.getAllTimePlayers();
+  const visible = players.filter((p) => !isGuestDisplayName(p.name));
 
   title.textContent =
     mode === "online"
-      ? players.length === 1
+      ? visible.length === 1
         ? "Online now · 1 player"
-        : `Online now · ${players.length} players`
-      : players.length === 1
+        : `Online now · ${visible.length} players`
+      : visible.length === 1
         ? "All-time players · 1"
-        : `All-time players · ${players.length}`;
+        : `All-time players · ${visible.length}`;
 
-  if (!players.length) {
+  if (!visible.length) {
     list.innerHTML = `<li class="players-empty">${
       mode === "online" ? "Nobody online right now." : "No players recorded yet."
     }</li>`;
   } else {
-    list.innerHTML = players
+    list.innerHTML = visible
       .map((p) => {
         const when =
           mode === "online"
@@ -1922,7 +1926,7 @@ async function renderPlayersPanel() {
         .join(" · ");
     }
   }
-  const plays = status.plays || [];
+  const plays = (status.plays || []).filter((p) => !isGuestDisplayName(p.name));
   if (!plays.length) {
     playersList.innerHTML = `<li class="players-empty">No recent players yet.</li>`;
     return;
@@ -1945,6 +1949,11 @@ function escapeHtml(text) {
 }
 
 const CREATOR_NAME = "ICE_DRAGON";
+
+function isGuestDisplayName(name) {
+  const n = String(name || "").trim().toLowerCase();
+  return !n || n === "guest" || n.startsWith("guest-") || n === "player";
+}
 
 function isCreatorName(name) {
   return String(name || "").trim().toLowerCase() === CREATOR_NAME.toLowerCase();
