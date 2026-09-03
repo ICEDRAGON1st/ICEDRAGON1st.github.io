@@ -1268,10 +1268,10 @@ applySiteConfig();
 showMessage(`Loaded · ${sixCount} six-letter words`);
 
 let afterWhatsNew = null;
-if (location.hash === "#games") {
-  afterWhatsNew = showGamesScreen;
-} else {
+if (location.hash === "#wordle") {
   afterWhatsNew = showMenu;
+} else {
+  afterWhatsNew = showGamesScreen;
 }
 
 if (showWhatsNew()) {
