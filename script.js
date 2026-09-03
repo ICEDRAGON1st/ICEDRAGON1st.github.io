@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260903q": [
+    "Username required to play — no more skipping"
+  ],
   "20260903p": [
     "Wordle opens in Practice after you finish today's Daily"
   ],
@@ -135,7 +138,6 @@ const savePlayerNameBtn = document.getElementById("save-player-name-btn");
 const playerNameModal = document.getElementById("player-name-modal");
 const playerNameModalInput = document.getElementById("player-name-modal-input");
 const playerNameSaveBtn = document.getElementById("player-name-save");
-const playerNameSkipBtn = document.getElementById("player-name-skip");
 const achievementsPanel = document.getElementById("achievements-panel");
 const achievementsGrid = document.getElementById("achievements-grid");
 const achievementsCount = document.getElementById("achievements-count");
@@ -971,6 +973,7 @@ function backFromGames() {
 }
 
 function selectGame(gameId) {
+  if (!requirePlayerName()) return;
   const game = getHubGame(gameId);
   if (!game) {
     showGamesMessage("Coming soon");
@@ -1130,6 +1133,7 @@ function updateHintButton() {
 }
 
 function useHint() {
+  if (!requirePlayerName()) return;
   if (isDailyMode()) {
     showMessage("No hints on Daily Wordle", true);
     return;
@@ -1163,6 +1167,7 @@ function getCurrentGuess() {
 }
 
 async function submitGuess() {
+  if (!requirePlayerName()) return;
   if (submitting || state.gameStatus !== "playing") return;
   if (state.currentCol < COLS) {
     showMessage("Not enough letters", true);
@@ -1304,6 +1309,10 @@ function isMenuOpen() {
 }
 
 function addLetter(letter) {
+  if (!hasPlayerName()) {
+    requirePlayerName();
+    return;
+  }
   if (submitting || state.gameStatus !== "playing" || isMenuOpen()) return;
   if (state.currentCol >= COLS) return;
 
@@ -1315,6 +1324,10 @@ function addLetter(letter) {
 }
 
 function removeLetter() {
+  if (!hasPlayerName()) {
+    requirePlayerName();
+    return;
+  }
   if (submitting || state.gameStatus !== "playing" || isMenuOpen()) return;
   if (state.currentCol <= 0) return;
 
@@ -1471,13 +1484,23 @@ applyTheme(localStorage.getItem(THEME_KEY) || "dark");
 render();
 document.addEventListener("keydown", handlePhysicalKeyboard);
 menuBtn.addEventListener("click", () => showMenu());
-menuResumeBtn.addEventListener("click", () => resumeGame());
-menuNewWordBtn.addEventListener("click", () => startPracticeGame());
-menuDailyBtn?.addEventListener("click", () => goToDaily());
+menuResumeBtn.addEventListener("click", () => {
+  if (!requirePlayerName()) return;
+  resumeGame();
+});
+menuNewWordBtn.addEventListener("click", () => {
+  if (!requirePlayerName()) return;
+  startPracticeGame();
+});
+menuDailyBtn?.addEventListener("click", () => {
+  if (!requirePlayerName()) return;
+  goToDaily();
+});
 menuShareDailyBtn?.addEventListener("click", () => shareDailyResult());
 menuGamesBtn.addEventListener("click", () => showGamesScreen());
 gamesBackBtn.addEventListener("click", () => backFromGames());
 continueLastBtn?.addEventListener("click", () => {
+  if (!requirePlayerName()) return;
   const lastId = getLastGameId();
   if (lastId) selectGame(lastId);
 });
@@ -1508,14 +1531,31 @@ togglePlayersBtn?.addEventListener("click", () => {
   }
 });
 
-function maybeAskPlayerName() {
+function hasPlayerName() {
+  if (typeof HubPlays === "undefined") return false;
+  if (typeof HubPlays.hasRequiredName === "function") {
+    return HubPlays.hasRequiredName();
+  }
+  const name = HubPlays.getName();
+  return !!(name && !/^guest-/i.test(name) && name.toLowerCase() !== "player");
+}
+
+function requirePlayerName(message) {
+  if (hasPlayerName()) return true;
+  maybeAskPlayerName(true);
+  const msg = message || "Pick a username to play";
+  showGamesMessage(msg, 2200);
+  showMessage(msg, true, 2200);
+  return false;
+}
+
+function maybeAskPlayerName(force = false) {
   if (typeof HubPlays === "undefined") return;
   const existing = HubPlays.getName();
-  if (existing) {
+  if (existing && hasPlayerName()) {
     // Re-claim saved name so uniqueness is registered remotely
     HubPlays.claimName(existing).then((result) => {
       if (!result.ok && result.error) {
-        // Someone else took it while this browser was offline
         try {
           localStorage.removeItem("hub-player-name");
         } catch {}
@@ -1525,13 +1565,22 @@ function maybeAskPlayerName() {
         playerNameModalInput?.focus();
       }
     });
-    return;
+    if (!force) return;
+  }
+  // Clear old guest / invalid names so they must pick a real username
+  if (existing && !hasPlayerName()) {
+    try {
+      localStorage.removeItem("hub-player-name");
+    } catch {}
+    if (playerNameInput) playerNameInput.value = "";
   }
   playerNameModal?.classList.remove("hidden");
   playerNameModalInput?.focus();
 }
 
 function hidePlayerNameModal() {
+  // Never dismiss until a real username is saved
+  if (!hasPlayerName()) return;
   playerNameModal?.classList.add("hidden");
 }
 
@@ -1546,23 +1595,23 @@ function setPlayerNameStatus(msg, isError) {
   });
 }
 
-async function savePlayerNameFrom(value, opts = {}) {
+async function savePlayerNameFrom(value) {
   if (typeof HubPlays === "undefined") return;
-  const raw = opts.guest ? HubPlays.makeGuestName() : value;
-  setPlayerNameStatus(opts.guest ? "Claiming guest name…" : "Checking name…", false);
+  setPlayerNameStatus("Checking name…", false);
   savePlayerNameBtn && (savePlayerNameBtn.disabled = true);
   playerNameSaveBtn && (playerNameSaveBtn.disabled = true);
   try {
-    const result = await HubPlays.claimName(raw);
+    const result = await HubPlays.claimName(value);
     if (!result.ok) {
       setPlayerNameStatus(result.error || "Name unavailable", true);
       showGamesMessage(result.error || "Name unavailable", 2200);
+      playerNameModal?.classList.remove("hidden");
       return;
     }
     if (playerNameInput) playerNameInput.value = result.name;
     if (playerNameModalInput) playerNameModalInput.value = result.name;
     setPlayerNameStatus(`Playing as ${result.name}`, false);
-    hidePlayerNameModal();
+    playerNameModal?.classList.add("hidden");
     renderPlayersPanel();
     showGamesMessage(`Playing as ${result.name}`, 1800);
   } finally {
@@ -1684,9 +1733,6 @@ function formatPlayerNameHtml(name) {
 
 savePlayerNameBtn?.addEventListener("click", () => savePlayerNameFrom(playerNameInput?.value));
 playerNameSaveBtn?.addEventListener("click", () => savePlayerNameFrom(playerNameModalInput?.value));
-playerNameSkipBtn?.addEventListener("click", () => {
-  savePlayerNameFrom("", { guest: true });
-});
 playerNameModalInput?.addEventListener("keydown", (e) => {
   if (e.key === "Enter") savePlayerNameFrom(playerNameModalInput.value);
 });

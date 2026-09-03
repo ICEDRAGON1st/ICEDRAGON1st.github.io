@@ -244,6 +244,9 @@
     if (next.toLowerCase() === "player") {
       return { ok: false, error: "Pick a unique nickname — “Player” is reserved" };
     }
+    if (/^guest-/i.test(next)) {
+      return { ok: false, error: "Pick a real username — guest names aren’t allowed" };
+    }
 
     const me = getPlayerId();
     const key = nameKey(next);
@@ -335,6 +338,26 @@
     return `Guest-${Math.random().toString(36).slice(2, 6)}`;
   }
 
+  function hasRequiredName() {
+    const name = getName();
+    if (!name) return false;
+    if (/^guest-/i.test(name)) return false;
+    if (name.toLowerCase() === "player") return false;
+    return true;
+  }
+
+  function enforceUsernameGate() {
+    // Hub page handles its own modal; game pages bounce home without a name
+    if (document.getElementById("games-screen")) return;
+    if (hasRequiredName()) return;
+    const hub = new URL("../index.html", window.location.href).href;
+    try {
+      window.location.replace(hub);
+    } catch {
+      window.location.href = hub;
+    }
+  }
+
   function isNameTaken(name, playerId) {
     const key = nameKey(name);
     if (!key) return false;
@@ -343,8 +366,12 @@
   }
 
   function record(gameId) {
+    if (!hasRequiredName()) {
+      enforceUsernameGate();
+      return null;
+    }
     const id = String(gameId || "unknown");
-    const name = getName() || "Guest";
+    const name = getName();
     const entry = {
       id: makeId(),
       playerId: getPlayerId(),
@@ -615,6 +642,7 @@
   getPlayerId();
   startPresence();
   injectCreatorCredit();
+  enforceUsernameGate();
 
   function creatorCreditHtml() {
     return 'created by <span class="player-name-creator">ICE_DRAGON</span>';
@@ -715,6 +743,7 @@ body.light .menu-credit {
     setName,
     claimName,
     makeGuestName,
+    hasRequiredName,
     isNameTaken,
     record,
     sync,
