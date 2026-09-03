@@ -10,6 +10,10 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260903j": [
+    "Player nicknames are unique — once taken, nobody else can use that name",
+    "Case does not matter (ICE_DRAGON and ice_dragon are the same)"
+  ],
   "20260903i": [
     "Players board — see recent nicknames and which games they opened",
     "Pick a player name once; it syncs across visitors"
@@ -1458,7 +1462,23 @@ togglePlayersBtn?.addEventListener("click", () => {
 
 function maybeAskPlayerName() {
   if (typeof HubPlays === "undefined") return;
-  if (HubPlays.getName()) return;
+  const existing = HubPlays.getName();
+  if (existing) {
+    // Re-claim saved name so uniqueness is registered remotely
+    HubPlays.claimName(existing).then((result) => {
+      if (!result.ok && result.error) {
+        // Someone else took it while this browser was offline
+        try {
+          localStorage.removeItem("hub-player-name");
+        } catch {}
+        if (playerNameInput) playerNameInput.value = "";
+        setPlayerNameStatus(result.error, true);
+        playerNameModal?.classList.remove("hidden");
+        playerNameModalInput?.focus();
+      }
+    });
+    return;
+  }
   playerNameModal?.classList.remove("hidden");
   playerNameModalInput?.focus();
 }
@@ -1467,13 +1487,40 @@ function hidePlayerNameModal() {
   playerNameModal?.classList.add("hidden");
 }
 
-function savePlayerNameFrom(value) {
+function setPlayerNameStatus(msg, isError) {
+  const el = document.getElementById("player-name-status");
+  const modalEl = document.getElementById("player-name-modal-status");
+  [el, modalEl].forEach((node) => {
+    if (!node) return;
+    node.textContent = msg || "";
+    node.classList.toggle("is-error", !!isError);
+    node.classList.toggle("hidden", !msg);
+  });
+}
+
+async function savePlayerNameFrom(value, opts = {}) {
   if (typeof HubPlays === "undefined") return;
-  const name = HubPlays.setName(value || "Player");
-  if (playerNameInput) playerNameInput.value = name;
-  hidePlayerNameModal();
-  renderPlayersPanel();
-  showGamesMessage(`Playing as ${name}`, 1800);
+  const raw = opts.guest ? HubPlays.makeGuestName() : value;
+  setPlayerNameStatus(opts.guest ? "Claiming guest name…" : "Checking name…", false);
+  savePlayerNameBtn && (savePlayerNameBtn.disabled = true);
+  playerNameSaveBtn && (playerNameSaveBtn.disabled = true);
+  try {
+    const result = await HubPlays.claimName(raw);
+    if (!result.ok) {
+      setPlayerNameStatus(result.error || "Name unavailable", true);
+      showGamesMessage(result.error || "Name unavailable", 2200);
+      return;
+    }
+    if (playerNameInput) playerNameInput.value = result.name;
+    if (playerNameModalInput) playerNameModalInput.value = result.name;
+    setPlayerNameStatus(`Playing as ${result.name}`, false);
+    hidePlayerNameModal();
+    renderPlayersPanel();
+    showGamesMessage(`Playing as ${result.name}`, 1800);
+  } finally {
+    savePlayerNameBtn && (savePlayerNameBtn.disabled = false);
+    playerNameSaveBtn && (playerNameSaveBtn.disabled = false);
+  }
 }
 
 async function renderPlayersPanel() {
@@ -1522,7 +1569,7 @@ function escapeHtml(text) {
 savePlayerNameBtn?.addEventListener("click", () => savePlayerNameFrom(playerNameInput?.value));
 playerNameSaveBtn?.addEventListener("click", () => savePlayerNameFrom(playerNameModalInput?.value));
 playerNameSkipBtn?.addEventListener("click", () => {
-  savePlayerNameFrom("Player");
+  savePlayerNameFrom("", { guest: true });
 });
 playerNameModalInput?.addEventListener("keydown", (e) => {
   if (e.key === "Enter") savePlayerNameFrom(playerNameModalInput.value);

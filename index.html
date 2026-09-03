@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <title>My Games</title>
   <script src="site-config.js"></script>
-  <link rel="stylesheet" href="styles.css?v=20260903i">
+  <link rel="stylesheet" href="styles.css?v=20260903j">
 </head>
 <body>
   <div class="app">
@@ -72,8 +72,9 @@
   <div id="player-name-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="player-name-title">
     <div class="modal-content">
       <h2 id="player-name-title">Pick a player name</h2>
-      <p class="modal-subtitle">So the site owner can see who played. Use a nickname — no email needed.</p>
-      <input id="player-name-modal-input" type="text" maxlength="16" placeholder="e.g. Alex" autocomplete="nickname" class="player-name-modal-input">
+      <p class="modal-subtitle">Nicknames are unique — once someone takes ICE_DRAGON, nobody else can. No email needed.</p>
+      <input id="player-name-modal-input" type="text" maxlength="16" placeholder="e.g. ICE_DRAGON" autocomplete="nickname" class="player-name-modal-input">
+      <p id="player-name-modal-status" class="player-name-status hidden" aria-live="polite"></p>
       <div class="modal-actions">
         <button id="player-name-save" type="button" class="modal-btn">Save name</button>
         <button id="player-name-skip" type="button" class="modal-btn modal-btn-secondary">Skip for now</button>
@@ -120,12 +121,13 @@
 
       <div id="players-panel" class="players-panel hidden">
         <h3>Who's playing</h3>
-        <p class="players-intro">Players pick a nickname. Recent games show up here for everyone.</p>
+        <p class="players-intro">Nicknames are unique (case doesn’t matter). Recent games show up here for everyone.</p>
         <div class="players-name-row">
           <label for="player-name-input">Your name</label>
           <input id="player-name-input" type="text" maxlength="16" placeholder="Enter a nickname" autocomplete="nickname">
           <button id="save-player-name-btn" type="button" class="hub-btn">Save</button>
         </div>
+        <p id="player-name-status" class="player-name-status hidden" aria-live="polite"></p>
         <p id="players-totals" class="players-totals"></p>
         <ul id="players-list" class="players-list"></ul>
       </div>
@@ -254,7 +256,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260903i";
+    window.WORDLE_BUILD = "20260903j";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js",
       "words.js",

@@ -830,8 +830,19 @@ header h1 {
 
 .player-name-modal-input {
   width: 100%;
-  margin-bottom: 1rem;
+  margin-bottom: 0.65rem;
   box-sizing: border-box;
+}
+
+.player-name-status {
+  margin: 0 0 0.85rem;
+  font-size: 0.85rem;
+  color: var(--subtitle);
+  line-height: 1.35;
+}
+
+.player-name-status.is-error {
+  color: #c44536;
 }
 
 .players-totals {

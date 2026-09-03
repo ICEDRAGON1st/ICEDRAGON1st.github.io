@@ -1,13 +1,17 @@
 /**
  * hub-plays.js — nickname + shared recent-players log.
  * Uses MantleDB (browser-only) so the site owner can see who played.
+ * Nicknames are unique (case-insensitive) via a dedicated name-registry store.
  */
 (function () {
   const NAME_KEY = "hub-player-name";
+  const PLAYER_ID_KEY = "hub-player-id";
   const LOCAL_KEY = "hub-plays-local-v1";
   const NS = "icedragon1st-mygames";
-  const PATH = "plays-log";
-  const API = `https://mantledb.sh/v2/${NS}/${PATH}`;
+  const PLAYS_PATH = "plays-log";
+  const NAMES_PATH = "name-registry";
+  const PLAYS_API = `https://mantledb.sh/v2/${NS}/${PLAYS_PATH}`;
+  const NAMES_API = `https://mantledb.sh/v2/${NS}/${NAMES_PATH}`;
   const MAX_PLAYS = 60;
   const SYNC_GAP_MS = 4000;
 
@@ -31,14 +35,35 @@
   let syncing = false;
   let lastSync = 0;
   let cache = { plays: [], counts: {} };
+  let namesCache = {};
 
   function sanitizeName(raw) {
-    const cleaned = String(raw || "")
+    return String(raw || "")
       .replace(/[<>&"'`]/g, "")
       .replace(/\s+/g, " ")
       .trim()
       .slice(0, 16);
-    return cleaned || "Player";
+  }
+
+  function nameKey(name) {
+    return sanitizeName(name).toLowerCase();
+  }
+
+  function makeId() {
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  function getPlayerId() {
+    try {
+      let id = localStorage.getItem(PLAYER_ID_KEY);
+      if (!id) {
+        id = `p-${makeId()}`;
+        localStorage.setItem(PLAYER_ID_KEY, id);
+      }
+      return id;
+    } catch {
+      return `p-${makeId()}`;
+    }
   }
 
   function getName() {
@@ -49,12 +74,11 @@
     }
   }
 
-  function setName(name) {
-    const next = sanitizeName(name);
+  function storeLocalName(name) {
     try {
-      localStorage.setItem(NAME_KEY, next);
+      if (name) localStorage.setItem(NAME_KEY, name);
+      else localStorage.removeItem(NAME_KEY);
     } catch {}
-    return next;
   }
 
   function loadLocal() {
@@ -81,28 +105,52 @@
     return GAME_NAMES[id] || id;
   }
 
-  function makeId() {
-    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  async function fetchJson(url) {
+    const res = await fetch(url, { cache: "no-store" });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error("fetch failed");
+    return res.json();
   }
 
-  async function fetchRemote() {
-    const res = await fetch(API, { cache: "no-store" });
-    if (res.status === 404) return { plays: [], counts: {} };
-    if (!res.ok) throw new Error("fetch failed");
-    const data = await res.json();
+  async function postJson(url, data) {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) throw new Error("push failed");
+  }
+
+  async function fetchPlaysRemote() {
+    const data = await fetchJson(PLAYS_API);
+    if (!data) return { plays: [], counts: {} };
     return {
       plays: Array.isArray(data.plays) ? data.plays : [],
       counts: data.counts && typeof data.counts === "object" ? data.counts : {}
     };
   }
 
-  async function pushRemote(data) {
-    const res = await fetch(API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
+  async function pushPlaysRemote(data) {
+    await postJson(PLAYS_API, {
+      plays: data.plays || [],
+      counts: data.counts || {}
     });
-    if (!res.ok) throw new Error("push failed");
+  }
+
+  async function fetchNamesRemote() {
+    const data = await fetchJson(NAMES_API);
+    if (!data || typeof data !== "object") return {};
+    const names = data.names && typeof data.names === "object" ? data.names : data;
+    // Ignore accidental non-claim fields
+    const out = {};
+    Object.entries(names).forEach(([k, v]) => {
+      if (v && typeof v === "object" && v.playerId && v.name) out[k] = v;
+    });
+    return out;
+  }
+
+  async function pushNamesRemote(names) {
+    await postJson(NAMES_API, { names });
   }
 
   function mergeLogs(a, b) {
@@ -121,25 +169,47 @@
     return { plays, counts };
   }
 
-  async function sync() {
+  function mergeNameMaps(a, b) {
+    const out = { ...(a || {}) };
+    Object.entries(b || {}).forEach(([key, claim]) => {
+      if (!claim || !claim.playerId) return;
+      const existing = out[key];
+      if (!existing) {
+        out[key] = claim;
+        return;
+      }
+      if (existing.playerId === claim.playerId) {
+        if ((claim.claimedAt || 0) >= (existing.claimedAt || 0)) out[key] = claim;
+        return;
+      }
+      // First claimer wins
+      if ((claim.claimedAt || 0) < (existing.claimedAt || 0)) out[key] = claim;
+    });
+    return out;
+  }
+
+  async function sync(force = false) {
     if (syncing) return cache;
-    if (Date.now() - lastSync < SYNC_GAP_MS) return cache;
+    if (!force && Date.now() - lastSync < SYNC_GAP_MS) return cache;
     syncing = true;
     try {
       const local = loadLocal();
       let remote = { plays: [], counts: {} };
       try {
-        remote = await fetchRemote();
+        remote = await fetchPlaysRemote();
       } catch {
         remote = { plays: [], counts: {} };
       }
       const merged = mergeLogs(local, remote);
       saveLocal(merged);
       try {
-        await pushRemote(merged);
+        await pushPlaysRemote(merged);
       } catch {
-        // offline / blocked — local still works
+        // offline — local still works
       }
+      try {
+        namesCache = await fetchNamesRemote();
+      } catch {}
       lastSync = Date.now();
       cache = merged;
       return merged;
@@ -148,11 +218,122 @@
     }
   }
 
+  /**
+   * Claim a unique nickname. Requires the shared registry (online).
+   * Returns { ok, name?, error? }.
+   */
+  async function claimName(raw) {
+    const next = sanitizeName(raw);
+    if (!next) {
+      return { ok: false, error: "Enter a nickname" };
+    }
+    if (next.toLowerCase() === "player") {
+      return { ok: false, error: "Pick a unique nickname — “Player” is reserved" };
+    }
+
+    const me = getPlayerId();
+    const key = nameKey(next);
+    const myClaimAt = Date.now();
+
+    // Retry a few times so two devices racing still settle on first claimer
+    for (let attempt = 0; attempt < 4; attempt++) {
+      let remoteNames;
+      try {
+        remoteNames = await fetchNamesRemote();
+      } catch {
+        return {
+          ok: false,
+          error: "Can't check names right now — check your connection and try again"
+        };
+      }
+
+      const existing = remoteNames[key];
+      if (existing && existing.playerId !== me) {
+        namesCache = remoteNames;
+        return { ok: false, error: `"${existing.name}" is already taken` };
+      }
+
+      const nextNames = { ...remoteNames };
+      Object.keys(nextNames).forEach((k) => {
+        if (k !== key && nextNames[k]?.playerId === me) delete nextNames[k];
+      });
+
+      nextNames[key] = {
+        playerId: me,
+        name: next,
+        claimedAt: existing?.claimedAt || myClaimAt
+      };
+
+      try {
+        await pushNamesRemote(nextNames);
+      } catch {
+        return {
+          ok: false,
+          error: "Couldn't save that name — check your connection and try again"
+        };
+      }
+
+      let confirmed;
+      try {
+        confirmed = await fetchNamesRemote();
+      } catch {
+        return {
+          ok: false,
+          error: "Couldn't verify that name — try again"
+        };
+      }
+
+      // Prefer earliest claim if two writes raced and dropped keys
+      const reconciled = mergeNameMaps(nextNames, confirmed);
+      const owner = reconciled[key];
+
+      if (owner && owner.playerId === me) {
+        try {
+          await pushNamesRemote(reconciled);
+        } catch {}
+        namesCache = reconciled;
+        storeLocalName(next);
+        return { ok: true, name: next };
+      }
+
+      if (owner && owner.playerId !== me) {
+        namesCache = reconciled;
+        try {
+          await pushNamesRemote(reconciled);
+        } catch {}
+        return { ok: false, error: `"${owner.name}" is already taken` };
+      }
+
+      // Owner missing after race — retry
+    }
+
+    return { ok: false, error: "Couldn't claim that name — try again" };
+  }
+
+  /** @deprecated use claimName */
+  function setName(name) {
+    const next = sanitizeName(name);
+    storeLocalName(next);
+    return next;
+  }
+
+  function makeGuestName() {
+    return `Guest-${Math.random().toString(36).slice(2, 6)}`;
+  }
+
+  function isNameTaken(name, playerId) {
+    const key = nameKey(name);
+    if (!key) return false;
+    const claim = namesCache[key];
+    return !!(claim && claim.playerId && claim.playerId !== playerId);
+  }
+
   function record(gameId) {
     const id = String(gameId || "unknown");
-    const name = getName() || setName("Player");
+    const name = getName() || "Guest";
     const entry = {
       id: makeId(),
+      playerId: getPlayerId(),
       name,
       game: id,
       gameName: gameLabel(id),
@@ -170,8 +351,10 @@
     const data = cache.plays.length ? cache : loadLocal();
     return {
       name: getName(),
+      playerId: getPlayerId(),
       plays: data.plays,
-      counts: data.counts
+      counts: data.counts,
+      names: namesCache
     };
   }
 
@@ -186,14 +369,20 @@
     return `${days}d ago`;
   }
 
+  getPlayerId();
+
   window.HubPlays = {
     getName,
     setName,
+    claimName,
+    makeGuestName,
+    isNameTaken,
     record,
     sync,
     getStatus,
     gameLabel,
     formatWhen,
-    sanitizeName
+    sanitizeName,
+    getPlayerId
   };
 })();
