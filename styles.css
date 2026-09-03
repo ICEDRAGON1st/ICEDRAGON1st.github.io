@@ -811,6 +811,13 @@ header h1 {
   font-weight: 600;
 }
 
+.players-alltime {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.02rem;
+  color: var(--subtitle);
+}
+
 .players-intro {
   margin: -0.35rem 0 0.9rem;
   color: var(--subtitle);

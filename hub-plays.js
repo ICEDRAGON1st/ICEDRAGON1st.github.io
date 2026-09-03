@@ -11,15 +11,18 @@
   const PLAYS_PATH = "plays-log";
   const NAMES_PATH = "name-registry";
   const PRESENCE_PATH = "presence";
+  const ALLTIME_PATH = "players-alltime";
   const PLAYS_API = `https://mantledb.sh/v2/${NS}/${PLAYS_PATH}`;
   const NAMES_API = `https://mantledb.sh/v2/${NS}/${NAMES_PATH}`;
   const PRESENCE_API = `https://mantledb.sh/v2/${NS}/${PRESENCE_PATH}`;
+  const ALLTIME_API = `https://mantledb.sh/v2/${NS}/${ALLTIME_PATH}`;
   const MAX_PLAYS = 60;
   const SYNC_GAP_MS = 4000;
   const HEARTBEAT_MS = 60_000;
   const ONLINE_TTL_MS = 150_000; // count as online for ~2.5 min
   const PRESENCE_KEEP_MS = 10 * 60_000;
   const MAX_PRESENCE = 120;
+  const MAX_ALLTIME = 5000;
 
   const GAME_NAMES = {
     wordle: "Wordle",
@@ -43,8 +46,10 @@
   let cache = { plays: [], counts: {} };
   let namesCache = {};
   let presenceCache = {};
+  let allTimeCache = {};
   let presenceTimer = null;
   let heartbeatBusy = false;
+  let allTimeBusy = false;
 
   function sanitizeName(raw) {
     return String(raw || "")
@@ -353,6 +358,7 @@
     local.counts[id] = (Number(local.counts[id]) || 0) + 1;
     saveLocal(local);
     sync().catch(() => {});
+    registerAllTime().catch(() => {});
     return entry;
   }
 
@@ -363,7 +369,9 @@
       playerId: getPlayerId(),
       plays: data.plays,
       counts: data.counts,
-      names: namesCache
+      names: namesCache,
+      online: getOnlineCount(),
+      allTime: getAllTimeCount()
     };
   }
 
@@ -466,9 +474,130 @@
       }
 
       presenceCache = confirmed;
+      registerAllTime().catch(() => {});
       return countOnline(confirmed, now);
     } finally {
       heartbeatBusy = false;
+    }
+  }
+
+  async function fetchAllTimeRemote() {
+    const data = await fetchJson(ALLTIME_API);
+    if (!data || typeof data !== "object") return {};
+    const players = data.players && typeof data.players === "object" ? data.players : data;
+    const out = {};
+    Object.entries(players).forEach(([id, p]) => {
+      if (!id || id === "players" || id === "total") return;
+      if (!p || typeof p !== "object") return;
+      const firstAt = Number(p.firstAt) || Number(p.at) || 0;
+      if (!firstAt) return;
+      out[id] = { firstAt, name: sanitizeName(p.name || "") || "Guest" };
+    });
+    return out;
+  }
+
+  async function pushAllTimeRemote(players) {
+    await postJson(ALLTIME_API, {
+      players,
+      total: Object.keys(players).length
+    });
+  }
+
+  function mergeAllTime(a, b) {
+    const out = { ...(a || {}) };
+    Object.entries(b || {}).forEach(([id, p]) => {
+      if (!p) return;
+      const existing = out[id];
+      if (!existing) {
+        out[id] = p;
+        return;
+      }
+      // Keep earliest firstAt; refresh name if newer visit provided one
+      const firstAt = Math.min(existing.firstAt || Infinity, p.firstAt || Infinity);
+      out[id] = {
+        firstAt: firstAt === Infinity ? Date.now() : firstAt,
+        name: sanitizeName(p.name || existing.name || "") || existing.name || "Guest"
+      };
+    });
+    return out;
+  }
+
+  function trimAllTime(map) {
+    const entries = Object.entries(map || {});
+    if (entries.length <= MAX_ALLTIME) return map || {};
+    entries.sort((a, b) => (a[1].firstAt || 0) - (b[1].firstAt || 0));
+    const out = {};
+    entries.slice(0, MAX_ALLTIME).forEach(([id, p]) => {
+      out[id] = p;
+    });
+    return out;
+  }
+
+  function getAllTimeCount() {
+    return Object.keys(allTimeCache || {}).length;
+  }
+
+  /**
+   * Register this browser once in the all-time player set.
+   * Coming back online does not increase the count again.
+   */
+  async function registerAllTime() {
+    if (allTimeBusy) return getAllTimeCount();
+    allTimeBusy = true;
+    try {
+      const me = getPlayerId();
+      let remote = {};
+      try {
+        remote = await fetchAllTimeRemote();
+      } catch {
+        return getAllTimeCount();
+      }
+
+      // Also learn ids from recent play log (one-time bootstrap)
+      const fromPlays = {};
+      (cache.plays || loadLocal().plays || []).forEach((p) => {
+        if (!p || !p.playerId) return;
+        fromPlays[p.playerId] = {
+          firstAt: Number(p.at) || Date.now(),
+          name: sanitizeName(p.name || "") || "Guest"
+        };
+      });
+
+      const now = Date.now();
+      const next = trimAllTime(
+        mergeAllTime(mergeAllTime(remote, fromPlays), {
+          [me]: { firstAt: now, name: getName() || "Guest" }
+        })
+      );
+
+      // Already known and no new ids from plays — skip write
+      const remoteCount = Object.keys(remote).length;
+      const nextCount = Object.keys(next).length;
+      const alreadyMe = !!remote[me];
+      if (alreadyMe && nextCount === remoteCount) {
+        allTimeCache = remote;
+        return remoteCount;
+      }
+
+      try {
+        await pushAllTimeRemote(next);
+      } catch {
+        allTimeCache = mergeAllTime(allTimeCache, next);
+        return getAllTimeCount();
+      }
+
+      let confirmed = next;
+      try {
+        confirmed = trimAllTime(mergeAllTime(next, await fetchAllTimeRemote()));
+        await pushAllTimeRemote(confirmed);
+      } catch {
+        confirmed = next;
+      }
+
+      allTimeCache = confirmed;
+      return Object.keys(confirmed).length;
+    } finally {
+      allTimeBusy = false;
     }
   }
 
@@ -501,6 +630,8 @@
     getPlayerId,
     heartbeat,
     getOnlineCount,
+    getAllTimeCount,
+    registerAllTime,
     startPresence
   };
 })();

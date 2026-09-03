@@ -10,6 +10,10 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260903l": [
+    "All-time player count — each person only adds +1 once",
+    "Coming back online later does not increase the total again"
+  ],
   "20260903k": [
     "See how many players are online right now",
     "Online count refreshes every minute"
@@ -1460,7 +1464,8 @@ togglePlayersBtn?.addEventListener("click", () => {
   if (!playersPanel) return;
   const open = playersPanel.classList.toggle("hidden") === false;
   updateOnlineCountDisplay(
-    typeof HubPlays !== "undefined" ? HubPlays.getOnlineCount() : 0
+    typeof HubPlays !== "undefined" ? HubPlays.getOnlineCount() : 0,
+    typeof HubPlays !== "undefined" ? HubPlays.getAllTimeCount() : 0
   );
   if (open) {
     maybeAskPlayerName();
@@ -1531,18 +1536,29 @@ async function savePlayerNameFrom(value, opts = {}) {
   }
 }
 
-function updateOnlineCountDisplay(count) {
+function updateOnlineCountDisplay(onlineCount, allTimeCount) {
   const onlineEl = document.getElementById("players-online");
-  const n = Math.max(0, Number(count) || 0);
+  const allTimeEl = document.getElementById("players-alltime");
+  const n = Math.max(0, Number(onlineCount) || 0);
+  const total =
+    allTimeCount == null
+      ? typeof HubPlays !== "undefined"
+        ? HubPlays.getAllTimeCount()
+        : 0
+      : Math.max(0, Number(allTimeCount) || 0);
   if (onlineEl) {
     onlineEl.textContent = n === 1 ? "1 online" : `${n} online`;
     onlineEl.classList.toggle("is-empty", n === 0);
   }
+  if (allTimeEl) {
+    allTimeEl.textContent =
+      total === 1 ? "· 1 all-time" : `· ${total} all-time`;
+  }
   if (togglePlayersBtn) {
     const open = playersPanel && !playersPanel.classList.contains("hidden");
     togglePlayersBtn.textContent = open
-      ? `Hide players · ${n}`
-      : `Players · ${n}`;
+      ? `Hide players · ${n}/${total}`
+      : `Players · ${n}/${total}`;
   }
 }
 
@@ -1550,9 +1566,13 @@ async function refreshOnlineCount() {
   if (typeof HubPlays === "undefined") return;
   try {
     const n = await HubPlays.heartbeat();
-    updateOnlineCountDisplay(n);
+    let total = HubPlays.getAllTimeCount();
+    try {
+      total = await HubPlays.registerAllTime();
+    } catch {}
+    updateOnlineCountDisplay(n, total);
   } catch {
-    updateOnlineCountDisplay(HubPlays.getOnlineCount());
+    updateOnlineCountDisplay(HubPlays.getOnlineCount(), HubPlays.getAllTimeCount());
   }
 }
 
