@@ -12,6 +12,7 @@ const overlayTitle = document.getElementById("overlay-title");
 const overlayText = document.getElementById("overlay-text");
 const startBtn = document.getElementById("start-btn");
 const resumeBtn = document.getElementById("resume-btn");
+const viewBoardBtn = document.getElementById("view-board-btn");
 const gamesBtn = document.getElementById("games-btn");
 const menuBtn = document.getElementById("menu-btn");
 const boardEl = document.getElementById("board");
@@ -385,13 +386,29 @@ function showMenu(mode, title, text) {
 
   if (mode === "pause") {
     resumeBtn.classList.remove("hidden");
+    viewBoardBtn?.classList.add("hidden");
     startBtn.textContent = "New Game";
+  } else if (mode === "gameover") {
+    resumeBtn.classList.add("hidden");
+    viewBoardBtn?.classList.remove("hidden");
+    startBtn.textContent = "Try Again";
   } else {
     resumeBtn.classList.add("hidden");
-    startBtn.textContent = mode === "gameover" ? "Try Again" : "New Game";
+    viewBoardBtn?.classList.add("hidden");
+    startBtn.textContent = "New Game";
   }
 
   overlay.classList.remove("hidden");
+}
+
+function viewBoard() {
+  if (menuMode !== "gameover") return;
+  overlay.classList.add("hidden");
+  if (!messageEl.textContent) {
+    messageEl.textContent = "Tap Menu to return to the result screen.";
+  } else if (!/menu/i.test(messageEl.textContent)) {
+    messageEl.textContent = `${messageEl.textContent} · Tap Menu for Try Again.`;
+  }
 }
 
 function openPauseMenu() {
@@ -413,6 +430,10 @@ function goToGames() {
 window.addEventListener("keydown", (e) => {
   if (e.code === "Escape") {
     e.preventDefault();
+    if (menuMode === "gameover") {
+      overlay.classList.toggle("hidden");
+      return;
+    }
     if (menuMode === "pause" && !overlay.classList.contains("hidden")) resumeGame();
     else if (menuMode === "playing") openPauseMenu();
     return;
@@ -459,6 +480,10 @@ window.addEventListener("resize", () => {
 });
 
 menuBtn.addEventListener("click", () => {
+  if (menuMode === "gameover") {
+    overlay.classList.remove("hidden");
+    return;
+  }
   if (menuMode === "playing") openPauseMenu();
   else if (menuMode === "pause") resumeGame();
   else overlay.classList.remove("hidden");
@@ -466,6 +491,7 @@ menuBtn.addEventListener("click", () => {
 
 startBtn.addEventListener("click", () => newGame());
 resumeBtn.addEventListener("click", () => resumeGame());
+viewBoardBtn?.addEventListener("click", () => viewBoard());
 gamesBtn.addEventListener("click", () => goToGames());
 
 buildBackgroundGrid();
