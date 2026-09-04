@@ -37,6 +37,8 @@ let playing = false;
 let menuMode = "start";
 let won = false;
 let touchStart = null;
+let animating = false;
+const MOVE_MS = 160;
 
 function loadBest() {
   try {
@@ -87,36 +89,56 @@ function tileFontSize(value) {
   return "3.15rem";
 }
 
+function positionTile(tile, r, c, metrics = cellMetrics()) {
+  const { gap, cell } = metrics;
+  tile.style.width = `${cell}px`;
+  tile.style.height = `${cell}px`;
+  tile.style.left = `${c * (cell + gap)}px`;
+  tile.style.top = `${r * (cell + gap)}px`;
+}
+
+function styleTile(tile, value) {
+  const colors = TILE_COLORS[value] || { bg: "#3c3a32", fg: "#f9f6f2" };
+  tile.style.background = colors.bg;
+  tile.style.color = colors.fg;
+  tile.style.fontSize = tileFontSize(value);
+  tile.textContent = String(value);
+}
+
+function createTileEl(value, r, c, extraClass = "") {
+  const tile = document.createElement("div");
+  tile.className = extraClass ? `tile ${extraClass}` : "tile";
+  styleTile(tile, value);
+  positionTile(tile, r, c);
+  return tile;
+}
+
 function renderTiles(newCells = [], mergedCells = []) {
   tilesEl.innerHTML = "";
-  const { gap, cell } = cellMetrics();
   const newSet = new Set(newCells.map(([r, c]) => `${r},${c}`));
   const mergedSet = new Set(mergedCells.map(([r, c]) => `${r},${c}`));
+  const metrics = cellMetrics();
 
   for (let r = 0; r < SIZE; r++) {
     for (let c = 0; c < SIZE; c++) {
       const value = grid[r][c];
       if (!value) continue;
-
-      const tile = document.createElement("div");
-      tile.className = "tile";
-      const colors = TILE_COLORS[value] || { bg: "#3c3a32", fg: "#f9f6f2" };
-      tile.style.background = colors.bg;
-      tile.style.color = colors.fg;
-      tile.style.width = `${cell}px`;
-      tile.style.height = `${cell}px`;
-      tile.style.left = `${c * (cell + gap)}px`;
-      tile.style.top = `${r * (cell + gap)}px`;
-      tile.style.fontSize = tileFontSize(value);
-      tile.textContent = String(value);
-
       const key = `${r},${c}`;
-      if (newSet.has(key)) tile.classList.add("new");
-      if (mergedSet.has(key)) tile.classList.add("merged");
-
+      const cls = [
+        newSet.has(key) ? "new" : "",
+        mergedSet.has(key) ? "merged" : ""
+      ]
+        .filter(Boolean)
+        .join(" ");
+      const tile = createTileEl(value, r, c, cls);
+      positionTile(tile, r, c, metrics);
       tilesEl.appendChild(tile);
     }
   }
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function randomEmptyCell() {
@@ -159,121 +181,149 @@ function hasWon() {
   return false;
 }
 
-function slideLine(line) {
-  const filtered = line.filter((v) => v !== 0);
-  const mergedIndices = [];
-  const out = [];
+function slideLineTracked(line) {
+  // line: values; returns travels from old index -> new index
+  const items = [];
+  for (let i = 0; i < line.length; i++) {
+    if (line[i]) items.push({ value: line[i], from: i });
+  }
 
-  for (let i = 0; i < filtered.length; i++) {
-    if (i < filtered.length - 1 && filtered[i] === filtered[i + 1]) {
-      const value = filtered[i] * 2;
-      out.push(value);
+  const out = Array(SIZE).fill(0);
+  const travels = []; // { from, to, value, merging }
+  const mergedIndices = [];
+  let write = 0;
+
+  for (let i = 0; i < items.length; ) {
+    if (i + 1 < items.length && items[i].value === items[i + 1].value) {
+      const value = items[i].value * 2;
+      out[write] = value;
       score += value;
-      mergedIndices.push(out.length - 1);
-      i += 1;
+      mergedIndices.push(write);
+      travels.push({
+        from: items[i].from,
+        to: write,
+        value: items[i].value,
+        merging: true
+      });
+      travels.push({
+        from: items[i + 1].from,
+        to: write,
+        value: items[i + 1].value,
+        merging: true
+      });
+      write += 1;
+      i += 2;
     } else {
-      out.push(filtered[i]);
+      out[write] = items[i].value;
+      travels.push({
+        from: items[i].from,
+        to: write,
+        value: items[i].value,
+        merging: false
+      });
+      write += 1;
+      i += 1;
     }
   }
 
-  while (out.length < SIZE) out.push(0);
   const moved = out.some((v, i) => v !== line[i]);
-  return { line: out, moved, mergedIndices };
+  return { line: out, moved, mergedIndices, travels };
 }
 
-function slideRowLeft(row) {
-  return slideLine(row);
-}
+function slideBoard(g, direction) {
+  const next = emptyGrid();
+  let moved = false;
+  const mergedCells = [];
+  const travels = []; // { fr, fc, tr, tc, value, merging }
 
-function slideRowRight(row) {
-  const reversed = [...row].reverse();
-  const result = slideLine(reversed);
-  return {
-    line: result.line.reverse(),
-    moved: result.moved,
-    mergedIndices: result.mergedIndices.map((idx) => SIZE - 1 - idx)
+  const pushTravel = (fr, fc, tr, tc, value, merging) => {
+    travels.push({ fr, fc, tr, tc, value, merging });
   };
-}
 
-function slideColUp(g) {
-  const next = cloneGrid(g);
-  let moved = false;
-  const mergedCells = [];
+  if (direction === "left" || direction === "right") {
+    for (let r = 0; r < SIZE; r++) {
+      const row = [...g[r]];
+      const source = direction === "right" ? [...row].reverse() : row;
+      const result = slideLineTracked(source);
+      if (result.moved) moved = true;
 
-  for (let c = 0; c < SIZE; c++) {
-    const col = [];
-    for (let r = 0; r < SIZE; r++) col.push(g[r][c]);
-    const result = slideLine(col);
-    if (result.moved) moved = true;
-    for (let r = 0; r < SIZE; r++) next[r][c] = result.line[r];
-    for (const idx of result.mergedIndices) mergedCells.push([idx, c]);
+      const mappedLine =
+        direction === "right" ? [...result.line].reverse() : result.line;
+      next[r] = mappedLine;
+
+      for (const idx of result.mergedIndices) {
+        const c = direction === "right" ? SIZE - 1 - idx : idx;
+        mergedCells.push([r, c]);
+      }
+
+      for (const t of result.travels) {
+        const fc = direction === "right" ? SIZE - 1 - t.from : t.from;
+        const tc = direction === "right" ? SIZE - 1 - t.to : t.to;
+        pushTravel(r, fc, r, tc, t.value, t.merging);
+      }
+    }
+  } else {
+    for (let c = 0; c < SIZE; c++) {
+      const col = [];
+      for (let r = 0; r < SIZE; r++) col.push(g[r][c]);
+      const source = direction === "down" ? [...col].reverse() : col;
+      const result = slideLineTracked(source);
+      if (result.moved) moved = true;
+
+      for (let i = 0; i < SIZE; i++) {
+        const r = direction === "down" ? SIZE - 1 - i : i;
+        next[r][c] = result.line[i];
+      }
+
+      for (const idx of result.mergedIndices) {
+        const r = direction === "down" ? SIZE - 1 - idx : idx;
+        mergedCells.push([r, c]);
+      }
+
+      for (const t of result.travels) {
+        const fr = direction === "down" ? SIZE - 1 - t.from : t.from;
+        const tr = direction === "down" ? SIZE - 1 - t.to : t.to;
+        pushTravel(fr, c, tr, c, t.value, t.merging);
+      }
+    }
   }
 
-  return { grid: next, moved, mergedCells };
+  return { grid: next, moved, mergedCells, travels };
 }
 
-function slideColDown(g) {
-  const next = cloneGrid(g);
-  let moved = false;
-  const mergedCells = [];
+function animateTravels(travels) {
+  tilesEl.innerHTML = "";
+  const metrics = cellMetrics();
+  const els = travels.map((t) => {
+    const tile = createTileEl(t.value, t.fr, t.fc);
+    tile.style.transition = "none";
+    positionTile(tile, t.fr, t.fc, metrics);
+    tilesEl.appendChild(tile);
+    return { tile, t };
+  });
 
-  for (let c = 0; c < SIZE; c++) {
-    const col = [];
-    for (let r = SIZE - 1; r >= 0; r--) col.push(g[r][c]);
-    const result = slideLine(col);
-    if (result.moved) moved = true;
-    for (let r = 0; r < SIZE; r++) next[SIZE - 1 - r][c] = result.line[r];
-    for (const idx of result.mergedIndices) mergedCells.push([SIZE - 1 - idx, c]);
-  }
-
-  return { grid: next, moved, mergedCells };
+  // Force layout, then slide to destinations
+  void tilesEl.offsetWidth;
+  requestAnimationFrame(() => {
+    els.forEach(({ tile, t }) => {
+      tile.style.transition = `top ${MOVE_MS}ms ease, left ${MOVE_MS}ms ease`;
+      positionTile(tile, t.tr, t.tc, metrics);
+    });
+  });
 }
 
-function slideRowLeftGrid(g) {
-  const next = cloneGrid(g);
-  let moved = false;
-  const mergedCells = [];
+async function move(direction) {
+  if (!playing || menuMode !== "playing" || animating) return;
 
-  for (let r = 0; r < SIZE; r++) {
-    const result = slideRowLeft(next[r]);
-    if (result.moved) moved = true;
-    next[r] = result.line;
-    for (const idx of result.mergedIndices) mergedCells.push([r, idx]);
-  }
-
-  return { grid: next, moved, mergedCells };
-}
-
-function slideRowRightGrid(g) {
-  const next = cloneGrid(g);
-  let moved = false;
-  const mergedCells = [];
-
-  for (let r = 0; r < SIZE; r++) {
-    const result = slideRowRight(next[r]);
-    if (result.moved) moved = true;
-    next[r] = result.line;
-    for (const idx of result.mergedIndices) mergedCells.push([r, idx]);
-  }
-
-  return { grid: next, moved, mergedCells };
-}
-
-function move(direction) {
-  if (!playing || menuMode !== "playing") return;
-
-  let result;
-  if (direction === "left") result = slideRowLeftGrid(grid);
-  else if (direction === "right") result = slideRowRightGrid(grid);
-  else if (direction === "up") result = slideColUp(grid);
-  else if (direction === "down") result = slideColDown(grid);
-  else return;
-
+  const result = slideBoard(grid, direction);
   if (!result.moved) return;
 
-  grid = result.grid;
+  animating = true;
   window.HubSound?.play(result.mergedCells?.length ? "merge" : "place");
+  animateTravels(result.travels);
+  await delay(MOVE_MS + 20);
 
+  grid = result.grid;
   if (window.HubAchievements) {
     const maxTile = Math.max(...grid.flat());
     if (maxTile >= 512) HubAchievements.unlock("2048_tile_512");
@@ -289,6 +339,7 @@ function move(direction) {
   const spawned = addRandomTile();
   const newCells = spawned ? [spawned] : [];
   renderTiles(newCells, result.mergedCells);
+  animating = false;
 
   if (!won && hasWon()) {
     won = true;

@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260904f": [
+    "2048 tiles now slide so you can see them move"
+  ],
   "20260904e": [
     "OscarVR29 shows in green on the Players board"
   ],
