@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260904g": [
+    "Online count now matches the visible online name list"
+  ],
   "20260904f": [
     "2048 tiles now slide so you can see them move"
   ],

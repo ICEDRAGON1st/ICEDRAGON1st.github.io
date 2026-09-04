@@ -648,16 +648,36 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   function countOnline(map, now = Date.now()) {
-    return Object.values(map || {}).filter((p) => p && now - (p.at || 0) < ONLINE_TTL_MS).length;
+    return Object.values(map || {}).filter(
+      (p) =>
+        p &&
+        now - (p.at || 0) < ONLINE_TTL_MS &&
+        !isPlaceholderName(p.name)
+    ).length;
+  }
+
+  function enrichPresenceNames(map) {
+    const fromPlays = namesFromPlays(cache.plays || loadLocal().plays || []);
+    const out = { ...(map || {}) };
+    Object.keys(out).forEach((id) => {
+      const playName = fromPlays[id]?.name;
+      if (playName) {
+        out[id] = {
+          ...out[id],
+          name: preferPlayerName(out[id]?.name, playName)
+        };
+      }
+    });
+    return out;
   }
 
   function getOnlineCount() {
-    return countOnline(presenceCache);
+    return countOnline(enrichPresenceNames(presenceCache));
   }
 
   function getOnlinePlayers() {
     const now = Date.now();
-    return Object.entries(presenceCache || {})
+    return Object.entries(enrichPresenceNames(presenceCache))
       .filter(([, p]) => p && now - (p.at || 0) < ONLINE_TTL_MS)
       .map(([playerId, p]) => ({
         playerId,
@@ -684,32 +704,45 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       }
 
       const now = Date.now();
-      const next = prunePresence(
-        mergePresence(remote, {
-          [me]: { at: now, name: getName() || "Guest" }
-        }),
-        now
-      );
+      // Don't publish Guest placeholders — they inflate the online count
+      let next = prunePresence(remote, now);
+      if (hasRequiredName()) {
+        next = prunePresence(
+          mergePresence(next, {
+            [me]: { at: now, name: getName() }
+          }),
+          now
+        );
+      } else if (next[me] && isPlaceholderName(next[me].name)) {
+        delete next[me];
+      }
+
+      // Drop other stale Guest presence entries from the shared map
+      Object.keys(next).forEach((id) => {
+        if (isPlaceholderName(next[id]?.name)) delete next[id];
+      });
 
       try {
         await pushPresenceRemote(next);
       } catch {
-        presenceCache = mergePresence(presenceCache, next);
+        presenceCache = enrichPresenceNames(mergePresence(presenceCache, next));
         return countOnline(presenceCache, now);
       }
 
-      // Reconcile races: keep newest ping per player
       let confirmed = next;
       try {
         confirmed = prunePresence(mergePresence(next, await fetchPresenceRemote()), now);
+        Object.keys(confirmed).forEach((id) => {
+          if (isPlaceholderName(confirmed[id]?.name)) delete confirmed[id];
+        });
         await pushPresenceRemote(confirmed);
       } catch {
         confirmed = next;
       }
 
-      presenceCache = confirmed;
+      presenceCache = enrichPresenceNames(confirmed);
       registerAllTime().catch(() => {});
-      return countOnline(confirmed, now);
+      return countOnline(presenceCache, now);
     } finally {
       heartbeatBusy = false;
     }
