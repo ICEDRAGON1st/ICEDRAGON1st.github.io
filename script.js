@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260904d": [
+    "Fix username popup so Backspace and typing work in the name field"
+  ],
   "20260904c": [
     "Username popup is required before you can play on the hub or any game"
   ],
@@ -1466,7 +1469,25 @@ function handleKey(key) {
   addLetter(key);
 }
 
+function isUsernameGateOpen() {
+  const hubModal = document.getElementById("player-name-modal");
+  if (hubModal && !hubModal.classList.contains("hidden")) return true;
+  const gate = document.getElementById("username-gate-modal");
+  if (gate && !gate.classList.contains("hidden")) return true;
+  return typeof HubPlays !== "undefined" && !hasPlayerName();
+}
+
+function isTypingInField(event) {
+  const el = event?.target;
+  if (!el) return false;
+  const tag = String(el.tagName || "").toUpperCase();
+  return tag === "INPUT" || tag === "TEXTAREA" || !!el.isContentEditable;
+}
+
 function handlePhysicalKeyboard(event) {
+  // Let username / text fields keep Backspace, letters, Enter, etc.
+  if (isTypingInField(event) || isUsernameGateOpen()) return;
+
   if (isGamesScreenOpen()) {
     if (event.key === "Escape") {
       event.preventDefault();
@@ -2020,14 +2041,18 @@ document.getElementById("players-alltime")?.addEventListener("click", async () =
   setPlayersRosterMode("alltime");
 });
 playerNameModalInput?.addEventListener("keydown", (e) => {
+  e.stopPropagation();
   if (e.key === "Enter") savePlayerNameFrom(playerNameModalInput.value);
 });
 playerNameInput?.addEventListener("keydown", (e) => {
+  e.stopPropagation();
   if (e.key === "Enter") {
     if (typeof HubPlays !== "undefined" && HubPlays.isNameLocked()) return;
     savePlayerNameFrom(playerNameInput.value);
   }
 });
+playerNameModalInput?.addEventListener("keyup", (e) => e.stopPropagation());
+playerNameInput?.addEventListener("keyup", (e) => e.stopPropagation());
 
 function renderAchievementsPanel() {
   if (!achievementsGrid || typeof HubAchievements === "undefined") return;

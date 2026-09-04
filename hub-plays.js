@@ -446,6 +446,13 @@
 }
 body.username-gate-open {
   overflow: hidden !important;
+}
+body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):not(#username-gate-style) {
+  pointer-events: none !important;
+}
+#username-gate-modal,
+#player-name-modal.username-gate-force {
+  pointer-events: auto !important;
 }`;
     document.head.appendChild(style);
   }
@@ -484,6 +491,14 @@ body.username-gate-open {
     }
   }
 
+  function isUsernameGateOpen() {
+    if (hasRequiredName()) return false;
+    const hubModal = document.getElementById("player-name-modal");
+    if (hubModal && !hubModal.classList.contains("hidden")) return true;
+    const gate = document.getElementById("username-gate-modal");
+    return !!(gate && !gate.classList.contains("hidden"));
+  }
+
   /**
    * Blocking popup: players must enter a unique username before playing.
    */
@@ -492,15 +507,7 @@ body.username-gate-open {
     ensureUsernameGateStyles();
     document.body.classList.add("username-gate-open");
 
-    const hubModal = document.getElementById("player-name-modal");
-    if (hubModal) {
-      hubModal.classList.add("username-gate-force");
-      hubModal.classList.remove("hidden");
-      const input = document.getElementById("player-name-modal-input");
-      input?.focus();
-      return false;
-    }
-
+    // Prefer the dedicated gate modal everywhere so typing works reliably
     let modal = document.getElementById("username-gate-modal");
     if (!modal) {
       modal = document.createElement("div");
@@ -522,17 +529,26 @@ body.username-gate-open {
       const btn = modal.querySelector("#username-gate-save");
       btn.addEventListener("click", () => submitUsernameGate(input, status, btn));
       input.addEventListener("keydown", (e) => {
+        e.stopPropagation();
         if (e.key === "Enter") submitUsernameGate(input, status, btn);
       });
-      // Block Escape / outside click from dismissing
+      input.addEventListener("keyup", (e) => e.stopPropagation());
+      input.addEventListener("keypress", (e) => e.stopPropagation());
       modal.addEventListener("click", (e) => {
-        if (e.target === modal) {
-          input.focus();
-        }
+        if (e.target === modal) input.focus();
       });
     }
+
+    // Hide the old hub modal so only one popup is shown
+    const hubModal = document.getElementById("player-name-modal");
+    if (hubModal) {
+      hubModal.classList.add("hidden");
+      hubModal.classList.remove("username-gate-force");
+    }
+
     modal.classList.remove("hidden");
-    modal.querySelector("#username-gate-input")?.focus();
+    const input = modal.querySelector("#username-gate-input");
+    setTimeout(() => input?.focus(), 0);
     return false;
   }
 
@@ -992,6 +1008,7 @@ body.light .menu-credit {
     makeGuestName,
     hasRequiredName,
     enforceUsernameGate,
+    isUsernameGateOpen,
     isNameTaken,
     record,
     sync,
