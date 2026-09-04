@@ -79,6 +79,16 @@ function saveHighScore() {
   localStorage.setItem(highScoreKey(), String(highScore));
 }
 
+function submitMathLeaderboard() {
+  const best = Math.max(
+    Number(localStorage.getItem("math-sprint-high-score-easy")) || 0,
+    Number(localStorage.getItem("math-sprint-high-score-medium")) || 0,
+    Number(localStorage.getItem("math-sprint-high-score-hard")) || 0,
+    highScore || 0
+  );
+  if (best > 0) window.HubLeaderboard?.submit("math", best);
+}
+
 function randInt(min, max) {
   return Math.floor(Math.random() * (max - min + 1)) + min;
 }
@@ -293,6 +303,7 @@ function finishRound() {
     saveHighScore();
     window.HubConfetti?.burst();
   }
+  submitMathLeaderboard();
   updateHud();
 
   const pct = Math.round((score / total) * 100);

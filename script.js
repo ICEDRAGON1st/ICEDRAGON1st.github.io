@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260904l": [
+    "Online leaderboards for every game — compete for #1"
+  ],
   "20260904k": [
     "View board after a win or loss in every game"
   ],
@@ -172,12 +175,17 @@ const gamesBackBtn = document.getElementById("games-back");
 const gamesMessageEl = document.getElementById("games-message");
 const continueLastBtn = document.getElementById("continue-last-btn");
 const toggleScoresBtn = document.getElementById("toggle-scores-btn");
+const toggleLeaderboardsBtn = document.getElementById("toggle-leaderboards-btn");
 const toggleAchievementsBtn = document.getElementById("toggle-achievements-btn");
 const togglePlayersBtn = document.getElementById("toggle-players-btn");
 const toggleUpdatesBtn = document.getElementById("toggle-updates-btn");
 const shareMomentBtn = document.getElementById("share-moment-btn");
 const highScoresPanel = document.getElementById("high-scores-panel");
 const highScoresList = document.getElementById("high-scores-list");
+const leaderboardsPanel = document.getElementById("leaderboards-panel");
+const leaderboardGamePicker = document.getElementById("leaderboard-game-picker");
+const leaderboardList = document.getElementById("leaderboard-list");
+const leaderboardEmpty = document.getElementById("leaderboard-empty");
 const updatesPanel = document.getElementById("updates-panel");
 const updatesList = document.getElementById("updates-list");
 const updatesCount = document.getElementById("updates-count");
@@ -507,6 +515,7 @@ function recordGameResult(won) {
     stats.currentStreak = 0;
   }
   saveStats(stats);
+  if (stats.wins > 0) window.HubLeaderboard?.submit("wordle", stats.wins);
   return stats;
 }
 
@@ -963,6 +972,8 @@ function sortGamesGrid() {
   cards.forEach((card) => gamesGrid.appendChild(card));
 }
 
+let selectedLeaderboardGame = HUB_GAMES[0]?.id || "wordle";
+
 function renderHighScoresList() {
   if (!highScoresList) return;
   const rows = HUB_GAMES.map((game) => {
@@ -979,6 +990,57 @@ function renderHighScoresList() {
         `<li><span class="hs-name">${row.fav ? "★ " : ""}${row.name}</span><span class="hs-score">${row.label}</span></li>`
     )
     .join("");
+}
+
+function renderLeaderboardPicker() {
+  if (!leaderboardGamePicker) return;
+  leaderboardGamePicker.innerHTML = HUB_GAMES.map(
+    (game) =>
+      `<button type="button" class="leaderboard-game-btn${
+        game.id === selectedLeaderboardGame ? " active" : ""
+      }" data-game="${game.id}">${escapeHtml(game.name)}</button>`
+  ).join("");
+}
+
+function renderLeaderboardList() {
+  if (!leaderboardList || !leaderboardEmpty) return;
+  if (typeof HubLeaderboard === "undefined") {
+    leaderboardList.innerHTML = "";
+    leaderboardEmpty.textContent = "Leaderboards unavailable right now.";
+    leaderboardEmpty.classList.remove("hidden");
+    return;
+  }
+
+  const rows = HubLeaderboard.getBoard(selectedLeaderboardGame);
+  if (!rows.length) {
+    leaderboardList.innerHTML = "";
+    leaderboardEmpty.textContent = "No scores yet — play to claim #1.";
+    leaderboardEmpty.classList.remove("hidden");
+    return;
+  }
+
+  leaderboardEmpty.classList.add("hidden");
+  leaderboardList.innerHTML = rows
+    .map((row) => {
+      const rankClass = row.rank <= 3 ? "lb-rank top" : "lb-rank";
+      return `<li class="${row.isYou ? "is-you" : ""}">
+        <span class="${rankClass}">#${row.rank}</span>
+        <span class="lb-name">${formatPlayerNameHtml(row.name)}${row.isYou ? " (you)" : ""}</span>
+        <span class="lb-score">${escapeHtml(row.label)}</span>
+      </li>`;
+    })
+    .join("");
+}
+
+async function refreshLeaderboardsPanel() {
+  if (!leaderboardsPanel || leaderboardsPanel.classList.contains("hidden")) return;
+  renderLeaderboardPicker();
+  if (typeof HubLeaderboard !== "undefined") {
+    try {
+      await HubLeaderboard.sync();
+    } catch {}
+  }
+  renderLeaderboardList();
 }
 
 function getShareRows(limit = 3) {
@@ -1089,6 +1151,8 @@ function showGamesScreen() {
   gamesMessageEl.classList.remove("visible");
   gamesMessageEl.textContent = "";
   if (highScoresPanel) highScoresPanel.classList.add("hidden");
+  if (leaderboardsPanel) leaderboardsPanel.classList.add("hidden");
+  if (toggleLeaderboardsBtn) toggleLeaderboardsBtn.textContent = "Leaderboards";
   refreshGamesHub();
   gamesScreen.classList.remove("hidden");
   setTimeout(checkPendingAchievements, 400);
@@ -1677,7 +1741,30 @@ toggleScoresBtn?.addEventListener("click", () => {
   if (!highScoresPanel) return;
   const open = highScoresPanel.classList.toggle("hidden") === false;
   toggleScoresBtn.textContent = open ? "Hide scores" : "High scores";
-  if (open) renderHighScoresList();
+  if (open) {
+    if (leaderboardsPanel) leaderboardsPanel.classList.add("hidden");
+    if (toggleLeaderboardsBtn) toggleLeaderboardsBtn.textContent = "Leaderboards";
+    renderHighScoresList();
+  }
+});
+
+toggleLeaderboardsBtn?.addEventListener("click", () => {
+  if (!leaderboardsPanel) return;
+  const open = leaderboardsPanel.classList.toggle("hidden") === false;
+  toggleLeaderboardsBtn.textContent = open ? "Hide leaderboards" : "Leaderboards";
+  if (open) {
+    if (highScoresPanel) highScoresPanel.classList.add("hidden");
+    if (toggleScoresBtn) toggleScoresBtn.textContent = "High scores";
+    refreshLeaderboardsPanel();
+  }
+});
+
+leaderboardGamePicker?.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-game]");
+  if (!btn) return;
+  selectedLeaderboardGame = btn.dataset.game;
+  renderLeaderboardPicker();
+  renderLeaderboardList();
 });
 
 toggleAchievementsBtn?.addEventListener("click", () => {
@@ -1987,6 +2074,9 @@ function startOnlineCountPolling() {
     refreshOnlineCount();
     if (playersPanel && !playersPanel.classList.contains("hidden")) {
       renderPlayersPanel();
+    }
+    if (leaderboardsPanel && !leaderboardsPanel.classList.contains("hidden")) {
+      refreshLeaderboardsPanel();
     }
   }, 60_000);
 }

@@ -171,11 +171,12 @@ function gameOver() {
   running = false;
   menuMode = "gameover";
   const isNew = score > highScore;
-    if (isNew) {
+  if (isNew) {
     highScore = score;
     saveHighScore();
     window.HubConfetti?.burst();
   }
+  if (highScore > 0) window.HubLeaderboard?.submit("snake", highScore);
   updateHud();
   if (window.HubAchievements) {
     if (score >= 10) HubAchievements.unlock("snake_score_10");

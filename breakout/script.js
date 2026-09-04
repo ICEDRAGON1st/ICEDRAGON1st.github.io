@@ -65,8 +65,10 @@ function maybeUpdateHighScore() {
   if (score > highScore) {
     highScore = score;
     saveHighScore();
+    if (highScore > 0) window.HubLeaderboard?.submit("breakout", highScore);
     return true;
   }
+  if (highScore > 0) window.HubLeaderboard?.submit("breakout", highScore);
   return false;
 }
 

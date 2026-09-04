@@ -320,6 +320,7 @@ function applyLineClear(cleared) {
     highScore = score;
     saveHighScore();
   }
+  if (highScore > 0) window.HubLeaderboard?.submit("pixletris", highScore);
   updateHud();
 }
 
@@ -403,6 +404,7 @@ function gameOver() {
     saveHighScore();
     window.HubConfetti?.burst();
   }
+  if (highScore > 0) window.HubLeaderboard?.submit("pixletris", highScore);
   updateHud();
   if (window.HubAchievements) {
     if (lines >= 5) HubAchievements.unlock("pixletris_lines_5");

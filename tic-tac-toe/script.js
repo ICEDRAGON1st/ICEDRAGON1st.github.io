@@ -126,6 +126,9 @@ function recordCpuResult(result) {
   stats[difficulty][result] += 1;
   saveStats(stats);
   updateRecordDisplay();
+  let wins = 0;
+  for (const entry of Object.values(stats || {})) wins += entry.wins || 0;
+  if (wins > 0) window.HubLeaderboard?.submit("tictactoe", wins);
 }
 
 function endGame(result) {

@@ -61,6 +61,10 @@ function saveBestTime() {
     best[difficulty] = seconds;
     localStorage.setItem(BEST_KEY, JSON.stringify(best));
   }
+  const values = Object.values(best).filter((n) => Number.isFinite(n) && n > 0);
+  if (values.length) {
+    window.HubLeaderboard?.submit("sudoku", Math.min(...values), { lowerBetter: true });
+  }
 }
 
 function formatTime(totalSeconds) {

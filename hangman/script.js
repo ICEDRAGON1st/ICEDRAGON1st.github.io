@@ -358,6 +358,9 @@ function endGame(won) {
     stats.bestStreak = Math.max(stats.bestStreak, stats.streak);
     saveStats();
     updateStatsUi();
+    if (stats.bestStreak > 0) {
+      window.HubLeaderboard?.submit("hangman", stats.bestStreak);
+    }
     if (window.HubAchievements) {
       HubAchievements.unlock("hangman_win");
       if (wrong === 0) HubAchievements.unlock("hangman_no_miss");

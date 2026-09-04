@@ -236,6 +236,16 @@ function checkWin() {
     localStorage.setItem(BEST_KEY, JSON.stringify(best));
   }
 
+  let topTime = Infinity;
+  for (const entry of Object.values(best || {})) {
+    if (entry && typeof entry.time === "number" && entry.time > 0) {
+      topTime = Math.min(topTime, entry.time);
+    }
+  }
+  if (Number.isFinite(topTime) && topTime < Infinity) {
+    window.HubLeaderboard?.submit("memory", topTime, { lowerBetter: true });
+  }
+
   updateHud();
   if (window.HubAchievements) {
     HubAchievements.unlock("memory_win_easy");

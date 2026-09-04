@@ -143,6 +143,17 @@ function saveHighScore() {
   localStorage.setItem(highScoreKey(), String(highScore));
 }
 
+function submitQuizLeaderboard() {
+  const best = Math.max(
+    Number(localStorage.getItem("quizmaster-high-score-easy")) || 0,
+    Number(localStorage.getItem("quizmaster-high-score-medium")) || 0,
+    Number(localStorage.getItem("quizmaster-high-score-hard")) || 0,
+    Number(localStorage.getItem("quizmaster-high-score")) || 0,
+    highScore || 0
+  );
+  if (best > 0) window.HubLeaderboard?.submit("quiz", best);
+}
+
 function loadUsedIds() {
   try {
     const raw = JSON.parse(localStorage.getItem(usedKey()) || "[]");
@@ -459,6 +470,7 @@ function finishQuiz() {
     saveHighScore();
     window.HubConfetti?.burst();
   }
+  submitQuizLeaderboard();
   updateHighScoreUi();
 
   let title = "Keep practicing!";

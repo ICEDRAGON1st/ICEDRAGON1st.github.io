@@ -174,6 +174,7 @@ function gameOver() {
     highScore = score;
     saveHighScore();
   }
+  if (highScore > 0) window.HubLeaderboard?.submit("flappy", highScore);
   updateHud();
   draw();
   if (window.HubAchievements) {

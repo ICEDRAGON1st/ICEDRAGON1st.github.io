@@ -269,9 +269,22 @@ function maybeUpdateHighScore() {
   if (score > highScore) {
     highScore = score;
     saveHighScore();
+    submitSpaceLeaderboard();
     return true;
   }
+  submitSpaceLeaderboard();
   return false;
+}
+
+function submitSpaceLeaderboard() {
+  const best = Math.max(
+    Number(localStorage.getItem("space-shooter-high-score-easy")) || 0,
+    Number(localStorage.getItem("space-shooter-high-score-medium")) || 0,
+    Number(localStorage.getItem("space-shooter-high-score-hard")) || 0,
+    Number(localStorage.getItem("space-shooter-high-score")) || 0,
+    highScore || 0
+  );
+  if (best > 0) window.HubLeaderboard?.submit("space", best);
 }
 
 function syncDifficultyButtons() {

@@ -335,6 +335,7 @@ async function move(direction) {
     best = score;
     saveBest();
   }
+  if (best > 0) window.HubLeaderboard?.submit("2048", best);
   updateHud();
 
   const spawned = addRandomTile();
