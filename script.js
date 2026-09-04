@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260904m": [
+    "Tic Tac Toe Hard mode is tough but beatable now"
+  ],
   "20260904l": [
     "Online leaderboards for every game — compete for #1"
   ],

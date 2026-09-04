@@ -238,26 +238,28 @@ function minimax(state, player, ai, human) {
 }
 
 function pickHardMove() {
+  // Still strong: always take an instant win.
   const win = pickWinningMove(board, O);
   if (win !== null) return win;
 
+  // Usually block, but sometimes miss (~15%) so the player can finish.
   const block = pickWinningMove(board, X);
-  if (block !== null) return block;
+  if (block !== null && Math.random() > 0.15) return block;
 
-  let bestMove = emptyCells(board)[0];
-  let bestScore = -Infinity;
-
-  for (const move of emptyCells(board)) {
+  const scored = emptyCells(board).map((move) => {
     const next = [...board];
     next[move] = O;
-    const score = minimax(next, X, O, X);
-    if (score > bestScore) {
-      bestScore = score;
-      bestMove = move;
-    }
+    return { move, score: minimax(next, X, O, X) };
+  });
+  scored.sort((a, b) => b.score - a.score || Math.random() - 0.5);
+
+  // ~40% of the time, pick among the top few moves instead of perfect play.
+  if (scored.length > 1 && Math.random() < 0.4) {
+    const pool = scored.slice(0, Math.min(3, scored.length));
+    return pool[Math.floor(Math.random() * pool.length)].move;
   }
 
-  return bestMove;
+  return scored[0].move;
 }
 
 function shuffle(list) {
