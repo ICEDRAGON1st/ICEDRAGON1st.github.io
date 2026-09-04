@@ -11,7 +11,8 @@ const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
   "20260904m": [
-    "Tic Tac Toe Hard mode is tough but beatable now"
+    "Tic Tac Toe Hard mode is tough but beatable now",
+    "Leaderboards auto-refresh every 30 seconds while open"
   ],
   "20260904l": [
     "Online leaderboards for every game — compete for #1"
@@ -1040,10 +1041,25 @@ async function refreshLeaderboardsPanel() {
   renderLeaderboardPicker();
   if (typeof HubLeaderboard !== "undefined") {
     try {
-      await HubLeaderboard.sync();
+      await HubLeaderboard.sync(true);
     } catch {}
   }
   renderLeaderboardList();
+}
+
+let leaderboardRefreshTimer = null;
+
+function startLeaderboardRefresh() {
+  stopLeaderboardRefresh();
+  leaderboardRefreshTimer = setInterval(() => {
+    refreshLeaderboardsPanel();
+  }, 30_000);
+}
+
+function stopLeaderboardRefresh() {
+  if (!leaderboardRefreshTimer) return;
+  clearInterval(leaderboardRefreshTimer);
+  leaderboardRefreshTimer = null;
 }
 
 function getShareRows(limit = 3) {
@@ -1156,6 +1172,7 @@ function showGamesScreen() {
   if (highScoresPanel) highScoresPanel.classList.add("hidden");
   if (leaderboardsPanel) leaderboardsPanel.classList.add("hidden");
   if (toggleLeaderboardsBtn) toggleLeaderboardsBtn.textContent = "Leaderboards";
+  stopLeaderboardRefresh();
   refreshGamesHub();
   gamesScreen.classList.remove("hidden");
   setTimeout(checkPendingAchievements, 400);
@@ -1747,6 +1764,7 @@ toggleScoresBtn?.addEventListener("click", () => {
   if (open) {
     if (leaderboardsPanel) leaderboardsPanel.classList.add("hidden");
     if (toggleLeaderboardsBtn) toggleLeaderboardsBtn.textContent = "Leaderboards";
+    stopLeaderboardRefresh();
     renderHighScoresList();
   }
 });
@@ -1759,6 +1777,9 @@ toggleLeaderboardsBtn?.addEventListener("click", () => {
     if (highScoresPanel) highScoresPanel.classList.add("hidden");
     if (toggleScoresBtn) toggleScoresBtn.textContent = "High scores";
     refreshLeaderboardsPanel();
+    startLeaderboardRefresh();
+  } else {
+    stopLeaderboardRefresh();
   }
 });
 
@@ -2077,9 +2098,6 @@ function startOnlineCountPolling() {
     refreshOnlineCount();
     if (playersPanel && !playersPanel.classList.contains("hidden")) {
       renderPlayersPanel();
-    }
-    if (leaderboardsPanel && !leaderboardsPanel.classList.contains("hidden")) {
-      refreshLeaderboardsPanel();
     }
   }, 60_000);
 }
