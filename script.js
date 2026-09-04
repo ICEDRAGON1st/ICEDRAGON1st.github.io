@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260904b": [
+    "All-time players list now shows real nicknames instead of stuck Guest entries"
+  ],
   "20260904a": [
     "Lots of new achievements across every game",
     "Space Shooter, Brick Breaker, Tic Tac Toe, and Pixletris now have achievements too"

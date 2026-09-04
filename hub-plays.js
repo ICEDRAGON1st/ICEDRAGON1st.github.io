@@ -333,6 +333,7 @@
         } catch {}
         namesCache = reconciled;
         storeLocalName(next);
+        registerAllTime().catch(() => {});
         return { ok: true, name: next };
       }
 
@@ -493,17 +494,8 @@
         name: sanitizeName(p.name || "") || "Guest",
         at: Number(p.at) || 0
       }))
+      .filter((p) => !isPlaceholderName(p.name))
       .sort((a, b) => (b.at || 0) - (a.at || 0));
-  }
-
-  function getAllTimePlayers() {
-    return Object.entries(allTimeCache || {})
-      .map(([playerId, p]) => ({
-        playerId,
-        name: sanitizeName(p.name || "") || "Guest",
-        firstAt: Number(p.firstAt) || 0
-      }))
-      .sort((a, b) => (a.firstAt || 0) - (b.firstAt || 0));
   }
 
   /**
@@ -575,20 +567,38 @@
     });
   }
 
+  function isPlaceholderName(name) {
+    const n = sanitizeName(name || "").toLowerCase();
+    return !n || n === "guest" || n.startsWith("guest-") || n === "player";
+  }
+
+  function preferPlayerName(a, b) {
+    const left = sanitizeName(a || "");
+    const right = sanitizeName(b || "");
+    if (isPlaceholderName(left) && !isPlaceholderName(right)) return right;
+    if (!isPlaceholderName(left)) return left || right || "Guest";
+    return right || left || "Guest";
+  }
+
   function mergeAllTime(a, b) {
     const out = { ...(a || {}) };
     Object.entries(b || {}).forEach(([id, p]) => {
       if (!p) return;
       const existing = out[id];
       if (!existing) {
-        out[id] = p;
+        out[id] = {
+          firstAt: Number(p.firstAt) || Number(p.at) || Date.now(),
+          name: preferPlayerName(p.name, "")
+        };
         return;
       }
-      // Keep earliest firstAt; refresh name if newer visit provided one
-      const firstAt = Math.min(existing.firstAt || Infinity, p.firstAt || Infinity);
+      const firstAt = Math.min(
+        existing.firstAt || Infinity,
+        Number(p.firstAt) || Number(p.at) || Infinity
+      );
       out[id] = {
         firstAt: firstAt === Infinity ? Date.now() : firstAt,
-        name: sanitizeName(p.name || existing.name || "") || existing.name || "Guest"
+        name: preferPlayerName(existing.name, p.name)
       };
     });
     return out;
@@ -605,8 +615,50 @@
     return out;
   }
 
+  function namesFromPlays(plays) {
+    const fromPlays = {};
+    (plays || []).forEach((p) => {
+      if (!p || !p.playerId) return;
+      const prev = fromPlays[p.playerId];
+      const firstAt = Math.min(prev?.firstAt || Infinity, Number(p.at) || Date.now());
+      fromPlays[p.playerId] = {
+        firstAt: firstAt === Infinity ? Date.now() : firstAt,
+        name: preferPlayerName(prev?.name, p.name)
+      };
+    });
+    return fromPlays;
+  }
+
+  function allTimeNeedsWrite(remote, next) {
+    const remoteKeys = Object.keys(remote || {});
+    const nextKeys = Object.keys(next || {});
+    if (nextKeys.length !== remoteKeys.length) return true;
+    for (const id of nextKeys) {
+      if (!remote[id]) return true;
+      if (preferPlayerName(remote[id].name, "") !== preferPlayerName(next[id].name, "")) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   function getAllTimeCount() {
-    return Object.keys(allTimeCache || {}).length;
+    return Object.values(allTimeCache || {}).filter((p) => !isPlaceholderName(p?.name)).length;
+  }
+
+  function getAllTimePlayers() {
+    const enriched = mergeAllTime(
+      allTimeCache,
+      namesFromPlays(cache.plays || loadLocal().plays || [])
+    );
+    return Object.entries(enriched)
+      .map(([playerId, p]) => ({
+        playerId,
+        name: sanitizeName(p.name || "") || "Guest",
+        firstAt: Number(p.firstAt) || 0
+      }))
+      .filter((p) => !isPlaceholderName(p.name))
+      .sort((a, b) => (a.firstAt || 0) - (b.firstAt || 0));
   }
 
   /**
@@ -625,16 +677,14 @@
         return getAllTimeCount();
       }
 
-      // Also learn ids from recent play log (one-time bootstrap)
-      const fromPlays = {};
-      (cache.plays || loadLocal().plays || []).forEach((p) => {
-        if (!p || !p.playerId) return;
-        fromPlays[p.playerId] = {
-          firstAt: Number(p.at) || Date.now(),
-          name: sanitizeName(p.name || "") || "Guest"
-        };
-      });
+      let plays = cache.plays || loadLocal().plays || [];
+      try {
+        const remotePlays = await fetchPlaysRemote();
+        plays = mergeLogs(loadLocal(), remotePlays).plays;
+        cache = mergeLogs(loadLocal(), remotePlays);
+      } catch {}
 
+      const fromPlays = namesFromPlays(plays);
       const now = Date.now();
       const next = trimAllTime(
         mergeAllTime(mergeAllTime(remote, fromPlays), {
@@ -642,13 +692,9 @@
         })
       );
 
-      // Already known and no new ids from plays — skip write
-      const remoteCount = Object.keys(remote).length;
-      const nextCount = Object.keys(next).length;
-      const alreadyMe = !!remote[me];
-      if (alreadyMe && nextCount === remoteCount) {
-        allTimeCache = remote;
-        return remoteCount;
+      if (!allTimeNeedsWrite(remote, next)) {
+        allTimeCache = next;
+        return getAllTimeCount();
       }
 
       try {
@@ -667,7 +713,7 @@
       }
 
       allTimeCache = confirmed;
-      return Object.keys(confirmed).length;
+      return getAllTimeCount();
     } finally {
       allTimeBusy = false;
     }
