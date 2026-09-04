@@ -416,7 +416,11 @@ function winGame() {
   stopTimer();
   saveBestTime();
   updateBestDisplay();
-  if (window.HubAchievements) HubAchievements.unlock("sudoku_win");
+  if (window.HubAchievements) {
+    HubAchievements.unlock("sudoku_win");
+    if (difficulty === "hard") HubAchievements.unlock("sudoku_hard");
+    if (hintsUsed === 0) HubAchievements.unlock("sudoku_no_hints");
+  }
   window.HubSound?.play("win");
   messageEl.textContent = "Puzzle solved!";
   showMenu(

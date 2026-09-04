@@ -277,6 +277,8 @@ function move(direction) {
   if (window.HubAchievements) {
     const maxTile = Math.max(...grid.flat());
     if (maxTile >= 512) HubAchievements.unlock("2048_tile_512");
+    if (maxTile >= 1024) HubAchievements.unlock("2048_tile_1024");
+    if (maxTile >= 4096) HubAchievements.unlock("2048_tile_4096");
   }
   if (score > best) {
     best = score;

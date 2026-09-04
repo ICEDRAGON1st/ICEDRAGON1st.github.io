@@ -295,7 +295,15 @@ function finishRound() {
   updateHud();
 
   const pct = Math.round((score / total) * 100);
-  if (window.HubAchievements && score === total) HubAchievements.unlock("math_perfect");
+  if (window.HubAchievements) {
+    if (score === total) HubAchievements.unlock("math_perfect");
+    if (score * 2 >= total) HubAchievements.unlock("math_half");
+    try {
+      const n = Number(localStorage.getItem("math-rounds-count") || 0) + 1;
+      localStorage.setItem("math-rounds-count", String(n));
+      if (n >= 5) HubAchievements.unlock("math_rounds_5");
+    } catch {}
+  }
   window.HubSound?.play(score === total ? "win" : score === 0 ? "lose" : "hint");
   questionText.textContent = `Round complete!`;
   answersEl.innerHTML = "";

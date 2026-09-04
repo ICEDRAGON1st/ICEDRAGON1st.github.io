@@ -403,6 +403,11 @@ function gameOver() {
     window.HubConfetti?.burst();
   }
   updateHud();
+  if (window.HubAchievements) {
+    if (lines >= 5) HubAchievements.unlock("pixletris_lines_5");
+    if (lines >= 20) HubAchievements.unlock("pixletris_lines_20");
+    if (score >= 1000) HubAchievements.unlock("pixletris_score_1k");
+  }
   messageEl.textContent = "Game over!";
   window.HubSound?.play("lose");
   showMenu(

@@ -210,6 +210,10 @@ function loseLife() {
   if (lives <= 0) {
     const isNew = maybeUpdateHighScore();
     if (isNew) window.HubConfetti?.burst();
+    if (window.HubAchievements) {
+      if (score >= 100) HubAchievements.unlock("breakout_score_100");
+      if (score >= 500) HubAchievements.unlock("breakout_score_500");
+    }
     showMenu(
       "gameover",
       "Game Over",
@@ -324,6 +328,11 @@ function update(dt) {
       window.HubSound?.play("clear");
       window.HubConfetti?.burst({ count: 100, duration: 2000 });
       score += 100;
+      if (window.HubAchievements) {
+        HubAchievements.unlock("breakout_clear");
+        if (score >= 100) HubAchievements.unlock("breakout_score_100");
+        if (score >= 500) HubAchievements.unlock("breakout_score_500");
+      }
       maybeUpdateHighScore();
       updateHud();
       nextLevel();

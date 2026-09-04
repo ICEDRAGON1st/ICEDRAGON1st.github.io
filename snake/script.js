@@ -167,6 +167,7 @@ function gameOver() {
   if (window.HubAchievements) {
     if (score >= 10) HubAchievements.unlock("snake_score_10");
     if (score >= 50) HubAchievements.unlock("snake_score_50");
+    if (score >= 100) HubAchievements.unlock("snake_score_100");
   }
   window.HubSound?.play("lose");
   showMenu(

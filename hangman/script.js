@@ -347,6 +347,11 @@ function endGame(won) {
     if (window.HubAchievements) {
       HubAchievements.unlock("hangman_win");
       if (wrong === 0) HubAchievements.unlock("hangman_no_miss");
+      try {
+        const n = Number(localStorage.getItem("hangman-wins-count") || 0) + 1;
+        localStorage.setItem("hangman-wins-count", String(n));
+        if (n >= 5) HubAchievements.unlock("hangman_win_5");
+      } catch {}
     }
     window.HubSound?.play("win");
     setStatus("You got it!", "win");

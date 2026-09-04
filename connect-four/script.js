@@ -272,7 +272,14 @@ function endGame(winner, isDrawGame) {
     else recordCpuResult("losses");
   }
 
-  if (window.HubAchievements) HubAchievements.unlock("connect4_win");
+  if (window.HubAchievements && (mode === "two" || winner === RED)) {
+    HubAchievements.unlock("connect4_win");
+    try {
+      const n = Number(localStorage.getItem("connect4-wins-count") || 0) + 1;
+      localStorage.setItem("connect4-wins-count", String(n));
+      if (n >= 3) HubAchievements.unlock("connect4_win_3");
+    } catch {}
+  }
   window.HubSound?.play("win");
   showMenu("over", `${player.name} Wins!`, `${player.name} connected four in a row.`);
 }

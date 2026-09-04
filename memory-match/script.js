@@ -222,6 +222,7 @@ function checkWin() {
   updateHud();
   if (window.HubAchievements) {
     HubAchievements.unlock("memory_win_easy");
+    if (difficulty === "medium") HubAchievements.unlock("memory_win_medium");
     if (difficulty === "hard") HubAchievements.unlock("memory_win_hard");
   }
   window.HubSound?.play("win");

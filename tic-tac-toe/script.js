@@ -134,8 +134,13 @@ function endGame(result) {
   if (result.type === "win") {
     messageEl.textContent = `${PLAYER[result.winner].label} wins!`;
     if (mode === "cpu") {
-      if (result.winner === X) recordCpuResult("wins");
-      else recordCpuResult("losses");
+      if (result.winner === X) {
+        recordCpuResult("wins");
+        if (window.HubAchievements) {
+          HubAchievements.unlock("tictactoe_win");
+          if (difficulty === "hard") HubAchievements.unlock("tictactoe_hard");
+        }
+      } else recordCpuResult("losses");
     }
     showMenu("over", `${PLAYER[result.winner].label} Wins!`, `${PLAYER[result.winner].label} got three in a row.`);
     window.HubSound?.play("win");

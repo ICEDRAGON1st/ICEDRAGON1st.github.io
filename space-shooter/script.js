@@ -460,6 +460,13 @@ function hitPlayer() {
   if (lives <= 0) {
     const isNewHigh = maybeUpdateHighScore();
     if (isNewHigh) window.HubConfetti?.burst();
+    if (window.HubAchievements) {
+      if (score >= 100) HubAchievements.unlock("space_score_100");
+      if (score >= 500) HubAchievements.unlock("space_score_500");
+      if (difficultyMode === "hardcore" && score >= 100) {
+        HubAchievements.unlock("space_hardcore");
+      }
+    }
     const highText = isNewHigh
       ? `New high score: ${highScore}!`
       : `High score: ${highScore}.`;

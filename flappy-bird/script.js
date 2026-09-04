@@ -163,7 +163,11 @@ function gameOver() {
   }
   updateHud();
   draw();
-  if (window.HubAchievements && score >= 5) HubAchievements.unlock("flappy_score_5");
+  if (window.HubAchievements) {
+    if (score >= 5) HubAchievements.unlock("flappy_score_5");
+    if (score >= 15) HubAchievements.unlock("flappy_score_15");
+    if (score >= 30) HubAchievements.unlock("flappy_score_30");
+  }
   window.HubSound?.play("lose");
   window.HubConfetti?.burst();
   showMenu(

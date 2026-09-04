@@ -10,6 +10,10 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260904a": [
+    "Lots of new achievements across every game",
+    "Space Shooter, Brick Breaker, Tic Tac Toe, and Pixletris now have achievements too"
+  ],
   "20260903u": [
     "Hide old Guest placeholder names from the Players board"
   ],
@@ -1008,6 +1012,7 @@ function recordHubDailyPlay() {
   if (window.HubAchievements && result) {
     if (result.streak >= 3)  HubAchievements.unlock("streak_3");
     if (result.streak >= 7)  HubAchievements.unlock("streak_7");
+    if (result.streak >= 14) HubAchievements.unlock("streak_14");
     if (result.streak >= 30) HubAchievements.unlock("streak_30");
   }
   return result;
@@ -1088,6 +1093,7 @@ function selectGame(gameId) {
       const played = JSON.parse(localStorage.getItem("hub-played-games") || "[]");
       if (!played.includes(gameId)) played.push(gameId);
       localStorage.setItem("hub-played-games", JSON.stringify(played));
+      if (played.length >= 5) HubAchievements.unlock("five_games");
       const allIds = HUB_GAMES.map(g => g.id);
       if (allIds.every(id => played.includes(id))) HubAchievements.unlock("all_rounder");
     } catch {}
@@ -1329,7 +1335,11 @@ function handleWin(row) {
     HubAchievements.unlock("wordle_first_win");
     if (row === 0) HubAchievements.unlock("wordle_guess_1");
     if (row <= 1) HubAchievements.unlock("wordle_guess_2");
+    if (row <= 2) HubAchievements.unlock("wordle_guess_3");
     if (stats.wins >= 5) HubAchievements.unlock("wordle_win_5");
+    if (stats.wins >= 10) HubAchievements.unlock("wordle_win_10");
+    if (stats.wins >= 25) HubAchievements.unlock("wordle_win_25");
+    if (stats.currentStreak >= 3) HubAchievements.unlock("wordle_streak_3");
     if (isDailyMode()) HubAchievements.unlock("wordle_daily");
   }
   showMessage(getWinMessage(row), false, 0);
@@ -1780,6 +1790,10 @@ function togglePlayerNameLock() {
   const next = !HubPlays.isNameLocked();
   HubPlays.setNameLocked(next);
   applyNameLockUI();
+  if (next && window.HubAchievements) {
+    HubAchievements.unlock("name_locked");
+    setTimeout(checkPendingAchievements, 400);
+  }
   setPlayerNameStatus(
     next ? `Locked as ${HubPlays.getName()}` : "Name unlocked — you can change it",
     false
