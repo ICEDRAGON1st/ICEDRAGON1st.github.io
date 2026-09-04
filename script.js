@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260904k": [
+    "View board after a win or loss in every game"
+  ],
   "20260904j": [
     "Achievements list ordered from easy (top) to hard (bottom)"
   ],
@@ -160,6 +163,7 @@ const statWinPct = document.getElementById("stat-win-pct");
 const statStreak = document.getElementById("stat-streak");
 const statPlayed = document.getElementById("stat-played");
 const menuResumeBtn = document.getElementById("menu-resume");
+const menuViewBoardBtn = document.getElementById("menu-view-board");
 const menuNewWordBtn = document.getElementById("menu-new-word");
 const menuGamesBtn = document.getElementById("menu-games");
 const menuBtn = document.getElementById("menu-btn");
@@ -694,6 +698,7 @@ function showMenu() {
   }
 
   menuResumeBtn.classList.toggle("hidden", won);
+  menuViewBoardBtn?.classList.toggle("hidden", !finished);
   if (menuNewWordBtn) {
     menuNewWordBtn.textContent = isDailyMode() ? "Practice" : "New Word";
   }
@@ -1641,6 +1646,16 @@ menuBtn.addEventListener("click", () => showMenu());
 menuResumeBtn.addEventListener("click", () => {
   if (!requirePlayerName()) return;
   resumeGame();
+});
+menuViewBoardBtn?.addEventListener("click", () => {
+  if (state.gameStatus !== "won" && state.gameStatus !== "lost") return;
+  hideMenu();
+  if (messageEl && !/menu/i.test(messageEl.textContent || "")) {
+    const base = (messageEl.textContent || "").trim();
+    messageEl.textContent = base
+      ? `${base} · Tap Menu for options.`
+      : "Tap Menu to return to the result screen.";
+  }
 });
 menuNewWordBtn.addEventListener("click", () => {
   if (!requirePlayerName()) return;

@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <title>My Games</title>
   <script src="site-config.js"></script>
-  <link rel="stylesheet" href="styles.css?v=20260904j">
+  <link rel="stylesheet" href="styles.css?v=20260904k">
 </head>
 <body>
   <div class="app">
@@ -61,6 +61,7 @@
       </div>
       <div class="modal-actions">
         <button id="menu-resume" type="button" class="modal-btn modal-btn-secondary">Resume</button>
+        <button id="menu-view-board" type="button" class="modal-btn modal-btn-secondary hidden">View board</button>
         <button id="menu-share-daily" type="button" class="modal-btn hidden">Share result</button>
         <button id="menu-new-word" type="button" class="modal-btn">New Word</button>
         <button id="menu-daily" type="button" class="modal-btn modal-btn-secondary hidden">Today's Daily</button>
@@ -272,7 +273,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260904j";
+    window.WORDLE_BUILD = "20260904k";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js",
       "words.js",

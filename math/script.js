@@ -30,6 +30,7 @@ const hudHigh = document.getElementById("hud-high");
 const hudTotal = document.getElementById("hud-total");
 const hudDiff = document.getElementById("hud-diff");
 const resumeBtn = document.getElementById("resume-btn");
+const viewBoardBtn = document.getElementById("view-board-btn");
 const startBtn = document.getElementById("start-btn");
 const gamesBtn = document.getElementById("games-btn");
 const menuBtn = document.getElementById("menu-btn");
@@ -325,13 +326,25 @@ function showMenu(mode, title, text) {
 
   if (mode === "pause") {
     resumeBtn.classList.remove("hidden");
+    viewBoardBtn?.classList.add("hidden");
     startBtn.textContent = "Restart";
+  } else if (mode === "done") {
+    resumeBtn.classList.add("hidden");
+    viewBoardBtn?.classList.remove("hidden");
+    startBtn.textContent = "Play Again";
   } else {
     resumeBtn.classList.add("hidden");
-    startBtn.textContent = mode === "done" ? "Play Again" : "Start";
+    viewBoardBtn?.classList.add("hidden");
+    startBtn.textContent = "Start";
   }
 
   overlay.classList.remove("hidden");
+}
+
+
+function viewBoard() {
+  if (menuMode !== "done") return;
+  overlay.classList.add("hidden");
 }
 
 function openPauseMenu() {
@@ -374,6 +387,10 @@ difficultyPicker.addEventListener("click", (e) => {
 });
 
 menuBtn.addEventListener("click", () => {
+  if (menuMode === "done") {
+    overlay.classList.remove("hidden");
+    return;
+  }
   if (playing) openPauseMenu();
   else if (menuMode === "pause") resumeRound();
   else overlay.classList.remove("hidden");
@@ -381,6 +398,7 @@ menuBtn.addEventListener("click", () => {
 
 startBtn.addEventListener("click", () => startRound());
 resumeBtn.addEventListener("click", () => resumeRound());
+viewBoardBtn?.addEventListener("click", () => viewBoard());
 gamesBtn.addEventListener("click", () => goToGames());
 
 window.addEventListener("keydown", (e) => {

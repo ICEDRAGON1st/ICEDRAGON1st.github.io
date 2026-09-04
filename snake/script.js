@@ -7,6 +7,7 @@ const overlayTitle = document.getElementById("overlay-title");
 const overlayText = document.getElementById("overlay-text");
 const startBtn = document.getElementById("start-btn");
 const resumeBtn = document.getElementById("resume-btn");
+const viewBoardBtn = document.getElementById("view-board-btn");
 const gamesBtn = document.getElementById("games-btn");
 const menuBtn = document.getElementById("menu-btn");
 
@@ -109,13 +110,25 @@ function showMenu(mode, title, text) {
 
   if (mode === "pause") {
     resumeBtn.classList.remove("hidden");
+    viewBoardBtn?.classList.add("hidden");
     startBtn.textContent = "Restart";
+  } else if (mode === "gameover") {
+    resumeBtn.classList.add("hidden");
+    viewBoardBtn?.classList.remove("hidden");
+    startBtn.textContent = "Try Again";
   } else {
     resumeBtn.classList.add("hidden");
-    startBtn.textContent = mode === "gameover" ? "Try Again" : "Start";
+    viewBoardBtn?.classList.add("hidden");
+    startBtn.textContent = "Start";
   }
 
   overlay.classList.remove("hidden");
+}
+
+
+function viewBoard() {
+  if (menuMode !== "gameover") return;
+  overlay.classList.add("hidden");
 }
 
 function openPauseMenu() {
@@ -310,6 +323,10 @@ canvas.addEventListener("pointerup", (e) => {
 });
 
 menuBtn.addEventListener("click", () => {
+  if (menuMode === "gameover") {
+    overlay.classList.remove("hidden");
+    return;
+  }
   if (running) openPauseMenu();
   else if (menuMode === "pause") resumeGame();
   else overlay.classList.remove("hidden");
@@ -317,6 +334,7 @@ menuBtn.addEventListener("click", () => {
 
 startBtn.addEventListener("click", () => startGame());
 resumeBtn.addEventListener("click", () => resumeGame());
+viewBoardBtn?.addEventListener("click", () => viewBoard());
 gamesBtn.addEventListener("click", () => goToGames());
 
 updateHud();

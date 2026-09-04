@@ -52,6 +52,7 @@ const overlayTitle = document.getElementById("overlay-title");
 const overlayText = document.getElementById("overlay-text");
 const startBtn = document.getElementById("start-btn");
 const resumeBtn = document.getElementById("resume-btn");
+const viewBoardBtn = document.getElementById("view-board-btn");
 const gamesBtn = document.getElementById("games-btn");
 const menuBtn = document.getElementById("menu-btn");
 const langBtn = document.getElementById("lang-btn");
@@ -230,16 +231,29 @@ function showMenu(mode, title, text) {
 
   if (mode === "pause") {
     resumeBtn.classList.remove("hidden");
+    viewBoardBtn?.classList.add("hidden");
     startBtn.textContent = "New Word";
   } else if (mode === "result") {
     resumeBtn.classList.add("hidden");
+    viewBoardBtn?.classList.remove("hidden");
     startBtn.textContent = "Play Again";
   } else {
     resumeBtn.classList.add("hidden");
+    viewBoardBtn?.classList.add("hidden");
     startBtn.textContent = "Start";
   }
 
   overlay.classList.remove("hidden");
+}
+
+
+function viewBoard() {
+  if (menuMode !== "result") return;
+  overlay.classList.add("hidden");
+  if (statusEl && !/menu/i.test(statusEl.textContent || "")) {
+    const base = (statusEl.textContent || "").trim();
+    statusEl.textContent = base ? `${base} · Tap Menu for Play Again.` : "Tap Menu to return to the result screen.";
+  }
 }
 
 function openPauseMenu() {
@@ -463,6 +477,7 @@ menuBtn.addEventListener("click", () => {
 });
 
 resumeBtn.addEventListener("click", () => resumeGame());
+viewBoardBtn?.addEventListener("click", () => viewBoard());
 startBtn.addEventListener("click", () => startGame());
 gamesBtn.addEventListener("click", () => goToGames());
 langBtn.addEventListener("click", () => switchLanguage());

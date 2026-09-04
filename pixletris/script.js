@@ -10,6 +10,7 @@ const overlayTitle = document.getElementById("overlay-title");
 const overlayText = document.getElementById("overlay-text");
 const startBtn = document.getElementById("start-btn");
 const resumeBtn = document.getElementById("resume-btn");
+const viewBoardBtn = document.getElementById("view-board-btn");
 const gamesBtn = document.getElementById("games-btn");
 const menuBtn = document.getElementById("menu-btn");
 
@@ -441,13 +442,29 @@ function showMenu(mode, title, text) {
   overlayText.textContent = text;
   if (mode === "pause") {
     resumeBtn.classList.remove("hidden");
+    viewBoardBtn?.classList.add("hidden");
     startBtn.textContent = "Restart";
+  } else if (mode === "over") {
+    resumeBtn.classList.add("hidden");
+    viewBoardBtn?.classList.remove("hidden");
+    startBtn.textContent = "Try Again";
   } else {
     resumeBtn.classList.add("hidden");
-    startBtn.textContent = mode === "over" ? "Try Again" : "Start";
+    viewBoardBtn?.classList.add("hidden");
+    startBtn.textContent = "Start";
   }
   overlay.classList.remove("hidden");
   draw();
+}
+
+
+function viewBoard() {
+  if (menuMode !== "over") return;
+  overlay.classList.add("hidden");
+  if (messageEl && !/menu/i.test(messageEl.textContent || "")) {
+    const base = (messageEl.textContent || "").trim();
+    messageEl.textContent = base ? `${base} · Tap Menu for Try Again.` : "Tap Menu to return to the result screen.";
+  }
 }
 
 function openPauseMenu() {
@@ -753,6 +770,10 @@ canvas.addEventListener("pointerup", (e) => {
 });
 
 menuBtn.addEventListener("click", () => {
+  if (menuMode === "over") {
+    overlay.classList.remove("hidden");
+    return;
+  }
   if (running) openPauseMenu();
   else if (menuMode === "pause") resumeGame();
   else overlay.classList.remove("hidden");
@@ -760,6 +781,7 @@ menuBtn.addEventListener("click", () => {
 
 startBtn.addEventListener("click", () => startGame());
 resumeBtn.addEventListener("click", () => resumeGame());
+viewBoardBtn?.addEventListener("click", () => viewBoard());
 gamesBtn.addEventListener("click", () => goToGames());
 
 updateHud();

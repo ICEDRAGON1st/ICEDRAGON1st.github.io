@@ -83,6 +83,7 @@ const hudHigh = document.getElementById("hud-high");
 const hudTotal = document.getElementById("hud-total");
 const hudDiff = document.getElementById("hud-diff");
 const resumeBtn = document.getElementById("resume-btn");
+const viewBoardBtn = document.getElementById("view-board-btn");
 const startBtn = document.getElementById("start-btn");
 const gamesBtn = document.getElementById("games-btn");
 const menuBtn = document.getElementById("menu-btn");
@@ -283,16 +284,25 @@ function showMenu(mode, title, text, eyebrow = "General knowledge") {
 
   if (mode === "pause") {
     resumeBtn.classList.remove("hidden");
+    viewBoardBtn?.classList.add("hidden");
     startBtn.textContent = "Restart";
   } else if (mode === "result") {
     resumeBtn.classList.add("hidden");
+    viewBoardBtn?.classList.remove("hidden");
     startBtn.textContent = "Play Again";
   } else {
     resumeBtn.classList.add("hidden");
+    viewBoardBtn?.classList.add("hidden");
     startBtn.textContent = "Start Quiz";
   }
 
   overlay.classList.remove("hidden");
+}
+
+
+function viewBoard() {
+  if (menuMode !== "result") return;
+  overlay.classList.add("hidden");
 }
 
 function openPauseMenu() {
@@ -489,6 +499,7 @@ menuBtn.addEventListener("click", () => {
 });
 
 resumeBtn.addEventListener("click", () => resumeQuiz());
+viewBoardBtn?.addEventListener("click", () => viewBoard());
 startBtn.addEventListener("click", () => startQuiz());
 gamesBtn.addEventListener("click", () => goToGames());
 

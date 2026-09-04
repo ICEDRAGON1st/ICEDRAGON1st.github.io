@@ -12,6 +12,7 @@ const overlayTitle = document.getElementById("overlay-title");
 const overlayText = document.getElementById("overlay-text");
 const startBtn = document.getElementById("start-btn");
 const resumeBtn = document.getElementById("resume-btn");
+const viewBoardBtn = document.getElementById("view-board-btn");
 const gamesBtn = document.getElementById("games-btn");
 const menuBtn = document.getElementById("menu-btn");
 const diffBtns = [...document.querySelectorAll(".diff-btn")];
@@ -444,13 +445,29 @@ function showMenu(mode, title, text) {
 
   if (mode === "pause") {
     resumeBtn.classList.remove("hidden");
+    viewBoardBtn?.classList.add("hidden");
     startBtn.textContent = "New Game";
+  } else if (mode === "win") {
+    resumeBtn.classList.add("hidden");
+    viewBoardBtn?.classList.remove("hidden");
+    startBtn.textContent = "Play Again";
   } else {
     resumeBtn.classList.add("hidden");
-    startBtn.textContent = mode === "win" ? "Play Again" : "New Game";
+    viewBoardBtn?.classList.add("hidden");
+    startBtn.textContent = "New Game";
   }
 
   overlay.classList.remove("hidden");
+}
+
+
+function viewBoard() {
+  if (menuMode !== "win") return;
+  overlay.classList.add("hidden");
+  if (messageEl && !/menu/i.test(messageEl.textContent || "")) {
+    const base = (messageEl.textContent || "").trim();
+    messageEl.textContent = base ? `${base} · Tap Menu for Play Again.` : "Tap Menu to return to the result screen.";
+  }
 }
 
 function openPauseMenu() {
@@ -518,6 +535,10 @@ eraseBtn.addEventListener("click", () => eraseCell());
 hintBtn.addEventListener("click", () => giveHint());
 
 menuBtn.addEventListener("click", () => {
+  if (menuMode === "win") {
+    overlay.classList.remove("hidden");
+    return;
+  }
   if (running) openPauseMenu();
   else if (menuMode === "pause") resumeGame();
   else overlay.classList.remove("hidden");
@@ -525,6 +546,7 @@ menuBtn.addEventListener("click", () => {
 
 startBtn.addEventListener("click", () => startGame());
 resumeBtn.addEventListener("click", () => resumeGame());
+viewBoardBtn?.addEventListener("click", () => viewBoard());
 gamesBtn.addEventListener("click", () => goToGames());
 
 window.addEventListener("keydown", (e) => {
