@@ -105,15 +105,23 @@
   function loadLocal() {
     try {
       const data = JSON.parse(localStorage.getItem(LOCAL_KEY));
-      if (data && data.games && typeof data.games === "object") return { games: data.games };
+      if (data && data.games && typeof data.games === "object") {
+        return {
+          games: data.games,
+          resets: data.resets && typeof data.resets === "object" ? data.resets : {}
+        };
+      }
     } catch {}
-    return { games: {} };
+    return { games: {}, resets: {} };
   }
 
   function saveLocal(data) {
-    cache = data;
+    cache = {
+      games: data.games || {},
+      resets: data.resets && typeof data.resets === "object" ? data.resets : {}
+    };
     try {
-      localStorage.setItem(LOCAL_KEY, JSON.stringify(data));
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(cache));
     } catch {}
   }
 
@@ -135,9 +143,10 @@
 
   async function fetchRemote() {
     const data = await fetchJson(API);
-    if (!data || typeof data !== "object") return { games: {} };
+    if (!data || typeof data !== "object") return { games: {}, resets: {} };
     const games = data.games && typeof data.games === "object" ? data.games : {};
-    return { games };
+    const resets = data.resets && typeof data.resets === "object" ? data.resets : {};
+    return { games, resets };
   }
 
   function normalizeEntry(entry, fallbackLower) {
@@ -201,7 +210,51 @@
       });
       games[gameId] = trimBoard(merged, lowerBetter);
     });
-    return { games };
+    const resets = { ...((a && a.resets) || {}), ...((b && b.resets) || {}) };
+    return applyResets({ games, resets });
+  }
+
+  function applyResets(data) {
+    const games = { ...(data.games || {}) };
+    const resets = { ...(data.resets || {}) };
+    // One-time: wipe Hjalte from Sudoku only (other games untouched).
+    const resetKey = "sudoku:hjalte";
+    if (!resets[resetKey]) resets[resetKey] = Date.now();
+    const cutAt = Number(resets[resetKey]);
+    const board = { ...(games.sudoku || {}) };
+    const entry = board.hjalte;
+    if (entry && (!entry.at || Number(entry.at) <= cutAt)) {
+      delete board.hjalte;
+    }
+    games.sudoku = board;
+    return { games, resets };
+  }
+
+  async function clearPlayer(gameId, playerName) {
+    const key = nameKey(playerName);
+    if (!gameId || !key) return false;
+    const run = async () => {
+      await sync(true);
+      const games = { ...(cache.games || {}) };
+      const board = { ...(games[gameId] || {}) };
+      delete board[key];
+      games[gameId] = board;
+      const resets = { ...(cache.resets || {}) };
+      const resetKey = `${gameId}:${key}`;
+      if (!resets[resetKey]) resets[resetKey] = Date.now();
+      const next = applyResets({ games, resets });
+      saveLocal(next);
+      try {
+        const remote = await fetchRemote();
+        const merged = mergeBoards(next, remote);
+        saveLocal(merged);
+        await postJson(API, merged);
+      } catch {}
+      lastSync = Date.now();
+      return true;
+    };
+    submitQueue = submitQueue.then(run, run);
+    return submitQueue;
   }
 
   async function sync(force = false) {
@@ -210,11 +263,11 @@
     syncing = true;
     try {
       const local = loadLocal();
-      let remote = { games: {} };
+      let remote = { games: {}, resets: {} };
       try {
         remote = await fetchRemote();
       } catch {
-        remote = { games: {} };
+        remote = { games: {}, resets: {} };
       }
       const merged = mergeBoards(local, remote);
       saveLocal(merged);
@@ -280,7 +333,10 @@
         lowerBetter
       };
       games[gameId] = trimBoard(board, lowerBetter);
-      const next = { games };
+      const next = applyResets({
+        games,
+        resets: { ...(cache.resets || {}) }
+      });
       saveLocal(next);
       try {
         const remote = await fetchRemote();
@@ -298,13 +354,16 @@
     return submitQueue;
   }
 
-  // Seed cache from local on load
-  cache = loadLocal();
+  // Seed cache from local on load, then sync so the Sudoku Hjalte wipe is pushed once.
+  cache = applyResets(loadLocal());
+  saveLocal(cache);
+  sync(true).catch(() => {});
 
   window.HubLeaderboard = {
     submit,
     sync,
     getBoard,
+    clearPlayer,
     formatScore,
     GAME_IDS,
     GAME_META

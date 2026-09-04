@@ -26,6 +26,16 @@ const DIFFICULTY = {
 const DIFF_KEY = "sudoku-difficulty";
 const BEST_KEY = "sudoku-best-times";
 
+function maybeResetHjalteLocalStats() {
+  try {
+    const name = (window.HubPlays?.getName?.() || "").trim().toLowerCase();
+    if (name !== "hjalte") return;
+    localStorage.removeItem(BEST_KEY);
+  } catch {}
+}
+
+maybeResetHjalteLocalStats();
+
 let difficulty = loadDifficulty();
 let puzzle = createEmpty();
 let solution = createEmpty();
