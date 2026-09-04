@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260904h": [
+    "Connect Four and Tic Tac Toe: View board after a win or loss"
+  ],
   "20260904g": [
     "Online count now matches the visible online name list"
   ],
