@@ -370,16 +370,170 @@
     return true;
   }
 
-  function enforceUsernameGate() {
-    // Hub page handles its own modal; game pages bounce home without a name
-    if (document.getElementById("games-screen")) return;
-    if (hasRequiredName()) return;
-    const hub = new URL("../index.html", window.location.href).href;
+  function ensureUsernameGateStyles() {
+    if (document.getElementById("username-gate-style")) return;
+    const style = document.createElement("style");
+    style.id = "username-gate-style";
+    style.textContent = `
+#username-gate-modal,
+#player-name-modal.username-gate-force {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 20000 !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.72);
+  padding: 1rem;
+}
+#username-gate-modal.hidden,
+#player-name-modal.username-gate-force.hidden {
+  display: none !important;
+}
+#username-gate-modal .username-gate-card {
+  width: min(24rem, 100%);
+  background: #121821;
+  color: #f5f7fb;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 14px;
+  padding: 1.25rem 1.2rem 1.1rem;
+  box-shadow: 0 18px 50px rgba(0,0,0,0.45);
+}
+#username-gate-modal h2 {
+  margin: 0 0 0.45rem;
+  font-size: 1.25rem;
+}
+#username-gate-modal p {
+  margin: 0 0 0.85rem;
+  color: rgba(220,228,240,0.8);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+#username-gate-modal input {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 0 0.65rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: #0b1018;
+  color: inherit;
+  font: inherit;
+}
+#username-gate-modal .username-gate-status {
+  min-height: 1.2rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.85rem;
+  color: #ff8e8e;
+}
+#username-gate-modal .username-gate-status.is-ok {
+  color: #69db7c;
+}
+#username-gate-modal button {
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  background: #1c7ed6;
+  color: #fff;
+}
+#username-gate-modal button:disabled {
+  opacity: 0.65;
+  cursor: wait;
+}
+body.username-gate-open {
+  overflow: hidden !important;
+}`;
+    document.head.appendChild(style);
+  }
+
+  function setGateStatus(el, msg, ok) {
+    if (!el) return;
+    el.textContent = msg || "";
+    el.classList.toggle("is-ok", !!ok);
+  }
+
+  async function submitUsernameGate(input, statusEl, btn) {
+    const value = input?.value || "";
+    setGateStatus(statusEl, "Checking name…", false);
+    if (btn) btn.disabled = true;
     try {
-      window.location.replace(hub);
-    } catch {
-      window.location.href = hub;
+      const result = await claimName(value);
+      if (!result.ok) {
+        setGateStatus(statusEl, result.error || "Name unavailable", false);
+        return false;
+      }
+      setGateStatus(statusEl, `Playing as ${result.name}`, true);
+      document.body.classList.remove("username-gate-open");
+      const hubModal = document.getElementById("player-name-modal");
+      hubModal?.classList.add("hidden");
+      hubModal?.classList.remove("username-gate-force");
+      document.getElementById("username-gate-modal")?.classList.add("hidden");
+      const hubInput = document.getElementById("player-name-input");
+      if (hubInput) hubInput.value = result.name;
+      registerAllTime().catch(() => {});
+      document.dispatchEvent(
+        new CustomEvent("hub-username-ready", { detail: { name: result.name } })
+      );
+      return true;
+    } finally {
+      if (btn) btn.disabled = false;
     }
+  }
+
+  /**
+   * Blocking popup: players must enter a unique username before playing.
+   */
+  function enforceUsernameGate() {
+    if (hasRequiredName()) return true;
+    ensureUsernameGateStyles();
+    document.body.classList.add("username-gate-open");
+
+    const hubModal = document.getElementById("player-name-modal");
+    if (hubModal) {
+      hubModal.classList.add("username-gate-force");
+      hubModal.classList.remove("hidden");
+      const input = document.getElementById("player-name-modal-input");
+      input?.focus();
+      return false;
+    }
+
+    let modal = document.getElementById("username-gate-modal");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.id = "username-gate-modal";
+      modal.setAttribute("role", "dialog");
+      modal.setAttribute("aria-modal", "true");
+      modal.setAttribute("aria-labelledby", "username-gate-title");
+      modal.innerHTML = `
+        <div class="username-gate-card">
+          <h2 id="username-gate-title">Pick a username</h2>
+          <p>You need a unique nickname to play. Once someone takes a name, nobody else can use it.</p>
+          <input id="username-gate-input" type="text" maxlength="16" placeholder="e.g. ICE_DRAGON" autocomplete="nickname">
+          <div id="username-gate-status" class="username-gate-status" aria-live="polite"></div>
+          <button id="username-gate-save" type="button">Save & play</button>
+        </div>`;
+      document.body.appendChild(modal);
+      const input = modal.querySelector("#username-gate-input");
+      const status = modal.querySelector("#username-gate-status");
+      const btn = modal.querySelector("#username-gate-save");
+      btn.addEventListener("click", () => submitUsernameGate(input, status, btn));
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") submitUsernameGate(input, status, btn);
+      });
+      // Block Escape / outside click from dismissing
+      modal.addEventListener("click", (e) => {
+        if (e.target === modal) {
+          input.focus();
+        }
+      });
+    }
+    modal.classList.remove("hidden");
+    modal.querySelector("#username-gate-input")?.focus();
+    return false;
   }
 
   function isNameTaken(name, playerId) {
@@ -837,6 +991,7 @@ body.light .menu-credit {
     claimName,
     makeGuestName,
     hasRequiredName,
+    enforceUsernameGate,
     isNameTaken,
     record,
     sync,

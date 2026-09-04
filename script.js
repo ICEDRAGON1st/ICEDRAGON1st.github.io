@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260904c": [
+    "Username popup is required before you can play on the hub or any game"
+  ],
   "20260904b": [
     "All-time players list now shows real nicknames instead of stuck Guest entries"
   ],
@@ -1674,6 +1677,10 @@ function requirePlayerName(message) {
 
 function maybeAskPlayerName(force = false) {
   if (typeof HubPlays === "undefined") return;
+  if (typeof HubPlays.enforceUsernameGate === "function" && !hasPlayerName()) {
+    HubPlays.enforceUsernameGate();
+    return;
+  }
   const existing = HubPlays.getName();
   if (existing && hasPlayerName()) {
     // Re-claim saved name so uniqueness is registered remotely
@@ -1684,8 +1691,12 @@ function maybeAskPlayerName(force = false) {
         } catch {}
         if (playerNameInput) playerNameInput.value = "";
         setPlayerNameStatus(result.error, true);
-        playerNameModal?.classList.remove("hidden");
-        playerNameModalInput?.focus();
+        if (typeof HubPlays.enforceUsernameGate === "function") {
+          HubPlays.enforceUsernameGate();
+        } else {
+          playerNameModal?.classList.remove("hidden");
+          playerNameModalInput?.focus();
+        }
       }
     });
     if (!force) return;
@@ -1697,7 +1708,9 @@ function maybeAskPlayerName(force = false) {
     } catch {}
     if (playerNameInput) playerNameInput.value = "";
   }
+  playerNameModal?.classList.add("username-gate-force");
   playerNameModal?.classList.remove("hidden");
+  document.body.classList.add("username-gate-open");
   playerNameModalInput?.focus();
 }
 
@@ -1705,6 +1718,8 @@ function hidePlayerNameModal() {
   // Never dismiss until a real username is saved
   if (!hasPlayerName()) return;
   playerNameModal?.classList.add("hidden");
+  playerNameModal?.classList.remove("username-gate-force");
+  document.body.classList.remove("username-gate-open");
 }
 
 function setPlayerNameStatus(msg, isError) {
@@ -1744,10 +1759,15 @@ async function savePlayerNameFrom(value) {
     if (playerNameInput) playerNameInput.value = result.name;
     if (playerNameModalInput) playerNameModalInput.value = result.name;
     setPlayerNameStatus(`Playing as ${result.name}`, false);
-    playerNameModal?.classList.add("hidden");
+    hidePlayerNameModal();
     applyNameLockUI();
     renderPlayersPanel();
     showGamesMessage(`Playing as ${result.name}`, 1800);
+    if (window.__hubAfterUsername) {
+      const next = window.__hubAfterUsername;
+      window.__hubAfterUsername = null;
+      next();
+    }
   } finally {
     savePlayerNameBtn && (savePlayerNameBtn.disabled = false);
     playerNameSaveBtn && (playerNameSaveBtn.disabled = false);
@@ -2100,11 +2120,42 @@ if (location.hash === "#wordle") {
   afterWhatsNew = showGamesScreen;
 }
 
-if (showWhatsNew()) {
-  whatsNewOkBtn?.addEventListener("click", () => {
-    hideWhatsNew();
+function bootAfterUsername() {
+  if (showWhatsNew()) {
+    whatsNewOkBtn?.addEventListener("click", () => {
+      hideWhatsNew();
+      afterWhatsNew?.();
+    });
+  } else {
     afterWhatsNew?.();
-  });
-} else {
-  afterWhatsNew?.();
+  }
 }
+
+if (!hasPlayerName()) {
+  window.__hubAfterUsername = bootAfterUsername;
+  maybeAskPlayerName(true);
+} else {
+  bootAfterUsername();
+}
+
+document.addEventListener("hub-username-ready", () => {
+  if (window.__hubAfterUsername) {
+    const next = window.__hubAfterUsername;
+    window.__hubAfterUsername = null;
+    next();
+  }
+});
+
+// Block Escape from closing the required username popup
+document.addEventListener(
+  "keydown",
+  (e) => {
+    if (e.key !== "Escape") return;
+    if (!hasPlayerName() && playerNameModal && !playerNameModal.classList.contains("hidden")) {
+      e.preventDefault();
+      e.stopPropagation();
+      playerNameModalInput?.focus();
+    }
+  },
+  true
+);
