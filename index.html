@@ -8,12 +8,12 @@
   <meta http-equiv="Expires" content="0" />
   <title>My Games</title>
   <script src="site-config.js"></script>
-  <link rel="stylesheet" href="styles.css?v=20260904n">
+  <link rel="stylesheet" href="styles.css?v=20260904o">
 </head>
 <body>
   <div class="app">
     <header>
-      <button id="hint-btn" type="button" class="hint-btn" aria-label="Get a hint" title="Reveal a letter not in the word">Hint</button>
+      <button id="hint-btn" type="button" class="hint-btn hidden" aria-label="Get a hint" title="Hints are disabled" disabled hidden>Hint</button>
       <div class="header-title">
         <h1 id="title">Wordle</h1>
         <button id="mode-btn" type="button" class="mode-badge is-daily" aria-label="Switch Daily or Practice" title="Playing today's shared word. Tap to switch to Practice.">Daily</button>
@@ -282,7 +282,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260904n";
+    window.WORDLE_BUILD = "20260904o";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "hub-leaderboard.js",
       "words.js",

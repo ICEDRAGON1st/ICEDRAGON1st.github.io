@@ -402,28 +402,7 @@ function eraseCell() {
 }
 
 function giveHint() {
-  if (!running) return;
-
-  const emptyCells = [];
-  for (let row = 0; row < 9; row++) {
-    for (let col = 0; col < 9; col++) {
-      if (!fixed[row][col] && values[row][col] === 0) {
-        emptyCells.push([row, col]);
-      }
-    }
-  }
-
-  if (emptyCells.length === 0) return;
-
-  const [row, col] = emptyCells[Math.floor(Math.random() * emptyCells.length)];
-  values[row][col] = solution[row][col];
-  clearNotesAt(row, col);
-  hinted[row][col] = 1;
-  selected = { row, col };
-  hintsUsed += 1;
-  renderBoard();
-
-  if (isBoardComplete()) winGame();
+  if (messageEl) messageEl.textContent = "Hints are disabled for now.";
 }
 
 function winGame() {

@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260904o": [
+    "Hints disabled for now in Wordle and Sudoku"
+  ],
   "20260904n": [
     "Reset Sudoku stats for player hjalte (other games unchanged)"
   ],
@@ -1346,38 +1349,15 @@ function getUnusedAbsentLetters() {
 }
 
 function updateHintButton() {
-  const available =
-    !isDailyMode() &&
-    state.gameStatus === "playing" &&
-    getUnusedAbsentLetters().length > 0;
-  hintBtn.disabled = !available;
-  hintBtn.title = isDailyMode()
-    ? "Hints are off for Daily Wordle"
-    : "Reveal a letter not in the word";
+  if (!hintBtn) return;
+  hintBtn.disabled = true;
+  hintBtn.hidden = true;
+  hintBtn.classList.add("hidden");
+  hintBtn.title = "Hints are disabled for now";
 }
 
 function useHint() {
-  if (!requirePlayerName()) return;
-  if (isDailyMode()) {
-    showMessage("No hints on Daily Wordle", true);
-    return;
-  }
-  if (state.gameStatus !== "playing" || isMenuOpen()) return;
-
-  const candidates = getUnusedAbsentLetters();
-  if (candidates.length === 0) {
-    showMessage("No more hints", true);
-    updateHintButton();
-    return;
-  }
-
-  const letter = candidates[Math.floor(Math.random() * candidates.length)];
-  state.keyStates[letter] = "absent";
-  saveState();
-  renderKeyboard();
-  updateHintButton();
-  showMessage(`${letter} is not in the word`);
-  playSound("hint");
+  showMessage("Hints are disabled for now", true);
 }
 
 function render() {
