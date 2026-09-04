@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260904j": [
+    "Achievements list ordered from easy (top) to hard (bottom)"
+  ],
   "20260904i": [
     "2048: View board after game over"
   ],
