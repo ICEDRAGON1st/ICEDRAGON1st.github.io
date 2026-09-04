@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260904e": [
+    "OscarVR29 shows in green on the Players board"
+  ],
   "20260904d": [
     "Fix username popup so Backspace and typing work in the name field"
   ],
@@ -2007,6 +2010,10 @@ function escapeHtml(text) {
 }
 
 const CREATOR_NAME = "ICE_DRAGON";
+const SPECIAL_PLAYER_NAMES = {
+  ice_dragon: { className: "player-name-creator", title: "Site creator" },
+  oscarvr29: { className: "player-name-oscar", title: "OscarVR29" }
+};
 
 function isGuestDisplayName(name) {
   const n = String(name || "").trim().toLowerCase();
@@ -2017,10 +2024,15 @@ function isCreatorName(name) {
   return String(name || "").trim().toLowerCase() === CREATOR_NAME.toLowerCase();
 }
 
+function getSpecialPlayerStyle(name) {
+  return SPECIAL_PLAYER_NAMES[String(name || "").trim().toLowerCase()] || null;
+}
+
 function formatPlayerNameHtml(name) {
   const safe = escapeHtml(name);
-  if (isCreatorName(name)) {
-    return `<strong class="player-name-creator" title="Site creator">${safe}</strong>`;
+  const special = getSpecialPlayerStyle(name);
+  if (special) {
+    return `<strong class="${special.className}" title="${escapeHtml(special.title)}">${safe}</strong>`;
   }
   return `<strong>${safe}</strong>`;
 }

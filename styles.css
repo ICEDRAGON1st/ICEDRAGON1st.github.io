@@ -1113,6 +1113,11 @@ header h1 {
   font-weight: 800;
 }
 
+.player-name-oscar {
+  color: #2f9e44;
+  font-weight: 800;
+}
+
 .menu-credit {
   margin: 1rem 0 0;
   text-align: center;
