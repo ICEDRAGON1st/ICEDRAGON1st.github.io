@@ -1239,6 +1239,11 @@ header h1 {
   font-weight: 800;
 }
 
+.player-name-cheesy {
+  color: #f0b429;
+  font-weight: 800;
+}
+
 .player-name-tester {
   color: #e03131;
   font-weight: 800;
@@ -1336,6 +1341,11 @@ header h1 {
 .player-title-tester {
   color: #fff;
   background: #e03131;
+}
+
+.player-title-cheesy {
+  color: #3b2a0a;
+  background: #f0b429;
 }
 
 .player-title-none {
@@ -1447,6 +1457,11 @@ header h1 {
 .title-pick-btn.player-title-tester {
   color: #fff;
   background: #e03131;
+}
+
+.title-pick-btn.player-title-cheesy {
+  color: #3b2a0a;
+  background: #f0b429;
 }
 
 .title-pick-btn.player-title-none {

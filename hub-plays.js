@@ -1106,6 +1106,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       nameClass = extra.nameClass;
     } else if (accent === "#f1c40f") {
       nameClass = "player-name-legend";
+    } else if (accent === "#f0b429") {
+      nameClass = "player-name-cheesy";
     } else if (accent === "#2f9e44") {
       nameClass = "player-name-oscar";
     } else if (accent === "#1c7ed6") {
@@ -1204,6 +1206,10 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   color: #fff;
   background: #e03131;
 }
+.player-title-cheesy {
+  color: #3b2a0a;
+  background: #f0b429;
+}
 .site-credit .player-title.player-title-aurora,
 .menu-credit .player-title.player-title-aurora,
 .player-title.player-title-aurora {
@@ -1264,6 +1270,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 .menu-credit .player-name-legend,
 .site-credit .player-name-oscar,
 .menu-credit .player-name-oscar,
+.site-credit .player-name-cheesy,
+.menu-credit .player-name-cheesy,
 .site-credit .player-name-tester,
 .menu-credit .player-name-tester,
 .site-credit .player-name-custom,
@@ -1283,6 +1291,10 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 .site-credit .player-name-legend,
 .menu-credit .player-name-legend {
   color: #fcc419;
+}
+.site-credit .player-name-cheesy,
+.menu-credit .player-name-cheesy {
+  color: #f0b429;
 }
 .site-credit .player-name-tester,
 .menu-credit .player-name-tester {
@@ -1420,14 +1432,16 @@ body.light .menu-credit .player-name-creator {
     owner: { id: "owner", label: "OWNER", className: "player-title-owner" },
     og: { id: "og", label: "OG", className: "player-title-og" },
     tester: { id: "tester", label: "TESTER", className: "player-title-tester" },
-    legend: { id: "legend", label: "LEGEND", className: "player-title-legend" }
+    legend: { id: "legend", label: "LEGEND", className: "player-title-legend" },
+    cheesy: { id: "cheesy", label: "CHEESY LIL GUY", className: "player-title-cheesy" }
   };
 
   const TITLE_COLORS = {
     owner: "#1c7ed6",
     og: "#2f9e44",
     tester: "#e03131",
-    legend: "#f1c40f"
+    legend: "#f1c40f",
+    cheesy: "#f0b429"
   };
 
   const EXTRA_COLORS = {
@@ -1516,6 +1530,8 @@ body.light .menu-credit .player-name-creator {
 
   const TESTER_NAME_KEYS = new Set(["ice_dragon", "hjalte"]);
 
+  const CHEESY_NAME_KEYS = new Set(["oscarvr29"]);
+
   function getAvailableTitleIds(name = getName()) {
     const ids = [];
     const key = nameKey(name);
@@ -1523,6 +1539,7 @@ body.light .menu-credit .player-name-creator {
     if (key === "ice_dragon") ids.push("owner");
     if (OG_NAME_KEYS.has(key)) ids.push("og");
     if (TESTER_NAME_KEYS.has(key)) ids.push("tester");
+    if (CHEESY_NAME_KEYS.has(key)) ids.push("cheesy");
     // ICE_DRAGON: reserved titles only (no LEGEND path on this account).
     if (key === "ice_dragon") return ids;
     const selfLegend =
@@ -1537,10 +1554,13 @@ body.light .menu-credit .player-name-creator {
   function getTitleShowcase(name = getName()) {
     const key = nameKey(name);
     const unlocked = new Set(getAvailableTitleIds(name));
-    const ids =
+    let ids =
       key === "ice_dragon"
         ? ["owner", "og", "tester", "legend"]
         : ["og", "tester", "legend"];
+    if (CHEESY_NAME_KEYS.has(key) || unlocked.has("cheesy")) {
+      ids = [...ids, "cheesy"];
+    }
     return ids.map((id) => {
       const def = TITLE_DEFS[id];
       return {

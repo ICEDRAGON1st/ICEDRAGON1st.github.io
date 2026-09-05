@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260905z": [
+    "New title CHEESY LIL GUY (cheese color) for OscarVR29"
+  ],
   "20260905y": [
     "New Tide color (green↔blue) for ICE_DRAGON and OscarVR29"
   ],
@@ -2461,6 +2464,7 @@ function formatPlayerNameHtml(name) {
   let nameClass = "player-name-custom";
   if (extra?.nameClass) nameClass = extra.nameClass;
   else if (accent === "#f1c40f") nameClass = "player-name-legend";
+  else if (accent === "#f0b429") nameClass = "player-name-cheesy";
   else if (accent === "#2f9e44") nameClass = "player-name-oscar";
   else if (accent === "#1c7ed6") nameClass = "player-name-creator";
   else if (accent === "#e03131") nameClass = "player-name-tester";
@@ -2520,7 +2524,9 @@ function renderTitlePicker() {
           ? "Unlock all achievements"
           : opt.id === "og"
             ? "Reserved title"
-            : "Locked"
+            : opt.id === "cheesy"
+              ? "Reserved for OscarVR29"
+              : "Locked"
         : opt.label;
       return `<button type="button" class="title-pick-btn ${escapeHtml(opt.className)}${
         selected ? " active" : ""
@@ -2615,7 +2621,9 @@ document.getElementById("title-picker-buttons")?.addEventListener("click", async
           ? "OG (green) is a reserved title"
           : id === "tester"
             ? "TESTER (red) is a reserved title"
-            : "That title is locked",
+            : id === "cheesy"
+              ? "CHEESY LIL GUY is reserved for OscarVR29"
+              : "That title is locked",
       true
     );
     return;
@@ -2655,7 +2663,9 @@ document.getElementById("color-picker-buttons")?.addEventListener("click", async
             ? "Blue is the OWNER color"
             : id === "tester"
               ? "Red unlocks with the TESTER title"
-              : HubPlays.EXTRA_COLORS?.[id]
+              : id === "cheesy"
+                ? "Cheese color unlocks with CHEESY LIL GUY"
+                : HubPlays.EXTRA_COLORS?.[id]
                 ? `${HubPlays.EXTRA_COLORS[id].label} is a reserved color`
                 : "That color is locked",
       true
