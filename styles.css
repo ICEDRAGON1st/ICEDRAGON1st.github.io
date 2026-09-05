@@ -1321,6 +1321,26 @@ header h1 {
   border-color: var(--tile-border);
 }
 
+.title-pick-btn.is-locked {
+  opacity: 0.42;
+  cursor: not-allowed;
+  filter: grayscale(0.35);
+  box-shadow: none;
+}
+
+.title-pick-btn .title-lock-tag {
+  display: inline-block;
+  margin-left: 0.35rem;
+  padding: 0.05rem 0.3rem;
+  border-radius: 999px;
+  font-size: 0.58rem;
+  letter-spacing: 0.04em;
+  font-weight: 800;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.45);
+  vertical-align: middle;
+}
+
 .player-name-custom {
   font-weight: 800;
 }
@@ -1338,6 +1358,21 @@ header h1 {
   padding: 0;
   cursor: pointer;
   background: var(--tile-border);
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.color-pick-btn.is-locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(0.5);
+}
+
+.color-pick-btn .color-lock-mark {
+  font-size: 0.65rem;
+  line-height: 1;
 }
 
 .color-pick-btn.is-default {

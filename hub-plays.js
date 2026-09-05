@@ -1177,15 +1177,12 @@ body.light .menu-credit {
     const ids = [];
     const key = nameKey(name);
     if (!key) return ids;
-    // Site owner account: OWNER only (not Legend, not shared with phone alias).
+    // Site owner: OWNER only (showcase still shows locked OG/LEGEND).
     if (key === "ice_dragon") {
       ids.push("owner");
       return ids;
     }
-    if (key === "oscarvr29") {
-      ids.push("og");
-      return ids;
-    }
+    if (key === "oscarvr29") ids.push("og");
     const selfLegend =
       key === nameKey(getName()) &&
       typeof HubAchievements !== "undefined" &&
@@ -1194,10 +1191,27 @@ body.light .menu-credit {
     return ids;
   }
 
+  /** Titles shown in Players UI (includes locked ones). */
+  function getTitleShowcase(name = getName()) {
+    const key = nameKey(name);
+    const unlocked = new Set(getAvailableTitleIds(name));
+    const ids = key === "ice_dragon" ? ["owner", "og", "legend"] : ["og", "legend"];
+    return ids.map((id) => {
+      const def = TITLE_DEFS[id];
+      return {
+        id,
+        label: def.label,
+        className: def.className,
+        unlocked: unlocked.has(id),
+        color:
+          id === "owner" ? "#1c7ed6" : id === "og" ? "#2f9e44" : "#f1c40f"
+      };
+    });
+  }
+
   function getActiveTitleId(name = getName()) {
     const key = nameKey(name);
     if (key === "ice_dragon") return "owner";
-    if (key === "oscarvr29") return "og";
     const claim = getClaimForName(name);
     const available = getAvailableTitleIds(name);
     if (!available.length) return "";
@@ -1290,9 +1304,16 @@ body.light .menu-credit {
   }
 
   async function setActiveTitle(titleId) {
+    const key = nameKey(getName());
+    if (key === "ice_dragon") {
+      return { ok: true, activeTitle: "owner" };
+    }
     const available = getAvailableTitleIds();
     const nextId = String(titleId || "").toLowerCase();
     if (nextId !== "none" && nextId && !available.includes(nextId)) {
+      return { ok: false, error: "You don't have that title yet" };
+    }
+    if (nextId === "none" && !available.includes("legend")) {
       return { ok: false, error: "You don't have that title yet" };
     }
     const ok = await patchMyClaim((existing) => ({
@@ -1335,6 +1356,7 @@ body.light .menu-credit {
     markLegend,
     isLegendName,
     getAvailableTitleIds,
+    getTitleShowcase,
     getActiveTitleId,
     getActiveTitleBadge,
     setActiveTitle,

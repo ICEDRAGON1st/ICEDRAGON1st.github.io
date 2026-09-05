@@ -2231,30 +2231,49 @@ function renderTitlePicker() {
   const buttons = document.getElementById("title-picker-buttons");
   if (!picker || !buttons || typeof HubPlays === "undefined") return;
 
-  const available = HubPlays.getAvailableTitleIds?.() || [];
-  // Fixed titles (OWNER / OG) aren't choosable — no multi-title UI.
-  const fixedOnly =
-    available.length === 1 && (available[0] === "owner" || available[0] === "og");
-  if (!available.length || fixedOnly) {
+  if (!hasPlayerName()) {
     picker.classList.add("hidden");
     buttons.innerHTML = "";
     return;
   }
 
-  const active = HubPlays.getActiveTitleId?.() || available[0];
-  const defs = HubPlays.TITLE_DEFS || {};
-  const options = [
-    ...available.map((id) => defs[id]).filter(Boolean),
-    { id: "none", label: "None", className: "player-title-none" }
-  ];
+  const showcase = HubPlays.getTitleShowcase?.() || [];
+  if (!showcase.length) {
+    picker.classList.add("hidden");
+    buttons.innerHTML = "";
+    return;
+  }
+
+  const active = HubPlays.getActiveTitleId?.() || "";
+  const unlockedIds = new Set(
+    showcase.filter((t) => t.unlocked).map((t) => t.id)
+  );
+  const options = [...showcase];
+  if (unlockedIds.has("legend")) {
+    options.push({ id: "none", label: "None", className: "player-title-none", unlocked: true });
+  }
 
   picker.classList.remove("hidden");
   buttons.innerHTML = options
     .map((opt) => {
-      const selected = active === opt.id || (opt.id === "none" && active === "none");
+      const locked = !opt.unlocked;
+      const selected = !locked && (active === opt.id || (opt.id === "none" && active === "none"));
+      const lockHint = locked
+        ? opt.id === "legend"
+          ? "Unlock all achievements"
+          : opt.id === "og"
+            ? "Reserved title"
+            : "Locked"
+        : opt.label;
       return `<button type="button" class="title-pick-btn ${escapeHtml(opt.className)}${
         selected ? " active" : ""
-      }" data-title="${escapeHtml(opt.id)}" aria-pressed="${selected ? "true" : "false"}">${escapeHtml(opt.label)}</button>`;
+      }${locked ? " is-locked" : ""}" data-title="${escapeHtml(opt.id)}" data-locked="${
+        locked ? "true" : "false"
+      }" aria-pressed="${selected ? "true" : "false"}" aria-disabled="${
+        locked ? "true" : "false"
+      }" title="${escapeHtml(lockHint)}">${escapeHtml(opt.label)}${
+        locked ? `<span class="title-lock-tag">Locked</span>` : ""
+      }</button>`;
     })
     .join("");
 }
@@ -2262,10 +2281,44 @@ function renderTitlePicker() {
 function renderColorPicker() {
   const picker = document.getElementById("color-picker");
   const buttons = document.getElementById("color-picker-buttons");
-  if (!picker || !buttons) return;
-  // Title colors are fixed: OWNER blue, OG green, LEGEND yellow.
-  picker.classList.add("hidden");
-  buttons.innerHTML = "";
+  if (!picker || !buttons || typeof HubPlays === "undefined") return;
+
+  if (!hasPlayerName()) {
+    picker.classList.add("hidden");
+    buttons.innerHTML = "";
+    return;
+  }
+
+  const showcase = HubPlays.getTitleShowcase?.() || [];
+  if (!showcase.length) {
+    picker.classList.add("hidden");
+    buttons.innerHTML = "";
+    return;
+  }
+
+  const active = HubPlays.getActiveTitleId?.() || "";
+  const label = picker.querySelector(".title-picker-label");
+  if (label) label.textContent = "Title colors";
+
+  picker.classList.remove("hidden");
+  buttons.innerHTML = showcase
+    .map((opt) => {
+      const locked = !opt.unlocked;
+      const selected = !locked && active === opt.id;
+      const hint = locked
+        ? `${opt.label} color — locked`
+        : `${opt.label} · ${opt.color}`;
+      return `<button type="button" class="color-pick-btn${selected ? " active" : ""}${
+        locked ? " is-locked" : ""
+      }" data-title-color="${escapeHtml(opt.id)}" data-locked="${
+        locked ? "true" : "false"
+      }" title="${escapeHtml(hint)}" aria-label="${escapeHtml(hint)}" aria-disabled="${
+        locked ? "true" : "false"
+      }" style="background:${escapeHtml(opt.color)}">${
+        locked ? `<span class="color-lock-mark" aria-hidden="true">🔒</span>` : ""
+      }</button>`;
+    })
+    .join("");
 }
 
 savePlayerNameBtn?.addEventListener("click", () => savePlayerNameFrom(playerNameInput?.value));
@@ -2274,6 +2327,18 @@ playerNameSaveBtn?.addEventListener("click", () => savePlayerNameFrom(playerName
 document.getElementById("title-picker-buttons")?.addEventListener("click", async (e) => {
   const btn = e.target.closest("[data-title]");
   if (!btn || typeof HubPlays === "undefined") return;
+  if (btn.dataset.locked === "true") {
+    const id = btn.dataset.title;
+    setPlayerNameStatus(
+      id === "legend"
+        ? "LEGEND (yellow) unlocks when you complete all achievements"
+        : id === "og"
+          ? "OG (green) is a reserved title"
+          : "That title is locked",
+      true
+    );
+    return;
+  }
   const titleId = btn.dataset.title;
   btn.disabled = true;
   try {
@@ -2295,29 +2360,27 @@ document.getElementById("title-picker-buttons")?.addEventListener("click", async
     btn.disabled = false;
   }
 });
-document.getElementById("color-picker-buttons")?.addEventListener("click", async (e) => {
-  const btn = e.target.closest("[data-color]");
+document.getElementById("color-picker-buttons")?.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-title-color]");
   if (!btn || typeof HubPlays === "undefined") return;
-  const colorId = btn.dataset.color;
-  btn.disabled = true;
-  try {
-    const result = await HubPlays.setAccentColor(colorId);
-    if (!result.ok) {
-      setPlayerNameStatus(result.error || "Couldn't change color", true);
-      return;
-    }
-    paintPlayersPanelLists();
-    if (leaderboardsPanel && !leaderboardsPanel.classList.contains("hidden")) {
-      renderLeaderboardList();
-    }
-    const opt = (HubPlays.COLOR_OPTIONS || []).find((c) => c.id === colorId);
+  const id = btn.dataset.titleColor;
+  if (btn.dataset.locked === "true") {
     setPlayerNameStatus(
-      colorId === "default" ? "Color set to Auto" : `Color set to ${opt?.label || colorId}`,
-      false
+      id === "legend"
+        ? "Yellow unlocks with LEGEND (all achievements)"
+        : id === "og"
+          ? "Green unlocks with the OG title"
+          : id === "owner"
+            ? "Blue is the OWNER color"
+            : "That color is locked",
+      true
     );
-  } finally {
-    btn.disabled = false;
+    return;
   }
+  // Colors follow the matching title — select that title when unlocked.
+  document
+    .querySelector(`#title-picker-buttons [data-title="${id}"]`)
+    ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 });
 document.getElementById("players-online")?.addEventListener("click", async () => {
   try {
