@@ -2227,7 +2227,9 @@ function formatPlayerNameHtml(name) {
       const style =
         b.color && !b.colorClass
           ? ` style="background:${escapeHtml(b.color)};color:${escapeHtml(b.textColor || "#fff")}"`
-          : "";
+          : b.colorClass
+            ? ` style="color:${escapeHtml(b.textColor || "#fff")}"`
+            : "";
       return `<span class="player-title ${escapeHtml(b.className)}${extraClass}" title="${escapeHtml(b.label)}"${style}>${escapeHtml(b.label)}</span>`;
     })
     .join("");

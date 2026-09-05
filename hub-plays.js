@@ -1305,6 +1305,7 @@ body.light .menu-credit {
     const def = TITLE_DEFS[id];
     if (!def) return null;
     const color = getAccentColor(name);
+    // Badge always follows the chosen accent (including animated extras).
     if (isExtraAccentId(color) && EXTRA_COLORS[color].titleClass) {
       return {
         ...def,
@@ -1312,9 +1313,7 @@ body.light .menu-credit {
         textColor: "#ffffff"
       };
     }
-    const titleDefault = TITLE_COLORS[id] || "";
-    // Mixed look: keep badge label/class, tint with chosen unlocked color.
-    if (color && titleDefault && color !== titleDefault) {
+    if (color) {
       return {
         ...def,
         color,
