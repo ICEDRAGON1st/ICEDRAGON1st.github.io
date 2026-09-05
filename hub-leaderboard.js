@@ -31,7 +31,8 @@
     sudoku: { label: "Sudoku", lowerBetter: true, unit: "time" },
     flappy: { label: "Flappy Bird", lowerBetter: false, unit: "score" },
     tictactoe: { label: "Tic Tac Toe", lowerBetter: false, unit: "wins" },
-    pixletris: { label: "Pixletris", lowerBetter: false, unit: "score" }
+    pixletris: { label: "Pixletris", lowerBetter: false, unit: "score" },
+    "online-time": { label: "Time Online", lowerBetter: false, unit: "playtime" }
   };
 
   const GAME_IDS = Object.keys(GAME_META);
@@ -92,11 +93,22 @@
     return m > 0 ? `${m}:${String(r).padStart(2, "0")}` : `${r}s`;
   }
 
+  function formatPlaytime(total) {
+    const s = Math.max(0, Math.floor(total));
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    const r = s % 60;
+    if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
+    if (m > 0) return r > 0 ? `${m}m ${r}s` : `${m}m`;
+    return `${r}s`;
+  }
+
   function formatScore(gameId, score) {
     const m = meta(gameId);
     const n = Number(score);
     if (!Number.isFinite(n) || n <= 0) return "—";
     if (m.unit === "time") return formatSeconds(n);
+    if (m.unit === "playtime") return formatPlaytime(n);
     if (m.unit === "wins") return `${Math.floor(n)} win${Math.floor(n) === 1 ? "" : "s"}`;
     if (m.unit === "streak") return `Streak ${Math.floor(n)}`;
     return `Best ${Math.floor(n)}`;

@@ -9,6 +9,7 @@
   const NAME_LOCK_KEY = "hub-player-name-locked";
   const LOCAL_KEY = "hub-plays-local-v1";
   const PROFILE_STYLE_KEY = "hub-profile-style-v1";
+  const ONLINE_TIME_KEY = "hub-online-time-v1";
   const NS = "icedragon1st-mygames";
   const PLAYS_PATH = "plays-log";
   const NAMES_PATH = "name-registry";
@@ -25,6 +26,9 @@
   const PRESENCE_KEEP_MS = 10 * 60_000;
   const MAX_PRESENCE = 120;
   const MAX_ALLTIME = 5000;
+  const MAX_ONLINE_CREDIT_MS = 90_000; // don't dump hours after AFK reopen
+
+  let lastOnlineTickAt = 0;
 
   const GAME_NAMES = {
     wordle: "Wordle",
@@ -798,6 +802,57 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       .sort((a, b) => (b.at || 0) - (a.at || 0));
   }
 
+  function loadOnlineSeconds() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(ONLINE_TIME_KEY) || "null");
+      if (!raw || typeof raw !== "object") return 0;
+      if (raw.playerId && raw.playerId !== getPlayerId()) return 0;
+      return Math.max(0, Math.floor(Number(raw.seconds) || 0));
+    } catch {
+      return 0;
+    }
+  }
+
+  function saveOnlineSeconds(seconds) {
+    try {
+      localStorage.setItem(
+        ONLINE_TIME_KEY,
+        JSON.stringify({
+          playerId: getPlayerId(),
+          seconds: Math.max(0, Math.floor(seconds))
+        })
+      );
+    } catch {}
+  }
+
+  function getOnlineSeconds() {
+    return loadOnlineSeconds();
+  }
+
+  /**
+   * Credit visible online time (capped per tick) and push to the Time Online board.
+   */
+  function tickOnlineTime(now = Date.now()) {
+    if (!hasRequiredName() || document.hidden) {
+      lastOnlineTickAt = 0;
+      return loadOnlineSeconds();
+    }
+    if (!lastOnlineTickAt) {
+      lastOnlineTickAt = now;
+      return loadOnlineSeconds();
+    }
+    const deltaMs = Math.min(MAX_ONLINE_CREDIT_MS, Math.max(0, now - lastOnlineTickAt));
+    lastOnlineTickAt = now;
+    const addSec = Math.floor(deltaMs / 1000);
+    if (addSec < 1) return loadOnlineSeconds();
+    const total = loadOnlineSeconds() + addSec;
+    saveOnlineSeconds(total);
+    if (typeof HubLeaderboard !== "undefined" && HubLeaderboard.submit) {
+      HubLeaderboard.submit("online-time", total).catch(() => {});
+    }
+    return total;
+  }
+
   /**
    * Ping the shared presence store. Returns current online count.
    */
@@ -805,6 +860,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     if (heartbeatBusy) return getOnlineCount();
     heartbeatBusy = true;
     try {
+      tickOnlineTime(Date.now());
       const me = getPlayerId();
       let remote = {};
       try {
@@ -1088,7 +1144,12 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       heartbeat().catch(() => {});
     }, HEARTBEAT_MS);
     document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) heartbeat().catch(() => {});
+      if (document.hidden) {
+        lastOnlineTickAt = 0;
+        return;
+      }
+      lastOnlineTickAt = Date.now();
+      heartbeat().catch(() => {});
     });
   }
 
@@ -1895,6 +1956,8 @@ body.light .menu-credit .player-name-creator {
     getAllTimePlayers,
     registerAllTime,
     startPresence,
+    getOnlineSeconds,
+    tickOnlineTime,
     markLegend,
     isLegendName,
     getAvailableTitleIds,

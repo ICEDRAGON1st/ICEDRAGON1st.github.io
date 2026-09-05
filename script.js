@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260906e": [
+    "Time Online leaderboard — see who spent the most time on the site (#1, #2, #3…)"
+  ],
   "20260906d": [
     "Friends has its own hub button (no longer inside Players)"
   ],
@@ -216,6 +219,12 @@ const HUB_GAMES = [
   { id: "flappy", name: "Flappy Bird", path: "flappy-bird/index.html" },
   { id: "tictactoe", name: "Tic Tac Toe", path: "tic-tac-toe/index.html" },
   { id: "pixletris", name: "Pixletris", path: "pixletris/index.html" }
+];
+
+/** Leaderboard tabs = hub-only boards first, then games. */
+const LEADERBOARD_GAMES = [
+  { id: "online-time", name: "Time Online" },
+  ...HUB_GAMES
 ];
 
 const boardEl = document.getElementById("board");
@@ -1080,7 +1089,7 @@ function sortGamesGrid() {
   cards.forEach((card) => gamesGrid.appendChild(card));
 }
 
-let selectedLeaderboardGame = HUB_GAMES[0]?.id || "wordle";
+let selectedLeaderboardGame = "online-time";
 
 function renderHighScoresList() {
   if (!highScoresList) return;
@@ -1102,7 +1111,7 @@ function renderHighScoresList() {
 
 function renderLeaderboardPicker() {
   if (!leaderboardGamePicker) return;
-  leaderboardGamePicker.innerHTML = HUB_GAMES.map(
+  leaderboardGamePicker.innerHTML = LEADERBOARD_GAMES.map(
     (game) =>
       `<button type="button" class="leaderboard-game-btn${
         game.id === selectedLeaderboardGame ? " active" : ""
@@ -1122,7 +1131,10 @@ function renderLeaderboardList() {
   const rows = HubLeaderboard.getBoard(selectedLeaderboardGame);
   if (!rows.length) {
     leaderboardList.innerHTML = "";
-    leaderboardEmpty.textContent = "No scores yet — play to claim #1.";
+    leaderboardEmpty.textContent =
+      selectedLeaderboardGame === "online-time"
+        ? "No time logged yet — stay on the site with a username to claim #1."
+        : "No scores yet — play to claim #1.";
     leaderboardEmpty.classList.remove("hidden");
     return;
   }

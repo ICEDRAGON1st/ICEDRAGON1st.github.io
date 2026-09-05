@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <title>My Games</title>
   <script src="site-config.js"></script>
-  <link rel="stylesheet" href="styles.css?v=20260906d">
+  <link rel="stylesheet" href="styles.css?v=20260906e">
 </head>
 <body>
   <div class="app">
@@ -126,7 +126,7 @@
 
       <div id="leaderboards-panel" class="leaderboards-panel high-scores-panel hidden">
         <h3>Leaderboards</h3>
-        <p class="leaderboards-intro">Global rankings by username. #1 is the best player for each game.</p>
+        <p class="leaderboards-intro">Global rankings by username. Pick a board — Time Online ranks who spent the most time here (#1, #2, #3…).</p>
         <div id="leaderboard-game-picker" class="leaderboard-game-picker" role="group" aria-label="Choose a game"></div>
         <ol id="leaderboard-list" class="leaderboard-list"></ol>
         <p id="leaderboard-empty" class="leaderboard-empty hidden">No scores yet — play to claim #1.</p>
@@ -305,7 +305,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260906d";
+    window.WORDLE_BUILD = "20260906e";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "hub-leaderboard.js", "hub-friends.js", "hub-online-match.js",
       "words.js",
