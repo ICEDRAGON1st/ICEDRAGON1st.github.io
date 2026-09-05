@@ -91,6 +91,65 @@ body {
   letter-spacing: 0.04em;
 }
 
+#hud-theme {
+  color: var(--text);
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.picker-label {
+  margin: 0 0 0.45rem;
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-align: left;
+}
+
+.theme-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 0 0 1rem;
+}
+
+.theme-btn {
+  appearance: none;
+  border: 1px solid var(--key-border);
+  border-radius: 999px;
+  padding: 0.4rem 0.75rem;
+  background: var(--key);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.88rem;
+  cursor: pointer;
+}
+
+.theme-btn:hover {
+  border-color: var(--accent);
+}
+
+.theme-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #102418;
+}
+
+.theme-hint {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.lang-btn.is-disabled,
+.lang-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
 .difficulty-picker {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

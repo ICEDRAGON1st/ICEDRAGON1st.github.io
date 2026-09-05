@@ -4,12 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hangman</title>
-  <link rel="stylesheet" href="styles.css?v=20260904l">
+  <link rel="stylesheet" href="styles.css?v=20260905r">
 </head>
 <body>
   <div class="hud">
     <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
     <div class="hud-stats">
+      <span id="hud-theme">Classic</span>
       <span id="hud-diff">Easy</span>
       <span>Wins: <strong id="wins">0</strong></span>
       <span>Best streak: <strong id="best-streak">0</strong></span>
@@ -34,6 +35,7 @@
       </svg>
 
       <p id="status" class="status">Guess a letter</p>
+      <p id="theme-hint" class="theme-hint">Theme: Classic</p>
       <div id="word" class="word" aria-live="polite"></div>
       <p class="misses">Misses left: <strong id="misses">6</strong></p>
       <div id="keyboard" class="keyboard" role="group" aria-label="Letter keyboard"></div>
@@ -44,6 +46,19 @@
     <div class="overlay-card">
       <h1 id="overlay-title">Hangman</h1>
       <p id="overlay-text">Guess the word one letter at a time.</p>
+      <p class="picker-label">Theme</p>
+      <div id="theme-picker" class="theme-picker" role="group" aria-label="Theme">
+        <button type="button" class="theme-btn active" data-theme="classic">Classic</button>
+        <button type="button" class="theme-btn" data-theme="animals">Animals</button>
+        <button type="button" class="theme-btn" data-theme="food">Food</button>
+        <button type="button" class="theme-btn" data-theme="flags">Flags</button>
+        <button type="button" class="theme-btn" data-theme="sports">Sports</button>
+        <button type="button" class="theme-btn" data-theme="nature">Nature</button>
+        <button type="button" class="theme-btn" data-theme="space">Space</button>
+        <button type="button" class="theme-btn" data-theme="music">Music</button>
+        <button type="button" class="theme-btn" data-theme="movies">Movies</button>
+      </div>
+      <p class="picker-label">Difficulty</p>
       <div id="difficulty-picker" class="difficulty-picker" role="group" aria-label="Difficulty">
         <button type="button" class="diff-btn active" data-diff="easy">Easy</button>
         <button type="button" class="diff-btn" data-diff="medium">Medium</button>
@@ -71,7 +86,8 @@
   <script src="../hub-sound.js"></script>
   <script src="../hub-confetti.js"></script>
   <script src="../hub-plays.js"></script>
-  <script src="../hub-leaderboard.js?v=20260904l"></script>
-  <script src="script.js?v=20260904l"></script>
+  <script src="../hub-leaderboard.js?v=20260905r"></script>
+  <script src="themes.js?v=20260905r"></script>
+  <script src="script.js?v=20260905r"></script>
 </body>
 </html>

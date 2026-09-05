@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260905r": [
+    "Hangman themes: Animals, Food, Flags, Sports, Nature, Space, Music, Movies"
+  ],
   "20260905q": [
     "Friends: add by username, accept requests, and invite to play",
     "Online Tic Tac Toe & Connect Four: Quick Play, room codes, friend invites"

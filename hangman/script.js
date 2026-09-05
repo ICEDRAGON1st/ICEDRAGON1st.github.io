@@ -1,26 +1,33 @@
 const STATS_KEY = "hangman-stats";
 const LANG_KEY = "wordle-lang";
 const DIFF_KEY = "hangman-difficulty";
+const THEME_KEY = "hangman-theme";
 const LANGUAGES = ["en", "da", "is"];
 
 const DIFFICULTY = {
   easy: {
     label: "Easy",
     length: 4,
+    minLen: 3,
+    maxLen: 5,
     maxWrong: 8,
-    blurb: "4-letter words · 8 misses"
+    blurb: "shorter words · 8 misses"
   },
   medium: {
     label: "Medium",
     length: 5,
+    minLen: 5,
+    maxLen: 7,
     maxWrong: 6,
-    blurb: "5-letter words · 6 misses"
+    blurb: "mid-length words · 6 misses"
   },
   hard: {
     label: "Hard",
     length: 6,
+    minLen: 6,
+    maxLen: 12,
     maxWrong: 4,
-    blurb: "6-letter words · 4 misses"
+    blurb: "longer words · 4 misses"
   }
 };
 
@@ -47,6 +54,8 @@ const winsEl = document.getElementById("wins");
 const streakEl = document.getElementById("streak");
 const bestStreakEl = document.getElementById("best-streak");
 const hudDiff = document.getElementById("hud-diff");
+const hudTheme = document.getElementById("hud-theme");
+const themeHintEl = document.getElementById("theme-hint");
 const overlay = document.getElementById("overlay");
 const overlayTitle = document.getElementById("overlay-title");
 const overlayText = document.getElementById("overlay-text");
@@ -57,12 +66,16 @@ const gamesBtn = document.getElementById("games-btn");
 const menuBtn = document.getElementById("menu-btn");
 const langBtn = document.getElementById("lang-btn");
 const difficultyPicker = document.getElementById("difficulty-picker");
+const themePicker = document.getElementById("theme-picker");
 
 let currentLang = localStorage.getItem(LANG_KEY) || "en";
 if (!LANGUAGES.includes(currentLang)) currentLang = "en";
 
 let difficultyMode = localStorage.getItem(DIFF_KEY) || "easy";
 if (!DIFFICULTY[difficultyMode]) difficultyMode = "easy";
+
+let themeMode = localStorage.getItem(THEME_KEY) || "classic";
+if (!getThemeDef(themeMode)) themeMode = "classic";
 
 let wordPool = [];
 let secret = "";
@@ -71,6 +84,15 @@ let wrong = 0;
 let playing = false;
 let menuMode = "start";
 let stats = loadStats();
+
+function getThemeDef(id = themeMode) {
+  const themes = typeof HANGMAN_THEMES !== "undefined" ? HANGMAN_THEMES : null;
+  return themes?.[id] || themes?.classic || null;
+}
+
+function isClassicTheme() {
+  return themeMode === "classic" || !getThemeDef(themeMode)?.words;
+}
 
 function cfg() {
   return DIFFICULTY[difficultyMode];
@@ -81,7 +103,7 @@ function maxWrong() {
 }
 
 function statsKey() {
-  return `${STATS_KEY}-${difficultyMode}-${currentLang}`;
+  return `${STATS_KEY}-${themeMode}-${difficultyMode}-${currentLang}`;
 }
 
 function norm(ch) {
@@ -89,30 +111,41 @@ function norm(ch) {
 }
 
 function getLetterCharset() {
+  if (!isClassicTheme()) return "a-z";
   if (currentLang === "da") return "a-zæøå";
   if (currentLang === "is") return "a-záðéíóöúýþæ";
   return "a-z";
 }
 
 function getLetterPattern() {
-  const len = cfg().length;
   const set = getLetterCharset();
-  return new RegExp(`^[${set}]{${len}}$`);
+  if (isClassicTheme()) {
+    const len = cfg().length;
+    return new RegExp(`^[${set}]{${len}}$`);
+  }
+  const { minLen, maxLen } = cfg();
+  return new RegExp(`^[${set}]{${minLen},${maxLen}}$`);
 }
 
 function getKeyboardLetters() {
+  if (!isClassicTheme()) return KEYBOARD_EN;
   if (currentLang === "da") return KEYBOARD_DA;
   if (currentLang === "is") return KEYBOARD_IS;
   return KEYBOARD_EN;
 }
 
 function isValidGuessLetter(ch) {
+  if (!isClassicTheme()) return /^[a-z]$/.test(ch);
   if (currentLang === "da") return /^[a-zæøå]$/.test(ch);
   if (currentLang === "is") return /^[a-záðéíóöúýþæ]$/.test(ch);
   return /^[a-z]$/.test(ch);
 }
 
 function getSourceLists() {
+  if (!isClassicTheme()) {
+    const theme = getThemeDef();
+    return Array.isArray(theme?.words) ? theme.words : [];
+  }
   const len = cfg().length;
   if (currentLang === "da") {
     if (len === 4) return typeof WORDS_DA_4 !== "undefined" ? WORDS_DA_4 : [];
@@ -134,11 +167,17 @@ function buildPool() {
   const cleaned = [
     ...new Set(
       getSourceLists()
-        .map((w) => norm(w))
+        .map((w) => norm(String(w).replace(/[^a-záðéíóöúýþæøå]/gi, "")))
         .filter((w) => pattern.test(w))
     )
   ];
   if (cleaned.length) return cleaned;
+
+  if (!isClassicTheme()) {
+    const all = (getThemeDef()?.words || []).map((w) => norm(w)).filter(Boolean);
+    if (all.length) return all;
+    return ["theme", "word", "guess", "play"];
+  }
 
   const len = cfg().length;
   if (currentLang === "da") {
@@ -191,15 +230,29 @@ function updateStatsUi() {
   streakEl.textContent = String(stats.streak);
   bestStreakEl.textContent = String(stats.bestStreak);
   hudDiff.textContent = cfg().label;
+  const theme = getThemeDef();
+  if (hudTheme) hudTheme.textContent = theme?.label || "Classic";
+  if (themeHintEl) themeHintEl.textContent = `Theme: ${theme?.label || "Classic"}`;
 }
 
 function updateLangButton() {
   langBtn.textContent = currentLang.toUpperCase();
+  langBtn.disabled = !isClassicTheme();
+  langBtn.title = isClassicTheme()
+    ? "Switch language"
+    : "Themes use English words — switch to Classic for Danish/Icelandic";
+  langBtn.classList.toggle("is-disabled", !isClassicTheme());
 }
 
 function syncDifficultyButtons() {
   document.querySelectorAll(".diff-btn").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.diff === difficultyMode);
+  });
+}
+
+function syncThemeButtons() {
+  document.querySelectorAll(".theme-btn").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.theme === themeMode);
   });
 }
 
@@ -212,13 +265,28 @@ function goToGames() {
 }
 
 function langLabel() {
+  if (!isClassicTheme()) return "English";
   if (currentLang === "da") return "Danish";
   if (currentLang === "is") return "Icelandic";
   return "English";
 }
 
+function themeLabel() {
+  return getThemeDef()?.label || "Classic";
+}
+
 function modeBlurb() {
-  return `${langLabel()} · ${cfg().label}: ${cfg().blurb}`;
+  const theme = getThemeDef();
+  if (isClassicTheme()) {
+    const lenBlurb =
+      difficultyMode === "easy"
+        ? "4-letter words · 8 misses"
+        : difficultyMode === "hard"
+          ? "6-letter words · 4 misses"
+          : "5-letter words · 6 misses";
+    return `${langLabel()} · Classic · ${cfg().label}: ${lenBlurb}`;
+  }
+  return `${themeLabel()} · ${cfg().label}: ${cfg().blurb}${theme?.blurb ? ` · ${theme.blurb}` : ""}`;
 }
 
 function showMenu(mode, title, text) {
@@ -228,6 +296,8 @@ function showMenu(mode, title, text) {
   overlayTitle.textContent = title;
   overlayText.textContent = text;
   syncDifficultyButtons();
+  syncThemeButtons();
+  updateLangButton();
 
   if (mode === "pause") {
     resumeBtn.classList.remove("hidden");
@@ -261,7 +331,7 @@ function openPauseMenu() {
   showMenu(
     "pause",
     "Menu",
-    `${modeBlurb()}. Streak ${stats.streak} · Wins ${stats.wins}. Resume, restart, or change difficulty.`
+    `${modeBlurb()}. Streak ${stats.streak} · Wins ${stats.wins}. Resume, restart, or change theme.`
   );
 }
 
@@ -375,7 +445,7 @@ function endGame(won) {
     showMenu(
       "result",
       "You win!",
-      `${cfg().label}: the word was “${secret.toLocaleUpperCase()}”. Streak: ${stats.streak}.`
+      `${themeLabel()} · ${cfg().label}: the word was “${secret.toLocaleUpperCase()}”. Streak: ${stats.streak}.`
     );
   } else {
     stats.streak = 0;
@@ -387,7 +457,7 @@ function endGame(won) {
     showMenu(
       "result",
       "Game Over",
-      `${cfg().label}: the word was “${secret.toLocaleUpperCase()}”. Try another round.`
+      `${themeLabel()} · ${cfg().label}: the word was “${secret.toLocaleUpperCase()}”. Try another round.`
     );
   }
 }
@@ -438,11 +508,32 @@ function setDifficulty(mode) {
   }
 
   if (menuMode === "start" || menuMode === "pause" || menuMode === "result") {
-    overlayText.textContent = `${modeBlurb()}. Pick a mode, then guess one letter at a time.`;
+    overlayText.textContent = `${modeBlurb()}. Pick a theme, then guess one letter at a time.`;
+  }
+}
+
+function setTheme(mode) {
+  if (!getThemeDef(mode)) return;
+  const changed = mode !== themeMode;
+  themeMode = mode;
+  localStorage.setItem(THEME_KEY, mode);
+  stats = loadStats();
+  syncThemeButtons();
+  updateStatsUi();
+  updateLangButton();
+
+  if (changed && (menuMode === "pause" || menuMode === "playing" || menuMode === "result")) {
+    startGame();
+    return;
+  }
+
+  if (menuMode === "start" || menuMode === "pause" || menuMode === "result") {
+    overlayText.textContent = `${modeBlurb()}. Pick a theme, then guess one letter at a time.`;
   }
 }
 
 function switchLanguage() {
+  if (!isClassicTheme()) return;
   const idx = LANGUAGES.indexOf(currentLang);
   currentLang = LANGUAGES[(idx + 1) % LANGUAGES.length];
   localStorage.setItem(LANG_KEY, currentLang);
@@ -471,6 +562,12 @@ difficultyPicker.addEventListener("click", (e) => {
   const btn = e.target.closest(".diff-btn");
   if (!btn) return;
   setDifficulty(btn.dataset.diff);
+});
+
+themePicker?.addEventListener("click", (e) => {
+  const btn = e.target.closest(".theme-btn");
+  if (!btn) return;
+  setTheme(btn.dataset.theme);
 });
 
 menuBtn.addEventListener("click", () => {
@@ -502,6 +599,7 @@ window.addEventListener("keydown", (e) => {
 wordPool = buildPool();
 updateLangButton();
 syncDifficultyButtons();
+syncThemeButtons();
 updateStatsUi();
 resetGallows();
 GALLOWS_ALWAYS.forEach((name) => {
@@ -514,5 +612,5 @@ Array.from(keyboardEl.children).forEach((btn) => {
 showMenu(
   "start",
   "Hangman",
-  `${modeBlurb()}. Guess one letter at a time.`
+  `${modeBlurb()}. Pick a theme, then guess one letter at a time.`
 );
