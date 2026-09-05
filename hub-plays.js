@@ -215,19 +215,21 @@
         const claimUpdated = Number(claim.profileUpdatedAt) || 0;
         const newer = claimUpdated >= existingUpdated ? claim : existing;
         const older = newer === claim ? existing : claim;
+        const pickStyle = (field) => {
+          if (newer[field] != null && newer[field] !== "") return newer[field];
+          if (older[field] != null && older[field] !== "") return older[field];
+          if (Object.prototype.hasOwnProperty.call(newer, field)) return newer[field] || "";
+          if (Object.prototype.hasOwnProperty.call(older, field)) return older[field] || "";
+          return "";
+        };
         out[key] = {
           ...older,
           ...newer,
           legend: !!(existing.legend || claim.legend),
           legendAt: Math.max(Number(existing.legendAt) || 0, Number(claim.legendAt) || 0) || undefined,
-          activeTitle:
-            newer.activeTitle != null && newer.activeTitle !== ""
-              ? newer.activeTitle
-              : older.activeTitle || "",
-          accentColor:
-            Object.prototype.hasOwnProperty.call(newer, "accentColor")
-              ? newer.accentColor || ""
-              : older.accentColor || "",
+          activeTitle: pickStyle("activeTitle"),
+          accentTitle: pickStyle("accentTitle"),
+          accentColor: pickStyle("accentColor"),
           profileUpdatedAt: Math.max(existingUpdated, claimUpdated) || undefined,
           claimedAt: Math.min(
             Number(existing.claimedAt) || Infinity,
@@ -243,6 +245,58 @@
       if ((claim.claimedAt || 0) < (existing.claimedAt || 0)) out[key] = claim;
     });
     return out;
+  }
+
+  function loadLocalProfileStyle() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(PROFILE_STYLE_KEY) || "null");
+      if (!raw || typeof raw !== "object") return null;
+      if (raw.playerId && raw.playerId !== getPlayerId()) return null;
+      return raw;
+    } catch {
+      return null;
+    }
+  }
+
+  function saveLocalProfileStyle(claim, key = nameKey(getName())) {
+    if (!claim || !key) return;
+    try {
+      localStorage.setItem(
+        PROFILE_STYLE_KEY,
+        JSON.stringify({
+          playerId: getPlayerId(),
+          nameKey: key,
+          activeTitle: claim.activeTitle || "",
+          accentTitle: claim.accentTitle || "",
+          accentColor: claim.accentColor || "",
+          profileUpdatedAt: Number(claim.profileUpdatedAt) || Date.now()
+        })
+      );
+    } catch {}
+  }
+
+  function applyLocalProfileStyle(names) {
+    const local = loadLocalProfileStyle();
+    if (!local || !local.nameKey) return names || {};
+    const key = local.nameKey;
+    const claim = (names || {})[key];
+    if (!claim || claim.playerId !== getPlayerId()) return names || {};
+    const localAt = Number(local.profileUpdatedAt) || 0;
+    const remoteAt = Number(claim.profileUpdatedAt) || 0;
+    if (remoteAt > localAt) return names || {};
+    return {
+      ...(names || {}),
+      [key]: {
+        ...claim,
+        activeTitle: local.activeTitle || claim.activeTitle || "",
+        accentTitle: local.accentTitle || claim.accentTitle || "",
+        accentColor:
+          local.accentColor != null && local.accentColor !== ""
+            ? local.accentColor
+            : claim.accentColor || "",
+        profileUpdatedAt: Math.max(localAt, remoteAt) || Date.now()
+      }
+    };
   }
 
   async function sync(force = false) {
@@ -266,7 +320,21 @@
       }
       try {
         const remoteNames = await fetchNamesRemote();
-        namesCache = mergeNameMaps(namesCache, remoteNames);
+        namesCache = applyLocalProfileStyle(mergeNameMaps(namesCache, remoteNames));
+        // If local style is ahead of remote, push so refresh stays sticky.
+        const key = nameKey(getName());
+        const mine = key ? namesCache[key] : null;
+        const localStyle = loadLocalProfileStyle();
+        if (
+          mine &&
+          localStyle &&
+          mine.playerId === getPlayerId() &&
+          (Number(localStyle.profileUpdatedAt) || 0) >= (Number(mine.profileUpdatedAt) || 0)
+        ) {
+          try {
+            await pushNamesRemote(namesCache);
+          } catch {}
+        }
         refreshCreatorCredits();
       } catch {}
       lastSync = Date.now();
@@ -335,6 +403,7 @@
         claimedAt: existing?.claimedAt || myClaimAt,
         legend: keepLegend,
         activeTitle: existing?.activeTitle || "",
+        accentTitle: existing?.accentTitle || "",
         accentColor: existing?.accentColor || "",
         profileUpdatedAt: existing?.profileUpdatedAt || myClaimAt
       };
@@ -1392,8 +1461,14 @@ body.light .menu-credit {
   function getAccentColor(name = getName()) {
     const claim = getClaimForName(name);
     const accentTitle = String(claim?.accentTitle || "").toLowerCase();
-    if (isExtraAccentId(accentTitle) && getExtraColorIds(name).includes(accentTitle)) {
-      return accentTitle;
+    const accentColorRaw = String(claim?.accentColor || "").toLowerCase();
+    const extraId = isExtraAccentId(accentTitle)
+      ? accentTitle
+      : isExtraAccentId(accentColorRaw)
+        ? accentColorRaw
+        : "";
+    if (extraId && getExtraColorIds(name).includes(extraId)) {
+      return extraId;
     }
 
     const available = getAvailableTitleIds(name);
@@ -1416,8 +1491,14 @@ body.light .menu-credit {
   function getActiveAccentTitleId(name = getName()) {
     const claim = getClaimForName(name);
     const accentTitle = String(claim?.accentTitle || "").toLowerCase();
-    if (isExtraAccentId(accentTitle) && getExtraColorIds(name).includes(accentTitle)) {
-      return accentTitle;
+    const accentColorRaw = String(claim?.accentColor || "").toLowerCase();
+    const extraId = isExtraAccentId(accentTitle)
+      ? accentTitle
+      : isExtraAccentId(accentColorRaw)
+        ? accentColorRaw
+        : "";
+    if (extraId && getExtraColorIds(name).includes(extraId)) {
+      return extraId;
     }
     const color = getAccentColor(name);
     if (isExtraAccentId(color)) return color;
@@ -1463,6 +1544,7 @@ body.light .menu-credit {
       const nextNames = { ...remoteNames, [key]: nextClaim };
       // Optimistic local update so UI refreshes immediately.
       namesCache = nextNames;
+      saveLocalProfileStyle(nextClaim, key);
       try {
         await pushNamesRemote(nextNames);
       } catch {
@@ -1475,7 +1557,8 @@ body.light .menu-credit {
       } catch {
         return true;
       }
-      namesCache = mergeNameMaps(nextNames, confirmed);
+      namesCache = applyLocalProfileStyle(mergeNameMaps(nextNames, confirmed));
+      if (namesCache[key]) saveLocalProfileStyle(namesCache[key], key);
       return true;
     }
     return false;
@@ -1524,7 +1607,7 @@ body.light .menu-credit {
       const ok = await patchMyClaim((existing) => ({
         ...existing,
         accentTitle: id,
-        accentColor: ""
+        accentColor: id
       }));
       if (!ok) return { ok: false, error: "Couldn't save color — try again" };
       refreshCreatorCredits();
