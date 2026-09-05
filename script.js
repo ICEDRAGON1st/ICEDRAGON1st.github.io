@@ -2210,9 +2210,9 @@ function formatPlayerNameHtml(name) {
     typeof HubPlays !== "undefined" ? HubPlays.getAccentColor?.(name) || "" : "";
   const nameStyle = accent ? ` style="color:${escapeHtml(accent)}"` : "";
   let nameClass = special ? special.className : "";
-  if (!nameClass && accent === "#f1c40f") nameClass = "player-name-legend";
-  else if (!nameClass && accent === "#2f9e44") nameClass = "player-name-oscar";
-  else if (!nameClass && accent === "#1c7ed6") nameClass = "player-name-creator";
+  if (accent === "#f1c40f") nameClass = "player-name-legend";
+  else if (accent === "#2f9e44") nameClass = "player-name-oscar";
+  else if (accent === "#1c7ed6") nameClass = "player-name-creator";
   const nameHtml = nameClass
     ? `<strong class="${nameClass}" title="${escapeHtml(special?.title || "")}"${nameStyle}>${safe}</strong>`
     : accent
@@ -2249,7 +2249,7 @@ function renderTitlePicker() {
     showcase.filter((t) => t.unlocked).map((t) => t.id)
   );
   const options = [...showcase];
-  if (unlockedIds.has("legend")) {
+  if (unlockedIds.size > 1 || unlockedIds.has("legend")) {
     options.push({ id: "none", label: "None", className: "player-title-none", unlocked: true });
   }
 

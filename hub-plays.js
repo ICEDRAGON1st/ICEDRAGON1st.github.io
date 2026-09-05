@@ -1173,16 +1173,23 @@ body.light .menu-credit {
     return key ? namesCache[key] || null : null;
   }
 
+  const OG_NAME_KEYS = new Set([
+    "oscarvr29",
+    "ice_dragon",
+    "ice_dragon phone",
+    "oskar",
+    "hjalte",
+    "red4_live"
+  ]);
+
   function getAvailableTitleIds(name = getName()) {
     const ids = [];
     const key = nameKey(name);
     if (!key) return ids;
-    // Site owner: OWNER only (showcase still shows locked OG/LEGEND).
-    if (key === "ice_dragon") {
-      ids.push("owner");
-      return ids;
-    }
-    if (key === "oscarvr29") ids.push("og");
+    if (key === "ice_dragon") ids.push("owner");
+    if (OG_NAME_KEYS.has(key)) ids.push("og");
+    // ICE_DRAGON keeps OWNER (+ OG); other accounts can earn LEGEND.
+    if (key === "ice_dragon") return ids;
     const selfLegend =
       key === nameKey(getName()) &&
       typeof HubAchievements !== "undefined" &&
@@ -1210,13 +1217,15 @@ body.light .menu-credit {
   }
 
   function getActiveTitleId(name = getName()) {
-    const key = nameKey(name);
-    if (key === "ice_dragon") return "owner";
     const claim = getClaimForName(name);
     const available = getAvailableTitleIds(name);
     if (!available.length) return "";
     const chosen = String(claim?.activeTitle || "").toLowerCase();
-    if (chosen === "none") return "none";
+    if (chosen === "none") {
+      // Reserved titles stay visible unless the player also has LEGEND to hide.
+      if (!available.includes("legend")) return available[0];
+      return "none";
+    }
     if (chosen && available.includes(chosen)) return chosen;
     return available[0];
   }
@@ -1304,10 +1313,6 @@ body.light .menu-credit {
   }
 
   async function setActiveTitle(titleId) {
-    const key = nameKey(getName());
-    if (key === "ice_dragon") {
-      return { ok: true, activeTitle: "owner" };
-    }
     const available = getAvailableTitleIds();
     const nextId = String(titleId || "").toLowerCase();
     if (nextId !== "none" && nextId && !available.includes(nextId)) {
