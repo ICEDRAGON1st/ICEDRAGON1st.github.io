@@ -1163,7 +1163,13 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   user-select: none;
   white-space: nowrap;
 }
-.site-credit .player-title,
+.site-credit .player-title {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  margin-left: 0;
+  margin-top: 0.45rem;
+  letter-spacing: 0.08em;
+}
 .menu-credit .player-title {
   writing-mode: horizontal-tb;
   margin-left: 0.35rem;
