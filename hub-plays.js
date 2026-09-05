@@ -1208,7 +1208,13 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 }
 .player-title-cheesy {
   color: #3b2a0a;
-  background: #f0b429;
+  background-color: #f0b429;
+  background-image:
+    radial-gradient(circle at 16% 34%, #b87512 0 0.28em, transparent 0.3em),
+    radial-gradient(circle at 70% 26%, #c98918 0 0.2em, transparent 0.22em),
+    radial-gradient(circle at 48% 74%, #a86a10 0 0.24em, transparent 0.26em),
+    radial-gradient(circle at 86% 66%, #d4921f 0 0.16em, transparent 0.18em),
+    linear-gradient(135deg, #f7c84a 0%, #f0b429 50%, #e09a1c 100%);
 }
 .site-credit .player-title.player-title-aurora,
 .menu-credit .player-title.player-title-aurora,
@@ -1294,7 +1300,17 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 }
 .site-credit .player-name-cheesy,
 .menu-credit .player-name-cheesy {
-  color: #f0b429;
+  background-color: #f0b429;
+  background-image:
+    radial-gradient(circle at 18% 32%, #b87512 0 0.22em, transparent 0.24em),
+    radial-gradient(circle at 68% 28%, #c98918 0 0.16em, transparent 0.18em),
+    radial-gradient(circle at 42% 72%, #a86a10 0 0.2em, transparent 0.22em),
+    radial-gradient(circle at 82% 70%, #d4921f 0 0.14em, transparent 0.16em),
+    linear-gradient(120deg, #f7c84a 0%, #f0b429 48%, #e09a1c 100%);
+  background-size: 100% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 .site-credit .player-name-tester,
 .menu-credit .player-name-tester {

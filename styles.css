@@ -1240,8 +1240,18 @@ header h1 {
 }
 
 .player-name-cheesy {
-  color: #f0b429;
   font-weight: 800;
+  background-color: #f0b429;
+  background-image:
+    radial-gradient(circle at 18% 32%, #b87512 0 0.22em, transparent 0.24em),
+    radial-gradient(circle at 68% 28%, #c98918 0 0.16em, transparent 0.18em),
+    radial-gradient(circle at 42% 72%, #a86a10 0 0.2em, transparent 0.22em),
+    radial-gradient(circle at 82% 70%, #d4921f 0 0.14em, transparent 0.16em),
+    linear-gradient(120deg, #f7c84a 0%, #f0b429 48%, #e09a1c 100%);
+  background-size: 100% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .player-name-tester {
@@ -1345,7 +1355,13 @@ header h1 {
 
 .player-title-cheesy {
   color: #3b2a0a;
-  background: #f0b429;
+  background-color: #f0b429;
+  background-image:
+    radial-gradient(circle at 16% 34%, #b87512 0 0.28em, transparent 0.3em),
+    radial-gradient(circle at 70% 26%, #c98918 0 0.2em, transparent 0.22em),
+    radial-gradient(circle at 48% 74%, #a86a10 0 0.24em, transparent 0.26em),
+    radial-gradient(circle at 86% 66%, #d4921f 0 0.16em, transparent 0.18em),
+    linear-gradient(135deg, #f7c84a 0%, #f0b429 50%, #e09a1c 100%);
 }
 
 .player-title-none {
@@ -1461,7 +1477,13 @@ header h1 {
 
 .title-pick-btn.player-title-cheesy {
   color: #3b2a0a;
-  background: #f0b429;
+  background-color: #f0b429;
+  background-image:
+    radial-gradient(circle at 18% 32%, #b87512 0 0.26em, transparent 0.28em),
+    radial-gradient(circle at 72% 28%, #c98918 0 0.18em, transparent 0.2em),
+    radial-gradient(circle at 52% 76%, #a86a10 0 0.22em, transparent 0.24em),
+    radial-gradient(circle at 88% 64%, #d4921f 0 0.14em, transparent 0.16em),
+    linear-gradient(135deg, #f7c84a 0%, #f0b429 50%, #e09a1c 100%);
 }
 
 .title-pick-btn.player-title-none {
@@ -1544,6 +1566,16 @@ header h1 {
   background-image: linear-gradient(135deg, #1c7ed6 0%, #15aabf 45%, #2f9e44 100%);
   background-size: 200% 200%;
   animation: aurora-shift 2.8s ease-in-out infinite;
+}
+
+.color-pick-btn.is-cheesy {
+  background-color: #f0b429;
+  background-image:
+    radial-gradient(circle at 22% 30%, #b87512 0 22%, transparent 24%),
+    radial-gradient(circle at 70% 28%, #c98918 0 16%, transparent 18%),
+    radial-gradient(circle at 48% 72%, #a86a10 0 20%, transparent 22%),
+    radial-gradient(circle at 84% 68%, #d4921f 0 12%, transparent 14%),
+    linear-gradient(135deg, #f7c84a 0%, #f0b429 50%, #e09a1c 100%);
 }
 
 .color-pick-btn .color-lock-mark {

@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260906a": [
+    "CHEESY LIL GUY color now looks like cheese with holes"
+  ],
   "20260905z": [
     "New title CHEESY LIL GUY (cheese color) for OscarVR29"
   ],
