@@ -267,6 +267,7 @@
       try {
         const remoteNames = await fetchNamesRemote();
         namesCache = mergeNameMaps(namesCache, remoteNames);
+        refreshCreatorCredits();
       } catch {}
       lastSync = Date.now();
       cache = merged;
@@ -1023,11 +1024,50 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 
   getPlayerId();
   startPresence();
-  injectCreatorCredit();
   enforceUsernameGate();
 
   function creatorCreditHtml() {
-    return 'created by <span class="player-name-creator">ICE_DRAGON</span><span class="player-title player-title-owner" title="OWNER">OWNER</span>';
+    const name = "ICE_DRAGON";
+    const accent = getAccentColor(name);
+    const extra = EXTRA_COLORS[accent];
+    let nameClass = "player-name-creator";
+    let nameStyle = "";
+    if (extra?.nameClass) {
+      nameClass = extra.nameClass;
+    } else if (accent === "#f1c40f") {
+      nameClass = "player-name-legend";
+    } else if (accent === "#2f9e44") {
+      nameClass = "player-name-oscar";
+    } else if (accent === "#1c7ed6") {
+      nameClass = "player-name-creator";
+    } else if (accent === "#e03131") {
+      nameClass = "player-name-tester";
+    } else if (accent) {
+      nameClass = "player-name-custom";
+      nameStyle = ` style="color:${accent}"`;
+    }
+
+    const badge = getActiveTitleBadge(name);
+    let badgeHtml = "";
+    if (badge) {
+      const extraClass = badge.colorClass ? ` ${badge.colorClass}` : "";
+      const style =
+        badge.color && !badge.colorClass
+          ? ` style="background:${badge.color};color:${badge.textColor || "#fff"}"`
+          : badge.colorClass
+            ? ` style="color:${badge.textColor || "#fff"}"`
+            : "";
+      badgeHtml = `<span class="player-title ${badge.className}${extraClass}" title="${badge.label}"${style}>${badge.label}</span>`;
+    }
+
+    return `created by <span class="${nameClass}"${nameStyle}>${name}</span>${badgeHtml}`;
+  }
+
+  function refreshCreatorCredits() {
+    const html = creatorCreditHtml();
+    document.querySelectorAll("#site-credit, .menu-credit").forEach((el) => {
+      el.innerHTML = html;
+    });
   }
 
   function injectCreatorCredit() {
@@ -1053,15 +1093,26 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   user-select: none;
   white-space: nowrap;
 }
-.site-credit .player-name-creator,
-.menu-credit .player-name-creator {
-  color: #1c7ed6;
-  font-weight: 800;
-}
 .site-credit .player-title,
 .menu-credit .player-title {
   writing-mode: horizontal-tb;
   margin-left: 0.35rem;
+}
+.site-credit .player-name-aurora,
+.menu-credit .player-name-aurora,
+.site-credit .player-name-mono,
+.menu-credit .player-name-mono,
+.site-credit .player-name-legend,
+.menu-credit .player-name-legend,
+.site-credit .player-name-oscar,
+.menu-credit .player-name-oscar,
+.site-credit .player-name-tester,
+.menu-credit .player-name-tester,
+.site-credit .player-name-custom,
+.menu-credit .player-name-custom,
+.site-credit .player-name-creator,
+.menu-credit .player-name-creator {
+  font-weight: 800;
 }
 body.light .site-credit,
 body.light .menu-credit {
@@ -1111,7 +1162,6 @@ body.light .menu-credit {
       credit.className = "menu-credit";
       credit.setAttribute("aria-label", "Created by ICE_DRAGON");
       credit.innerHTML = creatorCreditHtml();
-      // Games hub: put under header; menus/overlays: at the bottom
       if (box.classList.contains("games-screen-inner")) {
         const header = box.querySelector(".games-header");
         if (header && header.nextSibling) {
@@ -1123,6 +1173,8 @@ body.light .menu-credit {
         box.appendChild(credit);
       }
     });
+
+    refreshCreatorCredits();
   }
 
   const TITLE_DEFS = {
@@ -1458,6 +1510,7 @@ body.light .menu-credit {
       return next;
     });
     if (!ok) return { ok: false, error: "Couldn't save title — try again" };
+    refreshCreatorCredits();
     return { ok: true, activeTitle: getActiveTitleId() };
   }
 
@@ -1474,6 +1527,7 @@ body.light .menu-credit {
         accentColor: ""
       }));
       if (!ok) return { ok: false, error: "Couldn't save color — try again" };
+      refreshCreatorCredits();
       return { ok: true, accentColor: id, accentTitle: id };
     }
 
@@ -1490,6 +1544,7 @@ body.light .menu-credit {
       accentColor: TITLE_COLORS[id]
     }));
     if (!ok) return { ok: false, error: "Couldn't save color — try again" };
+    refreshCreatorCredits();
     return { ok: true, accentColor: getAccentColor(), accentTitle: id };
   }
 
@@ -1543,9 +1598,15 @@ body.light .menu-credit {
     canPickAccentColors,
     setAccentColor,
     setAccentFromTitle,
+    refreshCreatorCredits,
     TITLE_DEFS,
     TITLE_COLORS,
     EXTRA_COLORS,
     COLOR_OPTIONS
   };
+
+  injectCreatorCredit();
+  sync(true)
+    .then(() => refreshCreatorCredits())
+    .catch(() => refreshCreatorCredits());
 })();

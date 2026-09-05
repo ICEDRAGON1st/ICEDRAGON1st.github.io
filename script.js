@@ -2102,6 +2102,9 @@ function paintPlayersPanelLists() {
   if (!playersList || typeof HubPlays === "undefined") return;
   renderTitlePicker();
   renderColorPicker();
+  try {
+    HubPlays.refreshCreatorCredits?.();
+  } catch {}
   if (playersRosterMode) renderPlayersRoster(playersRosterMode);
   const status = HubPlays.getStatus();
   const countEntries = Object.entries(status.counts || {})
