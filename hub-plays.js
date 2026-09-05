@@ -215,7 +215,8 @@
           ...existing,
           ...claim,
           legend: !!(existing.legend || claim.legend),
-          activeTitle: claim.activeTitle || existing.activeTitle || ""
+          activeTitle: claim.activeTitle || existing.activeTitle || "",
+          accentColor: claim.accentColor || existing.accentColor || ""
         };
         if ((claim.claimedAt || 0) >= (existing.claimedAt || 0)) out[key] = merged;
         else {
@@ -223,7 +224,8 @@
             ...merged,
             ...existing,
             legend: merged.legend,
-            activeTitle: existing.activeTitle || claim.activeTitle || ""
+            activeTitle: existing.activeTitle || claim.activeTitle || "",
+            accentColor: existing.accentColor || claim.accentColor || ""
           };
         }
         return;
@@ -321,7 +323,8 @@
         name: next,
         claimedAt: existing?.claimedAt || myClaimAt,
         legend: keepLegend,
-        activeTitle: existing?.activeTitle || ""
+        activeTitle: existing?.activeTitle || "",
+        accentColor: existing?.accentColor || ""
       };
 
       try {
@@ -1111,6 +1114,36 @@ body.light .menu-credit {
     legend: { id: "legend", label: "LEGEND", className: "player-title-legend" }
   };
 
+  const COLOR_OPTIONS = [
+    { id: "default", label: "Default", value: "" },
+    { id: "blue", label: "Blue", value: "#1c7ed6" },
+    { id: "green", label: "Green", value: "#2f9e44" },
+    { id: "yellow", label: "Yellow", value: "#f1c40f" },
+    { id: "red", label: "Red", value: "#e03131" },
+    { id: "orange", label: "Orange", value: "#f76707" },
+    { id: "purple", label: "Purple", value: "#9c36b5" },
+    { id: "pink", label: "Pink", value: "#d6336c" },
+    { id: "cyan", label: "Cyan", value: "#15aabf" },
+    { id: "white", label: "White", value: "#f1f3f5" }
+  ];
+
+  function sanitizeColor(raw) {
+    const value = String(raw || "").trim().toLowerCase();
+    if (!value) return "";
+    if (/^#[0-9a-f]{6}$/.test(value)) return value;
+    return "";
+  }
+
+  function contrastText(bg) {
+    const hex = sanitizeColor(bg);
+    if (!hex) return "#ffffff";
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    const luma = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return luma > 0.62 ? "#1a1a1a" : "#ffffff";
+  }
+
   function isLegendName(name) {
     const key = nameKey(name);
     if (!key) return false;
@@ -1150,7 +1183,26 @@ body.light .menu-credit {
   function getActiveTitleBadge(name = getName()) {
     const id = getActiveTitleId(name);
     if (!id || id === "none") return null;
-    return TITLE_DEFS[id] || null;
+    const def = TITLE_DEFS[id];
+    if (!def) return null;
+    const color = getAccentColor(name);
+    if (!color) return { ...def };
+    return {
+      ...def,
+      color,
+      textColor: contrastText(color)
+    };
+  }
+
+  function getAccentColor(name = getName()) {
+    return sanitizeColor(getClaimForName(name)?.accentColor || "");
+  }
+
+  function getDefaultAccentForName(name = getName()) {
+    const key = nameKey(name);
+    if (key === "ice_dragon") return "#1c7ed6";
+    if (key === "oscarvr29") return "#2f9e44";
+    return "";
   }
 
   async function patchMyClaim(updater) {
@@ -1222,6 +1274,24 @@ body.light .menu-credit {
     return { ok: true, activeTitle: getActiveTitleId() };
   }
 
+  async function setAccentColor(colorIdOrHex) {
+    const raw = String(colorIdOrHex || "").trim().toLowerCase();
+    let next = "";
+    if (raw && raw !== "default") {
+      const fromList = COLOR_OPTIONS.find((c) => c.id === raw || c.value === raw);
+      next = sanitizeColor(fromList?.value || raw);
+      if (raw !== "default" && !next) {
+        return { ok: false, error: "Pick a valid color" };
+      }
+    }
+    const ok = await patchMyClaim((existing) => ({
+      ...existing,
+      accentColor: next
+    }));
+    if (!ok) return { ok: false, error: "Couldn't save color — try again" };
+    return { ok: true, accentColor: getAccentColor() };
+  }
+
   window.HubPlays = {
     getName,
     setName,
@@ -1253,6 +1323,10 @@ body.light .menu-credit {
     getActiveTitleId,
     getActiveTitleBadge,
     setActiveTitle,
-    TITLE_DEFS
+    getAccentColor,
+    getDefaultAccentForName,
+    setAccentColor,
+    TITLE_DEFS,
+    COLOR_OPTIONS
   };
 })();

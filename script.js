@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260904s": [
+    "Choose your name/title color in Players"
+  ],
   "20260904r": [
     "Choose which title to show if you have more than one"
   ],
@@ -2107,6 +2110,7 @@ async function renderPlayersPanel() {
     await refreshOnlineCount();
   } catch {}
   renderTitlePicker();
+  renderColorPicker();
   if (playersRosterMode) renderPlayersRoster(playersRosterMode);
   const status = HubPlays.getStatus();
   const countEntries = Object.entries(status.counts || {})
@@ -2196,14 +2200,23 @@ function getPlayerTitleBadges(name) {
 function formatPlayerNameHtml(name) {
   const safe = escapeHtml(name);
   const special = getSpecialPlayerStyle(name);
-  const nameHtml = special
-    ? `<strong class="${special.className}" title="${escapeHtml(special.title)}">${safe}</strong>`
-    : `<strong>${safe}</strong>`;
+  const accent =
+    typeof HubPlays !== "undefined" ? HubPlays.getAccentColor?.(name) || "" : "";
+  const nameStyle = accent ? ` style="color:${escapeHtml(accent)}"` : "";
+  const nameClass = special ? special.className : "";
+  const nameHtml = nameClass
+    ? `<strong class="${nameClass}" title="${escapeHtml(special.title)}"${nameStyle}>${safe}</strong>`
+    : accent
+      ? `<strong class="player-name-custom"${nameStyle}>${safe}</strong>`
+      : `<strong>${safe}</strong>`;
   const badges = getPlayerTitleBadges(name)
-    .map(
-      (b) =>
-        `<span class="player-title ${escapeHtml(b.className)}" title="${escapeHtml(b.label)}">${escapeHtml(b.label)}</span>`
-    )
+    .map((b) => {
+      const style =
+        b.color
+          ? ` style="background:${escapeHtml(b.color)};color:${escapeHtml(b.textColor || "#fff")}"`
+          : "";
+      return `<span class="player-title ${escapeHtml(b.className)}" title="${escapeHtml(b.label)}"${style}>${escapeHtml(b.label)}</span>`;
+    })
     .join("");
   return badges ? `${nameHtml}${badges}` : nameHtml;
 }
@@ -2238,6 +2251,35 @@ function renderTitlePicker() {
     .join("");
 }
 
+function renderColorPicker() {
+  const picker = document.getElementById("color-picker");
+  const buttons = document.getElementById("color-picker-buttons");
+  if (!picker || !buttons || typeof HubPlays === "undefined") return;
+
+  if (!hasPlayerName()) {
+    picker.classList.add("hidden");
+    buttons.innerHTML = "";
+    return;
+  }
+
+  const options = HubPlays.COLOR_OPTIONS || [];
+  const active = HubPlays.getAccentColor?.() || "";
+  picker.classList.remove("hidden");
+  buttons.innerHTML = options
+    .map((opt) => {
+      const selected = (opt.value || "") === active || (!active && opt.id === "default");
+      const swatchStyle = opt.value
+        ? ` style="background:${escapeHtml(opt.value)}"`
+        : "";
+      return `<button type="button" class="color-pick-btn${selected ? " active" : ""}${
+        opt.id === "default" ? " is-default" : ""
+      }" data-color="${escapeHtml(opt.id)}" title="${escapeHtml(opt.label)}" aria-label="${escapeHtml(opt.label)}" aria-pressed="${
+        selected ? "true" : "false"
+      }"${swatchStyle}>${opt.id === "default" ? "Auto" : ""}</button>`;
+    })
+    .join("");
+}
+
 savePlayerNameBtn?.addEventListener("click", () => savePlayerNameFrom(playerNameInput?.value));
 lockPlayerNameBtn?.addEventListener("click", () => togglePlayerNameLock());
 playerNameSaveBtn?.addEventListener("click", () => savePlayerNameFrom(playerNameModalInput?.value));
@@ -2253,6 +2295,7 @@ document.getElementById("title-picker-buttons")?.addEventListener("click", async
       return;
     }
     renderTitlePicker();
+    renderColorPicker();
     renderPlayersPanel();
     if (leaderboardsPanel && !leaderboardsPanel.classList.contains("hidden")) {
       renderLeaderboardList();
@@ -2262,6 +2305,31 @@ document.getElementById("title-picker-buttons")?.addEventListener("click", async
         ? "Title hidden"
         : `Title set to ${(HubPlays.TITLE_DEFS?.[titleId] || {}).label || titleId}`;
     setPlayerNameStatus(label, false);
+  } finally {
+    btn.disabled = false;
+  }
+});
+document.getElementById("color-picker-buttons")?.addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-color]");
+  if (!btn || typeof HubPlays === "undefined") return;
+  const colorId = btn.dataset.color;
+  btn.disabled = true;
+  try {
+    const result = await HubPlays.setAccentColor(colorId);
+    if (!result.ok) {
+      setPlayerNameStatus(result.error || "Couldn't change color", true);
+      return;
+    }
+    renderColorPicker();
+    renderPlayersPanel();
+    if (leaderboardsPanel && !leaderboardsPanel.classList.contains("hidden")) {
+      renderLeaderboardList();
+    }
+    const opt = (HubPlays.COLOR_OPTIONS || []).find((c) => c.id === colorId);
+    setPlayerNameStatus(
+      colorId === "default" ? "Color set to Auto" : `Color set to ${opt?.label || colorId}`,
+      false
+    );
   } finally {
     btn.disabled = false;
   }

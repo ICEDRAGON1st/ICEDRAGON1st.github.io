@@ -1316,6 +1316,42 @@ header h1 {
   border-color: var(--tile-border);
 }
 
+.player-name-custom {
+  font-weight: 800;
+}
+
+.color-picker-buttons {
+  align-items: center;
+}
+
+.color-pick-btn {
+  appearance: none;
+  width: 1.55rem;
+  height: 1.55rem;
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  padding: 0;
+  cursor: pointer;
+  background: var(--tile-border);
+}
+
+.color-pick-btn.is-default {
+  width: auto;
+  min-width: 2.6rem;
+  height: 1.55rem;
+  padding: 0 0.45rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--text);
+  background: transparent;
+  border-color: var(--tile-border);
+}
+
+.color-pick-btn.active {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.55);
+  border-color: #fff;
+}
+
 .menu-credit {
   margin: 1rem 0 0;
   text-align: center;
