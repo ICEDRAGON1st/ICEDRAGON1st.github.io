@@ -1275,6 +1275,9 @@ body.light .menu-credit {
   }
 
   async function setAccentColor(colorIdOrHex) {
+    if (!getAvailableTitleIds().length) {
+      return { ok: false, error: "Unlock a title before changing color" };
+    }
     const raw = String(colorIdOrHex || "").trim().toLowerCase();
     let next = "";
     if (raw && raw !== "default") {

@@ -11,7 +11,8 @@ const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
   "20260904s": [
-    "Choose your name/title color in Players"
+    "Choose your name/title color in Players",
+    "Color picker only appears if you have a title"
   ],
   "20260904r": [
     "Choose which title to show if you have more than one"
@@ -2256,7 +2257,8 @@ function renderColorPicker() {
   const buttons = document.getElementById("color-picker-buttons");
   if (!picker || !buttons || typeof HubPlays === "undefined") return;
 
-  if (!hasPlayerName()) {
+  const hasTitle = (HubPlays.getAvailableTitleIds?.() || []).length > 0;
+  if (!hasPlayerName() || !hasTitle) {
     picker.classList.add("hidden");
     buttons.innerHTML = "";
     return;
