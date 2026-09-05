@@ -832,6 +832,36 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     return fromPlays;
   }
 
+  function namesFromRegistry(names) {
+    const out = {};
+    Object.values(names || {}).forEach((claim) => {
+      if (!claim || !claim.playerId) return;
+      const name = sanitizeName(claim.name || "");
+      if (isPlaceholderName(name)) return;
+      const prev = out[claim.playerId];
+      const claimedAt = Number(claim.claimedAt) || Date.now();
+      out[claim.playerId] = {
+        firstAt: Math.min(prev?.firstAt || Infinity, claimedAt) === Infinity
+          ? claimedAt
+          : Math.min(prev?.firstAt || claimedAt, claimedAt),
+        name: preferPlayerName(prev?.name, name)
+      };
+    });
+    return out;
+  }
+
+  function buildAllTimeMap(remote, plays, names, meEntry) {
+    return trimAllTime(
+      mergeAllTime(
+        mergeAllTime(
+          mergeAllTime(remote || {}, namesFromPlays(plays)),
+          namesFromRegistry(names)
+        ),
+        meEntry || {}
+      )
+    );
+  }
+
   function allTimeNeedsWrite(remote, next) {
     const remoteKeys = Object.keys(remote || {});
     const nextKeys = Object.keys(next || {});
@@ -841,18 +871,27 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       if (preferPlayerName(remote[id].name, "") !== preferPlayerName(next[id].name, "")) {
         return true;
       }
+      const remoteFirst = Number(remote[id].firstAt) || 0;
+      const nextFirst = Number(next[id].firstAt) || 0;
+      if (nextFirst && remoteFirst && nextFirst < remoteFirst) return true;
     }
     return false;
   }
 
   function getAllTimeCount() {
-    return Object.values(allTimeCache || {}).filter((p) => !isPlaceholderName(p?.name)).length;
+    const enriched = buildAllTimeMap(
+      allTimeCache,
+      cache.plays || loadLocal().plays || [],
+      namesCache
+    );
+    return Object.values(enriched).filter((p) => !isPlaceholderName(p?.name)).length;
   }
 
   function getAllTimePlayers() {
-    const enriched = mergeAllTime(
+    const enriched = buildAllTimeMap(
       allTimeCache,
-      namesFromPlays(cache.plays || loadLocal().plays || [])
+      cache.plays || loadLocal().plays || [],
+      namesCache
     );
     return Object.entries(enriched)
       .map(([playerId, p]) => ({
@@ -887,13 +926,17 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
         cache = mergeLogs(loadLocal(), remotePlays);
       } catch {}
 
-      const fromPlays = namesFromPlays(plays);
+      try {
+        namesCache = await fetchNamesRemote();
+      } catch {}
+
       const now = Date.now();
-      const next = trimAllTime(
-        mergeAllTime(mergeAllTime(remote, fromPlays), {
-          [me]: { firstAt: now, name: getName() || "Guest" }
-        })
-      );
+      const myName = getName();
+      const meEntry =
+        myName && !isPlaceholderName(myName)
+          ? { [me]: { firstAt: now, name: myName } }
+          : {};
+      const next = buildAllTimeMap(remote, plays, namesCache, meEntry);
 
       if (!allTimeNeedsWrite(remote, next)) {
         allTimeCache = next;
@@ -909,7 +952,12 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 
       let confirmed = next;
       try {
-        confirmed = trimAllTime(mergeAllTime(next, await fetchAllTimeRemote()));
+        confirmed = buildAllTimeMap(
+          await fetchAllTimeRemote(),
+          plays,
+          namesCache,
+          meEntry
+        );
         await pushAllTimeRemote(confirmed);
       } catch {
         confirmed = next;

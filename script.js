@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260904p": [
+    "All-time players now includes everyone with a claimed username (like OscarVR29)"
+  ],
   "20260904o": [
     "Hints disabled for now in Wordle and Sudoku"
   ],
