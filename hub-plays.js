@@ -8,6 +8,7 @@
   const PLAYER_ID_KEY = "hub-player-id";
   const NAME_LOCK_KEY = "hub-player-name-locked";
   const LOCAL_KEY = "hub-plays-local-v1";
+  const PROFILE_STYLE_KEY = "hub-profile-style-v1";
   const NS = "icedragon1st-mygames";
   const PLAYS_PATH = "plays-log";
   const NAMES_PATH = "name-registry";
