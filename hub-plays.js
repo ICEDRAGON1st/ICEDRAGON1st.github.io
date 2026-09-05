@@ -211,23 +211,32 @@
         return;
       }
       if (existing.playerId === claim.playerId) {
-        const merged = {
-          ...existing,
-          ...claim,
+        const existingUpdated = Number(existing.profileUpdatedAt) || 0;
+        const claimUpdated = Number(claim.profileUpdatedAt) || 0;
+        const newer = claimUpdated >= existingUpdated ? claim : existing;
+        const older = newer === claim ? existing : claim;
+        out[key] = {
+          ...older,
+          ...newer,
           legend: !!(existing.legend || claim.legend),
-          activeTitle: claim.activeTitle || existing.activeTitle || "",
-          accentColor: claim.accentColor || existing.accentColor || ""
+          legendAt: Math.max(Number(existing.legendAt) || 0, Number(claim.legendAt) || 0) || undefined,
+          activeTitle:
+            newer.activeTitle != null && newer.activeTitle !== ""
+              ? newer.activeTitle
+              : older.activeTitle || "",
+          accentColor:
+            Object.prototype.hasOwnProperty.call(newer, "accentColor")
+              ? newer.accentColor || ""
+              : older.accentColor || "",
+          profileUpdatedAt: Math.max(existingUpdated, claimUpdated) || undefined,
+          claimedAt: Math.min(
+            Number(existing.claimedAt) || Infinity,
+            Number(claim.claimedAt) || Infinity
+          )
         };
-        if ((claim.claimedAt || 0) >= (existing.claimedAt || 0)) out[key] = merged;
-        else {
-          out[key] = {
-            ...merged,
-            ...existing,
-            legend: merged.legend,
-            activeTitle: existing.activeTitle || claim.activeTitle || "",
-            accentColor: existing.accentColor || claim.accentColor || ""
-          };
-        }
+        if (out[key].claimedAt === Infinity) out[key].claimedAt = newer.claimedAt || older.claimedAt;
+        if (!out[key].legendAt) delete out[key].legendAt;
+        if (!out[key].profileUpdatedAt) delete out[key].profileUpdatedAt;
         return;
       }
       // First claimer wins
@@ -256,7 +265,8 @@
         // offline — local still works
       }
       try {
-        namesCache = await fetchNamesRemote();
+        const remoteNames = await fetchNamesRemote();
+        namesCache = mergeNameMaps(namesCache, remoteNames);
       } catch {}
       lastSync = Date.now();
       cache = merged;
@@ -324,7 +334,8 @@
         claimedAt: existing?.claimedAt || myClaimAt,
         legend: keepLegend,
         activeTitle: existing?.activeTitle || "",
-        accentColor: existing?.accentColor || ""
+        accentColor: existing?.accentColor || "",
+        profileUpdatedAt: existing?.profileUpdatedAt || myClaimAt
       };
 
       try {
@@ -950,7 +961,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       } catch {}
 
       try {
-        namesCache = await fetchNamesRemote();
+        const remoteNames = await fetchNamesRemote();
+        namesCache = mergeNameMaps(namesCache, remoteNames);
       } catch {}
 
       const now = Date.now();
@@ -1160,7 +1172,7 @@ body.light .menu-credit {
     const ids = [];
     const key = nameKey(name);
     if (!key) return ids;
-    if (key === "ice_dragon") ids.push("owner");
+    if (key === "ice_dragon" || key === "ice_dragon phone") ids.push("owner");
     if (key === "oscarvr29") ids.push("og");
     const selfLegend =
       key === nameKey(getName()) &&
@@ -1219,6 +1231,9 @@ body.light .menu-credit {
         return false;
       }
 
+      // Keep any newer local profile edits while merging remote.
+      remoteNames = mergeNameMaps(namesCache, remoteNames);
+
       const existing = remoteNames[key];
       if (!existing || existing.playerId !== me) {
         namesCache = remoteNames;
@@ -1231,7 +1246,10 @@ body.light .menu-credit {
         return true;
       }
 
+      nextClaim.profileUpdatedAt = Date.now();
       const nextNames = { ...remoteNames, [key]: nextClaim };
+      // Optimistic local update so UI refreshes immediately.
+      namesCache = nextNames;
       try {
         await pushNamesRemote(nextNames);
       } catch {
@@ -1242,7 +1260,7 @@ body.light .menu-credit {
       try {
         confirmed = await fetchNamesRemote();
       } catch {
-        return false;
+        return true;
       }
       namesCache = mergeNameMaps(nextNames, confirmed);
       return true;

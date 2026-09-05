@@ -2098,18 +2098,8 @@ function startOnlineCountPolling() {
   }, 60_000);
 }
 
-async function renderPlayersPanel() {
+function paintPlayersPanelLists() {
   if (!playersList || typeof HubPlays === "undefined") return;
-  if (playerNameInput && !playerNameInput.value) {
-    playerNameInput.value = HubPlays.getName() || "";
-  }
-  applyNameLockUI();
-  try {
-    await HubPlays.sync();
-  } catch {}
-  try {
-    await refreshOnlineCount();
-  } catch {}
   renderTitlePicker();
   renderColorPicker();
   if (playersRosterMode) renderPlayersRoster(playersRosterMode);
@@ -2140,6 +2130,21 @@ async function renderPlayersPanel() {
     .join("");
 }
 
+async function renderPlayersPanel() {
+  if (!playersList || typeof HubPlays === "undefined") return;
+  if (playerNameInput && !playerNameInput.value) {
+    playerNameInput.value = HubPlays.getName() || "";
+  }
+  applyNameLockUI();
+  try {
+    await HubPlays.sync();
+  } catch {}
+  try {
+    await refreshOnlineCount();
+  } catch {}
+  paintPlayersPanelLists();
+}
+
 function escapeHtml(text) {
   return String(text || "")
     .replace(/&/g, "&amp;")
@@ -2151,6 +2156,11 @@ function escapeHtml(text) {
 const CREATOR_NAME = "ICE_DRAGON";
 const SPECIAL_PLAYER_NAMES = {
   ice_dragon: {
+    className: "player-name-creator",
+    title: "Site owner",
+    badge: { label: "OWNER", className: "player-title-owner" }
+  },
+  "ice_dragon phone": {
     className: "player-name-creator",
     title: "Site owner",
     badge: { label: "OWNER", className: "player-title-owner" }
@@ -2296,9 +2306,7 @@ document.getElementById("title-picker-buttons")?.addEventListener("click", async
       setPlayerNameStatus(result.error || "Couldn't change title", true);
       return;
     }
-    renderTitlePicker();
-    renderColorPicker();
-    renderPlayersPanel();
+    paintPlayersPanelLists();
     if (leaderboardsPanel && !leaderboardsPanel.classList.contains("hidden")) {
       renderLeaderboardList();
     }
@@ -2322,8 +2330,7 @@ document.getElementById("color-picker-buttons")?.addEventListener("click", async
       setPlayerNameStatus(result.error || "Couldn't change color", true);
       return;
     }
-    renderColorPicker();
-    renderPlayersPanel();
+    paintPlayersPanelLists();
     if (leaderboardsPanel && !leaderboardsPanel.classList.contains("hidden")) {
       renderLeaderboardList();
     }
