@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260904r": [
+    "Choose which title to show if you have more than one"
+  ],
   "20260904q": [
     "Player titles: blue OWNER, green OG, yellow LEGEND for all achievements"
   ],
@@ -2103,6 +2106,7 @@ async function renderPlayersPanel() {
   try {
     await refreshOnlineCount();
   } catch {}
+  renderTitlePicker();
   if (playersRosterMode) renderPlayersRoster(playersRosterMode);
   const status = HubPlays.getStatus();
   const countEntries = Object.entries(status.counts || {})
@@ -2167,20 +2171,26 @@ function getSpecialPlayerStyle(name) {
 }
 
 function getPlayerTitleBadges(name) {
+  if (typeof HubPlays !== "undefined" && HubPlays.getActiveTitleBadge) {
+    // Ensure self legend is reflected locally even before cloud sync finishes.
+    if (
+      typeof HubAchievements !== "undefined" &&
+      HubAchievements.hasAllUnlocked?.() &&
+      hasPlayerName() &&
+      String(HubPlays.getName?.() || "").trim().toLowerCase() ===
+        String(name || "").trim().toLowerCase()
+    ) {
+      HubPlays.markLegend?.().catch(() => {});
+    }
+    const badge = HubPlays.getActiveTitleBadge(name);
+    return badge ? [badge] : [];
+  }
+
+  // Fallback if HubPlays title API is missing
   const badges = [];
   const special = getSpecialPlayerStyle(name);
   if (special?.badge) badges.push(special.badge);
-  const isLegend =
-    (typeof HubPlays !== "undefined" && HubPlays.isLegendName?.(name)) ||
-    (typeof HubAchievements !== "undefined" &&
-      HubAchievements.hasAllUnlocked?.() &&
-      hasPlayerName() &&
-      String(HubPlays?.getName?.() || "").trim().toLowerCase() ===
-        String(name || "").trim().toLowerCase());
-  if (isLegend) {
-    badges.push({ label: "LEGEND", className: "player-title-legend" });
-  }
-  return badges;
+  return badges.slice(0, 1);
 }
 
 function formatPlayerNameHtml(name) {
@@ -2198,9 +2208,64 @@ function formatPlayerNameHtml(name) {
   return badges ? `${nameHtml}${badges}` : nameHtml;
 }
 
+function renderTitlePicker() {
+  const picker = document.getElementById("title-picker");
+  const buttons = document.getElementById("title-picker-buttons");
+  if (!picker || !buttons || typeof HubPlays === "undefined") return;
+
+  const available = HubPlays.getAvailableTitleIds?.() || [];
+  if (!available.length) {
+    picker.classList.add("hidden");
+    buttons.innerHTML = "";
+    return;
+  }
+
+  const active = HubPlays.getActiveTitleId?.() || available[0];
+  const defs = HubPlays.TITLE_DEFS || {};
+  const options = [
+    ...available.map((id) => defs[id]).filter(Boolean),
+    { id: "none", label: "None", className: "player-title-none" }
+  ];
+
+  picker.classList.remove("hidden");
+  buttons.innerHTML = options
+    .map((opt) => {
+      const selected = active === opt.id || (opt.id === "none" && active === "none");
+      return `<button type="button" class="title-pick-btn ${escapeHtml(opt.className)}${
+        selected ? " active" : ""
+      }" data-title="${escapeHtml(opt.id)}" aria-pressed="${selected ? "true" : "false"}">${escapeHtml(opt.label)}</button>`;
+    })
+    .join("");
+}
+
 savePlayerNameBtn?.addEventListener("click", () => savePlayerNameFrom(playerNameInput?.value));
 lockPlayerNameBtn?.addEventListener("click", () => togglePlayerNameLock());
 playerNameSaveBtn?.addEventListener("click", () => savePlayerNameFrom(playerNameModalInput?.value));
+document.getElementById("title-picker-buttons")?.addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-title]");
+  if (!btn || typeof HubPlays === "undefined") return;
+  const titleId = btn.dataset.title;
+  btn.disabled = true;
+  try {
+    const result = await HubPlays.setActiveTitle(titleId);
+    if (!result.ok) {
+      setPlayerNameStatus(result.error || "Couldn't change title", true);
+      return;
+    }
+    renderTitlePicker();
+    renderPlayersPanel();
+    if (leaderboardsPanel && !leaderboardsPanel.classList.contains("hidden")) {
+      renderLeaderboardList();
+    }
+    const label =
+      titleId === "none"
+        ? "Title hidden"
+        : `Title set to ${(HubPlays.TITLE_DEFS?.[titleId] || {}).label || titleId}`;
+    setPlayerNameStatus(label, false);
+  } finally {
+    btn.disabled = false;
+  }
+});
 document.getElementById("players-online")?.addEventListener("click", async () => {
   try {
     await refreshOnlineCount();

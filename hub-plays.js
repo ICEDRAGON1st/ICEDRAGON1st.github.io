@@ -214,10 +214,18 @@
         const merged = {
           ...existing,
           ...claim,
-          legend: !!(existing.legend || claim.legend)
+          legend: !!(existing.legend || claim.legend),
+          activeTitle: claim.activeTitle || existing.activeTitle || ""
         };
         if ((claim.claimedAt || 0) >= (existing.claimedAt || 0)) out[key] = merged;
-        else out[key] = { ...merged, ...existing, legend: merged.legend };
+        else {
+          out[key] = {
+            ...merged,
+            ...existing,
+            legend: merged.legend,
+            activeTitle: existing.activeTitle || claim.activeTitle || ""
+          };
+        }
         return;
       }
       // First claimer wins
@@ -312,7 +320,8 @@
         playerId: me,
         name: next,
         claimedAt: existing?.claimedAt || myClaimAt,
-        legend: keepLegend
+        legend: keepLegend,
+        activeTitle: existing?.activeTitle || ""
       };
 
       try {
@@ -1096,6 +1105,12 @@ body.light .menu-credit {
     });
   }
 
+  const TITLE_DEFS = {
+    owner: { id: "owner", label: "OWNER", className: "player-title-owner" },
+    og: { id: "og", label: "OG", className: "player-title-og" },
+    legend: { id: "legend", label: "LEGEND", className: "player-title-legend" }
+  };
+
   function isLegendName(name) {
     const key = nameKey(name);
     if (!key) return false;
@@ -1103,7 +1118,42 @@ body.light .menu-credit {
     return !!(claim && claim.legend);
   }
 
-  async function markLegend() {
+  function getClaimForName(name) {
+    const key = nameKey(name);
+    return key ? namesCache[key] || null : null;
+  }
+
+  function getAvailableTitleIds(name = getName()) {
+    const ids = [];
+    const key = nameKey(name);
+    if (!key) return ids;
+    if (key === "ice_dragon") ids.push("owner");
+    if (key === "oscarvr29") ids.push("og");
+    const selfLegend =
+      key === nameKey(getName()) &&
+      typeof HubAchievements !== "undefined" &&
+      HubAchievements.hasAllUnlocked?.();
+    if (isLegendName(name) || selfLegend) ids.push("legend");
+    return ids;
+  }
+
+  function getActiveTitleId(name = getName()) {
+    const claim = getClaimForName(name);
+    const available = getAvailableTitleIds(name);
+    if (!available.length) return "";
+    const chosen = String(claim?.activeTitle || "").toLowerCase();
+    if (chosen === "none") return "none";
+    if (chosen && available.includes(chosen)) return chosen;
+    return available[0];
+  }
+
+  function getActiveTitleBadge(name = getName()) {
+    const id = getActiveTitleId(name);
+    if (!id || id === "none") return null;
+    return TITLE_DEFS[id] || null;
+  }
+
+  async function patchMyClaim(updater) {
     const me = getPlayerId();
     const current = getName();
     if (!current || isPlaceholderName(current)) return false;
@@ -1122,14 +1172,14 @@ body.light .menu-credit {
         namesCache = remoteNames;
         return false;
       }
-      if (existing.legend) {
+
+      const nextClaim = updater({ ...existing });
+      if (!nextClaim) {
         namesCache = remoteNames;
         return true;
       }
 
-      const nextNames = { ...remoteNames };
-      nextNames[key] = { ...existing, legend: true, legendAt: Date.now() };
-
+      const nextNames = { ...remoteNames, [key]: nextClaim };
       try {
         await pushNamesRemote(nextNames);
       } catch {
@@ -1143,9 +1193,33 @@ body.light .menu-credit {
         return false;
       }
       namesCache = mergeNameMaps(nextNames, confirmed);
-      if (namesCache[key]?.legend) return true;
+      return true;
     }
     return false;
+  }
+
+  async function markLegend() {
+    const ok = await patchMyClaim((existing) => {
+      if (existing.legend) return null;
+      const next = { ...existing, legend: true, legendAt: Date.now() };
+      if (!next.activeTitle) next.activeTitle = "legend";
+      return next;
+    });
+    return ok;
+  }
+
+  async function setActiveTitle(titleId) {
+    const available = getAvailableTitleIds();
+    const nextId = String(titleId || "").toLowerCase();
+    if (nextId !== "none" && nextId && !available.includes(nextId)) {
+      return { ok: false, error: "You don't have that title yet" };
+    }
+    const ok = await patchMyClaim((existing) => ({
+      ...existing,
+      activeTitle: nextId || "none"
+    }));
+    if (!ok) return { ok: false, error: "Couldn't save title — try again" };
+    return { ok: true, activeTitle: getActiveTitleId() };
   }
 
   window.HubPlays = {
@@ -1174,6 +1248,11 @@ body.light .menu-credit {
     registerAllTime,
     startPresence,
     markLegend,
-    isLegendName
+    isLegendName,
+    getAvailableTitleIds,
+    getActiveTitleId,
+    getActiveTitleBadge,
+    setActiveTitle,
+    TITLE_DEFS
   };
 })();

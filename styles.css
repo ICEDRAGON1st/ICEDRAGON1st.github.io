@@ -1247,6 +1247,75 @@ header h1 {
   background: #f1c40f;
 }
 
+.player-title-none {
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--tile-border);
+}
+
+.title-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.75rem;
+  margin: 0.65rem 0 0.35rem;
+}
+
+.title-picker.hidden {
+  display: none !important;
+}
+
+.title-picker-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--subtitle);
+}
+
+.title-picker-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.title-pick-btn {
+  appearance: none;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 0.28rem 0.65rem;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  opacity: 0.72;
+}
+
+.title-pick-btn.active {
+  opacity: 1;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+.title-pick-btn.player-title-owner {
+  color: #fff;
+  background: #1c7ed6;
+}
+
+.title-pick-btn.player-title-og {
+  color: #fff;
+  background: #2f9e44;
+}
+
+.title-pick-btn.player-title-legend {
+  color: #1a1a1a;
+  background: #f1c40f;
+}
+
+.title-pick-btn.player-title-none {
+  color: var(--text);
+  background: transparent;
+  border-color: var(--tile-border);
+}
+
 .menu-credit {
   margin: 1rem 0 0;
   text-align: center;
