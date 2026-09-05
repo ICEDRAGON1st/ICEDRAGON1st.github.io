@@ -1139,6 +1139,17 @@ body.light .menu-credit {
     legend: "#f1c40f"
   };
 
+  const EXTRA_COLORS = {
+    aurora: {
+      id: "aurora",
+      label: "Aurora",
+      className: "player-color-aurora",
+      animated: true
+    }
+  };
+
+  const AURORA_NAME_KEYS = new Set(["ice_dragon", "oscarvr29"]);
+
   const COLOR_OPTIONS = [
     { id: "default", label: "Default", value: "" },
     { id: "blue", label: "Blue", value: "#1c7ed6" },
@@ -1243,12 +1254,47 @@ body.light .menu-credit {
     return available[0];
   }
 
+  function getExtraColorIds(name = getName()) {
+    const key = nameKey(name);
+    const ids = [];
+    if (AURORA_NAME_KEYS.has(key)) ids.push("aurora");
+    return ids;
+  }
+
+  /** Color swatches in Players UI (title colors + special color-only unlocks). */
+  function getColorShowcase(name = getName()) {
+    const colors = getTitleShowcase(name).map((t) => ({
+      ...t,
+      kind: "title"
+    }));
+    const unlockedExtras = new Set(getExtraColorIds(name));
+    Object.values(EXTRA_COLORS).forEach((def) => {
+      colors.push({
+        id: def.id,
+        label: def.label,
+        className: def.className,
+        unlocked: unlockedExtras.has(def.id),
+        color: "",
+        kind: "color",
+        animated: !!def.animated
+      });
+    });
+    return colors;
+  }
+
   function getActiveTitleBadge(name = getName()) {
     const id = getActiveTitleId(name);
     if (!id || id === "none") return null;
     const def = TITLE_DEFS[id];
     if (!def) return null;
     const color = getAccentColor(name);
+    if (color === "aurora") {
+      return {
+        ...def,
+        colorClass: "player-title-aurora",
+        textColor: "#ffffff"
+      };
+    }
     const titleDefault = TITLE_COLORS[id] || "";
     // Mixed look: keep badge label/class, tint with chosen unlocked color.
     if (color && titleDefault && color !== titleDefault) {
@@ -1268,18 +1314,26 @@ body.light .menu-credit {
   }
 
   function canMixTitleColors(name = getName()) {
-    return getAvailableTitleIds(name).length > 1;
+    return canPickAccentColors(name);
+  }
+
+  function canPickAccentColors(name = getName()) {
+    return getAvailableTitleIds(name).length > 1 || getExtraColorIds(name).length > 0;
   }
 
   function getAccentColor(name = getName()) {
+    const claim = getClaimForName(name);
+    const accentTitle = String(claim?.accentTitle || "").toLowerCase();
+    if (accentTitle === "aurora" && getExtraColorIds(name).includes("aurora")) {
+      return "aurora";
+    }
+
     const available = getAvailableTitleIds(name);
     if (!available.length) return "";
-    const claim = getClaimForName(name);
     const unlockedColors = new Set(
       available.map((id) => TITLE_COLORS[id]).filter(Boolean)
     );
 
-    const accentTitle = String(claim?.accentTitle || "").toLowerCase();
     if (accentTitle && available.includes(accentTitle) && TITLE_COLORS[accentTitle]) {
       return TITLE_COLORS[accentTitle];
     }
@@ -1292,13 +1346,20 @@ body.light .menu-credit {
   }
 
   function getActiveAccentTitleId(name = getName()) {
+    const claim = getClaimForName(name);
+    const accentTitle = String(claim?.accentTitle || "").toLowerCase();
+    if (accentTitle === "aurora" && getExtraColorIds(name).includes("aurora")) {
+      return "aurora";
+    }
     const color = getAccentColor(name);
+    if (color === "aurora") return "aurora";
     const match = getUnlockedTitleColors(name).find((x) => x.color === color);
     return match?.id || getActiveTitleId(name) || "";
   }
 
   function getDefaultAccentForName(name = getName()) {
-    return getAccentColor(name);
+    const color = getAccentColor(name);
+    return color === "aurora" ? "" : color;
   }
 
   async function patchMyClaim(updater) {
@@ -1385,13 +1446,27 @@ body.light .menu-credit {
   }
 
   async function setAccentFromTitle(titleId) {
-    const available = getAvailableTitleIds();
     const id = String(titleId || "").toLowerCase();
+
+    if (id === "aurora") {
+      if (!getExtraColorIds().includes("aurora")) {
+        return { ok: false, error: "You don't have that color yet" };
+      }
+      const ok = await patchMyClaim((existing) => ({
+        ...existing,
+        accentTitle: "aurora",
+        accentColor: ""
+      }));
+      if (!ok) return { ok: false, error: "Couldn't save color — try again" };
+      return { ok: true, accentColor: "aurora", accentTitle: "aurora" };
+    }
+
+    const available = getAvailableTitleIds();
     if (!available.includes(id) || !TITLE_COLORS[id]) {
       return { ok: false, error: "You don't have that color yet" };
     }
-    if (available.length < 2) {
-      return { ok: false, error: "Unlock another title to mix colors" };
+    if (!canPickAccentColors()) {
+      return { ok: false, error: "Unlock another title or special color to mix" };
     }
     const ok = await patchMyClaim((existing) => ({
       ...existing,
@@ -1404,11 +1479,12 @@ body.light .menu-credit {
 
   async function setAccentColor(colorIdOrHex) {
     const raw = String(colorIdOrHex || "").trim().toLowerCase();
+    if (raw === "aurora") return setAccentFromTitle("aurora");
     const fromTitle = getAvailableTitleIds().find(
       (id) => id === raw || TITLE_COLORS[id] === sanitizeColor(raw)
     );
     if (fromTitle) return setAccentFromTitle(fromTitle);
-    return { ok: false, error: "Pick a color from one of your titles" };
+    return { ok: false, error: "Pick a color from one of your unlocks" };
   }
 
   window.HubPlays = {
@@ -1440,6 +1516,7 @@ body.light .menu-credit {
     isLegendName,
     getAvailableTitleIds,
     getTitleShowcase,
+    getColorShowcase,
     getActiveTitleId,
     getActiveTitleBadge,
     setActiveTitle,
@@ -1447,10 +1524,12 @@ body.light .menu-credit {
     getActiveAccentTitleId,
     getDefaultAccentForName,
     canMixTitleColors,
+    canPickAccentColors,
     setAccentColor,
     setAccentFromTitle,
     TITLE_DEFS,
     TITLE_COLORS,
+    EXTRA_COLORS,
     COLOR_OPTIONS
   };
 })();

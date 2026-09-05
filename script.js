@@ -2208,9 +2208,11 @@ function formatPlayerNameHtml(name) {
   const special = getSpecialPlayerStyle(name);
   const accent =
     typeof HubPlays !== "undefined" ? HubPlays.getAccentColor?.(name) || "" : "";
-  const nameStyle = accent ? ` style="color:${escapeHtml(accent)}"` : "";
+  const isAurora = accent === "aurora";
+  const nameStyle = accent && !isAurora ? ` style="color:${escapeHtml(accent)}"` : "";
   let nameClass = "player-name-custom";
-  if (accent === "#f1c40f") nameClass = "player-name-legend";
+  if (isAurora) nameClass = "player-name-aurora";
+  else if (accent === "#f1c40f") nameClass = "player-name-legend";
   else if (accent === "#2f9e44") nameClass = "player-name-oscar";
   else if (accent === "#1c7ed6") nameClass = "player-name-creator";
   else if (accent === "#e03131") nameClass = "player-name-tester";
@@ -2220,11 +2222,12 @@ function formatPlayerNameHtml(name) {
     : `<strong>${safe}</strong>`;
   const badges = getPlayerTitleBadges(name)
     .map((b) => {
+      const extraClass = b.colorClass ? ` ${escapeHtml(b.colorClass)}` : "";
       const style =
-        b.color
+        b.color && !b.colorClass
           ? ` style="background:${escapeHtml(b.color)};color:${escapeHtml(b.textColor || "#fff")}"`
           : "";
-      return `<span class="player-title ${escapeHtml(b.className)}" title="${escapeHtml(b.label)}"${style}>${escapeHtml(b.label)}</span>`;
+      return `<span class="player-title ${escapeHtml(b.className)}${extraClass}" title="${escapeHtml(b.label)}"${style}>${escapeHtml(b.label)}</span>`;
     })
     .join("");
   return badges ? `${nameHtml}${badges}` : nameHtml;
@@ -2293,18 +2296,19 @@ function renderColorPicker() {
     return;
   }
 
-  const showcase = HubPlays.getTitleShowcase?.() || [];
+  const showcase =
+    HubPlays.getColorShowcase?.() || HubPlays.getTitleShowcase?.() || [];
   if (!showcase.length) {
     picker.classList.add("hidden");
     buttons.innerHTML = "";
     return;
   }
 
-  const canMix = HubPlays.canMixTitleColors?.() || false;
+  const canPick = HubPlays.canPickAccentColors?.() || HubPlays.canMixTitleColors?.() || false;
   const activeColorId = HubPlays.getActiveAccentTitleId?.() || "";
   const label = picker.querySelector(".title-picker-label");
   if (label) {
-    label.textContent = canMix ? "Your color (mix with title)" : "Title colors";
+    label.textContent = canPick ? "Your color (mix with title)" : "Title colors";
   }
 
   picker.classList.remove("hidden");
@@ -2312,18 +2316,24 @@ function renderColorPicker() {
     .map((opt) => {
       const locked = !opt.unlocked;
       const selected = !locked && activeColorId === opt.id;
+      const isAurora = opt.id === "aurora" || opt.animated;
       const hint = locked
-        ? `${opt.label} color — locked`
-        : canMix
-          ? `Use ${opt.label} color (keeps your title)`
-          : `${opt.label} · ${opt.color}`;
+        ? opt.id === "aurora"
+          ? "Aurora (blue↔purple) is reserved"
+          : `${opt.label} color — locked`
+        : canPick
+          ? isAurora
+            ? "Animated blue↔purple (keeps your title)"
+            : `Use ${opt.label} color (keeps your title)`
+          : `${opt.label} color`;
+      const bgStyle = isAurora ? "" : ` style="background:${escapeHtml(opt.color)}"`;
       return `<button type="button" class="color-pick-btn${selected ? " active" : ""}${
         locked ? " is-locked" : ""
-      }${!canMix && !locked ? " is-fixed" : ""}" data-title-color="${escapeHtml(opt.id)}" data-locked="${
+      }${!canPick && !locked ? " is-fixed" : ""}${isAurora ? " is-aurora" : ""}" data-title-color="${escapeHtml(opt.id)}" data-locked="${
         locked ? "true" : "false"
       }" title="${escapeHtml(hint)}" aria-label="${escapeHtml(hint)}" aria-disabled="${
-        locked || !canMix ? "true" : "false"
-      }" style="background:${escapeHtml(opt.color)}">${
+        locked || !canPick ? "true" : "false"
+      }"${bgStyle}>${
         locked ? `<span class="color-lock-mark" aria-hidden="true">🔒</span>` : ""
       }</button>`;
     })
@@ -2385,13 +2395,15 @@ document.getElementById("color-picker-buttons")?.addEventListener("click", async
             ? "Blue is the OWNER color"
             : id === "tester"
               ? "Red unlocks with the TESTER title"
-              : "That color is locked",
+              : id === "aurora"
+                ? "Aurora (blue↔purple) is a reserved color"
+                : "That color is locked",
       true
     );
     return;
   }
-  if (!HubPlays.canMixTitleColors?.()) {
-    setPlayerNameStatus("Unlock another title to mix colors with your badge", true);
+  if (!(HubPlays.canPickAccentColors?.() || HubPlays.canMixTitleColors?.())) {
+    setPlayerNameStatus("Unlock another title or special color to mix", true);
     return;
   }
   btn.disabled = true;
@@ -2405,7 +2417,10 @@ document.getElementById("color-picker-buttons")?.addEventListener("click", async
     if (leaderboardsPanel && !leaderboardsPanel.classList.contains("hidden")) {
       renderLeaderboardList();
     }
-    const label = (HubPlays.TITLE_DEFS?.[id] || {}).label || id;
+    const label =
+      id === "aurora"
+        ? "Aurora"
+        : (HubPlays.TITLE_DEFS?.[id] || {}).label || id;
     setPlayerNameStatus(`Color set to ${label} (title unchanged)`, false);
   } finally {
     btn.disabled = false;
