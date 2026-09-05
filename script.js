@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260905w": [
+    "See how long until your daily streak dies on the Games badge and in the menu"
+  ],
   "20260905v": [
     "Hjalte: 30-day streak plus 7/14/30 streak achievements"
   ],
@@ -250,6 +253,8 @@ const achievementToast = document.getElementById("achievement-toast");
 const gamesGrid = document.getElementById("games-grid");
 const hubStreakBadge = document.getElementById("hub-streak-badge");
 const hubStreakCount = document.getElementById("hub-streak-count");
+const hubStreakTimer = document.getElementById("hub-streak-timer");
+let streakTimerInterval = null;
 const hintBtn = document.getElementById("hint-btn");
 const langBtn = document.getElementById("lang-btn");
 const themeBtn = document.getElementById("theme-btn");
@@ -591,9 +596,19 @@ function recordGameResult(won) {
   return stats;
 }
 
+function formatStreakTimeLeft(hours) {
+  if (!(hours > 0)) return "";
+  const totalMins = Math.max(1, Math.round(Number(hours) * 60));
+  const days = Math.floor(totalMins / (60 * 24));
+  const hrs = Math.floor((totalMins % (60 * 24)) / 60);
+  const mins = totalMins % 60;
+  if (days > 0) return hrs > 0 ? `${days}d ${hrs}h` : `${days}d`;
+  if (hrs > 0) return mins > 0 && hrs < 8 ? `${hrs}h ${mins}m` : `${hrs}h`;
+  return `${mins}m`;
+}
+
 function formatStreakHoursLeft(hours) {
-  if (hours <= 0) return null;
-  return `~${Math.max(1, Math.round(hours))}h`;
+  return formatStreakTimeLeft(hours) || null;
 }
 
 function renderStreakReminder() {
@@ -604,22 +619,20 @@ function renderStreakReminder() {
 
   const status = HubStreak.getStatus();
   streakReminderEl.classList.remove("is-urgent", "is-done");
+  const left = formatStreakTimeLeft(status.hoursLeft);
 
-  if (status.playedToday) {
-    if (status.streak > 0) {
-      const dayLabel = status.streak === 1 ? "day" : "days";
-      streakReminderEl.textContent = `Streak saved for today! 🔥 ${status.streak} ${dayLabel}.`;
-      streakReminderEl.classList.add("is-done");
-      streakReminderEl.classList.remove("hidden");
-    } else {
-      streakReminderEl.classList.add("hidden");
-    }
+  if (status.playedToday && status.streak > 0) {
+    const dayLabel = status.streak === 1 ? "day" : "days";
+    streakReminderEl.textContent = left
+      ? `Streak saved today! 🔥 ${status.streak} ${dayLabel} · dies in ${left} if you stop playing.`
+      : `Streak saved for today! 🔥 ${status.streak} ${dayLabel}.`;
+    streakReminderEl.classList.add("is-done");
+    streakReminderEl.classList.remove("hidden");
     return;
   }
 
-  if (status.streak > 0 && status.hoursLeft > 0) {
-    const hours = formatStreakHoursLeft(status.hoursLeft);
-    streakReminderEl.textContent = `You haven't played today — streak ends in ${hours}.`;
+  if (status.streak > 0 && left) {
+    streakReminderEl.textContent = `You haven't played today — streak dies in ${left}.`;
     streakReminderEl.classList.add("is-urgent");
     streakReminderEl.classList.remove("hidden");
     return;
@@ -1151,6 +1164,10 @@ function buildShareMomentText() {
     `🎮 ${cfg.name}`,
     `🔥 Daily streak: ${streak} ${streak === 1 ? "day" : "days"}`
   ];
+  const left = formatStreakTimeLeft(status?.hoursLeft || 0);
+  if (streak > 0 && left) {
+    lines.push(`⏳ Dies in ${left} without another play`);
+  }
   if (rows.length) {
     lines.push("🏆 Top scores:");
     rows.forEach((row) => lines.push(`• ${row.name}: ${row.label}`));
@@ -1205,13 +1222,44 @@ function renderDailyStreak() {
   const status = HubStreak.getStatus();
   hubStreakCount.textContent = String(status.streak);
   hubStreakBadge.classList.toggle("is-active", status.streak > 0 && !status.playedToday);
-  hubStreakBadge.classList.toggle("is-done", status.playedToday);
+  hubStreakBadge.classList.toggle("is-done", !!status.playedToday && status.streak > 0);
+  hubStreakBadge.classList.toggle("is-urgent", status.streak > 0 && !status.playedToday);
+
+  const left = formatStreakTimeLeft(status.hoursLeft);
+  if (hubStreakTimer) {
+    if (status.streak > 0 && left) {
+      hubStreakTimer.textContent = status.playedToday ? `· ${left} left` : `· dies in ${left}`;
+      hubStreakTimer.classList.remove("hidden");
+      hubStreakBadge.title = status.playedToday
+        ? `Streak saved today. Play again within ${left} to keep it alive.`
+        : `Play any game within ${left} or your streak dies.`;
+    } else {
+      hubStreakTimer.textContent = "";
+      hubStreakTimer.classList.add("hidden");
+      hubStreakBadge.title = "Play any game within 48 hours to keep your streak";
+    }
+  }
 
   if (status.celebrate) {
     const dayLabel = status.streak === 1 ? "day" : "days";
-    showGamesMessage(`🔥 ${status.streak} ${dayLabel} streak! Play again within 48 hours to keep it going.`, 3500);
+    const tip = left ? ` Dies in ${left} if you don't play again.` : "";
+    showGamesMessage(`🔥 ${status.streak} ${dayLabel} streak!${tip}`, 3500);
     HubStreak.clearCelebration();
   }
+}
+
+function startStreakCountdown() {
+  if (streakTimerInterval) return;
+  streakTimerInterval = setInterval(() => {
+    if (!gamesScreen || gamesScreen.classList.contains("hidden")) return;
+    renderDailyStreak();
+  }, 30000);
+}
+
+function stopStreakCountdown() {
+  if (!streakTimerInterval) return;
+  clearInterval(streakTimerInterval);
+  streakTimerInterval = null;
 }
 
 function refreshGamesHub() {
@@ -1243,6 +1291,7 @@ function showGamesScreen() {
   stopLeaderboardRefresh();
   refreshGamesHub();
   gamesScreen.classList.remove("hidden");
+  startStreakCountdown();
   setTimeout(checkPendingAchievements, 400);
   maybeAskPlayerName();
   if (window.HubPlays) HubPlays.sync().catch(() => {});
@@ -1252,6 +1301,7 @@ function showGamesScreen() {
 }
 
 function hideGamesScreen() {
+  stopStreakCountdown();
   gamesScreen.classList.add("hidden");
 }
 
