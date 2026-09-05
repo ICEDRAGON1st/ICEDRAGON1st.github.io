@@ -1206,15 +1206,16 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   color: #fff;
   background: #e03131;
 }
-.player-title-cheesy {
-  color: #3b2a0a;
-  background-color: #f0b429;
+.player-title-cheesy,
+.player-title.player-title-cheese-holes {
+  color: #3b2a0a !important;
+  background-color: #f4c430 !important;
   background-image:
-    radial-gradient(circle at 16% 34%, #b87512 0 0.28em, transparent 0.3em),
-    radial-gradient(circle at 70% 26%, #c98918 0 0.2em, transparent 0.22em),
-    radial-gradient(circle at 48% 74%, #a86a10 0 0.24em, transparent 0.26em),
-    radial-gradient(circle at 86% 66%, #d4921f 0 0.16em, transparent 0.18em),
-    linear-gradient(135deg, #f7c84a 0%, #f0b429 50%, #e09a1c 100%);
+    radial-gradient(circle at 16% 32%, #5c3606 0 34%, transparent 36%),
+    radial-gradient(circle at 72% 24%, #6b3f08 0 26%, transparent 28%),
+    radial-gradient(circle at 48% 78%, #4a2c05 0 30%, transparent 32%),
+    radial-gradient(circle at 88% 62%, #7a4a0c 0 20%, transparent 22%),
+    linear-gradient(145deg, #ffe08a 0%, #f0b429 52%, #d4921a 100%) !important;
 }
 .site-credit .player-title.player-title-aurora,
 .menu-credit .player-title.player-title-aurora,
@@ -1300,13 +1301,13 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 }
 .site-credit .player-name-cheesy,
 .menu-credit .player-name-cheesy {
-  background-color: #f0b429;
+  background-color: #f4c430;
   background-image:
-    radial-gradient(circle at 18% 32%, #b87512 0 0.22em, transparent 0.24em),
-    radial-gradient(circle at 68% 28%, #c98918 0 0.16em, transparent 0.18em),
-    radial-gradient(circle at 42% 72%, #a86a10 0 0.2em, transparent 0.22em),
-    radial-gradient(circle at 82% 70%, #d4921f 0 0.14em, transparent 0.16em),
-    linear-gradient(120deg, #f7c84a 0%, #f0b429 48%, #e09a1c 100%);
+    radial-gradient(circle at 18% 30%, #5c3606 0 22%, transparent 24%),
+    radial-gradient(circle at 70% 25%, #6b3f08 0 16%, transparent 18%),
+    radial-gradient(circle at 40% 75%, #4a2c05 0 20%, transparent 22%),
+    radial-gradient(circle at 85% 68%, #7a4a0c 0 13%, transparent 15%),
+    linear-gradient(120deg, #ffe08a 0%, #f0b429 50%, #d4921a 100%);
   background-size: 100% 100%;
   -webkit-background-clip: text;
   background-clip: text;
@@ -1635,6 +1636,11 @@ body.light .menu-credit .player-name-creator {
     return colors;
   }
 
+  function isCheeseAccent(color) {
+    const value = String(color || "").trim().toLowerCase();
+    return value === TITLE_COLORS.cheesy || value === "#f0b429";
+  }
+
   function getActiveTitleBadge(name = getName()) {
     const id = getActiveTitleId(name);
     if (!id || id === "none") return null;
@@ -1647,6 +1653,14 @@ body.light .menu-credit .player-name-creator {
         ...def,
         colorClass: EXTRA_COLORS[color].titleClass,
         textColor: "#ffffff"
+      };
+    }
+    // Cheese accent uses hole pattern (never a flat fill).
+    if (isCheeseAccent(color) || (!color && id === "cheesy")) {
+      return {
+        ...def,
+        colorClass: "player-title-cheese-holes",
+        textColor: "#3b2a0a"
       };
     }
     if (color) {

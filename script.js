@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260906b": [
+    "CHEESY LIL GUY holes are clearer (fixed flat cheese override)"
+  ],
   "20260906a": [
     "CHEESY LIL GUY color now looks like cheese with holes"
   ],
@@ -2463,11 +2466,15 @@ function formatPlayerNameHtml(name) {
     typeof HubPlays !== "undefined" ? HubPlays.getAccentColor?.(name) || "" : "";
   const extra = HubPlays?.EXTRA_COLORS?.[accent];
   const isAnimatedAccent = !!(extra && extra.animated);
-  const nameStyle = accent && !isAnimatedAccent ? ` style="color:${escapeHtml(accent)}"` : "";
+  const isCheesyAccent = accent === "#f0b429";
+  const nameStyle =
+    accent && !isAnimatedAccent && !isCheesyAccent
+      ? ` style="color:${escapeHtml(accent)}"`
+      : "";
   let nameClass = "player-name-custom";
   if (extra?.nameClass) nameClass = extra.nameClass;
   else if (accent === "#f1c40f") nameClass = "player-name-legend";
-  else if (accent === "#f0b429") nameClass = "player-name-cheesy";
+  else if (isCheesyAccent) nameClass = "player-name-cheesy";
   else if (accent === "#2f9e44") nameClass = "player-name-oscar";
   else if (accent === "#1c7ed6") nameClass = "player-name-creator";
   else if (accent === "#e03131") nameClass = "player-name-tester";
