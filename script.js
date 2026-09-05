@@ -10,6 +10,10 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260905t": [
+    "Creator OWNER badge follows your chosen color again (not stuck on blue)",
+    "Mobile Wordle: credit no longer covers the keyboard"
+  ],
   "20260905s": [
     "Creator credit text is white (not gray) on PC and phone",
     "OWNER badge stays upright on mobile"

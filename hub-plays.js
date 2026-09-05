@@ -1187,25 +1187,57 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   vertical-align: middle;
   line-height: 1.2;
 }
-.site-credit .player-title-owner,
-.menu-credit .player-title-owner {
+/* Defaults only — chosen accent / aurora / mono must override these. */
+.player-title-owner {
   color: #fff;
   background: #1c7ed6;
 }
-.site-credit .player-title-og,
-.menu-credit .player-title-og {
+.player-title-og {
   color: #fff;
   background: #2f9e44;
 }
-.site-credit .player-title-legend,
-.menu-credit .player-title-legend {
+.player-title-legend {
   color: #1a1a1a;
   background: #f1c40f;
 }
-.site-credit .player-title-tester,
-.menu-credit .player-title-tester {
+.player-title-tester {
   color: #fff;
   background: #e03131;
+}
+.site-credit .player-title.player-title-aurora,
+.menu-credit .player-title.player-title-aurora,
+.player-title.player-title-aurora {
+  background: linear-gradient(
+    90deg,
+    #1c7ed6 0%,
+    #7048e8 35%,
+    #9c36b5 50%,
+    #7048e8 65%,
+    #1c7ed6 100%
+  );
+  background-size: 200% 200%;
+  color: #fff;
+  animation: aurora-shift 2.8s ease-in-out infinite;
+}
+.site-credit .player-title.player-title-mono,
+.menu-credit .player-title.player-title-mono,
+.player-title.player-title-mono {
+  background: linear-gradient(
+    90deg,
+    #0a0a0a 0%,
+    #f5f5f5 45%,
+    #0a0a0a 55%,
+    #f5f5f5 100%
+  );
+  background-size: 200% 200%;
+  color: #fff;
+  text-shadow: 0 0 2px rgba(0, 0, 0, 0.55);
+  animation: aurora-shift 2.8s ease-in-out infinite;
+}
+@keyframes aurora-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 .site-credit .player-name-aurora,
 .menu-credit .player-name-aurora,
@@ -1238,6 +1270,37 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 .site-credit .player-name-tester,
 .menu-credit .player-name-tester {
   color: #ff6b6b;
+}
+.site-credit .player-name-aurora,
+.menu-credit .player-name-aurora {
+  background-image: linear-gradient(
+    90deg,
+    #1c7ed6 0%,
+    #7048e8 35%,
+    #9c36b5 50%,
+    #7048e8 65%,
+    #1c7ed6 100%
+  );
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: aurora-shift 2.8s ease-in-out infinite;
+}
+.site-credit .player-name-mono,
+.menu-credit .player-name-mono {
+  background-image: linear-gradient(
+    90deg,
+    #0a0a0a 0%,
+    #f5f5f5 45%,
+    #0a0a0a 55%,
+    #f5f5f5 100%
+  );
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: aurora-shift 2.8s ease-in-out infinite;
 }
 body.light .site-credit,
 body.light .menu-credit {
@@ -1274,6 +1337,11 @@ body.light .menu-credit .player-name-creator {
     margin-top: 0;
     margin-left: 0.35rem;
     letter-spacing: 0.04em;
+  }
+  /* Keep credit off Wordle keyboard / game chrome on phones */
+  body:has(#keyboard) .site-credit,
+  body:has(.app) .site-credit {
+    display: none !important;
   }
   .menu-credit {
     font-size: 0.9rem;
