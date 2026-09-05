@@ -1234,6 +1234,21 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   text-shadow: 0 0 2px rgba(0, 0, 0, 0.55);
   animation: aurora-shift 2.8s ease-in-out infinite;
 }
+.site-credit .player-title.player-title-tide,
+.menu-credit .player-title.player-title-tide,
+.player-title.player-title-tide {
+  background: linear-gradient(
+    90deg,
+    #1c7ed6 0%,
+    #15aabf 35%,
+    #2f9e44 50%,
+    #15aabf 65%,
+    #1c7ed6 100%
+  );
+  background-size: 200% 200%;
+  color: #fff;
+  animation: aurora-shift 2.8s ease-in-out infinite;
+}
 @keyframes aurora-shift {
   0% { background-position: 0% 50%; }
   50% { background-position: 100% 50%; }
@@ -1243,6 +1258,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 .menu-credit .player-name-aurora,
 .site-credit .player-name-mono,
 .menu-credit .player-name-mono,
+.site-credit .player-name-tide,
+.menu-credit .player-name-tide,
 .site-credit .player-name-legend,
 .menu-credit .player-name-legend,
 .site-credit .player-name-oscar,
@@ -1295,6 +1312,22 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     #f5f5f5 45%,
     #0a0a0a 55%,
     #f5f5f5 100%
+  );
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: aurora-shift 2.8s ease-in-out infinite;
+}
+.site-credit .player-name-tide,
+.menu-credit .player-name-tide {
+  background-image: linear-gradient(
+    90deg,
+    #1c7ed6 0%,
+    #15aabf 30%,
+    #2f9e44 50%,
+    #15aabf 70%,
+    #1c7ed6 100%
   );
   background-size: 200% 200%;
   -webkit-background-clip: text;
@@ -1413,12 +1446,21 @@ body.light .menu-credit .player-name-creator {
       nameClass: "player-name-mono",
       titleClass: "player-title-mono",
       animated: true
+    },
+    tide: {
+      id: "tide",
+      label: "Tide",
+      className: "player-color-tide",
+      nameClass: "player-name-tide",
+      titleClass: "player-title-tide",
+      animated: true
     }
   };
 
   const EXTRA_COLOR_GRANTS = {
     aurora: new Set(["ice_dragon", "oscarvr29"]),
-    mono: new Set(["ice_dragon", "hjalte"])
+    mono: new Set(["ice_dragon", "hjalte"]),
+    tide: new Set(["ice_dragon", "oscarvr29"])
   };
 
   const COLOR_OPTIONS = [

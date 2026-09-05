@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260905y": [
+    "New Tide color (green↔blue) for ICE_DRAGON and OscarVR29"
+  ],
   "20260905x": [
     "Hjalte streak set to 2 days (7/14/30 streak achievements kept)"
   ],
@@ -2566,19 +2569,24 @@ function renderColorPicker() {
       const extra = HubPlays.EXTRA_COLORS?.[opt.id];
       const isAnimated = !!(opt.animated || extra?.animated);
       const hint = locked
-        ? opt.id === "aurora"
-          ? "Aurora (blue↔purple) is reserved"
-          : opt.id === "mono"
-            ? "Mono (black↔white) is reserved"
-            : `${opt.label} color — locked`
+        ? isAnimated
+          ? `${opt.label} is a reserved color`
+          : `${opt.label} color — locked`
         : canPick
           ? isAnimated
             ? `${opt.label} animated color (keeps your title)`
             : `Use ${opt.label} color (keeps your title)`
           : `${opt.label} color`;
       const bgStyle = isAnimated ? "" : ` style="background:${escapeHtml(opt.color)}"`;
-      const animClass =
-        opt.id === "aurora" ? " is-aurora" : opt.id === "mono" ? " is-mono" : isAnimated ? " is-aurora" : "";
+      const animClass = isAnimated
+        ? opt.id === "aurora"
+          ? " is-aurora"
+          : opt.id === "mono"
+            ? " is-mono"
+            : opt.id === "tide"
+              ? " is-tide"
+              : " is-aurora"
+        : "";
       return `<button type="button" class="color-pick-btn${selected ? " active" : ""}${
         locked ? " is-locked" : ""
       }${!canPick && !locked ? " is-fixed" : ""}${animClass}" data-title-color="${escapeHtml(opt.id)}" data-locked="${
@@ -2647,11 +2655,9 @@ document.getElementById("color-picker-buttons")?.addEventListener("click", async
             ? "Blue is the OWNER color"
             : id === "tester"
               ? "Red unlocks with the TESTER title"
-              : id === "aurora"
-                ? "Aurora (blue↔purple) is a reserved color"
-                : id === "mono"
-                  ? "Mono (black↔white) is a reserved color"
-                  : "That color is locked",
+              : HubPlays.EXTRA_COLORS?.[id]
+                ? `${HubPlays.EXTRA_COLORS[id].label} is a reserved color`
+                : "That color is locked",
       true
     );
     return;
