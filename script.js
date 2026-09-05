@@ -2209,19 +2209,22 @@ function formatPlayerNameHtml(name) {
   const accent =
     typeof HubPlays !== "undefined" ? HubPlays.getAccentColor?.(name) || "" : "";
   const nameStyle = accent ? ` style="color:${escapeHtml(accent)}"` : "";
-  let nameClass = special ? special.className : "";
+  let nameClass = "player-name-custom";
   if (accent === "#f1c40f") nameClass = "player-name-legend";
   else if (accent === "#2f9e44") nameClass = "player-name-oscar";
   else if (accent === "#1c7ed6") nameClass = "player-name-creator";
   else if (accent === "#e03131") nameClass = "player-name-tester";
-  const nameHtml = nameClass
+  else if (!accent && special) nameClass = special.className;
+  const nameHtml = accent || special
     ? `<strong class="${nameClass}" title="${escapeHtml(special?.title || "")}"${nameStyle}>${safe}</strong>`
-    : accent
-      ? `<strong class="player-name-custom"${nameStyle}>${safe}</strong>`
-      : `<strong>${safe}</strong>`;
+    : `<strong>${safe}</strong>`;
   const badges = getPlayerTitleBadges(name)
     .map((b) => {
-      return `<span class="player-title ${escapeHtml(b.className)}" title="${escapeHtml(b.label)}">${escapeHtml(b.label)}</span>`;
+      const style =
+        b.color
+          ? ` style="background:${escapeHtml(b.color)};color:${escapeHtml(b.textColor || "#fff")}"`
+          : "";
+      return `<span class="player-title ${escapeHtml(b.className)}" title="${escapeHtml(b.label)}"${style}>${escapeHtml(b.label)}</span>`;
     })
     .join("");
   return badges ? `${nameHtml}${badges}` : nameHtml;
@@ -2297,24 +2300,29 @@ function renderColorPicker() {
     return;
   }
 
-  const active = HubPlays.getActiveTitleId?.() || "";
+  const canMix = HubPlays.canMixTitleColors?.() || false;
+  const activeColorId = HubPlays.getActiveAccentTitleId?.() || "";
   const label = picker.querySelector(".title-picker-label");
-  if (label) label.textContent = "Title colors";
+  if (label) {
+    label.textContent = canMix ? "Your color (mix with title)" : "Title colors";
+  }
 
   picker.classList.remove("hidden");
   buttons.innerHTML = showcase
     .map((opt) => {
       const locked = !opt.unlocked;
-      const selected = !locked && active === opt.id;
+      const selected = !locked && activeColorId === opt.id;
       const hint = locked
         ? `${opt.label} color — locked`
-        : `${opt.label} · ${opt.color}`;
+        : canMix
+          ? `Use ${opt.label} color (keeps your title)`
+          : `${opt.label} · ${opt.color}`;
       return `<button type="button" class="color-pick-btn${selected ? " active" : ""}${
         locked ? " is-locked" : ""
-      }" data-title-color="${escapeHtml(opt.id)}" data-locked="${
+      }${!canMix && !locked ? " is-fixed" : ""}" data-title-color="${escapeHtml(opt.id)}" data-locked="${
         locked ? "true" : "false"
       }" title="${escapeHtml(hint)}" aria-label="${escapeHtml(hint)}" aria-disabled="${
-        locked ? "true" : "false"
+        locked || !canMix ? "true" : "false"
       }" style="background:${escapeHtml(opt.color)}">${
         locked ? `<span class="color-lock-mark" aria-hidden="true">🔒</span>` : ""
       }</button>`;
@@ -2363,7 +2371,7 @@ document.getElementById("title-picker-buttons")?.addEventListener("click", async
     btn.disabled = false;
   }
 });
-document.getElementById("color-picker-buttons")?.addEventListener("click", (e) => {
+document.getElementById("color-picker-buttons")?.addEventListener("click", async (e) => {
   const btn = e.target.closest("[data-title-color]");
   if (!btn || typeof HubPlays === "undefined") return;
   const id = btn.dataset.titleColor;
@@ -2382,10 +2390,26 @@ document.getElementById("color-picker-buttons")?.addEventListener("click", (e) =
     );
     return;
   }
-  // Colors follow the matching title — select that title when unlocked.
-  document
-    .querySelector(`#title-picker-buttons [data-title="${id}"]`)
-    ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  if (!HubPlays.canMixTitleColors?.()) {
+    setPlayerNameStatus("Unlock another title to mix colors with your badge", true);
+    return;
+  }
+  btn.disabled = true;
+  try {
+    const result = await HubPlays.setAccentFromTitle(id);
+    if (!result.ok) {
+      setPlayerNameStatus(result.error || "Couldn't change color", true);
+      return;
+    }
+    paintPlayersPanelLists();
+    if (leaderboardsPanel && !leaderboardsPanel.classList.contains("hidden")) {
+      renderLeaderboardList();
+    }
+    const label = (HubPlays.TITLE_DEFS?.[id] || {}).label || id;
+    setPlayerNameStatus(`Color set to ${label} (title unchanged)`, false);
+  } finally {
+    btn.disabled = false;
+  }
 });
 document.getElementById("players-online")?.addEventListener("click", async () => {
   try {

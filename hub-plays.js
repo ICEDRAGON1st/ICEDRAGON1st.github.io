@@ -1248,13 +1248,53 @@ body.light .menu-credit {
     if (!id || id === "none") return null;
     const def = TITLE_DEFS[id];
     if (!def) return null;
+    const color = getAccentColor(name);
+    const titleDefault = TITLE_COLORS[id] || "";
+    // Mixed look: keep badge label/class, tint with chosen unlocked color.
+    if (color && titleDefault && color !== titleDefault) {
+      return {
+        ...def,
+        color,
+        textColor: contrastText(color)
+      };
+    }
     return { ...def };
   }
 
+  function getUnlockedTitleColors(name = getName()) {
+    return getAvailableTitleIds(name)
+      .map((id) => ({ id, color: TITLE_COLORS[id] || "" }))
+      .filter((x) => x.color);
+  }
+
+  function canMixTitleColors(name = getName()) {
+    return getAvailableTitleIds(name).length > 1;
+  }
+
   function getAccentColor(name = getName()) {
-    // Accents are fixed by active title — no custom palette.
-    const id = getActiveTitleId(name);
-    return TITLE_COLORS[id] || "";
+    const available = getAvailableTitleIds(name);
+    if (!available.length) return "";
+    const claim = getClaimForName(name);
+    const unlockedColors = new Set(
+      available.map((id) => TITLE_COLORS[id]).filter(Boolean)
+    );
+
+    const accentTitle = String(claim?.accentTitle || "").toLowerCase();
+    if (accentTitle && available.includes(accentTitle) && TITLE_COLORS[accentTitle]) {
+      return TITLE_COLORS[accentTitle];
+    }
+
+    const saved = sanitizeColor(claim?.accentColor || "");
+    if (saved && unlockedColors.has(saved)) return saved;
+
+    const activeId = getActiveTitleId(name);
+    return TITLE_COLORS[activeId] || "";
+  }
+
+  function getActiveAccentTitleId(name = getName()) {
+    const color = getAccentColor(name);
+    const match = getUnlockedTitleColors(name).find((x) => x.color === color);
+    return match?.id || getActiveTitleId(name) || "";
   }
 
   function getDefaultAccentForName(name = getName()) {
@@ -1331,16 +1371,44 @@ body.light .menu-credit {
     if (nextId === "none" && !available.includes("legend")) {
       return { ok: false, error: "You don't have that title yet" };
     }
-    const ok = await patchMyClaim((existing) => ({
-      ...existing,
-      activeTitle: nextId || "none"
-    }));
+    const ok = await patchMyClaim((existing) => {
+      const next = { ...existing, activeTitle: nextId || "none" };
+      // Single-title players always match color to that title.
+      if (available.length === 1 && nextId && nextId !== "none") {
+        next.accentTitle = nextId;
+        next.accentColor = TITLE_COLORS[nextId] || "";
+      }
+      return next;
+    });
     if (!ok) return { ok: false, error: "Couldn't save title — try again" };
     return { ok: true, activeTitle: getActiveTitleId() };
   }
 
-  async function setAccentColor() {
-    return { ok: false, error: "Colors are fixed by title" };
+  async function setAccentFromTitle(titleId) {
+    const available = getAvailableTitleIds();
+    const id = String(titleId || "").toLowerCase();
+    if (!available.includes(id) || !TITLE_COLORS[id]) {
+      return { ok: false, error: "You don't have that color yet" };
+    }
+    if (available.length < 2) {
+      return { ok: false, error: "Unlock another title to mix colors" };
+    }
+    const ok = await patchMyClaim((existing) => ({
+      ...existing,
+      accentTitle: id,
+      accentColor: TITLE_COLORS[id]
+    }));
+    if (!ok) return { ok: false, error: "Couldn't save color — try again" };
+    return { ok: true, accentColor: getAccentColor(), accentTitle: id };
+  }
+
+  async function setAccentColor(colorIdOrHex) {
+    const raw = String(colorIdOrHex || "").trim().toLowerCase();
+    const fromTitle = getAvailableTitleIds().find(
+      (id) => id === raw || TITLE_COLORS[id] === sanitizeColor(raw)
+    );
+    if (fromTitle) return setAccentFromTitle(fromTitle);
+    return { ok: false, error: "Pick a color from one of your titles" };
   }
 
   window.HubPlays = {
@@ -1376,9 +1444,13 @@ body.light .menu-credit {
     getActiveTitleBadge,
     setActiveTitle,
     getAccentColor,
+    getActiveAccentTitleId,
     getDefaultAccentForName,
+    canMixTitleColors,
     setAccentColor,
+    setAccentFromTitle,
     TITLE_DEFS,
+    TITLE_COLORS,
     COLOR_OPTIONS
   };
 })();

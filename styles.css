@@ -1385,6 +1385,10 @@ header h1 {
   filter: grayscale(0.5);
 }
 
+.color-pick-btn.is-fixed {
+  cursor: default;
+}
+
 .color-pick-btn .color-lock-mark {
   font-size: 0.65rem;
   line-height: 1;
