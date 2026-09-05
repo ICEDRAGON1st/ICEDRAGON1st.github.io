@@ -1225,6 +1225,11 @@ header h1 {
   font-weight: 800;
 }
 
+.player-name-tester {
+  color: #e03131;
+  font-weight: 800;
+}
+
 .player-title {
   display: inline-block;
   margin-left: 0.4rem;
@@ -1313,6 +1318,11 @@ header h1 {
 .title-pick-btn.player-title-legend {
   color: #1a1a1a;
   background: #f1c40f;
+}
+
+.title-pick-btn.player-title-tester {
+  color: #fff;
+  background: #e03131;
 }
 
 .title-pick-btn.player-title-none {

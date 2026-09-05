@@ -2213,6 +2213,7 @@ function formatPlayerNameHtml(name) {
   if (accent === "#f1c40f") nameClass = "player-name-legend";
   else if (accent === "#2f9e44") nameClass = "player-name-oscar";
   else if (accent === "#1c7ed6") nameClass = "player-name-creator";
+  else if (accent === "#e03131") nameClass = "player-name-tester";
   const nameHtml = nameClass
     ? `<strong class="${nameClass}" title="${escapeHtml(special?.title || "")}"${nameStyle}>${safe}</strong>`
     : accent
@@ -2334,7 +2335,9 @@ document.getElementById("title-picker-buttons")?.addEventListener("click", async
         ? "LEGEND (yellow) unlocks when you complete all achievements"
         : id === "og"
           ? "OG (green) is a reserved title"
-          : "That title is locked",
+          : id === "tester"
+            ? "TESTER (red) is a reserved title"
+            : "That title is locked",
       true
     );
     return;
@@ -2372,7 +2375,9 @@ document.getElementById("color-picker-buttons")?.addEventListener("click", (e) =
           ? "Green unlocks with the OG title"
           : id === "owner"
             ? "Blue is the OWNER color"
-            : "That color is locked",
+            : id === "tester"
+              ? "Red unlocks with the TESTER title"
+              : "That color is locked",
       true
     );
     return;

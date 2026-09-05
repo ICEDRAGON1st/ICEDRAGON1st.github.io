@@ -1128,7 +1128,15 @@ body.light .menu-credit {
   const TITLE_DEFS = {
     owner: { id: "owner", label: "OWNER", className: "player-title-owner" },
     og: { id: "og", label: "OG", className: "player-title-og" },
+    tester: { id: "tester", label: "TESTER", className: "player-title-tester" },
     legend: { id: "legend", label: "LEGEND", className: "player-title-legend" }
+  };
+
+  const TITLE_COLORS = {
+    owner: "#1c7ed6",
+    og: "#2f9e44",
+    tester: "#e03131",
+    legend: "#f1c40f"
   };
 
   const COLOR_OPTIONS = [
@@ -1182,13 +1190,16 @@ body.light .menu-credit {
     "red4_live"
   ]);
 
+  const TESTER_NAME_KEYS = new Set(["ice_dragon", "hjalte"]);
+
   function getAvailableTitleIds(name = getName()) {
     const ids = [];
     const key = nameKey(name);
     if (!key) return ids;
     if (key === "ice_dragon") ids.push("owner");
     if (OG_NAME_KEYS.has(key)) ids.push("og");
-    // ICE_DRAGON keeps OWNER (+ OG); other accounts can earn LEGEND.
+    if (TESTER_NAME_KEYS.has(key)) ids.push("tester");
+    // ICE_DRAGON: reserved titles only (no LEGEND path on this account).
     if (key === "ice_dragon") return ids;
     const selfLegend =
       key === nameKey(getName()) &&
@@ -1202,7 +1213,10 @@ body.light .menu-credit {
   function getTitleShowcase(name = getName()) {
     const key = nameKey(name);
     const unlocked = new Set(getAvailableTitleIds(name));
-    const ids = key === "ice_dragon" ? ["owner", "og", "legend"] : ["og", "legend"];
+    const ids =
+      key === "ice_dragon"
+        ? ["owner", "og", "tester", "legend"]
+        : ["og", "tester", "legend"];
     return ids.map((id) => {
       const def = TITLE_DEFS[id];
       return {
@@ -1210,8 +1224,7 @@ body.light .menu-credit {
         label: def.label,
         className: def.className,
         unlocked: unlocked.has(id),
-        color:
-          id === "owner" ? "#1c7ed6" : id === "og" ? "#2f9e44" : "#f1c40f"
+        color: TITLE_COLORS[id] || "#888888"
       };
     });
   }
@@ -1241,10 +1254,7 @@ body.light .menu-credit {
   function getAccentColor(name = getName()) {
     // Accents are fixed by active title — no custom palette.
     const id = getActiveTitleId(name);
-    if (id === "owner") return "#1c7ed6";
-    if (id === "og") return "#2f9e44";
-    if (id === "legend") return "#f1c40f";
-    return "";
+    return TITLE_COLORS[id] || "";
   }
 
   function getDefaultAccentForName(name = getName()) {
