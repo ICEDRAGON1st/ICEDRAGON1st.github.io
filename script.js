@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260905u": [
+    "Wordle Daily is always 5 letters — 4/6 lengths stay in Practice only"
+  ],
   "20260905t": [
     "Creator OWNER badge follows your chosen color again (not stuck on blue)",
     "Mobile Wordle: credit no longer covers the keyboard"
@@ -274,19 +277,23 @@ const KEYBOARD_IS = [
 const LANGUAGES = ["en", "da", "is"];
 
 const LENGTHS = [4, 5, 6];
+const DAILY_LENGTH = 5;
 
 let currentLang = localStorage.getItem(LANG_KEY) || "en";
 const savedLength = Number(localStorage.getItem(LENGTH_KEY));
 let currentLength = LENGTHS.includes(savedLength) ? savedLength : 5;
 let playMode = localStorage.getItem(MODE_KEY) === "practice" ? "practice" : "daily";
-let COLS = currentLength;
-// Prefer Practice once today's Daily (this language + length) is finished
-if (isTodayDailyFinished()) {
+// Prefer Practice once today's 5-letter Daily (this language) is finished
+if (isTodayDailyFinished(currentLang, DAILY_LENGTH)) {
   playMode = "practice";
   try {
     localStorage.setItem(MODE_KEY, "practice");
   } catch {}
 }
+if (playMode === "daily") {
+  currentLength = DAILY_LENGTH;
+}
+let COLS = currentLength;
 let state = loadState();
 let submitting = false;
 
@@ -350,12 +357,35 @@ function updateLangButton() {
 }
 
 function updateLengthButton() {
+  if (!lengthBtn) return;
   lengthBtn.textContent = String(currentLength);
+  const daily = isDailyMode();
+  lengthBtn.classList.toggle("hidden", daily);
+  lengthBtn.disabled = daily;
+  lengthBtn.title = daily
+    ? "Daily Wordle is always 5 letters"
+    : "Switch between 4, 5 and 6 letter words";
+  lengthBtn.setAttribute("aria-hidden", daily ? "true" : "false");
   boardEl.classList.toggle("len-4", currentLength === 4);
   boardEl.classList.toggle("len-6", currentLength === 6);
 }
 
+function applyLengthForMode() {
+  if (isDailyMode()) {
+    currentLength = DAILY_LENGTH;
+  } else {
+    const saved = Number(localStorage.getItem(LENGTH_KEY));
+    currentLength = LENGTHS.includes(saved) ? saved : DAILY_LENGTH;
+  }
+  COLS = currentLength;
+  updateLengthButton();
+}
+
 function switchLength() {
+  if (isDailyMode()) {
+    showMessage("Daily is always 5 letters — switch to Practice to change length", true);
+    return;
+  }
   const idx = LENGTHS.indexOf(currentLength);
   currentLength = LENGTHS[(idx + 1) % LENGTHS.length];
   COLS = currentLength;
@@ -427,7 +457,7 @@ function pickSecretWord() {
 function pickDailyWord() {
   const words = getWordList();
   if (!words.length) return pickSecretWord();
-  const seed = hashSeed(`wordle-daily|${todayLocal()}|${currentLang}|${currentLength}`);
+  const seed = hashSeed(`wordle-daily|${todayLocal()}|${currentLang}|${DAILY_LENGTH}`);
   return words[seed % words.length];
 }
 
@@ -435,7 +465,7 @@ function isDailyMode() {
   return playMode === "daily";
 }
 
-function isTodayDailyFinished(lang = currentLang, length = currentLength) {
+function isTodayDailyFinished(lang = currentLang, length = DAILY_LENGTH) {
   try {
     const key = `${STORAGE_KEY}-daily-${lang}-${length}-${todayLocal()}`;
     const raw = localStorage.getItem(key);
@@ -450,6 +480,7 @@ function isTodayDailyFinished(lang = currentLang, length = currentLength) {
 function setPlayMode(mode) {
   playMode = mode === "practice" ? "practice" : "daily";
   localStorage.setItem(MODE_KEY, playMode);
+  applyLengthForMode();
 }
 
 function updateModeButton() {
@@ -457,11 +488,11 @@ function updateModeButton() {
   if (isDailyMode()) {
     modeBtn.textContent = `Daily · ${formatDailyShort(todayLocal())}`;
     modeBtn.classList.add("is-daily");
-    modeBtn.title = "Playing today's shared word. Tap to switch to Practice.";
+    modeBtn.title = "Playing today's shared 5-letter word. Tap to switch to Practice.";
   } else {
     modeBtn.textContent = "Practice";
     modeBtn.classList.remove("is-daily");
-    modeBtn.title = "Random words. Tap to play today's Daily Wordle.";
+    modeBtn.title = "Random words (4/5/6 letters). Tap to play today's Daily Wordle.";
   }
 }
 
