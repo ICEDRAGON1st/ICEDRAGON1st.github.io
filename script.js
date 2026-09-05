@@ -2586,7 +2586,8 @@ function renderColorPicker() {
             ? `${opt.label} animated color (keeps your title)`
             : `Use ${opt.label} color (keeps your title)`
           : `${opt.label} color`;
-      const bgStyle = isAnimated ? "" : ` style="background:${escapeHtml(opt.color)}"`;
+      const bgStyle =
+        isAnimated || opt.id === "cheesy" ? "" : ` style="background:${escapeHtml(opt.color)}"`;
       const animClass = isAnimated
         ? opt.id === "aurora"
           ? " is-aurora"
@@ -2595,7 +2596,9 @@ function renderColorPicker() {
             : opt.id === "tide"
               ? " is-tide"
               : " is-aurora"
-        : "";
+        : opt.id === "cheesy"
+          ? " is-cheesy"
+          : "";
       return `<button type="button" class="color-pick-btn${selected ? " active" : ""}${
         locked ? " is-locked" : ""
       }${!canPick && !locked ? " is-fixed" : ""}${animClass}" data-title-color="${escapeHtml(opt.id)}" data-locked="${
