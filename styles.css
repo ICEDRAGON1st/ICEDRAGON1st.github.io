@@ -1612,9 +1612,23 @@ header h1 {
 }
 
 .friends-panel {
-  margin: 0.85rem 0 0.5rem;
-  padding-top: 0.65rem;
-  border-top: 1px solid var(--tile-border);
+  margin: 0 0 1.25rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--tile-border);
+  border-radius: 12px;
+  background: var(--modal-bg);
+}
+
+.friends-panel h3 {
+  margin: 0 0 0.45rem;
+  font-size: 1.1rem;
+  letter-spacing: 0.04rem;
+}
+
+.friends-intro {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: var(--subtitle);
 }
 
 .friends-heading {

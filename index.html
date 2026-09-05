@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <title>My Games</title>
   <script src="site-config.js"></script>
-  <link rel="stylesheet" href="styles.css?v=20260906c">
+  <link rel="stylesheet" href="styles.css?v=20260906d">
 </head>
 <body>
   <div class="app">
@@ -114,6 +114,7 @@
         <button id="toggle-leaderboards-btn" type="button" class="hub-btn">Leaderboards</button>
         <button id="toggle-achievements-btn" type="button" class="hub-btn">🏆 Achievements</button>
         <button id="toggle-players-btn" type="button" class="hub-btn">Players</button>
+        <button id="toggle-friends-btn" type="button" class="hub-btn">Friends</button>
         <button id="toggle-updates-btn" type="button" class="hub-btn">Updates</button>
         <button id="share-moment-btn" type="button" class="hub-btn">Share moment</button>
       </div>
@@ -162,20 +163,22 @@
           <span class="title-picker-label">Your color</span>
           <div id="color-picker-buttons" class="title-picker-buttons color-picker-buttons" role="group" aria-label="Choose your color"></div>
         </div>
-        <div id="friends-panel" class="friends-panel">
-          <h4 class="friends-heading">Friends</h4>
-          <div class="friends-add-row">
-            <input id="friend-add-input" type="text" maxlength="16" placeholder="Add by username" autocomplete="off">
-            <button id="friend-add-btn" type="button" class="hub-btn">Add</button>
-          </div>
-          <p id="friends-status" class="friends-status hidden" aria-live="polite"></p>
-          <div id="friends-incoming" class="friends-section hidden"></div>
-          <div id="friends-invites" class="friends-section hidden"></div>
-          <ul id="friends-list" class="friends-list"></ul>
-        </div>
         <p id="player-name-status" class="player-name-status hidden" aria-live="polite"></p>
         <p id="players-totals" class="players-totals"></p>
         <ul id="players-list" class="players-list"></ul>
+      </div>
+
+      <div id="friends-panel" class="friends-panel hidden">
+        <h3>Friends</h3>
+        <p class="friends-intro">Add people by username, accept requests, and invite them to play.</p>
+        <div class="friends-add-row">
+          <input id="friend-add-input" type="text" maxlength="16" placeholder="Add by username" autocomplete="off">
+          <button id="friend-add-btn" type="button" class="hub-btn">Add</button>
+        </div>
+        <p id="friends-status" class="friends-status hidden" aria-live="polite"></p>
+        <div id="friends-incoming" class="friends-section hidden"></div>
+        <div id="friends-invites" class="friends-section hidden"></div>
+        <ul id="friends-list" class="friends-list"></ul>
       </div>
 
       <div id="achievements-panel" class="achievements-panel hidden">
@@ -302,7 +305,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260906c";
+    window.WORDLE_BUILD = "20260906d";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "hub-leaderboard.js", "hub-friends.js", "hub-online-match.js",
       "words.js",

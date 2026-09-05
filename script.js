@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260906d": [
+    "Friends has its own hub button (no longer inside Players)"
+  ],
   "20260906c": [
     "CHEESY LIL GUY holes are small round dots again (not dark blobs)"
   ],
@@ -243,6 +246,7 @@ const toggleScoresBtn = document.getElementById("toggle-scores-btn");
 const toggleLeaderboardsBtn = document.getElementById("toggle-leaderboards-btn");
 const toggleAchievementsBtn = document.getElementById("toggle-achievements-btn");
 const togglePlayersBtn = document.getElementById("toggle-players-btn");
+const toggleFriendsBtn = document.getElementById("toggle-friends-btn");
 const toggleUpdatesBtn = document.getElementById("toggle-updates-btn");
 const shareMomentBtn = document.getElementById("share-moment-btn");
 const highScoresPanel = document.getElementById("high-scores-panel");
@@ -255,6 +259,7 @@ const updatesPanel = document.getElementById("updates-panel");
 const updatesList = document.getElementById("updates-list");
 const updatesCount = document.getElementById("updates-count");
 const playersPanel = document.getElementById("players-panel");
+const friendsPanel = document.getElementById("friends-panel");
 const playersList = document.getElementById("players-list");
 const playersTotals = document.getElementById("players-totals");
 const playerNameInput = document.getElementById("player-name-input");
@@ -1932,6 +1937,16 @@ togglePlayersBtn?.addEventListener("click", () => {
   if (open) {
     maybeAskPlayerName();
     renderPlayersPanel();
+  }
+});
+
+toggleFriendsBtn?.addEventListener("click", () => {
+  if (!friendsPanel) return;
+  const open = friendsPanel.classList.toggle("hidden") === false;
+  toggleFriendsBtn.textContent = open ? "Hide friends" : "Friends";
+  if (open) {
+    maybeAskPlayerName();
+    renderFriendsPanel();
     if (typeof HubFriends !== "undefined") {
       HubFriends.startPolling?.(() => renderFriendsPanel());
     }
@@ -2274,7 +2289,6 @@ function paintPlayersPanelLists() {
   if (!playersList || typeof HubPlays === "undefined") return;
   renderTitlePicker();
   renderColorPicker();
-  renderFriendsPanel();
   try {
     HubPlays.refreshCreatorCredits?.();
   } catch {}

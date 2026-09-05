@@ -677,7 +677,7 @@ function paintOnlineFriends() {
       : "";
   }
   if (!friends.length) {
-    onlineFriends.innerHTML = `<p class="online-sub">Friends — add people in the hub Players panel</p>`;
+    onlineFriends.innerHTML = `<p class="online-sub">Friends — add people in the hub Friends panel</p>`;
     return;
   }
   onlineFriends.innerHTML = `<p class="online-sub">Invite a friend</p>${friends
