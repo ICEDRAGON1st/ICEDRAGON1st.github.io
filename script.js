@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260905v": [
+    "Hjalte: 30-day streak plus 7/14/30 streak achievements"
+  ],
   "20260905u": [
     "Wordle Daily is always 5 letters — 4/6 lengths stay in Practice only"
   ],

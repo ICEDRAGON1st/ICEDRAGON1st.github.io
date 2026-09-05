@@ -1,6 +1,10 @@
 (function () {
   const STORAGE_KEY = "hub-daily-streak";
   const STREAK_WINDOW_MS = 48 * 60 * 60 * 1000;
+  /** Minimum streak granted for specific player names. */
+  const NAME_STREAK_FLOOR = {
+    hjalte: 30
+  };
 
   function todayLocal() {
     const d = new Date();
@@ -15,6 +19,17 @@
   function isWithinStreakWindow(timestamp) {
     if (!timestamp) return false;
     return Date.now() - timestamp < STREAK_WINDOW_MS;
+  }
+
+  function currentNameKey() {
+    try {
+      if (typeof HubPlays === "undefined" || !HubPlays.getName) return "";
+      return String(HubPlays.getName() || "")
+        .trim()
+        .toLowerCase();
+    } catch {
+      return "";
+    }
   }
 
   function load() {
@@ -59,7 +74,28 @@
     return data.streak;
   }
 
+  function applyNameStreakFloor() {
+    const floor = NAME_STREAK_FLOOR[currentNameKey()];
+    if (!floor) return;
+    const data = load();
+    const today = todayLocal();
+    let changed = false;
+    if ((Number(data.best) || 0) < floor) {
+      data.best = floor;
+      changed = true;
+    }
+    if (effectiveStreak(data) < floor || (Number(data.streak) || 0) < floor) {
+      data.streak = floor;
+      data.lastDate = today;
+      data.lastPlayedAt = Date.now();
+      data.best = Math.max(Number(data.best) || 0, floor);
+      changed = true;
+    }
+    if (changed) save(data);
+  }
+
   function recordPlay() {
+    applyNameStreakFloor();
     const today = todayLocal();
     const now = Date.now();
     const data = load();
@@ -89,16 +125,19 @@
     data.best = Math.max(data.best, data.streak);
     if (extended) data.celebrate = true;
     save(data);
+    applyNameStreakFloor();
 
+    const finalData = load();
     return {
-      streak: data.streak,
+      streak: finalData.streak,
       extended,
-      best: data.best,
+      best: finalData.best,
       playedToday: true
     };
   }
 
   function getStatus() {
+    applyNameStreakFloor();
     const data = load();
     return {
       streak: effectiveStreak(data),
@@ -122,6 +161,9 @@
     recordPlay,
     getStatus,
     clearCelebration,
-    effectiveStreak: () => effectiveStreak(load())
+    effectiveStreak: () => {
+      applyNameStreakFloor();
+      return effectiveStreak(load());
+    }
   };
 })();

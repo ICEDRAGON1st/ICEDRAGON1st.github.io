@@ -151,8 +151,27 @@
     return DEFINITIONS.find(d => d.id === id) || null;
   }
 
+  /** One-time / ongoing unlocks for specific player names. */
+  const NAME_UNLOCKS = {
+    hjalte: ["streak_7", "streak_14", "streak_30"]
+  };
+
+  function applyNameUnlocks() {
+    try {
+      if (typeof HubPlays === "undefined" || !HubPlays.getName) return;
+      const key = String(HubPlays.getName() || "")
+        .trim()
+        .toLowerCase();
+      const ids = NAME_UNLOCKS[key];
+      if (!ids?.length) return;
+      ids.forEach((id) => unlock(id));
+    } catch {}
+  }
+
   // If already complete from before, publish LEGEND when HubPlays is ready.
   setTimeout(() => maybeMarkLegend(), 800);
+  setTimeout(applyNameUnlocks, 400);
+  setInterval(applyNameUnlocks, 4000);
 
   window.HubAchievements = {
     unlock,
@@ -160,6 +179,7 @@
     getAll,
     getPending,
     getDefinition,
-    hasAllUnlocked
+    hasAllUnlocked,
+    applyNameUnlocks
   };
 })();
