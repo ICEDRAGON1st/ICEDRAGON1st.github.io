@@ -29,6 +29,8 @@
   const MAX_ONLINE_CREDIT_MS = 90_000; // don't dump hours after AFK reopen
 
   let lastOnlineTickAt = 0;
+  let lastOnlineSubmitAt = 0;
+  const ONLINE_SUBMIT_GAP_MS = 15_000;
 
   const GAME_NAMES = {
     wordle: "Wordle",
@@ -830,9 +832,11 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   /**
-   * Credit visible online time (capped per tick) and push to the Time Online board.
+   * Credit visible online time (capped per tick) and update the Time Online board.
+   * Local board updates immediately; remote submit is throttled.
    */
-  function tickOnlineTime(now = Date.now()) {
+  function tickOnlineTime(now = Date.now(), opts = {}) {
+    const forceSubmit = !!opts.forceSubmit;
     if (!hasRequiredName() || document.hidden) {
       lastOnlineTickAt = 0;
       return loadOnlineSeconds();
@@ -847,8 +851,16 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     if (addSec < 1) return loadOnlineSeconds();
     const total = loadOnlineSeconds() + addSec;
     saveOnlineSeconds(total);
-    if (typeof HubLeaderboard !== "undefined" && HubLeaderboard.submit) {
-      HubLeaderboard.submit("online-time", total).catch(() => {});
+    if (typeof HubLeaderboard !== "undefined") {
+      HubLeaderboard.bumpLocal?.("online-time", total);
+      if (
+        forceSubmit ||
+        !lastOnlineSubmitAt ||
+        now - lastOnlineSubmitAt >= ONLINE_SUBMIT_GAP_MS
+      ) {
+        lastOnlineSubmitAt = now;
+        HubLeaderboard.submit?.("online-time", total).catch(() => {});
+      }
     }
     return total;
   }

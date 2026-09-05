@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260906f": [
+    "Leaderboards refresh every second while open"
+  ],
   "20260906e": [
     "Time Online leaderboard — see who spent the most time on the site (#1, #2, #3…)"
   ],
@@ -1152,10 +1155,14 @@ function renderLeaderboardList() {
     .join("");
 }
 
-async function refreshLeaderboardsPanel() {
+async function refreshLeaderboardsPanel(opts = {}) {
   if (!leaderboardsPanel || leaderboardsPanel.classList.contains("hidden")) return;
+  const doSync = opts.sync !== false;
+  if (typeof HubPlays !== "undefined") {
+    HubPlays.tickOnlineTime?.();
+  }
   renderLeaderboardPicker();
-  if (typeof HubLeaderboard !== "undefined") {
+  if (doSync && typeof HubLeaderboard !== "undefined") {
     try {
       await HubLeaderboard.sync(true);
     } catch {}
@@ -1164,12 +1171,17 @@ async function refreshLeaderboardsPanel() {
 }
 
 let leaderboardRefreshTimer = null;
+let leaderboardRefreshTick = 0;
 
 function startLeaderboardRefresh() {
   stopLeaderboardRefresh();
+  leaderboardRefreshTick = 0;
+  refreshLeaderboardsPanel({ sync: true });
   leaderboardRefreshTimer = setInterval(() => {
-    refreshLeaderboardsPanel();
-  }, 30_000);
+    leaderboardRefreshTick += 1;
+    // Re-render every second; sync from network every 5s.
+    refreshLeaderboardsPanel({ sync: leaderboardRefreshTick % 5 === 0 });
+  }, 1000);
 }
 
 function stopLeaderboardRefresh() {

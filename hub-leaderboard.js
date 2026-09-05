@@ -515,6 +515,40 @@
     return submitQueue;
   }
 
+  /** Update local board cache only (for smooth 1s UI); no network. */
+  function bumpLocal(gameId, score) {
+    const n = Number(score);
+    if (!GAME_META[gameId] || !Number.isFinite(n) || n <= 0) return false;
+    const name = getPlayerName();
+    if (!name) return false;
+    const lowerBetter = meta(gameId).lowerBetter;
+    const key = nameKey(name);
+    const games = { ...(cache.games || {}) };
+    const board = { ...(games[gameId] || {}) };
+    const prev = normalizeEntry(board[key], lowerBetter);
+    if (prev && !isBetter(n, prev.score, lowerBetter)) return false;
+    const me = getPlayerId();
+    if (me) {
+      Object.keys(board).forEach((k) => {
+        if (k === key) return;
+        if (board[k]?.playerId === me) delete board[k];
+      });
+    }
+    board[key] = {
+      name,
+      score: n,
+      at: Date.now(),
+      playerId: me,
+      lowerBetter
+    };
+    games[gameId] = trimBoard(board, lowerBetter);
+    saveLocal({
+      games,
+      resets: { ...(cache.resets || {}) }
+    });
+    return true;
+  }
+
   // Seed cache from local on load, then sync so the Sudoku Hjalte wipe is pushed once.
   cache = applyResets(loadLocal());
   saveLocal(cache);
@@ -527,6 +561,7 @@
     clearPlayer,
     rebindPlayerName,
     formatScore,
+    bumpLocal,
     GAME_IDS,
     GAME_META
   };
