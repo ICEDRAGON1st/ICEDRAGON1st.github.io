@@ -10,6 +10,10 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260905s": [
+    "Creator credit text is white (not gray) on PC and phone",
+    "OWNER badge stays upright on mobile"
+  ],
   "20260905r": [
     "Hangman themes: Animals, Food, Flags, Sports, Nature, Space, Music, Movies"
   ],

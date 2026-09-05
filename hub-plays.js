@@ -1158,7 +1158,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   letter-spacing: 0.16em;
   font-size: 1.15rem;
   font-weight: 700;
-  color: rgba(160, 170, 185, 0.9);
+  color: #e8ecf4;
   pointer-events: none;
   user-select: none;
   white-space: nowrap;
@@ -1172,7 +1172,40 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 }
 .menu-credit .player-title {
   writing-mode: horizontal-tb;
+  text-orientation: mixed;
   margin-left: 0.35rem;
+  margin-top: 0;
+}
+.site-credit .player-title,
+.menu-credit .player-title {
+  display: inline-block;
+  padding: 0.08rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  vertical-align: middle;
+  line-height: 1.2;
+}
+.site-credit .player-title-owner,
+.menu-credit .player-title-owner {
+  color: #fff;
+  background: #1c7ed6;
+}
+.site-credit .player-title-og,
+.menu-credit .player-title-og {
+  color: #fff;
+  background: #2f9e44;
+}
+.site-credit .player-title-legend,
+.menu-credit .player-title-legend {
+  color: #1a1a1a;
+  background: #f1c40f;
+}
+.site-credit .player-title-tester,
+.menu-credit .player-title-tester {
+  color: #fff;
+  background: #e03131;
 }
 .site-credit .player-name-aurora,
 .menu-credit .player-name-aurora,
@@ -1190,9 +1223,29 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 .menu-credit .player-name-creator {
   font-weight: 800;
 }
+.site-credit .player-name-creator,
+.menu-credit .player-name-creator {
+  color: #4dabf7;
+}
+.site-credit .player-name-oscar,
+.menu-credit .player-name-oscar {
+  color: #51cf66;
+}
+.site-credit .player-name-legend,
+.menu-credit .player-name-legend {
+  color: #fcc419;
+}
+.site-credit .player-name-tester,
+.menu-credit .player-name-tester {
+  color: #ff6b6b;
+}
 body.light .site-credit,
 body.light .menu-credit {
-  color: rgba(90, 100, 115, 0.85);
+  color: #1f2937;
+}
+body.light .site-credit .player-name-creator,
+body.light .menu-credit .player-name-creator {
+  color: #1c7ed6;
 }
 .menu-credit {
   margin: 1rem 0 0;
@@ -1200,7 +1253,7 @@ body.light .menu-credit {
   font-size: 1rem;
   font-weight: 600;
   letter-spacing: 0.03em;
-  color: rgba(160, 170, 185, 0.95);
+  color: #e8ecf4;
 }
 @media (max-width: 640px) {
   .site-credit {
@@ -1210,8 +1263,17 @@ body.light .menu-credit {
     bottom: 0.35rem;
     transform: translateX(-50%);
     writing-mode: horizontal-tb;
+    text-orientation: mixed;
     letter-spacing: 0.04em;
-    font-size: 0.72rem;
+    font-size: 0.78rem;
+  }
+  .site-credit .player-title {
+    writing-mode: horizontal-tb;
+    text-orientation: mixed;
+    display: inline-block;
+    margin-top: 0;
+    margin-left: 0.35rem;
+    letter-spacing: 0.04em;
   }
   .menu-credit {
     font-size: 0.9rem;
