@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260904q": [
+    "Player titles: blue OWNER, green OG, yellow LEGEND for all achievements"
+  ],
   "20260904p": [
     "All-time players now includes everyone with a claimed username (like OscarVR29)"
   ],
@@ -2138,8 +2141,16 @@ function escapeHtml(text) {
 
 const CREATOR_NAME = "ICE_DRAGON";
 const SPECIAL_PLAYER_NAMES = {
-  ice_dragon: { className: "player-name-creator", title: "Site creator" },
-  oscarvr29: { className: "player-name-oscar", title: "OscarVR29" }
+  ice_dragon: {
+    className: "player-name-creator",
+    title: "Site owner",
+    badge: { label: "OWNER", className: "player-title-owner" }
+  },
+  oscarvr29: {
+    className: "player-name-oscar",
+    title: "Original player",
+    badge: { label: "OG", className: "player-title-og" }
+  }
 };
 
 function isGuestDisplayName(name) {
@@ -2155,13 +2166,36 @@ function getSpecialPlayerStyle(name) {
   return SPECIAL_PLAYER_NAMES[String(name || "").trim().toLowerCase()] || null;
 }
 
+function getPlayerTitleBadges(name) {
+  const badges = [];
+  const special = getSpecialPlayerStyle(name);
+  if (special?.badge) badges.push(special.badge);
+  const isLegend =
+    (typeof HubPlays !== "undefined" && HubPlays.isLegendName?.(name)) ||
+    (typeof HubAchievements !== "undefined" &&
+      HubAchievements.hasAllUnlocked?.() &&
+      hasPlayerName() &&
+      String(HubPlays?.getName?.() || "").trim().toLowerCase() ===
+        String(name || "").trim().toLowerCase());
+  if (isLegend) {
+    badges.push({ label: "LEGEND", className: "player-title-legend" });
+  }
+  return badges;
+}
+
 function formatPlayerNameHtml(name) {
   const safe = escapeHtml(name);
   const special = getSpecialPlayerStyle(name);
-  if (special) {
-    return `<strong class="${special.className}" title="${escapeHtml(special.title)}">${safe}</strong>`;
-  }
-  return `<strong>${safe}</strong>`;
+  const nameHtml = special
+    ? `<strong class="${special.className}" title="${escapeHtml(special.title)}">${safe}</strong>`
+    : `<strong>${safe}</strong>`;
+  const badges = getPlayerTitleBadges(name)
+    .map(
+      (b) =>
+        `<span class="player-title ${escapeHtml(b.className)}" title="${escapeHtml(b.label)}">${escapeHtml(b.label)}</span>`
+    )
+    .join("");
+  return badges ? `${nameHtml}${badges}` : nameHtml;
 }
 
 savePlayerNameBtn?.addEventListener("click", () => savePlayerNameFrom(playerNameInput?.value));

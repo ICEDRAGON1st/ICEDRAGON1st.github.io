@@ -112,6 +112,7 @@
       pending.push(id);
       savePending(pending);
     }
+    maybeMarkLegend();
     return true;
   }
 
@@ -128,6 +129,18 @@
     }));
   }
 
+  function hasAllUnlocked() {
+    const data = load();
+    return DEFINITIONS.every((def) => !!data[def.id]);
+  }
+
+  function maybeMarkLegend() {
+    if (!hasAllUnlocked()) return;
+    if (typeof HubPlays !== "undefined" && typeof HubPlays.markLegend === "function") {
+      HubPlays.markLegend().catch(() => {});
+    }
+  }
+
   function getPending() {
     const q = loadPending();
     savePending([]);
@@ -138,5 +151,15 @@
     return DEFINITIONS.find(d => d.id === id) || null;
   }
 
-  window.HubAchievements = { unlock, isUnlocked, getAll, getPending, getDefinition };
+  // If already complete from before, publish LEGEND when HubPlays is ready.
+  setTimeout(() => maybeMarkLegend(), 800);
+
+  window.HubAchievements = {
+    unlock,
+    isUnlocked,
+    getAll,
+    getPending,
+    getDefinition,
+    hasAllUnlocked
+  };
 })();

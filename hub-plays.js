@@ -211,7 +211,13 @@
         return;
       }
       if (existing.playerId === claim.playerId) {
-        if ((claim.claimedAt || 0) >= (existing.claimedAt || 0)) out[key] = claim;
+        const merged = {
+          ...existing,
+          ...claim,
+          legend: !!(existing.legend || claim.legend)
+        };
+        if ((claim.claimedAt || 0) >= (existing.claimedAt || 0)) out[key] = merged;
+        else out[key] = { ...merged, ...existing, legend: merged.legend };
         return;
       }
       // First claimer wins
@@ -294,14 +300,19 @@
       }
 
       const nextNames = { ...remoteNames };
+      let keepLegend = !!existing?.legend;
       Object.keys(nextNames).forEach((k) => {
-        if (k !== key && nextNames[k]?.playerId === me) delete nextNames[k];
+        if (k !== key && nextNames[k]?.playerId === me) {
+          if (nextNames[k]?.legend) keepLegend = true;
+          delete nextNames[k];
+        }
       });
 
       nextNames[key] = {
         playerId: me,
         name: next,
-        claimedAt: existing?.claimedAt || myClaimAt
+        claimedAt: existing?.claimedAt || myClaimAt,
+        legend: keepLegend
       };
 
       try {
@@ -987,7 +998,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   enforceUsernameGate();
 
   function creatorCreditHtml() {
-    return 'created by <span class="player-name-creator">ICE_DRAGON</span>';
+    return 'created by <span class="player-name-creator">ICE_DRAGON</span><span class="player-title player-title-owner" title="OWNER">OWNER</span>';
   }
 
   function injectCreatorCredit() {
@@ -1017,6 +1028,11 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 .menu-credit .player-name-creator {
   color: #1c7ed6;
   font-weight: 800;
+}
+.site-credit .player-title,
+.menu-credit .player-title {
+  writing-mode: horizontal-tb;
+  margin-left: 0.35rem;
 }
 body.light .site-credit,
 body.light .menu-credit {
@@ -1080,6 +1096,58 @@ body.light .menu-credit {
     });
   }
 
+  function isLegendName(name) {
+    const key = nameKey(name);
+    if (!key) return false;
+    const claim = namesCache[key];
+    return !!(claim && claim.legend);
+  }
+
+  async function markLegend() {
+    const me = getPlayerId();
+    const current = getName();
+    if (!current || isPlaceholderName(current)) return false;
+    const key = nameKey(current);
+
+    for (let attempt = 0; attempt < 4; attempt++) {
+      let remoteNames;
+      try {
+        remoteNames = await fetchNamesRemote();
+      } catch {
+        return false;
+      }
+
+      const existing = remoteNames[key];
+      if (!existing || existing.playerId !== me) {
+        namesCache = remoteNames;
+        return false;
+      }
+      if (existing.legend) {
+        namesCache = remoteNames;
+        return true;
+      }
+
+      const nextNames = { ...remoteNames };
+      nextNames[key] = { ...existing, legend: true, legendAt: Date.now() };
+
+      try {
+        await pushNamesRemote(nextNames);
+      } catch {
+        return false;
+      }
+
+      let confirmed;
+      try {
+        confirmed = await fetchNamesRemote();
+      } catch {
+        return false;
+      }
+      namesCache = mergeNameMaps(nextNames, confirmed);
+      if (namesCache[key]?.legend) return true;
+    }
+    return false;
+  }
+
   window.HubPlays = {
     getName,
     setName,
@@ -1104,6 +1172,8 @@ body.light .menu-credit {
     getAllTimeCount,
     getAllTimePlayers,
     registerAllTime,
-    startPresence
+    startPresence,
+    markLegend,
+    isLegendName
   };
 })();
