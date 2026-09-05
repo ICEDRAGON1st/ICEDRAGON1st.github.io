@@ -163,8 +163,56 @@
     };
   }
 
+  function pickBetterEntry(a, b, lowerBetter) {
+    if (!a) return b;
+    if (!b) return a;
+    if (isBetter(b.score, a.score, lowerBetter)) return b;
+    if (isBetter(a.score, b.score, lowerBetter)) return a;
+    return (b.at || 0) >= (a.at || 0) ? b : a;
+  }
+
+  /** One row per playerId (and orphan name keys without an id). */
+  function consolidateBoard(boardMap, lowerBetter) {
+    const byId = {};
+    const orphans = {};
+    Object.values(boardMap || {}).forEach((raw) => {
+      const entry = normalizeEntry(raw, lowerBetter);
+      if (!entry) return;
+      if (!entry.playerId) {
+        const key = nameKey(entry.name);
+        orphans[key] = pickBetterEntry(orphans[key], entry, lowerBetter);
+        return;
+      }
+      const prev = byId[entry.playerId];
+      if (!prev) {
+        byId[entry.playerId] = entry;
+        return;
+      }
+      const better = pickBetterEntry(prev, entry, lowerBetter);
+      const latestName = (entry.at || 0) >= (prev.at || 0) ? entry.name : prev.name;
+      byId[entry.playerId] = { ...better, name: latestName };
+    });
+    const out = { ...orphans };
+    Object.values(byId).forEach((entry) => {
+      const key = nameKey(entry.name);
+      const existing = out[key];
+      if (!existing) {
+        out[key] = entry;
+        return;
+      }
+      if (!existing.playerId || existing.playerId === entry.playerId) {
+        const better = pickBetterEntry(existing, entry, lowerBetter);
+        out[key] = { ...better, name: entry.name, playerId: entry.playerId || better.playerId };
+        return;
+      }
+      out[key] = pickBetterEntry(existing, entry, lowerBetter);
+    });
+    return out;
+  }
+
   function trimBoard(boardMap, lowerBetter) {
-    const entries = Object.entries(boardMap || {})
+    const consolidated = consolidateBoard(boardMap, lowerBetter);
+    const entries = Object.entries(consolidated)
       .map(([key, entry]) => ({ key, entry: normalizeEntry(entry, lowerBetter) }))
       .filter((x) => x.entry);
     entries.sort((a, b) => {
@@ -174,10 +222,38 @@
       return (a.entry.at || 0) - (b.entry.at || 0);
     });
     const out = {};
-    entries.slice(0, MAX_PER_GAME).forEach(({ key, entry }) => {
-      out[key] = entry;
+    entries.slice(0, MAX_PER_GAME).forEach(({ entry }) => {
+      out[nameKey(entry.name)] = entry;
     });
     return out;
+  }
+
+  function rekeyPlayerOnBoard(boardMap, playerId, newName, lowerBetter) {
+    const name = sanitizeName(newName);
+    const id = String(playerId || "");
+    if (!id || !name) return boardMap || {};
+    const nextKey = nameKey(name);
+    const board = { ...(boardMap || {}) };
+    let best = null;
+    Object.keys(board).forEach((key) => {
+      const entry = normalizeEntry(board[key], lowerBetter);
+      if (!entry || entry.playerId !== id) return;
+      best = pickBetterEntry(best, entry, lowerBetter);
+      delete board[key];
+    });
+    if (!best) return board;
+    const existing = normalizeEntry(board[nextKey], lowerBetter);
+    if (existing && existing.playerId && existing.playerId !== id) {
+      // Someone else already owns this name slot — keep the better score.
+      board[nextKey] = pickBetterEntry(existing, { ...best, name }, lowerBetter);
+      return board;
+    }
+    board[nextKey] = {
+      ...best,
+      name,
+      playerId: id
+    };
+    return board;
   }
 
   function mergeBoards(a, b) {
@@ -204,9 +280,7 @@
           merged[key] = le;
           return;
         }
-        if (isBetter(re.score, le.score, lowerBetter)) merged[key] = re;
-        else if (isBetter(le.score, re.score, lowerBetter)) merged[key] = le;
-        else merged[key] = (re.at || 0) >= (le.at || 0) ? re : le;
+        merged[key] = pickBetterEntry(le, re, lowerBetter);
       });
       games[gameId] = trimBoard(merged, lowerBetter);
     });
@@ -221,12 +295,33 @@
     const resetKey = "sudoku:hjalte";
     if (!resets[resetKey]) resets[resetKey] = Date.now();
     const cutAt = Number(resets[resetKey]);
-    const board = { ...(games.sudoku || {}) };
-    const entry = board.hjalte;
-    if (entry && (!entry.at || Number(entry.at) <= cutAt)) {
-      delete board.hjalte;
+    const sudoku = { ...(games.sudoku || {}) };
+    const hjalteEntry = sudoku.hjalte;
+    if (hjalteEntry && (!hjalteEntry.at || Number(hjalteEntry.at) <= cutAt)) {
+      delete sudoku.hjalte;
     }
-    games.sudoku = board;
+    games.sudoku = sudoku;
+
+    // Sticky name binds: keep scores under the player's current name after renames.
+    // Seed: Gustav → Dellekai (same playerId).
+    const dellekaiBind = "namebind:p-mtnfme96-6bpve6";
+    if (!resets[dellekaiBind] || typeof resets[dellekaiBind] !== "string") {
+      resets[dellekaiBind] = "Dellekai";
+    }
+    Object.entries(resets).forEach(([key, value]) => {
+      if (!key.startsWith("namebind:")) return;
+      const playerId = key.slice("namebind:".length);
+      const newName = typeof value === "string" ? sanitizeName(value) : "";
+      if (!playerId || !newName) return;
+      Object.keys(games).forEach((gameId) => {
+        const lowerBetter = meta(gameId).lowerBetter;
+        games[gameId] = trimBoard(
+          rekeyPlayerOnBoard(games[gameId], playerId, newName, lowerBetter),
+          lowerBetter
+        );
+      });
+    });
+
     return { games, resets };
   }
 
@@ -249,6 +344,52 @@
         const merged = mergeBoards(next, remote);
         saveLocal(merged);
         await postJson(API, merged);
+      } catch {}
+      lastSync = Date.now();
+      return true;
+    };
+    submitQueue = submitQueue.then(run, run);
+    return submitQueue;
+  }
+
+  /**
+   * Move every score owned by playerId onto newName (e.g. after a rename).
+   */
+  async function rebindPlayerName(playerId, newName) {
+    const id = String(playerId || "");
+    const name = sanitizeName(newName);
+    if (!id || !name || /^guest-/i.test(name) || name.toLowerCase() === "player") {
+      return false;
+    }
+    const run = async () => {
+      await sync(true);
+      const games = { ...(cache.games || {}) };
+      const resets = { ...(cache.resets || {}) };
+      // Drop older binds for this playerId, then set the current name.
+      Object.keys(resets).forEach((key) => {
+        if (key === `namebind:${id}` || key.startsWith(`namebind:${id}:`)) {
+          delete resets[key];
+        }
+      });
+      resets[`namebind:${id}`] = name;
+
+      Object.keys(games).forEach((gameId) => {
+        const lowerBetter = meta(gameId).lowerBetter;
+        games[gameId] = trimBoard(
+          rekeyPlayerOnBoard(games[gameId], id, name, lowerBetter),
+          lowerBetter
+        );
+      });
+      const next = applyResets({ games, resets });
+      saveLocal(next);
+      try {
+        const remote = await fetchRemote();
+        const merged = mergeBoards(next, remote);
+        // Ensure our bind wins after merge.
+        merged.resets = { ...(merged.resets || {}), [`namebind:${id}`]: name };
+        const rebound = applyResets(merged);
+        saveLocal(rebound);
+        await postJson(API, rebound);
       } catch {}
       lastSync = Date.now();
       return true;
@@ -325,11 +466,19 @@
       if (prev && !isBetter(n, prev.score, lowerBetter)) {
         return false;
       }
+      const me = getPlayerId();
+      // Drop old aliases for this same browser so renames don't leave duplicates.
+      if (me) {
+        Object.keys(board).forEach((k) => {
+          if (k === key) return;
+          if (board[k]?.playerId === me) delete board[k];
+        });
+      }
       board[key] = {
         name,
         score: n,
         at: Date.now(),
-        playerId: getPlayerId(),
+        playerId: me,
         lowerBetter
       };
       games[gameId] = trimBoard(board, lowerBetter);
@@ -364,6 +513,7 @@
     sync,
     getBoard,
     clearPlayer,
+    rebindPlayerName,
     formatScore,
     GAME_IDS,
     GAME_META

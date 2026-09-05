@@ -368,6 +368,11 @@
         namesCache = reconciled;
         storeLocalName(next);
         registerAllTime().catch(() => {});
+        try {
+          if (typeof HubLeaderboard !== "undefined" && HubLeaderboard.rebindPlayerName) {
+            HubLeaderboard.rebindPlayerName(me, next).catch(() => {});
+          }
+        } catch {}
         return { ok: true, name: next };
       }
 
