@@ -1257,6 +1257,11 @@ header h1 {
   background: #f1c40f;
 }
 
+.player-title-tester {
+  color: #fff;
+  background: #e03131;
+}
+
 .player-title-none {
   color: var(--text);
   background: transparent;
