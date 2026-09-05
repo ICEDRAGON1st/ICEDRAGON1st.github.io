@@ -1,9 +1,9 @@
 (function () {
   const STORAGE_KEY = "hub-daily-streak";
   const STREAK_WINDOW_MS = 48 * 60 * 60 * 1000;
-  /** Minimum streak granted for specific player names. */
-  const NAME_STREAK_FLOOR = {
-    hjalte: 30
+  /** One-time streak values for specific players (achievements stay separate). */
+  const NAME_STREAK_SET = {
+    hjalte: { streak: 2, version: "set-2-v1" }
   };
 
   function todayLocal() {
@@ -74,28 +74,29 @@
     return data.streak;
   }
 
-  function applyNameStreakFloor() {
-    const floor = NAME_STREAK_FLOOR[currentNameKey()];
-    if (!floor) return;
+  function applyNameStreakSet() {
+    const key = currentNameKey();
+    const grant = NAME_STREAK_SET[key];
+    if (!grant) return;
+    const flag = `hub-streak-name-set-${key}-${grant.version}`;
+    try {
+      if (localStorage.getItem(flag)) return;
+    } catch {
+      return;
+    }
     const data = load();
-    const today = todayLocal();
-    let changed = false;
-    if ((Number(data.best) || 0) < floor) {
-      data.best = floor;
-      changed = true;
-    }
-    if (effectiveStreak(data) < floor || (Number(data.streak) || 0) < floor) {
-      data.streak = floor;
-      data.lastDate = today;
-      data.lastPlayedAt = Date.now();
-      data.best = Math.max(Number(data.best) || 0, floor);
-      changed = true;
-    }
-    if (changed) save(data);
+    data.streak = grant.streak;
+    data.lastDate = todayLocal();
+    data.lastPlayedAt = Date.now();
+    data.best = Math.max(Number(data.best) || 0, grant.streak);
+    save(data);
+    try {
+      localStorage.setItem(flag, "1");
+    } catch {}
   }
 
   function recordPlay() {
-    applyNameStreakFloor();
+    applyNameStreakSet();
     const today = todayLocal();
     const now = Date.now();
     const data = load();
@@ -125,7 +126,7 @@
     data.best = Math.max(data.best, data.streak);
     if (extended) data.celebrate = true;
     save(data);
-    applyNameStreakFloor();
+    applyNameStreakSet();
 
     const finalData = load();
     return {
@@ -137,7 +138,7 @@
   }
 
   function getStatus() {
-    applyNameStreakFloor();
+    applyNameStreakSet();
     const data = load();
     return {
       streak: effectiveStreak(data),
@@ -162,7 +163,7 @@
     getStatus,
     clearCelebration,
     effectiveStreak: () => {
-      applyNameStreakFloor();
+      applyNameStreakSet();
       return effectiveStreak(load());
     }
   };

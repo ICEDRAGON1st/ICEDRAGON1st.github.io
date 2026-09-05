@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260905x": [
+    "Hjalte streak set to 2 days (7/14/30 streak achievements kept)"
+  ],
   "20260905w": [
     "See how long until your daily streak dies on the Games badge and in the menu"
   ],
