@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tic Tac Toe</title>
-  <link rel="stylesheet" href="styles.css?v=20260904l">
+  <link rel="stylesheet" href="styles.css?v=20260905q">
 </head>
 <body>
   <div class="hud">
@@ -29,11 +29,25 @@
       <div id="mode-picker" class="picker" role="group" aria-label="Game mode">
         <button type="button" class="pick-btn active" data-mode="two">2 Player</button>
         <button type="button" class="pick-btn" data-mode="cpu">vs CPU</button>
+        <button type="button" class="pick-btn" data-mode="online">Online</button>
       </div>
       <div id="difficulty-picker" class="picker hidden" role="group" aria-label="CPU difficulty">
         <button type="button" class="pick-btn active" data-diff="easy">Easy</button>
         <button type="button" class="pick-btn" data-diff="medium">Medium</button>
         <button type="button" class="pick-btn" data-diff="hard">Hard</button>
+      </div>
+      <div id="online-panel" class="online-panel hidden">
+        <button id="online-quick-btn" type="button" class="btn">Quick Play</button>
+        <p id="online-status" class="online-status">Play a random opponent, invite a friend, or use a room code.</p>
+        <div class="online-row">
+          <button id="online-create-btn" type="button" class="btn btn-secondary">Create room</button>
+          <input id="online-join-input" type="text" maxlength="6" placeholder="Code" autocomplete="off">
+          <button id="online-join-btn" type="button" class="btn btn-secondary">Join</button>
+        </div>
+        <p id="online-code" class="online-code hidden"></p>
+        <div id="online-friends" class="online-friends"></div>
+        <div id="online-invites" class="online-invites"></div>
+        <button id="online-cancel-btn" type="button" class="btn btn-secondary hidden">Cancel search</button>
       </div>
       <div class="overlay-actions">
         <button id="resume-btn" type="button" class="btn btn-secondary hidden">Resume</button>
@@ -44,11 +58,14 @@
     </div>
   </div>
 
-  <script src="../hub-streak.js"></script><script src="../hub-achievements.js"></script>
+  <script src="../hub-streak.js"></script>
+  <script src="../hub-achievements.js"></script>
   <script src="../hub-sound.js"></script>
   <script src="../hub-confetti.js"></script>
   <script src="../hub-plays.js"></script>
-  <script src="../hub-leaderboard.js?v=20260904l"></script>
-  <script src="script.js?v=20260904m"></script>
+  <script src="../hub-leaderboard.js?v=20260905q"></script>
+  <script src="../hub-friends.js?v=20260905q"></script>
+  <script src="../hub-online-match.js?v=20260905q"></script>
+  <script src="script.js?v=20260905q"></script>
 </body>
 </html>

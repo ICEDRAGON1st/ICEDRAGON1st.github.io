@@ -45,6 +45,19 @@ let running = false;
 let menuMode = "start";
 let winningCells = [];
 let thinking = false;
+let onlineUnsub = null;
+
+const onlinePanel = document.getElementById("online-panel");
+const onlineStatus = document.getElementById("online-status");
+const onlineCode = document.getElementById("online-code");
+const onlineFriends = document.getElementById("online-friends");
+const onlineInvites = document.getElementById("online-invites");
+const onlineQuickBtn = document.getElementById("online-quick-btn");
+const onlineCreateBtn = document.getElementById("online-create-btn");
+const onlineJoinBtn = document.getElementById("online-join-btn");
+const onlineJoinInput = document.getElementById("online-join-input");
+const onlineCancelBtn = document.getElementById("online-cancel-btn");
+const startBtnEl = startBtn;
 
 function loadStats() {
   try {
@@ -131,7 +144,7 @@ function cloneBoard(state) {
 }
 
 function updateRecordDisplay() {
-  if (mode === "two") {
+  if (mode === "two" || mode === "online") {
     recordWrap.classList.add("hidden");
     return;
   }
@@ -146,7 +159,15 @@ function updateHud() {
   const player = PLAYER[current];
   turnLabel.textContent = player.name;
   turnLabel.className = player.className;
-  hudModeEl.textContent = mode === "two" ? "2 Player" : `vs CPU (${difficulty})`;
+  if (mode === "online") {
+    const room = window.HubOnlineMatch?.getRoom?.();
+    const opp = window.HubOnlineMatch?.opponent?.(room);
+    if (room?.status === "waiting") hudModeEl.textContent = "Online · waiting";
+    else if (opp?.name) hudModeEl.textContent = `Online vs ${opp.name}`;
+    else hudModeEl.textContent = "Online";
+  } else {
+    hudModeEl.textContent = mode === "two" ? "2 Player" : `vs CPU (${difficulty})`;
+  }
   updateRecordDisplay();
 }
 
@@ -195,6 +216,10 @@ function showMenu(kind, title, text) {
   modeBtns.forEach((btn) => btn.classList.toggle("active", btn.dataset.mode === mode));
   diffBtns.forEach((btn) => btn.classList.toggle("active", btn.dataset.diff === difficulty));
   difficultyPicker.classList.toggle("hidden", mode !== "cpu");
+  onlinePanel?.classList.toggle("hidden", mode !== "online");
+  startBtnEl.classList.toggle("hidden", mode === "online" && kind !== "over");
+
+  if (mode === "online" && kind !== "over") refreshOnlineLobby();
 
   if (kind === "pause") {
     resumeBtn.classList.remove("hidden");
@@ -203,7 +228,8 @@ function showMenu(kind, title, text) {
   } else if (kind === "over") {
     resumeBtn.classList.add("hidden");
     viewBoardBtn?.classList.remove("hidden");
-    startBtn.textContent = "Play Again";
+    startBtn.textContent = mode === "online" ? "Menu" : "Play Again";
+    startBtnEl.classList.remove("hidden");
   } else {
     resumeBtn.classList.add("hidden");
     viewBoardBtn?.classList.add("hidden");
@@ -245,6 +271,15 @@ function resetGame() {
 }
 
 function startGame() {
+  if (mode === "online") {
+    window.HubOnlineMatch?.leaveRoom?.();
+    onlineCancelBtn?.classList.add("hidden");
+    onlineCode?.classList.add("hidden");
+    setOnlineStatus("Play a random opponent, invite a friend, or use a room code.");
+    refreshOnlineLobby();
+    showMenu("start", "Online Connect Four", "Use Quick Play, invite a friend, or join with a code.");
+    return;
+  }
   if (window.HubStreak) HubStreak.recordPlay();
   if (window.HubPlays) HubPlays.record("connect-four");
   resetGame();
@@ -263,6 +298,8 @@ function resumeGame() {
 }
 
 function goToGames() {
+  window.HubOnlineMatch?.leaveRoom?.();
+  window.HubOnlineMatch?.cancelQuickMatch?.("connect-four");
   window.location.href = "../index.html#games";
 }
 
@@ -297,7 +334,15 @@ function endGame(winner, isDrawGame) {
     else recordCpuResult("losses");
   }
 
-  if (window.HubAchievements && (mode === "two" || winner === RED)) {
+  const onlineWin =
+    mode === "online" &&
+    (() => {
+      const room = window.HubOnlineMatch?.getRoom?.();
+      const role = window.HubOnlineMatch?.myRole?.(room);
+      const myMark = role === "guest" ? YELLOW : RED;
+      return winner === myMark;
+    })();
+  if (window.HubAchievements && (mode === "two" || (mode === "cpu" && winner === RED) || onlineWin)) {
     HubAchievements.unlock("connect4_win");
     try {
       const n = Number(localStorage.getItem("connect4-wins-count") || 0) + 1;
@@ -520,6 +565,10 @@ function maybeCpuTurn() {
 function playColumn(col) {
   if (!running || thinking || board[0][col] !== EMPTY) return;
   if (mode === "cpu" && current !== RED) return;
+  if (mode === "online") {
+    playOnlineColumn(col);
+    return;
+  }
 
   applyMove(col, current);
   if (running) maybeCpuTurn();
@@ -531,6 +580,9 @@ modeBtns.forEach((btn) => {
     mode = btn.dataset.mode;
     modeBtns.forEach((b) => b.classList.toggle("active", b === btn));
     difficultyPicker.classList.toggle("hidden", mode !== "cpu");
+    onlinePanel?.classList.toggle("hidden", mode !== "online");
+    startBtnEl.classList.toggle("hidden", mode === "online");
+    if (mode === "online") refreshOnlineLobby();
     updateRecordDisplay();
   });
 });
@@ -589,3 +641,266 @@ showMenu(
   "Connect Four",
   "Drop discs and connect four in a row — horizontal, vertical, or diagonal."
 );
+
+function setOnlineStatus(text) {
+  if (onlineStatus) onlineStatus.textContent = text;
+}
+
+function escapeOnline(text) {
+  return String(text || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function refreshOnlineLobby() {
+  if (typeof HubFriends !== "undefined") {
+    HubFriends.sync?.().then(() => paintOnlineFriends()).catch(() => paintOnlineFriends());
+  } else paintOnlineFriends();
+}
+
+function paintOnlineFriends() {
+  if (!onlineFriends) return;
+  const friends = window.HubFriends?.getFriends?.() || [];
+  const invites = (window.HubFriends?.getInvites?.() || []).filter(
+    (i) => i.game === "connect-four"
+  );
+  if (onlineInvites) {
+    onlineInvites.innerHTML = invites.length
+      ? `<p class="online-sub">Invites</p>${invites
+          .map(
+            (inv) =>
+              `<button type="button" class="btn btn-secondary online-friend-btn" data-accept-invite="${inv.id}">Accept ${escapeOnline(inv.fromName)}</button>`
+          )
+          .join("")}`
+      : "";
+  }
+  if (!friends.length) {
+    onlineFriends.innerHTML = `<p class="online-sub">Friends — add people in the hub Players panel</p>`;
+    return;
+  }
+  onlineFriends.innerHTML = `<p class="online-sub">Invite a friend</p>${friends
+    .map(
+      (f) =>
+        `<button type="button" class="btn btn-secondary online-friend-btn" data-invite-friend="${f.playerId}">Invite ${escapeOnline(f.name)}</button>`
+    )
+    .join("")}`;
+}
+
+function syncBoardFromRoom(room) {
+  if (!room?.state?.grid) return;
+  board = room.state.grid.map((row) => [...row]);
+  winningCells = room.state.winningCells || [];
+  current = room.turn === 2 ? YELLOW : RED;
+  updateHud();
+  renderBoard();
+}
+
+function beginOnlineMatch(room) {
+  if (!room) return;
+  onlineCancelBtn?.classList.add("hidden");
+  if (window.HubStreak) HubStreak.recordPlay();
+  if (window.HubPlays) HubPlays.record("connect-four");
+  syncBoardFromRoom(room);
+  messageEl.textContent = "";
+  if (room.status === "waiting") {
+    setOnlineStatus(`Waiting for opponent… Code ${room.code}`);
+    if (onlineCode) {
+      onlineCode.textContent = `Room code: ${room.code}`;
+      onlineCode.classList.remove("hidden");
+    }
+    overlay.classList.remove("hidden");
+    menuMode = "start";
+    running = false;
+  } else {
+    overlay.classList.add("hidden");
+    menuMode = "playing";
+    running = true;
+  }
+  ensureOnlineSub();
+}
+
+function ensureOnlineSub() {
+  if (onlineUnsub) return;
+  onlineUnsub = window.HubOnlineMatch?.subscribe?.((room) => {
+    if (!room) return;
+    if (room.status === "playing" && menuMode !== "playing") {
+      beginOnlineMatch(room);
+      return;
+    }
+    if (room.status === "playing") {
+      syncBoardFromRoom(room);
+      const role = window.HubOnlineMatch.myRole(room);
+      const myMark = role === "guest" ? YELLOW : RED;
+      messageEl.textContent =
+        current === myMark
+          ? "Your turn"
+          : `Waiting for ${window.HubOnlineMatch.opponent(room)?.name || "opponent"}…`;
+    }
+    if (room.status === "finished") {
+      syncBoardFromRoom(room);
+      running = false;
+      const res = room.result || {};
+      endGame(res.winner || null, res.type === "draw");
+    }
+    if (room.status === "abandoned") {
+      running = false;
+      showMenu("over", "Opponent left", "Your opponent left the match.");
+    }
+  });
+}
+
+async function playOnlineColumn(col) {
+  const room = window.HubOnlineMatch?.getRoom?.();
+  if (!room || room.status !== "playing") return;
+  const role = window.HubOnlineMatch.myRole(room);
+  const myMark = role === "guest" ? YELLOW : RED;
+  if (current !== myMark || board[0][col] !== EMPTY) return;
+
+  const next = cloneBoard(board);
+  const row = dropInColumn(next, col, myMark);
+  if (row < 0) return;
+  const winCells = findWinningCells(next, row, col, myMark);
+  const full = getValidColumns(next).length === 0;
+  const nextTurn = myMark === RED ? 2 : 1;
+  const result = winCells
+    ? { type: "win", winner: myMark }
+    : full
+      ? { type: "draw" }
+      : null;
+
+  board = next;
+  winningCells = winCells || [];
+  current = nextTurn === 2 ? YELLOW : RED;
+  renderBoard();
+  updateHud();
+
+  const submitted = await window.HubOnlineMatch.submitState({
+    state: {
+      grid: next.map((r) => [...r]),
+      lastDrop: { row, col },
+      winningCells: winCells || []
+    },
+    turn: nextTurn,
+    result
+  });
+  if (!submitted.ok) {
+    messageEl.textContent = submitted.error || "Move failed";
+    await window.HubOnlineMatch.refresh?.();
+    syncBoardFromRoom(window.HubOnlineMatch.getRoom());
+    return;
+  }
+  if (result) endGame(result.winner || null, result.type === "draw");
+}
+
+onlineQuickBtn?.addEventListener("click", async () => {
+  setOnlineStatus("Looking for a player…");
+  onlineCancelBtn?.classList.remove("hidden");
+  const result = await window.HubOnlineMatch?.quickMatch?.("connect-four");
+  if (!result?.ok) {
+    setOnlineStatus(result?.error || "Quick Play failed");
+    onlineCancelBtn?.classList.add("hidden");
+    return;
+  }
+  beginOnlineMatch(result.room);
+  if (result.room?.status === "waiting") setOnlineStatus("Looking for a player…");
+});
+
+onlineCancelBtn?.addEventListener("click", async () => {
+  await window.HubOnlineMatch?.cancelQuickMatch?.("connect-four");
+  onlineCancelBtn?.classList.add("hidden");
+  onlineCode?.classList.add("hidden");
+  setOnlineStatus("Search cancelled.");
+});
+
+onlineCreateBtn?.addEventListener("click", async () => {
+  const result = await window.HubOnlineMatch?.createRoom?.("connect-four", "private");
+  if (!result?.ok) {
+    setOnlineStatus(result?.error || "Couldn't create room");
+    return;
+  }
+  beginOnlineMatch(result.room);
+  setOnlineStatus(`Share code ${result.room.code}`);
+  if (onlineCode) {
+    onlineCode.textContent = `Room code: ${result.room.code}`;
+    onlineCode.classList.remove("hidden");
+  }
+});
+
+onlineJoinBtn?.addEventListener("click", async () => {
+  const result = await window.HubOnlineMatch?.joinRoom?.(
+    "connect-four",
+    onlineJoinInput?.value || ""
+  );
+  if (!result?.ok) {
+    setOnlineStatus(result?.error || "Couldn't join");
+    return;
+  }
+  beginOnlineMatch(result.room);
+});
+
+onlineFriends?.addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-invite-friend]");
+  if (!btn) return;
+  const result = await window.HubOnlineMatch?.inviteFriend?.(
+    "connect-four",
+    btn.dataset.inviteFriend
+  );
+  if (!result?.ok) {
+    setOnlineStatus(result?.error || "Invite failed");
+    return;
+  }
+  beginOnlineMatch(result.room);
+  setOnlineStatus(`Invite sent · code ${result.room.code}`);
+});
+
+onlineInvites?.addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-accept-invite]");
+  if (!btn || typeof HubFriends === "undefined") return;
+  const accepted = await HubFriends.respondInvite(btn.dataset.acceptInvite, true);
+  if (!accepted.ok) {
+    setOnlineStatus(accepted.error || "Invite expired");
+    return;
+  }
+  const joined = accepted.roomId
+    ? await window.HubOnlineMatch?.joinRoomById?.(accepted.roomId)
+    : await window.HubOnlineMatch?.joinRoom?.("connect-four", accepted.code);
+  if (!joined?.ok) {
+    setOnlineStatus(joined?.error || "Couldn't join invite");
+    return;
+  }
+  beginOnlineMatch(joined.room);
+});
+
+(async function bootOnlineParams() {
+  const params = new URLSearchParams(location.search);
+  const inviteId = params.get("invite");
+  const inviteFriend = params.get("inviteFriend");
+  if (inviteId || inviteFriend) {
+    mode = "online";
+    modeBtns.forEach((b) => b.classList.toggle("active", b.dataset.mode === "online"));
+    onlinePanel?.classList.remove("hidden");
+    startBtnEl.classList.add("hidden");
+    difficultyPicker.classList.add("hidden");
+    showMenu("start", "Online Connect Four", "Connecting…");
+  }
+  if (inviteId && typeof HubFriends !== "undefined") {
+    await HubFriends.sync?.();
+    const accepted = await HubFriends.respondInvite(inviteId, true);
+    if (accepted.ok) {
+      const joined = accepted.roomId
+        ? await HubOnlineMatch.joinRoomById(accepted.roomId)
+        : await HubOnlineMatch.joinRoom("connect-four", accepted.code);
+      if (joined.ok) beginOnlineMatch(joined.room);
+      else setOnlineStatus(joined.error || "Couldn't join");
+    }
+  } else if (inviteFriend && typeof HubOnlineMatch !== "undefined") {
+    const result = await HubOnlineMatch.inviteFriend("connect-four", inviteFriend);
+    if (result.ok) {
+      beginOnlineMatch(result.room);
+      setOnlineStatus(`Invite sent · code ${result.room.code}`);
+    } else setOnlineStatus(result.error || "Invite failed");
+  }
+})();
+

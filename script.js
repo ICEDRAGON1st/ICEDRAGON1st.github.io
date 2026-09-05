@@ -10,6 +10,10 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260905q": [
+    "Friends: add by username, accept requests, and invite to play",
+    "Online Tic Tac Toe & Connect Four: Quick Play, room codes, friend invites"
+  ],
   "20260904s": [
     "Choose your name/title color in Players",
     "Color picker only appears if you have a title"
@@ -1815,6 +1819,61 @@ togglePlayersBtn?.addEventListener("click", () => {
   if (open) {
     maybeAskPlayerName();
     renderPlayersPanel();
+    if (typeof HubFriends !== "undefined") {
+      HubFriends.startPolling?.(() => renderFriendsPanel());
+    }
+  } else if (typeof HubFriends !== "undefined") {
+    HubFriends.stopPolling?.();
+  }
+});
+
+document.getElementById("friend-add-btn")?.addEventListener("click", async () => {
+  if (typeof HubFriends === "undefined") return;
+  const input = document.getElementById("friend-add-input");
+  const name = input?.value?.trim() || "";
+  if (!name) {
+    setFriendsStatus("Enter a username", true);
+    return;
+  }
+  setFriendsStatus("Sending…");
+  const result = await HubFriends.sendRequest(name);
+  if (!result.ok) {
+    setFriendsStatus(result.error || "Couldn't add friend", true);
+    return;
+  }
+  if (input) input.value = "";
+  setFriendsStatus(result.alreadyFriends ? "Already friends" : "Request sent");
+  renderFriendsPanel();
+});
+
+document.getElementById("friend-add-input")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") document.getElementById("friend-add-btn")?.click();
+});
+
+document.getElementById("friends-panel")?.addEventListener("click", async (e) => {
+  if (typeof HubFriends === "undefined") return;
+  const accept = e.target.closest("[data-friend-accept]");
+  const decline = e.target.closest("[data-friend-decline]");
+  const remove = e.target.closest("[data-friend-remove]");
+  const declineInvite = e.target.closest("[data-invite-decline]");
+  if (accept) {
+    await HubFriends.acceptRequest(accept.dataset.friendAccept);
+    renderFriendsPanel();
+    return;
+  }
+  if (decline) {
+    await HubFriends.declineRequest(decline.dataset.friendDecline);
+    renderFriendsPanel();
+    return;
+  }
+  if (remove) {
+    await HubFriends.removeFriend(remove.dataset.friendRemove);
+    renderFriendsPanel();
+    return;
+  }
+  if (declineInvite) {
+    await HubFriends.respondInvite(declineInvite.dataset.inviteDecline, false);
+    renderFriendsPanel();
   }
 });
 
@@ -2102,6 +2161,7 @@ function paintPlayersPanelLists() {
   if (!playersList || typeof HubPlays === "undefined") return;
   renderTitlePicker();
   renderColorPicker();
+  renderFriendsPanel();
   try {
     HubPlays.refreshCreatorCredits?.();
   } catch {}
@@ -2130,6 +2190,89 @@ function paintPlayersPanelLists() {
       (p) =>
         `<li><span class="players-who">${formatPlayerNameHtml(p.name)} played ${escapeHtml(p.gameName || p.game)}</span><span class="players-when">${HubPlays.formatWhen(p.at)}</span></li>`
     )
+    .join("");
+}
+
+function setFriendsStatus(text, isError = false) {
+  const el = document.getElementById("friends-status");
+  if (!el) return;
+  if (!text) {
+    el.classList.add("hidden");
+    el.textContent = "";
+    return;
+  }
+  el.textContent = text;
+  el.classList.toggle("is-error", !!isError);
+  el.classList.remove("hidden");
+}
+
+function onlineNameSet() {
+  if (typeof HubPlays === "undefined" || !HubPlays.getOnlinePlayers) return new Set();
+  return new Set(
+    (HubPlays.getOnlinePlayers() || []).map((p) =>
+      String(p.name || "")
+        .trim()
+        .toLowerCase()
+    )
+  );
+}
+
+function renderFriendsPanel() {
+  const list = document.getElementById("friends-list");
+  const incomingBox = document.getElementById("friends-incoming");
+  const invitesBox = document.getElementById("friends-invites");
+  if (!list || typeof HubFriends === "undefined") return;
+
+  const online = onlineNameSet();
+  const friends = HubFriends.getFriends?.() || [];
+  const incoming = HubFriends.getIncoming?.() || [];
+  const invites = HubFriends.getInvites?.() || [];
+
+  if (incomingBox) {
+    if (!incoming.length) {
+      incomingBox.classList.add("hidden");
+      incomingBox.innerHTML = "";
+    } else {
+      incomingBox.classList.remove("hidden");
+      incomingBox.innerHTML = `<h5>Requests</h5><ul>${incoming
+        .map(
+          (f) =>
+            `<li><span>${formatPlayerNameHtml(f.name)}</span><span class="friends-actions"><button type="button" class="hub-btn" data-friend-accept="${escapeHtml(f.playerId)}">Accept</button><button type="button" class="hub-btn" data-friend-decline="${escapeHtml(f.playerId)}">Decline</button></span></li>`
+        )
+        .join("")}</ul>`;
+    }
+  }
+
+  if (invitesBox) {
+    if (!invites.length) {
+      invitesBox.classList.add("hidden");
+      invitesBox.innerHTML = "";
+    } else {
+      invitesBox.classList.remove("hidden");
+      invitesBox.innerHTML = `<h5>Game invites</h5><ul>${invites
+        .map((inv) => {
+          const gameLabel =
+            inv.game === "connect-four" ? "Connect Four" : "Tic Tac Toe";
+          const href =
+            inv.game === "connect-four"
+              ? `connect-four/index.html?invite=${encodeURIComponent(inv.id)}`
+              : `tic-tac-toe/index.html?invite=${encodeURIComponent(inv.id)}`;
+          return `<li><span>${formatPlayerNameHtml(inv.fromName)} · ${escapeHtml(gameLabel)}</span><span class="friends-actions"><a class="hub-btn" href="${href}">Open</a><button type="button" class="hub-btn" data-invite-decline="${escapeHtml(inv.id)}">Decline</button></span></li>`;
+        })
+        .join("")}</ul>`;
+    }
+  }
+
+  if (!friends.length) {
+    list.innerHTML = `<li class="players-empty">No friends yet — add someone by username.</li>`;
+    return;
+  }
+
+  list.innerHTML = friends
+    .map((f) => {
+      const isOn = online.has(String(f.name || "").trim().toLowerCase());
+      return `<li><span><span class="friends-online-dot${isOn ? "" : " is-offline"}" title="${isOn ? "Online" : "Offline"}"></span>${formatPlayerNameHtml(f.name)}</span><span class="friends-actions"><a class="hub-btn" href="tic-tac-toe/index.html?inviteFriend=${encodeURIComponent(f.playerId)}">TTT</a><a class="hub-btn" href="connect-four/index.html?inviteFriend=${encodeURIComponent(f.playerId)}">C4</a><button type="button" class="hub-btn" data-friend-remove="${escapeHtml(f.playerId)}">Remove</button></span></li>`;
+    })
     .join("");
 }
 

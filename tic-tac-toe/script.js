@@ -45,6 +45,21 @@ let running = false;
 let menuMode = "start";
 let winLine = null;
 let thinking = false;
+let onlineUnsub = null;
+let onlineSearching = false;
+let myOnlineMark = X;
+
+const onlinePanel = document.getElementById("online-panel");
+const onlineStatus = document.getElementById("online-status");
+const onlineCode = document.getElementById("online-code");
+const onlineFriends = document.getElementById("online-friends");
+const onlineInvites = document.getElementById("online-invites");
+const onlineQuickBtn = document.getElementById("online-quick-btn");
+const onlineCreateBtn = document.getElementById("online-create-btn");
+const onlineJoinBtn = document.getElementById("online-join-btn");
+const onlineJoinInput = document.getElementById("online-join-input");
+const onlineCancelBtn = document.getElementById("online-cancel-btn");
+const startBtnEl = startBtn;
 
 function loadStats() {
   try {
@@ -59,7 +74,7 @@ function saveStats(stats) {
 }
 
 function updateRecordDisplay() {
-  if (mode === "two") {
+  if (mode === "two" || mode === "online") {
     recordWrap.classList.add("hidden");
     return;
   }
@@ -73,7 +88,21 @@ function updateHud() {
   const player = PLAYER[current];
   turnLabel.textContent = player.label;
   turnLabel.className = player.className;
-  hudModeEl.textContent = mode === "two" ? "2 Player" : `vs CPU (${difficulty})`;
+  if (mode === "online") {
+    const room = window.HubOnlineMatch?.getRoom?.();
+    const opp = window.HubOnlineMatch?.opponent?.(room);
+    const role = window.HubOnlineMatch?.myRole?.(room);
+    myOnlineMark = role === "guest" ? O : X;
+    if (room?.status === "waiting") {
+      hudModeEl.textContent = "Online · waiting";
+    } else if (opp?.name) {
+      hudModeEl.textContent = `Online vs ${opp.name}`;
+    } else {
+      hudModeEl.textContent = "Online";
+    }
+  } else {
+    hudModeEl.textContent = mode === "two" ? "2 Player" : `vs CPU (${difficulty})`;
+  }
   updateRecordDisplay();
 }
 
@@ -299,6 +328,10 @@ function maybeCpuTurn() {
 function playMove(index) {
   if (!running || thinking || board[index] !== EMPTY) return;
   if (mode === "cpu" && current !== X) return;
+  if (mode === "online") {
+    playOnlineMove(index);
+    return;
+  }
 
   applyMove(index, current);
   if (running) maybeCpuTurn();
@@ -314,6 +347,12 @@ function showMenu(kind, title, text) {
   modeBtns.forEach((btn) => btn.classList.toggle("active", btn.dataset.mode === mode));
   diffBtns.forEach((btn) => btn.classList.toggle("active", btn.dataset.diff === difficulty));
   difficultyPicker.classList.toggle("hidden", mode !== "cpu");
+  onlinePanel?.classList.toggle("hidden", mode !== "online");
+  startBtnEl.classList.toggle("hidden", mode === "online" && kind !== "over");
+
+  if (mode === "online" && kind !== "over") {
+    refreshOnlineLobby();
+  }
 
   if (kind === "pause") {
     resumeBtn.classList.remove("hidden");
@@ -322,7 +361,8 @@ function showMenu(kind, title, text) {
   } else if (kind === "over") {
     resumeBtn.classList.add("hidden");
     viewBoardBtn?.classList.remove("hidden");
-    startBtn.textContent = "Play Again";
+    startBtn.textContent = mode === "online" ? "Menu" : "Play Again";
+    startBtnEl.classList.remove("hidden");
   } else {
     resumeBtn.classList.add("hidden");
     viewBoardBtn?.classList.add("hidden");
@@ -352,6 +392,15 @@ function openPauseMenu() {
 }
 
 function startGame() {
+  if (mode === "online") {
+    window.HubOnlineMatch?.leaveRoom?.();
+    onlineCancelBtn?.classList.add("hidden");
+    onlineCode?.classList.add("hidden");
+    setOnlineStatus("Play a random opponent, invite a friend, or join with a code.");
+    refreshOnlineLobby();
+    showMenu("start", "Online Tic Tac Toe", "Use Quick Play, invite a friend, or join with a code.");
+    return;
+  }
   if (window.HubStreak) HubStreak.recordPlay();
   if (window.HubPlays) HubPlays.record("tictactoe");
   board = Array(9).fill(EMPTY);
@@ -376,6 +425,8 @@ function resumeGame() {
 }
 
 function goToGames() {
+  window.HubOnlineMatch?.leaveRoom?.();
+  window.HubOnlineMatch?.cancelQuickMatch?.("tictactoe");
   window.location.href = "../index.html#games";
 }
 
@@ -385,6 +436,9 @@ modeBtns.forEach((btn) => {
     mode = btn.dataset.mode;
     modeBtns.forEach((b) => b.classList.toggle("active", b === btn));
     difficultyPicker.classList.toggle("hidden", mode !== "cpu");
+    onlinePanel?.classList.toggle("hidden", mode !== "online");
+    startBtnEl.classList.toggle("hidden", mode === "online");
+    if (mode === "online") refreshOnlineLobby();
     updateRecordDisplay();
   });
 });
@@ -447,3 +501,277 @@ showMenu(
   "Tic Tac Toe",
   "Take turns placing X and O. First to three in a row wins."
 );
+
+function setOnlineStatus(text) {
+  if (onlineStatus) onlineStatus.textContent = text;
+}
+
+function refreshOnlineLobby() {
+  if (typeof HubFriends !== "undefined") {
+    HubFriends.sync?.().then(() => paintOnlineFriends()).catch(() => paintOnlineFriends());
+  } else {
+    paintOnlineFriends();
+  }
+}
+
+function paintOnlineFriends() {
+  if (!onlineFriends) return;
+  const friends = window.HubFriends?.getFriends?.() || [];
+  const invites = (window.HubFriends?.getInvites?.() || []).filter(
+    (i) => i.game === "tictactoe"
+  );
+
+  if (onlineInvites) {
+    if (!invites.length) {
+      onlineInvites.innerHTML = "";
+    } else {
+      onlineInvites.innerHTML = `<p class="online-sub">Invites</p>${invites
+        .map(
+          (inv) =>
+            `<button type="button" class="btn btn-secondary online-friend-btn" data-accept-invite="${inv.id}">Accept ${escapeOnline(inv.fromName)}</button>`
+        )
+        .join("")}`;
+    }
+  }
+
+  if (!friends.length) {
+    onlineFriends.innerHTML = `<p class="online-sub">Friends — add people in the hub Players panel</p>`;
+    return;
+  }
+  onlineFriends.innerHTML = `<p class="online-sub">Invite a friend</p>${friends
+    .map(
+      (f) =>
+        `<button type="button" class="btn btn-secondary online-friend-btn" data-invite-friend="${f.playerId}">Invite ${escapeOnline(f.name)}</button>`
+    )
+    .join("")}`;
+}
+
+function escapeOnline(text) {
+  return String(text || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function syncBoardFromRoom(room) {
+  if (!room?.state) return;
+  board = Array.isArray(room.state.board) ? [...room.state.board] : Array(9).fill(EMPTY);
+  winLine = room.state.winLine || null;
+  current = room.turn === 2 ? O : X;
+  updateHud();
+  renderBoard();
+}
+
+function beginOnlineMatch(room) {
+  if (!room) return;
+  onlineSearching = false;
+  onlineCancelBtn?.classList.add("hidden");
+  if (window.HubStreak) HubStreak.recordPlay();
+  if (window.HubPlays) HubPlays.record("tictactoe");
+  syncBoardFromRoom(room);
+  messageEl.textContent = "";
+  overlay.classList.add("hidden");
+  menuMode = "playing";
+  running = room.status === "playing";
+  if (room.status === "waiting") {
+    setOnlineStatus(`Waiting for opponent… Code ${room.code}`);
+    if (onlineCode) {
+      onlineCode.textContent = `Room code: ${room.code}`;
+      onlineCode.classList.remove("hidden");
+    }
+    overlay.classList.remove("hidden");
+    menuMode = "start";
+  }
+  ensureOnlineSub();
+}
+
+function ensureOnlineSub() {
+  if (onlineUnsub) return;
+  onlineUnsub = window.HubOnlineMatch?.subscribe?.((room) => {
+    if (!room) return;
+    if (room.status === "playing" && menuMode !== "playing") {
+      beginOnlineMatch(room);
+      return;
+    }
+    if (room.status === "playing") {
+      syncBoardFromRoom(room);
+      const role = window.HubOnlineMatch.myRole(room);
+      const myMark = role === "guest" ? O : X;
+      if (current === myMark) messageEl.textContent = "Your turn";
+      else messageEl.textContent = `Waiting for ${window.HubOnlineMatch.opponent(room)?.name || "opponent"}…`;
+    }
+    if (room.status === "finished") {
+      syncBoardFromRoom(room);
+      running = false;
+      const res = room.result || {};
+      if (res.type === "win") {
+        endGame({ type: "win", winner: res.winner });
+      } else {
+        endGame({ type: "draw" });
+      }
+    }
+    if (room.status === "abandoned") {
+      running = false;
+      showMenu("over", "Opponent left", "Your opponent left the match.");
+    }
+  });
+}
+
+async function playOnlineMove(index) {
+  const room = window.HubOnlineMatch?.getRoom?.();
+  if (!room || room.status !== "playing") return;
+  const role = window.HubOnlineMatch.myRole(room);
+  const myMark = role === "guest" ? O : X;
+  if (current !== myMark || board[index] !== EMPTY) return;
+
+  const nextBoard = [...board];
+  nextBoard[index] = myMark;
+  const win = getWinner(nextBoard);
+  const draw = !win && nextBoard.every((c) => c !== EMPTY);
+  const nextTurn = myMark === X ? 2 : 1;
+  const result = win
+    ? { type: "win", winner: win.winner }
+    : draw
+      ? { type: "draw" }
+      : null;
+
+  board = nextBoard;
+  winLine = win?.line || null;
+  current = nextTurn === 2 ? O : X;
+  renderBoard();
+  updateHud();
+
+  const payload = {
+    state: { board: nextBoard, winLine: win?.line || null },
+    turn: result ? nextTurn : nextTurn,
+    result
+  };
+  if (result) payload.turn = nextTurn;
+
+  const submitted = await window.HubOnlineMatch.submitState(payload);
+  if (!submitted.ok) {
+    messageEl.textContent = submitted.error || "Move failed";
+    await window.HubOnlineMatch.refresh?.();
+    syncBoardFromRoom(window.HubOnlineMatch.getRoom());
+    return;
+  }
+  if (result) {
+    endGame(result);
+  }
+}
+
+onlineQuickBtn?.addEventListener("click", async () => {
+  if (typeof HubOnlineMatch === "undefined") return;
+  setOnlineStatus("Looking for a player…");
+  onlineSearching = true;
+  onlineCancelBtn?.classList.remove("hidden");
+  const result = await HubOnlineMatch.quickMatch("tictactoe");
+  if (!result.ok) {
+    setOnlineStatus(result.error || "Quick Play failed");
+    onlineSearching = false;
+    onlineCancelBtn?.classList.add("hidden");
+    return;
+  }
+  beginOnlineMatch(result.room);
+  if (result.room?.status === "waiting") {
+    setOnlineStatus("Looking for a player…");
+  }
+});
+
+onlineCancelBtn?.addEventListener("click", async () => {
+  await window.HubOnlineMatch?.cancelQuickMatch?.("tictactoe");
+  onlineSearching = false;
+  onlineCancelBtn?.classList.add("hidden");
+  onlineCode?.classList.add("hidden");
+  setOnlineStatus("Search cancelled.");
+});
+
+onlineCreateBtn?.addEventListener("click", async () => {
+  const result = await window.HubOnlineMatch?.createRoom?.("tictactoe", "private");
+  if (!result?.ok) {
+    setOnlineStatus(result?.error || "Couldn't create room");
+    return;
+  }
+  beginOnlineMatch(result.room);
+  setOnlineStatus(`Share code ${result.room.code}`);
+  if (onlineCode) {
+    onlineCode.textContent = `Room code: ${result.room.code}`;
+    onlineCode.classList.remove("hidden");
+  }
+});
+
+onlineJoinBtn?.addEventListener("click", async () => {
+  const code = onlineJoinInput?.value || "";
+  const result = await window.HubOnlineMatch?.joinRoom?.("tictactoe", code);
+  if (!result?.ok) {
+    setOnlineStatus(result?.error || "Couldn't join");
+    return;
+  }
+  beginOnlineMatch(result.room);
+});
+
+onlineFriends?.addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-invite-friend]");
+  if (!btn) return;
+  const result = await window.HubOnlineMatch?.inviteFriend?.(
+    "tictactoe",
+    btn.dataset.inviteFriend
+  );
+  if (!result?.ok) {
+    setOnlineStatus(result?.error || "Invite failed");
+    return;
+  }
+  beginOnlineMatch(result.room);
+  setOnlineStatus(`Invite sent · code ${result.room.code}`);
+});
+
+onlineInvites?.addEventListener("click", async (e) => {
+  const btn = e.target.closest("[data-accept-invite]");
+  if (!btn || typeof HubFriends === "undefined") return;
+  const accepted = await HubFriends.respondInvite(btn.dataset.acceptInvite, true);
+  if (!accepted.ok) {
+    setOnlineStatus(accepted.error || "Invite expired");
+    return;
+  }
+  const joined = accepted.roomId
+    ? await window.HubOnlineMatch?.joinRoomById?.(accepted.roomId)
+    : await window.HubOnlineMatch?.joinRoom?.("tictactoe", accepted.code);
+  if (!joined?.ok) {
+    setOnlineStatus(joined?.error || "Couldn't join invite");
+    return;
+  }
+  beginOnlineMatch(joined.room);
+});
+
+(async function bootOnlineParams() {
+  const params = new URLSearchParams(location.search);
+  const inviteId = params.get("invite");
+  const inviteFriend = params.get("inviteFriend");
+  if (inviteId || inviteFriend) {
+    mode = "online";
+    modeBtns.forEach((b) => b.classList.toggle("active", b.dataset.mode === "online"));
+    onlinePanel?.classList.remove("hidden");
+    startBtnEl.classList.add("hidden");
+    difficultyPicker.classList.add("hidden");
+    showMenu("start", "Online Tic Tac Toe", "Connecting…");
+  }
+  if (inviteId && typeof HubFriends !== "undefined") {
+    await HubFriends.sync?.();
+    const accepted = await HubFriends.respondInvite(inviteId, true);
+    if (accepted.ok) {
+      const joined = accepted.roomId
+        ? await HubOnlineMatch.joinRoomById(accepted.roomId)
+        : await HubOnlineMatch.joinRoom("tictactoe", accepted.code);
+      if (joined.ok) beginOnlineMatch(joined.room);
+      else setOnlineStatus(joined.error || "Couldn't join");
+    }
+  } else if (inviteFriend && typeof HubOnlineMatch !== "undefined") {
+    const result = await HubOnlineMatch.inviteFriend("tictactoe", inviteFriend);
+    if (result.ok) {
+      beginOnlineMatch(result.room);
+      setOnlineStatus(`Invite sent · code ${result.room.code}`);
+    } else setOnlineStatus(result.error || "Invite failed");
+  }
+})();
+
