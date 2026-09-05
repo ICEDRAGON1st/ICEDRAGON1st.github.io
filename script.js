@@ -2209,19 +2209,18 @@ function formatPlayerNameHtml(name) {
   const accent =
     typeof HubPlays !== "undefined" ? HubPlays.getAccentColor?.(name) || "" : "";
   const nameStyle = accent ? ` style="color:${escapeHtml(accent)}"` : "";
-  const nameClass = special ? special.className : "";
+  let nameClass = special ? special.className : "";
+  if (!nameClass && accent === "#f1c40f") nameClass = "player-name-legend";
+  else if (!nameClass && accent === "#2f9e44") nameClass = "player-name-oscar";
+  else if (!nameClass && accent === "#1c7ed6") nameClass = "player-name-creator";
   const nameHtml = nameClass
-    ? `<strong class="${nameClass}" title="${escapeHtml(special.title)}"${nameStyle}>${safe}</strong>`
+    ? `<strong class="${nameClass}" title="${escapeHtml(special?.title || "")}"${nameStyle}>${safe}</strong>`
     : accent
       ? `<strong class="player-name-custom"${nameStyle}>${safe}</strong>`
       : `<strong>${safe}</strong>`;
   const badges = getPlayerTitleBadges(name)
     .map((b) => {
-      const style =
-        b.color
-          ? ` style="background:${escapeHtml(b.color)};color:${escapeHtml(b.textColor || "#fff")}"`
-          : "";
-      return `<span class="player-title ${escapeHtml(b.className)}" title="${escapeHtml(b.label)}"${style}>${escapeHtml(b.label)}</span>`;
+      return `<span class="player-title ${escapeHtml(b.className)}" title="${escapeHtml(b.label)}">${escapeHtml(b.label)}</span>`;
     })
     .join("");
   return badges ? `${nameHtml}${badges}` : nameHtml;
@@ -2263,33 +2262,10 @@ function renderTitlePicker() {
 function renderColorPicker() {
   const picker = document.getElementById("color-picker");
   const buttons = document.getElementById("color-picker-buttons");
-  if (!picker || !buttons || typeof HubPlays === "undefined") return;
-
-  const available = HubPlays.getAvailableTitleIds?.() || [];
-  // Custom colors are for earned titles (e.g. LEGEND), not fixed OWNER/OG.
-  const canRecolor = available.some((id) => id === "legend");
-  if (!hasPlayerName() || !canRecolor) {
-    picker.classList.add("hidden");
-    buttons.innerHTML = "";
-    return;
-  }
-
-  const options = HubPlays.COLOR_OPTIONS || [];
-  const active = HubPlays.getAccentColor?.() || "";
-  picker.classList.remove("hidden");
-  buttons.innerHTML = options
-    .map((opt) => {
-      const selected = (opt.value || "") === active || (!active && opt.id === "default");
-      const swatchStyle = opt.value
-        ? ` style="background:${escapeHtml(opt.value)}"`
-        : "";
-      return `<button type="button" class="color-pick-btn${selected ? " active" : ""}${
-        opt.id === "default" ? " is-default" : ""
-      }" data-color="${escapeHtml(opt.id)}" title="${escapeHtml(opt.label)}" aria-label="${escapeHtml(opt.label)}" aria-pressed="${
-        selected ? "true" : "false"
-      }"${swatchStyle}>${opt.id === "default" ? "Auto" : ""}</button>`;
-    })
-    .join("");
+  if (!picker || !buttons) return;
+  // Title colors are fixed: OWNER blue, OG green, LEGEND yellow.
+  picker.classList.add("hidden");
+  buttons.innerHTML = "";
 }
 
 savePlayerNameBtn?.addEventListener("click", () => savePlayerNameFrom(playerNameInput?.value));

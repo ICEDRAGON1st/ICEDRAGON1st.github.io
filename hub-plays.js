@@ -1212,24 +1212,20 @@ body.light .menu-credit {
     if (!id || id === "none") return null;
     const def = TITLE_DEFS[id];
     if (!def) return null;
-    const color = getAccentColor(name);
-    if (!color) return { ...def };
-    return {
-      ...def,
-      color,
-      textColor: contrastText(color)
-    };
+    return { ...def };
   }
 
   function getAccentColor(name = getName()) {
-    return sanitizeColor(getClaimForName(name)?.accentColor || "");
+    // Accents are fixed by active title — no custom palette.
+    const id = getActiveTitleId(name);
+    if (id === "owner") return "#1c7ed6";
+    if (id === "og") return "#2f9e44";
+    if (id === "legend") return "#f1c40f";
+    return "";
   }
 
   function getDefaultAccentForName(name = getName()) {
-    const key = nameKey(name);
-    if (key === "ice_dragon") return "#1c7ed6";
-    if (key === "oscarvr29") return "#2f9e44";
-    return "";
+    return getAccentColor(name);
   }
 
   async function patchMyClaim(updater) {
@@ -1307,26 +1303,8 @@ body.light .menu-credit {
     return { ok: true, activeTitle: getActiveTitleId() };
   }
 
-  async function setAccentColor(colorIdOrHex) {
-    const available = getAvailableTitleIds();
-    if (!available.includes("legend")) {
-      return { ok: false, error: "Unlock LEGEND before changing color" };
-    }
-    const raw = String(colorIdOrHex || "").trim().toLowerCase();
-    let next = "";
-    if (raw && raw !== "default") {
-      const fromList = COLOR_OPTIONS.find((c) => c.id === raw || c.value === raw);
-      next = sanitizeColor(fromList?.value || raw);
-      if (raw !== "default" && !next) {
-        return { ok: false, error: "Pick a valid color" };
-      }
-    }
-    const ok = await patchMyClaim((existing) => ({
-      ...existing,
-      accentColor: next
-    }));
-    if (!ok) return { ok: false, error: "Couldn't save color — try again" };
-    return { ok: true, accentColor: getAccentColor() };
+  async function setAccentColor() {
+    return { ok: false, error: "Colors are fixed by title" };
   }
 
   window.HubPlays = {
