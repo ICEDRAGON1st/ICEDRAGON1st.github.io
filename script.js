@@ -2160,11 +2160,6 @@ const SPECIAL_PLAYER_NAMES = {
     title: "Site owner",
     badge: { label: "OWNER", className: "player-title-owner" }
   },
-  "ice_dragon phone": {
-    className: "player-name-creator",
-    title: "Site owner",
-    badge: { label: "OWNER", className: "player-title-owner" }
-  },
   oscarvr29: {
     className: "player-name-oscar",
     title: "Original player",
@@ -2238,7 +2233,10 @@ function renderTitlePicker() {
   if (!picker || !buttons || typeof HubPlays === "undefined") return;
 
   const available = HubPlays.getAvailableTitleIds?.() || [];
-  if (!available.length) {
+  // Fixed titles (OWNER / OG) aren't choosable — no multi-title UI.
+  const fixedOnly =
+    available.length === 1 && (available[0] === "owner" || available[0] === "og");
+  if (!available.length || fixedOnly) {
     picker.classList.add("hidden");
     buttons.innerHTML = "";
     return;
@@ -2267,8 +2265,10 @@ function renderColorPicker() {
   const buttons = document.getElementById("color-picker-buttons");
   if (!picker || !buttons || typeof HubPlays === "undefined") return;
 
-  const hasTitle = (HubPlays.getAvailableTitleIds?.() || []).length > 0;
-  if (!hasPlayerName() || !hasTitle) {
+  const available = HubPlays.getAvailableTitleIds?.() || [];
+  // Custom colors are for earned titles (e.g. LEGEND), not fixed OWNER/OG.
+  const canRecolor = available.some((id) => id === "legend");
+  if (!hasPlayerName() || !canRecolor) {
     picker.classList.add("hidden");
     buttons.innerHTML = "";
     return;

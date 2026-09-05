@@ -1177,8 +1177,15 @@ body.light .menu-credit {
     const ids = [];
     const key = nameKey(name);
     if (!key) return ids;
-    if (key === "ice_dragon" || key === "ice_dragon phone") ids.push("owner");
-    if (key === "oscarvr29") ids.push("og");
+    // Site owner account: OWNER only (not Legend, not shared with phone alias).
+    if (key === "ice_dragon") {
+      ids.push("owner");
+      return ids;
+    }
+    if (key === "oscarvr29") {
+      ids.push("og");
+      return ids;
+    }
     const selfLegend =
       key === nameKey(getName()) &&
       typeof HubAchievements !== "undefined" &&
@@ -1188,6 +1195,9 @@ body.light .menu-credit {
   }
 
   function getActiveTitleId(name = getName()) {
+    const key = nameKey(name);
+    if (key === "ice_dragon") return "owner";
+    if (key === "oscarvr29") return "og";
     const claim = getClaimForName(name);
     const available = getAvailableTitleIds(name);
     if (!available.length) return "";
@@ -1298,8 +1308,9 @@ body.light .menu-credit {
   }
 
   async function setAccentColor(colorIdOrHex) {
-    if (!getAvailableTitleIds().length) {
-      return { ok: false, error: "Unlock a title before changing color" };
+    const available = getAvailableTitleIds();
+    if (!available.includes("legend")) {
+      return { ok: false, error: "Unlock LEGEND before changing color" };
     }
     const raw = String(colorIdOrHex || "").trim().toLowerCase();
     let next = "";
