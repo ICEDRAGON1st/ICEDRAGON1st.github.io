@@ -1209,13 +1209,13 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 .player-title-cheesy,
 .player-title.player-title-cheese-holes {
   color: #3b2a0a !important;
-  background-color: #f4c430 !important;
+  background-color: #f0b429 !important;
   background-image:
-    radial-gradient(circle at 16% 32%, #5c3606 0 34%, transparent 36%),
-    radial-gradient(circle at 72% 24%, #6b3f08 0 26%, transparent 28%),
-    radial-gradient(circle at 48% 78%, #4a2c05 0 30%, transparent 32%),
-    radial-gradient(circle at 88% 62%, #7a4a0c 0 20%, transparent 22%),
-    linear-gradient(145deg, #ffe08a 0%, #f0b429 52%, #d4921a 100%) !important;
+    radial-gradient(circle 2.5px at 12% 38%, #b87512 0 72%, transparent 74%),
+    radial-gradient(circle 2px at 80% 30%, #c98918 0 72%, transparent 74%),
+    radial-gradient(circle 1.75px at 46% 82%, #a86a10 0 72%, transparent 74%),
+    radial-gradient(circle 1.5px at 94% 68%, #d4921f 0 72%, transparent 74%),
+    linear-gradient(145deg, #ffe08a 0%, #f0b429 55%, #e09a1c 100%) !important;
 }
 .site-credit .player-title.player-title-aurora,
 .menu-credit .player-title.player-title-aurora,
@@ -1301,13 +1301,13 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 }
 .site-credit .player-name-cheesy,
 .menu-credit .player-name-cheesy {
-  background-color: #f4c430;
+  background-color: #f0b429;
   background-image:
-    radial-gradient(circle at 18% 30%, #5c3606 0 22%, transparent 24%),
-    radial-gradient(circle at 70% 25%, #6b3f08 0 16%, transparent 18%),
-    radial-gradient(circle at 40% 75%, #4a2c05 0 20%, transparent 22%),
-    radial-gradient(circle at 85% 68%, #7a4a0c 0 13%, transparent 15%),
-    linear-gradient(120deg, #ffe08a 0%, #f0b429 50%, #d4921a 100%);
+    radial-gradient(circle 0.16em at 16% 32%, #c98918 0 70%, transparent 72%),
+    radial-gradient(circle 0.12em at 72% 28%, #d4a017 0 70%, transparent 72%),
+    radial-gradient(circle 0.14em at 42% 78%, #b87512 0 70%, transparent 72%),
+    radial-gradient(circle 0.1em at 88% 62%, #e0a820 0 70%, transparent 72%),
+    linear-gradient(120deg, #ffe08a 0%, #f0b429 50%, #e09a1c 100%);
   background-size: 100% 100%;
   -webkit-background-clip: text;
   background-clip: text;

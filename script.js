@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260906c": [
+    "CHEESY LIL GUY holes are small round dots again (not dark blobs)"
+  ],
   "20260906b": [
     "CHEESY LIL GUY holes are clearer (fixed flat cheese override)"
   ],
