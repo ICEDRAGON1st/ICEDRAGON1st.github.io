@@ -2208,10 +2208,11 @@ function formatPlayerNameHtml(name) {
   const special = getSpecialPlayerStyle(name);
   const accent =
     typeof HubPlays !== "undefined" ? HubPlays.getAccentColor?.(name) || "" : "";
-  const isAurora = accent === "aurora";
-  const nameStyle = accent && !isAurora ? ` style="color:${escapeHtml(accent)}"` : "";
+  const extra = HubPlays?.EXTRA_COLORS?.[accent];
+  const isAnimatedAccent = !!(extra && extra.animated);
+  const nameStyle = accent && !isAnimatedAccent ? ` style="color:${escapeHtml(accent)}"` : "";
   let nameClass = "player-name-custom";
-  if (isAurora) nameClass = "player-name-aurora";
+  if (extra?.nameClass) nameClass = extra.nameClass;
   else if (accent === "#f1c40f") nameClass = "player-name-legend";
   else if (accent === "#2f9e44") nameClass = "player-name-oscar";
   else if (accent === "#1c7ed6") nameClass = "player-name-creator";
@@ -2316,20 +2317,25 @@ function renderColorPicker() {
     .map((opt) => {
       const locked = !opt.unlocked;
       const selected = !locked && activeColorId === opt.id;
-      const isAurora = opt.id === "aurora" || opt.animated;
+      const extra = HubPlays.EXTRA_COLORS?.[opt.id];
+      const isAnimated = !!(opt.animated || extra?.animated);
       const hint = locked
         ? opt.id === "aurora"
           ? "Aurora (blue↔purple) is reserved"
-          : `${opt.label} color — locked`
+          : opt.id === "mono"
+            ? "Mono (black↔white) is reserved"
+            : `${opt.label} color — locked`
         : canPick
-          ? isAurora
-            ? "Animated blue↔purple (keeps your title)"
+          ? isAnimated
+            ? `${opt.label} animated color (keeps your title)`
             : `Use ${opt.label} color (keeps your title)`
           : `${opt.label} color`;
-      const bgStyle = isAurora ? "" : ` style="background:${escapeHtml(opt.color)}"`;
+      const bgStyle = isAnimated ? "" : ` style="background:${escapeHtml(opt.color)}"`;
+      const animClass =
+        opt.id === "aurora" ? " is-aurora" : opt.id === "mono" ? " is-mono" : isAnimated ? " is-aurora" : "";
       return `<button type="button" class="color-pick-btn${selected ? " active" : ""}${
         locked ? " is-locked" : ""
-      }${!canPick && !locked ? " is-fixed" : ""}${isAurora ? " is-aurora" : ""}" data-title-color="${escapeHtml(opt.id)}" data-locked="${
+      }${!canPick && !locked ? " is-fixed" : ""}${animClass}" data-title-color="${escapeHtml(opt.id)}" data-locked="${
         locked ? "true" : "false"
       }" title="${escapeHtml(hint)}" aria-label="${escapeHtml(hint)}" aria-disabled="${
         locked || !canPick ? "true" : "false"
@@ -2397,7 +2403,9 @@ document.getElementById("color-picker-buttons")?.addEventListener("click", async
               ? "Red unlocks with the TESTER title"
               : id === "aurora"
                 ? "Aurora (blue↔purple) is a reserved color"
-                : "That color is locked",
+                : id === "mono"
+                  ? "Mono (black↔white) is a reserved color"
+                  : "That color is locked",
       true
     );
     return;
@@ -2418,9 +2426,9 @@ document.getElementById("color-picker-buttons")?.addEventListener("click", async
       renderLeaderboardList();
     }
     const label =
-      id === "aurora"
-        ? "Aurora"
-        : (HubPlays.TITLE_DEFS?.[id] || {}).label || id;
+      (HubPlays.EXTRA_COLORS?.[id] || {}).label ||
+      (HubPlays.TITLE_DEFS?.[id] || {}).label ||
+      id;
     setPlayerNameStatus(`Color set to ${label} (title unchanged)`, false);
   } finally {
     btn.disabled = false;

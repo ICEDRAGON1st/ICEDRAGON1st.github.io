@@ -1144,11 +1144,24 @@ body.light .menu-credit {
       id: "aurora",
       label: "Aurora",
       className: "player-color-aurora",
+      nameClass: "player-name-aurora",
+      titleClass: "player-title-aurora",
+      animated: true
+    },
+    mono: {
+      id: "mono",
+      label: "Mono",
+      className: "player-color-mono",
+      nameClass: "player-name-mono",
+      titleClass: "player-title-mono",
       animated: true
     }
   };
 
-  const AURORA_NAME_KEYS = new Set(["ice_dragon", "oscarvr29"]);
+  const EXTRA_COLOR_GRANTS = {
+    aurora: new Set(["ice_dragon", "oscarvr29"]),
+    mono: new Set(["ice_dragon", "hjalte"])
+  };
 
   const COLOR_OPTIONS = [
     { id: "default", label: "Default", value: "" },
@@ -1256,9 +1269,13 @@ body.light .menu-credit {
 
   function getExtraColorIds(name = getName()) {
     const key = nameKey(name);
-    const ids = [];
-    if (AURORA_NAME_KEYS.has(key)) ids.push("aurora");
-    return ids;
+    return Object.keys(EXTRA_COLOR_GRANTS).filter((id) =>
+      EXTRA_COLOR_GRANTS[id].has(key)
+    );
+  }
+
+  function isExtraAccentId(id) {
+    return !!(id && EXTRA_COLORS[String(id).toLowerCase()]);
   }
 
   /** Color swatches in Players UI (title colors + special color-only unlocks). */
@@ -1288,10 +1305,10 @@ body.light .menu-credit {
     const def = TITLE_DEFS[id];
     if (!def) return null;
     const color = getAccentColor(name);
-    if (color === "aurora") {
+    if (isExtraAccentId(color) && EXTRA_COLORS[color].titleClass) {
       return {
         ...def,
-        colorClass: "player-title-aurora",
+        colorClass: EXTRA_COLORS[color].titleClass,
         textColor: "#ffffff"
       };
     }
@@ -1324,8 +1341,8 @@ body.light .menu-credit {
   function getAccentColor(name = getName()) {
     const claim = getClaimForName(name);
     const accentTitle = String(claim?.accentTitle || "").toLowerCase();
-    if (accentTitle === "aurora" && getExtraColorIds(name).includes("aurora")) {
-      return "aurora";
+    if (isExtraAccentId(accentTitle) && getExtraColorIds(name).includes(accentTitle)) {
+      return accentTitle;
     }
 
     const available = getAvailableTitleIds(name);
@@ -1348,18 +1365,18 @@ body.light .menu-credit {
   function getActiveAccentTitleId(name = getName()) {
     const claim = getClaimForName(name);
     const accentTitle = String(claim?.accentTitle || "").toLowerCase();
-    if (accentTitle === "aurora" && getExtraColorIds(name).includes("aurora")) {
-      return "aurora";
+    if (isExtraAccentId(accentTitle) && getExtraColorIds(name).includes(accentTitle)) {
+      return accentTitle;
     }
     const color = getAccentColor(name);
-    if (color === "aurora") return "aurora";
+    if (isExtraAccentId(color)) return color;
     const match = getUnlockedTitleColors(name).find((x) => x.color === color);
     return match?.id || getActiveTitleId(name) || "";
   }
 
   function getDefaultAccentForName(name = getName()) {
     const color = getAccentColor(name);
-    return color === "aurora" ? "" : color;
+    return isExtraAccentId(color) ? "" : color;
   }
 
   async function patchMyClaim(updater) {
@@ -1448,17 +1465,17 @@ body.light .menu-credit {
   async function setAccentFromTitle(titleId) {
     const id = String(titleId || "").toLowerCase();
 
-    if (id === "aurora") {
-      if (!getExtraColorIds().includes("aurora")) {
+    if (isExtraAccentId(id)) {
+      if (!getExtraColorIds().includes(id)) {
         return { ok: false, error: "You don't have that color yet" };
       }
       const ok = await patchMyClaim((existing) => ({
         ...existing,
-        accentTitle: "aurora",
+        accentTitle: id,
         accentColor: ""
       }));
       if (!ok) return { ok: false, error: "Couldn't save color — try again" };
-      return { ok: true, accentColor: "aurora", accentTitle: "aurora" };
+      return { ok: true, accentColor: id, accentTitle: id };
     }
 
     const available = getAvailableTitleIds();
@@ -1479,7 +1496,7 @@ body.light .menu-credit {
 
   async function setAccentColor(colorIdOrHex) {
     const raw = String(colorIdOrHex || "").trim().toLowerCase();
-    if (raw === "aurora") return setAccentFromTitle("aurora");
+    if (isExtraAccentId(raw)) return setAccentFromTitle(raw);
     const fromTitle = getAvailableTitleIds().find(
       (id) => id === raw || TITLE_COLORS[id] === sanitizeColor(raw)
     );
