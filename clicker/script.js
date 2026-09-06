@@ -2,6 +2,7 @@
   const SAVE_KEY = "clicker-save-v1";
   const HIGH_SCORE_KEY = "clicker-high-score";
   const TICK_MS = 100;
+  const REBIRTH_COST = 1_000_000;
 
   const UPGRADES = [
     {
@@ -65,7 +66,9 @@
   const startBtn = document.getElementById("start-btn");
   const gamesBtn = document.getElementById("games-btn");
   const menuBtn = document.getElementById("menu-btn");
-  const resetBtn = document.getElementById("reset-btn");
+  const rebirthBtn = document.getElementById("rebirth-btn");
+  const rebirthDesc = document.getElementById("rebirth-desc");
+  const rebirthMultEl = document.getElementById("rebirth-mult");
   const floatLayer = document.getElementById("float-layer");
 
   let state = defaultState();
@@ -82,8 +85,13 @@
       crystals: 0,
       lifetime: 0,
       clickPower: 1,
+      rebirths: 0,
       owned
     };
+  }
+
+  function multiplier() {
+    return Math.pow(2, Math.max(0, Math.floor(state.rebirths || 0)));
   }
 
   function loadState() {
@@ -93,11 +101,11 @@
       const next = defaultState();
       next.crystals = Math.max(0, Number(raw.crystals) || 0);
       next.lifetime = Math.max(0, Number(raw.lifetime) || 0);
+      next.rebirths = Math.max(0, Math.floor(Number(raw.rebirths) || 0));
       next.clickPower = Math.max(1, Number(raw.clickPower) || 1);
       UPGRADES.forEach((u) => {
         next.owned[u.id] = Math.max(0, Math.floor(Number(raw.owned?.[u.id]) || 0));
       });
-      // Rebuild click power from upgrades in case of drift.
       next.clickPower =
         1 +
         UPGRADES.reduce((sum, u) => sum + (u.clickBonus || 0) * (next.owned[u.id] || 0), 0);
@@ -140,8 +148,16 @@
     return Math.floor(upgrade.baseCost * Math.pow(1.15, owned));
   }
 
-  function totalCps() {
+  function baseCps() {
     return UPGRADES.reduce((sum, u) => sum + (u.cps || 0) * (state.owned[u.id] || 0), 0);
+  }
+
+  function totalCps() {
+    return baseCps() * multiplier();
+  }
+
+  function clickGain() {
+    return state.clickPower * multiplier();
   }
 
   function addCrystals(amount) {
@@ -179,6 +195,8 @@
     if (life >= 1000000) HubAchievements.unlock("clicker_1m");
     if (cps >= 10) HubAchievements.unlock("clicker_cps_10");
     if (cps >= 100) HubAchievements.unlock("clicker_cps_100");
+    if (state.rebirths >= 1) HubAchievements.unlock("clicker_rebirth_1");
+    if (state.rebirths >= 3) HubAchievements.unlock("clicker_rebirth_3");
   }
 
   function ensureSession() {
@@ -201,7 +219,7 @@
 
   function clickCrystal(evt) {
     ensureSession();
-    const gain = state.clickPower;
+    const gain = clickGain();
     addCrystals(gain);
     window.HubSound?.play?.("click");
     crystalBtn.classList.add("is-pulse");
@@ -234,6 +252,34 @@
     saveSoon();
   }
 
+  function canRebirth() {
+    return state.crystals >= REBIRTH_COST;
+  }
+
+  function doRebirth() {
+    if (!canRebirth()) return;
+    const nextMult = multiplier() * 2;
+    if (
+      !confirm(
+        `Rebirth for ${formatNum(REBIRTH_COST)} crystals?\n\nBank and upgrades reset. Lifetime crystals stay. Earnings become ×${nextMult}.`
+      )
+    ) {
+      return;
+    }
+    ensureSession();
+    const lifetime = state.lifetime;
+    const rebirths = (state.rebirths || 0) + 1;
+    state = defaultState();
+    state.lifetime = lifetime;
+    state.rebirths = rebirths;
+    window.HubSound?.play?.("win");
+    window.HubConfetti?.burst?.();
+    checkAchievements();
+    maybeSubmitBest(true);
+    saveState();
+    render();
+  }
+
   function renderShop() {
     if (!shopList) return;
     shopList.innerHTML = UPGRADES.map((u) => {
@@ -253,6 +299,28 @@
     }).join("");
   }
 
+  function renderRebirth() {
+    const mult = multiplier();
+    const ready = canRebirth();
+    if (rebirthMultEl) {
+      rebirthMultEl.textContent =
+        state.rebirths > 0
+          ? `Rebirths: ${state.rebirths} · Multiplier: ×${mult}`
+          : `Multiplier: ×${mult}`;
+    }
+    if (rebirthDesc) {
+      rebirthDesc.textContent = ready
+        ? `Ready! Reset bank & upgrades, keep lifetime, go to ×${mult * 2} earnings.`
+        : `Need ${formatNum(REBIRTH_COST)} crystals in the bank. Resets upgrades & bank, keeps lifetime, doubles all earnings.`;
+    }
+    if (rebirthBtn) {
+      rebirthBtn.disabled = !ready;
+      rebirthBtn.textContent = ready
+        ? `Rebirth → ×${mult * 2}`
+        : `Rebirth (${formatNum(state.crystals)} / ${formatNum(REBIRTH_COST)})`;
+    }
+  }
+
   function render() {
     const cps = totalCps();
     const best = Math.max(getStoredBest(), Math.floor(state.lifetime));
@@ -262,6 +330,7 @@
     if (hudBestEl) hudBestEl.textContent = formatNum(best);
     if (overlayBestEl) overlayBestEl.textContent = formatNum(best);
     renderShop();
+    renderRebirth();
   }
 
   function saveSoon() {
@@ -292,17 +361,6 @@
     ensureSession();
   }
 
-  function resetProgress() {
-    if (!confirm("Reset all Crystal Clicker progress on this device?")) return;
-    state = defaultState();
-    try {
-      localStorage.removeItem(SAVE_KEY);
-      localStorage.removeItem(HIGH_SCORE_KEY);
-    } catch {}
-    sessionStarted = false;
-    render();
-  }
-
   function goToGames() {
     saveState();
     maybeSubmitBest(true);
@@ -318,7 +376,7 @@
   startBtn?.addEventListener("click", closeMenu);
   menuBtn?.addEventListener("click", openMenu);
   gamesBtn?.addEventListener("click", goToGames);
-  resetBtn?.addEventListener("click", resetProgress);
+  rebirthBtn?.addEventListener("click", doRebirth);
 
   state = loadState();
   render();

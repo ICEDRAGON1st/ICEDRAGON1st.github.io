@@ -73,6 +73,8 @@
     { id: "pixletris_score_1k",  emoji: "🟩", name: "Pixel Pro",       desc: "Score 1000 in Pixletris" },
     { id: "clicker_cps_100",     emoji: "🏭", name: "Crystal Empire",  desc: "Reach 100 crystals/sec in Crystal Clicker" },
     { id: "clicker_1m",          emoji: "👑", name: "Millionaire",     desc: "Earn 1,000,000 crystals in Crystal Clicker" },
+    { id: "clicker_rebirth_1",   emoji: "♻️", name: "Reborn",          desc: "Rebirth once in Crystal Clicker" },
+    { id: "clicker_rebirth_3",   emoji: "♾️", name: "Third Life",      desc: "Rebirth 3 times in Crystal Clicker" },
 
     // Expert
     { id: "wordle_guess_1",      emoji: "🎯", name: "Lucky Shot",      desc: "Win a Wordle in 1 guess" },

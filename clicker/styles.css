@@ -262,9 +262,43 @@ body {
   filter: grayscale(0.3);
 }
 
-.reset-btn {
+.rebirth-box {
   margin-top: 1rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(240, 180, 41, 0.35);
+  background: rgba(240, 180, 41, 0.08);
+  display: grid;
+  gap: 0.65rem;
+}
+
+.rebirth-title {
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.rebirth-desc {
+  margin: 0.25rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.rebirth-mult {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--mint);
+}
+
+.rebirth-btn {
   width: 100%;
+}
+
+.rebirth-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(0.35);
 }
 
 .btn {
