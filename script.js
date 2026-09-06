@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260906k": [
+    "Crystal Clicker shows your earnings multiplier on screen"
+  ],
   "20260906j": [
     "Crystal Clicker: fixed Buy buttons not working while income was running"
   ],

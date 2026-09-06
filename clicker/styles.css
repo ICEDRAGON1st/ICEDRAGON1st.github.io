@@ -127,6 +127,19 @@ body {
   font-size: 0.95rem;
 }
 
+.mult-line {
+  margin: 0.35rem 0 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--mint);
+  letter-spacing: 0.02em;
+}
+
+.mult-line strong {
+  color: var(--amber);
+  font-size: 1.2rem;
+}
+
 .cps-line span {
   color: var(--mint);
   font-weight: 700;

@@ -59,6 +59,8 @@
   const cpsLabelEl = document.getElementById("cps-label");
   const hudCpsEl = document.getElementById("hud-cps");
   const hudBestEl = document.getElementById("hud-best");
+  const hudMultEl = document.getElementById("hud-mult");
+  const multLabelEl = document.getElementById("mult-label");
   const overlayBestEl = document.getElementById("overlay-best");
   const crystalBtn = document.getElementById("crystal-btn");
   const shopList = document.getElementById("shop-list");
@@ -346,11 +348,14 @@
 
   function renderStats() {
     const cps = totalCps();
+    const mult = multiplier();
     const best = Math.max(getStoredBest(), Math.floor(state.lifetime));
     if (crystalCountEl) crystalCountEl.textContent = formatNum(state.crystals);
     if (cpsLabelEl) cpsLabelEl.textContent = formatCps(cps);
     if (hudCpsEl) hudCpsEl.textContent = formatCps(cps);
     if (hudBestEl) hudBestEl.textContent = formatNum(best);
+    if (hudMultEl) hudMultEl.textContent = String(mult);
+    if (multLabelEl) multLabelEl.textContent = `×${mult}`;
     if (overlayBestEl) overlayBestEl.textContent = formatNum(best);
     refreshShopButtons();
     renderRebirth();
