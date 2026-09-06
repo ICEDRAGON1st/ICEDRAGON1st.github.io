@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260906l": [
+    "Crystal Clicker: more upgrades (cart, gloves, vault, singularity, and more)"
+  ],
   "20260906k": [
     "Crystal Clicker shows your earnings multiplier on screen"
   ],

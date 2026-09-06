@@ -22,12 +22,36 @@
       cps: 0.5
     },
     {
+      id: "cart",
+      name: "Mine Cart",
+      desc: "+2 crystals / sec",
+      baseCost: 150,
+      clickBonus: 0,
+      cps: 2
+    },
+    {
+      id: "gloves",
+      name: "Crystal Gloves",
+      desc: "+5 crystals per click",
+      baseCost: 250,
+      clickBonus: 5,
+      cps: 0
+    },
+    {
       id: "drill",
       name: "Crystal Drill",
       desc: "+4 crystals / sec",
       baseCost: 400,
       clickBonus: 0,
       cps: 4
+    },
+    {
+      id: "tunnel",
+      name: "Deep Tunnel",
+      desc: "+10 crystals / sec",
+      baseCost: 1200,
+      clickBonus: 0,
+      cps: 10
     },
     {
       id: "quarry",
@@ -38,6 +62,22 @@
       cps: 20
     },
     {
+      id: "hammer",
+      name: "Amber Hammer",
+      desc: "+25 crystals per click",
+      baseCost: 5000,
+      clickBonus: 25,
+      cps: 0
+    },
+    {
+      id: "refinery",
+      name: "Gem Refinery",
+      desc: "+50 crystals / sec",
+      baseCost: 8000,
+      clickBonus: 0,
+      cps: 50
+    },
+    {
       id: "factory",
       name: "Gem Factory",
       desc: "+100 crystals / sec",
@@ -46,12 +86,60 @@
       cps: 100
     },
     {
+      id: "megamine",
+      name: "Mega Mine",
+      desc: "+350 crystals / sec",
+      baseCost: 75000,
+      clickBonus: 0,
+      cps: 350
+    },
+    {
       id: "reactor",
       name: "Amber Reactor",
       desc: "+750 crystals / sec",
       baseCost: 150000,
       clickBonus: 0,
       cps: 750
+    },
+    {
+      id: "fist",
+      name: "Titan Fist",
+      desc: "+100 crystals per click",
+      baseCost: 250000,
+      clickBonus: 100,
+      cps: 0
+    },
+    {
+      id: "vault",
+      name: "Crystal Vault",
+      desc: "+2,500 crystals / sec",
+      baseCost: 500000,
+      clickBonus: 0,
+      cps: 2500
+    },
+    {
+      id: "fortress",
+      name: "Ore Fortress",
+      desc: "+12,000 crystals / sec",
+      baseCost: 2500000,
+      clickBonus: 0,
+      cps: 12000
+    },
+    {
+      id: "nebula",
+      name: "Nebula Drill",
+      desc: "+75,000 crystals / sec",
+      baseCost: 15000000,
+      clickBonus: 0,
+      cps: 75000
+    },
+    {
+      id: "singularity",
+      name: "Singularity Core",
+      desc: "+500,000 crystals / sec",
+      baseCost: 100000000,
+      clickBonus: 0,
+      cps: 500000
     }
   ];
 
