@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260906x">
+  <link rel="stylesheet" href="styles.css?v=20260907j">
 </head>
 <body>
   <div class="app">
@@ -62,6 +62,19 @@
           <span class="stat-label">Played</span>
         </div>
       </div>
+      <p class="picker-label">Theme</p>
+      <div id="word-theme-picker" class="word-theme-picker" role="group" aria-label="Word theme">
+        <button type="button" class="word-theme-btn active" data-word-theme="classic">Classic</button>
+        <button type="button" class="word-theme-btn" data-word-theme="animals">Animals</button>
+        <button type="button" class="word-theme-btn" data-word-theme="food">Food</button>
+        <button type="button" class="word-theme-btn" data-word-theme="flags">Flags</button>
+        <button type="button" class="word-theme-btn" data-word-theme="sports">Sports</button>
+        <button type="button" class="word-theme-btn" data-word-theme="nature">Nature</button>
+        <button type="button" class="word-theme-btn" data-word-theme="space">Space</button>
+        <button type="button" class="word-theme-btn" data-word-theme="music">Music</button>
+        <button type="button" class="word-theme-btn" data-word-theme="movies">Movies</button>
+      </div>
+      <p id="word-theme-hint" class="word-theme-hint">Practice themes · Daily stays Classic</p>
       <div class="modal-actions">
         <button id="menu-resume" type="button" class="modal-btn modal-btn-secondary">Resume</button>
         <button id="menu-view-board" type="button" class="modal-btn modal-btn-secondary hidden">View board</button>
@@ -351,7 +364,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260907i";
+    window.WORDLE_BUILD = "20260907j";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "hub-leaderboard.js", "hub-friends.js", "hub-online-match.js",
       "words.js",
@@ -372,6 +385,7 @@
       "dictionary-is-4.js",
       "words-is-6.js",
       "dictionary-is-6.js",
+      "wordle-themes.js",
       "script.js"
     ];
     function loadNext(i) {

@@ -9,6 +9,7 @@ const HUB_LAST_GAME_KEY = "hub-last-game";
 const HUB_THEME_KEY = "hub-look-theme";
 const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
+const WORD_THEME_KEY = "wordle-word-theme";
 
 const HUB_THEMES = {
   classic: { label: "Classic", eyebrow: "Hub" },
@@ -20,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260907j": [
+    "Wordle themes like Hangman (Animals, Food, Flags, Sports, Nature, Space, Music, Movies) — Practice mode"
+  ],
   "20260907i": [
     "Fix Crystal Clicker leaderboard: ICE_DRAGON wipe was blocking new scores"
   ],
@@ -347,6 +351,8 @@ const menuResumeBtn = document.getElementById("menu-resume");
 const menuViewBoardBtn = document.getElementById("menu-view-board");
 const menuNewWordBtn = document.getElementById("menu-new-word");
 const menuGamesBtn = document.getElementById("menu-games");
+const wordThemePicker = document.getElementById("word-theme-picker");
+const wordThemeHintEl = document.getElementById("word-theme-hint");
 const menuBtn = document.getElementById("menu-btn");
 const gamesScreen = document.getElementById("games-screen");
 const gamesMessageEl = document.getElementById("games-message");
@@ -427,6 +433,10 @@ let currentLang = localStorage.getItem(LANG_KEY) || "en";
 const savedLength = Number(localStorage.getItem(LENGTH_KEY));
 let currentLength = LENGTHS.includes(savedLength) ? savedLength : 5;
 let playMode = localStorage.getItem(MODE_KEY) === "practice" ? "practice" : "daily";
+let wordTheme = localStorage.getItem(WORD_THEME_KEY) || "classic";
+if (typeof WORDLE_THEMES !== "undefined" && !WORDLE_THEMES[wordTheme]) {
+  wordTheme = "classic";
+}
 // Prefer Practice once today's 5-letter Daily (this language) is finished
 if (isTodayDailyFinished(currentLang, DAILY_LENGTH)) {
   playMode = "practice";
@@ -447,7 +457,7 @@ function getKeyboardRows() {
   return KEYBOARD_EN;
 }
 
-function getWordList() {
+function getDictionaryWordList() {
   if (currentLength === 4) {
     if (currentLang === "da") return WORDS_DA_4;
     if (currentLang === "is") return WORDS_IS_4;
@@ -461,6 +471,29 @@ function getWordList() {
   if (currentLang === "da") return WORDS_DA;
   if (currentLang === "is") return WORDS_IS;
   return WORDS;
+}
+
+function getWordThemeDef(id = wordTheme) {
+  const themes = typeof WORDLE_THEMES !== "undefined" ? WORDLE_THEMES : null;
+  return themes?.[id] || themes?.classic || null;
+}
+
+function isClassicWordTheme() {
+  return wordTheme === "classic" || !Array.isArray(getWordThemeDef()?.words);
+}
+
+function getThemeWordsForLength() {
+  const theme = getWordThemeDef();
+  if (!Array.isArray(theme?.words)) return [];
+  return theme.words.filter((w) => w.length === currentLength);
+}
+
+function getWordList() {
+  // Daily is always the shared classic dictionary word.
+  if (isDailyMode() || isClassicWordTheme()) return getDictionaryWordList();
+  const themed = getThemeWordsForLength();
+  if (themed.length >= 8) return themed;
+  return getDictionaryWordList();
 }
 
 function getValidGuesses() {
@@ -486,8 +519,8 @@ function getValidGuesses() {
 
 function isValidGuess(guess) {
   if (getValidGuesses().has(guess)) return true;
-  // Fallback: always accept current answer-list words.
-  return getWordList().includes(guess);
+  if (getDictionaryWordList().includes(guess)) return true;
+  return getThemeWordsForLength().includes(guess);
 }
 
 function getValidLetters() {
@@ -634,9 +667,10 @@ function updateModeButton() {
     modeBtn.classList.add("is-daily");
     modeBtn.title = "Playing today's shared 5-letter word. Tap to switch to Practice.";
   } else {
-    modeBtn.textContent = "Practice";
+    const label = getWordThemeDef()?.label || "Classic";
+    modeBtn.textContent = label === "Classic" ? "Practice" : `Practice · ${label}`;
     modeBtn.classList.remove("is-daily");
-    modeBtn.title = "Random words (4/5/6 letters). Tap to play today's Daily Wordle.";
+    modeBtn.title = "Random words (4/5/6 letters, optional themes). Tap to play today's Daily Wordle.";
   }
 }
 
@@ -648,7 +682,11 @@ function togglePlayMode() {
 
 function loadState() {
   try {
-    const saved = localStorage.getItem(storageKey());
+    let saved = localStorage.getItem(storageKey());
+    // Older classic Practice saves had no theme suffix.
+    if (!saved && !isDailyMode() && isClassicWordTheme()) {
+      saved = localStorage.getItem(`${STORAGE_KEY}-${currentLang}-${currentLength}`);
+    }
     if (saved) {
       const parsed = JSON.parse(saved);
       if (
@@ -685,7 +723,8 @@ function storageKey() {
   if (isDailyMode()) {
     return `${STORAGE_KEY}-daily-${currentLang}-${currentLength}-${todayLocal()}`;
   }
-  return `${STORAGE_KEY}-${currentLang}-${currentLength}`;
+  const themePart = isClassicWordTheme() ? "classic" : wordTheme;
+  return `${STORAGE_KEY}-${currentLang}-${currentLength}-${themePart}`;
 }
 
 function saveState() {
@@ -906,12 +945,54 @@ function hideMenu() {
   menuModal.classList.add("hidden");
 }
 
+function updateWordThemePicker() {
+  const daily = isDailyMode();
+  wordThemePicker?.querySelectorAll("[data-word-theme]").forEach((btn) => {
+    const id = btn.dataset.wordTheme;
+    const active = daily ? id === "classic" : id === wordTheme;
+    btn.classList.toggle("active", active);
+    btn.disabled = daily && id !== "classic";
+  });
+  if (wordThemeHintEl) {
+    const def = getWordThemeDef(daily ? "classic" : wordTheme);
+    wordThemeHintEl.textContent = daily
+      ? "Daily is always Classic · Themes unlock in Practice"
+      : `${def?.label || "Classic"}${def?.blurb ? ` · ${def.blurb}` : ""} · Guesses still use the full dictionary`;
+  }
+}
+
+function setWordTheme(mode) {
+  const def = getWordThemeDef(mode);
+  if (!def) return;
+  const next = def.id;
+  const wasDaily = isDailyMode();
+  const changed = next !== wordTheme || (next !== "classic" && wasDaily);
+  wordTheme = next;
+  try {
+    localStorage.setItem(WORD_THEME_KEY, next);
+  } catch {}
+  if (next !== "classic" && wasDaily) {
+    setPlayMode("practice");
+  }
+  updateWordThemePicker();
+  if (!changed) return;
+  stopConfetti();
+  submitting = false;
+  state = newGameState();
+  saveState();
+  render();
+  updateModeButton();
+  updateLengthButton();
+  showMessage(`Theme: ${def.label}`);
+}
+
 function showMenu() {
   hideGamesScreen();
   const stats = loadStats();
   const won = state.gameStatus === "won";
   const lost = state.gameStatus === "lost";
   const finished = won || lost;
+  const theme = getWordThemeDef(isDailyMode() ? "classic" : wordTheme);
 
   if (won) {
     menuTitle.textContent = isDailyMode() ? "Daily solved!" : "You Won!";
@@ -924,7 +1005,7 @@ function showMenu() {
     menuSubtitle.textContent = `Today's shared ${currentLength}-letter word · ${currentLang.toUpperCase()}. Same for everyone.`;
   } else {
     menuTitle.textContent = "Menu";
-    menuSubtitle.textContent = "Resume your practice game or start a new word.";
+    menuSubtitle.textContent = `${theme?.label || "Classic"} practice · Resume or start a new word.`;
   }
 
   menuResumeBtn.classList.toggle("hidden", won);
@@ -934,6 +1015,7 @@ function showMenu() {
   }
   menuDailyBtn?.classList.toggle("hidden", isDailyMode());
   menuShareDailyBtn?.classList.toggle("hidden", !(isDailyMode() && finished));
+  updateWordThemePicker();
 
   statWins.textContent = stats.wins;
   statWinPct.textContent = getWinPercent(stats);
@@ -2029,6 +2111,12 @@ menuDailyBtn?.addEventListener("click", () => {
 });
 menuShareDailyBtn?.addEventListener("click", () => shareDailyResult());
 menuGamesBtn.addEventListener("click", () => showGamesScreen());
+wordThemePicker?.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-word-theme]");
+  if (!btn || btn.disabled) return;
+  if (!requirePlayerName()) return;
+  setWordTheme(btn.dataset.wordTheme);
+});
 continueLastBtn?.addEventListener("click", () => {
   if (!requirePlayerName()) return;
   const lastId = getLastGameId();
