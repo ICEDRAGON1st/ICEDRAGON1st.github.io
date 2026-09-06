@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260906j": [
+    "Crystal Clicker: fixed Buy buttons not working while income was running"
+  ],
   "20260906i": [
     "Crystal Clicker: 2nd rebirth costs 10M (then ×10 each time)"
   ],

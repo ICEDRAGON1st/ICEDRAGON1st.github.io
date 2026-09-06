@@ -229,7 +229,7 @@
       (evt?.clientX ?? rect.left + rect.width / 2) + (Math.random() * 24 - 12);
     const y = (evt?.clientY ?? rect.top + rect.height / 2) - 8;
     spawnFloat(x, y, `+${formatNum(gain)}`);
-    render();
+    render(false);
     saveSoon();
   }
 
@@ -248,7 +248,7 @@
       window.HubConfetti?.burst?.();
     }
     checkAchievements();
-    render();
+    render(false);
     saveSoon();
   }
 
@@ -305,6 +305,22 @@
     }).join("");
   }
 
+  /** Update buy buttons without rebuilding DOM (ticks were wiping clicks). */
+  function refreshShopButtons() {
+    if (!shopList) return;
+    shopList.querySelectorAll("[data-buy]").forEach((btn) => {
+      const id = btn.dataset.buy;
+      const upgrade = UPGRADES.find((u) => u.id === id);
+      if (!upgrade) return;
+      const owned = state.owned[id] || 0;
+      const cost = upgradeCost(upgrade, owned);
+      btn.textContent = formatNum(cost);
+      btn.disabled = state.crystals < cost;
+      const ownedEl = btn.parentElement?.querySelector(".shop-item-owned");
+      if (ownedEl) ownedEl.textContent = `Owned: ${owned}`;
+    });
+  }
+
   function renderRebirth() {
     const mult = multiplier();
     const cost = rebirthCost();
@@ -328,7 +344,7 @@
     }
   }
 
-  function render() {
+  function renderStats() {
     const cps = totalCps();
     const best = Math.max(getStoredBest(), Math.floor(state.lifetime));
     if (crystalCountEl) crystalCountEl.textContent = formatNum(state.crystals);
@@ -336,8 +352,13 @@
     if (hudCpsEl) hudCpsEl.textContent = formatCps(cps);
     if (hudBestEl) hudBestEl.textContent = formatNum(best);
     if (overlayBestEl) overlayBestEl.textContent = formatNum(best);
-    renderShop();
+    refreshShopButtons();
     renderRebirth();
+  }
+
+  function render(fullShop = true) {
+    renderStats();
+    if (fullShop) renderShop();
   }
 
   function saveSoon() {
@@ -351,7 +372,7 @@
     const cps = totalCps();
     if (cps > 0) {
       addCrystals(cps * (TICK_MS / 1000));
-      render();
+      renderStats();
       saveSoon();
     }
   }
@@ -375,9 +396,10 @@
   }
 
   crystalBtn?.addEventListener("click", clickCrystal);
-  shopList?.addEventListener("click", (e) => {
+  shopList?.addEventListener("pointerdown", (e) => {
     const btn = e.target.closest("[data-buy]");
-    if (!btn) return;
+    if (!btn || btn.disabled) return;
+    e.preventDefault();
     buyUpgrade(btn.dataset.buy);
   });
   startBtn?.addEventListener("click", closeMenu);
