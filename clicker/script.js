@@ -1,13 +1,21 @@
 (function () {
-  const SAVE_KEY = "clicker-save-v2";
-  const HIGH_SCORE_KEY = "clicker-high-score-v2";
+  const SAVE_KEY = "clicker-save-v3";
+  const HIGH_SCORE_KEY = "clicker-high-score-v3";
+  const LOCAL_WIPE_ID = "hub-clicker-local-wipe-v2";
   const TICK_MS = 100;
   const REBIRTH_BASE_COST = 1_000_000;
 
-  // Drop pre-wipe local saves (global Crystal Clicker reset).
+  // Force-clear every local Crystal Clicker key once (leaderboard wipe companion).
   try {
-    localStorage.removeItem("clicker-save-v1");
-    localStorage.removeItem("clicker-high-score");
+    if (localStorage.getItem(LOCAL_WIPE_ID) !== "done") {
+      const doomed = [];
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (key && /^clicker/i.test(key)) doomed.push(key);
+      }
+      doomed.forEach((key) => localStorage.removeItem(key));
+      localStorage.setItem(LOCAL_WIPE_ID, "done");
+    }
   } catch {}
 
   const UPGRADES = [
