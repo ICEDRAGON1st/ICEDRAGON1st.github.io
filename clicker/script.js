@@ -27,8 +27,12 @@
     { id: "hammer", name: "Amber Hammer", desc: "+25 per click", baseCost: 5000, clickBonus: 25, cps: 0, group: "click" },
     { id: "gauntlet", name: "Shard Gauntlet", desc: "+60 per click", baseCost: 45000, clickBonus: 60, cps: 0, group: "click" },
     { id: "fist", name: "Titan Fist", desc: "+100 per click", baseCost: 250000, clickBonus: 100, cps: 0, group: "click" },
+    { id: "lance", name: "Gem Lance", desc: "+220 per click", baseCost: 800000, clickBonus: 220, cps: 0, group: "click" },
     { id: "cannon", name: "Crystal Cannon", desc: "+400 per click", baseCost: 2000000, clickBonus: 400, cps: 0, group: "click" },
+    { id: "railgun", name: "Amber Railgun", desc: "+900 per click", baseCost: 8000000, clickBonus: 900, cps: 0, group: "click" },
     { id: "comet", name: "Comet Strike", desc: "+2,000 per click", baseCost: 25000000, clickBonus: 2000, cps: 0, group: "click" },
+    { id: "nova", name: "Nova Punch", desc: "+8,000 per click", baseCost: 120000000, clickBonus: 8000, cps: 0, group: "click" },
+    { id: "bigbang", name: "Big Bang Tap", desc: "+40,000 per click", baseCost: 800000000, clickBonus: 40000, cps: 0, group: "click" },
     // Idle income
     { id: "miner", name: "Miner", desc: "+0.5 / sec", baseCost: 50, clickBonus: 0, cps: 0.5, group: "idle" },
     { id: "cart", name: "Mine Cart", desc: "+2 / sec", baseCost: 150, clickBonus: 0, cps: 2, group: "idle" },
@@ -48,8 +52,12 @@
     { id: "nebula", name: "Nebula Drill", desc: "+75,000 / sec", baseCost: 15000000, clickBonus: 0, cps: 75000, group: "idle" },
     { id: "dyson", name: "Dyson Mine", desc: "+200,000 / sec", baseCost: 40000000, clickBonus: 0, cps: 200000, group: "idle" },
     { id: "singularity", name: "Singularity Core", desc: "+500,000 / sec", baseCost: 100000000, clickBonus: 0, cps: 500000, group: "idle" },
+    { id: "wormhole", name: "Wormhole Quarry", desc: "+1M / sec", baseCost: 220000000, clickBonus: 0, cps: 1000000, group: "idle" },
     { id: "multiverse", name: "Multiverse Pick", desc: "+2M / sec", baseCost: 500000000, clickBonus: 0, cps: 2000000, group: "idle" },
-    { id: "infinity", name: "Infinity Vein", desc: "+10M / sec", baseCost: 2500000000, clickBonus: 0, cps: 10000000, group: "idle" }
+    { id: "timeloop", name: "Time Loop Mine", desc: "+5M / sec", baseCost: 1200000000, clickBonus: 0, cps: 5000000, group: "idle" },
+    { id: "infinity", name: "Infinity Vein", desc: "+10M / sec", baseCost: 2500000000, clickBonus: 0, cps: 10000000, group: "idle" },
+    { id: "omni", name: "Omni Extractor", desc: "+25M / sec", baseCost: 6000000000, clickBonus: 0, cps: 25000000, group: "idle" },
+    { id: "absolute", name: "Absolute Crystal", desc: "+100M / sec", baseCost: 20000000000, clickBonus: 0, cps: 100000000, group: "idle" }
   ];
 
   const SHOP_GROUPS = [

@@ -20,6 +20,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260907a": [
+    "Crystal Clicker: even more upgrades (Nova Punch through Absolute Crystal)"
+  ],
   "20260906z": [
     "Crystal Clicker: more click & idle upgrades (up to Infinity Vein)"
   ],
