@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260906l">
+  <link rel="stylesheet" href="styles.css?v=20260906m">
 </head>
 <body>
   <header class="top-bar">
@@ -24,18 +24,30 @@
     <section class="play-col card">
       <p class="bank-label">Crystals</p>
       <p id="crystal-count" class="crystal-count" aria-live="polite">0</p>
-      <p class="mult-line">Multiplier <strong id="mult-label">×1</strong></p>
-      <p class="cps-line"><span id="cps-label">0</span> per second</p>
+      <div class="stat-row">
+        <div class="stat-chip">
+          <span class="stat-chip-label">Multiplier</span>
+          <strong id="mult-label">×1</strong>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-chip-label">Per click</span>
+          <strong id="click-power-label">+1</strong>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-chip-label">Per second</span>
+          <strong id="cps-label">0</strong>
+        </div>
+      </div>
       <button id="crystal-btn" type="button" class="crystal-btn" aria-label="Mine a crystal">
         <span class="crystal-gem" aria-hidden="true"></span>
         <span class="crystal-btn-text">Mine</span>
       </button>
-      <p class="hint">Tap the crystal. Buy upgrades to mine while you chill.</p>
+      <p class="hint">Tap the crystal. Buy upgrades in Click power or Idle income.</p>
     </section>
 
     <section class="shop-col card">
-      <h2>Upgrades</h2>
-      <p class="shop-intro">Spend crystals to boost your mine.</p>
+      <h2>Shop</h2>
+      <p class="shop-intro">Click upgrades first, idle upgrades below. Sorted cheapest → strongest.</p>
       <div id="shop-list" class="shop-list" role="list"></div>
       <div id="rebirth-box" class="rebirth-box">
         <div class="rebirth-info">
@@ -69,8 +81,8 @@
   <script src="../hub-achievements.js"></script>
   <script src="../hub-sound.js"></script>
   <script src="../hub-confetti.js"></script>
-  <script src="../hub-plays.js?v=20260906l"></script>
-  <script src="../hub-leaderboard.js?v=20260906l"></script>
-  <script src="script.js?v=20260906l"></script>
+  <script src="../hub-plays.js?v=20260906m"></script>
+  <script src="../hub-leaderboard.js?v=20260906m"></script>
+  <script src="script.js?v=20260906m"></script>
 </body>
 </html>

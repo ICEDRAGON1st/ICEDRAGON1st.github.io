@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260906m": [
+    "Crystal Clicker shop organized into Click power and Idle income"
+  ],
   "20260906l": [
     "Crystal Clicker: more upgrades (cart, gloves, vault, singularity, and more)"
   ],

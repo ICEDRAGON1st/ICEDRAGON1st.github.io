@@ -5,142 +5,30 @@
   const REBIRTH_BASE_COST = 1_000_000;
 
   const UPGRADES = [
-    {
-      id: "pickaxe",
-      name: "Pickaxe",
-      desc: "+1 crystal per click",
-      baseCost: 15,
-      clickBonus: 1,
-      cps: 0
-    },
-    {
-      id: "miner",
-      name: "Miner",
-      desc: "+0.5 crystals / sec",
-      baseCost: 50,
-      clickBonus: 0,
-      cps: 0.5
-    },
-    {
-      id: "cart",
-      name: "Mine Cart",
-      desc: "+2 crystals / sec",
-      baseCost: 150,
-      clickBonus: 0,
-      cps: 2
-    },
-    {
-      id: "gloves",
-      name: "Crystal Gloves",
-      desc: "+5 crystals per click",
-      baseCost: 250,
-      clickBonus: 5,
-      cps: 0
-    },
-    {
-      id: "drill",
-      name: "Crystal Drill",
-      desc: "+4 crystals / sec",
-      baseCost: 400,
-      clickBonus: 0,
-      cps: 4
-    },
-    {
-      id: "tunnel",
-      name: "Deep Tunnel",
-      desc: "+10 crystals / sec",
-      baseCost: 1200,
-      clickBonus: 0,
-      cps: 10
-    },
-    {
-      id: "quarry",
-      name: "Quarry",
-      desc: "+20 crystals / sec",
-      baseCost: 3000,
-      clickBonus: 0,
-      cps: 20
-    },
-    {
-      id: "hammer",
-      name: "Amber Hammer",
-      desc: "+25 crystals per click",
-      baseCost: 5000,
-      clickBonus: 25,
-      cps: 0
-    },
-    {
-      id: "refinery",
-      name: "Gem Refinery",
-      desc: "+50 crystals / sec",
-      baseCost: 8000,
-      clickBonus: 0,
-      cps: 50
-    },
-    {
-      id: "factory",
-      name: "Gem Factory",
-      desc: "+100 crystals / sec",
-      baseCost: 20000,
-      clickBonus: 0,
-      cps: 100
-    },
-    {
-      id: "megamine",
-      name: "Mega Mine",
-      desc: "+350 crystals / sec",
-      baseCost: 75000,
-      clickBonus: 0,
-      cps: 350
-    },
-    {
-      id: "reactor",
-      name: "Amber Reactor",
-      desc: "+750 crystals / sec",
-      baseCost: 150000,
-      clickBonus: 0,
-      cps: 750
-    },
-    {
-      id: "fist",
-      name: "Titan Fist",
-      desc: "+100 crystals per click",
-      baseCost: 250000,
-      clickBonus: 100,
-      cps: 0
-    },
-    {
-      id: "vault",
-      name: "Crystal Vault",
-      desc: "+2,500 crystals / sec",
-      baseCost: 500000,
-      clickBonus: 0,
-      cps: 2500
-    },
-    {
-      id: "fortress",
-      name: "Ore Fortress",
-      desc: "+12,000 crystals / sec",
-      baseCost: 2500000,
-      clickBonus: 0,
-      cps: 12000
-    },
-    {
-      id: "nebula",
-      name: "Nebula Drill",
-      desc: "+75,000 crystals / sec",
-      baseCost: 15000000,
-      clickBonus: 0,
-      cps: 75000
-    },
-    {
-      id: "singularity",
-      name: "Singularity Core",
-      desc: "+500,000 crystals / sec",
-      baseCost: 100000000,
-      clickBonus: 0,
-      cps: 500000
-    }
+    // Click power
+    { id: "pickaxe", name: "Pickaxe", desc: "+1 per click", baseCost: 15, clickBonus: 1, cps: 0, group: "click" },
+    { id: "gloves", name: "Crystal Gloves", desc: "+5 per click", baseCost: 250, clickBonus: 5, cps: 0, group: "click" },
+    { id: "hammer", name: "Amber Hammer", desc: "+25 per click", baseCost: 5000, clickBonus: 25, cps: 0, group: "click" },
+    { id: "fist", name: "Titan Fist", desc: "+100 per click", baseCost: 250000, clickBonus: 100, cps: 0, group: "click" },
+    // Idle income
+    { id: "miner", name: "Miner", desc: "+0.5 / sec", baseCost: 50, clickBonus: 0, cps: 0.5, group: "idle" },
+    { id: "cart", name: "Mine Cart", desc: "+2 / sec", baseCost: 150, clickBonus: 0, cps: 2, group: "idle" },
+    { id: "drill", name: "Crystal Drill", desc: "+4 / sec", baseCost: 400, clickBonus: 0, cps: 4, group: "idle" },
+    { id: "tunnel", name: "Deep Tunnel", desc: "+10 / sec", baseCost: 1200, clickBonus: 0, cps: 10, group: "idle" },
+    { id: "quarry", name: "Quarry", desc: "+20 / sec", baseCost: 3000, clickBonus: 0, cps: 20, group: "idle" },
+    { id: "refinery", name: "Gem Refinery", desc: "+50 / sec", baseCost: 8000, clickBonus: 0, cps: 50, group: "idle" },
+    { id: "factory", name: "Gem Factory", desc: "+100 / sec", baseCost: 20000, clickBonus: 0, cps: 100, group: "idle" },
+    { id: "megamine", name: "Mega Mine", desc: "+350 / sec", baseCost: 75000, clickBonus: 0, cps: 350, group: "idle" },
+    { id: "reactor", name: "Amber Reactor", desc: "+750 / sec", baseCost: 150000, clickBonus: 0, cps: 750, group: "idle" },
+    { id: "vault", name: "Crystal Vault", desc: "+2,500 / sec", baseCost: 500000, clickBonus: 0, cps: 2500, group: "idle" },
+    { id: "fortress", name: "Ore Fortress", desc: "+12,000 / sec", baseCost: 2500000, clickBonus: 0, cps: 12000, group: "idle" },
+    { id: "nebula", name: "Nebula Drill", desc: "+75,000 / sec", baseCost: 15000000, clickBonus: 0, cps: 75000, group: "idle" },
+    { id: "singularity", name: "Singularity Core", desc: "+500,000 / sec", baseCost: 100000000, clickBonus: 0, cps: 500000, group: "idle" }
+  ];
+
+  const SHOP_GROUPS = [
+    { id: "click", title: "Click power", blurb: "Stronger taps" },
+    { id: "idle", title: "Idle income", blurb: "Crystals while AFK" }
   ];
 
   const crystalCountEl = document.getElementById("crystal-count");
@@ -149,6 +37,7 @@
   const hudBestEl = document.getElementById("hud-best");
   const hudMultEl = document.getElementById("hud-mult");
   const multLabelEl = document.getElementById("mult-label");
+  const clickPowerEl = document.getElementById("click-power-label");
   const overlayBestEl = document.getElementById("overlay-best");
   const crystalBtn = document.getElementById("crystal-btn");
   const shopList = document.getElementById("shop-list");
@@ -376,22 +265,35 @@
     render();
   }
 
+  function shopItemHtml(u) {
+    const owned = state.owned[u.id] || 0;
+    const cost = upgradeCost(u, owned);
+    const canBuy = state.crystals >= cost;
+    return `<div class="shop-item" role="listitem" data-group="${u.group}">
+      <div class="shop-item-main">
+        <div class="shop-item-name">${u.name}</div>
+        <p class="shop-item-desc">${u.desc}</p>
+        <div class="shop-item-owned">Owned: ${owned}</div>
+      </div>
+      <button type="button" class="buy-btn" data-buy="${u.id}" ${canBuy ? "" : "disabled"}>
+        ${formatNum(cost)}
+      </button>
+    </div>`;
+  }
+
   function renderShop() {
     if (!shopList) return;
-    shopList.innerHTML = UPGRADES.map((u) => {
-      const owned = state.owned[u.id] || 0;
-      const cost = upgradeCost(u, owned);
-      const canBuy = state.crystals >= cost;
-      return `<div class="shop-item" role="listitem">
-        <div class="shop-item-main">
-          <div class="shop-item-name">${u.name}</div>
-          <p class="shop-item-desc">${u.desc}</p>
-          <div class="shop-item-owned">Owned: ${owned}</div>
-        </div>
-        <button type="button" class="buy-btn" data-buy="${u.id}" ${canBuy ? "" : "disabled"}>
-          ${formatNum(cost)}
-        </button>
-      </div>`;
+    shopList.innerHTML = SHOP_GROUPS.map((group) => {
+      const items = UPGRADES.filter((u) => u.group === group.id).sort(
+        (a, b) => a.baseCost - b.baseCost
+      );
+      return `<section class="shop-section" data-section="${group.id}">
+        <header class="shop-section-head">
+          <h3>${group.title}</h3>
+          <span>${group.blurb}</span>
+        </header>
+        <div class="shop-section-items">${items.map(shopItemHtml).join("")}</div>
+      </section>`;
     }).join("");
   }
 
@@ -406,7 +308,7 @@
       const cost = upgradeCost(upgrade, owned);
       btn.textContent = formatNum(cost);
       btn.disabled = state.crystals < cost;
-      const ownedEl = btn.parentElement?.querySelector(".shop-item-owned");
+      const ownedEl = btn.closest(".shop-item")?.querySelector(".shop-item-owned");
       if (ownedEl) ownedEl.textContent = `Owned: ${owned}`;
     });
   }
@@ -444,6 +346,7 @@
     if (hudBestEl) hudBestEl.textContent = formatNum(best);
     if (hudMultEl) hudMultEl.textContent = String(mult);
     if (multLabelEl) multLabelEl.textContent = `×${mult}`;
+    if (clickPowerEl) clickPowerEl.textContent = `+${formatNum(clickGain())}`;
     if (overlayBestEl) overlayBestEl.textContent = formatNum(best);
     refreshShopButtons();
     renderRebirth();
