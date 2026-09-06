@@ -4,7 +4,7 @@
   const LOCAL_WIPE_ID = "hub-clicker-local-wipe-v2";
   const TICK_MS = 100;
   const MIN_CLICK_MS = 50;
-  const REBIRTH_BASE_COST = 1_000_000;
+  const REBIRTH_BASE_COST = 3_000_000;
 
   // Force-clear every local Crystal Clicker key once (leaderboard wipe companion).
   try {
@@ -329,7 +329,7 @@
   }
 
   function rebirthCost() {
-    // 1st = 1M, 2nd = 10M, 3rd = 100M, …
+    // 1st = 3M, 2nd = 30M, 3rd = 300M, …
     return Math.floor(REBIRTH_BASE_COST * Math.pow(10, Math.max(0, Math.floor(state.rebirths || 0))));
   }
 

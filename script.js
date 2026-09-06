@@ -20,6 +20,18 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260907f": [
+    "Crystal Clicker: rebirth 3M → 30M → ×10 each"
+  ],
+  "20260907e": [
+    "Crystal Clicker: rebirth 3M → 9M → ×3 each"
+  ],
+  "20260907d": [
+    "Crystal Clicker: rebirth scale ×3 (1st 100M, 2nd 300M, …)"
+  ],
+  "20260907c": [
+    "Crystal Clicker: rebirth costs ×100 (1st 100M, then ×10 each)"
+  ],
   "20260907b": [
     "Crystal Clicker: huge upgrade pack (~70 total click + idle)"
   ],
