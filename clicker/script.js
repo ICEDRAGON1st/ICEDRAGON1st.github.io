@@ -2,6 +2,7 @@
   const SAVE_KEY = "clicker-save-v3";
   const HIGH_SCORE_KEY = "clicker-high-score-v3";
   const LOCAL_WIPE_ID = "hub-clicker-local-wipe-v2";
+  const ICE_LOCAL_WIPE_ID = "hub-clicker-ice-dragon-wipe-v1";
   const TICK_MS = 100;
   const MIN_CLICK_MS = 50;
   const REBIRTH_BASE_COST = 3_000_000;
@@ -16,6 +17,46 @@
       }
       doomed.forEach((key) => localStorage.removeItem(key));
       localStorage.setItem(LOCAL_WIPE_ID, "done");
+    }
+  } catch {}
+
+  // One-time: reset ICE_DRAGON's local Crystal Clicker progress only.
+  try {
+    const name = String(
+      (typeof HubPlays !== "undefined" && HubPlays.getName && HubPlays.getName()) || ""
+    )
+      .trim()
+      .toLowerCase();
+    if (name === "ice_dragon" && localStorage.getItem(ICE_LOCAL_WIPE_ID) !== "done") {
+      const doomed = [];
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (key && /^clicker/i.test(key)) doomed.push(key);
+      }
+      doomed.forEach((key) => localStorage.removeItem(key));
+      try {
+        const achKey = "hub-achievements-v1";
+        const raw = localStorage.getItem(achKey);
+        if (raw) {
+          const data = JSON.parse(raw) || {};
+          Object.keys(data).forEach((id) => {
+            if (/^clicker_/i.test(id)) delete data[id];
+          });
+          localStorage.setItem(achKey, JSON.stringify(data));
+        }
+        const pendingKey = "hub-achievements-pending";
+        const pendingRaw = localStorage.getItem(pendingKey);
+        if (pendingRaw) {
+          const list = JSON.parse(pendingRaw);
+          if (Array.isArray(list)) {
+            localStorage.setItem(
+              pendingKey,
+              JSON.stringify(list.filter((id) => !/^clicker_/i.test(String(id || ""))))
+            );
+          }
+        }
+      } catch {}
+      localStorage.setItem(ICE_LOCAL_WIPE_ID, "done");
     }
   } catch {}
 

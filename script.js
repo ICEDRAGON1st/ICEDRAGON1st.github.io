@@ -20,6 +20,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260907h": [
+    "Crystal Clicker: reset ICE_DRAGON leaderboard + local progress"
+  ],
   "20260907g": [
     "Crystal Clicker: lots more click power upgrades (through Source Strike)"
   ],

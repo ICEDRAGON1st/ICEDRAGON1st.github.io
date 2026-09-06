@@ -347,6 +347,27 @@
     });
     games.clicker = clickerBoard;
 
+    // One-time: wipe ICE_DRAGON from Crystal Clicker only (other games untouched).
+    const iceClickerWipeKey = "clicker:ice_dragon-v1";
+    const ICE_CLICKER_WIPE_AT = Date.UTC(2026, 8, 6, 20, 0, 0); // 2026-09-06 20:00 UTC
+    if (!resets[iceClickerWipeKey] || Number(resets[iceClickerWipeKey]) < ICE_CLICKER_WIPE_AT) {
+      resets[iceClickerWipeKey] = ICE_CLICKER_WIPE_AT;
+    }
+    const iceCut = Number(resets[iceClickerWipeKey]) || ICE_CLICKER_WIPE_AT;
+    const iceBoard = { ...(games.clicker || {}) };
+    Object.keys(iceBoard).forEach((key) => {
+      const entry = iceBoard[key];
+      if (!entry) return;
+      const keyName = nameKey(entry.name || key);
+      const isIce =
+        key === "ice_dragon" ||
+        keyName === "ice_dragon" ||
+        entry.playerId === "p-mtlztdny-r28rrb";
+      const at = Number(entry.at) || 0;
+      if (isIce && at <= iceCut) delete iceBoard[key];
+    });
+    games.clicker = iceBoard;
+
     // Sticky name binds: keep scores under the player's current name after renames.
     // Seed: Gustav → Dellekai (same playerId).
     const dellekaiBind = "namebind:p-mtnfme96-6bpve6";
