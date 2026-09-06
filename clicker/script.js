@@ -23,8 +23,12 @@
     // Click power
     { id: "pickaxe", name: "Pickaxe", desc: "+1 per click", baseCost: 15, clickBonus: 1, cps: 0, group: "click" },
     { id: "gloves", name: "Crystal Gloves", desc: "+5 per click", baseCost: 250, clickBonus: 5, cps: 0, group: "click" },
+    { id: "chisel", name: "Prism Chisel", desc: "+12 per click", baseCost: 1200, clickBonus: 12, cps: 0, group: "click" },
     { id: "hammer", name: "Amber Hammer", desc: "+25 per click", baseCost: 5000, clickBonus: 25, cps: 0, group: "click" },
+    { id: "gauntlet", name: "Shard Gauntlet", desc: "+60 per click", baseCost: 45000, clickBonus: 60, cps: 0, group: "click" },
     { id: "fist", name: "Titan Fist", desc: "+100 per click", baseCost: 250000, clickBonus: 100, cps: 0, group: "click" },
+    { id: "cannon", name: "Crystal Cannon", desc: "+400 per click", baseCost: 2000000, clickBonus: 400, cps: 0, group: "click" },
+    { id: "comet", name: "Comet Strike", desc: "+2,000 per click", baseCost: 25000000, clickBonus: 2000, cps: 0, group: "click" },
     // Idle income
     { id: "miner", name: "Miner", desc: "+0.5 / sec", baseCost: 50, clickBonus: 0, cps: 0.5, group: "idle" },
     { id: "cart", name: "Mine Cart", desc: "+2 / sec", baseCost: 150, clickBonus: 0, cps: 2, group: "idle" },
@@ -33,12 +37,19 @@
     { id: "quarry", name: "Quarry", desc: "+20 / sec", baseCost: 3000, clickBonus: 0, cps: 20, group: "idle" },
     { id: "refinery", name: "Gem Refinery", desc: "+50 / sec", baseCost: 8000, clickBonus: 0, cps: 50, group: "idle" },
     { id: "factory", name: "Gem Factory", desc: "+100 / sec", baseCost: 20000, clickBonus: 0, cps: 100, group: "idle" },
+    { id: "pipeline", name: "Amber Pipeline", desc: "+200 / sec", baseCost: 40000, clickBonus: 0, cps: 200, group: "idle" },
     { id: "megamine", name: "Mega Mine", desc: "+350 / sec", baseCost: 75000, clickBonus: 0, cps: 350, group: "idle" },
     { id: "reactor", name: "Amber Reactor", desc: "+750 / sec", baseCost: 150000, clickBonus: 0, cps: 750, group: "idle" },
+    { id: "foundry", name: "Crystal Foundry", desc: "+1,500 / sec", baseCost: 300000, clickBonus: 0, cps: 1500, group: "idle" },
     { id: "vault", name: "Crystal Vault", desc: "+2,500 / sec", baseCost: 500000, clickBonus: 0, cps: 2500, group: "idle" },
+    { id: "city", name: "Gem City", desc: "+6,000 / sec", baseCost: 1200000, clickBonus: 0, cps: 6000, group: "idle" },
     { id: "fortress", name: "Ore Fortress", desc: "+12,000 / sec", baseCost: 2500000, clickBonus: 0, cps: 12000, group: "idle" },
+    { id: "orbital", name: "Orbital Laser", desc: "+35,000 / sec", baseCost: 7000000, clickBonus: 0, cps: 35000, group: "idle" },
     { id: "nebula", name: "Nebula Drill", desc: "+75,000 / sec", baseCost: 15000000, clickBonus: 0, cps: 75000, group: "idle" },
-    { id: "singularity", name: "Singularity Core", desc: "+500,000 / sec", baseCost: 100000000, clickBonus: 0, cps: 500000, group: "idle" }
+    { id: "dyson", name: "Dyson Mine", desc: "+200,000 / sec", baseCost: 40000000, clickBonus: 0, cps: 200000, group: "idle" },
+    { id: "singularity", name: "Singularity Core", desc: "+500,000 / sec", baseCost: 100000000, clickBonus: 0, cps: 500000, group: "idle" },
+    { id: "multiverse", name: "Multiverse Pick", desc: "+2M / sec", baseCost: 500000000, clickBonus: 0, cps: 2000000, group: "idle" },
+    { id: "infinity", name: "Infinity Vein", desc: "+10M / sec", baseCost: 2500000000, clickBonus: 0, cps: 10000000, group: "idle" }
   ];
 
   const SHOP_GROUPS = [
