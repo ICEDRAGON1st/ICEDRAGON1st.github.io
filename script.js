@@ -20,6 +20,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260906y": [
+    "Crystal Clicker: click upgrades back to earlier prices"
+  ],
   "20260906x": [
     "Removed Back button from My Games hub (Esc still leaves)"
   ],
