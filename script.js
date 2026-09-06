@@ -20,6 +20,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260906w": [
+    "Hub Settings moved to the top-left header button (Back is in the toolbar)"
+  ],
   "20260906v": [
     "Hub Settings: switch looks — Classic, Arcade, Ice, Retro, Workshop, Poster wall"
   ],
@@ -1430,7 +1433,7 @@ function showGamesScreen() {
   if (leaderboardsPanel) leaderboardsPanel.classList.add("hidden");
   if (hubSettingsPanel) hubSettingsPanel.classList.add("hidden");
   if (toggleLeaderboardsBtn) toggleLeaderboardsBtn.textContent = "Leaderboards";
-  if (toggleSettingsBtn) toggleSettingsBtn.textContent = "Settings";
+  if (toggleSettingsBtn) toggleSettingsBtn.textContent = "⚙ Settings";
   stopLeaderboardRefresh();
   applyHubTheme();
   refreshGamesHub();
@@ -2052,7 +2055,7 @@ toggleUpdatesBtn?.addEventListener("click", () => {
 toggleSettingsBtn?.addEventListener("click", () => {
   if (!hubSettingsPanel) return;
   const open = hubSettingsPanel.classList.toggle("hidden") === false;
-  toggleSettingsBtn.textContent = open ? "Hide settings" : "Settings";
+  toggleSettingsBtn.textContent = open ? "Hide settings" : "⚙ Settings";
   if (open) applyHubTheme();
 });
 

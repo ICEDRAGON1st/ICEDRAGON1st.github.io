@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260906v">
+  <link rel="stylesheet" href="styles.css?v=20260906w">
 </head>
 <body>
   <div class="app">
@@ -100,7 +100,7 @@
   <div id="games-screen" class="games-screen hidden" role="dialog" aria-modal="true" aria-labelledby="games-title">
     <div class="games-screen-inner">
       <header class="games-header">
-        <button id="games-back" type="button" class="games-back" aria-label="Back to menu">← Back</button>
+        <button id="toggle-settings-btn" type="button" class="games-back hub-settings-header-btn" aria-label="Open settings" title="Settings">⚙ Settings</button>
         <div class="games-title-wrap">
           <p id="games-eyebrow" class="games-eyebrow">Hub</p>
           <h2 id="games-title">My Games</h2>
@@ -115,6 +115,7 @@
       <p id="games-message" class="games-message" role="status" aria-live="polite"></p>
 
       <div class="games-toolbar">
+        <button id="games-back" type="button" class="hub-btn">← Back</button>
         <button id="continue-last-btn" type="button" class="hub-btn hub-btn-primary hidden">Continue last game</button>
         <button id="toggle-scores-btn" type="button" class="hub-btn">High scores</button>
         <button id="toggle-leaderboards-btn" type="button" class="hub-btn">Leaderboards</button>
@@ -122,7 +123,6 @@
         <button id="toggle-players-btn" type="button" class="hub-btn">Players</button>
         <button id="toggle-friends-btn" type="button" class="hub-btn">Friends</button>
         <button id="toggle-updates-btn" type="button" class="hub-btn">Updates</button>
-        <button id="toggle-settings-btn" type="button" class="hub-btn">Settings</button>
         <button id="share-moment-btn" type="button" class="hub-btn">Share moment</button>
       </div>
 
@@ -352,7 +352,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260906v";
+    window.WORDLE_BUILD = "20260906w";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "hub-leaderboard.js", "hub-friends.js", "hub-online-match.js",
       "words.js",
