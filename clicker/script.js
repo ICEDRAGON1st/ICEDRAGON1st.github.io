@@ -1,8 +1,14 @@
 (function () {
-  const SAVE_KEY = "clicker-save-v1";
-  const HIGH_SCORE_KEY = "clicker-high-score";
+  const SAVE_KEY = "clicker-save-v2";
+  const HIGH_SCORE_KEY = "clicker-high-score-v2";
   const TICK_MS = 100;
   const REBIRTH_BASE_COST = 1_000_000;
+
+  // Drop pre-wipe local saves (global Crystal Clicker reset).
+  try {
+    localStorage.removeItem("clicker-save-v1");
+    localStorage.removeItem("clicker-high-score");
+  } catch {}
 
   const UPGRADES = [
     // Click power (pricier than idle — clicks are strong)

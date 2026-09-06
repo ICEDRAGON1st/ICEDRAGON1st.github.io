@@ -315,6 +315,20 @@
     }
     games.sudoku = sudoku;
 
+    // One-time: wipe ALL Crystal Clicker leaderboard scores (other games untouched).
+    const clickerWipeKey = "clicker:full-wipe-v1";
+    const CLICKER_WIPE_AT = Date.UTC(2026, 8, 6, 16, 0, 0); // 2026-09-06 16:00 UTC
+    if (!resets[clickerWipeKey] || Number(resets[clickerWipeKey]) > CLICKER_WIPE_AT) {
+      resets[clickerWipeKey] = CLICKER_WIPE_AT;
+    }
+    const clickerCut = Number(resets[clickerWipeKey]) || CLICKER_WIPE_AT;
+    const clickerBoard = { ...(games.clicker || {}) };
+    Object.keys(clickerBoard).forEach((key) => {
+      const at = Number(clickerBoard[key]?.at) || 0;
+      if (at <= clickerCut) delete clickerBoard[key];
+    });
+    games.clicker = clickerBoard;
+
     // Sticky name binds: keep scores under the player's current name after renames.
     // Seed: Gustav → Dellekai (same playerId).
     const dellekaiBind = "namebind:p-mtnfme96-6bpve6";

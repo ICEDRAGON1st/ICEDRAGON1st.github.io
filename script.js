@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260906p": [
+    "Crystal Clicker progress & leaderboard reset for everyone (other games unchanged)"
+  ],
   "20260906o": [
     "Crystal Clicker numbers use K / M / B / T shorthand"
   ],
@@ -1040,7 +1043,7 @@ function getHubScore(gameId) {
       return { label: score ? `Best ${score}` : "No score yet", sort: score };
     }
     case "clicker": {
-      const score = readNumberKey("clicker-high-score");
+      const score = readNumberKey("clicker-high-score-v2");
       return { label: score ? `Best ${score.toLocaleString()}` : "No score yet", sort: score };
     }
     default:
