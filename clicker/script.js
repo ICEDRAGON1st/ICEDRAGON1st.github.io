@@ -350,24 +350,24 @@
 
   function renderRebirth() {
     const mult = multiplier();
+    const nextMult = mult * 2;
     const cost = rebirthCost();
     const ready = state.crystals >= cost;
     if (rebirthMultEl) {
-      rebirthMultEl.textContent =
-        state.rebirths > 0
-          ? `Rebirths: ${state.rebirths} · Multiplier: ×${mult}`
-          : `Multiplier: ×${mult}`;
+      const rebirthLabel =
+        state.rebirths > 0 ? `Rebirths: ${state.rebirths} · ` : "";
+      rebirthMultEl.textContent = `${rebirthLabel}Now ×${mult} → after ×${nextMult}`;
     }
     if (rebirthDesc) {
       rebirthDesc.textContent = ready
-        ? `Ready! Reset bank & upgrades, keep lifetime, go to ×${mult * 2} earnings.`
-        : `Need ${formatNum(cost)} crystals in the bank. Resets upgrades & bank, keeps lifetime, doubles all earnings.`;
+        ? `Ready! Reset bank & upgrades, keep lifetime. Multiplier becomes ×${nextMult}.`
+        : `Need ${formatNum(cost)} crystals. Resets upgrades & bank, keeps lifetime. Next multi: ×${nextMult}.`;
     }
     if (rebirthBtn) {
       rebirthBtn.disabled = !ready;
       rebirthBtn.textContent = ready
-        ? `Rebirth → ×${mult * 2}`
-        : `Rebirth (${formatNum(state.crystals)} / ${formatNum(cost)})`;
+        ? `Rebirth → ×${nextMult}`
+        : `Rebirth to ×${nextMult} (${formatNum(state.crystals)} / ${formatNum(cost)})`;
     }
   }
 

@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260906s": [
+    "Crystal Clicker shows next rebirth multiplier (Now ×1 → after ×2)"
+  ],
   "20260906r": [
     "Crystal Clicker: max click speed capped at once per 50ms"
   ],
