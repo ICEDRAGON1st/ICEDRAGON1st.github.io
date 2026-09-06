@@ -32,7 +32,7 @@
     flappy: { label: "Flappy Bird", lowerBetter: false, unit: "score" },
     tictactoe: { label: "Tic Tac Toe", lowerBetter: false, unit: "wins" },
     pixletris: { label: "Pixletris", lowerBetter: false, unit: "score" },
-    clicker: { label: "Crystal Clicker", lowerBetter: false, unit: "score" },
+    clicker: { label: "Crystal Clicker", lowerBetter: false, unit: "compact" },
     "online-time": { label: "Time Online", lowerBetter: false, unit: "playtime" }
   };
 
@@ -104,6 +104,23 @@
     return `${r}s`;
   }
 
+  const COMPACT_SUFFIXES = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
+
+  function formatCompact(n) {
+    let v = Math.abs(Number(n) || 0);
+    if (!Number.isFinite(v) || v <= 0) return "0";
+    if (v < 1000) return String(Math.floor(v));
+    let tier = 0;
+    while (v >= 1000 && tier < COMPACT_SUFFIXES.length - 1) {
+      v /= 1000;
+      tier += 1;
+    }
+    const digits = v >= 100 ? 0 : v >= 10 ? 1 : 2;
+    let text = v.toFixed(digits);
+    text = text.replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1");
+    return `${text}${COMPACT_SUFFIXES[tier]}`;
+  }
+
   function formatScore(gameId, score) {
     const m = meta(gameId);
     const n = Number(score);
@@ -112,6 +129,7 @@
     if (m.unit === "playtime") return formatPlaytime(n);
     if (m.unit === "wins") return `${Math.floor(n)} win${Math.floor(n) === 1 ? "" : "s"}`;
     if (m.unit === "streak") return `Streak ${Math.floor(n)}`;
+    if (gameId === "clicker" || m.unit === "compact") return `Best ${formatCompact(n)}`;
     return `Best ${Math.floor(n)}`;
   }
 

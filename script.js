@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260906t": [
+    "Crystal Clicker leaderboard uses K / M / B shorthand"
+  ],
   "20260906s": [
     "Crystal Clicker shows next rebirth multiplier (Now ×1 → after ×2)"
   ],
@@ -1053,7 +1056,12 @@ function getHubScore(gameId) {
     }
     case "clicker": {
       const score = readNumberKey("clicker-high-score-v3");
-      return { label: score ? `Best ${score.toLocaleString()}` : "No score yet", sort: score };
+      if (!score) return { label: "No score yet", sort: 0 };
+      const compact =
+        typeof HubLeaderboard !== "undefined" && HubLeaderboard.formatScore
+          ? HubLeaderboard.formatScore("clicker", score).replace(/^Best\s+/, "")
+          : String(score);
+      return { label: `Best ${compact}`, sort: score };
     }
     default:
       return { label: "—", sort: 0 };
