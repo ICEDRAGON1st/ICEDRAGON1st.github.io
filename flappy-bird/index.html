@@ -4,12 +4,13 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Flappy Bird</title>
-  <link rel="stylesheet" href="styles.css?v=20260904l">
+  <link rel="stylesheet" href="styles.css?v=20260907l">
 </head>
 <body>
   <div class="hud">
     <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
     <div class="hud-stats">
+      <span id="hud-skin">Classic</span>
       <span>Score: <strong id="score">0</strong></span>
       <span>Best: <strong id="high-score">0</strong></span>
     </div>
@@ -21,6 +22,17 @@
     <div class="overlay-card">
       <h1 id="overlay-title">Flappy Bird</h1>
       <p id="overlay-text">Tap, click, or press Space to flap. Fly through the gaps and don't hit the pipes.</p>
+      <p class="picker-label">Skin</p>
+      <div id="skin-picker" class="skin-picker" role="group" aria-label="Bird skin">
+        <button type="button" class="skin-btn active" data-skin="classic">Classic</button>
+        <button type="button" class="skin-btn" data-skin="sky">Sky</button>
+        <button type="button" class="skin-btn" data-skin="rose">Rose</button>
+        <button type="button" class="skin-btn" data-skin="ember">Ember</button>
+        <button type="button" class="skin-btn" data-skin="mint">Mint</button>
+        <button type="button" class="skin-btn" data-skin="ice">Ice</button>
+        <button type="button" class="skin-btn" data-skin="midnight">Midnight</button>
+        <button type="button" class="skin-btn" data-skin="gold">Gold</button>
+      </div>
       <div class="overlay-actions">
         <button id="resume-btn" type="button" class="btn btn-secondary hidden">Resume</button>
         <button id="view-board-btn" type="button" class="btn btn-secondary hidden">View board</button>
@@ -33,8 +45,8 @@
   <script src="../hub-streak.js"></script><script src="../hub-achievements.js"></script>
   <script src="../hub-sound.js"></script>
   <script src="../hub-confetti.js"></script>
-  <script src="../hub-plays.js?v=20260906g"></script>
-  <script src="../hub-leaderboard.js?v=20260906t"></script>
-  <script src="script.js?v=20260904l"></script>
+  <script src="../hub-plays.js?v=20260907k"></script>
+  <script src="../hub-leaderboard.js?v=20260907k"></script>
+  <script src="script.js?v=20260907l"></script>
 </body>
 </html>

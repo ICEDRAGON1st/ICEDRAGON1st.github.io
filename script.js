@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260907l": [
+    "Flappy Bird: bird skins (Classic, Sky, Rose, Ember, Mint, Ice, Midnight, Gold)"
+  ],
   "20260907k": [
     "Players: show last online time on all-time roster and friends list"
   ],
