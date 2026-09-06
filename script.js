@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260906o": [
+    "Crystal Clicker numbers use K / M / B / T shorthand"
+  ],
   "20260906n": [
     "Crystal Clicker: click-power upgrades cost more"
   ],

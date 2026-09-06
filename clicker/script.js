@@ -106,13 +106,29 @@
     return Math.max(0, Math.floor(Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0));
   }
 
+  const SUFFIXES = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
+
   function formatNum(n) {
-    const v = Math.floor(Number(n) || 0);
-    if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(2)}B`;
-    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(2)}M`;
-    if (v >= 10_000) return `${(v / 1_000).toFixed(1)}K`;
-    if (v >= 1000) return v.toLocaleString();
-    return String(v);
+    let v = Number(n) || 0;
+    if (!Number.isFinite(v)) return "0";
+    const neg = v < 0;
+    v = Math.abs(v);
+    if (v < 1000) {
+      const plain = v >= 100 ? String(Math.floor(v)) : v % 1 === 0 ? String(Math.floor(v)) : v.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+      return neg ? `-${plain}` : plain;
+    }
+    let tier = 0;
+    while (v >= 1000 && tier < SUFFIXES.length - 1) {
+      v /= 1000;
+      tier += 1;
+    }
+    let digits;
+    if (v >= 100) digits = 0;
+    else if (v >= 10) digits = 1;
+    else digits = 2;
+    let text = v.toFixed(digits);
+    text = text.replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1");
+    return `${neg ? "-" : ""}${text}${SUFFIXES[tier]}`;
   }
 
   function formatCps(n) {
