@@ -1876,6 +1876,14 @@ header h1 {
   background: #868e96;
 }
 
+.friends-last-online {
+  display: block;
+  margin: 0.15rem 0 0 0.8rem;
+  color: var(--subtitle);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
 .players-empty {
   color: var(--subtitle);
 }

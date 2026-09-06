@@ -27,6 +27,7 @@
   const MAX_PRESENCE = 120;
   const MAX_ALLTIME = 5000;
   const MAX_ONLINE_CREDIT_MS = 90_000; // don't dump hours after AFK reopen
+  const LAST_AT_WRITE_GAP_MS = 5 * 60_000; // don't rewrite all-time every heartbeat
 
   let lastOnlineTickAt = 0;
   let lastOnlineSubmitAt = 0;
@@ -937,7 +938,16 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       if (!p || typeof p !== "object") return;
       const firstAt = Number(p.firstAt) || Number(p.at) || 0;
       if (!firstAt) return;
-      out[id] = { firstAt, name: sanitizeName(p.name || "") || "Guest" };
+      const lastAt = Math.max(
+        Number(p.lastAt) || 0,
+        Number(p.at) || 0,
+        firstAt
+      );
+      out[id] = {
+        firstAt,
+        lastAt,
+        name: sanitizeName(p.name || "") || "Guest"
+      };
     });
     return out;
   }
@@ -967,20 +977,47 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     Object.entries(b || {}).forEach(([id, p]) => {
       if (!p) return;
       const existing = out[id];
+      const incomingFirst = Number(p.firstAt) || Number(p.at) || 0;
+      const incomingLast = Math.max(
+        Number(p.lastAt) || 0,
+        Number(p.at) || 0,
+        incomingFirst
+      );
       if (!existing) {
         out[id] = {
-          firstAt: Number(p.firstAt) || Number(p.at) || Date.now(),
+          firstAt: incomingFirst || Date.now(),
+          lastAt: incomingLast || incomingFirst || Date.now(),
           name: preferPlayerName(p.name, "")
         };
         return;
       }
       const firstAt = Math.min(
         existing.firstAt || Infinity,
-        Number(p.firstAt) || Number(p.at) || Infinity
+        incomingFirst || Infinity
+      );
+      const lastAt = Math.max(
+        Number(existing.lastAt) || 0,
+        incomingLast || 0,
+        Number(existing.firstAt) || 0
       );
       out[id] = {
         firstAt: firstAt === Infinity ? Date.now() : firstAt,
+        lastAt: lastAt || (firstAt === Infinity ? Date.now() : firstAt),
         name: preferPlayerName(existing.name, p.name)
+      };
+    });
+    return out;
+  }
+
+  function applyPresenceLastSeen(allTimeMap, presence) {
+    const out = { ...(allTimeMap || {}) };
+    Object.entries(presence || {}).forEach(([id, p]) => {
+      if (!out[id] || !p) return;
+      const at = Number(p.at) || 0;
+      if (!at) return;
+      out[id] = {
+        ...out[id],
+        lastAt: Math.max(Number(out[id].lastAt) || 0, Number(out[id].firstAt) || 0, at)
       };
     });
     return out;
@@ -1002,9 +1039,12 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     (plays || []).forEach((p) => {
       if (!p || !p.playerId) return;
       const prev = fromPlays[p.playerId];
-      const firstAt = Math.min(prev?.firstAt || Infinity, Number(p.at) || Date.now());
+      const at = Number(p.at) || Date.now();
+      const firstAt = Math.min(prev?.firstAt || Infinity, at);
+      const lastAt = Math.max(prev?.lastAt || 0, at);
       fromPlays[p.playerId] = {
-        firstAt: firstAt === Infinity ? Date.now() : firstAt,
+        firstAt: firstAt === Infinity ? at : firstAt,
+        lastAt: lastAt || at,
         name: preferPlayerName(prev?.name, p.name)
       };
     });
@@ -1019,10 +1059,11 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       if (isPlaceholderName(name)) return;
       const prev = out[claim.playerId];
       const claimedAt = Number(claim.claimedAt) || Date.now();
+      const firstAt = Math.min(prev?.firstAt || Infinity, claimedAt);
+      const lastAt = Math.max(prev?.lastAt || 0, claimedAt);
       out[claim.playerId] = {
-        firstAt: Math.min(prev?.firstAt || Infinity, claimedAt) === Infinity
-          ? claimedAt
-          : Math.min(prev?.firstAt || claimedAt, claimedAt),
+        firstAt: firstAt === Infinity ? claimedAt : firstAt,
+        lastAt: lastAt || claimedAt,
         name: preferPlayerName(prev?.name, name)
       };
     });
@@ -1030,14 +1071,17 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   function buildAllTimeMap(remote, plays, names, meEntry) {
-    return trimAllTime(
-      mergeAllTime(
+    return applyPresenceLastSeen(
+      trimAllTime(
         mergeAllTime(
-          mergeAllTime(remote || {}, namesFromPlays(plays)),
-          namesFromRegistry(names)
-        ),
-        meEntry || {}
-      )
+          mergeAllTime(
+            mergeAllTime(remote || {}, namesFromPlays(plays)),
+            namesFromRegistry(names)
+          ),
+          meEntry || {}
+        )
+      ),
+      presenceCache
     );
   }
 
@@ -1053,6 +1097,9 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       const remoteFirst = Number(remote[id].firstAt) || 0;
       const nextFirst = Number(next[id].firstAt) || 0;
       if (nextFirst && remoteFirst && nextFirst < remoteFirst) return true;
+      const remoteLast = Number(remote[id].lastAt) || 0;
+      const nextLast = Number(next[id].lastAt) || 0;
+      if (nextLast - remoteLast >= LAST_AT_WRITE_GAP_MS) return true;
     }
     return false;
   }
@@ -1072,14 +1119,51 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       cache.plays || loadLocal().plays || [],
       namesCache
     );
+    const now = Date.now();
     return Object.entries(enriched)
-      .map(([playerId, p]) => ({
-        playerId,
-        name: sanitizeName(p.name || "") || "Guest",
-        firstAt: Number(p.firstAt) || 0
-      }))
+      .map(([playerId, p]) => {
+        const firstAt = Number(p.firstAt) || 0;
+        const lastAt = Math.max(Number(p.lastAt) || 0, firstAt);
+        return {
+          playerId,
+          name: sanitizeName(p.name || "") || "Guest",
+          firstAt,
+          lastAt,
+          online: lastAt > 0 && now - lastAt < ONLINE_TTL_MS
+        };
+      })
       .filter((p) => !isPlaceholderName(p.name))
-      .sort((a, b) => (a.firstAt || 0) - (b.firstAt || 0));
+      .sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
+  }
+
+  function getLastSeen(playerId) {
+    const id = String(playerId || "");
+    if (!id) return 0;
+    const presenceAt = Number(presenceCache[id]?.at) || 0;
+    const enriched = buildAllTimeMap(
+      allTimeCache,
+      cache.plays || loadLocal().plays || [],
+      namesCache
+    );
+    const allAt = Math.max(
+      Number(enriched[id]?.lastAt) || 0,
+      Number(enriched[id]?.firstAt) || 0
+    );
+    return Math.max(presenceAt, allAt);
+  }
+
+  function formatLastOnline(playerIdOrAt, opts = {}) {
+    const onlineLabel = opts.onlineLabel || "online now";
+    const prefix = opts.prefix || "last online";
+    let at = 0;
+    if (typeof playerIdOrAt === "number") {
+      at = playerIdOrAt;
+    } else {
+      at = getLastSeen(playerIdOrAt);
+    }
+    if (!at) return opts.empty || "";
+    if (Date.now() - at < ONLINE_TTL_MS) return onlineLabel;
+    return `${prefix} ${formatWhen(at)}`;
   }
 
   /**
@@ -1114,7 +1198,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       const myName = getName();
       const meEntry =
         myName && !isPlaceholderName(myName)
-          ? { [me]: { firstAt: now, name: myName } }
+          ? { [me]: { firstAt: now, lastAt: now, name: myName } }
           : {};
       const next = buildAllTimeMap(remote, plays, namesCache, meEntry);
 
@@ -1967,6 +2051,8 @@ body.light .menu-credit .player-name-creator {
     getOnlinePlayers,
     getAllTimeCount,
     getAllTimePlayers,
+    getLastSeen,
+    formatLastOnline,
     registerAllTime,
     startPresence,
     getOnlineSeconds,

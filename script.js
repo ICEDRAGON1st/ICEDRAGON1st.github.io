@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260907k": [
+    "Players: show last online time on all-time roster and friends list"
+  ],
   "20260907j": [
     "Wordle themes like Hangman (Animals, Food, Flags, Sports, Nature, Space, Music, Movies) — Practice mode"
   ],
@@ -2508,12 +2511,16 @@ function renderPlayersRoster(mode) {
   } else {
     list.innerHTML = visible
       .map((p) => {
-        const when =
-          mode === "online"
-            ? HubPlays.formatWhen(p.at)
-            : p.firstAt
-              ? `joined ${HubPlays.formatWhen(p.firstAt)}`
-              : "";
+        let when = "";
+        if (mode === "online") {
+          when = "online now";
+        } else if (p.online) {
+          when = "online now";
+        } else if (p.lastAt) {
+          when = `last online ${HubPlays.formatWhen(p.lastAt)}`;
+        } else if (p.firstAt) {
+          when = `joined ${HubPlays.formatWhen(p.firstAt)}`;
+        }
         return `<li><span>${formatPlayerNameHtml(p.name)}</span><span class="players-when">${escapeHtml(when)}</span></li>`;
       })
       .join("");
@@ -2659,7 +2666,17 @@ function renderFriendsPanel() {
   list.innerHTML = friends
     .map((f) => {
       const isOn = online.has(String(f.name || "").trim().toLowerCase());
-      return `<li><span><span class="friends-online-dot${isOn ? "" : " is-offline"}" title="${isOn ? "Online" : "Offline"}"></span>${formatPlayerNameHtml(f.name)}</span><span class="friends-actions"><a class="hub-btn" href="tic-tac-toe/index.html?inviteFriend=${encodeURIComponent(f.playerId)}">TTT</a><a class="hub-btn" href="connect-four/index.html?inviteFriend=${encodeURIComponent(f.playerId)}">C4</a><button type="button" class="hub-btn" data-friend-remove="${escapeHtml(f.playerId)}">Remove</button></span></li>`;
+      const seen =
+        typeof HubPlays.formatLastOnline === "function"
+          ? HubPlays.formatLastOnline(f.playerId, {
+              onlineLabel: "Online",
+              prefix: "Last online",
+              empty: "Offline"
+            })
+          : isOn
+            ? "Online"
+            : "Offline";
+      return `<li><span><span class="friends-online-dot${isOn ? "" : " is-offline"}" title="${escapeHtml(seen)}"></span>${formatPlayerNameHtml(f.name)}<span class="friends-last-online">${escapeHtml(seen)}</span></span><span class="friends-actions"><a class="hub-btn" href="tic-tac-toe/index.html?inviteFriend=${encodeURIComponent(f.playerId)}">TTT</a><a class="hub-btn" href="connect-four/index.html?inviteFriend=${encodeURIComponent(f.playerId)}">C4</a><button type="button" class="hub-btn" data-friend-remove="${escapeHtml(f.playerId)}">Remove</button></span></li>`;
     })
     .join("");
 }
