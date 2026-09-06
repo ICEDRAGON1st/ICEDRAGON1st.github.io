@@ -46,7 +46,8 @@
     sudoku: "Sudoku",
     flappy: "Flappy Bird",
     tictactoe: "Tic Tac Toe",
-    pixletris: "Pixletris"
+    pixletris: "Pixletris",
+    clicker: "Crystal Clicker"
   };
 
   let syncing = false;

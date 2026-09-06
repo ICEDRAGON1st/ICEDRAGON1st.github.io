@@ -32,6 +32,8 @@
     { id: "space_score_100",     emoji: "🚀", name: "Cadet",           desc: "Score 100 in Space Shooter" },
     { id: "2048_tile_512",       emoji: "🔢", name: "Getting There",   desc: "Reach the 512 tile in 2048" },
     { id: "pixletris_lines_5",   emoji: "🟦", name: "Line Clearer",    desc: "Clear 5 lines in Pixletris" },
+    { id: "clicker_100",         emoji: "💎", name: "First Vein",      desc: "Earn 100 crystals in Crystal Clicker" },
+    { id: "clicker_1k",          emoji: "⛏️", name: "Crystal Miner",   desc: "Earn 1,000 crystals in Crystal Clicker" },
 
     // Medium
     { id: "wordle_guess_3",      emoji: "🧠", name: "Quick Thinker",   desc: "Win a Wordle in 3 guesses or fewer" },
@@ -53,6 +55,8 @@
     { id: "sudoku_no_hints",     emoji: "🚫", name: "No Hints Needed", desc: "Complete Sudoku without hints" },
     { id: "all_rounder",         emoji: "🌟", name: "All-Rounder",     desc: "Play every game at least once" },
     { id: "2048_tile_2048",      emoji: "✨", name: "2048!",           desc: "Reach the 2048 tile" },
+    { id: "clicker_cps_10",      emoji: "⚙️", name: "Auto Mine",       desc: "Reach 10 crystals/sec in Crystal Clicker" },
+    { id: "clicker_100k",        emoji: "🏅", name: "Rich Vein",       desc: "Earn 100,000 crystals in Crystal Clicker" },
 
     // Hard
     { id: "wordle_guess_2",      emoji: "⚡", name: "Sharp Mind",      desc: "Win a Wordle in 2 guesses or fewer" },
@@ -67,6 +71,8 @@
     { id: "tictactoe_hard",      emoji: "⭕", name: "Unbeatable?",     desc: "Beat the CPU on Hard in Tic Tac Toe" },
     { id: "space_hardcore",      emoji: "💥", name: "Hardcore Flyer",  desc: "Score 100 on Hardcore difficulty" },
     { id: "pixletris_score_1k",  emoji: "🟩", name: "Pixel Pro",       desc: "Score 1000 in Pixletris" },
+    { id: "clicker_cps_100",     emoji: "🏭", name: "Crystal Empire",  desc: "Reach 100 crystals/sec in Crystal Clicker" },
+    { id: "clicker_1m",          emoji: "👑", name: "Millionaire",     desc: "Earn 1,000,000 crystals in Crystal Clicker" },
 
     // Expert
     { id: "wordle_guess_1",      emoji: "🎯", name: "Lucky Shot",      desc: "Win a Wordle in 1 guess" },

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crystal Clicker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20260906g">
+</head>
+<body>
+  <header class="top-bar">
+    <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
+    <h1>Crystal Clicker</h1>
+    <div class="top-stats">
+      CPS <strong id="hud-cps">0</strong>
+      · Best <strong id="hud-best">0</strong>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="play-col card">
+      <p class="bank-label">Crystals</p>
+      <p id="crystal-count" class="crystal-count" aria-live="polite">0</p>
+      <p class="cps-line"><span id="cps-label">0</span> per second</p>
+      <button id="crystal-btn" type="button" class="crystal-btn" aria-label="Mine a crystal">
+        <span class="crystal-gem" aria-hidden="true"></span>
+        <span class="crystal-btn-text">Mine</span>
+      </button>
+      <p class="hint">Tap the crystal. Buy upgrades to mine while you chill.</p>
+    </section>
+
+    <section class="shop-col card">
+      <h2>Upgrades</h2>
+      <p class="shop-intro">Spend crystals to boost your mine.</p>
+      <div id="shop-list" class="shop-list" role="list"></div>
+      <button id="reset-btn" type="button" class="btn btn-ghost reset-btn">Reset progress</button>
+    </section>
+  </main>
+
+  <div id="float-layer" class="float-layer" aria-hidden="true"></div>
+
+  <div id="overlay" class="overlay">
+    <div class="overlay-card">
+      <p class="eyebrow">Idle mine</p>
+      <h2 id="overlay-title">Crystal Clicker</h2>
+      <p id="overlay-text" class="lead">
+        Tap the crystal, buy upgrades, and race up the lifetime crystal leaderboard.
+      </p>
+      <p class="score-line">Lifetime best: <strong id="overlay-best">0</strong></p>
+      <div class="overlay-actions">
+        <button id="start-btn" type="button" class="btn">Play</button>
+        <button id="games-btn" type="button" class="btn btn-ghost">Games</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../hub-streak.js"></script>
+  <script src="../hub-achievements.js"></script>
+  <script src="../hub-sound.js"></script>
+  <script src="../hub-confetti.js"></script>
+  <script src="../hub-plays.js?v=20260906g"></script>
+  <script src="../hub-leaderboard.js?v=20260906g"></script>
+  <script src="script.js?v=20260906g"></script>
+</body>
+</html>

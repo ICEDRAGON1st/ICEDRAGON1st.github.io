@@ -1,0 +1,335 @@
+(function () {
+  const SAVE_KEY = "clicker-save-v1";
+  const HIGH_SCORE_KEY = "clicker-high-score";
+  const TICK_MS = 100;
+
+  const UPGRADES = [
+    {
+      id: "pickaxe",
+      name: "Pickaxe",
+      desc: "+1 crystal per click",
+      baseCost: 15,
+      clickBonus: 1,
+      cps: 0
+    },
+    {
+      id: "miner",
+      name: "Miner",
+      desc: "+0.5 crystals / sec",
+      baseCost: 50,
+      clickBonus: 0,
+      cps: 0.5
+    },
+    {
+      id: "drill",
+      name: "Crystal Drill",
+      desc: "+4 crystals / sec",
+      baseCost: 400,
+      clickBonus: 0,
+      cps: 4
+    },
+    {
+      id: "quarry",
+      name: "Quarry",
+      desc: "+20 crystals / sec",
+      baseCost: 3000,
+      clickBonus: 0,
+      cps: 20
+    },
+    {
+      id: "factory",
+      name: "Gem Factory",
+      desc: "+100 crystals / sec",
+      baseCost: 20000,
+      clickBonus: 0,
+      cps: 100
+    },
+    {
+      id: "reactor",
+      name: "Amber Reactor",
+      desc: "+750 crystals / sec",
+      baseCost: 150000,
+      clickBonus: 0,
+      cps: 750
+    }
+  ];
+
+  const crystalCountEl = document.getElementById("crystal-count");
+  const cpsLabelEl = document.getElementById("cps-label");
+  const hudCpsEl = document.getElementById("hud-cps");
+  const hudBestEl = document.getElementById("hud-best");
+  const overlayBestEl = document.getElementById("overlay-best");
+  const crystalBtn = document.getElementById("crystal-btn");
+  const shopList = document.getElementById("shop-list");
+  const overlay = document.getElementById("overlay");
+  const startBtn = document.getElementById("start-btn");
+  const gamesBtn = document.getElementById("games-btn");
+  const menuBtn = document.getElementById("menu-btn");
+  const resetBtn = document.getElementById("reset-btn");
+  const floatLayer = document.getElementById("float-layer");
+
+  let state = defaultState();
+  let sessionStarted = false;
+  let lastSaveAt = 0;
+  let lastSubmitAt = 0;
+
+  function defaultState() {
+    const owned = {};
+    UPGRADES.forEach((u) => {
+      owned[u.id] = 0;
+    });
+    return {
+      crystals: 0,
+      lifetime: 0,
+      clickPower: 1,
+      owned
+    };
+  }
+
+  function loadState() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+      if (!raw || typeof raw !== "object") return defaultState();
+      const next = defaultState();
+      next.crystals = Math.max(0, Number(raw.crystals) || 0);
+      next.lifetime = Math.max(0, Number(raw.lifetime) || 0);
+      next.clickPower = Math.max(1, Number(raw.clickPower) || 1);
+      UPGRADES.forEach((u) => {
+        next.owned[u.id] = Math.max(0, Math.floor(Number(raw.owned?.[u.id]) || 0));
+      });
+      // Rebuild click power from upgrades in case of drift.
+      next.clickPower =
+        1 +
+        UPGRADES.reduce((sum, u) => sum + (u.clickBonus || 0) * (next.owned[u.id] || 0), 0);
+      return next;
+    } catch {
+      return defaultState();
+    }
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+      const best = Math.max(getStoredBest(), Math.floor(state.lifetime));
+      localStorage.setItem(HIGH_SCORE_KEY, String(best));
+    } catch {}
+  }
+
+  function getStoredBest() {
+    return Math.max(0, Math.floor(Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0));
+  }
+
+  function formatNum(n) {
+    const v = Math.floor(Number(n) || 0);
+    if (v >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(2)}B`;
+    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(2)}M`;
+    if (v >= 10_000) return `${(v / 1_000).toFixed(1)}K`;
+    if (v >= 1000) return v.toLocaleString();
+    return String(v);
+  }
+
+  function formatCps(n) {
+    const v = Number(n) || 0;
+    if (v >= 1000) return formatNum(v);
+    if (v >= 10) return v.toFixed(1).replace(/\.0$/, "");
+    if (v >= 1) return v.toFixed(1);
+    return v.toFixed(2).replace(/0+$/, "").replace(/\.$/, "") || "0";
+  }
+
+  function upgradeCost(upgrade, owned) {
+    return Math.floor(upgrade.baseCost * Math.pow(1.15, owned));
+  }
+
+  function totalCps() {
+    return UPGRADES.reduce((sum, u) => sum + (u.cps || 0) * (state.owned[u.id] || 0), 0);
+  }
+
+  function addCrystals(amount) {
+    if (amount <= 0) return;
+    state.crystals += amount;
+    state.lifetime += amount;
+    maybeSubmitBest();
+    checkAchievements();
+  }
+
+  function maybeSubmitBest(force = false) {
+    const best = Math.floor(state.lifetime);
+    if (best <= 0) return;
+    const stored = getStoredBest();
+    if (best > stored) {
+      try {
+        localStorage.setItem(HIGH_SCORE_KEY, String(best));
+      } catch {}
+    }
+    const now = Date.now();
+    if (!force && now - lastSubmitAt < 4000) return;
+    if (best > 0 && window.HubLeaderboard) {
+      lastSubmitAt = now;
+      HubLeaderboard.submit("clicker", best).catch?.(() => {});
+    }
+  }
+
+  function checkAchievements() {
+    if (!window.HubAchievements) return;
+    const life = state.lifetime;
+    const cps = totalCps();
+    if (life >= 100) HubAchievements.unlock("clicker_100");
+    if (life >= 1000) HubAchievements.unlock("clicker_1k");
+    if (life >= 100000) HubAchievements.unlock("clicker_100k");
+    if (life >= 1000000) HubAchievements.unlock("clicker_1m");
+    if (cps >= 10) HubAchievements.unlock("clicker_cps_10");
+    if (cps >= 100) HubAchievements.unlock("clicker_cps_100");
+  }
+
+  function ensureSession() {
+    if (sessionStarted) return;
+    sessionStarted = true;
+    if (window.HubStreak) HubStreak.recordPlay();
+    if (window.HubPlays) HubPlays.record("clicker");
+  }
+
+  function spawnFloat(x, y, text) {
+    if (!floatLayer) return;
+    const el = document.createElement("span");
+    el.className = "float-pop";
+    el.textContent = text;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+    floatLayer.appendChild(el);
+    setTimeout(() => el.remove(), 700);
+  }
+
+  function clickCrystal(evt) {
+    ensureSession();
+    const gain = state.clickPower;
+    addCrystals(gain);
+    window.HubSound?.play?.("click");
+    crystalBtn.classList.add("is-pulse");
+    setTimeout(() => crystalBtn.classList.remove("is-pulse"), 90);
+    const rect = crystalBtn.getBoundingClientRect();
+    const x =
+      (evt?.clientX ?? rect.left + rect.width / 2) + (Math.random() * 24 - 12);
+    const y = (evt?.clientY ?? rect.top + rect.height / 2) - 8;
+    spawnFloat(x, y, `+${formatNum(gain)}`);
+    render();
+    saveSoon();
+  }
+
+  function buyUpgrade(id) {
+    const upgrade = UPGRADES.find((u) => u.id === id);
+    if (!upgrade) return;
+    const owned = state.owned[id] || 0;
+    const cost = upgradeCost(upgrade, owned);
+    if (state.crystals < cost) return;
+    ensureSession();
+    state.crystals -= cost;
+    state.owned[id] = owned + 1;
+    if (upgrade.clickBonus) state.clickPower += upgrade.clickBonus;
+    window.HubSound?.play?.("click");
+    if (state.owned[id] === 1 && upgrade.cps >= 20) {
+      window.HubConfetti?.burst?.();
+    }
+    checkAchievements();
+    render();
+    saveSoon();
+  }
+
+  function renderShop() {
+    if (!shopList) return;
+    shopList.innerHTML = UPGRADES.map((u) => {
+      const owned = state.owned[u.id] || 0;
+      const cost = upgradeCost(u, owned);
+      const canBuy = state.crystals >= cost;
+      return `<div class="shop-item" role="listitem">
+        <div class="shop-item-main">
+          <div class="shop-item-name">${u.name}</div>
+          <p class="shop-item-desc">${u.desc}</p>
+          <div class="shop-item-owned">Owned: ${owned}</div>
+        </div>
+        <button type="button" class="buy-btn" data-buy="${u.id}" ${canBuy ? "" : "disabled"}>
+          ${formatNum(cost)}
+        </button>
+      </div>`;
+    }).join("");
+  }
+
+  function render() {
+    const cps = totalCps();
+    const best = Math.max(getStoredBest(), Math.floor(state.lifetime));
+    if (crystalCountEl) crystalCountEl.textContent = formatNum(state.crystals);
+    if (cpsLabelEl) cpsLabelEl.textContent = formatCps(cps);
+    if (hudCpsEl) hudCpsEl.textContent = formatCps(cps);
+    if (hudBestEl) hudBestEl.textContent = formatNum(best);
+    if (overlayBestEl) overlayBestEl.textContent = formatNum(best);
+    renderShop();
+  }
+
+  function saveSoon() {
+    const now = Date.now();
+    if (now - lastSaveAt < 800) return;
+    lastSaveAt = now;
+    saveState();
+  }
+
+  function tick() {
+    const cps = totalCps();
+    if (cps > 0) {
+      addCrystals(cps * (TICK_MS / 1000));
+      render();
+      saveSoon();
+    }
+  }
+
+  function openMenu() {
+    saveState();
+    maybeSubmitBest(true);
+    render();
+    overlay?.classList.remove("hidden");
+  }
+
+  function closeMenu() {
+    overlay?.classList.add("hidden");
+    ensureSession();
+  }
+
+  function resetProgress() {
+    if (!confirm("Reset all Crystal Clicker progress on this device?")) return;
+    state = defaultState();
+    try {
+      localStorage.removeItem(SAVE_KEY);
+      localStorage.removeItem(HIGH_SCORE_KEY);
+    } catch {}
+    sessionStarted = false;
+    render();
+  }
+
+  function goToGames() {
+    saveState();
+    maybeSubmitBest(true);
+    window.location.href = "../index.html#games";
+  }
+
+  crystalBtn?.addEventListener("click", clickCrystal);
+  shopList?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-buy]");
+    if (!btn) return;
+    buyUpgrade(btn.dataset.buy);
+  });
+  startBtn?.addEventListener("click", closeMenu);
+  menuBtn?.addEventListener("click", openMenu);
+  gamesBtn?.addEventListener("click", goToGames);
+  resetBtn?.addEventListener("click", resetProgress);
+
+  state = loadState();
+  render();
+  setInterval(tick, TICK_MS);
+  setInterval(() => {
+    saveState();
+    maybeSubmitBest(true);
+  }, 15000);
+
+  window.addEventListener("beforeunload", () => {
+    saveState();
+    maybeSubmitBest(true);
+  });
+})();

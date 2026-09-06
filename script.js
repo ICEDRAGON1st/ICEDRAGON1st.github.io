@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260906g": [
+    "New game: Crystal Clicker — tap, buy upgrades, climb the lifetime crystal board"
+  ],
   "20260906f": [
     "Leaderboards refresh every second while open"
   ],
@@ -221,7 +224,8 @@ const HUB_GAMES = [
   { id: "sudoku", name: "Sudoku", path: "sudoku/index.html" },
   { id: "flappy", name: "Flappy Bird", path: "flappy-bird/index.html" },
   { id: "tictactoe", name: "Tic Tac Toe", path: "tic-tac-toe/index.html" },
-  { id: "pixletris", name: "Pixletris", path: "pixletris/index.html" }
+  { id: "pixletris", name: "Pixletris", path: "pixletris/index.html" },
+  { id: "clicker", name: "Crystal Clicker", path: "clicker/index.html" }
 ];
 
 /** Leaderboard tabs = hub-only boards first, then games. */
@@ -1010,6 +1014,10 @@ function getHubScore(gameId) {
     case "pixletris": {
       const score = readNumberKey("pixletris-high-score");
       return { label: score ? `Best ${score}` : "No score yet", sort: score };
+    }
+    case "clicker": {
+      const score = readNumberKey("clicker-high-score");
+      return { label: score ? `Best ${score.toLocaleString()}` : "No score yet", sort: score };
     }
     default:
       return { label: "—", sort: 0 };
