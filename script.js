@@ -20,6 +20,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260907b": [
+    "Crystal Clicker: huge upgrade pack (~70 total click + idle)"
+  ],
   "20260907a": [
     "Crystal Clicker: even more upgrades (Nova Punch through Absolute Crystal)"
   ],
