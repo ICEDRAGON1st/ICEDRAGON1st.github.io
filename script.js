@@ -20,6 +20,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260907g": [
+    "Crystal Clicker: lots more click power upgrades (through Source Strike)"
+  ],
   "20260907f": [
     "Crystal Clicker: rebirth 3M → 30M → ×10 each"
   ],
