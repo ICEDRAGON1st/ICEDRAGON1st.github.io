@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260906r": [
+    "Crystal Clicker: max click speed capped at once per 50ms"
+  ],
   "20260906q": [
     "Crystal Clicker: forced local save wipe (progress starts over for everyone)"
   ],

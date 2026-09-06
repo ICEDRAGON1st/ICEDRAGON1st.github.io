@@ -3,6 +3,7 @@
   const HIGH_SCORE_KEY = "clicker-high-score-v3";
   const LOCAL_WIPE_ID = "hub-clicker-local-wipe-v2";
   const TICK_MS = 100;
+  const MIN_CLICK_MS = 50;
   const REBIRTH_BASE_COST = 1_000_000;
 
   // Force-clear every local Crystal Clicker key once (leaderboard wipe companion).
@@ -68,6 +69,7 @@
   let sessionStarted = false;
   let lastSaveAt = 0;
   let lastSubmitAt = 0;
+  let lastClickAt = 0;
 
   function defaultState() {
     const owned = {};
@@ -227,6 +229,9 @@
   }
 
   function clickCrystal(evt) {
+    const now = Date.now();
+    if (now - lastClickAt < MIN_CLICK_MS) return;
+    lastClickAt = now;
     ensureSession();
     const gain = clickGain();
     addCrystals(gain);
