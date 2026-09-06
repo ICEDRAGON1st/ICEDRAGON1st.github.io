@@ -5,11 +5,11 @@
   const REBIRTH_BASE_COST = 1_000_000;
 
   const UPGRADES = [
-    // Click power
-    { id: "pickaxe", name: "Pickaxe", desc: "+1 per click", baseCost: 15, clickBonus: 1, cps: 0, group: "click" },
-    { id: "gloves", name: "Crystal Gloves", desc: "+5 per click", baseCost: 250, clickBonus: 5, cps: 0, group: "click" },
-    { id: "hammer", name: "Amber Hammer", desc: "+25 per click", baseCost: 5000, clickBonus: 25, cps: 0, group: "click" },
-    { id: "fist", name: "Titan Fist", desc: "+100 per click", baseCost: 250000, clickBonus: 100, cps: 0, group: "click" },
+    // Click power (pricier than idle — clicks are strong)
+    { id: "pickaxe", name: "Pickaxe", desc: "+1 per click", baseCost: 50, clickBonus: 1, cps: 0, group: "click" },
+    { id: "gloves", name: "Crystal Gloves", desc: "+5 per click", baseCost: 2500, clickBonus: 5, cps: 0, group: "click" },
+    { id: "hammer", name: "Amber Hammer", desc: "+25 per click", baseCost: 75000, clickBonus: 25, cps: 0, group: "click" },
+    { id: "fist", name: "Titan Fist", desc: "+100 per click", baseCost: 2500000, clickBonus: 100, cps: 0, group: "click" },
     // Idle income
     { id: "miner", name: "Miner", desc: "+0.5 / sec", baseCost: 50, clickBonus: 0, cps: 0.5, group: "idle" },
     { id: "cart", name: "Mine Cart", desc: "+2 / sec", baseCost: 150, clickBonus: 0, cps: 2, group: "idle" },
