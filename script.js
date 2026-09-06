@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260906u": [
+    "Hub My Games tries an arcade cabinet look (easy to switch off)"
+  ],
   "20260906t": [
     "Crystal Clicker leaderboard uses K / M / B shorthand"
   ],
