@@ -348,12 +348,11 @@
     games.clicker = clickerBoard;
 
     // One-time: wipe ICE_DRAGON from Crystal Clicker only (other games untouched).
+    // Cut must stay at/just after the wiped score — not in the future, or new posts get deleted.
     const iceClickerWipeKey = "clicker:ice_dragon-v1";
-    const ICE_CLICKER_WIPE_AT = Date.UTC(2026, 8, 6, 20, 0, 0); // 2026-09-06 20:00 UTC
-    if (!resets[iceClickerWipeKey] || Number(resets[iceClickerWipeKey]) < ICE_CLICKER_WIPE_AT) {
-      resets[iceClickerWipeKey] = ICE_CLICKER_WIPE_AT;
-    }
-    const iceCut = Number(resets[iceClickerWipeKey]) || ICE_CLICKER_WIPE_AT;
+    const ICE_CLICKER_WIPE_AT = 1788721147325; // wiped ICE_DRAGON entry timestamp
+    resets[iceClickerWipeKey] = ICE_CLICKER_WIPE_AT;
+    const iceCut = ICE_CLICKER_WIPE_AT;
     const iceBoard = { ...(games.clicker || {}) };
     Object.keys(iceBoard).forEach((key) => {
       const entry = iceBoard[key];

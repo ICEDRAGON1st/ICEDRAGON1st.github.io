@@ -20,6 +20,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260907i": [
+    "Fix Crystal Clicker leaderboard: ICE_DRAGON wipe was blocking new scores"
+  ],
   "20260907h": [
     "Crystal Clicker: reset ICE_DRAGON leaderboard + local progress"
   ],
