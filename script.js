@@ -10,6 +10,9 @@ const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
 const CHANGELOG = {
+  "20260906i": [
+    "Crystal Clicker: 2nd rebirth costs 10M (then ×10 each time)"
+  ],
   "20260906h": [
     "Crystal Clicker: Rebirth at 1M crystals for ×2 earnings (stacks each rebirth)"
   ],

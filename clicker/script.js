@@ -2,7 +2,7 @@
   const SAVE_KEY = "clicker-save-v1";
   const HIGH_SCORE_KEY = "clicker-high-score";
   const TICK_MS = 100;
-  const REBIRTH_COST = 1_000_000;
+  const REBIRTH_BASE_COST = 1_000_000;
 
   const UPGRADES = [
     {
@@ -252,16 +252,22 @@
     saveSoon();
   }
 
+  function rebirthCost() {
+    // 1st = 1M, 2nd = 10M, 3rd = 100M, …
+    return Math.floor(REBIRTH_BASE_COST * Math.pow(10, Math.max(0, Math.floor(state.rebirths || 0))));
+  }
+
   function canRebirth() {
-    return state.crystals >= REBIRTH_COST;
+    return state.crystals >= rebirthCost();
   }
 
   function doRebirth() {
-    if (!canRebirth()) return;
+    const cost = rebirthCost();
+    if (state.crystals < cost) return;
     const nextMult = multiplier() * 2;
     if (
       !confirm(
-        `Rebirth for ${formatNum(REBIRTH_COST)} crystals?\n\nBank and upgrades reset. Lifetime crystals stay. Earnings become ×${nextMult}.`
+        `Rebirth for ${formatNum(cost)} crystals?\n\nBank and upgrades reset. Lifetime crystals stay. Earnings become ×${nextMult}.`
       )
     ) {
       return;
@@ -301,7 +307,8 @@
 
   function renderRebirth() {
     const mult = multiplier();
-    const ready = canRebirth();
+    const cost = rebirthCost();
+    const ready = state.crystals >= cost;
     if (rebirthMultEl) {
       rebirthMultEl.textContent =
         state.rebirths > 0
@@ -311,13 +318,13 @@
     if (rebirthDesc) {
       rebirthDesc.textContent = ready
         ? `Ready! Reset bank & upgrades, keep lifetime, go to ×${mult * 2} earnings.`
-        : `Need ${formatNum(REBIRTH_COST)} crystals in the bank. Resets upgrades & bank, keeps lifetime, doubles all earnings.`;
+        : `Need ${formatNum(cost)} crystals in the bank. Resets upgrades & bank, keeps lifetime, doubles all earnings.`;
     }
     if (rebirthBtn) {
       rebirthBtn.disabled = !ready;
       rebirthBtn.textContent = ready
         ? `Rebirth → ×${mult * 2}`
-        : `Rebirth (${formatNum(state.crystals)} / ${formatNum(REBIRTH_COST)})`;
+        : `Rebirth (${formatNum(state.crystals)} / ${formatNum(cost)})`;
     }
   }
 
