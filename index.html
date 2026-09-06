@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260906w">
+  <link rel="stylesheet" href="styles.css?v=20260906x">
 </head>
 <body>
   <div class="app">
@@ -115,7 +115,6 @@
       <p id="games-message" class="games-message" role="status" aria-live="polite"></p>
 
       <div class="games-toolbar">
-        <button id="games-back" type="button" class="hub-btn">← Back</button>
         <button id="continue-last-btn" type="button" class="hub-btn hub-btn-primary hidden">Continue last game</button>
         <button id="toggle-scores-btn" type="button" class="hub-btn">High scores</button>
         <button id="toggle-leaderboards-btn" type="button" class="hub-btn">Leaderboards</button>
@@ -352,7 +351,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260906w";
+    window.WORDLE_BUILD = "20260906x";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "hub-leaderboard.js", "hub-friends.js", "hub-online-match.js",
       "words.js",

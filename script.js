@@ -20,6 +20,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260906x": [
+    "Removed Back button from My Games hub (Esc still leaves)"
+  ],
   "20260906w": [
     "Hub Settings moved to the top-left header button (Back is in the toolbar)"
   ],
@@ -313,7 +316,6 @@ const menuNewWordBtn = document.getElementById("menu-new-word");
 const menuGamesBtn = document.getElementById("menu-games");
 const menuBtn = document.getElementById("menu-btn");
 const gamesScreen = document.getElementById("games-screen");
-const gamesBackBtn = document.getElementById("games-back");
 const gamesMessageEl = document.getElementById("games-message");
 const continueLastBtn = document.getElementById("continue-last-btn");
 const toggleScoresBtn = document.getElementById("toggle-scores-btn");
@@ -1994,7 +1996,6 @@ menuDailyBtn?.addEventListener("click", () => {
 });
 menuShareDailyBtn?.addEventListener("click", () => shareDailyResult());
 menuGamesBtn.addEventListener("click", () => showGamesScreen());
-gamesBackBtn.addEventListener("click", () => backFromGames());
 continueLastBtn?.addEventListener("click", () => {
   if (!requirePlayerName()) return;
   const lastId = getLastGameId();
