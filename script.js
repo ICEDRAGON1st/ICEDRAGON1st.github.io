@@ -6,10 +6,23 @@ const THEME_KEY = "wordle-theme";
 const LENGTH_KEY = "wordle-length";
 const HUB_FAVORITES_KEY = "hub-favorites";
 const HUB_LAST_GAME_KEY = "hub-last-game";
+const HUB_THEME_KEY = "hub-look-theme";
 const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 
+const HUB_THEMES = {
+  classic: { label: "Classic", eyebrow: "Hub" },
+  arcade: { label: "Arcade", eyebrow: "Arcade floor" },
+  ice: { label: "Ice", eyebrow: "ICE_DRAGON" },
+  retro: { label: "Retro", eyebrow: "Terminal" },
+  workshop: { label: "Workshop", eyebrow: "Workshop" },
+  poster: { label: "Poster wall", eyebrow: "Now playing" }
+};
+
 const CHANGELOG = {
+  "20260906v": [
+    "Hub Settings: switch looks — Classic, Arcade, Ice, Retro, Workshop, Poster wall"
+  ],
   "20260906u": [
     "Hub My Games tries an arcade cabinet look (easy to switch off)"
   ],
@@ -306,6 +319,7 @@ const toggleAchievementsBtn = document.getElementById("toggle-achievements-btn")
 const togglePlayersBtn = document.getElementById("toggle-players-btn");
 const toggleFriendsBtn = document.getElementById("toggle-friends-btn");
 const toggleUpdatesBtn = document.getElementById("toggle-updates-btn");
+const toggleSettingsBtn = document.getElementById("toggle-settings-btn");
 const shareMomentBtn = document.getElementById("share-moment-btn");
 const highScoresPanel = document.getElementById("high-scores-panel");
 const highScoresList = document.getElementById("high-scores-list");
@@ -318,6 +332,9 @@ const updatesList = document.getElementById("updates-list");
 const updatesCount = document.getElementById("updates-count");
 const playersPanel = document.getElementById("players-panel");
 const friendsPanel = document.getElementById("friends-panel");
+const hubSettingsPanel = document.getElementById("hub-settings-panel");
+const hubThemePicker = document.getElementById("hub-theme-picker");
+const gamesEyebrow = document.getElementById("games-eyebrow");
 const playersList = document.getElementById("players-list");
 const playersTotals = document.getElementById("players-totals");
 const playerNameInput = document.getElementById("player-name-input");
@@ -1383,14 +1400,39 @@ function showGamesMessage(text, duration = 2000) {
   }
 }
 
+function getHubThemeId() {
+  const raw = localStorage.getItem(HUB_THEME_KEY) || "classic";
+  return HUB_THEMES[raw] ? raw : "classic";
+}
+
+function applyHubTheme(themeId = getHubThemeId()) {
+  const id = HUB_THEMES[themeId] ? themeId : "classic";
+  try {
+    localStorage.setItem(HUB_THEME_KEY, id);
+  } catch {}
+  if (gamesScreen) {
+    [...gamesScreen.classList].forEach((cls) => {
+      if (cls.startsWith("hub-theme-")) gamesScreen.classList.remove(cls);
+    });
+    if (id !== "classic") gamesScreen.classList.add(`hub-theme-${id}`);
+  }
+  if (gamesEyebrow) gamesEyebrow.textContent = HUB_THEMES[id].eyebrow;
+  hubThemePicker?.querySelectorAll("[data-hub-theme]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.hubTheme === id);
+  });
+}
+
 function showGamesScreen() {
   hideMenu();
   gamesMessageEl.classList.remove("visible");
   gamesMessageEl.textContent = "";
   if (highScoresPanel) highScoresPanel.classList.add("hidden");
   if (leaderboardsPanel) leaderboardsPanel.classList.add("hidden");
+  if (hubSettingsPanel) hubSettingsPanel.classList.add("hidden");
   if (toggleLeaderboardsBtn) toggleLeaderboardsBtn.textContent = "Leaderboards";
+  if (toggleSettingsBtn) toggleSettingsBtn.textContent = "Settings";
   stopLeaderboardRefresh();
+  applyHubTheme();
   refreshGamesHub();
   gamesScreen.classList.remove("hidden");
   startStreakCountdown();
@@ -1921,6 +1963,7 @@ updateLangButton();
 updateLengthButton();
 updateModeButton();
 applyTheme(localStorage.getItem(THEME_KEY) || "dark");
+applyHubTheme();
 render();
 document.addEventListener("keydown", handlePhysicalKeyboard);
 menuBtn.addEventListener("click", () => showMenu());
@@ -2004,6 +2047,20 @@ toggleUpdatesBtn?.addEventListener("click", () => {
     renderUpdatesPanel();
   }
   updateUpdatesButtonLabel(open);
+});
+
+toggleSettingsBtn?.addEventListener("click", () => {
+  if (!hubSettingsPanel) return;
+  const open = hubSettingsPanel.classList.toggle("hidden") === false;
+  toggleSettingsBtn.textContent = open ? "Hide settings" : "Settings";
+  if (open) applyHubTheme();
+});
+
+hubThemePicker?.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-hub-theme]");
+  if (!btn) return;
+  applyHubTheme(btn.dataset.hubTheme);
+  showGamesMessage(`Hub look: ${HUB_THEMES[btn.dataset.hubTheme]?.label || "Classic"}`, 1600);
 });
 
 togglePlayersBtn?.addEventListener("click", () => {

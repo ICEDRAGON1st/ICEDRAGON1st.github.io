@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260906u">
+  <link rel="stylesheet" href="styles.css?v=20260906v">
 </head>
 <body>
   <div class="app">
@@ -97,12 +97,12 @@
     </div>
   </div>
 
-  <div id="games-screen" class="games-screen hub-theme-arcade hidden" role="dialog" aria-modal="true" aria-labelledby="games-title">
+  <div id="games-screen" class="games-screen hidden" role="dialog" aria-modal="true" aria-labelledby="games-title">
     <div class="games-screen-inner">
       <header class="games-header">
         <button id="games-back" type="button" class="games-back" aria-label="Back to menu">← Back</button>
         <div class="games-title-wrap">
-          <p class="games-eyebrow">Arcade floor</p>
+          <p id="games-eyebrow" class="games-eyebrow">Hub</p>
           <h2 id="games-title">My Games</h2>
         </div>
         <div id="hub-streak-badge" class="hub-streak-badge" title="Play any game within 48 hours to keep your streak">
@@ -122,7 +122,40 @@
         <button id="toggle-players-btn" type="button" class="hub-btn">Players</button>
         <button id="toggle-friends-btn" type="button" class="hub-btn">Friends</button>
         <button id="toggle-updates-btn" type="button" class="hub-btn">Updates</button>
+        <button id="toggle-settings-btn" type="button" class="hub-btn">Settings</button>
         <button id="share-moment-btn" type="button" class="hub-btn">Share moment</button>
+      </div>
+
+      <div id="hub-settings-panel" class="hub-settings-panel high-scores-panel hidden">
+        <h3>Settings</h3>
+        <p class="hub-settings-intro">Pick a look for the My Games hub. Saved on this device.</p>
+        <p class="hub-settings-label">Hub look</p>
+        <div id="hub-theme-picker" class="hub-theme-picker" role="group" aria-label="Hub look">
+          <button type="button" class="hub-theme-btn" data-hub-theme="classic" title="Original Wordle-style hub">
+            <span class="hub-theme-swatch is-classic" aria-hidden="true"></span>
+            <span class="hub-theme-name">Classic</span>
+          </button>
+          <button type="button" class="hub-theme-btn" data-hub-theme="arcade" title="Neon cabinet arcade">
+            <span class="hub-theme-swatch is-arcade" aria-hidden="true"></span>
+            <span class="hub-theme-name">Arcade</span>
+          </button>
+          <button type="button" class="hub-theme-btn" data-hub-theme="ice" title="Cool glacier ice">
+            <span class="hub-theme-swatch is-ice" aria-hidden="true"></span>
+            <span class="hub-theme-name">Ice</span>
+          </button>
+          <button type="button" class="hub-theme-btn" data-hub-theme="retro" title="Retro terminal">
+            <span class="hub-theme-swatch is-retro" aria-hidden="true"></span>
+            <span class="hub-theme-name">Retro</span>
+          </button>
+          <button type="button" class="hub-theme-btn" data-hub-theme="workshop" title="Soft workshop">
+            <span class="hub-theme-swatch is-workshop" aria-hidden="true"></span>
+            <span class="hub-theme-name">Workshop</span>
+          </button>
+          <button type="button" class="hub-theme-btn" data-hub-theme="poster" title="Poster wall cards">
+            <span class="hub-theme-swatch is-poster" aria-hidden="true"></span>
+            <span class="hub-theme-name">Poster wall</span>
+          </button>
+        </div>
       </div>
 
       <div id="high-scores-panel" class="high-scores-panel hidden">
@@ -319,7 +352,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260906u";
+    window.WORDLE_BUILD = "20260906v";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "hub-leaderboard.js", "hub-friends.js", "hub-online-match.js",
       "words.js",

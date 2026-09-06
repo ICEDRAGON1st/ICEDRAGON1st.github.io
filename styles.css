@@ -530,6 +530,107 @@ header h1 {
   letter-spacing: 0.08rem;
 }
 
+.games-title-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  text-align: center;
+}
+
+.games-eyebrow {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+}
+
+.hub-settings-panel .hub-settings-intro {
+  margin: 0 0 0.85rem;
+  color: var(--subtitle);
+  font-size: 0.9rem;
+}
+
+.hub-settings-label {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--subtitle);
+}
+
+.hub-theme-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.5rem, 1fr));
+  gap: 0.55rem;
+}
+
+.hub-theme-btn {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.4rem;
+  padding: 0.45rem;
+  border: 1px solid var(--tile-border);
+  border-radius: 0.7rem;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.hub-theme-btn.active {
+  border-color: var(--correct);
+  box-shadow: 0 0 0 1px var(--correct);
+}
+
+.hub-theme-swatch {
+  display: block;
+  height: 2.4rem;
+  border-radius: 0.45rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hub-theme-swatch.is-classic {
+  background: linear-gradient(135deg, #121213, #3a3a3c);
+}
+
+.hub-theme-swatch.is-arcade {
+  background:
+    linear-gradient(135deg, #070b12, #121a26),
+    linear-gradient(90deg, #3dcca8, #f0b429);
+  background-blend-mode: normal;
+  box-shadow: inset 0 0 0 2px rgba(61, 204, 168, 0.35);
+}
+
+.hub-theme-swatch.is-ice {
+  background: linear-gradient(135deg, #d9eef8, #7eb6d4 45%, #1f4e6b);
+}
+
+.hub-theme-swatch.is-retro {
+  background: linear-gradient(135deg, #031a08, #0b2e14);
+  box-shadow: inset 0 0 0 1px #39ff14;
+}
+
+.hub-theme-swatch.is-workshop {
+  background: linear-gradient(135deg, #2a2420, #5c4636 50%, #c4a484);
+}
+
+.hub-theme-swatch.is-poster {
+  background: linear-gradient(90deg, #e85d4c 0 25%, #3d7ea6 25% 50%, #f0b429 50% 75%, #2f9e44 75% 100%);
+}
+
+.hub-theme-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0 0.15rem 0.1rem;
+}
+
 .hub-streak-badge {
   position: absolute;
   right: 0;
@@ -2276,4 +2377,417 @@ header h1 {
     left: 0.55rem;
     right: 0.55rem;
   }
+}
+
+/* ── Hub ice theme ── */
+.games-screen.hub-theme-ice {
+  --ice-bg: #eaf5fb;
+  --ice-panel: rgba(255, 255, 255, 0.72);
+  --ice-ink: #143447;
+  --ice-muted: #4d6d82;
+  --ice-line: rgba(70, 140, 180, 0.35);
+  --ice-accent: #2f7ea8;
+  font-family: "Outfit", system-ui, sans-serif;
+  color: var(--ice-ink);
+  background:
+    radial-gradient(ellipse at 20% 0%, #ffffff 0%, transparent 40%),
+    radial-gradient(ellipse at 90% 20%, #b9dceb 0%, transparent 45%),
+    linear-gradient(180deg, #d7eef8 0%, #eaf5fb 45%, #c5dde9 100%);
+}
+
+.games-screen.hub-theme-ice .games-eyebrow {
+  color: var(--ice-accent);
+}
+
+.games-screen.hub-theme-ice .games-header {
+  border-bottom-color: var(--ice-line);
+}
+
+.games-screen.hub-theme-ice .games-header h2 {
+  color: var(--ice-ink);
+  letter-spacing: 0.08em;
+  text-transform: none;
+  text-shadow: none;
+}
+
+.games-screen.hub-theme-ice .games-back,
+.games-screen.hub-theme-ice .hub-btn {
+  border: 1px solid var(--ice-line);
+  border-radius: 999px;
+  background: var(--ice-panel);
+  color: var(--ice-ink);
+  backdrop-filter: blur(8px);
+}
+
+.games-screen.hub-theme-ice .hub-btn:hover,
+.games-screen.hub-theme-ice .games-back:hover {
+  border-color: var(--ice-accent);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.games-screen.hub-theme-ice .hub-btn-primary {
+  background: var(--ice-accent);
+  border-color: var(--ice-accent);
+  color: #fff;
+}
+
+.games-screen.hub-theme-ice .hub-streak-badge,
+.games-screen.hub-theme-ice .high-scores-panel,
+.games-screen.hub-theme-ice .achievements-panel,
+.games-screen.hub-theme-ice .updates-panel,
+.games-screen.hub-theme-ice .players-panel,
+.games-screen.hub-theme-ice .friends-panel,
+.games-screen.hub-theme-ice .hub-settings-panel {
+  background: var(--ice-panel);
+  border: 1px solid var(--ice-line);
+  backdrop-filter: blur(10px);
+  color: var(--ice-ink);
+}
+
+.games-screen.hub-theme-ice .game-card {
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid var(--ice-line);
+  border-radius: 1rem;
+  color: var(--ice-ink);
+  box-shadow: 0 10px 28px rgba(47, 126, 168, 0.12);
+}
+
+.games-screen.hub-theme-ice .game-card:hover:not(:disabled) {
+  border-color: var(--ice-accent);
+  transform: translateY(-3px);
+  box-shadow: 0 14px 32px rgba(47, 126, 168, 0.18);
+}
+
+.games-screen.hub-theme-ice .game-card-desc,
+.games-screen.hub-theme-ice .hub-streak-label,
+.games-screen.hub-theme-ice .games-message,
+.games-screen.hub-theme-ice .hub-settings-intro,
+.games-screen.hub-theme-ice .hub-settings-label {
+  color: var(--ice-muted);
+}
+
+.games-screen.hub-theme-ice .game-card-score,
+.games-screen.hub-theme-ice .lb-rank.top {
+  color: var(--ice-accent);
+}
+
+/* ── Hub retro terminal theme ── */
+.games-screen.hub-theme-retro {
+  --retro-bg: #020b05;
+  --retro-green: #39ff14;
+  --retro-dim: #1f8f2e;
+  --retro-panel: #041408;
+  --retro-text: #b8ffb0;
+  font-family: "Courier New", Consolas, monospace;
+  color: var(--retro-text);
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(57, 255, 20, 0.08), transparent 50%),
+    var(--retro-bg);
+}
+
+.games-screen.hub-theme-retro::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.12;
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.35) 2px,
+    rgba(0, 0, 0, 0.35) 3px
+  );
+}
+
+.games-screen.hub-theme-retro .games-screen-inner {
+  position: relative;
+  z-index: 1;
+}
+
+.games-screen.hub-theme-retro .games-eyebrow {
+  color: var(--retro-dim);
+}
+
+.games-screen.hub-theme-retro .games-header {
+  border-bottom: 1px dashed var(--retro-dim);
+}
+
+.games-screen.hub-theme-retro .games-header h2 {
+  color: var(--retro-green);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  text-shadow: 0 0 10px rgba(57, 255, 20, 0.35);
+}
+
+.games-screen.hub-theme-retro .games-back,
+.games-screen.hub-theme-retro .hub-btn {
+  border: 1px solid var(--retro-dim);
+  border-radius: 0;
+  background: var(--retro-panel);
+  color: var(--retro-green);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.games-screen.hub-theme-retro .hub-btn:hover,
+.games-screen.hub-theme-retro .games-back:hover {
+  background: rgba(57, 255, 20, 0.1);
+  border-color: var(--retro-green);
+  box-shadow: 0 0 12px rgba(57, 255, 20, 0.2);
+}
+
+.games-screen.hub-theme-retro .hub-btn-primary {
+  background: var(--retro-green);
+  border-color: var(--retro-green);
+  color: #021105;
+}
+
+.games-screen.hub-theme-retro .hub-streak-badge,
+.games-screen.hub-theme-retro .high-scores-panel,
+.games-screen.hub-theme-retro .achievements-panel,
+.games-screen.hub-theme-retro .updates-panel,
+.games-screen.hub-theme-retro .players-panel,
+.games-screen.hub-theme-retro .friends-panel,
+.games-screen.hub-theme-retro .hub-settings-panel {
+  border: 1px solid var(--retro-dim);
+  border-radius: 0;
+  background: var(--retro-panel);
+  box-shadow: inset 0 0 20px rgba(57, 255, 20, 0.05);
+}
+
+.games-screen.hub-theme-retro .game-card {
+  border: 1px solid var(--retro-dim);
+  border-radius: 0;
+  background: #031006;
+  color: var(--retro-text);
+}
+
+.games-screen.hub-theme-retro .game-card:hover:not(:disabled) {
+  border-color: var(--retro-green);
+  box-shadow: 0 0 16px rgba(57, 255, 20, 0.2);
+  transform: none;
+}
+
+.games-screen.hub-theme-retro .game-card-name {
+  text-transform: uppercase;
+  color: var(--retro-green);
+}
+
+.games-screen.hub-theme-retro .game-card-desc,
+.games-screen.hub-theme-retro .hub-settings-intro {
+  color: var(--retro-dim);
+}
+
+.games-screen.hub-theme-retro .game-card-score,
+.games-screen.hub-theme-retro .lb-rank.top {
+  color: var(--retro-green);
+}
+
+.games-screen.hub-theme-retro .hub-theme-btn.active {
+  border-color: var(--retro-green);
+  box-shadow: 0 0 0 1px var(--retro-green);
+}
+
+/* ── Hub soft workshop theme ── */
+.games-screen.hub-theme-workshop {
+  --ws-bg: #1c1815;
+  --ws-panel: #2a2420;
+  --ws-ink: #f3ebe1;
+  --ws-muted: #b5a394;
+  --ws-line: rgba(196, 164, 132, 0.28);
+  --ws-accent: #c4a484;
+  --ws-warm: #d9895b;
+  font-family: "Outfit", Georgia, serif;
+  color: var(--ws-ink);
+  background:
+    radial-gradient(ellipse at 15% 0%, rgba(217, 137, 91, 0.16), transparent 42%),
+    radial-gradient(ellipse at 90% 100%, rgba(92, 70, 54, 0.5), transparent 50%),
+    var(--ws-bg);
+}
+
+.games-screen.hub-theme-workshop .games-eyebrow {
+  color: var(--ws-accent);
+}
+
+.games-screen.hub-theme-workshop .games-header {
+  border-bottom: 1px solid var(--ws-line);
+}
+
+.games-screen.hub-theme-workshop .games-header h2 {
+  color: var(--ws-ink);
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-weight: 700;
+}
+
+.games-screen.hub-theme-workshop .games-back,
+.games-screen.hub-theme-workshop .hub-btn {
+  border: 1px solid var(--ws-line);
+  border-radius: 0.7rem;
+  background: var(--ws-panel);
+  color: var(--ws-ink);
+}
+
+.games-screen.hub-theme-workshop .hub-btn:hover,
+.games-screen.hub-theme-workshop .games-back:hover {
+  border-color: var(--ws-accent);
+  background: #332c27;
+}
+
+.games-screen.hub-theme-workshop .hub-btn-primary {
+  background: var(--ws-warm);
+  border-color: var(--ws-warm);
+  color: #2a1a10;
+}
+
+.games-screen.hub-theme-workshop .hub-streak-badge,
+.games-screen.hub-theme-workshop .high-scores-panel,
+.games-screen.hub-theme-workshop .achievements-panel,
+.games-screen.hub-theme-workshop .updates-panel,
+.games-screen.hub-theme-workshop .players-panel,
+.games-screen.hub-theme-workshop .friends-panel,
+.games-screen.hub-theme-workshop .hub-settings-panel {
+  background: var(--ws-panel);
+  border: 1px solid var(--ws-line);
+  border-radius: 0.9rem;
+}
+
+.games-screen.hub-theme-workshop .game-card {
+  background: linear-gradient(165deg, #322b26, #241f1b);
+  border: 1px solid var(--ws-line);
+  border-radius: 0.9rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 10px 24px rgba(0, 0, 0, 0.28);
+}
+
+.games-screen.hub-theme-workshop .game-card:hover:not(:disabled) {
+  border-color: var(--ws-accent);
+  transform: translateY(-3px);
+}
+
+.games-screen.hub-theme-workshop .game-card-desc,
+.games-screen.hub-theme-workshop .hub-settings-intro,
+.games-screen.hub-theme-workshop .hub-streak-label {
+  color: var(--ws-muted);
+}
+
+.games-screen.hub-theme-workshop .game-card-score,
+.games-screen.hub-theme-workshop .lb-rank.top {
+  color: var(--ws-warm);
+}
+
+.games-screen.hub-theme-workshop .hub-theme-btn.active {
+  border-color: var(--ws-warm);
+  box-shadow: 0 0 0 1px var(--ws-warm);
+}
+
+/* ── Hub poster wall theme ── */
+.games-screen.hub-theme-poster {
+  --poster-bg: #111111;
+  --poster-ink: #f7f4ef;
+  --poster-muted: #a8a29a;
+  font-family: "Outfit", system-ui, sans-serif;
+  color: var(--poster-ink);
+  background:
+    linear-gradient(180deg, #171717 0%, #0d0d0d 100%);
+}
+
+.games-screen.hub-theme-poster .games-eyebrow {
+  color: #f0b429;
+}
+
+.games-screen.hub-theme-poster .games-header {
+  border-bottom: 2px solid #f7f4ef;
+}
+
+.games-screen.hub-theme-poster .games-header h2 {
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  font-size: clamp(1.8rem, 5vw, 2.6rem);
+}
+
+.games-screen.hub-theme-poster .games-back,
+.games-screen.hub-theme-poster .hub-btn {
+  border: 2px solid #f7f4ef;
+  border-radius: 0;
+  background: transparent;
+  color: var(--poster-ink);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.games-screen.hub-theme-poster .hub-btn:hover,
+.games-screen.hub-theme-poster .games-back:hover {
+  background: #f7f4ef;
+  color: #111;
+}
+
+.games-screen.hub-theme-poster .hub-btn-primary {
+  background: #f0b429;
+  border-color: #f0b429;
+  color: #111;
+}
+
+.games-screen.hub-theme-poster .games-grid {
+  gap: 0.85rem;
+}
+
+.games-screen.hub-theme-poster .game-card {
+  border: none;
+  border-radius: 0;
+  min-height: 9.2rem;
+  color: #111;
+  box-shadow: 0 12px 0 rgba(0, 0, 0, 0.35);
+}
+
+.games-screen.hub-theme-poster .game-card:nth-child(6n + 1) { background: #e85d4c; }
+.games-screen.hub-theme-poster .game-card:nth-child(6n + 2) { background: #3d7ea6; color: #f7f4ef; }
+.games-screen.hub-theme-poster .game-card:nth-child(6n + 3) { background: #f0b429; }
+.games-screen.hub-theme-poster .game-card:nth-child(6n + 4) { background: #2f9e44; color: #f7f4ef; }
+.games-screen.hub-theme-poster .game-card:nth-child(6n + 5) { background: #c45c26; color: #f7f4ef; }
+.games-screen.hub-theme-poster .game-card:nth-child(6n + 6) { background: #f4f0e8; }
+
+.games-screen.hub-theme-poster .game-card:hover:not(:disabled) {
+  transform: translateY(-6px) rotate(-0.4deg);
+  box-shadow: 0 18px 0 rgba(0, 0, 0, 0.35);
+}
+
+.games-screen.hub-theme-poster .game-card-name {
+  font-size: 1.35rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.games-screen.hub-theme-poster .game-card-desc,
+.games-screen.hub-theme-poster .game-card-score {
+  color: inherit;
+  opacity: 0.85;
+}
+
+.games-screen.hub-theme-poster .fav-btn,
+.games-screen.hub-theme-poster .fav-btn.active {
+  color: inherit;
+}
+
+.games-screen.hub-theme-poster .hub-streak-badge,
+.games-screen.hub-theme-poster .high-scores-panel,
+.games-screen.hub-theme-poster .achievements-panel,
+.games-screen.hub-theme-poster .updates-panel,
+.games-screen.hub-theme-poster .players-panel,
+.games-screen.hub-theme-poster .friends-panel,
+.games-screen.hub-theme-poster .hub-settings-panel {
+  border: 2px solid #f7f4ef;
+  border-radius: 0;
+  background: #171717;
+}
+
+.games-screen.hub-theme-poster .hub-settings-intro,
+.games-screen.hub-theme-poster .hub-streak-label {
+  color: var(--poster-muted);
+}
+
+.games-screen.hub-theme-poster .hub-theme-btn.active {
+  border-color: #f0b429;
+  box-shadow: 0 0 0 1px #f0b429;
 }
