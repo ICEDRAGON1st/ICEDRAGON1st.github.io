@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260907w": [
+    "Crystal Clicker: number labels past Dc (UDc…C) + scientific fallback"
+  ],
   "20260907v": [
     "Crystal Clicker: more Sp–No tier click + idle upgrades"
   ],

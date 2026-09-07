@@ -104,16 +104,31 @@
     return `${r}s`;
   }
 
-  const COMPACT_SUFFIXES = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
+  const COMPACT_SUFFIXES = [
+    "", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc",
+    "UDc", "DDc", "TDc", "QaDc", "QiDc", "SxDc", "SpDc", "OcDc", "NoDc", "Vg",
+    "UVg", "DVg", "TVg", "QaVg", "QiVg", "SxVg", "SpVg", "OcVg", "NoVg", "Tg",
+    "UTg", "DTg", "TTg", "QaTg", "QiTg", "SxTg", "SpTg", "OcTg", "NoTg", "Qag",
+    "UQag", "DQag", "TQag", "QaQag", "QiQag", "SxQag", "SpQag", "OcQag", "NoQag", "Qig",
+    "UQig", "DQig", "TQig", "QaQig", "QiQig", "SxQig", "SpQig", "OcQig", "NoQig", "Sxg",
+    "USxg", "DSxg", "TSxg", "QaSxg", "QiSxg", "SxSxg", "SpSxg", "OcSxg", "NoSxg", "Spg",
+    "USpg", "DSpg", "TSpg", "QaSpg", "QiSpg", "SxSpg", "SpSpg", "OcSpg", "NoSpg", "Ocg",
+    "UOcg", "DOcg", "TOcg", "QaOcg", "QiOcg", "SxOcg", "SpOcg", "OcOcg", "NoOcg", "Nog",
+    "UNog", "DNog", "TNog", "QaNog", "QiNog", "SxNog", "SpNog", "OcNog", "NoNog", "C"
+  ];
 
   function formatCompact(n) {
     let v = Math.abs(Number(n) || 0);
-    if (!Number.isFinite(v) || v <= 0) return "0";
+    if (!Number.isFinite(v)) return v > 0 ? "∞" : "0";
+    if (v <= 0) return "0";
     if (v < 1000) return String(Math.floor(v));
     let tier = 0;
     while (v >= 1000 && tier < COMPACT_SUFFIXES.length - 1) {
       v /= 1000;
       tier += 1;
+    }
+    if (v >= 1000) {
+      return (Math.abs(Number(n)) || 0).toExponential(2).replace("+", "");
     }
     const digits = v >= 100 ? 0 : v >= 10 ? 1 : 2;
     let text = v.toFixed(digits);

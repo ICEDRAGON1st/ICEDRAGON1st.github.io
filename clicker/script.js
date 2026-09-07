@@ -369,11 +369,23 @@
     return Math.max(0, Math.floor(Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0));
   }
 
-  const SUFFIXES = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
+  // Short-scale: each step ×1000. Past Dc continues through vigintillion+.
+  const SUFFIXES = [
+    "", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc",
+    "UDc", "DDc", "TDc", "QaDc", "QiDc", "SxDc", "SpDc", "OcDc", "NoDc", "Vg",
+    "UVg", "DVg", "TVg", "QaVg", "QiVg", "SxVg", "SpVg", "OcVg", "NoVg", "Tg",
+    "UTg", "DTg", "TTg", "QaTg", "QiTg", "SxTg", "SpTg", "OcTg", "NoTg", "Qag",
+    "UQag", "DQag", "TQag", "QaQag", "QiQag", "SxQag", "SpQag", "OcQag", "NoQag", "Qig",
+    "UQig", "DQig", "TQig", "QaQig", "QiQig", "SxQig", "SpQig", "OcQig", "NoQig", "Sxg",
+    "USxg", "DSxg", "TSxg", "QaSxg", "QiSxg", "SxSxg", "SpSxg", "OcSxg", "NoSxg", "Spg",
+    "USpg", "DSpg", "TSpg", "QaSpg", "QiSpg", "SxSpg", "SpSpg", "OcSpg", "NoSpg", "Ocg",
+    "UOcg", "DOcg", "TOcg", "QaOcg", "QiOcg", "SxOcg", "SpOcg", "OcOcg", "NoOcg", "Nog",
+    "UNog", "DNog", "TNog", "QaNog", "QiNog", "SxNog", "SpNog", "OcNog", "NoNog", "C"
+  ];
 
   function formatNum(n) {
     let v = Number(n) || 0;
-    if (!Number.isFinite(v)) return "0";
+    if (!Number.isFinite(v)) return v > 0 ? "∞" : v < 0 ? "-∞" : "0";
     const neg = v < 0;
     v = Math.abs(v);
     if (v < 1000) {
@@ -384,6 +396,11 @@
     while (v >= 1000 && tier < SUFFIXES.length - 1) {
       v /= 1000;
       tier += 1;
+    }
+    if (v >= 1000) {
+      // Beyond named suffixes / near Number overflow — scientific.
+      const sci = (Math.abs(Number(n)) || 0).toExponential(2).replace("+", "");
+      return neg ? `-${sci}` : sci;
     }
     let digits;
     if (v >= 100) digits = 0;
