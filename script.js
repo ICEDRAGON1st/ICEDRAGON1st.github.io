@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908a": [
+    "Rainbow color also available to ICE_DRAGON for testing"
+  ],
   "20260907z": [
     "Rainbow name color unlocked for Oskar"
   ],

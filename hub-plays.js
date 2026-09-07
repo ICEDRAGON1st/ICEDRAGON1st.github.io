@@ -1682,7 +1682,7 @@ body.light .menu-credit .player-name-creator {
     aurora: new Set(["ice_dragon", "oscarvr29"]),
     mono: new Set(["ice_dragon", "hjalte"]),
     tide: new Set(["ice_dragon", "oscarvr29"]),
-    rainbow: new Set(["oskar"])
+    rainbow: new Set(["oskar", "ice_dragon"])
   };
 
   const COLOR_OPTIONS = [
