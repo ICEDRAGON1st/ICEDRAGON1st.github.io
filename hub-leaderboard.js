@@ -39,9 +39,9 @@
   const GAME_IDS = Object.keys(GAME_META);
 
   let cache = { games: {} };
-  let syncing = false;
   let lastSync = 0;
   let submitQueue = Promise.resolve();
+  let syncQueue = Promise.resolve();
 
   function meta(gameId) {
     return GAME_META[gameId] || { label: gameId, lowerBetter: false, unit: "score" };
@@ -99,8 +99,9 @@
     const h = Math.floor(s / 3600);
     const m = Math.floor((s % 3600) / 60);
     const r = s % 60;
-    if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
-    if (m > 0) return r > 0 ? `${m}m ${r}s` : `${m}m`;
+    const ss = String(r).padStart(2, "0");
+    if (h > 0) return `${h}h ${m}m ${ss}s`;
+    if (m > 0) return `${m}m ${ss}s`;
     return `${r}s`;
   }
 
@@ -421,7 +422,7 @@
       saveLocal(next);
       try {
         const remote = await fetchRemote();
-        const merged = mergeBoards(next, remote);
+        const merged = mergeBoards(loadLocal(), remote);
         saveLocal(merged);
         await postJson(API, merged);
       } catch {}
@@ -464,7 +465,7 @@
       saveLocal(next);
       try {
         const remote = await fetchRemote();
-        const merged = mergeBoards(next, remote);
+        const merged = mergeBoards(loadLocal(), remote);
         // Ensure our bind wins after merge.
         merged.resets = { ...(merged.resets || {}), [`namebind:${id}`]: name };
         const rebound = applyResets(merged);
@@ -479,17 +480,16 @@
   }
 
   async function sync(force = false) {
-    if (syncing) return cache;
     if (!force && Date.now() - lastSync < SYNC_GAP_MS) return cache;
-    syncing = true;
-    try {
-      const local = loadLocal();
+    const run = async () => {
       let remote = { games: {}, resets: {} };
       try {
         remote = await fetchRemote();
       } catch {
         remote = { games: {}, resets: {} };
       }
+      // Re-read AFTER the network wait so live Time Online bumps aren't wiped.
+      const local = loadLocal();
       const merged = mergeBoards(local, remote);
       saveLocal(merged);
       try {
@@ -499,9 +499,10 @@
       }
       lastSync = Date.now();
       return merged;
-    } finally {
-      syncing = false;
-    }
+    };
+    // Serialize syncs; never skip a forced sync while one is in flight.
+    syncQueue = syncQueue.then(run, run);
+    return syncQueue;
   }
 
   function getBoard(gameId) {
@@ -569,7 +570,8 @@
       saveLocal(next);
       try {
         const remote = await fetchRemote();
-        const merged = mergeBoards(next, remote);
+        // Prefer freshest local (includes Time Online ticks during the fetch).
+        const merged = mergeBoards(loadLocal(), remote);
         saveLocal(merged);
         await postJson(API, merged);
       } catch {

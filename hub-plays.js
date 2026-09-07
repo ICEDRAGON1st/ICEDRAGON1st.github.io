@@ -1240,6 +1240,10 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     presenceTimer = setInterval(() => {
       heartbeat().catch(() => {});
     }, HEARTBEAT_MS);
+    // Keep Time Online moving even when Leaderboards isn't open.
+    setInterval(() => {
+      tickOnlineTime(Date.now());
+    }, 10_000);
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
         lastOnlineTickAt = 0;
