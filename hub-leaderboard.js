@@ -183,7 +183,16 @@
     { id: "ghostfin", name: "Ghostfin", rarity: "secret", value: 25000 },
     { id: "nullfish", name: "Nullfish", rarity: "secret", value: 50000 },
     { id: "eclipse", name: "Eclipse Eel", rarity: "secret", value: 80000 },
-    { id: "forgotten", name: "The Forgotten", rarity: "secret", value: 120000 }
+    { id: "forgotten", name: "The Forgotten", rarity: "secret", value: 120000 },
+    { id: "seraph", name: "Seraph Ray", rarity: "divine", value: 250000 },
+    { id: "halo", name: "Halo Carp", rarity: "divine", value: 400000 },
+    { id: "oracle", name: "Oracle Koi", rarity: "divine", value: 650000 },
+    { id: "timeless", name: "Timeless Trout", rarity: "eternal", value: 1500000 },
+    { id: "foreverfin", name: "Foreverfin", rarity: "eternal", value: 2800000 },
+    { id: "aeon", name: "Aeon Shark", rarity: "eternal", value: 4500000 },
+    { id: "nebula", name: "Nebula Nettle", rarity: "cosmic", value: 12000000 },
+    { id: "quasar", name: "Quasar Cod", rarity: "cosmic", value: 25000000 },
+    { id: "omnifin", name: "Omnifin", rarity: "cosmic", value: 50000000 }
   ];
 
   const FISHING_RARITY_RANK = {
@@ -193,7 +202,10 @@
     epic: 4,
     legendary: 5,
     mythic: 6,
-    secret: 7
+    secret: 7,
+    divine: 8,
+    eternal: 9,
+    cosmic: 10
   };
 
   function fishingCatchScore(fish) {

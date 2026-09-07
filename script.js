@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908y": [
+    "Fishing Idle: Divine / Eternal / Cosmic rarities, more gear, late-game spots"
+  ],
   "20260908u": [
     "Fishing Idle: rarer high-tier fish + new Secret rarity (extremely rare)"
   ],

@@ -5,7 +5,18 @@
   const TICK_MS = 100;
   const COOLER_BASE = 12;
 
-  const RARITIES = ["common", "uncommon", "rare", "epic", "legendary", "mythic", "secret"];
+  const RARITIES = [
+    "common",
+    "uncommon",
+    "rare",
+    "epic",
+    "legendary",
+    "mythic",
+    "secret",
+    "divine",
+    "eternal",
+    "cosmic"
+  ];
 
   const RARITY_RANK = {
     common: 1,
@@ -14,7 +25,10 @@
     epic: 4,
     legendary: 5,
     mythic: 6,
-    secret: 7
+    secret: 7,
+    divine: 8,
+    eternal: 9,
+    cosmic: 10
   };
 
   const RARITY_WEIGHT = {
@@ -24,7 +38,10 @@
     epic: 2.2,
     legendary: 0.7,
     mythic: 0.18,
-    secret: 0.025
+    secret: 0.025,
+    divine: 0.008,
+    eternal: 0.0025,
+    cosmic: 0.0007
   };
 
   const FISH = [
@@ -76,7 +93,19 @@
     { id: "ghostfin", name: "Ghostfin", rarity: "secret", value: 25000 },
     { id: "nullfish", name: "Nullfish", rarity: "secret", value: 50000 },
     { id: "eclipse", name: "Eclipse Eel", rarity: "secret", value: 80000 },
-    { id: "forgotten", name: "The Forgotten", rarity: "secret", value: 120000 }
+    { id: "forgotten", name: "The Forgotten", rarity: "secret", value: 120000 },
+    // Divine
+    { id: "seraph", name: "Seraph Ray", rarity: "divine", value: 250000 },
+    { id: "halo", name: "Halo Carp", rarity: "divine", value: 400000 },
+    { id: "oracle", name: "Oracle Koi", rarity: "divine", value: 650000 },
+    // Eternal
+    { id: "timeless", name: "Timeless Trout", rarity: "eternal", value: 1500000 },
+    { id: "foreverfin", name: "Foreverfin", rarity: "eternal", value: 2800000 },
+    { id: "aeon", name: "Aeon Shark", rarity: "eternal", value: 4500000 },
+    // Cosmic
+    { id: "nebula", name: "Nebula Nettle", rarity: "cosmic", value: 12000000 },
+    { id: "quasar", name: "Quasar Cod", rarity: "cosmic", value: 25000000 },
+    { id: "omnifin", name: "Omnifin", rarity: "cosmic", value: 50000000 }
   ];
 
   const SPOTS = [
@@ -195,11 +224,38 @@
       wait: [0.75, 1.4],
       valueMult: 4.5,
       rarity: 12,
-      blurb: "End of the map · best odds & pay"
+      blurb: "Secrets stir · divine just possible"
+    },
+    {
+      id: "celestial",
+      name: "Celestial Pier",
+      cost: 15000000,
+      wait: [0.7, 1.3],
+      valueMult: 5.5,
+      rarity: 13,
+      blurb: "Holy waters · divine & eternal odds"
+    },
+    {
+      id: "aeonbasin",
+      name: "Aeon Basin",
+      cost: 50000000,
+      wait: [0.65, 1.2],
+      valueMult: 7,
+      rarity: 14,
+      blurb: "Time thins · eternals swim here"
+    },
+    {
+      id: "cosmos",
+      name: "Cosmic Rift",
+      cost: 200000000,
+      wait: [0.6, 1.1],
+      valueMult: 9,
+      rarity: 15,
+      blurb: "Edge of everything · cosmic possible"
     }
   ];
 
-  const MAX_SPOT_RARITY = 12;
+  const MAX_SPOT_RARITY = 15;
 
   const GEAR = [
     { id: "rod1", name: "Willow Rod", desc: "+0.05s bite window", cost: 40, kind: "window", amount: 0.05 },
@@ -207,21 +263,36 @@
     { id: "rod3", name: "Carbon Rod", desc: "+0.12s bite window", cost: 900, kind: "window", amount: 0.12 },
     { id: "rod4", name: "Pro Rod", desc: "+0.15s bite window", cost: 4500, kind: "window", amount: 0.15 },
     { id: "rod5", name: "Myth Rod", desc: "+0.2s bite window", cost: 22000, kind: "window", amount: 0.2 },
+    { id: "rod6", name: "Abyss Rod", desc: "+0.25s bite window", cost: 90000, kind: "window", amount: 0.25 },
+    { id: "rod7", name: "Void Rod", desc: "+0.3s bite window", cost: 350000, kind: "window", amount: 0.3 },
+    { id: "rod8", name: "Cosmic Rod", desc: "+0.35s bite window", cost: 1500000, kind: "window", amount: 0.35 },
     { id: "bait1", name: "Worms", desc: "Faster bites (−12% wait)", cost: 60, kind: "speed", amount: 0.12 },
     { id: "bait2", name: "Crickets", desc: "Faster bites (−15% wait)", cost: 350, kind: "speed", amount: 0.15 },
     { id: "bait3", name: "Spinner", desc: "Faster bites (−18% wait)", cost: 1800, kind: "speed", amount: 0.18 },
     { id: "bait4", name: "Live Bait", desc: "Faster bites (−22% wait)", cost: 9000, kind: "speed", amount: 0.22 },
+    { id: "bait5", name: "Glow Shrimp", desc: "Faster bites (−26% wait)", cost: 45000, kind: "speed", amount: 0.26 },
+    { id: "bait6", name: "Plasma Flies", desc: "Faster bites (−30% wait)", cost: 200000, kind: "speed", amount: 0.3 },
+    { id: "bait7", name: "Starroe", desc: "Faster bites (−34% wait)", cost: 900000, kind: "speed", amount: 0.34 },
     { id: "luck1", name: "Lucky Hook", desc: "+rarity luck", cost: 120, kind: "luck", amount: 8 },
     { id: "luck2", name: "Tide Charm", desc: "+rarity luck", cost: 700, kind: "luck", amount: 12 },
     { id: "luck3", name: "Pearl Lure", desc: "+rarity luck", cost: 4000, kind: "luck", amount: 16 },
     { id: "luck4", name: "Siren Bell", desc: "+rarity luck", cost: 20000, kind: "luck", amount: 22 },
+    { id: "luck5", name: "Oracle Coin", desc: "+rarity luck", cost: 100000, kind: "luck", amount: 30 },
+    { id: "luck6", name: "Fate Hook", desc: "+rarity luck", cost: 500000, kind: "luck", amount: 40 },
+    { id: "luck7", name: "Cosmic Lure", desc: "+rarity luck", cost: 2500000, kind: "luck", amount: 55 },
     { id: "cooler1", name: "Ice Pack", desc: "+4 cooler slots", cost: 200, kind: "cooler", amount: 4 },
     { id: "cooler2", name: "Big Cooler", desc: "+6 cooler slots", cost: 1500, kind: "cooler", amount: 6 },
     { id: "cooler3", name: "Dock Freezer", desc: "+10 cooler slots", cost: 12000, kind: "cooler", amount: 10 },
+    { id: "cooler4", name: "Reef Vault", desc: "+14 cooler slots", cost: 80000, kind: "cooler", amount: 14 },
+    { id: "cooler5", name: "Trench Hold", desc: "+20 cooler slots", cost: 400000, kind: "cooler", amount: 20 },
+    { id: "cooler6", name: "Void Chest", desc: "+28 cooler slots", cost: 2000000, kind: "cooler", amount: 28 },
     { id: "boat1", name: "Canoe Hand", desc: "Auto-catch every 12s", cost: 250, kind: "boat", amount: 12 },
     { id: "boat2", name: "Skiff Crew", desc: "Auto-catch every 8s", cost: 2000, kind: "boat", amount: 8 },
     { id: "boat3", name: "Trawler", desc: "Auto-catch every 5s", cost: 15000, kind: "boat", amount: 5 },
-    { id: "boat4", name: "Harbor Fleet", desc: "Auto-catch every 3s", cost: 80000, kind: "boat", amount: 3 }
+    { id: "boat4", name: "Harbor Fleet", desc: "Auto-catch every 3s", cost: 80000, kind: "boat", amount: 3 },
+    { id: "boat5", name: "Deep Sub", desc: "Auto-catch every 2.2s", cost: 350000, kind: "boat", amount: 2.2 },
+    { id: "boat6", name: "Rift Drone", desc: "Auto-catch every 1.5s", cost: 1500000, kind: "boat", amount: 1.5 },
+    { id: "boat7", name: "Cosmic Net", desc: "Auto-catch every 1s", cost: 6000000, kind: "boat", amount: 1 }
   ];
 
   const coinCountEl = document.getElementById("coin-count");
@@ -311,7 +382,7 @@
 
   function biteWindow() {
     const bonus = ownedGear("window").reduce((s, g) => s + g.amount, 0);
-    return Math.min(1.35, 0.45 + bonus);
+    return Math.min(2.05, 0.45 + bonus);
   }
 
   function waitScale() {
@@ -541,6 +612,9 @@
     if (rarity === "legendary") return 0.006 + t * 0.85;
     if (rarity === "mythic") return 0.0015 + t * 0.95;
     if (rarity === "secret") return 0.0002 + t * 0.55;
+    if (rarity === "divine") return 0.00008 + t * 0.4;
+    if (rarity === "eternal") return 0.00003 + t * 0.28;
+    if (rarity === "cosmic") return 0.00001 + t * 0.18;
     return 1;
   }
 
@@ -553,12 +627,18 @@
     if (fish.rarity === "legendary") w += luck * 0.12;
     if (fish.rarity === "mythic") w += luck * 0.07;
     if (fish.rarity === "secret") w += luck * 0.02;
-    // Worse spots suppress high rarities hard; boats are worse at secrets
+    if (fish.rarity === "divine") w += luck * 0.012;
+    if (fish.rarity === "eternal") w += luck * 0.006;
+    if (fish.rarity === "cosmic") w += luck * 0.002;
+    // Worse spots suppress high rarities hard; boats are worse at top tiers
     const t = Math.max(0, Math.min(MAX_SPOT_RARITY, Number(spot.rarity) || 0)) / MAX_SPOT_RARITY;
     if (fish.rarity === "rare") w *= 0.45 + t * 0.55;
     if (fish.rarity === "epic" || fish.rarity === "legendary") w *= 0.25 + t * 0.75;
     if (fish.rarity === "mythic") w *= 0.12 + t * 0.88;
     if (fish.rarity === "secret") w *= (0.05 + t * 0.95) * (forBoat ? 0.35 : 1);
+    if (fish.rarity === "divine") w *= (0.03 + t * 0.97) * (forBoat ? 0.25 : 1);
+    if (fish.rarity === "eternal") w *= (0.02 + t * 0.98) * (forBoat ? 0.18 : 1);
+    if (fish.rarity === "cosmic") w *= (0.01 + t * 0.99) * (forBoat ? 0.1 : 1);
     return Math.max(0.01, w);
   }
 
@@ -617,15 +697,25 @@
   function setCatchLine(text, cls = "") {
     if (!catchLineEl) return;
     catchLineEl.textContent = text;
-    catchLineEl.classList.remove("miss", "legend", "mythic", "secret");
+    catchLineEl.classList.remove("miss", "legend", "mythic", "secret", "divine", "eternal", "cosmic");
     if (cls) catchLineEl.classList.add(cls);
   }
 
   function isShowcaseRarity(rarity) {
-    return rarity === "legendary" || rarity === "mythic" || rarity === "secret";
+    return (
+      rarity === "legendary" ||
+      rarity === "mythic" ||
+      rarity === "secret" ||
+      rarity === "divine" ||
+      rarity === "eternal" ||
+      rarity === "cosmic"
+    );
   }
 
   function catchTone(rarity) {
+    if (rarity === "cosmic") return "cosmic";
+    if (rarity === "eternal") return "eternal";
+    if (rarity === "divine") return "divine";
     if (rarity === "secret") return "secret";
     if (rarity === "mythic") return "mythic";
     if (rarity === "legendary") return "legend";
@@ -1058,7 +1148,18 @@
   }
 
   function rarityOrder(r) {
-    return { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4, mythic: 5, secret: 6 }[r] ?? 0;
+    return {
+      common: 0,
+      uncommon: 1,
+      rare: 2,
+      epic: 3,
+      legendary: 4,
+      mythic: 5,
+      secret: 6,
+      divine: 7,
+      eternal: 8,
+      cosmic: 9
+    }[r] ?? 0;
   }
 
   function formatChance(pct) {
