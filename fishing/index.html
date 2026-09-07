@@ -7,13 +7,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260908j">
+  <link rel="stylesheet" href="styles.css?v=20260908k">
 </head>
 <body>
   <header class="top-bar">
     <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
     <h1>Fishing Idle</h1>
     <div class="top-stats">
+      <button id="guide-btn" type="button" class="guide-btn">Fish guide</button>
       <span id="hud-spot">Creek</span>
       · Cooler <strong id="hud-cooler">0</strong>
       · Best <strong id="hud-best">0</strong>
@@ -86,6 +87,36 @@
 
   <div id="float-layer" class="float-layer" aria-hidden="true"></div>
 
+  <div id="guide-overlay" class="overlay guide-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="guide-title">
+    <div class="overlay-card guide-card">
+      <div class="guide-head">
+        <div>
+          <p class="eyebrow">Bestiary</p>
+          <h2 id="guide-title">Fish guide</h2>
+        </div>
+        <button id="guide-close" type="button" class="btn btn-ghost guide-close">Close</button>
+      </div>
+      <p class="lead guide-lead">
+        Base sell prices. Your current spot multiplies value
+        (<strong id="guide-spot-mult">×1</strong> at <span id="guide-spot-name">Creek</span>).
+      </p>
+      <div class="guide-table-wrap">
+        <table class="guide-table">
+          <thead>
+            <tr>
+              <th>Fish</th>
+              <th>Rarity</th>
+              <th>Base</th>
+              <th>Here</th>
+              <th>Spots</th>
+            </tr>
+          </thead>
+          <tbody id="guide-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <div id="overlay" class="overlay">
     <div class="overlay-card">
       <p class="eyebrow">Cast · bite · reel</p>
@@ -96,6 +127,7 @@
       <p class="score-line">Lifetime best: <strong id="overlay-best">0</strong></p>
       <div class="overlay-actions">
         <button id="start-btn" type="button" class="btn">Play</button>
+        <button id="menu-guide-btn" type="button" class="btn btn-ghost">Fish guide</button>
         <button id="games-btn" type="button" class="btn btn-ghost">Games</button>
       </div>
     </div>
@@ -105,10 +137,10 @@
   <script src="../hub-achievements.js"></script>
   <script src="../hub-sound.js"></script>
   <script src="../hub-confetti.js"></script>
-  <script src="../hub-plays.js?v=20260908j"></script>
+  <script src="../hub-plays.js?v=20260908k"></script>
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
-  <script src="../hub-leaderboard.js?v=20260908j"></script>
-  <script src="script.js?v=20260908j"></script>
+  <script src="../hub-leaderboard.js?v=20260908k"></script>
+  <script src="script.js?v=20260908k"></script>
 </body>
 </html>

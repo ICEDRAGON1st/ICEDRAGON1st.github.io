@@ -125,6 +125,13 @@
   const startBtn = document.getElementById("start-btn");
   const gamesBtn = document.getElementById("games-btn");
   const menuBtn = document.getElementById("menu-btn");
+  const guideBtn = document.getElementById("guide-btn");
+  const menuGuideBtn = document.getElementById("menu-guide-btn");
+  const guideOverlay = document.getElementById("guide-overlay");
+  const guideClose = document.getElementById("guide-close");
+  const guideBody = document.getElementById("guide-body");
+  const guideSpotMult = document.getElementById("guide-spot-mult");
+  const guideSpotName = document.getElementById("guide-spot-name");
   const floatLayer = document.getElementById("float-layer");
 
   let state = defaultState();
@@ -710,6 +717,47 @@
     ensureSession();
   }
 
+  function spotsForFish(fishId) {
+    return SPOTS.filter((s) => s.fish.includes(fishId)).map((s) => s.name);
+  }
+
+  function rarityOrder(r) {
+    return { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4 }[r] ?? 0;
+  }
+
+  function renderGuide() {
+    const spot = currentSpot();
+    if (guideSpotMult) guideSpotMult.textContent = `×${spot.valueMult}`;
+    if (guideSpotName) guideSpotName.textContent = spot.name;
+    if (!guideBody) return;
+    const rows = [...FISH].sort(
+      (a, b) => rarityOrder(a.rarity) - rarityOrder(b.rarity) || a.value - b.value
+    );
+    guideBody.innerHTML = rows
+      .map((fish) => {
+        const here = fishValue(fish, spot);
+        const spots = spotsForFish(fish.id).join(", ");
+        const atCurrent = spot.fish.includes(fish.id);
+        return `<tr class="${atCurrent ? "at-spot" : ""}">
+          <td class="guide-fish-name">${fish.name}</td>
+          <td class="guide-rarity ${fish.rarity}">${fish.rarity}</td>
+          <td>${formatNum(fish.value)}</td>
+          <td class="guide-here">${formatNum(here)}</td>
+          <td class="guide-spots">${spots}</td>
+        </tr>`;
+      })
+      .join("");
+  }
+
+  function openGuide() {
+    renderGuide();
+    guideOverlay?.classList.remove("hidden");
+  }
+
+  function closeGuide() {
+    guideOverlay?.classList.add("hidden");
+  }
+
   castBtn?.addEventListener("click", (e) => reelIn(e));
   sellBtn?.addEventListener("click", () => sellCooler());
   autoSellEl?.addEventListener("change", () => {
@@ -730,6 +778,27 @@
   });
   startBtn?.addEventListener("click", closeMenu);
   menuBtn?.addEventListener("click", openMenu);
+  guideBtn?.addEventListener("click", openGuide);
+  menuGuideBtn?.addEventListener("click", () => {
+    closeMenu();
+    openGuide();
+  });
+  guideClose?.addEventListener("click", closeGuide);
+  guideOverlay?.addEventListener("click", (e) => {
+    if (e.target === guideOverlay) closeGuide();
+  });
+  window.addEventListener("keydown", (e) => {
+    if (e.code !== "Escape") return;
+    if (guideOverlay && !guideOverlay.classList.contains("hidden")) {
+      e.preventDefault();
+      closeGuide();
+      return;
+    }
+    if (overlay && !overlay.classList.contains("hidden")) {
+      e.preventDefault();
+      closeMenu();
+    }
+  });
   gamesBtn?.addEventListener("click", () => {
     saveState();
     maybeSubmitBest(true);

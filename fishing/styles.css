@@ -80,6 +80,133 @@ body {
   font-size: 0.82rem;
   color: var(--muted);
   text-align: right;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.45rem 0.55rem;
+}
+
+.guide-btn {
+  font: inherit;
+  font-weight: 700;
+  font-size: 0.78rem;
+  padding: 0.32rem 0.6rem;
+  border-radius: 0.45rem;
+  border: 1px solid rgba(46, 196, 182, 0.45);
+  background: rgba(46, 196, 182, 0.12);
+  color: var(--foam);
+  cursor: pointer;
+}
+
+.guide-btn:hover {
+  filter: brightness(1.1);
+}
+
+.guide-overlay {
+  z-index: 45;
+}
+
+.guide-card {
+  width: min(560px, 100%);
+  text-align: left;
+  max-height: min(88vh, 720px);
+  display: flex;
+  flex-direction: column;
+}
+
+.guide-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.35rem;
+}
+
+.guide-head h2 {
+  margin: 0;
+}
+
+.guide-close {
+  flex-shrink: 0;
+  padding: 0.45rem 0.75rem;
+}
+
+.guide-lead {
+  margin-bottom: 0.85rem;
+  font-size: 0.88rem;
+}
+
+.guide-table-wrap {
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.guide-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.86rem;
+}
+
+.guide-table th,
+.guide-table td {
+  padding: 0.55rem 0.65rem;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.guide-table th {
+  position: sticky;
+  top: 0;
+  background: #1a4554;
+  color: var(--muted);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  z-index: 1;
+}
+
+.guide-table tr:last-child td {
+  border-bottom: none;
+}
+
+.guide-fish-name {
+  font-weight: 700;
+}
+
+.guide-rarity {
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.guide-rarity.common {
+  color: var(--common);
+}
+.guide-rarity.uncommon {
+  color: var(--uncommon);
+}
+.guide-rarity.rare {
+  color: var(--rare);
+}
+.guide-rarity.epic {
+  color: var(--epic);
+}
+.guide-rarity.legendary {
+  color: var(--legend);
+}
+
+.guide-spots {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.guide-here {
+  font-weight: 700;
+  color: var(--gold);
 }
 
 .top-stats strong {
@@ -612,10 +739,16 @@ body {
   justify-content: center;
 }
 
-@media (max-width: 860px) {
-  .shell {
-    grid-template-columns: 1fr;
+.guide-table tr.at-spot td {
+  background: rgba(46, 196, 182, 0.08);
+}
+
+@media (max-width: 560px) {
+  .guide-table th:nth-child(5),
+  .guide-table td:nth-child(5) {
+    display: none;
   }
+}
 
   .shop-list,
   .spot-list {
