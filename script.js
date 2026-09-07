@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908q": [
+    "Fishing Idle leaderboard is now best fish caught (rarity), not lifetime coins"
+  ],
   "20260908j": [
     "Fishing Idle remade: cast, reel on the bite, cooler, spots — not a clicker clone"
   ],
@@ -1296,13 +1299,13 @@ function getHubScore(gameId) {
       return { label: score ? `Best ${score}` : "No score yet", sort: score };
     }
     case "fishing": {
-      const score = readNumberKey("fishing-high-score-v1");
-      if (!score) return { label: "No score yet", sort: 0 };
-      const compact =
+      const score = readNumberKey("fishing-best-catch-v1");
+      if (!score) return { label: "No catch yet", sort: 0 };
+      const label =
         typeof HubLeaderboard !== "undefined" && HubLeaderboard.formatScore
-          ? HubLeaderboard.formatScore("fishing", score).replace(/^Best\s+/, "")
+          ? HubLeaderboard.formatScore("fishing", score)
           : String(score);
-      return { label: `Best ${compact}`, sort: score };
+      return { label: label.startsWith("Best ") ? label : `Best ${label}`, sort: score };
     }
     default:
       return { label: "—", sort: 0 };

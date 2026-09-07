@@ -1,10 +1,20 @@
 (function () {
   const SAVE_KEY = "fishing-save-v2";
-  const HIGH_SCORE_KEY = "fishing-high-score-v1";
+  const HIGH_SCORE_KEY = "fishing-best-catch-v1";
+  const BEST_CATCH_META_KEY = "fishing-best-catch-meta-v1";
   const TICK_MS = 100;
   const COOLER_BASE = 12;
 
   const RARITIES = ["common", "uncommon", "rare", "epic", "legendary", "mythic"];
+
+  const RARITY_RANK = {
+    common: 1,
+    uncommon: 2,
+    rare: 3,
+    epic: 4,
+    legendary: 5,
+    mythic: 6
+  };
 
   const RARITY_WEIGHT = {
     common: 52,
@@ -206,6 +216,8 @@
       owned,
       cooler: [],
       autoSellRarities: defaultAutoSell(),
+      bestCatchScore: 0,
+      bestCatchId: "",
       catches: 0,
       perfects: 0,
       lastTick: Date.now()
@@ -267,6 +279,15 @@
       }
       next.catches = Math.max(0, Math.floor(Number(raw.catches) || 0));
       next.perfects = Math.max(0, Math.floor(Number(raw.perfects) || 0));
+      next.bestCatchScore = Math.max(0, Math.floor(Number(raw.bestCatchScore) || 0));
+      next.bestCatchId = typeof raw.bestCatchId === "string" ? raw.bestCatchId : "";
+      if (!next.bestCatchScore) {
+        next.bestCatchScore = getStoredBest();
+      }
+      if (!next.bestCatchId && next.bestCatchScore) {
+        const match = FISH.find((f) => catchScore(f) === next.bestCatchScore);
+        if (match) next.bestCatchId = match.id;
+      }
       next.lastTick = Math.max(0, Number(raw.lastTick) || Date.now());
       SPOTS.forEach((s) => {
         next.unlocked[s.id] = s.id === "creek" || !!raw.unlocked?.[s.id];
@@ -297,13 +318,64 @@
     try {
       state.lastTick = Date.now();
       localStorage.setItem(SAVE_KEY, JSON.stringify(state));
-      const best = Math.max(getStoredBest(), Math.floor(state.lifetime));
+      const best = Math.max(getStoredBest(), Math.floor(state.bestCatchScore || 0));
       localStorage.setItem(HIGH_SCORE_KEY, String(best));
+      const fish = fishById(state.bestCatchId);
+      if (fish) {
+        localStorage.setItem(
+          BEST_CATCH_META_KEY,
+          JSON.stringify({ id: fish.id, name: fish.name, rarity: fish.rarity, value: fish.value })
+        );
+      }
     } catch {}
   }
 
   function getStoredBest() {
     return Math.max(0, Math.floor(Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0));
+  }
+
+  function catchScore(fish) {
+    if (!fish) return 0;
+    const rank = RARITY_RANK[fish.rarity] || 1;
+    return rank * 100000 + Math.max(0, Math.floor(Number(fish.value) || 0));
+  }
+
+  function formatBestCatch(fishOrScore) {
+    const fish =
+      typeof fishOrScore === "object" && fishOrScore
+        ? fishOrScore
+        : fishById(state.bestCatchId) || FISH.find((f) => catchScore(f) === Number(fishOrScore));
+    if (!fish) return "—";
+    return `${fish.rarity} · ${fish.name}`;
+  }
+
+  function noteCatch(fish) {
+    if (!fish) return;
+    const score = catchScore(fish);
+    if (score <= (state.bestCatchScore || 0)) return;
+    state.bestCatchScore = score;
+    state.bestCatchId = fish.id;
+    try {
+      localStorage.setItem(HIGH_SCORE_KEY, String(score));
+    } catch {}
+    maybeSubmitBest(true);
+  }
+
+  function maybeSubmitBest(force = false) {
+    const best = Math.floor(state.bestCatchScore || 0);
+    if (best <= 0) return;
+    const stored = getStoredBest();
+    if (best > stored) {
+      try {
+        localStorage.setItem(HIGH_SCORE_KEY, String(best));
+      } catch {}
+    }
+    const now = Date.now();
+    if (!force && now - lastSubmitAt < 4000) return;
+    if (window.HubLeaderboard) {
+      lastSubmitAt = now;
+      HubLeaderboard.submit("fishing", best).catch?.(() => {});
+    }
   }
 
   const SUFFIXES = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
@@ -325,24 +397,7 @@
     if (amount <= 0) return;
     state.coins += amount;
     state.lifetime += amount;
-    maybeSubmitBest();
     checkAchievements();
-  }
-
-  function maybeSubmitBest(force = false) {
-    const best = Math.floor(state.lifetime);
-    if (best <= 0) return;
-    if (best > getStoredBest()) {
-      try {
-        localStorage.setItem(HIGH_SCORE_KEY, String(best));
-      } catch {}
-    }
-    const now = Date.now();
-    if (!force && now - lastSubmitAt < 4000) return;
-    if (window.HubLeaderboard) {
-      lastSubmitAt = now;
-      HubLeaderboard.submit("fishing", best).catch?.(() => {});
-    }
   }
 
   function checkAchievements() {
@@ -461,6 +516,7 @@
 
   function addToCooler(fish, opts = {}) {
     if (!fish) return false;
+    noteCatch(fish);
     if (opts.forceSell || shouldAutoSell(fish.rarity)) {
       const val = fishValue(fish, currentSpot());
       addCoins(val);
@@ -690,13 +746,11 @@
       const count = Math.floor(elapsed / 1000 / boat.amount);
       for (let i = 0; i < Math.min(count, 400); i += 1) {
         const fish = rollFish(spot, true);
+        noteCatch(fish);
         if (shouldAutoSell(fish.rarity)) {
           gained += fishValue(fish, spot);
         } else if (state.cooler.length < coolerMax()) {
           state.cooler.push(fish.id);
-        } else if (anyAutoSellEnabled()) {
-          // Cooler full: only keep money if this rarity would have been kept — otherwise sell overflow
-          gained += fishValue(fish, spot);
         } else {
           gained += fishValue(fish, spot);
         }
@@ -774,14 +828,15 @@
 
   function renderStats() {
     const spot = currentSpot();
-    const best = Math.max(getStoredBest(), Math.floor(state.lifetime));
+    const bestFish = fishById(state.bestCatchId) || FISH.find((f) => catchScore(f) === state.bestCatchScore);
+    const bestLabel = bestFish ? formatBestCatch(bestFish) : "—";
     if (coinCountEl) coinCountEl.textContent = formatNum(state.coins);
     if (spotLabelEl) spotLabelEl.textContent = spot.name;
     if (hudSpotEl) hudSpotEl.textContent = spot.name;
     if (windowLabelEl) windowLabelEl.textContent = `${biteWindow().toFixed(2)}s`;
     if (boatsLabelEl) boatsLabelEl.textContent = String(boats().length);
-    if (hudBestEl) hudBestEl.textContent = formatNum(best);
-    if (overlayBestEl) overlayBestEl.textContent = formatNum(best);
+    if (hudBestEl) hudBestEl.textContent = bestLabel;
+    if (overlayBestEl) overlayBestEl.textContent = bestLabel;
   }
 
   function render(full = true) {

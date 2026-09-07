@@ -35,7 +35,7 @@
     clicker: { label: "Crystal Clicker", lowerBetter: false, unit: "compact" },
     stacker: { label: "Tower Stack", lowerBetter: false, unit: "score" },
     crossy: { label: "Lane Crosser", lowerBetter: false, unit: "score" },
-    fishing: { label: "Fishing Idle", lowerBetter: false, unit: "compact" },
+    fishing: { label: "Fishing Idle", lowerBetter: false, unit: "catch" },
     "online-time": { label: "Time Online", lowerBetter: false, unit: "playtime" }
   };
 
@@ -140,6 +140,74 @@
     return `${text}${COMPACT_SUFFIXES[tier]}`;
   }
 
+  // Fishing Idle: leaderboard = best single catch (rarity + base value encoded).
+  const FISHING_CATCH_FISH = [
+    { id: "minnow", name: "Minnow", rarity: "common", value: 3 },
+    { id: "perch", name: "Perch", rarity: "common", value: 5 },
+    { id: "bluegill", name: "Bluegill", rarity: "common", value: 6 },
+    { id: "sardine", name: "Sardine", rarity: "common", value: 4 },
+    { id: "smelt", name: "Smelt", rarity: "common", value: 5 },
+    { id: "carp", name: "Carp", rarity: "common", value: 7 },
+    { id: "roach", name: "Roach", rarity: "common", value: 4 },
+    { id: "goby", name: "Goby", rarity: "common", value: 6 },
+    { id: "trout", name: "Trout", rarity: "uncommon", value: 14 },
+    { id: "bass", name: "Bass", rarity: "uncommon", value: 18 },
+    { id: "catfish", name: "Catfish", rarity: "uncommon", value: 22 },
+    { id: "walleye", name: "Walleye", rarity: "uncommon", value: 20 },
+    { id: "snapper", name: "Snapper", rarity: "uncommon", value: 24 },
+    { id: "mackerel", name: "Mackerel", rarity: "uncommon", value: 16 },
+    { id: "cod", name: "Cod", rarity: "uncommon", value: 19 },
+    { id: "flounder", name: "Flounder", rarity: "uncommon", value: 21 },
+    { id: "salmon", name: "Salmon", rarity: "rare", value: 45 },
+    { id: "pike", name: "Pike", rarity: "rare", value: 55 },
+    { id: "mahi", name: "Mahi-Mahi", rarity: "rare", value: 60 },
+    { id: "grouper", name: "Grouper", rarity: "rare", value: 70 },
+    { id: "barracuda", name: "Barracuda", rarity: "rare", value: 65 },
+    { id: "sturgeon", name: "Sturgeon", rarity: "rare", value: 80 },
+    { id: "eel", name: "Moray Eel", rarity: "rare", value: 58 },
+    { id: "tuna", name: "Tuna", rarity: "epic", value: 120 },
+    { id: "marlin", name: "Marlin", rarity: "epic", value: 180 },
+    { id: "swordfish", name: "Swordfish", rarity: "epic", value: 200 },
+    { id: "shark", name: "Reef Shark", rarity: "epic", value: 240 },
+    { id: "ray", name: "Manta Ray", rarity: "epic", value: 220 },
+    { id: "octopus", name: "Giant Octopus", rarity: "epic", value: 260 },
+    { id: "golden", name: "Golden Koi", rarity: "legendary", value: 500 },
+    { id: "leviathan", name: "Leviathan Fry", rarity: "legendary", value: 900 },
+    { id: "moonfish", name: "Moonfish", rarity: "legendary", value: 650 },
+    { id: "dragonet", name: "Sea Dragonet", rarity: "legendary", value: 780 },
+    { id: "crystal", name: "Crystal Pike", rarity: "legendary", value: 850 },
+    { id: "tidelord", name: "Tide Lord", rarity: "mythic", value: 2500 },
+    { id: "abyssking", name: "Abyss King", rarity: "mythic", value: 4000 },
+    { id: "starwhale", name: "Star Whale", rarity: "mythic", value: 6000 },
+    { id: "worldfin", name: "Worldfin", rarity: "mythic", value: 9000 }
+  ];
+
+  const FISHING_RARITY_RANK = {
+    common: 1,
+    uncommon: 2,
+    rare: 3,
+    epic: 4,
+    legendary: 5,
+    mythic: 6
+  };
+
+  function fishingCatchScore(fish) {
+    if (!fish) return 0;
+    const rank = FISHING_RARITY_RANK[fish.rarity] || 1;
+    return rank * 100000 + Math.max(0, Math.floor(Number(fish.value) || 0));
+  }
+
+  function formatFishingCatch(score) {
+    const n = Math.floor(Number(score) || 0);
+    if (n <= 0) return "—";
+    const fish = FISHING_CATCH_FISH.find((f) => fishingCatchScore(f) === n);
+    if (fish) return `${fish.rarity} · ${fish.name}`;
+    const rank = Math.floor(n / 100000);
+    const rarity =
+      Object.keys(FISHING_RARITY_RANK).find((k) => FISHING_RARITY_RANK[k] === rank) || "catch";
+    return rarity;
+  }
+
   function formatScore(gameId, score) {
     const m = meta(gameId);
     const n = Number(score);
@@ -148,6 +216,7 @@
     if (m.unit === "playtime") return formatPlaytime(n);
     if (m.unit === "wins") return `${Math.floor(n)} win${Math.floor(n) === 1 ? "" : "s"}`;
     if (m.unit === "streak") return `Streak ${Math.floor(n)}`;
+    if (m.unit === "catch" || gameId === "fishing") return formatFishingCatch(n);
     if (gameId === "clicker" || m.unit === "compact") return `Best ${formatCompact(n)}`;
     return `Best ${Math.floor(n)}`;
   }
@@ -385,6 +454,20 @@
       if (isIce && at <= iceCut) delete iceBoard[key];
     });
     games.clicker = iceBoard;
+
+    // One-time: wipe Fishing Idle lifetime-coin board; new board is best catch.
+    const fishingWipeKey = "fishing:catch-board-v1";
+    const FISHING_WIPE_AT = Date.UTC(2026, 8, 7, 18, 40, 0); // 2026-09-07 18:40 UTC
+    if (!resets[fishingWipeKey] || Number(resets[fishingWipeKey]) > FISHING_WIPE_AT) {
+      resets[fishingWipeKey] = FISHING_WIPE_AT;
+    }
+    const fishingCut = Number(resets[fishingWipeKey]) || FISHING_WIPE_AT;
+    const fishingBoard = { ...(games.fishing || {}) };
+    Object.keys(fishingBoard).forEach((key) => {
+      const at = Number(fishingBoard[key]?.at) || 0;
+      if (at <= fishingCut) delete fishingBoard[key];
+    });
+    games.fishing = fishingBoard;
 
     // Sticky name binds: keep scores under the player's current name after renames.
     // Seed: Gustav → Dellekai (same playerId).
