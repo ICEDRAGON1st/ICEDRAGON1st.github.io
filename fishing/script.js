@@ -5,7 +5,7 @@
   const TICK_MS = 100;
   const COOLER_BASE = 12;
 
-  const RARITIES = ["common", "uncommon", "rare", "epic", "legendary", "mythic"];
+  const RARITIES = ["common", "uncommon", "rare", "epic", "legendary", "mythic", "secret"];
 
   const RARITY_RANK = {
     common: 1,
@@ -13,16 +13,18 @@
     rare: 3,
     epic: 4,
     legendary: 5,
-    mythic: 6
+    mythic: 6,
+    secret: 7
   };
 
   const RARITY_WEIGHT = {
-    common: 52,
-    uncommon: 24,
-    rare: 12,
-    epic: 7,
-    legendary: 3.5,
-    mythic: 1.2
+    common: 62,
+    uncommon: 22,
+    rare: 6,
+    epic: 2.2,
+    legendary: 0.7,
+    mythic: 0.18,
+    secret: 0.025
   };
 
   const FISH = [
@@ -69,7 +71,12 @@
     { id: "tidelord", name: "Tide Lord", rarity: "mythic", value: 2500 },
     { id: "abyssking", name: "Abyss King", rarity: "mythic", value: 4000 },
     { id: "starwhale", name: "Star Whale", rarity: "mythic", value: 6000 },
-    { id: "worldfin", name: "Worldfin", rarity: "mythic", value: 9000 }
+    { id: "worldfin", name: "Worldfin", rarity: "mythic", value: 9000 },
+    // Secret
+    { id: "ghostfin", name: "Ghostfin", rarity: "secret", value: 25000 },
+    { id: "nullfish", name: "Nullfish", rarity: "secret", value: 50000 },
+    { id: "eclipse", name: "Eclipse Eel", rarity: "secret", value: 80000 },
+    { id: "forgotten", name: "The Forgotten", rarity: "secret", value: 120000 }
   ];
 
   const SPOTS = [
@@ -116,7 +123,7 @@
       wait: [1.0, 2.0],
       valueMult: 1.9,
       rarity: 4,
-      blurb: "All fish · epic/legendary/mythic friendlier"
+      blurb: "All fish · top rarities slightly less rare"
     },
     {
       id: "deep",
@@ -125,7 +132,7 @@
       wait: [0.9, 1.8],
       valueMult: 2.6,
       rarity: 5,
-      blurb: "All fish · best odds, pay & mythics"
+      blurb: "All fish · best odds — secrets still tiny"
     }
   ];
 
@@ -460,28 +467,32 @@
   function rarityFactor(rarity, spotRarity) {
     // Worse spots (low rarity) heavily favor commons; better spots open up rares+.
     const t = Math.max(0, Math.min(5, Number(spotRarity) || 0)) / 5;
-    if (rarity === "common") return 1.55 - t * 0.85;
-    if (rarity === "uncommon") return 0.45 + t * 0.7;
-    if (rarity === "rare") return 0.12 + t * 1.05;
-    if (rarity === "epic") return 0.04 + t * 1.15;
-    if (rarity === "legendary") return 0.01 + t * 1.25;
-    if (rarity === "mythic") return 0.004 + t * 1.4;
+    if (rarity === "common") return 1.7 - t * 0.55;
+    if (rarity === "uncommon") return 0.55 + t * 0.55;
+    if (rarity === "rare") return 0.06 + t * 0.7;
+    if (rarity === "epic") return 0.02 + t * 0.75;
+    if (rarity === "legendary") return 0.006 + t * 0.85;
+    if (rarity === "mythic") return 0.0015 + t * 0.95;
+    if (rarity === "secret") return 0.0002 + t * 0.55;
     return 1;
   }
 
   function fishWeight(fish, spot, forBoat = false) {
-    const luck = luckBonus() * (forBoat ? 0.55 : 1);
+    const luck = luckBonus() * (forBoat ? 0.4 : 1);
     let w = (RARITY_WEIGHT[fish.rarity] || 10) * rarityFactor(fish.rarity, spot.rarity);
-    if (fish.rarity === "uncommon") w += luck * 0.35;
-    if (fish.rarity === "rare") w += luck * 0.5;
-    if (fish.rarity === "epic") w += luck * 0.4;
-    if (fish.rarity === "legendary") w += luck * 0.3;
-    if (fish.rarity === "mythic") w += luck * 0.22;
-    // Worse spots still suppress luck on top rarities
+    if (fish.rarity === "uncommon") w += luck * 0.25;
+    if (fish.rarity === "rare") w += luck * 0.28;
+    if (fish.rarity === "epic") w += luck * 0.2;
+    if (fish.rarity === "legendary") w += luck * 0.12;
+    if (fish.rarity === "mythic") w += luck * 0.07;
+    if (fish.rarity === "secret") w += luck * 0.02;
+    // Worse spots suppress high rarities hard; boats are worse at secrets
     const t = Math.max(0, Math.min(5, Number(spot.rarity) || 0)) / 5;
-    if (fish.rarity === "epic" || fish.rarity === "legendary") w *= 0.35 + t * 0.65;
-    if (fish.rarity === "mythic") w *= 0.18 + t * 0.82;
-    return Math.max(0.05, w);
+    if (fish.rarity === "rare") w *= 0.45 + t * 0.55;
+    if (fish.rarity === "epic" || fish.rarity === "legendary") w *= 0.25 + t * 0.75;
+    if (fish.rarity === "mythic") w *= 0.12 + t * 0.88;
+    if (fish.rarity === "secret") w *= (0.05 + t * 0.95) * (forBoat ? 0.35 : 1);
+    return Math.max(0.01, w);
   }
 
   function rollFish(spot, forBoat = false) {
@@ -539,15 +550,16 @@
   function setCatchLine(text, cls = "") {
     if (!catchLineEl) return;
     catchLineEl.textContent = text;
-    catchLineEl.classList.remove("miss", "legend", "mythic");
+    catchLineEl.classList.remove("miss", "legend", "mythic", "secret");
     if (cls) catchLineEl.classList.add(cls);
   }
 
   function isShowcaseRarity(rarity) {
-    return rarity === "legendary" || rarity === "mythic";
+    return rarity === "legendary" || rarity === "mythic" || rarity === "secret";
   }
 
   function catchTone(rarity) {
+    if (rarity === "secret") return "secret";
     if (rarity === "mythic") return "mythic";
     if (rarity === "legendary") return "legend";
     return "";
@@ -921,7 +933,7 @@
   }
 
   function rarityOrder(r) {
-    return { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4, mythic: 5 }[r] ?? 0;
+    return { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4, mythic: 5, secret: 6 }[r] ?? 0;
   }
 
   function formatChance(pct) {

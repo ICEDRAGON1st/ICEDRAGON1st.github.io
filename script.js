@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908u": [
+    "Fishing Idle: rarer high-tier fish + new Secret rarity (extremely rare)"
+  ],
   "20260908r": [
     "Fishing Idle: set ICE_DRAGON best catch to Abyss King on the leaderboard"
   ],

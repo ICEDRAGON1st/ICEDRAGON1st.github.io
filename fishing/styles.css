@@ -21,6 +21,7 @@
   --epic: #da77f2;
   --legend: #fcc419;
   --mythic: #ff922b;
+  --secret: #e599f7;
 }
 
 html,
@@ -200,6 +201,9 @@ body {
 }
 .guide-rarity.mythic {
   color: var(--mythic);
+}
+.guide-rarity.secret {
+  color: var(--secret);
 }
 
 .guide-spots {
@@ -484,6 +488,11 @@ body {
   text-shadow: 0 0 12px rgba(255, 146, 43, 0.35);
 }
 
+.catch-line.secret {
+  color: var(--secret);
+  text-shadow: 0 0 14px rgba(229, 153, 247, 0.45);
+}
+
 .cooler-bar {
   width: 100%;
   margin-top: 1.1rem;
@@ -565,6 +574,9 @@ body {
 .auto-sell-opt.mythic {
   color: var(--mythic);
 }
+.auto-sell-opt.secret {
+  color: var(--secret);
+}
 
 .cooler-list {
   display: flex;
@@ -623,6 +635,9 @@ body {
 }
 .fish-chip.mythic {
   color: var(--mythic);
+}
+.fish-chip.secret {
+  color: var(--secret);
 }
 
 .sell-btn {

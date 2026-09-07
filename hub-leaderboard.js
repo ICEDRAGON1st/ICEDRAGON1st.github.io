@@ -179,7 +179,11 @@
     { id: "tidelord", name: "Tide Lord", rarity: "mythic", value: 2500 },
     { id: "abyssking", name: "Abyss King", rarity: "mythic", value: 4000 },
     { id: "starwhale", name: "Star Whale", rarity: "mythic", value: 6000 },
-    { id: "worldfin", name: "Worldfin", rarity: "mythic", value: 9000 }
+    { id: "worldfin", name: "Worldfin", rarity: "mythic", value: 9000 },
+    { id: "ghostfin", name: "Ghostfin", rarity: "secret", value: 25000 },
+    { id: "nullfish", name: "Nullfish", rarity: "secret", value: 50000 },
+    { id: "eclipse", name: "Eclipse Eel", rarity: "secret", value: 80000 },
+    { id: "forgotten", name: "The Forgotten", rarity: "secret", value: 120000 }
   ];
 
   const FISHING_RARITY_RANK = {
@@ -188,7 +192,8 @@
     rare: 3,
     epic: 4,
     legendary: 5,
-    mythic: 6
+    mythic: 6,
+    secret: 7
   };
 
   function fishingCatchScore(fish) {
