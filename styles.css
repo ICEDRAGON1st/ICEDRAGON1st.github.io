@@ -1862,6 +1862,49 @@ header h1 {
   font-size: 0.78rem;
 }
 
+.friends-chat-shortcuts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.35rem 0 0.65rem;
+}
+
+.friends-group-create {
+  display: grid;
+  gap: 0.45rem;
+  margin: 0 0 0.65rem;
+}
+
+.friends-group-create.hidden {
+  display: none;
+}
+
+.friends-group-create input {
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.45rem;
+  border: 1px solid var(--tile-border);
+  background: var(--key-bg);
+  color: var(--text);
+}
+
+.friends-group-picks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.friends-group-picks label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
 .friends-chat-unread {
   display: inline-block;
   min-width: 1.1rem;

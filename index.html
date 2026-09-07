@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260907n">
+  <link rel="stylesheet" href="styles.css?v=20260907o">
 </head>
 <body>
   <div class="app">
@@ -229,11 +229,21 @@
         <p id="friends-status" class="friends-status hidden" aria-live="polite"></p>
         <div id="friends-incoming" class="friends-section hidden"></div>
         <div id="friends-invites" class="friends-section hidden"></div>
+        <div class="friends-chat-shortcuts">
+          <button type="button" class="hub-btn" data-chat-open="global">Global chat</button>
+          <button type="button" class="hub-btn" id="friends-new-group-btn">New group</button>
+        </div>
+        <div id="friends-groups" class="friends-section hidden"></div>
         <ul id="friends-list" class="friends-list"></ul>
         <div id="friends-chat" class="friends-chat hidden">
           <div class="friends-chat-head">
             <button id="friends-chat-back" type="button" class="hub-btn">Back</button>
             <h4 id="friends-chat-title" class="friends-chat-title">Chat</h4>
+          </div>
+          <div id="friends-group-create" class="friends-group-create hidden">
+            <input id="friends-group-name" type="text" maxlength="24" placeholder="Group name">
+            <div id="friends-group-picks" class="friends-group-picks"></div>
+            <button type="button" id="friends-group-create-btn" class="hub-btn hub-btn-primary">Create group</button>
           </div>
           <ul id="friends-chat-log" class="friends-chat-log" aria-live="polite"></ul>
           <form id="friends-chat-form" class="friends-chat-form">
@@ -375,7 +385,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260907n";
+    window.WORDLE_BUILD = "20260907o";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-online-match.js",
       "words.js",

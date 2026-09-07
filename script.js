@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260907o": [
+    "Chat: Global channel for everyone + friend group chats"
+  ],
   "20260907n": [
     "Friend chat works in-game: floating Chat button + message toasts"
   ],
@@ -2268,6 +2271,8 @@ document.getElementById("friends-panel")?.addEventListener("click", async (e) =>
   const remove = e.target.closest("[data-friend-remove]");
   const declineInvite = e.target.closest("[data-invite-decline]");
   const openChat = e.target.closest("[data-friend-chat]");
+  const openChannel = e.target.closest("[data-chat-open]");
+  const openGroup = e.target.closest("[data-group-chat]");
   if (accept) {
     await HubFriends.acceptRequest(accept.dataset.friendAccept);
     renderFriendsPanel();
@@ -2291,29 +2296,72 @@ document.getElementById("friends-panel")?.addEventListener("click", async (e) =>
     renderFriendsPanel();
     return;
   }
+  if (openChannel?.dataset.chatOpen === "global" && typeof HubChat !== "undefined") {
+    if (!requirePlayerName()) return;
+    HubChat.openGlobal?.();
+    hideGroupCreate();
+    renderFriendsPanel();
+    document.getElementById("friends-chat-input")?.focus();
+    return;
+  }
+  if (openGroup && typeof HubChat !== "undefined") {
+    if (!requirePlayerName()) return;
+    HubChat.openGroup?.(openGroup.dataset.groupChat);
+    hideGroupCreate();
+    renderFriendsPanel();
+    document.getElementById("friends-chat-input")?.focus();
+    return;
+  }
   if (openChat && typeof HubChat !== "undefined") {
     if (!requirePlayerName()) return;
     HubChat.openThread(openChat.dataset.friendChat);
+    hideGroupCreate();
     renderFriendsPanel();
     document.getElementById("friends-chat-input")?.focus();
   }
 });
 
+document.getElementById("friends-new-group-btn")?.addEventListener("click", () => {
+  if (!requirePlayerName()) return;
+  if (typeof HubChat !== "undefined") HubChat.closeThread?.();
+  showGroupCreate();
+  renderFriendsPanel();
+});
+
+document.getElementById("friends-group-create-btn")?.addEventListener("click", async () => {
+  if (typeof HubChat === "undefined") return;
+  if (!requirePlayerName()) return;
+  const name = document.getElementById("friends-group-name")?.value || "";
+  const picks = [
+    ...document.querySelectorAll("#friends-group-picks input:checked")
+  ].map((el) => el.value);
+  setFriendsStatus("Creating…");
+  const result = await HubChat.createGroup(name, picks);
+  if (!result.ok) {
+    setFriendsStatus(result.error || "Couldn't create group", true);
+    return;
+  }
+  hideGroupCreate();
+  setFriendsStatus("Group created");
+  renderFriendsPanel();
+});
+
 document.getElementById("friends-chat-back")?.addEventListener("click", () => {
   if (typeof HubChat !== "undefined") HubChat.closeThread?.();
+  hideGroupCreate();
   renderFriendsPanel();
 });
 
 document.getElementById("friends-chat-form")?.addEventListener("submit", async (e) => {
   e.preventDefault();
   if (typeof HubChat === "undefined") return;
-  const friendId = HubChat.getActiveFriendId?.();
+  const channel = HubChat.getActiveChannel?.();
   const input = document.getElementById("friends-chat-input");
   const text = input?.value || "";
-  if (!friendId) return;
+  if (!channel) return;
   if (!requirePlayerName()) return;
   setFriendsStatus("Sending…");
-  const result = await HubChat.send(friendId, text);
+  const result = await HubChat.sendTo(channel.type, channel.id, text);
   if (!result.ok) {
     setFriendsStatus(result.error || "Couldn't send", true);
     return;
@@ -2324,6 +2372,40 @@ document.getElementById("friends-chat-form")?.addEventListener("submit", async (
   const log = document.getElementById("friends-chat-log");
   if (log) log.scrollTop = log.scrollHeight;
 });
+
+function showGroupCreate() {
+  const box = document.getElementById("friends-group-create");
+  const chat = document.getElementById("friends-chat");
+  const panel = document.getElementById("friends-panel");
+  const form = document.getElementById("friends-chat-form");
+  const log = document.getElementById("friends-chat-log");
+  const title = document.getElementById("friends-chat-title");
+  const picks = document.getElementById("friends-group-picks");
+  panel?.classList.add("is-chatting");
+  chat?.classList.remove("hidden");
+  box?.classList.remove("hidden");
+  form?.classList.add("hidden");
+  if (log) log.innerHTML = "";
+  if (title) title.textContent = "New group";
+  const friends = HubFriends.getFriends?.() || [];
+  if (picks) {
+    picks.innerHTML = friends.length
+      ? friends
+          .map(
+            (f) =>
+              `<label><input type="checkbox" value="${escapeHtml(f.playerId)}"> ${escapeHtml(f.name)}</label>`
+          )
+          .join("")
+      : `<span class="friends-last-online">Add friends first</span>`;
+  }
+}
+
+function hideGroupCreate() {
+  document.getElementById("friends-group-create")?.classList.add("hidden");
+  document.getElementById("friends-chat-form")?.classList.remove("hidden");
+  const nameInput = document.getElementById("friends-group-name");
+  if (nameInput) nameInput.value = "";
+}
 
 function hasPlayerName() {
   if (typeof HubPlays === "undefined") return false;
@@ -2673,11 +2755,17 @@ function renderFriendsChatPane(friends) {
   const chat = document.getElementById("friends-chat");
   const title = document.getElementById("friends-chat-title");
   const log = document.getElementById("friends-chat-log");
+  const createBox = document.getElementById("friends-group-create");
   if (!panel || !chat || !log || typeof HubChat === "undefined") return;
 
-  const activeId = HubChat.getActiveFriendId?.() || "";
-  const friend = (friends || []).find((f) => f.playerId === activeId);
-  if (!activeId || !friend) {
+  if (createBox && !createBox.classList.contains("hidden")) {
+    panel.classList.add("is-chatting");
+    chat.classList.remove("hidden");
+    return;
+  }
+
+  const channel = HubChat.getActiveChannel?.();
+  if (!channel) {
     panel.classList.remove("is-chatting");
     chat.classList.add("hidden");
     return;
@@ -2685,11 +2773,22 @@ function renderFriendsChatPane(friends) {
 
   panel.classList.add("is-chatting");
   chat.classList.remove("hidden");
-  if (title) title.textContent = `Chat · ${friend.name}`;
-  HubChat.markRead?.(activeId);
+  createBox?.classList.add("hidden");
+  document.getElementById("friends-chat-form")?.classList.remove("hidden");
+  HubChat.markRead?.(channel.type, channel.id);
+
+  if (channel.type === "global") {
+    if (title) title.textContent = "Global chat";
+  } else if (channel.type === "group") {
+    const g = (HubChat.getGroups?.() || []).find((x) => x.id === channel.id);
+    if (title) title.textContent = g?.name || "Group";
+  } else {
+    const friend = (friends || []).find((f) => f.playerId === channel.id);
+    if (title) title.textContent = `Chat · ${friend?.name || "Friend"}`;
+  }
 
   const me = HubPlays?.getPlayerId?.() || "";
-  const messages = HubChat.getMessages?.(activeId) || [];
+  const messages = HubChat.getMessagesFor?.(channel.type, channel.id) || [];
   if (!messages.length) {
     log.innerHTML = `<li class="friends-chat-empty">No messages yet — say hi.</li>`;
     return;
@@ -2703,7 +2802,7 @@ function renderFriendsChatPane(friends) {
         typeof HubPlays !== "undefined" && HubPlays.formatWhen
           ? HubPlays.formatWhen(m.at)
           : "";
-      const who = mine ? "You" : escapeHtml(m.name || friend.name);
+      const who = mine ? "You" : escapeHtml(m.name || "Player");
       return `<li class="${mine ? "is-me" : ""}"><span class="friends-chat-meta">${who} · ${escapeHtml(when)}</span><span class="friends-chat-text">${escapeHtml(m.text)}</span></li>`;
     })
     .join("");
@@ -2714,12 +2813,23 @@ function renderFriendsPanel() {
   const list = document.getElementById("friends-list");
   const incomingBox = document.getElementById("friends-incoming");
   const invitesBox = document.getElementById("friends-invites");
+  const groupsBox = document.getElementById("friends-groups");
   if (!list || typeof HubFriends === "undefined") return;
 
   const online = onlineNameSet();
   const friends = HubFriends.getFriends?.() || [];
   const incoming = HubFriends.getIncoming?.() || [];
   const invites = HubFriends.getInvites?.() || [];
+  const groups = typeof HubChat !== "undefined" ? HubChat.getGroups?.() || [] : [];
+
+  const globalBtn = document.querySelector('[data-chat-open="global"]');
+  if (globalBtn && typeof HubChat !== "undefined") {
+    const gu = HubChat.unreadCount?.("global") || 0;
+    globalBtn.innerHTML =
+      gu > 0
+        ? `Global chat <span class="friends-chat-unread">${gu > 9 ? "9+" : gu}</span>`
+        : "Global chat";
+  }
 
   if (incomingBox) {
     if (!incoming.length) {
@@ -2756,6 +2866,24 @@ function renderFriendsPanel() {
     }
   }
 
+  if (groupsBox) {
+    if (!groups.length) {
+      groupsBox.classList.add("hidden");
+      groupsBox.innerHTML = "";
+    } else {
+      groupsBox.classList.remove("hidden");
+      groupsBox.innerHTML = `<h5>Groups</h5><ul>${groups
+        .map((g) => {
+          const badge =
+            g.unread > 0
+              ? `<span class="friends-chat-unread">${g.unread > 9 ? "9+" : g.unread}</span>`
+              : "";
+          return `<li><span>${escapeHtml(g.name)} · ${g.memberCount} members</span><span class="friends-actions"><button type="button" class="hub-btn" data-group-chat="${escapeHtml(g.id)}">Chat${badge}</button></span></li>`;
+        })
+        .join("")}</ul>`;
+    }
+  }
+
   if (!friends.length) {
     list.innerHTML = `<li class="players-empty">No friends yet — add someone by username.</li>`;
     renderFriendsChatPane([]);
@@ -2776,7 +2904,7 @@ function renderFriendsPanel() {
             ? "Online"
             : "Offline";
       const unread =
-        typeof HubChat !== "undefined" ? HubChat.unreadCount?.(f.playerId) || 0 : 0;
+        typeof HubChat !== "undefined" ? HubChat.unreadCount?.("dm", f.playerId) || 0 : 0;
       const unreadBadge =
         unread > 0
           ? `<span class="friends-chat-unread" aria-label="${unread} unread">${unread > 9 ? "9+" : unread}</span>`
