@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260907z": [
+    "Rainbow name color unlocked for Oskar"
+  ],
   "20260907y": [
     "Fix Time Online leaderboard freezing (sync was wiping live ticks)"
   ],
@@ -3179,7 +3182,9 @@ function renderColorPicker() {
             ? " is-mono"
             : opt.id === "tide"
               ? " is-tide"
-              : " is-aurora"
+              : opt.id === "rainbow"
+                ? " is-rainbow"
+                : " is-aurora"
         : opt.id === "cheesy"
           ? " is-cheesy"
           : "";

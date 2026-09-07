@@ -1435,6 +1435,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 .menu-credit .player-name-mono,
 .site-credit .player-name-tide,
 .menu-credit .player-name-tide,
+.site-credit .player-name-rainbow,
+.menu-credit .player-name-rainbow,
 .site-credit .player-name-legend,
 .menu-credit .player-name-legend,
 .site-credit .player-name-oscar,
@@ -1521,6 +1523,24 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     #1c7ed6 100%
   );
   background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: aurora-shift 2.8s ease-in-out infinite;
+}
+.site-credit .player-name-rainbow,
+.menu-credit .player-name-rainbow {
+  background-image: linear-gradient(
+    90deg,
+    #ff0000 0%,
+    #ff7a00 16%,
+    #ffee00 33%,
+    #2f9e44 50%,
+    #1c7ed6 66%,
+    #7048e8 83%,
+    #ff0000 100%
+  );
+  background-size: 220% 220%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -1647,13 +1667,22 @@ body.light .menu-credit .player-name-creator {
       nameClass: "player-name-tide",
       titleClass: "player-title-tide",
       animated: true
+    },
+    rainbow: {
+      id: "rainbow",
+      label: "Rainbow",
+      className: "player-color-rainbow",
+      nameClass: "player-name-rainbow",
+      titleClass: "player-title-rainbow",
+      animated: true
     }
   };
 
   const EXTRA_COLOR_GRANTS = {
     aurora: new Set(["ice_dragon", "oscarvr29"]),
     mono: new Set(["ice_dragon", "hjalte"]),
-    tide: new Set(["ice_dragon", "oscarvr29"])
+    tide: new Set(["ice_dragon", "oscarvr29"]),
+    rainbow: new Set(["oskar"])
   };
 
   const COLOR_OPTIONS = [
