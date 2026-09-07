@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260907r": [
+    "Crystal Clicker: more late-game click + idle upgrades"
+  ],
   "20260907q": [
     "Fix garbled Menu / × / · text on game pages (UTF-8 encoding)"
   ],
