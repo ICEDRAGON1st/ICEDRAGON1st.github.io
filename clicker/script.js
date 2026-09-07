@@ -60,7 +60,7 @@
     }
   } catch {}
 
-  const UPGRADES = [
+  const BASE_UPGRADES = [
     // Click power
     { id: "pickaxe", name: "Pickaxe", desc: "+1 per click", baseCost: 15, clickBonus: 1, cps: 0, group: "click" },
     { id: "knuckle", name: "Shard Knuckle", desc: "+2 per click", baseCost: 80, clickBonus: 2, cps: 0, group: "click" },
@@ -287,6 +287,99 @@
     { id: "hadron", name: "Hadron Quarry", desc: "+200No / sec", baseCost: 3e34, clickBonus: 0, cps: 2e32, group: "idle" },
     { id: "baryon", name: "Baryon Harvester", desc: "+500No / sec", baseCost: 8e34, clickBonus: 0, cps: 5e32, group: "idle" }
   ];
+
+  function formatUpgradeAmount(n) {
+    const suffixes = [
+      "", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc",
+      "UDc", "DDc", "TDc", "QaDc", "QiDc", "SxDc", "SpDc", "OcDc", "NoDc", "Vg",
+      "UVg", "DVg", "TVg", "QaVg", "QiVg", "SxVg", "SpVg", "OcVg", "NoVg", "Tg",
+      "UTg", "DTg", "TTg", "QaTg", "QiTg", "SxTg", "SpTg", "OcTg", "NoTg", "Qag",
+      "UQag", "DQag", "TQag", "QaQag", "QiQag", "SxQag", "SpQag", "OcQag", "NoQag", "Qig",
+      "UQig", "DQig", "TQig", "QaQig", "QiQig", "SxQig", "SpQig", "OcQig", "NoQig", "Sxg",
+      "USxg", "DSxg", "TSxg", "QaSxg", "QiSxg", "SxSxg", "SpSxg", "OcSxg", "NoSxg", "Spg",
+      "USpg", "DSpg", "TSpg", "QaSpg", "QiSpg", "SxSpg", "SpSpg", "OcSpg", "NoSpg", "Ocg",
+      "UOcg", "DOcg", "TOcg", "QaOcg", "QiOcg", "SxOcg", "SpOcg", "OcOcg", "NoOcg", "Nog",
+      "UNog", "DNog", "TNog", "QaNog", "QiNog", "SxNog", "SpNog", "OcNog", "NoNog", "C"
+    ];
+    let v = Number(n) || 0;
+    if (!Number.isFinite(v) || v <= 0) return "0";
+    if (v < 1000) {
+      return v % 1 === 0 ? String(Math.floor(v)) : v.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
+    }
+    let tier = 0;
+    while (v >= 1000 && tier < suffixes.length - 1) {
+      v /= 1000;
+      tier += 1;
+    }
+    if (v >= 1000) return (Number(n) || 0).toExponential(2).replace("+", "");
+    const digits = v >= 100 ? 0 : v >= 10 ? 1 : 2;
+    return `${v.toFixed(digits).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1")}${suffixes[tier]}`;
+  }
+
+  function buildExtraUpgrades(countPerGroup) {
+    const clickAdj = [
+      "Crystal", "Amber", "Prism", "Shard", "Ore", "Gem", "Void", "Rift", "Solar", "Lunar",
+      "Nova", "Astro", "Cosmic", "Mythic", "Rune", "Arcane", "Prime", "Omega", "Ultra", "Hyper",
+      "Quantum", "Neon", "Frost", "Ember", "Storm", "Shadow", "Radiant", "Eternal", "Chrono", "Astral"
+    ];
+    const clickNoun = [
+      "Tap", "Strike", "Fist", "Blow", "Hit", "Click", "Jab", "Slap", "Crush", "Slam",
+      "Needle", "Blade", "Claw", "Hammer", "Spike", "Beam", "Pulse", "Burst", "Drive", "Force"
+    ];
+    const idleAdj = [
+      "Deep", "Vast", "Grand", "Mega", "Ultra", "Hyper", "Nano", "Macro", "Omega", "Prime",
+      "Crystal", "Amber", "Prism", "Void", "Rift", "Star", "Nebula", "Quark", "Flux", "Ion",
+      "Rune", "Arcane", "Mythic", "Eternal", "Chrono", "Astral", "Solar", "Lunar", "Cosmic", "Nova"
+    ];
+    const idleNoun = [
+      "Mine", "Drill", "Quarry", "Vein", "Shaft", "Rig", "Bore", "Forge", "Engine", "Siphon",
+      "Harvester", "Extractor", "Network", "Complex", "Well", "Core", "Array", "Lattice", "Reactor", "Foundry"
+    ];
+
+    const extras = [];
+    const clicks = BASE_UPGRADES.filter((u) => u.group === "click");
+    const idles = BASE_UPGRADES.filter((u) => u.group === "idle");
+    const lastClick = clicks[clicks.length - 1];
+    const lastIdle = idles[idles.length - 1];
+
+    let clickCost = lastClick.baseCost * 2.5;
+    let clickBonus = lastClick.clickBonus * 2.5;
+    for (let i = 0; i < countPerGroup; i += 1) {
+      const name = `${clickAdj[i % clickAdj.length]} ${clickNoun[Math.floor(i / clickAdj.length) % clickNoun.length]}`;
+      extras.push({
+        id: `gclick_${i + 1}`,
+        name,
+        desc: `+${formatUpgradeAmount(clickBonus)} per click`,
+        baseCost: clickCost,
+        clickBonus,
+        cps: 0,
+        group: "click"
+      });
+      clickCost *= 2.5;
+      clickBonus *= 2.5;
+    }
+
+    let idleCost = lastIdle.baseCost * 2.5;
+    let idleCps = lastIdle.cps * 2.5;
+    for (let i = 0; i < countPerGroup; i += 1) {
+      const name = `${idleAdj[i % idleAdj.length]} ${idleNoun[Math.floor(i / idleAdj.length) % idleNoun.length]}`;
+      extras.push({
+        id: `gidle_${i + 1}`,
+        name,
+        desc: `+${formatUpgradeAmount(idleCps)} / sec`,
+        baseCost: idleCost,
+        clickBonus: 0,
+        cps: idleCps,
+        group: "idle"
+      });
+      idleCost *= 2.5;
+      idleCps *= 2.5;
+    }
+
+    return extras;
+  }
+
+  const UPGRADES = BASE_UPGRADES.concat(buildExtraUpgrades(100));
 
   const SHOP_GROUPS = [
     { id: "click", title: "Click power", blurb: "Stronger taps" },
