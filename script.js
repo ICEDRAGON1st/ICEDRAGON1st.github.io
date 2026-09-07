@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908d": [
+    "Hide locked titles/colors (Tester, red, Aurora, Mono, Tide, Rainbow)"
+  ],
   "20260908c": [
     "Fix online vs Time Online mismatch (hidden tabs drop presence; sync clocks)"
   ],
@@ -3099,7 +3102,7 @@ function renderTitlePicker() {
     return;
   }
 
-  const showcase = HubPlays.getTitleShowcase?.() || [];
+  const showcase = (HubPlays.getTitleShowcase?.() || []).filter((t) => t.unlocked);
   if (!showcase.length) {
     picker.classList.add("hidden");
     buttons.innerHTML = "";
@@ -3107,9 +3110,7 @@ function renderTitlePicker() {
   }
 
   const active = HubPlays.getActiveTitleId?.() || "";
-  const unlockedIds = new Set(
-    showcase.filter((t) => t.unlocked).map((t) => t.id)
-  );
+  const unlockedIds = new Set(showcase.map((t) => t.id));
   const options = [...showcase];
   if (unlockedIds.size > 1 || unlockedIds.has("legend")) {
     options.push({ id: "none", label: "None", className: "player-title-none", unlocked: true });
@@ -3118,26 +3119,12 @@ function renderTitlePicker() {
   picker.classList.remove("hidden");
   buttons.innerHTML = options
     .map((opt) => {
-      const locked = !opt.unlocked;
-      const selected = !locked && (active === opt.id || (opt.id === "none" && active === "none"));
-      const lockHint = locked
-        ? opt.id === "legend"
-          ? "Unlock all achievements"
-          : opt.id === "og"
-            ? "Reserved title"
-            : opt.id === "cheesy"
-              ? "Reserved for OscarVR29"
-              : "Locked"
-        : opt.label;
+      const selected = active === opt.id || (opt.id === "none" && active === "none");
       return `<button type="button" class="title-pick-btn ${escapeHtml(opt.className)}${
         selected ? " active" : ""
-      }${locked ? " is-locked" : ""}" data-title="${escapeHtml(opt.id)}" data-locked="${
-        locked ? "true" : "false"
-      }" aria-pressed="${selected ? "true" : "false"}" aria-disabled="${
-        locked ? "true" : "false"
-      }" title="${escapeHtml(lockHint)}">${escapeHtml(opt.label)}${
-        locked ? `<span class="title-lock-tag">Locked</span>` : ""
-      }</button>`;
+      }" data-title="${escapeHtml(opt.id)}" data-locked="false" aria-pressed="${
+        selected ? "true" : "false"
+      }" aria-disabled="false" title="${escapeHtml(opt.label)}">${escapeHtml(opt.label)}</button>`;
     })
     .join("");
 }
@@ -3153,8 +3140,11 @@ function renderColorPicker() {
     return;
   }
 
-  const showcase =
-    HubPlays.getColorShowcase?.() || HubPlays.getTitleShowcase?.() || [];
+  const showcase = (
+    HubPlays.getColorShowcase?.() ||
+    HubPlays.getTitleShowcase?.() ||
+    []
+  ).filter((t) => t.unlocked);
   if (!showcase.length) {
     picker.classList.add("hidden");
     buttons.innerHTML = "";
@@ -3171,19 +3161,14 @@ function renderColorPicker() {
   picker.classList.remove("hidden");
   buttons.innerHTML = showcase
     .map((opt) => {
-      const locked = !opt.unlocked;
-      const selected = !locked && activeColorId === opt.id;
+      const selected = activeColorId === opt.id;
       const extra = HubPlays.EXTRA_COLORS?.[opt.id];
       const isAnimated = !!(opt.animated || extra?.animated);
-      const hint = locked
+      const hint = canPick
         ? isAnimated
-          ? `${opt.label} is a reserved color`
-          : `${opt.label} color — locked`
-        : canPick
-          ? isAnimated
-            ? `${opt.label} animated color (keeps your title)`
-            : `Use ${opt.label} color (keeps your title)`
-          : `${opt.label} color`;
+          ? `${opt.label} animated color (keeps your title)`
+          : `Use ${opt.label} color (keeps your title)`
+        : `${opt.label} color`;
       const bgStyle =
         isAnimated || opt.id === "cheesy" ? "" : ` style="background:${escapeHtml(opt.color)}"`;
       const animClass = isAnimated
@@ -3200,14 +3185,12 @@ function renderColorPicker() {
           ? " is-cheesy"
           : "";
       return `<button type="button" class="color-pick-btn${selected ? " active" : ""}${
-        locked ? " is-locked" : ""
-      }${!canPick && !locked ? " is-fixed" : ""}${animClass}" data-title-color="${escapeHtml(opt.id)}" data-locked="${
-        locked ? "true" : "false"
-      }" title="${escapeHtml(hint)}" aria-label="${escapeHtml(hint)}" aria-disabled="${
-        locked || !canPick ? "true" : "false"
-      }"${bgStyle}>${
-        locked ? `<span class="color-lock-mark" aria-hidden="true">🔒</span>` : ""
-      }</button>`;
+        !canPick ? " is-fixed" : ""
+      }${animClass}" data-title-color="${escapeHtml(opt.id)}" data-locked="false" title="${escapeHtml(
+        hint
+      )}" aria-label="${escapeHtml(hint)}" aria-disabled="${
+        !canPick ? "true" : "false"
+      }"${bgStyle}></button>`;
     })
     .join("");
 }

@@ -1803,24 +1803,15 @@ body.light .menu-credit .player-name-creator {
     return ids;
   }
 
-  /** Titles shown in Players UI (includes locked ones). */
+  /** Titles shown in Players UI — only ones this player actually has. */
   function getTitleShowcase(name = getName()) {
-    const key = nameKey(name);
-    const unlocked = new Set(getAvailableTitleIds(name));
-    let ids =
-      key === "ice_dragon"
-        ? ["owner", "og", "tester", "legend"]
-        : ["og", "tester", "legend"];
-    if (CHEESY_NAME_KEYS.has(key) || unlocked.has("cheesy")) {
-      ids = [...ids, "cheesy"];
-    }
-    return ids.map((id) => {
+    return getAvailableTitleIds(name).map((id) => {
       const def = TITLE_DEFS[id];
       return {
         id,
         label: def.label,
         className: def.className,
-        unlocked: unlocked.has(id),
+        unlocked: true,
         color: TITLE_COLORS[id] || "#888888"
       };
     });
@@ -1851,19 +1842,20 @@ body.light .menu-credit .player-name-creator {
     return !!(id && EXTRA_COLORS[String(id).toLowerCase()]);
   }
 
-  /** Color swatches in Players UI (title colors + special color-only unlocks). */
+  /** Color swatches in Players UI — only unlocked title colors + granted extras. */
   function getColorShowcase(name = getName()) {
     const colors = getTitleShowcase(name).map((t) => ({
       ...t,
       kind: "title"
     }));
-    const unlockedExtras = new Set(getExtraColorIds(name));
-    Object.values(EXTRA_COLORS).forEach((def) => {
+    getExtraColorIds(name).forEach((id) => {
+      const def = EXTRA_COLORS[id];
+      if (!def) return;
       colors.push({
         id: def.id,
         label: def.label,
         className: def.className,
-        unlocked: unlockedExtras.has(def.id),
+        unlocked: true,
         color: "",
         kind: "color",
         animated: !!def.animated
