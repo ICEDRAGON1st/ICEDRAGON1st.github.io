@@ -3,47 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>2048</title>
-  <link rel="stylesheet" href="styles.css?v=20260904l">
+  <title>Lane Crosser</title>
+  <link rel="stylesheet" href="styles.css?v=20260908h">
 </head>
 <body>
   <div class="hud">
     <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
     <div class="hud-stats">
       <span>Score: <strong id="score">0</strong></span>
-      <span>Best: <strong id="best">0</strong></span>
+      <span>Best: <strong id="high-score">0</strong></span>
     </div>
   </div>
 
-  <main class="shell">
-    <p class="hint">Use arrow keys or swipe to slide tiles. Merge numbers to reach 2048!</p>
-    <div id="board" class="board" aria-label="2048 game board">
-      <div id="grid" class="grid"></div>
-      <div id="tiles" class="tiles"></div>
-    </div>
-    <p id="message" class="message" role="status" aria-live="polite"></p>
-  </main>
+  <canvas id="game" width="420" height="720" aria-label="Lane Crosser game"></canvas>
 
   <div id="overlay" class="overlay">
     <div class="overlay-card">
-      <h1 id="overlay-title">2048</h1>
-      <p id="overlay-text">Slide tiles and merge matching numbers. Can you reach 2048?</p>
+      <h1 id="overlay-title">Lane Crosser</h1>
+      <p id="overlay-text">
+        Hop across roads and rivers. Tap / ↑ to hop forward, ← → or swipe to move sideways. Don't get hit or splash!
+      </p>
       <div class="overlay-actions">
         <button id="resume-btn" type="button" class="btn btn-secondary hidden">Resume</button>
         <button id="view-board-btn" type="button" class="btn btn-secondary hidden">View board</button>
-        <button id="start-btn" type="button" class="btn">New Game</button>
+        <button id="start-btn" type="button" class="btn">Start</button>
         <button id="games-btn" type="button" class="btn btn-secondary">Games</button>
       </div>
     </div>
   </div>
 
-  <script src="../hub-streak.js"></script><script src="../hub-achievements.js"></script>
+  <script src="../hub-streak.js"></script>
+  <script src="../hub-achievements.js"></script>
   <script src="../hub-sound.js"></script>
   <script src="../hub-confetti.js"></script>
   <script src="../hub-plays.js?v=20260908h"></script>
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260908h"></script>
-  <script src="script.js?v=20260904l"></script>
+  <script src="script.js?v=20260908h"></script>
 </body>
 </html>

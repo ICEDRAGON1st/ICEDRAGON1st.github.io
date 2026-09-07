@@ -34,6 +34,7 @@
     pixletris: { label: "Pixletris", lowerBetter: false, unit: "score" },
     clicker: { label: "Crystal Clicker", lowerBetter: false, unit: "compact" },
     stacker: { label: "Tower Stack", lowerBetter: false, unit: "score" },
+    crossy: { label: "Lane Crosser", lowerBetter: false, unit: "score" },
     "online-time": { label: "Time Online", lowerBetter: false, unit: "playtime" }
   };
 

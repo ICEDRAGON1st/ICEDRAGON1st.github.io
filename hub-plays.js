@@ -49,7 +49,8 @@
     tictactoe: "Tic Tac Toe",
     pixletris: "Pixletris",
     clicker: "Crystal Clicker",
-    stacker: "Tower Stack"
+    stacker: "Tower Stack",
+    crossy: "Lane Crosser"
   };
 
   let syncing = false;

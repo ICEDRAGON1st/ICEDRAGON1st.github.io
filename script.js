@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908h": [
+    "New game: Lane Crosser — Crossy Road–style hop across traffic and rivers"
+  ],
   "20260908g": [
     "New game: Tower Stack — drop blocks and climb the leaderboard"
   ],
@@ -393,7 +396,8 @@ const HUB_GAMES = [
   { id: "tictactoe", name: "Tic Tac Toe", path: "tic-tac-toe/index.html" },
   { id: "pixletris", name: "Pixletris", path: "pixletris/index.html" },
   { id: "clicker", name: "Crystal Clicker", path: "clicker/index.html" },
-  { id: "stacker", name: "Tower Stack", path: "stacker/index.html" }
+  { id: "stacker", name: "Tower Stack", path: "stacker/index.html" },
+  { id: "crossy", name: "Lane Crosser", path: "crossy/index.html" }
 ];
 
 /** Leaderboard tabs = hub-only boards first, then games. */
@@ -1278,6 +1282,10 @@ function getHubScore(gameId) {
     }
     case "stacker": {
       const score = readNumberKey("stacker-high-score");
+      return { label: score ? `Best ${score}` : "No score yet", sort: score };
+    }
+    case "crossy": {
+      const score = readNumberKey("crossy-high-score");
       return { label: score ? `Best ${score}` : "No score yet", sort: score };
     }
     default:
