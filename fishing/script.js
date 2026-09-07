@@ -757,10 +757,6 @@
     ensureSession();
   }
 
-  function spotsForFish() {
-    return "Any spot";
-  }
-
   function rarityOrder(r) {
     return { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4 }[r] ?? 0;
   }
