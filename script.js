@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260907q": [
+    "Fix garbled Menu / × / · text on game pages (UTF-8 encoding)"
+  ],
   "20260907p": [
     "Fix group chat create glitch (polling race + form reset)"
   ],
