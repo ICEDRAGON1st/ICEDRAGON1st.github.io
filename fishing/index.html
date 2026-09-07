@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260908m">
+  <link rel="stylesheet" href="styles.css?v=20260908n">
 </head>
 <body>
   <header class="top-bar">
@@ -74,7 +74,7 @@
     <section class="side-col">
       <div class="card">
         <h2>Spots</h2>
-        <p class="shop-intro">Unlock waters with rarer fish.</p>
+        <p class="shop-intro">Any fish can appear anywhere. Better spots raise rare odds and sell prices.</p>
         <div id="spot-list" class="spot-list" role="list"></div>
       </div>
 
@@ -98,8 +98,9 @@
         <button id="guide-close" type="button" class="btn btn-ghost guide-close">Close</button>
       </div>
       <p class="lead guide-lead">
-        Base sell prices. Your current spot multiplies value
-        (<strong id="guide-spot-mult">×1</strong> at <span id="guide-spot-name">Creek</span>).
+        Every spot can catch every fish. Worse spots pay less
+        (<strong id="guide-spot-mult">×0.7</strong> at <span id="guide-spot-name">Creek</span>)
+        and make rare fish much rarer. Odds column is for your current spot.
       </p>
       <div class="guide-table-wrap">
         <table class="guide-table">
@@ -109,7 +110,7 @@
               <th>Rarity</th>
               <th>Base</th>
               <th>Here</th>
-              <th>Spots</th>
+              <th>Odds</th>
             </tr>
           </thead>
           <tbody id="guide-body"></tbody>
@@ -138,10 +139,10 @@
   <script src="../hub-achievements.js"></script>
   <script src="../hub-sound.js"></script>
   <script src="../hub-confetti.js"></script>
-  <script src="../hub-plays.js?v=20260908m"></script>
+  <script src="../hub-plays.js?v=20260908n"></script>
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
-  <script src="../hub-leaderboard.js?v=20260908m"></script>
-  <script src="script.js?v=20260908m"></script>
+  <script src="../hub-leaderboard.js?v=20260908n"></script>
+  <script src="script.js?v=20260908n"></script>
 </body>
 </html>

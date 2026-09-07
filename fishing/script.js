@@ -33,48 +33,54 @@
       name: "Creek",
       cost: 0,
       wait: [1.4, 2.8],
-      fish: ["minnow", "perch", "bluegill", "trout"],
-      valueMult: 1
+      valueMult: 0.7,
+      rarity: 0,
+      blurb: "All fish · commons dominate · low pay"
     },
     {
       id: "pond",
       name: "Pond",
       cost: 120,
       wait: [1.3, 2.6],
-      fish: ["minnow", "perch", "bluegill", "trout", "bass", "catfish"],
-      valueMult: 1.15
+      valueMult: 0.9,
+      rarity: 1,
+      blurb: "All fish · slightly better odds"
     },
     {
       id: "river",
       name: "River",
       cost: 800,
       wait: [1.2, 2.4],
-      fish: ["trout", "bass", "catfish", "salmon", "pike"],
-      valueMult: 1.35
+      valueMult: 1.15,
+      rarity: 2,
+      blurb: "All fish · uncommon/rare more often"
     },
     {
       id: "lake",
       name: "Lake",
       cost: 4500,
       wait: [1.1, 2.2],
-      fish: ["bass", "catfish", "salmon", "pike", "tuna"],
-      valueMult: 1.6
+      valueMult: 1.45,
+      rarity: 3,
+      blurb: "All fish · solid rare/epic odds"
     },
     {
       id: "harbor",
       name: "Harbor",
       cost: 25000,
       wait: [1.0, 2.0],
-      fish: ["salmon", "pike", "tuna", "marlin", "golden"],
-      valueMult: 2
+      valueMult: 1.9,
+      rarity: 4,
+      blurb: "All fish · epic/legendary friendlier"
     },
     {
       id: "deep",
       name: "Deep Sea",
       cost: 150000,
       wait: [0.9, 1.8],
-      fish: ["tuna", "marlin", "golden", "leviathan"],
-      valueMult: 2.6
+      valueMult: 2.6,
+      rarity: 5,
+      blurb: "All fish · best odds & pay"
     }
   ];
 
@@ -343,17 +349,33 @@
     biteTimer = null;
   }
 
-  function rollFish(spot, forBoat = false) {
-    const pool = spot.fish.map(fishById).filter(Boolean);
+  function rarityFactor(rarity, spotRarity) {
+    // Worse spots (low rarity) heavily favor commons; better spots open up rares+.
+    const t = Math.max(0, Math.min(5, Number(spotRarity) || 0)) / 5;
+    if (rarity === "common") return 1.55 - t * 0.85;
+    if (rarity === "uncommon") return 0.45 + t * 0.7;
+    if (rarity === "rare") return 0.12 + t * 1.05;
+    if (rarity === "epic") return 0.04 + t * 1.15;
+    if (rarity === "legendary") return 0.01 + t * 1.25;
+    return 1;
+  }
+
+  function fishWeight(fish, spot, forBoat = false) {
     const luck = luckBonus() * (forBoat ? 0.55 : 1);
-    const weights = pool.map((f) => {
-      let w = RARITY_WEIGHT[f.rarity] || 10;
-      if (f.rarity === "uncommon") w += luck * 0.4;
-      if (f.rarity === "rare") w += luck * 0.55;
-      if (f.rarity === "epic") w += luck * 0.35;
-      if (f.rarity === "legendary") w += luck * 0.25;
-      return Math.max(0.5, w);
-    });
+    let w = (RARITY_WEIGHT[fish.rarity] || 10) * rarityFactor(fish.rarity, spot.rarity);
+    if (fish.rarity === "uncommon") w += luck * 0.35;
+    if (fish.rarity === "rare") w += luck * 0.5;
+    if (fish.rarity === "epic") w += luck * 0.4;
+    if (fish.rarity === "legendary") w += luck * 0.3;
+    // Worse spots still suppress luck on top rarities
+    const t = Math.max(0, Math.min(5, Number(spot.rarity) || 0)) / 5;
+    if (fish.rarity === "epic" || fish.rarity === "legendary") w *= 0.35 + t * 0.65;
+    return Math.max(0.05, w);
+  }
+
+  function rollFish(spot, forBoat = false) {
+    const pool = FISH;
+    const weights = pool.map((f) => fishWeight(f, spot, forBoat));
     const total = weights.reduce((a, b) => a + b, 0);
     let r = Math.random() * total;
     for (let i = 0; i < pool.length; i += 1) {
@@ -361,6 +383,12 @@
       if (r <= 0) return pool[i];
     }
     return pool[pool.length - 1];
+  }
+
+  function chancePct(fish, spot) {
+    const total = FISH.reduce((s, f) => s + fishWeight(f, spot, false), 0);
+    const w = fishWeight(fish, spot, false);
+    return total > 0 ? (100 * w) / total : 0;
   }
 
   function fishValue(fish, spot) {
@@ -638,7 +666,7 @@
       return `<div class="spot-item ${active ? "active" : ""}" role="listitem">
         <div class="spot-item-main">
           <div class="spot-item-name">${spot.name}</div>
-          <p class="spot-item-desc">${unlocked ? `Value ×${spot.valueMult}` : "Locked spot"}</p>
+          <p class="spot-item-desc">${unlocked ? `${spot.blurb} · sell ×${spot.valueMult}` : "Locked spot"}</p>
         </div>
         ${action}
       </div>`;
@@ -729,12 +757,19 @@
     ensureSession();
   }
 
-  function spotsForFish(fishId) {
-    return SPOTS.filter((s) => s.fish.includes(fishId)).map((s) => s.name);
+  function spotsForFish() {
+    return "Any spot";
   }
 
   function rarityOrder(r) {
     return { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4 }[r] ?? 0;
+  }
+
+  function formatChance(pct) {
+    if (pct >= 10) return `${pct.toFixed(0)}%`;
+    if (pct >= 1) return `${pct.toFixed(1)}%`;
+    if (pct >= 0.1) return `${pct.toFixed(2)}%`;
+    return "<0.1%";
   }
 
   function renderGuide() {
@@ -748,14 +783,13 @@
     guideBody.innerHTML = rows
       .map((fish) => {
         const here = fishValue(fish, spot);
-        const spots = spotsForFish(fish.id).join(", ");
-        const atCurrent = spot.fish.includes(fish.id);
-        return `<tr class="${atCurrent ? "at-spot" : ""}">
+        const chance = formatChance(chancePct(fish, spot));
+        return `<tr class="at-spot">
           <td class="guide-fish-name">${fish.name}</td>
           <td class="guide-rarity ${fish.rarity}">${fish.rarity}</td>
           <td>${formatNum(fish.value)}</td>
           <td class="guide-here">${formatNum(here)}</td>
-          <td class="guide-spots">${spots}</td>
+          <td class="guide-spots">${chance} here</td>
         </tr>`;
       })
       .join("");
