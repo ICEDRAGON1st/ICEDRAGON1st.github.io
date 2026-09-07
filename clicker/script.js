@@ -474,8 +474,15 @@
   }
 
   function rebirthCost() {
-    // 1st = 3M, 2nd = 30M, 3rd = 300M, …
-    return Math.floor(REBIRTH_BASE_COST * Math.pow(10, Math.max(0, Math.floor(state.rebirths || 0))));
+    // Early: 3M ×10^r (3M, 30M, … up to 3Qa at r=9).
+    // From Qa onward: ×100 each rebirth instead of ×10.
+    const r = Math.max(0, Math.floor(state.rebirths || 0));
+    const qaAt = 9;
+    if (r <= qaAt) {
+      return Math.floor(REBIRTH_BASE_COST * Math.pow(10, r));
+    }
+    const qaBase = REBIRTH_BASE_COST * Math.pow(10, qaAt); // 3Qa
+    return Math.floor(qaBase * Math.pow(100, r - qaAt));
   }
 
   function canRebirth() {

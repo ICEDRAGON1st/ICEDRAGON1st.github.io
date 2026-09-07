@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260907u": [
+    "Crystal Clicker: rebirths cost ×100 from Qa onward"
+  ],
   "20260907t": [
     "Crystal Clicker: matching idle pack + more click upgrades"
   ],
