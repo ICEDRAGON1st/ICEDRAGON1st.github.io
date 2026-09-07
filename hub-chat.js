@@ -180,10 +180,24 @@
       const right = thread;
       const messages = mergeMessages(left.messages, right.messages);
       if (key === GLOBAL_KEY || String(key).startsWith("group:")) {
+        const leftMembers = left.members && typeof left.members === "object" ? left.members : {};
+        const rightMembers = right.members && typeof right.members === "object" ? right.members : {};
+        const members = mergeMembers(leftMembers, rightMembers);
+        // Never let an empty remote stub erase a group's members.
+        const safeMembers =
+          Object.keys(members).length > 0
+            ? members
+            : Object.keys(leftMembers).length
+              ? leftMembers
+              : rightMembers;
+        const name =
+          sanitizeGroupName(right.name || "") ||
+          sanitizeGroupName(left.name || "") ||
+          "Group";
         out[key] = {
           type: key === GLOBAL_KEY ? "global" : "group",
-          name: sanitizeGroupName(right.name || left.name || "") || left.name || "Group",
-          members: mergeMembers(left.members, right.members),
+          name,
+          members: safeMembers,
           createdBy: String(right.createdBy || left.createdBy || ""),
           createdAt: Math.min(
             Number(right.createdAt) || Infinity,
@@ -235,7 +249,8 @@
       try {
         await postJson(API, next);
       } catch {
-        return false;
+        // Keep local write even if remote push fails.
+        return true;
       }
       try {
         const confirmed = await fetchRemote();
@@ -248,19 +263,24 @@
   }
 
   async function sync() {
-    if (syncing) return cache;
-    syncing = true;
-    try {
-      const local = loadLocal();
-      let remote = { threads: {} };
+    const run = async () => {
+      if (syncing) return cache;
+      syncing = true;
       try {
-        remote = await fetchRemote();
-      } catch {}
-      saveLocal(mergeData(local, remote));
-      return cache;
-    } finally {
-      syncing = false;
-    }
+        const local = loadLocal();
+        let remote = { threads: {} };
+        try {
+          remote = await fetchRemote();
+        } catch {}
+        // Merge onto in-memory cache too so in-flight creates aren't dropped.
+        saveLocal(mergeData(mergeData(local, cache), remote));
+        return cache;
+      } finally {
+        syncing = false;
+      }
+    };
+    writeQueue = writeQueue.then(run, run);
+    return writeQueue;
   }
 
   function getMessagesFor(type, id) {
@@ -438,8 +458,24 @@
       };
       return { threads };
     });
-    if (!ok) return { ok: false, error: "Couldn't create group" };
-    openGroup(id);
+    // Open from local cache even if remote was slow / raced.
+    if (!ok && !cache.threads?.[key]) {
+      return { ok: false, error: "Couldn't create group" };
+    }
+    if (!openGroup(id)) {
+      // Force membership into cache if open failed due to a race.
+      const threads = { ...(cache.threads || {}) };
+      threads[key] = {
+        type: "group",
+        name,
+        members,
+        createdBy: me,
+        createdAt: Date.now(),
+        messages: threads[key]?.messages || []
+      };
+      saveLocal({ threads });
+      openGroup(id);
+    }
     return { ok: true, groupId: id };
   }
 
@@ -742,6 +778,7 @@
 
     let seenIncoming = new Set();
     let bootstrapped = false;
+    let creatingBusy = false;
 
     function setBadge() {
       const badge = document.getElementById("hub-chat-fab-badge");
@@ -753,6 +790,16 @@
       } else {
         badge.classList.add("hidden");
       }
+    }
+
+    function isComposingGroup() {
+      const wrap = document.querySelector(".hub-chat-create");
+      if (!wrap) return false;
+      const nameEl = document.getElementById("hub-chat-group-name");
+      if (nameEl && (document.activeElement === nameEl || nameEl.value.trim())) return true;
+      if (wrap.querySelector("input:checked")) return true;
+      if (wrap.contains(document.activeElement)) return true;
+      return creatingBusy;
     }
 
     function openChannel(type, id) {
@@ -935,7 +982,7 @@
       checkToasts();
       if (panel.classList.contains("hidden")) return;
       if (getActiveChannel()) renderThread();
-      else renderList();
+      else if (!isComposingGroup()) renderList();
     }
 
     fab.addEventListener("click", () => {
@@ -959,17 +1006,27 @@
     document.getElementById("hub-chat-body")?.addEventListener("click", async (e) => {
       const createBtn = e.target.closest("#hub-chat-create-group");
       if (createBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        if (creatingBusy) return;
+        creatingBusy = true;
+        createBtn.disabled = true;
         const nameInput = document.getElementById("hub-chat-group-name");
         const checked = [
           ...document.querySelectorAll(".hub-chat-create-friends input:checked")
         ].map((el) => el.value);
-        const result = await createGroup(nameInput?.value || "", checked);
-        if (!result.ok) {
-          if (nameInput) nameInput.placeholder = result.error || "Couldn't create";
-          return;
+        try {
+          const result = await createGroup(nameInput?.value || "", checked);
+          if (!result.ok) {
+            if (nameInput) nameInput.placeholder = result.error || "Couldn't create";
+            return;
+          }
+          renderThread();
+          setBadge();
+        } finally {
+          creatingBusy = false;
+          createBtn.disabled = false;
         }
-        renderThread();
-        setBadge();
         return;
       }
       const btn = e.target.closest("[data-hub-chat-open]");
