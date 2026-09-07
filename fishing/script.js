@@ -996,10 +996,88 @@
     window.location.href = "../index.html#games";
   });
 
+  function fishFromCatchScore(score) {
+    const n = Math.floor(Number(score) || 0);
+    if (n <= 0) return null;
+    return FISH.find((f) => catchScore(f) === n) || null;
+  }
+
+  function applyBestCatchScore(score, fishId) {
+    const n = Math.floor(Number(score) || 0);
+    if (n <= 0) return false;
+    if (n < (state.bestCatchScore || 0)) return false;
+    const fish = fishById(fishId) || fishFromCatchScore(n);
+    if (!fish && n <= (state.bestCatchScore || 0)) return false;
+    state.bestCatchScore = Math.max(state.bestCatchScore || 0, n);
+    if (fish) state.bestCatchId = fish.id;
+    else if (!state.bestCatchId) {
+      const match = fishFromCatchScore(state.bestCatchScore);
+      if (match) state.bestCatchId = match.id;
+    }
+    try {
+      localStorage.setItem(HIGH_SCORE_KEY, String(state.bestCatchScore));
+      const bestFish = fishById(state.bestCatchId);
+      if (bestFish) {
+        localStorage.setItem(
+          BEST_CATCH_META_KEY,
+          JSON.stringify({
+            id: bestFish.id,
+            name: bestFish.name,
+            rarity: bestFish.rarity,
+            value: bestFish.value
+          })
+        );
+      }
+    } catch {}
+    return true;
+  }
+
+  function syncBestCatchFromLeaderboard() {
+    let boardScore = 0;
+    try {
+      if (window.HubLeaderboard?.getMyScore) {
+        boardScore = Math.floor(Number(HubLeaderboard.getMyScore("fishing")) || 0);
+      }
+    } catch {}
+    const stored = getStoredBest();
+    const best = Math.max(state.bestCatchScore || 0, stored, boardScore);
+
+    // ICE_DRAGON seed: Abyss King on board should show in-game too
+    let name = "";
+    try {
+      name = String(
+        (typeof HubPlays !== "undefined" && HubPlays.getName && HubPlays.getName()) || ""
+      )
+        .trim()
+        .toLowerCase();
+    } catch {}
+    const abyss = fishById("abyssking");
+    const abyssScore = abyss ? catchScore(abyss) : 604000;
+    if (name === "ice_dragon" && best < abyssScore) {
+      applyBestCatchScore(abyssScore, "abyssking");
+      renderStats();
+      return;
+    }
+
+    if (best > (state.bestCatchScore || 0) || (best > 0 && !state.bestCatchId)) {
+      applyBestCatchScore(best, state.bestCatchId);
+      renderStats();
+    }
+  }
+
   state = loadState();
   applyOffline();
   setPhase("ready");
+  syncBestCatchFromLeaderboard();
   render();
+  // Leaderboard sync may finish a moment later — refresh HUD when it does.
+  setTimeout(syncBestCatchFromLeaderboard, 800);
+  setTimeout(syncBestCatchFromLeaderboard, 2500);
+  if (window.HubLeaderboard?.sync) {
+    HubLeaderboard.sync(true)
+      .then(() => syncBestCatchFromLeaderboard())
+      .catch(() => {});
+  }
   setInterval(tick, TICK_MS);
   setInterval(() => {
     saveState();
