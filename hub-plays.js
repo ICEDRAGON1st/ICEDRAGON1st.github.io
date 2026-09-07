@@ -50,7 +50,8 @@
     pixletris: "Pixletris",
     clicker: "Crystal Clicker",
     stacker: "Tower Stack",
-    crossy: "Lane Crosser"
+    crossy: "Lane Crosser",
+    fishing: "Fishing Idle"
   };
 
   let syncing = false;

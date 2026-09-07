@@ -35,6 +35,7 @@
     clicker: { label: "Crystal Clicker", lowerBetter: false, unit: "compact" },
     stacker: { label: "Tower Stack", lowerBetter: false, unit: "score" },
     crossy: { label: "Lane Crosser", lowerBetter: false, unit: "score" },
+    fishing: { label: "Fishing Idle", lowerBetter: false, unit: "compact" },
     "online-time": { label: "Time Online", lowerBetter: false, unit: "playtime" }
   };
 

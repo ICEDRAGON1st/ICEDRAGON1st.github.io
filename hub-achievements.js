@@ -36,6 +36,8 @@
     { id: "clicker_1k",          emoji: "⛏️", name: "Crystal Miner",   desc: "Earn 1,000 crystals in Crystal Clicker" },
     { id: "stacker_score_5",     emoji: "🏗️", name: "First Floors",    desc: "Stack 5 floors in Tower Stack" },
     { id: "crossy_score_5",      emoji: "🐔", name: "First Crossing",  desc: "Reach lane 5 in Lane Crosser" },
+    { id: "fishing_100",         emoji: "🎣", name: "First Catch",     desc: "Earn 100 coins in Fishing Idle" },
+    { id: "fishing_1k",          emoji: "🐟", name: "Dock Regular",    desc: "Earn 1,000 coins in Fishing Idle" },
 
     // Medium
     { id: "wordle_guess_3",      emoji: "🧠", name: "Quick Thinker",   desc: "Win a Wordle in 3 guesses or fewer" },
@@ -52,6 +54,8 @@
     { id: "breakout_clear",      emoji: "✨", name: "Clean Sweep",     desc: "Clear a full Brick Breaker level" },
     { id: "stacker_score_15",    emoji: "🏙️", name: "Skyline",         desc: "Stack 15 floors in Tower Stack" },
     { id: "crossy_score_15",     emoji: "🚦", name: "Traffic Dodger",  desc: "Reach lane 15 in Lane Crosser" },
+    { id: "fishing_100k",        emoji: "⛵", name: "Harbor Pro",      desc: "Earn 100,000 coins in Fishing Idle" },
+    { id: "fishing_fps_10",      emoji: "🫧", name: "Steady Stream",   desc: "Reach 10 fish/sec in Fishing Idle" },
     { id: "breakout_score_500",  emoji: "🔨", name: "Wall Smasher",    desc: "Score 500 in Brick Breaker" },
     { id: "space_score_500",     emoji: "🛸", name: "Ace Pilot",       desc: "Score 500 in Space Shooter" },
     { id: "math_perfect",        emoji: "➕", name: "Math Genius",     desc: "Get a perfect score in Math Quiz" },
@@ -73,6 +77,9 @@
     { id: "flappy_score_30",     emoji: "🦅", name: "Pipe Dodger",     desc: "Score 30 in Flappy Bird" },
     { id: "stacker_score_30",    emoji: "🏢", name: "Skyscraper",      desc: "Stack 30 floors in Tower Stack" },
     { id: "crossy_score_30",     emoji: "🌊", name: "River Runner",    desc: "Reach lane 30 in Lane Crosser" },
+    { id: "fishing_1m",          emoji: "🐋", name: "Whale Watcher",   desc: "Earn 1,000,000 coins in Fishing Idle" },
+    { id: "fishing_fps_100",     emoji: "🚢", name: "Fleet Captain",   desc: "Reach 100 fish/sec in Fishing Idle" },
+    { id: "fishing_voyage_1",    emoji: "🧭", name: "Set Sail",        desc: "Complete a voyage in Fishing Idle" },
     { id: "sudoku_hard",         emoji: "⬛", name: "Hard Grid",       desc: "Complete a Hard Sudoku" },
     { id: "tictactoe_hard",      emoji: "⭕", name: "Unbeatable?",     desc: "Beat the CPU on Hard in Tic Tac Toe" },
     { id: "space_hardcore",      emoji: "💥", name: "Hardcore Flyer",  desc: "Score 100 on Hardcore difficulty" },

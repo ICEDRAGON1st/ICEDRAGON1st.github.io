@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908i": [
+    "New game: Fishing Idle — cast for coins, buy boats, set sail for bigger voyages"
+  ],
   "20260908h": [
     "New game: Lane Crosser — Crossy Road–style hop across traffic and rivers"
   ],
@@ -397,7 +400,8 @@ const HUB_GAMES = [
   { id: "pixletris", name: "Pixletris", path: "pixletris/index.html" },
   { id: "clicker", name: "Crystal Clicker", path: "clicker/index.html" },
   { id: "stacker", name: "Tower Stack", path: "stacker/index.html" },
-  { id: "crossy", name: "Lane Crosser", path: "crossy/index.html" }
+  { id: "crossy", name: "Lane Crosser", path: "crossy/index.html" },
+  { id: "fishing", name: "Fishing Idle", path: "fishing/index.html" }
 ];
 
 /** Leaderboard tabs = hub-only boards first, then games. */
@@ -1287,6 +1291,15 @@ function getHubScore(gameId) {
     case "crossy": {
       const score = readNumberKey("crossy-high-score");
       return { label: score ? `Best ${score}` : "No score yet", sort: score };
+    }
+    case "fishing": {
+      const score = readNumberKey("fishing-high-score-v1");
+      if (!score) return { label: "No score yet", sort: 0 };
+      const compact =
+        typeof HubLeaderboard !== "undefined" && HubLeaderboard.formatScore
+          ? HubLeaderboard.formatScore("fishing", score).replace(/^Best\s+/, "")
+          : String(score);
+      return { label: `Best ${compact}`, sort: score };
     }
     default:
       return { label: "—", sort: 0 };

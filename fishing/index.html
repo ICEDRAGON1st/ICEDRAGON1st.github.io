@@ -3,59 +3,66 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Crystal Clicker</title>
+  <title>Fishing Idle</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260907r">
+  <link rel="stylesheet" href="styles.css?v=20260908i">
 </head>
 <body>
   <header class="top-bar">
     <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
-    <h1>Crystal Clicker</h1>
+    <h1>Fishing Idle</h1>
     <div class="top-stats">
       ×<strong id="hud-mult">1</strong>
-      · CPS <strong id="hud-cps">0</strong>
+      · FPS <strong id="hud-fps">0</strong>
       · Best <strong id="hud-best">0</strong>
     </div>
   </header>
 
   <main class="shell">
     <section class="play-col card">
-      <p class="bank-label">Crystals</p>
-      <p id="crystal-count" class="crystal-count" aria-live="polite">0</p>
+      <p class="bank-label">Coins</p>
+      <p id="coin-count" class="coin-count" aria-live="polite">0</p>
       <div class="stat-row">
         <div class="stat-chip">
-          <span class="stat-chip-label">Multiplier</span>
+          <span class="stat-chip-label">Voyage</span>
           <strong id="mult-label">×1</strong>
         </div>
         <div class="stat-chip">
-          <span class="stat-chip-label">Per click</span>
-          <strong id="click-power-label">+1</strong>
+          <span class="stat-chip-label">Per cast</span>
+          <strong id="cast-power-label">+1</strong>
         </div>
         <div class="stat-chip">
           <span class="stat-chip-label">Per second</span>
-          <strong id="cps-label">0</strong>
+          <strong id="fps-label">0</strong>
         </div>
       </div>
-      <button id="crystal-btn" type="button" class="crystal-btn" aria-label="Mine a crystal">
-        <span class="crystal-gem" aria-hidden="true"></span>
-        <span class="crystal-btn-text">Mine</span>
+      <button id="cast-btn" type="button" class="cast-btn" aria-label="Cast your line">
+        <span class="cast-pond" aria-hidden="true">
+          <span class="ripple r1"></span>
+          <span class="ripple r2"></span>
+          <span class="bobber"></span>
+        </span>
+        <span class="cast-btn-text">Cast</span>
       </button>
-      <p class="hint">Tap the crystal. Buy upgrades in Click power or Idle income.</p>
+      <p class="hint">Cast for coins. Buy rods for bigger catches, and boats for idle fish.</p>
+      <p id="catch-line" class="catch-line" aria-live="polite">Ready to fish</p>
     </section>
 
     <section class="shop-col card">
-      <h2>Shop</h2>
-      <p class="shop-intro">Click upgrades first, idle upgrades below. Sorted cheapest → strongest.</p>
+      <h2>Dock shop</h2>
+      <p class="shop-intro">Rods boost casts. Boats &amp; crews earn while you wait.</p>
       <div id="shop-list" class="shop-list" role="list"></div>
-      <div id="rebirth-box" class="rebirth-box">
-        <div class="rebirth-info">
-          <div class="rebirth-title">Rebirth</div>
-          <p id="rebirth-desc" class="rebirth-desc">1st rebirth 3M, then ×10 until Qa. From Qa up, each rebirth costs ×100. Resets upgrades &amp; bank, keeps lifetime, doubles earnings.</p>
-          <div id="rebirth-mult" class="rebirth-mult">Now ×1 → after ×2</div>
+      <div id="voyage-box" class="voyage-box">
+        <div class="voyage-info">
+          <div class="voyage-title">New voyage</div>
+          <p id="voyage-desc" class="voyage-desc">
+            Sail farther: reset bank &amp; shop, keep lifetime coins, double all earnings.
+          </p>
+          <div id="voyage-mult" class="voyage-mult">Now ×1 → after ×2</div>
         </div>
-        <button id="rebirth-btn" type="button" class="btn rebirth-btn" disabled>Rebirth</button>
+        <button id="voyage-btn" type="button" class="btn voyage-btn" disabled>Voyage</button>
       </div>
     </section>
   </main>
@@ -64,10 +71,10 @@
 
   <div id="overlay" class="overlay">
     <div class="overlay-card">
-      <p class="eyebrow">Idle mine</p>
-      <h2 id="overlay-title">Crystal Clicker</h2>
+      <p class="eyebrow">Idle dock</p>
+      <h2 id="overlay-title">Fishing Idle</h2>
       <p id="overlay-text" class="lead">
-        Tap the crystal, buy upgrades, and race up the lifetime crystal leaderboard.
+        Cast for coins, upgrade rods and boats, and climb the lifetime catch leaderboard.
       </p>
       <p class="score-line">Lifetime best: <strong id="overlay-best">0</strong></p>
       <div class="overlay-actions">
@@ -85,6 +92,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260908i"></script>
-  <script src="script.js?v=20260907x"></script>
+  <script src="script.js?v=20260908i"></script>
 </body>
 </html>
