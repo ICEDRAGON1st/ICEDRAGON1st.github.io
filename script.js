@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260907n": [
+    "Friend chat works in-game: floating Chat button + message toasts"
+  ],
   "20260907m": [
     "Friends chat: message friends from the Friends panel"
   ],
@@ -385,6 +388,7 @@ const updatesList = document.getElementById("updates-list");
 const updatesCount = document.getElementById("updates-count");
 const playersPanel = document.getElementById("players-panel");
 const friendsPanel = document.getElementById("friends-panel");
+const friendsChatPoll = () => renderFriendsPanel();
 const hubSettingsPanel = document.getElementById("hub-settings-panel");
 const hubThemePicker = document.getElementById("hub-theme-picker");
 const gamesEyebrow = document.getElementById("games-eyebrow");
@@ -2218,16 +2222,16 @@ toggleFriendsBtn?.addEventListener("click", () => {
     maybeAskPlayerName();
     renderFriendsPanel();
     if (typeof HubFriends !== "undefined") {
-      HubFriends.startPolling?.(() => renderFriendsPanel());
+      HubFriends.startPolling?.(friendsChatPoll);
     }
     if (typeof HubChat !== "undefined") {
-      HubChat.startPolling?.(() => renderFriendsPanel());
+      HubChat.startPolling?.(friendsChatPoll);
     }
   } else {
     if (typeof HubFriends !== "undefined") HubFriends.stopPolling?.();
     if (typeof HubChat !== "undefined") {
       HubChat.closeThread?.();
-      HubChat.stopPolling?.();
+      HubChat.stopPolling?.(friendsChatPoll);
     }
     friendsPanel.classList.remove("is-chatting");
     document.getElementById("friends-chat")?.classList.add("hidden");
