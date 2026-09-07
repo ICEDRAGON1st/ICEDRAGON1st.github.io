@@ -800,7 +800,13 @@
     state.lastTick = now;
   }
 
-  function renderCooler() {
+  let coolerRenderKey = "";
+
+  function coolerKey() {
+    return `${state.spotId}|${state.cooler.join(",")}|${coolerMax()}`;
+  }
+
+  function renderCooler(force = false) {
     if (coolerCountEl) coolerCountEl.textContent = String(state.cooler.length);
     if (coolerMaxEl) coolerMaxEl.textContent = String(coolerMax());
     if (hudCoolerEl) hudCoolerEl.textContent = `${state.cooler.length}/${coolerMax()}`;
@@ -810,6 +816,9 @@
       input.checked = shouldAutoSell(rarity);
     });
     if (!coolerList) return;
+    const nextKey = coolerKey();
+    if (!force && nextKey === coolerRenderKey) return;
+    coolerRenderKey = nextKey;
     const spot = currentSpot();
     coolerList.innerHTML = state.cooler
       .map((id, index) => {
@@ -914,8 +923,10 @@
   }
 
   function tick() {
+    const before = coolerKey();
     tickBoats(TICK_MS / 1000);
-    renderCooler();
+    // Only rebuild cooler chips when contents change (constant rebuilds broke sell clicks)
+    renderCooler(coolerKey() !== before);
     renderStats();
     saveSoon();
   }
@@ -985,9 +996,11 @@
     if (e.detail === 0) reelIn(e);
   });
   sellBtn?.addEventListener("click", () => sellCooler());
-  coolerList?.addEventListener("click", (e) => {
+  coolerList?.addEventListener("pointerdown", (e) => {
     const btn = e.target.closest("[data-sell-index]");
-    if (!btn) return;
+    if (!btn || !coolerList.contains(btn)) return;
+    e.preventDefault();
+    e.stopPropagation();
     sellOneFish(btn.dataset.sellIndex);
   });
   autoSellBox?.addEventListener("change", (e) => {
