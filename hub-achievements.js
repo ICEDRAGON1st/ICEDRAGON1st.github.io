@@ -34,6 +34,7 @@
     { id: "pixletris_lines_5",   emoji: "🟦", name: "Line Clearer",    desc: "Clear 5 lines in Pixletris" },
     { id: "clicker_100",         emoji: "💎", name: "First Vein",      desc: "Earn 100 crystals in Crystal Clicker" },
     { id: "clicker_1k",          emoji: "⛏️", name: "Crystal Miner",   desc: "Earn 1,000 crystals in Crystal Clicker" },
+    { id: "stacker_score_5",     emoji: "🏗️", name: "First Floors",    desc: "Stack 5 floors in Tower Stack" },
 
     // Medium
     { id: "wordle_guess_3",      emoji: "🧠", name: "Quick Thinker",   desc: "Win a Wordle in 3 guesses or fewer" },
@@ -48,6 +49,7 @@
     { id: "flappy_score_15",     emoji: "🐥", name: "Sky Hopper",      desc: "Score 15 in Flappy Bird" },
     { id: "2048_tile_1024",      emoji: "🔟", name: "Four Digits",     desc: "Reach the 1024 tile in 2048" },
     { id: "breakout_clear",      emoji: "✨", name: "Clean Sweep",     desc: "Clear a full Brick Breaker level" },
+    { id: "stacker_score_15",    emoji: "🏙️", name: "Skyline",         desc: "Stack 15 floors in Tower Stack" },
     { id: "breakout_score_500",  emoji: "🔨", name: "Wall Smasher",    desc: "Score 500 in Brick Breaker" },
     { id: "space_score_500",     emoji: "🛸", name: "Ace Pilot",       desc: "Score 500 in Space Shooter" },
     { id: "math_perfect",        emoji: "➕", name: "Math Genius",     desc: "Get a perfect score in Math Quiz" },
@@ -67,6 +69,7 @@
     { id: "hangman_no_miss",     emoji: "🏆", name: "No Mistakes",     desc: "Win Hangman without any wrong guesses" },
     { id: "snake_score_100",     emoji: "🐲", name: "Anaconda",        desc: "Score 100 in Snake" },
     { id: "flappy_score_30",     emoji: "🦅", name: "Pipe Dodger",     desc: "Score 30 in Flappy Bird" },
+    { id: "stacker_score_30",    emoji: "🏢", name: "Skyscraper",      desc: "Stack 30 floors in Tower Stack" },
     { id: "sudoku_hard",         emoji: "⬛", name: "Hard Grid",       desc: "Complete a Hard Sudoku" },
     { id: "tictactoe_hard",      emoji: "⭕", name: "Unbeatable?",     desc: "Beat the CPU on Hard in Tic Tac Toe" },
     { id: "space_hardcore",      emoji: "💥", name: "Hardcore Flyer",  desc: "Score 100 on Hardcore difficulty" },

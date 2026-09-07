@@ -48,7 +48,8 @@
     flappy: "Flappy Bird",
     tictactoe: "Tic Tac Toe",
     pixletris: "Pixletris",
-    clicker: "Crystal Clicker"
+    clicker: "Crystal Clicker",
+    stacker: "Tower Stack"
   };
 
   let syncing = false;

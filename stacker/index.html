@@ -3,30 +3,26 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Pixletris</title>
-  <link rel="stylesheet" href="styles.css?v=20260904l">
+  <title>Tower Stack</title>
+  <link rel="stylesheet" href="styles.css?v=20260908g">
 </head>
 <body>
   <div class="hud">
     <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
     <div class="hud-stats">
       <span>Score: <strong id="score">0</strong></span>
-      <span>Lines: <strong id="lines">0</strong></span>
-      <span>Level: <strong id="level">1</strong></span>
       <span>Best: <strong id="high-score">0</strong></span>
     </div>
   </div>
 
-  <main class="shell">
-    <p class="hint">Blocks crumble into sand. Connect one color from left wall to right wall to clear. Arrow keys or WASD.</p>
-    <canvas id="game" width="780" height="1200" aria-label="Pixletris game"></canvas>
-    <p id="message" class="message" role="status" aria-live="polite"></p>
-  </main>
+  <canvas id="game" width="420" height="720" aria-label="Tower Stack game"></canvas>
 
   <div id="overlay" class="overlay">
     <div class="overlay-card">
-      <h1 id="overlay-title">Pixletris</h1>
-      <p id="overlay-text">Blocks crumble into sand when they land. Bridge one color from the left wall to the right wall to clear it.</p>
+      <h1 id="overlay-title">Tower Stack</h1>
+      <p id="overlay-text">
+        Tap, click, or press Space to drop each block. Stack as high as you can — missed overhang gets cut off.
+      </p>
       <div class="overlay-actions">
         <button id="resume-btn" type="button" class="btn btn-secondary hidden">Resume</button>
         <button id="view-board-btn" type="button" class="btn btn-secondary hidden">View board</button>
@@ -36,13 +32,14 @@
     </div>
   </div>
 
-  <script src="../hub-streak.js"></script><script src="../hub-achievements.js"></script>
+  <script src="../hub-streak.js"></script>
+  <script src="../hub-achievements.js"></script>
   <script src="../hub-sound.js"></script>
   <script src="../hub-confetti.js"></script>
   <script src="../hub-plays.js?v=20260908g"></script>
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260908g"></script>
-  <script src="script.js?v=20260904l"></script>
+  <script src="script.js?v=20260908g"></script>
 </body>
 </html>

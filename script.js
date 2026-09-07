@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908g": [
+    "New game: Tower Stack — drop blocks and climb the leaderboard"
+  ],
   "20260908f": [
     "Quizmaster: removed math questions from the question bank"
   ],
@@ -389,7 +392,8 @@ const HUB_GAMES = [
   { id: "flappy", name: "Flappy Bird", path: "flappy-bird/index.html" },
   { id: "tictactoe", name: "Tic Tac Toe", path: "tic-tac-toe/index.html" },
   { id: "pixletris", name: "Pixletris", path: "pixletris/index.html" },
-  { id: "clicker", name: "Crystal Clicker", path: "clicker/index.html" }
+  { id: "clicker", name: "Crystal Clicker", path: "clicker/index.html" },
+  { id: "stacker", name: "Tower Stack", path: "stacker/index.html" }
 ];
 
 /** Leaderboard tabs = hub-only boards first, then games. */
@@ -1271,6 +1275,10 @@ function getHubScore(gameId) {
           ? HubLeaderboard.formatScore("clicker", score).replace(/^Best\s+/, "")
           : String(score);
       return { label: `Best ${compact}`, sort: score };
+    }
+    case "stacker": {
+      const score = readNumberKey("stacker-high-score");
+      return { label: score ? `Best ${score}` : "No score yet", sort: score };
     }
     default:
       return { label: "—", sort: 0 };
