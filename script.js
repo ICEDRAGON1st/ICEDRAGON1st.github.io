@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908f": [
+    "Quizmaster: removed math questions from the question bank"
+  ],
   "20260908e": [
     "Show LEGEND title and yellow color to everyone (locked until earned)"
   ],
