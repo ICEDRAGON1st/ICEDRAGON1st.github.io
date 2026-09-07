@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908e": [
+    "Show LEGEND title and yellow color to everyone (locked until earned)"
+  ],
   "20260908d": [
     "Hide locked titles/colors (Tester, red, Aurora, Mono, Tide, Rainbow)"
   ],
@@ -3102,7 +3105,10 @@ function renderTitlePicker() {
     return;
   }
 
-  const showcase = (HubPlays.getTitleShowcase?.() || []).filter((t) => t.unlocked);
+  // Show unlocked titles always; LEGEND stays visible even when locked.
+  const showcase = (HubPlays.getTitleShowcase?.() || []).filter(
+    (t) => t.unlocked || t.id === "legend"
+  );
   if (!showcase.length) {
     picker.classList.add("hidden");
     buttons.innerHTML = "";
@@ -3110,7 +3116,7 @@ function renderTitlePicker() {
   }
 
   const active = HubPlays.getActiveTitleId?.() || "";
-  const unlockedIds = new Set(showcase.map((t) => t.id));
+  const unlockedIds = new Set(showcase.filter((t) => t.unlocked).map((t) => t.id));
   const options = [...showcase];
   if (unlockedIds.size > 1 || unlockedIds.has("legend")) {
     options.push({ id: "none", label: "None", className: "player-title-none", unlocked: true });
@@ -3119,12 +3125,20 @@ function renderTitlePicker() {
   picker.classList.remove("hidden");
   buttons.innerHTML = options
     .map((opt) => {
-      const selected = active === opt.id || (opt.id === "none" && active === "none");
+      const locked = !opt.unlocked;
+      const selected = !locked && (active === opt.id || (opt.id === "none" && active === "none"));
+      const hint = locked
+        ? "Unlock all achievements"
+        : opt.label;
       return `<button type="button" class="title-pick-btn ${escapeHtml(opt.className)}${
         selected ? " active" : ""
-      }" data-title="${escapeHtml(opt.id)}" data-locked="false" aria-pressed="${
-        selected ? "true" : "false"
-      }" aria-disabled="false" title="${escapeHtml(opt.label)}">${escapeHtml(opt.label)}</button>`;
+      }${locked ? " is-locked" : ""}" data-title="${escapeHtml(opt.id)}" data-locked="${
+        locked ? "true" : "false"
+      }" aria-pressed="${selected ? "true" : "false"}" aria-disabled="${
+        locked ? "true" : "false"
+      }" title="${escapeHtml(hint)}">${escapeHtml(opt.label)}${
+        locked ? `<span class="title-lock-tag">Locked</span>` : ""
+      }</button>`;
     })
     .join("");
 }
@@ -3144,7 +3158,7 @@ function renderColorPicker() {
     HubPlays.getColorShowcase?.() ||
     HubPlays.getTitleShowcase?.() ||
     []
-  ).filter((t) => t.unlocked);
+  ).filter((t) => t.unlocked || t.id === "legend");
   if (!showcase.length) {
     picker.classList.add("hidden");
     buttons.innerHTML = "";
@@ -3161,14 +3175,17 @@ function renderColorPicker() {
   picker.classList.remove("hidden");
   buttons.innerHTML = showcase
     .map((opt) => {
-      const selected = activeColorId === opt.id;
+      const locked = !opt.unlocked;
+      const selected = !locked && activeColorId === opt.id;
       const extra = HubPlays.EXTRA_COLORS?.[opt.id];
       const isAnimated = !!(opt.animated || extra?.animated);
-      const hint = canPick
-        ? isAnimated
-          ? `${opt.label} animated color (keeps your title)`
-          : `Use ${opt.label} color (keeps your title)`
-        : `${opt.label} color`;
+      const hint = locked
+        ? "LEGEND yellow — unlock all achievements"
+        : canPick
+          ? isAnimated
+            ? `${opt.label} animated color (keeps your title)`
+            : `Use ${opt.label} color (keeps your title)`
+          : `${opt.label} color`;
       const bgStyle =
         isAnimated || opt.id === "cheesy" ? "" : ` style="background:${escapeHtml(opt.color)}"`;
       const animClass = isAnimated
@@ -3185,12 +3202,14 @@ function renderColorPicker() {
           ? " is-cheesy"
           : "";
       return `<button type="button" class="color-pick-btn${selected ? " active" : ""}${
-        !canPick ? " is-fixed" : ""
-      }${animClass}" data-title-color="${escapeHtml(opt.id)}" data-locked="false" title="${escapeHtml(
+        locked ? " is-locked" : ""
+      }${!canPick && !locked ? " is-fixed" : ""}${animClass}" data-title-color="${escapeHtml(
+        opt.id
+      )}" data-locked="${locked ? "true" : "false"}" title="${escapeHtml(hint)}" aria-label="${escapeHtml(
         hint
-      )}" aria-label="${escapeHtml(hint)}" aria-disabled="${
-        !canPick ? "true" : "false"
-      }"${bgStyle}></button>`;
+      )}" aria-disabled="${locked || !canPick ? "true" : "false"}"${bgStyle}>${
+        locked ? `<span class="color-lock-mark" aria-hidden="true">🔒</span>` : ""
+      }</button>`;
     })
     .join("");
 }

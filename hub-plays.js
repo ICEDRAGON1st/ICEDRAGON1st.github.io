@@ -1803,15 +1803,18 @@ body.light .menu-credit .player-name-creator {
     return ids;
   }
 
-  /** Titles shown in Players UI — only ones this player actually has. */
+  /** Titles shown in Players UI — unlocked ones, plus LEGEND for everyone. */
   function getTitleShowcase(name = getName()) {
-    return getAvailableTitleIds(name).map((id) => {
+    const unlocked = new Set(getAvailableTitleIds(name));
+    const ids = [...unlocked];
+    if (!unlocked.has("legend")) ids.push("legend");
+    return ids.map((id) => {
       const def = TITLE_DEFS[id];
       return {
         id,
         label: def.label,
         className: def.className,
-        unlocked: true,
+        unlocked: unlocked.has(id),
         color: TITLE_COLORS[id] || "#888888"
       };
     });
@@ -1842,7 +1845,7 @@ body.light .menu-credit .player-name-creator {
     return !!(id && EXTRA_COLORS[String(id).toLowerCase()]);
   }
 
-  /** Color swatches in Players UI — only unlocked title colors + granted extras. */
+  /** Color swatches — unlocked colors + LEGEND yellow for everyone. */
   function getColorShowcase(name = getName()) {
     const colors = getTitleShowcase(name).map((t) => ({
       ...t,
