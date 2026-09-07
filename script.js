@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260907m": [
+    "Friends chat: message friends from the Friends panel"
+  ],
   "20260907l": [
     "Flappy Bird: bird skins (Classic, Sky, Rose, Ember, Mint, Ice, Midnight, Gold)"
   ],
@@ -2217,8 +2220,17 @@ toggleFriendsBtn?.addEventListener("click", () => {
     if (typeof HubFriends !== "undefined") {
       HubFriends.startPolling?.(() => renderFriendsPanel());
     }
-  } else if (typeof HubFriends !== "undefined") {
-    HubFriends.stopPolling?.();
+    if (typeof HubChat !== "undefined") {
+      HubChat.startPolling?.(() => renderFriendsPanel());
+    }
+  } else {
+    if (typeof HubFriends !== "undefined") HubFriends.stopPolling?.();
+    if (typeof HubChat !== "undefined") {
+      HubChat.closeThread?.();
+      HubChat.stopPolling?.();
+    }
+    friendsPanel.classList.remove("is-chatting");
+    document.getElementById("friends-chat")?.classList.add("hidden");
   }
 });
 
@@ -2251,6 +2263,7 @@ document.getElementById("friends-panel")?.addEventListener("click", async (e) =>
   const decline = e.target.closest("[data-friend-decline]");
   const remove = e.target.closest("[data-friend-remove]");
   const declineInvite = e.target.closest("[data-invite-decline]");
+  const openChat = e.target.closest("[data-friend-chat]");
   if (accept) {
     await HubFriends.acceptRequest(accept.dataset.friendAccept);
     renderFriendsPanel();
@@ -2263,13 +2276,49 @@ document.getElementById("friends-panel")?.addEventListener("click", async (e) =>
   }
   if (remove) {
     await HubFriends.removeFriend(remove.dataset.friendRemove);
+    if (typeof HubChat !== "undefined" && HubChat.getActiveFriendId?.() === remove.dataset.friendRemove) {
+      HubChat.closeThread();
+    }
     renderFriendsPanel();
     return;
   }
   if (declineInvite) {
     await HubFriends.respondInvite(declineInvite.dataset.inviteDecline, false);
     renderFriendsPanel();
+    return;
   }
+  if (openChat && typeof HubChat !== "undefined") {
+    if (!requirePlayerName()) return;
+    HubChat.openThread(openChat.dataset.friendChat);
+    renderFriendsPanel();
+    document.getElementById("friends-chat-input")?.focus();
+  }
+});
+
+document.getElementById("friends-chat-back")?.addEventListener("click", () => {
+  if (typeof HubChat !== "undefined") HubChat.closeThread?.();
+  renderFriendsPanel();
+});
+
+document.getElementById("friends-chat-form")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (typeof HubChat === "undefined") return;
+  const friendId = HubChat.getActiveFriendId?.();
+  const input = document.getElementById("friends-chat-input");
+  const text = input?.value || "";
+  if (!friendId) return;
+  if (!requirePlayerName()) return;
+  setFriendsStatus("Sending…");
+  const result = await HubChat.send(friendId, text);
+  if (!result.ok) {
+    setFriendsStatus(result.error || "Couldn't send", true);
+    return;
+  }
+  if (input) input.value = "";
+  setFriendsStatus("");
+  renderFriendsPanel();
+  const log = document.getElementById("friends-chat-log");
+  if (log) log.scrollTop = log.scrollHeight;
 });
 
 function hasPlayerName() {
@@ -2615,6 +2664,48 @@ function onlineNameSet() {
   );
 }
 
+function renderFriendsChatPane(friends) {
+  const panel = document.getElementById("friends-panel");
+  const chat = document.getElementById("friends-chat");
+  const title = document.getElementById("friends-chat-title");
+  const log = document.getElementById("friends-chat-log");
+  if (!panel || !chat || !log || typeof HubChat === "undefined") return;
+
+  const activeId = HubChat.getActiveFriendId?.() || "";
+  const friend = (friends || []).find((f) => f.playerId === activeId);
+  if (!activeId || !friend) {
+    panel.classList.remove("is-chatting");
+    chat.classList.add("hidden");
+    return;
+  }
+
+  panel.classList.add("is-chatting");
+  chat.classList.remove("hidden");
+  if (title) title.textContent = `Chat · ${friend.name}`;
+  HubChat.markRead?.(activeId);
+
+  const me = HubPlays?.getPlayerId?.() || "";
+  const messages = HubChat.getMessages?.(activeId) || [];
+  if (!messages.length) {
+    log.innerHTML = `<li class="friends-chat-empty">No messages yet — say hi.</li>`;
+    return;
+  }
+
+  const stickBottom = log.scrollHeight - log.scrollTop - log.clientHeight < 48;
+  log.innerHTML = messages
+    .map((m) => {
+      const mine = m.from === me;
+      const when =
+        typeof HubPlays !== "undefined" && HubPlays.formatWhen
+          ? HubPlays.formatWhen(m.at)
+          : "";
+      const who = mine ? "You" : escapeHtml(m.name || friend.name);
+      return `<li class="${mine ? "is-me" : ""}"><span class="friends-chat-meta">${who} · ${escapeHtml(when)}</span><span class="friends-chat-text">${escapeHtml(m.text)}</span></li>`;
+    })
+    .join("");
+  if (stickBottom) log.scrollTop = log.scrollHeight;
+}
+
 function renderFriendsPanel() {
   const list = document.getElementById("friends-list");
   const incomingBox = document.getElementById("friends-incoming");
@@ -2663,6 +2754,7 @@ function renderFriendsPanel() {
 
   if (!friends.length) {
     list.innerHTML = `<li class="players-empty">No friends yet — add someone by username.</li>`;
+    renderFriendsChatPane([]);
     return;
   }
 
@@ -2679,9 +2771,17 @@ function renderFriendsPanel() {
           : isOn
             ? "Online"
             : "Offline";
-      return `<li><span><span class="friends-online-dot${isOn ? "" : " is-offline"}" title="${escapeHtml(seen)}"></span>${formatPlayerNameHtml(f.name)}<span class="friends-last-online">${escapeHtml(seen)}</span></span><span class="friends-actions"><a class="hub-btn" href="tic-tac-toe/index.html?inviteFriend=${encodeURIComponent(f.playerId)}">TTT</a><a class="hub-btn" href="connect-four/index.html?inviteFriend=${encodeURIComponent(f.playerId)}">C4</a><button type="button" class="hub-btn" data-friend-remove="${escapeHtml(f.playerId)}">Remove</button></span></li>`;
+      const unread =
+        typeof HubChat !== "undefined" ? HubChat.unreadCount?.(f.playerId) || 0 : 0;
+      const unreadBadge =
+        unread > 0
+          ? `<span class="friends-chat-unread" aria-label="${unread} unread">${unread > 9 ? "9+" : unread}</span>`
+          : "";
+      return `<li><span><span class="friends-online-dot${isOn ? "" : " is-offline"}" title="${escapeHtml(seen)}"></span>${formatPlayerNameHtml(f.name)}<span class="friends-last-online">${escapeHtml(seen)}</span></span><span class="friends-actions"><button type="button" class="hub-btn" data-friend-chat="${escapeHtml(f.playerId)}">Chat${unreadBadge}</button><a class="hub-btn" href="tic-tac-toe/index.html?inviteFriend=${encodeURIComponent(f.playerId)}">TTT</a><a class="hub-btn" href="connect-four/index.html?inviteFriend=${encodeURIComponent(f.playerId)}">C4</a><button type="button" class="hub-btn" data-friend-remove="${escapeHtml(f.playerId)}">Remove</button></span></li>`;
     })
     .join("");
+
+  renderFriendsChatPane(friends);
 }
 
 async function renderPlayersPanel() {

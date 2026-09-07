@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260907l">
+  <link rel="stylesheet" href="styles.css?v=20260907m">
 </head>
 <body>
   <div class="app">
@@ -221,7 +221,7 @@
 
       <div id="friends-panel" class="friends-panel hidden">
         <h3>Friends</h3>
-        <p class="friends-intro">Add people by username, accept requests, and invite them to play.</p>
+        <p class="friends-intro">Add people by username, accept requests, chat, and invite them to play.</p>
         <div class="friends-add-row">
           <input id="friend-add-input" type="text" maxlength="16" placeholder="Add by username" autocomplete="off">
           <button id="friend-add-btn" type="button" class="hub-btn">Add</button>
@@ -230,6 +230,17 @@
         <div id="friends-incoming" class="friends-section hidden"></div>
         <div id="friends-invites" class="friends-section hidden"></div>
         <ul id="friends-list" class="friends-list"></ul>
+        <div id="friends-chat" class="friends-chat hidden">
+          <div class="friends-chat-head">
+            <button id="friends-chat-back" type="button" class="hub-btn">Back</button>
+            <h4 id="friends-chat-title" class="friends-chat-title">Chat</h4>
+          </div>
+          <ul id="friends-chat-log" class="friends-chat-log" aria-live="polite"></ul>
+          <form id="friends-chat-form" class="friends-chat-form">
+            <input id="friends-chat-input" type="text" maxlength="200" placeholder="Say something…" autocomplete="off">
+            <button type="submit" class="hub-btn hub-btn-primary">Send</button>
+          </form>
+        </div>
       </div>
 
       <div id="achievements-panel" class="achievements-panel hidden">
@@ -364,9 +375,9 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260907l";
+    window.WORDLE_BUILD = "20260907m";
     const scripts = [
-      "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "hub-leaderboard.js", "hub-friends.js", "hub-online-match.js",
+      "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-online-match.js",
       "words.js",
       "dictionary.js",
       "words-4.js",
