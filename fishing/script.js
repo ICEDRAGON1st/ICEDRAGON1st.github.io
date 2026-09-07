@@ -325,8 +325,8 @@
       castBtnText.textContent = "Cast";
       castBtn.disabled = false;
     } else if (next === "waiting") {
-      castBtnText.textContent = "Waiting…";
-      castBtn.disabled = true;
+      castBtnText.textContent = "Cancel";
+      castBtn.disabled = false;
     } else if (next === "bite") {
       castBtnText.textContent = "Reel!";
       castBtn.disabled = false;
@@ -406,10 +406,18 @@
     const [lo, hi] = spot.wait;
     const waitMs = (lo + Math.random() * (hi - lo)) * 1000 * waitScale();
     setPhase("waiting");
-    setCatchLine("Line is out… watch the bobber");
+    setCatchLine("Line is out… tap again to cancel");
     window.HubSound?.play?.("flap");
     waitTimer = setTimeout(() => openBite(), waitMs);
     saveSoon();
+  }
+
+  function cancelCast() {
+    if (phase !== "waiting") return;
+    clearTimers();
+    setPhase("ready");
+    setCatchLine("Line reeled in");
+    window.HubSound?.play?.("miss");
   }
 
   function openBite() {
@@ -446,6 +454,10 @@
   function reelIn(evt) {
     if (phase === "ready") {
       startCast();
+      return;
+    }
+    if (phase === "waiting") {
+      cancelCast();
       return;
     }
     if (phase !== "bite") return;
