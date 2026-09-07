@@ -1,157 +1,193 @@
 (function () {
-  const SAVE_KEY = "fishing-save-v1";
+  const SAVE_KEY = "fishing-save-v2";
   const HIGH_SCORE_KEY = "fishing-high-score-v1";
   const TICK_MS = 100;
-  const MIN_CAST_MS = 50;
-  const VOYAGE_BASE_COST = 500_000;
+  const COOLER_BASE = 12;
 
-  const CATCH_NAMES = [
-    "Minnow",
-    "Perch",
-    "Trout",
-    "Bass",
-    "Salmon",
-    "Tuna",
-    "Marlin",
-    "Legendary catch"
+  const RARITY_WEIGHT = {
+    common: 55,
+    uncommon: 25,
+    rare: 12,
+    epic: 6,
+    legendary: 2
+  };
+
+  const FISH = [
+    { id: "minnow", name: "Minnow", rarity: "common", value: 3 },
+    { id: "perch", name: "Perch", rarity: "common", value: 5 },
+    { id: "bluegill", name: "Bluegill", rarity: "common", value: 6 },
+    { id: "trout", name: "Trout", rarity: "uncommon", value: 14 },
+    { id: "bass", name: "Bass", rarity: "uncommon", value: 18 },
+    { id: "catfish", name: "Catfish", rarity: "uncommon", value: 22 },
+    { id: "salmon", name: "Salmon", rarity: "rare", value: 45 },
+    { id: "pike", name: "Pike", rarity: "rare", value: 55 },
+    { id: "tuna", name: "Tuna", rarity: "epic", value: 120 },
+    { id: "marlin", name: "Marlin", rarity: "epic", value: 180 },
+    { id: "golden", name: "Golden Koi", rarity: "legendary", value: 500 },
+    { id: "leviathan", name: "Leviathan Fry", rarity: "legendary", value: 900 }
   ];
 
-  const BASE_UPGRADES = [
-    // Cast power (rods / bait)
-    { id: "bamboo", name: "Bamboo Rod", desc: "+1 per cast", baseCost: 15, castBonus: 1, fps: 0, group: "cast" },
-    { id: "worm", name: "Worm Bait", desc: "+2 per cast", baseCost: 80, castBonus: 2, fps: 0, group: "cast" },
-    { id: "spin", name: "Spinner Lure", desc: "+5 per cast", baseCost: 250, castBonus: 5, fps: 0, group: "cast" },
-    { id: "graphite", name: "Graphite Rod", desc: "+10 per cast", baseCost: 800, castBonus: 10, fps: 0, group: "cast" },
-    { id: "fly", name: "Fly Kit", desc: "+18 per cast", baseCost: 2500, castBonus: 18, fps: 0, group: "cast" },
-    { id: "braid", name: "Braided Line", desc: "+30 per cast", baseCost: 7000, castBonus: 30, fps: 0, group: "cast" },
-    { id: "carbon", name: "Carbon Rod", desc: "+50 per cast", baseCost: 18000, castBonus: 50, fps: 0, group: "cast" },
-    { id: "deep", name: "Deep Drop Rig", desc: "+80 per cast", baseCost: 45000, castBonus: 80, fps: 0, group: "cast" },
-    { id: "harpoon", name: "Harpoon Tip", desc: "+120 per cast", baseCost: 100000, castBonus: 120, fps: 0, group: "cast" },
-    { id: "sonar", name: "Hand Sonar", desc: "+180 per cast", baseCost: 220000, castBonus: 180, fps: 0, group: "cast" },
-    { id: "mythrod", name: "Mythic Rod", desc: "+300 per cast", baseCost: 500000, castBonus: 300, fps: 0, group: "cast" },
-    { id: "tidehook", name: "Tide Hook", desc: "+500 per cast", baseCost: 1200000, castBonus: 500, fps: 0, group: "cast" },
-    { id: "stormline", name: "Storm Line", desc: "+800 per cast", baseCost: 3000000, castBonus: 800, fps: 0, group: "cast" },
-    { id: "leviathan", name: "Leviathan Reel", desc: "+1,500 per cast", baseCost: 8000000, castBonus: 1500, fps: 0, group: "cast" },
-    { id: "abyssrod", name: "Abyss Rod", desc: "+3,000 per cast", baseCost: 20000000, castBonus: 3000, fps: 0, group: "cast" },
-    { id: "kraken", name: "Kraken Grip", desc: "+6,000 per cast", baseCost: 50000000, castBonus: 6000, fps: 0, group: "cast" },
-    { id: "neptune", name: "Neptune Cast", desc: "+12,000 per cast", baseCost: 120000000, castBonus: 12000, fps: 0, group: "cast" },
-    { id: "trident", name: "Trident Strike", desc: "+25,000 per cast", baseCost: 300000000, castBonus: 25000, fps: 0, group: "cast" },
-    { id: "maelstrom", name: "Maelstrom Rod", desc: "+50,000 per cast", baseCost: 800000000, castBonus: 50000, fps: 0, group: "cast" },
-    { id: "godcast", name: "God Cast", desc: "+120,000 per cast", baseCost: 2500000000, castBonus: 120000, fps: 0, group: "cast" },
-
-    // Idle (boats / crew)
-    { id: "bucket", name: "Bait Bucket", desc: "+0.2 fish/sec", baseCost: 40, castBonus: 0, fps: 0.2, group: "idle" },
-    { id: "canoe", name: "Canoe", desc: "+1 fish/sec", baseCost: 200, castBonus: 0, fps: 1, group: "idle" },
-    { id: "net", name: "Cast Net", desc: "+3 fish/sec", baseCost: 900, castBonus: 0, fps: 3, group: "idle" },
-    { id: "skiff", name: "Skiff", desc: "+8 fish/sec", baseCost: 3500, castBonus: 0, fps: 8, group: "idle" },
-    { id: "deckhand", name: "Deckhand", desc: "+15 fish/sec", baseCost: 10000, castBonus: 0, fps: 15, group: "idle" },
-    { id: "trawler", name: "Trawler", desc: "+35 fish/sec", baseCost: 35000, castBonus: 0, fps: 35, group: "idle" },
-    { id: "crew", name: "Dock Crew", desc: "+70 fish/sec", baseCost: 90000, castBonus: 0, fps: 70, group: "idle" },
-    { id: "longliner", name: "Longliner", desc: "+150 fish/sec", baseCost: 250000, castBonus: 0, fps: 150, group: "idle" },
-    { id: "factory", name: "Factory Boat", desc: "+350 fish/sec", baseCost: 700000, castBonus: 0, fps: 350, group: "idle" },
-    { id: "fleet", name: "Harbor Fleet", desc: "+800 fish/sec", baseCost: 2000000, castBonus: 0, fps: 800, group: "idle" },
-    { id: "pier", name: "Mega Pier", desc: "+1,800 fish/sec", baseCost: 5500000, castBonus: 0, fps: 1800, group: "idle" },
-    { id: "cannery", name: "Cannery", desc: "+4,000 fish/sec", baseCost: 15000000, castBonus: 0, fps: 4000, group: "idle" },
-    { id: "armada", name: "Armada", desc: "+10,000 fish/sec", baseCost: 45000000, castBonus: 0, fps: 10000, group: "idle" },
-    { id: "sub", name: "Deep Sub", desc: "+25,000 fish/sec", baseCost: 120000000, castBonus: 0, fps: 25000, group: "idle" },
-    { id: "oilrig", name: "Ocean Rig", desc: "+60,000 fish/sec", baseCost: 350000000, castBonus: 0, fps: 60000, group: "idle" },
-    { id: "citydock", name: "City Dock", desc: "+150,000 fish/sec", baseCost: 1000000000, castBonus: 0, fps: 150000, group: "idle" },
-    { id: "continent", name: "Coast Empire", desc: "+400,000 fish/sec", baseCost: 3500000000, castBonus: 0, fps: 400000, group: "idle" },
-    { id: "worldnet", name: "World Net", desc: "+1M fish/sec", baseCost: 12000000000, castBonus: 0, fps: 1000000, group: "idle" },
-    { id: "orbit", name: "Orbital Fishery", desc: "+3M fish/sec", baseCost: 40000000000, castBonus: 0, fps: 3000000, group: "idle" },
-    { id: "infinitynet", name: "Infinity Net", desc: "+10M fish/sec", baseCost: 150000000000, castBonus: 0, fps: 10000000, group: "idle" }
-  ];
-
-  function buildExtraUpgrades(count) {
-    const extras = [];
-    let castCost = 5e9;
-    let castBonus = 250000;
-    let idleCost = 4e11;
-    let idleFps = 2.5e7;
-    for (let i = 1; i <= count; i += 1) {
-      extras.push({
-        id: `cast_x${i}`,
-        name: `Master Cast ${i}`,
-        desc: `+${formatPlain(castBonus)} per cast`,
-        baseCost: Math.floor(castCost),
-        castBonus,
-        fps: 0,
-        group: "cast"
-      });
-      extras.push({
-        id: `idle_x${i}`,
-        name: `Auto Fleet ${i}`,
-        desc: `+${formatPlain(idleFps)} fish/sec`,
-        baseCost: Math.floor(idleCost),
-        castBonus: 0,
-        fps: idleFps,
-        group: "idle"
-      });
-      castCost *= 2.4;
-      castBonus = Math.floor(castBonus * 1.85);
-      idleCost *= 2.5;
-      idleFps = Math.floor(idleFps * 1.9);
+  const SPOTS = [
+    {
+      id: "creek",
+      name: "Creek",
+      cost: 0,
+      wait: [1.4, 2.8],
+      fish: ["minnow", "perch", "bluegill", "trout"],
+      valueMult: 1
+    },
+    {
+      id: "pond",
+      name: "Pond",
+      cost: 120,
+      wait: [1.3, 2.6],
+      fish: ["minnow", "perch", "bluegill", "trout", "bass", "catfish"],
+      valueMult: 1.15
+    },
+    {
+      id: "river",
+      name: "River",
+      cost: 800,
+      wait: [1.2, 2.4],
+      fish: ["trout", "bass", "catfish", "salmon", "pike"],
+      valueMult: 1.35
+    },
+    {
+      id: "lake",
+      name: "Lake",
+      cost: 4500,
+      wait: [1.1, 2.2],
+      fish: ["bass", "catfish", "salmon", "pike", "tuna"],
+      valueMult: 1.6
+    },
+    {
+      id: "harbor",
+      name: "Harbor",
+      cost: 25000,
+      wait: [1.0, 2.0],
+      fish: ["salmon", "pike", "tuna", "marlin", "golden"],
+      valueMult: 2
+    },
+    {
+      id: "deep",
+      name: "Deep Sea",
+      cost: 150000,
+      wait: [0.9, 1.8],
+      fish: ["tuna", "marlin", "golden", "leviathan"],
+      valueMult: 2.6
     }
-    return extras;
-  }
+  ];
 
-  function formatPlain(n) {
-    if (n >= 1e12) return `${(n / 1e12).toFixed(1).replace(/\.0$/, "")}T`;
-    if (n >= 1e9) return `${(n / 1e9).toFixed(1).replace(/\.0$/, "")}B`;
-    if (n >= 1e6) return `${(n / 1e6).toFixed(1).replace(/\.0$/, "")}M`;
-    if (n >= 1e3) return `${(n / 1e3).toFixed(1).replace(/\.0$/, "")}K`;
-    return String(Math.floor(n));
-  }
-
-  const UPGRADES = BASE_UPGRADES.concat(buildExtraUpgrades(40));
-  const SHOP_GROUPS = [
-    { id: "cast", title: "Rods & bait", blurb: "Bigger casts" },
-    { id: "idle", title: "Boats & crew", blurb: "Idle fish/sec" }
+  const GEAR = [
+    { id: "rod1", name: "Willow Rod", desc: "+0.05s bite window", cost: 40, kind: "window", amount: 0.05 },
+    { id: "rod2", name: "Oak Rod", desc: "+0.08s bite window", cost: 180, kind: "window", amount: 0.08 },
+    { id: "rod3", name: "Carbon Rod", desc: "+0.12s bite window", cost: 900, kind: "window", amount: 0.12 },
+    { id: "rod4", name: "Pro Rod", desc: "+0.15s bite window", cost: 4500, kind: "window", amount: 0.15 },
+    { id: "rod5", name: "Myth Rod", desc: "+0.2s bite window", cost: 22000, kind: "window", amount: 0.2 },
+    { id: "bait1", name: "Worms", desc: "Faster bites (−12% wait)", cost: 60, kind: "speed", amount: 0.12 },
+    { id: "bait2", name: "Crickets", desc: "Faster bites (−15% wait)", cost: 350, kind: "speed", amount: 0.15 },
+    { id: "bait3", name: "Spinner", desc: "Faster bites (−18% wait)", cost: 1800, kind: "speed", amount: 0.18 },
+    { id: "bait4", name: "Live Bait", desc: "Faster bites (−22% wait)", cost: 9000, kind: "speed", amount: 0.22 },
+    { id: "luck1", name: "Lucky Hook", desc: "+rarity luck", cost: 120, kind: "luck", amount: 8 },
+    { id: "luck2", name: "Tide Charm", desc: "+rarity luck", cost: 700, kind: "luck", amount: 12 },
+    { id: "luck3", name: "Pearl Lure", desc: "+rarity luck", cost: 4000, kind: "luck", amount: 16 },
+    { id: "luck4", name: "Siren Bell", desc: "+rarity luck", cost: 20000, kind: "luck", amount: 22 },
+    { id: "cooler1", name: "Ice Pack", desc: "+4 cooler slots", cost: 200, kind: "cooler", amount: 4 },
+    { id: "cooler2", name: "Big Cooler", desc: "+6 cooler slots", cost: 1500, kind: "cooler", amount: 6 },
+    { id: "cooler3", name: "Dock Freezer", desc: "+10 cooler slots", cost: 12000, kind: "cooler", amount: 10 },
+    { id: "boat1", name: "Canoe Hand", desc: "Auto-catch every 12s", cost: 250, kind: "boat", amount: 12 },
+    { id: "boat2", name: "Skiff Crew", desc: "Auto-catch every 8s", cost: 2000, kind: "boat", amount: 8 },
+    { id: "boat3", name: "Trawler", desc: "Auto-catch every 5s", cost: 15000, kind: "boat", amount: 5 },
+    { id: "boat4", name: "Harbor Fleet", desc: "Auto-catch every 3s", cost: 80000, kind: "boat", amount: 3 }
   ];
 
   const coinCountEl = document.getElementById("coin-count");
-  const castPowerEl = document.getElementById("cast-power-label");
-  const fpsLabelEl = document.getElementById("fps-label");
-  const multLabelEl = document.getElementById("mult-label");
-  const hudMultEl = document.getElementById("hud-mult");
-  const hudFpsEl = document.getElementById("hud-fps");
+  const spotLabelEl = document.getElementById("spot-label");
+  const windowLabelEl = document.getElementById("window-label");
+  const boatsLabelEl = document.getElementById("boats-label");
+  const hudSpotEl = document.getElementById("hud-spot");
+  const hudCoolerEl = document.getElementById("hud-cooler");
   const hudBestEl = document.getElementById("hud-best");
   const castBtn = document.getElementById("cast-btn");
+  const castBtnText = document.getElementById("cast-btn-text");
+  const biteFill = document.getElementById("bite-fill");
+  const biteMeter = document.querySelector(".bite-meter");
   const catchLineEl = document.getElementById("catch-line");
+  const coolerList = document.getElementById("cooler-list");
+  const coolerCountEl = document.getElementById("cooler-count");
+  const coolerMaxEl = document.getElementById("cooler-max");
+  const sellBtn = document.getElementById("sell-btn");
+  const autoSellEl = document.getElementById("auto-sell");
   const shopList = document.getElementById("shop-list");
+  const spotList = document.getElementById("spot-list");
   const overlay = document.getElementById("overlay");
   const overlayBestEl = document.getElementById("overlay-best");
   const startBtn = document.getElementById("start-btn");
   const gamesBtn = document.getElementById("games-btn");
   const menuBtn = document.getElementById("menu-btn");
-  const voyageBtn = document.getElementById("voyage-btn");
-  const voyageDesc = document.getElementById("voyage-desc");
-  const voyageMultEl = document.getElementById("voyage-mult");
   const floatLayer = document.getElementById("float-layer");
 
   let state = defaultState();
   let sessionStarted = false;
   let lastSaveAt = 0;
   let lastSubmitAt = 0;
-  let lastCastAt = 0;
+  let phase = "ready"; // ready | waiting | bite | result
+  let waitTimer = null;
+  let biteTimer = null;
+  let biteEndsAt = 0;
+  let boatAcc = {};
 
   function defaultState() {
     const owned = {};
-    UPGRADES.forEach((u) => {
-      owned[u.id] = 0;
+    GEAR.forEach((g) => {
+      owned[g.id] = false;
     });
     return {
-      coins: 0,
+      coins: 25,
       lifetime: 0,
-      castPower: 1,
-      voyages: 0,
+      spotId: "creek",
+      unlocked: { creek: true },
       owned,
+      cooler: [],
+      autoSell: false,
+      catches: 0,
+      perfects: 0,
       lastTick: Date.now()
     };
   }
 
-  function multiplier() {
-    return Math.pow(2, Math.max(0, Math.floor(state.voyages || 0)));
+  function fishById(id) {
+    return FISH.find((f) => f.id === id);
+  }
+
+  function currentSpot() {
+    return SPOTS.find((s) => s.id === state.spotId) || SPOTS[0];
+  }
+
+  function ownedGear(kind) {
+    return GEAR.filter((g) => g.kind === kind && state.owned[g.id]);
+  }
+
+  function biteWindow() {
+    const bonus = ownedGear("window").reduce((s, g) => s + g.amount, 0);
+    return Math.min(1.35, 0.45 + bonus);
+  }
+
+  function waitScale() {
+    const cut = ownedGear("speed").reduce((s, g) => s + g.amount, 0);
+    return Math.max(0.35, 1 - cut);
+  }
+
+  function luckBonus() {
+    return ownedGear("luck").reduce((s, g) => s + g.amount, 0);
+  }
+
+  function coolerMax() {
+    return COOLER_BASE + ownedGear("cooler").reduce((s, g) => s + g.amount, 0);
+  }
+
+  function boats() {
+    return ownedGear("boat");
   }
 
   function loadState() {
@@ -161,18 +197,34 @@
       const next = defaultState();
       next.coins = Math.max(0, Number(raw.coins) || 0);
       next.lifetime = Math.max(0, Number(raw.lifetime) || 0);
-      next.voyages = Math.max(0, Math.floor(Number(raw.voyages) || 0));
+      next.spotId = SPOTS.some((s) => s.id === raw.spotId) ? raw.spotId : "creek";
+      next.autoSell = !!raw.autoSell;
+      next.catches = Math.max(0, Math.floor(Number(raw.catches) || 0));
+      next.perfects = Math.max(0, Math.floor(Number(raw.perfects) || 0));
       next.lastTick = Math.max(0, Number(raw.lastTick) || Date.now());
-      UPGRADES.forEach((u) => {
-        next.owned[u.id] = Math.max(0, Math.floor(Number(raw.owned?.[u.id]) || 0));
+      SPOTS.forEach((s) => {
+        next.unlocked[s.id] = s.id === "creek" || !!raw.unlocked?.[s.id];
       });
-      next.castPower =
-        1 +
-        UPGRADES.reduce((sum, u) => sum + (u.castBonus || 0) * (next.owned[u.id] || 0), 0);
+      GEAR.forEach((g) => {
+        next.owned[g.id] = !!raw.owned?.[g.id];
+      });
+      next.cooler = Array.isArray(raw.cooler)
+        ? raw.cooler
+            .map((id) => String(id))
+            .filter((id) => fishById(id))
+            .slice(0, coolerMaxFromOwned(next.owned))
+        : [];
       return next;
     } catch {
       return defaultState();
     }
+  }
+
+  function coolerMaxFromOwned(owned) {
+    return (
+      COOLER_BASE +
+      GEAR.filter((g) => g.kind === "cooler" && owned[g.id]).reduce((s, g) => s + g.amount, 0)
+    );
   }
 
   function saveState() {
@@ -188,73 +240,19 @@
     return Math.max(0, Math.floor(Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0));
   }
 
-  const SUFFIXES = [
-    "", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc",
-    "UDc", "DDc", "TDc", "QaDc", "QiDc", "SxDc", "SpDc", "OcDc", "NoDc", "Vg",
-    "UVg", "DVg", "TVg", "QaVg", "QiVg", "SxVg", "SpVg", "OcVg", "NoVg", "Tg",
-    "UTg", "DTg", "TTg", "QaTg", "QiTg", "SxTg", "SpTg", "OcTg", "NoTg", "Qag",
-    "UQag", "DQag", "TQag", "QaQag", "QiQag", "SxQag", "SpQag", "OcQag", "NoQag", "Qig",
-    "UQig", "DQig", "TQig", "QaQig", "QiQig", "SxQig", "SpQig", "OcQig", "NoQig", "Sxg",
-    "USxg", "DSxg", "TSxg", "QaSxg", "QiSxg", "SxSxg", "SpSxg", "OcSxg", "NoSxg", "Spg",
-    "USpg", "DSpg", "TSpg", "QaSpg", "QiSpg", "SxSpg", "SpSpg", "OcSpg", "NoSpg", "Ocg",
-    "UOcg", "DOcg", "TOcg", "QaOcg", "QiOcg", "SxOcg", "SpOcg", "OcOcg", "NoOcg", "Nog",
-    "UNog", "DNog", "TNog", "QaNog", "QiNog", "SxNog", "SpNog", "OcNog", "NoNog", "C"
-  ];
+  const SUFFIXES = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
 
   function formatNum(n) {
-    let v = Number(n) || 0;
-    if (!Number.isFinite(v)) return v > 0 ? "∞" : v < 0 ? "-∞" : "0";
-    const neg = v < 0;
-    v = Math.abs(v);
-    if (v < 1000) {
-      const plain =
-        v >= 100
-          ? String(Math.floor(v))
-          : v % 1 === 0
-            ? String(Math.floor(v))
-            : v.toFixed(2).replace(/0+$/, "").replace(/\.$/, "");
-      return neg ? `-${plain}` : plain;
-    }
+    let v = Math.abs(Number(n) || 0);
+    if (!Number.isFinite(v)) return "0";
+    if (v < 1000) return String(Math.floor(v));
     let tier = 0;
     while (v >= 1000 && tier < SUFFIXES.length - 1) {
       v /= 1000;
       tier += 1;
     }
-    if (v >= 1000) {
-      const sci = (Math.abs(Number(n)) || 0).toExponential(2).replace("+", "");
-      return neg ? `-${sci}` : sci;
-    }
-    let digits;
-    if (v >= 100) digits = 0;
-    else if (v >= 10) digits = 1;
-    else digits = 2;
-    let text = v.toFixed(digits);
-    text = text.replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1");
-    return `${neg ? "-" : ""}${text}${SUFFIXES[tier]}`;
-  }
-
-  function formatFps(n) {
-    const v = Number(n) || 0;
-    if (v >= 1000) return formatNum(v);
-    if (v >= 10) return v.toFixed(1).replace(/\.0$/, "");
-    if (v >= 1) return v.toFixed(1);
-    return v.toFixed(2).replace(/0+$/, "").replace(/\.$/, "") || "0";
-  }
-
-  function upgradeCost(upgrade, owned) {
-    return Math.floor(upgrade.baseCost * Math.pow(1.15, owned));
-  }
-
-  function baseFps() {
-    return UPGRADES.reduce((sum, u) => sum + (u.fps || 0) * (state.owned[u.id] || 0), 0);
-  }
-
-  function totalFps() {
-    return baseFps() * multiplier();
-  }
-
-  function castGain() {
-    return state.castPower * multiplier();
+    const text = v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v.toFixed(2);
+    return `${text.replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1")}${SUFFIXES[tier]}`;
   }
 
   function addCoins(amount) {
@@ -268,15 +266,14 @@
   function maybeSubmitBest(force = false) {
     const best = Math.floor(state.lifetime);
     if (best <= 0) return;
-    const stored = getStoredBest();
-    if (best > stored) {
+    if (best > getStoredBest()) {
       try {
         localStorage.setItem(HIGH_SCORE_KEY, String(best));
       } catch {}
     }
     const now = Date.now();
     if (!force && now - lastSubmitAt < 4000) return;
-    if (best > 0 && window.HubLeaderboard) {
+    if (window.HubLeaderboard) {
       lastSubmitAt = now;
       HubLeaderboard.submit("fishing", best).catch?.(() => {});
     }
@@ -285,21 +282,20 @@
   function checkAchievements() {
     if (!window.HubAchievements) return;
     const life = state.lifetime;
-    const fps = totalFps();
     if (life >= 100) HubAchievements.unlock("fishing_100");
     if (life >= 1000) HubAchievements.unlock("fishing_1k");
     if (life >= 100000) HubAchievements.unlock("fishing_100k");
     if (life >= 1000000) HubAchievements.unlock("fishing_1m");
-    if (fps >= 10) HubAchievements.unlock("fishing_fps_10");
-    if (fps >= 100) HubAchievements.unlock("fishing_fps_100");
-    if (state.voyages >= 1) HubAchievements.unlock("fishing_voyage_1");
+    if (boats().length >= 1) HubAchievements.unlock("fishing_fps_10");
+    if (boats().length >= 3) HubAchievements.unlock("fishing_fps_100");
+    if (state.unlocked.deep) HubAchievements.unlock("fishing_voyage_1");
   }
 
   function ensureSession() {
     if (sessionStarted) return;
     sessionStarted = true;
-    if (window.HubStreak) HubStreak.recordPlay();
-    if (window.HubPlays) HubPlays.record("fishing");
+    window.HubStreak?.recordPlay?.();
+    window.HubPlays?.record?.("fishing");
   }
 
   function spawnFloat(x, y, text) {
@@ -313,210 +309,393 @@
     setTimeout(() => el.remove(), 700);
   }
 
-  function pickCatchName(gain) {
-    const g = Number(gain) || 0;
-    if (g >= 100000) return CATCH_NAMES[7];
-    if (g >= 10000) return CATCH_NAMES[6];
-    if (g >= 1000) return CATCH_NAMES[5];
-    if (g >= 200) return CATCH_NAMES[4];
-    if (g >= 50) return CATCH_NAMES[3];
-    if (g >= 15) return CATCH_NAMES[2];
-    if (g >= 5) return CATCH_NAMES[1];
-    return CATCH_NAMES[0];
-  }
-
-  function doCast(evt) {
-    const now = Date.now();
-    if (now - lastCastAt < MIN_CAST_MS) return;
-    lastCastAt = now;
-    ensureSession();
-    const gain = castGain();
-    addCoins(gain);
-    window.HubSound?.play?.("click");
-    castBtn.classList.add("is-pulse");
-    setTimeout(() => castBtn.classList.remove("is-pulse"), 90);
-    if (catchLineEl) {
-      catchLineEl.textContent = `Caught a ${pickCatchName(gain)} · +${formatNum(gain)}`;
+  function setPhase(next) {
+    phase = next;
+    castBtn.classList.remove("phase-ready", "phase-waiting", "phase-bite", "phase-result");
+    castBtn.classList.add(`phase-${next === "ready" ? "ready" : next}`);
+    biteMeter?.classList.toggle("active", next === "bite");
+    if (next === "ready") {
+      castBtnText.textContent = "Cast";
+      castBtn.disabled = false;
+    } else if (next === "waiting") {
+      castBtnText.textContent = "Waiting…";
+      castBtn.disabled = true;
+    } else if (next === "bite") {
+      castBtnText.textContent = "Reel!";
+      castBtn.disabled = false;
+    } else {
+      castBtnText.textContent = "…";
+      castBtn.disabled = true;
     }
-    const rect = castBtn.getBoundingClientRect();
-    const x =
-      (evt?.clientX ?? rect.left + rect.width / 2) + (Math.random() * 24 - 12);
-    const y = (evt?.clientY ?? rect.top + rect.height / 2) - 8;
-    spawnFloat(x, y, `+${formatNum(gain)}`);
-    render(false);
-    saveSoon();
   }
 
-  function buyUpgrade(id) {
-    const upgrade = UPGRADES.find((u) => u.id === id);
-    if (!upgrade) return;
-    const owned = state.owned[id] || 0;
-    const cost = upgradeCost(upgrade, owned);
-    if (state.coins < cost) return;
-    ensureSession();
-    state.coins -= cost;
-    state.owned[id] = owned + 1;
-    if (upgrade.castBonus) state.castPower += upgrade.castBonus;
-    window.HubSound?.play?.("click");
-    if (state.owned[id] === 1 && upgrade.fps >= 70) {
-      window.HubConfetti?.burst?.();
+  function clearTimers() {
+    if (waitTimer) clearTimeout(waitTimer);
+    if (biteTimer) clearTimeout(biteTimer);
+    waitTimer = null;
+    biteTimer = null;
+  }
+
+  function rollFish(spot, forBoat = false) {
+    const pool = spot.fish.map(fishById).filter(Boolean);
+    const luck = luckBonus() * (forBoat ? 0.55 : 1);
+    const weights = pool.map((f) => {
+      let w = RARITY_WEIGHT[f.rarity] || 10;
+      if (f.rarity === "uncommon") w += luck * 0.4;
+      if (f.rarity === "rare") w += luck * 0.55;
+      if (f.rarity === "epic") w += luck * 0.35;
+      if (f.rarity === "legendary") w += luck * 0.25;
+      return Math.max(0.5, w);
+    });
+    const total = weights.reduce((a, b) => a + b, 0);
+    let r = Math.random() * total;
+    for (let i = 0; i < pool.length; i += 1) {
+      r -= weights[i];
+      if (r <= 0) return pool[i];
     }
-    checkAchievements();
-    render(false);
-    saveSoon();
+    return pool[pool.length - 1];
   }
 
-  function voyageCost() {
-    const v = Math.max(0, Math.floor(state.voyages || 0));
-    if (v <= 8) return Math.floor(VOYAGE_BASE_COST * Math.pow(10, v));
-    const qaBase = VOYAGE_BASE_COST * Math.pow(10, 8);
-    return Math.floor(qaBase * Math.pow(100, v - 8));
+  function fishValue(fish, spot) {
+    return Math.max(1, Math.floor(fish.value * (spot?.valueMult || 1)));
   }
 
-  function doVoyage() {
-    const cost = voyageCost();
-    if (state.coins < cost) return;
-    const nextMult = multiplier() * 2;
-    if (
-      !confirm(
-        `Set sail for ${formatNum(cost)} coins?\n\nBank and upgrades reset. Lifetime stays. Earnings become ×${nextMult}.`
-      )
-    ) {
+  function addToCooler(fish, opts = {}) {
+    if (!fish) return false;
+    if (state.autoSell || opts.forceSell) {
+      const val = fishValue(fish, currentSpot());
+      addCoins(val);
+      if (!opts.silent) {
+        setCatchLine(`Sold ${fish.name} for ${formatNum(val)}`, fish.rarity === "legendary" ? "legend" : "");
+      }
+      return true;
+    }
+    if (state.cooler.length >= coolerMax()) {
+      if (!opts.silent) setCatchLine("Cooler full — sell or enable auto-sell", "miss");
+      window.HubSound?.play?.("miss");
+      return false;
+    }
+    state.cooler.push(fish.id);
+    return true;
+  }
+
+  function setCatchLine(text, cls = "") {
+    if (!catchLineEl) return;
+    catchLineEl.textContent = text;
+    catchLineEl.classList.remove("miss", "legend");
+    if (cls) catchLineEl.classList.add(cls);
+  }
+
+  function startCast() {
+    if (phase !== "ready") return;
+    if (state.cooler.length >= coolerMax() && !state.autoSell) {
+      setCatchLine("Cooler full — sell fish first", "miss");
+      window.HubSound?.play?.("miss");
       return;
     }
     ensureSession();
-    const lifetime = state.lifetime;
-    const voyages = (state.voyages || 0) + 1;
-    state = defaultState();
-    state.lifetime = lifetime;
-    state.voyages = voyages;
+    clearTimers();
+    const spot = currentSpot();
+    const [lo, hi] = spot.wait;
+    const waitMs = (lo + Math.random() * (hi - lo)) * 1000 * waitScale();
+    setPhase("waiting");
+    setCatchLine("Line is out… watch the bobber");
+    window.HubSound?.play?.("flap");
+    waitTimer = setTimeout(() => openBite(), waitMs);
+    saveSoon();
+  }
+
+  function openBite() {
+    if (phase !== "waiting") return;
+    const windowSec = biteWindow();
+    biteEndsAt = performance.now() + windowSec * 1000;
+    setPhase("bite");
+    setCatchLine("Bite! Tap Reel now!", "");
+    window.HubSound?.play?.("click");
+    if (biteFill) {
+      biteFill.style.transition = "none";
+      biteFill.style.transform = "scaleX(1)";
+      requestAnimationFrame(() => {
+        biteFill.style.transition = `transform ${windowSec}s linear`;
+        biteFill.style.transform = "scaleX(0)";
+      });
+    }
+    biteTimer = setTimeout(() => missBite(), windowSec * 1000);
+  }
+
+  function missBite() {
+    if (phase !== "bite") return;
+    clearTimers();
+    setPhase("result");
+    setCatchLine("It got away…", "miss");
+    window.HubSound?.play?.("miss");
+    setTimeout(() => {
+      setPhase("ready");
+      setCatchLine("Ready to cast");
+      render(false);
+    }, 700);
+  }
+
+  function reelIn(evt) {
+    if (phase === "ready") {
+      startCast();
+      return;
+    }
+    if (phase !== "bite") return;
+    clearTimers();
+    const remaining = Math.max(0, biteEndsAt - performance.now());
+    const windowMs = biteWindow() * 1000;
+    const perfect = remaining / windowMs > 0.55;
+    const spot = currentSpot();
+    const fish = rollFish(spot, false);
+    state.catches += 1;
+    if (perfect) state.perfects += 1;
+
+    const ok = addToCooler(fish);
+    setPhase("result");
+    if (ok) {
+      const tip = perfect ? "Perfect reel! " : "";
+      setCatchLine(
+        `${tip}Caught ${fish.name} (${fish.rarity})`,
+        fish.rarity === "legendary" ? "legend" : ""
+      );
+      window.HubSound?.play?.(perfect || fish.rarity === "legendary" ? "win" : "click");
+      if (fish.rarity === "legendary") window.HubConfetti?.burst?.();
+      const rect = castBtn.getBoundingClientRect();
+      spawnFloat(
+        evt?.clientX ?? rect.left + rect.width / 2,
+        evt?.clientY ?? rect.top + 20,
+        fish.name
+      );
+    }
+    checkAchievements();
+    setTimeout(() => {
+      setPhase("ready");
+      render(false);
+      saveSoon();
+    }, 650);
+  }
+
+  function sellCooler() {
+    if (!state.cooler.length) return;
+    ensureSession();
+    const spot = currentSpot();
+    let total = 0;
+    state.cooler.forEach((id) => {
+      const fish = fishById(id);
+      if (fish) total += fishValue(fish, spot);
+    });
+    state.cooler = [];
+    addCoins(total);
+    setCatchLine(`Sold catch for ${formatNum(total)} coins`);
+    window.HubSound?.play?.("win");
+    render(false);
+    saveSoon();
+  }
+
+  function buyGear(id) {
+    const item = GEAR.find((g) => g.id === id);
+    if (!item || state.owned[id] || state.coins < item.cost) return;
+    ensureSession();
+    state.coins -= item.cost;
+    state.owned[id] = true;
+    window.HubSound?.play?.("click");
+    if (item.kind === "boat") window.HubConfetti?.burst?.();
+    checkAchievements();
+    render();
+    saveSoon();
+  }
+
+  function unlockOrSelectSpot(id) {
+    const spot = SPOTS.find((s) => s.id === id);
+    if (!spot) return;
+    if (state.unlocked[id]) {
+      state.spotId = id;
+      setCatchLine(`Fishing at ${spot.name}`);
+      render();
+      saveSoon();
+      return;
+    }
+    if (state.coins < spot.cost) return;
+    ensureSession();
+    state.coins -= spot.cost;
+    state.unlocked[id] = true;
+    state.spotId = id;
+    setCatchLine(`Unlocked ${spot.name}!`);
     window.HubSound?.play?.("win");
     window.HubConfetti?.burst?.();
     checkAchievements();
-    maybeSubmitBest(true);
-    saveState();
     render();
+    saveSoon();
   }
 
-  function shopItemHtml(u) {
-    const owned = state.owned[u.id] || 0;
-    const cost = upgradeCost(u, owned);
-    const canBuy = state.coins >= cost;
-    return `<div class="shop-item" role="listitem" data-group="${u.group}">
-      <div class="shop-item-main">
-        <div class="shop-item-name">${u.name}</div>
-        <p class="shop-item-desc">${u.desc}</p>
-        <div class="shop-item-owned">Owned: ${owned}</div>
-      </div>
-      <button type="button" class="buy-btn" data-buy="${u.id}" ${canBuy ? "" : "disabled"}>
-        ${formatNum(cost)}
-      </button>
-    </div>`;
+  function boatCatch(boat) {
+    const spot = currentSpot();
+    const fish = rollFish(spot, true);
+    if (state.autoSell || state.cooler.length < coolerMax()) {
+      addToCooler(fish, { silent: true });
+      state.catches += 1;
+    }
   }
 
-  function renderShop() {
-    if (!shopList) return;
-    shopList.innerHTML = SHOP_GROUPS.map((group) => {
-      const items = UPGRADES.filter((u) => u.group === group.id).sort(
-        (a, b) => a.baseCost - b.baseCost
-      );
-      return `<section class="shop-section" data-section="${group.id}">
-        <header class="shop-section-head">
-          <h3>${group.title}</h3>
-          <span>${group.blurb}</span>
-        </header>
-        <div class="shop-section-items">${items.map(shopItemHtml).join("")}</div>
-      </section>`;
-    }).join("");
-  }
-
-  function refreshShopButtons() {
-    if (!shopList) return;
-    shopList.querySelectorAll("[data-buy]").forEach((btn) => {
-      const id = btn.dataset.buy;
-      const upgrade = UPGRADES.find((u) => u.id === id);
-      if (!upgrade) return;
-      const owned = state.owned[id] || 0;
-      const cost = upgradeCost(upgrade, owned);
-      btn.textContent = formatNum(cost);
-      btn.disabled = state.coins < cost;
-      const ownedEl = btn.closest(".shop-item")?.querySelector(".shop-item-owned");
-      if (ownedEl) ownedEl.textContent = `Owned: ${owned}`;
+  function tickBoats(dt) {
+    boats().forEach((boat) => {
+      const interval = boat.amount;
+      boatAcc[boat.id] = (boatAcc[boat.id] || 0) + dt;
+      while (boatAcc[boat.id] >= interval) {
+        boatAcc[boat.id] -= interval;
+        boatCatch(boat);
+      }
     });
-  }
-
-  function renderVoyage() {
-    const mult = multiplier();
-    const nextMult = mult * 2;
-    const cost = voyageCost();
-    const ready = state.coins >= cost;
-    if (voyageMultEl) {
-      const label = state.voyages > 0 ? `Voyages: ${state.voyages} · ` : "";
-      voyageMultEl.textContent = `${label}Now ×${mult} → after ×${nextMult}`;
-    }
-    if (voyageDesc) {
-      voyageDesc.textContent = ready
-        ? `Ready! Reset bank & shop, keep lifetime. Multiplier becomes ×${nextMult}.`
-        : `Need ${formatNum(cost)} coins. Resets shop & bank, keeps lifetime. Next multi: ×${nextMult}.`;
-    }
-    if (voyageBtn) {
-      voyageBtn.disabled = !ready;
-      voyageBtn.textContent = ready
-        ? `Voyage → ×${nextMult}`
-        : `Voyage to ×${nextMult} (${formatNum(state.coins)} / ${formatNum(cost)})`;
-    }
-  }
-
-  function renderStats() {
-    const fps = totalFps();
-    const mult = multiplier();
-    const best = Math.max(getStoredBest(), Math.floor(state.lifetime));
-    if (coinCountEl) coinCountEl.textContent = formatNum(state.coins);
-    if (fpsLabelEl) fpsLabelEl.textContent = formatFps(fps);
-    if (hudFpsEl) hudFpsEl.textContent = formatFps(fps);
-    if (hudBestEl) hudBestEl.textContent = formatNum(best);
-    if (hudMultEl) hudMultEl.textContent = String(mult);
-    if (multLabelEl) multLabelEl.textContent = `×${mult}`;
-    if (castPowerEl) castPowerEl.textContent = `+${formatNum(castGain())}`;
-    if (overlayBestEl) overlayBestEl.textContent = formatNum(best);
-    refreshShopButtons();
-    renderVoyage();
-  }
-
-  function render(fullShop = true) {
-    renderStats();
-    if (fullShop) renderShop();
-  }
-
-  function saveSoon() {
-    const now = Date.now();
-    if (now - lastSaveAt < 800) return;
-    lastSaveAt = now;
-    saveState();
   }
 
   function applyOffline() {
     const now = Date.now();
-    const last = state.lastTick || now;
-    const elapsed = Math.min(8 * 3600 * 1000, Math.max(0, now - last));
-    const fps = totalFps();
-    if (elapsed > 5000 && fps > 0) {
-      const gained = fps * (elapsed / 1000);
-      addCoins(gained);
-      if (catchLineEl) {
-        catchLineEl.textContent = `While away: +${formatNum(gained)} coins`;
+    const elapsed = Math.min(6 * 3600 * 1000, Math.max(0, now - (state.lastTick || now)));
+    if (elapsed < 8000) {
+      state.lastTick = now;
+      return;
+    }
+    const list = boats();
+    if (!list.length) {
+      state.lastTick = now;
+      return;
+    }
+    let gained = 0;
+    const spot = currentSpot();
+    list.forEach((boat) => {
+      const count = Math.floor(elapsed / 1000 / boat.amount);
+      for (let i = 0; i < Math.min(count, 400); i += 1) {
+        const fish = rollFish(spot, true);
+        if (state.autoSell) {
+          gained += fishValue(fish, spot);
+        } else if (state.cooler.length < coolerMax()) {
+          state.cooler.push(fish.id);
+        } else {
+          gained += fishValue(fish, spot);
+        }
       }
+    });
+    if (gained > 0) addCoins(gained);
+    if (gained > 0 || state.cooler.length) {
+      setCatchLine(
+        gained > 0
+          ? `While away your boats earned ${formatNum(gained)} coins`
+          : "Boats filled part of your cooler while away"
+      );
     }
     state.lastTick = now;
   }
 
-  function tick() {
-    const fps = totalFps();
-    if (fps > 0) {
-      addCoins(fps * (TICK_MS / 1000));
-      renderStats();
-      saveSoon();
+  function renderCooler() {
+    if (coolerCountEl) coolerCountEl.textContent = String(state.cooler.length);
+    if (coolerMaxEl) coolerMaxEl.textContent = String(coolerMax());
+    if (hudCoolerEl) hudCoolerEl.textContent = `${state.cooler.length}/${coolerMax()}`;
+    if (sellBtn) sellBtn.disabled = state.cooler.length === 0;
+    if (autoSellEl) autoSellEl.checked = !!state.autoSell;
+    if (!coolerList) return;
+    coolerList.innerHTML = state.cooler
+      .map((id) => {
+        const fish = fishById(id);
+        if (!fish) return "";
+        return `<span class="fish-chip ${fish.rarity}">${fish.name}</span>`;
+      })
+      .join("");
+  }
+
+  function renderSpots() {
+    if (!spotList) return;
+    spotList.innerHTML = SPOTS.map((spot) => {
+      const unlocked = !!state.unlocked[spot.id];
+      const active = state.spotId === spot.id;
+      let action;
+      if (active) action = `<button type="button" class="spot-btn is-active" disabled>Here</button>`;
+      else if (unlocked)
+        action = `<button type="button" class="spot-btn" data-spot="${spot.id}">Fish</button>`;
+      else
+        action = `<button type="button" class="spot-btn" data-spot="${spot.id}" ${
+          state.coins >= spot.cost ? "" : "disabled"
+        }>${formatNum(spot.cost)}</button>`;
+      return `<div class="spot-item ${active ? "active" : ""}" role="listitem">
+        <div class="spot-item-main">
+          <div class="spot-item-name">${spot.name}</div>
+          <p class="spot-item-desc">${unlocked ? `Value ×${spot.valueMult}` : "Locked spot"}</p>
+        </div>
+        ${action}
+      </div>`;
+    }).join("");
+  }
+
+  function renderShop() {
+    if (!shopList) return;
+    shopList.innerHTML = GEAR.map((item) => {
+      const owned = !!state.owned[item.id];
+      return `<div class="shop-item" role="listitem">
+        <div class="shop-item-main">
+          <div class="shop-item-name">${item.name}</div>
+          <p class="shop-item-desc">${item.desc}</p>
+          <div class="shop-item-owned">${owned ? "Owned" : "Not owned"}</div>
+        </div>
+        <button type="button" class="buy-btn" data-buy="${item.id}" ${
+          owned || state.coins < item.cost ? "disabled" : ""
+        }>${owned ? "✓" : formatNum(item.cost)}</button>
+      </div>`;
+    }).join("");
+  }
+
+  function renderStats() {
+    const spot = currentSpot();
+    const best = Math.max(getStoredBest(), Math.floor(state.lifetime));
+    if (coinCountEl) coinCountEl.textContent = formatNum(state.coins);
+    if (spotLabelEl) spotLabelEl.textContent = spot.name;
+    if (hudSpotEl) hudSpotEl.textContent = spot.name;
+    if (windowLabelEl) windowLabelEl.textContent = `${biteWindow().toFixed(2)}s`;
+    if (boatsLabelEl) boatsLabelEl.textContent = String(boats().length);
+    if (hudBestEl) hudBestEl.textContent = formatNum(best);
+    if (overlayBestEl) overlayBestEl.textContent = formatNum(best);
+  }
+
+  function render(full = true) {
+    renderStats();
+    renderCooler();
+    if (full) {
+      renderSpots();
+      renderShop();
+    } else {
+      // refresh affordability without full rebuild when possible
+      spotList?.querySelectorAll("[data-spot]").forEach((btn) => {
+        const spot = SPOTS.find((s) => s.id === btn.dataset.spot);
+        if (!spot || state.unlocked[spot.id]) return;
+        btn.disabled = state.coins < spot.cost;
+        btn.textContent = formatNum(spot.cost);
+      });
+      shopList?.querySelectorAll("[data-buy]").forEach((btn) => {
+        const id = btn.dataset.buy;
+        if (state.owned[id]) {
+          btn.disabled = true;
+          btn.textContent = "✓";
+          return;
+        }
+        const item = GEAR.find((g) => g.id === id);
+        if (!item) return;
+        btn.disabled = state.coins < item.cost;
+        btn.textContent = formatNum(item.cost);
+      });
     }
+  }
+
+  function saveSoon() {
+    const now = Date.now();
+    if (now - lastSaveAt < 700) return;
+    lastSaveAt = now;
+    saveState();
+  }
+
+  function tick() {
+    tickBoats(TICK_MS / 1000);
+    renderCooler();
+    renderStats();
+    saveSoon();
   }
 
   function openMenu() {
@@ -531,33 +710,41 @@
     ensureSession();
   }
 
-  function goToGames() {
-    saveState();
-    maybeSubmitBest(true);
-    window.location.href = "../index.html#games";
-  }
-
-  castBtn?.addEventListener("click", doCast);
+  castBtn?.addEventListener("click", (e) => reelIn(e));
+  sellBtn?.addEventListener("click", () => sellCooler());
+  autoSellEl?.addEventListener("change", () => {
+    state.autoSell = !!autoSellEl.checked;
+    saveSoon();
+  });
   shopList?.addEventListener("pointerdown", (e) => {
     const btn = e.target.closest("[data-buy]");
     if (!btn || btn.disabled) return;
     e.preventDefault();
-    buyUpgrade(btn.dataset.buy);
+    buyGear(btn.dataset.buy);
+  });
+  spotList?.addEventListener("pointerdown", (e) => {
+    const btn = e.target.closest("[data-spot]");
+    if (!btn || btn.disabled) return;
+    e.preventDefault();
+    unlockOrSelectSpot(btn.dataset.spot);
   });
   startBtn?.addEventListener("click", closeMenu);
   menuBtn?.addEventListener("click", openMenu);
-  gamesBtn?.addEventListener("click", goToGames);
-  voyageBtn?.addEventListener("click", doVoyage);
+  gamesBtn?.addEventListener("click", () => {
+    saveState();
+    maybeSubmitBest(true);
+    window.location.href = "../index.html#games";
+  });
 
   state = loadState();
   applyOffline();
+  setPhase("ready");
   render();
   setInterval(tick, TICK_MS);
   setInterval(() => {
     saveState();
     maybeSubmitBest(true);
   }, 15000);
-
   window.addEventListener("beforeunload", () => {
     saveState();
     maybeSubmitBest(true);

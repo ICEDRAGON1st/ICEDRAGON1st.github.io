@@ -7,15 +7,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260908i">
+  <link rel="stylesheet" href="styles.css?v=20260908j">
 </head>
 <body>
   <header class="top-bar">
     <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
     <h1>Fishing Idle</h1>
     <div class="top-stats">
-      ×<strong id="hud-mult">1</strong>
-      · FPS <strong id="hud-fps">0</strong>
+      <span id="hud-spot">Creek</span>
+      · Cooler <strong id="hud-cooler">0</strong>
       · Best <strong id="hud-best">0</strong>
     </div>
   </header>
@@ -24,45 +24,62 @@
     <section class="play-col card">
       <p class="bank-label">Coins</p>
       <p id="coin-count" class="coin-count" aria-live="polite">0</p>
+
       <div class="stat-row">
         <div class="stat-chip">
-          <span class="stat-chip-label">Voyage</span>
-          <strong id="mult-label">×1</strong>
+          <span class="stat-chip-label">Spot</span>
+          <strong id="spot-label">Creek</strong>
         </div>
         <div class="stat-chip">
-          <span class="stat-chip-label">Per cast</span>
-          <strong id="cast-power-label">+1</strong>
+          <span class="stat-chip-label">Bite window</span>
+          <strong id="window-label">0.45s</strong>
         </div>
         <div class="stat-chip">
-          <span class="stat-chip-label">Per second</span>
-          <strong id="fps-label">0</strong>
+          <span class="stat-chip-label">Auto boats</span>
+          <strong id="boats-label">0</strong>
         </div>
       </div>
-      <button id="cast-btn" type="button" class="cast-btn" aria-label="Cast your line">
+
+      <button id="cast-btn" type="button" class="cast-btn phase-ready" aria-label="Cast your line">
         <span class="cast-pond" aria-hidden="true">
           <span class="ripple r1"></span>
           <span class="ripple r2"></span>
-          <span class="bobber"></span>
+          <span class="bobber" id="bobber"></span>
         </span>
-        <span class="cast-btn-text">Cast</span>
+        <span id="cast-btn-text" class="cast-btn-text">Cast</span>
       </button>
-      <p class="hint">Cast for coins. Buy rods for bigger catches, and boats for idle fish.</p>
-      <p id="catch-line" class="catch-line" aria-live="polite">Ready to fish</p>
+
+      <div class="bite-meter" aria-hidden="true">
+        <div id="bite-fill" class="bite-fill"></div>
+      </div>
+
+      <p class="hint">Cast, wait for the bobber to dunk, then tap <strong>Reel</strong> in the bite window. Sell fish from your cooler.</p>
+      <p id="catch-line" class="catch-line" aria-live="polite">Ready to cast</p>
+
+      <div class="cooler-bar">
+        <div class="cooler-head">
+          <span>Cooler <strong id="cooler-count">0</strong>/<span id="cooler-max">12</span></span>
+          <label class="auto-sell">
+            <input id="auto-sell" type="checkbox" />
+            Auto-sell
+          </label>
+        </div>
+        <div id="cooler-list" class="cooler-list"></div>
+        <button id="sell-btn" type="button" class="btn sell-btn" disabled>Sell cooler</button>
+      </div>
     </section>
 
-    <section class="shop-col card">
-      <h2>Dock shop</h2>
-      <p class="shop-intro">Rods boost casts. Boats &amp; crews earn while you wait.</p>
-      <div id="shop-list" class="shop-list" role="list"></div>
-      <div id="voyage-box" class="voyage-box">
-        <div class="voyage-info">
-          <div class="voyage-title">New voyage</div>
-          <p id="voyage-desc" class="voyage-desc">
-            Sail farther: reset bank &amp; shop, keep lifetime coins, double all earnings.
-          </p>
-          <div id="voyage-mult" class="voyage-mult">Now ×1 → after ×2</div>
-        </div>
-        <button id="voyage-btn" type="button" class="btn voyage-btn" disabled>Voyage</button>
+    <section class="side-col">
+      <div class="card">
+        <h2>Spots</h2>
+        <p class="shop-intro">Unlock waters with rarer fish.</p>
+        <div id="spot-list" class="spot-list" role="list"></div>
+      </div>
+
+      <div class="card">
+        <h2>Gear</h2>
+        <p class="shop-intro">Rods widen the reel window. Bait speeds bites. Luck finds rarer fish. Boats fish while you wait.</p>
+        <div id="shop-list" class="shop-list" role="list"></div>
       </div>
     </section>
   </main>
@@ -71,10 +88,10 @@
 
   <div id="overlay" class="overlay">
     <div class="overlay-card">
-      <p class="eyebrow">Idle dock</p>
+      <p class="eyebrow">Cast · bite · reel</p>
       <h2 id="overlay-title">Fishing Idle</h2>
       <p id="overlay-text" class="lead">
-        Cast for coins, upgrade rods and boats, and climb the lifetime catch leaderboard.
+        Time your reel when the bobber dunks, fill the cooler, sell fish, and unlock deeper spots.
       </p>
       <p class="score-line">Lifetime best: <strong id="overlay-best">0</strong></p>
       <div class="overlay-actions">
@@ -88,10 +105,10 @@
   <script src="../hub-achievements.js"></script>
   <script src="../hub-sound.js"></script>
   <script src="../hub-confetti.js"></script>
-  <script src="../hub-plays.js?v=20260908i"></script>
+  <script src="../hub-plays.js?v=20260908j"></script>
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
-  <script src="../hub-leaderboard.js?v=20260908i"></script>
-  <script src="script.js?v=20260908i"></script>
+  <script src="../hub-leaderboard.js?v=20260908j"></script>
+  <script src="script.js?v=20260908j"></script>
 </body>
 </html>

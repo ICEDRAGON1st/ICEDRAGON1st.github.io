@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908j": [
+    "Fishing Idle remade: cast, reel on the bite, cooler, spots — not a clicker clone"
+  ],
   "20260908i": [
     "New game: Fishing Idle — cast for coins, buy boats, set sail for bigger voyages"
   ],
