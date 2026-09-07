@@ -163,6 +163,7 @@
   const spotLabelEl = document.getElementById("spot-label");
   const windowLabelEl = document.getElementById("window-label");
   const boatsLabelEl = document.getElementById("boats-label");
+  const boatTimersEl = document.getElementById("boat-timers");
   const hudSpotEl = document.getElementById("hud-spot");
   const hudCoolerEl = document.getElementById("hud-cooler");
   const hudBestEl = document.getElementById("hud-best");
@@ -750,6 +751,53 @@
     }
   }
 
+  function boatRemaining(boat) {
+    const interval = Number(boat.amount) || 1;
+    const acc = boatAcc[boat.id] || 0;
+    return Math.max(0, interval - acc);
+  }
+
+  function formatTimer(sec) {
+    const s = Math.max(0, Number(sec) || 0);
+    if (s >= 10) return `${Math.ceil(s)}s`;
+    return `${s.toFixed(1)}s`;
+  }
+
+  function renderBoatTimers() {
+    const list = boats();
+    if (boatsLabelEl) {
+      if (!list.length) boatsLabelEl.textContent = "0";
+      else {
+        const next = Math.min(...list.map(boatRemaining));
+        boatsLabelEl.textContent = `${list.length} · next ${formatTimer(next)}`;
+      }
+    }
+    if (!boatTimersEl) return;
+    if (!list.length) {
+      boatTimersEl.innerHTML = "";
+      boatTimersEl.classList.add("empty");
+      return;
+    }
+    boatTimersEl.classList.remove("empty");
+    boatTimersEl.innerHTML = list
+      .map((boat) => {
+        const interval = Number(boat.amount) || 1;
+        const left = boatRemaining(boat);
+        const pct = Math.max(0, Math.min(100, (1 - left / interval) * 100));
+        return `<div class="boat-timer" data-boat="${boat.id}">
+          <div class="boat-timer-top">
+            <span class="boat-timer-name">${boat.name}</span>
+            <span class="boat-timer-left">${formatTimer(left)}</span>
+          </div>
+          <div class="boat-timer-track" aria-hidden="true">
+            <div class="boat-timer-fill" style="width:${pct.toFixed(1)}%"></div>
+          </div>
+          <div class="boat-timer-meta">every ${interval}s</div>
+        </div>`;
+      })
+      .join("");
+  }
+
   function tickBoats(dt) {
     boats().forEach((boat) => {
       const interval = boat.amount;
@@ -881,9 +929,9 @@
     if (spotLabelEl) spotLabelEl.textContent = spot.name;
     if (hudSpotEl) hudSpotEl.textContent = spot.name;
     if (windowLabelEl) windowLabelEl.textContent = `${biteWindow().toFixed(2)}s`;
-    if (boatsLabelEl) boatsLabelEl.textContent = String(boats().length);
     if (hudBestEl) hudBestEl.textContent = bestLabel;
     if (overlayBestEl) overlayBestEl.textContent = bestLabel;
+    renderBoatTimers();
   }
 
   function render(full = true) {
