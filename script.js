@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260907s": [
+    "Crystal Clicker: another wave of late-game upgrades"
+  ],
   "20260907r": [
     "Crystal Clicker: more late-game click + idle upgrades"
   ],
