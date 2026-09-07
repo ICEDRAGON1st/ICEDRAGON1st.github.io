@@ -770,7 +770,15 @@
     guideOverlay?.classList.add("hidden");
   }
 
-  castBtn?.addEventListener("click", (e) => reelIn(e));
+  castBtn?.addEventListener("pointerup", (e) => {
+    // Prefer pointerup so cancel works reliably on touch while waiting
+    if (e.button != null && e.button !== 0) return;
+    reelIn(e);
+  });
+  // Keep click as fallback for keyboard activation
+  castBtn?.addEventListener("click", (e) => {
+    if (e.detail === 0) reelIn(e);
+  });
   sellBtn?.addEventListener("click", () => sellCooler());
   autoSellEl?.addEventListener("change", () => {
     state.autoSell = !!autoSellEl.checked;

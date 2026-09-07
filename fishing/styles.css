@@ -337,18 +337,11 @@ body {
   overflow: hidden;
 }
 
-.ripple {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 20%;
-  height: 20%;
-  border: 2px solid rgba(255, 255, 255, 0.35);
-  border-radius: 50%;
-  transform: translate(-50%, -50%);
-  animation: ripple 2.4s ease-out infinite;
+.cast-pond,
+.ripple,
+.bobber,
+.cast-btn-text {
   pointer-events: none;
-  opacity: 0.35;
 }
 
 .cast-btn.phase-waiting .ripple,
@@ -384,6 +377,7 @@ body {
   background: linear-gradient(180deg, #ff6b6b 45%, #fff 45% 55%, #ff6b6b 55%);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
   transition: transform 0.12s ease;
+  pointer-events: none;
 }
 
 .cast-btn.phase-waiting .bobber {
@@ -424,6 +418,7 @@ body {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  pointer-events: none;
 }
 
 .bite-meter {
