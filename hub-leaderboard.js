@@ -469,6 +469,35 @@
     });
     games.fishing = fishingBoard;
 
+    // Seed ICE_DRAGON Fishing Idle best catch as Abyss King (mythic).
+    const iceFishingSeedKey = "fishing:ice_dragon-abyss-king-v1";
+    const ABYSS_KING_SCORE = 604000; // mythic rank*100000 + 4000
+    const ICE_FISHING_ID = "p-mtlztdny-r28rrb";
+    if (!resets[iceFishingSeedKey]) resets[iceFishingSeedKey] = Date.now();
+    const iceFishAt = Math.max(
+      Number(resets[iceFishingSeedKey]) || 0,
+      FISHING_WIPE_AT + 1
+    );
+    const seededFish = { ...(games.fishing || {}) };
+    Object.keys(seededFish).forEach((key) => {
+      const entry = seededFish[key];
+      if (!entry) return;
+      const keyName = nameKey(entry.name || key);
+      const isIce =
+        key === "ice_dragon" ||
+        keyName === "ice_dragon" ||
+        entry.playerId === ICE_FISHING_ID;
+      if (isIce && key !== "ice_dragon") delete seededFish[key];
+    });
+    seededFish.ice_dragon = {
+      name: "ICE_DRAGON",
+      score: ABYSS_KING_SCORE,
+      at: iceFishAt,
+      playerId: ICE_FISHING_ID,
+      lowerBetter: false
+    };
+    games.fishing = seededFish;
+
     // Sticky name binds: keep scores under the player's current name after renames.
     // Seed: Gustav → Dellekai (same playerId).
     const dellekaiBind = "namebind:p-mtnfme96-6bpve6";

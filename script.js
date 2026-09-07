@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908r": [
+    "Fishing Idle: set ICE_DRAGON best catch to Abyss King on the leaderboard"
+  ],
   "20260908q": [
     "Fishing Idle leaderboard is now best fish caught (rarity), not lifetime coins"
   ],
