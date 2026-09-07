@@ -99,13 +99,31 @@
       blurb: "All fish · slightly better odds"
     },
     {
+      id: "marsh",
+      name: "Marsh",
+      cost: 400,
+      wait: [1.25, 2.5],
+      valueMult: 1.0,
+      rarity: 2,
+      blurb: "Murky water · a bit more uncommon"
+    },
+    {
       id: "river",
       name: "River",
       cost: 800,
       wait: [1.2, 2.4],
       valueMult: 1.15,
-      rarity: 2,
+      rarity: 3,
       blurb: "All fish · uncommon/rare more often"
+    },
+    {
+      id: "falls",
+      name: "Waterfall",
+      cost: 2200,
+      wait: [1.15, 2.3],
+      valueMult: 1.3,
+      rarity: 4,
+      blurb: "Fast current · rares start showing"
     },
     {
       id: "lake",
@@ -113,8 +131,17 @@
       cost: 4500,
       wait: [1.1, 2.2],
       valueMult: 1.45,
-      rarity: 3,
+      rarity: 5,
       blurb: "All fish · solid rare/epic odds"
+    },
+    {
+      id: "reef",
+      name: "Coral Reef",
+      cost: 12000,
+      wait: [1.05, 2.1],
+      valueMult: 1.7,
+      rarity: 6,
+      blurb: "Bright waters · epics more likely"
     },
     {
       id: "harbor",
@@ -122,8 +149,17 @@
       cost: 25000,
       wait: [1.0, 2.0],
       valueMult: 1.9,
-      rarity: 4,
+      rarity: 7,
       blurb: "All fish · top rarities slightly less rare"
+    },
+    {
+      id: "glacier",
+      name: "Glacier Bay",
+      cost: 70000,
+      wait: [0.95, 1.9],
+      valueMult: 2.2,
+      rarity: 8,
+      blurb: "Icy depth · legendaries thaw more often"
     },
     {
       id: "deep",
@@ -131,10 +167,39 @@
       cost: 150000,
       wait: [0.9, 1.8],
       valueMult: 2.6,
-      rarity: 5,
-      blurb: "All fish · best odds — secrets still tiny"
+      rarity: 9,
+      blurb: "All fish · strong mythic odds"
+    },
+    {
+      id: "trench",
+      name: "Abyssal Trench",
+      cost: 400000,
+      wait: [0.85, 1.7],
+      valueMult: 3.1,
+      rarity: 10,
+      blurb: "Crushing dark · mythics & secrets stir"
+    },
+    {
+      id: "rift",
+      name: "Tide Rift",
+      cost: 1200000,
+      wait: [0.8, 1.55],
+      valueMult: 3.7,
+      rarity: 11,
+      blurb: "Warped tides · secrets less impossible"
+    },
+    {
+      id: "void",
+      name: "Void Lagoon",
+      cost: 4000000,
+      wait: [0.75, 1.4],
+      valueMult: 4.5,
+      rarity: 12,
+      blurb: "End of the map · best odds & pay"
     }
   ];
+
+  const MAX_SPOT_RARITY = 12;
 
   const GEAR = [
     { id: "rod1", name: "Willow Rod", desc: "+0.05s bite window", cost: 40, kind: "window", amount: 0.05 },
@@ -418,6 +483,7 @@
     if (boats().length >= 1) HubAchievements.unlock("fishing_fps_10");
     if (boats().length >= 3) HubAchievements.unlock("fishing_fps_100");
     if (state.unlocked.deep) HubAchievements.unlock("fishing_voyage_1");
+    if (state.unlocked.void) HubAchievements.unlock("fishing_voyage_1");
   }
 
   function ensureSession() {
@@ -467,7 +533,7 @@
 
   function rarityFactor(rarity, spotRarity) {
     // Worse spots (low rarity) heavily favor commons; better spots open up rares+.
-    const t = Math.max(0, Math.min(5, Number(spotRarity) || 0)) / 5;
+    const t = Math.max(0, Math.min(MAX_SPOT_RARITY, Number(spotRarity) || 0)) / MAX_SPOT_RARITY;
     if (rarity === "common") return 1.7 - t * 0.55;
     if (rarity === "uncommon") return 0.55 + t * 0.55;
     if (rarity === "rare") return 0.06 + t * 0.7;
@@ -488,7 +554,7 @@
     if (fish.rarity === "mythic") w += luck * 0.07;
     if (fish.rarity === "secret") w += luck * 0.02;
     // Worse spots suppress high rarities hard; boats are worse at secrets
-    const t = Math.max(0, Math.min(5, Number(spot.rarity) || 0)) / 5;
+    const t = Math.max(0, Math.min(MAX_SPOT_RARITY, Number(spot.rarity) || 0)) / MAX_SPOT_RARITY;
     if (fish.rarity === "rare") w *= 0.45 + t * 0.55;
     if (fish.rarity === "epic" || fish.rarity === "legendary") w *= 0.25 + t * 0.75;
     if (fish.rarity === "mythic") w *= 0.12 + t * 0.88;
