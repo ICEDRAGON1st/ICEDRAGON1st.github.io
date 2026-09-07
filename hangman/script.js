@@ -10,24 +10,24 @@ const DIFFICULTY = {
     length: 4,
     minLen: 3,
     maxLen: 5,
-    maxWrong: 8,
-    blurb: "shorter words · 8 misses"
+    maxWrong: 10,
+    blurb: "shorter words · 10 misses"
   },
   medium: {
     label: "Medium",
     length: 5,
     minLen: 5,
     maxLen: 7,
-    maxWrong: 6,
-    blurb: "mid-length words · 6 misses"
+    maxWrong: 8,
+    blurb: "mid-length words · 8 misses"
   },
   hard: {
     label: "Hard",
     length: 6,
     minLen: 6,
     maxLen: 12,
-    maxWrong: 4,
-    blurb: "longer words · 4 misses"
+    maxWrong: 6,
+    blurb: "longer words · 6 misses"
   }
 };
 
@@ -280,10 +280,10 @@ function modeBlurb() {
   if (isClassicTheme()) {
     const lenBlurb =
       difficultyMode === "easy"
-        ? "4-letter words · 8 misses"
+        ? "4-letter words · 10 misses"
         : difficultyMode === "hard"
-          ? "6-letter words · 4 misses"
-          : "5-letter words · 6 misses";
+          ? "6-letter words · 6 misses"
+          : "5-letter words · 8 misses";
     return `${langLabel()} · Classic · ${cfg().label}: ${lenBlurb}`;
   }
   return `${themeLabel()} · ${cfg().label}: ${cfg().blurb}${theme?.blurb ? ` · ${theme.blurb}` : ""}`;

@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908b": [
+    "Hangman: more misses on Easy / Medium / Hard"
+  ],
   "20260908a": [
     "Rainbow color also available to ICE_DRAGON for testing"
   ],
