@@ -5,26 +5,59 @@
   const COOLER_BASE = 12;
 
   const RARITY_WEIGHT = {
-    common: 55,
-    uncommon: 25,
+    common: 52,
+    uncommon: 24,
     rare: 12,
-    epic: 6,
-    legendary: 2
+    epic: 7,
+    legendary: 3.5,
+    mythic: 1.2
   };
 
   const FISH = [
+    // Common
     { id: "minnow", name: "Minnow", rarity: "common", value: 3 },
     { id: "perch", name: "Perch", rarity: "common", value: 5 },
     { id: "bluegill", name: "Bluegill", rarity: "common", value: 6 },
+    { id: "sardine", name: "Sardine", rarity: "common", value: 4 },
+    { id: "smelt", name: "Smelt", rarity: "common", value: 5 },
+    { id: "carp", name: "Carp", rarity: "common", value: 7 },
+    { id: "roach", name: "Roach", rarity: "common", value: 4 },
+    { id: "goby", name: "Goby", rarity: "common", value: 6 },
+    // Uncommon
     { id: "trout", name: "Trout", rarity: "uncommon", value: 14 },
     { id: "bass", name: "Bass", rarity: "uncommon", value: 18 },
     { id: "catfish", name: "Catfish", rarity: "uncommon", value: 22 },
+    { id: "walleye", name: "Walleye", rarity: "uncommon", value: 20 },
+    { id: "snapper", name: "Snapper", rarity: "uncommon", value: 24 },
+    { id: "mackerel", name: "Mackerel", rarity: "uncommon", value: 16 },
+    { id: "cod", name: "Cod", rarity: "uncommon", value: 19 },
+    { id: "flounder", name: "Flounder", rarity: "uncommon", value: 21 },
+    // Rare
     { id: "salmon", name: "Salmon", rarity: "rare", value: 45 },
     { id: "pike", name: "Pike", rarity: "rare", value: 55 },
+    { id: "mahi", name: "Mahi-Mahi", rarity: "rare", value: 60 },
+    { id: "grouper", name: "Grouper", rarity: "rare", value: 70 },
+    { id: "barracuda", name: "Barracuda", rarity: "rare", value: 65 },
+    { id: "sturgeon", name: "Sturgeon", rarity: "rare", value: 80 },
+    { id: "eel", name: "Moray Eel", rarity: "rare", value: 58 },
+    // Epic
     { id: "tuna", name: "Tuna", rarity: "epic", value: 120 },
     { id: "marlin", name: "Marlin", rarity: "epic", value: 180 },
+    { id: "swordfish", name: "Swordfish", rarity: "epic", value: 200 },
+    { id: "shark", name: "Reef Shark", rarity: "epic", value: 240 },
+    { id: "ray", name: "Manta Ray", rarity: "epic", value: 220 },
+    { id: "octopus", name: "Giant Octopus", rarity: "epic", value: 260 },
+    // Legendary
     { id: "golden", name: "Golden Koi", rarity: "legendary", value: 500 },
-    { id: "leviathan", name: "Leviathan Fry", rarity: "legendary", value: 900 }
+    { id: "leviathan", name: "Leviathan Fry", rarity: "legendary", value: 900 },
+    { id: "moonfish", name: "Moonfish", rarity: "legendary", value: 650 },
+    { id: "dragonet", name: "Sea Dragonet", rarity: "legendary", value: 780 },
+    { id: "crystal", name: "Crystal Pike", rarity: "legendary", value: 850 },
+    // Mythic
+    { id: "tidelord", name: "Tide Lord", rarity: "mythic", value: 2500 },
+    { id: "abyssking", name: "Abyss King", rarity: "mythic", value: 4000 },
+    { id: "starwhale", name: "Star Whale", rarity: "mythic", value: 6000 },
+    { id: "worldfin", name: "Worldfin", rarity: "mythic", value: 9000 }
   ];
 
   const SPOTS = [
@@ -71,7 +104,7 @@
       wait: [1.0, 2.0],
       valueMult: 1.9,
       rarity: 4,
-      blurb: "All fish · epic/legendary friendlier"
+      blurb: "All fish · epic/legendary/mythic friendlier"
     },
     {
       id: "deep",
@@ -80,7 +113,7 @@
       wait: [0.9, 1.8],
       valueMult: 2.6,
       rarity: 5,
-      blurb: "All fish · best odds & pay"
+      blurb: "All fish · best odds, pay & mythics"
     }
   ];
 
@@ -357,6 +390,7 @@
     if (rarity === "rare") return 0.12 + t * 1.05;
     if (rarity === "epic") return 0.04 + t * 1.15;
     if (rarity === "legendary") return 0.01 + t * 1.25;
+    if (rarity === "mythic") return 0.004 + t * 1.4;
     return 1;
   }
 
@@ -367,9 +401,11 @@
     if (fish.rarity === "rare") w += luck * 0.5;
     if (fish.rarity === "epic") w += luck * 0.4;
     if (fish.rarity === "legendary") w += luck * 0.3;
+    if (fish.rarity === "mythic") w += luck * 0.22;
     // Worse spots still suppress luck on top rarities
     const t = Math.max(0, Math.min(5, Number(spot.rarity) || 0)) / 5;
     if (fish.rarity === "epic" || fish.rarity === "legendary") w *= 0.35 + t * 0.65;
+    if (fish.rarity === "mythic") w *= 0.18 + t * 0.82;
     return Math.max(0.05, w);
   }
 
@@ -401,7 +437,7 @@
       const val = fishValue(fish, currentSpot());
       addCoins(val);
       if (!opts.silent) {
-        setCatchLine(`Sold ${fish.name} for ${formatNum(val)}`, fish.rarity === "legendary" ? "legend" : "");
+        setCatchLine(`Sold ${fish.name} for ${formatNum(val)}`, catchTone(fish.rarity));
       }
       return true;
     }
@@ -417,8 +453,18 @@
   function setCatchLine(text, cls = "") {
     if (!catchLineEl) return;
     catchLineEl.textContent = text;
-    catchLineEl.classList.remove("miss", "legend");
+    catchLineEl.classList.remove("miss", "legend", "mythic");
     if (cls) catchLineEl.classList.add(cls);
+  }
+
+  function isShowcaseRarity(rarity) {
+    return rarity === "legendary" || rarity === "mythic";
+  }
+
+  function catchTone(rarity) {
+    if (rarity === "mythic") return "mythic";
+    if (rarity === "legendary") return "legend";
+    return "";
   }
 
   function startCast() {
@@ -504,10 +550,10 @@
       const tip = perfect ? "Perfect reel! " : "";
       setCatchLine(
         `${tip}Caught ${fish.name} (${fish.rarity})`,
-        fish.rarity === "legendary" ? "legend" : ""
+        catchTone(fish.rarity)
       );
-      window.HubSound?.play?.(perfect || fish.rarity === "legendary" ? "win" : "click");
-      if (fish.rarity === "legendary") window.HubConfetti?.burst?.();
+      window.HubSound?.play?.(perfect || isShowcaseRarity(fish.rarity) ? "win" : "click");
+      if (isShowcaseRarity(fish.rarity)) window.HubConfetti?.burst?.();
       const rect = castBtn.getBoundingClientRect();
       spawnFloat(
         evt?.clientX ?? rect.left + rect.width / 2,
@@ -758,7 +804,7 @@
   }
 
   function rarityOrder(r) {
-    return { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4 }[r] ?? 0;
+    return { common: 0, uncommon: 1, rare: 2, epic: 3, legendary: 4, mythic: 5 }[r] ?? 0;
   }
 
   function formatChance(pct) {
