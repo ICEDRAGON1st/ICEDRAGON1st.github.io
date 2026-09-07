@@ -655,6 +655,27 @@
     }, 650);
   }
 
+  function sellOneFish(index) {
+    const i = Math.floor(Number(index));
+    if (!Number.isFinite(i) || i < 0 || i >= state.cooler.length) return;
+    ensureSession();
+    const id = state.cooler[i];
+    const fish = fishById(id);
+    if (!fish) {
+      state.cooler.splice(i, 1);
+      render(false);
+      saveSoon();
+      return;
+    }
+    const val = fishValue(fish, currentSpot());
+    state.cooler.splice(i, 1);
+    addCoins(val);
+    setCatchLine(`Sold ${fish.name} for ${formatNum(val)}`, catchTone(fish.rarity));
+    window.HubSound?.play?.("click");
+    render(false);
+    saveSoon();
+  }
+
   function sellCooler() {
     if (!state.cooler.length) return;
     ensureSession();
@@ -777,11 +798,16 @@
       input.checked = shouldAutoSell(rarity);
     });
     if (!coolerList) return;
+    const spot = currentSpot();
     coolerList.innerHTML = state.cooler
-      .map((id) => {
+      .map((id, index) => {
         const fish = fishById(id);
         if (!fish) return "";
-        return `<span class="fish-chip ${fish.rarity}">${fish.name}</span>`;
+        const val = fishValue(fish, spot);
+        return `<button type="button" class="fish-chip ${fish.rarity}" data-sell-index="${index}" title="Sell for ${formatNum(val)}">
+          <span class="fish-chip-name">${fish.name}</span>
+          <span class="fish-chip-price">${formatNum(val)}</span>
+        </button>`;
       })
       .join("");
   }
@@ -947,6 +973,11 @@
     if (e.detail === 0) reelIn(e);
   });
   sellBtn?.addEventListener("click", () => sellCooler());
+  coolerList?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-sell-index]");
+    if (!btn) return;
+    sellOneFish(btn.dataset.sellIndex);
+  });
   autoSellBox?.addEventListener("change", (e) => {
     const input = e.target.closest("input[data-rarity]");
     if (!input) return;

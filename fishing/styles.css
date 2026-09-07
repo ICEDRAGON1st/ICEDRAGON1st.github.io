@@ -575,12 +575,35 @@ body {
 }
 
 .fish-chip {
+  appearance: none;
+  font: inherit;
   font-size: 0.75rem;
   font-weight: 700;
-  padding: 0.28rem 0.5rem;
+  padding: 0.28rem 0.55rem;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.fish-chip:hover {
+  filter: brightness(1.12);
+  border-color: rgba(46, 196, 182, 0.45);
+}
+
+.fish-chip-price {
+  opacity: 0.85;
+  font-size: 0.7rem;
+  color: var(--gold);
+}
+
+.cooler-hint {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  color: var(--muted);
 }
 
 .fish-chip.common {
