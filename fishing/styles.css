@@ -504,13 +504,66 @@ body {
   color: var(--text);
 }
 
-.auto-sell {
+.auto-sell-panel {
+  margin: 0 0 0.55rem;
+  padding: 0.55rem 0.6rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.auto-sell-title {
+  display: block;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.4rem;
+}
+
+.auto-sell-rarities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.auto-sell-opt {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.8rem;
+  gap: 0.28rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.22rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.2);
   cursor: pointer;
   user-select: none;
+  text-transform: capitalize;
+}
+
+.auto-sell-opt input {
+  margin: 0;
+  accent-color: var(--teal);
+}
+
+.auto-sell-opt.common {
+  color: var(--common);
+}
+.auto-sell-opt.uncommon {
+  color: var(--uncommon);
+}
+.auto-sell-opt.rare {
+  color: var(--rare);
+}
+.auto-sell-opt.epic {
+  color: var(--epic);
+}
+.auto-sell-opt.legendary {
+  color: var(--legend);
+}
+.auto-sell-opt.mythic {
+  color: var(--mythic);
 }
 
 .cooler-list {

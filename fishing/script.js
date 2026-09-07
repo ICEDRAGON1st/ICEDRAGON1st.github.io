@@ -4,6 +4,8 @@
   const TICK_MS = 100;
   const COOLER_BASE = 12;
 
+  const RARITIES = ["common", "uncommon", "rare", "epic", "legendary", "mythic"];
+
   const RARITY_WEIGHT = {
     common: 52,
     uncommon: 24,
@@ -156,7 +158,7 @@
   const coolerCountEl = document.getElementById("cooler-count");
   const coolerMaxEl = document.getElementById("cooler-max");
   const sellBtn = document.getElementById("sell-btn");
-  const autoSellEl = document.getElementById("auto-sell");
+  const autoSellBox = document.getElementById("auto-sell-rarities");
   const shopList = document.getElementById("shop-list");
   const spotList = document.getElementById("spot-list");
   const overlay = document.getElementById("overlay");
@@ -183,6 +185,14 @@
   let biteEndsAt = 0;
   let boatAcc = {};
 
+  function defaultAutoSell() {
+    const map = {};
+    RARITIES.forEach((r) => {
+      map[r] = false;
+    });
+    return map;
+  }
+
   function defaultState() {
     const owned = {};
     GEAR.forEach((g) => {
@@ -195,7 +205,7 @@
       unlocked: { creek: true },
       owned,
       cooler: [],
-      autoSell: false,
+      autoSellRarities: defaultAutoSell(),
       catches: 0,
       perfects: 0,
       lastTick: Date.now()
@@ -244,7 +254,17 @@
       next.coins = Math.max(0, Number(raw.coins) || 0);
       next.lifetime = Math.max(0, Number(raw.lifetime) || 0);
       next.spotId = SPOTS.some((s) => s.id === raw.spotId) ? raw.spotId : "creek";
-      next.autoSell = !!raw.autoSell;
+      next.autoSellRarities = defaultAutoSell();
+      if (raw.autoSellRarities && typeof raw.autoSellRarities === "object") {
+        RARITIES.forEach((r) => {
+          next.autoSellRarities[r] = !!raw.autoSellRarities[r];
+        });
+      } else if (raw.autoSell) {
+        // Migrate old all-or-nothing toggle
+        RARITIES.forEach((r) => {
+          next.autoSellRarities[r] = true;
+        });
+      }
       next.catches = Math.max(0, Math.floor(Number(raw.catches) || 0));
       next.perfects = Math.max(0, Math.floor(Number(raw.perfects) || 0));
       next.lastTick = Math.max(0, Number(raw.lastTick) || Date.now());
@@ -431,9 +451,17 @@
     return Math.max(1, Math.floor(fish.value * (spot?.valueMult || 1)));
   }
 
+  function shouldAutoSell(rarity) {
+    return !!state.autoSellRarities?.[rarity];
+  }
+
+  function anyAutoSellEnabled() {
+    return RARITIES.some((r) => shouldAutoSell(r));
+  }
+
   function addToCooler(fish, opts = {}) {
     if (!fish) return false;
-    if (state.autoSell || opts.forceSell) {
+    if (opts.forceSell || shouldAutoSell(fish.rarity)) {
       const val = fishValue(fish, currentSpot());
       addCoins(val);
       if (!opts.silent) {
@@ -442,7 +470,9 @@
       return true;
     }
     if (state.cooler.length >= coolerMax()) {
-      if (!opts.silent) setCatchLine("Cooler full — sell or enable auto-sell", "miss");
+      if (!opts.silent) {
+        setCatchLine("Cooler full — sell or auto-sell this rarity", "miss");
+      }
       window.HubSound?.play?.("miss");
       return false;
     }
@@ -469,7 +499,7 @@
 
   function startCast() {
     if (phase !== "ready") return;
-    if (state.cooler.length >= coolerMax() && !state.autoSell) {
+    if (state.cooler.length >= coolerMax() && !anyAutoSellEnabled()) {
       setCatchLine("Cooler full — sell fish first", "miss");
       window.HubSound?.play?.("miss");
       return;
@@ -625,7 +655,7 @@
   function boatCatch(boat) {
     const spot = currentSpot();
     const fish = rollFish(spot, true);
-    if (state.autoSell || state.cooler.length < coolerMax()) {
+    if (shouldAutoSell(fish.rarity) || state.cooler.length < coolerMax()) {
       addToCooler(fish, { silent: true });
       state.catches += 1;
     }
@@ -660,10 +690,13 @@
       const count = Math.floor(elapsed / 1000 / boat.amount);
       for (let i = 0; i < Math.min(count, 400); i += 1) {
         const fish = rollFish(spot, true);
-        if (state.autoSell) {
+        if (shouldAutoSell(fish.rarity)) {
           gained += fishValue(fish, spot);
         } else if (state.cooler.length < coolerMax()) {
           state.cooler.push(fish.id);
+        } else if (anyAutoSellEnabled()) {
+          // Cooler full: only keep money if this rarity would have been kept — otherwise sell overflow
+          gained += fishValue(fish, spot);
         } else {
           gained += fishValue(fish, spot);
         }
@@ -685,7 +718,10 @@
     if (coolerMaxEl) coolerMaxEl.textContent = String(coolerMax());
     if (hudCoolerEl) hudCoolerEl.textContent = `${state.cooler.length}/${coolerMax()}`;
     if (sellBtn) sellBtn.disabled = state.cooler.length === 0;
-    if (autoSellEl) autoSellEl.checked = !!state.autoSell;
+    autoSellBox?.querySelectorAll("input[data-rarity]").forEach((input) => {
+      const rarity = input.dataset.rarity;
+      input.checked = shouldAutoSell(rarity);
+    });
     if (!coolerList) return;
     coolerList.innerHTML = state.cooler
       .map((id) => {
@@ -856,8 +892,12 @@
     if (e.detail === 0) reelIn(e);
   });
   sellBtn?.addEventListener("click", () => sellCooler());
-  autoSellEl?.addEventListener("change", () => {
-    state.autoSell = !!autoSellEl.checked;
+  autoSellBox?.addEventListener("change", (e) => {
+    const input = e.target.closest("input[data-rarity]");
+    if (!input) return;
+    const rarity = input.dataset.rarity;
+    if (!RARITIES.includes(rarity)) return;
+    state.autoSellRarities[rarity] = !!input.checked;
     saveSoon();
   });
   shopList?.addEventListener("pointerdown", (e) => {

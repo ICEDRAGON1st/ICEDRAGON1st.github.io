@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260908o">
+  <link rel="stylesheet" href="styles.css?v=20260908p">
 </head>
 <body>
   <header class="top-bar">
@@ -61,10 +61,17 @@
       <div class="cooler-bar">
         <div class="cooler-head">
           <span>Cooler <strong id="cooler-count">0</strong>/<span id="cooler-max">12</span></span>
-          <label class="auto-sell">
-            <input id="auto-sell" type="checkbox" />
-            Auto-sell
-          </label>
+        </div>
+        <div class="auto-sell-panel">
+          <span class="auto-sell-title">Auto-sell by rarity</span>
+          <div id="auto-sell-rarities" class="auto-sell-rarities" role="group" aria-label="Auto-sell rarities">
+            <label class="auto-sell-opt common"><input type="checkbox" data-rarity="common" /> Common</label>
+            <label class="auto-sell-opt uncommon"><input type="checkbox" data-rarity="uncommon" /> Uncommon</label>
+            <label class="auto-sell-opt rare"><input type="checkbox" data-rarity="rare" /> Rare</label>
+            <label class="auto-sell-opt epic"><input type="checkbox" data-rarity="epic" /> Epic</label>
+            <label class="auto-sell-opt legendary"><input type="checkbox" data-rarity="legendary" /> Legendary</label>
+            <label class="auto-sell-opt mythic"><input type="checkbox" data-rarity="mythic" /> Mythic</label>
+          </div>
         </div>
         <div id="cooler-list" class="cooler-list"></div>
         <button id="sell-btn" type="button" class="btn sell-btn" disabled>Sell cooler</button>
@@ -139,10 +146,10 @@
   <script src="../hub-achievements.js"></script>
   <script src="../hub-sound.js"></script>
   <script src="../hub-confetti.js"></script>
-  <script src="../hub-plays.js?v=20260908o"></script>
+  <script src="../hub-plays.js?v=20260908p"></script>
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
-  <script src="../hub-leaderboard.js?v=20260908o"></script>
-  <script src="script.js?v=20260908o"></script>
+  <script src="../hub-leaderboard.js?v=20260908p"></script>
+  <script src="script.js?v=20260908p"></script>
 </body>
 </html>
