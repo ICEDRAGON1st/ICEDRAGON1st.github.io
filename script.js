@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908c": [
+    "Fix online vs Time Online mismatch (hidden tabs drop presence; sync clocks)"
+  ],
   "20260908b": [
     "Hangman: more misses on Easy / Medium / Hard"
   ],
@@ -1409,12 +1412,14 @@ async function refreshLeaderboardsPanel(opts = {}) {
   const doSync = opts.sync !== false;
   if (typeof HubPlays !== "undefined") {
     HubPlays.tickOnlineTime?.();
+    HubPlays.reconcileOnlineSeconds?.();
   }
   renderLeaderboardPicker();
   if (doSync && typeof HubLeaderboard !== "undefined") {
     try {
       await HubLeaderboard.sync(true);
     } catch {}
+    HubPlays?.reconcileOnlineSeconds?.();
   }
   renderLeaderboardList();
 }

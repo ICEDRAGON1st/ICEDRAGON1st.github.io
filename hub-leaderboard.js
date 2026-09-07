@@ -619,6 +619,25 @@
     return true;
   }
 
+  function getMyScore(gameId) {
+    if (!GAME_META[gameId]) return 0;
+    const lowerBetter = meta(gameId).lowerBetter;
+    const board = ((cache.games || {})[gameId]) || {};
+    const meName = nameKey(getPlayerName());
+    const meId = getPlayerId();
+    let best = 0;
+    Object.values(board).forEach((raw) => {
+      const entry = normalizeEntry(raw, lowerBetter);
+      if (!entry) return;
+      const mine =
+        (meName && nameKey(entry.name) === meName) ||
+        (meId && entry.playerId && entry.playerId === meId);
+      if (!mine) return;
+      best = Math.max(best, Number(entry.score) || 0);
+    });
+    return best;
+  }
+
   // Seed cache from local on load, then sync so the Sudoku Hjalte wipe is pushed once.
   cache = applyResets(loadLocal());
   saveLocal(cache);
@@ -628,6 +647,7 @@
     submit,
     sync,
     getBoard,
+    getMyScore,
     clearPlayer,
     rebindPlayerName,
     formatScore,

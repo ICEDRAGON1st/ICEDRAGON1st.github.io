@@ -829,6 +829,20 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     } catch {}
   }
 
+  /** Prefer the higher of local clock and shared Time Online score (multi-device). */
+  function reconcileOnlineSeconds() {
+    let remote = 0;
+    try {
+      remote = Math.floor(Number(HubLeaderboard?.getMyScore?.("online-time")) || 0);
+    } catch {
+      remote = 0;
+    }
+    const local = loadOnlineSeconds();
+    const best = Math.max(local, remote);
+    if (best > local) saveOnlineSeconds(best);
+    return best;
+  }
+
   function getOnlineSeconds() {
     return loadOnlineSeconds();
   }
@@ -843,6 +857,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       lastOnlineTickAt = 0;
       return loadOnlineSeconds();
     }
+    reconcileOnlineSeconds();
     if (!lastOnlineTickAt) {
       lastOnlineTickAt = now;
       return loadOnlineSeconds();
@@ -867,6 +882,32 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     return total;
   }
 
+  /** Drop ourselves from presence so "online" matches a visible tab. */
+  async function goOffline() {
+    lastOnlineTickAt = 0;
+    const total = reconcileOnlineSeconds();
+    if (hasRequiredName() && total > 0 && typeof HubLeaderboard !== "undefined") {
+      lastOnlineSubmitAt = Date.now();
+      HubLeaderboard.submit?.("online-time", total).catch(() => {});
+    }
+    const me = getPlayerId();
+    if (!me) return;
+    try {
+      let remote = {};
+      try {
+        remote = await fetchPresenceRemote();
+      } catch {
+        remote = { ...(presenceCache || {}) };
+      }
+      delete remote[me];
+      const next = prunePresence(remote, Date.now());
+      try {
+        await pushPresenceRemote(next);
+      } catch {}
+      presenceCache = enrichPresenceNames(next);
+    } catch {}
+  }
+
   /**
    * Ping the shared presence store. Returns current online count.
    */
@@ -874,6 +915,9 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     if (heartbeatBusy) return getOnlineCount();
     heartbeatBusy = true;
     try {
+      if (document.hidden) {
+        return getOnlineCount();
+      }
       tickOnlineTime(Date.now());
       const me = getPlayerId();
       let remote = {};
@@ -1246,10 +1290,11 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     }, 10_000);
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
-        lastOnlineTickAt = 0;
+        goOffline().catch(() => {});
         return;
       }
       lastOnlineTickAt = Date.now();
+      reconcileOnlineSeconds();
       heartbeat().catch(() => {});
     });
   }
@@ -2090,6 +2135,7 @@ body.light .menu-credit .player-name-creator {
     startPresence,
     getOnlineSeconds,
     tickOnlineTime,
+    reconcileOnlineSeconds,
     markLegend,
     isLegendName,
     getAvailableTitleIds,
