@@ -227,7 +227,25 @@
     { id: "prophecy", name: "Prophecy Shaft", desc: "+15Qa / sec", baseCost: 3e18, clickBonus: 0, cps: 1.5e16, group: "idle" },
     { id: "fate", name: "Fate Extractor", desc: "+40Qa / sec", baseCost: 8e18, clickBonus: 0, cps: 4e16, group: "idle" },
     { id: "destiny", name: "Destiny Core", desc: "+100Qa / sec", baseCost: 2e19, clickBonus: 0, cps: 1e17, group: "idle" },
-    { id: "eternum", name: "Eternum Harvester", desc: "+300Qa / sec", baseCost: 5e19, clickBonus: 0, cps: 3e17, group: "idle" }
+    { id: "eternum", name: "Eternum Harvester", desc: "+300Qa / sec", baseCost: 5e19, clickBonus: 0, cps: 3e17, group: "idle" },
+    { id: "infinitum", name: "Infinitum Rig", desc: "+750Qa / sec", baseCost: 1.2e20, clickBonus: 0, cps: 7.5e17, group: "idle" },
+    { id: "continuum", name: "Continuum Bore", desc: "+2Qi / sec", baseCost: 3e20, clickBonus: 0, cps: 2e18, group: "idle" },
+    { id: "spectrum", name: "Spectrum Vein", desc: "+5Qi / sec", baseCost: 8e20, clickBonus: 0, cps: 5e18, group: "idle" },
+    { id: "prismnet", name: "Prism Network", desc: "+12Qi / sec", baseCost: 2e21, clickBonus: 0, cps: 1.2e19, group: "idle" },
+    { id: "lattice", name: "Lattice Mine", desc: "+30Qi / sec", baseCost: 5e21, clickBonus: 0, cps: 3e19, group: "idle" },
+    { id: "matrix", name: "Matrix Drill", desc: "+75Qi / sec", baseCost: 1.2e22, clickBonus: 0, cps: 7.5e19, group: "idle" },
+    { id: "grid", name: "Grid Quarry", desc: "+200Qi / sec", baseCost: 3e22, clickBonus: 0, cps: 2e20, group: "idle" },
+    { id: "array", name: "Array Forge", desc: "+500Qi / sec", baseCost: 8e22, clickBonus: 0, cps: 5e20, group: "idle" },
+    { id: "vector", name: "Vector Engine", desc: "+1.2Sx / sec", baseCost: 2e23, clickBonus: 0, cps: 1.2e21, group: "idle" },
+    { id: "tensor", name: "Tensor Siphon", desc: "+3Sx / sec", baseCost: 5e23, clickBonus: 0, cps: 3e21, group: "idle" },
+    { id: "quantum", name: "Quantum Forge", desc: "+8Sx / sec", baseCost: 1.2e24, clickBonus: 0, cps: 8e21, group: "idle" },
+    { id: "qubit", name: "Qubit Mine", desc: "+20Sx / sec", baseCost: 3e24, clickBonus: 0, cps: 2e22, group: "idle" },
+    { id: "entangle", name: "Entangle Shaft", desc: "+50Sx / sec", baseCost: 8e24, clickBonus: 0, cps: 5e22, group: "idle" },
+    { id: "superpose", name: "Superpose Extractor", desc: "+120Sx / sec", baseCost: 2e25, clickBonus: 0, cps: 1.2e23, group: "idle" },
+    { id: "collapse", name: "Collapse Core", desc: "+300Sx / sec", baseCost: 5e25, clickBonus: 0, cps: 3e23, group: "idle" },
+    { id: "waveform", name: "Waveform Harvester", desc: "+750Sx / sec", baseCost: 1.2e26, clickBonus: 0, cps: 7.5e23, group: "idle" },
+    { id: "field", name: "Field Rig", desc: "+2Sp / sec", baseCost: 3e26, clickBonus: 0, cps: 2e24, group: "idle" },
+    { id: "manifold", name: "Manifold Bore", desc: "+5Sp / sec", baseCost: 8e26, clickBonus: 0, cps: 5e24, group: "idle" }
   ];
 
   const SHOP_GROUPS = [
