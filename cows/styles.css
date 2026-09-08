@@ -200,8 +200,12 @@ body {
   background: linear-gradient(90deg, #c9a227, var(--cream));
 }
 
-.auto-timer.is-waiting .auto-timer-left {
-  color: var(--cream);
+.auto-timer.is-merge .auto-timer-fill {
+  background: linear-gradient(90deg, #5c7cfa, #74c0fc);
+}
+
+.auto-timer.is-merge .auto-timer-name {
+  color: #d0ebff;
 }
 
 .auto-timer-meta {

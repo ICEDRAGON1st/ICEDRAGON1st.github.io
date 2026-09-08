@@ -39,7 +39,10 @@
     { id: "milk4", name: "Dairy Empire", desc: "+100% herd milk/s", baseCost: 120000, kind: "mult", amount: 1 },
     { id: "auto1", name: "Farmhand", desc: "Auto-buy calf every 8s", baseCost: 5000, kind: "auto", amount: 8 },
     { id: "auto2", name: "Ranch Crew", desc: "Auto-buy calf every 4s", baseCost: 45000, kind: "auto", amount: 4 },
-    { id: "auto3", name: "Mega Ranch", desc: "Auto-buy calf every 2s", baseCost: 350000, kind: "auto", amount: 2 }
+    { id: "auto3", name: "Mega Ranch", desc: "Auto-buy calf every 2s", baseCost: 350000, kind: "auto", amount: 2 },
+    { id: "merge1", name: "Herd Sorter", desc: "Auto-merge a match every 15s", baseCost: 7500, kind: "merge", amount: 15 },
+    { id: "merge2", name: "Match Maker", desc: "Auto-merge a match every 10s", baseCost: 55000, kind: "merge", amount: 10 },
+    { id: "merge3", name: "Merge Master", desc: "Auto-merge a match every 6s", baseCost: 400000, kind: "merge", amount: 6 }
   ];
 
   const milkCountEl = document.getElementById("milk-count");
@@ -128,8 +131,12 @@
     );
   }
 
+  function isTimedUpgrade(u) {
+    return u.kind === "auto" || u.kind === "merge";
+  }
+
   function ownedAutos() {
-    return UPGRADES.filter((u) => u.kind === "auto" && state.owned[u.id] > 0);
+    return UPGRADES.filter((u) => isTimedUpgrade(u) && state.owned[u.id] > 0);
   }
 
   function isAutoOn(id) {
@@ -146,9 +153,49 @@
   }
 
   function bestAutoSeconds() {
-    const autos = activeAutos();
+    const autos = activeAutos().filter((u) => u.kind === "auto");
     if (!autos.length) return 0;
     return Math.min(...autos.map((u) => u.amount));
+  }
+
+  function findMergePair() {
+    const byTier = {};
+    state.board.forEach((tier, index) => {
+      if (!tier || tier >= COWS.length) return;
+      if (!byTier[tier]) byTier[tier] = [];
+      byTier[tier].push(index);
+    });
+    const tiers = Object.keys(byTier)
+      .map(Number)
+      .sort((a, b) => a - b);
+    for (let i = 0; i < tiers.length; i += 1) {
+      const list = byTier[tiers[i]];
+      if (list.length >= 2) return [list[0], list[1]];
+    }
+    return null;
+  }
+
+  function canAutoMerge() {
+    return !!findMergePair();
+  }
+
+  function workerCanFire(upgrade) {
+    if (upgrade.kind === "merge") return canAutoMerge();
+    return canAutoBuy();
+  }
+
+  function fireWorker(upgrade) {
+    if (upgrade.kind === "merge") {
+      const pair = findMergePair();
+      if (!pair) return false;
+      return mergeInto(pair[0], pair[1], { silent: true });
+    }
+    return placeCalf(true);
+  }
+
+  function workerMeta(upgrade) {
+    if (upgrade.kind === "merge") return `merges a match every ${upgrade.amount}s`;
+    return `buys calf every ${upgrade.amount}s`;
   }
 
   function autoRemaining(auto) {
@@ -176,10 +223,13 @@
       else {
         const active = activeAutos();
         if (!active.length) autoLabelEl.textContent = `${list.length} · off`;
-        else if (!canAutoBuy()) autoLabelEl.textContent = `${active.length}/${list.length} · waiting`;
         else {
-          const next = Math.min(...active.map(autoRemaining));
-          autoLabelEl.textContent = `${active.length}/${list.length} · next ${formatTimer(next)}`;
+          const ready = active.filter((u) => workerCanFire(u));
+          if (!ready.length) autoLabelEl.textContent = `${active.length}/${list.length} · waiting`;
+          else {
+            const next = Math.min(...ready.map(autoRemaining));
+            autoLabelEl.textContent = `${active.length}/${list.length} · next ${formatTimer(next)}`;
+          }
         }
       }
     }
@@ -200,11 +250,13 @@
           const on = isAutoOn(auto.id);
           const left = autoRemaining(auto);
           const ready = on && left <= 0.05;
-          const waiting = on && ready && !canAutoBuy();
+          const waiting = on && ready && !workerCanFire(auto);
           const pct = !on
             ? 0
             : Math.max(0, Math.min(100, (1 - left / interval) * 100));
-          return `<div class="auto-timer ${on ? "" : "is-off"}${waiting ? " is-waiting" : ""}" data-auto="${auto.id}">
+          return `<div class="auto-timer ${on ? "" : "is-off"}${waiting ? " is-waiting" : ""}${
+            auto.kind === "merge" ? " is-merge" : ""
+          }" data-auto="${auto.id}">
           <div class="auto-timer-top">
             <span class="auto-timer-name">${auto.name}</span>
             <span class="auto-timer-left">${
@@ -215,7 +267,7 @@
             <div class="auto-timer-fill" style="width:${pct.toFixed(1)}%"></div>
           </div>
           <div class="auto-timer-row">
-            <span class="auto-timer-meta">buys calf every ${interval}s</span>
+            <span class="auto-timer-meta">${workerMeta(auto)}</span>
             <button type="button" class="auto-toggle" data-auto-toggle="${auto.id}" aria-pressed="${on}">
               ${on ? "On" : "Off"}
             </button>
@@ -232,7 +284,7 @@
       const interval = Number(auto.amount) || 1;
       const left = autoRemaining(auto);
       const ready = on && left <= 0.05;
-      const waiting = on && ready && !canAutoBuy();
+      const waiting = on && ready && !workerCanFire(auto);
       row.classList.toggle("is-off", !on);
       row.classList.toggle("is-waiting", waiting);
       const leftEl = row.querySelector(".auto-timer-left");
@@ -250,20 +302,18 @@
     activeAutos().forEach((auto) => {
       const interval = Number(auto.amount) || 1;
       let acc = (autoAcc[auto.id] || 0) + dt;
-      // Fire when ready; if blocked, hold at ready instead of burning the charge
       while (acc >= interval) {
-        if (!canAutoBuy()) {
+        if (!workerCanFire(auto)) {
           acc = interval;
           break;
         }
-        if (!placeCalf(true)) {
+        if (!fireWorker(auto)) {
           acc = interval;
           break;
         }
         pastureDirty = true;
         acc -= interval;
       }
-      // Cap so paused/blocked workers don't store huge backlog
       autoAcc[auto.id] = Math.min(acc, interval);
     });
   }
@@ -349,7 +399,7 @@
         next.owned[u.id] = Math.max(0, Math.floor(Number(raw.owned?.[u.id]) || 0));
       });
       next.autoOn = {};
-      UPGRADES.filter((u) => u.kind === "auto").forEach((u) => {
+      UPGRADES.filter((u) => isTimedUpgrade(u)).forEach((u) => {
         if (raw.autoOn && typeof raw.autoOn === "object" && Object.prototype.hasOwnProperty.call(raw.autoOn, u.id)) {
           next.autoOn[u.id] = !!raw.autoOn[u.id];
         } else {
@@ -428,13 +478,13 @@
     return true;
   }
 
-  function mergeInto(from, to) {
+  function mergeInto(from, to, opts = {}) {
     if (from === to) return false;
     const a = state.board[from];
     const b = state.board[to];
     if (!a || !b || a !== b) return false;
     if (a >= COWS.length) {
-      setStatus("Max evolution already!", "miss");
+      if (!opts.silent) setStatus("Max evolution already!", "miss");
       return false;
     }
     const next = a + 1;
@@ -442,9 +492,13 @@
     state.board[to] = next;
     noteBestTier(next);
     const cow = cowByTier(next);
-    setStatus(`Evolved into ${cow.name}!`, "ok");
-    window.HubSound?.play?.(next >= 8 ? "win" : "click");
-    if (next >= 10) window.HubConfetti?.burst?.();
+    if (!opts.silent) {
+      setStatus(`Evolved into ${cow.name}!`, "ok");
+      window.HubSound?.play?.(next >= 8 ? "win" : "click");
+      if (next >= 10) window.HubConfetti?.burst?.();
+    } else if (next >= 10) {
+      window.HubConfetti?.burst?.();
+    }
     return true;
   }
 
@@ -461,7 +515,7 @@
 
   function upgradeCost(upgrade) {
     const owned = state.owned[upgrade.id] || 0;
-    if (upgrade.kind === "auto" || upgrade.kind === "discount") {
+    if (upgrade.kind === "auto" || upgrade.kind === "merge" || upgrade.kind === "discount") {
       // one-shot style: only first purchase matters, but allow 0/1
       return owned > 0 ? Infinity : upgrade.baseCost;
     }
@@ -473,11 +527,11 @@
     if (!upgrade) return;
     const cost = upgradeCost(upgrade);
     if (!Number.isFinite(cost) || state.milk < cost) return;
-    if ((upgrade.kind === "auto" || upgrade.kind === "discount") && state.owned[id] > 0) return;
+    if ((upgrade.kind === "auto" || upgrade.kind === "merge" || upgrade.kind === "discount") && state.owned[id] > 0) return;
     ensureSession();
     state.milk -= cost;
     state.owned[id] = (state.owned[id] || 0) + 1;
-    if (upgrade.kind === "auto") setAutoOn(id, true);
+    if (upgrade.kind === "auto" || upgrade.kind === "merge") setAutoOn(id, true);
     setStatus(`Bought ${upgrade.name}`, "ok");
     window.HubSound?.play?.("click");
     checkAchievements();
