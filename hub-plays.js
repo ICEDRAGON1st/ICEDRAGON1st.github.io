@@ -53,7 +53,8 @@
     crossy: "Lane Crosser",
     fishing: "Fishing Idle",
     cows: "Cow Merge",
-    dino: "Dino Run"
+    dino: "Dino Run",
+    mine: "Mine Depth"
   };
 
   let syncing = false;

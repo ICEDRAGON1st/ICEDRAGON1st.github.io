@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908ao": [
+    "New game: Mine Depth — dig down, sell ore, upgrade drills"
+  ],
   "20260908an": [
     "Dino Run: larger playfield"
   ],
@@ -440,7 +443,8 @@ const HUB_GAMES = [
   { id: "crossy", name: "Lane Crosser", path: "crossy/index.html" },
   { id: "fishing", name: "Fishing Idle", path: "fishing/index.html" },
   { id: "cows", name: "Cow Merge", path: "cows/index.html" },
-  { id: "dino", name: "Dino Run", path: "dino/index.html" }
+  { id: "dino", name: "Dino Run", path: "dino/index.html" },
+  { id: "mine", name: "Mine Depth", path: "mine/index.html" }
 ];
 
 /** Leaderboard tabs = hub-only boards first, then games. */
@@ -1366,6 +1370,10 @@ function getHubScore(gameId) {
     case "dino": {
       const score = readNumberKey("dino-run-high-score");
       return { label: score ? `Best ${score}` : "No score yet", sort: score };
+    }
+    case "mine": {
+      const score = readNumberKey("mine-depth-best-v1");
+      return { label: score ? `Best ${score}m` : "No digs yet", sort: score };
     }
     default:
       return { label: "—", sort: 0 };

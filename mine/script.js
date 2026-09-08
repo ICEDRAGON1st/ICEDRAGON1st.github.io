@@ -1,0 +1,558 @@
+(function () {
+  const SAVE_KEY = "mine-depth-save-v1";
+  const HIGH_SCORE_KEY = "mine-depth-best-v1";
+  const TICK_MS = 100;
+  const CART_MAX = 20;
+  const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
+
+  const LAYERS = [
+    { id: "soil", name: "Soil", min: 0, color: "#8d6e4c" },
+    { id: "clay", name: "Clay", min: 50, color: "#a67c52" },
+    { id: "stone", name: "Stone", min: 150, color: "#7a7f86" },
+    { id: "iron", name: "Iron vein", min: 400, color: "#9aa4b2" },
+    { id: "crystal", name: "Crystal", min: 1000, color: "#5ec8c0" },
+    { id: "magma", name: "Magma", min: 2500, color: "#e85d3c" },
+    { id: "abyss", name: "Abyss", min: 6000, color: "#4a5568" },
+    { id: "core", name: "Core", min: 15000, color: "#f0c14b" }
+  ];
+
+  const ORES = [
+    { id: "dirt", name: "Dirt", emoji: "🪨", value: 1, weight: 40, minDepth: 0 },
+    { id: "coal", name: "Coal", emoji: "⬛", value: 4, weight: 22, minDepth: 20 },
+    { id: "copper", name: "Copper", emoji: "🟠", value: 10, weight: 16, minDepth: 60 },
+    { id: "iron", name: "Iron", emoji: "⚙️", value: 22, weight: 12, minDepth: 140 },
+    { id: "silver", name: "Silver", emoji: "⚪", value: 48, weight: 8, minDepth: 350 },
+    { id: "gold", name: "Gold", emoji: "🥇", value: 110, weight: 5, minDepth: 700 },
+    { id: "gem", name: "Gem", emoji: "💎", value: 260, weight: 3, minDepth: 1400 },
+    { id: "mythril", name: "Mythril", emoji: "🔷", value: 650, weight: 1.6, minDepth: 3200 },
+    { id: "void", name: "Void Ore", emoji: "🌑", value: 1800, weight: 0.7, minDepth: 7000 },
+    { id: "star", name: "Starcore", emoji: "✨", value: 5000, weight: 0.25, minDepth: 14000 }
+  ];
+
+  const UPGRADES = [
+    { id: "pick1", name: "Iron Pick", desc: "+0.5m per dig", baseCost: 25, kind: "power", amount: 0.5 },
+    { id: "pick2", name: "Steel Pick", desc: "+1m per dig", baseCost: 120, kind: "power", amount: 1 },
+    { id: "pick3", name: "Hardened Pick", desc: "+2m per dig", baseCost: 600, kind: "power", amount: 2 },
+    { id: "pick4", name: "Diamond Tip", desc: "+4m per dig", baseCost: 3200, kind: "power", amount: 4 },
+    { id: "pick5", name: "Plasma Pick", desc: "+8m per dig", baseCost: 18000, kind: "power", amount: 8 },
+    { id: "pick6", name: "Core Drill Bit", desc: "+15m per dig", baseCost: 95000, kind: "power", amount: 15 },
+    { id: "pick7", name: "Void Chisel", desc: "+30m per dig", baseCost: 520000, kind: "power", amount: 30 },
+    { id: "pick8", name: "Star Pick", desc: "+60m per dig", baseCost: 2800000, kind: "power", amount: 60 },
+    { id: "drill1", name: "Hand Drill", desc: "Auto dig 0.4/s", baseCost: 80, kind: "drill", amount: 0.4 },
+    { id: "drill2", name: "Tunnel Crew", desc: "Auto dig 1/s", baseCost: 500, kind: "drill", amount: 1 },
+    { id: "drill3", name: "Bore Machine", desc: "Auto dig 2.5/s", baseCost: 3500, kind: "drill", amount: 2.5 },
+    { id: "drill4", name: "Shaft Fleet", desc: "Auto dig 6/s", baseCost: 28000, kind: "drill", amount: 6 },
+    { id: "drill5", name: "Mega Bore", desc: "Auto dig 14/s", baseCost: 220000, kind: "drill", amount: 14 },
+    { id: "drill6", name: "Planet Drill", desc: "Auto dig 35/s", baseCost: 1600000, kind: "drill", amount: 35 },
+    { id: "luck1", name: "Lucky Lamp", desc: "+25% rare ore odds", baseCost: 200, kind: "luck", amount: 0.25 },
+    { id: "luck2", name: "Ore Dog", desc: "+50% rare ore odds", baseCost: 2500, kind: "luck", amount: 0.5 },
+    { id: "luck3", name: "Seer Goggles", desc: "+100% rare ore odds", baseCost: 45000, kind: "luck", amount: 1 },
+    { id: "luck4", name: "Fate Compass", desc: "+200% rare ore odds", baseCost: 650000, kind: "luck", amount: 2 },
+    { id: "sell1", name: "Ore Broker", desc: "+40% sell value", baseCost: 350, kind: "sell", amount: 0.4 },
+    { id: "sell2", name: "Trade Post", desc: "+80% sell value", baseCost: 8000, kind: "sell", amount: 0.8 },
+    { id: "sell3", name: "Guild Market", desc: "+150% sell value", baseCost: 120000, kind: "sell", amount: 1.5 },
+    { id: "sell4", name: "Royal Charter", desc: "+250% sell value", baseCost: 1400000, kind: "sell", amount: 2.5 },
+    { id: "off1", name: "Night Shift", desc: "+50% offline digs", baseCost: 1500, kind: "offline", amount: 0.5 },
+    { id: "off2", name: "Autopilot Crew", desc: "+100% offline digs", baseCost: 35000, kind: "offline", amount: 1 },
+    { id: "off3", name: "Dream Bore", desc: "+200% offline digs", baseCost: 500000, kind: "offline", amount: 2 },
+    { id: "cart1", name: "Bigger Cart", desc: "Cart holds +10 ore", baseCost: 400, kind: "cart", amount: 10 },
+    { id: "cart2", name: "Mine Wagon", desc: "Cart holds +20 ore", baseCost: 12000, kind: "cart", amount: 20 },
+    { id: "cart3", name: "Ore Train", desc: "Cart holds +40 ore", baseCost: 180000, kind: "cart", amount: 40 }
+  ];
+
+  const coinCountEl = document.getElementById("coin-count");
+  const layerLabelEl = document.getElementById("layer-label");
+  const digPowerLabelEl = document.getElementById("dig-power-label");
+  const dpsLabelEl = document.getElementById("dps-label");
+  const hudDepthEl = document.getElementById("hud-depth");
+  const hudBestEl = document.getElementById("hud-best");
+  const digBtn = document.getElementById("dig-btn");
+  const layerGlowEl = document.getElementById("layer-glow");
+  const depthFillEl = document.getElementById("depth-fill");
+  const statusLineEl = document.getElementById("status-line");
+  const cartCountEl = document.getElementById("cart-count");
+  const cartMaxEl = document.getElementById("cart-max");
+  const cartListEl = document.getElementById("cart-list");
+  const sellBtn = document.getElementById("sell-btn");
+  const shopList = document.getElementById("shop-list");
+  const overlay = document.getElementById("overlay");
+  const overlayBestEl = document.getElementById("overlay-best");
+  const startBtn = document.getElementById("start-btn");
+  const gamesBtn = document.getElementById("games-btn");
+  const menuBtn = document.getElementById("menu-btn");
+  const guideBtn = document.getElementById("guide-btn");
+  const guideOverlay = document.getElementById("guide-overlay");
+  const guideClose = document.getElementById("guide-close");
+  const guideBody = document.getElementById("guide-body");
+  const floatLayer = document.getElementById("float-layer");
+
+  let state = defaultState();
+  let sessionStarted = false;
+  let lastSaveAt = 0;
+  let lastSubmitAt = 0;
+  let autoAcc = 0;
+  let shopDirty = true;
+
+  function defaultState() {
+    const owned = {};
+    UPGRADES.forEach((u) => {
+      owned[u.id] = 0;
+    });
+    return {
+      coins: 0,
+      depth: 0,
+      bestDepth: 0,
+      cart: [],
+      owned,
+      lastTick: Date.now()
+    };
+  }
+
+  function formatNum(n) {
+    const x = Number(n) || 0;
+    if (x >= 1e12) return (x / 1e12).toFixed(2).replace(/\.?0+$/, "") + "T";
+    if (x >= 1e9) return (x / 1e9).toFixed(2).replace(/\.?0+$/, "") + "B";
+    if (x >= 1e6) return (x / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M";
+    if (x >= 1e4) return (x / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
+    if (x >= 1000) return (x / 1e3).toFixed(2).replace(/\.?0+$/, "") + "K";
+    return String(Math.floor(x));
+  }
+
+  function formatDepth(m) {
+    const n = Math.floor(Number(m) || 0);
+    if (n >= 10000) return formatNum(n) + "m";
+    return n + "m";
+  }
+
+  function layerFor(depth) {
+    let cur = LAYERS[0];
+    for (const layer of LAYERS) {
+      if (depth >= layer.min) cur = layer;
+    }
+    return cur;
+  }
+
+  function nextLayerProgress(depth) {
+    const layer = layerFor(depth);
+    const idx = LAYERS.findIndex((l) => l.id === layer.id);
+    const next = LAYERS[idx + 1];
+    if (!next) return 1;
+    const span = next.min - layer.min;
+    return Math.min(1, Math.max(0, (depth - layer.min) / span));
+  }
+
+  function ownedCount(id) {
+    return Math.max(0, Math.floor(Number(state.owned[id]) || 0));
+  }
+
+  function digPower() {
+    let p = 1;
+    UPGRADES.forEach((u) => {
+      if (u.kind === "power") p += ownedCount(u.id) * u.amount;
+    });
+    return p;
+  }
+
+  function drillRate() {
+    let r = 0;
+    UPGRADES.forEach((u) => {
+      if (u.kind === "drill") r += ownedCount(u.id) * u.amount;
+    });
+    return r;
+  }
+
+  function luckMult() {
+    let m = 1;
+    UPGRADES.forEach((u) => {
+      if (u.kind === "luck") m += ownedCount(u.id) * u.amount;
+    });
+    return m;
+  }
+
+  function sellMult() {
+    let m = 1;
+    UPGRADES.forEach((u) => {
+      if (u.kind === "sell") m += ownedCount(u.id) * u.amount;
+    });
+    return m;
+  }
+
+  function offlineMult() {
+    let m = 1;
+    UPGRADES.forEach((u) => {
+      if (u.kind === "offline") m += ownedCount(u.id) * u.amount;
+    });
+    return m;
+  }
+
+  function cartMax() {
+    let m = CART_MAX;
+    UPGRADES.forEach((u) => {
+      if (u.kind === "cart") m += ownedCount(u.id) * u.amount;
+    });
+    return m;
+  }
+
+  function upgradeCost(u) {
+    const n = ownedCount(u.id);
+    return Math.floor(u.baseCost * Math.pow(1.55, n));
+  }
+
+  function ensureSession() {
+    if (sessionStarted) return;
+    sessionStarted = true;
+    if (window.HubPlays) HubPlays.record("mine");
+    if (window.HubStreak) HubStreak.recordPlay();
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return;
+      const data = JSON.parse(raw);
+      if (!data || typeof data !== "object") return;
+      state.coins = Math.max(0, Number(data.coins) || 0);
+      state.depth = Math.max(0, Number(data.depth) || 0);
+      state.bestDepth = Math.max(
+        state.depth,
+        Number(data.bestDepth) || 0,
+        Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0
+      );
+      state.cart = Array.isArray(data.cart)
+        ? data.cart
+            .map((id) => String(id || ""))
+            .filter((id) => ORES.some((o) => o.id === id))
+            .slice(0, cartMax() + 40)
+        : [];
+      UPGRADES.forEach((u) => {
+        state.owned[u.id] = Math.max(0, Math.floor(Number(data.owned?.[u.id]) || 0));
+      });
+      state.lastTick = Number(data.lastTick) || Date.now();
+    } catch {}
+  }
+
+  function save(force) {
+    const now = Date.now();
+    if (!force && now - lastSaveAt < 800) return;
+    lastSaveAt = now;
+    state.lastTick = now;
+    try {
+      localStorage.setItem(
+        SAVE_KEY,
+        JSON.stringify({
+          coins: state.coins,
+          depth: state.depth,
+          bestDepth: state.bestDepth,
+          cart: state.cart,
+          owned: state.owned,
+          lastTick: state.lastTick
+        })
+      );
+      localStorage.setItem(HIGH_SCORE_KEY, String(Math.floor(state.bestDepth)));
+    } catch {}
+  }
+
+  function maybeSubmit(force) {
+    if (state.bestDepth <= 0 || !window.HubLeaderboard) return;
+    const now = Date.now();
+    if (!force && now - lastSubmitAt < 8000) return;
+    lastSubmitAt = now;
+    HubLeaderboard.submit("mine", Math.floor(state.bestDepth)).catch?.(() => {});
+  }
+
+  function checkAchievements() {
+    if (!window.HubAchievements) return;
+    const d = Math.floor(state.bestDepth);
+    if (d >= 50) HubAchievements.unlock("mine_depth_50");
+    if (d >= 400) HubAchievements.unlock("mine_depth_400");
+    if (d >= 2500) HubAchievements.unlock("mine_depth_2500");
+    if (d >= 15000) HubAchievements.unlock("mine_depth_15000");
+    if (drillRate() > 0) HubAchievements.unlock("mine_drill");
+    try {
+      const life = Number(localStorage.getItem("mine-depth-lifetime-coins") || 0);
+      if (life >= 10000) HubAchievements.unlock("mine_coins_10k");
+    } catch {}
+  }
+
+  function trackLifetimeCoins(gained) {
+    try {
+      const key = "mine-depth-lifetime-coins";
+      const prev = Number(localStorage.getItem(key)) || 0;
+      localStorage.setItem(key, String(prev + gained));
+    } catch {}
+  }
+
+  function floatAt(text, x, y) {
+    if (!floatLayer) return;
+    const el = document.createElement("div");
+    el.className = "float-pop";
+    el.textContent = text;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+    floatLayer.appendChild(el);
+    setTimeout(() => el.remove(), 900);
+  }
+
+  function pickOre() {
+    const depth = state.depth;
+    const luck = luckMult();
+    const pool = ORES.filter((o) => depth >= o.minDepth).map((o) => {
+      const rarityBoost = o.value >= 100 ? luck : 1 + (luck - 1) * 0.35;
+      return { ore: o, w: o.weight * rarityBoost };
+    });
+    const total = pool.reduce((s, p) => s + p.w, 0);
+    let roll = Math.random() * total;
+    for (const p of pool) {
+      roll -= p.w;
+      if (roll <= 0) return p.ore;
+    }
+    return pool[pool.length - 1]?.ore || ORES[0];
+  }
+
+  function addOre(ore) {
+    if (state.cart.length >= cartMax()) return false;
+    state.cart.push(ore.id);
+    return true;
+  }
+
+  function doDigBatch(count, source) {
+    if (count <= 0) return;
+    ensureSession();
+    const power = digPower();
+    const meters = Math.max(0.05, count * power);
+    const prevBest = state.bestDepth;
+    state.depth += meters;
+    if (state.depth > state.bestDepth) state.bestDepth = state.depth;
+    if (Math.floor(state.bestDepth) >= 1000 && Math.floor(prevBest) < 1000) {
+      window.HubConfetti?.burst?.();
+    }
+
+    let lastOre = null;
+    let added = 0;
+    let blocked = 0;
+    for (let i = 0; i < count; i += 1) {
+      const ore = pickOre();
+      if (addOre(ore)) {
+        lastOre = ore;
+        added += 1;
+      } else {
+        blocked += 1;
+      }
+    }
+
+    if (source === "click") {
+      digBtn?.classList.remove("swing");
+      void digBtn?.offsetWidth;
+      digBtn?.classList.add("swing");
+      window.HubSound?.play?.("click");
+      const rect = digBtn?.getBoundingClientRect();
+      if (rect) {
+        floatAt(
+          `+${meters.toFixed(meters >= 10 ? 0 : 1)}m`,
+          rect.left + rect.width * 0.55,
+          rect.top + rect.height * 0.35
+        );
+      }
+    }
+
+    if (lastOre && added) {
+      statusLineEl.textContent =
+        count === 1
+          ? `Found ${lastOre.emoji} ${lastOre.name} (+${formatDepth(meters)})`
+          : `Drills found ${added} ore (+${formatDepth(meters)})`;
+    } else if (blocked) {
+      statusLineEl.textContent = `Cart full — dig deeper after selling (+${formatDepth(meters)})`;
+    }
+
+    checkAchievements();
+    maybeSubmit(false);
+    shopDirty = true;
+    render();
+    save(false);
+  }
+
+  function sellAll() {
+    if (!state.cart.length) return;
+    ensureSession();
+    const mult = sellMult();
+    let gained = 0;
+    state.cart.forEach((id) => {
+      const ore = ORES.find((o) => o.id === id);
+      if (ore) gained += ore.value * mult;
+    });
+    gained = Math.floor(gained);
+    state.cart = [];
+    state.coins += gained;
+    trackLifetimeCoins(gained);
+    statusLineEl.textContent = `Sold ore for ${formatNum(gained)} coins`;
+    window.HubSound?.play?.("ok");
+    checkAchievements();
+    shopDirty = true;
+    render();
+    save(true);
+  }
+
+  function buyUpgrade(id) {
+    const u = UPGRADES.find((x) => x.id === id);
+    if (!u) return;
+    const cost = upgradeCost(u);
+    if (state.coins < cost) return;
+    ensureSession();
+    state.coins -= cost;
+    state.owned[u.id] = ownedCount(u.id) + 1;
+    statusLineEl.textContent = `Bought ${u.name}`;
+    window.HubSound?.play?.("ok");
+    checkAchievements();
+    shopDirty = true;
+    render();
+    save(true);
+  }
+
+  function applyOffline() {
+    const now = Date.now();
+    const elapsed = Math.min(OFFLINE_CAP_MS, Math.max(0, now - (state.lastTick || now)));
+    if (elapsed < 5000) return;
+    const rate = drillRate();
+    if (rate <= 0) return;
+    const digs = (elapsed / 1000) * rate * offlineMult();
+    const whole = Math.floor(digs);
+    if (whole <= 0) return;
+    let found = 0;
+    for (let i = 0; i < whole; i += 1) {
+      state.depth += digPower();
+      if (state.depth > state.bestDepth) state.bestDepth = state.depth;
+      if (addOre(pickOre())) found += 1;
+      if (state.cart.length >= cartMax()) break;
+    }
+    statusLineEl.textContent = `While away: +${formatDepth(whole * digPower())}, ${found} ore`;
+    checkAchievements();
+    maybeSubmit(true);
+  }
+
+  function renderCart() {
+    if (!cartListEl) return;
+    const counts = {};
+    state.cart.forEach((id) => {
+      counts[id] = (counts[id] || 0) + 1;
+    });
+    cartListEl.innerHTML = Object.keys(counts)
+      .map((id) => {
+        const ore = ORES.find((o) => o.id === id);
+        if (!ore) return "";
+        return `<span class="ore-chip">${ore.emoji} ${ore.name} ×${counts[id]}</span>`;
+      })
+      .join("");
+    if (cartCountEl) cartCountEl.textContent = String(state.cart.length);
+    if (cartMaxEl) cartMaxEl.textContent = String(cartMax());
+    if (sellBtn) sellBtn.disabled = state.cart.length === 0;
+  }
+
+  function renderShop() {
+    if (!shopList || !shopDirty) return;
+    shopDirty = false;
+    shopList.innerHTML = UPGRADES.map((u) => {
+      const n = ownedCount(u.id);
+      const cost = upgradeCost(u);
+      const can = state.coins >= cost;
+      return `<div class="shop-item ${can ? "" : "locked"}" role="listitem">
+        <div>
+          <div class="shop-name">${u.name}</div>
+          <p class="shop-desc">${u.desc}</p>
+          <div class="shop-meta">Owned ${n}</div>
+        </div>
+        <button type="button" class="shop-buy" data-buy="${u.id}" ${can ? "" : "disabled"}>
+          ${formatNum(cost)}
+        </button>
+      </div>`;
+    }).join("");
+  }
+
+  function render() {
+    const layer = layerFor(state.depth);
+    if (coinCountEl) coinCountEl.textContent = formatNum(state.coins);
+    if (layerLabelEl) layerLabelEl.textContent = layer.name;
+    if (digPowerLabelEl) digPowerLabelEl.textContent = `${digPower().toFixed(digPower() % 1 ? 1 : 0)}m`;
+    if (dpsLabelEl) dpsLabelEl.textContent = `${drillRate().toFixed(drillRate() % 1 ? 1 : 0)}/s`;
+    if (hudDepthEl) hudDepthEl.textContent = formatDepth(state.depth);
+    if (hudBestEl) hudBestEl.textContent = formatDepth(state.bestDepth);
+    if (overlayBestEl) overlayBestEl.textContent = formatDepth(state.bestDepth);
+    if (layerGlowEl) {
+      layerGlowEl.style.background = `radial-gradient(circle at 50% 70%, ${layer.color}, transparent 65%)`;
+    }
+    if (depthFillEl) depthFillEl.style.width = `${Math.round(nextLayerProgress(state.depth) * 100)}%`;
+    renderCart();
+    renderShop();
+  }
+
+  function renderGuide() {
+    if (!guideBody) return;
+    guideBody.innerHTML =
+      `<div class="guide-row"><span></span><div><div class="name">Layers</div><div class="meta">Deeper layers unlock richer ore.</div></div><span></span></div>` +
+      LAYERS.map(
+        (l) =>
+          `<div class="guide-row"><span style="width:12px;height:12px;border-radius:50%;background:${l.color}"></span><div><div class="name">${l.name}</div><div class="meta">From ${formatDepth(l.min)}</div></div><span></span></div>`
+      ).join("") +
+      `<div class="guide-row"><span></span><div><div class="name">Ores</div><div class="meta">Base sell value before market upgrades.</div></div><span></span></div>` +
+      ORES.map(
+        (o) =>
+          `<div class="guide-row"><span>${o.emoji}</span><div><div class="name">${o.name}</div><div class="meta">From ${formatDepth(o.minDepth)}</div></div><strong>${o.value}</strong></div>`
+      ).join("");
+  }
+
+  function tick() {
+    const rate = drillRate();
+    if (rate > 0) {
+      autoAcc += rate * (TICK_MS / 1000);
+      const digs = Math.floor(autoAcc);
+      if (digs > 0) {
+        autoAcc -= digs;
+        doDigBatch(digs, "auto");
+      }
+    }
+    if (shopDirty) renderShop();
+    else if (shopList) {
+      shopList.querySelectorAll("[data-buy]").forEach((btn) => {
+        const id = btn.getAttribute("data-buy");
+        const u = UPGRADES.find((x) => x.id === id);
+        if (!u) return;
+        const cost = upgradeCost(u);
+        btn.disabled = state.coins < cost;
+        btn.textContent = formatNum(cost);
+        btn.closest(".shop-item")?.classList.toggle("locked", state.coins < cost);
+      });
+    }
+    save(false);
+  }
+
+  digBtn?.addEventListener("click", () => doDigBatch(1, "click"));
+  sellBtn?.addEventListener("click", () => sellAll());
+  shopList?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-buy]");
+    if (!btn) return;
+    buyUpgrade(btn.getAttribute("data-buy"));
+  });
+  startBtn?.addEventListener("click", () => {
+    overlay?.classList.add("hidden");
+    ensureSession();
+  });
+  menuBtn?.addEventListener("click", () => overlay?.classList.remove("hidden"));
+  gamesBtn?.addEventListener("click", () => {
+    window.location.href = "../index.html#games";
+  });
+  guideBtn?.addEventListener("click", () => {
+    renderGuide();
+    guideOverlay?.classList.remove("hidden");
+  });
+  guideClose?.addEventListener("click", () => guideOverlay?.classList.add("hidden"));
+
+  load();
+  applyOffline();
+  render();
+  maybeSubmit(true);
+  checkAchievements();
+  setInterval(tick, TICK_MS);
+  window.addEventListener("beforeunload", () => {
+    save(true);
+    maybeSubmit(true);
+  });
+})();

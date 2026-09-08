@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260908an">
+  <link rel="stylesheet" href="styles.css?v=20260908ao">
 </head>
 <body>
   <div class="app">
@@ -460,13 +460,21 @@
           <span class="game-card-desc">Jump, duck, and run forever</span>
           <span class="game-card-score" data-score-for="dino"></span>
         </button>
+        <button type="button" class="game-card" data-game="mine">
+          <span class="game-card-top">
+            <span class="game-card-name">Mine Depth</span>
+            <span class="fav-btn" data-fav="mine" role="button" tabindex="0" aria-label="Favorite Mine Depth">☆</span>
+          </span>
+          <span class="game-card-desc">Dig down, sell ore, upgrade drills</span>
+          <span class="game-card-score" data-score-for="mine"></span>
+        </button>
       </div>
     </div>
   </div>
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260908an";
+    window.WORDLE_BUILD = "20260908ao";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js",
       "words.js",

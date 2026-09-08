@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Mine Depth</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20260908ao">
+</head>
+<body>
+  <header class="top-bar">
+    <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
+    <h1>Mine Depth</h1>
+    <div class="top-stats">
+      <button id="guide-btn" type="button" class="guide-btn">Ore guide</button>
+      Depth <strong id="hud-depth">0m</strong>
+      · Best <strong id="hud-best">0m</strong>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="play-col card">
+      <p class="bank-label">Coins</p>
+      <p id="coin-count" class="coin-count" aria-live="polite">0</p>
+
+      <div class="stat-row">
+        <div class="stat-chip">
+          <span class="stat-chip-label">Layer</span>
+          <strong id="layer-label">Soil</strong>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-chip-label">Per dig</span>
+          <strong id="dig-power-label">1m</strong>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-chip-label">Drills</span>
+          <strong id="dps-label">0/s</strong>
+        </div>
+      </div>
+
+      <button id="dig-btn" type="button" class="dig-btn" aria-label="Dig deeper">
+        <span class="shaft" aria-hidden="true">
+          <span id="layer-glow" class="layer-glow"></span>
+          <span class="pick"></span>
+          <span class="rubble r1"></span>
+          <span class="rubble r2"></span>
+        </span>
+        <span class="dig-btn-text">Dig</span>
+      </button>
+
+      <div class="depth-meter" aria-hidden="true">
+        <div id="depth-fill" class="depth-fill"></div>
+      </div>
+
+      <p class="hint">Tap Dig to go deeper and find ore. Sell ore for coins, then buy stronger picks and auto drills.</p>
+      <p id="status-line" class="status-line" aria-live="polite">Ready to dig</p>
+
+      <div class="cart-bar">
+        <div class="cart-head">
+          <span>Ore cart <strong id="cart-count">0</strong>/<span id="cart-max">20</span></span>
+          <button id="sell-btn" type="button" class="btn sell-btn" disabled>Sell all</button>
+        </div>
+        <div id="cart-list" class="cart-list"></div>
+      </div>
+    </section>
+
+    <section class="side-col">
+      <div class="card">
+        <h2>Gear</h2>
+        <p class="shop-intro">Picks dig deeper. Drills mine idle. Luck finds richer ore. Markets pay more.</p>
+        <div id="shop-list" class="shop-list" role="list"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="float-layer" class="float-layer" aria-hidden="true"></div>
+
+  <div id="overlay" class="overlay">
+    <div class="overlay-card">
+      <p class="eyebrow">Idle digger</p>
+      <h2>Mine Depth</h2>
+      <p class="lead">
+        Dig down through layers of earth, sell rare ores, and upgrade your drill team.
+      </p>
+      <p class="score-line">Best depth: <strong id="overlay-best">0m</strong></p>
+      <div class="overlay-actions">
+        <button id="start-btn" type="button" class="btn">Play</button>
+        <button id="games-btn" type="button" class="btn btn-ghost">Games</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="guide-overlay" class="overlay hidden">
+    <div class="overlay-card guide-card">
+      <h2>Ore guide</h2>
+      <div id="guide-body" class="guide-body"></div>
+      <div class="overlay-actions">
+        <button id="guide-close" type="button" class="btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../hub-streak.js"></script>
+  <script src="../hub-achievements.js"></script>
+  <script src="../hub-sound.js"></script>
+  <script src="../hub-confetti.js"></script>
+  <script src="../hub-plays.js?v=20260908ao"></script>
+  <script src="../hub-friends.js?v=20260907o"></script>
+  <script src="../hub-chat.js?v=20260907p"></script>
+  <script src="../hub-leaderboard.js?v=20260908ao"></script>
+  <script src="script.js?v=20260908ao"></script>
+</body>
+</html>

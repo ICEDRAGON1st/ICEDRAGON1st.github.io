@@ -38,6 +38,7 @@
     fishing: { label: "Fishing Idle", lowerBetter: false, unit: "catch" },
     cows: { label: "Cow Merge", lowerBetter: false, unit: "cow" },
     dino: { label: "Dino Run", lowerBetter: false, unit: "score" },
+    mine: { label: "Mine Depth", lowerBetter: false, unit: "depth" },
     "online-time": { label: "Time Online", lowerBetter: false, unit: "playtime" }
   };
 
@@ -268,6 +269,7 @@
     if (m.unit === "streak") return `Streak ${Math.floor(n)}`;
     if (m.unit === "catch" || gameId === "fishing") return formatFishingCatch(n);
     if (m.unit === "cow" || gameId === "cows") return formatCowTier(n);
+    if (m.unit === "depth" || gameId === "mine") return `Best ${Math.floor(n)}m`;
     if (gameId === "clicker" || m.unit === "compact") return `Best ${formatCompact(n)}`;
     return `Best ${Math.floor(n)}`;
   }
