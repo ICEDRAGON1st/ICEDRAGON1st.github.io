@@ -194,7 +194,14 @@ body {
   height: 100%;
   border-radius: 999px;
   background: linear-gradient(90deg, var(--grass-deep), var(--grass));
-  transition: width 0.1s linear;
+}
+
+.auto-timer.is-waiting .auto-timer-fill {
+  background: linear-gradient(90deg, #c9a227, var(--cream));
+}
+
+.auto-timer.is-waiting .auto-timer-left {
+  color: var(--cream);
 }
 
 .auto-timer-meta {

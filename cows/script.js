@@ -72,6 +72,7 @@
   let lastSaveAt = 0;
   let lastSubmitAt = 0;
   let autoAcc = {};
+  let pastureDirty = false;
   let drag = null;
   let floatEl = null;
 
@@ -158,11 +159,15 @@
 
   function formatTimer(sec) {
     const s = Math.max(0, Number(sec) || 0);
-    if (s >= 10) return `${Math.ceil(s)}s`;
+    if (s >= 9.95) return `${Math.round(s)}s`;
     return `${s.toFixed(1)}s`;
   }
 
   let autoTimersKey = "";
+
+  function canAutoBuy() {
+    return state.milk >= calfCost() && firstEmpty() >= 0;
+  }
 
   function renderAutoTimers(force = false) {
     const list = ownedAutos();
@@ -171,6 +176,7 @@
       else {
         const active = activeAutos();
         if (!active.length) autoLabelEl.textContent = `${list.length} · off`;
+        else if (!canAutoBuy()) autoLabelEl.textContent = `${active.length}/${list.length} · waiting`;
         else {
           const next = Math.min(...active.map(autoRemaining));
           autoLabelEl.textContent = `${active.length}/${list.length} · next ${formatTimer(next)}`;
@@ -193,11 +199,17 @@
           const interval = Number(auto.amount) || 1;
           const on = isAutoOn(auto.id);
           const left = autoRemaining(auto);
-          const pct = on ? Math.max(0, Math.min(100, (1 - left / interval) * 100)) : 0;
-          return `<div class="auto-timer ${on ? "" : "is-off"}" data-auto="${auto.id}">
+          const ready = on && left <= 0.05;
+          const waiting = on && ready && !canAutoBuy();
+          const pct = !on
+            ? 0
+            : Math.max(0, Math.min(100, (1 - left / interval) * 100));
+          return `<div class="auto-timer ${on ? "" : "is-off"}${waiting ? " is-waiting" : ""}" data-auto="${auto.id}">
           <div class="auto-timer-top">
             <span class="auto-timer-name">${auto.name}</span>
-            <span class="auto-timer-left">${on ? formatTimer(left) : "Off"}</span>
+            <span class="auto-timer-left">${
+              !on ? "Off" : waiting ? "Waiting" : formatTimer(left)
+            }</span>
           </div>
           <div class="auto-timer-track" aria-hidden="true">
             <div class="auto-timer-fill" style="width:${pct.toFixed(1)}%"></div>
@@ -219,13 +231,17 @@
       const on = isAutoOn(auto.id);
       const interval = Number(auto.amount) || 1;
       const left = autoRemaining(auto);
+      const ready = on && left <= 0.05;
+      const waiting = on && ready && !canAutoBuy();
+      row.classList.toggle("is-off", !on);
+      row.classList.toggle("is-waiting", waiting);
       const leftEl = row.querySelector(".auto-timer-left");
       const fillEl = row.querySelector(".auto-timer-fill");
-      if (leftEl) leftEl.textContent = on ? formatTimer(left) : "Off";
+      if (leftEl) leftEl.textContent = !on ? "Off" : waiting ? "Waiting" : formatTimer(left);
       if (fillEl) {
-        fillEl.style.width = on
-          ? `${Math.max(0, Math.min(100, (1 - left / interval) * 100)).toFixed(1)}%`
-          : "0%";
+        fillEl.style.width = !on
+          ? "0%"
+          : `${Math.max(0, Math.min(100, (1 - left / interval) * 100)).toFixed(1)}%`;
       }
     });
   }
@@ -233,11 +249,22 @@
   function tickAutos(dt) {
     activeAutos().forEach((auto) => {
       const interval = Number(auto.amount) || 1;
-      autoAcc[auto.id] = (autoAcc[auto.id] || 0) + dt;
-      while (autoAcc[auto.id] >= interval) {
-        autoAcc[auto.id] -= interval;
-        if (!placeCalf(true)) break;
+      let acc = (autoAcc[auto.id] || 0) + dt;
+      // Fire when ready; if blocked, hold at ready instead of burning the charge
+      while (acc >= interval) {
+        if (!canAutoBuy()) {
+          acc = interval;
+          break;
+        }
+        if (!placeCalf(true)) {
+          acc = interval;
+          break;
+        }
+        pastureDirty = true;
+        acc -= interval;
       }
+      // Cap so paused/blocked workers don't store huge backlog
+      autoAcc[auto.id] = Math.min(acc, interval);
     });
   }
 
@@ -652,6 +679,10 @@
       addMilk(mps * (TICK_MS / 1000));
     }
     tickAutos(TICK_MS / 1000);
+    if (pastureDirty) {
+      pastureDirty = false;
+      renderPasture();
+    }
     renderStats();
     if (shopList) {
       shopList.querySelectorAll("[data-buy]").forEach((btn) => {
@@ -709,7 +740,7 @@
     buyUpgrade(btn.dataset.buy);
   });
 
-  autoTimersEl?.addEventListener("pointerdown", (e) => {
+  autoTimersEl?.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-auto-toggle]");
     if (!btn || !autoTimersEl.contains(btn)) return;
     e.preventDefault();
@@ -719,7 +750,13 @@
     ensureSession();
     const next = !isAutoOn(id);
     setAutoOn(id, next);
-    setStatus(next ? `${btn.closest(".auto-timer")?.querySelector(".auto-timer-name")?.textContent || "Auto"} on` : "Auto buy paused");
+    // Reset charge when turning back on so it doesn't instantly dump calves
+    if (next) autoAcc[id] = 0;
+    const name =
+      UPGRADES.find((u) => u.id === id)?.name ||
+      btn.closest(".auto-timer")?.querySelector(".auto-timer-name")?.textContent ||
+      "Auto";
+    setStatus(next ? `${name} on` : `${name} paused`);
     window.HubSound?.play?.("click");
     renderAutoTimers(true);
     saveSoon();
