@@ -275,7 +275,10 @@
         const el = cellEls[r * SIZE + c];
         if (!el) continue;
         const filled = grid[r][c];
-        el.classList.remove("filled", "preview-ok", "preview-bad");
+        // Always drop clear animation so emptied lines become placeable again.
+        el.classList.remove("filled", "preview-ok", "preview-bad", "clearing");
+        el.style.transform = "";
+        el.style.opacity = "";
         if (filled) {
           el.classList.add("filled");
           el.style.background = filled;

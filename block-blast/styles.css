@@ -188,14 +188,15 @@ body {
 }
 
 .cell.clearing {
-  animation: blast-out 0.32s ease forwards;
+  animation: blast-out 0.28s ease;
   z-index: 2;
+  pointer-events: none;
 }
 
 @keyframes blast-out {
   0% { transform: scale(1); opacity: 1; }
   40% { transform: scale(1.18); opacity: 1; }
-  100% { transform: scale(0.15); opacity: 0; }
+  100% { transform: scale(0.2); opacity: 0; }
 }
 
 .fx-layer {

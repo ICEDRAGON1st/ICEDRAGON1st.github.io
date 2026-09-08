@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908az": [
+    "Block Blast: cleared rows/columns can be used again"
+  ],
   "20260908ay": [
     "Block Blast: drag-and-drop, combos, and closer scoring feel"
   ],
