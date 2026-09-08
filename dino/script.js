@@ -412,10 +412,10 @@
   });
 
   window.addEventListener("keydown", (e) => {
-    if (e.code === "Space" || e.code === "ArrowUp" || e.key === " ") {
+    if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.key === " ") {
       e.preventDefault();
       jump();
-    } else if (e.code === "ArrowDown") {
+    } else if (e.code === "ArrowDown" || e.code === "KeyS") {
       e.preventDefault();
       setDuck(true);
     } else if (e.code === "Escape") {
@@ -423,7 +423,7 @@
     }
   });
   window.addEventListener("keyup", (e) => {
-    if (e.code === "ArrowDown") setDuck(false);
+    if (e.code === "ArrowDown" || e.code === "KeyS") setDuck(false);
   });
 
   resetWorld();

@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908am": [
+    "Dino Run: W jumps, S ducks"
+  ],
   "20260908al": [
     "New game: Dino Run — jump cacti, duck birds, chase a high score"
   ],
