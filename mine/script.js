@@ -253,6 +253,7 @@
   }
 
   function ownedCount(id) {
+    if (!state.owned || typeof state.owned !== "object") state.owned = {};
     return Math.max(0, Math.floor(Number(state.owned[id]) || 0));
   }
 
@@ -306,7 +307,8 @@
 
   function upgradeCost(u) {
     const n = ownedCount(u.id);
-    return Math.floor(u.baseCost * Math.pow(1.55, n));
+    const cost = Math.floor(u.baseCost * Math.pow(1.55, n));
+    return Number.isFinite(cost) && cost > 0 ? cost : u.baseCost;
   }
 
   function ensureSession() {
@@ -346,11 +348,12 @@
         ? data.cart
             .map((id) => String(id || ""))
             .filter((id) => ORES.some((o) => o.id === id))
-            .slice(0, cartMax() + 40)
         : [];
+      if (!state.owned || typeof state.owned !== "object") state.owned = {};
       UPGRADES.forEach((u) => {
         state.owned[u.id] = Math.max(0, Math.floor(Number(data.owned?.[u.id]) || 0));
       });
+      if (state.cart.length > cartMax()) state.cart = state.cart.slice(0, cartMax());
       state.lastTick = Number(data.lastTick) || Date.now();
     } catch {}
   }
@@ -602,8 +605,9 @@
 
     checkAchievements();
     maybeSubmit(false);
-    shopDirty = true;
-    render();
+    renderHud();
+    if (source === "click" || count >= 3) renderCart();
+    refreshShopButtons();
     save(false);
   }
 
@@ -621,7 +625,7 @@
     state.coins += gained;
     trackLifetimeCoins(gained);
     statusLineEl.textContent = `Sold ore for ${formatNum(gained)} coins`;
-    window.HubSound?.play?.("ok");
+    window.HubSound?.play?.("merge");
     checkAchievements();
     shopDirty = true;
     render();
@@ -629,19 +633,26 @@
   }
 
   function buyUpgrade(id) {
-    const u = UPGRADES.find((x) => x.id === id);
-    if (!u) return;
+    const key = String(id || "");
+    const u = UPGRADES.find((x) => x.id === key);
+    if (!u) return false;
+    if (!state.owned || typeof state.owned !== "object") state.owned = {};
     const cost = upgradeCost(u);
-    if (state.coins < cost) return;
+    if (!Number.isFinite(cost) || state.coins < cost) {
+      statusLineEl.textContent = `Need ${formatNum(cost)} coins for ${u.name}`;
+      window.HubSound?.play?.("error");
+      return false;
+    }
     ensureSession();
     state.coins -= cost;
     state.owned[u.id] = ownedCount(u.id) + 1;
-    statusLineEl.textContent = `Bought ${u.name}`;
-    window.HubSound?.play?.("ok");
+    statusLineEl.textContent = `Bought ${u.name} · now ${formatNum(digPower())}m/dig · ${formatNum(drillRate())}/s drills`;
+    window.HubSound?.play?.("merge");
     checkAchievements();
     shopDirty = true;
     render();
     save(true);
+    return true;
   }
 
   function applyOffline() {
@@ -685,6 +696,25 @@
     if (sellBtn) sellBtn.disabled = state.cart.length === 0;
   }
 
+  function refreshShopButtons() {
+    if (!shopList || shopDirty) return;
+    shopList.querySelectorAll(".shop-item").forEach((item) => {
+      const id = item.getAttribute("data-buy");
+      const u = UPGRADES.find((x) => x.id === id);
+      if (!u) return;
+      const cost = upgradeCost(u);
+      const can = state.coins >= cost;
+      item.classList.toggle("locked", !can);
+      const btn = item.querySelector(".shop-buy");
+      if (btn) {
+        btn.disabled = !can;
+        btn.textContent = formatNum(cost);
+      }
+      const meta = item.querySelector(".shop-meta");
+      if (meta) meta.textContent = `Owned ${ownedCount(u.id)}`;
+    });
+  }
+
   function renderShop() {
     if (!shopList || !shopDirty) return;
     shopDirty = false;
@@ -692,7 +722,7 @@
       const n = ownedCount(u.id);
       const cost = upgradeCost(u);
       const can = state.coins >= cost;
-      return `<div class="shop-item ${can ? "" : "locked"}" role="listitem">
+      return `<div class="shop-item ${can ? "" : "locked"}" role="listitem" data-buy="${u.id}">
         <div>
           <div class="shop-name">${u.name}</div>
           <p class="shop-desc">${u.desc}</p>
@@ -705,7 +735,7 @@
     }).join("");
   }
 
-  function render() {
+  function renderHud() {
     const layer = layerFor(state.depth);
     if (coinCountEl) coinCountEl.textContent = formatNum(state.coins);
     if (layerLabelEl) layerLabelEl.textContent = layer.name;
@@ -727,8 +757,13 @@
     }
     if (depthFillEl) depthFillEl.style.width = `${Math.round(nextLayerProgress(state.depth) * 100)}%`;
     updateShaftView(false);
+  }
+
+  function render() {
+    renderHud();
     renderCart();
     renderShop();
+    refreshShopButtons();
   }
 
   function renderGuide() {
@@ -750,24 +785,15 @@
     const rate = drillRate();
     if (rate > 0) {
       autoAcc += rate * (TICK_MS / 1000);
-      const digs = Math.floor(autoAcc);
+      const digs = Math.min(40, Math.floor(autoAcc));
       if (digs > 0) {
         autoAcc -= digs;
         doDigBatch(digs, "auto");
       }
+    } else {
+      refreshShopButtons();
     }
     if (shopDirty) renderShop();
-    else if (shopList) {
-      shopList.querySelectorAll("[data-buy]").forEach((btn) => {
-        const id = btn.getAttribute("data-buy");
-        const u = UPGRADES.find((x) => x.id === id);
-        if (!u) return;
-        const cost = upgradeCost(u);
-        btn.disabled = state.coins < cost;
-        btn.textContent = formatNum(cost);
-        btn.closest(".shop-item")?.classList.toggle("locked", state.coins < cost);
-      });
-    }
     save(false);
   }
 
@@ -781,9 +807,10 @@
   });
   sellBtn?.addEventListener("click", () => sellAll());
   shopList?.addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-buy]");
-    if (!btn) return;
-    buyUpgrade(btn.getAttribute("data-buy"));
+    const target = e.target.closest("[data-buy]");
+    if (!target || !shopList.contains(target)) return;
+    e.preventDefault();
+    buyUpgrade(target.getAttribute("data-buy"));
   });
   startBtn?.addEventListener("click", () => {
     overlay?.classList.add("hidden");

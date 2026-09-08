@@ -548,10 +548,12 @@ body {
   border-radius: 0.75rem;
   border: 1px solid var(--border);
   background: rgba(0, 0, 0, 0.2);
+  cursor: pointer;
 }
 
 .shop-item.locked {
   opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .shop-name {
