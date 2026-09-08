@@ -262,15 +262,30 @@
 
   const MINE_ORES = [
     { id: "dirt", name: "Dirt", emoji: "🪨", value: 1 },
+    { id: "pebble", name: "Pebble", emoji: "⚪", value: 2 },
     { id: "coal", name: "Coal", emoji: "⬛", value: 4 },
+    { id: "tin", name: "Tin", emoji: "🪙", value: 7 },
     { id: "copper", name: "Copper", emoji: "🟠", value: 10 },
+    { id: "zinc", name: "Zinc", emoji: "🩶", value: 15 },
     { id: "iron", name: "Iron", emoji: "⚙️", value: 22 },
-    { id: "silver", name: "Silver", emoji: "⚪", value: 48 },
+    { id: "nickel", name: "Nickel", emoji: "🔘", value: 35 },
+    { id: "silver", name: "Silver", emoji: "🥈", value: 48 },
+    { id: "cobalt", name: "Cobalt", emoji: "🔵", value: 70 },
     { id: "gold", name: "Gold", emoji: "🥇", value: 110 },
+    { id: "platinum", name: "Platinum", emoji: "💍", value: 160 },
+    { id: "emerald", name: "Emerald", emoji: "💚", value: 200 },
     { id: "gem", name: "Gem", emoji: "💎", value: 260 },
+    { id: "ruby", name: "Ruby", emoji: "❤️", value: 380 },
     { id: "mythril", name: "Mythril", emoji: "🔷", value: 650 },
+    { id: "adamant", name: "Adamant", emoji: "🛡️", value: 900 },
+    { id: "orichalcum", name: "Orichalcum", emoji: "🔶", value: 1200 },
     { id: "void", name: "Void Ore", emoji: "🌑", value: 1800 },
-    { id: "star", name: "Starcore", emoji: "✨", value: 5000 }
+    { id: "aether", name: "Aether", emoji: "🌀", value: 2800 },
+    { id: "star", name: "Starcore", emoji: "✨", value: 5000 },
+    { id: "chronite", name: "Chronite", emoji: "⏳", value: 7500 },
+    { id: "hollow", name: "Hollow Shard", emoji: "🕳️", value: 12000 },
+    { id: "primordial", name: "Primordial Ore", emoji: "🧬", value: 20000 },
+    { id: "singularity", name: "Singularity Ore", emoji: "⚫", value: 40000 }
   ];
 
   function formatMineOre(score) {

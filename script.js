@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908as": [
+    "Mine Depth: more layers and ores (down to Singularity)"
+  ],
   "20260908ar": [
     "Mine Depth: leaderboards for best depth and best ore"
   ],

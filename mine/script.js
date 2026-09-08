@@ -10,26 +10,50 @@
 
   const LAYERS = [
     { id: "soil", name: "Soil", min: 0, color: "#8d6e4c" },
-    { id: "clay", name: "Clay", min: 50, color: "#a67c52" },
-    { id: "stone", name: "Stone", min: 150, color: "#7a7f86" },
-    { id: "iron", name: "Iron vein", min: 400, color: "#9aa4b2" },
-    { id: "crystal", name: "Crystal", min: 1000, color: "#5ec8c0" },
-    { id: "magma", name: "Magma", min: 2500, color: "#e85d3c" },
-    { id: "abyss", name: "Abyss", min: 6000, color: "#4a5568" },
-    { id: "core", name: "Core", min: 15000, color: "#f0c14b" }
+    { id: "clay", name: "Clay", min: 40, color: "#a67c52" },
+    { id: "sandstone", name: "Sandstone", min: 100, color: "#c4a574" },
+    { id: "stone", name: "Stone", min: 200, color: "#7a7f86" },
+    { id: "granite", name: "Granite", min: 350, color: "#9b8b7a" },
+    { id: "iron", name: "Iron vein", min: 550, color: "#9aa4b2" },
+    { id: "quartz", name: "Quartz", min: 900, color: "#d8d0c4" },
+    { id: "crystal", name: "Crystal", min: 1400, color: "#5ec8c0" },
+    { id: "obsidian", name: "Obsidian", min: 2200, color: "#3b3348" },
+    { id: "magma", name: "Magma", min: 3500, color: "#e85d3c" },
+    { id: "mantle", name: "Mantle", min: 5500, color: "#c2410c" },
+    { id: "abyss", name: "Abyss", min: 8500, color: "#4a5568" },
+    { id: "nether", name: "Nether", min: 13000, color: "#7f1d1d" },
+    { id: "core", name: "Core", min: 20000, color: "#f0c14b" },
+    { id: "hollow", name: "Hollow Earth", min: 32000, color: "#86efac" },
+    { id: "primordial", name: "Primordial", min: 50000, color: "#c084fc" },
+    { id: "singularity", name: "Singularity", min: 80000, color: "#111827" }
   ];
 
   const ORES = [
-    { id: "dirt", name: "Dirt", emoji: "🪨", value: 1, weight: 40, minDepth: 0 },
-    { id: "coal", name: "Coal", emoji: "⬛", value: 4, weight: 22, minDepth: 20 },
-    { id: "copper", name: "Copper", emoji: "🟠", value: 10, weight: 16, minDepth: 60 },
-    { id: "iron", name: "Iron", emoji: "⚙️", value: 22, weight: 12, minDepth: 140 },
-    { id: "silver", name: "Silver", emoji: "⚪", value: 48, weight: 8, minDepth: 350 },
-    { id: "gold", name: "Gold", emoji: "🥇", value: 110, weight: 5, minDepth: 700 },
-    { id: "gem", name: "Gem", emoji: "💎", value: 260, weight: 3, minDepth: 1400 },
-    { id: "mythril", name: "Mythril", emoji: "🔷", value: 650, weight: 1.6, minDepth: 3200 },
-    { id: "void", name: "Void Ore", emoji: "🌑", value: 1800, weight: 0.7, minDepth: 7000 },
-    { id: "star", name: "Starcore", emoji: "✨", value: 5000, weight: 0.25, minDepth: 14000 }
+    { id: "dirt", name: "Dirt", emoji: "🪨", value: 1, weight: 42, minDepth: 0 },
+    { id: "pebble", name: "Pebble", emoji: "⚪", value: 2, weight: 28, minDepth: 10 },
+    { id: "coal", name: "Coal", emoji: "⬛", value: 4, weight: 22, minDepth: 25 },
+    { id: "tin", name: "Tin", emoji: "🪙", value: 7, weight: 18, minDepth: 50 },
+    { id: "copper", name: "Copper", emoji: "🟠", value: 10, weight: 15, minDepth: 80 },
+    { id: "zinc", name: "Zinc", emoji: "🩶", value: 15, weight: 13, minDepth: 130 },
+    { id: "iron", name: "Iron", emoji: "⚙️", value: 22, weight: 12, minDepth: 180 },
+    { id: "nickel", name: "Nickel", emoji: "🔘", value: 35, weight: 10, minDepth: 280 },
+    { id: "silver", name: "Silver", emoji: "🥈", value: 48, weight: 8, minDepth: 400 },
+    { id: "cobalt", name: "Cobalt", emoji: "🔵", value: 70, weight: 6.5, minDepth: 550 },
+    { id: "gold", name: "Gold", emoji: "🥇", value: 110, weight: 5, minDepth: 750 },
+    { id: "platinum", name: "Platinum", emoji: "💍", value: 160, weight: 4, minDepth: 1100 },
+    { id: "emerald", name: "Emerald", emoji: "💚", value: 200, weight: 3.4, minDepth: 1500 },
+    { id: "gem", name: "Gem", emoji: "💎", value: 260, weight: 2.8, minDepth: 1900 },
+    { id: "ruby", name: "Ruby", emoji: "❤️", value: 380, weight: 2.2, minDepth: 2500 },
+    { id: "mythril", name: "Mythril", emoji: "🔷", value: 650, weight: 1.6, minDepth: 3800 },
+    { id: "adamant", name: "Adamant", emoji: "🛡️", value: 900, weight: 1.2, minDepth: 5000 },
+    { id: "orichalcum", name: "Orichalcum", emoji: "🔶", value: 1200, weight: 0.95, minDepth: 6500 },
+    { id: "void", name: "Void Ore", emoji: "🌑", value: 1800, weight: 0.7, minDepth: 9000 },
+    { id: "aether", name: "Aether", emoji: "🌀", value: 2800, weight: 0.45, minDepth: 14000 },
+    { id: "star", name: "Starcore", emoji: "✨", value: 5000, weight: 0.28, minDepth: 21000 },
+    { id: "chronite", name: "Chronite", emoji: "⏳", value: 7500, weight: 0.18, minDepth: 30000 },
+    { id: "hollow", name: "Hollow Shard", emoji: "🕳️", value: 12000, weight: 0.12, minDepth: 40000 },
+    { id: "primordial", name: "Primordial Ore", emoji: "🧬", value: 20000, weight: 0.07, minDepth: 55000 },
+    { id: "singularity", name: "Singularity Ore", emoji: "⚫", value: 40000, weight: 0.03, minDepth: 80000 }
   ];
 
   const UPGRADES = [
@@ -330,9 +354,11 @@
     if (!window.HubAchievements) return;
     const d = Math.floor(state.bestDepth);
     if (d >= 50) HubAchievements.unlock("mine_depth_50");
-    if (d >= 400) HubAchievements.unlock("mine_depth_400");
-    if (d >= 2500) HubAchievements.unlock("mine_depth_2500");
-    if (d >= 15000) HubAchievements.unlock("mine_depth_15000");
+    if (d >= 550) HubAchievements.unlock("mine_depth_400");
+    if (d >= 3500) HubAchievements.unlock("mine_depth_2500");
+    if (d >= 20000) HubAchievements.unlock("mine_depth_15000");
+    if (d >= 32000) HubAchievements.unlock("mine_depth_32000");
+    if (d >= 80000) HubAchievements.unlock("mine_depth_80000");
     if (drillRate() > 0) HubAchievements.unlock("mine_drill");
     try {
       const life = Number(localStorage.getItem("mine-depth-lifetime-coins") || 0);
@@ -351,7 +377,7 @@
   function buildStrata() {
     if (!strataEl || strataBuilt) return;
     strataBuilt = true;
-    const maxDepth = 22000;
+    const maxDepth = 100000;
     const totalH = maxDepth * PX_PER_M + 800;
     strataEl.style.height = `${totalH}px`;
     let html = "";
