@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260908aa">
+  <link rel="stylesheet" href="styles.css?v=20260908aj">
 </head>
 <body>
   <div class="app">
@@ -135,6 +135,7 @@
         <button id="toggle-players-btn" type="button" class="hub-btn">Players</button>
         <button id="toggle-friends-btn" type="button" class="hub-btn">Friends</button>
         <button id="toggle-updates-btn" type="button" class="hub-btn">Updates</button>
+        <button id="toggle-feedback-btn" type="button" class="hub-btn">Feedback</button>
         <button id="share-moment-btn" type="button" class="hub-btn">Share moment</button>
       </div>
 
@@ -187,6 +188,42 @@
         <h3>Updates <span id="updates-count" class="updates-count"></span></h3>
         <p class="updates-intro">Tap a version to see what changed. Newest are at the top.</p>
         <ul id="updates-list" class="updates-list"></ul>
+      </div>
+
+      <div id="feedback-panel" class="feedback-panel hidden">
+        <h3>Feedback <span id="feedback-unread" class="updates-count hidden"></span></h3>
+        <p class="feedback-intro">Send bug reports or ideas to ICE_DRAGON. Keep it short and clear.</p>
+        <form id="feedback-form" class="feedback-form">
+          <div class="feedback-row">
+            <label for="feedback-type">Type</label>
+            <select id="feedback-type">
+              <option value="idea">Idea</option>
+              <option value="bug">Bug</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="feedback-row">
+            <label for="feedback-game">Game (optional)</label>
+            <select id="feedback-game">
+              <option value="">General / hub</option>
+            </select>
+          </div>
+          <label for="feedback-text" class="feedback-text-label">Message</label>
+          <textarea id="feedback-text" maxlength="400" rows="4" placeholder="What should be fixed or added?" required></textarea>
+          <div class="feedback-actions">
+            <span id="feedback-count" class="feedback-count">0 / 400</span>
+            <button type="submit" class="hub-btn hub-btn-primary" id="feedback-send-btn">Send to ICE</button>
+          </div>
+          <p id="feedback-status" class="feedback-status" aria-live="polite"></p>
+        </form>
+        <div id="feedback-inbox" class="feedback-inbox hidden">
+          <div class="feedback-inbox-head">
+            <h4>Inbox for ICE</h4>
+            <button type="button" id="feedback-refresh-btn" class="hub-btn">Refresh</button>
+          </div>
+          <ul id="feedback-list" class="feedback-list"></ul>
+          <p id="feedback-empty" class="feedback-empty hidden">No messages yet.</p>
+        </div>
       </div>
 
       <div id="players-panel" class="players-panel hidden">
@@ -417,9 +454,9 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260908aa";
+    window.WORDLE_BUILD = "20260908aj";
     const scripts = [
-      "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-online-match.js",
+      "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-feedback.js", "hub-online-match.js",
       "words.js",
       "dictionary.js",
       "words-4.js",

@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908aj": [
+    "Feedback: send bug reports and ideas to ICE from My Games"
+  ],
   "20260908aa": [
     "New game: Cow Merge — buy calves, merge to evolve, milk idle income"
   ],
@@ -463,6 +466,7 @@ const toggleAchievementsBtn = document.getElementById("toggle-achievements-btn")
 const togglePlayersBtn = document.getElementById("toggle-players-btn");
 const toggleFriendsBtn = document.getElementById("toggle-friends-btn");
 const toggleUpdatesBtn = document.getElementById("toggle-updates-btn");
+const toggleFeedbackBtn = document.getElementById("toggle-feedback-btn");
 const toggleSettingsBtn = document.getElementById("toggle-settings-btn");
 const shareMomentBtn = document.getElementById("share-moment-btn");
 const highScoresPanel = document.getElementById("high-scores-panel");
@@ -474,6 +478,19 @@ const leaderboardEmpty = document.getElementById("leaderboard-empty");
 const updatesPanel = document.getElementById("updates-panel");
 const updatesList = document.getElementById("updates-list");
 const updatesCount = document.getElementById("updates-count");
+const feedbackPanel = document.getElementById("feedback-panel");
+const feedbackForm = document.getElementById("feedback-form");
+const feedbackType = document.getElementById("feedback-type");
+const feedbackGame = document.getElementById("feedback-game");
+const feedbackText = document.getElementById("feedback-text");
+const feedbackCount = document.getElementById("feedback-count");
+const feedbackStatus = document.getElementById("feedback-status");
+const feedbackSendBtn = document.getElementById("feedback-send-btn");
+const feedbackInbox = document.getElementById("feedback-inbox");
+const feedbackList = document.getElementById("feedback-list");
+const feedbackEmpty = document.getElementById("feedback-empty");
+const feedbackUnread = document.getElementById("feedback-unread");
+const feedbackRefreshBtn = document.getElementById("feedback-refresh-btn");
 const playersPanel = document.getElementById("players-panel");
 const friendsPanel = document.getElementById("friends-panel");
 const friendsChatPoll = () => renderFriendsPanel();
@@ -1680,8 +1697,10 @@ function showGamesScreen() {
   if (highScoresPanel) highScoresPanel.classList.add("hidden");
   if (leaderboardsPanel) leaderboardsPanel.classList.add("hidden");
   if (hubSettingsPanel) hubSettingsPanel.classList.add("hidden");
+  if (feedbackPanel) feedbackPanel.classList.add("hidden");
   if (toggleLeaderboardsBtn) toggleLeaderboardsBtn.textContent = "Leaderboards";
   if (toggleSettingsBtn) toggleSettingsBtn.textContent = "⚙ Settings";
+  if (toggleFeedbackBtn) updateFeedbackButtonLabel(false);
   stopLeaderboardRefresh();
   applyHubTheme();
   refreshGamesHub();
@@ -1690,9 +1709,11 @@ function showGamesScreen() {
   setTimeout(checkPendingAchievements, 400);
   maybeAskPlayerName();
   if (window.HubPlays) HubPlays.sync().catch(() => {});
+  if (window.HubFeedback) HubFeedback.sync().catch(() => {});
   refreshOnlineCount();
   startOnlineCountPolling();
   updateUpdatesButtonLabel(false);
+  updateFeedbackButtonLabel(false);
 }
 
 function hideGamesScreen() {
@@ -2303,6 +2324,174 @@ toggleUpdatesBtn?.addEventListener("click", () => {
     renderUpdatesPanel();
   }
   updateUpdatesButtonLabel(open);
+});
+
+function escapeFeedbackHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function formatFeedbackTime(at) {
+  const d = new Date(Number(at) || 0);
+  if (!Number.isFinite(d.getTime()) || d.getTime() <= 0) return "";
+  return d.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function updateFeedbackButtonLabel(open) {
+  if (!toggleFeedbackBtn) return;
+  const unread =
+    typeof HubFeedback !== "undefined" && HubFeedback.isOwner?.()
+      ? HubFeedback.unreadCount?.() || 0
+      : 0;
+  if (open) {
+    toggleFeedbackBtn.textContent = unread > 0 ? `Hide feedback · ${unread} new` : "Hide feedback";
+  } else {
+    toggleFeedbackBtn.textContent = unread > 0 ? `Feedback · ${unread} new` : "Feedback";
+  }
+}
+
+function fillFeedbackGameOptions() {
+  if (!feedbackGame) return;
+  const current = feedbackGame.value;
+  const options = [`<option value="">General / hub</option>`].concat(
+    HUB_GAMES.map(
+      (g) => `<option value="${escapeFeedbackHtml(g.id)}">${escapeFeedbackHtml(g.name)}</option>`
+    )
+  );
+  feedbackGame.innerHTML = options.join("");
+  if ([...feedbackGame.options].some((o) => o.value === current)) feedbackGame.value = current;
+}
+
+function setFeedbackStatus(text, kind = "") {
+  if (!feedbackStatus) return;
+  feedbackStatus.textContent = text || "";
+  feedbackStatus.classList.remove("is-ok", "is-err");
+  if (kind) feedbackStatus.classList.add(kind);
+}
+
+function updateFeedbackCharCount() {
+  if (!feedbackText || !feedbackCount) return;
+  const max = (typeof HubFeedback !== "undefined" && HubFeedback.MAX_TEXT) || 400;
+  feedbackCount.textContent = `${feedbackText.value.length} / ${max}`;
+}
+
+function renderFeedbackInbox() {
+  if (!feedbackInbox || !feedbackList) return;
+  const owner = typeof HubFeedback !== "undefined" && HubFeedback.isOwner?.();
+  feedbackInbox.classList.toggle("hidden", !owner);
+  if (!owner) return;
+  const items = HubFeedback.list?.() || [];
+  const readAt =
+    typeof HubFeedback !== "undefined"
+      ? Math.max(0, Number(localStorage.getItem("hub-feedback-read-at-v1")) || 0)
+      : 0;
+  if (feedbackUnread) {
+    const unread = HubFeedback.unreadCount?.() || 0;
+    feedbackUnread.textContent = unread ? `${unread} new` : "";
+    feedbackUnread.classList.toggle("hidden", unread <= 0);
+  }
+  if (!items.length) {
+    feedbackList.innerHTML = "";
+    feedbackEmpty?.classList.remove("hidden");
+    return;
+  }
+  feedbackEmpty?.classList.add("hidden");
+  feedbackList.innerHTML = items
+    .map((item) => {
+      const isNew = item.at > readAt;
+      const gameLabel = item.game
+        ? HUB_GAMES.find((g) => g.id === item.game)?.name || item.game
+        : "General";
+      return `<li class="feedback-item${isNew ? " is-new" : ""}">
+        <div class="feedback-item-top">
+          <span class="feedback-item-type">${escapeFeedbackHtml(item.type)}</span>
+          <span>${escapeFeedbackHtml(item.fromName)}</span>
+          <span>${escapeFeedbackHtml(gameLabel)}</span>
+          <span>${escapeFeedbackHtml(formatFeedbackTime(item.at))}</span>
+        </div>
+        <p class="feedback-item-text">${escapeFeedbackHtml(item.text)}</p>
+      </li>`;
+    })
+    .join("");
+}
+
+async function openFeedbackPanel() {
+  if (!requirePlayerName()) {
+    feedbackPanel?.classList.add("hidden");
+    updateFeedbackButtonLabel(false);
+    return;
+  }
+  fillFeedbackGameOptions();
+  updateFeedbackCharCount();
+  setFeedbackStatus("");
+  if (typeof HubFeedback !== "undefined") {
+    try {
+      await HubFeedback.sync(true);
+    } catch {}
+  }
+  renderFeedbackInbox();
+  updateFeedbackButtonLabel(true);
+}
+
+toggleFeedbackBtn?.addEventListener("click", () => {
+  if (!feedbackPanel) return;
+  const open = feedbackPanel.classList.toggle("hidden") === false;
+  if (open) {
+    openFeedbackPanel();
+  } else if (typeof HubFeedback !== "undefined" && HubFeedback.isOwner?.()) {
+    HubFeedback.markAllRead?.();
+  }
+  updateFeedbackButtonLabel(open);
+});
+
+feedbackText?.addEventListener("input", updateFeedbackCharCount);
+
+feedbackForm?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (!requirePlayerName()) return;
+  if (typeof HubFeedback === "undefined") {
+    setFeedbackStatus("Feedback is unavailable right now", "is-err");
+    return;
+  }
+  if (feedbackSendBtn) feedbackSendBtn.disabled = true;
+  setFeedbackStatus("Sending…");
+  const result = await HubFeedback.submit({
+    text: feedbackText?.value || "",
+    type: feedbackType?.value || "idea",
+    game: feedbackGame?.value || ""
+  });
+  if (feedbackSendBtn) feedbackSendBtn.disabled = false;
+  if (!result?.ok) {
+    setFeedbackStatus(result?.error || "Could not send", "is-err");
+    return;
+  }
+  if (feedbackText) feedbackText.value = "";
+  updateFeedbackCharCount();
+  setFeedbackStatus("Sent to ICE — thanks!", "is-ok");
+  window.HubSound?.play?.("win");
+  renderFeedbackInbox();
+  updateFeedbackButtonLabel(true);
+});
+
+feedbackRefreshBtn?.addEventListener("click", async () => {
+  if (typeof HubFeedback === "undefined") return;
+  setFeedbackStatus("Refreshing…");
+  try {
+    await HubFeedback.sync(true);
+    renderFeedbackInbox();
+    setFeedbackStatus("Inbox updated", "is-ok");
+  } catch {
+    setFeedbackStatus("Could not refresh", "is-err");
+  }
+  updateFeedbackButtonLabel(true);
 });
 
 toggleSettingsBtn?.addEventListener("click", () => {
