@@ -1089,6 +1089,26 @@
     try {
       mountInGameChat();
     } catch {}
+    try {
+      if (!window.HubNotifications && !window.__hubNotifyLoading) {
+        window.__hubNotifyLoading = true;
+        let src = "hub-notifications.js?v=20260908ak";
+        const scripts = document.getElementsByTagName("script");
+        for (let i = 0; i < scripts.length; i += 1) {
+          const s = scripts[i].src || "";
+          if (/hub-chat\.js/i.test(s)) {
+            src = s.replace(/hub-chat\.js/i, "hub-notifications.js");
+            break;
+          }
+        }
+        const el = document.createElement("script");
+        el.src = src;
+        el.async = true;
+        document.head.appendChild(el);
+      } else {
+        window.HubNotifications?.start?.();
+      }
+    } catch {}
   }
 
   if (document.readyState === "loading") {

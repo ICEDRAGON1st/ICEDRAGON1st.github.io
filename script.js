@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908ak": [
+    "Notifications for new chat messages and when your streak is about to die"
+  ],
   "20260908aj": [
     "Feedback: send bug reports and ideas to ICE from My Games"
   ],
@@ -1710,10 +1713,12 @@ function showGamesScreen() {
   maybeAskPlayerName();
   if (window.HubPlays) HubPlays.sync().catch(() => {});
   if (window.HubFeedback) HubFeedback.sync().catch(() => {});
+  if (window.HubNotifications) HubNotifications.start?.();
   refreshOnlineCount();
   startOnlineCountPolling();
   updateUpdatesButtonLabel(false);
   updateFeedbackButtonLabel(false);
+  maybeOpenHubHash();
 }
 
 function hideGamesScreen() {
@@ -2498,7 +2503,10 @@ toggleSettingsBtn?.addEventListener("click", () => {
   if (!hubSettingsPanel) return;
   const open = hubSettingsPanel.classList.toggle("hidden") === false;
   toggleSettingsBtn.textContent = open ? "Hide settings" : "⚙ Settings";
-  if (open) applyHubTheme();
+  if (open) {
+    applyHubTheme();
+    refreshNotificationPermStatus();
+  }
 });
 
 hubThemePicker?.addEventListener("click", (e) => {
@@ -2507,6 +2515,58 @@ hubThemePicker?.addEventListener("click", (e) => {
   applyHubTheme(btn.dataset.hubTheme);
   showGamesMessage(`Hub look: ${HUB_THEMES[btn.dataset.hubTheme]?.label || "Classic"}`, 1600);
 });
+
+function refreshNotificationPermStatus() {
+  const el = document.getElementById("notifications-perm-status");
+  const btn = document.getElementById("enable-notifications-btn");
+  if (!el) return;
+  if (typeof Notification === "undefined") {
+    el.textContent = "Browser notifications are not supported here.";
+    if (btn) btn.disabled = true;
+    return;
+  }
+  const perm = Notification.permission;
+  if (perm === "granted") {
+    el.textContent = "Browser notifications are on.";
+    if (btn) btn.textContent = "Notifications enabled";
+    if (btn) btn.disabled = true;
+  } else if (perm === "denied") {
+    el.textContent = "Blocked in browser settings — allow notifications for this site.";
+    if (btn) btn.disabled = true;
+  } else {
+    el.textContent = "Optional: also alert you when the tab is in the background.";
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "Enable browser notifications";
+    }
+  }
+}
+
+document.getElementById("enable-notifications-btn")?.addEventListener("click", async () => {
+  if (typeof HubNotifications === "undefined") {
+    refreshNotificationPermStatus();
+    return;
+  }
+  await HubNotifications.requestPermission(true);
+  refreshNotificationPermStatus();
+  showGamesMessage("Notification permission updated", 1600);
+});
+
+function maybeOpenHubHash() {
+  const hash = String(location.hash || "").replace(/^#/, "").toLowerCase();
+  if (!hash) return;
+  if (hash === "friends") {
+    friendsPanel?.classList.remove("hidden");
+    renderFriendsPanel?.();
+    toggleFriendsBtn && (toggleFriendsBtn.textContent = "Hide friends");
+  } else if (hash === "feedback") {
+    feedbackPanel?.classList.remove("hidden");
+    openFeedbackPanel?.();
+    updateFeedbackButtonLabel(true);
+  } else if (hash === "games" || hash === "games") {
+    // already on games screen
+  }
+}
 
 togglePlayersBtn?.addEventListener("click", () => {
   if (!playersPanel) return;

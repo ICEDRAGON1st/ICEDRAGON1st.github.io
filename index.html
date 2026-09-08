@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260908aj">
+  <link rel="stylesheet" href="styles.css?v=20260908ak">
 </head>
 <body>
   <div class="app">
@@ -169,6 +169,10 @@
             <span class="hub-theme-name">Poster wall</span>
           </button>
         </div>
+        <p class="hub-settings-label">Alerts</p>
+        <p class="hub-settings-intro">Get notified about chat messages and when your streak is close to dying.</p>
+        <button type="button" id="enable-notifications-btn" class="hub-btn">Enable browser notifications</button>
+        <p id="notifications-perm-status" class="player-name-status" aria-live="polite"></p>
       </div>
 
       <div id="high-scores-panel" class="high-scores-panel hidden">
@@ -454,9 +458,9 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260908aj";
+    window.WORDLE_BUILD = "20260908ak";
     const scripts = [
-      "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-feedback.js", "hub-online-match.js",
+      "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js",
       "words.js",
       "dictionary.js",
       "words-4.js",
