@@ -48,6 +48,8 @@
   const hudBestEl = document.getElementById("hud-best");
   const topLabelEl = document.getElementById("top-label");
   const fillLabelEl = document.getElementById("fill-label");
+  const autoLabelEl = document.getElementById("auto-label");
+  const autoTimersEl = document.getElementById("auto-timers");
   const pastureEl = document.getElementById("pasture");
   const statusLineEl = document.getElementById("status-line");
   const buyBtn = document.getElementById("buy-btn");
@@ -69,7 +71,7 @@
   let sellMode = false;
   let lastSaveAt = 0;
   let lastSubmitAt = 0;
-  let autoAcc = 0;
+  let autoAcc = {};
   let drag = null;
   let floatEl = null;
 
@@ -124,10 +126,72 @@
     );
   }
 
+  function ownedAutos() {
+    return UPGRADES.filter((u) => u.kind === "auto" && state.owned[u.id] > 0);
+  }
+
   function bestAutoSeconds() {
-    const autos = UPGRADES.filter((u) => u.kind === "auto" && state.owned[u.id] > 0);
+    const autos = ownedAutos();
     if (!autos.length) return 0;
     return Math.min(...autos.map((u) => u.amount));
+  }
+
+  function autoRemaining(auto) {
+    const interval = Number(auto.amount) || 1;
+    const acc = autoAcc[auto.id] || 0;
+    return Math.max(0, interval - acc);
+  }
+
+  function formatTimer(sec) {
+    const s = Math.max(0, Number(sec) || 0);
+    if (s >= 10) return `${Math.ceil(s)}s`;
+    return `${s.toFixed(1)}s`;
+  }
+
+  function renderAutoTimers() {
+    const list = ownedAutos();
+    if (autoLabelEl) {
+      if (!list.length) autoLabelEl.textContent = "0";
+      else {
+        const next = Math.min(...list.map(autoRemaining));
+        autoLabelEl.textContent = `${list.length} · next ${formatTimer(next)}`;
+      }
+    }
+    if (!autoTimersEl) return;
+    if (!list.length) {
+      autoTimersEl.innerHTML = "";
+      autoTimersEl.classList.add("empty");
+      return;
+    }
+    autoTimersEl.classList.remove("empty");
+    autoTimersEl.innerHTML = list
+      .map((auto) => {
+        const interval = Number(auto.amount) || 1;
+        const left = autoRemaining(auto);
+        const pct = Math.max(0, Math.min(100, (1 - left / interval) * 100));
+        return `<div class="auto-timer" data-auto="${auto.id}">
+          <div class="auto-timer-top">
+            <span class="auto-timer-name">${auto.name}</span>
+            <span class="auto-timer-left">${formatTimer(left)}</span>
+          </div>
+          <div class="auto-timer-track" aria-hidden="true">
+            <div class="auto-timer-fill" style="width:${pct.toFixed(1)}%"></div>
+          </div>
+          <div class="auto-timer-meta">buys calf every ${interval}s</div>
+        </div>`;
+      })
+      .join("");
+  }
+
+  function tickAutos(dt) {
+    ownedAutos().forEach((auto) => {
+      const interval = Number(auto.amount) || 1;
+      autoAcc[auto.id] = (autoAcc[auto.id] || 0) + dt;
+      while (autoAcc[auto.id] >= interval) {
+        autoAcc[auto.id] -= interval;
+        if (!placeCalf(true)) break;
+      }
+    });
   }
 
   function calfCost() {
@@ -426,6 +490,7 @@
     const topCow = cowByTier(top);
     if (topLabelEl) topLabelEl.textContent = topCow ? topCow.name : "None";
     if (fillLabelEl) fillLabelEl.textContent = `${filledCount()}/${CELLS}`;
+    renderAutoTimers();
     if (buyBtn) {
       const cost = calfCost();
       buyBtn.textContent = `Buy Calf · ${formatNum(cost)}`;
@@ -530,14 +595,7 @@
     if (mps > 0) {
       addMilk(mps * (TICK_MS / 1000));
     }
-    const autoSec = bestAutoSeconds();
-    if (autoSec > 0) {
-      autoAcc += TICK_MS / 1000;
-      while (autoAcc >= autoSec) {
-        autoAcc -= autoSec;
-        if (!placeCalf(true)) break;
-      }
-    }
+    tickAutos(TICK_MS / 1000);
     renderStats();
     if (shopList) {
       shopList.querySelectorAll("[data-buy]").forEach((btn) => {

@@ -143,6 +143,66 @@ body {
   font-size: 0.95rem;
 }
 
+.auto-timers {
+  width: 100%;
+  display: grid;
+  gap: 0.4rem;
+  margin: 0 0 0.85rem;
+}
+
+.auto-timers.empty {
+  display: none;
+}
+
+.auto-timer {
+  text-align: left;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.55rem;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.auto-timer-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.3rem;
+}
+
+.auto-timer-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--milk);
+}
+
+.auto-timer-left {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: var(--cream);
+  font-variant-numeric: tabular-nums;
+}
+
+.auto-timer-track {
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+}
+
+.auto-timer-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--grass-deep), var(--grass));
+  transition: width 0.1s linear;
+}
+
+.auto-timer-meta {
+  margin-top: 0.25rem;
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
 .pasture {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
