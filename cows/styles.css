@@ -198,9 +198,45 @@ body {
 }
 
 .auto-timer-meta {
-  margin-top: 0.25rem;
+  margin-top: 0;
   font-size: 0.7rem;
   color: var(--muted);
+}
+
+.auto-timer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.auto-toggle {
+  appearance: none;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  border-radius: 999px;
+  border: 1px solid rgba(107, 191, 89, 0.55);
+  background: rgba(107, 191, 89, 0.22);
+  color: var(--milk);
+  padding: 0.2rem 0.55rem;
+  cursor: pointer;
+  min-width: 2.6rem;
+}
+
+.auto-timer.is-off {
+  opacity: 0.72;
+}
+
+.auto-timer.is-off .auto-toggle {
+  border-color: rgba(255, 135, 135, 0.45);
+  background: rgba(255, 135, 135, 0.15);
+  color: #ffc9c9;
+}
+
+.auto-timer.is-off .auto-timer-left {
+  color: #ffc9c9;
 }
 
 .pasture {

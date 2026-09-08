@@ -85,6 +85,7 @@
       lifetime: 0,
       board: Array(CELLS).fill(0),
       owned,
+      autoOn: {},
       calvesBought: 0,
       bestTier: 0,
       lastTick: Date.now()
@@ -130,8 +131,21 @@
     return UPGRADES.filter((u) => u.kind === "auto" && state.owned[u.id] > 0);
   }
 
+  function isAutoOn(id) {
+    return state.autoOn?.[id] !== false;
+  }
+
+  function setAutoOn(id, on) {
+    if (!state.autoOn || typeof state.autoOn !== "object") state.autoOn = {};
+    state.autoOn[id] = !!on;
+  }
+
+  function activeAutos() {
+    return ownedAutos().filter((u) => isAutoOn(u.id));
+  }
+
   function bestAutoSeconds() {
-    const autos = ownedAutos();
+    const autos = activeAutos();
     if (!autos.length) return 0;
     return Math.min(...autos.map((u) => u.amount));
   }
@@ -148,43 +162,76 @@
     return `${s.toFixed(1)}s`;
   }
 
-  function renderAutoTimers() {
+  let autoTimersKey = "";
+
+  function renderAutoTimers(force = false) {
     const list = ownedAutos();
     if (autoLabelEl) {
       if (!list.length) autoLabelEl.textContent = "0";
       else {
-        const next = Math.min(...list.map(autoRemaining));
-        autoLabelEl.textContent = `${list.length} · next ${formatTimer(next)}`;
+        const active = activeAutos();
+        if (!active.length) autoLabelEl.textContent = `${list.length} · off`;
+        else {
+          const next = Math.min(...active.map(autoRemaining));
+          autoLabelEl.textContent = `${active.length}/${list.length} · next ${formatTimer(next)}`;
+        }
       }
     }
     if (!autoTimersEl) return;
     if (!list.length) {
       autoTimersEl.innerHTML = "";
       autoTimersEl.classList.add("empty");
+      autoTimersKey = "";
       return;
     }
     autoTimersEl.classList.remove("empty");
-    autoTimersEl.innerHTML = list
-      .map((auto) => {
-        const interval = Number(auto.amount) || 1;
-        const left = autoRemaining(auto);
-        const pct = Math.max(0, Math.min(100, (1 - left / interval) * 100));
-        return `<div class="auto-timer" data-auto="${auto.id}">
+    const nextKey = list.map((a) => `${a.id}:${isAutoOn(a.id) ? 1 : 0}`).join("|");
+    if (force || nextKey !== autoTimersKey) {
+      autoTimersKey = nextKey;
+      autoTimersEl.innerHTML = list
+        .map((auto) => {
+          const interval = Number(auto.amount) || 1;
+          const on = isAutoOn(auto.id);
+          const left = autoRemaining(auto);
+          const pct = on ? Math.max(0, Math.min(100, (1 - left / interval) * 100)) : 0;
+          return `<div class="auto-timer ${on ? "" : "is-off"}" data-auto="${auto.id}">
           <div class="auto-timer-top">
             <span class="auto-timer-name">${auto.name}</span>
-            <span class="auto-timer-left">${formatTimer(left)}</span>
+            <span class="auto-timer-left">${on ? formatTimer(left) : "Off"}</span>
           </div>
           <div class="auto-timer-track" aria-hidden="true">
             <div class="auto-timer-fill" style="width:${pct.toFixed(1)}%"></div>
           </div>
-          <div class="auto-timer-meta">buys calf every ${interval}s</div>
+          <div class="auto-timer-row">
+            <span class="auto-timer-meta">buys calf every ${interval}s</span>
+            <button type="button" class="auto-toggle" data-auto-toggle="${auto.id}" aria-pressed="${on}">
+              ${on ? "On" : "Off"}
+            </button>
+          </div>
         </div>`;
-      })
-      .join("");
+        })
+        .join("");
+      return;
+    }
+    list.forEach((auto) => {
+      const row = autoTimersEl.querySelector(`[data-auto="${auto.id}"]`);
+      if (!row) return;
+      const on = isAutoOn(auto.id);
+      const interval = Number(auto.amount) || 1;
+      const left = autoRemaining(auto);
+      const leftEl = row.querySelector(".auto-timer-left");
+      const fillEl = row.querySelector(".auto-timer-fill");
+      if (leftEl) leftEl.textContent = on ? formatTimer(left) : "Off";
+      if (fillEl) {
+        fillEl.style.width = on
+          ? `${Math.max(0, Math.min(100, (1 - left / interval) * 100)).toFixed(1)}%`
+          : "0%";
+      }
+    });
   }
 
   function tickAutos(dt) {
-    ownedAutos().forEach((auto) => {
+    activeAutos().forEach((auto) => {
       const interval = Number(auto.amount) || 1;
       autoAcc[auto.id] = (autoAcc[auto.id] || 0) + dt;
       while (autoAcc[auto.id] >= interval) {
@@ -273,6 +320,14 @@
       }
       UPGRADES.forEach((u) => {
         next.owned[u.id] = Math.max(0, Math.floor(Number(raw.owned?.[u.id]) || 0));
+      });
+      next.autoOn = {};
+      UPGRADES.filter((u) => u.kind === "auto").forEach((u) => {
+        if (raw.autoOn && typeof raw.autoOn === "object" && Object.prototype.hasOwnProperty.call(raw.autoOn, u.id)) {
+          next.autoOn[u.id] = !!raw.autoOn[u.id];
+        } else {
+          next.autoOn[u.id] = true;
+        }
       });
       return next;
     } catch {
@@ -395,6 +450,7 @@
     ensureSession();
     state.milk -= cost;
     state.owned[id] = (state.owned[id] || 0) + 1;
+    if (upgrade.kind === "auto") setAutoOn(id, true);
     setStatus(`Bought ${upgrade.name}`, "ok");
     window.HubSound?.play?.("click");
     checkAchievements();
@@ -651,6 +707,22 @@
     const btn = e.target.closest("[data-buy]");
     if (!btn || btn.disabled) return;
     buyUpgrade(btn.dataset.buy);
+  });
+
+  autoTimersEl?.addEventListener("pointerdown", (e) => {
+    const btn = e.target.closest("[data-auto-toggle]");
+    if (!btn || !autoTimersEl.contains(btn)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const id = btn.dataset.autoToggle;
+    if (!id) return;
+    ensureSession();
+    const next = !isAutoOn(id);
+    setAutoOn(id, next);
+    setStatus(next ? `${btn.closest(".auto-timer")?.querySelector(".auto-timer-name")?.textContent || "Auto"} on` : "Auto buy paused");
+    window.HubSound?.play?.("click");
+    renderAutoTimers(true);
+    saveSoon();
   });
 
   pastureEl?.addEventListener("pointerdown", (e) => {
