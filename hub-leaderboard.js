@@ -39,6 +39,7 @@
     cows: { label: "Cow Merge", lowerBetter: false, unit: "cow" },
     dino: { label: "Dino Run", lowerBetter: false, unit: "score" },
     mine: { label: "Mine Depth", lowerBetter: false, unit: "depth" },
+    "mine-ore": { label: "Mine Best Ore", lowerBetter: false, unit: "ore" },
     "online-time": { label: "Time Online", lowerBetter: false, unit: "playtime" }
   };
 
@@ -259,6 +260,27 @@
     return `${name}`;
   }
 
+  const MINE_ORES = [
+    { id: "dirt", name: "Dirt", emoji: "🪨", value: 1 },
+    { id: "coal", name: "Coal", emoji: "⬛", value: 4 },
+    { id: "copper", name: "Copper", emoji: "🟠", value: 10 },
+    { id: "iron", name: "Iron", emoji: "⚙️", value: 22 },
+    { id: "silver", name: "Silver", emoji: "⚪", value: 48 },
+    { id: "gold", name: "Gold", emoji: "🥇", value: 110 },
+    { id: "gem", name: "Gem", emoji: "💎", value: 260 },
+    { id: "mythril", name: "Mythril", emoji: "🔷", value: 650 },
+    { id: "void", name: "Void Ore", emoji: "🌑", value: 1800 },
+    { id: "star", name: "Starcore", emoji: "✨", value: 5000 }
+  ];
+
+  function formatMineOre(score) {
+    const n = Math.floor(Number(score) || 0);
+    if (n <= 0) return "—";
+    const ore = MINE_ORES.find((o) => o.value === n) || MINE_ORES.filter((o) => o.value <= n).pop();
+    if (!ore) return `Ore ${n}`;
+    return `${ore.emoji} ${ore.name}`;
+  }
+
   function formatScore(gameId, score) {
     const m = meta(gameId);
     const n = Number(score);
@@ -270,6 +292,7 @@
     if (m.unit === "catch" || gameId === "fishing") return formatFishingCatch(n);
     if (m.unit === "cow" || gameId === "cows") return formatCowTier(n);
     if (m.unit === "depth" || gameId === "mine") return `Best ${Math.floor(n)}m`;
+    if (m.unit === "ore" || gameId === "mine-ore") return formatMineOre(n);
     if (gameId === "clicker" || m.unit === "compact") return `Best ${formatCompact(n)}`;
     return `Best ${Math.floor(n)}`;
   }

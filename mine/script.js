@@ -1,6 +1,8 @@
 (function () {
   const SAVE_KEY = "mine-depth-save-v1";
   const HIGH_SCORE_KEY = "mine-depth-best-v1";
+  const BEST_ORE_KEY = "mine-best-ore-v1";
+  const BEST_ORE_ID_KEY = "mine-best-ore-id-v1";
   const TICK_MS = 100;
   const CART_MAX = 20;
   const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
@@ -115,10 +117,25 @@
       coins: 0,
       depth: 0,
       bestDepth: 0,
+      bestOreId: "",
+      bestOreValue: 0,
       cart: [],
       owned,
       lastTick: Date.now()
     };
+  }
+
+  function oreById(id) {
+    return ORES.find((o) => o.id === id) || null;
+  }
+
+  function formatBestOre(oreOrValue) {
+    const ore =
+      typeof oreOrValue === "object" && oreOrValue
+        ? oreOrValue
+        : oreById(state.bestOreId) || ORES.find((o) => o.value === Number(oreOrValue));
+    if (!ore) return "—";
+    return `${ore.emoji} ${ore.name}`;
   }
 
   function formatNum(n) {
@@ -231,6 +248,19 @@
         Number(data.bestDepth) || 0,
         Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0
       );
+      state.bestOreValue = Math.max(
+        0,
+        Number(data.bestOreValue) || 0,
+        Number(localStorage.getItem(BEST_ORE_KEY)) || 0
+      );
+      state.bestOreId =
+        (typeof data.bestOreId === "string" && data.bestOreId) ||
+        localStorage.getItem(BEST_ORE_ID_KEY) ||
+        "";
+      if (state.bestOreValue && !oreById(state.bestOreId)) {
+        const match = ORES.find((o) => o.value === state.bestOreValue);
+        if (match) state.bestOreId = match.id;
+      }
       state.cart = Array.isArray(data.cart)
         ? data.cart
             .map((id) => String(id || ""))
@@ -256,21 +286,44 @@
           coins: state.coins,
           depth: state.depth,
           bestDepth: state.bestDepth,
+          bestOreId: state.bestOreId,
+          bestOreValue: state.bestOreValue,
           cart: state.cart,
           owned: state.owned,
           lastTick: state.lastTick
         })
       );
       localStorage.setItem(HIGH_SCORE_KEY, String(Math.floor(state.bestDepth)));
+      if (state.bestOreValue > 0) {
+        localStorage.setItem(BEST_ORE_KEY, String(Math.floor(state.bestOreValue)));
+        if (state.bestOreId) localStorage.setItem(BEST_ORE_ID_KEY, state.bestOreId);
+      }
     } catch {}
   }
 
   function maybeSubmit(force) {
-    if (state.bestDepth <= 0 || !window.HubLeaderboard) return;
+    if (!window.HubLeaderboard) return;
     const now = Date.now();
     if (!force && now - lastSubmitAt < 8000) return;
     lastSubmitAt = now;
-    HubLeaderboard.submit("mine", Math.floor(state.bestDepth)).catch?.(() => {});
+    if (state.bestDepth > 0) {
+      HubLeaderboard.submit("mine", Math.floor(state.bestDepth)).catch?.(() => {});
+    }
+    if (state.bestOreValue > 0) {
+      HubLeaderboard.submit("mine-ore", Math.floor(state.bestOreValue)).catch?.(() => {});
+    }
+  }
+
+  function noteBestOre(ore) {
+    if (!ore) return false;
+    if (ore.value <= (state.bestOreValue || 0)) return false;
+    state.bestOreValue = ore.value;
+    state.bestOreId = ore.id;
+    try {
+      localStorage.setItem(BEST_ORE_KEY, String(ore.value));
+      localStorage.setItem(BEST_ORE_ID_KEY, ore.id);
+    } catch {}
+    return true;
   }
 
   function checkAchievements() {
@@ -418,8 +471,10 @@
     let lastOre = null;
     let added = 0;
     let blocked = 0;
+    let newBestOre = false;
     for (let i = 0; i < count; i += 1) {
       const ore = pickOre();
+      if (noteBestOre(ore)) newBestOre = true;
       if (addOre(ore)) {
         lastOre = ore;
         added += 1;
@@ -451,8 +506,8 @@
     if (lastOre && added) {
       statusLineEl.textContent =
         count === 1
-          ? `Dug into ${lastOre.emoji} ${lastOre.name} (↓${formatDepth(meters)})`
-          : `Shaft sank ${formatDepth(meters)} · ${added} ore`;
+          ? `Dug into ${lastOre.emoji} ${lastOre.name} (↓${formatDepth(meters)})${newBestOre ? " · new best ore!" : ""}`
+          : `Shaft sank ${formatDepth(meters)} · ${added} ore${newBestOre ? " · new best ore!" : ""}`;
     } else if (blocked) {
       statusLineEl.textContent = `Cart full — sell ore, then dig deeper (↓${formatDepth(meters)})`;
     }
@@ -514,7 +569,9 @@
     for (let i = 0; i < whole; i += 1) {
       state.depth += digPower();
       if (state.depth > state.bestDepth) state.bestDepth = state.depth;
-      if (addOre(pickOre())) found += 1;
+      const ore = pickOre();
+      noteBestOre(ore);
+      if (addOre(ore)) found += 1;
       if (state.cart.length >= cartMax()) break;
     }
     statusLineEl.textContent = `While away: +${formatDepth(whole * digPower())}, ${found} ore`;
@@ -567,8 +624,12 @@
     if (digPowerLabelEl) digPowerLabelEl.textContent = `${digPower().toFixed(digPower() % 1 ? 1 : 0)}m`;
     if (dpsLabelEl) dpsLabelEl.textContent = `${drillRate().toFixed(drillRate() % 1 ? 1 : 0)}/s`;
     if (hudDepthEl) hudDepthEl.textContent = formatDepth(state.depth);
-    if (hudBestEl) hudBestEl.textContent = formatDepth(state.bestDepth);
-    if (overlayBestEl) overlayBestEl.textContent = formatDepth(state.bestDepth);
+    if (hudBestEl) {
+      hudBestEl.textContent = `${formatDepth(state.bestDepth)} · ${formatBestOre()}`;
+    }
+    if (overlayBestEl) {
+      overlayBestEl.textContent = `${formatDepth(state.bestDepth)} · ${formatBestOre()}`;
+    }
     const idx = LAYERS.findIndex((l) => l.id === layer.id);
     const next = LAYERS[idx + 1];
     if (layerProgressLabelEl) {

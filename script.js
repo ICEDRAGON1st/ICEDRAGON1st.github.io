@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908ar": [
+    "Mine Depth: leaderboards for best depth and best ore"
+  ],
   "20260908aq": [
     "Mine Depth: dig clicks capped at 75ms"
   ],
@@ -453,10 +456,17 @@ const HUB_GAMES = [
   { id: "mine", name: "Mine Depth", path: "mine/index.html" }
 ];
 
-/** Leaderboard tabs = hub-only boards first, then games. */
+/** Leaderboard tabs = hub-only boards first, then games (Mine Depth splits into depth + ore). */
 const LEADERBOARD_GAMES = [
   { id: "online-time", name: "Time Online" },
-  ...HUB_GAMES
+  ...HUB_GAMES.flatMap((game) =>
+    game.id === "mine"
+      ? [
+          { id: "mine", name: "Mine Depth" },
+          { id: "mine-ore", name: "Mine Best Ore" }
+        ]
+      : [game]
+  )
 ];
 
 const boardEl = document.getElementById("board");
@@ -1378,8 +1388,16 @@ function getHubScore(gameId) {
       return { label: score ? `Best ${score}` : "No score yet", sort: score };
     }
     case "mine": {
-      const score = readNumberKey("mine-depth-best-v1");
-      return { label: score ? `Best ${score}m` : "No digs yet", sort: score };
+      const depth = readNumberKey("mine-depth-best-v1");
+      const oreScore = readNumberKey("mine-best-ore-v1");
+      const oreLabel =
+        typeof HubLeaderboard !== "undefined" && HubLeaderboard.formatScore
+          ? HubLeaderboard.formatScore("mine-ore", oreScore)
+          : "";
+      if (!depth && !oreScore) return { label: "No digs yet", sort: 0 };
+      const depthPart = depth ? `${depth}m` : "—";
+      const orePart = oreScore && oreLabel && oreLabel !== "—" ? ` · ${oreLabel}` : "";
+      return { label: `Best ${depthPart}${orePart}`, sort: depth || oreScore };
     }
     default:
       return { label: "—", sort: 0 };
