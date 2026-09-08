@@ -319,8 +319,8 @@
   }
 
   function calfCost() {
-    const base = 18 * Math.pow(1.065, state.calvesBought);
-    return Math.max(8, Math.floor(base * discountFactor()));
+    const base = 10 * Math.pow(1.045, state.calvesBought);
+    return Math.max(5, Math.floor(base * discountFactor()));
   }
 
   function sellValue(tier) {
