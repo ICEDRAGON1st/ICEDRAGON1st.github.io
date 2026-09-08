@@ -441,8 +441,8 @@
       });
       next.cooler = Array.isArray(raw.cooler)
         ? raw.cooler
-            .map((id) => String(id))
-            .filter((id) => fishById(id))
+            .map(normalizeCoolerEntry)
+            .filter(Boolean)
             .slice(0, coolerMaxFromOwned(next.owned))
         : [];
       return next;
@@ -456,6 +456,31 @@
       COOLER_BASE +
       GEAR.filter((g) => g.kind === "cooler" && owned[g.id]).reduce((s, g) => s + g.amount, 0)
     );
+  }
+
+  function normalizeCoolerEntry(entry) {
+    if (typeof entry === "string") {
+      const id = String(entry);
+      return fishById(id) ? { id, saved: false } : null;
+    }
+    if (entry && typeof entry === "object") {
+      const id = String(entry.id || "");
+      if (!fishById(id)) return null;
+      return { id, saved: !!entry.saved };
+    }
+    return null;
+  }
+
+  function coolerEntryId(entry) {
+    return entry?.id || "";
+  }
+
+  function isCoolerSaved(entry) {
+    return !!entry?.saved;
+  }
+
+  function unsavedCoolerCount() {
+    return state.cooler.filter((e) => !isCoolerSaved(e)).length;
   }
 
   function saveState() {
@@ -690,7 +715,7 @@
       window.HubSound?.play?.("miss");
       return false;
     }
-    state.cooler.push(fish.id);
+    state.cooler.push({ id: fish.id, saved: false });
     return true;
   }
 
@@ -828,12 +853,18 @@
     const i = Math.floor(Number(index));
     if (!Number.isFinite(i) || i < 0 || i >= state.cooler.length) return;
     ensureSession();
-    const id = state.cooler[i];
+    const entry = state.cooler[i];
+    const id = coolerEntryId(entry);
     const fish = fishById(id);
     if (!fish) {
       state.cooler.splice(i, 1);
       render(false);
       saveSoon();
+      return;
+    }
+    if (isCoolerSaved(entry)) {
+      setCatchLine(`${fish.name} is saved — unpin to sell`, "miss");
+      window.HubSound?.play?.("miss");
       return;
     }
     const val = fishValue(fish, currentSpot());
@@ -845,18 +876,43 @@
     saveSoon();
   }
 
+  function toggleSaveFish(index) {
+    const i = Math.floor(Number(index));
+    if (!Number.isFinite(i) || i < 0 || i >= state.cooler.length) return;
+    ensureSession();
+    const entry = state.cooler[i];
+    if (!entry || !fishById(coolerEntryId(entry))) return;
+    entry.saved = !entry.saved;
+    const fish = fishById(entry.id);
+    setCatchLine(
+      entry.saved ? `Saved ${fish.name} — won't sell until unpinned` : `Unsaved ${fish.name}`
+    );
+    window.HubSound?.play?.("click");
+    render(false);
+    saveSoon();
+  }
+
   function sellCooler() {
-    if (!state.cooler.length) return;
+    if (!unsavedCoolerCount()) return;
     ensureSession();
     const spot = currentSpot();
     let total = 0;
-    state.cooler.forEach((id) => {
-      const fish = fishById(id);
+    const kept = [];
+    state.cooler.forEach((entry) => {
+      if (isCoolerSaved(entry)) {
+        kept.push(entry);
+        return;
+      }
+      const fish = fishById(coolerEntryId(entry));
       if (fish) total += fishValue(fish, spot);
     });
-    state.cooler = [];
+    state.cooler = kept;
     addCoins(total);
-    setCatchLine(`Sold catch for ${formatNum(total)} coins`);
+    setCatchLine(
+      kept.length
+        ? `Sold catch for ${formatNum(total)} · ${kept.length} saved kept`
+        : `Sold catch for ${formatNum(total)} coins`
+    );
     window.HubSound?.play?.("win");
     render(false);
     saveSoon();
@@ -987,7 +1043,7 @@
         if (shouldAutoSell(fish.rarity)) {
           gained += fishValue(fish, spot);
         } else if (state.cooler.length < coolerMax()) {
-          state.cooler.push(fish.id);
+          state.cooler.push({ id: fish.id, saved: false });
         } else {
           gained += fishValue(fish, spot);
         }
@@ -1007,14 +1063,20 @@
   let coolerRenderKey = "";
 
   function coolerKey() {
-    return `${state.spotId}|${state.cooler.join(",")}|${coolerMax()}`;
+    return `${state.spotId}|${state.cooler
+      .map((e) => `${coolerEntryId(e)}${isCoolerSaved(e) ? "*" : ""}`)
+      .join(",")}|${coolerMax()}`;
   }
 
   function renderCooler(force = false) {
     if (coolerCountEl) coolerCountEl.textContent = String(state.cooler.length);
     if (coolerMaxEl) coolerMaxEl.textContent = String(coolerMax());
     if (hudCoolerEl) hudCoolerEl.textContent = `${state.cooler.length}/${coolerMax()}`;
-    if (sellBtn) sellBtn.disabled = state.cooler.length === 0;
+    if (sellBtn) {
+      const unsaved = unsavedCoolerCount();
+      sellBtn.disabled = unsaved === 0;
+      sellBtn.textContent = unsaved === state.cooler.length ? "Sell all" : "Sell unsaved";
+    }
     autoSellBox?.querySelectorAll("input[data-rarity]").forEach((input) => {
       const rarity = input.dataset.rarity;
       input.checked = shouldAutoSell(rarity);
@@ -1025,14 +1087,24 @@
     coolerRenderKey = nextKey;
     const spot = currentSpot();
     coolerList.innerHTML = state.cooler
-      .map((id, index) => {
-        const fish = fishById(id);
+      .map((entry, index) => {
+        const fish = fishById(coolerEntryId(entry));
         if (!fish) return "";
         const val = fishValue(fish, spot);
-        return `<button type="button" class="fish-chip ${fish.rarity}" data-sell-index="${index}" title="Sell for ${formatNum(val)}">
-          <span class="fish-chip-name">${fish.name}</span>
-          <span class="fish-chip-price">${formatNum(val)}</span>
-        </button>`;
+        const saved = isCoolerSaved(entry);
+        return `<div class="fish-chip ${fish.rarity}${saved ? " is-saved" : ""}" data-cooler-index="${index}">
+          <button type="button" class="fish-chip-save" data-save-index="${index}" title="${
+            saved ? "Unsave fish" : "Save fish (won't sell)"
+          }" aria-label="${saved ? "Unsave" : "Save"} ${fish.name}" aria-pressed="${saved}">${
+            saved ? "★" : "☆"
+          }</button>
+          <button type="button" class="fish-chip-sell" data-sell-index="${index}" title="${
+            saved ? "Saved — unpin to sell" : `Sell for ${formatNum(val)}`
+          }" ${saved ? "disabled" : ""}>
+            <span class="fish-chip-name">${fish.name}</span>
+            <span class="fish-chip-price">${formatNum(val)}</span>
+          </button>
+        </div>`;
       })
       .join("");
   }
@@ -1212,11 +1284,18 @@
   });
   sellBtn?.addEventListener("click", () => sellCooler());
   coolerList?.addEventListener("pointerdown", (e) => {
-    const btn = e.target.closest("[data-sell-index]");
-    if (!btn || !coolerList.contains(btn)) return;
+    const saveBtn = e.target.closest("[data-save-index]");
+    if (saveBtn && coolerList.contains(saveBtn)) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleSaveFish(saveBtn.dataset.saveIndex);
+      return;
+    }
+    const sellChip = e.target.closest("[data-sell-index]");
+    if (!sellChip || !coolerList.contains(sellChip) || sellChip.disabled) return;
     e.preventDefault();
     e.stopPropagation();
-    sellOneFish(btn.dataset.sellIndex);
+    sellOneFish(sellChip.dataset.sellIndex);
   });
   autoSellBox?.addEventListener("change", (e) => {
     const input = e.target.closest("input[data-rarity]");

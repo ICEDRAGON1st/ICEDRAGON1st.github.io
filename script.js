@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908z": [
+    "Fishing Idle: save (pin) cooler fish so they won't sell until you unsaved them"
+  ],
   "20260908y": [
     "Fishing Idle: Divine / Eternal / Cosmic rarities, more gear, late-game spots"
   ],

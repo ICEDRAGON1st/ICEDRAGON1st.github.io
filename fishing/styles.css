@@ -688,19 +688,64 @@ body {
   font: inherit;
   font-size: 0.75rem;
   font-weight: 700;
-  padding: 0.28rem 0.55rem;
+  padding: 0.15rem 0.2rem 0.15rem 0.15rem;
   border-radius: 999px;
   border: 1px solid var(--border);
   background: rgba(0, 0, 0, 0.25);
-  cursor: pointer;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.15rem;
+}
+
+.fish-chip.is-saved {
+  border-color: rgba(240, 193, 75, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(240, 193, 75, 0.2);
+}
+
+.fish-chip-save,
+.fish-chip-sell {
+  appearance: none;
+  font: inherit;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0.2rem 0.35rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.fish-chip-save {
+  font-size: 0.85rem;
+  line-height: 1;
+  color: var(--gold);
+  opacity: 0.75;
+  min-width: 1.5rem;
+  justify-content: center;
+}
+
+.fish-chip-save:hover,
+.fish-chip.is-saved .fish-chip-save {
+  opacity: 1;
+}
+
+.fish-chip-sell:hover:not(:disabled) {
+  filter: brightness(1.12);
+}
+
+.fish-chip-sell:disabled {
+  cursor: not-allowed;
+  opacity: 0.85;
 }
 
 .fish-chip:hover {
-  filter: brightness(1.12);
   border-color: rgba(46, 196, 182, 0.45);
+}
+
+.fish-chip.is-saved:hover {
+  border-color: rgba(240, 193, 75, 0.7);
 }
 
 .fish-chip-price {
