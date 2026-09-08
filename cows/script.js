@@ -33,16 +33,32 @@
     { id: "bulk1", name: "Bulk Bin", desc: "Calf cost −8%", baseCost: 200, kind: "discount", amount: 0.08 },
     { id: "bulk2", name: "Feed Deal", desc: "Calf cost −10%", baseCost: 1200, kind: "discount", amount: 0.1 },
     { id: "bulk3", name: "Herd Sale", desc: "Calf cost −12%", baseCost: 8000, kind: "discount", amount: 0.12 },
+    { id: "bulk4", name: "Wholesale Barn", desc: "Calf cost −15%", baseCost: 45000, kind: "discount", amount: 0.15 },
+    { id: "bulk5", name: "Cattle Cartel", desc: "Calf cost −18%", baseCost: 250000, kind: "discount", amount: 0.18 },
     { id: "milk1", name: "Better Feed", desc: "+25% herd milk/s", baseCost: 350, kind: "mult", amount: 0.25 },
     { id: "milk2", name: "Milk Pail", desc: "+40% herd milk/s", baseCost: 2500, kind: "mult", amount: 0.4 },
     { id: "milk3", name: "Creamery", desc: "+60% herd milk/s", baseCost: 18000, kind: "mult", amount: 0.6 },
     { id: "milk4", name: "Dairy Empire", desc: "+100% herd milk/s", baseCost: 120000, kind: "mult", amount: 1 },
+    { id: "milk5", name: "Butter Works", desc: "+150% herd milk/s", baseCost: 600000, kind: "mult", amount: 1.5 },
+    { id: "milk6", name: "Cheese Vault", desc: "+220% herd milk/s", baseCost: 2500000, kind: "mult", amount: 2.2 },
+    { id: "milk7", name: "Milky Way", desc: "+350% herd milk/s", baseCost: 12000000, kind: "mult", amount: 3.5 },
+    { id: "sell1", name: "Butcher Booth", desc: "+40% sell value", baseCost: 900, kind: "sell", amount: 0.4 },
+    { id: "sell2", name: "Cattle Auction", desc: "+70% sell value", baseCost: 12000, kind: "sell", amount: 0.7 },
+    { id: "sell3", name: "Stock Exchange", desc: "+120% sell value", baseCost: 180000, kind: "sell", amount: 1.2 },
+    { id: "offline1", name: "Night Pasture", desc: "+50% offline milk", baseCost: 4000, kind: "offline", amount: 0.5 },
+    { id: "offline2", name: "Moon Ranch", desc: "+100% offline milk", baseCost: 70000, kind: "offline", amount: 1 },
+    { id: "offline3", name: "Dream Dairy", desc: "+200% offline milk", baseCost: 900000, kind: "offline", amount: 2 },
+    { id: "spawn1", name: "Heifer Hatch", desc: "Buys start as Heifer (tier 2)", baseCost: 25000, kind: "spawn", amount: 1 },
+    { id: "spawn2", name: "Dairy Start", desc: "Buys start as Dairy Cow (tier 3)", baseCost: 350000, kind: "spawn", amount: 1 },
+    { id: "spawn3", name: "Prize Start", desc: "Buys start as Prize Cow (tier 4)", baseCost: 4000000, kind: "spawn", amount: 1 },
     { id: "auto1", name: "Farmhand", desc: "Auto-buy calf every 8s", baseCost: 5000, kind: "auto", amount: 8 },
     { id: "auto2", name: "Ranch Crew", desc: "Auto-buy calf every 4s", baseCost: 45000, kind: "auto", amount: 4 },
     { id: "auto3", name: "Mega Ranch", desc: "Auto-buy calf every 2s", baseCost: 350000, kind: "auto", amount: 2 },
+    { id: "auto4", name: "Cow Copter", desc: "Auto-buy every 1.2s", baseCost: 2200000, kind: "auto", amount: 1.2 },
     { id: "merge1", name: "Herd Sorter", desc: "Auto-merge a match every 15s", baseCost: 7500, kind: "merge", amount: 15 },
     { id: "merge2", name: "Match Maker", desc: "Auto-merge a match every 10s", baseCost: 55000, kind: "merge", amount: 10 },
-    { id: "merge3", name: "Merge Master", desc: "Auto-merge a match every 6s", baseCost: 400000, kind: "merge", amount: 6 }
+    { id: "merge3", name: "Merge Master", desc: "Auto-merge a match every 6s", baseCost: 400000, kind: "merge", amount: 6 },
+    { id: "merge4", name: "Fusion Fence", desc: "Auto-merge every 3.5s", baseCost: 2800000, kind: "merge", amount: 3.5 }
   ];
 
   const milkCountEl = document.getElementById("milk-count");
@@ -131,6 +147,49 @@
     );
   }
 
+  function sellMult() {
+    return (
+      1 +
+      UPGRADES.filter((u) => u.kind === "sell" && state.owned[u.id] > 0).reduce(
+        (s, u) => s + u.amount,
+        0
+      )
+    );
+  }
+
+  function offlineMult() {
+    return (
+      1 +
+      UPGRADES.filter((u) => u.kind === "offline" && state.owned[u.id] > 0).reduce(
+        (s, u) => s + u.amount,
+        0
+      )
+    );
+  }
+
+  function spawnTier() {
+    const bonus = UPGRADES.filter((u) => u.kind === "spawn" && state.owned[u.id] > 0).reduce(
+      (s, u) => s + u.amount,
+      0
+    );
+    return Math.max(1, Math.min(COWS.length, 1 + bonus));
+  }
+
+  function spawnCowName() {
+    return cowByTier(spawnTier())?.name || "Calf";
+  }
+
+  function isOneShotUpgrade(u) {
+    return (
+      u.kind === "auto" ||
+      u.kind === "merge" ||
+      u.kind === "discount" ||
+      u.kind === "sell" ||
+      u.kind === "offline" ||
+      u.kind === "spawn"
+    );
+  }
+
   function isTimedUpgrade(u) {
     return u.kind === "auto" || u.kind === "merge";
   }
@@ -195,7 +254,7 @@
 
   function workerMeta(upgrade) {
     if (upgrade.kind === "merge") return `merges a match every ${upgrade.amount}s`;
-    return `buys calf every ${upgrade.amount}s`;
+    return `buys ${spawnCowName().toLowerCase()} every ${upgrade.amount}s`;
   }
 
   function autoRemaining(auto) {
@@ -326,7 +385,7 @@
   function sellValue(tier) {
     const cow = cowByTier(tier);
     if (!cow) return 0;
-    return Math.max(1, Math.floor(cow.mps * 12));
+    return Math.max(1, Math.floor(cow.mps * 12 * sellMult()));
   }
 
   function herdMps() {
@@ -467,12 +526,14 @@
       if (!silent) setStatus("Pasture full — merge or sell", "miss");
       return false;
     }
+    const tier = spawnTier();
+    const cow = cowByTier(tier);
     state.milk -= cost;
     state.calvesBought += 1;
-    state.board[slot] = 1;
-    noteBestTier(1);
+    state.board[slot] = tier;
+    noteBestTier(tier);
     if (!silent) {
-      setStatus(`Bought ${cowByTier(1).name} for ${formatNum(cost)}`, "ok");
+      setStatus(`Bought ${cow.name} for ${formatNum(cost)}`, "ok");
       window.HubSound?.play?.("click");
     }
     return true;
@@ -515,8 +576,7 @@
 
   function upgradeCost(upgrade) {
     const owned = state.owned[upgrade.id] || 0;
-    if (upgrade.kind === "auto" || upgrade.kind === "merge" || upgrade.kind === "discount") {
-      // one-shot style: only first purchase matters, but allow 0/1
+    if (isOneShotUpgrade(upgrade)) {
       return owned > 0 ? Infinity : upgrade.baseCost;
     }
     return Math.floor(upgrade.baseCost * Math.pow(1.55, owned));
@@ -527,7 +587,7 @@
     if (!upgrade) return;
     const cost = upgradeCost(upgrade);
     if (!Number.isFinite(cost) || state.milk < cost) return;
-    if ((upgrade.kind === "auto" || upgrade.kind === "merge" || upgrade.kind === "discount") && state.owned[id] > 0) return;
+    if (isOneShotUpgrade(upgrade) && state.owned[id] > 0) return;
     ensureSession();
     state.milk -= cost;
     state.owned[id] = (state.owned[id] || 0) + 1;
@@ -548,7 +608,7 @@
     }
     const mps = herdMps();
     if (mps > 0) {
-      const gained = mps * (elapsed / 1000);
+      const gained = mps * (elapsed / 1000) * offlineMult();
       addMilk(gained);
       setStatus(`While away your herd made ${formatNum(gained)} milk`, "ok");
     }
@@ -630,7 +690,8 @@
     renderAutoTimers();
     if (buyBtn) {
       const cost = calfCost();
-      buyBtn.textContent = `Buy Calf · ${formatNum(cost)}`;
+      const name = spawnCowName();
+      buyBtn.textContent = `Buy ${name} · ${formatNum(cost)}`;
       buyBtn.disabled = state.milk < cost || filledCount() >= CELLS;
     }
   }
@@ -751,7 +812,8 @@
     }
     if (buyBtn) {
       const cost = calfCost();
-      buyBtn.textContent = `Buy Calf · ${formatNum(cost)}`;
+      const name = spawnCowName();
+      buyBtn.textContent = `Buy ${name} · ${formatNum(cost)}`;
       buyBtn.disabled = state.milk < cost || filledCount() >= CELLS;
     }
     saveSoon();
