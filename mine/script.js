@@ -10,50 +10,98 @@
 
   const LAYERS = [
     { id: "soil", name: "Soil", min: 0, color: "#8d6e4c" },
-    { id: "clay", name: "Clay", min: 40, color: "#a67c52" },
-    { id: "sandstone", name: "Sandstone", min: 100, color: "#c4a574" },
-    { id: "stone", name: "Stone", min: 200, color: "#7a7f86" },
-    { id: "granite", name: "Granite", min: 350, color: "#9b8b7a" },
-    { id: "iron", name: "Iron vein", min: 550, color: "#9aa4b2" },
+    { id: "clay", name: "Clay", min: 35, color: "#a67c52" },
+    { id: "peat", name: "Peat", min: 70, color: "#5c4030" },
+    { id: "sandstone", name: "Sandstone", min: 110, color: "#c4a574" },
+    { id: "limestone", name: "Limestone", min: 160, color: "#d6d0c2" },
+    { id: "stone", name: "Stone", min: 220, color: "#7a7f86" },
+    { id: "shale", name: "Shale", min: 290, color: "#6b6358" },
+    { id: "granite", name: "Granite", min: 380, color: "#9b8b7a" },
+    { id: "basalt", name: "Basalt", min: 470, color: "#4b5563" },
+    { id: "iron", name: "Iron vein", min: 580, color: "#9aa4b2" },
+    { id: "slate", name: "Slate", min: 720, color: "#64748b" },
     { id: "quartz", name: "Quartz", min: 900, color: "#d8d0c4" },
-    { id: "crystal", name: "Crystal", min: 1400, color: "#5ec8c0" },
-    { id: "obsidian", name: "Obsidian", min: 2200, color: "#3b3348" },
-    { id: "magma", name: "Magma", min: 3500, color: "#e85d3c" },
-    { id: "mantle", name: "Mantle", min: 5500, color: "#c2410c" },
-    { id: "abyss", name: "Abyss", min: 8500, color: "#4a5568" },
-    { id: "nether", name: "Nether", min: 13000, color: "#7f1d1d" },
-    { id: "core", name: "Core", min: 20000, color: "#f0c14b" },
+    { id: "marble", name: "Marble", min: 1150, color: "#e7e5e4" },
+    { id: "crystal", name: "Crystal", min: 1450, color: "#5ec8c0" },
+    { id: "geode", name: "Geode beds", min: 1800, color: "#a78bfa" },
+    { id: "obsidian", name: "Obsidian", min: 2300, color: "#3b3348" },
+    { id: "brimstone", name: "Brimstone", min: 2900, color: "#b45309" },
+    { id: "magma", name: "Magma", min: 3600, color: "#e85d3c" },
+    { id: "lava", name: "Lava sea", min: 4500, color: "#dc2626" },
+    { id: "mantle", name: "Mantle", min: 5600, color: "#c2410c" },
+    { id: "deepmantle", name: "Deep Mantle", min: 7000, color: "#9a3412" },
+    { id: "abyss", name: "Abyss", min: 8800, color: "#4a5568" },
+    { id: "trench", name: "Dark Trench", min: 10800, color: "#1e293b" },
+    { id: "nether", name: "Nether", min: 13500, color: "#7f1d1d" },
+    { id: "infernal", name: "Infernal", min: 16500, color: "#991b1b" },
+    { id: "core", name: "Core", min: 20500, color: "#f0c14b" },
+    { id: "innercore", name: "Inner Core", min: 25500, color: "#fbbf24" },
     { id: "hollow", name: "Hollow Earth", min: 32000, color: "#86efac" },
+    { id: "garden", name: "Lost Garden", min: 40000, color: "#4ade80" },
     { id: "primordial", name: "Primordial", min: 50000, color: "#c084fc" },
-    { id: "singularity", name: "Singularity", min: 80000, color: "#111827" }
+    { id: "aetherbed", name: "Aether Bed", min: 62000, color: "#67e8f9" },
+    { id: "singularity", name: "Singularity", min: 80000, color: "#111827" },
+    { id: "rift", name: "Rift", min: 105000, color: "#312e81" },
+    { id: "voidsea", name: "Void Sea", min: 140000, color: "#0f172a" },
+    { id: "astral", name: "Astral Crust", min: 190000, color: "#e0e7ff" },
+    { id: "cosmic", name: "Cosmic Mantle", min: 260000, color: "#818cf8" },
+    { id: "omega", name: "Omega Depth", min: 360000, color: "#f472b6" },
+    { id: "absolute", name: "Absolute Zero", min: 500000, color: "#e2e8f0" }
   ];
 
   const ORES = [
     { id: "dirt", name: "Dirt", emoji: "🪨", value: 1, weight: 42, minDepth: 0 },
-    { id: "pebble", name: "Pebble", emoji: "⚪", value: 2, weight: 28, minDepth: 10 },
-    { id: "coal", name: "Coal", emoji: "⬛", value: 4, weight: 22, minDepth: 25 },
-    { id: "tin", name: "Tin", emoji: "🪙", value: 7, weight: 18, minDepth: 50 },
-    { id: "copper", name: "Copper", emoji: "🟠", value: 10, weight: 15, minDepth: 80 },
-    { id: "zinc", name: "Zinc", emoji: "🩶", value: 15, weight: 13, minDepth: 130 },
-    { id: "iron", name: "Iron", emoji: "⚙️", value: 22, weight: 12, minDepth: 180 },
-    { id: "nickel", name: "Nickel", emoji: "🔘", value: 35, weight: 10, minDepth: 280 },
+    { id: "pebble", name: "Pebble", emoji: "⚪", value: 2, weight: 28, minDepth: 8 },
+    { id: "claylump", name: "Clay Lump", emoji: "🟤", value: 3, weight: 24, minDepth: 20 },
+    { id: "coal", name: "Coal", emoji: "⬛", value: 4, weight: 22, minDepth: 30 },
+    { id: "amber", name: "Amber", emoji: "🟡", value: 5, weight: 16, minDepth: 45 },
+    { id: "tin", name: "Tin", emoji: "🪙", value: 7, weight: 18, minDepth: 55 },
+    { id: "lead", name: "Lead", emoji: "◼️", value: 8, weight: 14, minDepth: 70 },
+    { id: "copper", name: "Copper", emoji: "🟠", value: 10, weight: 15, minDepth: 85 },
+    { id: "flint", name: "Flint", emoji: "🗿", value: 12, weight: 12, minDepth: 110 },
+    { id: "zinc", name: "Zinc", emoji: "🩶", value: 15, weight: 13, minDepth: 140 },
+    { id: "iron", name: "Iron", emoji: "⚙️", value: 22, weight: 12, minDepth: 190 },
+    { id: "pyrite", name: "Pyrite", emoji: "🟨", value: 28, weight: 9, minDepth: 240 },
+    { id: "nickel", name: "Nickel", emoji: "🔘", value: 35, weight: 10, minDepth: 290 },
     { id: "silver", name: "Silver", emoji: "🥈", value: 48, weight: 8, minDepth: 400 },
-    { id: "cobalt", name: "Cobalt", emoji: "🔵", value: 70, weight: 6.5, minDepth: 550 },
-    { id: "gold", name: "Gold", emoji: "🥇", value: 110, weight: 5, minDepth: 750 },
-    { id: "platinum", name: "Platinum", emoji: "💍", value: 160, weight: 4, minDepth: 1100 },
-    { id: "emerald", name: "Emerald", emoji: "💚", value: 200, weight: 3.4, minDepth: 1500 },
-    { id: "gem", name: "Gem", emoji: "💎", value: 260, weight: 2.8, minDepth: 1900 },
-    { id: "ruby", name: "Ruby", emoji: "❤️", value: 380, weight: 2.2, minDepth: 2500 },
-    { id: "mythril", name: "Mythril", emoji: "🔷", value: 650, weight: 1.6, minDepth: 3800 },
-    { id: "adamant", name: "Adamant", emoji: "🛡️", value: 900, weight: 1.2, minDepth: 5000 },
-    { id: "orichalcum", name: "Orichalcum", emoji: "🔶", value: 1200, weight: 0.95, minDepth: 6500 },
-    { id: "void", name: "Void Ore", emoji: "🌑", value: 1800, weight: 0.7, minDepth: 9000 },
-    { id: "aether", name: "Aether", emoji: "🌀", value: 2800, weight: 0.45, minDepth: 14000 },
-    { id: "star", name: "Starcore", emoji: "✨", value: 5000, weight: 0.28, minDepth: 21000 },
-    { id: "chronite", name: "Chronite", emoji: "⏳", value: 7500, weight: 0.18, minDepth: 30000 },
-    { id: "hollow", name: "Hollow Shard", emoji: "🕳️", value: 12000, weight: 0.12, minDepth: 40000 },
-    { id: "primordial", name: "Primordial Ore", emoji: "🧬", value: 20000, weight: 0.07, minDepth: 55000 },
-    { id: "singularity", name: "Singularity Ore", emoji: "⚫", value: 40000, weight: 0.03, minDepth: 80000 }
+    { id: "magnetite", name: "Magnetite", emoji: "🧲", value: 58, weight: 7, minDepth: 480 },
+    { id: "cobalt", name: "Cobalt", emoji: "🔵", value: 70, weight: 6.5, minDepth: 580 },
+    { id: "jade", name: "Jade", emoji: "🟢", value: 88, weight: 5.5, minDepth: 680 },
+    { id: "gold", name: "Gold", emoji: "🥇", value: 110, weight: 5, minDepth: 780 },
+    { id: "topaz", name: "Topaz", emoji: "🟠", value: 135, weight: 4.4, minDepth: 950 },
+    { id: "platinum", name: "Platinum", emoji: "💍", value: 160, weight: 4, minDepth: 1150 },
+    { id: "opal", name: "Opal", emoji: "🌈", value: 180, weight: 3.6, minDepth: 1350 },
+    { id: "emerald", name: "Emerald", emoji: "💚", value: 200, weight: 3.4, minDepth: 1550 },
+    { id: "sapphire", name: "Sapphire", emoji: "💙", value: 230, weight: 3, minDepth: 1750 },
+    { id: "gem", name: "Gem", emoji: "💎", value: 260, weight: 2.8, minDepth: 1950 },
+    { id: "amethyst", name: "Amethyst", emoji: "💜", value: 310, weight: 2.4, minDepth: 2200 },
+    { id: "ruby", name: "Ruby", emoji: "❤️", value: 380, weight: 2.2, minDepth: 2550 },
+    { id: "diamond", name: "Diamond", emoji: "💠", value: 480, weight: 1.9, minDepth: 3100 },
+    { id: "mythril", name: "Mythril", emoji: "🔷", value: 650, weight: 1.6, minDepth: 3900 },
+    { id: "obsidianore", name: "Obsidian Ore", emoji: "🖤", value: 780, weight: 1.35, minDepth: 4500 },
+    { id: "adamant", name: "Adamant", emoji: "🛡️", value: 900, weight: 1.2, minDepth: 5200 },
+    { id: "infernalite", name: "Infernalite", emoji: "🔥", value: 1050, weight: 1.05, minDepth: 6000 },
+    { id: "orichalcum", name: "Orichalcum", emoji: "🔶", value: 1200, weight: 0.95, minDepth: 6800 },
+    { id: "runestone", name: "Runestone", emoji: "📜", value: 1500, weight: 0.8, minDepth: 8000 },
+    { id: "void", name: "Void Ore", emoji: "🌑", value: 1800, weight: 0.7, minDepth: 9500 },
+    { id: "nightsteel", name: "Nightsteel", emoji: "🗡️", value: 2200, weight: 0.55, minDepth: 11500 },
+    { id: "aether", name: "Aether", emoji: "🌀", value: 2800, weight: 0.45, minDepth: 14500 },
+    { id: "phoenixite", name: "Phoenixite", emoji: "🐦", value: 3600, weight: 0.35, minDepth: 17500 },
+    { id: "star", name: "Starcore", emoji: "✨", value: 5000, weight: 0.28, minDepth: 21500 },
+    { id: "solarium", name: "Solarium", emoji: "☀️", value: 6200, weight: 0.22, minDepth: 26000 },
+    { id: "chronite", name: "Chronite", emoji: "⏳", value: 7500, weight: 0.18, minDepth: 32000 },
+    { id: "dreamglass", name: "Dreamglass", emoji: "🫧", value: 9500, weight: 0.14, minDepth: 38000 },
+    { id: "hollow", name: "Hollow Shard", emoji: "🕳️", value: 12000, weight: 0.12, minDepth: 42000 },
+    { id: "edenite", name: "Edenite", emoji: "🌱", value: 15500, weight: 0.09, minDepth: 48000 },
+    { id: "primordial", name: "Primordial Ore", emoji: "🧬", value: 20000, weight: 0.07, minDepth: 56000 },
+    { id: "celestium", name: "Celestium", emoji: "☁️", value: 28000, weight: 0.05, minDepth: 68000 },
+    { id: "singularity", name: "Singularity Ore", emoji: "⚫", value: 40000, weight: 0.035, minDepth: 82000 },
+    { id: "riftcrystal", name: "Rift Crystal", emoji: "🔮", value: 55000, weight: 0.025, minDepth: 110000 },
+    { id: "voidpearl", name: "Void Pearl", emoji: "👁️", value: 75000, weight: 0.018, minDepth: 150000 },
+    { id: "astrium", name: "Astrium", emoji: "🌠", value: 110000, weight: 0.012, minDepth: 200000 },
+    { id: "cosmite", name: "Cosmite", emoji: "🌌", value: 160000, weight: 0.008, minDepth: 270000 },
+    { id: "omegite", name: "Omegite", emoji: "Ω", value: 250000, weight: 0.005, minDepth: 370000 },
+    { id: "absolute", name: "Absolute Ore", emoji: "❄️", value: 400000, weight: 0.0025, minDepth: 500000 }
   ];
 
   const UPGRADES = [
@@ -65,26 +113,34 @@
     { id: "pick6", name: "Core Drill Bit", desc: "+15m per dig", baseCost: 95000, kind: "power", amount: 15 },
     { id: "pick7", name: "Void Chisel", desc: "+30m per dig", baseCost: 520000, kind: "power", amount: 30 },
     { id: "pick8", name: "Star Pick", desc: "+60m per dig", baseCost: 2800000, kind: "power", amount: 60 },
+    { id: "pick9", name: "Rift Pick", desc: "+120m per dig", baseCost: 18000000, kind: "power", amount: 120 },
+    { id: "pick10", name: "Omega Bore Tip", desc: "+250m per dig", baseCost: 120000000, kind: "power", amount: 250 },
     { id: "drill1", name: "Hand Drill", desc: "Auto dig 0.4/s", baseCost: 80, kind: "drill", amount: 0.4 },
     { id: "drill2", name: "Tunnel Crew", desc: "Auto dig 1/s", baseCost: 500, kind: "drill", amount: 1 },
     { id: "drill3", name: "Bore Machine", desc: "Auto dig 2.5/s", baseCost: 3500, kind: "drill", amount: 2.5 },
     { id: "drill4", name: "Shaft Fleet", desc: "Auto dig 6/s", baseCost: 28000, kind: "drill", amount: 6 },
     { id: "drill5", name: "Mega Bore", desc: "Auto dig 14/s", baseCost: 220000, kind: "drill", amount: 14 },
     { id: "drill6", name: "Planet Drill", desc: "Auto dig 35/s", baseCost: 1600000, kind: "drill", amount: 35 },
+    { id: "drill7", name: "Rift Engine", desc: "Auto dig 80/s", baseCost: 22000000, kind: "drill", amount: 80 },
+    { id: "drill8", name: "Cosmic Auger", desc: "Auto dig 180/s", baseCost: 250000000, kind: "drill", amount: 180 },
     { id: "luck1", name: "Lucky Lamp", desc: "+25% rare ore odds", baseCost: 200, kind: "luck", amount: 0.25 },
     { id: "luck2", name: "Ore Dog", desc: "+50% rare ore odds", baseCost: 2500, kind: "luck", amount: 0.5 },
     { id: "luck3", name: "Seer Goggles", desc: "+100% rare ore odds", baseCost: 45000, kind: "luck", amount: 1 },
     { id: "luck4", name: "Fate Compass", desc: "+200% rare ore odds", baseCost: 650000, kind: "luck", amount: 2 },
+    { id: "luck5", name: "Oracle Lens", desc: "+350% rare ore odds", baseCost: 12000000, kind: "luck", amount: 3.5 },
     { id: "sell1", name: "Ore Broker", desc: "+40% sell value", baseCost: 350, kind: "sell", amount: 0.4 },
     { id: "sell2", name: "Trade Post", desc: "+80% sell value", baseCost: 8000, kind: "sell", amount: 0.8 },
     { id: "sell3", name: "Guild Market", desc: "+150% sell value", baseCost: 120000, kind: "sell", amount: 1.5 },
     { id: "sell4", name: "Royal Charter", desc: "+250% sell value", baseCost: 1400000, kind: "sell", amount: 2.5 },
+    { id: "sell5", name: "Cosmic Exchange", desc: "+400% sell value", baseCost: 35000000, kind: "sell", amount: 4 },
     { id: "off1", name: "Night Shift", desc: "+50% offline digs", baseCost: 1500, kind: "offline", amount: 0.5 },
     { id: "off2", name: "Autopilot Crew", desc: "+100% offline digs", baseCost: 35000, kind: "offline", amount: 1 },
     { id: "off3", name: "Dream Bore", desc: "+200% offline digs", baseCost: 500000, kind: "offline", amount: 2 },
+    { id: "off4", name: "Eternal Crew", desc: "+400% offline digs", baseCost: 18000000, kind: "offline", amount: 4 },
     { id: "cart1", name: "Bigger Cart", desc: "Cart holds +10 ore", baseCost: 400, kind: "cart", amount: 10 },
     { id: "cart2", name: "Mine Wagon", desc: "Cart holds +20 ore", baseCost: 12000, kind: "cart", amount: 20 },
-    { id: "cart3", name: "Ore Train", desc: "Cart holds +40 ore", baseCost: 180000, kind: "cart", amount: 40 }
+    { id: "cart3", name: "Ore Train", desc: "Cart holds +40 ore", baseCost: 180000, kind: "cart", amount: 40 },
+    { id: "cart4", name: "Void Hopper", desc: "Cart holds +80 ore", baseCost: 8000000, kind: "cart", amount: 80 }
   ];
 
   const coinCountEl = document.getElementById("coin-count");
@@ -129,8 +185,8 @@
   let shopDirty = true;
   let strataBuilt = false;
   let lastClickAt = 0;
-  const PX_PER_M = 2.2;
-  const VIEW_PAD = 160;
+  const BAND_H = 160;
+  const VIEW_PAD = 120;
 
   function defaultState() {
     const owned = {};
@@ -164,6 +220,7 @@
 
   function formatNum(n) {
     const x = Number(n) || 0;
+    if (x >= 1e15) return (x / 1e15).toFixed(2).replace(/\.?0+$/, "") + "Qa";
     if (x >= 1e12) return (x / 1e12).toFixed(2).replace(/\.?0+$/, "") + "T";
     if (x >= 1e9) return (x / 1e9).toFixed(2).replace(/\.?0+$/, "") + "B";
     if (x >= 1e6) return (x / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M";
@@ -354,11 +411,13 @@
     if (!window.HubAchievements) return;
     const d = Math.floor(state.bestDepth);
     if (d >= 50) HubAchievements.unlock("mine_depth_50");
-    if (d >= 550) HubAchievements.unlock("mine_depth_400");
-    if (d >= 3500) HubAchievements.unlock("mine_depth_2500");
-    if (d >= 20000) HubAchievements.unlock("mine_depth_15000");
+    if (d >= 580) HubAchievements.unlock("mine_depth_400");
+    if (d >= 3600) HubAchievements.unlock("mine_depth_2500");
+    if (d >= 20500) HubAchievements.unlock("mine_depth_15000");
     if (d >= 32000) HubAchievements.unlock("mine_depth_32000");
     if (d >= 80000) HubAchievements.unlock("mine_depth_80000");
+    if (d >= 190000) HubAchievements.unlock("mine_depth_190000");
+    if (d >= 500000) HubAchievements.unlock("mine_depth_500000");
     if (drillRate() > 0) HubAchievements.unlock("mine_drill");
     try {
       const life = Number(localStorage.getItem("mine-depth-lifetime-coins") || 0);
@@ -377,25 +436,28 @@
   function buildStrata() {
     if (!strataEl || strataBuilt) return;
     strataBuilt = true;
-    const maxDepth = 100000;
-    const totalH = maxDepth * PX_PER_M + 800;
+    const totalH = LAYERS.length * BAND_H + 400;
     strataEl.style.height = `${totalH}px`;
-    let html = "";
-    for (let i = 0; i < LAYERS.length; i += 1) {
-      const layer = LAYERS[i];
-      const next = LAYERS[i + 1];
-      const startY = layer.min * PX_PER_M;
-      const endY = (next ? next.min : maxDepth) * PX_PER_M;
-      html += `<div class="strata-band" style="top:${startY}px;height:${Math.max(80, endY - startY)}px;background:linear-gradient(180deg, ${layer.color}cc, ${layer.color}88);">${layer.name}</div>`;
-    }
-    strataEl.innerHTML = html;
+    strataEl.innerHTML = LAYERS.map((layer, i) => {
+      const startY = i * BAND_H;
+      return `<div class="strata-band" style="top:${startY}px;height:${BAND_H}px;background:linear-gradient(180deg, ${layer.color}cc, ${layer.color}88);">${layer.name}<span class="strata-depth">${formatDepth(layer.min)}+</span></div>`;
+    }).join("");
+  }
+
+  function shaftScrollForDepth(depth) {
+    const layer = layerFor(depth);
+    const idx = LAYERS.findIndex((l) => l.id === layer.id);
+    const next = LAYERS[idx + 1];
+    const span = next ? Math.max(1, next.min - layer.min) : Math.max(1, layer.min * 0.25 || 50000);
+    const prog = next ? Math.min(1, Math.max(0, (depth - layer.min) / span)) : Math.min(1, (depth - layer.min) / span);
+    return Math.max(0, (idx + prog) * BAND_H - VIEW_PAD);
   }
 
   function updateShaftView(animateDig) {
     buildStrata();
     const depth = state.depth;
     const layer = layerFor(depth);
-    const scroll = Math.max(0, depth * PX_PER_M - VIEW_PAD);
+    const scroll = shaftScrollForDepth(depth);
     if (strataEl) strataEl.style.transform = `translateY(${-scroll}px)`;
 
     if (rockFaceEl) {
@@ -404,13 +466,13 @@
         linear-gradient(180deg, ${layer.color}, #241910 85%)`;
     }
     if (surfaceLightEl) {
-      surfaceLightEl.style.opacity = String(Math.max(0.05, 0.9 - depth / 800));
+      surfaceLightEl.style.opacity = String(Math.max(0.04, 0.9 - depth / 2500));
     }
 
-    const viewSpan = 180;
-    if (rulerTopEl) rulerTopEl.textContent = formatDepth(Math.max(0, depth - viewSpan * 0.35));
+    const viewSpan = Math.max(40, digPower() * 8);
+    if (rulerTopEl) rulerTopEl.textContent = formatDepth(Math.max(0, depth - viewSpan));
     if (rulerMidEl) rulerMidEl.textContent = formatDepth(depth);
-    if (rulerBotEl) rulerBotEl.textContent = formatDepth(depth + viewSpan * 0.45);
+    if (rulerBotEl) rulerBotEl.textContent = formatDepth(depth + viewSpan);
 
     if (animateDig && shaftViewport) {
       shaftViewport.classList.remove("digging");

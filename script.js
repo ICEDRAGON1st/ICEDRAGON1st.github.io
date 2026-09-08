@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908at": [
+    "Mine Depth: many more layers and ores (to Absolute Zero)"
+  ],
   "20260908as": [
     "Mine Depth: more layers and ores (down to Singularity)"
   ],
