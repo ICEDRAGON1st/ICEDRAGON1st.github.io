@@ -4,6 +4,7 @@
   const TICK_MS = 100;
   const CART_MAX = 20;
   const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
+  const MIN_CLICK_MS = 75;
 
   const LAYERS = [
     { id: "soil", name: "Soil", min: 0, color: "#8d6e4c" },
@@ -101,6 +102,7 @@
   let autoAcc = 0;
   let shopDirty = true;
   let strataBuilt = false;
+  let lastClickAt = 0;
   const PX_PER_M = 2.2;
   const VIEW_PAD = 160;
 
@@ -398,6 +400,11 @@
 
   function doDigBatch(count, source) {
     if (count <= 0) return;
+    if (source === "click") {
+      const now = Date.now();
+      if (now - lastClickAt < MIN_CLICK_MS) return;
+      lastClickAt = now;
+    }
     ensureSession();
     const power = digPower();
     const meters = Math.max(0.05, count * power);

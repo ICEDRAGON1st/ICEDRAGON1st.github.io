@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908aq": [
+    "Mine Depth: dig clicks capped at 75ms"
+  ],
   "20260908ap": [
     "Mine Depth: dig feels like going down a shaft"
   ],
