@@ -11,10 +11,12 @@
   const PATH = "online-matches";
   const API = `https://mantledb.sh/v2/${NS}/${PATH}`;
   const LOCAL_KEY = "hub-online-matches-v1";
-  const WAIT_TTL_MS = 90 * 1000;
+  const ACTIVE_KEY = "hub-online-active-room-v1";
+  const WAIT_TTL_MS = 3 * 60 * 1000;
   const ROOM_TTL_MS = 60 * 60 * 1000;
-  const POLL_MS = 1200;
+  const POLL_MS = 1100;
   const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const MUTATE_RETRIES = 3;
 
   const GAMES = {
     tictactoe: {
@@ -79,6 +81,21 @@
     try {
       localStorage.setItem(LOCAL_KEY, JSON.stringify(cache));
     } catch {}
+    persistActiveRoom();
+  }
+
+  function persistActiveRoom() {
+    try {
+      if (activeRoomId) localStorage.setItem(ACTIVE_KEY, activeRoomId);
+      else localStorage.removeItem(ACTIVE_KEY);
+    } catch {}
+  }
+
+  function restoreActiveRoom() {
+    try {
+      const id = String(localStorage.getItem(ACTIVE_KEY) || "");
+      if (id && cache.rooms[id]) activeRoomId = id;
+    } catch {}
   }
 
   async function fetchJson(url) {
@@ -139,30 +156,81 @@
 
   async function mutate(updater) {
     const run = async () => {
-      let remote = cache;
-      try {
-        remote = await fetchRemote();
-      } catch {
-        remote = cache;
+      let last = null;
+      for (let attempt = 0; attempt < MUTATE_RETRIES; attempt += 1) {
+        let remote = cache;
+        try {
+          remote = await fetchRemote();
+        } catch {
+          remote = cache;
+        }
+        const base = { rooms: mergeRooms(cache.rooms, remote.rooms) };
+        const next = updater(base);
+        if (!next) return null;
+        saveLocal(next);
+        try {
+          await postJson(API, next);
+        } catch {
+          // Keep local optimistic state; retry merge next loop / poll.
+          return next;
+        }
+        try {
+          const confirmed = await fetchRemote();
+          const merged = { rooms: mergeRooms(next.rooms, confirmed.rooms) };
+          saveLocal(merged);
+          // If our active room vanished due to a concurrent overwrite, retry.
+          if (activeRoomId && !merged.rooms[activeRoomId] && attempt < MUTATE_RETRIES - 1) {
+            last = merged;
+            continue;
+          }
+          emit();
+          return cache;
+        } catch {
+          emit();
+          return cache;
+        }
       }
-      const base = { rooms: mergeRooms(cache.rooms, remote.rooms) };
-      const next = updater(base);
-      if (!next) return null;
-      saveLocal(next);
-      try {
-        await postJson(API, next);
-      } catch {
-        return next;
-      }
-      try {
-        const confirmed = await fetchRemote();
-        saveLocal({ rooms: mergeRooms(next.rooms, confirmed.rooms) });
-      } catch {}
       emit();
-      return cache;
+      return last || cache;
     };
     writeQueue = writeQueue.then(run, run);
     return writeQueue;
+  }
+
+  function roomAge(room) {
+    return Date.now() - (Number(room?.updatedAt) || Number(room?.createdAt) || 0);
+  }
+
+  function listQuickWaiting(rooms, game, exceptPlayerId = "") {
+    return Object.values(rooms || {})
+      .filter(
+        (r) =>
+          r &&
+          r.game === game &&
+          r.queue === "quick" &&
+          r.status === "waiting" &&
+          r.host?.playerId &&
+          r.host.playerId !== exceptPlayerId &&
+          roomAge(r) <= WAIT_TTL_MS
+      )
+      .sort((a, b) => {
+        const ac = Number(a.createdAt) || 0;
+        const bc = Number(b.createdAt) || 0;
+        if (ac !== bc) return ac - bc;
+        return String(a.id).localeCompare(String(b.id));
+      });
+  }
+
+  function claimWaitingRoom(rooms, waiting, playerId, name) {
+    const now = Date.now();
+    rooms[waiting.id] = {
+      ...waiting,
+      guest: seat(playerId, name),
+      status: "playing",
+      updatedAt: now
+    };
+    activeRoomId = waiting.id;
+    persistActiveRoom();
   }
 
   function seat(playerId, name) {
@@ -203,38 +271,33 @@
     const id = requireIdentity();
     if (!id.ok) return id;
 
+    // Drop any stale search from this device first.
+    const existing = getRoom();
+    if (existing && existing.game === game && existing.status === "waiting") {
+      await cancelQuickMatch(game);
+    }
+
     const joined = await mutate((data) => {
       const rooms = { ...data.rooms };
       const now = Date.now();
-      const waiting = Object.values(rooms).find(
-        (r) =>
-          r &&
-          r.game === game &&
-          r.queue === "quick" &&
-          r.status === "waiting" &&
-          r.host?.playerId &&
-          r.host.playerId !== id.playerId &&
-          now - (Number(r.updatedAt) || 0) <= WAIT_TTL_MS
-      );
-      if (waiting) {
-        rooms[waiting.id] = {
-          ...waiting,
-          guest: seat(id.playerId, id.name),
-          status: "playing",
-          updatedAt: now
-        };
-        activeRoomId = waiting.id;
+      const waitingList = listQuickWaiting(rooms, game, id.playerId);
+      if (waitingList.length) {
+        claimWaitingRoom(rooms, waitingList[0], id.playerId, id.name);
         return { rooms };
       }
       const room = emptyRoom(game, "quick");
       room.host = seat(id.playerId, id.name);
       rooms[room.id] = room;
       activeRoomId = room.id;
+      persistActiveRoom();
+      room.updatedAt = now;
       return { rooms };
     });
 
     if (!joined) return { ok: false, error: "Couldn't start Quick Play" };
     startPolling();
+    // Immediately try to reconcile if another waiter appeared in the race.
+    await reconcileQuickWaiting();
     return { ok: true, room: getRoom() };
   }
 
@@ -252,6 +315,7 @@
       return { rooms };
     });
     activeRoomId = "";
+    persistActiveRoom();
     stopPolling();
     emit();
     return { ok: true };
@@ -361,6 +425,7 @@
     const room = getRoom();
     if (!room) {
       activeRoomId = "";
+      persistActiveRoom();
       stopPolling();
       return { ok: true };
     }
@@ -385,6 +450,7 @@
       return { rooms };
     });
     activeRoomId = "";
+    persistActiveRoom();
     stopPolling();
     emit();
     return { ok: true };
@@ -450,11 +516,58 @@
     return () => listeners.delete(cb);
   }
 
+  async function reconcileQuickWaiting() {
+    const id = requireIdentity();
+    if (!id.ok) return getRoom();
+    const mine = getRoom();
+    if (!mine || mine.queue !== "quick" || mine.status !== "waiting") return mine;
+    if (mine.host?.playerId !== id.playerId) return mine;
+
+    await mutate((data) => {
+      const rooms = { ...data.rooms };
+      const current = rooms[mine.id];
+      if (!current || current.status !== "waiting" || current.host?.playerId !== id.playerId) {
+        return { rooms };
+      }
+      const others = listQuickWaiting(rooms, current.game, id.playerId);
+      if (!others.length) {
+        // Heartbeat so prune doesn't kill an active search.
+        rooms[current.id] = { ...current, updatedAt: Date.now() };
+        return { rooms };
+      }
+      const oldest = others[0];
+      const myCreated = Number(current.createdAt) || 0;
+      const theirCreated = Number(oldest.createdAt) || 0;
+      const iAmOlder =
+        myCreated < theirCreated ||
+        (myCreated === theirCreated && String(current.id) < String(oldest.id));
+      if (iAmOlder) {
+        // Stay host; heartbeat only. The other client should join us.
+        rooms[current.id] = { ...current, updatedAt: Date.now() };
+        return { rooms };
+      }
+      // Join the older room and drop ours.
+      delete rooms[current.id];
+      claimWaitingRoom(rooms, oldest, id.playerId, id.name);
+      return { rooms };
+    });
+    return getRoom();
+  }
+
   async function refresh() {
     try {
       const remote = await fetchRemote();
       saveLocal({ rooms: mergeRooms(cache.rooms, remote.rooms) });
-      if (activeRoomId && !cache.rooms[activeRoomId]) activeRoomId = "";
+      if (activeRoomId && !cache.rooms[activeRoomId]) {
+        // Room may have been overwritten — try restore from remote after another fetch pass
+        activeRoomId = "";
+        persistActiveRoom();
+        restoreActiveRoom();
+      }
+      const room = getRoom();
+      if (room && room.queue === "quick" && room.status === "waiting") {
+        await reconcileQuickWaiting();
+      }
       emit();
     } catch {}
     return getRoom();
@@ -475,6 +588,8 @@
   }
 
   cache = loadLocal();
+  restoreActiveRoom();
+  if (activeRoomId) startPolling();
 
   window.HubOnlineMatch = {
     GAMES,

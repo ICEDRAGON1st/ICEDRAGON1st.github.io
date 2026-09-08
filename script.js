@@ -22,6 +22,7 @@ const HUB_THEMES = {
 
 const CHANGELOG = {
   "20260908ak": [
+    "Fix online Quick Play: waiting rooms now find each other instead of getting stuck",
     "Notifications for new chat messages and when your streak is about to die"
   ],
   "20260908aj": [
