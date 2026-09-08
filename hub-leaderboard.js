@@ -37,6 +37,7 @@
     crossy: { label: "Lane Crosser", lowerBetter: false, unit: "score" },
     fishing: { label: "Fishing Idle", lowerBetter: false, unit: "catch" },
     cows: { label: "Cow Merge", lowerBetter: false, unit: "cow" },
+    dino: { label: "Dino Run", lowerBetter: false, unit: "score" },
     "online-time": { label: "Time Online", lowerBetter: false, unit: "playtime" }
   };
 

@@ -52,7 +52,8 @@
     stacker: "Tower Stack",
     crossy: "Lane Crosser",
     fishing: "Fishing Idle",
-    cows: "Cow Merge"
+    cows: "Cow Merge",
+    dino: "Dino Run"
   };
 
   let syncing = false;

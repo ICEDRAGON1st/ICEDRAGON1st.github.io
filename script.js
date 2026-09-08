@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908al": [
+    "New game: Dino Run — jump cacti, duck birds, chase a high score"
+  ],
   "20260908ak": [
     "Fix online Quick Play: waiting rooms now find each other instead of getting stuck",
     "Notifications for new chat messages and when your streak is about to die"
@@ -430,7 +433,8 @@ const HUB_GAMES = [
   { id: "stacker", name: "Tower Stack", path: "stacker/index.html" },
   { id: "crossy", name: "Lane Crosser", path: "crossy/index.html" },
   { id: "fishing", name: "Fishing Idle", path: "fishing/index.html" },
-  { id: "cows", name: "Cow Merge", path: "cows/index.html" }
+  { id: "cows", name: "Cow Merge", path: "cows/index.html" },
+  { id: "dino", name: "Dino Run", path: "dino/index.html" }
 ];
 
 /** Leaderboard tabs = hub-only boards first, then games. */
@@ -1352,6 +1356,10 @@ function getHubScore(gameId) {
           ? HubLeaderboard.formatScore("cows", score)
           : String(score);
       return { label: label.startsWith("Best ") ? label : `Best ${label}`, sort: score };
+    }
+    case "dino": {
+      const score = readNumberKey("dino-run-high-score");
+      return { label: score ? `Best ${score}` : "No score yet", sort: score };
     }
     default:
       return { label: "—", sort: 0 };
