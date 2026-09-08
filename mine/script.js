@@ -67,7 +67,15 @@
   const hudDepthEl = document.getElementById("hud-depth");
   const hudBestEl = document.getElementById("hud-best");
   const digBtn = document.getElementById("dig-btn");
-  const layerGlowEl = document.getElementById("layer-glow");
+  const shaftViewport = document.getElementById("shaft-viewport");
+  const strataEl = document.getElementById("strata");
+  const rockFaceEl = document.getElementById("rock-face");
+  const digFxEl = document.getElementById("dig-fx");
+  const surfaceLightEl = document.querySelector(".surface-light");
+  const rulerTopEl = document.getElementById("ruler-top");
+  const rulerMidEl = document.getElementById("ruler-mid");
+  const rulerBotEl = document.getElementById("ruler-bot");
+  const layerProgressLabelEl = document.getElementById("layer-progress-label");
   const depthFillEl = document.getElementById("depth-fill");
   const statusLineEl = document.getElementById("status-line");
   const cartCountEl = document.getElementById("cart-count");
@@ -92,6 +100,9 @@
   let lastSubmitAt = 0;
   let autoAcc = 0;
   let shopDirty = true;
+  let strataBuilt = false;
+  const PX_PER_M = 2.2;
+  const VIEW_PAD = 160;
 
   function defaultState() {
     const owned = {};
@@ -282,6 +293,76 @@
     } catch {}
   }
 
+  function buildStrata() {
+    if (!strataEl || strataBuilt) return;
+    strataBuilt = true;
+    const maxDepth = 22000;
+    const totalH = maxDepth * PX_PER_M + 800;
+    strataEl.style.height = `${totalH}px`;
+    let html = "";
+    for (let i = 0; i < LAYERS.length; i += 1) {
+      const layer = LAYERS[i];
+      const next = LAYERS[i + 1];
+      const startY = layer.min * PX_PER_M;
+      const endY = (next ? next.min : maxDepth) * PX_PER_M;
+      html += `<div class="strata-band" style="top:${startY}px;height:${Math.max(80, endY - startY)}px;background:linear-gradient(180deg, ${layer.color}cc, ${layer.color}88);">${layer.name}</div>`;
+    }
+    strataEl.innerHTML = html;
+  }
+
+  function updateShaftView(animateDig) {
+    buildStrata();
+    const depth = state.depth;
+    const layer = layerFor(depth);
+    const scroll = Math.max(0, depth * PX_PER_M - VIEW_PAD);
+    if (strataEl) strataEl.style.transform = `translateY(${-scroll}px)`;
+
+    if (rockFaceEl) {
+      rockFaceEl.style.background = `
+        radial-gradient(circle at 30% 40%, rgba(255,255,255,0.14), transparent 35%),
+        linear-gradient(180deg, ${layer.color}, #241910 85%)`;
+    }
+    if (surfaceLightEl) {
+      surfaceLightEl.style.opacity = String(Math.max(0.05, 0.9 - depth / 800));
+    }
+
+    const viewSpan = 180;
+    if (rulerTopEl) rulerTopEl.textContent = formatDepth(Math.max(0, depth - viewSpan * 0.35));
+    if (rulerMidEl) rulerMidEl.textContent = formatDepth(depth);
+    if (rulerBotEl) rulerBotEl.textContent = formatDepth(depth + viewSpan * 0.45);
+
+    if (animateDig && shaftViewport) {
+      shaftViewport.classList.remove("digging");
+      void shaftViewport.offsetWidth;
+      shaftViewport.classList.add("digging");
+      setTimeout(() => shaftViewport.classList.remove("digging"), 240);
+    }
+  }
+
+  function spawnDigFx(ore) {
+    if (!digFxEl) return;
+    for (let i = 0; i < 5; i += 1) {
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.style.left = `${42 + Math.random() * 16}%`;
+      chip.style.bottom = `${70 + Math.random() * 20}px`;
+      chip.style.background = layerFor(state.depth).color;
+      chip.style.setProperty("--dx", `${(Math.random() - 0.5) * 70}px`);
+      chip.style.setProperty("--dy", `${-30 - Math.random() * 50}px`);
+      digFxEl.appendChild(chip);
+      setTimeout(() => chip.remove(), 450);
+    }
+    if (ore) {
+      const pop = document.createElement("span");
+      pop.className = "ore-pop";
+      pop.textContent = ore.emoji;
+      pop.style.left = "50%";
+      pop.style.bottom = "95px";
+      digFxEl.appendChild(pop);
+      setTimeout(() => pop.remove(), 700);
+    }
+  }
+
   function floatAt(text, x, y) {
     if (!floatLayer) return;
     const el = document.createElement("div");
@@ -341,27 +422,32 @@
     }
 
     if (source === "click") {
-      digBtn?.classList.remove("swing");
-      void digBtn?.offsetWidth;
-      digBtn?.classList.add("swing");
       window.HubSound?.play?.("click");
-      const rect = digBtn?.getBoundingClientRect();
+      updateShaftView(true);
+      if (lastOre) spawnDigFx(lastOre);
+      else spawnDigFx();
+      const rect = digBtn?.getBoundingClientRect() || shaftViewport?.getBoundingClientRect();
       if (rect) {
         floatAt(
-          `+${meters.toFixed(meters >= 10 ? 0 : 1)}m`,
-          rect.left + rect.width * 0.55,
-          rect.top + rect.height * 0.35
+          `↓ ${meters.toFixed(meters >= 10 ? 0 : 1)}m`,
+          rect.left + rect.width * 0.5,
+          rect.top + 18
         );
       }
+    } else if (count >= 3) {
+      updateShaftView(true);
+      if (lastOre) spawnDigFx(lastOre);
+    } else {
+      updateShaftView(false);
     }
 
     if (lastOre && added) {
       statusLineEl.textContent =
         count === 1
-          ? `Found ${lastOre.emoji} ${lastOre.name} (+${formatDepth(meters)})`
-          : `Drills found ${added} ore (+${formatDepth(meters)})`;
+          ? `Dug into ${lastOre.emoji} ${lastOre.name} (↓${formatDepth(meters)})`
+          : `Shaft sank ${formatDepth(meters)} · ${added} ore`;
     } else if (blocked) {
-      statusLineEl.textContent = `Cart full — dig deeper after selling (+${formatDepth(meters)})`;
+      statusLineEl.textContent = `Cart full — sell ore, then dig deeper (↓${formatDepth(meters)})`;
     }
 
     checkAchievements();
@@ -476,10 +562,15 @@
     if (hudDepthEl) hudDepthEl.textContent = formatDepth(state.depth);
     if (hudBestEl) hudBestEl.textContent = formatDepth(state.bestDepth);
     if (overlayBestEl) overlayBestEl.textContent = formatDepth(state.bestDepth);
-    if (layerGlowEl) {
-      layerGlowEl.style.background = `radial-gradient(circle at 50% 70%, ${layer.color}, transparent 65%)`;
+    const idx = LAYERS.findIndex((l) => l.id === layer.id);
+    const next = LAYERS[idx + 1];
+    if (layerProgressLabelEl) {
+      layerProgressLabelEl.textContent = next
+        ? `${Math.round(nextLayerProgress(state.depth) * 100)}% to ${next.name}`
+        : "Deepest layer";
     }
     if (depthFillEl) depthFillEl.style.width = `${Math.round(nextLayerProgress(state.depth) * 100)}%`;
+    updateShaftView(false);
     renderCart();
     renderShop();
   }
@@ -525,6 +616,13 @@
   }
 
   digBtn?.addEventListener("click", () => doDigBatch(1, "click"));
+  shaftViewport?.addEventListener("click", () => doDigBatch(1, "click"));
+  shaftViewport?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      doDigBatch(1, "click");
+    }
+  });
   sellBtn?.addEventListener("click", () => sellAll());
   shopList?.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-buy]");

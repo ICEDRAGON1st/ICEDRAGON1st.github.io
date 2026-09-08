@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908ap": [
+    "Mine Depth: dig feels like going down a shaft"
+  ],
   "20260908ao": [
     "New game: Mine Depth — dig down, sell ore, upgrade drills"
   ],

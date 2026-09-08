@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260908ao">
+  <link rel="stylesheet" href="styles.css?v=20260908ap">
 </head>
 <body>
   <header class="top-bar">
@@ -41,21 +41,37 @@
         </div>
       </div>
 
-      <button id="dig-btn" type="button" class="dig-btn" aria-label="Dig deeper">
-        <span class="shaft" aria-hidden="true">
-          <span id="layer-glow" class="layer-glow"></span>
-          <span class="pick"></span>
-          <span class="rubble r1"></span>
-          <span class="rubble r2"></span>
-        </span>
-        <span class="dig-btn-text">Dig</span>
-      </button>
-
-      <div class="depth-meter" aria-hidden="true">
-        <div id="depth-fill" class="depth-fill"></div>
+      <div class="mine-view">
+        <div class="shaft-frame">
+          <div class="depth-ruler" aria-hidden="true">
+            <span id="ruler-top">0m</span>
+            <span id="ruler-mid">—</span>
+            <span id="ruler-bot">↓</span>
+          </div>
+          <div class="shaft-viewport" id="shaft-viewport" role="button" tabindex="0" aria-label="Dig down the shaft">
+            <div id="strata" class="strata"></div>
+            <div class="shaft-walls"></div>
+            <div class="surface-light"></div>
+            <div id="miner" class="miner">
+              <span class="miner-body"></span>
+              <span class="miner-pick"></span>
+            </div>
+            <div id="rock-face" class="rock-face"></div>
+            <div id="dig-fx" class="dig-fx"></div>
+          </div>
+        </div>
+        <button id="dig-btn" type="button" class="dig-btn" aria-label="Dig deeper">
+          Dig down
+        </button>
+        <div class="layer-progress">
+          <span id="layer-progress-label">To next layer</span>
+          <div class="depth-meter">
+            <div id="depth-fill" class="depth-fill"></div>
+          </div>
+        </div>
       </div>
 
-      <p class="hint">Tap Dig to go deeper and find ore. Sell ore for coins, then buy stronger picks and auto drills.</p>
+      <p class="hint">Tap Dig down to descend the shaft. Sell ore for coins, then buy stronger picks and auto drills.</p>
       <p id="status-line" class="status-line" aria-live="polite">Ready to dig</p>
 
       <div class="cart-bar">
@@ -107,10 +123,10 @@
   <script src="../hub-achievements.js"></script>
   <script src="../hub-sound.js"></script>
   <script src="../hub-confetti.js"></script>
-  <script src="../hub-plays.js?v=20260908ao"></script>
+  <script src="../hub-plays.js?v=20260908ap"></script>
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
-  <script src="../hub-leaderboard.js?v=20260908ao"></script>
-  <script src="script.js?v=20260908ao"></script>
+  <script src="../hub-leaderboard.js?v=20260908ap"></script>
+  <script src="script.js?v=20260908ap"></script>
 </body>
 </html>
