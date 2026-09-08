@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908an": [
+    "Dino Run: larger playfield"
+  ],
   "20260908am": [
     "Dino Run: W jumps, S ducks"
   ],

@@ -15,12 +15,12 @@
   const HIGH_SCORE_KEY = "dino-run-high-score";
   const W = canvas.width;
   const H = canvas.height;
-  const GROUND_Y = H - 56;
-  const GRAVITY = 2400;
-  const JUMP_V = -760;
-  const DUCK_H = 34;
-  const STAND_H = 52;
-  const DINO_W = 44;
+  const GROUND_Y = H - 78;
+  const GRAVITY = 2800;
+  const JUMP_V = -900;
+  const DUCK_H = 48;
+  const STAND_H = 74;
+  const DINO_W = 62;
 
   let best = Math.max(0, Math.floor(Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0));
   let running = false;
@@ -58,7 +58,7 @@
     night = false;
     dead = false;
     dino = {
-      x: 72,
+      x: 100,
       y: GROUND_Y - STAND_H,
       vy: 0,
       w: DINO_W,
@@ -66,9 +66,9 @@
       onGround: true,
       ducking: false
     };
-    clouds = Array.from({ length: 4 }, (_, i) => ({
-      x: 120 + i * 220,
-      y: 36 + (i % 3) * 28,
+    clouds = Array.from({ length: 5 }, (_, i) => ({
+      x: 140 + i * 240,
+      y: 48 + (i % 3) * 36,
       s: 0.35 + (i % 3) * 0.12
     }));
     updateHud();
@@ -139,17 +139,17 @@
       obstacles.push({
         type: "bird",
         x: W + 20,
-        y: GROUND_Y - (Math.random() < 0.5 ? 78 : 48),
-        w: 46,
-        h: 28,
+        y: GROUND_Y - (Math.random() < 0.5 ? 112 : 68),
+        w: 64,
+        h: 38,
         passed: false
       });
       return;
     }
     const tall = Math.random() < 0.45;
     const twin = !tall && Math.random() < 0.35;
-    const h = tall ? 58 : 40;
-    const w = tall ? 22 : 18;
+    const h = tall ? 82 : 56;
+    const w = tall ? 30 : 24;
     obstacles.push({
       type: "cactus",
       x: W + 20,
@@ -163,10 +163,10 @@
 
   function hitbox(dinoBox) {
     return {
-      x: dinoBox.x + 8,
-      y: dinoBox.y + 6,
-      w: dinoBox.w - 14,
-      h: dinoBox.h - 10
+      x: dinoBox.x + 10,
+      y: dinoBox.y + 8,
+      w: dinoBox.w - 18,
+      h: dinoBox.h - 14
     };
   }
 
@@ -283,15 +283,15 @@
     ctx.fillStyle = night ? "#2b3035" : "#d8cbb5";
     ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
     ctx.strokeStyle = night ? "#868e96" : "#8b7355";
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.moveTo(0, GROUND_Y);
     ctx.lineTo(W, GROUND_Y);
     ctx.stroke();
     ctx.fillStyle = night ? "#495057" : "#b79a78";
-    for (let x = groundX; x < W + 48; x += 48) {
-      ctx.fillRect(x, GROUND_Y + 10, 18, 3);
-      ctx.fillRect(x + 24, GROUND_Y + 22, 12, 3);
+    for (let x = groundX; x < W + 64; x += 64) {
+      ctx.fillRect(x, GROUND_Y + 14, 24, 4);
+      ctx.fillRect(x + 32, GROUND_Y + 30, 16, 4);
     }
   }
 
@@ -299,9 +299,9 @@
     ctx.fillStyle = night ? "rgba(173, 181, 189, 0.35)" : "rgba(255, 255, 255, 0.85)";
     const y = c.y;
     ctx.beginPath();
-    ctx.arc(c.x, y, 14, 0, Math.PI * 2);
-    ctx.arc(c.x + 16, y - 6, 16, 0, Math.PI * 2);
-    ctx.arc(c.x + 34, y, 13, 0, Math.PI * 2);
+    ctx.arc(c.x, y, 20, 0, Math.PI * 2);
+    ctx.arc(c.x + 22, y - 8, 22, 0, Math.PI * 2);
+    ctx.arc(c.x + 48, y, 18, 0, Math.PI * 2);
     ctx.fill();
   }
 
@@ -311,19 +311,19 @@
     const leg = onGround ? Math.floor(anim * speed * 0.02) % 2 : 0;
     ctx.fillStyle = night ? "#e9ecef" : "#3d3429";
     if (ducking) {
-      ctx.fillRect(x, y + 8, w + 8, h - 8);
-      ctx.fillRect(x + w - 2, y + 10, 16, 14);
-      ctx.fillRect(x + w + 8, y + 12, 4, 4);
+      ctx.fillRect(x, y + 10, w + 12, h - 10);
+      ctx.fillRect(x + w - 2, y + 14, 22, 18);
+      ctx.fillRect(x + w + 12, y + 16, 5, 5);
     } else {
-      ctx.fillRect(x + 8, y + 16, 28, h - 22);
-      ctx.fillRect(x + 26, y, 22, 22);
-      ctx.fillRect(x + 42, y + 8, 5, 5);
+      ctx.fillRect(x + 10, y + 22, 38, h - 30);
+      ctx.fillRect(x + 36, y, 30, 30);
+      ctx.fillRect(x + 58, y + 10, 7, 7);
       ctx.fillStyle = night ? "#212529" : "#f4efe4";
-      ctx.fillRect(x + 40, y + 5, 4, 4);
+      ctx.fillRect(x + 54, y + 7, 6, 6);
       ctx.fillStyle = night ? "#e9ecef" : "#3d3429";
-      ctx.fillRect(x + 10, y + h - 8, 8, 8 + (leg ? 2 : 0));
-      ctx.fillRect(x + 26, y + h - 8, 8, 8 + (leg ? 0 : 2));
-      ctx.fillRect(x + 4, y + 20, 10, 6);
+      ctx.fillRect(x + 14, y + h - 12, 11, 12 + (leg ? 3 : 0));
+      ctx.fillRect(x + 36, y + h - 12, 11, 12 + (leg ? 0 : 3));
+      ctx.fillRect(x + 4, y + 28, 14, 8);
     }
   }
 
@@ -344,17 +344,17 @@
   function drawBird(o) {
     const flap = Math.floor(anim * 10) % 2;
     ctx.fillStyle = night ? "#ced4da" : "#3d3429";
-    ctx.fillRect(o.x + 8, o.y + 10, 28, 12);
-    ctx.fillRect(o.x + 30, o.y + 8, 10, 8);
+    ctx.fillRect(o.x + 10, o.y + 14, 38, 16);
+    ctx.fillRect(o.x + 40, o.y + 10, 14, 11);
     ctx.beginPath();
     if (flap) {
-      ctx.moveTo(o.x + 14, o.y + 12);
-      ctx.lineTo(o.x + 24, o.y - 2);
-      ctx.lineTo(o.x + 30, o.y + 12);
+      ctx.moveTo(o.x + 18, o.y + 16);
+      ctx.lineTo(o.x + 32, o.y - 4);
+      ctx.lineTo(o.x + 40, o.y + 16);
     } else {
-      ctx.moveTo(o.x + 14, o.y + 14);
-      ctx.lineTo(o.x + 24, o.y + 26);
-      ctx.lineTo(o.x + 30, o.y + 14);
+      ctx.moveTo(o.x + 18, o.y + 18);
+      ctx.lineTo(o.x + 32, o.y + 34);
+      ctx.lineTo(o.x + 40, o.y + 18);
     }
     ctx.fill();
   }
@@ -375,12 +375,12 @@
     drawDino();
 
     ctx.fillStyle = night ? "#f8f9fa" : "#3d3429";
-    ctx.font = "700 18px Outfit, sans-serif";
+    ctx.font = "700 26px Outfit, sans-serif";
     ctx.textAlign = "right";
-    ctx.fillText(String(Math.floor(score)).padStart(5, "0"), W - 18, 28);
+    ctx.fillText(String(Math.floor(score)).padStart(5, "0"), W - 24, 40);
     if (waitingStart && !dead) {
       ctx.textAlign = "center";
-      ctx.font = "700 22px Outfit, sans-serif";
+      ctx.font = "700 30px Outfit, sans-serif";
       ctx.fillText("Press Space / Tap to start", W / 2, H * 0.42);
     }
   }
