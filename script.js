@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908aw": [
+    "Mine Depth: reset ICE_DRAGON dig stats only"
+  ],
   "20260908av": [
     "Mine Depth: 1000 layers and 1000 ores"
   ],

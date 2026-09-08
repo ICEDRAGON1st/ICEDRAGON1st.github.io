@@ -519,6 +519,30 @@
     });
     games.clicker = iceBoard;
 
+    // One-time: wipe ICE_DRAGON from Mine Depth boards only (depth + best ore).
+    const iceMineWipeKey = "mine:ice_dragon-v1";
+    const ICE_MINE_WIPE_AT = Date.UTC(2026, 8, 8, 16, 30, 0); // 2026-09-08 16:30 UTC
+    if (!resets[iceMineWipeKey] || Number(resets[iceMineWipeKey]) > ICE_MINE_WIPE_AT) {
+      resets[iceMineWipeKey] = ICE_MINE_WIPE_AT;
+    }
+    const iceMineCut = Number(resets[iceMineWipeKey]) || ICE_MINE_WIPE_AT;
+    const ICE_MINE_PLAYER_ID = "p-mtlztdny-r28rrb";
+    ["mine", "mine-ore"].forEach((gameId) => {
+      const board = { ...(games[gameId] || {}) };
+      Object.keys(board).forEach((key) => {
+        const entry = board[key];
+        if (!entry) return;
+        const keyName = nameKey(entry.name || key);
+        const isIce =
+          key === "ice_dragon" ||
+          keyName === "ice_dragon" ||
+          entry.playerId === ICE_MINE_PLAYER_ID;
+        const at = Number(entry.at) || 0;
+        if (isIce && at <= iceMineCut) delete board[key];
+      });
+      games[gameId] = board;
+    });
+
     // One-time: wipe Fishing Idle lifetime-coin board; new board is best catch.
     const fishingWipeKey = "fishing:catch-board-v1";
     const FISHING_WIPE_AT = Date.UTC(2026, 8, 7, 18, 40, 0); // 2026-09-07 18:40 UTC
