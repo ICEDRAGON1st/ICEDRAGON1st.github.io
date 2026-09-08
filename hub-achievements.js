@@ -38,6 +38,8 @@
     { id: "crossy_score_5",      emoji: "🐔", name: "First Crossing",  desc: "Reach lane 5 in Lane Crosser" },
     { id: "fishing_100",         emoji: "🎣", name: "First Catch",     desc: "Earn 100 coins in Fishing Idle" },
     { id: "fishing_1k",          emoji: "🐟", name: "Dock Regular",    desc: "Earn 1,000 coins in Fishing Idle" },
+    { id: "cows_100",            emoji: "🐮", name: "First Calf",      desc: "Earn 100 milk in Cow Merge" },
+    { id: "cows_tier_5",         emoji: "🐄", name: "Prize Herd",      desc: "Reach Super Cow in Cow Merge" },
 
     // Medium
     { id: "wordle_guess_3",      emoji: "🧠", name: "Quick Thinker",   desc: "Win a Wordle in 3 guesses or fewer" },
@@ -56,6 +58,8 @@
     { id: "crossy_score_15",     emoji: "🚦", name: "Traffic Dodger",  desc: "Reach lane 15 in Lane Crosser" },
     { id: "fishing_100k",        emoji: "⛵", name: "Harbor Pro",      desc: "Earn 100,000 coins in Fishing Idle" },
     { id: "fishing_fps_10",      emoji: "🛶", name: "First Boat",      desc: "Buy an auto boat in Fishing Idle" },
+    { id: "cows_10k",            emoji: "🥛", name: "Dairy Days",      desc: "Earn 10,000 milk in Cow Merge" },
+    { id: "cows_auto",           emoji: "🧑‍🌾", name: "Farmhand",       desc: "Hire auto-buy in Cow Merge" },
     { id: "breakout_score_500",  emoji: "🔨", name: "Wall Smasher",    desc: "Score 500 in Brick Breaker" },
     { id: "space_score_500",     emoji: "🛸", name: "Ace Pilot",       desc: "Score 500 in Space Shooter" },
     { id: "math_perfect",        emoji: "➕", name: "Math Genius",     desc: "Get a perfect score in Math Quiz" },
@@ -80,6 +84,9 @@
     { id: "fishing_1m",          emoji: "🐋", name: "Whale Watcher",   desc: "Earn 1,000,000 coins in Fishing Idle" },
     { id: "fishing_fps_100",     emoji: "🚢", name: "Fleet Captain",   desc: "Own 3 auto boats in Fishing Idle" },
     { id: "fishing_voyage_1",    emoji: "🌊", name: "Deep Sea",        desc: "Unlock Deep Sea in Fishing Idle" },
+    { id: "cows_1m",             emoji: "🏆", name: "Milk Tycoon",     desc: "Earn 1,000,000 milk in Cow Merge" },
+    { id: "cows_tier_10",        emoji: "🌈", name: "Rainbow Ranch",   desc: "Reach Rainbow Cow in Cow Merge" },
+    { id: "cows_tier_15",        emoji: "♾️", name: "Eternal Herd",    desc: "Reach Eternal Cow in Cow Merge" },
     { id: "sudoku_hard",         emoji: "⬛", name: "Hard Grid",       desc: "Complete a Hard Sudoku" },
     { id: "tictactoe_hard",      emoji: "⭕", name: "Unbeatable?",     desc: "Beat the CPU on Hard in Tic Tac Toe" },
     { id: "space_hardcore",      emoji: "💥", name: "Hardcore Flyer",  desc: "Score 100 on Hardcore difficulty" },

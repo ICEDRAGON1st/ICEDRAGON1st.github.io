@@ -36,6 +36,7 @@
     stacker: { label: "Tower Stack", lowerBetter: false, unit: "score" },
     crossy: { label: "Lane Crosser", lowerBetter: false, unit: "score" },
     fishing: { label: "Fishing Idle", lowerBetter: false, unit: "catch" },
+    cows: { label: "Cow Merge", lowerBetter: false, unit: "cow" },
     "online-time": { label: "Time Online", lowerBetter: false, unit: "playtime" }
   };
 
@@ -225,6 +226,37 @@
     return rarity;
   }
 
+  const COW_MERGE_TIERS = [
+    "",
+    "Calf",
+    "Heifer",
+    "Dairy Cow",
+    "Prize Cow",
+    "Super Cow",
+    "Mega Cow",
+    "Ultra Cow",
+    "Golden Cow",
+    "Diamond Cow",
+    "Rainbow Cow",
+    "Crystal Cow",
+    "Neon Cow",
+    "Cosmic Cow",
+    "Divine Cow",
+    "Eternal Cow",
+    "Mythic Cow",
+    "Omega Cow",
+    "Abyss Cow",
+    "Galaxy Cow",
+    "Cowmageddon"
+  ];
+
+  function formatCowTier(score) {
+    const n = Math.floor(Number(score) || 0);
+    if (n <= 0) return "—";
+    const name = COW_MERGE_TIERS[n] || `Tier ${n}`;
+    return `${name}`;
+  }
+
   function formatScore(gameId, score) {
     const m = meta(gameId);
     const n = Number(score);
@@ -234,6 +266,7 @@
     if (m.unit === "wins") return `${Math.floor(n)} win${Math.floor(n) === 1 ? "" : "s"}`;
     if (m.unit === "streak") return `Streak ${Math.floor(n)}`;
     if (m.unit === "catch" || gameId === "fishing") return formatFishingCatch(n);
+    if (m.unit === "cow" || gameId === "cows") return formatCowTier(n);
     if (gameId === "clicker" || m.unit === "compact") return `Best ${formatCompact(n)}`;
     return `Best ${Math.floor(n)}`;
   }

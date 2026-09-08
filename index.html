@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260908z">
+  <link rel="stylesheet" href="styles.css?v=20260908aa">
 </head>
 <body>
   <div class="app">
@@ -403,13 +403,21 @@
           <span class="game-card-desc">Cast, reel, sell your catch</span>
           <span class="game-card-score" data-score-for="fishing"></span>
         </button>
+        <button type="button" class="game-card" data-game="cows">
+          <span class="game-card-top">
+            <span class="game-card-name">Cow Merge</span>
+            <span class="fav-btn" data-fav="cows" role="button" tabindex="0" aria-label="Favorite Cow Merge">☆</span>
+          </span>
+          <span class="game-card-desc">Merge cows and evolve your herd</span>
+          <span class="game-card-score" data-score-for="cows"></span>
+        </button>
       </div>
     </div>
   </div>
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260908z";
+    window.WORDLE_BUILD = "20260908aa";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-online-match.js",
       "words.js",

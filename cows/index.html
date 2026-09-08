@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Cow Merge</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20260908aa">
+</head>
+<body>
+  <header class="top-bar">
+    <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
+    <h1>Cow Merge</h1>
+    <div class="top-stats">
+      <button id="guide-btn" type="button" class="guide-btn">Herd guide</button>
+      Best <strong id="hud-best">—</strong>
+      · Milk/s <strong id="hud-mps">0</strong>
+    </div>
+  </header>
+
+  <main class="shell">
+    <section class="play-col card">
+      <p class="bank-label">Milk</p>
+      <p id="milk-count" class="milk-count" aria-live="polite">0</p>
+
+      <div class="stat-row">
+        <div class="stat-chip">
+          <span class="stat-chip-label">Herd milk/s</span>
+          <strong id="mps-label">0</strong>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-chip-label">Top cow</span>
+          <strong id="top-label">None</strong>
+        </div>
+        <div class="stat-chip">
+          <span class="stat-chip-label">Pasture</span>
+          <strong id="fill-label">0/25</strong>
+        </div>
+      </div>
+
+      <div id="pasture" class="pasture" role="grid" aria-label="Pasture"></div>
+      <p class="hint">Buy a calf, then drag two of the same cow together to evolve. Your herd milks idle coins.</p>
+      <p id="status-line" class="status-line" aria-live="polite">Ready to herd</p>
+
+      <div class="action-row">
+        <button id="buy-btn" type="button" class="btn buy-btn">Buy Calf · 25</button>
+        <button id="sell-mode-btn" type="button" class="btn btn-ghost sell-mode-btn" aria-pressed="false">Sell mode</button>
+      </div>
+    </section>
+
+    <section class="side-col">
+      <div class="card">
+        <h2>Upgrades</h2>
+        <p class="shop-intro">Cheaper calves, more milk, and a bigger pasture over time.</p>
+        <div id="shop-list" class="shop-list" role="list"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="float-layer" class="float-layer" aria-hidden="true"></div>
+
+  <div id="overlay" class="overlay">
+    <div class="overlay-card">
+      <p class="eyebrow">Merge farm</p>
+      <h2>Cow Merge</h2>
+      <p class="lead">
+        Buy calves, merge matches to evolve, and milk your way up the herd ladder.
+      </p>
+      <p class="score-line">Best cow: <strong id="overlay-best">—</strong></p>
+      <div class="overlay-actions">
+        <button id="start-btn" type="button" class="btn">Play</button>
+        <button id="games-btn" type="button" class="btn btn-ghost">Games</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="guide-overlay" class="overlay hidden">
+    <div class="overlay-card guide-card">
+      <p class="eyebrow">Evolution ladder</p>
+      <h2>Herd guide</h2>
+      <p class="lead">Merge two of the same tier to climb. Milk/s is per cow on the pasture.</p>
+      <div id="guide-body" class="guide-body"></div>
+      <div class="overlay-actions">
+        <button id="guide-close" type="button" class="btn">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../hub-streak.js"></script>
+  <script src="../hub-achievements.js"></script>
+  <script src="../hub-sound.js"></script>
+  <script src="../hub-confetti.js"></script>
+  <script src="../hub-plays.js?v=20260908aa"></script>
+  <script src="../hub-friends.js?v=20260907o"></script>
+  <script src="../hub-chat.js?v=20260907p"></script>
+  <script src="../hub-leaderboard.js?v=20260908aa"></script>
+  <script src="script.js?v=20260908aa"></script>
+</body>
+</html>

@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908aa": [
+    "New game: Cow Merge — buy calves, merge to evolve, milk idle income"
+  ],
   "20260908z": [
     "Fishing Idle: save (pin) cooler fish so they won't sell until you unsaved them"
   ],
@@ -419,7 +422,8 @@ const HUB_GAMES = [
   { id: "clicker", name: "Crystal Clicker", path: "clicker/index.html" },
   { id: "stacker", name: "Tower Stack", path: "stacker/index.html" },
   { id: "crossy", name: "Lane Crosser", path: "crossy/index.html" },
-  { id: "fishing", name: "Fishing Idle", path: "fishing/index.html" }
+  { id: "fishing", name: "Fishing Idle", path: "fishing/index.html" },
+  { id: "cows", name: "Cow Merge", path: "cows/index.html" }
 ];
 
 /** Leaderboard tabs = hub-only boards first, then games. */
@@ -1316,6 +1320,15 @@ function getHubScore(gameId) {
       const label =
         typeof HubLeaderboard !== "undefined" && HubLeaderboard.formatScore
           ? HubLeaderboard.formatScore("fishing", score)
+          : String(score);
+      return { label: label.startsWith("Best ") ? label : `Best ${label}`, sort: score };
+    }
+    case "cows": {
+      const score = readNumberKey("cows-best-tier-v1");
+      if (!score) return { label: "No herd yet", sort: 0 };
+      const label =
+        typeof HubLeaderboard !== "undefined" && HubLeaderboard.formatScore
+          ? HubLeaderboard.formatScore("cows", score)
           : String(score);
       return { label: label.startsWith("Best ") ? label : `Best ${label}`, sort: score };
     }

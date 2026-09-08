@@ -51,7 +51,8 @@
     clicker: "Crystal Clicker",
     stacker: "Tower Stack",
     crossy: "Lane Crosser",
-    fishing: "Fishing Idle"
+    fishing: "Fishing Idle",
+    cows: "Cow Merge"
   };
 
   let syncing = false;
