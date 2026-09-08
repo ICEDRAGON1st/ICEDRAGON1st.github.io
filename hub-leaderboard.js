@@ -38,6 +38,7 @@
     fishing: { label: "Fishing Idle", lowerBetter: false, unit: "catch" },
     cows: { label: "Cow Merge", lowerBetter: false, unit: "cow" },
     dino: { label: "Dino Run", lowerBetter: false, unit: "score" },
+    blockblast: { label: "Block Blast", lowerBetter: false, unit: "score" },
     mine: { label: "Mine Depth", lowerBetter: false, unit: "depth" },
     "mine-ore": { label: "Mine Best Ore", lowerBetter: false, unit: "ore" },
     "online-time": { label: "Time Online", lowerBetter: false, unit: "playtime" }

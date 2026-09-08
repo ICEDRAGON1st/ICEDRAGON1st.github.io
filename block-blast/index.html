@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Block Blast</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20260908ax">
+</head>
+<body>
+  <header class="hud">
+    <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
+    <div class="hud-stats">
+      <span>Score <strong id="score">0</strong></span>
+      <span>Best <strong id="best">0</strong></span>
+      <span>Combo <strong id="combo">×1</strong></span>
+    </div>
+  </header>
+
+  <main class="shell">
+    <div id="board" class="board" aria-label="Block Blast board" role="grid"></div>
+    <p class="hint">Tap a piece, then tap the board to place it. Clear full rows and columns.</p>
+    <div id="tray" class="tray" aria-label="Piece tray"></div>
+    <p id="status" class="status" role="status" aria-live="polite">Pick a block to place</p>
+  </main>
+
+  <div id="overlay" class="overlay">
+    <div class="overlay-card">
+      <p class="eyebrow">Puzzle</p>
+      <h1 id="overlay-title">Block Blast</h1>
+      <p id="overlay-text" class="lead">Place colorful blocks on the grid. Clear full rows and columns to keep going.</p>
+      <p class="score-line">Best: <strong id="overlay-best">0</strong></p>
+      <div class="overlay-actions">
+        <button id="start-btn" type="button" class="btn">Play</button>
+        <button id="games-btn" type="button" class="btn btn-ghost">Games</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="ghost" class="ghost" hidden></div>
+
+  <script src="../hub-streak.js"></script>
+  <script src="../hub-achievements.js"></script>
+  <script src="../hub-sound.js"></script>
+  <script src="../hub-confetti.js"></script>
+  <script src="../hub-plays.js?v=20260908ax"></script>
+  <script src="../hub-friends.js?v=20260907o"></script>
+  <script src="../hub-chat.js?v=20260907p"></script>
+  <script src="../hub-leaderboard.js?v=20260908ax"></script>
+  <script src="script.js?v=20260908ax"></script>
+</body>
+</html>
