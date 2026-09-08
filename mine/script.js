@@ -8,100 +8,13 @@
   const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
   const MIN_CLICK_MS = 75;
 
-  const LAYERS = [
-    { id: "soil", name: "Soil", min: 0, color: "#8d6e4c" },
-    { id: "clay", name: "Clay", min: 35, color: "#a67c52" },
-    { id: "peat", name: "Peat", min: 70, color: "#5c4030" },
-    { id: "sandstone", name: "Sandstone", min: 110, color: "#c4a574" },
-    { id: "limestone", name: "Limestone", min: 160, color: "#d6d0c2" },
-    { id: "stone", name: "Stone", min: 220, color: "#7a7f86" },
-    { id: "shale", name: "Shale", min: 290, color: "#6b6358" },
-    { id: "granite", name: "Granite", min: 380, color: "#9b8b7a" },
-    { id: "basalt", name: "Basalt", min: 470, color: "#4b5563" },
-    { id: "iron", name: "Iron vein", min: 580, color: "#9aa4b2" },
-    { id: "slate", name: "Slate", min: 720, color: "#64748b" },
-    { id: "quartz", name: "Quartz", min: 900, color: "#d8d0c4" },
-    { id: "marble", name: "Marble", min: 1150, color: "#e7e5e4" },
-    { id: "crystal", name: "Crystal", min: 1450, color: "#5ec8c0" },
-    { id: "geode", name: "Geode beds", min: 1800, color: "#a78bfa" },
-    { id: "obsidian", name: "Obsidian", min: 2300, color: "#3b3348" },
-    { id: "brimstone", name: "Brimstone", min: 2900, color: "#b45309" },
-    { id: "magma", name: "Magma", min: 3600, color: "#e85d3c" },
-    { id: "lava", name: "Lava sea", min: 4500, color: "#dc2626" },
-    { id: "mantle", name: "Mantle", min: 5600, color: "#c2410c" },
-    { id: "deepmantle", name: "Deep Mantle", min: 7000, color: "#9a3412" },
-    { id: "abyss", name: "Abyss", min: 8800, color: "#4a5568" },
-    { id: "trench", name: "Dark Trench", min: 10800, color: "#1e293b" },
-    { id: "nether", name: "Nether", min: 13500, color: "#7f1d1d" },
-    { id: "infernal", name: "Infernal", min: 16500, color: "#991b1b" },
-    { id: "core", name: "Core", min: 20500, color: "#f0c14b" },
-    { id: "innercore", name: "Inner Core", min: 25500, color: "#fbbf24" },
-    { id: "hollow", name: "Hollow Earth", min: 32000, color: "#86efac" },
-    { id: "garden", name: "Lost Garden", min: 40000, color: "#4ade80" },
-    { id: "primordial", name: "Primordial", min: 50000, color: "#c084fc" },
-    { id: "aetherbed", name: "Aether Bed", min: 62000, color: "#67e8f9" },
-    { id: "singularity", name: "Singularity", min: 80000, color: "#111827" },
-    { id: "rift", name: "Rift", min: 105000, color: "#312e81" },
-    { id: "voidsea", name: "Void Sea", min: 140000, color: "#0f172a" },
-    { id: "astral", name: "Astral Crust", min: 190000, color: "#e0e7ff" },
-    { id: "cosmic", name: "Cosmic Mantle", min: 260000, color: "#818cf8" },
-    { id: "omega", name: "Omega Depth", min: 360000, color: "#f472b6" },
-    { id: "absolute", name: "Absolute Zero", min: 500000, color: "#e2e8f0" }
-  ];
+  if (!window.MineData || !MineData.LAYERS || !MineData.ORES) {
+    console.error("MineData missing — load mine-data.js first");
+  }
 
-  const ORES = [
-    { id: "dirt", name: "Dirt", emoji: "🪨", value: 1, weight: 42, minDepth: 0 },
-    { id: "pebble", name: "Pebble", emoji: "⚪", value: 2, weight: 28, minDepth: 8 },
-    { id: "claylump", name: "Clay Lump", emoji: "🟤", value: 3, weight: 24, minDepth: 20 },
-    { id: "coal", name: "Coal", emoji: "⬛", value: 4, weight: 22, minDepth: 30 },
-    { id: "amber", name: "Amber", emoji: "🟡", value: 5, weight: 16, minDepth: 45 },
-    { id: "tin", name: "Tin", emoji: "🪙", value: 7, weight: 18, minDepth: 55 },
-    { id: "lead", name: "Lead", emoji: "◼️", value: 8, weight: 14, minDepth: 70 },
-    { id: "copper", name: "Copper", emoji: "🟠", value: 10, weight: 15, minDepth: 85 },
-    { id: "flint", name: "Flint", emoji: "🗿", value: 12, weight: 12, minDepth: 110 },
-    { id: "zinc", name: "Zinc", emoji: "🩶", value: 15, weight: 13, minDepth: 140 },
-    { id: "iron", name: "Iron", emoji: "⚙️", value: 22, weight: 12, minDepth: 190 },
-    { id: "pyrite", name: "Pyrite", emoji: "🟨", value: 28, weight: 9, minDepth: 240 },
-    { id: "nickel", name: "Nickel", emoji: "🔘", value: 35, weight: 10, minDepth: 290 },
-    { id: "silver", name: "Silver", emoji: "🥈", value: 48, weight: 8, minDepth: 400 },
-    { id: "magnetite", name: "Magnetite", emoji: "🧲", value: 58, weight: 7, minDepth: 480 },
-    { id: "cobalt", name: "Cobalt", emoji: "🔵", value: 70, weight: 6.5, minDepth: 580 },
-    { id: "jade", name: "Jade", emoji: "🟢", value: 88, weight: 5.5, minDepth: 680 },
-    { id: "gold", name: "Gold", emoji: "🥇", value: 110, weight: 5, minDepth: 780 },
-    { id: "topaz", name: "Topaz", emoji: "🟠", value: 135, weight: 4.4, minDepth: 950 },
-    { id: "platinum", name: "Platinum", emoji: "💍", value: 160, weight: 4, minDepth: 1150 },
-    { id: "opal", name: "Opal", emoji: "🌈", value: 180, weight: 3.6, minDepth: 1350 },
-    { id: "emerald", name: "Emerald", emoji: "💚", value: 200, weight: 3.4, minDepth: 1550 },
-    { id: "sapphire", name: "Sapphire", emoji: "💙", value: 230, weight: 3, minDepth: 1750 },
-    { id: "gem", name: "Gem", emoji: "💎", value: 260, weight: 2.8, minDepth: 1950 },
-    { id: "amethyst", name: "Amethyst", emoji: "💜", value: 310, weight: 2.4, minDepth: 2200 },
-    { id: "ruby", name: "Ruby", emoji: "❤️", value: 380, weight: 2.2, minDepth: 2550 },
-    { id: "diamond", name: "Diamond", emoji: "💠", value: 480, weight: 1.9, minDepth: 3100 },
-    { id: "mythril", name: "Mythril", emoji: "🔷", value: 650, weight: 1.6, minDepth: 3900 },
-    { id: "obsidianore", name: "Obsidian Ore", emoji: "🖤", value: 780, weight: 1.35, minDepth: 4500 },
-    { id: "adamant", name: "Adamant", emoji: "🛡️", value: 900, weight: 1.2, minDepth: 5200 },
-    { id: "infernalite", name: "Infernalite", emoji: "🔥", value: 1050, weight: 1.05, minDepth: 6000 },
-    { id: "orichalcum", name: "Orichalcum", emoji: "🔶", value: 1200, weight: 0.95, minDepth: 6800 },
-    { id: "runestone", name: "Runestone", emoji: "📜", value: 1500, weight: 0.8, minDepth: 8000 },
-    { id: "void", name: "Void Ore", emoji: "🌑", value: 1800, weight: 0.7, minDepth: 9500 },
-    { id: "nightsteel", name: "Nightsteel", emoji: "🗡️", value: 2200, weight: 0.55, minDepth: 11500 },
-    { id: "aether", name: "Aether", emoji: "🌀", value: 2800, weight: 0.45, minDepth: 14500 },
-    { id: "phoenixite", name: "Phoenixite", emoji: "🐦", value: 3600, weight: 0.35, minDepth: 17500 },
-    { id: "star", name: "Starcore", emoji: "✨", value: 5000, weight: 0.28, minDepth: 21500 },
-    { id: "solarium", name: "Solarium", emoji: "☀️", value: 6200, weight: 0.22, minDepth: 26000 },
-    { id: "chronite", name: "Chronite", emoji: "⏳", value: 7500, weight: 0.18, minDepth: 32000 },
-    { id: "dreamglass", name: "Dreamglass", emoji: "🫧", value: 9500, weight: 0.14, minDepth: 38000 },
-    { id: "hollow", name: "Hollow Shard", emoji: "🕳️", value: 12000, weight: 0.12, minDepth: 42000 },
-    { id: "edenite", name: "Edenite", emoji: "🌱", value: 15500, weight: 0.09, minDepth: 48000 },
-    { id: "primordial", name: "Primordial Ore", emoji: "🧬", value: 20000, weight: 0.07, minDepth: 56000 },
-    { id: "celestium", name: "Celestium", emoji: "☁️", value: 28000, weight: 0.05, minDepth: 68000 },
-    { id: "singularity", name: "Singularity Ore", emoji: "⚫", value: 40000, weight: 0.035, minDepth: 82000 },
-    { id: "riftcrystal", name: "Rift Crystal", emoji: "🔮", value: 55000, weight: 0.025, minDepth: 110000 },
-    { id: "voidpearl", name: "Void Pearl", emoji: "👁️", value: 75000, weight: 0.018, minDepth: 150000 },
-    { id: "astrium", name: "Astrium", emoji: "🌠", value: 110000, weight: 0.012, minDepth: 200000 },
-    { id: "cosmite", name: "Cosmite", emoji: "🌌", value: 160000, weight: 0.008, minDepth: 270000 },
-    { id: "omegite", name: "Omegite", emoji: "Ω", value: 250000, weight: 0.005, minDepth: 370000 },
-    { id: "absolute", name: "Absolute Ore", emoji: "❄️", value: 400000, weight: 0.0025, minDepth: 500000 }
+  const LAYERS = (window.MineData && MineData.LAYERS) || [{ id: "soil", name: "Soil", min: 0, color: "#8d6e4c" }];
+  const ORES = (window.MineData && MineData.ORES) || [
+    { id: "dirt", name: "Dirt", emoji: "🪨", value: 1, weight: 40, minDepth: 0 }
   ];
 
   const UPGRADES = [
@@ -185,8 +98,10 @@
   let shopDirty = true;
   let strataBuilt = false;
   let lastClickAt = 0;
-  const BAND_H = 160;
-  const VIEW_PAD = 120;
+  let lastStrataCenter = -1;
+  const BAND_H = 72;
+  const VIEW_PAD = 100;
+  const STRATA_WINDOW = 14;
 
   function defaultState() {
     const owned = {};
@@ -210,16 +125,22 @@
   }
 
   function formatBestOre(oreOrValue) {
-    const ore =
-      typeof oreOrValue === "object" && oreOrValue
-        ? oreOrValue
-        : oreById(state.bestOreId) || ORES.find((o) => o.value === Number(oreOrValue));
+    if (typeof oreOrValue === "object" && oreOrValue) {
+      return `${oreOrValue.emoji} ${oreOrValue.name}`;
+    }
+    if (window.MineData?.formatOre) {
+      const fromId = oreById(state.bestOreId);
+      if (fromId) return `${fromId.emoji} ${fromId.name}`;
+      return MineData.formatOre(oreOrValue || state.bestOreValue);
+    }
+    const ore = oreById(state.bestOreId) || ORES.find((o) => o.value === Number(oreOrValue));
     if (!ore) return "—";
     return `${ore.emoji} ${ore.name}`;
   }
 
   function formatNum(n) {
     const x = Number(n) || 0;
+    if (x >= 1e18) return (x / 1e18).toFixed(2).replace(/\.?0+$/, "") + "Qi";
     if (x >= 1e15) return (x / 1e15).toFixed(2).replace(/\.?0+$/, "") + "Qa";
     if (x >= 1e12) return (x / 1e12).toFixed(2).replace(/\.?0+$/, "") + "T";
     if (x >= 1e9) return (x / 1e9).toFixed(2).replace(/\.?0+$/, "") + "B";
@@ -413,14 +334,15 @@
   function checkAchievements() {
     if (!window.HubAchievements) return;
     const d = Math.floor(state.bestDepth);
+    const at = (idx) => (LAYERS[idx] ? LAYERS[idx].min : 0);
     if (d >= 50) HubAchievements.unlock("mine_depth_50");
-    if (d >= 580) HubAchievements.unlock("mine_depth_400");
-    if (d >= 3600) HubAchievements.unlock("mine_depth_2500");
-    if (d >= 20500) HubAchievements.unlock("mine_depth_15000");
-    if (d >= 32000) HubAchievements.unlock("mine_depth_32000");
-    if (d >= 80000) HubAchievements.unlock("mine_depth_80000");
-    if (d >= 190000) HubAchievements.unlock("mine_depth_190000");
-    if (d >= 500000) HubAchievements.unlock("mine_depth_500000");
+    if (d >= at(25) || d >= 500) HubAchievements.unlock("mine_depth_400");
+    if (d >= at(80) || d >= 3000) HubAchievements.unlock("mine_depth_2500");
+    if (d >= at(150) || d >= 15000) HubAchievements.unlock("mine_depth_15000");
+    if (d >= at(250) || d >= 50000) HubAchievements.unlock("mine_depth_32000");
+    if (d >= at(400) || d >= 200000) HubAchievements.unlock("mine_depth_80000");
+    if (d >= at(650) || d >= 2e6) HubAchievements.unlock("mine_depth_190000");
+    if (d >= at(900) || d >= 2e7) HubAchievements.unlock("mine_depth_500000");
     if (drillRate() > 0) HubAchievements.unlock("mine_drill");
     try {
       const life = Number(localStorage.getItem("mine-depth-lifetime-coins") || 0);
@@ -437,22 +359,32 @@
   }
 
   function buildStrata() {
-    if (!strataEl || strataBuilt) return;
-    strataBuilt = true;
+    if (!strataEl) return;
     const totalH = LAYERS.length * BAND_H + 400;
-    strataEl.style.height = `${totalH}px`;
-    strataEl.innerHTML = LAYERS.map((layer, i) => {
-      const startY = i * BAND_H;
-      return `<div class="strata-band" style="top:${startY}px;height:${BAND_H}px;background:linear-gradient(180deg, ${layer.color}cc, ${layer.color}88);">${layer.name}<span class="strata-depth">${formatDepth(layer.min)}+</span></div>`;
-    }).join("");
+    if (!strataBuilt) {
+      strataBuilt = true;
+      strataEl.style.height = `${totalH}px`;
+    }
+    const layer = layerFor(state.depth);
+    const idx = Math.max(0, LAYERS.findIndex((l) => l.id === layer.id));
+    if (idx === lastStrataCenter && strataEl.childElementCount) return;
+    lastStrataCenter = idx;
+    const from = Math.max(0, idx - STRATA_WINDOW);
+    const to = Math.min(LAYERS.length - 1, idx + STRATA_WINDOW);
+    let html = "";
+    for (let i = from; i <= to; i += 1) {
+      const band = LAYERS[i];
+      html += `<div class="strata-band" style="top:${i * BAND_H}px;height:${BAND_H}px;background:linear-gradient(180deg, ${band.color}cc, ${band.color}88);">${band.name}<span class="strata-depth">#${i + 1} · ${formatDepth(band.min)}+</span></div>`;
+    }
+    strataEl.innerHTML = html;
   }
 
   function shaftScrollForDepth(depth) {
     const layer = layerFor(depth);
-    const idx = LAYERS.findIndex((l) => l.id === layer.id);
+    const idx = Math.max(0, LAYERS.findIndex((l) => l.id === layer.id));
     const next = LAYERS[idx + 1];
-    const span = next ? Math.max(1, next.min - layer.min) : Math.max(1, layer.min * 0.25 || 50000);
-    const prog = next ? Math.min(1, Math.max(0, (depth - layer.min) / span)) : Math.min(1, (depth - layer.min) / span);
+    const span = next ? Math.max(1, next.min - layer.min) : Math.max(1, layer.min * 0.2 || 1e6);
+    const prog = Math.min(1, Math.max(0, (depth - layer.min) / span));
     return Math.max(0, (idx + prog) * BAND_H - VIEW_PAD);
   }
 
@@ -469,7 +401,7 @@
         linear-gradient(180deg, ${layer.color}, #241910 85%)`;
     }
     if (surfaceLightEl) {
-      surfaceLightEl.style.opacity = String(Math.max(0.04, 0.9 - depth / 2500));
+      surfaceLightEl.style.opacity = String(Math.max(0.04, 0.85 - Math.log10(depth + 10) / 8));
     }
 
     const viewSpan = Math.max(40, digPower() * 8);
@@ -524,10 +456,13 @@
     const depth = state.depth;
     const luck = luckMult();
     const pool = ORES.filter((o) => depth >= o.minDepth).map((o) => {
-      const rarityBoost = o.value >= 100 ? luck : 1 + (luck - 1) * 0.35;
-      return { ore: o, w: o.weight * rarityBoost };
+      const age = Math.max(0, depth - o.minDepth);
+      const recency = 1 / (1 + age / Math.max(80, depth * 0.12 + 40));
+      const rarityBoost = (o.index || 0) > 30 ? luck : 1 + (luck - 1) * 0.4;
+      return { ore: o, w: o.weight * recency * rarityBoost };
     });
     const total = pool.reduce((s, p) => s + p.w, 0);
+    if (!total) return ORES[0];
     let roll = Math.random() * total;
     for (const p of pool) {
       roll -= p.w;
@@ -768,17 +703,29 @@
 
   function renderGuide() {
     if (!guideBody) return;
+    const layer = layerFor(state.depth);
+    const idx = Math.max(0, LAYERS.findIndex((l) => l.id === layer.id));
+    const layerSlice = LAYERS.slice(Math.max(0, idx - 5), Math.min(LAYERS.length, idx + 20));
+    const unlocked = ORES.filter((o) => state.depth >= o.minDepth);
+    const upcoming = ORES.filter((o) => state.depth < o.minDepth).slice(0, 15);
+    const showOres = unlocked.slice(-20).concat(upcoming);
     guideBody.innerHTML =
-      `<div class="guide-row"><span></span><div><div class="name">Layers</div><div class="meta">Deeper layers unlock richer ore.</div></div><span></span></div>` +
-      LAYERS.map(
-        (l) =>
-          `<div class="guide-row"><span style="width:12px;height:12px;border-radius:50%;background:${l.color}"></span><div><div class="name">${l.name}</div><div class="meta">From ${formatDepth(l.min)}</div></div><span></span></div>`
-      ).join("") +
-      `<div class="guide-row"><span></span><div><div class="name">Ores</div><div class="meta">Base sell value before market upgrades.</div></div><span></span></div>` +
-      ORES.map(
-        (o) =>
-          `<div class="guide-row"><span>${o.emoji}</span><div><div class="name">${o.name}</div><div class="meta">From ${formatDepth(o.minDepth)}</div></div><strong>${o.value}</strong></div>`
-      ).join("");
+      `<div class="guide-row"><span></span><div><div class="name">${LAYERS.length} layers · ${ORES.length} ores</div><div class="meta">Showing nearby layers and ores around your depth.</div></div><span></span></div>` +
+      layerSlice
+        .map(
+          (l, i) => {
+            const realIdx = Math.max(0, idx - 5) + i;
+            return `<div class="guide-row"><span style="width:12px;height:12px;border-radius:50%;background:${l.color}"></span><div><div class="name">${l.name}</div><div class="meta">#${realIdx + 1} · from ${formatDepth(l.min)}</div></div><span></span></div>`;
+          }
+        )
+        .join("") +
+      `<div class="guide-row"><span></span><div><div class="name">Ores near you</div><div class="meta">${unlocked.length} unlocked</div></div><span></span></div>` +
+      showOres
+        .map(
+          (o) =>
+            `<div class="guide-row"><span>${o.emoji}</span><div><div class="name">${o.name}</div><div class="meta">From ${formatDepth(o.minDepth)}</div></div><strong>${formatNum(o.value)}</strong></div>`
+        )
+        .join("");
   }
 
   function tick() {

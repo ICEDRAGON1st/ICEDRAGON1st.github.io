@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260908av": [
+    "Mine Depth: 1000 layers and 1000 ores"
+  ],
   "20260908au": [
     "Mine Depth: fix gear upgrades not applying / hard to buy"
   ],
