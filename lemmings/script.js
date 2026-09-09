@@ -230,6 +230,8 @@
   const startBtn = document.getElementById("start-btn");
   const gamesBtn = document.getElementById("games-btn");
   const menuBtn = document.getElementById("menu-btn");
+  const restartBtn = document.getElementById("restart-btn");
+  const restartMenuBtn = document.getElementById("restart-menu-btn");
 
   canvas.width = W;
   canvas.height = H;
@@ -889,6 +891,16 @@
     overlay?.classList.add("hidden");
   }
 
+  function restartLevel() {
+    ensureSession();
+    loadLevel(levelIndex);
+    playing = true;
+    paused = false;
+    levelDone = false;
+    overlay?.classList.add("hidden");
+    window.HubSound?.play?.("click");
+  }
+
   function showMenu(pause) {
     if (pause && playing && !levelDone) paused = true;
     if (overlayTitle) overlayTitle.textContent = "Lemmings";
@@ -927,9 +939,23 @@
       startCampaign(next < LEVELS.length ? next : 0);
       return;
     }
-    // Always restart current / start from beginning if fresh
-    if (levelDone) startCampaign(levelIndex);
+    if (levelDone) restartLevel();
     else startCampaign(0);
+  });
+
+  function onRestartClick() {
+    restartLevel();
+  }
+
+  restartBtn?.addEventListener("click", onRestartClick);
+  restartMenuBtn?.addEventListener("click", onRestartClick);
+
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "r" || e.key === "R") {
+      if (e.target && /input|textarea/i.test(e.target.tagName)) return;
+      e.preventDefault();
+      restartLevel();
+    }
   });
 
   menuBtn?.addEventListener("click", () => showMenu(true));

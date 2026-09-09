@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260909d": [
+    "Lemmings: restart current level (button or R)"
+  ],
   "20260909c": [
     "Lemmings: fix levels and physics so walkers can reach the exit"
   ],

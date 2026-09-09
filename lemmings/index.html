@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260909c">
+  <link rel="stylesheet" href="styles.css?v=20260909d">
 </head>
 <body>
   <header class="hud">
@@ -17,10 +17,13 @@
       <strong id="level-title">Level 1</strong>
       <span id="goal-label">Save 5 / 10</span>
     </div>
-    <div class="hud-stats">
-      <span>Out <strong id="out-count">0</strong></span>
-      <span>In <strong id="saved-count">0</strong></span>
-      <span>Best <strong id="best-score">0</strong></span>
+    <div class="hud-actions">
+      <button id="restart-btn" type="button" class="restart-btn">Restart</button>
+      <div class="hud-stats">
+        <span>Out <strong id="out-count">0</strong></span>
+        <span>In <strong id="saved-count">0</strong></span>
+        <span>Best <strong id="best-score">0</strong></span>
+      </div>
     </div>
   </header>
 
@@ -38,6 +41,7 @@
       <p class="score-line">Best score: <strong id="overlay-best">0</strong></p>
       <div class="overlay-actions">
         <button id="start-btn" type="button" class="btn">Play</button>
+        <button id="restart-menu-btn" type="button" class="btn btn-ghost">Restart level</button>
         <button id="games-btn" type="button" class="btn btn-ghost">Games</button>
       </div>
     </div>
@@ -47,10 +51,10 @@
   <script src="../hub-achievements.js"></script>
   <script src="../hub-sound.js"></script>
   <script src="../hub-confetti.js"></script>
-  <script src="../hub-plays.js?v=20260909c"></script>
+  <script src="../hub-plays.js?v=20260909d"></script>
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
-  <script src="../hub-leaderboard.js?v=20260909c"></script>
-  <script src="script.js?v=20260909c"></script>
+  <script src="../hub-leaderboard.js?v=20260909d"></script>
+  <script src="script.js?v=20260909d"></script>
 </body>
 </html>
