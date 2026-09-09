@@ -1,6 +1,8 @@
 (function () {
   const HIGH_SCORE_KEY = "lemmings-high-score";
   const LEVEL_KEY = "lemmings-max-level-v1";
+  const CURRENT_KEY = "lemmings-current-level-v1";
+  const SCORE_KEY = "lemmings-session-score-v1";
   const TILE = 16;
   const COLS = 40;
   const ROWS = 22;
@@ -238,7 +240,15 @@
 
   let best = Math.max(0, Math.floor(Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0));
   let maxLevel = Math.max(0, Math.floor(Number(localStorage.getItem(LEVEL_KEY)) || 0));
-  let levelIndex = 0;
+  let levelIndex = Math.max(
+    0,
+    Math.min(
+      LEVELS.length - 1,
+      Math.floor(Number(localStorage.getItem(CURRENT_KEY)) || 0)
+    )
+  );
+  // Don't start past what is unlocked (maxLevel = next unlocked index / cleared count).
+  levelIndex = Math.min(levelIndex, Math.min(maxLevel, LEVELS.length - 1));
   let terrain = [];
   let lemmings = [];
   let particles = [];
@@ -255,10 +265,24 @@
   let playing = false;
   let paused = false;
   let levelDone = false;
-  let sessionScore = 0;
+  let sessionScore = Math.max(0, Math.floor(Number(localStorage.getItem(SCORE_KEY)) || 0));
   let sessionStarted = false;
   let lastSubmitAt = 0;
   let lastTs = 0;
+
+  function persistProgress() {
+    try {
+      localStorage.setItem(LEVEL_KEY, String(maxLevel));
+      localStorage.setItem(CURRENT_KEY, String(levelIndex));
+      localStorage.setItem(SCORE_KEY, String(sessionScore));
+      if (best > 0) localStorage.setItem(HIGH_SCORE_KEY, String(best));
+    } catch {}
+  }
+
+  function continueLevelIndex() {
+    if (maxLevel >= LEVELS.length) return Math.min(levelIndex, LEVELS.length - 1);
+    return Math.min(Math.max(levelIndex, 0), Math.min(maxLevel, LEVELS.length - 1));
+  }
 
   function ensureSession() {
     if (sessionStarted) return;
@@ -325,6 +349,7 @@
     spawnTimer = 0.35;
     levelDone = false;
     paused = false;
+    persistProgress();
     renderSkills();
     updateHud();
   }
@@ -667,19 +692,18 @@
     sessionScore += 250 + saved * 25;
     saveBest();
     maxLevel = Math.max(maxLevel, levelIndex + 1);
-    try {
-      localStorage.setItem(LEVEL_KEY, String(maxLevel));
-    } catch {}
+    const next = levelIndex + 1;
+    if (next < LEVELS.length) levelIndex = next;
+    persistProgress();
     checkAchievements();
     window.HubConfetti?.burst?.();
     window.HubSound?.play?.("merge");
-    const next = levelIndex + 1;
     if (overlayTitle) overlayTitle.textContent = "Level clear!";
     if (overlayText) {
       overlayText.textContent =
         next < LEVELS.length
-          ? `Saved ${saved}/${toRelease}. Score ${sessionScore}. Next: ${LEVELS[next].name}`
-          : `All levels cleared! Final score ${sessionScore}.`;
+          ? `Saved ${saved}/${toRelease}. Score ${sessionScore}. Progress saved — next: ${LEVELS[next].name}`
+          : `All levels cleared! Final score ${sessionScore}. Progress saved.`;
     }
     if (startBtn) startBtn.textContent = next < LEVELS.length ? "Next level" : "Play again";
     overlay?.classList.remove("hidden");
@@ -688,25 +712,75 @@
   function failLevel() {
     levelDone = true;
     playing = false;
+    persistProgress();
     saveBest();
     if (overlayTitle) overlayTitle.textContent = "Oh no";
-    if (overlayText) overlayText.textContent = `Saved ${saved}/${need} needed. Score ${sessionScore}. Try again!`;
+    if (overlayText) overlayText.textContent = `Saved ${saved}/${need} needed. Score ${sessionScore}. Progress kept — retry this level.`;
     if (startBtn) startBtn.textContent = "Retry";
     overlay?.classList.remove("hidden");
     window.HubSound?.play?.("error");
   }
 
   function saveBest() {
-    if (sessionScore <= best) {
-      updateHud();
-      return;
+    if (sessionScore > best) {
+      best = sessionScore;
     }
-    best = sessionScore;
-    try {
-      localStorage.setItem(HIGH_SCORE_KEY, String(best));
-    } catch {}
+    persistProgress();
     updateHud();
-    maybeSubmit(true);
+    if (best > 0) maybeSubmit(true);
+  }
+
+  function updateHud() {
+    const lvl = LEVELS[levelIndex];
+    if (levelTitleEl) levelTitleEl.textContent = `Level ${levelIndex + 1}: ${lvl.name}`;
+    if (goalLabelEl) goalLabelEl.textContent = `Save ${need} / ${toRelease}`;
+    if (outCountEl) outCountEl.textContent = String(Math.max(0, released - saved - dead));
+    if (savedCountEl) savedCountEl.textContent = String(saved);
+    if (bestScoreEl) bestScoreEl.textContent = String(best);
+    if (overlayBest) overlayBest.textContent = String(best);
+  }
+
+  function playButtonLabel() {
+    if (paused && playing && !levelDone) return "Resume";
+    if (maxLevel > 0 || levelIndex > 0 || sessionScore > 0) {
+      return `Continue L${continueLevelIndex() + 1}`;
+    }
+    return "Play";
+  }
+
+  function startCampaign(fromLevel, opts) {
+    ensureSession();
+    const resetScore = opts && opts.resetScore;
+    if (resetScore) sessionScore = 0;
+    loadLevel(fromLevel);
+    playing = true;
+    paused = false;
+    persistProgress();
+    overlay?.classList.add("hidden");
+  }
+
+  function restartLevel() {
+    ensureSession();
+    loadLevel(levelIndex);
+    playing = true;
+    paused = false;
+    levelDone = false;
+    persistProgress();
+    overlay?.classList.add("hidden");
+    window.HubSound?.play?.("click");
+  }
+
+  function showMenu(pause) {
+    if (pause && playing && !levelDone) paused = true;
+    if (overlayTitle) overlayTitle.textContent = "Lemmings";
+    if (overlayText) {
+      const unlocked = Math.min(maxLevel + 1, LEVELS.length);
+      overlayText.textContent = paused
+        ? "Paused. Resume, restart this level, or keep your saved progress."
+        : `Progress saves automatically. Cleared ${Math.min(maxLevel, LEVELS.length)}/${LEVELS.length} · continuing level ${continueLevelIndex() + 1} (${unlocked} unlocked).`;
+    }
+    if (startBtn) startBtn.textContent = playButtonLabel();
+    overlay?.classList.remove("hidden");
   }
 
   function maybeSubmit(force) {
@@ -724,16 +798,6 @@
     if (maxLevel >= 3) HubAchievements.unlock("lemmings_level_3");
     if (maxLevel >= LEVELS.length) HubAchievements.unlock("lemmings_all_levels");
     if (best >= 2000) HubAchievements.unlock("lemmings_score_2000");
-  }
-
-  function updateHud() {
-    const lvl = LEVELS[levelIndex];
-    if (levelTitleEl) levelTitleEl.textContent = `Level ${levelIndex + 1}: ${lvl.name}`;
-    if (goalLabelEl) goalLabelEl.textContent = `Save ${need} / ${toRelease}`;
-    if (outCountEl) outCountEl.textContent = String(Math.max(0, released - saved - dead));
-    if (savedCountEl) savedCountEl.textContent = String(saved);
-    if (bestScoreEl) bestScoreEl.textContent = String(best);
-    if (overlayBest) overlayBest.textContent = String(best);
   }
 
   function renderSkills() {
@@ -882,37 +946,6 @@
     return bestLem;
   }
 
-  function startCampaign(fromLevel) {
-    ensureSession();
-    if (fromLevel === 0) sessionScore = 0;
-    loadLevel(fromLevel);
-    playing = true;
-    paused = false;
-    overlay?.classList.add("hidden");
-  }
-
-  function restartLevel() {
-    ensureSession();
-    loadLevel(levelIndex);
-    playing = true;
-    paused = false;
-    levelDone = false;
-    overlay?.classList.add("hidden");
-    window.HubSound?.play?.("click");
-  }
-
-  function showMenu(pause) {
-    if (pause && playing && !levelDone) paused = true;
-    if (overlayTitle) overlayTitle.textContent = "Lemmings";
-    if (overlayText) {
-      overlayText.textContent = paused
-        ? "Paused. Resume or restart this level."
-        : "Pick a skill, tap a lemming, and get them to the green OUT hatch.";
-    }
-    if (startBtn) startBtn.textContent = paused ? "Resume" : "Play";
-    overlay?.classList.remove("hidden");
-  }
-
   skillsEl?.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-skill]");
     if (!btn || btn.disabled) return;
@@ -935,12 +968,20 @@
       return;
     }
     if (levelDone && saved >= need) {
-      const next = levelIndex + 1;
-      startCampaign(next < LEVELS.length ? next : 0);
+      // levelIndex already advanced on win when possible
+      if (maxLevel >= LEVELS.length && levelIndex >= LEVELS.length - 1 && saved >= need) {
+        // Finished all — start over from 1 but keep best; reset run score
+        startCampaign(0, { resetScore: true });
+        return;
+      }
+      startCampaign(continueLevelIndex());
       return;
     }
-    if (levelDone) restartLevel();
-    else startCampaign(0);
+    if (levelDone) {
+      restartLevel();
+      return;
+    }
+    startCampaign(continueLevelIndex());
   });
 
   function onRestartClick() {
@@ -963,10 +1004,16 @@
     window.location.href = "../index.html#games";
   });
 
-  updateHud();
-  loadLevel(0);
+  loadLevel(continueLevelIndex());
+  if (startBtn) startBtn.textContent = playButtonLabel();
+  if (overlayText && (maxLevel > 0 || levelIndex > 0 || sessionScore > 0)) {
+    overlayText.textContent = `Progress saved. Continue level ${continueLevelIndex() + 1} · cleared ${Math.min(maxLevel, LEVELS.length)}/${LEVELS.length}.`;
+  }
   draw();
   requestAnimationFrame(tick);
   maybeSubmit(false);
-  window.addEventListener("beforeunload", () => maybeSubmit(true));
+  window.addEventListener("beforeunload", () => {
+    persistProgress();
+    maybeSubmit(true);
+  });
 })();

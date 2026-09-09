@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260909e": [
+    "Lemmings: save level progress and continue where you left off"
+  ],
   "20260909d": [
     "Lemmings: restart current level (button or R)"
   ],
