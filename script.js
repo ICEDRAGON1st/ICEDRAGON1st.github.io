@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260909r": [
+    "Lemmings: clear the level when the save goal is met even if a Blocker is left behind"
+  ],
   "20260909q": [
     "Lemmings: fix Turn Around — IN was over water so the level was unwinnable"
   ],

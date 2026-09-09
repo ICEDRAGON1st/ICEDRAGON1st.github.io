@@ -1002,11 +1002,25 @@
 
   function checkLevelEnd() {
     if (levelDone) return;
-    const alive = lemmings.some((l) => !l.dead && !l.saved);
     const spawning = released < toRelease;
-    if (!spawning && !alive) {
+    const leftover = lemmings.filter((l) => !l.dead && !l.saved);
+    const movers = leftover.filter((l) => l.state !== "blocker");
+
+    // Quota met — don't strand the player on leftover blockers
+    if (saved >= need && !spawning && movers.length === 0) {
+      winLevel();
+      return;
+    }
+
+    // Nobody left who can still reach OUT
+    if (!spawning && leftover.length === 0) {
       if (saved >= need) winLevel();
       else failLevel();
+      return;
+    }
+
+    if (!spawning && movers.length === 0 && leftover.length > 0 && saved < need) {
+      failLevel();
     }
   }
 
