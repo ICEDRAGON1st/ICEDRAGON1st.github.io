@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260909a": [
+    "Remove unused player nickname dragon from the players list"
+  ],
   "20260908az": [
     "Block Blast: cleared rows/columns can be used again"
   ],

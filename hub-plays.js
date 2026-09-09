@@ -28,6 +28,10 @@
   const MAX_ALLTIME = 5000;
   const MAX_ONLINE_CREDIT_MS = 90_000; // don't dump hours after AFK reopen
   const LAST_AT_WRITE_GAP_MS = 5 * 60_000; // don't rewrite all-time every heartbeat
+  // One-time: remove unused nickname "dragon" from roster + name registry.
+  const PURGED_PLAYER_IDS = new Set(["p-mtt6cbk7-hg3bcj"]);
+  const PURGED_NAME_KEYS = new Set(["dragon"]);
+  const DRAGON_PURGE_FLAG = "hub-purge-dragon-v1";
 
   let lastOnlineTickAt = 0;
   let lastOnlineSubmitAt = 0;
@@ -77,6 +81,109 @@
 
   function nameKey(name) {
     return sanitizeName(name).toLowerCase();
+  }
+
+  function isPurgedPlayer(playerId, name) {
+    const id = String(playerId || "");
+    if (id && PURGED_PLAYER_IDS.has(id)) return true;
+    const key = nameKey(name || "");
+    return !!key && PURGED_NAME_KEYS.has(key);
+  }
+
+  function purgeNameRegistry(names) {
+    const out = { ...(names || {}) };
+    let changed = false;
+    Object.keys(out).forEach((key) => {
+      const claim = out[key];
+      if (
+        PURGED_NAME_KEYS.has(key) ||
+        isPurgedPlayer(claim?.playerId, claim?.name || key)
+      ) {
+        delete out[key];
+        changed = true;
+      }
+    });
+    return { names: out, changed };
+  }
+
+  function purgeAllTimePlayers(players) {
+    const out = { ...(players || {}) };
+    let changed = false;
+    Object.keys(out).forEach((id) => {
+      if (isPurgedPlayer(id, out[id]?.name)) {
+        delete out[id];
+        changed = true;
+      }
+    });
+    return { players: out, changed };
+  }
+
+  function purgePlaysList(plays) {
+    const list = Array.isArray(plays) ? plays : [];
+    const next = list.filter((p) => !isPurgedPlayer(p?.playerId, p?.name));
+    return { plays: next, changed: next.length !== list.length };
+  }
+
+  async function ensureDragonPurged() {
+    try {
+      if (localStorage.getItem(DRAGON_PURGE_FLAG) === "done") return;
+    } catch {}
+    let verifiedClean = false;
+    try {
+      const data = await fetchJson(NAMES_API);
+      const raw =
+        data && typeof data === "object"
+          ? data.names && typeof data.names === "object"
+            ? data.names
+            : data
+          : {};
+      const cleaned = {};
+      Object.entries(raw || {}).forEach(([k, v]) => {
+        if (v && typeof v === "object" && v.playerId && v.name) cleaned[k] = v;
+      });
+      const purged = purgeNameRegistry(cleaned);
+      namesCache = purgeNameRegistry(mergeNameMaps(namesCache, purged.names)).names;
+      if (purged.changed) await pushNamesRemote(purged.names);
+      verifiedClean = !purged.names.dragon && !Object.values(purged.names).some((c) =>
+        isPurgedPlayer(c?.playerId, c?.name)
+      );
+    } catch {}
+    try {
+      const data = await fetchJson(ALLTIME_API);
+      const rawPlayers =
+        data && typeof data === "object"
+          ? data.players && typeof data.players === "object"
+            ? data.players
+            : data
+          : {};
+      const normalized = {};
+      Object.entries(rawPlayers || {}).forEach(([id, p]) => {
+        if (!id || id === "players" || id === "total") return;
+        if (!p || typeof p !== "object") return;
+        const firstAt = Number(p.firstAt) || Number(p.at) || 0;
+        if (!firstAt) return;
+        const lastAt = Math.max(Number(p.lastAt) || 0, Number(p.at) || 0, firstAt);
+        normalized[id] = {
+          firstAt,
+          lastAt,
+          name: sanitizeName(p.name || "") || "Guest"
+        };
+      });
+      const purged = purgeAllTimePlayers(normalized);
+      allTimeCache = purgeAllTimePlayers(mergeAllTime(allTimeCache, purged.players)).players;
+      if (purged.changed) await pushAllTimeRemote(purged.players);
+      const allClean = !Object.entries(purged.players).some(([id, p]) =>
+        isPurgedPlayer(id, p?.name)
+      );
+      verifiedClean = verifiedClean && allClean;
+    } catch {
+      verifiedClean = false;
+    }
+    if (verifiedClean) {
+      try {
+        localStorage.setItem(DRAGON_PURGE_FLAG, "done");
+      } catch {}
+    }
   }
 
   function makeId() {
@@ -193,7 +300,7 @@
     Object.entries(names).forEach(([k, v]) => {
       if (v && typeof v === "object" && v.playerId && v.name) out[k] = v;
     });
-    return out;
+    return purgeNameRegistry(out).names;
   }
 
   async function pushNamesRemote(names) {
@@ -326,7 +433,9 @@
       } catch {
         remote = { plays: [], counts: {} };
       }
-      const merged = mergeLogs(local, remote);
+      const mergedRaw = mergeLogs(local, remote);
+      const purgedPlays = purgePlaysList(mergedRaw.plays);
+      const merged = { plays: purgedPlays.plays, counts: mergedRaw.counts };
       saveLocal(merged);
       try {
         await pushPlaysRemote(merged);
@@ -334,8 +443,11 @@
         // offline — local still works
       }
       try {
+        await ensureDragonPurged();
         const remoteNames = await fetchNamesRemote();
-        namesCache = applyLocalProfileStyle(mergeNameMaps(namesCache, remoteNames));
+        namesCache = applyLocalProfileStyle(
+          purgeNameRegistry(mergeNameMaps(namesCache, remoteNames)).names
+        );
         // If local style is ahead of remote, push so refresh stays sticky.
         const key = nameKey(getName());
         const mine = key ? namesCache[key] : null;
@@ -999,7 +1111,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
         name: sanitizeName(p.name || "") || "Guest"
       };
     });
-    return out;
+    return purgeAllTimePlayers(out).players;
   }
 
   async function pushAllTimeRemote(players) {
@@ -1121,18 +1233,21 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   function buildAllTimeMap(remote, plays, names, meEntry) {
-    return applyPresenceLastSeen(
-      trimAllTime(
-        mergeAllTime(
+    const purgedPlays = purgePlaysList(plays).plays;
+    return purgeAllTimePlayers(
+      applyPresenceLastSeen(
+        trimAllTime(
           mergeAllTime(
-            mergeAllTime(remote || {}, namesFromPlays(plays)),
-            namesFromRegistry(names)
-          ),
-          meEntry || {}
-        )
-      ),
-      presenceCache
-    );
+            mergeAllTime(
+              mergeAllTime(remote || {}, namesFromPlays(purgedPlays)),
+              namesFromRegistry(purgeNameRegistry(names).names)
+            ),
+            meEntry || {}
+          )
+        ),
+        presenceCache
+      )
+    ).players;
   }
 
   function allTimeNeedsWrite(remote, next) {
@@ -1224,6 +1339,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     if (allTimeBusy) return getAllTimeCount();
     allTimeBusy = true;
     try {
+      await ensureDragonPurged();
       const me = getPlayerId();
       let remote = {};
       try {
@@ -1235,13 +1351,15 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       let plays = cache.plays || loadLocal().plays || [];
       try {
         const remotePlays = await fetchPlaysRemote();
-        plays = mergeLogs(loadLocal(), remotePlays).plays;
-        cache = mergeLogs(loadLocal(), remotePlays);
-      } catch {}
+        plays = purgePlaysList(mergeLogs(loadLocal(), remotePlays).plays).plays;
+        cache = { plays, counts: mergeLogs(loadLocal(), remotePlays).counts };
+      } catch {
+        plays = purgePlaysList(plays).plays;
+      }
 
       try {
         const remoteNames = await fetchNamesRemote();
-        namesCache = mergeNameMaps(namesCache, remoteNames);
+        namesCache = purgeNameRegistry(mergeNameMaps(namesCache, remoteNames)).names;
       } catch {}
 
       const now = Date.now();
