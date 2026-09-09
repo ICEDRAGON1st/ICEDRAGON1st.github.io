@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260909c": [
+    "Lemmings: fix levels and physics so walkers can reach the exit"
+  ],
   "20260909b": [
     "New game: Lemmings — assign skills and save the crew"
   ],
