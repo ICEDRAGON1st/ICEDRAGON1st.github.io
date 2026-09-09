@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260909k": [
+    "Lemmings: fix Climb (and harden Bash/Dig) so skills actually work"
+  ],
   "20260909j": [
     "Lemmings: Build bridge is walkable (same floor height, not a wall)"
   ],

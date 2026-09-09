@@ -199,15 +199,15 @@
         "........................................",
         ".....................................X..",
         "........................................",
-        "##########################==============",
-        "##########################==============",
+        "........................================",
+        "........................================",
+        "........................##..............",
         "........................##..............",
         "........................##..............",
         "........................##..............",
         "........................##..............",
         "........................##..............",
         "....E...................##..............",
-        "........................##..............",
         "##########################..............",
         "##########################..............",
         "........................................",
@@ -522,7 +522,7 @@
   function nearExit(lem) {
     const ex = exit.x * TILE + TILE / 2;
     const ey = exit.y * TILE + TILE / 2;
-    return Math.abs(centerX(lem) - ex) < 18 && Math.abs(lem.y + 7 - ey) < 20;
+    return Math.abs(centerX(lem) - ex) < 22 && Math.abs(lem.y + 7 - ey) < 28;
   }
 
   /** Bounce off a blocker face once and push clear so they don't jitter. */
@@ -564,7 +564,7 @@
       }
     }
 
-    if (nearExit(lem) && lem.state !== "fall" && lem.state !== "climb" && lem.state !== "blocker") {
+    if (nearExit(lem) && lem.state !== "fall" && lem.state !== "blocker") {
       saveLemming(lem);
       return;
     }
@@ -604,16 +604,19 @@
 
     if (lem.state === "basher") {
       lem.actionTimer += dt;
-      if (lem.actionTimer >= 0.16) {
+      if (lem.actionTimer >= 0.14) {
         lem.actionTimer = 0;
         const tx = Math.floor((centerX(lem) + lem.dir * 10) / TILE);
-        const ty = Math.floor((lem.y + 8) / TILE);
-        if (steelAt(tx, ty) || (!solidAt(tx, ty) && !solidAt(tx, ty - 1))) {
+        const body = Math.floor((lem.y + 8) / TILE);
+        const top = body - 1;
+        if (steelAt(tx, body) || steelAt(tx, top)) {
+          lem.state = "walk";
+        } else if (!solidAt(tx, body) && !solidAt(tx, top)) {
           lem.state = "walk";
         } else {
-          if (!steelAt(tx, ty)) setTile(tx, ty, ".");
-          if (!steelAt(tx, ty - 1)) setTile(tx, ty - 1, ".");
-          lem.x += lem.dir * 4;
+          if (!steelAt(tx, body)) setTile(tx, body, ".");
+          if (!steelAt(tx, top)) setTile(tx, top, ".");
+          lem.x += lem.dir * 6;
           lem.bashLeft -= 1;
           if (lem.bashLeft <= 0) lem.state = "walk";
         }
@@ -623,7 +626,7 @@
 
     if (lem.state === "digger") {
       lem.actionTimer += dt;
-      if (lem.actionTimer >= 0.2) {
+      if (lem.actionTimer >= 0.16) {
         lem.actionTimer = 0;
         const tx = Math.floor(centerX(lem) / TILE);
         const ty = Math.floor(footY(lem) / TILE);
@@ -632,31 +635,49 @@
           lem.fallDist = 0;
         } else {
           setTile(tx, ty, ".");
-          lem.y += 4;
+          lem.y += TILE * 0.45;
         }
       }
       return;
     }
 
     if (lem.state === "climb") {
-      const face = Math.floor((centerX(lem) + lem.dir * 7) / TILE);
-      const head = Math.floor((lem.y + 2) / TILE);
-      if (solidAt(face, head)) {
-        // top of wall?
-        if (!solidAt(face, head - 1)) {
-          lem.y -= 50 * dt;
-          if (!solidAt(face, Math.floor((lem.y + 6) / TILE))) {
-            lem.x += lem.dir * 10;
+      const face = Math.floor((centerX(lem) + lem.dir * (LEM_W / 2 + 3)) / TILE);
+      const headTy = Math.floor((lem.y + 2) / TILE);
+      const bodyTy = Math.floor((lem.y + 9) / TILE);
+
+      if (solidAt(face, bodyTy)) {
+        // Clear air at/above the head means we reached the lip — hoist over
+        if (!solidAt(face, headTy) && !solidAt(face, headTy - 1)) {
+          lem.y -= 100 * dt;
+          lem.x += lem.dir * 70 * dt;
+          if (onGround(lem) || !solidAt(face, Math.floor((lem.y + 8) / TILE))) {
+            lem.x += lem.dir * 12;
+            if (onGround(lem)) snapToGround(lem);
             lem.state = "walk";
           }
         } else {
-          lem.dir *= -1;
+          // Wall still above — keep climbing
+          lem.y -= 75 * dt;
+          if (lem.dir > 0) lem.x = face * TILE - LEM_W - 1;
+          else lem.x = face * TILE + TILE + 1;
+        }
+      } else {
+        // No wall against the body — step forward onto the top or fall
+        lem.x += lem.dir * 12;
+        if (onGround(lem)) {
+          snapToGround(lem);
+          lem.state = "walk";
+        } else {
           lem.state = "fall";
           lem.fallDist = 0;
         }
-      } else {
-        lem.state = "walk";
-        lem.x += lem.dir * 4;
+      }
+      if (lem.y < -24) {
+        lem.y = -24;
+        lem.dir *= -1;
+        lem.state = "fall";
+        lem.fallDist = 0;
       }
       return;
     }
@@ -694,9 +715,14 @@
     if (!hitBlock) {
       const nose = Math.floor((centerX(lem) + lem.dir * 6) / TILE);
       const mid = Math.floor((lem.y + 8) / TILE);
-      if (solidAt(nose, mid)) {
-        if (lem.climb) lem.state = "climb";
-        else {
+      const head = Math.floor((lem.y + 3) / TILE);
+      if (solidAt(nose, mid) || solidAt(nose, head)) {
+        if (lem.climb) {
+          lem.state = "climb";
+          // Hug the wall so climb raycasts stay on the face
+          if (lem.dir > 0) lem.x = nose * TILE - LEM_W - 1;
+          else lem.x = nose * TILE + TILE + 1;
+        } else {
           lem.dir *= -1;
           lem.x += lem.dir * 3;
           lem.turnCd = 0.12;
