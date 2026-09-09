@@ -918,22 +918,31 @@
       }
     }
 
-    // Entrance
-    ctx.fillStyle = "#1e293b";
-    ctx.fillRect(entrance.x * TILE - 2, entrance.y * TILE - 6, 20, 18);
-    ctx.fillStyle = "#020617";
-    ctx.fillRect(entrance.x * TILE + 2, entrance.y * TILE - 2, 12, 12);
-    ctx.fillStyle = "#fbbf24";
-    ctx.font = "bold 10px Outfit,sans-serif";
-    ctx.fillText("IN", entrance.x * TILE, entrance.y * TILE - 10);
+    // Entrance hatch (yellow) — walkers drop from here
+    const ix = entrance.x * TILE;
+    const iy = entrance.y * TILE;
+    ctx.fillStyle = "#92400e";
+    ctx.fillRect(ix - 4, iy - 8, 24, 6);
+    ctx.fillStyle = "#f59e0b";
+    ctx.fillRect(ix - 2, iy - 4, 20, 16);
+    ctx.fillStyle = "#1c1917";
+    ctx.fillRect(ix + 3, iy - 1, 10, 10);
+    ctx.fillStyle = "#fde68a";
+    ctx.font = "bold 11px Outfit,sans-serif";
+    ctx.fillText("IN", ix + 2, iy - 12);
 
-    // Exit
+    // Exit door (bright green arch) — goal
+    const ox = exit.x * TILE;
+    const oy = exit.y * TILE;
     ctx.fillStyle = "#14532d";
-    ctx.fillRect(exit.x * TILE - 2, exit.y * TILE - 8, 20, 24);
-    ctx.fillStyle = "#22c55e";
-    ctx.fillRect(exit.x * TILE + 2, exit.y * TILE - 4, 12, 16);
-    ctx.fillStyle = "#86efac";
-    ctx.fillText("OUT", exit.x * TILE - 4, exit.y * TILE - 12);
+    ctx.fillRect(ox - 4, oy - 10, 24, 26);
+    ctx.fillStyle = "#4ade80";
+    ctx.fillRect(ox, oy - 6, 16, 20);
+    ctx.fillStyle = "#052e16";
+    ctx.fillRect(ox + 4, oy + 2, 8, 12);
+    ctx.fillStyle = "#bbf7d0";
+    ctx.font = "bold 11px Outfit,sans-serif";
+    ctx.fillText("OUT", ox - 4, oy - 14);
 
     lemmings.forEach((lem) => {
       if (lem.dead || lem.saved) return;

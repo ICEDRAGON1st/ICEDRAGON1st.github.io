@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260909h": [
+    "Lemmings: clearer IN / OUT doors so they don’t look like broken terrain"
+  ],
   "20260909g": [
     "Lemmings: fix Block skill jitter / flip-flopping"
   ],
