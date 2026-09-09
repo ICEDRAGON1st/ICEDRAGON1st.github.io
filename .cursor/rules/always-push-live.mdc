@@ -1,0 +1,14 @@
+---
+description: Always commit and push hub/game fixes to GitHub Pages unless told not to
+alwaysApply: true
+---
+
+# Always publish live
+
+After finishing game or hub changes in this repo:
+
+1. Commit the relevant files (with the usual git safety rules).
+2. **Push to `origin` immediately** so GitHub Pages updates — do not wait to be asked.
+3. Only skip the push if the user explicitly says not to publish / push / go live.
+
+Bump `WORDLE_BUILD` / `?v=` cache-bust when shipping frontend changes, as usual.
