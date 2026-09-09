@@ -583,17 +583,21 @@
       lem.actionTimer += dt;
       if (lem.actionTimer >= 0.2) {
         lem.actionTimer = 0;
-        // Lay a step ahead at foot height so the bridge goes across, not up into the sky
-        const step = TILE * 0.9;
-        const tx = Math.floor((centerX(lem) + lem.dir * step) / TILE);
-        const ty = Math.floor((footY(lem) - 1) / TILE);
+        // Same height as the floor under their feet — a walkable bridge, not a wall
+        const step = TILE;
+        const tx = Math.floor((centerX(lem) + lem.dir * (step * 0.75)) / TILE);
+        const ty = Math.floor(footY(lem) / TILE);
         if (!solidAt(tx, ty)) setTile(tx, ty, "#");
         lem.x += lem.dir * step;
-        lem.y = ty * TILE - LEM_H;
+        snapToGround(lem);
+        if (!onGround(lem)) {
+          // Keep them on the brick we just laid
+          lem.y = ty * TILE - LEM_H;
+        }
         lem.buildLeft -= 1;
-        const face = Math.floor((centerX(lem) + lem.dir * 8) / TILE);
+        const face = Math.floor((centerX(lem) + lem.dir * 6) / TILE);
         const mid = Math.floor((lem.y + 8) / TILE);
-        if (lem.buildLeft <= 0 || solidAt(face, mid)) lem.state = "walk";
+        if (lem.buildLeft <= 0 || solidAt(face, mid) || solidAt(face, ty)) lem.state = "walk";
       }
       return;
     }

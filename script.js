@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260909j": [
+    "Lemmings: Build bridge is walkable (same floor height, not a wall)"
+  ],
   "20260909i": [
     "Lemmings: Build makes a real bridge across gaps (not stairs into the sky)"
   ],
