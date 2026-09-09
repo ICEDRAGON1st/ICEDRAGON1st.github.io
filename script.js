@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260909o": [
+    "Lemmings: 6 new levels (12 total) — Block, Build, Bomb, Dig+Float, Bash, Climb+Build"
+  ],
   "20260909n": [
     "Lemmings: pick any unlocked level from the Levels menu"
   ],
