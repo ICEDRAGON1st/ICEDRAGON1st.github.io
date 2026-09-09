@@ -58,7 +58,9 @@
     fishing: "Fishing Idle",
     cows: "Cow Merge",
     dino: "Dino Run",
-    mine: "Mine Depth"
+    mine: "Mine Depth",
+    blockblast: "Block Blast",
+    lemmings: "Lemmings"
   };
 
   let syncing = false;

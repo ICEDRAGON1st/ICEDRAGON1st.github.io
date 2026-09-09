@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Lemmings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20260909b">
+</head>
+<body>
+  <header class="hud">
+    <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰</button>
+    <div class="hud-mid">
+      <strong id="level-title">Level 1</strong>
+      <span id="goal-label">Save 5 / 10</span>
+    </div>
+    <div class="hud-stats">
+      <span>Out <strong id="out-count">0</strong></span>
+      <span>In <strong id="saved-count">0</strong></span>
+      <span>Best <strong id="best-score">0</strong></span>
+    </div>
+  </header>
+
+  <main class="shell">
+    <canvas id="game" width="960" height="480" aria-label="Lemmings level"></canvas>
+    <div id="skills" class="skills" role="toolbar" aria-label="Lemmings skills"></div>
+    <p class="hint">Pick a skill, then tap a lemming. Guide them to the exit hatch.</p>
+  </main>
+
+  <div id="overlay" class="overlay">
+    <div class="overlay-card">
+      <p class="eyebrow">Classic puzzle</p>
+      <h1 id="overlay-title">Lemmings</h1>
+      <p id="overlay-text" class="lead">Assign skills to guide little walkers from the hatch to the exit. Save enough to clear each level.</p>
+      <p class="score-line">Best score: <strong id="overlay-best">0</strong></p>
+      <div class="overlay-actions">
+        <button id="start-btn" type="button" class="btn">Play</button>
+        <button id="games-btn" type="button" class="btn btn-ghost">Games</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../hub-streak.js"></script>
+  <script src="../hub-achievements.js"></script>
+  <script src="../hub-sound.js"></script>
+  <script src="../hub-confetti.js"></script>
+  <script src="../hub-plays.js?v=20260909b"></script>
+  <script src="../hub-friends.js?v=20260907o"></script>
+  <script src="../hub-chat.js?v=20260907p"></script>
+  <script src="../hub-leaderboard.js?v=20260909b"></script>
+  <script src="script.js?v=20260909b"></script>
+</body>
+</html>

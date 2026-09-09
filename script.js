@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260909b": [
+    "New game: Lemmings — assign skills and save the crew"
+  ],
   "20260909a": [
     "Remove unused player nickname dragon from the players list"
   ],
@@ -481,7 +484,8 @@ const HUB_GAMES = [
   { id: "cows", name: "Cow Merge", path: "cows/index.html" },
   { id: "dino", name: "Dino Run", path: "dino/index.html" },
   { id: "mine", name: "Mine Depth", path: "mine/index.html" },
-  { id: "blockblast", name: "Block Blast", path: "block-blast/index.html" }
+  { id: "blockblast", name: "Block Blast", path: "block-blast/index.html" },
+  { id: "lemmings", name: "Lemmings", path: "lemmings/index.html" }
 ];
 
 /** Leaderboard tabs = hub-only boards first, then games (Mine Depth splits into depth + ore). */
@@ -1417,6 +1421,10 @@ function getHubScore(gameId) {
     }
     case "blockblast": {
       const score = readNumberKey("block-blast-high-score");
+      return { label: score ? `Best ${score}` : "No score yet", sort: score };
+    }
+    case "lemmings": {
+      const score = readNumberKey("lemmings-high-score");
       return { label: score ? `Best ${score}` : "No score yet", sort: score };
     }
     case "mine": {
