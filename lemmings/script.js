@@ -14,19 +14,27 @@
   const SPAWN_GAP = 1.0;
 
   const SKILLS = [
-    { id: "blocker", name: "Block", ico: "🛑" },
-    { id: "builder", name: "Build", ico: "🪜" },
-    { id: "basher", name: "Bash", ico: "🥊" },
-    { id: "digger", name: "Dig", ico: "⛏️" },
-    { id: "floater", name: "Float", ico: "🪂" },
-    { id: "bomber", name: "Bomb", ico: "💥" },
-    { id: "climber", name: "Climb", ico: "🧗" }
+    { id: "blocker", name: "Block", ico: "🛑", tip: "Stops and turns other walkers around" },
+    { id: "builder", name: "Build", ico: "🪜", tip: "Builds a stair bridge forward" },
+    { id: "basher", name: "Bash", ico: "🥊", tip: "Digs sideways through dirt walls" },
+    { id: "digger", name: "Dig", ico: "⛏️", tip: "Digs straight down through dirt" },
+    { id: "floater", name: "Float", ico: "🪂", tip: "Opens an umbrella so long falls are safe" },
+    { id: "bomber", name: "Bomb", ico: "💥", tip: "Explodes after a short countdown" },
+    { id: "climber", name: "Climb", ico: "🧗", tip: "Can climb straight up walls" }
   ];
+
+  const HOW_TO_HTML = `<ol class="how-list">
+    <li><strong>Green walkers</strong> drop from the yellow <strong>IN</strong> box and walk on their own.</li>
+    <li>Get enough of them into the green <strong>OUT</strong> door to clear the level.</li>
+    <li>On later levels: tap a <strong>skill</strong> below, then tap a walker to use it.</li>
+    <li>Level 1 needs no skills — press Play and wait.</li>
+  </ol>`;
 
   // Keep every row exactly COLS chars. # dirt  = steel  . air  ~ water  E in  X out
   const LEVELS = [
     {
       name: "Just Walk",
+      tip: "Level 1: do nothing — they walk by themselves to the green OUT door. Save 5.",
       release: 10,
       need: 5,
       rate: 1.0,
@@ -58,6 +66,7 @@
     },
     {
       name: "Mind the Gap",
+      tip: "Gap over water! Select Build, then tap a walker near the edge to make stairs.",
       release: 12,
       need: 7,
       rate: 0.95,
@@ -89,6 +98,7 @@
     },
     {
       name: "Bash Through",
+      tip: "Dirt wall blocks the path. Select Bash, tap a walker facing the wall.",
       release: 12,
       need: 8,
       rate: 0.95,
@@ -120,6 +130,7 @@
     },
     {
       name: "Dig Down",
+      tip: "Exit is below. Select Dig, tap a walker above the open tunnel.",
       release: 14,
       need: 9,
       rate: 0.9,
@@ -151,6 +162,7 @@
     },
     {
       name: "Floaters",
+      tip: "Long drop! Select Float, tap walkers before they fall so they don’t splat.",
       release: 12,
       need: 8,
       rate: 0.95,
@@ -177,6 +189,7 @@
     },
     {
       name: "Climb Up",
+      tip: "Select Climb, tap walkers, then let them scale the tall wall to OUT.",
       release: 12,
       need: 7,
       rate: 0.9,
@@ -234,6 +247,9 @@
   const menuBtn = document.getElementById("menu-btn");
   const restartBtn = document.getElementById("restart-btn");
   const restartMenuBtn = document.getElementById("restart-menu-btn");
+  const helpBtn = document.getElementById("help-btn");
+  const levelTipEl = document.getElementById("level-tip");
+  const hintEl = document.getElementById("hint");
 
   canvas.width = W;
   canvas.height = H;
@@ -352,6 +368,7 @@
     persistProgress();
     renderSkills();
     updateHud();
+    updateLevelTip();
   }
 
   function spawnLemming() {
@@ -730,10 +747,31 @@
     if (best > 0) maybeSubmit(true);
   }
 
+  function updateLevelTip() {
+    const lvl = LEVELS[levelIndex];
+    if (levelTipEl) levelTipEl.textContent = lvl.tip || `Get ${need} walkers to the green OUT door.`;
+    if (hintEl) {
+      const active = SKILLS.find((s) => s.id === selectedSkill);
+      const hasSkills = SKILLS.some((s) => (skillsLeft[s.id] || 0) > 0);
+      hintEl.textContent = hasSkills
+        ? active
+          ? `${active.ico} ${active.name}: ${active.tip}. Then tap a walker.`
+          : "Tap a skill, then tap a green walker."
+        : "No skills this level — just let them walk to OUT.";
+    }
+  }
+
+  function showHowTo(title) {
+    if (overlayTitle) overlayTitle.textContent = title || "How to play";
+    if (overlayText) overlayText.innerHTML = HOW_TO_HTML;
+    if (startBtn) startBtn.textContent = playButtonLabel();
+    overlay?.classList.remove("hidden");
+  }
+
   function updateHud() {
     const lvl = LEVELS[levelIndex];
     if (levelTitleEl) levelTitleEl.textContent = `Level ${levelIndex + 1}: ${lvl.name}`;
-    if (goalLabelEl) goalLabelEl.textContent = `Save ${need} / ${toRelease}`;
+    if (goalLabelEl) goalLabelEl.textContent = `Need ${need} saved (${toRelease} come out)`;
     if (outCountEl) outCountEl.textContent = String(Math.max(0, released - saved - dead));
     if (savedCountEl) savedCountEl.textContent = String(saved);
     if (bestScoreEl) bestScoreEl.textContent = String(best);
@@ -772,12 +810,16 @@
 
   function showMenu(pause) {
     if (pause && playing && !levelDone) paused = true;
-    if (overlayTitle) overlayTitle.textContent = "Lemmings";
+    if (overlayTitle) overlayTitle.textContent = paused ? "Paused" : "Lemmings";
     if (overlayText) {
-      const unlocked = Math.min(maxLevel + 1, LEVELS.length);
-      overlayText.textContent = paused
-        ? "Paused. Resume, restart this level, or keep your saved progress."
-        : `Progress saves automatically. Cleared ${Math.min(maxLevel, LEVELS.length)}/${LEVELS.length} · continuing level ${continueLevelIndex() + 1} (${unlocked} unlocked).`;
+      if (paused) {
+        overlayText.innerHTML =
+          `<p style="margin:0 0 0.6rem;color:var(--muted);line-height:1.45">Paused. Resume to keep playing this level.</p>${HOW_TO_HTML}`;
+      } else {
+        const cleared = Math.min(maxLevel, LEVELS.length);
+        overlayText.innerHTML =
+          `${HOW_TO_HTML}<p style="margin:0.75rem 0 0;color:var(--muted);font-size:0.88rem;text-align:center">Saved progress: cleared ${cleared}/${LEVELS.length} · continue level ${continueLevelIndex() + 1}</p>`;
+      }
     }
     if (startBtn) startBtn.textContent = playButtonLabel();
     overlay?.classList.remove("hidden");
@@ -810,6 +852,7 @@
       btn.className = `skill-btn${selectedSkill === s.id ? " selected" : ""}`;
       btn.disabled = n <= 0;
       btn.dataset.skill = s.id;
+      btn.title = s.tip;
       btn.innerHTML = `<span class="skill-ico">${s.ico}</span><span class="skill-name">${s.name}</span><span class="skill-count">${n}</span>`;
       skillsEl.appendChild(btn);
     });
@@ -951,6 +994,7 @@
     if (!btn || btn.disabled) return;
     selectedSkill = btn.dataset.skill;
     renderSkills();
+    updateLevelTip();
   });
 
   canvas.addEventListener("pointerdown", (e) => {
@@ -999,6 +1043,11 @@
     }
   });
 
+  helpBtn?.addEventListener("click", () => {
+    if (playing && !levelDone) paused = true;
+    showHowTo("How to play");
+  });
+
   menuBtn?.addEventListener("click", () => showMenu(true));
   gamesBtn?.addEventListener("click", () => {
     window.location.href = "../index.html#games";
@@ -1006,9 +1055,7 @@
 
   loadLevel(continueLevelIndex());
   if (startBtn) startBtn.textContent = playButtonLabel();
-  if (overlayText && (maxLevel > 0 || levelIndex > 0 || sessionScore > 0)) {
-    overlayText.textContent = `Progress saved. Continue level ${continueLevelIndex() + 1} · cleared ${Math.min(maxLevel, LEVELS.length)}/${LEVELS.length}.`;
-  }
+  updateLevelTip();
   draw();
   requestAnimationFrame(tick);
   maybeSubmit(false);

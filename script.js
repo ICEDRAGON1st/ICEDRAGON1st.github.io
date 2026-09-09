@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260909f": [
+    "Lemmings: clearer how-to, level tips, and How to play button"
+  ],
   "20260909e": [
     "Lemmings: save level progress and continue where you left off"
   ],

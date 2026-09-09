@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260909e">
+  <link rel="stylesheet" href="styles.css?v=20260909f">
 </head>
 <body>
   <header class="hud">
@@ -18,26 +18,37 @@
       <span id="goal-label">Save 5 / 10</span>
     </div>
     <div class="hud-actions">
-      <button id="restart-btn" type="button" class="restart-btn">Restart</button>
+      <div class="hud-btns">
+        <button id="help-btn" type="button" class="restart-btn">How to play</button>
+        <button id="restart-btn" type="button" class="restart-btn">Restart</button>
+      </div>
       <div class="hud-stats">
-        <span>Out <strong id="out-count">0</strong></span>
-        <span>In <strong id="saved-count">0</strong></span>
+        <span>Walking <strong id="out-count">0</strong></span>
+        <span>Saved <strong id="saved-count">0</strong></span>
         <span>Best <strong id="best-score">0</strong></span>
       </div>
     </div>
   </header>
 
   <main class="shell">
+    <p id="level-tip" class="level-tip">Level 1: just watch — they walk by themselves to the green OUT door.</p>
     <canvas id="game" width="960" height="480" aria-label="Lemmings level"></canvas>
     <div id="skills" class="skills" role="toolbar" aria-label="Lemmings skills"></div>
-    <p class="hint">Pick a skill, then tap a lemming. Get them to the green OUT hatch.</p>
+    <p id="hint" class="hint">Goal: save enough green walkers. Yellow IN = start. Green OUT = finish.</p>
   </main>
 
   <div id="overlay" class="overlay">
-    <div class="overlay-card">
-      <p class="eyebrow">Classic puzzle</p>
+    <div class="overlay-card overlay-card-wide">
+      <p class="eyebrow">How to play</p>
       <h1 id="overlay-title">Lemmings</h1>
-      <p id="overlay-text" class="lead">Assign skills to guide little walkers from the hatch to the exit. Save enough to clear each level.</p>
+      <div id="overlay-text" class="lead how-to">
+        <ol class="how-list">
+          <li><strong>Green walkers</strong> drop from the yellow <strong>IN</strong> box and walk on their own.</li>
+          <li>Get enough of them into the green <strong>OUT</strong> door to clear the level.</li>
+          <li>On later levels: tap a <strong>skill</strong> below, then tap a walker to use it (build bridges, dig, float, climb…).</li>
+          <li>Level 1 needs no skills — press Play and wait.</li>
+        </ol>
+      </div>
       <p class="score-line">Best score: <strong id="overlay-best">0</strong></p>
       <div class="overlay-actions">
         <button id="start-btn" type="button" class="btn">Play</button>
@@ -51,10 +62,10 @@
   <script src="../hub-achievements.js"></script>
   <script src="../hub-sound.js"></script>
   <script src="../hub-confetti.js"></script>
-  <script src="../hub-plays.js?v=20260909e"></script>
+  <script src="../hub-plays.js?v=20260909f"></script>
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
-  <script src="../hub-leaderboard.js?v=20260909e"></script>
-  <script src="script.js?v=20260909e"></script>
+  <script src="../hub-leaderboard.js?v=20260909f"></script>
+  <script src="script.js?v=20260909f"></script>
 </body>
 </html>
