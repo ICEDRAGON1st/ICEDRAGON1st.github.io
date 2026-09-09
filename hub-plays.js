@@ -32,6 +32,7 @@
   const PURGED_PLAYER_IDS = new Set(["p-mtt6cbk7-hg3bcj"]);
   const PURGED_NAME_KEYS = new Set(["dragon"]);
   const DRAGON_PURGE_FLAG = "hub-purge-dragon-v1";
+  const RAINBOW_PURGE_FLAG = "hub-purge-rainbow-color-v1";
 
   let lastOnlineTickAt = 0;
   let lastOnlineSubmitAt = 0;
@@ -102,6 +103,18 @@
         isPurgedPlayer(claim?.playerId, claim?.name || key)
       ) {
         delete out[key];
+        changed = true;
+        return;
+      }
+      if (!claim || typeof claim !== "object") return;
+      const accentTitle = String(claim.accentTitle || "").toLowerCase();
+      const accentColor = String(claim.accentColor || "").toLowerCase();
+      if (accentTitle === "rainbow" || accentColor === "rainbow") {
+        out[key] = {
+          ...claim,
+          accentTitle: accentTitle === "rainbow" ? "" : claim.accentTitle || "",
+          accentColor: accentColor === "rainbow" ? "" : claim.accentColor || ""
+        };
         changed = true;
       }
     });
@@ -184,6 +197,61 @@
     if (verifiedClean) {
       try {
         localStorage.setItem(DRAGON_PURGE_FLAG, "done");
+      } catch {}
+    }
+  }
+
+  async function ensureRainbowPurged() {
+    try {
+      if (localStorage.getItem(RAINBOW_PURGE_FLAG) === "done") return;
+    } catch {}
+    let verifiedClean = false;
+    try {
+      const local = loadLocalProfileStyle();
+      if (
+        local &&
+        (String(local.accentTitle || "").toLowerCase() === "rainbow" ||
+          String(local.accentColor || "").toLowerCase() === "rainbow")
+      ) {
+        saveLocalProfileStyle({
+          ...local,
+          accentTitle:
+            String(local.accentTitle || "").toLowerCase() === "rainbow"
+              ? ""
+              : local.accentTitle || "",
+          accentColor:
+            String(local.accentColor || "").toLowerCase() === "rainbow"
+              ? ""
+              : local.accentColor || ""
+        });
+      }
+    } catch {}
+    try {
+      const data = await fetchJson(NAMES_API);
+      const raw =
+        data && typeof data === "object"
+          ? data.names && typeof data.names === "object"
+            ? data.names
+            : data
+          : {};
+      const cleaned = {};
+      Object.entries(raw || {}).forEach(([k, v]) => {
+        if (v && typeof v === "object" && v.playerId && v.name) cleaned[k] = v;
+      });
+      const purged = purgeNameRegistry(cleaned);
+      namesCache = purgeNameRegistry(mergeNameMaps(namesCache, purged.names)).names;
+      if (purged.changed) await pushNamesRemote(purged.names);
+      verifiedClean = !Object.values(purged.names).some((c) => {
+        const t = String(c?.accentTitle || "").toLowerCase();
+        const col = String(c?.accentColor || "").toLowerCase();
+        return t === "rainbow" || col === "rainbow";
+      });
+    } catch {
+      verifiedClean = false;
+    }
+    if (verifiedClean) {
+      try {
+        localStorage.setItem(RAINBOW_PURGE_FLAG, "done");
       } catch {}
     }
   }
@@ -446,6 +514,7 @@
       }
       try {
         await ensureDragonPurged();
+        await ensureRainbowPurged();
         const remoteNames = await fetchNamesRemote();
         namesCache = applyLocalProfileStyle(
           purgeNameRegistry(mergeNameMaps(namesCache, remoteNames)).names
@@ -1342,6 +1411,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     allTimeBusy = true;
     try {
       await ensureDragonPurged();
+      await ensureRainbowPurged();
       const me = getPlayerId();
       let remote = {};
       try {
@@ -1606,8 +1676,6 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 .menu-credit .player-name-mono,
 .site-credit .player-name-tide,
 .menu-credit .player-name-tide,
-.site-credit .player-name-rainbow,
-.menu-credit .player-name-rainbow,
 .site-credit .player-name-legend,
 .menu-credit .player-name-legend,
 .site-credit .player-name-oscar,
@@ -1694,24 +1762,6 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     #1c7ed6 100%
   );
   background-size: 200% 200%;
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  animation: aurora-shift 2.8s ease-in-out infinite;
-}
-.site-credit .player-name-rainbow,
-.menu-credit .player-name-rainbow {
-  background-image: linear-gradient(
-    90deg,
-    #ff0000 0%,
-    #ff7a00 16%,
-    #ffee00 33%,
-    #2f9e44 50%,
-    #1c7ed6 66%,
-    #7048e8 83%,
-    #ff0000 100%
-  );
-  background-size: 220% 220%;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -1838,22 +1888,13 @@ body.light .menu-credit .player-name-creator {
       nameClass: "player-name-tide",
       titleClass: "player-title-tide",
       animated: true
-    },
-    rainbow: {
-      id: "rainbow",
-      label: "Rainbow",
-      className: "player-color-rainbow",
-      nameClass: "player-name-rainbow",
-      titleClass: "player-title-rainbow",
-      animated: true
     }
   };
 
   const EXTRA_COLOR_GRANTS = {
     aurora: new Set(["ice_dragon", "oscarvr29"]),
     mono: new Set(["ice_dragon", "hjalte"]),
-    tide: new Set(["ice_dragon", "oscarvr29"]),
-    rainbow: new Set(["oskar", "ice_dragon"])
+    tide: new Set(["ice_dragon", "oscarvr29"])
   };
 
   const COLOR_OPTIONS = [

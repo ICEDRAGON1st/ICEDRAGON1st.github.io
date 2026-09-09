@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260909p": [
+    "Remove Rainbow name color for all players"
+  ],
   "20260909o": [
     "Lemmings: 6 new levels (12 total) — Block, Build, Bomb, Dig+Float, Bash, Climb+Build"
   ],
@@ -3630,9 +3633,7 @@ function renderColorPicker() {
             ? " is-mono"
             : opt.id === "tide"
               ? " is-tide"
-              : opt.id === "rainbow"
-                ? " is-rainbow"
-                : " is-aurora"
+              : " is-aurora"
         : opt.id === "cheesy"
           ? " is-cheesy"
           : "";
