@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260909q": [
+    "Lemmings: fix Turn Around — IN was over water so the level was unwinnable"
+  ],
   "20260909p": [
     "Remove Rainbow name color for all players"
   ],
