@@ -20,14 +20,14 @@
     { id: "digger", name: "Dig", ico: "⛏️", tip: "Digs straight down through dirt" },
     { id: "floater", name: "Float", ico: "🪂", tip: "Opens an umbrella so long falls are safe" },
     { id: "bomber", name: "Bomb", ico: "💥", tip: "Explodes after a short countdown" },
-    { id: "climber", name: "Climb", ico: "🧗", tip: "Can climb straight up walls" }
+    { id: "climber", name: "Climb", ico: "🧗", tip: "Gives that walker the ability to climb walls forever" }
   ];
 
   const HOW_TO_HTML = `<ol class="how-list">
     <li><strong>Green walkers</strong> drop from the yellow <strong>IN</strong> box and walk on their own.</li>
     <li>Get enough of them into the green <strong>OUT</strong> door to clear the level.</li>
-    <li>On later levels: tap a <strong>skill</strong> below, then tap a walker to use it.</li>
-    <li>Level 1 needs no skills — press Play and wait.</li>
+    <li>Tap a <strong>skill</strong>, then tap a walker. Numbers are uses left — not ladders on the map.</li>
+    <li><strong>Climb</strong> = ability to scale walls. <strong>Build</strong> = make a bridge. You don’t place ladder rungs.</li>
   </ol>`;
 
   // Keep every row exactly COLS chars. # dirt  = steel  . air  ~ water  E in  X out
@@ -189,11 +189,11 @@
     },
     {
       name: "Climb Up",
-      tip: "Select Climb, tap walkers, then let them scale the tall wall to OUT.",
+      tip: "Climb is not ladders — tap Climb, then tap walkers. They climb the green wall alone. Need 7 (you have Climb for all 12).",
       release: 12,
       need: 7,
       rate: 0.9,
-      skills: { blocker: 1, builder: 2, basher: 0, digger: 0, floater: 2, bomber: 0, climber: 10 },
+      skills: { blocker: 1, builder: 2, basher: 0, digger: 0, floater: 2, bomber: 0, climber: 12 },
       map: [
         "........................................",
         "........................................",

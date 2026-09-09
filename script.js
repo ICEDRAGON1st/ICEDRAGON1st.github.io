@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260909m": [
+    "Lemmings: clarify Climb is an ability (not ladders); enough Climb for every walker"
+  ],
   "20260909k": [
     "Lemmings: fix Climb (and harden Bash/Dig) so skills actually work"
   ],
