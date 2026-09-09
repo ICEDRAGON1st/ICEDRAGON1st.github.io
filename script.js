@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260909i": [
+    "Lemmings: Build makes a real bridge across gaps (not stairs into the sky)"
+  ],
   "20260909h": [
     "Lemmings: clearer IN / OUT doors so they don’t look like broken terrain"
   ],

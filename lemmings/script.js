@@ -15,7 +15,7 @@
 
   const SKILLS = [
     { id: "blocker", name: "Block", ico: "🛑", tip: "Stops and turns other walkers around" },
-    { id: "builder", name: "Build", ico: "🪜", tip: "Builds a stair bridge forward" },
+    { id: "builder", name: "Build", ico: "🪜", tip: "Builds a bridge forward across gaps" },
     { id: "basher", name: "Bash", ico: "🥊", tip: "Digs sideways through dirt walls" },
     { id: "digger", name: "Dig", ico: "⛏️", tip: "Digs straight down through dirt" },
     { id: "floater", name: "Float", ico: "🪂", tip: "Opens an umbrella so long falls are safe" },
@@ -66,7 +66,7 @@
     },
     {
       name: "Mind the Gap",
-      tip: "Gap over water! Select Build, then tap a walker near the edge to make stairs.",
+      tip: "Gap over water! Select Build, then tap a walker near the edge to make a bridge.",
       release: 12,
       need: 7,
       rate: 0.95,
@@ -75,19 +75,19 @@
         "........................................",
         "........................................",
         "........................................",
-        "....E.................................X.",
+        "....E..............................X....",
         "........................................",
-        "##############............##############",
-        "##############............##############",
-        "........................................",
-        "........................................",
+        "################........################",
+        "################........################",
         "........................................",
         "........................................",
         "........................................",
         "........................................",
         "........................................",
-        "~~~~~~~~~~~~~~~~~~~~~~~~~~~~............",
-        "~~~~~~~~~~~~~~~~~~~~~~~~~~~~............",
+        "........................................",
+        "........................................",
+        "................~~~~~~~~~~~~~~~~........",
+        "................~~~~~~~~~~~~~~~~........",
         "........................................",
         "........................................",
         "........................................",
@@ -482,7 +482,7 @@
     if (skill === "builder") {
       if (lem.state !== "walk") return false;
       lem.state = "builder";
-      lem.buildLeft = 12;
+      lem.buildLeft = 14;
       lem.actionTimer = 0;
       skillsLeft.builder -= 1;
       window.HubSound?.play?.("click");
@@ -581,17 +581,19 @@
 
     if (lem.state === "builder") {
       lem.actionTimer += dt;
-      if (lem.actionTimer >= 0.26) {
+      if (lem.actionTimer >= 0.2) {
         lem.actionTimer = 0;
-        const tx = Math.floor((centerX(lem) + lem.dir * 12) / TILE);
-        const ty = Math.floor(footY(lem) / TILE) - 1;
+        // Lay a step ahead at foot height so the bridge goes across, not up into the sky
+        const step = TILE * 0.9;
+        const tx = Math.floor((centerX(lem) + lem.dir * step) / TILE);
+        const ty = Math.floor((footY(lem) - 1) / TILE);
         if (!solidAt(tx, ty)) setTile(tx, ty, "#");
-        lem.x += lem.dir * 5;
-        lem.y -= 5;
+        lem.x += lem.dir * step;
+        lem.y = ty * TILE - LEM_H;
         lem.buildLeft -= 1;
         const face = Math.floor((centerX(lem) + lem.dir * 8) / TILE);
-        const head = Math.floor((lem.y + 4) / TILE);
-        if (lem.buildLeft <= 0 || solidAt(face, head)) lem.state = "walk";
+        const mid = Math.floor((lem.y + 8) / TILE);
+        if (lem.buildLeft <= 0 || solidAt(face, mid)) lem.state = "walk";
       }
       return;
     }
