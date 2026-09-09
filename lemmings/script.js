@@ -381,6 +381,7 @@
       buildLeft: 0,
       bashLeft: 0,
       actionTimer: 0,
+      turnCd: 0,
       climb: false,
       float: false,
       bombTimer: 0,
@@ -471,8 +472,9 @@
       return true;
     }
     if (skill === "blocker") {
-      if (lem.state !== "walk") return false;
+      if (lem.state !== "walk" || !onGround(lem)) return false;
       lem.state = "blocker";
+      snapToGround(lem);
       skillsLeft.blocker -= 1;
       window.HubSound?.play?.("click");
       return true;
@@ -523,6 +525,33 @@
     return Math.abs(centerX(lem) - ex) < 18 && Math.abs(lem.y + 7 - ey) < 20;
   }
 
+  /** Bounce off a blocker face once and push clear so they don't jitter. */
+  function turnFromBlocker(lem) {
+    const cx = centerX(lem);
+    const nose = cx + lem.dir * 6;
+    const half = 9;
+    for (const other of lemmings) {
+      if (other === lem || other.dead || other.saved || other.state !== "blocker") continue;
+      if (Math.abs(other.y - lem.y) > 16) continue;
+      const bx = centerX(other);
+      const left = bx - half;
+      const right = bx + half;
+      if (lem.dir > 0 && nose >= left && cx <= bx) {
+        lem.dir = -1;
+        lem.x = left - LEM_W / 2 - 1;
+        lem.turnCd = 0.18;
+        return true;
+      }
+      if (lem.dir < 0 && nose <= right && cx >= bx) {
+        lem.dir = 1;
+        lem.x = right - LEM_W / 2 + 1;
+        lem.turnCd = 0.18;
+        return true;
+      }
+    }
+    return false;
+  }
+
   function updateLemming(lem, dt) {
     if (lem.dead || lem.saved) return;
     lem.frame += dt;
@@ -535,12 +564,20 @@
       }
     }
 
-    if (nearExit(lem) && lem.state !== "fall" && lem.state !== "climb") {
+    if (nearExit(lem) && lem.state !== "fall" && lem.state !== "climb" && lem.state !== "blocker") {
       saveLemming(lem);
       return;
     }
 
-    if (lem.state === "blocker") return;
+    if (lem.state === "blocker") {
+      if (!onGround(lem)) {
+        lem.state = "fall";
+        lem.fallDist = 0;
+      }
+      return;
+    }
+
+    if (lem.turnCd > 0) lem.turnCd -= dt;
 
     if (lem.state === "builder") {
       lem.actionTimer += dt;
@@ -646,25 +683,18 @@
     lem.state = "walk";
     lem.x += lem.dir * 36 * dt;
 
-    // Turn for blockers
-    for (const other of lemmings) {
-      if (other === lem || other.dead || other.saved || other.state !== "blocker") continue;
-      if (Math.abs(other.x - lem.x) < 12 && Math.abs(other.y - lem.y) < 14) {
-        if ((lem.dir > 0 && lem.x < other.x) || (lem.dir < 0 && lem.x > other.x)) {
+    // Blocker faces first; short turnCd stops left/right jitter
+    const hitBlock = !(lem.turnCd > 0) && turnFromBlocker(lem);
+    if (!hitBlock) {
+      const nose = Math.floor((centerX(lem) + lem.dir * 6) / TILE);
+      const mid = Math.floor((lem.y + 8) / TILE);
+      if (solidAt(nose, mid)) {
+        if (lem.climb) lem.state = "climb";
+        else {
           lem.dir *= -1;
-          lem.x += lem.dir * 5;
+          lem.x += lem.dir * 3;
+          lem.turnCd = 0.12;
         }
-      }
-    }
-
-    // Wall / climb
-    const nose = Math.floor((centerX(lem) + lem.dir * 6) / TILE);
-    const mid = Math.floor((lem.y + 8) / TILE);
-    if (solidAt(nose, mid)) {
-      if (lem.climb) lem.state = "climb";
-      else {
-        lem.dir *= -1;
-        lem.x += lem.dir * 4;
       }
     }
 

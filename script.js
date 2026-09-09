@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260909g": [
+    "Lemmings: fix Block skill jitter / flip-flopping"
+  ],
   "20260909f": [
     "Lemmings: clearer how-to, level tips, and How to play button"
   ],
