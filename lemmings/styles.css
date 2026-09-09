@@ -144,6 +144,77 @@ body {
   color: var(--ink);
 }
 
+.level-select {
+  margin: 0 0 0.85rem;
+}
+
+.level-select-label {
+  margin: 0 0 0.45rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.level-select-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.level-pick {
+  appearance: none;
+  font: inherit;
+  text-align: left;
+  border-radius: 0.7rem;
+  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--ink);
+  padding: 0.5rem 0.55rem;
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.level-pick:hover:not(:disabled) {
+  background: rgba(125, 211, 252, 0.16);
+  border-color: rgba(125, 211, 252, 0.45);
+}
+
+.level-pick.current {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(125, 211, 252, 0.35);
+}
+
+.level-pick.locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.level-pick .lp-num {
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 0.4rem;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.25);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.level-pick .lp-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.level-pick .lp-done {
+  color: var(--good);
+  font-weight: 800;
+}
+
 .restart-btn {
   appearance: none;
   font: inherit;

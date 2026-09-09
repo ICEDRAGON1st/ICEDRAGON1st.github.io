@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260909n": [
+    "Lemmings: pick any unlocked level from the Levels menu"
+  ],
   "20260909m": [
     "Lemmings: clarify Climb is an ability (not ladders); enough Climb for every walker"
   ],

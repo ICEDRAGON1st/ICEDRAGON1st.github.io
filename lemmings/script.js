@@ -248,6 +248,9 @@
   const restartBtn = document.getElementById("restart-btn");
   const restartMenuBtn = document.getElementById("restart-menu-btn");
   const helpBtn = document.getElementById("help-btn");
+  const levelsBtn = document.getElementById("levels-btn");
+  const levelsMenuBtn = document.getElementById("levels-menu-btn");
+  const levelSelectEl = document.getElementById("level-select");
   const levelTipEl = document.getElementById("level-tip");
   const hintEl = document.getElementById("hint");
 
@@ -298,6 +301,56 @@
   function continueLevelIndex() {
     if (maxLevel >= LEVELS.length) return Math.min(levelIndex, LEVELS.length - 1);
     return Math.min(Math.max(levelIndex, 0), Math.min(maxLevel, LEVELS.length - 1));
+  }
+
+  function highestUnlocked() {
+    return Math.min(Math.max(0, maxLevel), LEVELS.length - 1);
+  }
+
+  function isLevelUnlocked(i) {
+    return i >= 0 && i <= highestUnlocked();
+  }
+
+  function renderLevelSelect() {
+    if (!levelSelectEl) return;
+    levelSelectEl.innerHTML = "";
+    const label = document.createElement("p");
+    label.className = "level-select-label";
+    label.textContent = "Choose a level you’ve unlocked";
+    levelSelectEl.appendChild(label);
+    const grid = document.createElement("div");
+    grid.className = "level-select-grid";
+    LEVELS.forEach((lvl, i) => {
+      const unlocked = isLevelUnlocked(i);
+      const cleared = maxLevel > i || maxLevel >= LEVELS.length;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = `level-pick${unlocked ? "" : " locked"}${i === levelIndex ? " current" : ""}`;
+      btn.disabled = !unlocked;
+      btn.innerHTML = `<span class="lp-num">${i + 1}</span><span class="lp-name">${
+        unlocked ? lvl.name : "Locked"
+      }</span>${cleared && unlocked ? '<span class="lp-done">✓</span>' : ""}`;
+      if (unlocked) {
+        btn.addEventListener("click", () => {
+          window.HubSound?.play?.("click");
+          startCampaign(i);
+        });
+      }
+      grid.appendChild(btn);
+    });
+    levelSelectEl.appendChild(grid);
+  }
+
+  function openLevelSelect(pauseGame) {
+    if (pauseGame && playing && !levelDone) paused = true;
+    if (overlayTitle) overlayTitle.textContent = "Levels";
+    if (overlayText) {
+      overlayText.innerHTML =
+        `<p style="margin:0;color:var(--muted);line-height:1.45;text-align:center">Tap any unlocked level to play it. Cleared levels stay open.</p>`;
+    }
+    renderLevelSelect();
+    if (startBtn) startBtn.textContent = playButtonLabel();
+    overlay?.classList.remove("hidden");
   }
 
   function ensureSession() {
@@ -785,6 +838,7 @@
           : `All levels cleared! Final score ${sessionScore}. Progress saved.`;
     }
     if (startBtn) startBtn.textContent = next < LEVELS.length ? "Next level" : "Play again";
+    renderLevelSelect();
     overlay?.classList.remove("hidden");
   }
 
@@ -796,6 +850,7 @@
     if (overlayTitle) overlayTitle.textContent = "Oh no";
     if (overlayText) overlayText.textContent = `Saved ${saved}/${need} needed. Score ${sessionScore}. Progress kept — retry this level.`;
     if (startBtn) startBtn.textContent = "Retry";
+    renderLevelSelect();
     overlay?.classList.remove("hidden");
     window.HubSound?.play?.("error");
   }
@@ -826,6 +881,7 @@
   function showHowTo(title) {
     if (overlayTitle) overlayTitle.textContent = title || "How to play";
     if (overlayText) overlayText.innerHTML = HOW_TO_HTML;
+    renderLevelSelect();
     if (startBtn) startBtn.textContent = playButtonLabel();
     overlay?.classList.remove("hidden");
   }
@@ -876,13 +932,14 @@
     if (overlayText) {
       if (paused) {
         overlayText.innerHTML =
-          `<p style="margin:0 0 0.6rem;color:var(--muted);line-height:1.45">Paused. Resume to keep playing this level.</p>${HOW_TO_HTML}`;
+          `<p style="margin:0 0 0.6rem;color:var(--muted);line-height:1.45">Paused. Resume to keep playing this level, or pick another unlocked level below.</p>${HOW_TO_HTML}`;
       } else {
         const cleared = Math.min(maxLevel, LEVELS.length);
         overlayText.innerHTML =
-          `${HOW_TO_HTML}<p style="margin:0.75rem 0 0;color:var(--muted);font-size:0.88rem;text-align:center">Saved progress: cleared ${cleared}/${LEVELS.length} · continue level ${continueLevelIndex() + 1}</p>`;
+          `${HOW_TO_HTML}<p style="margin:0.75rem 0 0;color:var(--muted);font-size:0.88rem;text-align:center">Progress: unlocked through level ${highestUnlocked() + 1} · cleared ${cleared}/${LEVELS.length}</p>`;
       }
     }
+    renderLevelSelect();
     if (startBtn) startBtn.textContent = playButtonLabel();
     overlay?.classList.remove("hidden");
   }
@@ -1119,6 +1176,9 @@
     showHowTo("How to play");
   });
 
+  levelsBtn?.addEventListener("click", () => openLevelSelect(true));
+  levelsMenuBtn?.addEventListener("click", () => openLevelSelect(true));
+
   menuBtn?.addEventListener("click", () => showMenu(true));
   gamesBtn?.addEventListener("click", () => {
     window.location.href = "../index.html#games";
@@ -1126,6 +1186,7 @@
 
   loadLevel(continueLevelIndex());
   if (startBtn) startBtn.textContent = playButtonLabel();
+  renderLevelSelect();
   updateLevelTip();
   draw();
   requestAnimationFrame(tick);
