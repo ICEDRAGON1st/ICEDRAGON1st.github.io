@@ -596,6 +596,7 @@
     const me = getPlayerId();
     const key = nameKey(next);
     const myClaimAt = Date.now();
+    const keepingOwnName = !!(current && nameKey(current) === key);
 
     let remoteNames = null;
     let offline = false;
@@ -609,7 +610,7 @@
     // School / offline: still let them play with a local name
     if (offline) {
       const existing = remoteNames[key];
-      if (existing && existing.playerId && existing.playerId !== me) {
+      if (existing && existing.playerId && existing.playerId !== me && !keepingOwnName) {
         return {
           ok: false,
           error: `"${existing.name}" looks taken. Try another name, or reconnect and try again.`
@@ -639,6 +640,10 @@
         try {
           remoteNames = await fetchNamesRemote();
         } catch {
+          if (keepingOwnName) {
+            storeLocalName(next);
+            return { ok: true, name: next, offline: true };
+          }
           return {
             ok: false,
             error: "Can't check names right now — check your connection and try again"
@@ -649,6 +654,11 @@
       const existing = remoteNames[key];
       if (existing && existing.playerId !== me) {
         namesCache = remoteNames;
+        // Already using this name on this device — never force a rename
+        if (keepingOwnName) {
+          storeLocalName(next);
+          return { ok: true, name: next, keptLocal: true };
+        }
         return { ok: false, error: `"${existing.name}" is already taken` };
       }
 
@@ -714,6 +724,10 @@
         try {
           await pushNamesRemote(reconciled);
         } catch {}
+        if (keepingOwnName) {
+          storeLocalName(next);
+          return { ok: true, name: next, keptLocal: true };
+        }
         return { ok: false, error: `"${owner.name}" is already taken` };
       }
 
@@ -721,6 +735,10 @@
       remoteNames = confirmed;
     }
 
+    if (keepingOwnName) {
+      storeLocalName(next);
+      return { ok: true, name: next, keptLocal: true };
+    }
     return { ok: false, error: "Couldn't claim that name — try again" };
   }
 

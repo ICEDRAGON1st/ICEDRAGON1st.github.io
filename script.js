@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260910b": [
+    "Stop forcing username changes — once your name is saved here, it stays"
+  ],
   "20260910a": [
     "Fix school/offline username gate: don’t wipe names when the name server is blocked; allow local play"
   ],
@@ -2944,34 +2947,13 @@ function maybeAskPlayerName(force = false) {
   }
   const existing = HubPlays.getName();
   if (existing && hasPlayerName()) {
-    // Re-claim saved name so uniqueness is registered remotely.
-    // Never wipe the local name on network/school-filter failures.
+    // Soft sync only — never wipe or force a rename once a name is saved here
     HubPlays.claimName(existing).then((result) => {
-      if (result.ok) {
-        if (result.offline) {
-          setPlayerNameStatus("Playing offline — name will sync when the network allows it", false);
-        }
-        return;
-      }
-      if (!result.error) return;
-      const taken = /already taken/i.test(result.error);
-      if (!taken) {
-        setPlayerNameStatus(result.error, true);
-        return;
-      }
-      try {
-        localStorage.removeItem("hub-player-name");
-      } catch {}
-      if (playerNameInput) playerNameInput.value = "";
-      setPlayerNameStatus(result.error, true);
-      if (typeof HubPlays.enforceUsernameGate === "function") {
-        HubPlays.enforceUsernameGate();
-      } else {
-        playerNameModal?.classList.remove("hidden");
-        playerNameModalInput?.focus();
-      }
+      if (result.ok) return;
+      if (result.error) setPlayerNameStatus(result.error, true);
     });
     if (!force) return;
+    return;
   }
   // Clear old guest / invalid names so they must pick a real username
   if (existing && !hasPlayerName()) {
@@ -2979,6 +2961,10 @@ function maybeAskPlayerName(force = false) {
       localStorage.removeItem("hub-player-name");
     } catch {}
     if (playerNameInput) playerNameInput.value = "";
+  }
+  if (typeof HubPlays.enforceUsernameGate === "function") {
+    HubPlays.enforceUsernameGate();
+    return;
   }
   playerNameModal?.classList.add("username-gate-force");
   playerNameModal?.classList.remove("hidden");
