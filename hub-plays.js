@@ -21,13 +21,15 @@
   const ALLTIME_API = `https://mantledb.sh/v2/${NS}/${ALLTIME_PATH}`;
   const MAX_PLAYS = 60;
   const SYNC_GAP_MS = 4000;
-  const HEARTBEAT_MS = 60_000;
-  const ONLINE_TTL_MS = 150_000; // count as online for ~2.5 min
+  const HEARTBEAT_MS = 90_000;
+  const ONLINE_TTL_MS = 180_000; // count as online for ~3 min
   const PRESENCE_KEEP_MS = 10 * 60_000;
   const MAX_PRESENCE = 120;
   const MAX_ALLTIME = 5000;
   const MAX_ONLINE_CREDIT_MS = 90_000; // don't dump hours after AFK reopen
   const LAST_AT_WRITE_GAP_MS = 5 * 60_000; // don't rewrite all-time every heartbeat
+  const ALLTIME_LOCAL_KEY = "hub-alltime-cache-v1";
+  const RATE_LIMIT_BACKOFF_MS = 15 * 60_000;
   // One-time: remove unused nickname "dragon" from roster + name registry.
   const PURGED_PLAYER_IDS = new Set(["p-mtt6cbk7-hg3bcj"]);
   const PURGED_NAME_KEYS = new Set(["dragon"]);
@@ -73,6 +75,38 @@
   let presenceTimer = null;
   let heartbeatBusy = false;
   let allTimeBusy = false;
+  let rateLimitedUntil = 0;
+  let lastAllTimeRegisterAt = 0;
+
+  function loadAllTimeLocal() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(ALLTIME_LOCAL_KEY) || "null");
+      if (raw && typeof raw === "object" && raw.players && typeof raw.players === "object") {
+        return raw.players;
+      }
+      if (raw && typeof raw === "object") return raw;
+    } catch {}
+    return {};
+  }
+
+  function saveAllTimeLocal(players) {
+    try {
+      localStorage.setItem(
+        ALLTIME_LOCAL_KEY,
+        JSON.stringify({ players: players || {}, savedAt: Date.now() })
+      );
+    } catch {}
+  }
+
+  function markRateLimited() {
+    rateLimitedUntil = Date.now() + RATE_LIMIT_BACKOFF_MS;
+  }
+
+  function isRateLimited() {
+    return Date.now() < rateLimitedUntil;
+  }
+
+  allTimeCache = loadAllTimeLocal();
 
   function sanitizeName(raw) {
     return String(raw || "")
@@ -143,6 +177,7 @@
     try {
       if (localStorage.getItem(DRAGON_PURGE_FLAG) === "done") return;
     } catch {}
+    if (isRateLimited()) return;
     let verifiedClean = false;
     try {
       const data = await fetchJson(NAMES_API);
@@ -186,6 +221,7 @@
       });
       const purged = purgeAllTimePlayers(normalized);
       allTimeCache = purgeAllTimePlayers(mergeAllTime(allTimeCache, purged.players)).players;
+      saveAllTimeLocal(allTimeCache);
       if (purged.changed) await pushAllTimeRemote(purged.players);
       const allClean = !Object.entries(purged.players).some(([id, p]) =>
         isPurgedPlayer(id, p?.name)
@@ -205,6 +241,7 @@
     try {
       if (localStorage.getItem(RAINBOW_PURGE_FLAG) === "done") return;
     } catch {}
+    if (isRateLimited()) return;
     let verifiedClean = false;
     try {
       const local = loadLocalProfileStyle();
@@ -357,18 +394,28 @@
   }
 
   async function fetchJson(url) {
+    if (isRateLimited()) throw new Error("rate limited");
     const res = await fetch(url, { cache: "no-store" });
     if (res.status === 404) return null;
+    if (res.status === 429) {
+      markRateLimited();
+      throw new Error("rate limited");
+    }
     if (!res.ok) throw new Error("fetch failed");
     return res.json();
   }
 
   async function postJson(url, data) {
+    if (isRateLimited()) throw new Error("rate limited");
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
+    if (res.status === 429) {
+      markRateLimited();
+      throw new Error("rate limited");
+    }
     if (!res.ok) throw new Error("push failed");
   }
 
@@ -1194,7 +1241,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     if (heartbeatBusy) return getOnlineCount();
     heartbeatBusy = true;
     try {
-      if (document.hidden) {
+      if (document.hidden || isRateLimited()) {
         return getOnlineCount();
       }
       tickOnlineTime(Date.now());
@@ -1227,24 +1274,17 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 
       try {
         await pushPresenceRemote(next);
+        presenceCache = enrichPresenceNames(next);
       } catch {
         presenceCache = enrichPresenceNames(mergePresence(presenceCache, next));
         return countOnline(presenceCache, now);
       }
 
-      let confirmed = next;
-      try {
-        confirmed = prunePresence(mergePresence(next, await fetchPresenceRemote()), now);
-        Object.keys(confirmed).forEach((id) => {
-          if (isPlaceholderName(confirmed[id]?.name)) delete confirmed[id];
-        });
-        await pushPresenceRemote(confirmed);
-      } catch {
-        confirmed = next;
+      // Register all-time at most every 10 minutes (not every heartbeat)
+      if (Date.now() - lastAllTimeRegisterAt > 10 * 60_000) {
+        lastAllTimeRegisterAt = Date.now();
+        registerAllTime().catch(() => {});
       }
-
-      presenceCache = enrichPresenceNames(confirmed);
-      registerAllTime().catch(() => {});
       return countOnline(presenceCache, now);
     } finally {
       heartbeatBusy = false;
@@ -1280,6 +1320,11 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       players,
       total: Object.keys(players).length
     });
+  }
+
+  function rememberAllTime(players) {
+    allTimeCache = players || {};
+    saveAllTimeLocal(allTimeCache);
   }
 
   function isPlaceholderName(name) {
@@ -1414,6 +1459,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   function allTimeNeedsWrite(remote, next) {
     const remoteKeys = Object.keys(remote || {});
     const nextKeys = Object.keys(next || {});
+    // Never shrink the shared roster from a partial client view
+    if (nextKeys.length < remoteKeys.length) return false;
     if (nextKeys.length !== remoteKeys.length) return true;
     for (const id of nextKeys) {
       if (!remote[id]) return true;
@@ -1498,6 +1545,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
    */
   async function registerAllTime() {
     if (allTimeBusy) return getAllTimeCount();
+    if (isRateLimited()) return getAllTimeCount();
     allTimeBusy = true;
     try {
       await ensureDragonPurged();
@@ -1509,6 +1557,9 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       } catch {
         return getAllTimeCount();
       }
+
+      // Keep any larger local cache if remote came back tiny (partial/corrupt)
+      remote = mergeAllTime(loadAllTimeLocal(), remote);
 
       let plays = cache.plays || loadLocal().plays || [];
       try {
@@ -1533,31 +1584,35 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       const next = buildAllTimeMap(remote, plays, namesCache, meEntry);
 
       if (!allTimeNeedsWrite(remote, next)) {
-        allTimeCache = next;
+        rememberAllTime(mergeAllTime(remote, next));
         return getAllTimeCount();
       }
 
       try {
         await pushAllTimeRemote(next);
       } catch {
-        allTimeCache = mergeAllTime(allTimeCache, next);
+        rememberAllTime(mergeAllTime(allTimeCache, next));
         return getAllTimeCount();
       }
 
       let confirmed = next;
       try {
+        const fetched = await fetchAllTimeRemote();
         confirmed = buildAllTimeMap(
-          await fetchAllTimeRemote(),
+          mergeAllTime(fetched, next),
           plays,
           namesCache,
           meEntry
         );
-        await pushAllTimeRemote(confirmed);
+        // Only rewrite if we didn't shrink
+        if (Object.keys(confirmed).length >= Object.keys(fetched || {}).length) {
+          await pushAllTimeRemote(confirmed);
+        }
       } catch {
         confirmed = next;
       }
 
-      allTimeCache = confirmed;
+      rememberAllTime(confirmed);
       return getAllTimeCount();
     } finally {
       allTimeBusy = false;

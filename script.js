@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260910c": [
+    "Players count: cut MantleDB rate-limit spam so the shared roster can load again"
+  ],
   "20260910b": [
     "Stop forcing username changes — once your name is saved here, it stays"
   ],
