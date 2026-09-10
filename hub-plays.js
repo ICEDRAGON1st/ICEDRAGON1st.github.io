@@ -63,7 +63,7 @@
     dino: "Dino Run",
     mine: "Mine Depth",
     blockblast: "Block Blast",
-    lemmings: "Lemmings"
+    lemmings: "Dudes"
   };
 
   let syncing = false;

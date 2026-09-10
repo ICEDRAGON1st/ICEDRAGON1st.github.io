@@ -1134,7 +1134,7 @@
 
   function showMenu(pause) {
     if (pause && playing && !levelDone) paused = true;
-    if (overlayTitle) overlayTitle.textContent = paused ? "Paused" : "Lemmings";
+    if (overlayTitle) overlayTitle.textContent = paused ? "Paused" : "Dudes";
     if (overlayText) {
       if (paused) {
         overlayText.innerHTML =

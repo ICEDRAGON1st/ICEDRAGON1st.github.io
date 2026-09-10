@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260910d": [
+    "Rename Lemmings to Dudes"
+  ],
   "20260910c": [
     "Players count: cut MantleDB rate-limit spam so the shared roster can load again"
   ],
@@ -539,7 +542,7 @@ const HUB_GAMES = [
   { id: "dino", name: "Dino Run", path: "dino/index.html" },
   { id: "mine", name: "Mine Depth", path: "mine/index.html" },
   { id: "blockblast", name: "Block Blast", path: "block-blast/index.html" },
-  { id: "lemmings", name: "Lemmings", path: "lemmings/index.html" }
+  { id: "lemmings", name: "Dudes", path: "lemmings/index.html" }
 ];
 
 /** Leaderboard tabs = hub-only boards first, then games (Mine Depth splits into depth + ore). */
