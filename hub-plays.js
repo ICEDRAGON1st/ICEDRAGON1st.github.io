@@ -260,29 +260,56 @@
     return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
+  let sessionName = "";
+  let sessionPlayerId = "";
+  let storageOk = null;
+
+  function canUseLocalStorage() {
+    if (storageOk != null) return storageOk;
+    try {
+      const k = "__hub_ls_probe__";
+      localStorage.setItem(k, "1");
+      localStorage.removeItem(k);
+      storageOk = true;
+    } catch {
+      storageOk = false;
+    }
+    return storageOk;
+  }
+
   function getPlayerId() {
     try {
-      let id = localStorage.getItem(PLAYER_ID_KEY);
-      if (!id) {
-        id = `p-${makeId()}`;
-        localStorage.setItem(PLAYER_ID_KEY, id);
+      if (canUseLocalStorage()) {
+        let id = localStorage.getItem(PLAYER_ID_KEY);
+        if (!id) {
+          id = `p-${makeId()}`;
+          localStorage.setItem(PLAYER_ID_KEY, id);
+        }
+        sessionPlayerId = id;
+        return id;
       }
-      return id;
-    } catch {
-      return `p-${makeId()}`;
-    }
+    } catch {}
+    if (!sessionPlayerId) sessionPlayerId = `p-${makeId()}`;
+    return sessionPlayerId;
   }
 
   function getName() {
     try {
-      return sanitizeName(localStorage.getItem(NAME_KEY) || "");
-    } catch {
-      return "";
-    }
+      if (canUseLocalStorage()) {
+        const stored = sanitizeName(localStorage.getItem(NAME_KEY) || "");
+        if (stored) {
+          sessionName = stored;
+          return stored;
+        }
+      }
+    } catch {}
+    return sanitizeName(sessionName || "");
   }
 
   function storeLocalName(name) {
+    sessionName = name || "";
     try {
+      if (!canUseLocalStorage()) return;
       if (name) localStorage.setItem(NAME_KEY, name);
       else localStorage.removeItem(NAME_KEY);
     } catch {}
@@ -544,8 +571,10 @@
   }
 
   /**
-   * Claim a unique nickname. Requires the shared registry (online).
-   * Returns { ok, name?, error? }.
+   * Claim a unique nickname.
+   * Online: checks the shared registry.
+   * Offline / school filter: saves locally so you can still play, then syncs later.
+   * Returns { ok, name?, error?, offline? }.
    */
   async function claimName(raw) {
     const next = sanitizeName(raw);
@@ -568,16 +597,53 @@
     const key = nameKey(next);
     const myClaimAt = Date.now();
 
-    // Retry a few times so two devices racing still settle on first claimer
-    for (let attempt = 0; attempt < 4; attempt++) {
-      let remoteNames;
-      try {
-        remoteNames = await fetchNamesRemote();
-      } catch {
+    let remoteNames = null;
+    let offline = false;
+    try {
+      remoteNames = await fetchNamesRemote();
+    } catch {
+      offline = true;
+      remoteNames = { ...namesCache };
+    }
+
+    // School / offline: still let them play with a local name
+    if (offline) {
+      const existing = remoteNames[key];
+      if (existing && existing.playerId && existing.playerId !== me) {
         return {
           ok: false,
-          error: "Can't check names right now — check your connection and try again"
+          error: `"${existing.name}" looks taken. Try another name, or reconnect and try again.`
         };
+      }
+      namesCache = {
+        ...remoteNames,
+        [key]: {
+          playerId: me,
+          name: next,
+          claimedAt: existing?.claimedAt || myClaimAt,
+          legend: !!existing?.legend,
+          activeTitle: existing?.activeTitle || "",
+          accentTitle: existing?.accentTitle || "",
+          accentColor: existing?.accentColor || "",
+          profileUpdatedAt: existing?.profileUpdatedAt || myClaimAt,
+          pendingSync: true
+        }
+      };
+      storeLocalName(next);
+      return { ok: true, name: next, offline: true };
+    }
+
+    // Retry a few times so two devices racing still settle on first claimer
+    for (let attempt = 0; attempt < 4; attempt++) {
+      if (attempt > 0) {
+        try {
+          remoteNames = await fetchNamesRemote();
+        } catch {
+          return {
+            ok: false,
+            error: "Can't check names right now — check your connection and try again"
+          };
+        }
       }
 
       const existing = remoteNames[key];
@@ -609,20 +675,19 @@
       try {
         await pushNamesRemote(nextNames);
       } catch {
-        return {
-          ok: false,
-          error: "Couldn't save that name — check your connection and try again"
-        };
+        // Save locally anyway so school filters don't brick the gate
+        storeLocalName(next);
+        namesCache = nextNames;
+        return { ok: true, name: next, offline: true };
       }
 
       let confirmed;
       try {
         confirmed = await fetchNamesRemote();
       } catch {
-        return {
-          ok: false,
-          error: "Couldn't verify that name — try again"
-        };
+        storeLocalName(next);
+        namesCache = nextNames;
+        return { ok: true, name: next, offline: true };
       }
 
       // Prefer earliest claim if two writes raced and dropped keys
@@ -653,6 +718,7 @@
       }
 
       // Owner missing after race — retry
+      remoteNames = confirmed;
     }
 
     return { ok: false, error: "Couldn't claim that name — try again" };
@@ -780,7 +846,13 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
         setGateStatus(statusEl, result.error || "Name unavailable", false);
         return false;
       }
-      setGateStatus(statusEl, `Playing as ${result.name}`, true);
+      setGateStatus(
+        statusEl,
+        result.offline
+          ? `Playing as ${result.name} (saved on this device — will sync when online)`
+          : `Playing as ${result.name}`,
+        true
+      );
       document.body.classList.remove("username-gate-open");
       const hubModal = document.getElementById("player-name-modal");
       hubModal?.classList.add("hidden");
@@ -825,7 +897,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       modal.innerHTML = `
         <div class="username-gate-card">
           <h2 id="username-gate-title">Pick a username</h2>
-          <p>You need a unique nickname to play. Once someone takes a name, nobody else can use it.</p>
+          <p>You need a unique nickname to play. If the school network blocks saving, you can still play with a local name for this session.</p>
           <input id="username-gate-input" type="text" maxlength="16" placeholder="e.g. ICE_DRAGON" autocomplete="nickname">
           <div id="username-gate-status" class="username-gate-status" aria-live="polite"></div>
           <button id="username-gate-save" type="button">Save & play</button>

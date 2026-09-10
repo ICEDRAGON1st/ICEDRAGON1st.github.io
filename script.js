@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260910a": [
+    "Fix school/offline username gate: don’t wipe names when the name server is blocked; allow local play"
+  ],
   "20260909r": [
     "Lemmings: clear the level when the save goal is met even if a Blocker is left behind"
   ],
@@ -2941,20 +2944,31 @@ function maybeAskPlayerName(force = false) {
   }
   const existing = HubPlays.getName();
   if (existing && hasPlayerName()) {
-    // Re-claim saved name so uniqueness is registered remotely
+    // Re-claim saved name so uniqueness is registered remotely.
+    // Never wipe the local name on network/school-filter failures.
     HubPlays.claimName(existing).then((result) => {
-      if (!result.ok && result.error) {
-        try {
-          localStorage.removeItem("hub-player-name");
-        } catch {}
-        if (playerNameInput) playerNameInput.value = "";
-        setPlayerNameStatus(result.error, true);
-        if (typeof HubPlays.enforceUsernameGate === "function") {
-          HubPlays.enforceUsernameGate();
-        } else {
-          playerNameModal?.classList.remove("hidden");
-          playerNameModalInput?.focus();
+      if (result.ok) {
+        if (result.offline) {
+          setPlayerNameStatus("Playing offline — name will sync when the network allows it", false);
         }
+        return;
+      }
+      if (!result.error) return;
+      const taken = /already taken/i.test(result.error);
+      if (!taken) {
+        setPlayerNameStatus(result.error, true);
+        return;
+      }
+      try {
+        localStorage.removeItem("hub-player-name");
+      } catch {}
+      if (playerNameInput) playerNameInput.value = "";
+      setPlayerNameStatus(result.error, true);
+      if (typeof HubPlays.enforceUsernameGate === "function") {
+        HubPlays.enforceUsernameGate();
+      } else {
+        playerNameModal?.classList.remove("hidden");
+        playerNameModalInput?.focus();
       }
     });
     if (!force) return;
@@ -3016,11 +3030,21 @@ async function savePlayerNameFrom(value) {
     }
     if (playerNameInput) playerNameInput.value = result.name;
     if (playerNameModalInput) playerNameModalInput.value = result.name;
-    setPlayerNameStatus(`Playing as ${result.name}`, false);
+    setPlayerNameStatus(
+      result.offline
+        ? `Playing as ${result.name} (offline / school mode)`
+        : `Playing as ${result.name}`,
+      false
+    );
     hidePlayerNameModal();
     applyNameLockUI();
     renderPlayersPanel();
-    showGamesMessage(`Playing as ${result.name}`, 1800);
+    showGamesMessage(
+      result.offline
+        ? `Playing as ${result.name} (saved on this device)`
+        : `Playing as ${result.name}`,
+      1800
+    );
     if (window.__hubAfterUsername) {
       const next = window.__hubAfterUsername;
       window.__hubAfterUsername = null;
