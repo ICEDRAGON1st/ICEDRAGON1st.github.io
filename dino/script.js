@@ -218,7 +218,7 @@
   }
 
   function openMenu(canResume) {
-    overlayTitle.textContent = canResume ? "Paused" : "Dino Run";
+    overlayTitle.textContent = canResume ? "Paused" : "Runosaur";
     overlayText.textContent = canResume
       ? "Take a breath, then keep running."
       : "Jump over cacti, duck under birds, and see how far you can go.";

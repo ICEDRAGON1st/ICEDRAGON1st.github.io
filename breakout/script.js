@@ -485,6 +485,6 @@ updateHud();
 draw();
 showMenu(
   "start",
-  "Brick Breaker",
+  "Bounce Break",
   "Move the paddle with your mouse or A/D / arrows. Bounce the ball to smash every brick."
 );

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>2048</title>
+  <title>Block Merge</title>
   <link rel="stylesheet" href="styles.css?v=20260904l">
 </head>
 <body>
@@ -17,7 +17,7 @@
 
   <main class="shell">
     <p class="hint">Use arrow keys or swipe to slide tiles. Merge numbers to reach 2048!</p>
-    <div id="board" class="board" aria-label="2048 game board">
+    <div id="board" class="board" aria-label="Block Merge game board">
       <div id="grid" class="grid"></div>
       <div id="tiles" class="tiles"></div>
     </div>
@@ -26,7 +26,7 @@
 
   <div id="overlay" class="overlay">
     <div class="overlay-card">
-      <h1 id="overlay-title">2048</h1>
+      <h1 id="overlay-title">Block Merge</h1>
       <p id="overlay-text">Slide tiles and merge matching numbers. Can you reach 2048?</p>
       <div class="overlay-actions">
         <button id="resume-btn" type="button" class="btn btn-secondary hidden">Resume</button>
@@ -40,10 +40,10 @@
   <script src="../hub-streak.js"></script><script src="../hub-achievements.js"></script>
   <script src="../hub-sound.js"></script>
   <script src="../hub-confetti.js"></script>
-  <script src="../hub-plays.js?v=20260908j"></script>
+  <script src="../hub-plays.js?v=20260910f"></script>
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
-  <script src="../hub-leaderboard.js?v=20260908j"></script>
-  <script src="script.js?v=20260904l"></script>
+  <script src="../hub-leaderboard.js?v=20260910f"></script>
+  <script src="script.js?v=20260910f"></script>
 </body>
 </html>

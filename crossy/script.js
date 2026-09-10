@@ -547,6 +547,6 @@ resetGame();
 draw();
 showMenu(
   "start",
-  "Lane Crosser",
+  "Cross Walk",
   "Hop across roads and rivers. Tap / ↑ to hop forward, ← → or swipe to move sideways. Don't get hit or splash!"
 );

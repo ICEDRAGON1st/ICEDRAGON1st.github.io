@@ -497,4 +497,4 @@ gamesBtn.addEventListener("click", () => goToGames());
 
 buildBackgroundGrid();
 updateHud();
-showMenu("start", "2048", "Slide tiles and merge matching numbers. Can you reach 2048?");
+showMenu("start", "Block Merge", "Slide tiles and merge matching numbers. Can you reach 2048?");

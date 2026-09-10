@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260910f": [
+    "Safer names: Block Merge, Bounce Break, Cross Walk, Runosaur"
+  ],
   "20260910e": [
     "Safer game names: Guessword, Drop Four, Wing Hop, Pixel Drop, Block Sweep"
   ],
@@ -526,9 +529,9 @@ const HUB_GAMES = [
   { id: "wordle", name: "Guessword", path: null },
   { id: "space", name: "Space Shooter", path: "space-shooter/index.html" },
   { id: "quiz", name: "Quizmaster", path: "quiz/index.html" },
-  { id: "breakout", name: "Brick Breaker", path: "breakout/index.html" },
+  { id: "breakout", name: "Bounce Break", path: "breakout/index.html" },
   { id: "hangman", name: "Hangman", path: "hangman/index.html" },
-  { id: "2048", name: "2048", path: "2048/index.html" },
+  { id: "2048", name: "Block Merge", path: "2048/index.html" },
   { id: "snake", name: "Snake", path: "snake/index.html" },
   { id: "memory", name: "Memory Match", path: "memory-match/index.html" },
   { id: "connect-four", name: "Drop Four", path: "connect-four/index.html" },
@@ -539,10 +542,10 @@ const HUB_GAMES = [
   { id: "pixletris", name: "Pixel Drop", path: "pixletris/index.html" },
   { id: "clicker", name: "Crystal Clicker", path: "clicker/index.html" },
   { id: "stacker", name: "Tower Stack", path: "stacker/index.html" },
-  { id: "crossy", name: "Lane Crosser", path: "crossy/index.html" },
+  { id: "crossy", name: "Cross Walk", path: "crossy/index.html" },
   { id: "fishing", name: "Fishing Idle", path: "fishing/index.html" },
   { id: "cows", name: "Cow Merge", path: "cows/index.html" },
-  { id: "dino", name: "Dino Run", path: "dino/index.html" },
+  { id: "dino", name: "Runosaur", path: "dino/index.html" },
   { id: "mine", name: "Mine Depth", path: "mine/index.html" },
   { id: "blockblast", name: "Block Sweep", path: "block-blast/index.html" },
   { id: "lemmings", name: "Dudes", path: "lemmings/index.html" }
