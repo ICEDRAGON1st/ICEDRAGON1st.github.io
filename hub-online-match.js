@@ -25,7 +25,7 @@
       initialTurn: 1
     },
     "connect-four": {
-      label: "Connect Four",
+      label: "Drop Four",
       initialState: () => ({
         grid: Array.from({ length: 6 }, () => Array(7).fill(0)),
         lastDrop: null,

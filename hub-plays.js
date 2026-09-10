@@ -41,7 +41,7 @@
   const ONLINE_SUBMIT_GAP_MS = 15_000;
 
   const GAME_NAMES = {
-    wordle: "Wordle",
+    wordle: "Guessword",
     space: "Space Shooter",
     quiz: "Quizmaster",
     breakout: "Brick Breaker",
@@ -49,12 +49,12 @@
     "2048": "2048",
     snake: "Snake",
     memory: "Memory Match",
-    "connect-four": "Connect Four",
+    "connect-four": "Drop Four",
     math: "Math Sprint",
     sudoku: "Sudoku",
-    flappy: "Flappy Bird",
+    flappy: "Wing Hop",
     tictactoe: "Tic Tac Toe",
-    pixletris: "Pixletris",
+    pixletris: "Pixel Drop",
     clicker: "Crystal Clicker",
     stacker: "Tower Stack",
     crossy: "Lane Crosser",
@@ -62,7 +62,7 @@
     cows: "Cow Merge",
     dino: "Dino Run",
     mine: "Mine Depth",
-    blockblast: "Block Blast",
+    blockblast: "Block Sweep",
     lemmings: "Dudes"
   };
 

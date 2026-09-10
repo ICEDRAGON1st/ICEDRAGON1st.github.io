@@ -571,7 +571,7 @@
   }
 
   function showMenu() {
-    if (overlayTitle) overlayTitle.textContent = "Block Blast";
+    if (overlayTitle) overlayTitle.textContent = "Block Sweep";
     if (overlayText) {
       overlayText.textContent = playing
         ? "Paused. Resume or start a fresh board."

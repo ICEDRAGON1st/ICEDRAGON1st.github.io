@@ -11,14 +11,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260908aw">
+  <link rel="stylesheet" href="styles.css?v=20260910e">
 </head>
 <body>
   <div class="app">
     <header>
       <button id="hint-btn" type="button" class="hint-btn hidden" aria-label="Get a hint" title="Hints are disabled" disabled hidden>Hint</button>
       <div class="header-title">
-        <h1 id="title">Wordle</h1>
+        <h1 id="title">Guessword</h1>
         <button id="mode-btn" type="button" class="mode-badge is-daily" aria-label="Switch Daily or Practice" title="Playing today's shared word. Tap to switch to Practice.">Daily</button>
       </div>
       <div class="header-right">
@@ -302,8 +302,8 @@
       <div class="games-grid" id="games-grid">
         <button type="button" class="game-card" data-game="wordle">
           <span class="game-card-top">
-            <span class="game-card-name">Wordle</span>
-            <span class="fav-btn" data-fav="wordle" role="button" tabindex="0" aria-label="Favorite Wordle">☆</span>
+            <span class="game-card-name">Guessword</span>
+            <span class="fav-btn" data-fav="wordle" role="button" tabindex="0" aria-label="Favorite Guessword">☆</span>
           </span>
           <span class="game-card-desc">Today's shared word</span>
           <span class="game-card-score" data-score-for="wordle"></span>
@@ -366,8 +366,8 @@
         </button>
         <button type="button" class="game-card" data-game="connect-four">
           <span class="game-card-top">
-            <span class="game-card-name">Connect Four</span>
-            <span class="fav-btn" data-fav="connect-four" role="button" tabindex="0" aria-label="Favorite Connect Four">☆</span>
+            <span class="game-card-name">Drop Four</span>
+            <span class="fav-btn" data-fav="connect-four" role="button" tabindex="0" aria-label="Favorite Drop Four">☆</span>
           </span>
           <span class="game-card-desc">Connect four in a row</span>
           <span class="game-card-score" data-score-for="connect-four"></span>
@@ -390,8 +390,8 @@
         </button>
         <button type="button" class="game-card" data-game="flappy">
           <span class="game-card-top">
-            <span class="game-card-name">Flappy Bird</span>
-            <span class="fav-btn" data-fav="flappy" role="button" tabindex="0" aria-label="Favorite Flappy Bird">☆</span>
+            <span class="game-card-name">Wing Hop</span>
+            <span class="fav-btn" data-fav="flappy" role="button" tabindex="0" aria-label="Favorite Wing Hop">☆</span>
           </span>
           <span class="game-card-desc">Tap to fly through pipes</span>
           <span class="game-card-score" data-score-for="flappy"></span>
@@ -406,10 +406,10 @@
         </button>
         <button type="button" class="game-card" data-game="pixletris">
           <span class="game-card-top">
-            <span class="game-card-name">Pixletris</span>
-            <span class="fav-btn" data-fav="pixletris" role="button" tabindex="0" aria-label="Favorite Pixletris">☆</span>
+            <span class="game-card-name">Pixel Drop</span>
+            <span class="fav-btn" data-fav="pixletris" role="button" tabindex="0" aria-label="Favorite Pixel Drop">☆</span>
           </span>
-          <span class="game-card-desc">Pixel Tetris blocks</span>
+          <span class="game-card-desc">Drop blocks and clear lines</span>
           <span class="game-card-score" data-score-for="pixletris"></span>
         </button>
         <button type="button" class="game-card" data-game="clicker">
@@ -470,8 +470,8 @@
         </button>
         <button type="button" class="game-card" data-game="blockblast">
           <span class="game-card-top">
-            <span class="game-card-name">Block Blast</span>
-            <span class="fav-btn" data-fav="blockblast" role="button" tabindex="0" aria-label="Favorite Block Blast">☆</span>
+            <span class="game-card-name">Block Sweep</span>
+            <span class="fav-btn" data-fav="blockblast" role="button" tabindex="0" aria-label="Favorite Block Sweep">☆</span>
           </span>
           <span class="game-card-desc">Place blocks, clear rows and columns</span>
           <span class="game-card-score" data-score-for="blockblast"></span>
@@ -490,7 +490,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260910d";
+    window.WORDLE_BUILD = "20260910e";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js",
       "words.js",

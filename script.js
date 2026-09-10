@@ -21,6 +21,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260910e": [
+    "Safer game names: Guessword, Drop Four, Wing Hop, Pixel Drop, Block Sweep"
+  ],
   "20260910d": [
     "Rename Lemmings to Dudes"
   ],
@@ -520,7 +523,7 @@ const CHANGELOG = {
 };
 
 const HUB_GAMES = [
-  { id: "wordle", name: "Wordle", path: null },
+  { id: "wordle", name: "Guessword", path: null },
   { id: "space", name: "Space Shooter", path: "space-shooter/index.html" },
   { id: "quiz", name: "Quizmaster", path: "quiz/index.html" },
   { id: "breakout", name: "Brick Breaker", path: "breakout/index.html" },
@@ -528,12 +531,12 @@ const HUB_GAMES = [
   { id: "2048", name: "2048", path: "2048/index.html" },
   { id: "snake", name: "Snake", path: "snake/index.html" },
   { id: "memory", name: "Memory Match", path: "memory-match/index.html" },
-  { id: "connect-four", name: "Connect Four", path: "connect-four/index.html" },
+  { id: "connect-four", name: "Drop Four", path: "connect-four/index.html" },
   { id: "math", name: "Math Sprint", path: "math/index.html" },
   { id: "sudoku", name: "Sudoku", path: "sudoku/index.html" },
-  { id: "flappy", name: "Flappy Bird", path: "flappy-bird/index.html" },
+  { id: "flappy", name: "Wing Hop", path: "flappy-bird/index.html" },
   { id: "tictactoe", name: "Tic Tac Toe", path: "tic-tac-toe/index.html" },
-  { id: "pixletris", name: "Pixletris", path: "pixletris/index.html" },
+  { id: "pixletris", name: "Pixel Drop", path: "pixletris/index.html" },
   { id: "clicker", name: "Crystal Clicker", path: "clicker/index.html" },
   { id: "stacker", name: "Tower Stack", path: "stacker/index.html" },
   { id: "crossy", name: "Lane Crosser", path: "crossy/index.html" },
@@ -541,7 +544,7 @@ const HUB_GAMES = [
   { id: "cows", name: "Cow Merge", path: "cows/index.html" },
   { id: "dino", name: "Dino Run", path: "dino/index.html" },
   { id: "mine", name: "Mine Depth", path: "mine/index.html" },
-  { id: "blockblast", name: "Block Blast", path: "block-blast/index.html" },
+  { id: "blockblast", name: "Block Sweep", path: "block-blast/index.html" },
   { id: "lemmings", name: "Dudes", path: "lemmings/index.html" }
 ];
 
@@ -783,7 +786,7 @@ function updateLengthButton() {
   lengthBtn.classList.toggle("hidden", daily);
   lengthBtn.disabled = daily;
   lengthBtn.title = daily
-    ? "Daily Wordle is always 5 letters"
+    ? "Daily Guessword is always 5 letters"
     : "Switch between 4, 5 and 6 letter words";
   lengthBtn.setAttribute("aria-hidden", daily ? "true" : "false");
   boardEl.classList.toggle("len-4", currentLength === 4);
@@ -913,14 +916,14 @@ function updateModeButton() {
     const label = getWordThemeDef()?.label || "Classic";
     modeBtn.textContent = label === "Classic" ? "Practice" : `Practice · ${label}`;
     modeBtn.classList.remove("is-daily");
-    modeBtn.title = "Random words (4/5/6 letters, optional themes). Tap to play today's Daily Wordle.";
+    modeBtn.title = "Random words (4/5/6 letters, optional themes). Tap to play today's Daily Guessword.";
   }
 }
 
 function togglePlayMode() {
   setPlayMode(isDailyMode() ? "practice" : "daily");
   reloadBoard();
-  showMessage(isDailyMode() ? "Today's Daily Wordle" : "Practice mode");
+  showMessage(isDailyMode() ? "Today's Daily Guessword" : "Practice mode");
 }
 
 function loadState() {
@@ -1244,7 +1247,7 @@ function showMenu() {
     menuTitle.textContent = isDailyMode() ? "Daily complete" : "Game Over";
     menuSubtitle.textContent = `The word was ${state.secretWord.toUpperCase()}`;
   } else if (isDailyMode()) {
-    menuTitle.textContent = "Daily Wordle";
+    menuTitle.textContent = "Daily Guessword";
     menuSubtitle.textContent = `Today's shared ${currentLength}-letter word · ${currentLang.toUpperCase()}. Same for everyone.`;
   } else {
     menuTitle.textContent = "Menu";
@@ -2325,7 +2328,7 @@ function goToDaily() {
   reloadBoard();
   hideMenu();
   hideGamesScreen();
-  showMessage("Today's Daily Wordle");
+  showMessage("Today's Daily Guessword");
 }
 
 function reloadBoard() {
@@ -2364,7 +2367,7 @@ async function shareDailyResult() {
   const text = buildDailyShareText();
   try {
     if (navigator.share) {
-      await navigator.share({ title: "Daily Wordle", text });
+      await navigator.share({ title: "Daily Guessword", text });
       showMessage("Shared!");
       return;
     }
@@ -3382,7 +3385,7 @@ function renderFriendsPanel() {
       invitesBox.innerHTML = `<h5>Game invites</h5><ul>${invites
         .map((inv) => {
           const gameLabel =
-            inv.game === "connect-four" ? "Connect Four" : "Tic Tac Toe";
+            inv.game === "connect-four" ? "Drop Four" : "Tic Tac Toe";
           const href =
             inv.game === "connect-four"
               ? `connect-four/index.html?invite=${encodeURIComponent(inv.id)}`

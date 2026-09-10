@@ -791,6 +791,6 @@ resetGame();
 draw();
 showMenu(
   "start",
-  "Pixletris",
+  "Pixel Drop",
   "Blocks crumble into sand when they land. Connect one color from the left wall all the way to the right wall to clear it."
 );

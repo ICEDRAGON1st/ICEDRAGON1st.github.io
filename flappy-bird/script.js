@@ -576,6 +576,6 @@ resetGame();
 draw();
 showMenu(
   "start",
-  "Flappy Bird",
+  "Wing Hop",
   "Tap, click, or press Space to flap. Fly through the gaps and don't hit the pipes."
 );

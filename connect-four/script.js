@@ -277,7 +277,7 @@ function startGame() {
     onlineCode?.classList.add("hidden");
     setOnlineStatus("Play a random opponent, invite a friend, or use a room code.");
     refreshOnlineLobby();
-    showMenu("start", "Online Connect Four", "Use Quick Play, invite a friend, or join with a code.");
+    showMenu("start", "Online Drop Four", "Use Quick Play, invite a friend, or join with a code.");
     return;
   }
   if (window.HubStreak) HubStreak.recordPlay();
@@ -638,7 +638,7 @@ updateHud();
 renderBoard();
 showMenu(
   "start",
-  "Connect Four",
+  "Drop Four",
   "Drop discs and connect four in a row — horizontal, vertical, or diagonal."
 );
 
@@ -883,7 +883,7 @@ onlineInvites?.addEventListener("click", async (e) => {
     onlinePanel?.classList.remove("hidden");
     startBtnEl.classList.add("hidden");
     difficultyPicker.classList.add("hidden");
-    showMenu("start", "Online Connect Four", "Connecting…");
+    showMenu("start", "Online Drop Four", "Connecting…");
   }
   if (inviteId && typeof HubFriends !== "undefined") {
     await HubFriends.sync?.();
