@@ -385,10 +385,10 @@ function update(dt) {
   bird.y += bird.vy * dt;
   bird.rot = Math.max(-0.5, Math.min(1.2, bird.vy / 420));
 
-  // Fast idle flap + extra speed while rising / after a tap
-  const flapRate = 14 + (bird.vy < 0 ? 10 : 0) + wingBurst * 18;
+  // Steady flap + a bit extra while rising / after a tap
+  const flapRate = 6.5 + (bird.vy < 0 ? 2.5 : 0) + wingBurst * 5;
   wingPhase += dt * flapRate;
-  wingBurst = Math.max(0, wingBurst - dt * 2.4);
+  wingBurst = Math.max(0, wingBurst - dt * 1.8);
 
   distance += speed * dt;
   groundOffset = (groundOffset + speed * dt) % 42;
@@ -563,13 +563,13 @@ function mixHex(a, b, t) {
 
 function drawBird() {
   const s = skin();
-  // Big flappy motion: opposite-phase wings + burst on tap
+  // Flappy motion: opposite-phase wings + mild burst on tap
   const beat = Math.sin(wingPhase);
   const beat2 = Math.sin(wingPhase + Math.PI); // other wing opposite
-  const amp = 0.95 + wingBurst * 0.85;
-  const flapNear = beat * amp + Math.max(-0.2, Math.min(0.45, bird.rot)) * 0.35;
-  const flapFar = beat2 * amp * 0.9 + Math.max(-0.2, Math.min(0.45, bird.rot)) * 0.25;
-  const wingScaleY = 0.72 + Math.abs(beat) * 0.45 + wingBurst * 0.15;
+  const amp = 0.75 + wingBurst * 0.45;
+  const flapNear = beat * amp + Math.max(-0.2, Math.min(0.45, bird.rot)) * 0.3;
+  const flapFar = beat2 * amp * 0.85 + Math.max(-0.2, Math.min(0.45, bird.rot)) * 0.2;
+  const wingScaleY = 0.82 + Math.abs(beat) * 0.28 + wingBurst * 0.1;
   const dark = mixHex(s.body, "#0b1020", 0.35);
   const mid = mixHex(s.body, s.wing, 0.35);
   const light = mixHex(s.body, "#ffffff", 0.28);
@@ -631,7 +631,7 @@ function drawBird() {
   // ===== Far wing =====
   ctx.save();
   ctx.translate(-4, -4);
-  ctx.rotate(-0.55 + flapFar * 1.35);
+  ctx.rotate(-0.55 + flapFar * 1.05);
   ctx.scale(1, wingScaleY);
   drawDragonWing(s, outline, belly, 0.78);
   ctx.restore();
@@ -790,7 +790,7 @@ function drawBird() {
   // ===== Near wing =====
   ctx.save();
   ctx.translate(2, -2);
-  ctx.rotate(-0.05 + flapNear * 1.4);
+  ctx.rotate(-0.05 + flapNear * 1.1);
   ctx.scale(1, wingScaleY);
   drawDragonWing(s, outline, belly, 1);
   ctx.restore();

@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911k": [
+    "Wing Hop: slow the dragon wing flap to a calmer beat"
+  ],
   "20260911j": [
     "Wing Hop: much flappier dragon wings (faster beat + big flap on tap)"
   ],
