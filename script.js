@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911u": [
+    "Fishing Idle: leaderboard no longer resets ICE_DRAGON below a better-than-mythic catch"
+  ],
   "20260911t": [
     "Cross Walk: smoother ice riding (sticky floe, no hop/snap jitter)"
   ],

@@ -223,7 +223,20 @@
   function formatFishingCatch(score) {
     const n = Math.floor(Number(score) || 0);
     if (n <= 0) return "—";
-    const fish = FISHING_CATCH_FISH.find((f) => fishingCatchScore(f) === n);
+    let fish = FISHING_CATCH_FISH.find((f) => fishingCatchScore(f) === n);
+    if (!fish) {
+      // Prefer the best known catch at or below this score (handles odd/legacy values)
+      let best = null;
+      let bestScore = -1;
+      for (const f of FISHING_CATCH_FISH) {
+        const s = fishingCatchScore(f);
+        if (s <= n && s > bestScore) {
+          best = f;
+          bestScore = s;
+        }
+      }
+      fish = best;
+    }
     if (fish) return `${fish.rarity} · ${fish.name}`;
     const rank = Math.floor(n / 100000);
     const rarity =
@@ -559,8 +572,8 @@
     });
     games.fishing = fishingBoard;
 
-    // Seed ICE_DRAGON Fishing Idle best catch as Abyss King (mythic).
-    const iceFishingSeedKey = "fishing:ice_dragon-abyss-king-v1";
+    // Seed ICE_DRAGON Fishing Idle floor as Abyss King (mythic) — never downgrade a better catch.
+    const iceFishingSeedKey = "fishing:ice_dragon-abyss-king-v2";
     const ABYSS_KING_SCORE = 604000; // mythic rank*100000 + 4000
     const ICE_FISHING_ID = "p-mtlztdny-r28rrb";
     if (!resets[iceFishingSeedKey]) resets[iceFishingSeedKey] = Date.now();
@@ -569,6 +582,7 @@
       FISHING_WIPE_AT + 1
     );
     const seededFish = { ...(games.fishing || {}) };
+    let iceBest = null;
     Object.keys(seededFish).forEach((key) => {
       const entry = seededFish[key];
       if (!entry) return;
@@ -577,12 +591,22 @@
         key === "ice_dragon" ||
         keyName === "ice_dragon" ||
         entry.playerId === ICE_FISHING_ID;
-      if (isIce && key !== "ice_dragon") delete seededFish[key];
+      if (!isIce) return;
+      if (
+        !iceBest ||
+        Number(entry.score) > Number(iceBest.score) ||
+        (Number(entry.score) === Number(iceBest.score) &&
+          Number(entry.at) > Number(iceBest.at))
+      ) {
+        iceBest = entry;
+      }
+      if (key !== "ice_dragon") delete seededFish[key];
     });
+    const keptScore = Math.max(ABYSS_KING_SCORE, Math.floor(Number(iceBest?.score) || 0));
     seededFish.ice_dragon = {
       name: "ICE_DRAGON",
-      score: ABYSS_KING_SCORE,
-      at: iceFishAt,
+      score: keptScore,
+      at: Math.max(iceFishAt, Math.floor(Number(iceBest?.at) || 0)),
       playerId: ICE_FISHING_ID,
       lowerBetter: false
     };
