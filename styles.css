@@ -1207,7 +1207,7 @@ header h1 {
 }
 
 .hub-theme-swatch.is-ice {
-  background: linear-gradient(135deg, #d9eef8, #7eb6d4 45%, #1f4e6b);
+  background: linear-gradient(135deg, #1a3348, #3db8e8 45%, #0b1220);
 }
 
 .hub-theme-swatch.is-retro {
@@ -3534,17 +3534,17 @@ html[data-theme="dark"] .hub-notify-item {
 
 /* ── Hub ice theme ── */
 .games-screen.hub-theme-ice {
-  --ice-bg: #eaf5fb;
-  --ice-panel: rgba(255, 255, 255, 0.72);
-  --ice-ink: #143447;
-  --ice-muted: #4d6d82;
-  --ice-line: rgba(70, 140, 180, 0.35);
-  --ice-accent: #2f7ea8;
+  --ice-bg: #0e1a28;
+  --ice-panel: rgba(22, 40, 58, 0.78);
+  --ice-ink: #d6e8f5;
+  --ice-muted: #7a9bb3;
+  --ice-line: rgba(70, 140, 180, 0.32);
+  --ice-accent: #3db8e8;
   --hub-bg: var(--ice-bg);
-  --bg-glow-a: rgba(255, 255, 255, 0.75);
-  --bg-glow-b: rgba(185, 220, 235, 0.65);
-  --bg-glow-c: rgba(47, 126, 168, 0.32);
-  --bg-spot: rgba(255, 255, 255, 0.7);
+  --bg-glow-a: rgba(61, 184, 232, 0.28);
+  --bg-glow-b: rgba(120, 170, 210, 0.22);
+  --bg-glow-c: rgba(40, 90, 130, 0.3);
+  --bg-spot: rgba(160, 210, 240, 0.14);
   font-family: "Outfit", system-ui, sans-serif;
   color: var(--ice-ink);
   background: var(--hub-bg);
@@ -3577,13 +3577,13 @@ html[data-theme="dark"] .hub-notify-item {
 .games-screen.hub-theme-ice .hub-btn:hover,
 .games-screen.hub-theme-ice .games-back:hover {
   border-color: var(--ice-accent);
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(36, 62, 86, 0.92);
 }
 
 .games-screen.hub-theme-ice .hub-btn-primary {
   background: var(--ice-accent);
   border-color: var(--ice-accent);
-  color: #fff;
+  color: #0a1520;
 }
 
 .games-screen.hub-theme-ice .hub-streak-badge,
@@ -3600,11 +3600,11 @@ html[data-theme="dark"] .hub-notify-item {
 }
 
 .games-screen.hub-theme-ice .game-card {
-  background: rgba(255, 255, 255, 0.78);
+  background: rgba(18, 34, 50, 0.82);
   border: 1px solid var(--ice-line);
   border-radius: 1rem;
   color: var(--ice-ink);
-  box-shadow: 0 10px 28px rgba(47, 126, 168, 0.12);
+  box-shadow: 0 10px 28px rgba(8, 20, 36, 0.35);
 }
 
 .games-screen.hub-theme-ice .game-card:hover:not(:disabled) {

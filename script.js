@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260912v": [
+    "Hub Ice look: cooler dark blue instead of bright white"
+  ],
   "20260912u": [
     "My Games hub: same drifting glow / orb / sparkle background animation as Guessword"
   ],
