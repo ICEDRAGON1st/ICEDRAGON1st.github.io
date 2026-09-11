@@ -22,6 +22,8 @@
   let enabled = loadEnabled();
   let audioCtx = null;
   let noiseBuffer = null;
+  let keySamples = [];
+  let keySamplesLoading = null;
 
   function getAudio() {
     if (!enabled) return null;
@@ -30,6 +32,85 @@
     if (!audioCtx) audioCtx = new AC();
     if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
     return audioCtx;
+  }
+
+  function hubAssetUrl(relPath) {
+    const scripts = document.getElementsByTagName("script");
+    for (let i = 0; i < scripts.length; i += 1) {
+      const src = scripts[i].src || "";
+      if (/hub-sound\.js(\?|$)/i.test(src)) {
+        return new URL(relPath, src).href;
+      }
+    }
+    return new URL(relPath, window.location.href).href;
+  }
+
+  async function ensureKeySamples() {
+    if (keySamples.length) return keySamples;
+    if (keySamplesLoading) return keySamplesLoading;
+    const ctx = getAudio();
+    if (!ctx) return [];
+    keySamplesLoading = (async () => {
+      const files = [
+        "sounds/key-honey.wav",
+        "sounds/key-honey-0.wav",
+        "sounds/key-honey-1.wav",
+        "sounds/key-honey-2.wav",
+        "sounds/key-honey-3.wav"
+      ];
+      const loaded = [];
+      await Promise.all(
+        files.map(async (file) => {
+          try {
+            const res = await fetch(hubAssetUrl(file), { cache: "force-cache" });
+            if (!res.ok) return;
+            const raw = await res.arrayBuffer();
+            const buf = await ctx.decodeAudioData(raw.slice(0));
+            loaded.push(buf);
+          } catch {}
+        })
+      );
+      keySamples = loaded;
+      return keySamples;
+    })();
+    try {
+      return await keySamplesLoading;
+    } finally {
+      keySamplesLoading = null;
+    }
+  }
+
+  function playKeySample(opts = {}) {
+    const ctx = getAudio();
+    if (!ctx || !keySamples.length) return false;
+    const buf = keySamples[(Math.random() * keySamples.length) | 0];
+    if (!buf) return false;
+    const src = ctx.createBufferSource();
+    src.buffer = buf;
+    const rateBase = opts.rate != null ? opts.rate : 1;
+    src.playbackRate.value = rateBase * (0.96 + Math.random() * 0.07);
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = (opts.lp != null ? opts.lp : 2600) + Math.random() * 700;
+    filter.Q.value = 0.45;
+    const gain = ctx.createGain();
+    const vol = (opts.vol != null ? opts.vol : 0.62) * (0.9 + Math.random() * 0.2);
+    const t = ctx.currentTime;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(vol, t + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + Math.min(0.38, buf.duration + 0.06));
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    src.start(t);
+    return true;
+  }
+
+  /** Prefer honey-key samples; soft synth only while loading / offline. */
+  function playKeyThock() {
+    if (playKeySample({ vol: 0.68, lp: 2800 })) return;
+    ensureKeySamples();
+    playKeyThockSynth();
   }
 
   function getNoiseBuffer(ctx) {
@@ -112,88 +193,49 @@
     src.stop(t + dur + 0.02);
   }
 
-  /** Creamy “honey keyboard” ASMR thock — buttery, muted, close-mic. */
-  function playKeyThock() {
-    // Tiny organic variation so every press feels handmade
-    const wobble = (Math.random() - 0.5) * 18;
-    const soft = 0.92 + Math.random() * 0.16;
-
-    // Slow honey body — warm mids, no boom
+  function playKeyThockSynth() {
+    const wobble = (Math.random() - 0.5) * 14;
     softTone({
-      freq: 255 + wobble,
-      dur: 0.18,
-      vol: 0.048 * soft,
-      slide: -40,
-      attack: 0.028,
-      lp: 900
+      freq: 300 + wobble,
+      dur: 0.16,
+      vol: 0.04,
+      slide: -35,
+      attack: 0.03,
+      lp: 850
     });
     softTone({
-      freq: 380 + wobble * 0.6,
-      dur: 0.14,
-      vol: 0.03 * soft,
-      slide: -55,
-      attack: 0.022,
-      lp: 1400,
-      delay: 0.008
+      freq: 440 + wobble,
+      dur: 0.12,
+      vol: 0.024,
+      slide: -50,
+      attack: 0.025,
+      lp: 1300,
+      delay: 0.01
     });
-    // Silky overtone (like a lubed linear)
-    softTone({
-      freq: 560 + wobble,
+    noiseHit({
       dur: 0.1,
-      vol: 0.016 * soft,
-      slide: -90,
-      attack: 0.018,
-      lp: 2000,
-      delay: 0.012
-    });
-    // Tiny keycap kiss — soft, not clicky
-    softTone({
-      freq: 1350 + wobble * 2,
-      dur: 0.035,
-      vol: 0.01 * soft,
-      slide: -260,
-      attack: 0.006,
-      lp: 3200,
-      delay: 0.004
-    });
-
-    // Buttery cream texture (low-passed noise, long glide)
-    noiseHit({
-      dur: 0.11,
-      vol: 0.042 * soft,
-      freq: 1600,
-      q: 0.35,
-      type: "lowpass",
-      delay: 0.002
-    });
-    noiseHit({
-      dur: 0.08,
-      vol: 0.022 * soft,
-      freq: 2800,
-      q: 0.45,
-      type: "lowpass",
-      delay: 0.012
-    });
-    // Soft “case foam” hush after bottom-out
-    noiseHit({
-      dur: 0.14,
-      vol: 0.014 * soft,
-      freq: 700,
+      vol: 0.035,
+      freq: 1400,
       q: 0.3,
       type: "lowpass",
-      delay: 0.03
+      delay: 0.004
     });
   }
 
   function play(kind, extra) {
     if (!enabled) return;
-    if (kind === "key") playKeyThock();
-    else if (kind === "click" || kind === "place") {
+    if (kind === "key") {
+      playKeyThock();
+      return;
+    }
+    if (kind === "click" || kind === "place") {
       // Slightly fuller generic UI click (still short)
       tone({ freq: 620, dur: 0.04, type: "triangle", vol: 0.05 });
       tone({ freq: 980, dur: 0.028, type: "square", vol: 0.02, slide: -120 });
       noiseHit({ dur: 0.018, vol: 0.028, freq: 2800, q: 1.1 });
     } else if (kind === "back") {
+      if (playKeySample({ vol: 0.42, rate: 0.9, lp: 2000 })) return;
+      ensureKeySamples();
       const wobble = (Math.random() - 0.5) * 12;
       softTone({ freq: 340 + wobble, dur: 0.12, vol: 0.032, slide: -70, attack: 0.02, lp: 1100 });
       softTone({ freq: 520 + wobble, dur: 0.08, vol: 0.016, slide: -100, attack: 0.015, lp: 1800, delay: 0.01 });
@@ -306,8 +348,14 @@
     btn.addEventListener("click", toggle);
   }
 
-  document.addEventListener("pointerdown", getAudio, { once: true });
-  document.addEventListener("keydown", getAudio, { once: true });
+  document.addEventListener("pointerdown", () => {
+    getAudio();
+    ensureKeySamples();
+  }, { once: true });
+  document.addEventListener("keydown", () => {
+    getAudio();
+    ensureKeySamples();
+  }, { once: true });
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", bindUi);

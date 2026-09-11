@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260912m": [
+    "Guessword: real honey-key samples instead of beeps for typing ASMR"
+  ],
   "20260912l": [
     "Guessword: creamy honey-keyboard ASMR key sound"
   ],
