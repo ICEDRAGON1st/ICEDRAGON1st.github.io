@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911s": [
+    "Cross Walk: more precise hops; ice floes no longer kill you in tiny gaps; fairer cart hits"
+  ],
   "20260911r": [
     "Runosaur: low crystal bats require holding ↓ / S (or swipe down) to duck under"
   ],

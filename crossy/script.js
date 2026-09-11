@@ -91,14 +91,18 @@ function makeRow(index) {
       });
     }
   } else if (type === "water") {
+    // Wide floes with only tiny visual seams — no deadly mid-lane gaps
     const count = 2 + Math.floor(Math.random() * 2);
-    const gap = W / count;
+    let x = rand(-CELL * 0.4, CELL * 0.2);
     for (let i = 0; i < count; i++) {
-      objs.push({
-        x: i * gap + rand(0, gap * 0.2),
-        w: CELL * rand(1.6, 2.4),
-        color: FLOE_COLOR
-      });
+      const remaining = count - i;
+      const spanLeft = W + CELL - x;
+      const w = Math.max(
+        CELL * 2.1,
+        Math.min(CELL * 3.4, spanLeft / remaining + rand(-8, 18))
+      );
+      objs.push({ x, w, color: FLOE_COLOR });
+      x += w + rand(0, 6); // seam only — collision pads close this
     }
   } else if (Math.random() < 0.35) {
     const n = 1 + Math.floor(Math.random() * 3);
@@ -159,7 +163,7 @@ function tryHop(dCol, dRow) {
     const px = nextCol * CELL + CELL / 2;
     const hitDecor = (row.objs || []).some((o) => {
       if (!o.decor) return false;
-      return Math.abs(px - (o.x + o.w / 2)) < CELL * 0.42;
+      return Math.abs(px - (o.x + o.w / 2)) < CELL * 0.32;
     });
     if (hitDecor) {
       window.HubSound?.play?.("miss");
@@ -167,7 +171,9 @@ function tryHop(dCol, dRow) {
     }
   }
 
-  hopFrom = { col: player.col, row: player.row };
+  // Hop from whole columns so side-steps stay precise while riding ice
+  player.col = fromCol;
+  hopFrom = { col: fromCol, row: player.row };
   hopTo = { col: nextCol, row: nextRow };
   hopT = 1;
   window.HubSound?.play?.("flap");
@@ -196,7 +202,48 @@ function finishHop() {
     checkAchievements();
   }
   ensureRows();
+  const row = rows[player.row];
+  // Snap to grid on solid lanes; on ice, snap onto a floe if you're near one
+  if (row?.type === "grass" || row?.type === "road") {
+    player.col = Math.round(player.col);
+  } else if (row?.type === "water") {
+    attachToNearestFloe(true);
+  }
   resolveLaneSafety(0);
+}
+
+/** Generous ice pads + close tiny seams so you don't die in visual gaps. */
+function floeUnderPlayer(px, floes) {
+  const PAD = 16;
+  const sorted = [...floes].filter((o) => !o.decor).sort((a, b) => a.x - b.x);
+  for (const floe of sorted) {
+    if (px >= floe.x - PAD && px <= floe.x + floe.w + PAD) return floe;
+  }
+  // Bridge small seams between neighboring floes (the "gap" in screenshots)
+  for (let i = 0; i < sorted.length - 1; i++) {
+    const a = sorted[i];
+    const b = sorted[i + 1];
+    const gapL = a.x + a.w;
+    const gapR = b.x;
+    if (gapR - gapL <= CELL * 0.85 && px >= gapL - 4 && px <= gapR + 4) {
+      return px - gapL < gapR - px ? a : b;
+    }
+  }
+  return null;
+}
+
+function attachToNearestFloe(snapCol) {
+  const row = rows[player.row];
+  if (!row || row.type !== "water") return null;
+  const px = player.col * CELL + CELL / 2;
+  const floe = floeUnderPlayer(px, row.objs || []);
+  if (!floe) return null;
+  if (snapCol) {
+    const left = floe.x / CELL;
+    const right = (floe.x + floe.w) / CELL - 1;
+    player.col = Math.max(left, Math.min(right, player.col));
+  }
+  return floe;
 }
 
 function resolveLaneSafety(dt) {
@@ -205,29 +252,29 @@ function resolveLaneSafety(dt) {
   const px = player.col * CELL + CELL / 2;
 
   if (row.type === "road") {
+    // Tighter cart hitbox — only die when clearly overlapping the body
+    const inset = Math.min(18, CELL * 0.28);
     for (const car of row.objs) {
-      if (px > car.x + 4 && px < car.x + car.w - 4) {
+      if (px > car.x + inset && px < car.x + car.w - inset) {
         die("Crushed by a cart!");
         return;
       }
     }
   } else if (row.type === "water") {
-    let onLog = false;
-    for (const log of row.objs) {
-      if (px > log.x + 6 && px < log.x + log.w - 6) {
-        onLog = true;
-        const shift = (row.dir * row.speed * dt) / CELL;
-        player.col += shift;
-        break;
-      }
-    }
-    if (!onLog && !isHopping()) {
+    const floe = floeUnderPlayer(px, row.objs || []);
+    if (floe) {
+      const shift = (row.dir * row.speed * dt) / CELL;
+      player.col += shift;
+    } else if (!isHopping()) {
       die("Fell through the ice!");
       return;
     }
-    if (player.col < -0.2 || player.col > COLS - 0.8) {
+    if (player.col < -0.35 || player.col > COLS - 0.65) {
       die("Swept away!");
     }
+  } else {
+    // Meadow: stay on whole columns so hops feel precise
+    player.col = Math.round(player.col);
   }
 }
 
