@@ -30,7 +30,24 @@ const HUB_THEMES = {
   tide: { label: "Tide", eyebrow: "Titles", ownerOnly: true }
 };
 
+const CREATOR_NAME = "ICE_DRAGON";
+const SPECIAL_PLAYER_NAMES = {
+  ice_dragon: {
+    className: "player-name-creator",
+    title: "Site owner",
+    badge: { label: "OWNER", className: "player-title-owner" }
+  },
+  oscarvr29: {
+    className: "player-name-oscar",
+    title: "Original player",
+    badge: { label: "OG", className: "player-title-og" }
+  }
+};
+
 const CHANGELOG = {
+  "20260912y": [
+    "Fix Guessword stuck blank screen (hub theme init crash)"
+  ],
   "20260912x": [
     "Players: each person gets a player code — rename keeps leaderboards/friends; restore on another device"
   ],
@@ -3837,20 +3854,6 @@ function escapeHtml(text) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
 }
-
-const CREATOR_NAME = "ICE_DRAGON";
-const SPECIAL_PLAYER_NAMES = {
-  ice_dragon: {
-    className: "player-name-creator",
-    title: "Site owner",
-    badge: { label: "OWNER", className: "player-title-owner" }
-  },
-  oscarvr29: {
-    className: "player-name-oscar",
-    title: "Original player",
-    badge: { label: "OG", className: "player-title-og" }
-  }
-};
 
 function isGuestDisplayName(name) {
   const n = String(name || "").trim().toLowerCase();
