@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911f": [
+    "Guessword: keyboard keys use the same Ice/Arcade/Warm colors as the tiles"
+  ],
   "20260911e": [
     "Guessword: stronger stamp reveal (manual animation — can’t be blocked by CSS)"
   ],
@@ -2015,10 +2018,22 @@ function evaluateGuess(guess, secret) {
 
 function updateKeyState(letter, status) {
   const rank = { absent: 0, present: 1, correct: 2 };
-  const current = state.keyStates[letter];
+  const key = String(letter || "").toUpperCase();
+  if (!key || !status) return;
+  const current = state.keyStates[key];
   if (!current || rank[status] > rank[current]) {
-    state.keyStates[letter] = status;
+    state.keyStates[key] = status;
   }
+}
+
+function paintKeyboardKey(letter) {
+  const key = String(letter || "").toUpperCase();
+  const status = state.keyStates[key];
+  if (!key || !status || !keyboardEl) return;
+  const btn = keyboardEl.querySelector(`[data-key="${key}"]`);
+  if (!btn) return;
+  btn.classList.remove("correct", "present", "absent");
+  btn.classList.add(status);
 }
 
 function renderBoard() {
@@ -2288,11 +2303,13 @@ async function animateRowFlip(rowIndex) {
 
     const paintTimer = setTimeout(() => {
       tile.classList.add(status);
+      paintKeyboardKey(state.board[rowIndex][i].letter);
     }, 320);
 
     await stampTile(tile, 650);
     clearTimeout(paintTimer);
     tile.classList.add(status);
+    paintKeyboardKey(state.board[rowIndex][i].letter);
     await delay(60);
   }
 }

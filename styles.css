@@ -427,7 +427,7 @@ header h1 {
   min-width: min(3.35rem, 8.9vw);
   height: min(4.35rem, 11vw);
   padding: 0 min(0.75rem, 1.5vw);
-  border: none;
+  border: 2px solid transparent;
   border-radius: 0.7rem;
   background: var(--key-bg);
   color: var(--key-text);
@@ -437,7 +437,7 @@ header h1 {
   cursor: pointer;
   user-select: none;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  transition: background-color 0.2s ease, opacity 0.2s ease, box-shadow 0.2s ease;
+  transition: background-color 0.25s ease, border-color 0.25s ease, opacity 0.2s ease, box-shadow 0.25s ease;
 }
 
 .key:hover {
@@ -451,20 +451,32 @@ header h1 {
 
 .key.correct {
   background: var(--correct);
+  border: 2px solid var(--correct);
   color: #fff;
-  box-shadow: 0 0 10px var(--correct-glow);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.18),
+    0 0 12px var(--correct-glow);
 }
 
 .key.present {
   background: var(--present);
+  border: 2px solid var(--present);
   color: #fff;
-  box-shadow: 0 0 10px var(--present-glow);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.18),
+    0 0 12px var(--present-glow);
 }
 
 .key.absent {
   background: var(--absent);
+  border: 2px solid var(--absent);
   color: #fff;
-  box-shadow: inset 0 -1px 4px rgba(0, 0, 0, 0.2);
+  opacity: 0.85;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 -2px 5px rgba(0, 0, 0, 0.22);
 }
 
 #confetti {
