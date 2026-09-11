@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911t": [
+    "Cross Walk: smoother ice riding (sticky floe, no hop/snap jitter)"
+  ],
   "20260911s": [
     "Cross Walk: more precise hops; ice floes no longer kill you in tiny gaps; fairer cart hits"
   ],

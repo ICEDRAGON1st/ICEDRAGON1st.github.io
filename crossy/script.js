@@ -36,6 +36,26 @@ let playedThisRun = false;
 let dead = false;
 let touchStart = null;
 let animT = 0;
+/** Sticky ice ride: { floe, offsetPx } from floe.x to player center */
+let ride = null;
+
+function clearRide() {
+  ride = null;
+}
+
+function startRideOnFloe(floe) {
+  if (!floe) {
+    clearRide();
+    return;
+  }
+  const px = player.col * CELL + CELL / 2;
+  ride = { floe, offsetPx: px - floe.x };
+}
+
+function syncRidePosition() {
+  if (!ride?.floe) return;
+  player.col = (ride.floe.x + ride.offsetPx - CELL / 2) / CELL;
+}
 
 function loadHighScore() {
   try {
@@ -139,6 +159,7 @@ function resetGame() {
   hopTo = null;
   dead = false;
   playedThisRun = false;
+  clearRide();
   updateHud();
 }
 
@@ -171,9 +192,9 @@ function tryHop(dCol, dRow) {
     }
   }
 
-  // Hop from whole columns so side-steps stay precise while riding ice
-  player.col = fromCol;
-  hopFrom = { col: fromCol, row: player.row };
+  // Keep current (possibly fractional) ice position for a smooth hop start
+  clearRide();
+  hopFrom = { col: player.col, row: player.row };
   hopTo = { col: nextCol, row: nextRow };
   hopT = 1;
   window.HubSound?.play?.("flap");
@@ -203,23 +224,37 @@ function finishHop() {
   }
   ensureRows();
   const row = rows[player.row];
-  // Snap to grid on solid lanes; on ice, snap onto a floe if you're near one
   if (row?.type === "grass" || row?.type === "road") {
     player.col = Math.round(player.col);
+    clearRide();
   } else if (row?.type === "water") {
-    attachToNearestFloe(true);
+    const px = player.col * CELL + CELL / 2;
+    const floe = floeUnderPlayer(px, row.objs || []);
+    if (floe) startRideOnFloe(floe);
+    else clearRide();
+  } else {
+    clearRide();
   }
   resolveLaneSafety(0);
 }
 
-/** Generous ice pads + close tiny seams so you don't die in visual gaps. */
+/** Soft pads + seam bridge so tiny visual gaps aren't deadly. */
 function floeUnderPlayer(px, floes) {
-  const PAD = 16;
+  const PAD = 14;
   const sorted = [...floes].filter((o) => !o.decor).sort((a, b) => a.x - b.x);
+  // Prefer the floe whose center is nearest (stable when pads overlap)
+  let best = null;
+  let bestDist = Infinity;
   for (const floe of sorted) {
-    if (px >= floe.x - PAD && px <= floe.x + floe.w + PAD) return floe;
+    if (px < floe.x - PAD || px > floe.x + floe.w + PAD) continue;
+    const mid = floe.x + floe.w / 2;
+    const d = Math.abs(px - mid);
+    if (d < bestDist) {
+      bestDist = d;
+      best = floe;
+    }
   }
-  // Bridge small seams between neighboring floes (the "gap" in screenshots)
+  if (best) return best;
   for (let i = 0; i < sorted.length - 1; i++) {
     const a = sorted[i];
     const b = sorted[i + 1];
@@ -232,27 +267,13 @@ function floeUnderPlayer(px, floes) {
   return null;
 }
 
-function attachToNearestFloe(snapCol) {
-  const row = rows[player.row];
-  if (!row || row.type !== "water") return null;
-  const px = player.col * CELL + CELL / 2;
-  const floe = floeUnderPlayer(px, row.objs || []);
-  if (!floe) return null;
-  if (snapCol) {
-    const left = floe.x / CELL;
-    const right = (floe.x + floe.w) / CELL - 1;
-    player.col = Math.max(left, Math.min(right, player.col));
-  }
-  return floe;
-}
-
 function resolveLaneSafety(dt) {
   const row = rows[player.row];
   if (!row || dead) return;
   const px = player.col * CELL + CELL / 2;
 
   if (row.type === "road") {
-    // Tighter cart hitbox — only die when clearly overlapping the body
+    clearRide();
     const inset = Math.min(18, CELL * 0.28);
     for (const car of row.objs) {
       if (px > car.x + inset && px < car.x + car.w - inset) {
@@ -261,19 +282,29 @@ function resolveLaneSafety(dt) {
       }
     }
   } else if (row.type === "water") {
-    const floe = floeUnderPlayer(px, row.objs || []);
-    if (floe) {
-      const shift = (row.dir * row.speed * dt) / CELL;
-      player.col += shift;
-    } else if (!isHopping()) {
-      die("Fell through the ice!");
-      return;
+    // Sticky ride: stay glued to one floe — no per-frame reattach jitter
+    if (ride?.floe && (row.objs || []).includes(ride.floe)) {
+      const on =
+        ride.offsetPx >= -14 && ride.offsetPx <= ride.floe.w + 14;
+      if (on) {
+        syncRidePosition();
+      } else {
+        clearRide();
+      }
+    }
+    if (!ride?.floe) {
+      const floe = floeUnderPlayer(px, row.objs || []);
+      if (floe) startRideOnFloe(floe);
+      else if (!isHopping()) {
+        die("Fell through the ice!");
+        return;
+      }
     }
     if (player.col < -0.35 || player.col > COLS - 0.65) {
       die("Swept away!");
     }
   } else {
-    // Meadow: stay on whole columns so hops feel precise
+    clearRide();
     player.col = Math.round(player.col);
   }
 }
@@ -352,10 +383,15 @@ function update(dt) {
     row.objs.forEach((o) => {
       if (o.decor) return;
       o.x += row.dir * row.speed * dt;
-      if (row.dir > 0 && o.x > W + 40) o.x = -o.w - rand(20, 120);
-      if (row.dir < 0 && o.x + o.w < -40) o.x = W + rand(20, 120);
+      // Don't wrap the floe you're standing on (avoids teleport glitch → swept away instead)
+      if (ride?.floe === o) return;
+      if (row.dir > 0 && o.x > W + 40) o.x = -o.w - 40;
+      if (row.dir < 0 && o.x + o.w < -40) o.x = W + 40;
     });
   });
+
+  // Glued to floe after floes move (before safety / death checks)
+  if (!isHopping() && ride?.floe) syncRidePosition();
 
   if (!isHopping()) resolveLaneSafety(dt);
 
