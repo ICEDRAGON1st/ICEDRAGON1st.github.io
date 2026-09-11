@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260912a": [
+    "Fishing Idle: auto boat hire and upgrades cost much more"
+  ],
   "20260911z": [
     "Fishing Idle: gear shop split into categories (Rods, Faster bites, Luck, Cooler, Auto boat)"
   ],

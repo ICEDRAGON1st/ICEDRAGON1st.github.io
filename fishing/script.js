@@ -305,14 +305,14 @@
     {
       name: "Canoe",
       interval: 15,
-      cost: 250,
+      cost: 12000,
       multi: [[0.25, 2]],
       multiHint: "25% chance for 2 fish"
     },
     {
       name: "Skiff",
       interval: 12,
-      cost: 2000,
+      cost: 150000,
       multi: [
         [0.08, 3],
         [0.32, 2]
@@ -322,7 +322,7 @@
     {
       name: "Trawler",
       interval: 9.5,
-      cost: 15000,
+      cost: 1800000,
       multi: [
         [0.15, 3],
         [0.4, 2]
@@ -332,7 +332,7 @@
     {
       name: "Harbor Boat",
       interval: 7.5,
-      cost: 80000,
+      cost: 25000000,
       multi: [
         [0.05, 4],
         [0.25, 3],
