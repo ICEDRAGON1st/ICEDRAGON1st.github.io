@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260912j": [
+    "Guessword: softer ASMR-style key thock when typing"
+  ],
   "20260912i": [
     "Guessword: chunkier mechanical key sound when typing"
   ],
