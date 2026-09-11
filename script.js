@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911h": [
+    "Wing Hop: prettier little dragon (wings, eye, horns, smile)"
+  ],
   "20260911g": [
     "Wing Hop: little dragon + castle towers (no more bird/pipes look)"
   ],

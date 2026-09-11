@@ -531,133 +531,251 @@ function drawGround() {
 
 function drawBird() {
   const s = skin();
-  const flap = Math.sin(distance * 0.045) * 0.35 + bird.rot * 0.4;
+  const flap = Math.sin(distance * 0.05) * 0.4 + Math.max(-0.2, Math.min(0.5, bird.rot)) * 0.5;
+  const outline = s.pipeStroke || "rgba(20, 24, 40, 0.55)";
+
   ctx.save();
   ctx.translate(BIRD_X, bird.y);
-  ctx.rotate(bird.rot * 0.85);
+  ctx.rotate(bird.rot * 0.7);
 
-  // Tail
-  ctx.fillStyle = s.wing;
+  // Soft ground shadow
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
   ctx.beginPath();
-  ctx.moveTo(-18, 4);
-  ctx.quadraticCurveTo(-36, 2 + flap * 8, -44, 14);
-  ctx.quadraticCurveTo(-30, 10, -16, 12);
-  ctx.closePath();
+  ctx.ellipse(2, 22, 16, 5, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Back wing
+  // Tail (with tip fin)
+  ctx.fillStyle = s.body;
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 2;
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(-14, 2);
+  ctx.bezierCurveTo(-28, -2 + flap * 6, -40, 8 + flap * 10, -48, 4 + flap * 8);
+  ctx.quadraticCurveTo(-40, 14 + flap * 4, -18, 10);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
   ctx.fillStyle = s.wing;
+  ctx.beginPath();
+  ctx.moveTo(-44, 4 + flap * 8);
+  ctx.lineTo(-54, -2 + flap * 10);
+  ctx.lineTo(-50, 10 + flap * 6);
+  ctx.lineTo(-42, 8 + flap * 6);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Far wing (behind body)
   ctx.save();
-  ctx.rotate(-0.55 + flap);
-  ctx.beginPath();
-  ctx.moveTo(-4, -2);
-  ctx.quadraticCurveTo(-8, -28, 10, -32);
-  ctx.quadraticCurveTo(6, -14, 4, -2);
-  ctx.closePath();
-  ctx.fill();
+  ctx.translate(-2, -2);
+  ctx.rotate(-0.7 + flap * 0.9);
+  drawDragonWing(s, outline, 0.92);
   ctx.restore();
 
-  // Body
+  // Body + head as one soft silhouette
   ctx.fillStyle = s.body;
   ctx.beginPath();
-  ctx.ellipse(0, 2, 22, 16, 0, 0, Math.PI * 2);
+  // body
+  ctx.ellipse(0, 3, 20, 15, -0.08, 0, Math.PI * 2);
   ctx.fill();
-
-  // Belly
-  ctx.fillStyle = s.belly || s.beak;
+  // neck/head blob
   ctx.beginPath();
-  ctx.ellipse(2, 6, 12, 8, 0, 0, Math.PI * 2);
+  ctx.ellipse(16, -2, 14, 12, 0.12, 0, Math.PI * 2);
+  ctx.fill();
+  // snout
+  ctx.beginPath();
+  ctx.ellipse(28, 1, 10, 7, 0.05, 0, Math.PI * 2);
   ctx.fill();
 
-  // Spine spikes
+  // Outline around main form
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 2.25;
+  ctx.beginPath();
+  ctx.ellipse(0, 3, 20, 15, -0.08, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(16, -2, 14, 12, 0.12, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Belly plate
+  ctx.fillStyle = s.belly || "#d0ebff";
+  ctx.beginPath();
+  ctx.ellipse(2, 8, 11, 8, -0.05, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 1.25;
+  ctx.globalAlpha = 0.35;
+  ctx.beginPath();
+  ctx.moveTo(-4, 6);
+  ctx.quadraticCurveTo(2, 10, 10, 6);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-3, 10);
+  ctx.quadraticCurveTo(3, 13, 9, 9);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+
+  // Back spikes
   ctx.fillStyle = s.wing;
-  for (const [sx, sy] of [
-    [-10, -10],
-    [-2, -14],
-    [6, -12]
-  ]) {
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 1.75;
+  const spikes = [
+    [-12, -8, -10, -20, -6, -8],
+    [-2, -12, 1, -24, 5, -11],
+    [8, -12, 12, -22, 15, -10]
+  ];
+  for (const [x1, y1, x2, y2, x3, y3] of spikes) {
     ctx.beginPath();
-    ctx.moveTo(sx, sy + 6);
-    ctx.lineTo(sx + 3, sy - 4);
-    ctx.lineTo(sx + 6, sy + 6);
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.lineTo(x3, y3);
     ctx.closePath();
     ctx.fill();
+    ctx.stroke();
   }
 
-  // Head
-  ctx.fillStyle = s.body;
-  ctx.beginPath();
-  ctx.ellipse(16, -4, 12, 10, 0.15, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Horns
+  // Curved horns
   ctx.fillStyle = s.beak;
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 1.75;
   ctx.beginPath();
-  ctx.moveTo(12, -12);
-  ctx.lineTo(10, -24);
-  ctx.lineTo(16, -12);
+  ctx.moveTo(10, -10);
+  ctx.quadraticCurveTo(6, -22, 12, -28);
+  ctx.quadraticCurveTo(14, -18, 15, -10);
   ctx.closePath();
   ctx.fill();
+  ctx.stroke();
   ctx.beginPath();
   ctx.moveTo(18, -11);
-  ctx.lineTo(20, -22);
-  ctx.lineTo(24, -10);
+  ctx.quadraticCurveTo(18, -24, 24, -30);
+  ctx.quadraticCurveTo(24, -18, 23, -10);
   ctx.closePath();
   ctx.fill();
+  ctx.stroke();
 
-  // Snout
-  ctx.fillStyle = s.body;
+  // Snout tip / nostril
+  ctx.fillStyle = s.wing;
   ctx.beginPath();
-  ctx.ellipse(26, -1, 8, 5, 0.1, 0, Math.PI * 2);
+  ctx.ellipse(32, 0, 3.2, 2.2, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = s.beak;
+  ctx.fillStyle = outline;
   ctx.beginPath();
-  ctx.moveTo(30, 0);
-  ctx.lineTo(38, 2);
-  ctx.lineTo(30, 5);
-  ctx.closePath();
+  ctx.arc(33.5, -0.5, 1.1, 0, Math.PI * 2);
   ctx.fill();
 
-  // Eye
+  // Cute eye
   ctx.fillStyle = s.eye;
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 1.75;
   ctx.beginPath();
-  ctx.arc(18, -6, 4.5, 0, Math.PI * 2);
+  ctx.ellipse(18, -4, 5.5, 6, 0.1, 0, Math.PI * 2);
   ctx.fill();
+  ctx.stroke();
   ctx.fillStyle = s.pupil;
   ctx.beginPath();
-  ctx.arc(19.5, -6, 2.2, 0, Math.PI * 2);
+  ctx.ellipse(19.5, -3.5, 2.6, 3.2, 0.1, 0, Math.PI * 2);
+  ctx.fill();
+  // Shine
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.arc(17.5, -6, 1.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(20.5, -2, 0.9, 0, Math.PI * 2);
   ctx.fill();
 
-  // Front wing
-  ctx.fillStyle = s.wing;
-  ctx.save();
-  ctx.rotate(0.15 + flap);
-  ctx.beginPath();
-  ctx.moveTo(-2, 2);
-  ctx.quadraticCurveTo(-2, -22, 16, -26);
-  ctx.quadraticCurveTo(10, -8, 8, 4);
-  ctx.closePath();
-  ctx.fill();
-  ctx.strokeStyle = s.pipeStroke || "rgba(0,0,0,0.2)";
+  // Smile
+  ctx.strokeStyle = outline;
   ctx.lineWidth = 1.5;
+  ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.moveTo(2, 0);
-  ctx.quadraticCurveTo(4, -12, 12, -18);
+  ctx.arc(27, 3, 4, 0.15, Math.PI - 0.35);
   ctx.stroke();
+
+  // Near wing (in front)
+  ctx.save();
+  ctx.translate(0, 0);
+  ctx.rotate(-0.15 + flap);
+  drawDragonWing(s, outline, 1);
   ctx.restore();
 
-  // Tiny flame puff when flapping up
-  if (bird.vy < -80) {
-    ctx.fillStyle = "rgba(255, 180, 80, 0.75)";
+  // Little arm/leg stub for cuteness
+  ctx.fillStyle = s.body;
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 1.75;
+  ctx.beginPath();
+  ctx.ellipse(8, 14, 5, 3.5, 0.3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+
+  // Flame breath when rising
+  if (bird.vy < -60) {
+    const pulse = 0.7 + Math.sin(distance * 0.2) * 0.3;
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = "#ffd43b";
     ctx.beginPath();
-    ctx.moveTo(34, 2);
-    ctx.lineTo(44, 0);
-    ctx.lineTo(34, 6);
+    ctx.moveTo(34, 1);
+    ctx.quadraticCurveTo(42, -2, 48 * pulse, 2);
+    ctx.quadraticCurveTo(42, 6, 34, 5);
     ctx.closePath();
     ctx.fill();
+    ctx.fillStyle = "#ff922b";
+    ctx.beginPath();
+    ctx.moveTo(35, 2);
+    ctx.quadraticCurveTo(40, 1, 44 * pulse, 2.5);
+    ctx.quadraticCurveTo(40, 4.5, 35, 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalAlpha = 1;
   }
 
   ctx.restore();
+}
+
+function drawDragonWing(s, outline, alpha) {
+  ctx.globalAlpha = alpha;
+  // Membrane
+  ctx.fillStyle = s.wing;
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.quadraticCurveTo(-6, -18, 8, -34);
+  ctx.quadraticCurveTo(22, -28, 26, -10);
+  ctx.quadraticCurveTo(18, -4, 8, 2);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Lighter inner membrane
+  ctx.fillStyle = s.belly || s.body;
+  ctx.globalAlpha = alpha * 0.45;
+  ctx.beginPath();
+  ctx.moveTo(2, -2);
+  ctx.quadraticCurveTo(2, -14, 10, -24);
+  ctx.quadraticCurveTo(16, -16, 14, -4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = alpha;
+
+  // Wing bones
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 1.6;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.quadraticCurveTo(4, -14, 8, -32);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.quadraticCurveTo(10, -10, 24, -12);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(6, -16);
+  ctx.lineTo(18, -18);
+  ctx.stroke();
+  ctx.globalAlpha = 1;
 }
 
 function drawScore() {
