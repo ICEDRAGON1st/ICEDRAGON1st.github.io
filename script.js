@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911g": [
+    "Wing Hop: little dragon + castle towers (no more bird/pipes look)"
+  ],
   "20260911f": [
     "Guessword: keyboard keys use the same Ice/Arcade/Warm colors as the tiles"
   ],

@@ -29,33 +29,37 @@ const BIRD_R = 24;
 
 const SKINS = {
   classic: {
-    label: "Classic",
-    body: "#f7c948",
-    wing: "#e8b020",
-    beak: "#f59f00",
+    label: "Dragon",
+    body: "#5c7cfa",
+    wing: "#364fc7",
+    beak: "#ffd43b",
+    belly: "#a5d8ff",
     eye: "#fff",
-    pupil: "#111",
-    skyTop: "#4ec0ca",
-    skyBottom: "#70c5ce",
-    pipe: "#5ec15e",
-    pipeDark: "#4aa84a",
-    pipeStroke: "#2f7a2f",
-    ground: "#deba63",
-    grass: "#6bc96b",
-    dirt: "#c9a552"
+    pupil: "#1a1b4b",
+    skyTop: "#1b3a5c",
+    skyBottom: "#4c6ef5",
+    pipe: "#8b7355",
+    pipeDark: "#6b5540",
+    pipeStroke: "#3d3228",
+    pipeLight: "#a89070",
+    ground: "#3d4a3a",
+    grass: "#5c8a4a",
+    dirt: "#2f382c"
   },
   sky: {
     label: "Sky",
     body: "#4dabf7",
     wing: "#228be6",
     beak: "#ff922b",
+    belly: "#d0ebff",
     eye: "#fff",
     pupil: "#111",
     skyTop: "#74c0fc",
     skyBottom: "#a5d8ff",
-    pipe: "#339af0",
-    pipeDark: "#1c7ed6",
-    pipeStroke: "#1864ab",
+    pipe: "#7a8799",
+    pipeDark: "#5c6778",
+    pipeStroke: "#3a4250",
+    pipeLight: "#9aa6b5",
     ground: "#dee2e6",
     grass: "#69db7c",
     dirt: "#adb5bd"
@@ -65,13 +69,15 @@ const SKINS = {
     body: "#ff8787",
     wing: "#fa5252",
     beak: "#ffd43b",
+    belly: "#ffc9c9",
     eye: "#fff",
     pupil: "#111",
     skyTop: "#ffa8a8",
     skyBottom: "#ffc9c9",
-    pipe: "#f06595",
-    pipeDark: "#d6336c",
-    pipeStroke: "#a61e4d",
+    pipe: "#9a7b6f",
+    pipeDark: "#7a5f55",
+    pipeStroke: "#4a3832",
+    pipeLight: "#b89888",
     ground: "#e9d5c7",
     grass: "#8ce99a",
     dirt: "#d0b8a8"
@@ -81,13 +87,15 @@ const SKINS = {
     body: "#ff922b",
     wing: "#f76707",
     beak: "#ffd43b",
+    belly: "#ffd8a8",
     eye: "#fff",
     pupil: "#111",
     skyTop: "#ff922b",
     skyBottom: "#ffa94d",
-    pipe: "#e8590c",
-    pipeDark: "#d9480f",
-    pipeStroke: "#a94100",
+    pipe: "#6b4f3a",
+    pipeDark: "#4a3528",
+    pipeStroke: "#2a1c14",
+    pipeLight: "#8a6a50",
     ground: "#e9b872",
     grass: "#94d82d",
     dirt: "#c98c3a"
@@ -97,13 +105,15 @@ const SKINS = {
     body: "#63e6be",
     wing: "#20c997",
     beak: "#fcc419",
+    belly: "#c3fae8",
     eye: "#fff",
     pupil: "#111",
     skyTop: "#96f2d7",
     skyBottom: "#c3fae8",
-    pipe: "#38d9a9",
-    pipeDark: "#12b886",
-    pipeStroke: "#087f5b",
+    pipe: "#6d7a6e",
+    pipeDark: "#515a52",
+    pipeStroke: "#2f3630",
+    pipeLight: "#8a968b",
     ground: "#d8f5a2",
     grass: "#8ce99a",
     dirt: "#c0eb75"
@@ -112,14 +122,16 @@ const SKINS = {
     label: "Ice",
     body: "#a5d8ff",
     wing: "#74c0fc",
-    beak: "#ffd8a8",
+    beak: "#e7f5ff",
+    belly: "#e7f5ff",
     eye: "#fff",
     pupil: "#1864ab",
     skyTop: "#d0ebff",
     skyBottom: "#e7f5ff",
-    pipe: "#66d9e8",
-    pipeDark: "#3bc9db",
-    pipeStroke: "#0c8599",
+    pipe: "#8ba0b0",
+    pipeDark: "#6a7f90",
+    pipeStroke: "#3d4f5c",
+    pipeLight: "#a8bcc9",
     ground: "#e9ecef",
     grass: "#99e9f2",
     dirt: "#ced4da"
@@ -129,13 +141,15 @@ const SKINS = {
     body: "#845ef7",
     wing: "#7048e8",
     beak: "#ffd43b",
+    belly: "#b197fc",
     eye: "#e7f5ff",
     pupil: "#212529",
     skyTop: "#364fc7",
     skyBottom: "#5c7cfa",
-    pipe: "#9775fa",
-    pipeDark: "#7950f2",
-    pipeStroke: "#5f3dc4",
+    pipe: "#5c5f72",
+    pipeDark: "#3f4254",
+    pipeStroke: "#222433",
+    pipeLight: "#787b90",
     ground: "#495057",
     grass: "#748ffc",
     dirt: "#343a40"
@@ -145,13 +159,15 @@ const SKINS = {
     body: "#ffd43b",
     wing: "#fab005",
     beak: "#fd7e14",
+    belly: "#fff3bf",
     eye: "#fff",
     pupil: "#111",
     skyTop: "#ffe066",
     skyBottom: "#ffec99",
-    pipe: "#fcc419",
-    pipeDark: "#f59f00",
-    pipeStroke: "#e67700",
+    pipe: "#8a7350",
+    pipeDark: "#6a5638",
+    pipeStroke: "#3d301c",
+    pipeLight: "#a89068",
     ground: "#f3d19c",
     grass: "#a9e34b",
     dirt: "#e0b070"
@@ -422,20 +438,80 @@ function drawPipes() {
   for (const pipe of pipes) {
     const bottomY = pipe.top + PIPE_GAP;
     const bottomH = H - GROUND_H - bottomY;
-
-    ctx.fillStyle = s.pipe;
-    ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.top);
-    ctx.fillRect(pipe.x, bottomY, PIPE_WIDTH, bottomH);
-
-    ctx.fillStyle = s.pipeDark;
-    ctx.fillRect(pipe.x - 6, pipe.top - 36, PIPE_WIDTH + 12, 36);
-    ctx.fillRect(pipe.x - 6, bottomY, PIPE_WIDTH + 12, 36);
-
-    ctx.strokeStyle = s.pipeStroke;
-    ctx.lineWidth = 4;
-    ctx.strokeRect(pipe.x, 0, PIPE_WIDTH, pipe.top);
-    ctx.strokeRect(pipe.x, bottomY, PIPE_WIDTH, bottomH);
+    drawCastleTower(pipe.x, 0, PIPE_WIDTH, pipe.top, "down", s);
+    drawCastleTower(pipe.x, bottomY, PIPE_WIDTH, bottomH, "up", s);
   }
+}
+
+function drawCastleTower(x, y, w, h, battlementSide, s) {
+  if (h <= 0) return;
+
+  // Main stone shaft
+  ctx.fillStyle = s.pipe;
+  ctx.fillRect(x, y, w, h);
+
+  // Vertical edge shading
+  ctx.fillStyle = s.pipeDark;
+  ctx.fillRect(x, y, 10, h);
+  ctx.fillStyle = s.pipeLight || s.pipe;
+  ctx.globalAlpha = 0.35;
+  ctx.fillRect(x + w - 12, y, 12, h);
+  ctx.globalAlpha = 1;
+
+  // Brick rows
+  ctx.strokeStyle = s.pipeStroke;
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = 0.45;
+  const brickH = 18;
+  const brickW = w / 3;
+  for (let by = y; by < y + h; by += brickH) {
+    ctx.beginPath();
+    ctx.moveTo(x, by);
+    ctx.lineTo(x + w, by);
+    ctx.stroke();
+    const offset = Math.floor((by - y) / brickH) % 2 === 0 ? 0 : brickW / 2;
+    for (let bx = x + offset; bx < x + w; bx += brickW) {
+      ctx.beginPath();
+      ctx.moveTo(bx, by);
+      ctx.lineTo(bx, Math.min(by + brickH, y + h));
+      ctx.stroke();
+    }
+  }
+  ctx.globalAlpha = 1;
+
+  // Narrow window slits
+  ctx.fillStyle = "rgba(20, 16, 12, 0.55)";
+  const winW = 10;
+  const winH = 16;
+  for (let wy = y + 28; wy < y + h - 40; wy += 52) {
+    ctx.fillRect(x + w * 0.28 - winW / 2, wy, winW, winH);
+    ctx.fillRect(x + w * 0.72 - winW / 2, wy, winW, winH);
+  }
+
+  // Battlements (crenellations) facing the gap
+  const merlonW = w / 5;
+  const merlonH = 22;
+  ctx.fillStyle = s.pipeDark;
+  if (battlementSide === "down") {
+    const by = y + h - merlonH;
+    ctx.fillRect(x - 4, by, w + 8, merlonH);
+    ctx.fillStyle = s.pipe;
+    for (let i = 0; i < 5; i++) {
+      if (i % 2 === 1) continue;
+      ctx.fillRect(x - 4 + i * merlonW, by - 14, merlonW + 1, 14);
+    }
+  } else {
+    ctx.fillRect(x - 4, y, w + 8, merlonH);
+    ctx.fillStyle = s.pipe;
+    for (let i = 0; i < 5; i++) {
+      if (i % 2 === 1) continue;
+      ctx.fillRect(x - 4 + i * merlonW, y + merlonH, merlonW + 1, 14);
+    }
+  }
+
+  ctx.strokeStyle = s.pipeStroke;
+  ctx.lineWidth = 3;
+  ctx.strokeRect(x, y, w, h);
 }
 
 function drawGround() {
@@ -455,37 +531,131 @@ function drawGround() {
 
 function drawBird() {
   const s = skin();
+  const flap = Math.sin(distance * 0.045) * 0.35 + bird.rot * 0.4;
   ctx.save();
   ctx.translate(BIRD_X, bird.y);
-  ctx.rotate(bird.rot);
+  ctx.rotate(bird.rot * 0.85);
 
-  ctx.fillStyle = s.body;
+  // Tail
+  ctx.fillStyle = s.wing;
   ctx.beginPath();
-  ctx.arc(0, 0, BIRD_R, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = s.eye;
-  ctx.beginPath();
-  ctx.arc(9, -8, 9, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = s.pupil;
-  ctx.beginPath();
-  ctx.arc(12, -8, 4, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = s.beak;
-  ctx.beginPath();
-  ctx.moveTo(BIRD_R - 3, 3);
-  ctx.lineTo(BIRD_R + 15, 9);
-  ctx.lineTo(BIRD_R - 3, 15);
+  ctx.moveTo(-18, 4);
+  ctx.quadraticCurveTo(-36, 2 + flap * 8, -44, 14);
+  ctx.quadraticCurveTo(-30, 10, -16, 12);
   ctx.closePath();
   ctx.fill();
 
+  // Back wing
   ctx.fillStyle = s.wing;
+  ctx.save();
+  ctx.rotate(-0.55 + flap);
   ctx.beginPath();
-  ctx.ellipse(-12, 6, 15, 9, -0.3, 0, Math.PI * 2);
+  ctx.moveTo(-4, -2);
+  ctx.quadraticCurveTo(-8, -28, 10, -32);
+  ctx.quadraticCurveTo(6, -14, 4, -2);
+  ctx.closePath();
   ctx.fill();
+  ctx.restore();
+
+  // Body
+  ctx.fillStyle = s.body;
+  ctx.beginPath();
+  ctx.ellipse(0, 2, 22, 16, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Belly
+  ctx.fillStyle = s.belly || s.beak;
+  ctx.beginPath();
+  ctx.ellipse(2, 6, 12, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Spine spikes
+  ctx.fillStyle = s.wing;
+  for (const [sx, sy] of [
+    [-10, -10],
+    [-2, -14],
+    [6, -12]
+  ]) {
+    ctx.beginPath();
+    ctx.moveTo(sx, sy + 6);
+    ctx.lineTo(sx + 3, sy - 4);
+    ctx.lineTo(sx + 6, sy + 6);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Head
+  ctx.fillStyle = s.body;
+  ctx.beginPath();
+  ctx.ellipse(16, -4, 12, 10, 0.15, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Horns
+  ctx.fillStyle = s.beak;
+  ctx.beginPath();
+  ctx.moveTo(12, -12);
+  ctx.lineTo(10, -24);
+  ctx.lineTo(16, -12);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(18, -11);
+  ctx.lineTo(20, -22);
+  ctx.lineTo(24, -10);
+  ctx.closePath();
+  ctx.fill();
+
+  // Snout
+  ctx.fillStyle = s.body;
+  ctx.beginPath();
+  ctx.ellipse(26, -1, 8, 5, 0.1, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = s.beak;
+  ctx.beginPath();
+  ctx.moveTo(30, 0);
+  ctx.lineTo(38, 2);
+  ctx.lineTo(30, 5);
+  ctx.closePath();
+  ctx.fill();
+
+  // Eye
+  ctx.fillStyle = s.eye;
+  ctx.beginPath();
+  ctx.arc(18, -6, 4.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = s.pupil;
+  ctx.beginPath();
+  ctx.arc(19.5, -6, 2.2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Front wing
+  ctx.fillStyle = s.wing;
+  ctx.save();
+  ctx.rotate(0.15 + flap);
+  ctx.beginPath();
+  ctx.moveTo(-2, 2);
+  ctx.quadraticCurveTo(-2, -22, 16, -26);
+  ctx.quadraticCurveTo(10, -8, 8, 4);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = s.pipeStroke || "rgba(0,0,0,0.2)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(2, 0);
+  ctx.quadraticCurveTo(4, -12, 12, -18);
+  ctx.stroke();
+  ctx.restore();
+
+  // Tiny flame puff when flapping up
+  if (bird.vy < -80) {
+    ctx.fillStyle = "rgba(255, 180, 80, 0.75)";
+    ctx.beginPath();
+    ctx.moveTo(34, 2);
+    ctx.lineTo(44, 0);
+    ctx.lineTo(34, 6);
+    ctx.closePath();
+    ctx.fill();
+  }
 
   ctx.restore();
 }
@@ -577,5 +747,5 @@ draw();
 showMenu(
   "start",
   "Wing Hop",
-  "Tap, click, or press Space to flap. Fly through the gaps and don't hit the pipes."
+  "Tap, click, or press Space to flap. Fly your dragon through the castle towers."
 );
