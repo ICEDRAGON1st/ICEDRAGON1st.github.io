@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260912q": [
+    "Guessword: stronger animated theme backgrounds (drifting orbs + sparkle)"
+  ],
   "20260912p": [
     "Guessword: animated backgrounds that match Ice / Arcade / Warm themes"
   ],
