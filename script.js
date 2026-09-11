@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260912g": [
+    "What's new: old notes renamed to current game titles"
+  ],
   "20260912f": [
     "Players: you stay listed as online when the shared DB is rate-limited"
   ],
@@ -74,7 +77,7 @@ const CHANGELOG = {
     "Runosaur: low crystal bats require holding ↓ / S (or swipe down) to duck under"
   ],
   "20260911q": [
-    "Guessword: ice-melt tile reveal + Flex 4/5/6 signature (less Wordle look)",
+    "Guessword: ice-melt tile reveal + Flex 4/5/6 signature",
     "Runosaur: ice caves, frost spikes, crystal bats, dragon chase",
     "Cross Walk: fantasy lanes — lava carts, ice floes, crystal meadows"
   ],
@@ -229,13 +232,13 @@ const CHANGELOG = {
     "New game: Mine Depth — dig down, sell ore, upgrade drills"
   ],
   "20260908an": [
-    "Dino Run: larger playfield"
+    "Runosaur: larger playfield"
   ],
   "20260908am": [
-    "Dino Run: W jumps, S ducks"
+    "Runosaur: W jumps, S ducks"
   ],
   "20260908al": [
-    "New game: Dino Run — jump cacti, duck birds, chase a high score"
+    "New game: Runosaur — jump spikes, duck bats, chase a high score"
   ],
   "20260908ak": [
     "Fix online Quick Play: waiting rooms now find each other instead of getting stuck",
@@ -269,7 +272,7 @@ const CHANGELOG = {
     "New game: Fishing Idle — cast for coins, buy boats, set sail for bigger voyages"
   ],
   "20260908h": [
-    "New game: Lane Crosser — Crossy Road–style hop across traffic and rivers"
+    "New game: Cross Walk — hop across meadows, lava carts, and ice floes"
   ],
   "20260908g": [
     "New game: Tower Stack — drop blocks and climb the leaderboard"
@@ -335,13 +338,13 @@ const CHANGELOG = {
     "Friends chat: message friends from the Friends panel"
   ],
   "20260907l": [
-    "Flappy Bird: bird skins (Classic, Sky, Rose, Ember, Mint, Ice, Midnight, Gold)"
+    "Wing Hop: character skins (Classic, Sky, Rose, Ember, Mint, Ice, Midnight, Gold)"
   ],
   "20260907k": [
     "Players: show last online time on all-time roster and friends list"
   ],
   "20260907j": [
-    "Wordle themes like Hangman (Animals, Food, Flags, Sports, Nature, Space, Music, Movies) — Practice mode"
+    "Guessword themes like Hangman (Animals, Food, Flags, Sports, Nature, Space, Music, Movies) — Practice mode"
   ],
   "20260907i": [
     "Fix Crystal Clicker leaderboard: ICE_DRAGON wipe was blocking new scores"
@@ -464,11 +467,11 @@ const CHANGELOG = {
     "Hjalte: 30-day streak plus 7/14/30 streak achievements"
   ],
   "20260905u": [
-    "Wordle Daily is always 5 letters — 4/6 lengths stay in Practice only"
+    "Guessword Daily is always 5 letters — 4/6 lengths stay in Practice only"
   ],
   "20260905t": [
     "Creator OWNER badge follows your chosen color again (not stuck on blue)",
-    "Mobile Wordle: credit no longer covers the keyboard"
+    "Mobile Guessword: credit no longer covers the keyboard"
   ],
   "20260905s": [
     "Creator credit text is white (not gray) on PC and phone",
@@ -495,7 +498,7 @@ const CHANGELOG = {
     "All-time players now includes everyone with a claimed username (like OscarVR29)"
   ],
   "20260904o": [
-    "Hints disabled for now in Wordle and Sudoku"
+    "Hints disabled for now in Guessword and Sudoku"
   ],
   "20260904n": [
     "Reset Sudoku stats for player hjalte (other games unchanged)"
@@ -557,7 +560,7 @@ const CHANGELOG = {
     "Username required to play — no more skipping"
   ],
   "20260903p": [
-    "Wordle opens in Practice after you finish today's Daily"
+    "Guessword opens in Practice after you finish today's Daily"
   ],
   "20260903o": [
     "Bigger created-by credit on computer screens",
@@ -594,11 +597,11 @@ const CHANGELOG = {
     "Mute choice is remembered across the whole site"
   ],
   "20260903f": [
-    "Sound effects in Wordle — keys, flips, win, and lose",
+    "Sound effects in Guessword — keys, flips, win, and lose",
     "Mute button next to the theme toggle"
   ],
   "20260903e": [
-    "Daily Wordle — everyone gets the same word each day",
+    "Daily Guessword — everyone gets the same word each day",
     "Practice mode still lets you play extra random words",
     "Share today's colored-square result from the menu"
   ],
