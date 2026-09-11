@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260912z": [
+    "Hub: game cards tint and accent bars follow each hub look / theme"
+  ],
   "20260912y": [
     "Fix Guessword stuck blank screen (hub theme init crash)"
   ],

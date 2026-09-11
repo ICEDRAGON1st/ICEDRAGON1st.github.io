@@ -1037,6 +1037,10 @@ header h1 {
   inset: 0;
   z-index: 1200;
   --hub-bg: var(--bg);
+  --card-bg: color-mix(in srgb, var(--modal-bg) 82%, var(--correct) 18%);
+  --card-border: color-mix(in srgb, var(--correct) 42%, var(--tile-border));
+  --card-accent-a: var(--correct);
+  --card-accent-b: var(--present);
   background: var(--hub-bg);
   color: var(--text);
   overflow-y: auto;
@@ -1536,28 +1540,57 @@ header h1 {
 }
 
 .game-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   gap: 0.35rem;
   min-height: 8rem;
-  padding: 1.2rem 1.15rem;
-  border: 1px solid var(--tile-border);
+  padding: 1.35rem 1.15rem 1.2rem;
+  overflow: hidden;
+  border: 1px solid var(--card-border, var(--tile-border));
   border-radius: 12px;
-  background: var(--modal-bg);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--card-accent-a, var(--correct)) 14%, transparent) 0%, transparent 42%),
+    var(--card-bg, var(--modal-bg));
   color: var(--text);
   text-align: left;
   cursor: pointer;
-  transition: border-color 0.2s ease, transform 0.15s ease, opacity 0.2s ease;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--card-accent-a, var(--correct)) 12%, transparent);
+  transition:
+    border-color 0.2s ease,
+    transform 0.15s ease,
+    opacity 0.2s ease,
+    background 0.25s ease,
+    box-shadow 0.2s ease;
+}
+
+.game-card::before {
+  content: "";
+  position: absolute;
+  left: 0.85rem;
+  right: 0.85rem;
+  top: 0.55rem;
+  height: 0.28rem;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    var(--card-accent-a, var(--correct)),
+    var(--card-accent-b, var(--present, var(--correct)))
+  );
+  opacity: 0.75;
+  pointer-events: none;
 }
 
 .game-card.is-favorite {
   border-color: #c9b458;
+  box-shadow: 0 8px 22px rgba(201, 180, 88, 0.18);
 }
 
 .game-card:hover:not(:disabled) {
-  border-color: var(--correct);
+  border-color: var(--card-accent-a, var(--correct));
   transform: translateY(-2px);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--card-accent-a, var(--correct)) 28%, transparent);
 }
 
 .game-card-top {
@@ -1604,7 +1637,7 @@ header h1 {
   padding-top: 0.35rem;
   font-size: 0.85rem;
   font-weight: 600;
-  color: var(--correct);
+  color: var(--card-accent-a, var(--correct));
 }
 
 .game-card-soon {
@@ -3370,6 +3403,10 @@ html[data-theme="dark"] .hub-notify-item {
   --bg-glow-b: rgba(240, 180, 41, 0.34);
   --bg-glow-c: rgba(30, 80, 120, 0.36);
   --bg-spot: rgba(61, 204, 168, 0.2);
+  --card-bg: #121a26;
+  --card-border: rgba(61, 204, 168, 0.28);
+  --card-accent-a: var(--arcade-mint);
+  --card-accent-b: var(--arcade-amber);
   font-family: "Outfit", system-ui, sans-serif;
   color: var(--arcade-text);
   background: var(--hub-bg);
@@ -3529,7 +3566,7 @@ html[data-theme="dark"] .hub-notify-item {
   position: relative;
   min-height: 8.6rem;
   border-radius: 0.85rem;
-  border: 1px solid rgba(61, 204, 168, 0.22);
+  border: 1px solid var(--card-border);
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 28%),
     linear-gradient(165deg, #1a2636 0%, #101823 100%);
@@ -3542,13 +3579,10 @@ html[data-theme="dark"] .hub-notify-item {
 }
 
 .games-screen.hub-theme-arcade .game-card::before {
-  content: "";
-  position: absolute;
   left: 0.75rem;
   right: 0.75rem;
   top: 0.55rem;
   height: 0.28rem;
-  border-radius: 999px;
   background: linear-gradient(90deg, transparent, var(--arcade-mint), var(--arcade-amber), transparent);
   opacity: 0.55;
 }
@@ -3624,6 +3658,10 @@ html[data-theme="dark"] .hub-notify-item {
   --bg-glow-b: rgba(120, 170, 210, 0.22);
   --bg-glow-c: rgba(40, 90, 130, 0.3);
   --bg-spot: rgba(160, 210, 240, 0.14);
+  --card-bg: rgba(18, 40, 58, 0.9);
+  --card-border: rgba(61, 184, 232, 0.35);
+  --card-accent-a: #3db8e8;
+  --card-accent-b: #7ec8e8;
   font-family: "Outfit", system-ui, sans-serif;
   color: var(--ice-ink);
   background: var(--hub-bg);
@@ -3679,8 +3717,10 @@ html[data-theme="dark"] .hub-notify-item {
 }
 
 .games-screen.hub-theme-ice .game-card {
-  background: rgba(18, 34, 50, 0.82);
-  border: 1px solid var(--ice-line);
+  background:
+    linear-gradient(180deg, rgba(61, 184, 232, 0.16) 0%, transparent 45%),
+    rgba(18, 34, 50, 0.88);
+  border: 1px solid var(--card-border);
   border-radius: 1rem;
   color: var(--ice-ink);
   box-shadow: 0 10px 28px rgba(8, 20, 36, 0.35);
@@ -3717,6 +3757,10 @@ html[data-theme="dark"] .hub-notify-item {
   --bg-glow-b: rgba(31, 143, 46, 0.32);
   --bg-glow-c: rgba(10, 80, 30, 0.4);
   --bg-spot: rgba(57, 255, 20, 0.22);
+  --card-bg: #041408;
+  --card-border: rgba(57, 255, 20, 0.35);
+  --card-accent-a: #39ff14;
+  --card-accent-b: #1f8f2e;
   font-family: "Courier New", Consolas, monospace;
   color: var(--retro-text);
   background: var(--hub-bg);
@@ -3837,6 +3881,10 @@ html[data-theme="dark"] .hub-notify-item {
   --bg-glow-b: rgba(196, 164, 132, 0.3);
   --bg-glow-c: rgba(92, 70, 54, 0.45);
   --bg-spot: rgba(255, 220, 180, 0.16);
+  --card-bg: #2a2420;
+  --card-border: rgba(217, 137, 91, 0.4);
+  --card-accent-a: #d9895b;
+  --card-accent-b: #c4a484;
   font-family: "Outfit", Georgia, serif;
   color: var(--ws-ink);
   background: var(--hub-bg);
@@ -3927,6 +3975,8 @@ html[data-theme="dark"] .hub-notify-item {
   --bg-glow-b: rgba(232, 93, 76, 0.26);
   --bg-glow-c: rgba(61, 126, 166, 0.24);
   --bg-spot: rgba(247, 244, 239, 0.18);
+  --card-accent-a: #f0b429;
+  --card-accent-b: #e85d4c;
   font-family: "Outfit", system-ui, sans-serif;
   color: var(--poster-ink);
   background: var(--hub-bg);
@@ -3978,6 +4028,11 @@ html[data-theme="dark"] .hub-notify-item {
   min-height: 9.2rem;
   color: #111;
   box-shadow: 0 12px 0 rgba(0, 0, 0, 0.35);
+  background: #e85d4c;
+}
+
+.games-screen.hub-theme-poster .game-card::before {
+  display: none;
 }
 
 .games-screen.hub-theme-poster .game-card:nth-child(6n + 1) { background: #e85d4c; }
@@ -4047,6 +4102,10 @@ html[data-theme="dark"] .hub-notify-item {
   --bg-glow-b: rgba(112, 72, 232, 0.36);
   --bg-glow-c: rgba(156, 54, 181, 0.32);
   --bg-spot: rgba(180, 150, 255, 0.18);
+  --card-bg: rgba(24, 20, 48, 0.88);
+  --card-border: rgba(112, 72, 232, 0.45);
+  --card-accent-a: var(--title-a);
+  --card-accent-b: var(--title-c);
   color: #ebe4ff;
   background: var(--hub-bg);
 }
@@ -4060,6 +4119,10 @@ html[data-theme="dark"] .hub-notify-item {
   --bg-glow-b: rgba(120, 120, 120, 0.28);
   --bg-glow-c: rgba(40, 40, 40, 0.5);
   --bg-spot: rgba(255, 255, 255, 0.16);
+  --card-bg: #161616;
+  --card-border: rgba(245, 245, 245, 0.28);
+  --card-accent-a: #f5f5f5;
+  --card-accent-b: #8a8a8a;
   color: #f0f0f0;
   background: var(--hub-bg);
 }
@@ -4073,6 +4136,10 @@ html[data-theme="dark"] .hub-notify-item {
   --bg-glow-b: rgba(21, 170, 191, 0.34);
   --bg-glow-c: rgba(47, 158, 68, 0.3);
   --bg-spot: rgba(120, 220, 200, 0.16);
+  --card-bg: rgba(10, 32, 36, 0.9);
+  --card-border: rgba(21, 170, 191, 0.4);
+  --card-accent-a: var(--title-a);
+  --card-accent-b: var(--title-c);
   color: #dff8ef;
   background: var(--hub-bg);
 }
@@ -4225,19 +4292,78 @@ html[data-theme="dark"] .hub-notify-item {
 .games-screen.hub-theme-aurora .game-card,
 .games-screen.hub-theme-mono .game-card,
 .games-screen.hub-theme-tide .game-card {
-  background: color-mix(in srgb, var(--hub-bg) 72%, #ffffff 8%);
-  border: 1px solid color-mix(in srgb, var(--title-b) 32%, transparent);
+  background:
+    linear-gradient(165deg, color-mix(in srgb, var(--card-accent-a) 22%, transparent) 0%, transparent 48%),
+    color-mix(in srgb, var(--hub-bg) 70%, var(--card-accent-b) 18%);
+  border: 1px solid var(--card-border);
   border-radius: 1rem;
   color: inherit;
-  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+  box-shadow:
+    0 10px 28px rgba(0, 0, 0, 0.28),
+    0 0 18px color-mix(in srgb, var(--card-accent-a) 18%, transparent);
+}
+
+.games-screen.hub-theme-aurora .game-card::before,
+.games-screen.hub-theme-mono .game-card::before,
+.games-screen.hub-theme-tide .game-card::before {
+  height: 0.34rem;
+  opacity: 0.95;
+  background: linear-gradient(
+    90deg,
+    var(--title-a) 0%,
+    var(--title-b) 40%,
+    var(--title-c) 50%,
+    var(--title-b) 60%,
+    var(--title-a) 100%
+  );
+  background-size: 220% 220%;
+  animation: aurora-shift 2.8s ease-in-out infinite;
+}
+
+.games-screen.hub-theme-aurora .game-card:nth-child(3n + 1),
+.games-screen.hub-theme-tide .game-card:nth-child(3n + 1) {
+  --card-accent-a: var(--title-a);
+  --card-accent-b: var(--title-b);
+  --card-border: color-mix(in srgb, var(--title-a) 50%, transparent);
+}
+
+.games-screen.hub-theme-aurora .game-card:nth-child(3n + 2),
+.games-screen.hub-theme-tide .game-card:nth-child(3n + 2) {
+  --card-accent-a: var(--title-b);
+  --card-accent-b: var(--title-c);
+  --card-border: color-mix(in srgb, var(--title-b) 50%, transparent);
+}
+
+.games-screen.hub-theme-aurora .game-card:nth-child(3n + 3),
+.games-screen.hub-theme-tide .game-card:nth-child(3n + 3) {
+  --card-accent-a: var(--title-c);
+  --card-accent-b: var(--title-a);
+  --card-border: color-mix(in srgb, var(--title-c) 50%, transparent);
+}
+
+.games-screen.hub-theme-mono .game-card:nth-child(2n + 1) {
+  --card-accent-a: #f5f5f5;
+  --card-accent-b: #8a8a8a;
+  --card-border: rgba(245, 245, 245, 0.34);
+}
+
+.games-screen.hub-theme-mono .game-card:nth-child(2n) {
+  --card-accent-a: #8a8a8a;
+  --card-accent-b: #f5f5f5;
+  --card-border: rgba(138, 138, 138, 0.4);
+  background:
+    linear-gradient(165deg, rgba(255, 255, 255, 0.08) 0%, transparent 48%),
+    #121212;
 }
 
 .games-screen.hub-theme-aurora .game-card:hover:not(:disabled),
 .games-screen.hub-theme-mono .game-card:hover:not(:disabled),
 .games-screen.hub-theme-tide .game-card:hover:not(:disabled) {
-  border-color: var(--title-b);
+  border-color: var(--card-accent-a);
   transform: translateY(-3px);
-  box-shadow: 0 14px 32px color-mix(in srgb, var(--title-b) 28%, transparent);
+  box-shadow:
+    0 14px 32px color-mix(in srgb, var(--card-accent-a) 28%, transparent),
+    0 0 24px color-mix(in srgb, var(--card-accent-b) 22%, transparent);
 }
 
 .games-screen.hub-theme-aurora .game-card-desc,
@@ -4264,7 +4390,7 @@ html[data-theme="dark"] .hub-notify-item {
 .games-screen.hub-theme-mono .lb-rank.top,
 .games-screen.hub-theme-tide .game-card-score,
 .games-screen.hub-theme-tide .lb-rank.top {
-  color: var(--title-b);
+  color: var(--card-accent-a);
 }
 
 .games-screen.hub-theme-aurora .hub-theme-btn.active,
@@ -4284,7 +4410,10 @@ html[data-theme="dark"] .hub-notify-item {
   .games-screen.hub-theme-tide .games-eyebrow,
   .games-screen.hub-theme-aurora .hub-btn-primary,
   .games-screen.hub-theme-mono .hub-btn-primary,
-  .games-screen.hub-theme-tide .hub-btn-primary {
+  .games-screen.hub-theme-tide .hub-btn-primary,
+  .games-screen.hub-theme-aurora .game-card::before,
+  .games-screen.hub-theme-mono .game-card::before,
+  .games-screen.hub-theme-tide .game-card::before {
     animation: none !important;
   }
 }
