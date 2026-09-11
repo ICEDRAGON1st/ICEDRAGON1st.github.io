@@ -4320,42 +4320,6 @@ html[data-theme="dark"] .hub-notify-item {
   animation: aurora-shift 2.8s ease-in-out infinite;
 }
 
-.games-screen.hub-theme-aurora .game-card:nth-child(3n + 1),
-.games-screen.hub-theme-tide .game-card:nth-child(3n + 1) {
-  --card-accent-a: var(--title-a);
-  --card-accent-b: var(--title-b);
-  --card-border: color-mix(in srgb, var(--title-a) 50%, transparent);
-}
-
-.games-screen.hub-theme-aurora .game-card:nth-child(3n + 2),
-.games-screen.hub-theme-tide .game-card:nth-child(3n + 2) {
-  --card-accent-a: var(--title-b);
-  --card-accent-b: var(--title-c);
-  --card-border: color-mix(in srgb, var(--title-b) 50%, transparent);
-}
-
-.games-screen.hub-theme-aurora .game-card:nth-child(3n + 3),
-.games-screen.hub-theme-tide .game-card:nth-child(3n + 3) {
-  --card-accent-a: var(--title-c);
-  --card-accent-b: var(--title-a);
-  --card-border: color-mix(in srgb, var(--title-c) 50%, transparent);
-}
-
-.games-screen.hub-theme-mono .game-card:nth-child(2n + 1) {
-  --card-accent-a: #f5f5f5;
-  --card-accent-b: #8a8a8a;
-  --card-border: rgba(245, 245, 245, 0.34);
-}
-
-.games-screen.hub-theme-mono .game-card:nth-child(2n) {
-  --card-accent-a: #8a8a8a;
-  --card-accent-b: #f5f5f5;
-  --card-border: rgba(138, 138, 138, 0.4);
-  background:
-    linear-gradient(165deg, rgba(255, 255, 255, 0.08) 0%, transparent 48%),
-    #121212;
-}
-
 .games-screen.hub-theme-aurora .game-card:hover:not(:disabled),
 .games-screen.hub-theme-mono .game-card:hover:not(:disabled),
 .games-screen.hub-theme-tide .game-card:hover:not(:disabled) {

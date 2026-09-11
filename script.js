@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913a": [
+    "Hub: all game cards use the same theme accent (no different middle-column color)"
+  ],
   "20260912z": [
     "Hub: game cards tint and accent bars follow each hub look / theme"
   ],
