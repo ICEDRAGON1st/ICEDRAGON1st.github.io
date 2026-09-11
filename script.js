@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913b": [
+    "ICE_DRAGON username is locked to its owner player code — nobody else can take it"
+  ],
   "20260913a": [
     "Hub: all game cards use the same theme accent (no different middle-column color)"
   ],

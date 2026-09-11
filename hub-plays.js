@@ -15,14 +15,18 @@
   const PLAYS_PATH = "plays-log";
   const NAMES_PATH = "name-registry";
   const CODES_PATH = "player-codes";
+  const RESERVATIONS_PATH = "name-reservations";
   const PRESENCE_PATH = "presence";
   const ALLTIME_PATH = "players-alltime";
   const PLAYS_API = `https://mantledb.sh/v2/${NS}/${PLAYS_PATH}`;
   const NAMES_API = `https://mantledb.sh/v2/${NS}/${NAMES_PATH}`;
   const CODES_API = `https://mantledb.sh/v2/${NS}/${CODES_PATH}`;
+  const RESERVATIONS_API = `https://mantledb.sh/v2/${NS}/${RESERVATIONS_PATH}`;
   const PRESENCE_API = `https://mantledb.sh/v2/${NS}/${PRESENCE_PATH}`;
   const ALLTIME_API = `https://mantledb.sh/v2/${NS}/${ALLTIME_PATH}`;
   const CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+  /** These names can only be used by the player code that locked them. */
+  const CODE_LOCKED_NAMES = new Set(["ice_dragon"]);
   const MAX_PLAYS = 60;
   const SYNC_GAP_MS = 4000;
   const HEARTBEAT_MS = 90_000;
@@ -382,6 +386,107 @@
     await postJson(CODES_API, { codes });
   }
 
+  function isCodeLockedName(key) {
+    return CODE_LOCKED_NAMES.has(String(key || "").toLowerCase());
+  }
+
+  async function fetchReservationsRemote() {
+    const data = await fetchJson(RESERVATIONS_API);
+    if (!data || typeof data !== "object") return {};
+    const map = data.reservations && typeof data.reservations === "object" ? data.reservations : data;
+    const out = {};
+    Object.entries(map).forEach(([k, v]) => {
+      const key = String(k || "").toLowerCase();
+      if (!key || !v || typeof v !== "object" || !v.playerId) return;
+      out[key] = {
+        playerId: String(v.playerId),
+        code: normalizePlayerCode(v.code || ""),
+        name: sanitizeName(v.name || key),
+        lockedAt: Number(v.lockedAt) || 0
+      };
+    });
+    return out;
+  }
+
+  async function pushReservationsRemote(reservations) {
+    await postJson(RESERVATIONS_API, { reservations });
+  }
+
+  function reservationAllows(res, playerId, code) {
+    if (!res?.playerId) return true;
+    if (res.playerId === playerId) return true;
+    const locked = normalizePlayerCode(res.code || "");
+    const mine = normalizePlayerCode(code || "");
+    return !!(locked && mine && locked === mine);
+  }
+
+  async function resolveNameReservation(key) {
+    const name = String(key || "").toLowerCase();
+    if (!name) return null;
+    let remote = {};
+    try {
+      remote = await fetchReservationsRemote();
+    } catch {
+      remote = {};
+    }
+    let res = remote[name] || null;
+    if (res?.playerId && normalizePlayerCode(res.code).length === 8) return res;
+
+    // Bootstrap from current name claim + player-codes map
+    try {
+      const names = Object.keys(namesCache || {}).length ? namesCache : await fetchNamesRemote();
+      const claim = names?.[name];
+      if (!claim?.playerId) return res;
+      let code = normalizePlayerCode(claim.playerCode || "");
+      if (code.length !== 8) {
+        try {
+          const codes = await fetchCodesRemote();
+          const hit = Object.entries(codes).find(([, v]) => v.playerId === claim.playerId);
+          if (hit) code = hit[0];
+        } catch {}
+      }
+      res = {
+        playerId: claim.playerId,
+        code,
+        name: sanitizeName(claim.name || name),
+        lockedAt: Number(claim.claimedAt) || Date.now()
+      };
+      remote[name] = res;
+      try {
+        await pushReservationsRemote(remote);
+      } catch {}
+    } catch {}
+    return res;
+  }
+
+  async function lockNameToPlayerCode(key, playerId, code, displayName) {
+    const name = String(key || "").toLowerCase();
+    const norm = normalizePlayerCode(code);
+    if (!name || !playerId || norm.length !== 8) return false;
+    let remote = {};
+    try {
+      remote = await fetchReservationsRemote();
+    } catch {
+      remote = {};
+    }
+    const existing = remote[name];
+    if (existing?.playerId && existing.playerId !== playerId) {
+      if (!reservationAllows(existing, playerId, norm)) return false;
+    }
+    remote[name] = {
+      playerId,
+      code: norm,
+      name: sanitizeName(displayName || name),
+      lockedAt: existing?.lockedAt || Date.now()
+    };
+    try {
+      await pushReservationsRemote(remote);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   function findClaimByPlayerId(names, playerId) {
     const id = String(playerId || "");
     if (!id) return null;
@@ -431,6 +536,9 @@
         at: entry?.at || Date.now()
       };
       await pushCodesRemote(remote);
+      if (isCodeLockedName(nameKey(getName()))) {
+        lockNameToPlayerCode(nameKey(getName()), me, norm, getName()).catch(() => {});
+      }
     } catch {
       // Offline / rate-limited: keep local code
     }
@@ -495,6 +603,10 @@
         HubLeaderboard.rebindPlayerName(entry.playerId, restoredName).catch(() => {});
       }
     } catch {}
+
+    if (isCodeLockedName(nameKey(restoredName))) {
+      lockNameToPlayerCode(nameKey(restoredName), entry.playerId, norm, restoredName).catch(() => {});
+    }
 
     return {
       ok: true,
@@ -860,6 +972,21 @@
     const key = nameKey(next);
     const myClaimAt = Date.now();
     const keepingOwnName = !!(current && nameKey(current) === key);
+    const myCode = normalizePlayerCode(getPlayerCode());
+    let reservation = null;
+    if (isCodeLockedName(key)) {
+      try {
+        reservation = await resolveNameReservation(key);
+      } catch {
+        reservation = null;
+      }
+      if (reservation && !reservationAllows(reservation, me, myCode)) {
+        return {
+          ok: false,
+          error: `"${next}" is locked to the owner's player code`
+        };
+      }
+    }
 
     let remoteNames = null;
     let offline = false;
@@ -873,11 +1000,27 @@
     // School / offline: still let them play with a local name
     if (offline) {
       const existing = remoteNames[key];
+      if (isCodeLockedName(key)) {
+        if (reservation && !reservationAllows(reservation, me, myCode)) {
+          return {
+            ok: false,
+            error: `"${next}" is locked to the owner's player code`
+          };
+        }
+        if (!reservation && !keepingOwnName && !(existing && existing.playerId === me)) {
+          return {
+            ok: false,
+            error: `Connect online to claim "${next}" (code-locked name)`
+          };
+        }
+      }
       if (existing && existing.playerId && existing.playerId !== me && !keepingOwnName) {
-        return {
-          ok: false,
-          error: `"${existing.name}" looks taken. Try another name, or reconnect and try again.`
-        };
+        if (!(isCodeLockedName(key) && reservationAllows(reservation, me, myCode))) {
+          return {
+            ok: false,
+            error: `"${existing.name}" looks taken. Try another name, or reconnect and try again.`
+          };
+        }
       }
       namesCache = {
         ...remoteNames,
@@ -890,7 +1033,7 @@
           accentTitle: existing?.accentTitle || "",
           accentColor: existing?.accentColor || "",
           profileUpdatedAt: existing?.profileUpdatedAt || myClaimAt,
-          playerCode: normalizePlayerCode(getPlayerCode()) || existing?.playerCode || "",
+          playerCode: myCode || existing?.playerCode || "",
           pendingSync: true
         }
       };
@@ -924,7 +1067,10 @@
           storeLocalName(next);
           return { ok: true, name: next, keptLocal: true };
         }
-        return { ok: false, error: `"${existing.name}" is already taken` };
+        // Code-locked names can be reclaimed by the reserved player code
+        if (!(isCodeLockedName(key) && reservationAllows(reservation, me, myCode))) {
+          return { ok: false, error: `"${existing.name}" is already taken` };
+        }
       }
 
       const nextNames = { ...remoteNames };
@@ -945,7 +1091,7 @@
         accentTitle: existing?.accentTitle || "",
         accentColor: existing?.accentColor || "",
         profileUpdatedAt: existing?.profileUpdatedAt || myClaimAt,
-        playerCode: normalizePlayerCode(getPlayerCode()) || existing?.playerCode || ""
+        playerCode: myCode || existing?.playerCode || ""
       };
 
       try {
@@ -978,6 +1124,9 @@
         storeLocalName(next);
         registerAllTime().catch(() => {});
         ensurePlayerCodeRegistered().catch(() => {});
+        if (isCodeLockedName(key)) {
+          lockNameToPlayerCode(key, me, myCode || getPlayerCode(), next).catch(() => {});
+        }
         try {
           if (typeof HubLeaderboard !== "undefined" && HubLeaderboard.rebindPlayerName) {
             HubLeaderboard.rebindPlayerName(me, next).catch(() => {});
@@ -994,6 +1143,11 @@
         if (keepingOwnName) {
           storeLocalName(next);
           return { ok: true, name: next, keptLocal: true };
+        }
+        if (isCodeLockedName(key) && reservationAllows(reservation, me, myCode)) {
+          // Lost the write race — retry so the reserved owner can reclaim
+          remoteNames = confirmed;
+          continue;
         }
         return { ok: false, error: `"${owner.name}" is already taken` };
       }
