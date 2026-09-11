@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260912i": [
+    "Guessword: chunkier mechanical key sound when typing"
+  ],
   "20260912h": [
     "Guessword: more 3D keyboard keys (depth, press-in, themed edges)"
   ],
@@ -2428,7 +2431,7 @@ function addLetter(letter) {
   state.currentCol++;
   saveState();
   renderBoard();
-  playSound("click");
+  playSound("key");
 }
 
 function removeLetter() {

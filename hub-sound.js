@@ -3,7 +3,7 @@
  * Mute is stored in localStorage and shared across the whole site.
  *
  * window.HubSound.play(kind)
- * kinds: click, back, error, flip, win, lose, hint, achieve,
+ * kinds: click, key, back, error, flip, win, lose, hint, achieve,
  *        eat, place, match, shoot, hit, clear, flap, merge, draw
  */
 (function () {
@@ -21,6 +21,7 @@
 
   let enabled = loadEnabled();
   let audioCtx = null;
+  let noiseBuffer = null;
 
   function getAudio() {
     if (!enabled) return null;
@@ -29,6 +30,19 @@
     if (!audioCtx) audioCtx = new AC();
     if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
     return audioCtx;
+  }
+
+  function getNoiseBuffer(ctx) {
+    if (noiseBuffer && noiseBuffer.sampleRate === ctx.sampleRate) return noiseBuffer;
+    const len = Math.floor(ctx.sampleRate * 0.08);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i += 1) {
+      // Soften toward the end so we can reuse one buffer
+      data[i] = (Math.random() * 2 - 1) * (1 - i / len);
+    }
+    noiseBuffer = buf;
+    return noiseBuffer;
   }
 
   function tone({ freq, dur = 0.08, type = "square", vol = 0.07, slide = 0, delay = 0 }) {
@@ -49,11 +63,53 @@
     osc.stop(t + dur + 0.03);
   }
 
+  /** Short filtered noise burst — the “strike” of a key. */
+  function noiseHit({ dur = 0.03, vol = 0.04, freq = 1800, delay = 0, q = 1.2 } = {}) {
+    const ctx = getAudio();
+    if (!ctx) return;
+    const t = ctx.currentTime + delay;
+    const src = ctx.createBufferSource();
+    src.buffer = getNoiseBuffer(ctx);
+    const filter = ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(freq, t);
+    filter.Q.setValueAtTime(q, t);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(vol, t + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    src.start(t);
+    src.stop(t + dur + 0.02);
+  }
+
+  /** Chunky mechanical key — thock + tick (Guessword keyboard). */
+  function playKeyThock() {
+    // Deep body / bottom-out
+    tone({ freq: 165, dur: 0.07, type: "triangle", vol: 0.07, slide: -45 });
+    tone({ freq: 92, dur: 0.055, type: "sine", vol: 0.045, slide: -20 });
+    // Mid “clack”
+    tone({ freq: 420, dur: 0.028, type: "square", vol: 0.022, slide: -90 });
+    // Surface strike
+    noiseHit({ dur: 0.022, vol: 0.055, freq: 2400, q: 0.9 });
+    noiseHit({ dur: 0.016, vol: 0.03, freq: 5200, q: 1.4, delay: 0.004 });
+  }
+
   function play(kind, extra) {
     if (!enabled) return;
-    if (kind === "click" || kind === "place") tone({ freq: 760, dur: 0.045, vol: 0.045 });
-    else if (kind === "back") tone({ freq: 280, dur: 0.055, type: "triangle", vol: 0.05, slide: -80 });
-    else if (kind === "error") {
+    if (kind === "key") playKeyThock();
+    else if (kind === "click" || kind === "place") {
+      // Slightly fuller generic UI click (still short)
+      tone({ freq: 620, dur: 0.04, type: "triangle", vol: 0.05 });
+      tone({ freq: 980, dur: 0.028, type: "square", vol: 0.02, slide: -120 });
+      noiseHit({ dur: 0.018, vol: 0.028, freq: 2800, q: 1.1 });
+    } else if (kind === "back") {
+      noiseHit({ dur: 0.02, vol: 0.035, freq: 1600, q: 1 });
+      tone({ freq: 240, dur: 0.07, type: "triangle", vol: 0.055, slide: -110 });
+      tone({ freq: 140, dur: 0.05, type: "sine", vol: 0.03, slide: -40, delay: 0.01 });
+    } else if (kind === "error") {
       tone({ freq: 180, dur: 0.16, type: "sawtooth", vol: 0.05, slide: -70 });
       tone({ freq: 140, dur: 0.18, type: "square", vol: 0.03, delay: 0.04 });
     } else if (kind === "flip") {
