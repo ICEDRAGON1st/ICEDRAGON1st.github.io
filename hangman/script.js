@@ -497,6 +497,7 @@ function guessLetter(letter) {
 
   guessed.add(ch);
   const btn = keyboardEl.querySelector(`[data-letter="${ch}"]`);
+  // Same creamy key thock as Guessword (match/error beeps would bury it)
   window.HubSound?.play("key");
 
   if (secret.includes(ch)) {
@@ -506,7 +507,6 @@ function guessLetter(letter) {
     }
     renderWord();
     setStatus("Nice!");
-    window.HubSound?.play("match");
     if ([...secret].every((c) => guessed.has(c))) endGame(true);
   } else {
     wrong += 1;
@@ -517,7 +517,6 @@ function guessLetter(letter) {
     updateGallows();
     missesEl.textContent = String(Math.max(0, maxWrong() - wrong));
     setStatus("Not in the word");
-    window.HubSound?.play("error");
     if (wrong >= maxWrong()) endGame(false);
   }
 }

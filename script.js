@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260912t": [
+    "Hangman: same creamy keyboard thock as Guessword when guessing letters"
+  ],
   "20260912s": [
     "Hangman: Guessword-style 3D QWERTY keyboard"
   ],
