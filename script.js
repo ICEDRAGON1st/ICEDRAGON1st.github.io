@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911n": [
+    "Wing Hop: more realistic dragon — scales, bat wings, reptile head"
+  ],
   "20260911m": [
     "Wing Hop: wings flap forward/back instead of mostly up/down"
   ],
