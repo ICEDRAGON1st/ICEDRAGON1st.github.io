@@ -288,16 +288,51 @@
     { id: "cooler6", name: "Void Chest", desc: "+28 cooler slots", cost: 2000000, kind: "cooler", amount: 28 }
   ];
 
-  /** One auto boat — buy once, then upgrade for a faster catch interval. */
+  /**
+   * One auto boat — hire + upgrade.
+   * Fastest interval is 7.5s. Higher levels also roll multi-catches.
+   * multi: [probability, fishCount] checked in order; leftover chance = 1 fish.
+   */
   const BOAT_TIERS = [
     null,
-    { name: "Canoe", interval: 12, cost: 250 },
-    { name: "Skiff", interval: 8, cost: 2000 },
-    { name: "Trawler", interval: 5, cost: 15000 },
-    { name: "Harbor Boat", interval: 3, cost: 80000 },
-    { name: "Deep Sub", interval: 2.2, cost: 350000 },
-    { name: "Rift Drone", interval: 1.5, cost: 1500000 },
-    { name: "Cosmic Net", interval: 1, cost: 6000000 }
+    {
+      name: "Canoe",
+      interval: 15,
+      cost: 250,
+      multi: [[0.25, 2]],
+      multiHint: "25% chance for 2 fish"
+    },
+    {
+      name: "Skiff",
+      interval: 12,
+      cost: 2000,
+      multi: [
+        [0.08, 3],
+        [0.32, 2]
+      ],
+      multiHint: "32% for 2 fish · 8% for 3"
+    },
+    {
+      name: "Trawler",
+      interval: 9.5,
+      cost: 15000,
+      multi: [
+        [0.15, 3],
+        [0.4, 2]
+      ],
+      multiHint: "40% for 2 fish · 15% for 3"
+    },
+    {
+      name: "Harbor Boat",
+      interval: 7.5,
+      cost: 80000,
+      multi: [
+        [0.05, 4],
+        [0.25, 3],
+        [0.7, 2]
+      ],
+      multiHint: "70% for 2 · 25% for 3 · 5% for 4"
+    }
   ];
   const BOAT_MAX_LEVEL = BOAT_TIERS.length - 1;
 
@@ -437,7 +472,26 @@
     for (let i = 1; i <= 7; i += 1) {
       if (ownedMap?.[`boat${i}`]) best = i;
     }
-    return best;
+    // Old fleet had 7 boats; map into the new 4-tier upgrade path
+    if (best >= 7) return 4;
+    if (best >= 5) return 4;
+    if (best >= 4) return 4;
+    if (best >= 3) return 3;
+    if (best >= 2) return 2;
+    if (best >= 1) return 1;
+    return 0;
+  }
+
+  function rollBoatCatchCount(level) {
+    const tier = BOAT_TIERS[level];
+    const table = tier?.multi;
+    if (!table?.length) return 1;
+    let r = Math.random();
+    for (const [chance, count] of table) {
+      if (r < chance) return count;
+      r -= chance;
+    }
+    return 1;
   }
 
   function loadState() {
@@ -986,8 +1040,8 @@
     window.HubConfetti?.burst?.();
     setCatchLine(
       next.level === 1
-        ? `Hired ${next.name} — auto-catch every ${next.interval}s`
-        : `Upgraded boat to ${next.name} — every ${next.interval}s`
+        ? `Hired ${next.name} — every ${next.interval}s · ${next.multiHint}`
+        : `Upgraded to ${next.name} — every ${next.interval}s · ${next.multiHint}`
     );
     checkAchievements();
     render();
@@ -1019,10 +1073,13 @@
 
   function boatCatch(boat) {
     const spot = currentSpot();
-    const fish = rollFish(spot, true);
-    if (shouldAutoSell(fish.rarity) || state.cooler.length < coolerMax()) {
-      addToCooler(fish, { silent: true });
-      state.catches += 1;
+    const count = rollBoatCatchCount(boat.level || boatLevel());
+    for (let i = 0; i < count; i += 1) {
+      const fish = rollFish(spot, true);
+      if (shouldAutoSell(fish.rarity) || state.cooler.length < coolerMax()) {
+        addToCooler(fish, { silent: true });
+        state.catches += 1;
+      }
     }
   }
 
@@ -1062,7 +1119,7 @@
       <div class="boat-timer-track" aria-hidden="true">
         <div class="boat-timer-fill" style="width:${pct.toFixed(1)}%"></div>
       </div>
-      <div class="boat-timer-meta">every ${interval}s</div>
+      <div class="boat-timer-meta">every ${interval}s · ${BOAT_TIERS[boat.level]?.multiHint || "1 fish"}</div>
     </div>`;
   }
 
@@ -1092,16 +1149,19 @@
     let gained = 0;
     const spot = currentSpot();
     list.forEach((boat) => {
-      const count = Math.floor(elapsed / 1000 / boat.amount);
-      for (let i = 0; i < Math.min(count, 400); i += 1) {
-        const fish = rollFish(spot, true);
-        noteCatch(fish);
-        if (shouldAutoSell(fish.rarity)) {
-          gained += fishValue(fish, spot);
-        } else if (state.cooler.length < coolerMax()) {
-          state.cooler.push({ id: fish.id, saved: false });
-        } else {
-          gained += fishValue(fish, spot);
+      const cycles = Math.floor(elapsed / 1000 / boat.amount);
+      for (let i = 0; i < Math.min(cycles, 400); i += 1) {
+        const haul = rollBoatCatchCount(boat.level || boatLevel());
+        for (let h = 0; h < haul; h += 1) {
+          const fish = rollFish(spot, true);
+          noteCatch(fish);
+          if (shouldAutoSell(fish.rarity)) {
+            gained += fishValue(fish, spot);
+          } else if (state.cooler.length < coolerMax()) {
+            state.cooler.push({ id: fish.id, saved: false });
+          } else {
+            gained += fishValue(fish, spot);
+          }
         }
       }
     });
@@ -1211,17 +1271,17 @@
     let boatBtn;
     if (!next) {
       boatOwned = `Maxed · Lv${BOAT_MAX_LEVEL}`;
-      boatDesc = `${current.name} — auto-catch every ${current.amount}s`;
+      boatDesc = `${current.name} every ${current.amount}s · ${BOAT_TIERS[current.level]?.multiHint || ""}`;
       boatBtn = `<button type="button" class="buy-btn" disabled>✓</button>`;
     } else if (!current) {
       boatOwned = "Not owned";
-      boatDesc = `Hire ${next.name} — auto-catch every ${next.interval}s (upgradeable)`;
+      boatDesc = `Hire ${next.name} — every ${next.interval}s · ${next.multiHint}`;
       boatBtn = `<button type="button" class="buy-btn" data-buy="boat" ${
         state.coins < next.cost ? "disabled" : ""
       }>${formatNum(next.cost)}</button>`;
     } else {
       boatOwned = `Owned · Lv${current.level}/${BOAT_MAX_LEVEL}`;
-      boatDesc = `${current.name} every ${current.amount}s → upgrade to ${next.name} (${next.interval}s)`;
+      boatDesc = `Lv${current.level} ${current.name} (${current.amount}s) → Lv${next.level} ${next.name} (${next.interval}s) · ${next.multiHint}`;
       boatBtn = `<button type="button" class="buy-btn" data-buy="boat" ${
         state.coins < next.cost ? "disabled" : ""
       }>${formatNum(next.cost)}</button>`;

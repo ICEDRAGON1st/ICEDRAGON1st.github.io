@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911x": [
+    "Fishing Idle: boat max speed 7.5s; upgrades add multi-catch chances"
+  ],
   "20260911w": [
     "Fishing Idle: one upgradable auto boat instead of buying many boats"
   ],
