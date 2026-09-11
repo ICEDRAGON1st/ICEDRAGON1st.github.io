@@ -48,14 +48,14 @@ const SKINS = {
   },
   sky: {
     label: "Sky",
-    body: "#4dabf7",
-    wing: "#228be6",
+    body: "#1c7ed6",
+    wing: "#1864ab",
     beak: "#ff922b",
-    belly: "#d0ebff",
-    eye: "#fff",
-    pupil: "#111",
-    skyTop: "#74c0fc",
-    skyBottom: "#a5d8ff",
+    belly: "#a5d8ff",
+    eye: "#e7f5ff",
+    pupil: "#0b1d33",
+    skyTop: "#a5d8ff",
+    skyBottom: "#d0ebff",
     pipe: "#7a8799",
     pipeDark: "#5c6778",
     pipeStroke: "#3a4250",
@@ -66,14 +66,14 @@ const SKINS = {
   },
   rose: {
     label: "Rose",
-    body: "#ff8787",
-    wing: "#fa5252",
+    body: "#c2255c",
+    wing: "#a61e4d",
     beak: "#ffd43b",
-    belly: "#ffc9c9",
-    eye: "#fff",
-    pupil: "#111",
-    skyTop: "#ffa8a8",
-    skyBottom: "#ffc9c9",
+    belly: "#ffa8c5",
+    eye: "#fff0f3",
+    pupil: "#3b0018",
+    skyTop: "#ffc9d6",
+    skyBottom: "#ffe3ea",
     pipe: "#9a7b6f",
     pipeDark: "#7a5f55",
     pipeStroke: "#4a3832",
@@ -84,14 +84,14 @@ const SKINS = {
   },
   ember: {
     label: "Ember",
-    body: "#ff922b",
-    wing: "#f76707",
+    body: "#d9480f",
+    wing: "#9c2b0e",
     beak: "#ffd43b",
-    belly: "#ffd8a8",
-    eye: "#fff",
-    pupil: "#111",
-    skyTop: "#ff922b",
-    skyBottom: "#ffa94d",
+    belly: "#ffc078",
+    eye: "#fff4e0",
+    pupil: "#2b1000",
+    skyTop: "#ffd8a8",
+    skyBottom: "#ffe8cc",
     pipe: "#6b4f3a",
     pipeDark: "#4a3528",
     pipeStroke: "#2a1c14",
@@ -102,14 +102,14 @@ const SKINS = {
   },
   mint: {
     label: "Mint",
-    body: "#63e6be",
-    wing: "#20c997",
+    body: "#0b7285",
+    wing: "#087f5b",
     beak: "#fcc419",
-    belly: "#c3fae8",
-    eye: "#fff",
-    pupil: "#111",
-    skyTop: "#96f2d7",
-    skyBottom: "#c3fae8",
+    belly: "#96f2d7",
+    eye: "#e6fcf5",
+    pupil: "#043038",
+    skyTop: "#c3fae8",
+    skyBottom: "#e6fcf5",
     pipe: "#6d7a6e",
     pipeDark: "#515a52",
     pipeStroke: "#2f3630",
@@ -120,14 +120,14 @@ const SKINS = {
   },
   ice: {
     label: "Ice",
-    body: "#a5d8ff",
-    wing: "#74c0fc",
-    beak: "#e7f5ff",
-    belly: "#e7f5ff",
-    eye: "#fff",
-    pupil: "#1864ab",
-    skyTop: "#d0ebff",
-    skyBottom: "#e7f5ff",
+    body: "#1c7ed6",
+    wing: "#1864ab",
+    beak: "#e9ecef",
+    belly: "#a5d8ff",
+    eye: "#f1f8ff",
+    pupil: "#0b2948",
+    skyTop: "#e7f5ff",
+    skyBottom: "#f8fbff",
     pipe: "#8ba0b0",
     pipeDark: "#6a7f90",
     pipeStroke: "#3d4f5c",
@@ -138,14 +138,14 @@ const SKINS = {
   },
   midnight: {
     label: "Midnight",
-    body: "#845ef7",
-    wing: "#7048e8",
+    body: "#9775fa",
+    wing: "#5f3dc4",
     beak: "#ffd43b",
-    belly: "#b197fc",
-    eye: "#e7f5ff",
-    pupil: "#212529",
-    skyTop: "#364fc7",
-    skyBottom: "#5c7cfa",
+    belly: "#d0bfff",
+    eye: "#f3f0ff",
+    pupil: "#1b1140",
+    skyTop: "#1a1b4b",
+    skyBottom: "#364fc7",
     pipe: "#5c5f72",
     pipeDark: "#3f4254",
     pipeStroke: "#222433",
@@ -156,14 +156,14 @@ const SKINS = {
   },
   gold: {
     label: "Gold",
-    body: "#ffd43b",
-    wing: "#fab005",
-    beak: "#fd7e14",
-    belly: "#fff3bf",
-    eye: "#fff",
-    pupil: "#111",
-    skyTop: "#ffe066",
-    skyBottom: "#ffec99",
+    body: "#e67700",
+    wing: "#d9480f",
+    beak: "#fff3bf",
+    belly: "#ffec99",
+    eye: "#fff9db",
+    pupil: "#3d2000",
+    skyTop: "#fff3bf",
+    skyBottom: "#fff9db",
     pipe: "#8a7350",
     pipeDark: "#6a5638",
     pipeStroke: "#3d301c",
@@ -580,9 +580,19 @@ function drawBird() {
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
 
-  ctx.fillStyle = "rgba(0,0,0,0.28)";
+  // Dark under-silhouette so the dragon never blends into the sky
+  ctx.fillStyle = "rgba(10, 8, 6, 0.55)";
   ctx.beginPath();
-  ctx.ellipse(0, 26, 22, 5, 0, 0, Math.PI * 2);
+  ctx.ellipse(4, 2, 28, 16, -0.08, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(28, 0, 16, 10, 0.1, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Soft local shadow under the body (not a floating ground blob)
+  ctx.fillStyle = "rgba(0,0,0,0.22)";
+  ctx.beginPath();
+  ctx.ellipse(2, 18, 16, 4, 0, 0, Math.PI * 2);
   ctx.fill();
 
   const ty = beat * 5 + wingBurst * 2;
@@ -655,7 +665,7 @@ function drawBird() {
   bodyGrad.addColorStop(1, dark);
   ctx.fillStyle = bodyGrad;
   ctx.strokeStyle = outline;
-  ctx.lineWidth = 2.4;
+  ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.moveTo(-16, 2);
   ctx.bezierCurveTo(-18, -12, -4, -18, 10, -12);

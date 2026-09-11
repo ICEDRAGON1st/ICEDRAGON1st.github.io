@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911o": [
+    "Wing Hop: fix invisible dragon — body no longer blends into sky (Ember etc.)"
+  ],
   "20260911n": [
     "Wing Hop: more realistic dragon — scales, bat wings, reptile head"
   ],
