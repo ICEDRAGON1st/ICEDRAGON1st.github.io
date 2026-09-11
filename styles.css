@@ -1101,6 +1101,17 @@ header h1 {
   );
 }
 
+.hub-bg-titleshift {
+  display: none;
+  position: absolute;
+  inset: -25%;
+  pointer-events: none;
+  opacity: 0.28;
+  mix-blend-mode: screen;
+  background-size: 220% 220%;
+  animation: aurora-shift 6s ease-in-out infinite;
+}
+
 .games-screen-inner {
   position: relative;
   z-index: 1;
@@ -1221,6 +1232,24 @@ header h1 {
 
 .hub-theme-swatch.is-poster {
   background: linear-gradient(90deg, #e85d4c 0 25%, #3d7ea6 25% 50%, #f0b429 50% 75%, #2f9e44 75% 100%);
+}
+
+.hub-theme-swatch.is-aurora {
+  background: linear-gradient(90deg, #1c7ed6, #7048e8, #9c36b5, #7048e8, #1c7ed6);
+  background-size: 200% 200%;
+  animation: aurora-shift 2.8s ease-in-out infinite;
+}
+
+.hub-theme-swatch.is-mono {
+  background: linear-gradient(90deg, #0a0a0a, #f5f5f5, #0a0a0a, #f5f5f5);
+  background-size: 200% 200%;
+  animation: aurora-shift 2.8s ease-in-out infinite;
+}
+
+.hub-theme-swatch.is-tide {
+  background: linear-gradient(90deg, #1c7ed6, #15aabf, #2f9e44, #15aabf, #1c7ed6);
+  background-size: 200% 200%;
+  animation: aurora-shift 2.8s ease-in-out infinite;
 }
 
 .hub-theme-name {
@@ -3951,3 +3980,262 @@ html[data-theme="dark"] .hub-notify-item {
   border-color: #f0b429;
   box-shadow: 0 0 0 1px #f0b429;
 }
+
+/* ── ICE_DRAGON-only title-color hub looks ── */
+.games-screen.hub-theme-aurora,
+.games-screen.hub-theme-mono,
+.games-screen.hub-theme-tide {
+  font-family: "Outfit", system-ui, sans-serif;
+}
+
+.games-screen.hub-theme-aurora {
+  --title-a: #1c7ed6;
+  --title-b: #7048e8;
+  --title-c: #9c36b5;
+  --hub-bg: #090b16;
+  --bg-glow-a: rgba(28, 126, 214, 0.4);
+  --bg-glow-b: rgba(112, 72, 232, 0.36);
+  --bg-glow-c: rgba(156, 54, 181, 0.32);
+  --bg-spot: rgba(180, 150, 255, 0.18);
+  color: #ebe4ff;
+  background: var(--hub-bg);
+}
+
+.games-screen.hub-theme-mono {
+  --title-a: #f5f5f5;
+  --title-b: #8a8a8a;
+  --title-c: #0a0a0a;
+  --hub-bg: #0a0a0a;
+  --bg-glow-a: rgba(245, 245, 245, 0.22);
+  --bg-glow-b: rgba(120, 120, 120, 0.28);
+  --bg-glow-c: rgba(40, 40, 40, 0.5);
+  --bg-spot: rgba(255, 255, 255, 0.16);
+  color: #f0f0f0;
+  background: var(--hub-bg);
+}
+
+.games-screen.hub-theme-tide {
+  --title-a: #1c7ed6;
+  --title-b: #15aabf;
+  --title-c: #2f9e44;
+  --hub-bg: #061018;
+  --bg-glow-a: rgba(28, 126, 214, 0.38);
+  --bg-glow-b: rgba(21, 170, 191, 0.34);
+  --bg-glow-c: rgba(47, 158, 68, 0.3);
+  --bg-spot: rgba(120, 220, 200, 0.16);
+  color: #dff8ef;
+  background: var(--hub-bg);
+}
+
+.games-screen.hub-theme-aurora .hub-bg-titleshift,
+.games-screen.hub-theme-mono .hub-bg-titleshift,
+.games-screen.hub-theme-tide .hub-bg-titleshift {
+  display: block;
+}
+
+.games-screen.hub-theme-aurora .hub-bg-titleshift {
+  background: linear-gradient(
+    90deg,
+    #1c7ed6 0%,
+    #7048e8 35%,
+    #9c36b5 50%,
+    #7048e8 65%,
+    #1c7ed6 100%
+  );
+}
+
+.games-screen.hub-theme-mono .hub-bg-titleshift {
+  background: linear-gradient(
+    90deg,
+    #0a0a0a 0%,
+    #f5f5f5 45%,
+    #0a0a0a 55%,
+    #f5f5f5 100%
+  );
+  mix-blend-mode: soft-light;
+  opacity: 0.4;
+}
+
+.games-screen.hub-theme-tide .hub-bg-titleshift {
+  background: linear-gradient(
+    90deg,
+    #1c7ed6 0%,
+    #15aabf 30%,
+    #2f9e44 50%,
+    #15aabf 70%,
+    #1c7ed6 100%
+  );
+}
+
+.games-screen.hub-theme-aurora .games-eyebrow,
+.games-screen.hub-theme-mono .games-eyebrow,
+.games-screen.hub-theme-tide .games-eyebrow {
+  background-image: linear-gradient(
+    90deg,
+    var(--title-a) 0%,
+    var(--title-b) 40%,
+    var(--title-c) 50%,
+    var(--title-b) 60%,
+    var(--title-a) 100%
+  );
+  background-size: 200% 200%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: aurora-shift 2.8s ease-in-out infinite;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+}
+
+.games-screen.hub-theme-aurora .games-header,
+.games-screen.hub-theme-mono .games-header,
+.games-screen.hub-theme-tide .games-header {
+  border-bottom-color: color-mix(in srgb, var(--title-b) 45%, transparent);
+}
+
+.games-screen.hub-theme-aurora .games-header h2,
+.games-screen.hub-theme-mono .games-header h2,
+.games-screen.hub-theme-tide .games-header h2 {
+  letter-spacing: 0.08em;
+}
+
+.games-screen.hub-theme-aurora .games-back,
+.games-screen.hub-theme-aurora .hub-btn,
+.games-screen.hub-theme-mono .games-back,
+.games-screen.hub-theme-mono .hub-btn,
+.games-screen.hub-theme-tide .games-back,
+.games-screen.hub-theme-tide .hub-btn {
+  border: 1px solid color-mix(in srgb, var(--title-b) 40%, transparent);
+  border-radius: 0.65rem;
+  background: color-mix(in srgb, var(--hub-bg) 70%, transparent);
+  color: inherit;
+  backdrop-filter: blur(8px);
+}
+
+.games-screen.hub-theme-aurora .hub-btn:hover,
+.games-screen.hub-theme-aurora .games-back:hover,
+.games-screen.hub-theme-mono .hub-btn:hover,
+.games-screen.hub-theme-mono .games-back:hover,
+.games-screen.hub-theme-tide .hub-btn:hover,
+.games-screen.hub-theme-tide .games-back:hover {
+  border-color: var(--title-b);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--title-b) 35%, transparent);
+}
+
+.games-screen.hub-theme-aurora .hub-btn-primary,
+.games-screen.hub-theme-mono .hub-btn-primary,
+.games-screen.hub-theme-tide .hub-btn-primary {
+  background: linear-gradient(
+    90deg,
+    var(--title-a) 0%,
+    var(--title-b) 40%,
+    var(--title-c) 50%,
+    var(--title-b) 60%,
+    var(--title-a) 100%
+  );
+  background-size: 200% 200%;
+  animation: aurora-shift 2.8s ease-in-out infinite;
+  border-color: transparent;
+  color: #fff;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.games-screen.hub-theme-mono .hub-btn-primary {
+  color: #111;
+  text-shadow: none;
+}
+
+.games-screen.hub-theme-aurora .hub-streak-badge,
+.games-screen.hub-theme-aurora .high-scores-panel,
+.games-screen.hub-theme-aurora .achievements-panel,
+.games-screen.hub-theme-aurora .updates-panel,
+.games-screen.hub-theme-aurora .players-panel,
+.games-screen.hub-theme-aurora .friends-panel,
+.games-screen.hub-theme-aurora .hub-settings-panel,
+.games-screen.hub-theme-mono .hub-streak-badge,
+.games-screen.hub-theme-mono .high-scores-panel,
+.games-screen.hub-theme-mono .achievements-panel,
+.games-screen.hub-theme-mono .updates-panel,
+.games-screen.hub-theme-mono .players-panel,
+.games-screen.hub-theme-mono .friends-panel,
+.games-screen.hub-theme-mono .hub-settings-panel,
+.games-screen.hub-theme-tide .hub-streak-badge,
+.games-screen.hub-theme-tide .high-scores-panel,
+.games-screen.hub-theme-tide .achievements-panel,
+.games-screen.hub-theme-tide .updates-panel,
+.games-screen.hub-theme-tide .players-panel,
+.games-screen.hub-theme-tide .friends-panel,
+.games-screen.hub-theme-tide .hub-settings-panel {
+  background: color-mix(in srgb, var(--hub-bg) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--title-b) 35%, transparent);
+  backdrop-filter: blur(10px);
+  color: inherit;
+}
+
+.games-screen.hub-theme-aurora .game-card,
+.games-screen.hub-theme-mono .game-card,
+.games-screen.hub-theme-tide .game-card {
+  background: color-mix(in srgb, var(--hub-bg) 72%, #ffffff 8%);
+  border: 1px solid color-mix(in srgb, var(--title-b) 32%, transparent);
+  border-radius: 1rem;
+  color: inherit;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+
+.games-screen.hub-theme-aurora .game-card:hover:not(:disabled),
+.games-screen.hub-theme-mono .game-card:hover:not(:disabled),
+.games-screen.hub-theme-tide .game-card:hover:not(:disabled) {
+  border-color: var(--title-b);
+  transform: translateY(-3px);
+  box-shadow: 0 14px 32px color-mix(in srgb, var(--title-b) 28%, transparent);
+}
+
+.games-screen.hub-theme-aurora .game-card-desc,
+.games-screen.hub-theme-aurora .hub-streak-label,
+.games-screen.hub-theme-aurora .games-message,
+.games-screen.hub-theme-aurora .hub-settings-intro,
+.games-screen.hub-theme-aurora .hub-settings-label,
+.games-screen.hub-theme-mono .game-card-desc,
+.games-screen.hub-theme-mono .hub-streak-label,
+.games-screen.hub-theme-mono .games-message,
+.games-screen.hub-theme-mono .hub-settings-intro,
+.games-screen.hub-theme-mono .hub-settings-label,
+.games-screen.hub-theme-tide .game-card-desc,
+.games-screen.hub-theme-tide .hub-streak-label,
+.games-screen.hub-theme-tide .games-message,
+.games-screen.hub-theme-tide .hub-settings-intro,
+.games-screen.hub-theme-tide .hub-settings-label {
+  color: color-mix(in srgb, currentColor 62%, transparent);
+}
+
+.games-screen.hub-theme-aurora .game-card-score,
+.games-screen.hub-theme-aurora .lb-rank.top,
+.games-screen.hub-theme-mono .game-card-score,
+.games-screen.hub-theme-mono .lb-rank.top,
+.games-screen.hub-theme-tide .game-card-score,
+.games-screen.hub-theme-tide .lb-rank.top {
+  color: var(--title-b);
+}
+
+.games-screen.hub-theme-aurora .hub-theme-btn.active,
+.games-screen.hub-theme-mono .hub-theme-btn.active,
+.games-screen.hub-theme-tide .hub-theme-btn.active {
+  border-color: var(--title-b);
+  box-shadow: 0 0 0 1px var(--title-b);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hub-bg-titleshift,
+  .hub-theme-swatch.is-aurora,
+  .hub-theme-swatch.is-mono,
+  .hub-theme-swatch.is-tide,
+  .games-screen.hub-theme-aurora .games-eyebrow,
+  .games-screen.hub-theme-mono .games-eyebrow,
+  .games-screen.hub-theme-tide .games-eyebrow,
+  .games-screen.hub-theme-aurora .hub-btn-primary,
+  .games-screen.hub-theme-mono .hub-btn-primary,
+  .games-screen.hub-theme-tide .hub-btn-primary {
+    animation: none !important;
+  }
+}
+

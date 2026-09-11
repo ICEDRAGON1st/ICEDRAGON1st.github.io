@@ -24,10 +24,16 @@ const HUB_THEMES = {
   ice: { label: "Ice", eyebrow: "ICE_DRAGON" },
   retro: { label: "Retro", eyebrow: "Terminal" },
   workshop: { label: "Workshop", eyebrow: "Workshop" },
-  poster: { label: "Poster wall", eyebrow: "Now playing" }
+  poster: { label: "Poster wall", eyebrow: "Now playing" },
+  aurora: { label: "Aurora", eyebrow: "Titles", ownerOnly: true },
+  mono: { label: "Mono", eyebrow: "Titles", ownerOnly: true },
+  tide: { label: "Tide", eyebrow: "Titles", ownerOnly: true }
 };
 
 const CHANGELOG = {
+  "20260912w": [
+    "Hub: ICE_DRAGON-only Aurora / Mono / Tide looks (same colors as animated titles)"
+  ],
   "20260912v": [
     "Hub Ice look: cooler dark blue instead of bright white"
   ],
@@ -2008,13 +2014,37 @@ function showGamesMessage(text, duration = 2000) {
   }
 }
 
+function isHubOwner() {
+  return isCreatorName(
+    (typeof HubPlays !== "undefined" && HubPlays.getName?.()) || ""
+  );
+}
+
+function canUseHubTheme(themeId) {
+  const def = HUB_THEMES[themeId];
+  if (!def) return false;
+  if (def.ownerOnly && !isHubOwner()) return false;
+  return true;
+}
+
 function getHubThemeId() {
   const raw = localStorage.getItem(HUB_THEME_KEY) || "classic";
-  return HUB_THEMES[raw] ? raw : "classic";
+  return canUseHubTheme(raw) ? raw : "classic";
+}
+
+function updateHubThemePicker() {
+  const owner = isHubOwner();
+  hubThemePicker?.querySelectorAll("[data-hub-theme]").forEach((btn) => {
+    const id = btn.dataset.hubTheme;
+    const def = HUB_THEMES[id];
+    const show = !def?.ownerOnly || owner;
+    btn.hidden = !show;
+    btn.classList.toggle("hidden", !show);
+  });
 }
 
 function applyHubTheme(themeId = getHubThemeId()) {
-  const id = HUB_THEMES[themeId] ? themeId : "classic";
+  const id = canUseHubTheme(themeId) ? themeId : "classic";
   try {
     localStorage.setItem(HUB_THEME_KEY, id);
   } catch {}
@@ -2025,6 +2055,7 @@ function applyHubTheme(themeId = getHubThemeId()) {
     if (id !== "classic") gamesScreen.classList.add(`hub-theme-${id}`);
   }
   if (gamesEyebrow) gamesEyebrow.textContent = HUB_THEMES[id].eyebrow;
+  updateHubThemePicker();
   hubThemePicker?.querySelectorAll("[data-hub-theme]").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.hubTheme === id);
   });
@@ -2926,9 +2957,14 @@ toggleSettingsBtn?.addEventListener("click", () => {
 
 hubThemePicker?.addEventListener("click", (e) => {
   const btn = e.target.closest("[data-hub-theme]");
-  if (!btn) return;
-  applyHubTheme(btn.dataset.hubTheme);
-  showGamesMessage(`Hub look: ${HUB_THEMES[btn.dataset.hubTheme]?.label || "Classic"}`, 1600);
+  if (!btn || btn.hidden) return;
+  const id = btn.dataset.hubTheme;
+  if (!canUseHubTheme(id)) {
+    showGamesMessage("That hub look is for ICE_DRAGON only", 1800);
+    return;
+  }
+  applyHubTheme(id);
+  showGamesMessage(`Hub look: ${HUB_THEMES[id]?.label || "Classic"}`, 1600);
 });
 
 function refreshNotificationPermStatus() {
@@ -3301,6 +3337,7 @@ async function savePlayerNameFrom(value) {
     );
     hidePlayerNameModal();
     applyNameLockUI();
+    applyHubTheme();
     renderPlayersPanel();
     showGamesMessage(
       result.offline
