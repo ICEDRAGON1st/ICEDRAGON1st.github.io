@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911b": [
+    "Guessword: try stamp/skew tile reveal instead of classic 3D flip"
+  ],
   "20260911a": [
     "Guessword: Ice / Arcade / Warm board colors, rounded glowing tiles, color picker in Menu"
   ],
@@ -2219,19 +2222,26 @@ async function animateRowFlip(rowIndex) {
   const tiles = rowEl.querySelectorAll(".tile");
   for (let i = 0; i < tiles.length; i++) {
     await new Promise((resolve) => {
-      tiles[i].classList.add("flip");
-      playSound("flip", state.board[rowIndex][i].status);
-      tiles[i].addEventListener(
+      const tile = tiles[i];
+      const status = state.board[rowIndex][i].status;
+      tile.classList.add("flip");
+      playSound("flip", status);
+      // Paint result near the stamp “impact” (mid animation), not after.
+      const paintTimer = setTimeout(() => {
+        tile.classList.add(status);
+      }, 220);
+      tile.addEventListener(
         "animationend",
         () => {
-          tiles[i].classList.remove("flip");
-          tiles[i].classList.add(state.board[rowIndex][i].status);
+          clearTimeout(paintTimer);
+          tile.classList.remove("flip");
+          tile.classList.add(status);
           resolve();
         },
         { once: true }
       );
     });
-    await delay(100);
+    await delay(90);
   }
 }
 

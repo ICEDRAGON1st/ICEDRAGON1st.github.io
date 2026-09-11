@@ -369,7 +369,8 @@ header h1 {
 }
 
 .tile.flip {
-  animation: flip 0.5s ease forwards;
+  animation: stamp-reveal 0.48s cubic-bezier(0.22, 1.15, 0.36, 1) forwards;
+  z-index: 2;
 }
 
 @keyframes pop {
@@ -378,10 +379,27 @@ header h1 {
   100% { transform: scale(1); }
 }
 
-@keyframes flip {
-  0% { transform: rotateX(0); }
-  50% { transform: rotateX(-90deg); }
-  100% { transform: rotateX(0); }
+@keyframes stamp-reveal {
+  0% {
+    transform: scale(1) rotate(0deg) skewX(0deg);
+    filter: brightness(1);
+  }
+  32% {
+    transform: scale(0.78) rotate(-7deg) skewX(-10deg) translateY(-4px);
+    filter: brightness(0.75);
+  }
+  52% {
+    transform: scale(1.12) rotate(3deg) skewX(4deg) translateY(2px);
+    filter: brightness(1.12);
+  }
+  72% {
+    transform: scale(0.96) rotate(-1.5deg) skewX(-1.5deg) translateY(0);
+    filter: brightness(1);
+  }
+  100% {
+    transform: scale(1) rotate(0deg) skewX(0deg);
+    filter: brightness(1);
+  }
 }
 
 .keyboard {
