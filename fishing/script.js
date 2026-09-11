@@ -826,6 +826,28 @@
     return 1;
   }
 
+  const rarityValueBand = (() => {
+    const map = {};
+    FISH.forEach((f) => {
+      if (!map[f.rarity]) map[f.rarity] = { min: f.value, max: f.value };
+      else {
+        map[f.rarity].min = Math.min(map[f.rarity].min, f.value);
+        map[f.rarity].max = Math.max(map[f.rarity].max, f.value);
+      }
+    });
+    return map;
+  })();
+
+  /** Within a rarity, higher-value fish are rarer. */
+  function valueRarityScale(fish) {
+    const band = rarityValueBand[fish.rarity];
+    const value = Math.max(1, Number(fish.value) || 1);
+    if (!band || band.max <= band.min) return 1;
+    const t = (value - band.min) / (band.max - band.min); // 0 = cheapest, 1 = priciest
+    // Cheapest ~1.55× share, priciest ~0.42× share within the rarity
+    return 1.55 - t * 1.13;
+  }
+
   function fishWeight(fish, spot, forBoat = false) {
     const luck = luckBonus() * (forBoat ? 0.4 : 1);
     let w = (RARITY_WEIGHT[fish.rarity] || 10) * rarityFactor(fish.rarity, spot.rarity);
@@ -853,7 +875,9 @@
     if (fish.rarity === "astral") w *= (0.006 + t * 0.994) * (forBoat ? 0.07 : 1);
     if (fish.rarity === "singularity") w *= (0.003 + t * 0.997) * (forBoat ? 0.045 : 1);
     if (fish.rarity === "omega") w *= (0.0015 + t * 0.9985) * (forBoat ? 0.03 : 1);
-    return Math.max(0.01, w);
+    w *= valueRarityScale(fish);
+    // Tiny floor — old 0.01 floor forced all ultra-rares to identical odds
+    return Math.max(1e-15, w);
   }
 
   function rollFish(spot, forBoat = false) {
@@ -1534,17 +1558,17 @@
   function formatChance(pct) {
     const p = Number(pct);
     if (!Number.isFinite(p) || p <= 0) return "0%";
-    // High odds: keep compact
+    const oneIn = Math.max(1, Math.round(100 / p));
     if (p >= 10) return `${p.toFixed(2)}%`;
     if (p >= 1) return `${p.toFixed(3)}%`;
-    if (p >= 0.1) return `${p.toFixed(3)}%`;
-    if (p >= 0.01) return `${p.toFixed(4)}%`;
-    if (p >= 0.001) return `${p.toFixed(4)}%`;
-    // Ultra-rare: exact % plus “1 in N” so tiny odds stay readable
-    const oneIn = Math.max(1, Math.round(100 / p));
-    if (p >= 0.0001) return `${p.toFixed(5)}% · 1 in ${formatNum(oneIn)}`;
-    if (p >= 0.00001) return `${p.toFixed(6)}% · 1 in ${formatNum(oneIn)}`;
-    return `~1 in ${formatNum(oneIn)}`;
+    if (p >= 0.1) return `${p.toFixed(4)}%`;
+    if (p >= 0.01) return `${p.toFixed(5)}%`;
+    // Rare+ : enough digits to tell fish apart + 1-in-N
+    if (p >= 0.001) return `${p.toFixed(6)}% · 1 in ${formatNum(oneIn)}`;
+    if (p >= 0.0001) return `${p.toFixed(7)}% · 1 in ${formatNum(oneIn)}`;
+    if (p >= 0.00001) return `${p.toFixed(8)}% · 1 in ${formatNum(oneIn)}`;
+    if (p >= 0.000001) return `${p.toFixed(9)}% · 1 in ${formatNum(oneIn)}`;
+    return `${p.toExponential(3)}% · 1 in ${formatNum(oneIn)}`;
   }
 
   function renderGuide() {
