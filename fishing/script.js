@@ -362,6 +362,7 @@
   const sellBtn = document.getElementById("sell-btn");
   const autoSellBox = document.getElementById("auto-sell-rarities");
   const shopList = document.getElementById("shop-list");
+  const shopCats = document.getElementById("shop-cats");
   const spotList = document.getElementById("spot-list");
   const overlay = document.getElementById("overlay");
   const overlayBestEl = document.getElementById("overlay-best");
@@ -386,6 +387,35 @@
   let biteTimer = null;
   let biteEndsAt = 0;
   let boatAcc = {};
+  let shopCat = "all";
+
+  const SHOP_CATEGORIES = [
+    {
+      id: "window",
+      title: "Rods",
+      blurb: "Widen the reel window so bites are easier to hit."
+    },
+    {
+      id: "speed",
+      title: "Faster bites",
+      blurb: "Bait that shortens wait time between casts."
+    },
+    {
+      id: "luck",
+      title: "Luck",
+      blurb: "Boost rarity odds toward rarer fish."
+    },
+    {
+      id: "cooler",
+      title: "Cooler",
+      blurb: "Hold more fish before you need to sell."
+    },
+    {
+      id: "boat",
+      title: "Auto boat",
+      blurb: "One boat — upgrade for speed (min 7.5s) and multi-catch chances."
+    }
+  ];
 
   function defaultAutoSell() {
     const map = {};
@@ -1257,9 +1287,10 @@
 
   function renderShop() {
     if (!shopList) return;
-    const gearHtml = GEAR.map((item) => {
+
+    function gearRow(item) {
       const owned = !!state.owned[item.id];
-      return `<div class="shop-item" role="listitem">
+      return `<div class="shop-item" role="listitem" data-shop-kind="${item.kind}">
         <div class="shop-item-main">
           <div class="shop-item-name">${item.name}</div>
           <p class="shop-item-desc">${item.desc}</p>
@@ -1269,40 +1300,62 @@
           owned || state.coins < item.cost ? "disabled" : ""
         }>${owned ? "✓" : formatNum(item.cost)}</button>
       </div>`;
-    }).join("");
-
-    const next = nextBoatTier();
-    const current = getBoat();
-    let boatOwned;
-    let boatDesc;
-    let boatBtn;
-    if (!next) {
-      boatOwned = `Maxed · Lv${BOAT_MAX_LEVEL}`;
-      boatDesc = `${current.name} every ${current.amount}s · ${BOAT_TIERS[current.level]?.multiHint || ""}`;
-      boatBtn = `<button type="button" class="buy-btn" disabled>✓</button>`;
-    } else if (!current) {
-      boatOwned = "Not owned";
-      boatDesc = `Hire ${next.name} — every ${next.interval}s · ${next.multiHint}`;
-      boatBtn = `<button type="button" class="buy-btn" data-buy="boat" ${
-        state.coins < next.cost ? "disabled" : ""
-      }>${formatNum(next.cost)}</button>`;
-    } else {
-      boatOwned = `Owned · Lv${current.level}/${BOAT_MAX_LEVEL}`;
-      boatDesc = `Lv${current.level} ${current.name} (${current.amount}s) → Lv${next.level} ${next.name} (${next.interval}s) · ${next.multiHint}`;
-      boatBtn = `<button type="button" class="buy-btn" data-buy="boat" ${
-        state.coins < next.cost ? "disabled" : ""
-      }>${formatNum(next.cost)}</button>`;
     }
-    const boatHtml = `<div class="shop-item shop-item-boat" role="listitem">
-      <div class="shop-item-main">
-        <div class="shop-item-name">Auto Boat</div>
-        <p class="shop-item-desc">${boatDesc}</p>
-        <div class="shop-item-owned">${boatOwned}</div>
-      </div>
-      ${boatBtn}
-    </div>`;
 
-    shopList.innerHTML = gearHtml + boatHtml;
+    function boatRow() {
+      const next = nextBoatTier();
+      const current = getBoat();
+      let boatOwned;
+      let boatDesc;
+      let boatBtn;
+      if (!next) {
+        boatOwned = `Maxed · Lv${BOAT_MAX_LEVEL}`;
+        boatDesc = `${current.name} every ${current.amount}s · ${BOAT_TIERS[current.level]?.multiHint || ""}`;
+        boatBtn = `<button type="button" class="buy-btn" disabled>✓</button>`;
+      } else if (!current) {
+        boatOwned = "Not owned";
+        boatDesc = `Hire ${next.name} — every ${next.interval}s · ${next.multiHint}`;
+        boatBtn = `<button type="button" class="buy-btn" data-buy="boat" ${
+          state.coins < next.cost ? "disabled" : ""
+        }>${formatNum(next.cost)}</button>`;
+      } else {
+        boatOwned = `Owned · Lv${current.level}/${BOAT_MAX_LEVEL}`;
+        boatDesc = `Lv${current.level} ${current.name} (${current.amount}s) → Lv${next.level} ${next.name} (${next.interval}s) · ${next.multiHint}`;
+        boatBtn = `<button type="button" class="buy-btn" data-buy="boat" ${
+          state.coins < next.cost ? "disabled" : ""
+        }>${formatNum(next.cost)}</button>`;
+      }
+      return `<div class="shop-item shop-item-boat" role="listitem" data-shop-kind="boat">
+        <div class="shop-item-main">
+          <div class="shop-item-name">Auto Boat</div>
+          <p class="shop-item-desc">${boatDesc}</p>
+          <div class="shop-item-owned">${boatOwned}</div>
+        </div>
+        ${boatBtn}
+      </div>`;
+    }
+
+    const active = shopCat || "all";
+    shopCats?.querySelectorAll("[data-shop-cat]").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.shopCat === active);
+    });
+
+    const cats = SHOP_CATEGORIES.filter((c) => active === "all" || c.id === active);
+    shopList.innerHTML = cats
+      .map((cat) => {
+        const rows =
+          cat.id === "boat"
+            ? boatRow()
+            : GEAR.filter((g) => g.kind === cat.id).map(gearRow).join("");
+        return `<div class="shop-category" data-category="${cat.id}">
+          <div class="shop-category-head">
+            <div class="shop-category-title">${cat.title}</div>
+            <div class="shop-category-blurb">${cat.blurb}</div>
+          </div>
+          ${rows}
+        </div>`;
+      })
+      .join("");
   }
 
   function renderStats() {
@@ -1488,6 +1541,12 @@
     if (!RARITIES.includes(rarity)) return;
     state.autoSellRarities[rarity] = !!input.checked;
     saveSoon();
+  });
+  shopCats?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-shop-cat]");
+    if (!btn) return;
+    shopCat = btn.dataset.shopCat || "all";
+    renderShop();
   });
   shopList?.addEventListener("pointerdown", (e) => {
     const btn = e.target.closest("[data-buy]");

@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260911y">
+  <link rel="stylesheet" href="styles.css?v=20260911z">
 </head>
 <body>
   <header class="top-bar">
@@ -93,7 +93,15 @@
 
       <div class="card">
         <h2>Gear</h2>
-        <p class="shop-intro">Rods widen the reel window. Bait speeds bites. Luck finds rarer fish. One auto boat — upgrade for speed (min 7.5s) and multi-catch chances.</p>
+        <p class="shop-intro">Browse by category — rods, faster bites, luck, cooler capacity, and your auto boat.</p>
+        <div id="shop-cats" class="shop-cats" role="tablist" aria-label="Gear categories">
+          <button type="button" class="shop-cat-btn active" data-shop-cat="all">All</button>
+          <button type="button" class="shop-cat-btn" data-shop-cat="window">Rods</button>
+          <button type="button" class="shop-cat-btn" data-shop-cat="speed">Faster bites</button>
+          <button type="button" class="shop-cat-btn" data-shop-cat="luck">Luck</button>
+          <button type="button" class="shop-cat-btn" data-shop-cat="cooler">Cooler</button>
+          <button type="button" class="shop-cat-btn" data-shop-cat="boat">Auto boat</button>
+        </div>
         <div id="shop-list" class="shop-list" role="list"></div>
       </div>
     </section>
@@ -155,7 +163,7 @@
   <script src="../hub-plays.js?v=20260908z"></script>
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
-  <script src="../hub-leaderboard.js?v=20260911y"></script>
-  <script src="script.js?v=20260911y"></script>
+  <script src="../hub-leaderboard.js?v=20260911z"></script>
+  <script src="script.js?v=20260911z"></script>
 </body>
 </html>
