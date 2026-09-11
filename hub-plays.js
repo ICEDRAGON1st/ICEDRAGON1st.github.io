@@ -545,15 +545,23 @@
     const local = loadLocalProfileStyle();
     if (!local || !local.nameKey) return names || {};
     const key = local.nameKey;
+    // Only overlay style onto our own nickname.
+    if (key !== nameKey(getName())) return names || {};
     const claim = (names || {})[key];
-    if (!claim || claim.playerId !== getPlayerId()) return names || {};
+    if (!claim) return names || {};
     const localAt = Number(local.profileUpdatedAt) || 0;
     const remoteAt = Number(claim.profileUpdatedAt) || 0;
-    if (remoteAt > localAt) return names || {};
+    const mine = claim.playerId === getPlayerId();
+    // Keep local title/color when we own the claim, or when remote is unreachable /
+    // owned by an older device id for the same nickname.
+    if (mine && remoteAt > localAt) return names || {};
+    if (!mine && remoteAt > localAt && localAt <= 0) return names || {};
     return {
       ...(names || {}),
       [key]: {
         ...claim,
+        // Prefer current device for local UI when this is our saved name.
+        playerId: mine ? claim.playerId : getPlayerId(),
         activeTitle: local.activeTitle || claim.activeTitle || "",
         accentTitle: local.accentTitle || claim.accentTitle || "",
         accentColor:
@@ -2283,27 +2291,98 @@ body.light .menu-credit .player-name-creator {
     return isExtraAccentId(color) ? "" : color;
   }
 
+  function applyClaimLocally(key, current, me, updater, existing) {
+    const base =
+      existing && typeof existing === "object"
+        ? { ...existing, playerId: me, name: current }
+        : {
+            playerId: me,
+            name: current,
+            claimedAt: Date.now(),
+            activeTitle: "",
+            accentTitle: "",
+            accentColor: ""
+          };
+    const nextClaim = updater(base);
+    if (!nextClaim) {
+      namesCache = { ...namesCache, [key]: base };
+      return true;
+    }
+    nextClaim.playerId = me;
+    nextClaim.name = current;
+    nextClaim.profileUpdatedAt = Date.now();
+    namesCache = { ...namesCache, [key]: nextClaim };
+    saveLocalProfileStyle(nextClaim, key);
+    return true;
+  }
+
   async function patchMyClaim(updater) {
     const me = getPlayerId();
     const current = getName();
     if (!current || isPlaceholderName(current)) return false;
     const key = nameKey(current);
 
+    // Always keep title/color locally — MantleDB rate limits / offline used to
+    // hard-fail every picker click with "Couldn't save …".
+    const finishLocal = (existing) => applyClaimLocally(key, current, me, updater, existing);
+
+    if (isRateLimited()) {
+      return finishLocal(namesCache[key] || getClaimForName(current));
+    }
+
     for (let attempt = 0; attempt < 4; attempt++) {
       let remoteNames;
       try {
         remoteNames = await fetchNamesRemote();
       } catch {
-        return false;
+        return finishLocal(namesCache[key] || getClaimForName(current));
       }
 
       // Keep any newer local profile edits while merging remote.
       remoteNames = mergeNameMaps(namesCache, remoteNames);
 
       const existing = remoteNames[key];
-      if (!existing || existing.playerId !== me) {
-        namesCache = remoteNames;
-        return false;
+      if (!existing) {
+        // First-time profile fields for this nickname — create local + try push.
+        const seeded = {
+          playerId: me,
+          name: current,
+          claimedAt: Date.now(),
+          activeTitle: "",
+          accentTitle: "",
+          accentColor: ""
+        };
+        const nextClaim = updater({ ...seeded });
+        if (!nextClaim) {
+          namesCache = { ...remoteNames, [key]: seeded };
+          return true;
+        }
+        nextClaim.playerId = me;
+        nextClaim.name = current;
+        nextClaim.profileUpdatedAt = Date.now();
+        const nextNames = { ...remoteNames, [key]: nextClaim };
+        namesCache = nextNames;
+        saveLocalProfileStyle(nextClaim, key);
+        try {
+          await pushNamesRemote(nextNames);
+        } catch {
+          return true;
+        }
+        return true;
+      }
+
+      if (existing.playerId !== me) {
+        // Same nickname on a new device id: keep style locally; try reclaim once.
+        finishLocal(existing);
+        const nextClaim = namesCache[key];
+        const nextNames = { ...remoteNames, [key]: { ...existing, ...nextClaim, playerId: me, name: current } };
+        try {
+          await pushNamesRemote(nextNames);
+          namesCache = applyLocalProfileStyle(nextNames);
+        } catch {
+          // Local style already saved — UI works until API recovers.
+        }
+        return true;
       }
 
       const nextClaim = updater({ ...existing });
@@ -2320,7 +2399,7 @@ body.light .menu-credit .player-name-creator {
       try {
         await pushNamesRemote(nextNames);
       } catch {
-        return false;
+        return true; // local save already applied
       }
 
       let confirmed;
@@ -2333,7 +2412,7 @@ body.light .menu-credit .player-name-creator {
       if (namesCache[key]) saveLocalProfileStyle(namesCache[key], key);
       return true;
     }
-    return false;
+    return finishLocal(namesCache[key] || getClaimForName(current));
   }
 
   async function markLegend() {

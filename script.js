@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260912e": [
+    "Players: title/color save works offline when the shared DB is rate-limited"
+  ],
   "20260912d": [
     "Fishing Idle: rare+ fish are less rare (weights up, spot suppression softened)"
   ],
@@ -3795,7 +3798,8 @@ function renderTitlePicker() {
   const active = HubPlays.getActiveTitleId?.() || "";
   const unlockedIds = new Set(showcase.filter((t) => t.unlocked).map((t) => t.id));
   const options = [...showcase];
-  if (unlockedIds.size > 1 || unlockedIds.has("legend")) {
+  // "None" only works for accounts that can hide reserved titles (need LEGEND).
+  if (unlockedIds.has("legend")) {
     options.push({ id: "none", label: "None", className: "player-title-none", unlocked: true });
   }
 
