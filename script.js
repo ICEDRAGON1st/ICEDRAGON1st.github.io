@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260912d": [
+    "Fishing Idle: rare+ fish are less rare (weights up, spot suppression softened)"
+  ],
   "20260912c": [
     "Fishing Idle: fish guide odds are exact per fish (no more identical ultra-rare %)"
   ],
