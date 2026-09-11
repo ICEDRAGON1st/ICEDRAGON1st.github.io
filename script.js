@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911e": [
+    "Guessword: stronger stamp reveal (manual animation — can’t be blocked by CSS)"
+  ],
   "20260911d": [
     "Guessword: stamp reveal via Web Animations so the skew actually shows"
   ],
@@ -2221,19 +2224,63 @@ function shakeRow(rowIndex) {
   );
 }
 
+function stampTile(tile, duration = 650) {
+  return new Promise((resolve) => {
+    const prevTransition = tile.style.transition;
+    const prevAnimation = tile.style.animation;
+    const prevTransform = tile.style.transform;
+    tile.style.transition = "none";
+    tile.style.animation = "none";
+    tile.classList.add("flip");
+
+    const start = performance.now();
+    const tick = (now) => {
+      const t = Math.min(1, (now - start) / duration);
+      // 0–30%: pull back + skew · 30–55%: slam down · 55–100%: settle
+      let scale = 1;
+      let rot = 0;
+      let skew = 0;
+      let y = 0;
+      if (t < 0.3) {
+        const p = t / 0.3;
+        scale = 1 - 0.45 * p;
+        rot = -22 * p;
+        skew = -20 * p;
+        y = -18 * p;
+      } else if (t < 0.55) {
+        const p = (t - 0.3) / 0.25;
+        scale = 0.55 + 0.7 * p;
+        rot = -22 + 30 * p;
+        skew = -20 + 30 * p;
+        y = -18 + 26 * p;
+      } else {
+        const p = (t - 0.55) / 0.45;
+        const ease = 1 - Math.pow(1 - p, 3);
+        scale = 1.25 - 0.25 * ease;
+        rot = 8 - 8 * ease;
+        skew = 10 - 10 * ease;
+        y = 8 - 8 * ease;
+      }
+      tile.style.transform = `translateY(${y}px) rotate(${rot}deg) skewX(${skew}deg) scale(${scale})`;
+      if (t < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        tile.style.transform = prevTransform;
+        tile.style.transition = prevTransition;
+        tile.style.animation = prevAnimation;
+        tile.classList.remove("flip");
+        resolve();
+      }
+    };
+    requestAnimationFrame(tick);
+  });
+}
+
 async function animateRowFlip(rowIndex) {
   const rowEl = boardEl.querySelector(`[data-row="${rowIndex}"]`);
   if (!rowEl) return;
 
   const tiles = rowEl.querySelectorAll(".tile");
-  const stampKeyframes = [
-    { transform: "scale(1) rotate(0deg) skewX(0deg) translateY(0px)" },
-    { transform: "scale(0.7) rotate(-12deg) skewX(-16deg) translateY(-10px)", offset: 0.3 },
-    { transform: "scale(1.18) rotate(5deg) skewX(7deg) translateY(4px)", offset: 0.5 },
-    { transform: "scale(0.95) rotate(-2deg) skewX(-2deg) translateY(0px)", offset: 0.72 },
-    { transform: "scale(1) rotate(0deg) skewX(0deg) translateY(0px)" }
-  ];
-
   for (let i = 0; i < tiles.length; i++) {
     const tile = tiles[i];
     const status = state.board[rowIndex][i].status;
@@ -2241,54 +2288,12 @@ async function animateRowFlip(rowIndex) {
 
     const paintTimer = setTimeout(() => {
       tile.classList.add(status);
-    }, 260);
+    }, 320);
 
-    try {
-      if (typeof tile.animate === "function") {
-        // WAAPI bypasses CSS transition fights on transform.
-        tile.classList.add("flip");
-        const anim = tile.animate(stampKeyframes, {
-          duration: 550,
-          easing: "ease-in-out",
-          fill: "forwards"
-        });
-        await anim.finished;
-        anim.cancel();
-        tile.classList.remove("flip");
-        tile.style.transform = "";
-      } else {
-        await new Promise((resolve) => {
-          let done = false;
-          let fallbackTimer = 0;
-          const finish = () => {
-            if (done) return;
-            done = true;
-            clearTimeout(fallbackTimer);
-            tile.classList.remove("flip", "flip-css");
-            resolve();
-          };
-          tile.classList.remove("flip", "flip-css");
-          void tile.offsetWidth;
-          tile.classList.add("flip", "flip-css");
-          tile.addEventListener(
-            "animationend",
-            (e) => {
-              if (e.animationName && e.animationName !== "stamp-reveal") return;
-              finish();
-            },
-            { once: true }
-          );
-          fallbackTimer = setTimeout(finish, 700);
-        });
-      }
-    } catch {
-      /* animation cancelled / interrupted */
-    }
-
+    await stampTile(tile, 650);
     clearTimeout(paintTimer);
-    tile.classList.remove("flip", "flip-css");
     tile.classList.add(status);
-    await delay(70);
+    await delay(60);
   }
 }
 

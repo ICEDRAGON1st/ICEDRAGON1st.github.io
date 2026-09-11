@@ -333,10 +333,13 @@ header h1 {
 
 .tile.filled {
   border-color: var(--tile-filled);
-  animation: pop 0.1s ease;
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.08),
     0 0 0 1px color-mix(in srgb, var(--tile-filled) 35%, transparent);
+}
+
+.tile.filled:not(.flip):not(.correct):not(.present):not(.absent) {
+  animation: pop 0.1s ease;
 }
 
 .tile.correct {
