@@ -570,47 +570,22 @@
       const at = Number(fishingBoard[key]?.at) || 0;
       if (at <= fishingCut) delete fishingBoard[key];
     });
-    games.fishing = fishingBoard;
 
-    // Seed ICE_DRAGON Fishing Idle floor as Abyss King (mythic) — never downgrade a better catch.
-    const iceFishingSeedKey = "fishing:ice_dragon-abyss-king-v2";
-    const ABYSS_KING_SCORE = 604000; // mythic rank*100000 + 4000
-    const ICE_FISHING_ID = "p-mtlztdny-r28rrb";
-    if (!resets[iceFishingSeedKey]) resets[iceFishingSeedKey] = Date.now();
-    const iceFishAt = Math.max(
-      Number(resets[iceFishingSeedKey]) || 0,
-      FISHING_WIPE_AT + 1
-    );
-    const seededFish = { ...(games.fishing || {}) };
-    let iceBest = null;
-    Object.keys(seededFish).forEach((key) => {
-      const entry = seededFish[key];
-      if (!entry) return;
-      const keyName = nameKey(entry.name || key);
-      const isIce =
-        key === "ice_dragon" ||
-        keyName === "ice_dragon" ||
-        entry.playerId === ICE_FISHING_ID;
-      if (!isIce) return;
-      if (
-        !iceBest ||
-        Number(entry.score) > Number(iceBest.score) ||
-        (Number(entry.score) === Number(iceBest.score) &&
-          Number(entry.at) > Number(iceBest.at))
-      ) {
-        iceBest = entry;
-      }
-      if (key !== "ice_dragon") delete seededFish[key];
+    // Full Fishing Idle leaderboard reset (this game only).
+    const fishingFullResetKey = "fishing:full-reset-20260911x";
+    const FISHING_FULL_RESET_AT = Date.UTC(2026, 8, 11, 15, 50, 0); // 2026-09-11 15:50 UTC
+    if (!resets[fishingFullResetKey] || Number(resets[fishingFullResetKey]) > FISHING_FULL_RESET_AT) {
+      resets[fishingFullResetKey] = FISHING_FULL_RESET_AT;
+    }
+    const fishingFullCut = Number(resets[fishingFullResetKey]) || FISHING_FULL_RESET_AT;
+    Object.keys(fishingBoard).forEach((key) => {
+      const at = Number(fishingBoard[key]?.at) || 0;
+      if (at <= fishingFullCut) delete fishingBoard[key];
     });
-    const keptScore = Math.max(ABYSS_KING_SCORE, Math.floor(Number(iceBest?.score) || 0));
-    seededFish.ice_dragon = {
-      name: "ICE_DRAGON",
-      score: keptScore,
-      at: Math.max(iceFishAt, Math.floor(Number(iceBest?.at) || 0)),
-      playerId: ICE_FISHING_ID,
-      lowerBetter: false
-    };
-    games.fishing = seededFish;
+    // Drop old Abyss King floor seeds so they can't reappear after this wipe.
+    delete resets["fishing:ice_dragon-abyss-king-v1"];
+    delete resets["fishing:ice_dragon-abyss-king-v2"];
+    games.fishing = fishingBoard;
 
     // Sticky name binds: keep scores under the player's current name after renames.
     // Seed: Gustav → Dellekai (same playerId).

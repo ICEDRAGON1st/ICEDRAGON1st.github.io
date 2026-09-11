@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911y": [
+    "Fishing Idle: full reset — progress + catch leaderboard wiped (other games untouched)"
+  ],
   "20260911x": [
     "Fishing Idle: boat max speed 7.5s; upgrades add multi-catch chances"
   ],

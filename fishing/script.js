@@ -1,7 +1,14 @@
 (function () {
-  const SAVE_KEY = "fishing-save-v2";
-  const HIGH_SCORE_KEY = "fishing-best-catch-v1";
-  const BEST_CATCH_META_KEY = "fishing-best-catch-meta-v1";
+  const SAVE_KEY = "fishing-save-v3";
+  const HIGH_SCORE_KEY = "fishing-best-catch-v2";
+  const BEST_CATCH_META_KEY = "fishing-best-catch-meta-v2";
+
+  // Drop old Fishing Idle progress keys (full reset — this game only)
+  try {
+    localStorage.removeItem("fishing-save-v2");
+    localStorage.removeItem("fishing-best-catch-v1");
+    localStorage.removeItem("fishing-best-catch-meta-v1");
+  } catch {}
   const TICK_MS = 100;
   const COOLER_BASE = 12;
 
@@ -1568,23 +1575,6 @@
     } catch {}
     const stored = getStoredBest();
     const best = Math.max(state.bestCatchScore || 0, stored, boardScore);
-
-    // ICE_DRAGON seed: Abyss King on board should show in-game too
-    let name = "";
-    try {
-      name = String(
-        (typeof HubPlays !== "undefined" && HubPlays.getName && HubPlays.getName()) || ""
-      )
-        .trim()
-        .toLowerCase();
-    } catch {}
-    const abyss = fishById("abyssking");
-    const abyssScore = abyss ? catchScore(abyss) : 604000;
-    if (name === "ice_dragon" && best < abyssScore) {
-      applyBestCatchScore(abyssScore, "abyssking");
-      renderStats();
-      return;
-    }
 
     if (best > (state.bestCatchScore || 0) || (best > 0 && !state.bestCatchId)) {
       applyBestCatchScore(best, state.bestCatchId);
