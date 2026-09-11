@@ -51,13 +51,8 @@
     const ctx = getAudio();
     if (!ctx) return [];
     keySamplesLoading = (async () => {
-      const files = [
-        "sounds/key-honey.wav",
-        "sounds/key-honey-0.wav",
-        "sounds/key-honey-1.wav",
-        "sounds/key-honey-2.wav",
-        "sounds/key-honey-3.wav"
-      ];
+      const files = [];
+      for (let i = 0; i < 16; i += 1) files.push(`sounds/key-cream-${i}.wav`);
       const loaded = [];
       await Promise.all(
         files.map(async (file) => {
@@ -87,28 +82,24 @@
     if (!buf) return false;
     const src = ctx.createBufferSource();
     src.buffer = buf;
+    // Keep close to the recording — tiny natural variation only
     const rateBase = opts.rate != null ? opts.rate : 1;
-    src.playbackRate.value = rateBase * (0.96 + Math.random() * 0.07);
-    const filter = ctx.createBiquadFilter();
-    filter.type = "lowpass";
-    filter.frequency.value = (opts.lp != null ? opts.lp : 2600) + Math.random() * 700;
-    filter.Q.value = 0.45;
+    src.playbackRate.value = rateBase * (0.985 + Math.random() * 0.03);
     const gain = ctx.createGain();
-    const vol = (opts.vol != null ? opts.vol : 0.62) * (0.9 + Math.random() * 0.2);
+    const vol = (opts.vol != null ? opts.vol : 0.85) * (0.92 + Math.random() * 0.16);
     const t = ctx.currentTime;
     gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.exponentialRampToValueAtTime(vol, t + 0.01);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t + Math.min(0.38, buf.duration + 0.06));
-    src.connect(filter);
-    filter.connect(gain);
+    gain.gain.exponentialRampToValueAtTime(vol, t + 0.004);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + Math.min(0.35, buf.duration + 0.04));
+    src.connect(gain);
     gain.connect(ctx.destination);
     src.start(t);
     return true;
   }
 
-  /** Prefer honey-key samples; soft synth only while loading / offline. */
+  /** Your creamy keyboard recording clips; soft synth only while loading. */
   function playKeyThock() {
-    if (playKeySample({ vol: 0.68, lp: 2800 })) return;
+    if (playKeySample({ vol: 0.9 })) return;
     ensureKeySamples();
     playKeyThockSynth();
   }
@@ -234,7 +225,7 @@
       tone({ freq: 980, dur: 0.028, type: "square", vol: 0.02, slide: -120 });
       noiseHit({ dur: 0.018, vol: 0.028, freq: 2800, q: 1.1 });
     } else if (kind === "back") {
-      if (playKeySample({ vol: 0.42, rate: 0.9, lp: 2000 })) return;
+      if (playKeySample({ vol: 0.55, rate: 0.94 })) return;
       ensureKeySamples();
       const wobble = (Math.random() - 0.5) * 12;
       softTone({ freq: 340 + wobble, dur: 0.12, vol: 0.032, slide: -70, attack: 0.02, lp: 1100 });

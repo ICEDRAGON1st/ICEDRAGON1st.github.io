@@ -5,3 +5,4 @@ desktop.ini
 *.zip
 .env
 .env.*
+node_modules/
