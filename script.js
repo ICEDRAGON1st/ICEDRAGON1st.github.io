@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911d": [
+    "Guessword: stamp reveal via Web Animations so the skew actually shows"
+  ],
   "20260911c": [
     "Guessword: fix stamp reveal — transform transition was canceling the skew"
   ],
@@ -2223,45 +2226,67 @@ async function animateRowFlip(rowIndex) {
   if (!rowEl) return;
 
   const tiles = rowEl.querySelectorAll(".tile");
+  const stampKeyframes = [
+    { transform: "scale(1) rotate(0deg) skewX(0deg) translateY(0px)" },
+    { transform: "scale(0.7) rotate(-12deg) skewX(-16deg) translateY(-10px)", offset: 0.3 },
+    { transform: "scale(1.18) rotate(5deg) skewX(7deg) translateY(4px)", offset: 0.5 },
+    { transform: "scale(0.95) rotate(-2deg) skewX(-2deg) translateY(0px)", offset: 0.72 },
+    { transform: "scale(1) rotate(0deg) skewX(0deg) translateY(0px)" }
+  ];
+
   for (let i = 0; i < tiles.length; i++) {
-    await new Promise((resolve) => {
-      const tile = tiles[i];
-      const status = state.board[rowIndex][i].status;
-      let done = false;
-      let paintTimer = 0;
-      let fallbackTimer = 0;
-      const finish = () => {
-        if (done) return;
-        done = true;
-        clearTimeout(paintTimer);
-        clearTimeout(fallbackTimer);
+    const tile = tiles[i];
+    const status = state.board[rowIndex][i].status;
+    playSound("flip", status);
+
+    const paintTimer = setTimeout(() => {
+      tile.classList.add(status);
+    }, 260);
+
+    try {
+      if (typeof tile.animate === "function") {
+        // WAAPI bypasses CSS transition fights on transform.
+        tile.classList.add("flip");
+        await tile.animate(stampKeyframes, {
+          duration: 550,
+          easing: "ease-in-out",
+          fill: "forwards"
+        }).finished;
         tile.classList.remove("flip");
-        tile.classList.add(status);
-        resolve();
-      };
+        tile.style.transform = "";
+      } else {
+        await new Promise((resolve) => {
+          let done = false;
+          let fallbackTimer = 0;
+          const finish = () => {
+            if (done) return;
+            done = true;
+            clearTimeout(fallbackTimer);
+            tile.classList.remove("flip");
+            resolve();
+          };
+          tile.classList.remove("flip", "flip-css");
+          void tile.offsetWidth;
+          tile.classList.add("flip", "flip-css");
+          tile.addEventListener(
+            "animationend",
+            (e) => {
+              if (e.animationName && e.animationName !== "stamp-reveal") return;
+              finish();
+            },
+            { once: true }
+          );
+          fallbackTimer = setTimeout(finish, 700);
+        });
+      }
+    } catch {
+      /* animation cancelled / interrupted */
+    }
 
-      // Restart animation cleanly (avoids conflict with .filled pop).
-      tile.classList.remove("flip");
-      void tile.offsetWidth;
-      tile.classList.add("flip");
-      playSound("flip", status);
-
-      paintTimer = setTimeout(() => {
-        tile.classList.add(status);
-      }, 250);
-
-      tile.addEventListener(
-        "animationend",
-        (e) => {
-          if (e.animationName && e.animationName !== "stamp-reveal") return;
-          finish();
-        },
-        { once: true }
-      );
-      // If animationend never fires, don't hang the game.
-      fallbackTimer = setTimeout(finish, 700);
-    });
-    await delay(80);
+    clearTimeout(paintTimer);
+    tile.classList.remove("flip", "flip-css");
+    tile.classList.add(status);
+    await delay(70);
   }
 }
 

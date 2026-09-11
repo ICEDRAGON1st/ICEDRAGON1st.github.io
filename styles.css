@@ -371,11 +371,15 @@ header h1 {
 
 .tile.flip,
 .tile.filled.flip {
-  /* Override .filled's pop animation; no transition on transform */
-  animation: stamp-reveal 0.55s ease-in-out forwards;
-  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  /* Used by WAAPI path — kill transitions that fight transform */
+  transition: none !important;
   z-index: 2;
   transform-origin: center center;
+}
+
+.tile.flip-css,
+.tile.filled.flip-css {
+  animation: stamp-reveal 0.55s ease-in-out forwards;
 }
 
 @keyframes pop {
