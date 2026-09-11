@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911m": [
+    "Wing Hop: wings flap forward/back instead of mostly up/down"
+  ],
   "20260911k": [
     "Wing Hop: slow the dragon wing flap to a calmer beat"
   ],

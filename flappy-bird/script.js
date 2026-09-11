@@ -563,13 +563,10 @@ function mixHex(a, b, t) {
 
 function drawBird() {
   const s = skin();
-  // Flappy motion: opposite-phase wings + mild burst on tap
+  // Fore–aft flap: tip swings toward head (forward) then toward tail (back)
   const beat = Math.sin(wingPhase);
-  const beat2 = Math.sin(wingPhase + Math.PI); // other wing opposite
-  const amp = 0.75 + wingBurst * 0.45;
-  const flapNear = beat * amp + Math.max(-0.2, Math.min(0.45, bird.rot)) * 0.3;
-  const flapFar = beat2 * amp * 0.85 + Math.max(-0.2, Math.min(0.45, bird.rot)) * 0.2;
-  const wingScaleY = 0.82 + Math.abs(beat) * 0.28 + wingBurst * 0.1;
+  const sweep = beat * (1.05 + wingBurst * 0.4);
+  const lift = Math.abs(beat) * 0.12; // tiny up on mid-stroke only
   const dark = mixHex(s.body, "#0b1020", 0.35);
   const mid = mixHex(s.body, s.wing, 0.35);
   const light = mixHex(s.body, "#ffffff", 0.28);
@@ -590,7 +587,7 @@ function drawBird() {
   ctx.fill();
 
   // ===== Tail =====
-  const ty = beat * 10 + wingBurst * 4;
+  const ty = beat * 6 + wingBurst * 3;
   ctx.fillStyle = s.body;
   ctx.strokeStyle = outline;
   ctx.lineWidth = 2.5;
@@ -628,12 +625,12 @@ function drawBird() {
   ctx.fill();
   ctx.stroke();
 
-  // ===== Far wing =====
+  // ===== Far wing (same fore–aft sweep, slightly smaller) =====
   ctx.save();
-  ctx.translate(-4, -4);
-  ctx.rotate(-0.55 + flapFar * 1.05);
-  ctx.scale(1, wingScaleY);
-  drawDragonWing(s, outline, belly, 0.78);
+  ctx.translate(-2, -6);
+  // Rest angle points wing back; sweep > 0 pulls tip toward the head
+  ctx.rotate(-0.95 + sweep * 0.95 - lift);
+  drawDragonWing(s, outline, belly, 0.75);
   ctx.restore();
 
   // ===== Main body (single rounded sausage + head) =====
@@ -789,9 +786,8 @@ function drawBird() {
 
   // ===== Near wing =====
   ctx.save();
-  ctx.translate(2, -2);
-  ctx.rotate(-0.05 + flapNear * 1.1);
-  ctx.scale(1, wingScaleY);
+  ctx.translate(2, -4);
+  ctx.rotate(-0.85 + sweep - lift);
   drawDragonWing(s, outline, belly, 1);
   ctx.restore();
 
@@ -837,61 +833,63 @@ function drawBird() {
 function drawDragonWing(s, outline, belly, alpha) {
   ctx.globalAlpha = alpha;
 
-  // Membrane gradient
-  const wg = ctx.createLinearGradient(0, 0, 18, -30);
+  // Drawn mostly BACKWARD from the shoulder so rotation reads as forward/back
+  const wg = ctx.createLinearGradient(0, 0, -34, -10);
   wg.addColorStop(0, s.wing);
   wg.addColorStop(0.55, mixHex(s.wing, belly, 0.35));
-  wg.addColorStop(1, mixHex(s.wing, "#ffffff", 0.15));
+  wg.addColorStop(1, mixHex(s.wing, "#ffffff", 0.12));
   ctx.fillStyle = wg;
   ctx.strokeStyle = outline;
   ctx.lineWidth = 2.4;
 
   ctx.beginPath();
   ctx.moveTo(0, 2);
-  ctx.quadraticCurveTo(-8, -10, 2, -30);
-  ctx.quadraticCurveTo(10, -36, 20, -28);
-  ctx.quadraticCurveTo(28, -16, 24, -2);
-  ctx.quadraticCurveTo(14, 4, 4, 4);
+  ctx.quadraticCurveTo(-10, -4, -28, -2);
+  ctx.quadraticCurveTo(-40, -4, -44, -14);
+  ctx.quadraticCurveTo(-36, -26, -22, -22);
+  ctx.quadraticCurveTo(-12, -14, -4, -4);
+  ctx.quadraticCurveTo(-2, 2, 0, 2);
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
 
-  // Inner glow panel
+  // Inner membrane
   ctx.fillStyle = belly;
   ctx.globalAlpha = alpha * 0.4;
   ctx.beginPath();
-  ctx.moveTo(3, 0);
-  ctx.quadraticCurveTo(2, -12, 8, -22);
-  ctx.quadraticCurveTo(14, -14, 12, -2);
+  ctx.moveTo(-2, 0);
+  ctx.quadraticCurveTo(-14, -2, -28, -6);
+  ctx.quadraticCurveTo(-30, -14, -20, -14);
+  ctx.quadraticCurveTo(-10, -8, -4, -2);
   ctx.closePath();
   ctx.fill();
   ctx.globalAlpha = alpha;
 
-  // Wing bones
+  // Bones along the fore–aft span
   ctx.strokeStyle = outline;
   ctx.lineWidth = 2;
   ctx.beginPath();
   ctx.moveTo(0, 2);
-  ctx.quadraticCurveTo(4, -12, 8, -32);
+  ctx.quadraticCurveTo(-18, -2, -42, -12);
   ctx.stroke();
   ctx.beginPath();
   ctx.moveTo(0, 2);
-  ctx.quadraticCurveTo(12, -6, 24, -6);
+  ctx.quadraticCurveTo(-16, 2, -34, -4);
   ctx.stroke();
   ctx.lineWidth = 1.4;
   ctx.beginPath();
-  ctx.moveTo(6, -14);
-  ctx.lineTo(16, -16);
+  ctx.moveTo(-14, -2);
+  ctx.lineTo(-24, -12);
   ctx.stroke();
   ctx.beginPath();
-  ctx.moveTo(8, -8);
-  ctx.lineTo(18, -8);
+  ctx.moveTo(-20, 0);
+  ctx.lineTo(-30, -8);
   ctx.stroke();
 
-  // Claw tip on wing
+  // Tip claw
   ctx.fillStyle = s.beak || "#ffd43b";
   ctx.beginPath();
-  ctx.arc(8, -32, 2.2, 0, Math.PI * 2);
+  ctx.arc(-43, -13, 2.3, 0, Math.PI * 2);
   ctx.fill();
   ctx.strokeStyle = outline;
   ctx.lineWidth = 1.5;
