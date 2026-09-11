@@ -26,6 +26,9 @@
   --divine: #fff3bf;
   --eternal: #99e9f2;
   --cosmic: #b197fc;
+  --astral: #66d9e8;
+  --singularity: #ff6b9d;
+  --omega: #ffe066;
 }
 
 html,
@@ -217,6 +220,15 @@ body {
 }
 .guide-rarity.cosmic {
   color: var(--cosmic);
+}
+.guide-rarity.astral {
+  color: var(--astral);
+}
+.guide-rarity.singularity {
+  color: var(--singularity);
+}
+.guide-rarity.omega {
+  color: var(--omega);
 }
 
 .guide-spots {
@@ -583,6 +595,21 @@ body {
   text-shadow: 0 0 18px rgba(177, 151, 252, 0.55);
 }
 
+.catch-line.astral {
+  color: var(--astral);
+  text-shadow: 0 0 18px rgba(102, 217, 232, 0.55);
+}
+
+.catch-line.singularity {
+  color: var(--singularity);
+  text-shadow: 0 0 18px rgba(255, 107, 157, 0.55);
+}
+
+.catch-line.omega {
+  color: var(--omega);
+  text-shadow: 0 0 20px rgba(255, 224, 102, 0.6);
+}
+
 .cooler-bar {
   width: 100%;
   margin-top: 1.1rem;
@@ -675,6 +702,15 @@ body {
 }
 .auto-sell-opt.cosmic {
   color: var(--cosmic);
+}
+.auto-sell-opt.astral {
+  color: var(--astral);
+}
+.auto-sell-opt.singularity {
+  color: var(--singularity);
+}
+.auto-sell-opt.omega {
+  color: var(--omega);
 }
 
 .cooler-list {
@@ -791,6 +827,15 @@ body {
 }
 .fish-chip.cosmic {
   color: var(--cosmic);
+}
+.fish-chip.astral {
+  color: var(--astral);
+}
+.fish-chip.singularity {
+  color: var(--singularity);
+}
+.fish-chip.omega {
+  color: var(--omega);
 }
 
 .sell-btn {

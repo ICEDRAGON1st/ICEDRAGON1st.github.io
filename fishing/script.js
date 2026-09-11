@@ -22,7 +22,10 @@
     "secret",
     "divine",
     "eternal",
-    "cosmic"
+    "cosmic",
+    "astral",
+    "singularity",
+    "omega"
   ];
 
   const RARITY_RANK = {
@@ -35,7 +38,10 @@
     secret: 7,
     divine: 8,
     eternal: 9,
-    cosmic: 10
+    cosmic: 10,
+    astral: 11,
+    singularity: 12,
+    omega: 13
   };
 
   const RARITY_WEIGHT = {
@@ -48,7 +54,10 @@
     secret: 0.025,
     divine: 0.008,
     eternal: 0.0025,
-    cosmic: 0.0007
+    cosmic: 0.0007,
+    astral: 0.00018,
+    singularity: 0.00005,
+    omega: 0.000012
   };
 
   const FISH = [
@@ -112,7 +121,19 @@
     // Cosmic
     { id: "nebula", name: "Nebula Nettle", rarity: "cosmic", value: 12000000 },
     { id: "quasar", name: "Quasar Cod", rarity: "cosmic", value: 25000000 },
-    { id: "omnifin", name: "Omnifin", rarity: "cosmic", value: 50000000 }
+    { id: "omnifin", name: "Omnifin", rarity: "cosmic", value: 50000000 },
+    // Astral
+    { id: "stardrift", name: "Stardrift Ray", rarity: "astral", value: 120000000 },
+    { id: "aurorafin", name: "Aurora Fin", rarity: "astral", value: 250000000 },
+    { id: "galaxykoi", name: "Galaxy Koi", rarity: "astral", value: 500000000 },
+    // Singularity
+    { id: "eventide", name: "Eventide Eel", rarity: "singularity", value: 1200000000 },
+    { id: "horizon", name: "Horizon Shark", rarity: "singularity", value: 2500000000 },
+    { id: "collapse", name: "Collapse Carp", rarity: "singularity", value: 5000000000 },
+    // Omega
+    { id: "primefin", name: "Primefin", rarity: "omega", value: 15000000000 },
+    { id: "absoluth", name: "Absoluth", rarity: "omega", value: 40000000000 },
+    { id: "theend", name: "The End Fish", rarity: "omega", value: 100000000000 }
   ];
 
   const SPOTS = [
@@ -259,10 +280,37 @@
       valueMult: 9,
       rarity: 15,
       blurb: "Edge of everything · cosmic possible"
+    },
+    {
+      id: "astralshoals",
+      name: "Astral Shoals",
+      cost: 800000000,
+      wait: [0.55, 1.05],
+      valueMult: 12,
+      rarity: 16,
+      blurb: "Starlit shallows · astral fish appear"
+    },
+    {
+      id: "eventhorizon",
+      name: "Event Horizon",
+      cost: 4000000000,
+      wait: [0.5, 1.0],
+      valueMult: 16,
+      rarity: 17,
+      blurb: "Light bends · singularity catches stir"
+    },
+    {
+      id: "omegadeep",
+      name: "Omega Deep",
+      cost: 20000000000,
+      wait: [0.45, 0.95],
+      valueMult: 22,
+      rarity: 18,
+      blurb: "Final waters · omega possible"
     }
   ];
 
-  const MAX_SPOT_RARITY = 15;
+  const MAX_SPOT_RARITY = 18;
 
   const GEAR = [
     { id: "rod1", name: "Willow Rod", desc: "+0.05s bite window", cost: 40, kind: "window", amount: 0.05 },
@@ -772,6 +820,9 @@
     if (rarity === "divine") return 0.00008 + t * 0.4;
     if (rarity === "eternal") return 0.00003 + t * 0.28;
     if (rarity === "cosmic") return 0.00001 + t * 0.18;
+    if (rarity === "astral") return 0.000004 + t * 0.12;
+    if (rarity === "singularity") return 0.0000015 + t * 0.08;
+    if (rarity === "omega") return 0.0000005 + t * 0.05;
     return 1;
   }
 
@@ -787,6 +838,9 @@
     if (fish.rarity === "divine") w += luck * 0.012;
     if (fish.rarity === "eternal") w += luck * 0.006;
     if (fish.rarity === "cosmic") w += luck * 0.002;
+    if (fish.rarity === "astral") w += luck * 0.0008;
+    if (fish.rarity === "singularity") w += luck * 0.0003;
+    if (fish.rarity === "omega") w += luck * 0.0001;
     // Worse spots suppress high rarities hard; boats are worse at top tiers
     const t = Math.max(0, Math.min(MAX_SPOT_RARITY, Number(spot.rarity) || 0)) / MAX_SPOT_RARITY;
     if (fish.rarity === "rare") w *= 0.45 + t * 0.55;
@@ -796,6 +850,9 @@
     if (fish.rarity === "divine") w *= (0.03 + t * 0.97) * (forBoat ? 0.25 : 1);
     if (fish.rarity === "eternal") w *= (0.02 + t * 0.98) * (forBoat ? 0.18 : 1);
     if (fish.rarity === "cosmic") w *= (0.01 + t * 0.99) * (forBoat ? 0.1 : 1);
+    if (fish.rarity === "astral") w *= (0.006 + t * 0.994) * (forBoat ? 0.07 : 1);
+    if (fish.rarity === "singularity") w *= (0.003 + t * 0.997) * (forBoat ? 0.045 : 1);
+    if (fish.rarity === "omega") w *= (0.0015 + t * 0.9985) * (forBoat ? 0.03 : 1);
     return Math.max(0.01, w);
   }
 
@@ -854,7 +911,18 @@
   function setCatchLine(text, cls = "") {
     if (!catchLineEl) return;
     catchLineEl.textContent = text;
-    catchLineEl.classList.remove("miss", "legend", "mythic", "secret", "divine", "eternal", "cosmic");
+    catchLineEl.classList.remove(
+      "miss",
+      "legend",
+      "mythic",
+      "secret",
+      "divine",
+      "eternal",
+      "cosmic",
+      "astral",
+      "singularity",
+      "omega"
+    );
     if (cls) catchLineEl.classList.add(cls);
   }
 
@@ -865,11 +933,17 @@
       rarity === "secret" ||
       rarity === "divine" ||
       rarity === "eternal" ||
-      rarity === "cosmic"
+      rarity === "cosmic" ||
+      rarity === "astral" ||
+      rarity === "singularity" ||
+      rarity === "omega"
     );
   }
 
   function catchTone(rarity) {
+    if (rarity === "omega") return "omega";
+    if (rarity === "singularity") return "singularity";
+    if (rarity === "astral") return "astral";
     if (rarity === "cosmic") return "cosmic";
     if (rarity === "eternal") return "eternal";
     if (rarity === "divine") return "divine";
@@ -1450,7 +1524,10 @@
       secret: 6,
       divine: 7,
       eternal: 8,
-      cosmic: 9
+      cosmic: 9,
+      astral: 10,
+      singularity: 11,
+      omega: 12
     }[r] ?? 0;
   }
 

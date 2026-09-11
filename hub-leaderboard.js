@@ -198,7 +198,16 @@
     { id: "aeon", name: "Aeon Shark", rarity: "eternal", value: 4500000 },
     { id: "nebula", name: "Nebula Nettle", rarity: "cosmic", value: 12000000 },
     { id: "quasar", name: "Quasar Cod", rarity: "cosmic", value: 25000000 },
-    { id: "omnifin", name: "Omnifin", rarity: "cosmic", value: 50000000 }
+    { id: "omnifin", name: "Omnifin", rarity: "cosmic", value: 50000000 },
+    { id: "stardrift", name: "Stardrift Ray", rarity: "astral", value: 120000000 },
+    { id: "aurorafin", name: "Aurora Fin", rarity: "astral", value: 250000000 },
+    { id: "galaxykoi", name: "Galaxy Koi", rarity: "astral", value: 500000000 },
+    { id: "eventide", name: "Eventide Eel", rarity: "singularity", value: 1200000000 },
+    { id: "horizon", name: "Horizon Shark", rarity: "singularity", value: 2500000000 },
+    { id: "collapse", name: "Collapse Carp", rarity: "singularity", value: 5000000000 },
+    { id: "primefin", name: "Primefin", rarity: "omega", value: 15000000000 },
+    { id: "absoluth", name: "Absoluth", rarity: "omega", value: 40000000000 },
+    { id: "theend", name: "The End Fish", rarity: "omega", value: 100000000000 }
   ];
 
   const FISHING_RARITY_RANK = {
@@ -211,7 +220,10 @@
     secret: 7,
     divine: 8,
     eternal: 9,
-    cosmic: 10
+    cosmic: 10,
+    astral: 11,
+    singularity: 12,
+    omega: 13
   };
 
   function fishingCatchScore(fish) {

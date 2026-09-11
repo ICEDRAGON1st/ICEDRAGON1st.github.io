@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260912b": [
+    "Fishing Idle: new rarities Astral, Singularity, Omega (+ fish & late spots)"
+  ],
   "20260912a": [
     "Fishing Idle: auto boat hire and upgrades cost much more"
   ],
