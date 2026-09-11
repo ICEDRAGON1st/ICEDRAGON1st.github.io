@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260912h": [
+    "Guessword: more 3D keyboard keys (depth, press-in, themed edges)"
+  ],
   "20260912g": [
     "What's new: old notes renamed to current game titles"
   ],

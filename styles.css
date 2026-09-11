@@ -16,7 +16,9 @@ body[data-guess-colors="ice"] {
   --correct-glow: rgba(61, 184, 232, 0.45);
   --present-glow: rgba(167, 139, 250, 0.4);
   --absent-glow: rgba(61, 79, 102, 0.35);
-  --key-bg: #3d5168;
+  --key-bg: #4a6178;
+  --key-bg-top: #5c7690;
+  --key-edge: #243446;
   --key-text: #e8f4ff;
   --modal-bg: #0f1a2a;
   --subtitle: #8ba3c0;
@@ -34,7 +36,9 @@ body[data-guess-colors="arcade"] {
   --correct-glow: rgba(46, 230, 166, 0.45);
   --present-glow: rgba(255, 92, 122, 0.42);
   --absent-glow: rgba(58, 42, 74, 0.4);
-  --key-bg: #4a3560;
+  --key-bg: #56406e;
+  --key-bg-top: #6a5288;
+  --key-edge: #2a1c3a;
   --key-text: #f3e8ff;
   --modal-bg: #1a0f28;
   --subtitle: #b89fd4;
@@ -52,7 +56,9 @@ body[data-guess-colors="warm"] {
   --correct-glow: rgba(42, 157, 143, 0.42);
   --present-glow: rgba(224, 159, 62, 0.4);
   --absent-glow: rgba(58, 53, 48, 0.35);
-  --key-bg: #5a4c3e;
+  --key-bg: #6a5a4a;
+  --key-bg-top: #7e6c58;
+  --key-edge: #2e2620;
   --key-text: #fff6ec;
   --modal-bg: #1c1712;
   --subtitle: #b8a894;
@@ -72,6 +78,8 @@ body.light[data-guess-colors="ice"] {
   --present-glow: rgba(139, 108, 240, 0.32);
   --absent-glow: rgba(138, 155, 176, 0.28);
   --key-bg: #d5e2ef;
+  --key-bg-top: #eef4fa;
+  --key-edge: #9aafc4;
   --key-text: #0f1a2a;
   --modal-bg: #ffffff;
   --subtitle: #5a7088;
@@ -90,6 +98,8 @@ body.light[data-guess-colors="arcade"] {
   --present-glow: rgba(232, 62, 92, 0.3);
   --absent-glow: rgba(154, 138, 172, 0.28);
   --key-bg: #eadff5;
+  --key-bg-top: #f7f1fc;
+  --key-edge: #b09ac8;
   --key-text: #1a0f28;
   --modal-bg: #ffffff;
   --subtitle: #6e5888;
@@ -108,6 +118,8 @@ body.light[data-guess-colors="warm"] {
   --present-glow: rgba(212, 137, 31, 0.3);
   --absent-glow: rgba(154, 142, 130, 0.28);
   --key-bg: #ebe2d6;
+  --key-bg-top: #f8f3eb;
+  --key-edge: #b8a890;
   --key-text: #1c1712;
   --modal-bg: #ffffff;
   --subtitle: #7a6c5c;
@@ -450,7 +462,8 @@ header h1 {
   width: min(500px, 98vw);
   display: flex;
   flex-direction: column;
-  gap: 0.55rem;
+  gap: 0.7rem;
+  padding-bottom: 0.35rem;
 }
 
 .keyboard-row {
@@ -461,24 +474,47 @@ header h1 {
 
 .key {
   /* 10 keys + 9 gaps of 1.2vw each in the widest row = ~89vw for keys → each ~8.9vw */
+  position: relative;
   min-width: min(3.35rem, 8.9vw);
   height: min(4.35rem, 11vw);
   padding: 0 min(0.75rem, 1.5vw);
-  border: 2px solid transparent;
-  border-radius: 0.7rem;
-  background: var(--key-bg);
+  border: 0;
+  border-radius: 0.72rem;
+  background:
+    linear-gradient(180deg, var(--key-bg-top) 0%, var(--key-bg) 55%, color-mix(in srgb, var(--key-edge) 35%, var(--key-bg)) 100%);
   color: var(--key-text);
   font-size: min(1.15rem, 3.5vw);
   font-weight: 700;
   text-transform: uppercase;
   cursor: pointer;
   user-select: none;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  transition: background-color 0.25s ease, border-color 0.25s ease, opacity 0.2s ease, box-shadow 0.25s ease;
+  transform: translateY(0);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.18),
+    0 1px 0 var(--key-edge),
+    0 3px 0 var(--key-edge),
+    0 5px 0 color-mix(in srgb, var(--key-edge) 75%, #000),
+    0 8px 14px rgba(0, 0, 0, 0.28);
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.08s ease,
+    background-color 0.25s ease,
+    filter 0.2s ease;
 }
 
 .key:hover {
-  opacity: 0.85;
+  filter: brightness(1.08);
+}
+
+.key:active {
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 1px 0 var(--key-edge),
+    0 2px 0 color-mix(in srgb, var(--key-edge) 80%, #000),
+    0 3px 6px rgba(0, 0, 0, 0.22);
 }
 
 .key.wide {
@@ -487,33 +523,57 @@ header h1 {
 }
 
 .key.correct {
-  background: var(--correct);
-  border: 2px solid var(--correct);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--correct) 72%, #fff) 0%, var(--correct) 55%, color-mix(in srgb, var(--correct) 70%, #000) 100%);
   color: #fff;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    inset 0 -2px 6px rgba(0, 0, 0, 0.18),
-    0 0 12px var(--correct-glow);
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.2),
+    0 1px 0 color-mix(in srgb, var(--correct) 55%, #000),
+    0 3px 0 color-mix(in srgb, var(--correct) 40%, #000),
+    0 5px 0 color-mix(in srgb, var(--correct) 28%, #000),
+    0 8px 14px rgba(0, 0, 0, 0.28),
+    0 0 14px var(--correct-glow);
 }
 
 .key.present {
-  background: var(--present);
-  border: 2px solid var(--present);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--present) 72%, #fff) 0%, var(--present) 55%, color-mix(in srgb, var(--present) 70%, #000) 100%);
   color: #fff;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.22),
-    inset 0 -2px 6px rgba(0, 0, 0, 0.18),
-    0 0 12px var(--present-glow);
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.2),
+    0 1px 0 color-mix(in srgb, var(--present) 55%, #000),
+    0 3px 0 color-mix(in srgb, var(--present) 40%, #000),
+    0 5px 0 color-mix(in srgb, var(--present) 28%, #000),
+    0 8px 14px rgba(0, 0, 0, 0.28),
+    0 0 14px var(--present-glow);
 }
 
 .key.absent {
-  background: var(--absent);
-  border: 2px solid var(--absent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--absent) 65%, #fff) 0%, var(--absent) 55%, color-mix(in srgb, var(--absent) 75%, #000) 100%);
   color: #fff;
-  opacity: 0.85;
+  opacity: 0.92;
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    inset 0 -2px 5px rgba(0, 0, 0, 0.22);
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.22),
+    0 1px 0 color-mix(in srgb, var(--absent) 55%, #000),
+    0 3px 0 color-mix(in srgb, var(--absent) 40%, #000),
+    0 5px 0 color-mix(in srgb, var(--absent) 28%, #000),
+    0 7px 12px rgba(0, 0, 0, 0.26);
+}
+
+.key.correct:active,
+.key.present:active,
+.key.absent:active {
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 1px 0 color-mix(in srgb, currentColor 20%, #000),
+    0 2px 0 rgba(0, 0, 0, 0.35),
+    0 3px 6px rgba(0, 0, 0, 0.22);
 }
 
 #confetti {
