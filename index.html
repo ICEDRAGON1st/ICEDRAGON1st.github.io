@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260912t">
+  <link rel="stylesheet" href="styles.css?v=20260912u">
 </head>
 <body data-guess-colors="ice">
   <div class="guess-bg" aria-hidden="true">
@@ -133,6 +133,15 @@
   </div>
 
   <div id="games-screen" class="games-screen hidden" role="dialog" aria-modal="true" aria-labelledby="games-title">
+    <div class="hub-bg" aria-hidden="true">
+      <div class="hub-bg-wash"></div>
+      <div class="hub-bg-sparkle"></div>
+      <div class="hub-scanlines"></div>
+      <span class="guess-bg-orb guess-bg-orb-a"></span>
+      <span class="guess-bg-orb guess-bg-orb-b"></span>
+      <span class="guess-bg-orb guess-bg-orb-c"></span>
+      <span class="guess-bg-orb guess-bg-orb-d"></span>
+    </div>
     <div class="games-screen-inner">
       <header class="games-header">
         <button id="toggle-settings-btn" type="button" class="games-back hub-settings-header-btn" aria-label="Open settings" title="Settings">⚙ Settings</button>
@@ -512,7 +521,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260912t";
+    window.WORDLE_BUILD = "20260912u";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js",
       "words.js",

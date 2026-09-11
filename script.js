@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260912u": [
+    "My Games hub: same drifting glow / orb / sparkle background animation as Guessword"
+  ],
   "20260912t": [
     "Hangman: same creamy keyboard thock as Guessword when guessing letters"
   ],
