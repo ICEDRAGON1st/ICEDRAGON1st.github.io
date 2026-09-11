@@ -11,9 +11,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260910f">
+  <link rel="stylesheet" href="styles.css?v=20260911a">
 </head>
-<body>
+<body data-guess-colors="ice">
   <div class="app">
     <header>
       <button id="hint-btn" type="button" class="hint-btn hidden" aria-label="Get a hint" title="Hints are disabled" disabled hidden>Hint</button>
@@ -62,7 +62,23 @@
           <span class="stat-label">Played</span>
         </div>
       </div>
-      <p class="picker-label">Theme</p>
+      <p class="picker-label">Board colors</p>
+      <div id="color-theme-picker" class="color-theme-picker" role="group" aria-label="Board color theme">
+        <button type="button" class="color-theme-btn active" data-guess-colors="ice">
+          <span class="color-theme-swatches" aria-hidden="true"><i></i><i></i><i></i></span>
+          Ice
+        </button>
+        <button type="button" class="color-theme-btn" data-guess-colors="arcade">
+          <span class="color-theme-swatches" aria-hidden="true"><i></i><i></i><i></i></span>
+          Arcade
+        </button>
+        <button type="button" class="color-theme-btn" data-guess-colors="warm">
+          <span class="color-theme-swatches" aria-hidden="true"><i></i><i></i><i></i></span>
+          Warm
+        </button>
+      </div>
+      <p id="color-theme-hint" class="color-theme-hint">Ice · cyan correct, violet present</p>
+      <p class="picker-label">Word theme</p>
       <div id="word-theme-picker" class="word-theme-picker" role="group" aria-label="Word theme">
         <button type="button" class="word-theme-btn active" data-word-theme="classic">Classic</button>
         <button type="button" class="word-theme-btn" data-word-theme="animals">Animals</button>
@@ -490,7 +506,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260910f";
+    window.WORDLE_BUILD = "20260911a";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js",
       "words.js",

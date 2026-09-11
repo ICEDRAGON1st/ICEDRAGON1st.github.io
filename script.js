@@ -10,6 +10,13 @@ const HUB_THEME_KEY = "hub-look-theme";
 const SEEN_BUILD_KEY = "wordle-seen-build";
 const MODE_KEY = "wordle-play-mode";
 const WORD_THEME_KEY = "wordle-word-theme";
+const COLOR_THEME_KEY = "guessword-color-theme";
+
+const GUESS_COLOR_THEMES = {
+  ice: { id: "ice", label: "Ice", blurb: "cyan correct, violet present" },
+  arcade: { id: "arcade", label: "Arcade", blurb: "neon mint correct, hot coral present" },
+  warm: { id: "warm", label: "Warm", blurb: "teal correct, amber present" }
+};
 
 const HUB_THEMES = {
   classic: { label: "Classic", eyebrow: "Hub" },
@@ -21,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911a": [
+    "Guessword: Ice / Arcade / Warm board colors, rounded glowing tiles, color picker in Menu"
+  ],
   "20260910f": [
     "Safer names: Block Merge, Bounce Break, Cross Walk, Runosaur"
   ],
@@ -585,6 +595,8 @@ const menuNewWordBtn = document.getElementById("menu-new-word");
 const menuGamesBtn = document.getElementById("menu-games");
 const wordThemePicker = document.getElementById("word-theme-picker");
 const wordThemeHintEl = document.getElementById("word-theme-hint");
+const colorThemePicker = document.getElementById("color-theme-picker");
+const colorThemeHintEl = document.getElementById("color-theme-hint");
 const menuBtn = document.getElementById("menu-btn");
 const gamesScreen = document.getElementById("games-screen");
 const gamesMessageEl = document.getElementById("games-message");
@@ -824,6 +836,37 @@ function applyTheme(theme) {
   document.body.classList.toggle("light", theme === "light");
   themeBtn.textContent = theme === "light" ? "☾" : "☀";
   themeBtn.title = theme === "light" ? "Switch to dark background" : "Switch to light background";
+}
+
+function getGuessColorThemeId() {
+  const raw = localStorage.getItem(COLOR_THEME_KEY) || "ice";
+  return GUESS_COLOR_THEMES[raw] ? raw : "ice";
+}
+
+function updateColorThemePicker() {
+  const id = getGuessColorThemeId();
+  colorThemePicker?.querySelectorAll("[data-guess-colors]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.guessColors === id);
+  });
+  const def = GUESS_COLOR_THEMES[id];
+  if (colorThemeHintEl && def) {
+    colorThemeHintEl.textContent = `${def.label} · ${def.blurb}`;
+  }
+}
+
+function applyGuessColorTheme(themeId = getGuessColorThemeId()) {
+  const id = GUESS_COLOR_THEMES[themeId] ? themeId : "ice";
+  try {
+    localStorage.setItem(COLOR_THEME_KEY, id);
+  } catch {}
+  document.body.setAttribute("data-guess-colors", id);
+  updateColorThemePicker();
+}
+
+function setGuessColorTheme(themeId) {
+  if (!GUESS_COLOR_THEMES[themeId]) return;
+  applyGuessColorTheme(themeId);
+  showMessage(`${GUESS_COLOR_THEMES[themeId].label} colors`, false, 1200);
 }
 
 function toggleTheme() {
@@ -1265,6 +1308,7 @@ function showMenu() {
   menuDailyBtn?.classList.toggle("hidden", isDailyMode());
   menuShareDailyBtn?.classList.toggle("hidden", !(isDailyMode() && finished));
   updateWordThemePicker();
+  updateColorThemePicker();
 
   statWins.textContent = stats.wins;
   statWinPct.textContent = getWinPercent(stats);
@@ -2390,6 +2434,7 @@ updateLangButton();
 updateLengthButton();
 updateModeButton();
 applyTheme(localStorage.getItem(THEME_KEY) || "dark");
+applyGuessColorTheme();
 applyHubTheme();
 render();
 document.addEventListener("keydown", handlePhysicalKeyboard);
@@ -2423,6 +2468,11 @@ wordThemePicker?.addEventListener("click", (e) => {
   if (!btn || btn.disabled) return;
   if (!requirePlayerName()) return;
   setWordTheme(btn.dataset.wordTheme);
+});
+colorThemePicker?.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-guess-colors]");
+  if (!btn) return;
+  setGuessColorTheme(btn.dataset.guessColors);
 });
 continueLastBtn?.addEventListener("click", () => {
   if (!requirePlayerName()) return;
