@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911r": [
+    "Runosaur: low crystal bats require holding ↓ / S (or swipe down) to duck under"
+  ],
   "20260911q": [
     "Guessword: ice-melt tile reveal + Flex 4/5/6 signature (less Wordle look)",
     "Runosaur: ice caves, frost spikes, crystal bats, dragon chase",

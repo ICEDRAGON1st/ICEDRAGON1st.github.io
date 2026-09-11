@@ -18,9 +18,13 @@
   const GROUND_Y = H - 78;
   const GRAVITY = 2800;
   const JUMP_V = -900;
-  const DUCK_H = 48;
+  const DUCK_H = 42;
   const STAND_H = 74;
   const DINO_W = 62;
+  // Overhead hazards must sit in this band: hits standing, clears ducking
+  // Stand hitbox top ≈ GROUND_Y - 66; duck hitbox top ≈ GROUND_Y - 34
+  const OVERHEAD_BOTTOM = 52; // from ground up — obstacle bottom at GROUND_Y - 52
+  const OVERHEAD_H = 44;
 
   let best = Math.max(0, Math.floor(Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0));
   let running = false;
@@ -41,6 +45,8 @@
   let lastSubmitAt = 0;
   let raf = 0;
   let chaseBreath = 0;
+  let duckKeyHeld = false;
+  let pointerGesture = null;
 
   function ensureSession() {
     if (sessionStarted) return;
@@ -130,7 +136,7 @@
 
   function setDuck(on) {
     if (!dino || dead || !running || paused || waitingStart) return;
-    if (!dino.onGround) return;
+    if (!dino.onGround && on) return;
     dino.ducking = !!on;
     dino.h = on ? DUCK_H : STAND_H;
     dino.y = GROUND_Y - dino.h;
@@ -138,13 +144,15 @@
 
   function spawnObstacle() {
     const roll = Math.random();
-    if (score > 180 && roll < 0.28) {
+    // Must-duck overhead: standing hits, ducking slides under
+    if (score > 90 && roll < 0.32) {
       obstacles.push({
         type: "bat",
+        mustDuck: true,
         x: W + 20,
-        y: GROUND_Y - (Math.random() < 0.5 ? 112 : 68),
-        w: 64,
-        h: 38,
+        y: GROUND_Y - OVERHEAD_BOTTOM - OVERHEAD_H,
+        w: 72,
+        h: OVERHEAD_H,
         passed: false
       });
       return;
@@ -165,11 +173,13 @@
   }
 
   function hitbox(dinoBox) {
+    const topPad = dinoBox.ducking ? 4 : 8;
+    const bottomPad = 10;
     return {
       x: dinoBox.x + 10,
-      y: dinoBox.y + 8,
+      y: dinoBox.y + topPad,
       w: dinoBox.w - 18,
-      h: dinoBox.h - 14
+      h: Math.max(16, dinoBox.h - topPad - bottomPad)
     };
   }
 
@@ -224,7 +234,7 @@
     overlayTitle.textContent = canResume ? "Paused" : "Runosaur";
     overlayText.textContent = canResume
       ? "The dragon is still behind you…"
-      : "Race through ice caves — jump frost spikes, duck crystal bats, and stay ahead of the dragon.";
+      : "Race through ice caves — jump frost spikes, hold ↓ / S to duck under low crystal bats, and stay ahead of the dragon.";
     startBtn.textContent = canResume || dead ? "Play again" : "Play";
     resumeBtn?.classList.toggle("hidden", !canResume);
     overlay?.classList.remove("hidden");
@@ -255,6 +265,7 @@
         dino.y = GROUND_Y - dino.h;
         dino.vy = 0;
         dino.onGround = true;
+        if (duckKeyHeld || pointerGesture?.ducked) setDuck(true);
       } else {
         dino.onGround = false;
       }
@@ -518,40 +529,57 @@
 
   function drawBat(o) {
     const flap = Math.sin(anim * 14) > 0;
+    const cx = o.x + o.w / 2;
+    const cy = o.y + o.h * 0.55;
+    // Hanging ice tether — reads as “go under”
+    ctx.strokeStyle = deepCave ? "rgba(160,200,240,0.55)" : "rgba(210,235,255,0.7)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx - 10, o.y - 8);
+    ctx.lineTo(cx - 6, o.y + 10);
+    ctx.moveTo(cx + 10, o.y - 8);
+    ctx.lineTo(cx + 6, o.y + 10);
+    ctx.stroke();
     ctx.fillStyle = deepCave ? "#9bb8d4" : "#c5e0f5";
     ctx.beginPath();
-    ctx.ellipse(o.x + 32, o.y + 20, 16, 10, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx, cy, 18, 12, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = deepCave ? "#6a90b8" : "#7eb0d8";
     ctx.beginPath();
     if (flap) {
-      ctx.moveTo(o.x + 28, o.y + 18);
-      ctx.quadraticCurveTo(o.x + 10, o.y - 8, o.x - 4, o.y + 16);
-      ctx.quadraticCurveTo(o.x + 16, o.y + 22, o.x + 28, o.y + 22);
+      ctx.moveTo(cx - 4, cy);
+      ctx.quadraticCurveTo(cx - 28, cy - 22, cx - 40, cy + 2);
+      ctx.quadraticCurveTo(cx - 18, cy + 8, cx - 4, cy + 6);
     } else {
-      ctx.moveTo(o.x + 28, o.y + 20);
-      ctx.quadraticCurveTo(o.x + 12, o.y + 40, o.x - 2, o.y + 24);
-      ctx.quadraticCurveTo(o.x + 16, o.y + 24, o.x + 28, o.y + 24);
+      ctx.moveTo(cx - 4, cy + 2);
+      ctx.quadraticCurveTo(cx - 26, cy + 24, cx - 38, cy + 8);
+      ctx.quadraticCurveTo(cx - 16, cy + 8, cx - 4, cy + 6);
     }
     ctx.fill();
     ctx.beginPath();
     if (flap) {
-      ctx.moveTo(o.x + 36, o.y + 18);
-      ctx.quadraticCurveTo(o.x + 54, o.y - 8, o.x + 68, o.y + 16);
-      ctx.quadraticCurveTo(o.x + 48, o.y + 22, o.x + 36, o.y + 22);
+      ctx.moveTo(cx + 4, cy);
+      ctx.quadraticCurveTo(cx + 28, cy - 22, cx + 40, cy + 2);
+      ctx.quadraticCurveTo(cx + 18, cy + 8, cx + 4, cy + 6);
     } else {
-      ctx.moveTo(o.x + 36, o.y + 20);
-      ctx.quadraticCurveTo(o.x + 52, o.y + 40, o.x + 66, o.y + 24);
-      ctx.quadraticCurveTo(o.x + 48, o.y + 24, o.x + 36, o.y + 24);
+      ctx.moveTo(cx + 4, cy + 2);
+      ctx.quadraticCurveTo(cx + 26, cy + 24, cx + 38, cy + 8);
+      ctx.quadraticCurveTo(cx + 16, cy + 8, cx + 4, cy + 6);
     }
     ctx.fill();
-    // Crystal shard body glow
-    ctx.fillStyle = "rgba(180, 230, 255, 0.5)";
+    ctx.fillStyle = "rgba(180, 230, 255, 0.55)";
     ctx.beginPath();
-    ctx.moveTo(o.x + 32, o.y + 10);
-    ctx.lineTo(o.x + 38, o.y + 22);
-    ctx.lineTo(o.x + 26, o.y + 22);
+    ctx.moveTo(cx, o.y + 6);
+    ctx.lineTo(cx + 8, cy);
+    ctx.lineTo(cx - 8, cy);
     ctx.fill();
+    // Subtle “duck” cue when close
+    if (dino && o.x < dino.x + 220 && o.x + o.w > dino.x - 20 && !dino.ducking) {
+      ctx.fillStyle = "rgba(255, 220, 120, 0.85)";
+      ctx.font = "700 14px Outfit, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText("↓ DUCK", cx, o.y - 12);
+    }
   }
 
   function draw() {
@@ -600,22 +628,55 @@
 
   canvas?.addEventListener("pointerdown", (e) => {
     e.preventDefault();
-    jump();
+    if (waitingStart || dead) {
+      jump();
+      return;
+    }
+    pointerGesture = { y: e.clientY, ducked: false, id: e.pointerId };
+    try {
+      canvas.setPointerCapture(e.pointerId);
+    } catch {}
+  });
+  canvas?.addEventListener("pointermove", (e) => {
+    if (!pointerGesture || pointerGesture.id !== e.pointerId) return;
+    const dy = e.clientY - pointerGesture.y;
+    if (dy > 28) {
+      pointerGesture.ducked = true;
+      setDuck(true);
+    }
+  });
+  canvas?.addEventListener("pointerup", (e) => {
+    if (!pointerGesture || pointerGesture.id !== e.pointerId) return;
+    const dy = e.clientY - pointerGesture.y;
+    const ducked = pointerGesture.ducked || dy > 28;
+    pointerGesture = null;
+    setDuck(false);
+    if (!ducked && Math.abs(dy) < 24) jump();
+  });
+  canvas?.addEventListener("pointercancel", () => {
+    pointerGesture = null;
+    setDuck(false);
   });
 
   window.addEventListener("keydown", (e) => {
     if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.key === " ") {
       e.preventDefault();
+      duckKeyHeld = false;
+      setDuck(false);
       jump();
     } else if (e.code === "ArrowDown" || e.code === "KeyS") {
       e.preventDefault();
+      duckKeyHeld = true;
       setDuck(true);
     } else if (e.code === "Escape") {
       pauseGame();
     }
   });
   window.addEventListener("keyup", (e) => {
-    if (e.code === "ArrowDown" || e.code === "KeyS") setDuck(false);
+    if (e.code === "ArrowDown" || e.code === "KeyS") {
+      duckKeyHeld = false;
+      setDuck(false);
+    }
   });
 
   resetWorld();
