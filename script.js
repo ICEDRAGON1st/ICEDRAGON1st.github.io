@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911w": [
+    "Fishing Idle: one upgradable auto boat instead of buying many boats"
+  ],
   "20260911v": [
     "Fishing Idle: fish guide shows precise odds (and 1-in-N for ultra-rares)"
   ],

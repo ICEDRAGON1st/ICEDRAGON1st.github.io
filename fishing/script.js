@@ -285,15 +285,21 @@
     { id: "cooler3", name: "Dock Freezer", desc: "+10 cooler slots", cost: 12000, kind: "cooler", amount: 10 },
     { id: "cooler4", name: "Reef Vault", desc: "+14 cooler slots", cost: 80000, kind: "cooler", amount: 14 },
     { id: "cooler5", name: "Trench Hold", desc: "+20 cooler slots", cost: 400000, kind: "cooler", amount: 20 },
-    { id: "cooler6", name: "Void Chest", desc: "+28 cooler slots", cost: 2000000, kind: "cooler", amount: 28 },
-    { id: "boat1", name: "Canoe Hand", desc: "Auto-catch every 12s", cost: 250, kind: "boat", amount: 12 },
-    { id: "boat2", name: "Skiff Crew", desc: "Auto-catch every 8s", cost: 2000, kind: "boat", amount: 8 },
-    { id: "boat3", name: "Trawler", desc: "Auto-catch every 5s", cost: 15000, kind: "boat", amount: 5 },
-    { id: "boat4", name: "Harbor Fleet", desc: "Auto-catch every 3s", cost: 80000, kind: "boat", amount: 3 },
-    { id: "boat5", name: "Deep Sub", desc: "Auto-catch every 2.2s", cost: 350000, kind: "boat", amount: 2.2 },
-    { id: "boat6", name: "Rift Drone", desc: "Auto-catch every 1.5s", cost: 1500000, kind: "boat", amount: 1.5 },
-    { id: "boat7", name: "Cosmic Net", desc: "Auto-catch every 1s", cost: 6000000, kind: "boat", amount: 1 }
+    { id: "cooler6", name: "Void Chest", desc: "+28 cooler slots", cost: 2000000, kind: "cooler", amount: 28 }
   ];
+
+  /** One auto boat — buy once, then upgrade for a faster catch interval. */
+  const BOAT_TIERS = [
+    null,
+    { name: "Canoe", interval: 12, cost: 250 },
+    { name: "Skiff", interval: 8, cost: 2000 },
+    { name: "Trawler", interval: 5, cost: 15000 },
+    { name: "Harbor Boat", interval: 3, cost: 80000 },
+    { name: "Deep Sub", interval: 2.2, cost: 350000 },
+    { name: "Rift Drone", interval: 1.5, cost: 1500000 },
+    { name: "Cosmic Net", interval: 1, cost: 6000000 }
+  ];
+  const BOAT_MAX_LEVEL = BOAT_TIERS.length - 1;
 
   const coinCountEl = document.getElementById("coin-count");
   const spotLabelEl = document.getElementById("spot-label");
@@ -362,6 +368,7 @@
       autoSellRarities: defaultAutoSell(),
       bestCatchScore: 0,
       bestCatchId: "",
+      boatLevel: 0,
       catches: 0,
       perfects: 0,
       lastTick: Date.now()
@@ -399,7 +406,38 @@
   }
 
   function boats() {
-    return ownedGear("boat");
+    const boat = getBoat();
+    return boat ? [boat] : [];
+  }
+
+  function boatLevel() {
+    return Math.max(0, Math.min(BOAT_MAX_LEVEL, Math.floor(Number(state.boatLevel) || 0)));
+  }
+
+  function getBoat() {
+    const level = boatLevel();
+    if (level < 1) return null;
+    const tier = BOAT_TIERS[level];
+    return {
+      id: "boat",
+      name: tier.name,
+      amount: tier.interval,
+      level
+    };
+  }
+
+  function nextBoatTier() {
+    const next = boatLevel() + 1;
+    if (next > BOAT_MAX_LEVEL) return null;
+    return { level: next, ...BOAT_TIERS[next] };
+  }
+
+  function migrateLegacyBoats(ownedMap) {
+    let best = 0;
+    for (let i = 1; i <= 7; i += 1) {
+      if (ownedMap?.[`boat${i}`]) best = i;
+    }
+    return best;
   }
 
   function loadState() {
@@ -439,6 +477,9 @@
       GEAR.forEach((g) => {
         next.owned[g.id] = !!raw.owned?.[g.id];
       });
+      const savedBoat = Math.floor(Number(raw.boatLevel) || 0);
+      const legacyBoat = migrateLegacyBoats(raw.owned);
+      next.boatLevel = Math.max(0, Math.min(BOAT_MAX_LEVEL, Math.max(savedBoat, legacyBoat)));
       next.cooler = Array.isArray(raw.cooler)
         ? raw.cooler
             .map(normalizeCoolerEntry)
@@ -576,8 +617,8 @@
     if (life >= 1000) HubAchievements.unlock("fishing_1k");
     if (life >= 100000) HubAchievements.unlock("fishing_100k");
     if (life >= 1000000) HubAchievements.unlock("fishing_1m");
-    if (boats().length >= 1) HubAchievements.unlock("fishing_fps_10");
-    if (boats().length >= 3) HubAchievements.unlock("fishing_fps_100");
+    if (boatLevel() >= 1) HubAchievements.unlock("fishing_fps_10");
+    if (boatLevel() >= 3) HubAchievements.unlock("fishing_fps_100");
     if (state.unlocked.deep) HubAchievements.unlock("fishing_voyage_1");
     if (state.unlocked.void) HubAchievements.unlock("fishing_voyage_1");
   }
@@ -919,13 +960,35 @@
   }
 
   function buyGear(id) {
+    if (id === "boat") {
+      buyBoatUpgrade();
+      return;
+    }
     const item = GEAR.find((g) => g.id === id);
     if (!item || state.owned[id] || state.coins < item.cost) return;
     ensureSession();
     state.coins -= item.cost;
     state.owned[id] = true;
     window.HubSound?.play?.("click");
-    if (item.kind === "boat") window.HubConfetti?.burst?.();
+    checkAchievements();
+    render();
+    saveSoon();
+  }
+
+  function buyBoatUpgrade() {
+    const next = nextBoatTier();
+    if (!next || state.coins < next.cost) return;
+    ensureSession();
+    state.coins -= next.cost;
+    state.boatLevel = next.level;
+    boatAcc.boat = 0;
+    window.HubSound?.play?.("click");
+    window.HubConfetti?.burst?.();
+    setCatchLine(
+      next.level === 1
+        ? `Hired ${next.name} — auto-catch every ${next.interval}s`
+        : `Upgraded boat to ${next.name} — every ${next.interval}s`
+    );
     checkAchievements();
     render();
     saveSoon();
@@ -976,38 +1039,31 @@
   }
 
   function renderBoatTimers() {
-    const list = boats();
+    const boat = getBoat();
     if (boatsLabelEl) {
-      if (!list.length) boatsLabelEl.textContent = "0";
-      else {
-        const next = Math.min(...list.map(boatRemaining));
-        boatsLabelEl.textContent = `${list.length} · next ${formatTimer(next)}`;
-      }
+      if (!boat) boatsLabelEl.textContent = "None";
+      else boatsLabelEl.textContent = `Lv${boat.level} · ${formatTimer(boatRemaining(boat))}`;
     }
     if (!boatTimersEl) return;
-    if (!list.length) {
+    if (!boat) {
       boatTimersEl.innerHTML = "";
       boatTimersEl.classList.add("empty");
       return;
     }
+    const interval = Number(boat.amount) || 1;
+    const left = boatRemaining(boat);
+    const pct = Math.max(0, Math.min(100, (1 - left / interval) * 100));
     boatTimersEl.classList.remove("empty");
-    boatTimersEl.innerHTML = list
-      .map((boat) => {
-        const interval = Number(boat.amount) || 1;
-        const left = boatRemaining(boat);
-        const pct = Math.max(0, Math.min(100, (1 - left / interval) * 100));
-        return `<div class="boat-timer" data-boat="${boat.id}">
-          <div class="boat-timer-top">
-            <span class="boat-timer-name">${boat.name}</span>
-            <span class="boat-timer-left">${formatTimer(left)}</span>
-          </div>
-          <div class="boat-timer-track" aria-hidden="true">
-            <div class="boat-timer-fill" style="width:${pct.toFixed(1)}%"></div>
-          </div>
-          <div class="boat-timer-meta">every ${interval}s</div>
-        </div>`;
-      })
-      .join("");
+    boatTimersEl.innerHTML = `<div class="boat-timer" data-boat="boat">
+      <div class="boat-timer-top">
+        <span class="boat-timer-name">${boat.name} · Lv${boat.level}</span>
+        <span class="boat-timer-left">${formatTimer(left)}</span>
+      </div>
+      <div class="boat-timer-track" aria-hidden="true">
+        <div class="boat-timer-fill" style="width:${pct.toFixed(1)}%"></div>
+      </div>
+      <div class="boat-timer-meta">every ${interval}s</div>
+    </div>`;
   }
 
   function tickBoats(dt) {
@@ -1053,8 +1109,8 @@
     if (gained > 0 || state.cooler.length) {
       setCatchLine(
         gained > 0
-          ? `While away your boats earned ${formatNum(gained)} coins`
-          : "Boats filled part of your cooler while away"
+          ? `While away your boat earned ${formatNum(gained)} coins`
+          : "Your boat filled part of your cooler while away"
       );
     }
     state.lastTick = now;
@@ -1134,7 +1190,7 @@
 
   function renderShop() {
     if (!shopList) return;
-    shopList.innerHTML = GEAR.map((item) => {
+    const gearHtml = GEAR.map((item) => {
       const owned = !!state.owned[item.id];
       return `<div class="shop-item" role="listitem">
         <div class="shop-item-main">
@@ -1147,6 +1203,39 @@
         }>${owned ? "✓" : formatNum(item.cost)}</button>
       </div>`;
     }).join("");
+
+    const next = nextBoatTier();
+    const current = getBoat();
+    let boatOwned;
+    let boatDesc;
+    let boatBtn;
+    if (!next) {
+      boatOwned = `Maxed · Lv${BOAT_MAX_LEVEL}`;
+      boatDesc = `${current.name} — auto-catch every ${current.amount}s`;
+      boatBtn = `<button type="button" class="buy-btn" disabled>✓</button>`;
+    } else if (!current) {
+      boatOwned = "Not owned";
+      boatDesc = `Hire ${next.name} — auto-catch every ${next.interval}s (upgradeable)`;
+      boatBtn = `<button type="button" class="buy-btn" data-buy="boat" ${
+        state.coins < next.cost ? "disabled" : ""
+      }>${formatNum(next.cost)}</button>`;
+    } else {
+      boatOwned = `Owned · Lv${current.level}/${BOAT_MAX_LEVEL}`;
+      boatDesc = `${current.name} every ${current.amount}s → upgrade to ${next.name} (${next.interval}s)`;
+      boatBtn = `<button type="button" class="buy-btn" data-buy="boat" ${
+        state.coins < next.cost ? "disabled" : ""
+      }>${formatNum(next.cost)}</button>`;
+    }
+    const boatHtml = `<div class="shop-item shop-item-boat" role="listitem">
+      <div class="shop-item-main">
+        <div class="shop-item-name">Auto Boat</div>
+        <p class="shop-item-desc">${boatDesc}</p>
+        <div class="shop-item-owned">${boatOwned}</div>
+      </div>
+      ${boatBtn}
+    </div>`;
+
+    shopList.innerHTML = gearHtml + boatHtml;
   }
 
   function renderStats() {
@@ -1178,6 +1267,17 @@
       });
       shopList?.querySelectorAll("[data-buy]").forEach((btn) => {
         const id = btn.dataset.buy;
+        if (id === "boat") {
+          const next = nextBoatTier();
+          if (!next) {
+            btn.disabled = true;
+            btn.textContent = "✓";
+            return;
+          }
+          btn.disabled = state.coins < next.cost;
+          btn.textContent = formatNum(next.cost);
+          return;
+        }
         if (state.owned[id]) {
           btn.disabled = true;
           btn.textContent = "✓";
