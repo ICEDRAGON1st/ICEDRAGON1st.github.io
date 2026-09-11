@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260912o": [
+    "Guessword: quieter creamy key sounds"
+  ],
   "20260912n": [
     "Guessword: typing uses your creamy keyboard recording"
   ],

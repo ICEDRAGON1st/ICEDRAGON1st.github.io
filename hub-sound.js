@@ -86,7 +86,7 @@
     const rateBase = opts.rate != null ? opts.rate : 1;
     src.playbackRate.value = rateBase * (0.985 + Math.random() * 0.03);
     const gain = ctx.createGain();
-    const vol = (opts.vol != null ? opts.vol : 0.85) * (0.92 + Math.random() * 0.16);
+    const vol = (opts.vol != null ? opts.vol : 0.4) * (0.92 + Math.random() * 0.16);
     const t = ctx.currentTime;
     gain.gain.setValueAtTime(0.0001, t);
     gain.gain.exponentialRampToValueAtTime(vol, t + 0.004);
@@ -99,7 +99,7 @@
 
   /** Your creamy keyboard recording clips; soft synth only while loading. */
   function playKeyThock() {
-    if (playKeySample({ vol: 0.9 })) return;
+    if (playKeySample({ vol: 0.38 })) return;
     ensureKeySamples();
     playKeyThockSynth();
   }
@@ -225,7 +225,7 @@
       tone({ freq: 980, dur: 0.028, type: "square", vol: 0.02, slide: -120 });
       noiseHit({ dur: 0.018, vol: 0.028, freq: 2800, q: 1.1 });
     } else if (kind === "back") {
-      if (playKeySample({ vol: 0.55, rate: 0.94 })) return;
+      if (playKeySample({ vol: 0.26, rate: 0.94 })) return;
       ensureKeySamples();
       const wobble = (Math.random() - 0.5) * 12;
       softTone({ freq: 340 + wobble, dur: 0.12, vol: 0.032, slide: -70, attack: 0.02, lp: 1100 });
