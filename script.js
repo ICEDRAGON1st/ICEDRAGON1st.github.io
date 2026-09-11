@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260912p": [
+    "Guessword: animated backgrounds that match Ice / Arcade / Warm themes"
+  ],
   "20260912o": [
     "Guessword: quieter creamy key sounds"
   ],
