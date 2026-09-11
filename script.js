@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911p": [
+    "Wing Hop: fix crashed dragon draw (invalid colors broke body/wings)"
+  ],
   "20260911o": [
     "Wing Hop: fix invisible dragon — body no longer blends into sky (Ember etc.)"
   ],
