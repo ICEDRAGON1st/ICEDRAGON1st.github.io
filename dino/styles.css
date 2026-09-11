@@ -5,12 +5,12 @@
 }
 
 :root {
-  --bg: #f4efe4;
-  --ink: #3d3429;
-  --muted: #7a6d5d;
-  --card: #fffaf2;
-  --accent: #c46b3a;
-  --border: rgba(61, 52, 41, 0.14);
+  --bg: #0e1a2e;
+  --ink: #e8f4ff;
+  --muted: #8ba8c8;
+  --card: #152640;
+  --accent: #5eb0e8;
+  --border: rgba(140, 190, 240, 0.22);
 }
 
 html,
@@ -23,9 +23,9 @@ body {
   font-family: "Outfit", system-ui, sans-serif;
   color: var(--ink);
   background:
-    radial-gradient(ellipse at 10% 0%, #ffe8c8 0%, transparent 45%),
-    radial-gradient(ellipse at 90% 100%, #e8d7c0 0%, transparent 40%),
-    linear-gradient(180deg, #f7f1e6 0%, var(--bg) 55%, #ebe3d4 100%);
+    radial-gradient(ellipse at 15% 0%, #1a3a5c 0%, transparent 48%),
+    radial-gradient(ellipse at 90% 100%, #1a2848 0%, transparent 42%),
+    linear-gradient(180deg, #122038 0%, var(--bg) 55%, #0a1424 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -53,7 +53,7 @@ body {
 
 .menu-btn {
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.7);
+  background: rgba(20, 40, 70, 0.75);
   color: var(--ink);
   padding: 0.4rem 0.7rem;
 }
@@ -78,40 +78,40 @@ body {
 
 #game {
   width: 100%;
-  height: min(62vh, 560px);
-  display: block;
-  border-radius: 1rem;
+  height: auto;
+  max-height: min(62vh, 480px);
   border: 1px solid var(--border);
-  background: #f7f3ea;
-  box-shadow: 0 16px 36px rgba(61, 52, 41, 0.12);
+  border-radius: 12px;
+  background: #0a1424;
+  display: block;
   touch-action: none;
   cursor: pointer;
+  box-shadow: 0 12px 40px rgba(0, 20, 50, 0.45);
 }
 
 .hint {
-  margin: 0.75rem 0 0;
+  margin: 0.65rem 0 0;
+  font-size: 0.88rem;
   color: var(--muted);
-  font-size: 0.9rem;
-  line-height: 1.4;
+  text-align: center;
 }
 
-kbd {
-  font: inherit;
-  font-size: 0.82em;
-  font-weight: 700;
-  padding: 0.08rem 0.35rem;
-  border-radius: 0.35rem;
+.hint kbd {
+  display: inline-block;
+  padding: 0.1rem 0.35rem;
+  border-radius: 0.3rem;
   border: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.8);
+  background: rgba(30, 55, 90, 0.7);
+  font-size: 0.8em;
 }
 
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(40, 32, 24, 0.45);
   display: flex;
   align-items: center;
   justify-content: center;
+  background: rgba(6, 12, 24, 0.72);
   padding: 1rem;
   z-index: 20;
 }
@@ -122,75 +122,61 @@ kbd {
 
 .overlay-card {
   width: min(420px, 100%);
-  background: linear-gradient(165deg, #fffdf8, var(--card));
+  background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 1.15rem;
-  padding: 1.35rem 1.25rem 1.2rem;
-  box-shadow: 0 22px 50px rgba(40, 32, 24, 0.28);
+  border-radius: 1rem;
+  padding: 1.4rem 1.35rem 1.25rem;
+  box-shadow: 0 18px 50px rgba(0, 10, 30, 0.55);
 }
 
 .eyebrow {
-  margin: 0;
+  margin: 0 0 0.35rem;
   font-size: 0.72rem;
-  letter-spacing: 0.1em;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--accent);
 }
 
 .overlay-card h1 {
-  margin: 0.2rem 0 0.45rem;
-  font-size: 1.7rem;
-  letter-spacing: -0.02em;
+  margin: 0 0 0.5rem;
+  font-size: 1.85rem;
 }
 
 .lead {
-  margin: 0;
+  margin: 0 0 0.75rem;
   color: var(--muted);
   line-height: 1.45;
 }
 
 .score-line {
-  margin: 0.9rem 0 0;
+  margin: 0 0 1rem;
+  color: var(--muted);
+}
+
+.score-line strong {
+  color: var(--ink);
 }
 
 .overlay-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 1.05rem;
+  gap: 0.55rem;
 }
 
 .btn {
-  border: 0;
-  padding: 0.7rem 1rem;
-  background: linear-gradient(180deg, #d98952, var(--accent));
-  color: #fff8f2;
-  box-shadow: 0 4px 0 #8f4a28;
-}
-
-.btn:active {
-  transform: translateY(2px);
-  box-shadow: 0 2px 0 #8f4a28;
+  border: none;
+  background: var(--accent);
+  color: #061018;
+  padding: 0.55rem 1rem;
 }
 
 .btn-ghost {
-  background: rgba(255, 255, 255, 0.75);
+  background: transparent;
   color: var(--ink);
-  box-shadow: none;
   border: 1px solid var(--border);
 }
 
-.btn-ghost:active {
-  box-shadow: none;
-}
-
-.hidden {
-  display: none !important;
-}
-
-@media (max-width: 640px) {
-  #game {
-    border-radius: 0.75rem;
-    height: min(48vh, 420px);
-  }
+.btn:hover {
+  filter: brightness(1.08);
 }

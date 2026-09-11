@@ -28,6 +28,11 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911q": [
+    "Guessword: ice-melt tile reveal + Flex 4/5/6 signature (less Wordle look)",
+    "Runosaur: ice caves, frost spikes, crystal bats, dragon chase",
+    "Cross Walk: fantasy lanes — lava carts, ice floes, crystal meadows"
+  ],
   "20260911p": [
     "Wing Hop: fix crashed dragon draw (invalid colors broke body/wings)"
   ],
@@ -838,13 +843,13 @@ function updateLangButton() {
 
 function updateLengthButton() {
   if (!lengthBtn) return;
-  lengthBtn.textContent = String(currentLength);
+  lengthBtn.textContent = `Flex ${currentLength}`;
   const daily = isDailyMode();
   lengthBtn.classList.toggle("hidden", daily);
   lengthBtn.disabled = daily;
   lengthBtn.title = daily
     ? "Daily Guessword is always 5 letters"
-    : "Switch between 4, 5 and 6 letter words";
+    : "Flex Length — Guessword's signature 4 / 5 / 6 (Practice)";
   lengthBtn.setAttribute("aria-hidden", daily ? "true" : "false");
   boardEl.classList.toggle("len-4", currentLength === 4);
   boardEl.classList.toggle("len-6", currentLength === 6);
@@ -1004,14 +1009,17 @@ function updateModeButton() {
     const label = getWordThemeDef()?.label || "Classic";
     modeBtn.textContent = label === "Classic" ? "Practice" : `Practice · ${label}`;
     modeBtn.classList.remove("is-daily");
-    modeBtn.title = "Random words (4/5/6 letters, optional themes). Tap to play today's Daily Guessword.";
+    modeBtn.title =
+      "Practice: themed word packs + Flex Length (4/5/6). Tap for today's Daily Guessword.";
   }
 }
 
 function togglePlayMode() {
   setPlayMode(isDailyMode() ? "practice" : "daily");
   reloadBoard();
-  showMessage(isDailyMode() ? "Today's Daily Guessword" : "Practice mode");
+  showMessage(
+    isDailyMode() ? "Today's Daily Guessword" : "Practice · themes + Flex 4/5/6"
+  );
 }
 
 function loadState() {
@@ -2266,11 +2274,12 @@ function shakeRow(rowIndex) {
   );
 }
 
-function stampTile(tile, duration = 650) {
+function stampTile(tile, duration = 700) {
   return new Promise((resolve) => {
     const prevTransition = tile.style.transition;
     const prevAnimation = tile.style.animation;
     const prevTransform = tile.style.transform;
+    const prevFilter = tile.style.filter;
     tile.style.transition = "none";
     tile.style.animation = "none";
     tile.classList.add("flip");
@@ -2278,36 +2287,43 @@ function stampTile(tile, duration = 650) {
     const start = performance.now();
     const tick = (now) => {
       const t = Math.min(1, (now - start) / duration);
-      // 0–30%: pull back + skew · 30–55%: slam down · 55–100%: settle
-      let scale = 1;
-      let rot = 0;
-      let skew = 0;
+      // Ice melt: freeze up → drip/squash → settle into color
+      let sx = 1;
+      let sy = 1;
       let y = 0;
-      if (t < 0.3) {
-        const p = t / 0.3;
-        scale = 1 - 0.45 * p;
-        rot = -22 * p;
-        skew = -20 * p;
-        y = -18 * p;
-      } else if (t < 0.55) {
-        const p = (t - 0.3) / 0.25;
-        scale = 0.55 + 0.7 * p;
-        rot = -22 + 30 * p;
-        skew = -20 + 30 * p;
-        y = -18 + 26 * p;
+      let bright = 1;
+      let sat = 1;
+      if (t < 0.32) {
+        const p = t / 0.32;
+        sx = 0.92 + 0.02 * p;
+        sy = 1.18 - 0.08 * p;
+        y = -12 + 4 * p;
+        bright = 1.4 - 0.15 * p;
+        sat = 0.35 + 0.2 * p;
+      } else if (t < 0.58) {
+        const p = (t - 0.32) / 0.26;
+        const ease = p * p;
+        sx = 0.94 + 0.22 * ease;
+        sy = 1.1 - 0.42 * ease;
+        y = -8 + 22 * ease;
+        bright = 1.25 - 0.2 * p;
+        sat = 0.55 + 0.35 * p;
       } else {
-        const p = (t - 0.55) / 0.45;
+        const p = (t - 0.58) / 0.42;
         const ease = 1 - Math.pow(1 - p, 3);
-        scale = 1.25 - 0.25 * ease;
-        rot = 8 - 8 * ease;
-        skew = 10 - 10 * ease;
-        y = 8 - 8 * ease;
+        sx = 1.16 - 0.16 * ease;
+        sy = 0.68 + 0.32 * ease;
+        y = 14 - 14 * ease;
+        bright = 1.05 - 0.05 * ease;
+        sat = 0.9 + 0.1 * ease;
       }
-      tile.style.transform = `translateY(${y}px) rotate(${rot}deg) skewX(${skew}deg) scale(${scale})`;
+      tile.style.transform = `translateY(${y}px) scale(${sx}, ${sy})`;
+      tile.style.filter = `brightness(${bright}) saturate(${sat})`;
       if (t < 1) {
         requestAnimationFrame(tick);
       } else {
         tile.style.transform = prevTransform;
+        tile.style.filter = prevFilter;
         tile.style.transition = prevTransition;
         tile.style.animation = prevAnimation;
         tile.classList.remove("flip");
@@ -2331,9 +2347,9 @@ async function animateRowFlip(rowIndex) {
     const paintTimer = setTimeout(() => {
       tile.classList.add(status);
       paintKeyboardKey(state.board[rowIndex][i].letter);
-    }, 320);
+    }, 380);
 
-    await stampTile(tile, 650);
+    await stampTile(tile, 700);
     clearTimeout(paintTimer);
     tile.classList.add(status);
     paintKeyboardKey(state.board[rowIndex][i].letter);

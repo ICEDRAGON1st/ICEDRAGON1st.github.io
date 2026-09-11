@@ -17,8 +17,8 @@ const COLS = 7;
 const CELL = W / COLS;
 const ROW_H = 56;
 const HIGH_SCORE_KEY = "crossy-high-score";
-const CAR_COLORS = ["#ff6b6b", "#ffd43b", "#74c0fc", "#da77f2", "#ff922b"];
-const LOG_COLOR = "#8d6e63";
+const CART_COLORS = ["#c92a2a", "#e67700", "#862e9c", "#1864ab", "#2b8a3e"];
+const FLOE_COLOR = "#a5d8ff";
 
 let rows = [];
 let player = { col: 3, row: 0 };
@@ -35,6 +35,7 @@ let lastTime = 0;
 let playedThisRun = false;
 let dead = false;
 let touchStart = null;
+let animT = 0;
 
 function loadHighScore() {
   try {
@@ -86,7 +87,7 @@ function makeRow(index) {
       objs.push({
         x: i * gap + rand(0, gap * 0.35),
         w: CELL * rand(1.1, 1.7),
-        color: CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)]
+        color: CART_COLORS[Math.floor(Math.random() * CART_COLORS.length)]
       });
     }
   } else if (type === "water") {
@@ -96,18 +97,17 @@ function makeRow(index) {
       objs.push({
         x: i * gap + rand(0, gap * 0.2),
         w: CELL * rand(1.6, 2.4),
-        color: LOG_COLOR
+        color: FLOE_COLOR
       });
     }
   } else if (Math.random() < 0.35) {
-    // decorative trees / rocks on grass
     const n = 1 + Math.floor(Math.random() * 3);
     for (let i = 0; i < n; i++) {
       objs.push({
         x: rand(8, W - 28),
         w: 18,
         decor: true,
-        kind: Math.random() < 0.5 ? "tree" : "rock"
+        kind: Math.random() < 0.5 ? "crystal" : "mushroom"
       });
     }
   }
@@ -123,7 +123,6 @@ function ensureRows() {
 function resetGame() {
   rows = [];
   for (let i = 0; i < 16; i++) rows.push(makeRow(i));
-  // First few rows safer
   rows[0].type = "grass";
   rows[0].objs = [];
   rows[1].type = "grass";
@@ -155,7 +154,6 @@ function tryHop(dCol, dRow) {
   if (nextCol < 0 || nextCol > COLS - 1) return;
   if (nextRow < 0) return;
 
-  // Block hopping into tree/rock on grass
   const row = rows[nextRow];
   if (row?.type === "grass") {
     const px = nextCol * CELL + CELL / 2;
@@ -198,7 +196,6 @@ function finishHop() {
     checkAchievements();
   }
   ensureRows();
-  // Immediate water check after landing (not on log)
   resolveLaneSafety(0);
 }
 
@@ -206,12 +203,11 @@ function resolveLaneSafety(dt) {
   const row = rows[player.row];
   if (!row || dead) return;
   const px = player.col * CELL + CELL / 2;
-  const py = 0; // relative
 
   if (row.type === "road") {
     for (const car of row.objs) {
       if (px > car.x + 4 && px < car.x + car.w - 4) {
-        die("Squished!");
+        die("Crushed by a cart!");
         return;
       }
     }
@@ -220,14 +216,13 @@ function resolveLaneSafety(dt) {
     for (const log of row.objs) {
       if (px > log.x + 6 && px < log.x + log.w - 6) {
         onLog = true;
-        // Ride the log
         const shift = (row.dir * row.speed * dt) / CELL;
         player.col += shift;
         break;
       }
     }
     if (!onLog && !isHopping()) {
-      die("Splash!");
+      die("Fell through the ice!");
       return;
     }
     if (player.col < -0.2 || player.col > COLS - 0.8) {
@@ -299,6 +294,7 @@ function resumeGame() {
 }
 
 function update(dt) {
+  animT += dt;
   if (isHopping()) {
     hopT -= dt * 7.5;
     if (hopT <= 0) finishHop();
@@ -321,46 +317,80 @@ function update(dt) {
   cameraY += (desiredCam - cameraY) * Math.min(1, dt * 5);
 }
 
-function drawTree(x, y) {
-  ctx.fillStyle = "#5d4037";
-  ctx.fillRect(x + 6, y + 18, 6, 14);
-  ctx.fillStyle = "#2f9e44";
+function drawCrystal(x, y) {
+  ctx.fillStyle = "#74c0fc";
   ctx.beginPath();
-  ctx.arc(x + 9, y + 14, 12, 0, Math.PI * 2);
+  ctx.moveTo(x + 9, y + 4);
+  ctx.lineTo(x + 16, y + 22);
+  ctx.lineTo(x + 9, y + 30);
+  ctx.lineTo(x + 2, y + 22);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,0.45)";
+  ctx.beginPath();
+  ctx.moveTo(x + 9, y + 6);
+  ctx.lineTo(x + 12, y + 18);
+  ctx.lineTo(x + 9, y + 16);
   ctx.fill();
 }
 
-function drawRock(x, y) {
+function drawMushroom(x, y) {
+  ctx.fillStyle = "#f8f0e0";
+  ctx.fillRect(x + 7, y + 18, 5, 12);
+  ctx.fillStyle = "#e03131";
+  ctx.beginPath();
+  ctx.ellipse(x + 9.5, y + 16, 11, 8, 0, Math.PI, 0);
+  ctx.fill();
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.arc(x + 5, y + 14, 2, 0, Math.PI * 2);
+  ctx.arc(x + 13, y + 15, 1.6, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function drawCart(o, y, dir) {
+  // Mine cart body
+  ctx.fillStyle = o.color;
+  roundRect(o.x + 4, y + 14, o.w - 8, 22, 4);
+  ctx.fill();
+  ctx.fillStyle = "#343a40";
+  ctx.fillRect(o.x, y + 32, o.w, 8);
+  // Rails glint on wheels
+  ctx.fillStyle = "#212529";
+  ctx.beginPath();
+  ctx.arc(o.x + 12, y + 40, 5, 0, Math.PI * 2);
+  ctx.arc(o.x + o.w - 12, y + 40, 5, 0, Math.PI * 2);
+  ctx.fill();
   ctx.fillStyle = "#868e96";
   ctx.beginPath();
-  ctx.ellipse(x + 10, y + 22, 11, 8, 0, 0, Math.PI * 2);
+  ctx.arc(o.x + 12, y + 40, 2, 0, Math.PI * 2);
+  ctx.arc(o.x + o.w - 12, y + 40, 2, 0, Math.PI * 2);
   ctx.fill();
+  // Cargo glow
+  ctx.fillStyle = "rgba(255, 212, 59, 0.85)";
+  ctx.beginPath();
+  ctx.arc(o.x + o.w * 0.5, y + 20, 5, 0, Math.PI * 2);
+  ctx.fill();
+  // Direction lamp
+  ctx.fillStyle = "#fff3bf";
+  ctx.fillRect(o.x + (dir > 0 ? o.w - 10 : 4), y + 18, 6, 6);
 }
 
-function drawCar(o, y, dir) {
-  ctx.fillStyle = o.color;
-  roundRect(o.x, y + 12, o.w, 28, 6);
+function drawFloe(o, y) {
+  const g = ctx.createLinearGradient(o.x, y, o.x, y + 40);
+  g.addColorStop(0, "#e7f5ff");
+  g.addColorStop(0.5, o.color);
+  g.addColorStop(1, "#74c0fc");
+  ctx.fillStyle = g;
+  roundRect(o.x, y + 14, o.w, 26, 12);
   ctx.fill();
-  ctx.fillStyle = "rgba(255,255,255,0.35)";
-  ctx.fillRect(o.x + (dir > 0 ? o.w - 18 : 8), y + 16, 12, 10);
-  ctx.fillStyle = "#212529";
-  ctx.fillRect(o.x + 6, y + 38, 10, 5);
-  ctx.fillRect(o.x + o.w - 16, y + 38, 10, 5);
-}
-
-function drawLog(o, y) {
-  ctx.fillStyle = o.color;
-  roundRect(o.x, y + 16, o.w, 24, 10);
-  ctx.fill();
-  ctx.strokeStyle = "rgba(0,0,0,0.2)";
+  ctx.strokeStyle = "rgba(255,255,255,0.55)";
   ctx.lineWidth = 2;
-  for (let i = 1; i < 3; i++) {
-    const lx = o.x + (o.w * i) / 3;
-    ctx.beginPath();
-    ctx.moveTo(lx, y + 18);
-    ctx.lineTo(lx, y + 38);
-    ctx.stroke();
-  }
+  ctx.stroke();
+  ctx.fillStyle = "rgba(255,255,255,0.4)";
+  ctx.beginPath();
+  ctx.ellipse(o.x + o.w * 0.35, y + 22, o.w * 0.18, 4, 0, 0, Math.PI * 2);
+  ctx.fill();
 }
 
 function roundRect(x, y, w, h, r) {
@@ -375,25 +405,59 @@ function roundRect(x, y, w, h, r) {
 }
 
 function drawPlayer(x, y) {
-  // Chicken-ish blob
-  ctx.fillStyle = "#fff3bf";
+  // Compact fox hoppers — not a chicken
+  ctx.fillStyle = "#f76707";
   ctx.beginPath();
-  ctx.ellipse(x, y, 14, 16, 0, 0, Math.PI * 2);
+  ctx.ellipse(x, y, 13, 15, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "#fcc419";
+  ctx.fillStyle = "#ffe8cc";
   ctx.beginPath();
-  ctx.moveTo(x + 12, y - 2);
-  ctx.lineTo(x + 22, y + 2);
-  ctx.lineTo(x + 12, y + 6);
-  ctx.closePath();
+  ctx.ellipse(x + 2, y + 4, 7, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // Ears
+  ctx.fillStyle = "#d9480f";
+  ctx.beginPath();
+  ctx.moveTo(x - 10, y - 8);
+  ctx.lineTo(x - 6, y - 20);
+  ctx.lineTo(x - 2, y - 8);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(x + 2, y - 8);
+  ctx.lineTo(x + 8, y - 20);
+  ctx.lineTo(x + 12, y - 8);
+  ctx.fill();
+  ctx.fillStyle = "#ffc9c9";
+  ctx.beginPath();
+  ctx.moveTo(x - 8, y - 9);
+  ctx.lineTo(x - 6, y - 16);
+  ctx.lineTo(x - 4, y - 9);
+  ctx.fill();
+  // Snout + eye
+  ctx.fillStyle = "#212529";
+  ctx.beginPath();
+  ctx.arc(x + 6, y - 2, 2.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.arc(x + 5.4, y - 2.6, 0.8, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = "#212529";
   ctx.beginPath();
-  ctx.arc(x + 4, y - 4, 2.2, 0, Math.PI * 2);
+  ctx.ellipse(x + 12, y + 4, 4, 2.5, 0.2, 0, Math.PI * 2);
   ctx.fill();
-  ctx.fillStyle = "#e03131";
-  ctx.fillRect(x - 3, y + 14, 3, 8);
-  ctx.fillRect(x + 2, y + 14, 3, 8);
+  // Tail fluff
+  ctx.fillStyle = "#f76707";
+  ctx.beginPath();
+  ctx.ellipse(x - 14, y + 6, 8, 5, -0.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#fff4e6";
+  ctx.beginPath();
+  ctx.ellipse(x - 18, y + 5, 3.5, 2.5, -0.4, 0, Math.PI * 2);
+  ctx.fill();
+  // Legs
+  ctx.fillStyle = "#d9480f";
+  ctx.fillRect(x - 5, y + 12, 3, 8);
+  ctx.fillRect(x + 2, y + 12, 3, 8);
 }
 
 function lerp(a, b, t) {
@@ -404,8 +468,86 @@ function easeOut(t) {
   return 1 - (1 - t) * (1 - t);
 }
 
+function drawMeadow(y, i, row) {
+  ctx.fillStyle = i % 2 === 0 ? "#2b6a4a" : "#245c40";
+  ctx.fillRect(0, y, W, ROW_H);
+  // Soft glow patches
+  ctx.fillStyle = "rgba(100, 200, 150, 0.12)";
+  for (let k = 0; k < 3; k++) {
+    ctx.beginPath();
+    ctx.ellipse((k * 140 + i * 40) % W, y + 28, 40, 10, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  (row.objs || []).forEach((o) => {
+    if (o.kind === "crystal") drawCrystal(o.x, y + 8);
+    else drawMushroom(o.x, y + 8);
+  });
+}
+
+function drawLava(y, row) {
+  const g = ctx.createLinearGradient(0, y, 0, y + ROW_H);
+  g.addColorStop(0, "#7c2d12");
+  g.addColorStop(0.45, "#c2410c");
+  g.addColorStop(1, "#9a3412");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, y, W, ROW_H);
+
+  // Magma ripples
+  ctx.strokeStyle = `rgba(255, 200, 80, ${0.25 + Math.sin(animT * 3 + y) * 0.1})`;
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8, 14]);
+  ctx.beginPath();
+  ctx.moveTo(0, y + ROW_H / 2 + Math.sin(animT * 2) * 2);
+  ctx.lineTo(W, y + ROW_H / 2);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Ember sparks
+  ctx.fillStyle = "rgba(255, 180, 60, 0.55)";
+  for (let k = 0; k < 4; k++) {
+    const sx = (k * 110 + animT * 40 + y) % W;
+    ctx.beginPath();
+    ctx.arc(sx, y + 12 + (k % 3) * 12, 2, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Track rails under carts
+  ctx.strokeStyle = "rgba(40, 20, 10, 0.55)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(0, y + 42);
+  ctx.lineTo(W, y + 42);
+  ctx.stroke();
+
+  row.objs.forEach((o) => drawCart(o, y, row.dir));
+}
+
+function drawIceRiver(y, i, row) {
+  const g = ctx.createLinearGradient(0, y, 0, y + ROW_H);
+  g.addColorStop(0, "#1c4d6e");
+  g.addColorStop(0.5, "#1864ab");
+  g.addColorStop(1, "#0b3d5c");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, y, W, ROW_H);
+
+  ctx.fillStyle = "rgba(200, 240, 255, 0.12)";
+  for (let k = 0; k < 5; k++) {
+    ctx.fillRect((k * 97 + i * 13 + animT * 20) % W, y + 10 + (k % 3) * 12, 34, 3);
+  }
+
+  row.objs.forEach((o) => drawFloe(o, y));
+}
+
 function draw() {
   ctx.clearRect(0, 0, W, H);
+
+  // Night fantasy sky behind lanes
+  const sky = ctx.createLinearGradient(0, 0, 0, H);
+  sky.addColorStop(0, "#0b1020");
+  sky.addColorStop(1, "#152238");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, W, H);
+
   ctx.save();
   ctx.translate(0, cameraY);
 
@@ -415,36 +557,11 @@ function draw() {
   for (let i = minRow; i <= maxDraw; i++) {
     const row = rows[i];
     const y = playerWorldY(i);
-    if (row.type === "grass") {
-      ctx.fillStyle = i % 2 === 0 ? "#3b7a46" : "#357040";
-      ctx.fillRect(0, y, W, ROW_H);
-      (row.objs || []).forEach((o) => {
-        if (o.kind === "tree") drawTree(o.x, y + 8);
-        else drawRock(o.x, y + 8);
-      });
-    } else if (row.type === "road") {
-      ctx.fillStyle = "#343a40";
-      ctx.fillRect(0, y, W, ROW_H);
-      ctx.strokeStyle = "rgba(255,255,255,0.35)";
-      ctx.setLineDash([10, 12]);
-      ctx.beginPath();
-      ctx.moveTo(0, y + ROW_H / 2);
-      ctx.lineTo(W, y + ROW_H / 2);
-      ctx.stroke();
-      ctx.setLineDash([]);
-      row.objs.forEach((o) => drawCar(o, y, row.dir));
-    } else {
-      ctx.fillStyle = "#1c7ed6";
-      ctx.fillRect(0, y, W, ROW_H);
-      ctx.fillStyle = "rgba(255,255,255,0.12)";
-      for (let k = 0; k < 5; k++) {
-        ctx.fillRect((k * 97 + i * 13) % W, y + 10 + (k % 3) * 12, 28, 3);
-      }
-      row.objs.forEach((o) => drawLog(o, y));
-    }
+    if (row.type === "grass") drawMeadow(y, i, row);
+    else if (row.type === "road") drawLava(y, row);
+    else drawIceRiver(y, i, row);
   }
 
-  // Player position (with hop arc)
   let col = player.col;
   let row = player.row;
   let bob = 0;
@@ -460,9 +577,9 @@ function draw() {
 
   ctx.restore();
 
-  ctx.fillStyle = "rgba(8,16,10,0.55)";
+  ctx.fillStyle = "rgba(10, 16, 32, 0.65)";
   ctx.fillRect(14, 14, 118, 34);
-  ctx.fillStyle = "#d3f9d8";
+  ctx.fillStyle = "#d0ebff";
   ctx.font = "700 16px Segoe UI, sans-serif";
   ctx.fillText(`Lane ${score}`, 26, 36);
 }
@@ -548,5 +665,5 @@ draw();
 showMenu(
   "start",
   "Cross Walk",
-  "Hop across roads and rivers. Tap / ↑ to hop forward, ← → or swipe to move sideways. Don't get hit or splash!"
+  "Hop across lava rails, ice rivers, and crystal meadows. Tap / ↑ forward · ← → sideways. Avoid carts and thin ice!"
 );
