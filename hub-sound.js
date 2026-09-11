@@ -87,37 +87,16 @@
 
   /** Soft ASMR-style key — close-mic thock + creamy tick (Guessword). */
   function playKeyThock() {
-    const ctx = getAudio();
-    if (!ctx) return;
-    const t = ctx.currentTime;
-
-    // Soft bottom-out “thock” (close, muted)
-    tone({ freq: 118, dur: 0.14, type: "sine", vol: 0.055, slide: -28 });
-    tone({ freq: 72, dur: 0.16, type: "sine", vol: 0.035, slide: -12 });
-    // Creamy mid body (no harsh square)
-    tone({ freq: 265, dur: 0.09, type: "triangle", vol: 0.028, slide: -55 });
-    // Gentle stem tick
-    tone({ freq: 980, dur: 0.018, type: "sine", vol: 0.016, slide: -180 });
-    tone({ freq: 1450, dur: 0.014, type: "triangle", vol: 0.01, slide: -220, delay: 0.006 });
-
-    // Soft brush / plastic whisper (filtered noise, longer decay)
-    noiseHit({ dur: 0.055, vol: 0.038, freq: 1900, q: 0.55 });
-    noiseHit({ dur: 0.04, vol: 0.02, freq: 4200, q: 0.7, delay: 0.008 });
-    // Tiny delayed “room” hush for ASMR closeness
-    noiseHit({ dur: 0.08, vol: 0.012, freq: 900, q: 0.4, delay: 0.02 });
-
-    // Very soft low rumble under the press
-    const rumble = ctx.createOscillator();
-    const rumbleGain = ctx.createGain();
-    rumble.type = "sine";
-    rumble.frequency.setValueAtTime(48, t);
-    rumbleGain.gain.setValueAtTime(0.0001, t);
-    rumbleGain.gain.exponentialRampToValueAtTime(0.028, t + 0.008);
-    rumbleGain.gain.exponentialRampToValueAtTime(0.0001, t + 0.2);
-    rumble.connect(rumbleGain);
-    rumbleGain.connect(ctx.destination);
-    rumble.start(t);
-    rumble.stop(t + 0.22);
+    // Lighter body (less deep bass)
+    tone({ freq: 210, dur: 0.1, type: "sine", vol: 0.04, slide: -35 });
+    tone({ freq: 340, dur: 0.07, type: "triangle", vol: 0.026, slide: -60 });
+    // Creamy mid / stem tick
+    tone({ freq: 720, dur: 0.03, type: "sine", vol: 0.018, slide: -140 });
+    tone({ freq: 1180, dur: 0.018, type: "triangle", vol: 0.012, slide: -200, delay: 0.005 });
+    // Soft brush / plastic whisper
+    noiseHit({ dur: 0.045, vol: 0.036, freq: 2200, q: 0.6 });
+    noiseHit({ dur: 0.032, vol: 0.02, freq: 4800, q: 0.75, delay: 0.006 });
+    noiseHit({ dur: 0.055, vol: 0.01, freq: 1400, q: 0.45, delay: 0.015 });
   }
 
   function play(kind, extra) {
@@ -129,11 +108,11 @@
       tone({ freq: 980, dur: 0.028, type: "square", vol: 0.02, slide: -120 });
       noiseHit({ dur: 0.018, vol: 0.028, freq: 2800, q: 1.1 });
     } else if (kind === "back") {
-      // Soft erase — quieter ASMR reverse brush
-      noiseHit({ dur: 0.05, vol: 0.028, freq: 1400, q: 0.5 });
-      tone({ freq: 210, dur: 0.1, type: "sine", vol: 0.04, slide: -90 });
-      tone({ freq: 130, dur: 0.12, type: "sine", vol: 0.025, slide: -35, delay: 0.012 });
-      noiseHit({ dur: 0.07, vol: 0.012, freq: 700, q: 0.35, delay: 0.015 });
+      // Soft erase — lighter ASMR brush
+      noiseHit({ dur: 0.04, vol: 0.026, freq: 1800, q: 0.55 });
+      tone({ freq: 320, dur: 0.08, type: "sine", vol: 0.032, slide: -100 });
+      tone({ freq: 480, dur: 0.06, type: "triangle", vol: 0.018, slide: -80, delay: 0.01 });
+      noiseHit({ dur: 0.05, vol: 0.01, freq: 1100, q: 0.4, delay: 0.012 });
     } else if (kind === "error") {
       tone({ freq: 180, dur: 0.16, type: "sawtooth", vol: 0.05, slide: -70 });
       tone({ freq: 140, dur: 0.18, type: "square", vol: 0.03, delay: 0.04 });
