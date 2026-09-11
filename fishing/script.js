@@ -1235,10 +1235,19 @@
   }
 
   function formatChance(pct) {
-    if (pct >= 10) return `${pct.toFixed(0)}%`;
-    if (pct >= 1) return `${pct.toFixed(1)}%`;
-    if (pct >= 0.1) return `${pct.toFixed(2)}%`;
-    return "<0.1%";
+    const p = Number(pct);
+    if (!Number.isFinite(p) || p <= 0) return "0%";
+    // High odds: keep compact
+    if (p >= 10) return `${p.toFixed(2)}%`;
+    if (p >= 1) return `${p.toFixed(3)}%`;
+    if (p >= 0.1) return `${p.toFixed(3)}%`;
+    if (p >= 0.01) return `${p.toFixed(4)}%`;
+    if (p >= 0.001) return `${p.toFixed(4)}%`;
+    // Ultra-rare: exact % plus “1 in N” so tiny odds stay readable
+    const oneIn = Math.max(1, Math.round(100 / p));
+    if (p >= 0.0001) return `${p.toFixed(5)}% · 1 in ${formatNum(oneIn)}`;
+    if (p >= 0.00001) return `${p.toFixed(6)}% · 1 in ${formatNum(oneIn)}`;
+    return `~1 in ${formatNum(oneIn)}`;
   }
 
   function renderGuide() {
@@ -1246,19 +1255,27 @@
     if (guideSpotMult) guideSpotMult.textContent = `×${spot.valueMult}`;
     if (guideSpotName) guideSpotName.textContent = spot.name;
     if (!guideBody) return;
-    const rows = [...FISH].sort(
-      (a, b) => rarityOrder(a.rarity) - rarityOrder(b.rarity) || a.value - b.value
+    // Precompute once so weights/luck match the live cast odds
+    const weights = FISH.map((f) => fishWeight(f, spot, false));
+    const total = weights.reduce((a, b) => a + b, 0);
+    const rows = FISH.map((fish, i) => ({
+      fish,
+      pct: total > 0 ? (100 * weights[i]) / total : 0
+    })).sort(
+      (a, b) =>
+        rarityOrder(a.fish.rarity) - rarityOrder(b.fish.rarity) ||
+        a.fish.value - b.fish.value
     );
     guideBody.innerHTML = rows
-      .map((fish) => {
+      .map(({ fish, pct }) => {
         const here = fishValue(fish, spot);
-        const chance = formatChance(chancePct(fish, spot));
+        const chance = formatChance(pct);
         return `<tr class="at-spot">
           <td class="guide-fish-name">${fish.name}</td>
           <td class="guide-rarity ${fish.rarity}">${fish.rarity}</td>
           <td>${formatNum(fish.value)}</td>
           <td class="guide-here">${formatNum(here)}</td>
-          <td class="guide-spots">${chance} here</td>
+          <td class="guide-spots" title="${pct.toFixed(8)}%">${chance}</td>
         </tr>`;
       })
       .join("");

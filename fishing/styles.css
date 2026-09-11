@@ -220,9 +220,11 @@ body {
 }
 
 .guide-spots {
-  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
   font-size: 0.78rem;
   line-height: 1.35;
+  color: var(--muted);
 }
 
 .guide-here {

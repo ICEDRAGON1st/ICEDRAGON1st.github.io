@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911v": [
+    "Fishing Idle: fish guide shows precise odds (and 1-in-N for ultra-rares)"
+  ],
   "20260911u": [
     "Fishing Idle: leaderboard no longer resets ICE_DRAGON below a better-than-mythic catch"
   ],
