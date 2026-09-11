@@ -184,6 +184,8 @@ let lastTime = 0;
 let distance = 0;
 let groundOffset = 0;
 let skinId = loadSkin();
+let wingPhase = 0;
+let wingBurst = 0;
 
 function loadHighScore() {
   try {
@@ -244,6 +246,8 @@ function resetGame() {
   score = 0;
   distance = 0;
   groundOffset = 0;
+  wingPhase = 0;
+  wingBurst = 0;
   spawnPipe(W + 80);
   updateHud();
 }
@@ -253,6 +257,13 @@ function spawnPipe(x) {
   const maxTop = H - GROUND_H - PIPE_GAP - 90;
   const top = minTop + Math.random() * (maxTop - minTop);
   pipes.push({ x, top, scored: false });
+}
+
+function flap() {
+  if (!running) return;
+  bird.vy = FLAP;
+  wingBurst = 1;
+  window.HubSound?.play("flap");
 }
 
 function showMenu(mode, title, text) {
@@ -315,12 +326,6 @@ function goToGames() {
   window.location.href = "../index.html#games";
 }
 
-function flap() {
-  if (!running) return;
-  bird.vy = FLAP;
-  window.HubSound?.play("flap");
-}
-
 function circleRectHit(cx, cy, r, rx, ry, rw, rh) {
   const closestX = Math.max(rx, Math.min(cx, rx + rw));
   const closestY = Math.max(ry, Math.min(cy, ry + rh));
@@ -379,6 +384,11 @@ function update(dt) {
   bird.vy += GRAVITY * dt;
   bird.y += bird.vy * dt;
   bird.rot = Math.max(-0.5, Math.min(1.2, bird.vy / 420));
+
+  // Fast idle flap + extra speed while rising / after a tap
+  const flapRate = 14 + (bird.vy < 0 ? 10 : 0) + wingBurst * 18;
+  wingPhase += dt * flapRate;
+  wingBurst = Math.max(0, wingBurst - dt * 2.4);
 
   distance += speed * dt;
   groundOffset = (groundOffset + speed * dt) % 42;
@@ -553,7 +563,13 @@ function mixHex(a, b, t) {
 
 function drawBird() {
   const s = skin();
-  const flap = Math.sin(distance * 0.055) * 0.45 + Math.max(-0.25, Math.min(0.55, bird.rot)) * 0.55;
+  // Big flappy motion: opposite-phase wings + burst on tap
+  const beat = Math.sin(wingPhase);
+  const beat2 = Math.sin(wingPhase + Math.PI); // other wing opposite
+  const amp = 0.95 + wingBurst * 0.85;
+  const flapNear = beat * amp + Math.max(-0.2, Math.min(0.45, bird.rot)) * 0.35;
+  const flapFar = beat2 * amp * 0.9 + Math.max(-0.2, Math.min(0.45, bird.rot)) * 0.25;
+  const wingScaleY = 0.72 + Math.abs(beat) * 0.45 + wingBurst * 0.15;
   const dark = mixHex(s.body, "#0b1020", 0.35);
   const mid = mixHex(s.body, s.wing, 0.35);
   const light = mixHex(s.body, "#ffffff", 0.28);
@@ -574,7 +590,7 @@ function drawBird() {
   ctx.fill();
 
   // ===== Tail =====
-  const ty = flap * 7;
+  const ty = beat * 10 + wingBurst * 4;
   ctx.fillStyle = s.body;
   ctx.strokeStyle = outline;
   ctx.lineWidth = 2.5;
@@ -615,7 +631,8 @@ function drawBird() {
   // ===== Far wing =====
   ctx.save();
   ctx.translate(-4, -4);
-  ctx.rotate(-0.85 + flap * 1.05);
+  ctx.rotate(-0.55 + flapFar * 1.35);
+  ctx.scale(1, wingScaleY);
   drawDragonWing(s, outline, belly, 0.78);
   ctx.restore();
 
@@ -773,7 +790,8 @@ function drawBird() {
   // ===== Near wing =====
   ctx.save();
   ctx.translate(2, -2);
-  ctx.rotate(-0.2 + flap);
+  ctx.rotate(-0.05 + flapNear * 1.4);
+  ctx.scale(1, wingScaleY);
   drawDragonWing(s, outline, belly, 1);
   ctx.restore();
 
