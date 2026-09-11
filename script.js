@@ -31,6 +31,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260912x": [
+    "Players: each person gets a player code — rename keeps leaderboards/friends; restore on another device"
+  ],
   "20260912w": [
     "Hub: ICE_DRAGON-only Aurora / Mono / Tide looks (same colors as animated titles)"
   ],
@@ -3342,7 +3345,7 @@ async function savePlayerNameFrom(value) {
     showGamesMessage(
       result.offline
         ? `Playing as ${result.name} (saved on this device)`
-        : `Playing as ${result.name}`,
+        : `Playing as ${result.name} · code ${HubPlays.getPlayerCode?.() || ""}`,
       1800
     );
     if (window.__hubAfterUsername) {
@@ -3755,14 +3758,77 @@ async function renderPlayersPanel() {
     playerNameInput.value = HubPlays.getName() || "";
   }
   applyNameLockUI();
+  refreshPlayerCodeUI();
   try {
     await HubPlays.sync();
   } catch {}
+  try {
+    await HubPlays.ensurePlayerCodeRegistered?.();
+  } catch {}
+  refreshPlayerCodeUI();
   try {
     await refreshOnlineCount();
   } catch {}
   paintPlayersPanelLists();
 }
+
+function setPlayerCodeStatus(msg, isError) {
+  const el = document.getElementById("player-code-status");
+  if (!el) return;
+  el.textContent = msg || "";
+  el.classList.toggle("is-error", !!isError);
+  el.classList.toggle("hidden", !msg);
+}
+
+function refreshPlayerCodeUI() {
+  const el = document.getElementById("player-code-value");
+  if (!el || typeof HubPlays === "undefined") return;
+  el.textContent = HubPlays.getPlayerCode?.() || "————";
+}
+
+document.getElementById("player-code-copy-btn")?.addEventListener("click", async () => {
+  if (typeof HubPlays === "undefined") return;
+  const code = HubPlays.getPlayerCode?.() || "";
+  if (!code) return;
+  try {
+    await navigator.clipboard.writeText(code);
+    setPlayerCodeStatus(`Copied ${code}`, false);
+  } catch {
+    setPlayerCodeStatus(`Your code is ${code}`, false);
+  }
+});
+
+document.getElementById("player-code-restore-btn")?.addEventListener("click", async () => {
+  if (typeof HubPlays === "undefined") return;
+  const input = document.getElementById("player-code-restore-input");
+  const raw = input?.value || "";
+  setPlayerCodeStatus("Restoring…", false);
+  const result = await HubPlays.restoreWithPlayerCode(raw);
+  if (!result?.ok) {
+    setPlayerCodeStatus(result?.error || "Couldn't restore", true);
+    return;
+  }
+  if (result.already) {
+    setPlayerCodeStatus("This device already uses that code", false);
+    refreshPlayerCodeUI();
+    return;
+  }
+  if (playerNameInput && result.name) playerNameInput.value = result.name;
+  setPlayerCodeStatus(
+    result.name
+      ? `Restored as ${result.name}. Reloading…`
+      : "Player restored. Reloading…",
+    false
+  );
+  setTimeout(() => window.location.reload(), 700);
+});
+
+document.getElementById("player-code-restore-input")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    document.getElementById("player-code-restore-btn")?.click();
+  }
+});
 
 function escapeHtml(text) {
   return String(text || "")

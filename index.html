@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260912w">
+  <link rel="stylesheet" href="styles.css?v=20260912x">
 </head>
 <body data-guess-colors="ice">
   <div class="guess-bg" aria-hidden="true">
@@ -290,7 +290,20 @@
           <button id="save-player-name-btn" type="button" class="hub-btn">Save</button>
           <button id="lock-player-name-btn" type="button" class="hub-btn name-lock-btn" aria-pressed="false" title="Lock your name so it can't be changed">🔓 Unlock</button>
         </div>
-        <p id="player-name-lock-hint" class="player-name-lock-hint">Lock your name to stop accidental changes.</p>
+        <p id="player-name-lock-hint" class="player-name-lock-hint">Lock your name to stop accidental changes. Your stats stay with your player code when you rename.</p>
+        <div class="player-code-box">
+          <p class="hub-settings-label">Your player code</p>
+          <p class="player-code-hint">Keep this code. Leaderboards, friends, and titles follow it when you change names — or restore it on another device.</p>
+          <div class="player-code-row">
+            <code id="player-code-value" class="player-code-value">————</code>
+            <button id="player-code-copy-btn" type="button" class="hub-btn">Copy</button>
+          </div>
+          <div class="player-code-restore-row">
+            <input id="player-code-restore-input" type="text" maxlength="12" placeholder="Restore code (ABCD-EFGH)" autocomplete="off" spellcheck="false">
+            <button id="player-code-restore-btn" type="button" class="hub-btn">Restore</button>
+          </div>
+          <p id="player-code-status" class="player-name-status hidden" aria-live="polite"></p>
+        </div>
         <div id="title-picker" class="title-picker hidden">
           <span class="title-picker-label">Your title</span>
           <div id="title-picker-buttons" class="title-picker-buttons" role="group" aria-label="Choose your title"></div>
@@ -534,7 +547,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260912w";
+    window.WORDLE_BUILD = "20260912x";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js",
       "words.js",

@@ -6,6 +6,7 @@
 (function () {
   const NAME_KEY = "hub-player-name";
   const PLAYER_ID_KEY = "hub-player-id";
+  const PLAYER_CODE_KEY = "hub-player-code";
   const NAME_LOCK_KEY = "hub-player-name-locked";
   const LOCAL_KEY = "hub-plays-local-v1";
   const PROFILE_STYLE_KEY = "hub-profile-style-v1";
@@ -13,12 +14,15 @@
   const NS = "icedragon1st-mygames";
   const PLAYS_PATH = "plays-log";
   const NAMES_PATH = "name-registry";
+  const CODES_PATH = "player-codes";
   const PRESENCE_PATH = "presence";
   const ALLTIME_PATH = "players-alltime";
   const PLAYS_API = `https://mantledb.sh/v2/${NS}/${PLAYS_PATH}`;
   const NAMES_API = `https://mantledb.sh/v2/${NS}/${NAMES_PATH}`;
+  const CODES_API = `https://mantledb.sh/v2/${NS}/${CODES_PATH}`;
   const PRESENCE_API = `https://mantledb.sh/v2/${NS}/${PRESENCE_PATH}`;
   const ALLTIME_API = `https://mantledb.sh/v2/${NS}/${ALLTIME_PATH}`;
+  const CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
   const MAX_PLAYS = 60;
   const SYNC_GAP_MS = 4000;
   const HEARTBEAT_MS = 90_000;
@@ -295,6 +299,210 @@
 
   function makeId() {
     return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+
+  function normalizePlayerCode(raw) {
+    return String(raw || "")
+      .toUpperCase()
+      .replace(/[^23456789ABCDEFGHJKLMNPQRSTUVWXYZ]/g, "")
+      .slice(0, 8);
+  }
+
+  function formatPlayerCode(norm) {
+    const n = normalizePlayerCode(norm);
+    if (n.length !== 8) return n;
+    return `${n.slice(0, 4)}-${n.slice(4)}`;
+  }
+
+  function hashToCodeParts(str, salt = "") {
+    const src = `${str}::${salt}`;
+    let h1 = 2166136261;
+    let h2 = 16777619;
+    for (let i = 0; i < src.length; i += 1) {
+      h1 ^= src.charCodeAt(i);
+      h1 = Math.imul(h1, 16777619);
+      h2 ^= src.charCodeAt(src.length - 1 - i);
+      h2 = Math.imul(h2, 2166136261);
+    }
+    let n = ((h1 >>> 0) * 0x9e3779b1) ^ (h2 >>> 0);
+    let out = "";
+    for (let i = 0; i < 8; i += 1) {
+      out += CODE_ALPHABET[n % CODE_ALPHABET.length];
+      n = Math.imul(n ^ (n >>> 7), 0x85ebca6b) >>> 0;
+    }
+    return out;
+  }
+
+  function randomCodeParts() {
+    let out = "";
+    for (let i = 0; i < 8; i += 1) {
+      out += CODE_ALPHABET[(Math.random() * CODE_ALPHABET.length) | 0];
+    }
+    return out;
+  }
+
+  function readStoredPlayerCode() {
+    try {
+      if (!canUseLocalStorage()) return "";
+      return formatPlayerCode(localStorage.getItem(PLAYER_CODE_KEY) || "");
+    } catch {
+      return "";
+    }
+  }
+
+  function storePlayerCode(code) {
+    const formatted = formatPlayerCode(code);
+    try {
+      if (canUseLocalStorage() && formatted) {
+        localStorage.setItem(PLAYER_CODE_KEY, formatted);
+      }
+    } catch {}
+    return formatted;
+  }
+
+  async function fetchCodesRemote() {
+    const data = await fetchJson(CODES_API);
+    if (!data || typeof data !== "object") return {};
+    const codes = data.codes && typeof data.codes === "object" ? data.codes : data;
+    const out = {};
+    Object.entries(codes).forEach(([k, v]) => {
+      const key = normalizePlayerCode(k);
+      if (key.length === 8 && v && typeof v === "object" && v.playerId) {
+        out[key] = {
+          playerId: String(v.playerId),
+          name: sanitizeName(v.name || ""),
+          at: Number(v.at) || 0
+        };
+      }
+    });
+    return out;
+  }
+
+  async function pushCodesRemote(codes) {
+    await postJson(CODES_API, { codes });
+  }
+
+  function findClaimByPlayerId(names, playerId) {
+    const id = String(playerId || "");
+    if (!id) return null;
+    let found = null;
+    Object.values(names || {}).forEach((claim) => {
+      if (!claim || claim.playerId !== id) return;
+      if (!found || (Number(claim.claimedAt) || 0) < (Number(found.claimedAt) || 0)) {
+        found = claim;
+      }
+    });
+    return found;
+  }
+
+  async function ensurePlayerCodeRegistered() {
+    const me = getPlayerId();
+    let formatted = readStoredPlayerCode();
+    let norm = normalizePlayerCode(formatted);
+    if (norm.length !== 8) {
+      norm = hashToCodeParts(me);
+      formatted = storePlayerCode(norm);
+    }
+
+    try {
+      let remote = await fetchCodesRemote();
+      let entry = remote[norm];
+      if (entry && entry.playerId !== me) {
+        // Rare collision — pick a free code
+        for (let i = 0; i < 6; i += 1) {
+          const next = i === 0 ? hashToCodeParts(me, "alt") : randomCodeParts();
+          if (!remote[next] || remote[next].playerId === me) {
+            norm = next;
+            formatted = storePlayerCode(next);
+            entry = remote[next];
+            break;
+          }
+        }
+      }
+
+      // Drop stale rows for this player that point at an old code
+      Object.keys(remote).forEach((k) => {
+        if (remote[k]?.playerId === me && k !== norm) delete remote[k];
+      });
+
+      remote[norm] = {
+        playerId: me,
+        name: getName() || entry?.name || "",
+        at: entry?.at || Date.now()
+      };
+      await pushCodesRemote(remote);
+    } catch {
+      // Offline / rate-limited: keep local code
+    }
+
+    return formatPlayerCode(norm);
+  }
+
+  function getPlayerCode() {
+    const stored = readStoredPlayerCode();
+    if (normalizePlayerCode(stored).length === 8) return stored;
+    const generated = formatPlayerCode(hashToCodeParts(getPlayerId()));
+    return storePlayerCode(generated) || generated;
+  }
+
+  async function restoreWithPlayerCode(rawCode) {
+    const norm = normalizePlayerCode(rawCode);
+    if (norm.length !== 8) {
+      return { ok: false, error: "Enter your 8-character player code (like ABCD-EFGH)" };
+    }
+
+    let remote;
+    try {
+      remote = await fetchCodesRemote();
+    } catch {
+      return { ok: false, error: "Can't check codes right now — try again online" };
+    }
+
+    const entry = remote[norm];
+    if (!entry?.playerId) {
+      return { ok: false, error: "Unknown player code" };
+    }
+
+    const me = getPlayerId();
+    if (entry.playerId === me) {
+      storePlayerCode(norm);
+      return { ok: true, name: getName(), already: true, code: formatPlayerCode(norm) };
+    }
+
+    let names = namesCache;
+    try {
+      names = await fetchNamesRemote();
+      namesCache = names;
+    } catch {}
+
+    const claim = findClaimByPlayerId(names, entry.playerId);
+    const restoredName = sanitizeName(claim?.name || entry.name || "");
+
+    try {
+      if (canUseLocalStorage()) {
+        localStorage.setItem(PLAYER_ID_KEY, entry.playerId);
+      }
+    } catch {}
+    sessionPlayerId = entry.playerId;
+    storePlayerCode(norm);
+    if (restoredName) storeLocalName(restoredName);
+    try {
+      setNameLocked(false);
+    } catch {}
+
+    try {
+      if (typeof HubLeaderboard !== "undefined" && HubLeaderboard.rebindPlayerName && restoredName) {
+        HubLeaderboard.rebindPlayerName(entry.playerId, restoredName).catch(() => {});
+      }
+    } catch {}
+
+    return {
+      ok: true,
+      name: restoredName,
+      restored: true,
+      code: formatPlayerCode(norm),
+      playerId: entry.playerId
+    };
   }
 
   let sessionName = "";
@@ -682,10 +890,12 @@
           accentTitle: existing?.accentTitle || "",
           accentColor: existing?.accentColor || "",
           profileUpdatedAt: existing?.profileUpdatedAt || myClaimAt,
+          playerCode: normalizePlayerCode(getPlayerCode()) || existing?.playerCode || "",
           pendingSync: true
         }
       };
       storeLocalName(next);
+      ensurePlayerCodeRegistered().catch(() => {});
       return { ok: true, name: next, offline: true };
     }
 
@@ -734,7 +944,8 @@
         activeTitle: existing?.activeTitle || "",
         accentTitle: existing?.accentTitle || "",
         accentColor: existing?.accentColor || "",
-        profileUpdatedAt: existing?.profileUpdatedAt || myClaimAt
+        profileUpdatedAt: existing?.profileUpdatedAt || myClaimAt,
+        playerCode: normalizePlayerCode(getPlayerCode()) || existing?.playerCode || ""
       };
 
       try {
@@ -766,6 +977,7 @@
         namesCache = reconciled;
         storeLocalName(next);
         registerAllTime().catch(() => {});
+        ensurePlayerCodeRegistered().catch(() => {});
         try {
           if (typeof HubLeaderboard !== "undefined" && HubLeaderboard.rebindPlayerName) {
             HubLeaderboard.rebindPlayerName(me, next).catch(() => {});
@@ -2533,6 +2745,11 @@ body.light .menu-credit .player-name-creator {
     formatWhen,
     sanitizeName,
     getPlayerId,
+    getPlayerCode,
+    ensurePlayerCodeRegistered,
+    restoreWithPlayerCode,
+    normalizePlayerCode,
+    formatPlayerCode,
     heartbeat,
     getOnlineCount,
     getOnlinePlayers,
@@ -2568,6 +2785,8 @@ body.light .menu-credit .player-name-creator {
   };
 
   injectCreatorCredit();
+  getPlayerCode();
+  ensurePlayerCodeRegistered().catch(() => {});
   sync(true)
     .then(() => refreshCreatorCredits())
     .catch(() => refreshCreatorCredits());

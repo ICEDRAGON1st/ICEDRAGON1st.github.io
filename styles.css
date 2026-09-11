@@ -2038,6 +2038,56 @@ header h1 {
   line-height: 1.35;
 }
 
+.player-code-box {
+  margin: 0 0 1rem;
+  padding: 0.85rem 0.9rem;
+  border: 1px solid var(--tile-border);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+}
+
+.player-code-hint {
+  margin: 0 0 0.65rem;
+  color: var(--subtitle);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.player-code-row,
+.player-code-restore-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.55rem;
+}
+
+.player-code-value {
+  flex: 1 1 8rem;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--tile-border);
+  background: var(--bg);
+  color: var(--correct);
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.player-code-restore-row input {
+  flex: 1 1 8rem;
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--tile-border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  letter-spacing: 0.04em;
+}
+
 .players-name-row label {
   font-size: 0.85rem;
   font-weight: 700;
