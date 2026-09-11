@@ -16,12 +16,16 @@ body[data-hangman-colors="ice"] {
   --muted: #8ba3c0;
   --accent: #3db8e8;
   --danger: #ff7b8a;
+  --correct: #3db8e8;
+  --correct-glow: rgba(61, 184, 232, 0.45);
+  --absent: #3d4f66;
+  --absent-glow: rgba(61, 79, 102, 0.35);
   --key: #4a6178;
+  --key-bg: #4a6178;
+  --key-bg-top: #5c7690;
+  --key-edge: #243446;
+  --key-text: #e8f4ff;
   --key-border: #2a3a52;
-  --used-ok: #2a7a9a;
-  --used-ok-border: #3db8e8;
-  --used-bad: #6b3d4a;
-  --used-bad-border: #ff7b8a;
   --slot-border: #5a7a9a;
   --btn-on-accent: #0a1520;
 }
@@ -37,12 +41,16 @@ body[data-hangman-colors="arcade"] {
   --muted: #b89fd4;
   --accent: #2ee6a6;
   --danger: #ff6b8a;
+  --correct: #2ee6a6;
+  --correct-glow: rgba(46, 230, 166, 0.45);
+  --absent: #3a2a4a;
+  --absent-glow: rgba(58, 42, 74, 0.4);
   --key: #56406e;
+  --key-bg: #56406e;
+  --key-bg-top: #6a5288;
+  --key-edge: #2a1c3a;
+  --key-text: #f3e8ff;
   --key-border: #4a3568;
-  --used-ok: #1f8a62;
-  --used-ok-border: #2ee6a6;
-  --used-bad: #8a3550;
-  --used-bad-border: #ff5c7a;
   --slot-border: #8a6aaa;
   --btn-on-accent: #0a1520;
 }
@@ -58,12 +66,16 @@ body[data-hangman-colors="warm"] {
   --muted: #b8a894;
   --accent: #2a9d8f;
   --danger: #e76f51;
+  --correct: #2a9d8f;
+  --correct-glow: rgba(42, 157, 143, 0.42);
+  --absent: #3a3530;
+  --absent-glow: rgba(58, 53, 48, 0.35);
   --key: #6a5a4a;
+  --key-bg: #6a5a4a;
+  --key-bg-top: #7e6c58;
+  --key-edge: #2e2620;
+  --key-text: #fff6ec;
   --key-border: #3d342c;
-  --used-ok: #1f6f66;
-  --used-ok-border: #2a9d8f;
-  --used-bad: #8a4a38;
-  --used-bad-border: #e76f51;
   --slot-border: #9a8870;
   --btn-on-accent: #0a1520;
 }
@@ -521,53 +533,108 @@ body::after {
 }
 
 .keyboard {
-  display: grid;
-  grid-template-columns: repeat(9, minmax(0, 1fr));
-  gap: 0.55rem;
-  width: 100%;
-  max-width: 820px;
+  width: min(500px, 98vw);
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
   margin-top: 0.5rem;
+  padding-bottom: 0.35rem;
 }
 
-.keyboard.lang-da {
-  grid-template-columns: repeat(10, minmax(0, 1fr));
-}
-
-.keyboard.lang-is {
-  grid-template-columns: repeat(10, minmax(0, 1fr));
+.keyboard-row {
+  display: flex;
+  justify-content: center;
+  gap: min(0.5rem, 1.2vw);
 }
 
 .key {
-  appearance: none;
-  border: 1px solid var(--key-border);
-  border-radius: 10px;
-  background: var(--key);
-  color: var(--text);
+  position: relative;
+  min-width: min(3.35rem, 8.9vw);
+  height: min(4.35rem, 11vw);
+  padding: 0 min(0.75rem, 1.5vw);
+  border: 0;
+  border-radius: 0.72rem;
+  background:
+    linear-gradient(180deg, var(--key-bg-top) 0%, var(--key-bg) 55%, color-mix(in srgb, var(--key-edge) 35%, var(--key-bg)) 100%);
+  color: var(--key-text);
   font: inherit;
+  font-size: min(1.15rem, 3.5vw);
   font-weight: 700;
-  font-size: 1.25rem;
-  padding: 1rem 0.25rem;
-  cursor: pointer;
   text-transform: uppercase;
+  cursor: pointer;
+  user-select: none;
+  transform: translateY(0);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.18),
+    0 1px 0 var(--key-edge),
+    0 3px 0 var(--key-edge),
+    0 5px 0 color-mix(in srgb, var(--key-edge) 75%, #000),
+    0 8px 14px rgba(0, 0, 0, 0.28);
+  transition:
+    transform 0.08s ease,
+    box-shadow 0.08s ease,
+    background-color 0.25s ease,
+    filter 0.2s ease;
 }
 
 .key:hover:not(:disabled) {
-  border-color: var(--accent);
+  filter: brightness(1.08);
+}
+
+.key:active:not(:disabled) {
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 2px 4px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 1px 0 var(--key-edge),
+    0 2px 0 color-mix(in srgb, var(--key-edge) 80%, #000),
+    0 3px 6px rgba(0, 0, 0, 0.22);
 }
 
 .key:disabled {
   cursor: default;
-  opacity: 0.85;
 }
 
 .key.correct {
-  background: var(--used-ok);
-  border-color: var(--used-ok-border);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--correct) 72%, #fff) 0%, var(--correct) 55%, color-mix(in srgb, var(--correct) 70%, #000) 100%);
+  color: #fff;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.2),
+    0 1px 0 color-mix(in srgb, var(--correct) 55%, #000),
+    0 3px 0 color-mix(in srgb, var(--correct) 40%, #000),
+    0 5px 0 color-mix(in srgb, var(--correct) 28%, #000),
+    0 8px 14px rgba(0, 0, 0, 0.28),
+    0 0 14px var(--correct-glow);
 }
 
-.key.wrong {
-  background: var(--used-bad);
-  border-color: var(--used-bad-border);
+.key.wrong,
+.key.absent {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--absent) 65%, #fff) 0%, var(--absent) 55%, color-mix(in srgb, var(--absent) 75%, #000) 100%);
+  color: #fff;
+  opacity: 0.92;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.16),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.22),
+    0 1px 0 color-mix(in srgb, var(--absent) 55%, #000),
+    0 3px 0 color-mix(in srgb, var(--absent) 40%, #000),
+    0 5px 0 color-mix(in srgb, var(--absent) 28%, #000),
+    0 7px 12px rgba(0, 0, 0, 0.26);
+}
+
+.key.correct:active,
+.key.wrong:active,
+.key.absent:active {
+  transform: translateY(3px);
+  box-shadow:
+    inset 0 2px 5px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15),
+    0 1px 0 color-mix(in srgb, currentColor 20%, #000),
+    0 2px 0 rgba(0, 0, 0, 0.35),
+    0 3px 6px rgba(0, 0, 0, 0.22);
 }
 
 .overlay {
@@ -665,14 +732,7 @@ body::after {
   }
 
   .keyboard {
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    max-width: 100%;
     gap: 0.4rem;
-  }
-
-  .key {
-    font-size: 1rem;
-    padding: 0.75rem 0.1rem;
   }
 
   .letter-slot {
@@ -709,15 +769,6 @@ body::after {
 }
 
 @media (max-width: 420px) {
-  .keyboard {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
-
-  .key {
-    font-size: 0.9rem;
-    padding: 0.65rem 0.05rem;
-  }
-
   .letter-slot {
     width: 1.8rem;
     height: 2.3rem;

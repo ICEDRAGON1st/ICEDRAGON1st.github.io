@@ -49,9 +49,24 @@ const PARTS = [
 
 const GALLOWS_ALWAYS = ["part-base", "part-pole", "part-beam", "part-rope"];
 
-const KEYBOARD_EN = "abcdefghijklmnopqrstuvwxyz".split("");
-const KEYBOARD_DA = "abcdefghijklmnopqrstuvwxyzæøå".split("");
-const KEYBOARD_IS = "abcdefghijklmnopqrstuvwxyzáðéíóöúýþæ".split("");
+const KEYBOARD_EN = [
+  ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
+  ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
+  ["z", "x", "c", "v", "b", "n", "m"]
+];
+
+const KEYBOARD_DA = [
+  ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p", "å"],
+  ["a", "s", "d", "f", "g", "h", "j", "k", "l", "æ", "ø"],
+  ["z", "x", "c", "v", "b", "n", "m"]
+];
+
+const KEYBOARD_IS = [
+  ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
+  ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
+  ["á", "ð", "é", "í", "ó", "ö", "ú", "ý", "þ", "æ"],
+  ["z", "x", "c", "v", "b", "n", "m"]
+];
 
 const wordEl = document.getElementById("word");
 const statusEl = document.getElementById("status");
@@ -136,7 +151,7 @@ function getLetterPattern() {
   return new RegExp(`^[${set}]{${minLen},${maxLen}}$`);
 }
 
-function getKeyboardLetters() {
+function getKeyboardRows() {
   if (!isClassicTheme()) return KEYBOARD_EN;
   if (currentLang === "da") return KEYBOARD_DA;
   if (currentLang === "is") return KEYBOARD_IS;
@@ -378,27 +393,31 @@ function renderWord() {
 }
 
 function renderKeyboard() {
-  const letters = getKeyboardLetters();
-  keyboardEl.classList.toggle("lang-da", currentLang === "da");
-  keyboardEl.classList.toggle("lang-is", currentLang === "is");
   keyboardEl.innerHTML = "";
 
-  for (const letter of letters) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "key";
-    btn.textContent = letter.toLocaleUpperCase();
-    btn.dataset.letter = letter;
+  for (const row of getKeyboardRows()) {
+    const rowEl = document.createElement("div");
+    rowEl.className = "keyboard-row";
 
-    if (guessed.has(letter)) {
-      btn.disabled = true;
-      btn.classList.add(secret.includes(letter) ? "correct" : "wrong");
-    } else if (!playing) {
-      btn.disabled = true;
+    for (const letter of row) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "key";
+      btn.textContent = letter.toLocaleUpperCase();
+      btn.dataset.letter = letter;
+
+      if (guessed.has(letter)) {
+        btn.disabled = true;
+        btn.classList.add(secret.includes(letter) ? "correct" : "wrong");
+      } else if (!playing) {
+        btn.disabled = true;
+      }
+
+      btn.addEventListener("click", () => guessLetter(letter));
+      rowEl.appendChild(btn);
     }
 
-    btn.addEventListener("click", () => guessLetter(letter));
-    keyboardEl.appendChild(btn);
+    keyboardEl.appendChild(rowEl);
   }
 }
 
@@ -478,6 +497,7 @@ function guessLetter(letter) {
 
   guessed.add(ch);
   const btn = keyboardEl.querySelector(`[data-letter="${ch}"]`);
+  window.HubSound?.play("key");
 
   if (secret.includes(ch)) {
     if (btn) {
@@ -587,7 +607,7 @@ function switchLanguage() {
   }
 
   renderKeyboard();
-  Array.from(keyboardEl.children).forEach((btn) => {
+  keyboardEl.querySelectorAll(".key").forEach((btn) => {
     btn.disabled = true;
   });
   showMenu(
@@ -652,7 +672,7 @@ GALLOWS_ALWAYS.forEach((name) => {
   document.querySelector(`.${name}`)?.classList.add("visible");
 });
 renderKeyboard();
-Array.from(keyboardEl.children).forEach((btn) => {
+keyboardEl.querySelectorAll(".key").forEach((btn) => {
   btn.disabled = true;
 });
 showMenu(

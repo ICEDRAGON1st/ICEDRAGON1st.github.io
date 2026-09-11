@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260912s": [
+    "Hangman: Guessword-style 3D QWERTY keyboard"
+  ],
   "20260912r": [
     "Hangman: Ice / Arcade / Warm board colors + same animated backgrounds as Guessword"
   ],
