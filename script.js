@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911i": [
+    "Wing Hop: dragon redraw — gradients, bigger eye, cleaner silhouette"
+  ],
   "20260911h": [
     "Wing Hop: prettier little dragon (wings, eye, horns, smile)"
   ],

@@ -529,104 +529,154 @@ function drawGround() {
   }
 }
 
+function mixHex(a, b, t) {
+  const p = (h) => {
+    const n = h.replace("#", "");
+    const full = n.length === 3 ? n.split("").map((c) => c + c).join("") : n;
+    return [
+      parseInt(full.slice(0, 2), 16),
+      parseInt(full.slice(2, 4), 16),
+      parseInt(full.slice(4, 6), 16)
+    ];
+  };
+  try {
+    const [ar, ag, ab] = p(a);
+    const [br, bg, bb] = p(b);
+    const r = Math.round(ar + (br - ar) * t);
+    const g = Math.round(ag + (bg - ag) * t);
+    const bl = Math.round(ab + (bb - ab) * t);
+    return `rgb(${r},${g},${bl})`;
+  } catch {
+    return a;
+  }
+}
+
 function drawBird() {
   const s = skin();
-  const flap = Math.sin(distance * 0.05) * 0.4 + Math.max(-0.2, Math.min(0.5, bird.rot)) * 0.5;
-  const outline = s.pipeStroke || "rgba(20, 24, 40, 0.55)";
+  const flap = Math.sin(distance * 0.055) * 0.45 + Math.max(-0.25, Math.min(0.55, bird.rot)) * 0.55;
+  const dark = mixHex(s.body, "#0b1020", 0.35);
+  const mid = mixHex(s.body, s.wing, 0.35);
+  const light = mixHex(s.body, "#ffffff", 0.28);
+  const belly = s.belly || mixHex(s.body, "#ffffff", 0.45);
+  const horn = s.beak || "#ffd43b";
+  const outline = mixHex(s.body, "#0a0c14", 0.55);
 
   ctx.save();
   ctx.translate(BIRD_X, bird.y);
-  ctx.rotate(bird.rot * 0.7);
+  ctx.rotate(bird.rot * 0.65);
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
 
-  // Soft ground shadow
-  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  // Shadow
+  ctx.fillStyle = "rgba(0,0,0,0.2)";
   ctx.beginPath();
-  ctx.ellipse(2, 22, 16, 5, 0, 0, Math.PI * 2);
+  ctx.ellipse(1, 24, 18, 5.5, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // Tail (with tip fin)
+  // ===== Tail =====
+  const ty = flap * 7;
   ctx.fillStyle = s.body;
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 2.5;
+  ctx.beginPath();
+  ctx.moveTo(-10, 4);
+  ctx.bezierCurveTo(-24, -4 + ty, -38, 6 + ty, -50, 2 + ty);
+  ctx.quadraticCurveTo(-42, 16 + ty * 0.6, -14, 12);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  // Tail gradient highlight
+  const tailGrad = ctx.createLinearGradient(-50, 0, -10, 8);
+  tailGrad.addColorStop(0, mid);
+  tailGrad.addColorStop(1, s.body);
+  ctx.fillStyle = tailGrad;
+  ctx.beginPath();
+  ctx.moveTo(-12, 5);
+  ctx.bezierCurveTo(-24, -1 + ty, -36, 7 + ty, -46, 4 + ty);
+  ctx.quadraticCurveTo(-40, 12 + ty * 0.5, -14, 10);
+  ctx.closePath();
+  ctx.fill();
+
+  // Tail fin
+  ctx.fillStyle = s.wing;
   ctx.strokeStyle = outline;
   ctx.lineWidth = 2;
-  ctx.lineJoin = "round";
   ctx.beginPath();
-  ctx.moveTo(-14, 2);
-  ctx.bezierCurveTo(-28, -2 + flap * 6, -40, 8 + flap * 10, -48, 4 + flap * 8);
-  ctx.quadraticCurveTo(-40, 14 + flap * 4, -18, 10);
+  ctx.moveTo(-46, 2 + ty);
+  ctx.lineTo(-58, -6 + ty);
+  ctx.lineTo(-54, 4 + ty);
+  ctx.lineTo(-58, 12 + ty);
+  ctx.lineTo(-46, 8 + ty);
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
 
-  ctx.fillStyle = s.wing;
-  ctx.beginPath();
-  ctx.moveTo(-44, 4 + flap * 8);
-  ctx.lineTo(-54, -2 + flap * 10);
-  ctx.lineTo(-50, 10 + flap * 6);
-  ctx.lineTo(-42, 8 + flap * 6);
-  ctx.closePath();
-  ctx.fill();
-  ctx.stroke();
-
-  // Far wing (behind body)
+  // ===== Far wing =====
   ctx.save();
-  ctx.translate(-2, -2);
-  ctx.rotate(-0.7 + flap * 0.9);
-  drawDragonWing(s, outline, 0.92);
+  ctx.translate(-4, -4);
+  ctx.rotate(-0.85 + flap * 1.05);
+  drawDragonWing(s, outline, belly, 0.78);
   ctx.restore();
 
-  // Body + head as one soft silhouette
-  ctx.fillStyle = s.body;
+  // ===== Main body (single rounded sausage + head) =====
+  // Body fill with gradient
+  const bodyGrad = ctx.createLinearGradient(-8, -18, 8, 22);
+  bodyGrad.addColorStop(0, light);
+  bodyGrad.addColorStop(0.45, s.body);
+  bodyGrad.addColorStop(1, dark);
+  ctx.fillStyle = bodyGrad;
   ctx.beginPath();
-  // body
-  ctx.ellipse(0, 3, 20, 15, -0.08, 0, Math.PI * 2);
-  ctx.fill();
-  // neck/head blob
-  ctx.beginPath();
-  ctx.ellipse(16, -2, 14, 12, 0.12, 0, Math.PI * 2);
-  ctx.fill();
-  // snout
-  ctx.beginPath();
-  ctx.ellipse(28, 1, 10, 7, 0.05, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Outline around main form
-  ctx.strokeStyle = outline;
-  ctx.lineWidth = 2.25;
-  ctx.beginPath();
-  ctx.ellipse(0, 3, 20, 15, -0.08, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.ellipse(16, -2, 14, 12, 0.12, 0, Math.PI * 2);
-  ctx.stroke();
-
-  // Belly plate
-  ctx.fillStyle = s.belly || "#d0ebff";
-  ctx.beginPath();
-  ctx.ellipse(2, 8, 11, 8, -0.05, 0, Math.PI * 2);
+  ctx.moveTo(-18, 4);
+  ctx.bezierCurveTo(-20, -14, 2, -18, 14, -10);
+  ctx.bezierCurveTo(22, -16, 34, -10, 36, 0);
+  ctx.bezierCurveTo(38, 8, 32, 14, 22, 14);
+  ctx.bezierCurveTo(10, 20, -8, 18, -16, 10);
+  ctx.closePath();
   ctx.fill();
   ctx.strokeStyle = outline;
-  ctx.lineWidth = 1.25;
-  ctx.globalAlpha = 0.35;
-  ctx.beginPath();
-  ctx.moveTo(-4, 6);
-  ctx.quadraticCurveTo(2, 10, 10, 6);
+  ctx.lineWidth = 2.75;
   ctx.stroke();
+
+  // Belly
+  const bellyGrad = ctx.createLinearGradient(0, 0, 0, 18);
+  bellyGrad.addColorStop(0, mixHex(belly, "#ffffff", 0.25));
+  bellyGrad.addColorStop(1, belly);
+  ctx.fillStyle = bellyGrad;
   ctx.beginPath();
-  ctx.moveTo(-3, 10);
-  ctx.quadraticCurveTo(3, 13, 9, 9);
-  ctx.stroke();
+  ctx.ellipse(2, 8, 12, 9, -0.08, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = 0.3;
+  for (const yy of [5, 9, 13]) {
+    ctx.beginPath();
+    ctx.moveTo(-6, yy);
+    ctx.quadraticCurveTo(2, yy + 2.5, 10, yy - 0.5);
+    ctx.stroke();
+  }
   ctx.globalAlpha = 1;
 
-  // Back spikes
+  // Cheek blush
+  ctx.fillStyle = "rgba(255, 120, 140, 0.35)";
+  ctx.beginPath();
+  ctx.ellipse(22, 4, 4.5, 3, 0.2, 0, Math.PI * 2);
+  ctx.fill();
+
+  // ===== Spikes =====
   ctx.fillStyle = s.wing;
   ctx.strokeStyle = outline;
-  ctx.lineWidth = 1.75;
+  ctx.lineWidth = 2;
   const spikes = [
-    [-12, -8, -10, -20, -6, -8],
-    [-2, -12, 1, -24, 5, -11],
-    [8, -12, 12, -22, 15, -10]
+    [-10, -8, -8, -20, -4, -9],
+    [-1, -12, 2, -26, 6, -12],
+    [9, -12, 13, -24, 16, -11]
   ];
   for (const [x1, y1, x2, y2, x3, y3] of spikes) {
+    const g = ctx.createLinearGradient(x2, y2, x2, y1);
+    g.addColorStop(0, horn);
+    g.addColorStop(1, s.wing);
+    ctx.fillStyle = g;
     ctx.beginPath();
     ctx.moveTo(x1, y1);
     ctx.lineTo(x2, y2);
@@ -636,145 +686,199 @@ function drawBird() {
     ctx.stroke();
   }
 
-  // Curved horns
-  ctx.fillStyle = s.beak;
+  // ===== Horns =====
+  ctx.fillStyle = horn;
   ctx.strokeStyle = outline;
-  ctx.lineWidth = 1.75;
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(10, -10);
-  ctx.quadraticCurveTo(6, -22, 12, -28);
-  ctx.quadraticCurveTo(14, -18, 15, -10);
+  ctx.moveTo(12, -10);
+  ctx.quadraticCurveTo(4, -20, 8, -30);
+  ctx.quadraticCurveTo(14, -22, 16, -11);
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
   ctx.beginPath();
-  ctx.moveTo(18, -11);
-  ctx.quadraticCurveTo(18, -24, 24, -30);
-  ctx.quadraticCurveTo(24, -18, 23, -10);
+  ctx.moveTo(19, -11);
+  ctx.quadraticCurveTo(20, -24, 28, -32);
+  ctx.quadraticCurveTo(26, -20, 24, -10);
   ctx.closePath();
   ctx.fill();
+  ctx.stroke();
+  // Horn shine
+  ctx.strokeStyle = "rgba(255,255,255,0.55)";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(11, -16);
+  ctx.quadraticCurveTo(9, -22, 11, -26);
   ctx.stroke();
 
-  // Snout tip / nostril
-  ctx.fillStyle = s.wing;
+  // ===== Snout details =====
+  ctx.fillStyle = mid;
   ctx.beginPath();
-  ctx.ellipse(32, 0, 3.2, 2.2, 0, 0, Math.PI * 2);
+  ctx.ellipse(30, 1, 5, 3.5, 0.1, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = outline;
   ctx.beginPath();
-  ctx.arc(33.5, -0.5, 1.1, 0, Math.PI * 2);
+  ctx.arc(32, 0, 1.15, 0, Math.PI * 2);
   ctx.fill();
 
-  // Cute eye
-  ctx.fillStyle = s.eye;
+  // ===== Eye (big & cute) =====
+  ctx.fillStyle = "#fff";
   ctx.strokeStyle = outline;
-  ctx.lineWidth = 1.75;
+  ctx.lineWidth = 2.25;
   ctx.beginPath();
-  ctx.ellipse(18, -4, 5.5, 6, 0.1, 0, Math.PI * 2);
+  ctx.ellipse(17, -3, 6.5, 7.2, 0.08, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
-  ctx.fillStyle = s.pupil;
+
+  // Iris
+  const irisGrad = ctx.createRadialGradient(18.5, -2.5, 0.5, 18, -3, 5);
+  irisGrad.addColorStop(0, mixHex(s.pupil, "#ffffff", 0.35));
+  irisGrad.addColorStop(0.55, s.pupil);
+  irisGrad.addColorStop(1, mixHex(s.pupil, "#000000", 0.35));
+  ctx.fillStyle = irisGrad;
   ctx.beginPath();
-  ctx.ellipse(19.5, -3.5, 2.6, 3.2, 0.1, 0, Math.PI * 2);
+  ctx.ellipse(18.5, -2.5, 3.4, 4.2, 0.08, 0, Math.PI * 2);
   ctx.fill();
-  // Shine
+
+  // Pupil
+  ctx.fillStyle = "#0a0a12";
+  ctx.beginPath();
+  ctx.ellipse(19, -2.2, 1.6, 2.4, 0.08, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Highlights
   ctx.fillStyle = "#fff";
   ctx.beginPath();
-  ctx.arc(17.5, -6, 1.6, 0, Math.PI * 2);
+  ctx.arc(15.8, -5.5, 2.1, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.arc(20.5, -2, 0.9, 0, Math.PI * 2);
+  ctx.arc(19.8, -0.8, 1.05, 0, Math.PI * 2);
   ctx.fill();
+
+  // Eye lid hint
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(17, -3, 6.5, 7.2, 0.08, -2.6, -0.4);
+  ctx.stroke();
 
   // Smile
   ctx.strokeStyle = outline;
-  ctx.lineWidth = 1.5;
-  ctx.lineCap = "round";
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.arc(27, 3, 4, 0.15, Math.PI - 0.35);
+  ctx.arc(27.5, 4.5, 4.5, 0.2, Math.PI - 0.25);
   ctx.stroke();
 
-  // Near wing (in front)
+  // ===== Near wing =====
   ctx.save();
-  ctx.translate(0, 0);
-  ctx.rotate(-0.15 + flap);
-  drawDragonWing(s, outline, 1);
+  ctx.translate(2, -2);
+  ctx.rotate(-0.2 + flap);
+  drawDragonWing(s, outline, belly, 1);
   ctx.restore();
 
-  // Little arm/leg stub for cuteness
+  // Tiny foreleg
   ctx.fillStyle = s.body;
   ctx.strokeStyle = outline;
-  ctx.lineWidth = 1.75;
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.ellipse(8, 14, 5, 3.5, 0.3, 0, Math.PI * 2);
+  ctx.ellipse(10, 15, 5.5, 3.8, 0.35, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
+  // Claw dots
+  ctx.fillStyle = horn;
+  ctx.beginPath();
+  ctx.arc(13, 17, 1.2, 0, Math.PI * 2);
+  ctx.arc(15.5, 16, 1.1, 0, Math.PI * 2);
+  ctx.fill();
 
-  // Flame breath when rising
-  if (bird.vy < -60) {
-    const pulse = 0.7 + Math.sin(distance * 0.2) * 0.3;
-    ctx.globalAlpha = 0.9;
-    ctx.fillStyle = "#ffd43b";
+  // ===== Flame =====
+  if (bird.vy < -50) {
+    const pulse = 0.75 + Math.sin(distance * 0.22) * 0.25;
+    ctx.save();
+    ctx.translate(34, 2);
+    ctx.globalAlpha = 0.95;
+    const fg = ctx.createLinearGradient(0, 0, 22 * pulse, 0);
+    fg.addColorStop(0, "#fff3bf");
+    fg.addColorStop(0.35, "#ffd43b");
+    fg.addColorStop(0.7, "#ff922b");
+    fg.addColorStop(1, "rgba(255,100,50,0)");
+    ctx.fillStyle = fg;
     ctx.beginPath();
-    ctx.moveTo(34, 1);
-    ctx.quadraticCurveTo(42, -2, 48 * pulse, 2);
-    ctx.quadraticCurveTo(42, 6, 34, 5);
+    ctx.moveTo(0, -2);
+    ctx.quadraticCurveTo(10, -6, 20 * pulse, 0);
+    ctx.quadraticCurveTo(10, 6, 0, 3);
     ctx.closePath();
     ctx.fill();
-    ctx.fillStyle = "#ff922b";
-    ctx.beginPath();
-    ctx.moveTo(35, 2);
-    ctx.quadraticCurveTo(40, 1, 44 * pulse, 2.5);
-    ctx.quadraticCurveTo(40, 4.5, 35, 4);
-    ctx.closePath();
-    ctx.fill();
-    ctx.globalAlpha = 1;
+    ctx.restore();
   }
 
   ctx.restore();
 }
 
-function drawDragonWing(s, outline, alpha) {
+function drawDragonWing(s, outline, belly, alpha) {
   ctx.globalAlpha = alpha;
-  // Membrane
-  ctx.fillStyle = s.wing;
+
+  // Membrane gradient
+  const wg = ctx.createLinearGradient(0, 0, 18, -30);
+  wg.addColorStop(0, s.wing);
+  wg.addColorStop(0.55, mixHex(s.wing, belly, 0.35));
+  wg.addColorStop(1, mixHex(s.wing, "#ffffff", 0.15));
+  ctx.fillStyle = wg;
   ctx.strokeStyle = outline;
-  ctx.lineWidth = 2;
+  ctx.lineWidth = 2.4;
+
   ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.quadraticCurveTo(-6, -18, 8, -34);
-  ctx.quadraticCurveTo(22, -28, 26, -10);
-  ctx.quadraticCurveTo(18, -4, 8, 2);
+  ctx.moveTo(0, 2);
+  ctx.quadraticCurveTo(-8, -10, 2, -30);
+  ctx.quadraticCurveTo(10, -36, 20, -28);
+  ctx.quadraticCurveTo(28, -16, 24, -2);
+  ctx.quadraticCurveTo(14, 4, 4, 4);
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
 
-  // Lighter inner membrane
-  ctx.fillStyle = s.belly || s.body;
-  ctx.globalAlpha = alpha * 0.45;
+  // Inner glow panel
+  ctx.fillStyle = belly;
+  ctx.globalAlpha = alpha * 0.4;
   ctx.beginPath();
-  ctx.moveTo(2, -2);
-  ctx.quadraticCurveTo(2, -14, 10, -24);
-  ctx.quadraticCurveTo(16, -16, 14, -4);
+  ctx.moveTo(3, 0);
+  ctx.quadraticCurveTo(2, -12, 8, -22);
+  ctx.quadraticCurveTo(14, -14, 12, -2);
   ctx.closePath();
   ctx.fill();
   ctx.globalAlpha = alpha;
 
   // Wing bones
   ctx.strokeStyle = outline;
-  ctx.lineWidth = 1.6;
+  ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.quadraticCurveTo(4, -14, 8, -32);
+  ctx.moveTo(0, 2);
+  ctx.quadraticCurveTo(4, -12, 8, -32);
   ctx.stroke();
   ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.quadraticCurveTo(10, -10, 24, -12);
+  ctx.moveTo(0, 2);
+  ctx.quadraticCurveTo(12, -6, 24, -6);
+  ctx.stroke();
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.moveTo(6, -14);
+  ctx.lineTo(16, -16);
   ctx.stroke();
   ctx.beginPath();
-  ctx.moveTo(6, -16);
-  ctx.lineTo(18, -18);
+  ctx.moveTo(8, -8);
+  ctx.lineTo(18, -8);
   ctx.stroke();
+
+  // Claw tip on wing
+  ctx.fillStyle = s.beak || "#ffd43b";
+  ctx.beginPath();
+  ctx.arc(8, -32, 2.2, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = outline;
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
   ctx.globalAlpha = 1;
 }
 
