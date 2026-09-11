@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260911c": [
+    "Guessword: fix stamp reveal — transform transition was canceling the skew"
+  ],
   "20260911b": [
     "Guessword: try stamp/skew tile reveal instead of classic 3D flip"
   ],
@@ -2224,24 +2227,41 @@ async function animateRowFlip(rowIndex) {
     await new Promise((resolve) => {
       const tile = tiles[i];
       const status = state.board[rowIndex][i].status;
+      let done = false;
+      let paintTimer = 0;
+      let fallbackTimer = 0;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        clearTimeout(paintTimer);
+        clearTimeout(fallbackTimer);
+        tile.classList.remove("flip");
+        tile.classList.add(status);
+        resolve();
+      };
+
+      // Restart animation cleanly (avoids conflict with .filled pop).
+      tile.classList.remove("flip");
+      void tile.offsetWidth;
       tile.classList.add("flip");
       playSound("flip", status);
-      // Paint result near the stamp “impact” (mid animation), not after.
-      const paintTimer = setTimeout(() => {
+
+      paintTimer = setTimeout(() => {
         tile.classList.add(status);
-      }, 220);
+      }, 250);
+
       tile.addEventListener(
         "animationend",
-        () => {
-          clearTimeout(paintTimer);
-          tile.classList.remove("flip");
-          tile.classList.add(status);
-          resolve();
+        (e) => {
+          if (e.animationName && e.animationName !== "stamp-reveal") return;
+          finish();
         },
         { once: true }
       );
+      // If animationend never fires, don't hang the game.
+      fallbackTimer = setTimeout(finish, 700);
     });
-    await delay(90);
+    await delay(80);
   }
 }
 

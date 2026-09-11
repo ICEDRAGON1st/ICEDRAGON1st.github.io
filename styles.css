@@ -317,7 +317,8 @@ header h1 {
   text-transform: uppercase;
   user-select: none;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  transition: transform 0.15s ease, background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  /* Don't transition transform — it fights reveal animations */
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 .board.len-4 .tile {
@@ -368,9 +369,13 @@ header h1 {
     0 0 10px var(--absent-glow);
 }
 
-.tile.flip {
-  animation: stamp-reveal 0.48s cubic-bezier(0.22, 1.15, 0.36, 1) forwards;
+.tile.flip,
+.tile.filled.flip {
+  /* Override .filled's pop animation; no transition on transform */
+  animation: stamp-reveal 0.55s ease-in-out forwards;
+  transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   z-index: 2;
+  transform-origin: center center;
 }
 
 @keyframes pop {
@@ -381,24 +386,19 @@ header h1 {
 
 @keyframes stamp-reveal {
   0% {
-    transform: scale(1) rotate(0deg) skewX(0deg);
-    filter: brightness(1);
+    transform: scale(1) rotate(0deg) skewX(0deg) translateY(0);
   }
-  32% {
-    transform: scale(0.78) rotate(-7deg) skewX(-10deg) translateY(-4px);
-    filter: brightness(0.75);
+  28% {
+    transform: scale(0.72) rotate(-10deg) skewX(-14deg) translateY(-8px);
   }
-  52% {
-    transform: scale(1.12) rotate(3deg) skewX(4deg) translateY(2px);
-    filter: brightness(1.12);
+  48% {
+    transform: scale(1.16) rotate(4deg) skewX(6deg) translateY(3px);
   }
-  72% {
-    transform: scale(0.96) rotate(-1.5deg) skewX(-1.5deg) translateY(0);
-    filter: brightness(1);
+  68% {
+    transform: scale(0.94) rotate(-2deg) skewX(-2deg) translateY(0);
   }
   100% {
-    transform: scale(1) rotate(0deg) skewX(0deg);
-    filter: brightness(1);
+    transform: scale(1) rotate(0deg) skewX(0deg) translateY(0);
   }
 }
 
