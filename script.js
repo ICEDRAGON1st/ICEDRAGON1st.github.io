@@ -2247,11 +2247,13 @@ async function animateRowFlip(rowIndex) {
       if (typeof tile.animate === "function") {
         // WAAPI bypasses CSS transition fights on transform.
         tile.classList.add("flip");
-        await tile.animate(stampKeyframes, {
+        const anim = tile.animate(stampKeyframes, {
           duration: 550,
           easing: "ease-in-out",
           fill: "forwards"
-        }).finished;
+        });
+        await anim.finished;
+        anim.cancel();
         tile.classList.remove("flip");
         tile.style.transform = "";
       } else {
@@ -2262,7 +2264,7 @@ async function animateRowFlip(rowIndex) {
             if (done) return;
             done = true;
             clearTimeout(fallbackTimer);
-            tile.classList.remove("flip");
+            tile.classList.remove("flip", "flip-css");
             resolve();
           };
           tile.classList.remove("flip", "flip-css");
