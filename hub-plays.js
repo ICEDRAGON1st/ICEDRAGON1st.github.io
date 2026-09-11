@@ -1242,6 +1242,21 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     } catch {}
   }
 
+  /** Always count this tab as online locally (shared DB may be rate-limited). */
+  function markSelfOnlineLocal(now = Date.now()) {
+    if (!hasRequiredName()) return;
+    const me = getPlayerId();
+    if (!me) return;
+    presenceCache = enrichPresenceNames(
+      prunePresence(
+        mergePresence(presenceCache, {
+          [me]: { at: now, name: getName() }
+        }),
+        now
+      )
+    );
+  }
+
   /**
    * Ping the shared presence store. Returns current online count.
    */
@@ -1249,10 +1264,19 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     if (heartbeatBusy) return getOnlineCount();
     heartbeatBusy = true;
     try {
-      if (document.hidden || isRateLimited()) {
+      if (document.hidden) {
         return getOnlineCount();
       }
-      tickOnlineTime(Date.now());
+
+      const now = Date.now();
+      tickOnlineTime(now);
+      // Keep yourself visible even when MantleDB is rate-limited / offline.
+      markSelfOnlineLocal(now);
+
+      if (isRateLimited()) {
+        return getOnlineCount();
+      }
+
       const me = getPlayerId();
       let remote = {};
       try {
@@ -1261,7 +1285,6 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
         return getOnlineCount();
       }
 
-      const now = Date.now();
       // Don't publish Guest placeholders — they inflate the online count
       let next = prunePresence(remote, now);
       if (hasRequiredName()) {

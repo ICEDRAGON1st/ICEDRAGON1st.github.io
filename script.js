@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260912f": [
+    "Players: you stay listed as online when the shared DB is rate-limited"
+  ],
   "20260912e": [
     "Players: title/color save works offline when the shared DB is rate-limited"
   ],
@@ -3414,11 +3417,9 @@ async function refreshOnlineCount() {
   if (typeof HubPlays === "undefined") return;
   try {
     const n = await HubPlays.heartbeat();
-    let total = HubPlays.getAllTimeCount();
-    try {
-      total = await HubPlays.registerAllTime();
-    } catch {}
-    updateOnlineCountDisplay(n, total);
+    // All-time roster is refreshed inside heartbeat (~10 min). Avoid extra
+    // MantleDB traffic here — that was blowing the free rate limit.
+    updateOnlineCountDisplay(n, HubPlays.getAllTimeCount());
   } catch {
     updateOnlineCountDisplay(HubPlays.getOnlineCount(), HubPlays.getAllTimeCount());
   }
