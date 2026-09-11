@@ -4,9 +4,15 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hangman</title>
-  <link rel="stylesheet" href="styles.css?v=20260905r">
+  <link rel="stylesheet" href="styles.css?v=20260912r">
 </head>
-<body>
+<body data-hangman-colors="ice">
+  <div class="guess-bg" aria-hidden="true">
+    <span class="guess-bg-orb guess-bg-orb-a"></span>
+    <span class="guess-bg-orb guess-bg-orb-b"></span>
+    <span class="guess-bg-orb guess-bg-orb-c"></span>
+    <span class="guess-bg-orb guess-bg-orb-d"></span>
+  </div>
   <div class="hud">
     <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
     <div class="hud-stats">
@@ -46,6 +52,22 @@
     <div class="overlay-card">
       <h1 id="overlay-title">Hangman</h1>
       <p id="overlay-text">Guess the word one letter at a time.</p>
+      <p class="picker-label">Board colors</p>
+      <div id="color-picker" class="color-theme-picker" role="group" aria-label="Board colors">
+        <button type="button" class="color-theme-btn active" data-hangman-colors="ice">
+          <span class="color-theme-swatches" aria-hidden="true"><i></i><i></i><i></i></span>
+          Ice
+        </button>
+        <button type="button" class="color-theme-btn" data-hangman-colors="arcade">
+          <span class="color-theme-swatches" aria-hidden="true"><i></i><i></i><i></i></span>
+          Arcade
+        </button>
+        <button type="button" class="color-theme-btn" data-hangman-colors="warm">
+          <span class="color-theme-swatches" aria-hidden="true"><i></i><i></i><i></i></span>
+          Warm
+        </button>
+      </div>
+      <p id="color-theme-hint" class="color-theme-hint">Ice · cyan / violet accents</p>
       <p class="picker-label">Theme</p>
       <div id="theme-picker" class="theme-picker" role="group" aria-label="Theme">
         <button type="button" class="theme-btn active" data-theme="classic">Classic</button>
@@ -90,6 +112,6 @@
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260908j"></script>
   <script src="themes.js?v=20260905r"></script>
-  <script src="script.js?v=20260908b"></script>
+  <script src="script.js?v=20260912r"></script>
 </body>
 </html>

@@ -28,6 +28,9 @@ const HUB_THEMES = {
 };
 
 const CHANGELOG = {
+  "20260912r": [
+    "Hangman: Ice / Arcade / Warm board colors + same animated backgrounds as Guessword"
+  ],
   "20260912q": [
     "Guessword: stronger animated theme backgrounds (drifting orbs + sparkle)"
   ],

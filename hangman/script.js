@@ -2,7 +2,14 @@ const STATS_KEY = "hangman-stats";
 const LANG_KEY = "wordle-lang";
 const DIFF_KEY = "hangman-difficulty";
 const THEME_KEY = "hangman-theme";
+const COLOR_THEME_KEY = "hangman-color-theme";
 const LANGUAGES = ["en", "da", "is"];
+
+const HANGMAN_COLOR_THEMES = {
+  ice: { label: "Ice", blurb: "cyan / violet accents" },
+  arcade: { label: "Arcade", blurb: "mint / pink accents" },
+  warm: { label: "Warm", blurb: "teal / amber accents" }
+};
 
 const DIFFICULTY = {
   easy: {
@@ -67,6 +74,8 @@ const menuBtn = document.getElementById("menu-btn");
 const langBtn = document.getElementById("lang-btn");
 const difficultyPicker = document.getElementById("difficulty-picker");
 const themePicker = document.getElementById("theme-picker");
+const colorPicker = document.getElementById("color-picker");
+const colorThemeHintEl = document.getElementById("color-theme-hint");
 
 let currentLang = localStorage.getItem(LANG_KEY) || "en";
 if (!LANGUAGES.includes(currentLang)) currentLang = "en";
@@ -532,6 +541,36 @@ function setTheme(mode) {
   }
 }
 
+function getHangmanColorThemeId() {
+  const raw = localStorage.getItem(COLOR_THEME_KEY) || "ice";
+  return HANGMAN_COLOR_THEMES[raw] ? raw : "ice";
+}
+
+function updateColorThemePicker() {
+  const id = getHangmanColorThemeId();
+  colorPicker?.querySelectorAll("[data-hangman-colors]").forEach((btn) => {
+    btn.classList.toggle("active", btn.dataset.hangmanColors === id);
+  });
+  const def = HANGMAN_COLOR_THEMES[id];
+  if (colorThemeHintEl && def) {
+    colorThemeHintEl.textContent = `${def.label} · ${def.blurb}`;
+  }
+}
+
+function applyHangmanColorTheme(themeId = getHangmanColorThemeId()) {
+  const id = HANGMAN_COLOR_THEMES[themeId] ? themeId : "ice";
+  try {
+    localStorage.setItem(COLOR_THEME_KEY, id);
+  } catch {}
+  document.body.setAttribute("data-hangman-colors", id);
+  updateColorThemePicker();
+}
+
+function setHangmanColorTheme(themeId) {
+  if (!HANGMAN_COLOR_THEMES[themeId]) return;
+  applyHangmanColorTheme(themeId);
+}
+
 function switchLanguage() {
   if (!isClassicTheme()) return;
   const idx = LANGUAGES.indexOf(currentLang);
@@ -570,6 +609,12 @@ themePicker?.addEventListener("click", (e) => {
   setTheme(btn.dataset.theme);
 });
 
+colorPicker?.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-hangman-colors]");
+  if (!btn) return;
+  setHangmanColorTheme(btn.dataset.hangmanColors);
+});
+
 menuBtn.addEventListener("click", () => {
   if (menuMode === "playing") openPauseMenu();
   else if (menuMode === "pause") resumeGame();
@@ -597,6 +642,7 @@ window.addEventListener("keydown", (e) => {
 });
 
 wordPool = buildPool();
+applyHangmanColorTheme();
 updateLangButton();
 syncDifficultyButtons();
 syncThemeButtons();
