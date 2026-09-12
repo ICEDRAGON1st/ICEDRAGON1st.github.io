@@ -398,18 +398,6 @@
         [0.7, 2]
       ],
       multiHint: "70% for 2 · 25% for 3 · 5% for 4"
-    },
-    {
-      name: "Deep Yacht",
-      interval: 7.5,
-      cost: 280000000,
-      multi: [
-        [0.08, 5],
-        [0.12, 4],
-        [0.35, 3],
-        [0.75, 2]
-      ],
-      multiHint: "75% for 2 · 35% for 3 · 12% for 4 · 8% for 5"
     }
   ];
   const BOAT_MAX_LEVEL = BOAT_TIERS.length - 1;
