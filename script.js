@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913n": [
+    "Hub Feedback: fix send when Mantle is rate-limited — saves locally and queues sync; less API spam"
+  ],
   "20260913m": [
     "Fishing Idle: fix auto boat catch feedback — fish show under the boat timer every haul"
   ],
@@ -2947,7 +2950,12 @@ async function openFeedbackPanel() {
   setFeedbackStatus("");
   if (typeof HubFeedback !== "undefined") {
     try {
-      await HubFeedback.sync(true);
+      if (!HubFeedback.isRateLimited?.()) {
+        await HubFeedback.sync(true);
+        await HubFeedback.flushPending?.();
+      } else {
+        setFeedbackStatus("Server is cooling down — showing saved messages", "");
+      }
     } catch {}
   }
   renderFeedbackInbox();
@@ -2988,7 +2996,10 @@ feedbackForm?.addEventListener("submit", async (e) => {
   }
   if (feedbackText) feedbackText.value = "";
   updateFeedbackCharCount();
-  setFeedbackStatus("Sent to ICE — thanks!", "is-ok");
+  setFeedbackStatus(
+    result.warning || (result.queued ? "Saved — will sync to ICE when the server is free" : "Sent to ICE — thanks!"),
+    "is-ok"
+  );
   window.HubSound?.play?.("win");
   renderFeedbackInbox();
   updateFeedbackButtonLabel(true);

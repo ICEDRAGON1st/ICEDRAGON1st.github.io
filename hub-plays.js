@@ -38,6 +38,7 @@
   const LAST_AT_WRITE_GAP_MS = 5 * 60_000; // don't rewrite all-time every heartbeat
   const ALLTIME_LOCAL_KEY = "hub-alltime-cache-v1";
   const RATE_LIMIT_BACKOFF_MS = 15 * 60_000;
+  const RATE_KEY = "mantle-rate-limit-until-v1";
   // One-time: remove unused nickname "dragon" from roster + name registry.
   const PURGED_PLAYER_IDS = new Set(["p-mtt6cbk7-hg3bcj"]);
   const PURGED_NAME_KEYS = new Set(["dragon"]);
@@ -108,9 +109,14 @@
 
   function markRateLimited() {
     rateLimitedUntil = Date.now() + RATE_LIMIT_BACKOFF_MS;
+    try {
+      localStorage.setItem(RATE_KEY, String(rateLimitedUntil));
+    } catch {}
   }
 
   function isRateLimited() {
+    const shared = Math.max(0, Number(localStorage.getItem(RATE_KEY)) || 0);
+    rateLimitedUntil = Math.max(rateLimitedUntil, shared);
     return Date.now() < rateLimitedUntil;
   }
 

@@ -13,7 +13,8 @@
   const SEEN_KEY = "hub-notifications-seen-v1";
   const PERM_ASKED_KEY = "hub-notifications-perm-asked-v1";
   const MAX_ITEMS = 40;
-  const POLL_MS = 8000;
+  const POLL_MS = 20000;
+  const FEEDBACK_SYNC_MS = 180000;
   const STREAK_WARN_HOURS = 6;
   const STREAK_URGENT_HOURS = 2;
 
@@ -375,12 +376,24 @@
     lastFeedbackUnread = unread;
   }
 
+  let lastFeedbackSyncAt = 0;
+
   async function tick() {
+    // Don't re-sync chat here — HubChat already polls when Friends is open.
+    // Feedback: owner-only, and only every few minutes to avoid Mantle rate limits.
     try {
-      if (typeof HubChat !== "undefined" && HubChat.sync) await HubChat.sync();
-    } catch {}
-    try {
-      if (typeof HubFeedback !== "undefined" && HubFeedback.sync) await HubFeedback.sync();
+      const owner = typeof HubFeedback !== "undefined" && HubFeedback.isOwner?.();
+      const cooled =
+        typeof HubFeedback !== "undefined" && HubFeedback.isRateLimited?.();
+      if (
+        owner &&
+        !cooled &&
+        Date.now() - lastFeedbackSyncAt >= FEEDBACK_SYNC_MS
+      ) {
+        lastFeedbackSyncAt = Date.now();
+        await HubFeedback.sync();
+        await HubFeedback.flushPending?.();
+      }
     } catch {}
     checkStreak();
     checkChat();

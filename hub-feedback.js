@@ -2,7 +2,7 @@
  * hub-feedback.js — player ideas/bugs sent to ICE via MantleDB.
  *
  * window.HubFeedback:
- *   submit({ text, type, game }) → Promise<{ ok, error? }>
+ *   submit({ text, type, game }) → Promise<{ ok, error?, warning?, queued? }>
  *   sync(force?) → Promise
  *   list() → newest-first items
  *   isOwner() → true for ICE_DRAGON
@@ -15,9 +15,12 @@
   const LOCAL_KEY = "hub-feedback-v1";
   const READ_KEY = "hub-feedback-read-at-v1";
   const LAST_SEND_KEY = "hub-feedback-last-send-v1";
+  const PENDING_KEY = "hub-feedback-pending-v1";
+  const RATE_KEY = "mantle-rate-limit-until-v1";
   const MAX_ITEMS = 120;
   const MAX_TEXT = 400;
   const SEND_COOLDOWN_MS = 20000;
+  const RATE_LIMIT_BACKOFF_MS = 20 * 60_000;
   const OWNER_NAME = "ice_dragon";
 
   let cache = { items: [] };
@@ -69,6 +72,16 @@
       .slice(0, 32);
   }
 
+  function markRateLimited(ms = RATE_LIMIT_BACKOFF_MS) {
+    try {
+      localStorage.setItem(RATE_KEY, String(Date.now() + Math.max(60_000, ms)));
+    } catch {}
+  }
+
+  function isRateLimited() {
+    return Date.now() < Math.max(0, Number(localStorage.getItem(RATE_KEY)) || 0);
+  }
+
   function loadLocal() {
     try {
       const data = JSON.parse(localStorage.getItem(LOCAL_KEY));
@@ -83,6 +96,32 @@
     try {
       localStorage.setItem(LOCAL_KEY, JSON.stringify(data || { items: [] }));
     } catch {}
+  }
+
+  function loadPendingIds() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(PENDING_KEY));
+      return Array.isArray(raw) ? raw.map(String).filter(Boolean) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function savePendingIds(ids) {
+    try {
+      localStorage.setItem(PENDING_KEY, JSON.stringify((ids || []).slice(0, MAX_ITEMS)));
+    } catch {}
+  }
+
+  function addPending(id) {
+    const next = [...new Set([...loadPendingIds(), String(id)])];
+    savePendingIds(next);
+  }
+
+  function clearPending(ids) {
+    if (!ids?.length) return;
+    const drop = new Set(ids.map(String));
+    savePendingIds(loadPendingIds().filter((id) => !drop.has(id)));
   }
 
   function getReadAt() {
@@ -126,18 +165,40 @@
   }
 
   async function fetchJson(url) {
+    if (isRateLimited()) {
+      const err = new Error("rate limited");
+      err.code = 429;
+      throw err;
+    }
     const res = await fetch(url, { cache: "no-store" });
+    if (res.status === 429) {
+      markRateLimited();
+      const err = new Error("rate limited");
+      err.code = 429;
+      throw err;
+    }
     if (res.status === 404) return null;
     if (!res.ok) throw new Error("fetch failed");
     return res.json();
   }
 
   async function postJson(url, data) {
+    if (isRateLimited()) {
+      const err = new Error("rate limited");
+      err.code = 429;
+      throw err;
+    }
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data)
     });
+    if (res.status === 429) {
+      markRateLimited();
+      const err = new Error("rate limited");
+      err.code = 429;
+      throw err;
+    }
     if (!res.ok) throw new Error("push failed");
   }
 
@@ -167,18 +228,58 @@
     setReadAt(newest);
   }
 
+  async function flushPending() {
+    const pending = loadPendingIds();
+    if (!pending.length || isRateLimited()) return false;
+    const pendingSet = new Set(pending);
+    const localItems = mergeItems(cache.items, loadLocal().items);
+    const toPush = localItems.filter((item) => pendingSet.has(item.id));
+    if (!toPush.length) {
+      savePendingIds([]);
+      return false;
+    }
+    try {
+      let remote = { items: [] };
+      try {
+        remote = await fetchRemote();
+      } catch (err) {
+        if (err?.code === 429) return false;
+      }
+      const items = mergeItems(remote.items, localItems);
+      cache = { items };
+      saveLocal(cache);
+      await pushRemote(items);
+      clearPending(pending);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async function sync(force = false) {
     if (syncing && !force) return cache;
+    if (isRateLimited() && !force) {
+      cache = loadLocal();
+      return cache;
+    }
     syncing = true;
     try {
       const local = loadLocal();
       let remote = { items: [] };
       try {
         remote = await fetchRemote();
-      } catch {}
+      } catch (err) {
+        cache = { items: mergeItems(local.items, cache.items) };
+        saveLocal(cache);
+        if (err?.code !== 429) {
+          /* keep local */
+        }
+        return cache;
+      }
       const items = mergeItems(local.items, remote.items);
       cache = { items };
       saveLocal(cache);
+      await flushPending();
       return cache;
     } finally {
       syncing = false;
@@ -207,34 +308,67 @@
       at: now
     };
 
+    // Always keep a local copy so send never feels broken.
+    cache = { items: mergeItems(cache.items, [item]) };
+    saveLocal(cache);
+    addPending(item.id);
+    try {
+      localStorage.setItem(LAST_SEND_KEY, String(now));
+    } catch {}
+
+    if (isRateLimited()) {
+      return {
+        ok: true,
+        queued: true,
+        warning: "Saved on this device. Server is busy — it will sync to ICE when the limit clears."
+      };
+    }
+
+    let queued = false;
     writeQueue = writeQueue
       .then(async () => {
-        await sync(true);
-        const items = mergeItems(cache.items, [item]);
+        let remote = { items: [] };
+        try {
+          remote = await fetchRemote();
+        } catch (err) {
+          if (err?.code === 429) {
+            queued = true;
+            return;
+          }
+        }
+        const items = mergeItems(remote.items, cache.items);
         cache = { items };
         saveLocal(cache);
-        await pushRemote(items);
         try {
-          localStorage.setItem(LAST_SEND_KEY, String(now));
-        } catch {}
+          await pushRemote(items);
+          clearPending([item.id]);
+        } catch (err) {
+          queued = true;
+          if (err?.code !== 429) {
+            /* keep pending for later flush */
+          }
+        }
       })
       .catch(() => {
-        // Keep local copy even if remote fails
-        cache = { items: mergeItems(cache.items, [item]) };
-        saveLocal(cache);
-        throw new Error("Could not reach the server — saved locally, try again later");
+        queued = true;
       });
 
-    try {
-      await writeQueue;
-      return { ok: true };
-    } catch (err) {
-      return { ok: false, error: err?.message || "Send failed" };
+    await writeQueue;
+    if (queued || loadPendingIds().includes(item.id)) {
+      return {
+        ok: true,
+        queued: true,
+        warning: "Saved. Could not reach the server yet — ICE will get it when sync works."
+      };
     }
+    return { ok: true };
   }
 
   cache = loadLocal();
-  sync().catch(() => {});
+  // Soft sync on load — skip if Mantle is cooling down
+  if (!isRateLimited()) {
+    sync().catch(() => {});
+  }
 
   window.HubFeedback = {
     submit,
@@ -243,6 +377,8 @@
     isOwner,
     unreadCount,
     markAllRead,
+    flushPending,
+    isRateLimited,
     MAX_TEXT
   };
 })();
