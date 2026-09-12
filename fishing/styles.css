@@ -996,9 +996,15 @@ body {
 }
 
 .fish-glyph .fin,
-.fish-glyph .tail {
+.fish-glyph .tail,
+.fish-glyph .bill,
+.fish-glyph .spot {
   fill: currentColor;
-  opacity: 0.75;
+  opacity: 0.8;
+}
+
+.fish-glyph .whisker {
+  fill: none;
 }
 
 .fish-glyph .eye {
@@ -1007,6 +1013,15 @@ body {
 
 .fish-glyph .shine {
   fill: rgba(255, 255, 255, 0.35);
+}
+
+.fish-glyph.shape-ghost {
+  opacity: 0.85;
+  filter: drop-shadow(0 0 3px rgba(224, 176, 240, 0.45));
+}
+
+.fish-glyph.shape-octopus .fin {
+  opacity: 1;
 }
 
 .hint,

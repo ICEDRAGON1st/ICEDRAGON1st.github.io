@@ -813,15 +813,344 @@
 
   const SUFFIXES = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
 
-  function fishGlyphHtml(rarity) {
-    const tone = rarityColor(rarity);
-    return `<svg class="fish-glyph" viewBox="0 0 64 32" aria-hidden="true" style="color:${tone}">
-      <path class="tail" d="M4 16 L14 8 L14 24 Z"/>
-      <ellipse class="body" cx="34" cy="16" rx="20" ry="10"/>
-      <path class="fin" d="M30 8 L36 2 L40 9 Z"/>
-      <path class="fin" d="M30 24 L36 30 L40 23 Z"/>
-      <circle class="eye" cx="48" cy="13" r="2.2"/>
-      <ellipse class="shine" cx="28" cy="12" rx="7" ry="3"/>
+  const FISH_SHAPE = {
+    minnow: "slender",
+    perch: "perch",
+    bluegill: "panfish",
+    sardine: "slender",
+    smelt: "slender",
+    carp: "carp",
+    roach: "panfish",
+    goby: "goby",
+    trout: "trout",
+    bass: "bass",
+    catfish: "catfish",
+    walleye: "pike",
+    snapper: "snapper",
+    mackerel: "mackerel",
+    cod: "cod",
+    flounder: "flat",
+    salmon: "salmon",
+    pike: "pike",
+    mahi: "mahi",
+    grouper: "grouper",
+    barracuda: "barracuda",
+    sturgeon: "sturgeon",
+    eel: "eel",
+    tuna: "tuna",
+    marlin: "marlin",
+    swordfish: "swordfish",
+    shark: "shark",
+    ray: "ray",
+    octopus: "octopus",
+    golden: "koi",
+    leviathan: "leviathan",
+    moonfish: "moonfish",
+    dragonet: "dragonet",
+    crystal: "pike",
+    tidelord: "grouper",
+    abyssking: "shark",
+    starwhale: "whale",
+    worldfin: "tuna",
+    ghostfin: "ghost",
+    nullfish: "ghost",
+    eclipse: "eel",
+    forgotten: "ghost",
+    seraph: "ray",
+    halo: "carp",
+    oracle: "koi",
+    timeless: "trout",
+    foreverfin: "tuna",
+    aeon: "shark",
+    nebula: "jellyfish",
+    quasar: "cod",
+    omnifin: "tuna",
+    stardrift: "ray",
+    aurorafin: "mahi",
+    galaxykoi: "koi",
+    eventide: "eel",
+    horizon: "shark",
+    collapse: "carp",
+    primefin: "tuna",
+    absoluth: "shark",
+    theend: "omega"
+  };
+
+  const FISH_TINT = {
+    minnow: "#c5d0d6",
+    perch: "#8fbc6b",
+    bluegill: "#6db3c9",
+    sardine: "#b8c4cc",
+    smelt: "#a8b8c0",
+    carp: "#d4a373",
+    roach: "#c9a66b",
+    goby: "#9aa88a",
+    trout: "#7eb8a0",
+    bass: "#6a9e6e",
+    catfish: "#8a7f6e",
+    walleye: "#c4b05a",
+    snapper: "#e07860",
+    mackerel: "#6a9aaa",
+    cod: "#8fa0b0",
+    flounder: "#c2a878",
+    salmon: "#e0898a",
+    pike: "#7a9a72",
+    mahi: "#45c4a0",
+    grouper: "#b08968",
+    barracuda: "#8aa0a8",
+    sturgeon: "#9a9080",
+    eel: "#6d7a6a",
+    tuna: "#5b7fa0",
+    marlin: "#4f8fb8",
+    swordfish: "#7a90a8",
+    shark: "#7d8b96",
+    ray: "#6a7d8f",
+    octopus: "#b0749a",
+    golden: "#f0c14b",
+    leviathan: "#6ec6c0",
+    moonfish: "#dce6f0",
+    dragonet: "#78c4b0",
+    crystal: "#9ad4e8",
+    tidelord: "#4db6ac",
+    abyssking: "#5c6bc0",
+    starwhale: "#90caf9",
+    worldfin: "#80cbc4",
+    ghostfin: "#e0b0f0",
+    nullfish: "#c8b8d8",
+    eclipse: "#9a70b0",
+    forgotten: "#b8a0c8",
+    seraph: "#fff3bf",
+    halo: "#ffe082",
+    oracle: "#ffd54f",
+    timeless: "#80deea",
+    foreverfin: "#4dd0e1",
+    aeon: "#81d4fa",
+    nebula: "#b39ddb",
+    quasar: "#ce93d8",
+    omnifin: "#9575cd",
+    stardrift: "#4dd0e1",
+    aurorafin: "#80cbc4",
+    galaxykoi: "#f48fb1",
+    eventide: "#f48fb1",
+    horizon: "#ff8a65",
+    collapse: "#ffab91",
+    primefin: "#ffe066",
+    absoluth: "#ffd54f",
+    theend: "#fff59d"
+  };
+
+  function fishGlyphParts(shape) {
+    switch (shape) {
+      case "catfish":
+        return `
+          <path class="whisker" d="M46 14 Q58 8 62 6" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          <path class="whisker" d="M46 18 Q58 24 62 26" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+          <path class="whisker" d="M44 16 Q54 14 58 12" fill="none" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" opacity="0.7"/>
+          <path class="tail" d="M2 16 L12 7 L12 25 Z"/>
+          <ellipse class="body" cx="30" cy="17" rx="18" ry="9"/>
+          <path class="fin" d="M24 9 L28 2 L34 10 Z"/>
+          <circle class="eye" cx="44" cy="14" r="2"/>
+          <ellipse class="shine" cx="24" cy="13" rx="6" ry="2.5"/>`;
+      case "snapper":
+        return `
+          <path class="tail" d="M2 16 L13 6 L13 26 Z"/>
+          <path class="body" d="M12 16 C14 6 28 3 42 8 C52 12 54 16 52 20 C48 28 28 30 16 24 C12 22 11 18 12 16 Z"/>
+          <path class="fin" d="M28 7 L34 0 L38 9 Z"/>
+          <path class="fin" d="M26 24 L32 31 L36 22 Z"/>
+          <circle class="eye" cx="46" cy="13" r="2.1"/>
+          <path class="mouth" d="M52 17 Q55 18 52 19" fill="none" stroke="#071820" stroke-width="1.1"/>
+          <ellipse class="shine" cx="28" cy="12" rx="7" ry="3"/>`;
+      case "eel":
+        return `
+          <path class="body" d="M4 18 C10 8 18 6 28 12 C38 18 46 10 56 14 C60 16 60 20 56 20 C46 22 38 28 28 22 C18 16 12 24 6 20 Z"/>
+          <circle class="eye" cx="54" cy="14" r="1.8"/>
+          <ellipse class="shine" cx="22" cy="14" rx="5" ry="2"/>`;
+      case "flat":
+        return `
+          <ellipse class="body" cx="34" cy="16" rx="24" ry="9"/>
+          <path class="fin" d="M18 10 L22 4 L28 10 Z" opacity="0.7"/>
+          <path class="fin" d="M18 22 L22 28 L28 22 Z" opacity="0.7"/>
+          <circle class="eye" cx="48" cy="12" r="2.3"/>
+          <circle class="eye" cx="42" cy="11" r="1.5" opacity="0.85"/>
+          <ellipse class="shine" cx="28" cy="14" rx="8" ry="3"/>`;
+      case "pike":
+      case "barracuda":
+        return `
+          <path class="tail" d="M1 16 L12 8 L12 24 Z"/>
+          <ellipse class="body" cx="36" cy="16" rx="22" ry="6.5"/>
+          <path class="fin" d="M28 10 L34 3 L38 11 Z"/>
+          <circle class="eye" cx="52" cy="14" r="1.8"/>
+          <path class="mouth" d="M56 16 L62 14 M56 17 L62 19" fill="none" stroke="#071820" stroke-width="1"/>
+          <ellipse class="shine" cx="30" cy="13" rx="8" ry="2"/>`;
+      case "shark":
+        return `
+          <path class="tail" d="M2 16 L12 6 L10 16 L12 26 Z"/>
+          <ellipse class="body" cx="34" cy="18" rx="20" ry="8"/>
+          <path class="fin" d="M30 10 L36 -1 L40 12 Z"/>
+          <path class="fin" d="M28 24 L34 30 L38 22 Z" opacity="0.8"/>
+          <circle class="eye" cx="48" cy="15" r="1.8"/>
+          <path class="mouth" d="M50 20 Q54 22 48 22" fill="none" stroke="#071820" stroke-width="1.1"/>
+          <ellipse class="shine" cx="28" cy="14" rx="7" ry="2.5"/>`;
+      case "ray":
+        return `
+          <path class="body" d="M32 16 L8 8 L4 16 L8 24 Z"/>
+          <ellipse class="body" cx="40" cy="16" rx="16" ry="11"/>
+          <path class="tail" d="M8 16 L0 14 L2 16 L0 18 Z"/>
+          <circle class="eye" cx="48" cy="13" r="1.8"/>
+          <ellipse class="shine" cx="38" cy="14" rx="6" ry="3"/>`;
+      case "octopus":
+        return `
+          <circle class="body" cx="36" cy="12" r="11"/>
+          <path class="fin" d="M24 18 Q20 28 16 30 M28 20 Q26 30 24 32 M36 22 Q36 31 38 33 M44 20 Q48 30 50 32 M48 18 Q56 28 58 29" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+          <circle class="eye" cx="32" cy="10" r="2"/>
+          <circle class="eye" cx="40" cy="10" r="2"/>
+          <ellipse class="shine" cx="34" cy="8" rx="4" ry="2"/>`;
+      case "swordfish":
+      case "marlin":
+        return `
+          <path class="bill" d="M50 16 L64 14 L64 18 Z"/>
+          <path class="tail" d="M1 16 L12 5 L10 16 L12 27 Z"/>
+          <ellipse class="body" cx="30" cy="16" rx="18" ry="8"/>
+          <path class="fin" d="M26 8 L32 -2 L36 10 Z"/>
+          <circle class="eye" cx="44" cy="13" r="1.8"/>
+          <ellipse class="shine" cx="24" cy="12" rx="6" ry="2.5"/>`;
+      case "tuna":
+      case "mackerel":
+      case "salmon":
+        return `
+          <path class="tail" d="M2 16 L14 5 L11 16 L14 27 Z"/>
+          <ellipse class="body" cx="34" cy="16" rx="20" ry="8"/>
+          <path class="fin" d="M28 9 L33 1 L38 10 Z"/>
+          <path class="fin" d="M30 22 L36 29 L40 20 Z" opacity="0.85"/>
+          <circle class="eye" cx="48" cy="13" r="2"/>
+          <path class="stripe" d="M20 14 H44 M20 18 H42" fill="none" stroke="#071820" stroke-width="0.8" opacity="0.25"/>
+          <ellipse class="shine" cx="28" cy="12" rx="7" ry="2.5"/>`;
+      case "koi":
+      case "carp":
+        return `
+          <path class="tail" d="M2 16 L13 6 L13 26 Z"/>
+          <ellipse class="body" cx="34" cy="16" rx="19" ry="11"/>
+          <path class="fin" d="M26 7 L32 -1 L38 9 Z"/>
+          <path class="fin" d="M24 24 L30 31 L36 22 Z"/>
+          <circle class="eye" cx="48" cy="13" r="2"/>
+          <path class="spot" d="M26 14 a3 3 0 1 0 0.1 0 M36 20 a2.5 2.5 0 1 0 0.1 0" opacity="0.35"/>
+          <ellipse class="shine" cx="28" cy="11" rx="6" ry="3"/>`;
+      case "panfish":
+      case "perch":
+      case "bass":
+      case "grouper":
+        return `
+          <path class="tail" d="M3 16 L13 7 L13 25 Z"/>
+          <ellipse class="body" cx="33" cy="16" rx="18" ry="12"/>
+          <path class="fin" d="M28 6 L34 -2 L40 9 Z"/>
+          <path class="fin" d="M22 24 L28 31 L34 22 Z"/>
+          <circle class="eye" cx="46" cy="12" r="2.2"/>
+          <ellipse class="shine" cx="28" cy="12" rx="6" ry="3"/>`;
+      case "trout":
+        return `
+          <path class="tail" d="M2 16 L13 7 L13 25 Z"/>
+          <ellipse class="body" cx="34" cy="16" rx="19" ry="9"/>
+          <path class="fin" d="M28 8 L34 1 L38 10 Z"/>
+          <circle class="eye" cx="48" cy="13" r="2"/>
+          <circle class="spot" cx="24" cy="14" r="1.1" opacity="0.35"/>
+          <circle class="spot" cx="30" cy="18" r="1" opacity="0.35"/>
+          <circle class="spot" cx="36" cy="13" r="1.1" opacity="0.35"/>
+          <ellipse class="shine" cx="28" cy="12" rx="6" ry="2.5"/>`;
+      case "mahi":
+        return `
+          <path class="tail" d="M2 16 L14 4 L11 16 L14 28 Z"/>
+          <path class="body" d="M12 16 C16 5 30 2 44 8 C52 12 54 16 50 22 C44 30 24 30 14 22 Z"/>
+          <path class="fin" d="M26 6 L34 -2 L40 10 Z"/>
+          <circle class="eye" cx="46" cy="12" r="2"/>
+          <ellipse class="shine" cx="28" cy="12" rx="7" ry="3"/>`;
+      case "cod":
+      case "sturgeon":
+        return `
+          <path class="tail" d="M2 16 L12 8 L12 24 Z"/>
+          <ellipse class="body" cx="33" cy="17" rx="19" ry="9"/>
+          <path class="fin" d="M26 10 L30 3 L36 11 Z"/>
+          <path class="fin" d="M24 23 L30 29 L34 21 Z" opacity="0.8"/>
+          <circle class="eye" cx="47" cy="14" r="2"/>
+          <ellipse class="shine" cx="26" cy="13" rx="6" ry="2.5"/>`;
+      case "slender":
+      case "goby":
+        return `
+          <path class="tail" d="M4 16 L12 10 L12 22 Z"/>
+          <ellipse class="body" cx="34" cy="16" rx="18" ry="6"/>
+          <path class="fin" d="M30 11 L34 5 L38 12 Z"/>
+          <circle class="eye" cx="48" cy="14" r="1.7"/>
+          <ellipse class="shine" cx="30" cy="13" rx="6" ry="2"/>`;
+      case "whale":
+        return `
+          <path class="tail" d="M2 16 L14 6 L10 16 L14 26 Z"/>
+          <ellipse class="body" cx="36" cy="17" rx="22" ry="11"/>
+          <path class="fin" d="M28 24 L34 30 L40 22 Z" opacity="0.8"/>
+          <circle class="eye" cx="50" cy="14" r="1.8"/>
+          <ellipse class="shine" cx="30" cy="12" rx="8" ry="3"/>`;
+      case "leviathan":
+        return `
+          <path class="tail" d="M1 16 L12 4 L9 16 L12 28 Z"/>
+          <ellipse class="body" cx="34" cy="16" rx="21" ry="10"/>
+          <path class="fin" d="M26 7 L34 -3 L40 10 Z"/>
+          <path class="fin" d="M24 24 L32 32 L38 20 Z"/>
+          <circle class="eye" cx="50" cy="13" r="2.2"/>
+          <ellipse class="shine" cx="28" cy="11" rx="7" ry="3"/>`;
+      case "moonfish":
+        return `
+          <circle class="body" cx="34" cy="16" r="13"/>
+          <path class="fin" d="M22 8 L18 2 L28 8 Z"/>
+          <path class="fin" d="M22 24 L18 30 L28 24 Z"/>
+          <path class="tail" d="M20 16 L8 10 L10 16 L8 22 Z"/>
+          <circle class="eye" cx="42" cy="13" r="2"/>
+          <ellipse class="shine" cx="30" cy="11" rx="5" ry="3"/>`;
+      case "dragonet":
+        return `
+          <path class="tail" d="M2 18 L12 8 L12 26 Z"/>
+          <ellipse class="body" cx="32" cy="18" rx="16" ry="8"/>
+          <path class="fin" d="M24 10 L30 0 L40 8 L36 14 Z"/>
+          <path class="fin" d="M22 22 L18 30 L28 24 Z"/>
+          <circle class="eye" cx="44" cy="15" r="2"/>
+          <ellipse class="shine" cx="26" cy="14" rx="5" ry="2"/>`;
+      case "jellyfish":
+        return `
+          <ellipse class="body" cx="32" cy="12" rx="14" ry="10"/>
+          <path class="fin" d="M22 18 Q20 28 18 30 M28 20 Q28 30 26 32 M36 20 Q38 30 40 32 M42 18 Q46 28 48 30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+          <circle class="eye" cx="27" cy="11" r="1.5" opacity="0.5"/>
+          <circle class="eye" cx="37" cy="11" r="1.5" opacity="0.5"/>
+          <ellipse class="shine" cx="30" cy="8" rx="6" ry="3"/>`;
+      case "ghost":
+        return `
+          <path class="tail" d="M4 16 L14 8 L14 24 Z" opacity="0.55"/>
+          <ellipse class="body" cx="34" cy="16" rx="18" ry="9" opacity="0.7"/>
+          <circle class="eye" cx="46" cy="13" r="2.4"/>
+          <ellipse class="shine" cx="28" cy="12" rx="7" ry="3" opacity="0.5"/>`;
+      case "omega":
+        return `
+          <path class="tail" d="M1 16 L13 3 L10 16 L13 29 Z"/>
+          <ellipse class="body" cx="34" cy="16" rx="20" ry="11"/>
+          <path class="fin" d="M26 6 L34 -4 L42 10 Z"/>
+          <path class="fin" d="M24 24 L34 34 L40 20 Z"/>
+          <circle class="eye" cx="48" cy="12" r="2.4"/>
+          <path class="spot" d="M30 16 a5 5 0 1 0 0.1 0" fill="none" stroke="#071820" stroke-width="1.4" opacity="0.35"/>
+          <ellipse class="shine" cx="28" cy="11" rx="7" ry="3"/>`;
+      default:
+        return `
+          <path class="tail" d="M4 16 L14 8 L14 24 Z"/>
+          <ellipse class="body" cx="34" cy="16" rx="20" ry="10"/>
+          <path class="fin" d="M30 8 L36 2 L40 9 Z"/>
+          <path class="fin" d="M30 24 L36 30 L40 23 Z"/>
+          <circle class="eye" cx="48" cy="13" r="2.2"/>
+          <ellipse class="shine" cx="28" cy="12" rx="7" ry="3"/>`;
+    }
+  }
+
+  function fishGlyphHtml(fish) {
+    const id = typeof fish === "string" ? fish : fish?.id;
+    const rarity = typeof fish === "string" ? fish : fish?.rarity;
+    const shape = FISH_SHAPE[id] || "default";
+    const tone = FISH_TINT[id] || rarityColor(rarity);
+    return `<svg class="fish-glyph shape-${shape}" viewBox="0 0 64 32" aria-hidden="true" style="color:${tone}">
+      ${fishGlyphParts(shape)}
     </svg>`;
   }
 
@@ -857,7 +1186,7 @@
     }
     catchCardEl.hidden = false;
     catchCardEl.className = `catch-card rarity-${fish.rarity}`;
-    if (catchCardFishEl) catchCardFishEl.innerHTML = fishGlyphHtml(fish.rarity);
+    if (catchCardFishEl) catchCardFishEl.innerHTML = fishGlyphHtml(fish);
     if (catchCardStarEl) catchCardStarEl.textContent = perfect ? "★" : "☆";
     if (catchCardNameEl) catchCardNameEl.textContent = fish.name;
     if (catchCardValueEl) catchCardValueEl.textContent = formatNum(val);
@@ -1529,7 +1858,7 @@
         return `<div class="fish-chip ${fish.rarity}${saved ? " is-saved" : ""}${
           isCoolerPerfect(entry) ? " is-perfect" : ""
         }" data-cooler-index="${index}">
-          <span class="fish-chip-glyph" aria-hidden="true">${fishGlyphHtml(fish.rarity)}</span>
+          <span class="fish-chip-glyph" aria-hidden="true">${fishGlyphHtml(fish)}</span>
           <button type="button" class="fish-chip-save" data-save-index="${index}" title="${
             saved ? "Unsave fish" : "Save fish (won't sell)"
           }" aria-label="${saved ? "Unsave" : "Save"} ${fish.name}" aria-pressed="${saved}">${

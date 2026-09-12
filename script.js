@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913k": [
+    "Fishing Idle: different fish shapes per species (catfish whiskers, snapper, eel, shark, ray…)"
+  ],
   "20260913j": [
     "Fishing Idle: catch card + cooler chips show fish art with star, name, and value"
   ],
