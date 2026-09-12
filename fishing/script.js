@@ -11,6 +11,8 @@
   } catch {}
 
   const ICE_BOAT_GRANT_ID = "fishing-ice-dragon-boat-lv1-v1";
+  const ICE_COINS_GRANT_ID = "fishing-ice-dragon-coins-1m-v1";
+  const ICE_COINS_GRANT_AMOUNT = 1_000_000;
   const TICK_MS = 100;
   const COOLER_BASE = 12;
 
@@ -2529,6 +2531,11 @@
         boatAcc.boat = 0;
       }
       localStorage.setItem(ICE_BOAT_GRANT_ID, "done");
+      saveState();
+    }
+    if (name === "ice_dragon" && localStorage.getItem(ICE_COINS_GRANT_ID) !== "done") {
+      state.coins = Math.max(0, Number(state.coins) || 0) + ICE_COINS_GRANT_AMOUNT;
+      localStorage.setItem(ICE_COINS_GRANT_ID, "done");
       saveState();
     }
   } catch {}
