@@ -467,6 +467,12 @@
   const coinCountEl = document.getElementById("coin-count");
   const spotLabelEl = document.getElementById("spot-label");
   const windowLabelEl = document.getElementById("window-label");
+  const waitLabelEl = document.getElementById("wait-label");
+  const luckLabelEl = document.getElementById("luck-label");
+  const sellLabelEl = document.getElementById("sell-label");
+  const multiLabelEl = document.getElementById("multi-label");
+  const perfectLabelEl = document.getElementById("perfect-label");
+  const coolerStatLabelEl = document.getElementById("cooler-stat-label");
   const boatsLabelEl = document.getElementById("boats-label");
   const boatTimersEl = document.getElementById("boat-timers");
   const boatBayEl = document.getElementById("boat-bay");
@@ -2191,14 +2197,29 @@
       .join("");
   }
 
+  function formatPctBonus(n, signed = true) {
+    const pct = Math.round((Number(n) || 0) * 1000) / 10;
+    const text = Number.isInteger(pct) ? String(pct) : pct.toFixed(1);
+    if (!signed) return `${text}%`;
+    return pct > 0 ? `+${text}%` : `${text}%`;
+  }
+
   function renderStats() {
     const spot = currentSpot();
     const bestFish = fishById(state.bestCatchId) || FISH.find((f) => catchScore(f) === state.bestCatchScore);
     const bestLabel = bestFish ? formatBestCatch(bestFish) : "—";
+    const bait = equippedSpeedGear();
+    const waitCut = bait ? Math.round(bait.amount * 100) : 0;
     if (coinCountEl) coinCountEl.textContent = formatNum(state.coins);
     if (spotLabelEl) spotLabelEl.textContent = spot.name;
     if (hudSpotEl) hudSpotEl.textContent = spot.name;
     if (windowLabelEl) windowLabelEl.textContent = `${biteWindow().toFixed(2)}s`;
+    if (waitLabelEl) waitLabelEl.textContent = waitCut ? `−${waitCut}%` : "—";
+    if (luckLabelEl) luckLabelEl.textContent = `+${Math.round(luckBonus())}`;
+    if (sellLabelEl) sellLabelEl.textContent = formatPctBonus(sellBonus());
+    if (multiLabelEl) multiLabelEl.textContent = formatPctBonus(multiCatchChance(), false);
+    if (perfectLabelEl) perfectLabelEl.textContent = formatPctBonus(perfectBonus());
+    if (coolerStatLabelEl) coolerStatLabelEl.textContent = String(coolerMax());
     if (hudBestEl) hudBestEl.textContent = bestLabel;
     if (overlayBestEl) overlayBestEl.textContent = bestLabel;
     renderBoatTimers();

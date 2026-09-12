@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914b": [
+    "Fishing Idle: show live totals for wait, luck, sell boost, 2nd catch, perfect pay, cooler"
+  ],
   "20260914a": [
     "Fishing Idle: +24 late upgrades (rods, luck, cooler, sell, nets, perfect pay)"
   ],
