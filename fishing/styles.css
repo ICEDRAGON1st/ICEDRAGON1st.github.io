@@ -325,9 +325,8 @@ body {
 .boat-zone {
   width: 100%;
   margin: 0 0 0.85rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
+  /* Reserve timer height so hiring/showing a boat doesn't jump Cast */
+  min-height: 4.35rem;
 }
 
 .boat-timers {
@@ -335,9 +334,30 @@ body {
   display: grid;
   gap: 0.4rem;
   margin: 0;
+  min-height: 4.35rem;
 }
 
 .boat-timers.empty {
+  /* Keep the reserved space even with no boat */
+  display: grid;
+}
+
+.boat-timers.empty::before {
+  content: "No auto boat hired";
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 4.35rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.55rem;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.16);
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.boat-timers:not(.empty)::before {
   display: none;
 }
 
@@ -347,6 +367,8 @@ body {
   border-radius: 0.55rem;
   border: 1px solid var(--border);
   background: rgba(0, 0, 0, 0.22);
+  min-height: 4.35rem;
+  box-sizing: border-box;
 }
 
 .boat-timer-top {
@@ -393,17 +415,17 @@ body {
 .boat-bay {
   width: 100%;
   text-align: left;
-  padding: 0.5rem 0.6rem 0.55rem;
+  margin: 0.75rem 0 0;
+  padding: 0.5rem 0.6rem;
   border-radius: 0.65rem;
   border: 1px dashed rgba(46, 196, 182, 0.35);
   background:
     linear-gradient(180deg, rgba(12, 48, 58, 0.65), rgba(6, 28, 36, 0.55));
-  min-height: 4.6rem;
+  height: 4.8rem;
+  min-height: 4.8rem;
+  max-height: 4.8rem;
   box-sizing: border-box;
-}
-
-.boat-bay[hidden] {
-  display: none !important;
+  overflow: hidden;
 }
 
 .boat-bay-label {
@@ -411,25 +433,25 @@ body {
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
-  margin-bottom: 0.35rem;
+  margin-bottom: 0.3rem;
   font-weight: 700;
+  line-height: 1;
 }
 
 .boat-haul {
-  position: static;
-  left: auto;
-  top: auto;
-  transform: none;
   width: 100%;
-  min-height: 2.6rem;
+  height: 2.85rem;
+  min-height: 2.85rem;
+  max-height: 2.85rem;
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: flex-start;
   gap: 0.4rem;
   margin: 0;
-  z-index: auto;
-  pointer-events: none;
+  overflow-x: auto;
+  overflow-y: hidden;
+  pointer-events: auto;
 }
 
 .boat-bay-empty {
@@ -437,25 +459,28 @@ body {
   font-size: 0.78rem;
   color: var(--muted);
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .boat-haul-list {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-start;
   gap: 0.4rem;
-  width: 100%;
+  width: max-content;
+  max-width: none;
 }
 
 .boat-haul-item {
+  flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.55rem;
-  border-radius: 12px;
+  gap: 0.35rem;
+  padding: 0.28rem 0.45rem;
+  border-radius: 10px;
   border: 1px solid rgba(46, 196, 182, 0.35);
   background: rgba(0, 0, 0, 0.35);
-  max-width: 100%;
+  max-width: none;
 }
 
 .boat-haul-item.is-missed {

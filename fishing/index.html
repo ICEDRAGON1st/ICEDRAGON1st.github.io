@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260913q">
+  <link rel="stylesheet" href="styles.css?v=20260913r">
 </head>
 <body>
   <header class="top-bar">
@@ -42,13 +42,7 @@
         </div>
       </div>
       <div class="boat-zone">
-        <div id="boat-timers" class="boat-timers" aria-live="polite"></div>
-        <div id="boat-bay" class="boat-bay" hidden>
-          <div class="boat-bay-label">Boat catch</div>
-          <div id="boat-haul" class="boat-haul" aria-live="polite">
-            <p class="boat-bay-empty">Waiting for the next haul…</p>
-          </div>
-        </div>
+        <div id="boat-timers" class="boat-timers empty" aria-live="polite"></div>
       </div>
 
       <button id="cast-btn" type="button" class="cast-btn phase-ready" aria-label="Cast your line">
@@ -76,6 +70,13 @@
 
       <div class="bite-meter" aria-hidden="true">
         <div id="bite-fill" class="bite-fill"></div>
+      </div>
+
+      <div id="boat-bay" class="boat-bay">
+        <div class="boat-bay-label">Boat catch</div>
+        <div id="boat-haul" class="boat-haul" aria-live="polite">
+          <p class="boat-bay-empty">Hire an auto boat to see catches here</p>
+        </div>
       </div>
 
       <div id="catch-card" class="catch-card" hidden>
@@ -201,7 +202,7 @@
   <script src="../hub-plays.js?v=20260908z"></script>
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
-  <script src="../hub-leaderboard.js?v=20260913q"></script>
-  <script src="script.js?v=20260913q"></script>
+  <script src="../hub-leaderboard.js?v=20260913r"></script>
+  <script src="script.js?v=20260913r"></script>
 </body>
 </html>

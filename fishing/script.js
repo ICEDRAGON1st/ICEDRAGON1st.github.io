@@ -1746,8 +1746,10 @@
       .join("")}</div>`;
   }
 
-  function boatHaulEmptyHtml() {
-    return `<p class="boat-bay-empty">Waiting for the next haul…</p>`;
+  function boatHaulEmptyHtml(hasBoat) {
+    return `<p class="boat-bay-empty">${
+      hasBoat ? "Waiting for the next haul…" : "Hire an auto boat to see catches here"
+    }</p>`;
   }
 
   function hideBoatHaul() {
@@ -1756,7 +1758,7 @@
     lastBoatHaulKey = "";
     const el = boatHaulEl || document.getElementById("boat-haul");
     if (!el) return;
-    el.innerHTML = boatHaulEmptyHtml();
+    el.innerHTML = boatHaulEmptyHtml(!!getBoat());
   }
 
   function expireBoatHaulIfNeeded() {
@@ -1772,7 +1774,6 @@
     lastBoatHaulUntil = performance.now() + 5000;
     const el = boatHaulEl || document.getElementById("boat-haul");
     if (!el) return;
-    if (boatBayEl) boatBayEl.hidden = false;
     // Only rebuild DOM when the haul actually changes (avoids flicker)
     if (key !== lastBoatHaulKey) {
       lastBoatHaulKey = key;
@@ -1838,12 +1839,11 @@
     if (!boat) {
       boatTimersEl.innerHTML = "";
       boatTimersEl.classList.add("empty");
-      if (boatBayEl) boatBayEl.hidden = true;
-      hideBoatHaul();
+      if (!lastBoatHaul.length) hideBoatHaul();
       return;
     }
 
-    if (boatBayEl) boatBayEl.hidden = false;
+    boatTimersEl.classList.remove("empty");
 
     const interval = Number(boat.amount) || 1;
     const left = boatRemaining(boat);
