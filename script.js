@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914i": [
+    "Fishing Idle: richer, more realistic water on every fishing spot"
+  ],
   "20260914h": [
     "Fishing Idle: each fishing spot has its own water look and mood"
   ],

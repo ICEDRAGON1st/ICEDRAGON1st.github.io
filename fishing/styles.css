@@ -649,24 +649,60 @@ body {
   border-radius: 50%;
   cursor: pointer;
   background:
-    radial-gradient(ellipse 80% 55% at 50% 18%, var(--spot-btn-hi), transparent 52%),
+    radial-gradient(ellipse 85% 58% at 48% 16%, var(--spot-btn-hi), transparent 55%),
+    radial-gradient(ellipse 50% 35% at 70% 72%, rgba(0, 0, 0, 0.22), transparent 70%),
     radial-gradient(
-      circle at 50% 58%,
+      circle at 50% 56%,
       var(--spot-btn-mid) 0%,
-      var(--spot-btn-deep) 48%,
-      var(--spot-btn-lo) 78%,
+      var(--spot-btn-deep) 42%,
+      var(--spot-btn-lo) 72%,
       var(--spot-btn-edge) 100%
     );
   box-shadow:
-    inset 0 -18px 36px rgba(2, 20, 28, 0.55),
-    inset 0 12px 20px rgba(255, 255, 255, 0.08),
-    0 0 0 5px var(--spot-ring),
-    0 0 0 7px var(--spot-ring-glow),
-    0 18px 42px rgba(0, 0, 0, 0.4);
+    inset 0 -22px 40px rgba(0, 0, 0, 0.45),
+    inset 0 14px 24px rgba(255, 255, 255, 0.1),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 0 0 4px color-mix(in srgb, var(--spot-ring) 85%, #1a1008),
+    0 0 0 6px var(--spot-ring-glow),
+    0 16px 36px rgba(0, 0, 0, 0.45);
   color: var(--text);
   overflow: hidden;
-  transition: box-shadow 0.15s ease, background 0.45s ease;
+  transition: box-shadow 0.2s ease, background 0.55s ease, filter 0.2s ease;
   isolation: isolate;
+}
+
+.cast-btn::before {
+  content: "";
+  position: absolute;
+  inset: 4%;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 62%, rgba(0, 0, 0, 0.28) 88%, rgba(0, 0, 0, 0.5) 100%),
+    conic-gradient(
+      from 20deg,
+      color-mix(in srgb, var(--spot-btn-edge) 70%, #3a2a18) 0deg,
+      color-mix(in srgb, var(--spot-btn-lo) 55%, #5a4830) 55deg,
+      color-mix(in srgb, var(--spot-btn-edge) 65%, #2a2010) 120deg,
+      color-mix(in srgb, var(--spot-btn-deep) 40%, #4a3a28) 200deg,
+      color-mix(in srgb, var(--spot-btn-edge) 70%, #3a2a18) 360deg
+    );
+  opacity: 0.55;
+  mix-blend-mode: multiply;
+}
+
+.cast-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 70% 28% at 50% 8%, rgba(255, 255, 255, 0.18), transparent 70%),
+    radial-gradient(ellipse 40% 20% at 22% 78%, rgba(255, 255, 255, 0.05), transparent 70%);
+  opacity: 0.7;
 }
 
 .cast-btn:active:not(:disabled) {
@@ -675,19 +711,19 @@ body {
 
 .cast-btn.phase-waiting {
   box-shadow:
-    inset 0 -18px 36px rgba(2, 20, 28, 0.55),
-    inset 0 12px 20px rgba(255, 255, 255, 0.08),
-    0 0 0 5px rgba(20, 70, 82, 0.65),
-    0 0 0 7px rgba(168, 230, 223, 0.28),
-    0 18px 42px rgba(0, 0, 0, 0.4);
+    inset 0 -22px 40px rgba(0, 0, 0, 0.45),
+    inset 0 14px 24px rgba(255, 255, 255, 0.1),
+    0 0 0 4px var(--spot-ring),
+    0 0 0 7px color-mix(in srgb, var(--spot-ring-glow) 70%, var(--foam)),
+    0 16px 36px rgba(0, 0, 0, 0.45);
 }
 
 .cast-btn.phase-bite {
   box-shadow:
-    inset 0 -18px 36px rgba(2, 20, 28, 0.55),
-    0 0 0 5px rgba(90, 30, 30, 0.55),
+    inset 0 -22px 40px rgba(0, 0, 0, 0.45),
+    0 0 0 4px rgba(90, 30, 30, 0.55),
     0 0 0 7px rgba(255, 107, 107, 0.45),
-    0 18px 42px rgba(0, 0, 0, 0.4);
+    0 16px 36px rgba(0, 0, 0, 0.45);
   animation: pulse-bite 0.45s ease-in-out infinite alternate;
 }
 
@@ -700,101 +736,252 @@ body {
 }
 
 @keyframes pulse-bite {
-  from {
-    filter: brightness(1);
-  }
-  to {
-    filter: brightness(1.08);
-  }
+  from { filter: brightness(1); }
+  to { filter: brightness(1.08); }
 }
 
 .cast-pond {
   position: absolute;
-  inset: 12%;
+  inset: 13%;
   border-radius: 50%;
   overflow: hidden;
   pointer-events: none;
+  z-index: 1;
   background:
-    radial-gradient(ellipse 90% 70% at 50% 35%, var(--spot-pond-hi), transparent 60%),
+    radial-gradient(ellipse 95% 70% at 50% 28%, var(--spot-pond-hi), transparent 58%),
+    radial-gradient(ellipse 80% 55% at 50% 100%, var(--spot-pond-bot), transparent 55%),
     linear-gradient(
-      180deg,
+      185deg,
       var(--spot-pond-top) 0%,
-      var(--spot-pond-mid) 38%,
-      var(--spot-pond-low) 72%,
+      var(--spot-pond-mid) 36%,
+      var(--spot-pond-low) 68%,
       var(--spot-pond-bot) 100%
     );
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
-  transition: background 0.45s ease;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
+    inset 0 -16px 28px rgba(0, 0, 0, 0.35),
+    inset 0 10px 18px rgba(255, 255, 255, 0.08);
+  transition: background 0.55s ease, box-shadow 0.55s ease;
+}
+
+.water-bed {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 18% 10% at 28% 78%, color-mix(in srgb, var(--spot-pond-bot) 40%, #2a2010) 0%, transparent 70%),
+    radial-gradient(ellipse 14% 8% at 62% 82%, color-mix(in srgb, var(--spot-pond-low) 50%, #1a140c) 0%, transparent 70%),
+    radial-gradient(ellipse 10% 6% at 48% 88%, rgba(0, 0, 0, 0.25), transparent 70%),
+    radial-gradient(ellipse 90% 40% at 50% 100%, rgba(0, 0, 0, 0.35), transparent 70%);
+  opacity: 0.85;
 }
 
 .water-sky {
   position: absolute;
-  left: -10%;
-  right: -10%;
-  top: -8%;
-  height: 42%;
+  left: -12%;
+  right: -12%;
+  top: -10%;
+  height: 48%;
   background:
-    linear-gradient(180deg, var(--spot-sky) 0%, var(--spot-sky-mid) 55%, transparent 100%);
-  opacity: 0.9;
-  transition: background 0.45s ease;
+    radial-gradient(ellipse 60% 50% at 55% 20%, rgba(255, 255, 255, 0.22), transparent 70%),
+    linear-gradient(180deg, var(--spot-sky) 0%, var(--spot-sky-mid) 50%, transparent 100%);
+  opacity: 0.95;
+  transition: background 0.55s ease;
 }
 
 .water-depth {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 70% 50% at 50% 78%, var(--spot-depth), transparent 70%),
-    radial-gradient(ellipse 40% 30% at 70% 60%, var(--spot-depth-side), transparent 70%);
-  transition: background 0.45s ease;
+    radial-gradient(ellipse 75% 55% at 50% 82%, var(--spot-depth), transparent 72%),
+    radial-gradient(ellipse 42% 32% at 72% 58%, var(--spot-depth-side), transparent 72%),
+    radial-gradient(ellipse 35% 28% at 24% 62%, rgba(0, 0, 0, 0.18), transparent 70%);
+  transition: background 0.55s ease;
+}
+
+.water-surface {
+  position: absolute;
+  inset: -5%;
+  background:
+    repeating-linear-gradient(
+      98deg,
+      transparent 0 10px,
+      rgba(255, 255, 255, 0.035) 10px 11px,
+      transparent 11px 22px
+    ),
+    repeating-linear-gradient(
+      -8deg,
+      transparent 0 14px,
+      rgba(255, 255, 255, 0.025) 14px 15px,
+      transparent 15px 28px
+    );
+  opacity: 0.55;
+  mix-blend-mode: soft-light;
+  animation: surface-drift 9s linear infinite;
+  transform-origin: center;
 }
 
 .water-sheen {
   position: absolute;
-  left: 8%;
-  top: 14%;
-  width: 42%;
-  height: 22%;
+  left: 10%;
+  top: 12%;
+  width: 46%;
+  height: 24%;
   border-radius: 50%;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.35), transparent 65%);
-  filter: blur(1px);
-  opacity: 0.55;
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.08) 45%, transparent 70%);
+  filter: blur(2px);
+  opacity: 0.58;
   animation: sheen-drift var(--spot-sheen-speed) ease-in-out infinite alternate;
+}
+
+.water-sheen.sheen-2 {
+  left: auto;
+  right: 14%;
+  top: 28%;
+  width: 28%;
+  height: 14%;
+  opacity: 0.28;
+  animation-duration: calc(var(--spot-sheen-speed) * 1.35);
+  animation-direction: alternate-reverse;
+  filter: blur(3px);
 }
 
 .water-caustic {
   position: absolute;
-  inset: -20%;
+  inset: -25%;
   background:
-    radial-gradient(ellipse 18% 10% at 30% 40%, var(--spot-caustic), transparent 60%),
-    radial-gradient(ellipse 14% 8% at 62% 52%, var(--spot-caustic-2), transparent 60%),
-    radial-gradient(ellipse 12% 7% at 48% 68%, var(--spot-caustic-2), transparent 60%);
+    radial-gradient(ellipse 20% 11% at 28% 38%, var(--spot-caustic), transparent 62%),
+    radial-gradient(ellipse 16% 9% at 64% 50%, var(--spot-caustic-2), transparent 62%),
+    radial-gradient(ellipse 13% 8% at 46% 66%, var(--spot-caustic-2), transparent 62%),
+    radial-gradient(ellipse 10% 6% at 72% 34%, var(--spot-caustic), transparent 62%);
   animation: caustic-shift var(--spot-caustic-speed) linear infinite;
-  opacity: 0.7;
+  opacity: 0.75;
   mix-blend-mode: soft-light;
 }
 
 .water-caustic.c2 {
-  animation-duration: 11s;
+  animation-duration: calc(var(--spot-caustic-speed) * 1.55);
   animation-direction: reverse;
-  opacity: 0.45;
+  opacity: 0.5;
+}
+
+.water-glints {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle 1.5px at 28% 36%, rgba(255, 255, 255, 0.85), transparent 60%),
+    radial-gradient(circle 1px at 58% 28%, rgba(255, 255, 255, 0.7), transparent 60%),
+    radial-gradient(circle 1.2px at 72% 48%, rgba(255, 255, 255, 0.55), transparent 60%),
+    radial-gradient(circle 1px at 40% 52%, rgba(255, 255, 255, 0.45), transparent 60%),
+    radial-gradient(circle 1.4px at 52% 40%, rgba(255, 255, 255, 0.65), transparent 60%);
+  opacity: 0.35;
+  animation: glint-twinkle 4.5s ease-in-out infinite;
+  mix-blend-mode: screen;
+}
+
+.water-mist {
+  position: absolute;
+  left: 5%;
+  right: 5%;
+  top: 0;
+  height: 40%;
+  background: radial-gradient(ellipse 80% 70% at 50% 0%, rgba(255, 255, 255, 0.18), transparent 70%);
+  opacity: 0;
+  filter: blur(4px);
+  pointer-events: none;
+}
+
+.water-foam {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  top: 18%;
+  height: 28%;
+  background:
+    radial-gradient(ellipse 40% 35% at 30% 50%, rgba(255, 255, 255, 0.22), transparent 70%),
+    radial-gradient(ellipse 35% 30% at 70% 40%, rgba(255, 255, 255, 0.16), transparent 70%),
+    radial-gradient(ellipse 50% 25% at 50% 60%, rgba(255, 255, 255, 0.1), transparent 70%);
+  opacity: 0;
+  filter: blur(1.5px);
+  animation: foam-boil 2.8s ease-in-out infinite alternate;
+}
+
+.water-rim {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  box-shadow:
+    inset 0 0 18px rgba(0, 0, 0, 0.28),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  background: radial-gradient(circle at 50% 50%, transparent 68%, rgba(0, 0, 0, 0.22) 100%);
+  pointer-events: none;
+}
+
+@keyframes surface-drift {
+  from { transform: translate3d(0, 0, 0) rotate(0deg); }
+  to { transform: translate3d(-3%, 2%, 0) rotate(1.5deg); }
+}
+
+@keyframes glint-twinkle {
+  0%, 100% { opacity: 0.22; transform: translate(0, 0); }
+  40% { opacity: 0.5; transform: translate(1%, -1%); }
+  70% { opacity: 0.3; transform: translate(-1%, 1%); }
+}
+
+@keyframes foam-boil {
+  from { transform: translate(0, 0) scale(1); }
+  to { transform: translate(2%, -3%) scale(1.04); }
 }
 
 @keyframes sheen-drift {
-  from {
-    transform: translate(0, 0);
-  }
-  to {
-    transform: translate(10%, 8%);
-  }
+  from { transform: translate(0, 0); }
+  to { transform: translate(10%, 8%); }
 }
 
 @keyframes caustic-shift {
-  from {
-    transform: translate(0, 0) rotate(0deg);
-  }
-  to {
-    transform: translate(-4%, 3%) rotate(8deg);
-  }
+  from { transform: translate(0, 0) rotate(0deg); }
+  to { transform: translate(-4%, 3%) rotate(8deg); }
+}
+
+body[data-spot="creek"] .water-bed {
+  background:
+    radial-gradient(ellipse 12% 7% at 32% 76%, #5a4a30 0%, transparent 70%),
+    radial-gradient(ellipse 9% 5% at 58% 80%, #3a3020 0%, transparent 70%),
+    radial-gradient(ellipse 8% 5% at 45% 86%, #2a2418 0%, transparent 70%),
+    radial-gradient(ellipse 90% 40% at 50% 100%, rgba(0, 0, 0, 0.35), transparent 70%);
+}
+body[data-spot="marsh"] .water-surface { opacity: 0.28; filter: saturate(0.7); }
+body[data-spot="marsh"] .water-glints { opacity: 0.12; }
+body[data-spot="river"] .water-surface { opacity: 0.7; animation-duration: 4.5s; }
+body[data-spot="falls"] .water-mist,
+body[data-spot="falls"] .water-foam { opacity: 0.7; }
+body[data-spot="falls"] .water-surface { opacity: 0.85; animation-duration: 2.8s; }
+body[data-spot="glacier"] .water-mist { opacity: 0.45; }
+body[data-spot="glacier"] .water-glints { opacity: 0.55; }
+body[data-spot="reef"] .water-bed {
+  background:
+    radial-gradient(ellipse 14% 18% at 26% 78%, #c45a78 0%, transparent 70%),
+    radial-gradient(ellipse 12% 16% at 70% 80%, #e89050 0%, transparent 70%),
+    radial-gradient(ellipse 10% 12% at 50% 88%, #2a9088 0%, transparent 70%),
+    radial-gradient(ellipse 90% 40% at 50% 100%, rgba(0, 0, 0, 0.3), transparent 70%);
+  opacity: 0.55;
+}
+body[data-spot="harbor"] .water-surface { opacity: 0.35; }
+body[data-spot="harbor"] .water-glints { opacity: 0.2; }
+body[data-spot="deep"] .water-glints,
+body[data-spot="trench"] .water-glints,
+body[data-spot="void"] .water-glints { opacity: 0.12; }
+body[data-spot="trench"] .water-mist,
+body[data-spot="void"] .water-mist {
+  opacity: 0.25;
+  background: radial-gradient(ellipse 80% 70% at 50% 20%, rgba(120, 60, 180, 0.2), transparent 70%);
+}
+body[data-spot="celestial"] .water-glints,
+body[data-spot="cosmos"] .water-glints,
+body[data-spot="astralshoals"] .water-glints,
+body[data-spot="omegadeep"] .water-glints { opacity: 0.65; }
+body[data-spot="eventhorizon"] .water-mist {
+  opacity: 0.35;
+  background: radial-gradient(ellipse 70% 60% at 50% 30%, rgba(255, 40, 70, 0.2), transparent 70%);
 }
 
 .cast-line {
