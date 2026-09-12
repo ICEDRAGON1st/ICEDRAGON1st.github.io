@@ -443,6 +443,7 @@
   const windowLabelEl = document.getElementById("window-label");
   const boatsLabelEl = document.getElementById("boats-label");
   const boatTimersEl = document.getElementById("boat-timers");
+  const boatBayEl = document.getElementById("boat-bay");
   const boatHaulEl = document.getElementById("boat-haul");
   const hudSpotEl = document.getElementById("hud-spot");
   const hudCoolerEl = document.getElementById("hud-cooler");
@@ -1745,14 +1746,17 @@
       .join("")}</div>`;
   }
 
+  function boatHaulEmptyHtml() {
+    return `<p class="boat-bay-empty">Waiting for the next haul…</p>`;
+  }
+
   function hideBoatHaul() {
     lastBoatHaul = [];
     lastBoatHaulUntil = 0;
     lastBoatHaulKey = "";
     const el = boatHaulEl || document.getElementById("boat-haul");
     if (!el) return;
-    el.hidden = true;
-    el.innerHTML = "";
+    el.innerHTML = boatHaulEmptyHtml();
   }
 
   function expireBoatHaulIfNeeded() {
@@ -1765,10 +1769,10 @@
     const list = (entries || []).slice();
     const key = boatHaulKey(list);
     lastBoatHaul = list;
-    lastBoatHaulUntil = performance.now() + 4500;
+    lastBoatHaulUntil = performance.now() + 5000;
     const el = boatHaulEl || document.getElementById("boat-haul");
     if (!el) return;
-    el.hidden = false;
+    if (boatBayEl) boatBayEl.hidden = false;
     // Only rebuild DOM when the haul actually changes (avoids flicker)
     if (key !== lastBoatHaulKey) {
       lastBoatHaulKey = key;
@@ -1834,9 +1838,12 @@
     if (!boat) {
       boatTimersEl.innerHTML = "";
       boatTimersEl.classList.add("empty");
+      if (boatBayEl) boatBayEl.hidden = true;
       hideBoatHaul();
       return;
     }
+
+    if (boatBayEl) boatBayEl.hidden = false;
 
     const interval = Number(boat.amount) || 1;
     const left = boatRemaining(boat);

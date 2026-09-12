@@ -323,10 +323,11 @@ body {
 }
 
 .boat-zone {
-  position: relative;
   width: 100%;
   margin: 0 0 0.85rem;
-  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
 }
 
 .boat-timers {
@@ -389,29 +390,59 @@ body {
   color: var(--muted);
 }
 
+.boat-bay {
+  width: 100%;
+  text-align: left;
+  padding: 0.5rem 0.6rem 0.55rem;
+  border-radius: 0.65rem;
+  border: 1px dashed rgba(46, 196, 182, 0.35);
+  background:
+    linear-gradient(180deg, rgba(12, 48, 58, 0.65), rgba(6, 28, 36, 0.55));
+  min-height: 4.6rem;
+  box-sizing: border-box;
+}
+
+.boat-bay[hidden] {
+  display: none !important;
+}
+
+.boat-bay-label {
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.35rem;
+  font-weight: 700;
+}
+
 .boat-haul {
-  position: absolute;
-  left: 50%;
-  top: calc(100% + 0.3rem);
-  transform: translateX(-50%);
-  width: min(100%, 20rem);
+  position: static;
+  left: auto;
+  top: auto;
+  transform: none;
+  width: 100%;
+  min-height: 2.6rem;
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  align-items: center;
+  justify-content: flex-start;
   gap: 0.4rem;
   margin: 0;
-  z-index: 6;
+  z-index: auto;
   pointer-events: none;
 }
 
-.boat-haul[hidden] {
-  display: none !important;
+.boat-bay-empty {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 600;
 }
 
 .boat-haul-list {
   display: flex;
   flex-wrap: wrap;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.4rem;
   width: 100%;
 }

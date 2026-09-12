@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913q": [
+    "Fishing Idle: dedicated Boat catch bay under the auto boat timer"
+  ],
   "20260913p": [
     "Fishing Idle: boat catch toast no longer shifts the Cast button"
   ],
