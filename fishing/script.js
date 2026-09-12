@@ -2116,7 +2116,7 @@
         action = `<button type="button" class="spot-btn" data-spot="${spot.id}" ${
           state.coins >= spot.cost ? "" : "disabled"
         }>${formatNum(spot.cost)}</button>`;
-      return `<div class="spot-item ${active ? "active" : ""}" role="listitem">
+      return `<div class="spot-item ${active ? "active" : ""}" data-spot-id="${spot.id}" role="listitem">
         <div class="spot-item-main">
           <div class="spot-item-name">${spot.name}</div>
           <p class="spot-item-desc">${unlocked ? `${spot.blurb} · sell ×${spot.valueMult}` : "Locked spot"}</p>
@@ -2218,12 +2218,18 @@
     return pct > 0 ? `+${text}%` : `${text}%`;
   }
 
+  function applySpotTheme() {
+    const id = currentSpot()?.id || "creek";
+    document.body.dataset.spot = id;
+  }
+
   function renderStats() {
     const spot = currentSpot();
     const bestFish = fishById(state.bestCatchId) || FISH.find((f) => catchScore(f) === state.bestCatchScore);
     const bestLabel = bestFish ? formatBestCatch(bestFish) : "—";
     const bait = equippedSpeedGear();
     const waitCut = bait ? Math.round(bait.amount * 100) : 0;
+    applySpotTheme();
     if (coinCountEl) coinCountEl.textContent = formatNum(state.coins);
     if (spotLabelEl) spotLabelEl.textContent = spot.name;
     if (hudSpotEl) hudSpotEl.textContent = spot.name;

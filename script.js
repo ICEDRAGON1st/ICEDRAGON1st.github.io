@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914h": [
+    "Fishing Idle: each fishing spot has its own water look and mood"
+  ],
   "20260914f": [
     "Fishing Idle: Luck and Sell boost stats include your current spot"
   ],
