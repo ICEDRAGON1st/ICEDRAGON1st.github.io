@@ -1718,26 +1718,15 @@
     saveSoon();
   }
 
-  let boatHaulHideTimer = null;
+  let lastBoatHaul = [];
+  let lastBoatHaulUntil = 0;
 
-  function showBoatHaul(entries) {
-    if (!boatHaulEl) return;
-    if (boatHaulHideTimer) {
-      clearTimeout(boatHaulHideTimer);
-      boatHaulHideTimer = null;
-    }
-    if (!entries?.length) {
-      boatHaulEl.hidden = true;
-      boatHaulEl.classList.remove("is-fading");
-      boatHaulEl.innerHTML = "";
-      return;
-    }
-    boatHaulEl.classList.remove("is-fading");
-    boatHaulEl.hidden = false;
-    boatHaulEl.innerHTML = entries
-      .map(({ fish, val, sold }) => {
-        const tag = sold ? "sold" : "kept";
-        return `<div class="boat-haul-item ${fish.rarity}">
+  function boatHaulHtml(entries) {
+    if (!entries?.length) return "";
+    return `<div class="boat-haul-list">${entries
+      .map(({ fish, val, sold, missed }) => {
+        const tag = missed ? "no room" : sold ? "sold" : "kept";
+        return `<div class="boat-haul-item ${fish.rarity}${missed ? " is-missed" : ""}">
           <span class="boat-haul-glyph" aria-hidden="true">${fishGlyphHtml(fish)}</span>
           <span class="boat-haul-meta">
             <span class="boat-haul-name">${fish.name}</span>
@@ -1746,21 +1735,18 @@
           <span class="boat-haul-tag">${fish.rarity}</span>
         </div>`;
       })
-      .join("");
-    // Replay enter animation
-    void boatHaulEl.offsetWidth;
-    boatHaulEl.style.animation = "none";
-    void boatHaulEl.offsetWidth;
-    boatHaulEl.style.animation = "";
-    boatHaulHideTimer = setTimeout(() => {
-      boatHaulEl.classList.add("is-fading");
-      boatHaulHideTimer = setTimeout(() => {
-        boatHaulEl.hidden = true;
-        boatHaulEl.classList.remove("is-fading");
-        boatHaulEl.innerHTML = "";
-        boatHaulHideTimer = null;
-      }, 380);
-    }, 4200);
+      .join("")}</div>`;
+  }
+
+  function flashBoatHaul(entries) {
+    lastBoatHaul = entries.slice();
+    lastBoatHaulUntil = performance.now() + 5500;
+    const el = boatHaulEl || document.getElementById("boat-haul");
+    if (el) {
+      el.hidden = false;
+      el.classList.remove("is-fading");
+      el.innerHTML = boatHaulHtml(entries);
+    }
   }
 
   function boatCatch(boat) {
@@ -1770,30 +1756,35 @@
     for (let i = 0; i < count; i += 1) {
       const fish = rollFish(spot, true);
       const sold = shouldAutoSell(fish.rarity);
+      const val = fishValue(fish, spot);
       if (sold || state.cooler.length < coolerMax()) {
-        const val = fishValue(fish, spot);
         addToCooler(fish, { silent: true });
         state.catches += 1;
-        haul.push({ fish, val, sold });
+        haul.push({ fish, val, sold, missed: false });
+      } else {
+        haul.push({ fish, val, sold: false, missed: true });
       }
     }
-    if (haul.length) {
-      showBoatHaul(haul);
-      const best = haul.reduce((a, b) => (b.val >= a.val ? b : a), haul[0]);
-      if (phase === "ready") {
-        showCatchCard(best.fish, best.val, false);
-        setCatchLine(
-          haul.length > 1
-            ? `Boat hauled ${haul.length} fish · ${best.fish.name}`
-            : `Boat caught ${best.fish.name}`,
-          catchTone(best.fish.rarity)
-        );
-      }
-      checkAchievements();
-      renderCooler(true);
-      renderStats();
-      saveSoon();
+    if (!haul.length) return;
+
+    flashBoatHaul(haul);
+    const best = haul.reduce((a, b) => (b.val >= a.val ? b : a), haul[0]);
+    const kept = haul.filter((h) => !h.missed);
+    const line =
+      kept.length === 0
+        ? `Boat found ${best.fish.name} — cooler full`
+        : kept.length > 1
+          ? `Boat hauled ${kept.length} fish · ${best.fish.name}`
+          : `Boat caught ${best.fish.name}`;
+    setCatchLine(line, kept.length ? catchTone(best.fish.rarity) : "miss");
+    if (phase === "ready" && kept.length) {
+      showCatchCard(best.fish, best.val, false);
     }
+    window.HubSound?.play?.(kept.length ? "click" : "miss");
+    checkAchievements();
+    renderCooler(true);
+    renderStats();
+    saveSoon();
   }
 
   function boatRemaining(boat) {
@@ -1818,11 +1809,16 @@
     if (!boat) {
       boatTimersEl.innerHTML = "";
       boatTimersEl.classList.add("empty");
+      if (boatHaulEl) {
+        boatHaulEl.hidden = true;
+        boatHaulEl.innerHTML = "";
+      }
       return;
     }
     const interval = Number(boat.amount) || 1;
     const left = boatRemaining(boat);
     const pct = Math.max(0, Math.min(100, (1 - left / interval) * 100));
+    const haulLive = performance.now() < lastBoatHaulUntil && lastBoatHaul.length;
     boatTimersEl.classList.remove("empty");
     boatTimersEl.innerHTML = `<div class="boat-timer" data-boat="boat">
       <div class="boat-timer-top">
@@ -1833,7 +1829,19 @@
         <div class="boat-timer-fill" style="width:${pct.toFixed(1)}%"></div>
       </div>
       <div class="boat-timer-meta">every ${interval}s · ${BOAT_TIERS[boat.level]?.multiHint || "1 fish"}</div>
+      ${haulLive ? boatHaulHtml(lastBoatHaul) : ""}
     </div>`;
+
+    const el = boatHaulEl || document.getElementById("boat-haul");
+    if (el) {
+      if (haulLive) {
+        el.hidden = false;
+        el.innerHTML = boatHaulHtml(lastBoatHaul);
+      } else if (!el.hidden && performance.now() >= lastBoatHaulUntil) {
+        el.hidden = true;
+        el.innerHTML = "";
+      }
+    }
   }
 
   function tickBoats(dt) {

@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913m": [
+    "Fishing Idle: fix auto boat catch feedback — fish show under the boat timer every haul"
+  ],
   "20260913l": [
     "Fishing Idle: auto boat catches show fish art, name, and value"
   ],

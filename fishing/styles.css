@@ -388,16 +388,19 @@ body {
   flex-wrap: wrap;
   gap: 0.4rem;
   margin: -0.45rem 0 0.85rem;
-  animation: boat-haul-in 0.3s ease-out;
 }
 
 .boat-haul[hidden] {
   display: none !important;
 }
 
-.boat-haul.is-fading {
-  opacity: 0;
-  transition: opacity 0.35s ease;
+.boat-haul-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+  width: 100%;
+  animation: boat-haul-in 0.3s ease-out;
 }
 
 @keyframes boat-haul-in {
@@ -417,9 +420,14 @@ body {
   gap: 0.4rem;
   padding: 0.4rem 0.55rem;
   border-radius: 12px;
-  border: 1px solid var(--border);
-  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(46, 196, 182, 0.35);
+  background: rgba(0, 0, 0, 0.35);
   max-width: 100%;
+}
+
+.boat-haul-item.is-missed {
+  opacity: 0.65;
+  border-color: rgba(255, 107, 107, 0.4);
 }
 
 .boat-haul-glyph {
@@ -467,20 +475,6 @@ body {
   opacity: 0.8;
   margin-left: 0.1rem;
 }
-
-.boat-haul-item.common { border-color: color-mix(in srgb, var(--common) 45%, transparent); }
-.boat-haul-item.uncommon { border-color: color-mix(in srgb, var(--uncommon) 45%, transparent); }
-.boat-haul-item.rare { border-color: color-mix(in srgb, var(--rare) 45%, transparent); }
-.boat-haul-item.epic { border-color: color-mix(in srgb, var(--epic) 45%, transparent); }
-.boat-haul-item.legendary { border-color: color-mix(in srgb, var(--legend) 45%, transparent); }
-.boat-haul-item.mythic { border-color: color-mix(in srgb, var(--mythic) 45%, transparent); }
-.boat-haul-item.secret { border-color: color-mix(in srgb, var(--secret) 45%, transparent); }
-.boat-haul-item.divine { border-color: color-mix(in srgb, var(--divine) 45%, transparent); }
-.boat-haul-item.eternal { border-color: color-mix(in srgb, var(--eternal) 45%, transparent); }
-.boat-haul-item.cosmic { border-color: color-mix(in srgb, var(--cosmic) 45%, transparent); }
-.boat-haul-item.astral { border-color: color-mix(in srgb, var(--astral) 45%, transparent); }
-.boat-haul-item.singularity { border-color: color-mix(in srgb, var(--singularity) 45%, transparent); }
-.boat-haul-item.omega { border-color: color-mix(in srgb, var(--omega) 45%, transparent); }
 
 .cast-btn {
   position: relative;
