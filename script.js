@@ -45,6 +45,10 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914d": [
+    "Guessword: move notification bell so the Menu button isn’t covered on phones",
+    "Runosaur: add on-screen Jump / Duck buttons for phones"
+  ],
   "20260914c": [
     "Mobile GUI pass: stack Fishing on phones; fix Math/Space/Cows/Dino/canvas HUDs so layouts fit"
   ],

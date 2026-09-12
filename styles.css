@@ -2961,8 +2961,9 @@ header h1 {
 /* ── Hub notifications ── */
 #hub-notify-root {
   position: fixed;
-  top: 0.85rem;
-  right: 0.85rem;
+  top: auto;
+  bottom: 4.55rem;
+  right: 1rem;
   z-index: 12000;
   font-family: "Outfit", system-ui, sans-serif;
 }
@@ -3005,7 +3006,8 @@ header h1 {
 
 .hub-notify-panel {
   position: absolute;
-  top: calc(100% + 0.45rem);
+  top: auto;
+  bottom: calc(100% + 0.45rem);
   right: 0;
   width: min(22rem, calc(100vw - 1.5rem));
   max-height: min(70vh, 28rem);
@@ -3227,8 +3229,33 @@ html[data-theme="dark"] .hub-notify-item {
     margin-bottom: 0.75rem;
   }
 
+  /* Keep Guessword header controls tappable on phones */
+  .header-right {
+    gap: 0.1rem;
+    z-index: 2;
+  }
+
+  .theme-btn,
+  .sound-btn,
+  .lang-btn,
+  .menu-btn {
+    width: 2.35rem;
+    height: 2.35rem;
+    min-width: 2.35rem;
+  }
+
+  .menu-btn {
+    font-size: 1.35rem;
+  }
+
+  .lang-btn {
+    padding: 0 0.4rem;
+    font-size: 0.78rem;
+  }
+
   header h1 {
     font-size: clamp(1.25rem, 6vw, 1.85rem);
+    padding: 0 3.25rem;
   }
 
   .mode-badge {

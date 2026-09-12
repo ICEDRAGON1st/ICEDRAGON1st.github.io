@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260914c">
+  <link rel="stylesheet" href="styles.css?v=20260914d">
 </head>
 <body>
   <header class="hud">
@@ -21,7 +21,11 @@
 
   <main class="shell">
     <canvas id="game" width="1280" height="480" aria-label="Runosaur ice cave chase"></canvas>
-    <p class="hint">Jump: <kbd>Space</kbd> / <kbd>W</kbd> / tap. Duck under low bats: hold <kbd>S</kbd> / <kbd>↓</kbd> or swipe down.</p>
+    <div class="touch-controls" aria-label="Touch controls">
+      <button type="button" id="duck-btn" class="touch-btn touch-duck">Duck</button>
+      <button type="button" id="jump-btn" class="touch-btn touch-jump">Jump</button>
+    </div>
+    <p class="hint">Jump: <kbd>Space</kbd> / <kbd>W</kbd> / tap / Jump button. Duck under low bats: hold <kbd>S</kbd> / <kbd>↓</kbd> / Duck button (or swipe down & hold).</p>
   </main>
 
   <div id="overlay" class="overlay">
@@ -46,6 +50,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260914c"></script>
-  <script src="script.js?v=20260914c"></script>
+  <script src="script.js?v=20260914d"></script>
 </body>
 </html>

@@ -89,6 +89,41 @@ body {
   box-shadow: 0 12px 40px rgba(0, 20, 50, 0.45);
 }
 
+.touch-controls {
+  display: none;
+  width: 100%;
+  margin-top: 0.65rem;
+  gap: 0.65rem;
+}
+
+.touch-btn {
+  appearance: none;
+  flex: 1 1 0;
+  min-height: 3.1rem;
+  border-radius: 0.85rem;
+  border: 1px solid var(--border);
+  font: inherit;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  color: var(--ink);
+  background: rgba(20, 40, 70, 0.85);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.touch-btn:active,
+.touch-btn.is-held {
+  background: rgba(94, 176, 232, 0.35);
+  border-color: var(--accent);
+}
+
+.touch-jump {
+  background: rgba(94, 176, 232, 0.22);
+}
+
 .hint {
   margin: 0.65rem 0 0;
   font-size: 0.88rem;
@@ -124,11 +159,21 @@ body {
   }
 
   #game {
-    max-height: min(58vh, 420px);
+    max-height: min(48vh, 360px);
+  }
+
+  .touch-controls {
+    display: flex;
   }
 
   .hint {
-    font-size: 0.8rem;
+    font-size: 0.78rem;
+  }
+}
+
+@media (pointer: coarse) {
+  .touch-controls {
+    display: flex;
   }
 }
 

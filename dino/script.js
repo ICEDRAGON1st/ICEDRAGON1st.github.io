@@ -46,7 +46,18 @@
   let raf = 0;
   let chaseBreath = 0;
   let duckKeyHeld = false;
+  let duckBtnHeld = false;
   let pointerGesture = null;
+  const jumpBtn = document.getElementById("jump-btn");
+  const duckBtn = document.getElementById("duck-btn");
+
+  function duckHeld() {
+    return duckKeyHeld || duckBtnHeld || !!pointerGesture?.ducked;
+  }
+
+  function syncDuck() {
+    setDuck(duckHeld());
+  }
 
   function ensureSession() {
     if (sessionStarted) return;
@@ -265,7 +276,7 @@
         dino.y = GROUND_Y - dino.h;
         dino.vy = 0;
         dino.onGround = true;
-        if (duckKeyHeld || pointerGesture?.ducked) setDuck(true);
+        if (duckHeld()) setDuck(true);
       } else {
         dino.onGround = false;
       }
@@ -640,34 +651,74 @@
   canvas?.addEventListener("pointermove", (e) => {
     if (!pointerGesture || pointerGesture.id !== e.pointerId) return;
     const dy = e.clientY - pointerGesture.y;
-    if (dy > 28) {
+    if (dy > 22) {
       pointerGesture.ducked = true;
-      setDuck(true);
+      syncDuck();
     }
   });
   canvas?.addEventListener("pointerup", (e) => {
     if (!pointerGesture || pointerGesture.id !== e.pointerId) return;
     const dy = e.clientY - pointerGesture.y;
-    const ducked = pointerGesture.ducked || dy > 28;
+    const ducked = pointerGesture.ducked || dy > 22;
     pointerGesture = null;
-    setDuck(false);
-    if (!ducked && Math.abs(dy) < 24) jump();
+    syncDuck();
+    if (!ducked && Math.abs(dy) < 20) jump();
   });
   canvas?.addEventListener("pointercancel", () => {
     pointerGesture = null;
-    setDuck(false);
+    syncDuck();
   });
+
+  function bindHoldButton(btn, onHold, onRelease) {
+    if (!btn) return;
+    const down = (e) => {
+      e.preventDefault();
+      onHold();
+    };
+    const up = (e) => {
+      e.preventDefault();
+      onRelease();
+    };
+    btn.addEventListener("pointerdown", down);
+    btn.addEventListener("pointerup", up);
+    btn.addEventListener("pointercancel", up);
+    btn.addEventListener("pointerleave", (e) => {
+      if (e.buttons === 0) up(e);
+    });
+  }
+
+  bindHoldButton(
+    jumpBtn,
+    () => {
+      jumpBtn?.classList.add("is-held");
+      jump();
+    },
+    () => jumpBtn?.classList.remove("is-held")
+  );
+  bindHoldButton(
+    duckBtn,
+    () => {
+      duckBtnHeld = true;
+      duckBtn?.classList.add("is-held");
+      syncDuck();
+    },
+    () => {
+      duckBtnHeld = false;
+      duckBtn?.classList.remove("is-held");
+      syncDuck();
+    }
+  );
 
   window.addEventListener("keydown", (e) => {
     if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.key === " ") {
       e.preventDefault();
       duckKeyHeld = false;
-      setDuck(false);
+      syncDuck();
       jump();
     } else if (e.code === "ArrowDown" || e.code === "KeyS") {
       e.preventDefault();
       duckKeyHeld = true;
-      setDuck(true);
+      syncDuck();
     } else if (e.code === "Escape") {
       pauseGame();
     }
@@ -675,7 +726,7 @@
   window.addEventListener("keyup", (e) => {
     if (e.code === "ArrowDown" || e.code === "KeyS") {
       duckKeyHeld = false;
-      setDuck(false);
+      syncDuck();
     }
   });
 
