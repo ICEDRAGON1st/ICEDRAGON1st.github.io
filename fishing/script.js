@@ -15,6 +15,14 @@
   const ICE_COINS_GRANT_AMOUNT = 1_000_000;
   const TICK_MS = 100;
   const COOLER_BASE = 12;
+  const TREASURE_BOOST_MS = 5 * 60 * 1000;
+  const TREASURE_MULT = 2;
+  const TREASURE = {
+    id: "sunken_chest",
+    name: "Sunken Chest",
+    rarity: "treasure",
+    value: 0
+  };
 
   const RARITIES = [
     "common",
@@ -472,6 +480,8 @@
   const waitLabelEl = document.getElementById("wait-label");
   const luckLabelEl = document.getElementById("luck-label");
   const sellLabelEl = document.getElementById("sell-label");
+  const treasureChipEl = document.getElementById("treasure-chip");
+  const treasureLabelEl = document.getElementById("treasure-label");
   const multiLabelEl = document.getElementById("multi-label");
   const perfectLabelEl = document.getElementById("perfect-label");
   const coolerStatLabelEl = document.getElementById("cooler-stat-label");
@@ -592,7 +602,8 @@
       boatLevel: 0,
       catches: 0,
       perfects: 0,
-      lastTick: Date.now()
+      lastTick: Date.now(),
+      treasureBoostUntil: 0
     };
   }
 
@@ -658,10 +669,53 @@
     return ownedGear("value").reduce((s, g) => s + g.amount, 0);
   }
 
-  /** Effective sell vs fish base value: spot × gear sell boost. */
+  /** Effective sell vs fish base value: spot × gear sell boost × treasure. */
   function totalSellFactor() {
     const spot = currentSpot();
-    return Math.max(0.01, (Number(spot?.valueMult) || 1) * (1 + sellBonus()));
+    return Math.max(
+      0.01,
+      (Number(spot?.valueMult) || 1) * (1 + sellBonus()) * treasureMoneyMult()
+    );
+  }
+
+  function treasureActive() {
+    return treasureMsLeft() > 0;
+  }
+
+  function treasureMsLeft() {
+    const until = Math.max(0, Number(state.treasureBoostUntil) || 0);
+    return Math.max(0, until - Date.now());
+  }
+
+  function treasureMoneyMult() {
+    return treasureActive() ? TREASURE_MULT : 1;
+  }
+
+  function treasureChance(spot, forBoat = false) {
+    const t = Math.max(0, Math.min(MAX_SPOT_RARITY, Number(spot?.rarity) || 0)) / MAX_SPOT_RARITY;
+    const base = 0.018 + t * 0.022; // ~1.8% creek → ~4% omega
+    return forBoat ? base * 0.35 : base;
+  }
+
+  function formatTreasureClock(ms) {
+    const total = Math.max(0, Math.ceil(ms / 1000));
+    const m = Math.floor(total / 60);
+    const s = total % 60;
+    return `${m}:${String(s).padStart(2, "0")}`;
+  }
+
+  function activateTreasureBoost(opts = {}) {
+    const now = Date.now();
+    const current = Math.max(now, Number(state.treasureBoostUntil) || 0);
+    state.treasureBoostUntil = current + TREASURE_BOOST_MS;
+    if (!opts.silent) {
+      setCatchLine(`Sunken Chest! ${TREASURE_MULT}× sell for 5:00`, "treasure");
+      window.HubSound?.play?.("win");
+      window.HubConfetti?.burst?.();
+    }
+    document.body.classList.add("treasure-boost");
+    renderStats();
+    saveSoon();
   }
 
   function perfectBonus() {
@@ -773,6 +827,8 @@
             .filter(Boolean)
             .slice(0, coolerMaxFromOwned(next.owned))
         : [];
+      const boostUntil = Math.max(0, Number(raw.treasureBoostUntil) || 0);
+      next.treasureBoostUntil = boostUntil > Date.now() ? boostUntil : 0;
       return next;
     } catch {
       return defaultState();
@@ -1249,7 +1305,17 @@
 
   function catchHaulHtml(entries) {
     return `<div class="boat-haul-list">${entries
-      .map(({ fish, val, perfect }) => {
+      .map(({ fish, val, perfect, treasure }) => {
+        if (treasure || fish?.id === "sunken_chest") {
+          return `<div class="boat-haul-item treasure">
+          <span class="boat-haul-glyph treasure-glyph" aria-hidden="true">▣</span>
+          <span class="boat-haul-meta">
+            <span class="boat-haul-name">${fish.name}</span>
+            <span class="boat-haul-val">${TREASURE_MULT}× sell · 5:00</span>
+          </span>
+          <span class="boat-haul-tag">treasure</span>
+        </div>`;
+        }
         const tag = perfect ? "★ perfect" : fish.rarity;
         return `<div class="boat-haul-item ${fish.rarity}">
           <span class="boat-haul-glyph" aria-hidden="true">${fishGlyphHtml(fish)}</span>
@@ -1351,6 +1417,7 @@
       "just-cast"
     );
     RARITIES.forEach((r) => castBtn.classList.remove(`rarity-${r}`));
+    castBtn.classList.remove("rarity-treasure");
     castBtn.classList.add(`phase-${next === "ready" ? "ready" : next}`);
     biteMeter?.classList.toggle("active", next === "bite");
     if (next === "ready") {
@@ -1481,7 +1548,7 @@
     const perfect =
       perfectOrEntry === true ||
       (perfectOrEntry && typeof perfectOrEntry === "object" && !!perfectOrEntry.perfect);
-    const mult = 1 + sellBonus() + (perfect ? perfectBonus() : 0);
+    const mult = (1 + sellBonus() + (perfect ? perfectBonus() : 0)) * treasureMoneyMult();
     return Math.max(1, Math.floor(base * mult));
   }
 
@@ -1529,7 +1596,8 @@
       "cosmic",
       "astral",
       "singularity",
-      "omega"
+      "omega",
+      "treasure"
     );
     if (cls) catchLineEl.classList.add(cls);
   }
@@ -1639,6 +1707,31 @@
     const windowMs = biteWindow() * 1000;
     const perfect = remaining / windowMs > 0.55;
     const spot = currentSpot();
+
+    if (Math.random() < treasureChance(spot, false)) {
+      state.catches += 1;
+      if (perfect) state.perfects += 1;
+      activateTreasureBoost();
+      setPhase("result");
+      castBtn.classList.add("is-catch", "rarity-treasure");
+      showCatchCard([{ fish: TREASURE, val: 0, perfect, treasure: true }]);
+      const tip = perfect ? "Perfect reel! " : "";
+      setCatchLine(`${tip}Sunken Chest! ${TREASURE_MULT}× sell for 5:00`, "treasure");
+      const rect = castBtn.getBoundingClientRect();
+      spawnFloat(
+        evt?.clientX ?? rect.left + rect.width / 2,
+        evt?.clientY ?? rect.top + 20,
+        "2× TREASURE"
+      );
+      checkAchievements();
+      setTimeout(() => {
+        setPhase("ready");
+        render(false);
+        saveSoon();
+      }, 1600);
+      return;
+    }
+
     const fish = rollFish(spot, false);
     state.catches += 1;
     if (perfect) state.perfects += 1;
@@ -1850,7 +1943,17 @@
   function boatHaulHtml(entries) {
     if (!entries?.length) return "";
     return `<div class="boat-haul-list">${entries
-      .map(({ fish, val, sold, missed }) => {
+      .map(({ fish, val, sold, missed, treasure }) => {
+        if (treasure || fish?.id === "sunken_chest") {
+          return `<div class="boat-haul-item treasure">
+          <span class="boat-haul-glyph treasure-glyph" aria-hidden="true">▣</span>
+          <span class="boat-haul-meta">
+            <span class="boat-haul-name">${fish.name}</span>
+            <span class="boat-haul-val">${TREASURE_MULT}× sell · 5:00</span>
+          </span>
+          <span class="boat-haul-tag">treasure</span>
+        </div>`;
+        }
         const tag = missed ? "no room" : sold ? "sold" : "kept";
         return `<div class="boat-haul-item ${fish.rarity}${missed ? " is-missed" : ""}">
           <span class="boat-haul-glyph" aria-hidden="true">${fishGlyphHtml(fish)}</span>
@@ -1901,6 +2004,17 @@
 
   function boatCatch(boat) {
     const spot = currentSpot();
+    if (Math.random() < treasureChance(spot, true)) {
+      activateTreasureBoost({ silent: true });
+      flashBoatHaul([{ fish: TREASURE, val: 0, sold: true, missed: false, treasure: true }]);
+      setCatchLine(`Boat found a Sunken Chest! ${TREASURE_MULT}× sell`, "treasure");
+      window.HubSound?.play?.("win");
+      checkAchievements();
+      renderCooler(true);
+      renderBoatTimers();
+      saveSoon();
+      return;
+    }
     const count = rollBoatCatchCount(boat.level || boatLevel());
     const haul = [];
     for (let i = 0; i < count; i += 1) {
@@ -2232,6 +2346,9 @@
     const bestLabel = bestFish ? formatBestCatch(bestFish) : "—";
     const bait = equippedSpeedGear();
     const waitCut = bait ? Math.round(bait.amount * 100) : 0;
+    const left = treasureMsLeft();
+    if (left <= 0 && state.treasureBoostUntil) state.treasureBoostUntil = 0;
+    document.body.classList.toggle("treasure-boost", left > 0);
     applySpotTheme();
     if (coinCountEl) coinCountEl.textContent = formatNum(state.coins);
     if (spotLabelEl) spotLabelEl.textContent = spot.name;
@@ -2240,6 +2357,11 @@
     if (waitLabelEl) waitLabelEl.textContent = waitCut ? `−${waitCut}%` : "—";
     if (luckLabelEl) luckLabelEl.textContent = `+${Math.round(totalLuckBonus())}`;
     if (sellLabelEl) sellLabelEl.textContent = formatPctBonus(totalSellFactor() - 1);
+    if (treasureChipEl) treasureChipEl.classList.toggle("hidden", left <= 0);
+    if (treasureLabelEl) {
+      treasureLabelEl.textContent =
+        left > 0 ? `${TREASURE_MULT}× · ${formatTreasureClock(left)}` : "—";
+    }
     if (multiLabelEl) multiLabelEl.textContent = formatPctBonus(multiCatchChance(), false);
     if (perfectLabelEl) perfectLabelEl.textContent = formatPctBonus(perfectBonus());
     if (coolerStatLabelEl) coolerStatLabelEl.textContent = String(coolerMax());

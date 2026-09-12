@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914l": [
+    "Fishing Idle: rare Sunken Chests grant 2× sell value for 5 minutes"
+  ],
   "20260914k": [
     "Fishing Idle: cast view is a shore scene so each spot feels like you’re there"
   ],

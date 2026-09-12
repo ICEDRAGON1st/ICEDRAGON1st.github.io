@@ -1594,6 +1594,62 @@ body[data-spot="eventhorizon"] .water-mist {
   text-shadow: 0 0 20px rgba(255, 224, 102, 0.6);
 }
 
+.catch-line.treasure {
+  color: var(--gold);
+  font-weight: 800;
+  text-shadow: 0 0 12px rgba(240, 193, 75, 0.45);
+}
+
+.hidden {
+  display: none !important;
+}
+
+.treasure-chip {
+  border-color: rgba(240, 193, 75, 0.5);
+  background: linear-gradient(180deg, rgba(240, 193, 75, 0.18), rgba(0, 0, 0, 0.22));
+}
+
+.treasure-chip strong {
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+body.treasure-boost .cast-btn {
+  box-shadow:
+    0 0 0 1px rgba(255, 230, 150, 0.35),
+    0 0 0 4px rgba(240, 193, 75, 0.35),
+    0 18px 40px rgba(0, 0, 0, 0.45),
+    0 0 28px rgba(240, 193, 75, 0.2);
+}
+
+.boat-haul-item.treasure {
+  border-color: rgba(240, 193, 75, 0.45);
+  background: rgba(240, 193, 75, 0.12);
+}
+
+.treasure-glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2rem;
+  height: 2.2rem;
+  font-size: 1.25rem;
+  color: var(--gold);
+  text-shadow: 0 0 8px rgba(240, 193, 75, 0.5);
+}
+
+.catch-bay.rarity-treasure {
+  border-color: rgba(240, 193, 75, 0.4);
+  box-shadow: 0 0 24px rgba(240, 193, 75, 0.15);
+}
+
+.cast-btn.phase-result.is-catch.rarity-treasure {
+  box-shadow:
+    0 0 0 1px rgba(255, 230, 150, 0.5),
+    0 0 0 5px rgba(240, 193, 75, 0.45),
+    0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
 .cooler-bar {
   width: 100%;
   margin-top: 1.1rem;
