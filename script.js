@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913g": [
+    "Fishing Idle: higher rarities are rarer again (base odds, luck, and spot scaling)"
+  ],
   "20260913f": [
     "Fishing Idle: more late gear + Perfect pay upgrades (bonus sell on perfect reels) — no new boats"
   ],
