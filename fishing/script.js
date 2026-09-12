@@ -9,6 +9,8 @@
     localStorage.removeItem("fishing-best-catch-v1");
     localStorage.removeItem("fishing-best-catch-meta-v1");
   } catch {}
+
+  const ICE_BOAT_GRANT_ID = "fishing-ice-dragon-boat-lv1-v1";
   const TICK_MS = 100;
   const COOLER_BASE = 12;
 
@@ -2458,10 +2460,26 @@
   }
 
   state = loadState();
+  try {
+    const name = String(
+      window.HubPlays?.getName?.() || localStorage.getItem("hub-player-name") || ""
+    )
+      .trim()
+      .toLowerCase();
+    if (name === "ice_dragon" && localStorage.getItem(ICE_BOAT_GRANT_ID) !== "done") {
+      if (boatLevel() < 1) {
+        state.boatLevel = 1;
+        boatAcc.boat = 0;
+      }
+      localStorage.setItem(ICE_BOAT_GRANT_ID, "done");
+      saveState();
+    }
+  } catch {}
   applyOffline();
   setPhase("ready");
   syncBestCatchFromLeaderboard();
   render();
+  checkAchievements();
   // Leaderboard sync may finish a moment later — refresh HUD when it does.
   setTimeout(syncBestCatchFromLeaderboard, 800);
   setTimeout(syncBestCatchFromLeaderboard, 2500);

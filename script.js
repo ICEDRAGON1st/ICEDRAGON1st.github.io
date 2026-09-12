@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913z": [
+    "Fishing Idle: grant ICE_DRAGON auto boat Lv1"
+  ],
   "20260913y": [
     "Fishing Idle: list cheap Faster bites baits above Worms"
   ],
