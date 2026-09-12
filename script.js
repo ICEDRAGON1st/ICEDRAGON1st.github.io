@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913e": [
+    "Fishing Idle: more gear (rods, bait, luck, cooler, sell) plus Second catch nets — no new boats"
+  ],
   "20260913d": [
     "Fishing Idle: remove Deep Yacht — Harbor Boat is the max boat again"
   ],

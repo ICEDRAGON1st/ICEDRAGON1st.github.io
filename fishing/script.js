@@ -323,6 +323,8 @@
     { id: "rod8", name: "Cosmic Rod", desc: "+0.35s bite window", cost: 1500000, kind: "window", amount: 0.35 },
     { id: "rod9", name: "Nebula Rod", desc: "+0.12s bite window", cost: 8000000, kind: "window", amount: 0.12 },
     { id: "rod10", name: "Omega Rod", desc: "+0.15s bite window", cost: 45000000, kind: "window", amount: 0.15 },
+    { id: "rod11", name: "Aurora Rod", desc: "+0.1s bite window", cost: 90000000, kind: "window", amount: 0.1 },
+    { id: "rod12", name: "Apex Rod", desc: "+0.12s bite window", cost: 280000000, kind: "window", amount: 0.12 },
     { id: "bait1", name: "Worms", desc: "Faster bites (−12% wait)", cost: 60, kind: "speed", amount: 0.12 },
     { id: "bait2", name: "Crickets", desc: "Faster bites (−15% wait)", cost: 350, kind: "speed", amount: 0.15 },
     { id: "bait3", name: "Spinner", desc: "Faster bites (−18% wait)", cost: 1800, kind: "speed", amount: 0.18 },
@@ -330,6 +332,8 @@
     { id: "bait5", name: "Glow Shrimp", desc: "Faster bites (−26% wait)", cost: 45000, kind: "speed", amount: 0.26 },
     { id: "bait6", name: "Plasma Flies", desc: "Faster bites (−30% wait)", cost: 200000, kind: "speed", amount: 0.3 },
     { id: "bait7", name: "Starroe", desc: "Faster bites (−34% wait)", cost: 900000, kind: "speed", amount: 0.34 },
+    { id: "bait8", name: "Void Roe", desc: "Faster bites (−8% wait)", cost: 8000000, kind: "speed", amount: 0.08 },
+    { id: "bait9", name: "Omega Bait", desc: "Faster bites (−10% wait)", cost: 45000000, kind: "speed", amount: 0.1 },
     { id: "luck1", name: "Lucky Hook", desc: "+rarity luck", cost: 120, kind: "luck", amount: 8 },
     { id: "luck2", name: "Tide Charm", desc: "+rarity luck", cost: 700, kind: "luck", amount: 12 },
     { id: "luck3", name: "Pearl Lure", desc: "+rarity luck", cost: 4000, kind: "luck", amount: 16 },
@@ -339,6 +343,8 @@
     { id: "luck7", name: "Cosmic Lure", desc: "+rarity luck", cost: 2500000, kind: "luck", amount: 55 },
     { id: "luck8", name: "Horizon Charm", desc: "+rarity luck", cost: 12000000, kind: "luck", amount: 70 },
     { id: "luck9", name: "Omega Coin", desc: "+rarity luck", cost: 60000000, kind: "luck", amount: 90 },
+    { id: "luck10", name: "Prism Hook", desc: "+rarity luck", cost: 150000000, kind: "luck", amount: 100 },
+    { id: "luck11", name: "Apex Charm", desc: "+rarity luck", cost: 400000000, kind: "luck", amount: 120 },
     { id: "cooler1", name: "Ice Pack", desc: "+4 cooler slots", cost: 200, kind: "cooler", amount: 4 },
     { id: "cooler2", name: "Big Cooler", desc: "+6 cooler slots", cost: 1500, kind: "cooler", amount: 6 },
     { id: "cooler3", name: "Dock Freezer", desc: "+10 cooler slots", cost: 12000, kind: "cooler", amount: 10 },
@@ -347,11 +353,22 @@
     { id: "cooler6", name: "Void Chest", desc: "+28 cooler slots", cost: 2000000, kind: "cooler", amount: 28 },
     { id: "cooler7", name: "Event Hold", desc: "+36 cooler slots", cost: 10000000, kind: "cooler", amount: 36 },
     { id: "cooler8", name: "Omega Locker", desc: "+48 cooler slots", cost: 50000000, kind: "cooler", amount: 48 },
+    { id: "cooler9", name: "Deep Cage", desc: "+56 cooler slots", cost: 120000000, kind: "cooler", amount: 56 },
+    { id: "cooler10", name: "Apex Vault", desc: "+70 cooler slots", cost: 380000000, kind: "cooler", amount: 70 },
     { id: "sell1", name: "Merchant Scale", desc: "+5% sell value", cost: 500, kind: "value", amount: 0.05 },
     { id: "sell2", name: "Harbor Broker", desc: "+8% sell value", cost: 5000, kind: "value", amount: 0.08 },
     { id: "sell3", name: "Gold Ledger", desc: "+12% sell value", cost: 50000, kind: "value", amount: 0.12 },
     { id: "sell4", name: "Crown Auction", desc: "+18% sell value", cost: 400000, kind: "value", amount: 0.18 },
-    { id: "sell5", name: "Omega Market", desc: "+25% sell value", cost: 5000000, kind: "value", amount: 0.25 }
+    { id: "sell5", name: "Omega Market", desc: "+25% sell value", cost: 5000000, kind: "value", amount: 0.25 },
+    { id: "sell6", name: "Platinum Pit", desc: "+30% sell value", cost: 25000000, kind: "value", amount: 0.3 },
+    { id: "sell7", name: "Dynasty Floor", desc: "+40% sell value", cost: 120000000, kind: "value", amount: 0.4 },
+    { id: "sell8", name: "Apex Exchange", desc: "+50% sell value", cost: 400000000, kind: "value", amount: 0.5 },
+    { id: "net1", name: "Hand Net", desc: "6% chance for a second fish", cost: 2500, kind: "multi", amount: 0.06 },
+    { id: "net2", name: "Drag Net", desc: "10% chance for a second fish", cost: 28000, kind: "multi", amount: 0.1 },
+    { id: "net3", name: "Trawl Mesh", desc: "14% chance for a second fish", cost: 220000, kind: "multi", amount: 0.14 },
+    { id: "net4", name: "Pulse Net", desc: "18% chance for a second fish", cost: 2200000, kind: "multi", amount: 0.18 },
+    { id: "net5", name: "Void Snare", desc: "22% chance for a second fish", cost: 22000000, kind: "multi", amount: 0.22 },
+    { id: "net6", name: "Apex Net", desc: "28% chance for a second fish", cost: 160000000, kind: "multi", amount: 0.28 }
   ];
 
   /**
@@ -475,6 +492,11 @@
       blurb: "Earn more coins when you sell fish."
     },
     {
+      id: "multi",
+      title: "Second catch",
+      blurb: "Nets — chance to land a second fish when you reel (not boats)."
+    },
+    {
       id: "boat",
       title: "Auto boat",
       blurb: "One boat — upgrade for speed (min 7.5s) and multi-catch chances."
@@ -525,12 +547,12 @@
 
   function biteWindow() {
     const bonus = ownedGear("window").reduce((s, g) => s + g.amount, 0);
-    return Math.min(2.25, 0.45 + bonus);
+    return Math.min(2.5, 0.45 + bonus);
   }
 
   function waitScale() {
     const cut = ownedGear("speed").reduce((s, g) => s + g.amount, 0);
-    return Math.max(0.35, 1 - cut);
+    return Math.max(0.22, 1 - cut);
   }
 
   function luckBonus() {
@@ -543,6 +565,10 @@
 
   function sellBonus() {
     return ownedGear("value").reduce((s, g) => s + g.amount, 0);
+  }
+
+  function multiCatchChance() {
+    return Math.min(0.7, ownedGear("multi").reduce((s, g) => s + g.amount, 0));
   }
 
   function boats() {
@@ -1076,20 +1102,33 @@
     if (perfect) state.perfects += 1;
 
     const ok = addToCooler(fish);
+    let bonusFish = null;
+    if (ok && Math.random() < multiCatchChance()) {
+      bonusFish = rollFish(spot, false);
+      state.catches += 1;
+      if (!addToCooler(bonusFish)) bonusFish = null;
+    }
     setPhase("result");
     if (ok) {
       const tip = perfect ? "Perfect reel! " : "";
+      const bonusTip = bonusFish ? ` + ${bonusFish.name}` : "";
       setCatchLine(
-        `${tip}Caught ${fish.name} (${fish.rarity})`,
-        catchTone(fish.rarity)
+        `${tip}Caught ${fish.name} (${fish.rarity})${bonusTip}`,
+        catchTone(bonusFish && isShowcaseRarity(bonusFish.rarity) ? bonusFish.rarity : fish.rarity)
       );
-      window.HubSound?.play?.(perfect || isShowcaseRarity(fish.rarity) ? "win" : "click");
-      if (isShowcaseRarity(fish.rarity)) window.HubConfetti?.burst?.();
+      window.HubSound?.play?.(
+        perfect || isShowcaseRarity(fish.rarity) || (bonusFish && isShowcaseRarity(bonusFish.rarity))
+          ? "win"
+          : "click"
+      );
+      if (isShowcaseRarity(fish.rarity) || (bonusFish && isShowcaseRarity(bonusFish.rarity))) {
+        window.HubConfetti?.burst?.();
+      }
       const rect = castBtn.getBoundingClientRect();
       spawnFloat(
         evt?.clientX ?? rect.left + rect.width / 2,
         evt?.clientY ?? rect.top + 20,
-        fish.name
+        bonusFish ? `${fish.name} +1` : fish.name
       );
     }
     checkAchievements();
