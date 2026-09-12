@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914e": [
+    "Dudes: fix Bash/Dig so skills keep working; repair broken level maps; bombers explode in place"
+  ],
   "20260914d": [
     "Guessword: move notification bell so the Menu button isn’t covered on phones",
     "Runosaur: add on-screen Jump / Duck buttons for phones"
