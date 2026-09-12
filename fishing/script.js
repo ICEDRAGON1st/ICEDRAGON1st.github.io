@@ -17,13 +17,14 @@
   const COOLER_BASE = 12;
   const TREASURE_BOOST_MS = 5 * 60 * 1000;
   const TREASURE_MULT = 2;
+  const TREASURE_LUCK_MULT = 1.5;
   const TREASURE_STASH_MAX = 25;
   const TREASURE = {
     id: "sunken_chest",
     name: "Sunken Chest",
     rarity: "treasure",
     value: 0,
-    blurb: "Use for 2× sell value for 5 minutes"
+    blurb: "Use for 2× sell and 1.5× luck for 5 minutes"
   };
 
   const RARITIES = [
@@ -664,7 +665,7 @@
   /** Gear luck + current spot rarity (shown in live stats). */
   function totalLuckBonus() {
     const spot = currentSpot();
-    return luckBonus() + (Number(spot?.rarity) || 0);
+    return luckBonus() * treasureLuckMult() + (Number(spot?.rarity) || 0);
   }
 
   function coolerMax() {
@@ -697,10 +698,14 @@
     return treasureActive() ? TREASURE_MULT : 1;
   }
 
+  function treasureLuckMult() {
+    return treasureActive() ? TREASURE_LUCK_MULT : 1;
+  }
+
   function treasureChance(spot, forBoat = false) {
     const t = Math.max(0, Math.min(MAX_SPOT_RARITY, Number(spot?.rarity) || 0)) / MAX_SPOT_RARITY;
-    // Rare find: ~0.28% creek → ~0.75% omega (boats ~35% of that)
-    const base = 0.0028 + t * 0.0047;
+    // Very rare: ~0.10% creek → ~0.28% omega (boats ~35% of that)
+    const base = 0.001 + t * 0.0018;
     return forBoat ? base * 0.35 : base;
   }
 
@@ -711,18 +716,23 @@
     return `${m}:${String(s).padStart(2, "0")}`;
   }
 
+  function treasureBoostLabel(msLeft) {
+    const clock = formatTreasureClock(msLeft);
+    return `${TREASURE_MULT}× sell · ${TREASURE_LUCK_MULT}× luck · ${clock}`;
+  }
+
   function activateTreasureBoost(opts = {}) {
     const now = Date.now();
     const wasActive = (Number(state.treasureBoostUntil) || 0) > now;
     const current = Math.max(now, Number(state.treasureBoostUntil) || 0);
-    // Stacking only adds duration — sell mult stays TREASURE_MULT (2×), never higher
+    // Stacking only adds duration — sell/luck mults stay fixed, never compound
     state.treasureBoostUntil = current + TREASURE_BOOST_MS;
     if (!opts.silent) {
       const left = formatTreasureClock(state.treasureBoostUntil - now);
       setCatchLine(
         wasActive
-          ? `Chest opened · +5:00 (still ${TREASURE_MULT}×) · ${left} left`
-          : `Opened Sunken Chest! ${TREASURE_MULT}× sell for 5:00`,
+          ? `Chest opened · +5:00 (still ${TREASURE_MULT}× sell · ${TREASURE_LUCK_MULT}× luck) · ${left} left`
+          : `Opened Sunken Chest! ${TREASURE_MULT}× sell · ${TREASURE_LUCK_MULT}× luck for 5:00`,
         "treasure"
       );
       window.HubSound?.play?.("win");
@@ -744,7 +754,7 @@
     state.treasureCount += 1;
     if (!opts.silent) {
       setCatchLine(
-        `Sunken Chest stored · ${state.treasureCount} ready · tap Use for ${TREASURE_MULT}× sell`,
+        `Sunken Chest stored · ${state.treasureCount} ready · tap Use for ${TREASURE_MULT}× sell · ${TREASURE_LUCK_MULT}× luck`,
         "treasure"
       );
       window.HubSound?.play?.("win");
@@ -1365,7 +1375,7 @@
           const detail =
             stored === false
               ? "stash full"
-              : `stored · Use for ${TREASURE_MULT}× · 5:00`;
+              : `stored · Use for ${TREASURE_MULT}× sell · ${TREASURE_LUCK_MULT}× luck · 5:00`;
           return `<div class="boat-haul-item treasure">
           <span class="boat-haul-glyph treasure-glyph" aria-hidden="true">▣</span>
           <span class="boat-haul-meta">
@@ -1553,7 +1563,7 @@
   }
 
   function fishWeight(fish, spot, forBoat = false) {
-    const luck = luckBonus() * (forBoat ? 0.35 : 1);
+    const luck = luckBonus() * treasureLuckMult() * (forBoat ? 0.35 : 1);
     let w = (RARITY_WEIGHT[fish.rarity] || 10) * rarityFactor(fish.rarity, spot.rarity);
     if (fish.rarity === "uncommon") w += luck * 0.26;
     if (fish.rarity === "rare") w += luck * 0.2;
@@ -2012,7 +2022,7 @@
           const detail =
             stored === false || missed
               ? "stash full"
-              : `stored · Use for ${TREASURE_MULT}× · 5:00`;
+              : `stored · Use for ${TREASURE_MULT}× sell · ${TREASURE_LUCK_MULT}× luck · 5:00`;
           return `<div class="boat-haul-item treasure">
           <span class="boat-haul-glyph treasure-glyph" aria-hidden="true">▣</span>
           <span class="boat-haul-meta">
@@ -2435,8 +2445,7 @@
     if (sellLabelEl) sellLabelEl.textContent = formatPctBonus(totalSellFactor() - 1);
     if (treasureChipEl) treasureChipEl.classList.toggle("hidden", left <= 0);
     if (treasureLabelEl) {
-      treasureLabelEl.textContent =
-        left > 0 ? `${TREASURE_MULT}× · ${formatTreasureClock(left)}` : "—";
+      treasureLabelEl.textContent = left > 0 ? treasureBoostLabel(left) : "—";
     }
     if (multiLabelEl) multiLabelEl.textContent = formatPctBonus(multiCatchChance(), false);
     if (perfectLabelEl) perfectLabelEl.textContent = formatPctBonus(perfectBonus());
@@ -2585,7 +2594,7 @@
       <td class="guide-fish-name">${TREASURE.name}</td>
       <td class="guide-rarity treasure">treasure</td>
       <td>—</td>
-      <td class="guide-here">store · Use ${TREASURE_MULT}× · 5:00</td>
+      <td class="guide-here">store · Use ${TREASURE_MULT}× sell · ${TREASURE_LUCK_MULT}× luck · 5:00</td>
       <td class="guide-spots" title="${chestPct.toFixed(8)}%">${formatChance(chestPct)}</td>
     </tr>`;
     guideBody.innerHTML =
