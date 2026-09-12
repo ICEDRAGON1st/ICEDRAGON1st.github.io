@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260913s">
+  <link rel="stylesheet" href="styles.css?v=20260913t">
 </head>
 <body>
   <header class="top-bar">
@@ -45,31 +45,32 @@
         <div id="boat-timers" class="boat-timers empty" aria-live="polite"></div>
       </div>
 
-      <button id="cast-btn" type="button" class="cast-btn phase-ready" aria-label="Cast your line">
-        <span class="cast-pond" aria-hidden="true">
-          <span class="water-sky"></span>
-          <span class="water-depth"></span>
-          <span class="water-sheen"></span>
-          <span class="water-caustic c1"></span>
-          <span class="water-caustic c2"></span>
-          <span class="cast-line"></span>
-          <span class="ripple r1"></span>
-          <span class="ripple r2"></span>
-          <span class="ripple r3"></span>
-          <span class="splash s1"></span>
-          <span class="splash s2"></span>
-          <span class="bobber" id="bobber">
-            <span class="bobber-stem"></span>
-            <span class="bobber-body"></span>
-            <span class="bobber-band"></span>
+      <div class="cast-stage">
+        <button id="cast-btn" type="button" class="cast-btn phase-ready" aria-label="Cast your line">
+          <span class="cast-pond" aria-hidden="true">
+            <span class="water-sky"></span>
+            <span class="water-depth"></span>
+            <span class="water-sheen"></span>
+            <span class="water-caustic c1"></span>
+            <span class="water-caustic c2"></span>
+            <span class="cast-line"></span>
+            <span class="ripple r1"></span>
+            <span class="ripple r2"></span>
+            <span class="ripple r3"></span>
+            <span class="splash s1"></span>
+            <span class="splash s2"></span>
+            <span class="bobber" id="bobber">
+              <span class="bobber-stem"></span>
+              <span class="bobber-body"></span>
+              <span class="bobber-band"></span>
+            </span>
+            <span class="catch-sil" id="catch-sil"></span>
           </span>
-          <span class="catch-sil" id="catch-sil"></span>
-        </span>
-        <span id="cast-btn-text" class="cast-btn-text">Cast</span>
-      </button>
-
-      <div class="bite-meter" aria-hidden="true">
-        <div id="bite-fill" class="bite-fill"></div>
+          <span id="cast-btn-text" class="cast-btn-text">Cast</span>
+        </button>
+        <div class="bite-meter" aria-hidden="true">
+          <div id="bite-fill" class="bite-fill"></div>
+        </div>
       </div>
 
       <div id="catch-card" class="catch-bay is-empty">
@@ -206,7 +207,7 @@
   <script src="../hub-plays.js?v=20260908z"></script>
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
-  <script src="../hub-leaderboard.js?v=20260913s"></script>
-  <script src="script.js?v=20260913s"></script>
+  <script src="../hub-leaderboard.js?v=20260913t"></script>
+  <script src="script.js?v=20260913t"></script>
 </body>
 </html>

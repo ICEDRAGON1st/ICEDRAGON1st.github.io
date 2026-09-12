@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913t": [
+    "Fishing Idle: lock Cast / catch / cooler heights so casting never shifts the page"
+  ],
   "20260913s": [
     "Fishing Idle: fixed Your catch bay for player fish (same layout idea as Boat catch)"
   ],
