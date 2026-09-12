@@ -454,12 +454,7 @@
   const biteMeter = document.querySelector(".bite-meter");
   const catchLineEl = document.getElementById("catch-line");
   const catchCardEl = document.getElementById("catch-card");
-  const catchCardFishEl = document.getElementById("catch-card-fish");
-  const catchCardStarEl = document.getElementById("catch-card-star");
-  const catchCardNameEl = document.getElementById("catch-card-name");
-  const catchCardValueEl = document.getElementById("catch-card-value");
-  const catchCardRarityEl = document.getElementById("catch-card-rarity");
-  const catchBayEmptyEl = document.getElementById("catch-bay-empty");
+  const catchHaulEl = document.getElementById("catch-haul");
   const coolerList = document.getElementById("cooler-list");
   const coolerCountEl = document.getElementById("cooler-count");
   const coolerMaxEl = document.getElementById("cooler-max");
@@ -1176,30 +1171,51 @@
     return map[rarity] || "#a8e6df";
   }
 
+  function catchHaulEmptyHtml(message) {
+    return `<p class="catch-bay-empty" id="catch-bay-empty">${
+      message || "Cast to catch a fish"
+    }</p>`;
+  }
+
+  function catchHaulHtml(entries) {
+    return `<div class="boat-haul-list">${entries
+      .map(({ fish, val, perfect }) => {
+        const tag = perfect ? "★ perfect" : fish.rarity;
+        return `<div class="boat-haul-item ${fish.rarity}">
+          <span class="boat-haul-glyph" aria-hidden="true">${fishGlyphHtml(fish)}</span>
+          <span class="boat-haul-meta">
+            <span class="boat-haul-name">${fish.name}</span>
+            <span class="boat-haul-val">${formatNum(val)} · ${tag}</span>
+          </span>
+          <span class="boat-haul-tag">${fish.rarity}</span>
+        </div>`;
+      })
+      .join("")}</div>`;
+  }
+
   function hideCatchCard(message) {
     if (!catchCardEl) return;
     catchCardEl.className = "catch-bay is-empty";
-    if (catchCardFishEl) catchCardFishEl.innerHTML = "";
-    if (catchCardStarEl) catchCardStarEl.textContent = "";
-    if (catchCardNameEl) catchCardNameEl.textContent = "";
-    if (catchCardValueEl) catchCardValueEl.textContent = "";
-    if (catchCardRarityEl) catchCardRarityEl.textContent = "";
-    if (catchBayEmptyEl) {
-      catchBayEmptyEl.textContent = message || "Cast to catch a fish";
-    }
+    const el = catchHaulEl || document.getElementById("catch-haul");
+    if (el) el.innerHTML = catchHaulEmptyHtml(message);
   }
 
-  function showCatchCard(fish, val, perfect) {
-    if (!catchCardEl || !fish) {
+  function showCatchCard(entries) {
+    const list = (Array.isArray(entries) ? entries : [entries]).filter((e) => e?.fish);
+    if (!catchCardEl || !list.length) {
       hideCatchCard();
       return;
     }
-    catchCardEl.className = `catch-bay rarity-${fish.rarity}`;
-    if (catchCardFishEl) catchCardFishEl.innerHTML = fishGlyphHtml(fish);
-    if (catchCardStarEl) catchCardStarEl.textContent = perfect ? "★" : "☆";
-    if (catchCardNameEl) catchCardNameEl.textContent = fish.name;
-    if (catchCardValueEl) catchCardValueEl.textContent = formatNum(val);
-    if (catchCardRarityEl) catchCardRarityEl.textContent = fish.rarity;
+    const best = list.reduce((a, b) => {
+      const ar = isShowcaseRarity(a.fish.rarity);
+      const br = isShowcaseRarity(b.fish.rarity);
+      if (br && !ar) return b;
+      if (ar && !br) return a;
+      return (b.val || 0) >= (a.val || 0) ? b : a;
+    }, list[0]);
+    catchCardEl.className = `catch-bay rarity-${best.fish.rarity}`;
+    const el = catchHaulEl || document.getElementById("catch-haul");
+    if (el) el.innerHTML = catchHaulHtml(list);
   }
 
   function formatNum(n) {
@@ -1567,8 +1583,16 @@
     setPhase("result");
     if (ok) {
       castBtn.classList.add("is-catch", `rarity-${fish.rarity}`);
-      const val = fishValue(fish, currentSpot(), perfect);
-      showCatchCard(fish, val, perfect);
+      const val = fishValue(fish, spot, perfect);
+      const haul = [{ fish, val, perfect }];
+      if (bonusFish) {
+        haul.push({
+          fish: bonusFish,
+          val: fishValue(bonusFish, spot, false),
+          perfect: false
+        });
+      }
+      showCatchCard(haul);
       const tip = perfect ? "Perfect reel! " : "";
       const bonusTip = bonusFish ? ` + ${bonusFish.name}` : "";
       setCatchLine(

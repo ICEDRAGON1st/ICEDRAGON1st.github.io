@@ -1125,19 +1125,25 @@ body {
   line-height: 1;
 }
 
-.catch-bay-body {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
+.catch-haul {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   height: 2.85rem;
   min-height: 2.85rem;
   max-height: 2.85rem;
-  overflow: hidden;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.4rem;
+  margin: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  box-sizing: border-box;
 }
 
-.catch-bay.is-empty .catch-card-fish,
-.catch-bay.is-empty .catch-card-meta,
-.catch-bay.is-empty .catch-card-rarity {
+.catch-bay.is-empty .boat-haul-list {
   display: none;
 }
 
@@ -1152,81 +1158,6 @@ body {
   font-weight: 600;
   white-space: nowrap;
 }
-
-.catch-card-fish {
-  flex: 0 0 auto;
-  width: 48px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-}
-
-.catch-card-fish .fish-glyph {
-  width: 46px;
-  height: 26px;
-  display: block;
-}
-
-.catch-card-meta {
-  flex: 1 1 auto;
-  min-width: 0;
-  display: flex;
-  flex-wrap: nowrap;
-  align-items: baseline;
-  gap: 0.35rem 0.45rem;
-  overflow: hidden;
-}
-
-.catch-card-star {
-  color: var(--gold);
-  font-size: 0.95rem;
-  line-height: 1;
-  min-width: 1rem;
-  flex: 0 0 auto;
-}
-
-.catch-card-star:empty {
-  display: none;
-}
-
-.catch-card-name {
-  font-weight: 800;
-  font-size: 0.9rem;
-  color: var(--text);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.catch-card-value {
-  font-weight: 700;
-  font-size: 0.8rem;
-  color: var(--gold);
-  flex: 0 0 auto;
-}
-
-.catch-card-rarity {
-  flex: 0 0 auto;
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  opacity: 0.85;
-}
-
-.catch-bay.rarity-common .catch-card-rarity { color: var(--common); }
-.catch-bay.rarity-uncommon .catch-card-rarity { color: var(--uncommon); }
-.catch-bay.rarity-rare .catch-card-rarity { color: var(--rare); }
-.catch-bay.rarity-epic .catch-card-rarity { color: var(--epic); }
-.catch-bay.rarity-legendary .catch-card-rarity { color: var(--legend); }
-.catch-bay.rarity-mythic .catch-card-rarity { color: var(--mythic); }
-.catch-bay.rarity-secret .catch-card-rarity { color: var(--secret); }
-.catch-bay.rarity-divine .catch-card-rarity { color: var(--divine); }
-.catch-bay.rarity-eternal .catch-card-rarity { color: var(--eternal); }
-.catch-bay.rarity-cosmic .catch-card-rarity { color: var(--cosmic); }
-.catch-bay.rarity-astral .catch-card-rarity { color: var(--astral); }
-.catch-bay.rarity-singularity .catch-card-rarity { color: var(--singularity); }
-.catch-bay.rarity-omega .catch-card-rarity { color: var(--omega); }
 
 .fish-glyph {
   overflow: visible;

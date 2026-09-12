@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913v": [
+    "Fishing Idle: Your catch bay shows both fish when a Second catch net lands"
+  ],
   "20260913u": [
     "Fishing Idle: stop auto boat haul from widening the column and shifting Cast sideways"
   ],
