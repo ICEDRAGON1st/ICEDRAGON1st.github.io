@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914p": [
+    "Fishing Idle: Coin Chest (2× sell) and Luck Chest (1.5× luck) are separate treasures"
+  ],
   "20260914o": [
     "Fishing Idle: Sunken Chests rarer again; also grant 1.5× luck for 5 minutes"
   ],

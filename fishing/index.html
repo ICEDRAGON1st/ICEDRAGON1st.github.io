@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260914n">
+  <link rel="stylesheet" href="styles.css?v=20260914p">
 </head>
 <body data-spot="creek">
   <header class="top-bar">
@@ -54,9 +54,13 @@
           <span class="stat-chip-label">Sell boost</span>
           <strong id="sell-label">+0%</strong>
         </div>
-        <div class="stat-chip treasure-chip hidden" id="treasure-chip" title="Sunken Chest: 2× sell and 1.5× luck">
-          <span class="stat-chip-label">Treasure</span>
-          <strong id="treasure-label">—</strong>
+        <div class="stat-chip treasure-chip money-chip hidden" id="money-chip" title="Coin Chest: 2× sell value">
+          <span class="stat-chip-label">Coin boost</span>
+          <strong id="money-label">—</strong>
+        </div>
+        <div class="stat-chip treasure-chip luck-chip hidden" id="luck-boost-chip" title="Luck Chest: 1.5× luck">
+          <span class="stat-chip-label">Luck boost</span>
+          <strong id="luck-boost-label">—</strong>
         </div>
         <div class="stat-chip">
           <span class="stat-chip-label">2nd catch</span>
@@ -135,19 +139,27 @@
         </div>
       </div>
 
-      <p class="hint">Cast, wait for the bobber to dunk, then tap <strong>Reel</strong>. Rare <strong>Sunken Chests</strong> go to your stash — tap <strong>Use</strong> for 2× sell and 1.5× luck for 5 minutes, or keep them. Tap again while waiting to cancel. Sell fish from your cooler.</p>
+      <p class="hint">Cast, wait for the bobber to dunk, then tap <strong>Reel</strong>. Rare <strong>Coin</strong> and <strong>Luck Chests</strong> go to your stash — use Coin for 2× sell or Luck for 1.5× luck (5 minutes each). Tap again while waiting to cancel. Sell fish from your cooler.</p>
       <p id="catch-line" class="catch-line" aria-live="polite">Ready to cast</p>
 
       <div id="treasure-stash" class="treasure-stash is-empty" aria-live="polite">
-        <div class="treasure-stash-head">
+        <div class="treasure-stash-row treasure-money">
           <span class="treasure-stash-glyph" aria-hidden="true">▣</span>
           <span class="treasure-stash-meta">
-            <strong>Sunken Chests</strong>
-            <span class="treasure-stash-count"><span id="treasure-count">0</span> stored</span>
+            <strong>Coin Chest</strong>
+            <span class="treasure-stash-count"><span id="money-chest-count">0</span> stored · 2× sell</span>
           </span>
-          <button id="treasure-use-btn" type="button" class="btn btn-ghost treasure-use-btn" disabled>Use</button>
+          <button id="money-chest-use-btn" type="button" class="btn btn-ghost treasure-use-btn" disabled>Use</button>
         </div>
-        <p class="treasure-stash-hint">Stored chests wait until you open them. Use for 2× sell · 1.5× luck · 5:00. Opening more only adds time — mults stay the same.</p>
+        <div class="treasure-stash-row treasure-luck">
+          <span class="treasure-stash-glyph luck" aria-hidden="true">◇</span>
+          <span class="treasure-stash-meta">
+            <strong>Luck Chest</strong>
+            <span class="treasure-stash-count"><span id="luck-chest-count">0</span> stored · 1.5× luck</span>
+          </span>
+          <button id="luck-chest-use-btn" type="button" class="btn btn-ghost treasure-use-btn" disabled>Use</button>
+        </div>
+        <p class="treasure-stash-hint">Two different chests. Opening more of the same only adds time — boosts stay 2× sell or 1.5× luck.</p>
       </div>
 
       <div class="cooler-bar">
@@ -216,7 +228,7 @@
         <button id="guide-close" type="button" class="btn btn-ghost guide-close">Close</button>
       </div>
       <p class="lead guide-lead">
-        Every spot can catch every fish, plus rare <strong>Sunken Chests</strong> (stored until you Use them for 2× sell and 1.5× luck). Worse spots pay less
+        Every spot can catch every fish, plus rare <strong>Coin</strong> and <strong>Luck Chests</strong> (stored until you Use them). Worse spots pay less
         (<strong id="guide-spot-mult">×0.7</strong> at <span id="guide-spot-name">Creek</span>)
         and make rare fish much rarer. Odds are exact for your current spot (tiny chances also show 1-in-N).
       </p>
@@ -261,6 +273,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260914c"></script>
-  <script src="script.js?v=20260914n"></script>
+  <script src="script.js?v=20260914p"></script>
 </body>
 </html>

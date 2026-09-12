@@ -1619,9 +1619,12 @@ body[data-spot="eventhorizon"] .water-mist {
   margin-top: 0.85rem;
   padding: 0.7rem 0.85rem;
   border-radius: 12px;
-  border: 1px solid rgba(240, 193, 75, 0.35);
-  background: linear-gradient(135deg, rgba(240, 193, 75, 0.14), rgba(0, 0, 0, 0.28));
+  border: 1px solid rgba(240, 193, 75, 0.28);
+  background: linear-gradient(135deg, rgba(240, 193, 75, 0.1), rgba(0, 0, 0, 0.28));
   text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
 }
 
 .treasure-stash.is-empty {
@@ -1634,7 +1637,7 @@ body[data-spot="eventhorizon"] .water-mist {
   box-shadow: 0 0 0 1px rgba(240, 193, 75, 0.25), 0 0 18px rgba(240, 193, 75, 0.12);
 }
 
-.treasure-stash-head {
+.treasure-stash-row {
   display: flex;
   align-items: center;
   gap: 0.65rem;
@@ -1646,6 +1649,11 @@ body[data-spot="eventhorizon"] .water-mist {
   font-size: 1.35rem;
   line-height: 1;
   text-shadow: 0 0 8px rgba(240, 193, 75, 0.45);
+}
+
+.treasure-stash-glyph.luck {
+  color: #7fd4ff;
+  text-shadow: 0 0 8px rgba(127, 212, 255, 0.45);
 }
 
 .treasure-stash-meta {
@@ -1680,10 +1688,19 @@ body[data-spot="eventhorizon"] .water-mist {
 }
 
 .treasure-stash-hint {
-  margin: 0.45rem 0 0;
+  margin: 0;
   font-size: 0.75rem;
   line-height: 1.35;
   color: var(--muted);
+}
+
+.luck-chip {
+  border-color: rgba(127, 212, 255, 0.5);
+  background: linear-gradient(180deg, rgba(127, 212, 255, 0.16), rgba(0, 0, 0, 0.22));
+}
+
+.luck-chip strong {
+  color: #9fe0ff;
 }
 
 .guide-rarity.treasure {
@@ -1691,8 +1708,22 @@ body[data-spot="eventhorizon"] .water-mist {
   font-weight: 700;
 }
 
+.guide-treasure-row.guide-luck td {
+  background: rgba(127, 212, 255, 0.08);
+}
+
 .guide-treasure-row td {
   background: rgba(240, 193, 75, 0.08);
+}
+
+.boat-haul-item.treasure-luck {
+  border-color: rgba(127, 212, 255, 0.45);
+  background: rgba(127, 212, 255, 0.12);
+}
+
+.boat-haul-item.treasure-luck .treasure-glyph {
+  color: #7fd4ff;
+  text-shadow: 0 0 8px rgba(127, 212, 255, 0.5);
 }
 
 body.treasure-boost .cast-btn {
