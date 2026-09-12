@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913h": [
+    "Fishing Idle: high rarities even rarer (another odds nerf)"
+  ],
   "20260913g": [
     "Fishing Idle: higher rarities are rarer again (base odds, luck, and spot scaling)"
   ],
