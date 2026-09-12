@@ -1661,6 +1661,16 @@ body {
   color: var(--teal);
 }
 
+.shop-item.is-equipped {
+  border-color: rgba(46, 196, 182, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(46, 196, 182, 0.2);
+}
+
+.buy-btn.equip-btn {
+  background: rgba(240, 193, 75, 0.92);
+  color: #2a1a00;
+}
+
 .spot-item.active {
   border-color: rgba(46, 196, 182, 0.55);
   box-shadow: inset 0 0 0 1px rgba(46, 196, 182, 0.25);

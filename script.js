@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913w": [
+    "Fishing Idle: Faster bites bait — own many, equip only one at a time"
+  ],
   "20260913v": [
     "Fishing Idle: Your catch bay shows both fish when a Second catch net lands"
   ],

@@ -497,7 +497,7 @@
     {
       id: "speed",
       title: "Faster bites",
-      blurb: "Bait that shortens wait time between casts."
+      blurb: "Bait that shortens wait time — own many, but equip only one at a time."
     },
     {
       id: "luck",
@@ -550,6 +550,7 @@
       spotId: "creek",
       unlocked: { creek: true },
       owned,
+      equippedSpeed: "",
       cooler: [],
       autoSellRarities: defaultAutoSell(),
       bestCatchScore: 0,
@@ -573,13 +574,35 @@
     return GEAR.filter((g) => g.kind === kind && state.owned[g.id]);
   }
 
+  function bestOwnedSpeedId(ownedMap) {
+    const owned = ownedMap || state.owned;
+    const list = GEAR.filter((g) => g.kind === "speed" && owned[g.id]);
+    if (!list.length) return "";
+    list.sort((a, b) => b.amount - a.amount || a.cost - b.cost);
+    return list[0].id;
+  }
+
+  function resolveEquippedSpeed(ownedMap, preferred) {
+    const owned = ownedMap || state.owned;
+    if (preferred && owned[preferred] && GEAR.some((g) => g.id === preferred && g.kind === "speed")) {
+      return preferred;
+    }
+    return bestOwnedSpeedId(owned);
+  }
+
+  function equippedSpeedGear() {
+    const id = resolveEquippedSpeed(state.owned, state.equippedSpeed);
+    if (!id) return null;
+    return GEAR.find((g) => g.id === id) || null;
+  }
+
   function biteWindow() {
     const bonus = ownedGear("window").reduce((s, g) => s + g.amount, 0);
     return Math.min(2.8, 0.45 + bonus);
   }
 
   function waitScale() {
-    const cut = ownedGear("speed").reduce((s, g) => s + g.amount, 0);
+    const cut = equippedSpeedGear()?.amount || 0;
     return Math.max(0.16, 1 - cut);
   }
 
@@ -694,6 +717,7 @@
       GEAR.forEach((g) => {
         next.owned[g.id] = !!raw.owned?.[g.id];
       });
+      next.equippedSpeed = resolveEquippedSpeed(next.owned, raw.equippedSpeed);
       const savedBoat = Math.floor(Number(raw.boatLevel) || 0);
       const legacyBoat = migrateLegacyBoats(raw.owned);
       next.boatLevel = Math.max(0, Math.min(BOAT_MAX_LEVEL, Math.max(savedBoat, legacyBoat)));
@@ -1704,8 +1728,23 @@
     ensureSession();
     state.coins -= item.cost;
     state.owned[id] = true;
+    if (item.kind === "speed") {
+      state.equippedSpeed = id;
+      setCatchLine(`Bought & equipped ${item.name}`);
+    }
     window.HubSound?.play?.("click");
     checkAchievements();
+    render();
+    saveSoon();
+  }
+
+  function equipSpeed(id) {
+    const item = GEAR.find((g) => g.id === id && g.kind === "speed");
+    if (!item || !state.owned[id]) return;
+    if (state.equippedSpeed === id) return;
+    state.equippedSpeed = id;
+    setCatchLine(`Equipped ${item.name}`);
+    window.HubSound?.play?.("click");
     render();
     saveSoon();
   }
@@ -2046,15 +2085,27 @@
 
     function gearRow(item) {
       const owned = !!state.owned[item.id];
-      return `<div class="shop-item" role="listitem" data-shop-kind="${item.kind}">
+      const exclusive = item.kind === "speed";
+      const equipped = exclusive && state.equippedSpeed === item.id;
+      let status = owned ? "Owned" : "Not owned";
+      if (exclusive && owned) status = equipped ? "Equipped" : "Owned · tap Equip";
+      let action;
+      if (!owned) {
+        action = `<button type="button" class="buy-btn" data-buy="${item.id}" ${
+          state.coins < item.cost ? "disabled" : ""
+        }>${formatNum(item.cost)}</button>`;
+      } else if (exclusive && !equipped) {
+        action = `<button type="button" class="buy-btn equip-btn" data-equip="${item.id}">Equip</button>`;
+      } else {
+        action = `<button type="button" class="buy-btn" disabled>✓</button>`;
+      }
+      return `<div class="shop-item ${equipped ? "is-equipped" : ""}" role="listitem" data-shop-kind="${item.kind}">
         <div class="shop-item-main">
           <div class="shop-item-name">${item.name}</div>
           <p class="shop-item-desc">${item.desc}</p>
-          <div class="shop-item-owned">${owned ? "Owned" : "Not owned"}</div>
+          <div class="shop-item-owned">${status}</div>
         </div>
-        <button type="button" class="buy-btn" data-buy="${item.id}" ${
-          owned || state.coins < item.cost ? "disabled" : ""
-        }>${owned ? "✓" : formatNum(item.cost)}</button>
+        ${action}
       </div>`;
     }
 
@@ -2308,6 +2359,12 @@
     renderShop();
   });
   shopList?.addEventListener("pointerdown", (e) => {
+    const equipBtn = e.target.closest("[data-equip]");
+    if (equipBtn && !equipBtn.disabled) {
+      e.preventDefault();
+      equipSpeed(equipBtn.dataset.equip);
+      return;
+    }
     const btn = e.target.closest("[data-buy]");
     if (!btn || btn.disabled) return;
     e.preventDefault();
