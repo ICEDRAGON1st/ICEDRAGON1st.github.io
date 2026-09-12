@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913p": [
+    "Fishing Idle: boat catch toast no longer shifts the Cast button"
+  ],
   "20260913o": [
     "Fishing Idle: fix glitchy auto boat catch display (no more flicker)"
   ],

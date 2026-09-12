@@ -322,11 +322,18 @@ body {
   color: var(--foam);
 }
 
+.boat-zone {
+  position: relative;
+  width: 100%;
+  margin: 0 0 0.85rem;
+  z-index: 4;
+}
+
 .boat-timers {
   width: 100%;
   display: grid;
   gap: 0.4rem;
-  margin: 0 0 0.85rem;
+  margin: 0;
 }
 
 .boat-timers.empty {
@@ -383,11 +390,18 @@ body {
 }
 
 .boat-haul {
-  width: 100%;
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 0.3rem);
+  transform: translateX(-50%);
+  width: min(100%, 20rem);
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 0.4rem;
-  margin: 0 0 0.85rem;
+  margin: 0;
+  z-index: 6;
+  pointer-events: none;
 }
 
 .boat-haul[hidden] {
@@ -397,6 +411,7 @@ body {
 .boat-haul-list {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 0.4rem;
   width: 100%;
 }
