@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913y": [
+    "Fishing Idle: list cheap Faster bites baits above Worms"
+  ],
   "20260913x": [
     "Fishing Idle: reprice Faster bites — weak baits cheap under Worms; stronger baits cost more"
   ],
