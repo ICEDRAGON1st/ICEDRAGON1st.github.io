@@ -740,6 +740,10 @@ body {
   box-shadow: inset 0 0 0 1px rgba(240, 193, 75, 0.2);
 }
 
+.fish-chip.is-perfect .fish-chip-price {
+  color: #ffe29a;
+}
+
 .fish-chip-save,
 .fish-chip-sell {
   appearance: none;
