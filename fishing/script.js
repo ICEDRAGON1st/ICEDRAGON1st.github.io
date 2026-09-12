@@ -860,7 +860,16 @@
 
   function setPhase(next) {
     phase = next;
-    castBtn.classList.remove("phase-ready", "phase-waiting", "phase-bite", "phase-result");
+    castBtn.classList.remove(
+      "phase-ready",
+      "phase-waiting",
+      "phase-bite",
+      "phase-result",
+      "is-catch",
+      "is-miss",
+      "just-cast"
+    );
+    RARITIES.forEach((r) => castBtn.classList.remove(`rarity-${r}`));
     castBtn.classList.add(`phase-${next === "ready" ? "ready" : next}`);
     biteMeter?.classList.toggle("active", next === "bite");
     if (next === "ready") {
@@ -876,6 +885,13 @@
       castBtnText.textContent = "…";
       castBtn.disabled = true;
     }
+  }
+
+  function flashCastSplash() {
+    castBtn.classList.remove("just-cast");
+    void castBtn.offsetWidth;
+    castBtn.classList.add("just-cast");
+    setTimeout(() => castBtn.classList.remove("just-cast"), 700);
   }
 
   function clearTimers() {
@@ -1074,6 +1090,7 @@
     const [lo, hi] = spot.wait;
     const waitMs = (lo + Math.random() * (hi - lo)) * 1000 * waitScale();
     setPhase("waiting");
+    flashCastSplash();
     setCatchLine("Line is out… tap again to cancel");
     window.HubSound?.play?.("flap");
     waitTimer = setTimeout(() => openBite(), waitMs);
@@ -1110,13 +1127,14 @@
     if (phase !== "bite") return;
     clearTimers();
     setPhase("result");
+    castBtn.classList.add("is-miss");
     setCatchLine("It got away…", "miss");
     window.HubSound?.play?.("miss");
     setTimeout(() => {
       setPhase("ready");
       setCatchLine("Ready to cast");
       render(false);
-    }, 700);
+    }, 850);
   }
 
   function reelIn(evt) {
@@ -1147,6 +1165,7 @@
     }
     setPhase("result");
     if (ok) {
+      castBtn.classList.add("is-catch", `rarity-${fish.rarity}`);
       const tip = perfect ? "Perfect reel! " : "";
       const bonusTip = bonusFish ? ` + ${bonusFish.name}` : "";
       setCatchLine(
@@ -1167,13 +1186,15 @@
         evt?.clientY ?? rect.top + 20,
         bonusFish ? `${fish.name} +1` : fish.name
       );
+    } else {
+      castBtn.classList.add("is-miss");
     }
     checkAchievements();
     setTimeout(() => {
       setPhase("ready");
       render(false);
       saveSoon();
-    }, 650);
+    }, 850);
   }
 
   function sellOneFish(index) {

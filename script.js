@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913i": [
+    "Fishing Idle: more realistic cast pond — water, line, bobber dunk/splash, fish breach on catch"
+  ],
   "20260913h": [
     "Fishing Idle: high rarities even rarer (another odds nerf)"
   ],
