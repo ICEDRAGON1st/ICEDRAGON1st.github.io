@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913l": [
+    "Fishing Idle: auto boat catches show fish art, name, and value"
+  ],
   "20260913k": [
     "Fishing Idle: different fish shapes per species (catfish whiskers, snapper, eel, shark, ray…)"
   ],

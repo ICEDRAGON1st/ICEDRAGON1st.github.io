@@ -443,6 +443,7 @@
   const windowLabelEl = document.getElementById("window-label");
   const boatsLabelEl = document.getElementById("boats-label");
   const boatTimersEl = document.getElementById("boat-timers");
+  const boatHaulEl = document.getElementById("boat-haul");
   const hudSpotEl = document.getElementById("hud-spot");
   const hudCoolerEl = document.getElementById("hud-cooler");
   const hudBestEl = document.getElementById("hud-best");
@@ -1717,15 +1718,81 @@
     saveSoon();
   }
 
+  let boatHaulHideTimer = null;
+
+  function showBoatHaul(entries) {
+    if (!boatHaulEl) return;
+    if (boatHaulHideTimer) {
+      clearTimeout(boatHaulHideTimer);
+      boatHaulHideTimer = null;
+    }
+    if (!entries?.length) {
+      boatHaulEl.hidden = true;
+      boatHaulEl.classList.remove("is-fading");
+      boatHaulEl.innerHTML = "";
+      return;
+    }
+    boatHaulEl.classList.remove("is-fading");
+    boatHaulEl.hidden = false;
+    boatHaulEl.innerHTML = entries
+      .map(({ fish, val, sold }) => {
+        const tag = sold ? "sold" : "kept";
+        return `<div class="boat-haul-item ${fish.rarity}">
+          <span class="boat-haul-glyph" aria-hidden="true">${fishGlyphHtml(fish)}</span>
+          <span class="boat-haul-meta">
+            <span class="boat-haul-name">${fish.name}</span>
+            <span class="boat-haul-val">${formatNum(val)} · ${tag}</span>
+          </span>
+          <span class="boat-haul-tag">${fish.rarity}</span>
+        </div>`;
+      })
+      .join("");
+    // Replay enter animation
+    void boatHaulEl.offsetWidth;
+    boatHaulEl.style.animation = "none";
+    void boatHaulEl.offsetWidth;
+    boatHaulEl.style.animation = "";
+    boatHaulHideTimer = setTimeout(() => {
+      boatHaulEl.classList.add("is-fading");
+      boatHaulHideTimer = setTimeout(() => {
+        boatHaulEl.hidden = true;
+        boatHaulEl.classList.remove("is-fading");
+        boatHaulEl.innerHTML = "";
+        boatHaulHideTimer = null;
+      }, 380);
+    }, 4200);
+  }
+
   function boatCatch(boat) {
     const spot = currentSpot();
     const count = rollBoatCatchCount(boat.level || boatLevel());
+    const haul = [];
     for (let i = 0; i < count; i += 1) {
       const fish = rollFish(spot, true);
-      if (shouldAutoSell(fish.rarity) || state.cooler.length < coolerMax()) {
+      const sold = shouldAutoSell(fish.rarity);
+      if (sold || state.cooler.length < coolerMax()) {
+        const val = fishValue(fish, spot);
         addToCooler(fish, { silent: true });
         state.catches += 1;
+        haul.push({ fish, val, sold });
       }
+    }
+    if (haul.length) {
+      showBoatHaul(haul);
+      const best = haul.reduce((a, b) => (b.val >= a.val ? b : a), haul[0]);
+      if (phase === "ready") {
+        showCatchCard(best.fish, best.val, false);
+        setCatchLine(
+          haul.length > 1
+            ? `Boat hauled ${haul.length} fish · ${best.fish.name}`
+            : `Boat caught ${best.fish.name}`,
+          catchTone(best.fish.rarity)
+        );
+      }
+      checkAchievements();
+      renderCooler(true);
+      renderStats();
+      saveSoon();
     }
   }
 

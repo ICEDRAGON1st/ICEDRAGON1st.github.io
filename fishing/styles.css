@@ -382,6 +382,106 @@ body {
   color: var(--muted);
 }
 
+.boat-haul {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: -0.45rem 0 0.85rem;
+  animation: boat-haul-in 0.3s ease-out;
+}
+
+.boat-haul[hidden] {
+  display: none !important;
+}
+
+.boat-haul.is-fading {
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+@keyframes boat-haul-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.boat-haul-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.55rem;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.28);
+  max-width: 100%;
+}
+
+.boat-haul-glyph {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+}
+
+.boat-haul-glyph .fish-glyph {
+  width: 34px;
+  height: 18px;
+  display: block;
+}
+
+.boat-haul-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.boat-haul-name {
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 9rem;
+}
+
+.boat-haul-val {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--gold);
+}
+
+.boat-haul-tag {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.8;
+  margin-left: 0.1rem;
+}
+
+.boat-haul-item.common { border-color: color-mix(in srgb, var(--common) 45%, transparent); }
+.boat-haul-item.uncommon { border-color: color-mix(in srgb, var(--uncommon) 45%, transparent); }
+.boat-haul-item.rare { border-color: color-mix(in srgb, var(--rare) 45%, transparent); }
+.boat-haul-item.epic { border-color: color-mix(in srgb, var(--epic) 45%, transparent); }
+.boat-haul-item.legendary { border-color: color-mix(in srgb, var(--legend) 45%, transparent); }
+.boat-haul-item.mythic { border-color: color-mix(in srgb, var(--mythic) 45%, transparent); }
+.boat-haul-item.secret { border-color: color-mix(in srgb, var(--secret) 45%, transparent); }
+.boat-haul-item.divine { border-color: color-mix(in srgb, var(--divine) 45%, transparent); }
+.boat-haul-item.eternal { border-color: color-mix(in srgb, var(--eternal) 45%, transparent); }
+.boat-haul-item.cosmic { border-color: color-mix(in srgb, var(--cosmic) 45%, transparent); }
+.boat-haul-item.astral { border-color: color-mix(in srgb, var(--astral) 45%, transparent); }
+.boat-haul-item.singularity { border-color: color-mix(in srgb, var(--singularity) 45%, transparent); }
+.boat-haul-item.omega { border-color: color-mix(in srgb, var(--omega) 45%, transparent); }
+
 .cast-btn {
   position: relative;
   width: min(240px, 74vw);
