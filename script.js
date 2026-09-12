@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913u": [
+    "Fishing Idle: stop auto boat haul from widening the column and shifting Cast sideways"
+  ],
   "20260913t": [
     "Fishing Idle: lock Cast / catch / cooler heights so casting never shifts the page"
   ],

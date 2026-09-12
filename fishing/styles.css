@@ -254,12 +254,14 @@ body {
   grid-template-columns: 1.05fr 1fr;
   gap: 1rem;
   align-items: start;
+  min-width: 0;
 }
 
 .side-col {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  min-width: 0;
 }
 
 .card {
@@ -268,6 +270,9 @@ body {
   border-radius: 1rem;
   padding: 1.15rem 1.1rem 1.25rem;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28);
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .play-col {
@@ -275,6 +280,8 @@ body {
   flex-direction: column;
   align-items: center;
   text-align: center;
+  min-width: 0;
+  overflow-x: hidden;
 }
 
 .bank-label {
@@ -298,14 +305,20 @@ body {
   gap: 0.5rem;
   justify-content: center;
   margin: 0.85rem 0 1rem;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .stat-chip {
+  flex: 1 1 5.4rem;
   min-width: 5.4rem;
+  max-width: 8.5rem;
   padding: 0.45rem 0.65rem;
   border-radius: 0.65rem;
   background: rgba(0, 0, 0, 0.22);
   border: 1px solid var(--border);
+  box-sizing: border-box;
 }
 
 .stat-chip-label {
@@ -318,23 +331,38 @@ body {
 }
 
 .stat-chip strong {
+  display: block;
   font-size: 0.92rem;
   color: var(--foam);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+
+#boats-label {
+  min-height: 1.15em;
 }
 
 .boat-zone {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   margin: 0 0 0.85rem;
   /* Reserve timer height so hiring/showing a boat doesn't jump Cast */
   min-height: 4.35rem;
+  box-sizing: border-box;
 }
 
 .boat-timers {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   display: grid;
   gap: 0.4rem;
   margin: 0;
   min-height: 4.35rem;
+  box-sizing: border-box;
 }
 
 .boat-timers.empty {
@@ -368,7 +396,10 @@ body {
   border: 1px solid var(--border);
   background: rgba(0, 0, 0, 0.22);
   min-height: 4.35rem;
+  min-width: 0;
+  max-width: 100%;
   box-sizing: border-box;
+  overflow: hidden;
 }
 
 .boat-timer-top {
@@ -383,6 +414,10 @@ body {
   font-size: 0.82rem;
   font-weight: 700;
   color: var(--foam);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .boat-timer-left {
@@ -414,6 +449,8 @@ body {
 
 .boat-bay {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   text-align: left;
   margin: 0.55rem 0 0;
   padding: 0.5rem 0.6rem;
@@ -441,6 +478,8 @@ body {
 
 .boat-haul {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   height: 2.85rem;
   min-height: 2.85rem;
   max-height: 2.85rem;
@@ -453,6 +492,7 @@ body {
   overflow-x: auto;
   overflow-y: hidden;
   pointer-events: auto;
+  box-sizing: border-box;
 }
 
 .boat-bay-empty {
@@ -470,6 +510,8 @@ body {
   gap: 0.4rem;
   width: max-content;
   max-width: none;
+  min-width: 0;
+  flex: 0 0 auto;
 }
 
 .boat-haul-item {
@@ -1056,6 +1098,8 @@ body {
 
 .catch-bay {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
   text-align: left;
   margin: 0.75rem 0 0;
   padding: 0.5rem 0.6rem;
@@ -1842,7 +1886,6 @@ body {
   .guide-table td:nth-child(5) {
     display: none;
   }
-}
 
   .shop-list,
   .spot-list {
