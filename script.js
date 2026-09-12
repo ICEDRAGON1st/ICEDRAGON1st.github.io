@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914a": [
+    "Fishing Idle: +24 late upgrades (rods, luck, cooler, sell, nets, perfect pay)"
+  ],
   "20260913z": [
     "Fishing Idle: grant ICE_DRAGON auto boat Lv1"
   ],
