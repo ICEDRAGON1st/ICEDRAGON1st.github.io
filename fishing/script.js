@@ -321,6 +321,8 @@
     { id: "rod6", name: "Abyss Rod", desc: "+0.25s bite window", cost: 90000, kind: "window", amount: 0.25 },
     { id: "rod7", name: "Void Rod", desc: "+0.3s bite window", cost: 350000, kind: "window", amount: 0.3 },
     { id: "rod8", name: "Cosmic Rod", desc: "+0.35s bite window", cost: 1500000, kind: "window", amount: 0.35 },
+    { id: "rod9", name: "Nebula Rod", desc: "+0.12s bite window", cost: 8000000, kind: "window", amount: 0.12 },
+    { id: "rod10", name: "Omega Rod", desc: "+0.15s bite window", cost: 45000000, kind: "window", amount: 0.15 },
     { id: "bait1", name: "Worms", desc: "Faster bites (−12% wait)", cost: 60, kind: "speed", amount: 0.12 },
     { id: "bait2", name: "Crickets", desc: "Faster bites (−15% wait)", cost: 350, kind: "speed", amount: 0.15 },
     { id: "bait3", name: "Spinner", desc: "Faster bites (−18% wait)", cost: 1800, kind: "speed", amount: 0.18 },
@@ -335,12 +337,21 @@
     { id: "luck5", name: "Oracle Coin", desc: "+rarity luck", cost: 100000, kind: "luck", amount: 30 },
     { id: "luck6", name: "Fate Hook", desc: "+rarity luck", cost: 500000, kind: "luck", amount: 40 },
     { id: "luck7", name: "Cosmic Lure", desc: "+rarity luck", cost: 2500000, kind: "luck", amount: 55 },
+    { id: "luck8", name: "Horizon Charm", desc: "+rarity luck", cost: 12000000, kind: "luck", amount: 70 },
+    { id: "luck9", name: "Omega Coin", desc: "+rarity luck", cost: 60000000, kind: "luck", amount: 90 },
     { id: "cooler1", name: "Ice Pack", desc: "+4 cooler slots", cost: 200, kind: "cooler", amount: 4 },
     { id: "cooler2", name: "Big Cooler", desc: "+6 cooler slots", cost: 1500, kind: "cooler", amount: 6 },
     { id: "cooler3", name: "Dock Freezer", desc: "+10 cooler slots", cost: 12000, kind: "cooler", amount: 10 },
     { id: "cooler4", name: "Reef Vault", desc: "+14 cooler slots", cost: 80000, kind: "cooler", amount: 14 },
     { id: "cooler5", name: "Trench Hold", desc: "+20 cooler slots", cost: 400000, kind: "cooler", amount: 20 },
-    { id: "cooler6", name: "Void Chest", desc: "+28 cooler slots", cost: 2000000, kind: "cooler", amount: 28 }
+    { id: "cooler6", name: "Void Chest", desc: "+28 cooler slots", cost: 2000000, kind: "cooler", amount: 28 },
+    { id: "cooler7", name: "Event Hold", desc: "+36 cooler slots", cost: 10000000, kind: "cooler", amount: 36 },
+    { id: "cooler8", name: "Omega Locker", desc: "+48 cooler slots", cost: 50000000, kind: "cooler", amount: 48 },
+    { id: "sell1", name: "Merchant Scale", desc: "+5% sell value", cost: 500, kind: "value", amount: 0.05 },
+    { id: "sell2", name: "Harbor Broker", desc: "+8% sell value", cost: 5000, kind: "value", amount: 0.08 },
+    { id: "sell3", name: "Gold Ledger", desc: "+12% sell value", cost: 50000, kind: "value", amount: 0.12 },
+    { id: "sell4", name: "Crown Auction", desc: "+18% sell value", cost: 400000, kind: "value", amount: 0.18 },
+    { id: "sell5", name: "Omega Market", desc: "+25% sell value", cost: 5000000, kind: "value", amount: 0.25 }
   ];
 
   /**
@@ -387,6 +398,18 @@
         [0.7, 2]
       ],
       multiHint: "70% for 2 · 25% for 3 · 5% for 4"
+    },
+    {
+      name: "Deep Yacht",
+      interval: 7.5,
+      cost: 280000000,
+      multi: [
+        [0.08, 5],
+        [0.12, 4],
+        [0.35, 3],
+        [0.75, 2]
+      ],
+      multiHint: "75% for 2 · 35% for 3 · 12% for 4 · 8% for 5"
     }
   ];
   const BOAT_MAX_LEVEL = BOAT_TIERS.length - 1;
@@ -459,6 +482,11 @@
       blurb: "Hold more fish before you need to sell."
     },
     {
+      id: "value",
+      title: "Sell boost",
+      blurb: "Earn more coins when you sell fish."
+    },
+    {
       id: "boat",
       title: "Auto boat",
       blurb: "One boat — upgrade for speed (min 7.5s) and multi-catch chances."
@@ -509,7 +537,7 @@
 
   function biteWindow() {
     const bonus = ownedGear("window").reduce((s, g) => s + g.amount, 0);
-    return Math.min(2.05, 0.45 + bonus);
+    return Math.min(2.25, 0.45 + bonus);
   }
 
   function waitScale() {
@@ -523,6 +551,10 @@
 
   function coolerMax() {
     return COOLER_BASE + ownedGear("cooler").reduce((s, g) => s + g.amount, 0);
+  }
+
+  function sellBonus() {
+    return ownedGear("value").reduce((s, g) => s + g.amount, 0);
   }
 
   function boats() {
@@ -899,7 +931,8 @@
   }
 
   function fishValue(fish, spot) {
-    return Math.max(1, Math.floor(fish.value * (spot?.valueMult || 1)));
+    const base = Math.max(1, Math.floor(fish.value * (spot?.valueMult || 1)));
+    return Math.max(1, Math.floor(base * (1 + sellBonus())));
   }
 
   function shouldAutoSell(rarity) {

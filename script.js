@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913c": [
+    "Fishing Idle: more gear — late rods/luck/cooler, Sell boost line, Deep Yacht boat"
+  ],
   "20260913b": [
     "ICE_DRAGON username is locked to its owner player code — nobody else can take it"
   ],
