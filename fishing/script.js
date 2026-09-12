@@ -642,12 +642,24 @@
     return ownedGear("luck").reduce((s, g) => s + g.amount, 0);
   }
 
+  /** Gear luck + current spot rarity (shown in live stats). */
+  function totalLuckBonus() {
+    const spot = currentSpot();
+    return luckBonus() + (Number(spot?.rarity) || 0);
+  }
+
   function coolerMax() {
     return COOLER_BASE + ownedGear("cooler").reduce((s, g) => s + g.amount, 0);
   }
 
   function sellBonus() {
     return ownedGear("value").reduce((s, g) => s + g.amount, 0);
+  }
+
+  /** Effective sell vs fish base value: spot × gear sell boost. */
+  function totalSellFactor() {
+    const spot = currentSpot();
+    return Math.max(0.01, (Number(spot?.valueMult) || 1) * (1 + sellBonus()));
   }
 
   function perfectBonus() {
@@ -2215,8 +2227,8 @@
     if (hudSpotEl) hudSpotEl.textContent = spot.name;
     if (windowLabelEl) windowLabelEl.textContent = `${biteWindow().toFixed(2)}s`;
     if (waitLabelEl) waitLabelEl.textContent = waitCut ? `−${waitCut}%` : "—";
-    if (luckLabelEl) luckLabelEl.textContent = `+${Math.round(luckBonus())}`;
-    if (sellLabelEl) sellLabelEl.textContent = formatPctBonus(sellBonus());
+    if (luckLabelEl) luckLabelEl.textContent = `+${Math.round(totalLuckBonus())}`;
+    if (sellLabelEl) sellLabelEl.textContent = formatPctBonus(totalSellFactor() - 1);
     if (multiLabelEl) multiLabelEl.textContent = formatPctBonus(multiCatchChance(), false);
     if (perfectLabelEl) perfectLabelEl.textContent = formatPctBonus(perfectBonus());
     if (coolerStatLabelEl) coolerStatLabelEl.textContent = String(coolerMax());

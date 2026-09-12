@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914f": [
+    "Fishing Idle: Luck and Sell boost stats include your current spot"
+  ],
   "20260914e": [
     "Dudes: fix Bash/Dig so skills keep working; repair broken level maps; bombers explode in place"
   ],
