@@ -699,7 +699,8 @@
 
   function treasureChance(spot, forBoat = false) {
     const t = Math.max(0, Math.min(MAX_SPOT_RARITY, Number(spot?.rarity) || 0)) / MAX_SPOT_RARITY;
-    const base = 0.018 + t * 0.022; // ~1.8% creek → ~4% omega
+    // Rare find: ~0.28% creek → ~0.75% omega (boats ~35% of that)
+    const base = 0.0028 + t * 0.0047;
     return forBoat ? base * 0.35 : base;
   }
 
@@ -712,10 +713,18 @@
 
   function activateTreasureBoost(opts = {}) {
     const now = Date.now();
+    const wasActive = (Number(state.treasureBoostUntil) || 0) > now;
     const current = Math.max(now, Number(state.treasureBoostUntil) || 0);
+    // Stacking only adds duration — sell mult stays TREASURE_MULT (2×), never higher
     state.treasureBoostUntil = current + TREASURE_BOOST_MS;
     if (!opts.silent) {
-      setCatchLine(`Opened Sunken Chest! ${TREASURE_MULT}× sell for 5:00`, "treasure");
+      const left = formatTreasureClock(state.treasureBoostUntil - now);
+      setCatchLine(
+        wasActive
+          ? `Chest opened · +5:00 (still ${TREASURE_MULT}×) · ${left} left`
+          : `Opened Sunken Chest! ${TREASURE_MULT}× sell for 5:00`,
+        "treasure"
+      );
       window.HubSound?.play?.("win");
       window.HubConfetti?.burst?.();
     }

@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914n": [
+    "Fishing Idle: Sunken Chests are rarer; stacking boosts only adds time (stays 2×)"
+  ],
   "20260914m": [
     "Fishing Idle: Sunken Chests go in a stash (use anytime); Fish guide shows chest odds"
   ],
