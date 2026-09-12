@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913j": [
+    "Fishing Idle: catch card + cooler chips show fish art with star, name, and value"
+  ],
   "20260913i": [
     "Fishing Idle: more realistic cast pond — water, line, bobber dunk/splash, fish breach on catch"
   ],

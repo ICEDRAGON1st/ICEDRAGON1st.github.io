@@ -451,6 +451,12 @@
   const biteFill = document.getElementById("bite-fill");
   const biteMeter = document.querySelector(".bite-meter");
   const catchLineEl = document.getElementById("catch-line");
+  const catchCardEl = document.getElementById("catch-card");
+  const catchCardFishEl = document.getElementById("catch-card-fish");
+  const catchCardStarEl = document.getElementById("catch-card-star");
+  const catchCardNameEl = document.getElementById("catch-card-name");
+  const catchCardValueEl = document.getElementById("catch-card-value");
+  const catchCardRarityEl = document.getElementById("catch-card-rarity");
   const coolerList = document.getElementById("cooler-list");
   const coolerCountEl = document.getElementById("cooler-count");
   const coolerMaxEl = document.getElementById("cooler-max");
@@ -807,6 +813,57 @@
 
   const SUFFIXES = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp", "Oc", "No", "Dc"];
 
+  function fishGlyphHtml(rarity) {
+    const tone = rarityColor(rarity);
+    return `<svg class="fish-glyph" viewBox="0 0 64 32" aria-hidden="true" style="color:${tone}">
+      <path class="tail" d="M4 16 L14 8 L14 24 Z"/>
+      <ellipse class="body" cx="34" cy="16" rx="20" ry="10"/>
+      <path class="fin" d="M30 8 L36 2 L40 9 Z"/>
+      <path class="fin" d="M30 24 L36 30 L40 23 Z"/>
+      <circle class="eye" cx="48" cy="13" r="2.2"/>
+      <ellipse class="shine" cx="28" cy="12" rx="7" ry="3"/>
+    </svg>`;
+  }
+
+  function rarityColor(rarity) {
+    const map = {
+      common: "#adb5bd",
+      uncommon: "#69db7c",
+      rare: "#74c0fc",
+      epic: "#da77f2",
+      legendary: "#fcc419",
+      mythic: "#ff922b",
+      secret: "#e599f7",
+      divine: "#fff3bf",
+      eternal: "#99e9f2",
+      cosmic: "#b197fc",
+      astral: "#66d9e8",
+      singularity: "#ff6b9d",
+      omega: "#ffe066"
+    };
+    return map[rarity] || "#a8e6df";
+  }
+
+  function hideCatchCard() {
+    if (!catchCardEl) return;
+    catchCardEl.hidden = true;
+    catchCardEl.className = "catch-card";
+  }
+
+  function showCatchCard(fish, val, perfect) {
+    if (!catchCardEl || !fish) {
+      hideCatchCard();
+      return;
+    }
+    catchCardEl.hidden = false;
+    catchCardEl.className = `catch-card rarity-${fish.rarity}`;
+    if (catchCardFishEl) catchCardFishEl.innerHTML = fishGlyphHtml(fish.rarity);
+    if (catchCardStarEl) catchCardStarEl.textContent = perfect ? "★" : "☆";
+    if (catchCardNameEl) catchCardNameEl.textContent = fish.name;
+    if (catchCardValueEl) catchCardValueEl.textContent = formatNum(val);
+    if (catchCardRarityEl) catchCardRarityEl.textContent = fish.rarity;
+  }
+
   function formatNum(n) {
     let v = Math.abs(Number(n) || 0);
     if (!Number.isFinite(v)) return "0";
@@ -875,12 +932,15 @@
     if (next === "ready") {
       castBtnText.textContent = "Cast";
       castBtn.disabled = false;
+      hideCatchCard();
     } else if (next === "waiting") {
       castBtnText.textContent = "Cancel";
       castBtn.disabled = false;
+      hideCatchCard();
     } else if (next === "bite") {
       castBtnText.textContent = "Reel!";
       castBtn.disabled = false;
+      hideCatchCard();
     } else {
       castBtnText.textContent = "…";
       castBtn.disabled = true;
@@ -1128,6 +1188,7 @@
     clearTimers();
     setPhase("result");
     castBtn.classList.add("is-miss");
+    hideCatchCard();
     setCatchLine("It got away…", "miss");
     window.HubSound?.play?.("miss");
     setTimeout(() => {
@@ -1166,6 +1227,8 @@
     setPhase("result");
     if (ok) {
       castBtn.classList.add("is-catch", `rarity-${fish.rarity}`);
+      const val = fishValue(fish, currentSpot(), perfect);
+      showCatchCard(fish, val, perfect);
       const tip = perfect ? "Perfect reel! " : "";
       const bonusTip = bonusFish ? ` + ${bonusFish.name}` : "";
       setCatchLine(
@@ -1188,13 +1251,14 @@
       );
     } else {
       castBtn.classList.add("is-miss");
+      hideCatchCard();
     }
     checkAchievements();
     setTimeout(() => {
       setPhase("ready");
       render(false);
       saveSoon();
-    }, 850);
+    }, 1400);
   }
 
   function sellOneFish(index) {
@@ -1465,6 +1529,7 @@
         return `<div class="fish-chip ${fish.rarity}${saved ? " is-saved" : ""}${
           isCoolerPerfect(entry) ? " is-perfect" : ""
         }" data-cooler-index="${index}">
+          <span class="fish-chip-glyph" aria-hidden="true">${fishGlyphHtml(fish.rarity)}</span>
           <button type="button" class="fish-chip-save" data-save-index="${index}" title="${
             saved ? "Unsave fish" : "Save fish (won't sell)"
           }" aria-label="${saved ? "Unsave" : "Save"} ${fish.name}" aria-pressed="${saved}">${

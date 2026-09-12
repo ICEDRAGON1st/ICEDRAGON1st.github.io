@@ -824,12 +824,12 @@ body {
     transform: translate(-50%, -55%) scale(1) rotate(8deg);
   }
   70% {
-    opacity: 0.85;
+    opacity: 0.75;
     transform: translate(-48%, -35%) scale(1.05) rotate(-4deg);
   }
   100% {
-    opacity: 0;
-    transform: translate(-50%, -80%) scale(0.9) rotate(6deg);
+    opacity: 0.2;
+    transform: translate(-50%, -18%) scale(0.85) rotate(0deg);
   }
 }
 
@@ -884,6 +884,129 @@ body {
   background: linear-gradient(90deg, #69db7c 0%, #fcc419 55%, #ff6b6b 100%);
   transform: scaleX(1);
   box-shadow: 0 0 10px rgba(255, 140, 100, 0.35);
+}
+
+.catch-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: min(280px, 88vw);
+  margin-top: 0.85rem;
+  padding: 0.65rem 0.8rem;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background:
+    linear-gradient(145deg, rgba(20, 56, 68, 0.95), rgba(8, 32, 42, 0.92));
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  animation: catch-card-in 0.35s ease-out;
+}
+
+.catch-card[hidden] {
+  display: none !important;
+}
+
+@keyframes catch-card-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.catch-card-fish {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+}
+
+.catch-card-fish .fish-glyph {
+  width: 54px;
+  height: 30px;
+  display: block;
+}
+
+.catch-card-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.5rem;
+}
+
+.catch-card-star {
+  color: var(--gold);
+  font-size: 1rem;
+  line-height: 1;
+  min-width: 1rem;
+}
+
+.catch-card-star:empty {
+  display: none;
+}
+
+.catch-card-name {
+  font-weight: 800;
+  font-size: 0.98rem;
+  color: var(--text);
+}
+
+.catch-card-value {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: var(--gold);
+}
+
+.catch-card-rarity {
+  flex: 0 0 auto;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  opacity: 0.85;
+  align-self: flex-start;
+  margin-top: 0.15rem;
+}
+
+.catch-card.rarity-common .catch-card-rarity { color: var(--common); }
+.catch-card.rarity-uncommon .catch-card-rarity { color: var(--uncommon); }
+.catch-card.rarity-rare .catch-card-rarity { color: var(--rare); }
+.catch-card.rarity-epic .catch-card-rarity { color: var(--epic); }
+.catch-card.rarity-legendary .catch-card-rarity { color: var(--legend); }
+.catch-card.rarity-mythic .catch-card-rarity { color: var(--mythic); }
+.catch-card.rarity-secret .catch-card-rarity { color: var(--secret); }
+.catch-card.rarity-divine .catch-card-rarity { color: var(--divine); }
+.catch-card.rarity-eternal .catch-card-rarity { color: var(--eternal); }
+.catch-card.rarity-cosmic .catch-card-rarity { color: var(--cosmic); }
+.catch-card.rarity-astral .catch-card-rarity { color: var(--astral); }
+.catch-card.rarity-singularity .catch-card-rarity { color: var(--singularity); }
+.catch-card.rarity-omega .catch-card-rarity { color: var(--omega); }
+
+.fish-glyph {
+  overflow: visible;
+}
+
+.fish-glyph .body {
+  fill: currentColor;
+}
+
+.fish-glyph .fin,
+.fish-glyph .tail {
+  fill: currentColor;
+  opacity: 0.75;
+}
+
+.fish-glyph .eye {
+  fill: #071820;
+}
+
+.fish-glyph .shine {
+  fill: rgba(255, 255, 255, 0.35);
 }
 
 .hint,
@@ -1065,13 +1188,14 @@ body {
   font: inherit;
   font-size: 0.75rem;
   font-weight: 700;
-  padding: 0.15rem 0.2rem 0.15rem 0.15rem;
-  border-radius: 999px;
+  padding: 0.25rem 0.35rem 0.25rem 0.25rem;
+  border-radius: 12px;
   border: 1px solid var(--border);
   background: rgba(0, 0, 0, 0.25);
   display: inline-flex;
   align-items: center;
-  gap: 0.15rem;
+  gap: 0.2rem;
+  max-width: 100%;
 }
 
 .fish-chip.is-saved {
@@ -1083,6 +1207,21 @@ body {
   color: #ffe29a;
 }
 
+.fish-chip-glyph {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.fish-chip-glyph .fish-glyph {
+  width: 26px;
+  height: 14px;
+  display: block;
+}
+
 .fish-chip-save,
 .fish-chip-sell {
   appearance: none;
@@ -1091,11 +1230,12 @@ body {
   background: transparent;
   color: inherit;
   cursor: pointer;
-  padding: 0.2rem 0.35rem;
-  border-radius: 999px;
+  padding: 0.2rem 0.3rem;
+  border-radius: 8px;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+  min-width: 0;
 }
 
 .fish-chip-save {
@@ -1105,6 +1245,7 @@ body {
   opacity: 0.75;
   min-width: 1.5rem;
   justify-content: center;
+  flex: 0 0 auto;
 }
 
 .fish-chip-save:hover,
@@ -1121,6 +1262,13 @@ body {
   opacity: 0.85;
 }
 
+.fish-chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 7.5rem;
+}
+
 .fish-chip:hover {
   border-color: rgba(46, 196, 182, 0.45);
 }
@@ -1130,9 +1278,10 @@ body {
 }
 
 .fish-chip-price {
-  opacity: 0.85;
+  opacity: 0.9;
   font-size: 0.7rem;
   color: var(--gold);
+  flex: 0 0 auto;
 }
 
 .cooler-hint {
