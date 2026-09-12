@@ -66,6 +66,7 @@ body {
   font-family: "Outfit", system-ui, sans-serif;
   color: var(--text);
   background:
+    radial-gradient(ellipse 90% 55% at 50% -10%, color-mix(in srgb, var(--spot-accent) 45%, transparent) 0%, transparent 55%),
     radial-gradient(ellipse at 15% 0%, var(--spot-page-a) 0%, transparent 50%),
     radial-gradient(ellipse at 90% 90%, var(--spot-page-b) 0%, transparent 45%),
     linear-gradient(180deg, var(--spot-page-mid) 0%, var(--bg-deep) 55%, #061018 100%);
@@ -633,16 +634,32 @@ body {
 .cast-stage {
   position: relative;
   width: min(240px, 74vw);
-  height: calc(min(240px, 74vw) + 1.35rem);
+  height: calc(min(240px, 74vw) + 2.7rem);
   flex: 0 0 auto;
   margin: 0 auto;
   /* Cast + bite meter share a fixed box so phase changes never shift layout */
 }
 
+.spot-mood {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--spot-accent);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--spot-accent) 55%, transparent);
+  pointer-events: none;
+}
+
 .cast-btn {
   position: absolute;
   left: 0;
-  top: 0;
+  top: 1.25rem;
   width: min(240px, 74vw);
   height: min(240px, 74vw);
   border: none;
@@ -674,22 +691,17 @@ body {
 .cast-btn::before {
   content: "";
   position: absolute;
-  inset: 4%;
+  inset: 0;
   border-radius: 50%;
   pointer-events: none;
   z-index: 0;
-  background:
-    radial-gradient(circle at 50% 50%, transparent 62%, rgba(0, 0, 0, 0.28) 88%, rgba(0, 0, 0, 0.5) 100%),
-    conic-gradient(
-      from 20deg,
-      color-mix(in srgb, var(--spot-btn-edge) 70%, #3a2a18) 0deg,
-      color-mix(in srgb, var(--spot-btn-lo) 55%, #5a4830) 55deg,
-      color-mix(in srgb, var(--spot-btn-edge) 65%, #2a2010) 120deg,
-      color-mix(in srgb, var(--spot-btn-deep) 40%, #4a3a28) 200deg,
-      color-mix(in srgb, var(--spot-btn-edge) 70%, #3a2a18) 360deg
-    );
-  opacity: 0.55;
-  mix-blend-mode: multiply;
+  background: radial-gradient(
+    circle at 50% 50%,
+    transparent 58%,
+    rgba(0, 0, 0, 0.18) 78%,
+    rgba(0, 0, 0, 0.42) 100%
+  );
+  opacity: 1;
 }
 
 .cast-btn::after {
@@ -699,10 +711,9 @@ body {
   border-radius: 50%;
   pointer-events: none;
   z-index: 0;
-  background:
-    radial-gradient(ellipse 70% 28% at 50% 8%, rgba(255, 255, 255, 0.18), transparent 70%),
-    radial-gradient(ellipse 40% 20% at 22% 78%, rgba(255, 255, 255, 0.05), transparent 70%);
-  opacity: 0.7;
+  box-shadow: inset 0 0 0 10px color-mix(in srgb, var(--spot-accent) 35%, transparent);
+  opacity: 0.9;
+  transition: box-shadow 0.45s ease;
 }
 
 .cast-btn:active:not(:disabled) {
@@ -2179,10 +2190,11 @@ body[data-spot="eventhorizon"] .water-mist {
 
   .cast-stage {
     width: min(220px, 78vw);
-    height: calc(min(220px, 78vw) + 1.35rem);
+    height: calc(min(220px, 78vw) + 2.7rem);
   }
 
   .cast-btn {
+    top: 1.25rem;
     width: min(220px, 78vw);
     height: min(220px, 78vw);
   }
@@ -2190,115 +2202,115 @@ body[data-spot="eventhorizon"] .water-mist {
 
 /* —— Per-spot water atmospheres (cast pond + page wash) —— */
 body[data-spot="creek"] {
-  --spot-accent: #6b9e6a;
-  --spot-page-a: #3d5c3a;
-  --spot-page-b: #2a4030;
-  --spot-page-mid: #1a2e22;
-  --bg-deep: #0e1a14;
-  --spot-btn-hi: rgba(190, 220, 170, 0.45);
-  --spot-btn-mid: #4a7a52;
-  --spot-btn-deep: #2f5538;
-  --spot-btn-lo: #1a3522;
-  --spot-btn-edge: #0e2014;
-  --spot-ring: rgba(50, 90, 55, 0.7);
-  --spot-ring-glow: rgba(120, 180, 100, 0.18);
-  --spot-pond-hi: rgba(140, 190, 120, 0.32);
-  --spot-pond-top: #6a9a68;
-  --spot-pond-mid: #3d6e48;
-  --spot-pond-low: #254a32;
-  --spot-pond-bot: #163022;
-  --spot-sky: rgba(220, 235, 200, 0.4);
-  --spot-sky-mid: rgba(140, 180, 120, 0.12);
-  --spot-depth: rgba(10, 30, 16, 0.5);
-  --spot-depth-side: rgba(40, 70, 40, 0.3);
-  --spot-caustic: rgba(200, 240, 180, 0.16);
-  --spot-caustic-2: rgba(170, 220, 150, 0.12);
+  --spot-accent: #7ec85a;
+  --spot-page-a: #4a7a38;
+  --spot-page-b: #2a5030;
+  --spot-page-mid: #1a3820;
+  --bg-deep: #0c1c10;
+  --spot-btn-hi: rgba(200, 240, 160, 0.65);
+  --spot-btn-mid: #5aaa48;
+  --spot-btn-deep: #347838;
+  --spot-btn-lo: #1e4a28;
+  --spot-btn-edge: #0e2814;
+  --spot-ring: rgba(60, 120, 50, 0.8);
+  --spot-ring-glow: rgba(140, 220, 90, 0.35);
+  --spot-pond-hi: rgba(170, 230, 120, 0.5);
+  --spot-pond-top: #78c060;
+  --spot-pond-mid: #3e8a48;
+  --spot-pond-low: #256034;
+  --spot-pond-bot: #143c20;
+  --spot-sky: rgba(220, 245, 190, 0.55);
+  --spot-sky-mid: rgba(140, 200, 100, 0.18);
+  --spot-depth: rgba(8, 30, 12, 0.55);
+  --spot-depth-side: rgba(40, 80, 30, 0.35);
+  --spot-caustic: rgba(210, 255, 160, 0.28);
+  --spot-caustic-2: rgba(170, 230, 120, 0.18);
   --spot-caustic-speed: 8s;
   --spot-sheen-speed: 6.5s;
 }
 
 body[data-spot="pond"] {
-  --spot-accent: #3cb89a;
-  --spot-page-a: #1a4a44;
-  --spot-page-b: #0f3a32;
-  --spot-page-mid: #0a2a28;
-  --bg-deep: #071a18;
-  --spot-btn-hi: rgba(160, 230, 210, 0.5);
-  --spot-btn-mid: #2a8f7a;
-  --spot-btn-deep: #1a6558;
-  --spot-btn-lo: #0e4038;
-  --spot-btn-edge: #082820;
-  --spot-ring: rgba(20, 90, 80, 0.65);
-  --spot-ring-glow: rgba(60, 200, 170, 0.16);
-  --spot-pond-hi: rgba(100, 210, 180, 0.35);
-  --spot-pond-top: #3cb89a;
-  --spot-pond-mid: #1f7a68;
-  --spot-pond-low: #125448;
-  --spot-pond-bot: #0a3830;
-  --spot-sky: rgba(200, 245, 230, 0.42);
-  --spot-sky-mid: rgba(100, 190, 170, 0.12);
-  --spot-depth: rgba(4, 28, 24, 0.55);
-  --spot-depth-side: rgba(20, 60, 50, 0.35);
-  --spot-caustic: rgba(180, 255, 230, 0.16);
-  --spot-caustic-2: rgba(140, 230, 200, 0.12);
+  --spot-accent: #2fd4b0;
+  --spot-page-a: #1a6a5c;
+  --spot-page-b: #0e4a40;
+  --spot-page-mid: #0a3830;
+  --bg-deep: #062018;
+  --spot-btn-hi: rgba(160, 255, 230, 0.7);
+  --spot-btn-mid: #22c4a0;
+  --spot-btn-deep: #149078;
+  --spot-btn-lo: #0c5c50;
+  --spot-btn-edge: #063830;
+  --spot-ring: rgba(20, 140, 120, 0.75);
+  --spot-ring-glow: rgba(60, 230, 190, 0.35);
+  --spot-pond-hi: rgba(100, 240, 210, 0.5);
+  --spot-pond-top: #34d8b8;
+  --spot-pond-mid: #18a088;
+  --spot-pond-low: #0e6c5c;
+  --spot-pond-bot: #084038;
+  --spot-sky: rgba(190, 255, 240, 0.55);
+  --spot-sky-mid: rgba(80, 210, 180, 0.18);
+  --spot-depth: rgba(4, 36, 28, 0.55);
+  --spot-depth-side: rgba(20, 80, 70, 0.35);
+  --spot-caustic: rgba(160, 255, 230, 0.28);
+  --spot-caustic-2: rgba(100, 230, 200, 0.18);
   --spot-caustic-speed: 9s;
   --spot-sheen-speed: 7s;
 }
 
 body[data-spot="marsh"] {
-  --spot-accent: #8a9a4a;
-  --spot-page-a: #3a4230;
-  --spot-page-b: #2a3020;
-  --spot-page-mid: #1e2418;
-  --bg-deep: #12160e;
-  --spot-btn-hi: rgba(180, 190, 120, 0.35);
-  --spot-btn-mid: #5a6840;
-  --spot-btn-deep: #3e482c;
-  --spot-btn-lo: #2a3220;
-  --spot-btn-edge: #181c10;
-  --spot-ring: rgba(70, 80, 40, 0.7);
-  --spot-ring-glow: rgba(160, 170, 70, 0.14);
-  --spot-pond-hi: rgba(150, 160, 80, 0.28);
-  --spot-pond-top: #6a7848;
-  --spot-pond-mid: #4a5432;
-  --spot-pond-low: #323a24;
-  --spot-pond-bot: #1e2414;
-  --spot-sky: rgba(200, 200, 150, 0.28);
-  --spot-sky-mid: rgba(120, 130, 80, 0.1);
-  --spot-depth: rgba(20, 24, 10, 0.6);
-  --spot-depth-side: rgba(50, 55, 25, 0.4);
-  --spot-caustic: rgba(190, 200, 120, 0.1);
-  --spot-caustic-2: rgba(150, 160, 90, 0.08);
+  --spot-accent: #a8b040;
+  --spot-page-a: #4a5030;
+  --spot-page-b: #343820;
+  --spot-page-mid: #242818;
+  --bg-deep: #14160c;
+  --spot-btn-hi: rgba(200, 200, 120, 0.45);
+  --spot-btn-mid: #788040;
+  --spot-btn-deep: #545828;
+  --spot-btn-lo: #383c1c;
+  --spot-btn-edge: #1c1e10;
+  --spot-ring: rgba(100, 110, 40, 0.8);
+  --spot-ring-glow: rgba(180, 190, 70, 0.3);
+  --spot-pond-hi: rgba(170, 175, 80, 0.4);
+  --spot-pond-top: #909848;
+  --spot-pond-mid: #606428;
+  --spot-pond-low: #40441c;
+  --spot-pond-bot: #242610;
+  --spot-sky: rgba(210, 205, 150, 0.35);
+  --spot-sky-mid: rgba(130, 135, 70, 0.14);
+  --spot-depth: rgba(24, 26, 8, 0.7);
+  --spot-depth-side: rgba(60, 62, 25, 0.45);
+  --spot-caustic: rgba(200, 205, 120, 0.14);
+  --spot-caustic-2: rgba(150, 155, 80, 0.1);
   --spot-caustic-speed: 11s;
   --spot-sheen-speed: 8s;
 }
 
 body[data-spot="river"] {
-  --spot-accent: #4a8fd4;
-  --spot-page-a: #1a3a5c;
-  --spot-page-b: #0f2a48;
-  --spot-page-mid: #0a1e38;
+  --spot-accent: #4aa8ff;
+  --spot-page-a: #1a4a88;
+  --spot-page-b: #0e3268;
+  --spot-page-mid: #0a2448;
   --bg-deep: #061428;
-  --spot-btn-hi: rgba(160, 210, 255, 0.55);
-  --spot-btn-mid: #3a7ab8;
-  --spot-btn-deep: #245888;
-  --spot-btn-lo: #143a5c;
-  --spot-btn-edge: #0a2438;
-  --spot-ring: rgba(30, 70, 120, 0.7);
-  --spot-ring-glow: rgba(80, 160, 230, 0.2);
-  --spot-pond-hi: rgba(100, 180, 240, 0.38);
-  --spot-pond-top: #4a9ad4;
-  --spot-pond-mid: #2a6aa8;
-  --spot-pond-low: #184878;
-  --spot-pond-bot: #0e3050;
-  --spot-sky: rgba(200, 230, 255, 0.5);
-  --spot-sky-mid: rgba(100, 170, 230, 0.15);
-  --spot-depth: rgba(4, 20, 40, 0.5);
-  --spot-depth-side: rgba(20, 50, 90, 0.35);
-  --spot-caustic: rgba(180, 230, 255, 0.22);
-  --spot-caustic-2: rgba(140, 200, 255, 0.16);
-  --spot-caustic-speed: 4.5s;
-  --spot-sheen-speed: 3.8s;
+  --spot-btn-hi: rgba(160, 220, 255, 0.75);
+  --spot-btn-mid: #3a90e0;
+  --spot-btn-deep: #2068b8;
+  --spot-btn-lo: #124888;
+  --spot-btn-edge: #0a2c58;
+  --spot-ring: rgba(30, 100, 180, 0.85);
+  --spot-ring-glow: rgba(80, 180, 255, 0.4);
+  --spot-pond-hi: rgba(100, 200, 255, 0.55);
+  --spot-pond-top: #4aacf0;
+  --spot-pond-mid: #2480d0;
+  --spot-pond-low: #1458a0;
+  --spot-pond-bot: #0c3870;
+  --spot-sky: rgba(200, 235, 255, 0.65);
+  --spot-sky-mid: rgba(100, 180, 255, 0.22);
+  --spot-depth: rgba(4, 24, 50, 0.55);
+  --spot-depth-side: rgba(20, 70, 130, 0.4);
+  --spot-caustic: rgba(180, 235, 255, 0.35);
+  --spot-caustic-2: rgba(120, 200, 255, 0.22);
+  --spot-caustic-speed: 3.8s;
+  --spot-sheen-speed: 3.2s;
 }
 
 body[data-spot="falls"] {
@@ -2470,29 +2482,29 @@ body[data-spot="deep"] {
 }
 
 body[data-spot="trench"] {
-  --spot-accent: #5a2a7a;
-  --spot-page-a: #1a0e28;
-  --spot-page-b: #12081e;
-  --spot-page-mid: #0c0614;
-  --bg-deep: #06040c;
-  --spot-btn-hi: rgba(120, 60, 160, 0.3);
-  --spot-btn-mid: #3a1a58;
-  --spot-btn-deep: #281040;
-  --spot-btn-lo: #180a2a;
-  --spot-btn-edge: #0c0618;
-  --spot-ring: rgba(50, 20, 80, 0.8);
-  --spot-ring-glow: rgba(140, 60, 200, 0.16);
-  --spot-pond-hi: rgba(90, 40, 130, 0.28);
-  --spot-pond-top: #4a2870;
-  --spot-pond-mid: #301848;
-  --spot-pond-low: #1c0e30;
-  --spot-pond-bot: #100820;
-  --spot-sky: rgba(80, 40, 120, 0.22);
-  --spot-sky-mid: rgba(40, 15, 70, 0.1);
-  --spot-depth: rgba(4, 2, 10, 0.8);
-  --spot-depth-side: rgba(40, 10, 70, 0.5);
-  --spot-caustic: rgba(160, 80, 220, 0.12);
-  --spot-caustic-2: rgba(100, 40, 160, 0.08);
+  --spot-accent: #b04aff;
+  --spot-page-a: #2a1050;
+  --spot-page-b: #140828;
+  --spot-page-mid: #0c0618;
+  --bg-deep: #04020c;
+  --spot-btn-hi: rgba(160, 70, 220, 0.4);
+  --spot-btn-mid: #4a1878;
+  --spot-btn-deep: #2e0e50;
+  --spot-btn-lo: #1a0834;
+  --spot-btn-edge: #0c041c;
+  --spot-ring: rgba(90, 30, 140, 0.9);
+  --spot-ring-glow: rgba(180, 70, 255, 0.35);
+  --spot-pond-hi: rgba(120, 50, 180, 0.4);
+  --spot-pond-top: #5a2090;
+  --spot-pond-mid: #381060;
+  --spot-pond-low: #220a40;
+  --spot-pond-bot: #120628;
+  --spot-sky: rgba(120, 50, 180, 0.3);
+  --spot-sky-mid: rgba(60, 20, 100, 0.14);
+  --spot-depth: rgba(4, 0, 12, 0.85);
+  --spot-depth-side: rgba(60, 15, 100, 0.55);
+  --spot-caustic: rgba(190, 90, 255, 0.2);
+  --spot-caustic-2: rgba(120, 40, 200, 0.14);
   --spot-caustic-speed: 12s;
   --spot-sheen-speed: 9s;
 }

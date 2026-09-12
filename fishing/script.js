@@ -2221,6 +2221,9 @@
   function applySpotTheme() {
     const id = currentSpot()?.id || "creek";
     document.body.dataset.spot = id;
+    if (castBtn) castBtn.dataset.spot = id;
+    const mood = document.getElementById("spot-mood");
+    if (mood) mood.textContent = currentSpot()?.name || "Creek";
   }
 
   function renderStats() {
