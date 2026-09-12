@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914k": [
+    "Fishing Idle: cast view is a shore scene so each spot feels like you’re there"
+  ],
   "20260914j": [
     "Fishing Idle: spot waters are much more distinct (Creek green, River blue, etc.)"
   ],

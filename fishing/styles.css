@@ -54,6 +54,21 @@
   --spot-caustic-2: rgba(180, 235, 245, 0.14);
   --spot-caustic-speed: 7s;
   --spot-sheen-speed: 5.5s;
+  --scene-sky-top: #6aa8c8;
+  --scene-sky-mid: #9ec8e0;
+  --scene-sky-horizon: #c5dcec;
+  --scene-sky-glow: rgba(255, 230, 170, 0.3);
+  --scene-sun: #ffe8a0;
+  --scene-cloud-op: 0.5;
+  --scene-far: none;
+  --scene-mid: none;
+  --scene-shore-hi: #6a7a40;
+  --scene-shore-top: #4e5e34;
+  --scene-shore-mid: #3a4a28;
+  --scene-shore-bot: #2a3218;
+  --scene-grass: linear-gradient(180deg, #7aaa48 0%, #3e6828 100%);
+  --scene-prop: transparent;
+  --scene-prop-op: 0;
 }
 
 html,
@@ -633,87 +648,55 @@ body {
 
 .cast-stage {
   position: relative;
-  width: min(240px, 74vw);
-  height: calc(min(240px, 74vw) + 2.7rem);
+  width: min(100%, 420px);
+  height: clamp(220px, 52vw, 280px);
   flex: 0 0 auto;
-  margin: 0 auto;
-  /* Cast + bite meter share a fixed box so phase changes never shift layout */
+  margin: 0.35rem auto 0.15rem;
 }
 
 .spot-mood {
   position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 2;
-  font-size: 0.72rem;
+  top: 0.55rem;
+  left: 0.75rem;
+  z-index: 8;
+  font-size: 0.7rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
   white-space: nowrap;
-  color: var(--spot-accent);
-  text-shadow: 0 0 18px color-mix(in srgb, var(--spot-accent) 55%, transparent);
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.65), 0 0 16px color-mix(in srgb, var(--spot-accent) 50%, transparent);
   pointer-events: none;
+  padding: 0.28rem 0.55rem;
+  border-radius: 0.4rem;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(4px);
 }
 
 .cast-btn {
   position: absolute;
-  left: 0;
-  top: 1.25rem;
-  width: min(240px, 74vw);
-  height: min(240px, 74vw);
+  inset: 0 0 14px 0;
+  width: 100%;
+  height: auto;
   border: none;
-  border-radius: 50%;
+  border-radius: 1rem;
   cursor: pointer;
-  background:
-    radial-gradient(ellipse 85% 58% at 48% 16%, var(--spot-btn-hi), transparent 55%),
-    radial-gradient(ellipse 50% 35% at 70% 72%, rgba(0, 0, 0, 0.22), transparent 70%),
-    radial-gradient(
-      circle at 50% 56%,
-      var(--spot-btn-mid) 0%,
-      var(--spot-btn-deep) 42%,
-      var(--spot-btn-lo) 72%,
-      var(--spot-btn-edge) 100%
-    );
+  padding: 0;
+  background: #0a1820;
   box-shadow:
-    inset 0 -22px 40px rgba(0, 0, 0, 0.45),
-    inset 0 14px 24px rgba(255, 255, 255, 0.1),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.06),
-    0 0 0 4px color-mix(in srgb, var(--spot-ring) 85%, #1a1008),
-    0 0 0 6px var(--spot-ring-glow),
-    0 16px 36px rgba(0, 0, 0, 0.45);
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 0 0 3px color-mix(in srgb, var(--spot-accent) 22%, transparent),
+    0 18px 40px rgba(0, 0, 0, 0.45);
   color: var(--text);
   overflow: hidden;
-  transition: box-shadow 0.2s ease, background 0.55s ease, filter 0.2s ease;
+  transition: box-shadow 0.25s ease, filter 0.2s ease;
   isolation: isolate;
 }
 
-.cast-btn::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
-  background: radial-gradient(
-    circle at 50% 50%,
-    transparent 58%,
-    rgba(0, 0, 0, 0.18) 78%,
-    rgba(0, 0, 0, 0.42) 100%
-  );
-  opacity: 1;
-}
-
+.cast-btn::before,
 .cast-btn::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 0;
-  box-shadow: inset 0 0 0 10px color-mix(in srgb, var(--spot-accent) 35%, transparent);
-  opacity: 0.9;
-  transition: box-shadow 0.45s ease;
+  display: none;
 }
 
 .cast-btn:active:not(:disabled) {
@@ -722,19 +705,16 @@ body {
 
 .cast-btn.phase-waiting {
   box-shadow:
-    inset 0 -22px 40px rgba(0, 0, 0, 0.45),
-    inset 0 14px 24px rgba(255, 255, 255, 0.1),
-    0 0 0 4px var(--spot-ring),
-    0 0 0 7px color-mix(in srgb, var(--spot-ring-glow) 70%, var(--foam)),
-    0 16px 36px rgba(0, 0, 0, 0.45);
+    0 0 0 1px rgba(255, 255, 255, 0.1),
+    0 0 0 3px color-mix(in srgb, var(--foam) 45%, var(--spot-accent)),
+    0 18px 40px rgba(0, 0, 0, 0.45);
 }
 
 .cast-btn.phase-bite {
   box-shadow:
-    inset 0 -22px 40px rgba(0, 0, 0, 0.45),
-    0 0 0 4px rgba(90, 30, 30, 0.55),
-    0 0 0 7px rgba(255, 107, 107, 0.45),
-    0 16px 36px rgba(0, 0, 0, 0.45);
+    0 0 0 1px rgba(255, 160, 140, 0.35),
+    0 0 0 4px rgba(255, 107, 107, 0.45),
+    0 18px 40px rgba(0, 0, 0, 0.45);
   animation: pulse-bite 0.45s ease-in-out infinite alternate;
 }
 
@@ -743,270 +723,348 @@ body {
 }
 
 .cast-btn.phase-result.is-miss {
-  opacity: 0.88;
+  opacity: 0.9;
 }
 
 @keyframes pulse-bite {
   from { filter: brightness(1); }
-  to { filter: brightness(1.08); }
+  to { filter: brightness(1.06); }
 }
 
-.cast-pond {
+/* —— You're standing on the bank looking out —— */
+.cast-scene {
   position: absolute;
-  inset: 13%;
-  border-radius: 50%;
+  inset: 0;
   overflow: hidden;
+  border-radius: inherit;
   pointer-events: none;
-  z-index: 1;
+}
+
+.scene-sky {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 42%;
   background:
-    radial-gradient(ellipse 95% 70% at 50% 28%, var(--spot-pond-hi), transparent 58%),
-    radial-gradient(ellipse 80% 55% at 50% 100%, var(--spot-pond-bot), transparent 55%),
+    radial-gradient(ellipse 80% 60% at 70% 20%, var(--scene-sky-glow, rgba(255, 230, 180, 0.35)), transparent 60%),
+    linear-gradient(180deg, var(--scene-sky-top, #7eb8d8) 0%, var(--scene-sky-mid, #a8d0e8) 55%, var(--scene-sky-horizon, #c8e0f0) 100%);
+  transition: background 0.55s ease;
+}
+
+.scene-sun {
+  position: absolute;
+  width: 14%;
+  height: 18%;
+  top: 8%;
+  right: 14%;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--scene-sun, #ffe9a8) 0%, rgba(255, 220, 140, 0.35) 45%, transparent 70%);
+  filter: blur(0.5px);
+  opacity: 0.9;
+  transition: background 0.55s ease, opacity 0.55s ease;
+}
+
+.scene-clouds {
+  position: absolute;
+  left: -10%;
+  right: -10%;
+  top: 6%;
+  height: 28%;
+  background:
+    radial-gradient(ellipse 22% 40% at 22% 55%, rgba(255, 255, 255, 0.45), transparent 70%),
+    radial-gradient(ellipse 18% 35% at 28% 60%, rgba(255, 255, 255, 0.3), transparent 70%),
+    radial-gradient(ellipse 20% 38% at 68% 40%, rgba(255, 255, 255, 0.28), transparent 70%);
+  opacity: var(--scene-cloud-op, 0.55);
+  animation: cloud-drift 28s linear infinite;
+  filter: blur(1px);
+}
+
+.scene-far {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 22%;
+  height: 28%;
+  background: var(--scene-far, none);
+  opacity: 0.95;
+  transition: background 0.55s ease, opacity 0.55s ease;
+}
+
+.scene-mid {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 32%;
+  height: 22%;
+  background: var(--scene-mid, none);
+  opacity: 0.9;
+  transition: background 0.55s ease;
+}
+
+.scene-water {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 38%;
+  bottom: 16%;
+  overflow: hidden;
+  background:
     linear-gradient(
-      185deg,
+      180deg,
       var(--spot-pond-top) 0%,
-      var(--spot-pond-mid) 36%,
-      var(--spot-pond-low) 68%,
+      var(--spot-pond-mid) 40%,
+      var(--spot-pond-low) 75%,
       var(--spot-pond-bot) 100%
     );
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 255, 255, 0.12),
-    inset 0 -16px 28px rgba(0, 0, 0, 0.35),
-    inset 0 10px 18px rgba(255, 255, 255, 0.08);
-  transition: background 0.55s ease, box-shadow 0.55s ease;
+  box-shadow: inset 0 8px 16px rgba(255, 255, 255, 0.12);
+  transition: background 0.55s ease;
 }
+
+.scene-shore {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 22%;
+  background:
+    radial-gradient(ellipse 40% 50% at 20% 30%, var(--scene-shore-hi, #5a6a3a) 0%, transparent 70%),
+    radial-gradient(ellipse 35% 45% at 80% 40%, var(--scene-shore-hi, #5a6a3a) 0%, transparent 70%),
+    linear-gradient(
+      180deg,
+      transparent 0%,
+      var(--scene-shore-top, #4a5a32) 18%,
+      var(--scene-shore-mid, #3a4a28) 55%,
+      var(--scene-shore-bot, #2a3218) 100%
+    );
+  box-shadow: inset 0 6px 12px rgba(0, 0, 0, 0.25);
+  transition: background 0.55s ease;
+}
+
+.scene-grass {
+  position: absolute;
+  bottom: 14%;
+  width: 10%;
+  height: 16%;
+  background: var(--scene-grass, linear-gradient(180deg, #6a9a40 0%, #3a6028 100%));
+  clip-path: polygon(40% 100%, 50% 0, 60% 100%, 70% 20%, 80% 100%, 90% 35%, 100% 100%, 0 100%, 10% 30%, 20% 100%, 30% 15%);
+  opacity: 0.85;
+  filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.25));
+}
+
+.scene-grass.g1 { left: 4%; transform: scaleX(-1); }
+.scene-grass.g2 { right: 6%; width: 12%; height: 18%; }
+
+.scene-prop {
+  position: absolute;
+  bottom: 18%;
+  width: 8%;
+  height: 14%;
+  background: var(--scene-prop, transparent);
+  opacity: var(--scene-prop-op, 0);
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+  transition: background 0.55s ease, opacity 0.55s ease;
+}
+
+.scene-prop.p1 { left: 18%; }
+.scene-prop.p2 { right: 22%; bottom: 20%; width: 6%; height: 10%; }
 
 .water-bed {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 18% 10% at 28% 78%, color-mix(in srgb, var(--spot-pond-bot) 40%, #2a2010) 0%, transparent 70%),
-    radial-gradient(ellipse 14% 8% at 62% 82%, color-mix(in srgb, var(--spot-pond-low) 50%, #1a140c) 0%, transparent 70%),
-    radial-gradient(ellipse 10% 6% at 48% 88%, rgba(0, 0, 0, 0.25), transparent 70%),
-    radial-gradient(ellipse 90% 40% at 50% 100%, rgba(0, 0, 0, 0.35), transparent 70%);
-  opacity: 0.85;
-}
-
-.water-sky {
-  position: absolute;
-  left: -12%;
-  right: -12%;
-  top: -10%;
-  height: 48%;
-  background:
-    radial-gradient(ellipse 60% 50% at 55% 20%, rgba(255, 255, 255, 0.22), transparent 70%),
-    linear-gradient(180deg, var(--spot-sky) 0%, var(--spot-sky-mid) 50%, transparent 100%);
-  opacity: 0.95;
-  transition: background 0.55s ease;
+    radial-gradient(ellipse 16% 20% at 30% 70%, color-mix(in srgb, var(--spot-pond-bot) 50%, #2a2010) 0%, transparent 70%),
+    radial-gradient(ellipse 12% 16% at 65% 78%, color-mix(in srgb, var(--spot-pond-low) 45%, #1a140c) 0%, transparent 70%),
+    radial-gradient(ellipse 90% 40% at 50% 100%, rgba(0, 0, 0, 0.28), transparent 70%);
+  opacity: 0.7;
 }
 
 .water-depth {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(ellipse 75% 55% at 50% 82%, var(--spot-depth), transparent 72%),
-    radial-gradient(ellipse 42% 32% at 72% 58%, var(--spot-depth-side), transparent 72%),
-    radial-gradient(ellipse 35% 28% at 24% 62%, rgba(0, 0, 0, 0.18), transparent 70%);
-  transition: background 0.55s ease;
+    linear-gradient(180deg, transparent 0%, var(--spot-depth) 100%),
+    radial-gradient(ellipse 50% 40% at 70% 60%, var(--spot-depth-side), transparent 70%);
 }
 
 .water-surface {
   position: absolute;
-  inset: -5%;
+  inset: -8% -5%;
   background:
     repeating-linear-gradient(
-      98deg,
-      transparent 0 10px,
-      rgba(255, 255, 255, 0.035) 10px 11px,
-      transparent 11px 22px
+      92deg,
+      transparent 0 12px,
+      rgba(255, 255, 255, 0.045) 12px 13px,
+      transparent 13px 26px
     ),
     repeating-linear-gradient(
-      -8deg,
-      transparent 0 14px,
-      rgba(255, 255, 255, 0.025) 14px 15px,
-      transparent 15px 28px
+      -6deg,
+      transparent 0 16px,
+      rgba(255, 255, 255, 0.03) 16px 17px,
+      transparent 17px 34px
     );
-  opacity: 0.55;
+  opacity: 0.65;
   mix-blend-mode: soft-light;
-  animation: surface-drift 9s linear infinite;
-  transform-origin: center;
+  animation: surface-drift var(--spot-caustic-speed, 7s) linear infinite;
 }
 
 .water-sheen {
   position: absolute;
-  left: 10%;
-  top: 12%;
-  width: 46%;
-  height: 24%;
-  border-radius: 50%;
-  background: linear-gradient(140deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.08) 45%, transparent 70%);
+  left: 12%;
+  top: 8%;
+  width: 48%;
+  height: 28%;
+  border-radius: 40%;
+  background: linear-gradient(140deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0.06) 50%, transparent 70%);
   filter: blur(2px);
-  opacity: 0.58;
+  opacity: 0.55;
   animation: sheen-drift var(--spot-sheen-speed) ease-in-out infinite alternate;
 }
 
 .water-sheen.sheen-2 {
   left: auto;
-  right: 14%;
-  top: 28%;
-  width: 28%;
-  height: 14%;
+  right: 10%;
+  top: 22%;
+  width: 32%;
+  height: 18%;
   opacity: 0.28;
-  animation-duration: calc(var(--spot-sheen-speed) * 1.35);
   animation-direction: alternate-reverse;
   filter: blur(3px);
 }
 
 .water-caustic {
   position: absolute;
-  inset: -25%;
+  inset: -20%;
   background:
-    radial-gradient(ellipse 20% 11% at 28% 38%, var(--spot-caustic), transparent 62%),
-    radial-gradient(ellipse 16% 9% at 64% 50%, var(--spot-caustic-2), transparent 62%),
-    radial-gradient(ellipse 13% 8% at 46% 66%, var(--spot-caustic-2), transparent 62%),
-    radial-gradient(ellipse 10% 6% at 72% 34%, var(--spot-caustic), transparent 62%);
+    radial-gradient(ellipse 22% 14% at 30% 40%, var(--spot-caustic), transparent 62%),
+    radial-gradient(ellipse 18% 12% at 62% 55%, var(--spot-caustic-2), transparent 62%),
+    radial-gradient(ellipse 14% 10% at 48% 70%, var(--spot-caustic-2), transparent 62%);
   animation: caustic-shift var(--spot-caustic-speed) linear infinite;
-  opacity: 0.75;
+  opacity: 0.7;
   mix-blend-mode: soft-light;
 }
 
 .water-caustic.c2 {
-  animation-duration: calc(var(--spot-caustic-speed) * 1.55);
+  animation-duration: calc(var(--spot-caustic-speed) * 1.5);
   animation-direction: reverse;
-  opacity: 0.5;
+  opacity: 0.45;
 }
 
 .water-glints {
   position: absolute;
   inset: 0;
   background:
-    radial-gradient(circle 1.5px at 28% 36%, rgba(255, 255, 255, 0.85), transparent 60%),
-    radial-gradient(circle 1px at 58% 28%, rgba(255, 255, 255, 0.7), transparent 60%),
-    radial-gradient(circle 1.2px at 72% 48%, rgba(255, 255, 255, 0.55), transparent 60%),
-    radial-gradient(circle 1px at 40% 52%, rgba(255, 255, 255, 0.45), transparent 60%),
-    radial-gradient(circle 1.4px at 52% 40%, rgba(255, 255, 255, 0.65), transparent 60%);
-  opacity: 0.35;
+    radial-gradient(circle 1.5px at 28% 30%, rgba(255, 255, 255, 0.9), transparent 60%),
+    radial-gradient(circle 1px at 55% 22%, rgba(255, 255, 255, 0.7), transparent 60%),
+    radial-gradient(circle 1.2px at 72% 42%, rgba(255, 255, 255, 0.55), transparent 60%),
+    radial-gradient(circle 1px at 40% 48%, rgba(255, 255, 255, 0.45), transparent 60%);
+  opacity: 0.4;
   animation: glint-twinkle 4.5s ease-in-out infinite;
   mix-blend-mode: screen;
 }
 
 .water-mist {
   position: absolute;
-  left: 5%;
-  right: 5%;
+  left: 0;
+  right: 0;
   top: 0;
-  height: 40%;
-  background: radial-gradient(ellipse 80% 70% at 50% 0%, rgba(255, 255, 255, 0.18), transparent 70%);
+  height: 45%;
+  background: radial-gradient(ellipse 90% 80% at 50% 0%, rgba(255, 255, 255, 0.22), transparent 70%);
   opacity: 0;
-  filter: blur(4px);
-  pointer-events: none;
+  filter: blur(5px);
 }
 
 .water-foam {
   position: absolute;
-  left: 8%;
-  right: 8%;
-  top: 18%;
-  height: 28%;
+  left: 5%;
+  right: 5%;
+  top: 5%;
+  height: 35%;
   background:
-    radial-gradient(ellipse 40% 35% at 30% 50%, rgba(255, 255, 255, 0.22), transparent 70%),
-    radial-gradient(ellipse 35% 30% at 70% 40%, rgba(255, 255, 255, 0.16), transparent 70%),
-    radial-gradient(ellipse 50% 25% at 50% 60%, rgba(255, 255, 255, 0.1), transparent 70%);
+    radial-gradient(ellipse 45% 40% at 35% 40%, rgba(255, 255, 255, 0.28), transparent 70%),
+    radial-gradient(ellipse 40% 35% at 70% 30%, rgba(255, 255, 255, 0.18), transparent 70%);
   opacity: 0;
   filter: blur(1.5px);
   animation: foam-boil 2.8s ease-in-out infinite alternate;
 }
 
-.water-rim {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  box-shadow:
-    inset 0 0 18px rgba(0, 0, 0, 0.28),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-  background: radial-gradient(circle at 50% 50%, transparent 68%, rgba(0, 0, 0, 0.22) 100%);
-  pointer-events: none;
+@keyframes cloud-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(4%); }
 }
 
 @keyframes surface-drift {
-  from { transform: translate3d(0, 0, 0) rotate(0deg); }
-  to { transform: translate3d(-3%, 2%, 0) rotate(1.5deg); }
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-4%, 1%, 0); }
 }
 
 @keyframes glint-twinkle {
-  0%, 100% { opacity: 0.22; transform: translate(0, 0); }
-  40% { opacity: 0.5; transform: translate(1%, -1%); }
-  70% { opacity: 0.3; transform: translate(-1%, 1%); }
+  0%, 100% { opacity: 0.25; }
+  40% { opacity: 0.55; }
+  70% { opacity: 0.35; }
 }
 
 @keyframes foam-boil {
   from { transform: translate(0, 0) scale(1); }
-  to { transform: translate(2%, -3%) scale(1.04); }
+  to { transform: translate(1%, -2%) scale(1.03); }
 }
 
 @keyframes sheen-drift {
   from { transform: translate(0, 0); }
-  to { transform: translate(10%, 8%); }
+  to { transform: translate(8%, 6%); }
 }
 
 @keyframes caustic-shift {
   from { transform: translate(0, 0) rotate(0deg); }
-  to { transform: translate(-4%, 3%) rotate(8deg); }
+  to { transform: translate(-3%, 2%) rotate(6deg); }
 }
 
-body[data-spot="creek"] .water-bed {
-  background:
-    radial-gradient(ellipse 12% 7% at 32% 76%, #5a4a30 0%, transparent 70%),
-    radial-gradient(ellipse 9% 5% at 58% 80%, #3a3020 0%, transparent 70%),
-    radial-gradient(ellipse 8% 5% at 45% 86%, #2a2418 0%, transparent 70%),
-    radial-gradient(ellipse 90% 40% at 50% 100%, rgba(0, 0, 0, 0.35), transparent 70%);
-}
-body[data-spot="marsh"] .water-surface { opacity: 0.28; filter: saturate(0.7); }
+/* Spot accents on scene layers */
+body[data-spot="marsh"] .water-surface { opacity: 0.3; filter: saturate(0.65); }
 body[data-spot="marsh"] .water-glints { opacity: 0.12; }
-body[data-spot="river"] .water-surface { opacity: 0.7; animation-duration: 4.5s; }
+body[data-spot="marsh"] .scene-grass { opacity: 0.95; filter: hue-rotate(-15deg) saturate(0.7); }
+body[data-spot="river"] .water-surface { opacity: 0.85; animation-duration: 3.5s; }
 body[data-spot="falls"] .water-mist,
-body[data-spot="falls"] .water-foam { opacity: 0.7; }
-body[data-spot="falls"] .water-surface { opacity: 0.85; animation-duration: 2.8s; }
-body[data-spot="glacier"] .water-mist { opacity: 0.45; }
-body[data-spot="glacier"] .water-glints { opacity: 0.55; }
-body[data-spot="reef"] .water-bed {
-  background:
-    radial-gradient(ellipse 14% 18% at 26% 78%, #c45a78 0%, transparent 70%),
-    radial-gradient(ellipse 12% 16% at 70% 80%, #e89050 0%, transparent 70%),
-    radial-gradient(ellipse 10% 12% at 50% 88%, #2a9088 0%, transparent 70%),
-    radial-gradient(ellipse 90% 40% at 50% 100%, rgba(0, 0, 0, 0.3), transparent 70%);
-  opacity: 0.55;
-}
+body[data-spot="falls"] .water-foam { opacity: 0.75; }
+body[data-spot="falls"] .water-surface { opacity: 0.9; animation-duration: 2.4s; }
+body[data-spot="glacier"] .water-mist { opacity: 0.5; }
+body[data-spot="glacier"] .water-glints { opacity: 0.6; }
+body[data-spot="glacier"] .scene-clouds { opacity: 0.75; filter: brightness(1.1); }
+body[data-spot="reef"] .water-bed { opacity: 0.85; }
 body[data-spot="harbor"] .water-surface { opacity: 0.35; }
-body[data-spot="harbor"] .water-glints { opacity: 0.2; }
+body[data-spot="harbor"] .scene-sun { opacity: 0.35; }
+body[data-spot="deep"] .scene-sun,
+body[data-spot="trench"] .scene-sun,
+body[data-spot="void"] .scene-sun { opacity: 0.15; }
 body[data-spot="deep"] .water-glints,
 body[data-spot="trench"] .water-glints,
-body[data-spot="void"] .water-glints { opacity: 0.12; }
+body[data-spot="void"] .water-glints { opacity: 0.15; }
 body[data-spot="trench"] .water-mist,
 body[data-spot="void"] .water-mist {
-  opacity: 0.25;
-  background: radial-gradient(ellipse 80% 70% at 50% 20%, rgba(120, 60, 180, 0.2), transparent 70%);
+  opacity: 0.3;
+  background: radial-gradient(ellipse 90% 80% at 50% 20%, rgba(120, 60, 180, 0.25), transparent 70%);
 }
 body[data-spot="celestial"] .water-glints,
 body[data-spot="cosmos"] .water-glints,
 body[data-spot="astralshoals"] .water-glints,
-body[data-spot="omegadeep"] .water-glints { opacity: 0.65; }
+body[data-spot="omegadeep"] .water-glints { opacity: 0.7; }
 body[data-spot="eventhorizon"] .water-mist {
-  opacity: 0.35;
-  background: radial-gradient(ellipse 70% 60% at 50% 30%, rgba(255, 40, 70, 0.2), transparent 70%);
+  opacity: 0.4;
+  background: radial-gradient(ellipse 80% 70% at 50% 30%, rgba(255, 40, 70, 0.22), transparent 70%);
 }
 
 .cast-line {
   position: absolute;
-  left: 58%;
-  top: -8%;
+  left: 62%;
+  top: 8%;
   width: 1.5px;
-  height: 52%;
+  height: 48%;
   background: linear-gradient(180deg, rgba(230, 240, 245, 0.15), rgba(220, 230, 235, 0.75));
   transform-origin: top center;
   transform: translateX(-50%) rotate(4deg);
   opacity: 0;
   transition: opacity 0.2s ease, height 0.25s ease;
-  z-index: 2;
+  z-index: 5;
 }
 
 .cast-btn.phase-waiting .cast-line,
@@ -1047,16 +1105,16 @@ body[data-spot="eventhorizon"] .water-mist {
 .ripple {
   position: absolute;
   left: 50%;
-  top: 48%;
-  width: 14%;
-  height: 10%;
+  top: 58%;
+  width: 10%;
+  height: 8%;
   border: 1.5px solid rgba(255, 255, 255, 0.28);
   border-radius: 50%;
   transform: translate(-50%, -50%);
   animation: ripple 2.8s ease-out infinite;
   pointer-events: none;
   opacity: 0;
-  z-index: 1;
+  z-index: 4;
 }
 
 .cast-btn.phase-waiting .ripple {
@@ -1093,14 +1151,14 @@ body[data-spot="eventhorizon"] .water-mist {
 .splash {
   position: absolute;
   left: 50%;
-  top: 48%;
+  top: 58%;
   width: 8%;
   height: 8%;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(255, 255, 255, 0.65) 0%, rgba(180, 230, 240, 0.2) 45%, transparent 70%);
   transform: translate(-50%, -50%) scale(0);
   opacity: 0;
-  z-index: 3;
+  z-index: 5;
   pointer-events: none;
 }
 
@@ -1133,12 +1191,12 @@ body[data-spot="eventhorizon"] .water-mist {
 
 .bobber {
   position: absolute;
-  left: 58%;
-  top: 42%;
+  left: 50%;
+  top: 54%;
   width: 16px;
   height: 28px;
   margin-left: -8px;
-  z-index: 4;
+  z-index: 6;
   transform-origin: 50% 85%;
   transition: top 0.18s ease;
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.45));
@@ -1309,13 +1367,13 @@ body[data-spot="eventhorizon"] .water-mist {
   position: absolute;
   left: 0;
   right: 0;
-  bottom: 12%;
-  z-index: 6;
+  bottom: 5%;
+  z-index: 8;
   font-weight: 800;
   font-size: 1.05rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.65), 0 0 1px rgba(0, 0, 0, 0.8);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.75), 0 0 1px rgba(0, 0, 0, 0.9);
   pointer-events: none;
 }
 
@@ -2189,14 +2247,14 @@ body[data-spot="eventhorizon"] .water-mist {
   }
 
   .cast-stage {
-    width: min(220px, 78vw);
-    height: calc(min(220px, 78vw) + 2.7rem);
+    width: min(100%, 420px);
+    height: clamp(200px, 58vw, 260px);
   }
 
   .cast-btn {
-    top: 1.25rem;
-    width: min(220px, 78vw);
-    height: min(220px, 78vw);
+    inset: 0 0 14px 0;
+    width: 100%;
+    height: auto;
   }
 }
 
@@ -2227,6 +2285,19 @@ body[data-spot="creek"] {
   --spot-caustic-2: rgba(170, 230, 120, 0.18);
   --spot-caustic-speed: 8s;
   --spot-sheen-speed: 6.5s;
+  --scene-sky-top: #6eb0d0;
+  --scene-sky-mid: #a8d4e8;
+  --scene-sky-horizon: #d0e8f0;
+  --scene-sky-glow: rgba(255, 235, 180, 0.4);
+  --scene-far: linear-gradient(180deg, transparent 40%, #2a5030 40.5%, #2a5030 100%), radial-gradient(ellipse 18% 90% at 12% 100%, #1e3a24 0%, transparent 70%), radial-gradient(ellipse 14% 80% at 22% 100%, #254830 0%, transparent 70%), radial-gradient(ellipse 16% 85% at 78% 100%, #1e3a24 0%, transparent 70%), radial-gradient(ellipse 12% 70% at 88% 100%, #2a4830 0%, transparent 70%);
+  --scene-mid: radial-gradient(ellipse 20% 60% at 35% 100%, #3a6840 0%, transparent 70%), radial-gradient(ellipse 18% 55% at 60% 100%, #345c38 0%, transparent 70%);
+  --scene-shore-hi: #7a9a48;
+  --scene-shore-top: #5a7a38;
+  --scene-shore-mid: #3e5828;
+  --scene-shore-bot: #2a3c1a;
+  --scene-grass: linear-gradient(180deg, #8aba50 0%, #3e6828 100%);
+  --scene-prop: radial-gradient(ellipse 60% 40% at 50% 80%, #5a4a30 0%, #3a3020 60%, transparent 70%);
+  --scene-prop-op: 0.85;
 }
 
 body[data-spot="pond"] {
@@ -2255,6 +2326,17 @@ body[data-spot="pond"] {
   --spot-caustic-2: rgba(100, 230, 200, 0.18);
   --spot-caustic-speed: 9s;
   --spot-sheen-speed: 7s;
+  --scene-sky-top: #5eb8c8;
+  --scene-sky-mid: #98d8e0;
+  --scene-sky-horizon: #c8ece8;
+  --scene-far: radial-gradient(ellipse 22% 95% at 8% 100%, #1a5048 0%, transparent 70%), radial-gradient(ellipse 18% 85% at 18% 100%, #206058 0%, transparent 70%), radial-gradient(ellipse 20% 90% at 85% 100%, #1a5048 0%, transparent 70%);
+  --scene-mid: radial-gradient(ellipse 14% 40% at 40% 90%, #2a9078 0%, transparent 70%), radial-gradient(ellipse 12% 35% at 55% 92%, #248870 0%, transparent 70%);
+  --scene-shore-hi: #4a9a78;
+  --scene-shore-top: #3a7860;
+  --scene-shore-mid: #2a5848;
+  --scene-shore-bot: #1a3830;
+  --scene-grass: linear-gradient(180deg, #50b888 0%, #287858 100%);
+  --scene-prop-op: 0;
 }
 
 body[data-spot="marsh"] {
@@ -2283,6 +2365,20 @@ body[data-spot="marsh"] {
   --spot-caustic-2: rgba(150, 155, 80, 0.1);
   --spot-caustic-speed: 11s;
   --spot-sheen-speed: 8s;
+  --scene-sky-top: #8a9880;
+  --scene-sky-mid: #a8b090;
+  --scene-sky-horizon: #c0c0a0;
+  --scene-sky-glow: rgba(200, 200, 140, 0.2);
+  --scene-sun: #e8e0a0;
+  --scene-cloud-op: 0.35;
+  --scene-far: repeating-linear-gradient(90deg, transparent 0 8px, #3a4028 8px 10px, transparent 10px 18px), linear-gradient(180deg, transparent 50%, #3a4028 100%);
+  --scene-mid: repeating-linear-gradient(85deg, transparent 0 6px, #4a5030 6px 7px, transparent 7px 14px);
+  --scene-shore-hi: #6a7040;
+  --scene-shore-top: #505428;
+  --scene-shore-mid: #3a3c20;
+  --scene-shore-bot: #242610;
+  --scene-grass: linear-gradient(180deg, #8a9450 0%, #4a5028 100%);
+  --scene-prop-op: 0;
 }
 
 body[data-spot="river"] {
@@ -2311,6 +2407,19 @@ body[data-spot="river"] {
   --spot-caustic-2: rgba(120, 200, 255, 0.22);
   --spot-caustic-speed: 3.8s;
   --spot-sheen-speed: 3.2s;
+  --scene-sky-top: #4a90c8;
+  --scene-sky-mid: #7eb8e0;
+  --scene-sky-horizon: #b0d4f0;
+  --scene-sky-glow: rgba(200, 230, 255, 0.35);
+  --scene-far: radial-gradient(ellipse 20% 100% at 10% 100%, #1a3850 0%, transparent 70%), radial-gradient(ellipse 16% 90% at 90% 100%, #1a3850 0%, transparent 70%), linear-gradient(180deg, transparent 55%, #2a4860 100%);
+  --scene-mid: radial-gradient(ellipse 25% 50% at 30% 100%, #3a6080 0%, transparent 70%), radial-gradient(ellipse 22% 45% at 70% 100%, #345878 0%, transparent 70%);
+  --scene-shore-hi: #6a7a88;
+  --scene-shore-top: #4a5a68;
+  --scene-shore-mid: #3a4858;
+  --scene-shore-bot: #283040;
+  --scene-grass: linear-gradient(180deg, #5a8a60 0%, #2a5038 100%);
+  --scene-prop: linear-gradient(180deg, #6a6a68 0%, #3a3a38 100%);
+  --scene-prop-op: 0.7;
 }
 
 body[data-spot="falls"] {
@@ -2339,6 +2448,18 @@ body[data-spot="falls"] {
   --spot-caustic-2: rgba(220, 245, 255, 0.2);
   --spot-caustic-speed: 3.2s;
   --spot-sheen-speed: 2.8s;
+  --scene-sky-top: #8ec8e0;
+  --scene-sky-mid: #c0e0f0;
+  --scene-sky-horizon: #e8f4fa;
+  --scene-sky-glow: rgba(255, 255, 255, 0.45);
+  --scene-far: linear-gradient(180deg, transparent 20%, #4a6878 35%, #3a5868 100%), radial-gradient(ellipse 30% 80% at 50% 0%, rgba(255,255,255,0.5), transparent 70%);
+  --scene-mid: linear-gradient(90deg, transparent 35%, rgba(255,255,255,0.55) 48%, rgba(200,230,245,0.7) 50%, rgba(255,255,255,0.55) 52%, transparent 65%);
+  --scene-shore-hi: #7a9098;
+  --scene-shore-top: #5a7078;
+  --scene-shore-mid: #405058;
+  --scene-shore-bot: #283840;
+  --scene-grass: linear-gradient(180deg, #6a9a78 0%, #3a6050 100%);
+  --scene-prop-op: 0;
 }
 
 body[data-spot="lake"] {
@@ -2367,6 +2488,17 @@ body[data-spot="lake"] {
   --spot-caustic-2: rgba(120, 180, 220, 0.1);
   --spot-caustic-speed: 8.5s;
   --spot-sheen-speed: 6.5s;
+  --scene-sky-top: #3a78a8;
+  --scene-sky-mid: #6aa0c8;
+  --scene-sky-horizon: #a0c8e0;
+  --scene-far: linear-gradient(180deg, transparent 45%, #1a3850 100%), radial-gradient(ellipse 40% 60% at 20% 100%, #142838 0%, transparent 70%), radial-gradient(ellipse 35% 55% at 85% 100%, #142838 0%, transparent 70%);
+  --scene-mid: none;
+  --scene-shore-hi: #4a6a58;
+  --scene-shore-top: #3a5448;
+  --scene-shore-mid: #2a3c38;
+  --scene-shore-bot: #1a2828;
+  --scene-grass: linear-gradient(180deg, #4a8868 0%, #285848 100%);
+  --scene-prop-op: 0;
 }
 
 body[data-spot="reef"] {
@@ -2395,6 +2527,18 @@ body[data-spot="reef"] {
   --spot-caustic-2: rgba(120, 255, 230, 0.16);
   --spot-caustic-speed: 5.5s;
   --spot-sheen-speed: 4.5s;
+  --scene-sky-top: #38b8d0;
+  --scene-sky-mid: #70d8e8;
+  --scene-sky-horizon: #b0f0f0;
+  --scene-sky-glow: rgba(255, 200, 220, 0.25);
+  --scene-far: radial-gradient(ellipse 12% 50% at 25% 100%, #e07090 0%, transparent 70%), radial-gradient(ellipse 10% 45% at 40% 100%, #f09060 0%, transparent 70%), radial-gradient(ellipse 14% 55% at 70% 100%, #d060a0 0%, transparent 70%), radial-gradient(ellipse 11% 48% at 82% 100%, #40b0a0 0%, transparent 70%);
+  --scene-mid: radial-gradient(ellipse 10% 35% at 50% 100%, #ff90b0 0%, transparent 70%);
+  --scene-shore-hi: #e8c090;
+  --scene-shore-top: #d0a070;
+  --scene-shore-mid: #a07850;
+  --scene-shore-bot: #705030;
+  --scene-grass: linear-gradient(180deg, #40c8a0 0%, #208070 100%);
+  --scene-prop-op: 0;
 }
 
 body[data-spot="harbor"] {
@@ -2423,6 +2567,21 @@ body[data-spot="harbor"] {
   --spot-caustic-2: rgba(140, 160, 180, 0.08);
   --spot-caustic-speed: 7.5s;
   --spot-sheen-speed: 6s;
+  --scene-sky-top: #5a7088;
+  --scene-sky-mid: #8090a0;
+  --scene-sky-horizon: #a8b4c0;
+  --scene-sky-glow: rgba(180, 190, 200, 0.25);
+  --scene-sun: #d0d0c0;
+  --scene-cloud-op: 0.45;
+  --scene-far: linear-gradient(180deg, transparent 30%, #3a4858 30%, #3a4858 55%, #2a3848 55%, #2a3848 100%), repeating-linear-gradient(90deg, transparent 0 20px, #1a2430 20px 28px, transparent 28px 48px);
+  --scene-mid: repeating-linear-gradient(90deg, transparent 0 14px, #4a5868 14px 18px, transparent 18px 40px);
+  --scene-shore-hi: #6a7888;
+  --scene-shore-top: #4a5868;
+  --scene-shore-mid: #3a4858;
+  --scene-shore-bot: #283040;
+  --scene-grass: linear-gradient(180deg, #5a7060 0%, #384840 100%);
+  --scene-prop: linear-gradient(180deg, #8a9098 0%, #3a4048 100%);
+  --scene-prop-op: 0.8;
 }
 
 body[data-spot="glacier"] {
@@ -2451,6 +2610,19 @@ body[data-spot="glacier"] {
   --spot-caustic-2: rgba(200, 240, 255, 0.18);
   --spot-caustic-speed: 6s;
   --spot-sheen-speed: 5s;
+  --scene-sky-top: #a0d0e8;
+  --scene-sky-mid: #d0eaf5;
+  --scene-sky-horizon: #f0f8fc;
+  --scene-sky-glow: rgba(255, 255, 255, 0.55);
+  --scene-sun: #ffffff;
+  --scene-far: linear-gradient(180deg, transparent 25%, #c8e4f0 40%, #a0cce0 100%), radial-gradient(ellipse 35% 70% at 20% 100%, #e8f4fa 0%, transparent 70%), radial-gradient(ellipse 40% 75% at 75% 100%, #d8ecf5 0%, transparent 70%);
+  --scene-mid: radial-gradient(ellipse 20% 50% at 45% 100%, rgba(255,255,255,0.7) 0%, transparent 70%);
+  --scene-shore-hi: #d0e8f0;
+  --scene-shore-top: #a8c8d8;
+  --scene-shore-mid: #7898a8;
+  --scene-shore-bot: #506878;
+  --scene-grass: linear-gradient(180deg, #a0c8c0 0%, #608888 100%);
+  --scene-prop-op: 0;
 }
 
 body[data-spot="deep"] {
@@ -2479,6 +2651,20 @@ body[data-spot="deep"] {
   --spot-caustic-2: rgba(50, 90, 180, 0.08);
   --spot-caustic-speed: 10s;
   --spot-sheen-speed: 8s;
+  --scene-sky-top: #0a1840;
+  --scene-sky-mid: #102050;
+  --scene-sky-horizon: #183068;
+  --scene-sky-glow: rgba(40, 80, 180, 0.25);
+  --scene-sun: #4060a0;
+  --scene-cloud-op: 0.15;
+  --scene-far: linear-gradient(180deg, transparent 60%, #081428 100%);
+  --scene-mid: none;
+  --scene-shore-hi: #1a2848;
+  --scene-shore-top: #121c38;
+  --scene-shore-mid: #0c1428;
+  --scene-shore-bot: #080e1c;
+  --scene-grass: linear-gradient(180deg, #203060 0%, #101830 100%);
+  --scene-prop-op: 0;
 }
 
 body[data-spot="trench"] {
@@ -2507,6 +2693,20 @@ body[data-spot="trench"] {
   --spot-caustic-2: rgba(120, 40, 200, 0.14);
   --spot-caustic-speed: 12s;
   --spot-sheen-speed: 9s;
+  --scene-sky-top: #0c0618;
+  --scene-sky-mid: #140a28;
+  --scene-sky-horizon: #1c1038;
+  --scene-sky-glow: rgba(120, 40, 180, 0.2);
+  --scene-sun: #6020a0;
+  --scene-cloud-op: 0.08;
+  --scene-far: linear-gradient(180deg, transparent 50%, #0a0414 100%);
+  --scene-mid: radial-gradient(ellipse 8% 20% at 30% 80%, rgba(160, 60, 255, 0.35), transparent 70%), radial-gradient(ellipse 6% 15% at 70% 75%, rgba(100, 40, 200, 0.3), transparent 70%);
+  --scene-shore-hi: #2a1840;
+  --scene-shore-top: #1a0e2c;
+  --scene-shore-mid: #10081c;
+  --scene-shore-bot: #080410;
+  --scene-grass: linear-gradient(180deg, #3a2060 0%, #180c30 100%);
+  --scene-prop-op: 0;
 }
 
 body[data-spot="rift"] {
@@ -2535,6 +2735,19 @@ body[data-spot="rift"] {
   --spot-caustic-2: rgba(100, 200, 255, 0.14);
   --spot-caustic-speed: 5s;
   --spot-sheen-speed: 4s;
+  --scene-sky-top: #1a1040;
+  --scene-sky-mid: #2a1860;
+  --scene-sky-horizon: #3a2880;
+  --scene-sky-glow: rgba(200, 80, 255, 0.3);
+  --scene-sun: #c060ff;
+  --scene-far: linear-gradient(180deg, transparent 40%, #1a0c40 100%), radial-gradient(ellipse 30% 40% at 50% 60%, rgba(255,100,255,0.25), transparent 70%);
+  --scene-mid: none;
+  --scene-shore-hi: #4a2880;
+  --scene-shore-top: #301860;
+  --scene-shore-mid: #201040;
+  --scene-shore-bot: #100828;
+  --scene-grass: linear-gradient(180deg, #8040c0 0%, #402070 100%);
+  --scene-prop-op: 0;
 }
 
 body[data-spot="void"] {
@@ -2563,6 +2776,20 @@ body[data-spot="void"] {
   --spot-caustic-2: rgba(80, 40, 200, 0.1);
   --spot-caustic-speed: 14s;
   --spot-sheen-speed: 10s;
+  --scene-sky-top: #040208;
+  --scene-sky-mid: #080410;
+  --scene-sky-horizon: #100820;
+  --scene-sky-glow: rgba(80, 40, 200, 0.2);
+  --scene-sun: #4020a0;
+  --scene-cloud-op: 0.05;
+  --scene-far: none;
+  --scene-mid: radial-gradient(ellipse 5% 12% at 40% 70%, rgba(140,100,255,0.4), transparent 70%), radial-gradient(ellipse 4% 10% at 60% 65%, rgba(100,60,220,0.35), transparent 70%);
+  --scene-shore-hi: #1a1040;
+  --scene-shore-top: #100828;
+  --scene-shore-mid: #080414;
+  --scene-shore-bot: #040208;
+  --scene-grass: linear-gradient(180deg, #301870 0%, #100830 100%);
+  --scene-prop-op: 0;
 }
 
 body[data-spot="celestial"] {
@@ -2591,6 +2818,19 @@ body[data-spot="celestial"] {
   --spot-caustic-2: rgba(220, 200, 255, 0.16);
   --spot-caustic-speed: 6s;
   --spot-sheen-speed: 4.5s;
+  --scene-sky-top: #2a2848;
+  --scene-sky-mid: #484060;
+  --scene-sky-horizon: #8070a0;
+  --scene-sky-glow: rgba(255, 220, 120, 0.45);
+  --scene-sun: #ffe080;
+  --scene-far: radial-gradient(ellipse 15% 40% at 25% 100%, #f0d060 0%, transparent 70%), radial-gradient(ellipse 12% 35% at 75% 100%, #e0c050 0%, transparent 70%);
+  --scene-mid: none;
+  --scene-shore-hi: #a09060;
+  --scene-shore-top: #807048;
+  --scene-shore-mid: #585038;
+  --scene-shore-bot: #383028;
+  --scene-grass: linear-gradient(180deg, #d0b050 0%, #806030 100%);
+  --scene-prop-op: 0;
 }
 
 body[data-spot="aeonbasin"] {
@@ -2619,6 +2859,19 @@ body[data-spot="aeonbasin"] {
   --spot-caustic-2: rgba(220, 150, 60, 0.12);
   --spot-caustic-speed: 7s;
   --spot-sheen-speed: 5.5s;
+  --scene-sky-top: #3a2810;
+  --scene-sky-mid: #5a4020;
+  --scene-sky-horizon: #8a6030;
+  --scene-sky-glow: rgba(255, 160, 60, 0.35);
+  --scene-sun: #ffb040;
+  --scene-far: linear-gradient(180deg, transparent 40%, #4a3018 100%);
+  --scene-mid: none;
+  --scene-shore-hi: #a07030;
+  --scene-shore-top: #805828;
+  --scene-shore-mid: #583c18;
+  --scene-shore-bot: #382810;
+  --scene-grass: linear-gradient(180deg, #c88830 0%, #805020 100%);
+  --scene-prop-op: 0;
 }
 
 body[data-spot="cosmos"] {
@@ -2647,6 +2900,20 @@ body[data-spot="cosmos"] {
   --spot-caustic-2: rgba(255, 100, 200, 0.14);
   --spot-caustic-speed: 5.5s;
   --spot-sheen-speed: 4.5s;
+  --scene-sky-top: #08041a;
+  --scene-sky-mid: #140830;
+  --scene-sky-horizon: #281050;
+  --scene-sky-glow: rgba(160, 80, 255, 0.35);
+  --scene-sun: #a060ff;
+  --scene-cloud-op: 0.2;
+  --scene-far: radial-gradient(circle 2px at 20% 30%, #fff 0%, transparent 100%), radial-gradient(circle 1.5px at 45% 20%, #fff 0%, transparent 100%), radial-gradient(circle 1px at 70% 35%, #fff 0%, transparent 100%), radial-gradient(circle 1.5px at 85% 15%, #dff 0%, transparent 100%);
+  --scene-mid: none;
+  --scene-shore-hi: #5020a0;
+  --scene-shore-top: #381870;
+  --scene-shore-mid: #241050;
+  --scene-shore-bot: #140830;
+  --scene-grass: linear-gradient(180deg, #8040e0 0%, #402080 100%);
+  --scene-prop-op: 0;
 }
 
 body[data-spot="astralshoals"] {
@@ -2675,6 +2942,19 @@ body[data-spot="astralshoals"] {
   --spot-caustic-2: rgba(220, 160, 255, 0.16);
   --spot-caustic-speed: 5s;
   --spot-sheen-speed: 4s;
+  --scene-sky-top: #102848;
+  --scene-sky-mid: #204868;
+  --scene-sky-horizon: #4080a0;
+  --scene-sky-glow: rgba(100, 230, 255, 0.35);
+  --scene-sun: #80e8ff;
+  --scene-far: radial-gradient(circle 1.5px at 15% 25%, #fff 0%, transparent 100%), radial-gradient(circle 1px at 55% 18%, #cff 0%, transparent 100%), radial-gradient(circle 2px at 80% 28%, #fff 0%, transparent 100%);
+  --scene-mid: none;
+  --scene-shore-hi: #40a0c0;
+  --scene-shore-top: #307890;
+  --scene-shore-mid: #205060;
+  --scene-shore-bot: #143040;
+  --scene-grass: linear-gradient(180deg, #50c8e0 0%, #287890 100%);
+  --scene-prop-op: 0;
 }
 
 body[data-spot="eventhorizon"] {
@@ -2703,6 +2983,20 @@ body[data-spot="eventhorizon"] {
   --spot-caustic-2: rgba(180, 30, 50, 0.1);
   --spot-caustic-speed: 9s;
   --spot-sheen-speed: 7s;
+  --scene-sky-top: #100208;
+  --scene-sky-mid: #200410;
+  --scene-sky-horizon: #380818;
+  --scene-sky-glow: rgba(255, 40, 70, 0.3);
+  --scene-sun: #ff2040;
+  --scene-cloud-op: 0.1;
+  --scene-far: radial-gradient(ellipse 50% 40% at 50% 40%, rgba(255,40,70,0.35), transparent 70%);
+  --scene-mid: none;
+  --scene-shore-hi: #601020;
+  --scene-shore-top: #400818;
+  --scene-shore-mid: #280410;
+  --scene-shore-bot: #140208;
+  --scene-grass: linear-gradient(180deg, #a02040 0%, #501020 100%);
+  --scene-prop-op: 0;
 }
 
 body[data-spot="omegadeep"] {
@@ -2731,5 +3025,18 @@ body[data-spot="omegadeep"] {
   --spot-caustic-2: rgba(220, 180, 60, 0.14);
   --spot-caustic-speed: 6s;
   --spot-sheen-speed: 4.5s;
+  --scene-sky-top: #100c04;
+  --scene-sky-mid: #201808;
+  --scene-sky-horizon: #403010;
+  --scene-sky-glow: rgba(255, 220, 80, 0.4);
+  --scene-sun: #ffe060;
+  --scene-far: radial-gradient(ellipse 40% 50% at 50% 50%, rgba(255,220,80,0.25), transparent 70%);
+  --scene-mid: none;
+  --scene-shore-hi: #a08820;
+  --scene-shore-top: #786818;
+  --scene-shore-mid: #504810;
+  --scene-shore-bot: #2c2408;
+  --scene-grass: linear-gradient(180deg, #e0c040 0%, #887020 100%);
+  --scene-prop-op: 0;
 }
 
