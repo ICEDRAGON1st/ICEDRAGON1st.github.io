@@ -1614,6 +1614,87 @@ body[data-spot="eventhorizon"] .water-mist {
   font-variant-numeric: tabular-nums;
 }
 
+.treasure-stash {
+  width: 100%;
+  margin-top: 0.85rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 12px;
+  border: 1px solid rgba(240, 193, 75, 0.35);
+  background: linear-gradient(135deg, rgba(240, 193, 75, 0.14), rgba(0, 0, 0, 0.28));
+  text-align: left;
+}
+
+.treasure-stash.is-empty {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(0, 0, 0, 0.18);
+  opacity: 0.78;
+}
+
+.treasure-stash.is-active {
+  box-shadow: 0 0 0 1px rgba(240, 193, 75, 0.25), 0 0 18px rgba(240, 193, 75, 0.12);
+}
+
+.treasure-stash-head {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.treasure-stash-glyph {
+  flex: 0 0 auto;
+  color: var(--gold);
+  font-size: 1.35rem;
+  line-height: 1;
+  text-shadow: 0 0 8px rgba(240, 193, 75, 0.45);
+}
+
+.treasure-stash-meta {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.treasure-stash-meta strong {
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.treasure-stash-count {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.treasure-use-btn {
+  flex: 0 0 auto;
+  min-width: 4.5rem;
+  padding: 0.35rem 0.7rem;
+  font-weight: 700;
+}
+
+.treasure-use-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.treasure-stash-hint {
+  margin: 0.45rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.guide-rarity.treasure {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.guide-treasure-row td {
+  background: rgba(240, 193, 75, 0.08);
+}
+
 body.treasure-boost .cast-btn {
   box-shadow:
     0 0 0 1px rgba(255, 230, 150, 0.35),

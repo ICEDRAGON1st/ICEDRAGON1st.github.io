@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914m": [
+    "Fishing Idle: Sunken Chests go in a stash (use anytime); Fish guide shows chest odds"
+  ],
   "20260914l": [
     "Fishing Idle: rare Sunken Chests grant 2× sell value for 5 minutes"
   ],

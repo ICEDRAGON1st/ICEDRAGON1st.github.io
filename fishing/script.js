@@ -17,11 +17,13 @@
   const COOLER_BASE = 12;
   const TREASURE_BOOST_MS = 5 * 60 * 1000;
   const TREASURE_MULT = 2;
+  const TREASURE_STASH_MAX = 25;
   const TREASURE = {
     id: "sunken_chest",
     name: "Sunken Chest",
     rarity: "treasure",
-    value: 0
+    value: 0,
+    blurb: "Use for 2× sell value for 5 minutes"
   };
 
   const RARITIES = [
@@ -482,6 +484,9 @@
   const sellLabelEl = document.getElementById("sell-label");
   const treasureChipEl = document.getElementById("treasure-chip");
   const treasureLabelEl = document.getElementById("treasure-label");
+  const treasureStashEl = document.getElementById("treasure-stash");
+  const treasureCountEl = document.getElementById("treasure-count");
+  const treasureUseBtn = document.getElementById("treasure-use-btn");
   const multiLabelEl = document.getElementById("multi-label");
   const perfectLabelEl = document.getElementById("perfect-label");
   const coolerStatLabelEl = document.getElementById("cooler-stat-label");
@@ -603,7 +608,8 @@
       catches: 0,
       perfects: 0,
       lastTick: Date.now(),
-      treasureBoostUntil: 0
+      treasureBoostUntil: 0,
+      treasureCount: 0
     };
   }
 
@@ -709,12 +715,48 @@
     const current = Math.max(now, Number(state.treasureBoostUntil) || 0);
     state.treasureBoostUntil = current + TREASURE_BOOST_MS;
     if (!opts.silent) {
-      setCatchLine(`Sunken Chest! ${TREASURE_MULT}× sell for 5:00`, "treasure");
+      setCatchLine(`Opened Sunken Chest! ${TREASURE_MULT}× sell for 5:00`, "treasure");
       window.HubSound?.play?.("win");
       window.HubConfetti?.burst?.();
     }
     document.body.classList.add("treasure-boost");
     renderStats();
+    saveSoon();
+  }
+
+  function storeTreasure(opts = {}) {
+    if (state.treasureCount >= TREASURE_STASH_MAX) {
+      if (!opts.silent) {
+        setCatchLine(`Chest stash full (${TREASURE_STASH_MAX}) — use one first`, "miss");
+        window.HubSound?.play?.("miss");
+      }
+      return false;
+    }
+    state.treasureCount += 1;
+    if (!opts.silent) {
+      setCatchLine(
+        `Sunken Chest stored · ${state.treasureCount} ready · tap Use for ${TREASURE_MULT}× sell`,
+        "treasure"
+      );
+      window.HubSound?.play?.("win");
+      window.HubConfetti?.burst?.();
+    }
+    renderTreasureStash();
+    saveSoon();
+    return true;
+  }
+
+  function useTreasure() {
+    if (state.treasureCount <= 0) {
+      setCatchLine("No Sunken Chests stored", "miss");
+      window.HubSound?.play?.("miss");
+      return;
+    }
+    ensureSession();
+    state.treasureCount -= 1;
+    activateTreasureBoost();
+    renderTreasureStash();
+    render(false);
     saveSoon();
   }
 
@@ -829,6 +871,10 @@
         : [];
       const boostUntil = Math.max(0, Number(raw.treasureBoostUntil) || 0);
       next.treasureBoostUntil = boostUntil > Date.now() ? boostUntil : 0;
+      next.treasureCount = Math.max(
+        0,
+        Math.min(TREASURE_STASH_MAX, Math.floor(Number(raw.treasureCount) || 0))
+      );
       return next;
     } catch {
       return defaultState();
@@ -1305,13 +1351,17 @@
 
   function catchHaulHtml(entries) {
     return `<div class="boat-haul-list">${entries
-      .map(({ fish, val, perfect, treasure }) => {
+      .map(({ fish, val, perfect, treasure, stored }) => {
         if (treasure || fish?.id === "sunken_chest") {
+          const detail =
+            stored === false
+              ? "stash full"
+              : `stored · Use for ${TREASURE_MULT}× · 5:00`;
           return `<div class="boat-haul-item treasure">
           <span class="boat-haul-glyph treasure-glyph" aria-hidden="true">▣</span>
           <span class="boat-haul-meta">
             <span class="boat-haul-name">${fish.name}</span>
-            <span class="boat-haul-val">${TREASURE_MULT}× sell · 5:00</span>
+            <span class="boat-haul-val">${detail}</span>
           </span>
           <span class="boat-haul-tag">treasure</span>
         </div>`;
@@ -1711,17 +1761,22 @@
     if (Math.random() < treasureChance(spot, false)) {
       state.catches += 1;
       if (perfect) state.perfects += 1;
-      activateTreasureBoost();
+      const stored = storeTreasure();
       setPhase("result");
       castBtn.classList.add("is-catch", "rarity-treasure");
-      showCatchCard([{ fish: TREASURE, val: 0, perfect, treasure: true }]);
+      showCatchCard([{ fish: TREASURE, val: 0, perfect, treasure: true, stored }]);
       const tip = perfect ? "Perfect reel! " : "";
-      setCatchLine(`${tip}Sunken Chest! ${TREASURE_MULT}× sell for 5:00`, "treasure");
+      if (stored) {
+        setCatchLine(
+          `${tip}Sunken Chest stored · ${state.treasureCount} ready`,
+          "treasure"
+        );
+      }
       const rect = castBtn.getBoundingClientRect();
       spawnFloat(
         evt?.clientX ?? rect.left + rect.width / 2,
         evt?.clientY ?? rect.top + 20,
-        "2× TREASURE"
+        stored ? "CHEST +" : "STASH FULL"
       );
       checkAchievements();
       setTimeout(() => {
@@ -1943,13 +1998,17 @@
   function boatHaulHtml(entries) {
     if (!entries?.length) return "";
     return `<div class="boat-haul-list">${entries
-      .map(({ fish, val, sold, missed, treasure }) => {
+      .map(({ fish, val, sold, missed, treasure, stored }) => {
         if (treasure || fish?.id === "sunken_chest") {
+          const detail =
+            stored === false || missed
+              ? "stash full"
+              : `stored · Use for ${TREASURE_MULT}× · 5:00`;
           return `<div class="boat-haul-item treasure">
           <span class="boat-haul-glyph treasure-glyph" aria-hidden="true">▣</span>
           <span class="boat-haul-meta">
             <span class="boat-haul-name">${fish.name}</span>
-            <span class="boat-haul-val">${TREASURE_MULT}× sell · 5:00</span>
+            <span class="boat-haul-val">${detail}</span>
           </span>
           <span class="boat-haul-tag">treasure</span>
         </div>`;
@@ -2005,12 +2064,20 @@
   function boatCatch(boat) {
     const spot = currentSpot();
     if (Math.random() < treasureChance(spot, true)) {
-      activateTreasureBoost({ silent: true });
-      flashBoatHaul([{ fish: TREASURE, val: 0, sold: true, missed: false, treasure: true }]);
-      setCatchLine(`Boat found a Sunken Chest! ${TREASURE_MULT}× sell`, "treasure");
-      window.HubSound?.play?.("win");
+      const stored = storeTreasure({ silent: true });
+      flashBoatHaul([
+        { fish: TREASURE, val: 0, sold: false, missed: !stored, treasure: true, stored }
+      ]);
+      setCatchLine(
+        stored
+          ? `Boat found a Sunken Chest · ${state.treasureCount} stored`
+          : "Boat found a chest — stash full",
+        stored ? "treasure" : "miss"
+      );
+      window.HubSound?.play?.(stored ? "win" : "miss");
       checkAchievements();
       renderCooler(true);
+      renderTreasureStash();
       renderBoatTimers();
       saveSoon();
       return;
@@ -2367,7 +2434,21 @@
     if (coolerStatLabelEl) coolerStatLabelEl.textContent = String(coolerMax());
     if (hudBestEl) hudBestEl.textContent = bestLabel;
     if (overlayBestEl) overlayBestEl.textContent = bestLabel;
+    renderTreasureStash();
     renderBoatTimers();
+  }
+
+  function renderTreasureStash() {
+    const count = Math.max(0, Math.floor(Number(state.treasureCount) || 0));
+    if (treasureCountEl) treasureCountEl.textContent = String(count);
+    if (treasureUseBtn) {
+      treasureUseBtn.disabled = count <= 0;
+      treasureUseBtn.textContent = treasureActive() ? "Extend" : "Use";
+    }
+    if (treasureStashEl) {
+      treasureStashEl.classList.toggle("is-empty", count <= 0);
+      treasureStashEl.classList.toggle("is-active", treasureActive());
+    }
   }
 
   function render(full = true) {
@@ -2477,30 +2558,42 @@
     if (guideSpotMult) guideSpotMult.textContent = `×${spot.valueMult}`;
     if (guideSpotName) guideSpotName.textContent = spot.name;
     if (!guideBody) return;
+    const chestP = treasureChance(spot, false);
+    const fishShare = Math.max(0, 1 - chestP);
     // Precompute once so weights/luck match the live cast odds
     const weights = FISH.map((f) => fishWeight(f, spot, false));
     const total = weights.reduce((a, b) => a + b, 0);
     const rows = FISH.map((fish, i) => ({
       fish,
-      pct: total > 0 ? (100 * weights[i]) / total : 0
+      pct: total > 0 ? (100 * fishShare * weights[i]) / total : 0
     })).sort(
       (a, b) =>
         rarityOrder(a.fish.rarity) - rarityOrder(b.fish.rarity) ||
         a.fish.value - b.fish.value
     );
-    guideBody.innerHTML = rows
-      .map(({ fish, pct }) => {
-        const here = fishValue(fish, spot);
-        const chance = formatChance(pct);
-        return `<tr class="at-spot">
+    const chestPct = 100 * chestP;
+    const treasureRow = `<tr class="at-spot guide-treasure-row">
+      <td class="guide-fish-name">${TREASURE.name}</td>
+      <td class="guide-rarity treasure">treasure</td>
+      <td>—</td>
+      <td class="guide-here">store · Use ${TREASURE_MULT}× · 5:00</td>
+      <td class="guide-spots" title="${chestPct.toFixed(8)}%">${formatChance(chestPct)}</td>
+    </tr>`;
+    guideBody.innerHTML =
+      treasureRow +
+      rows
+        .map(({ fish, pct }) => {
+          const here = fishValue(fish, spot);
+          const chance = formatChance(pct);
+          return `<tr class="at-spot">
           <td class="guide-fish-name">${fish.name}</td>
           <td class="guide-rarity ${fish.rarity}">${fish.rarity}</td>
           <td>${formatNum(fish.value)}</td>
           <td class="guide-here">${formatNum(here)}</td>
           <td class="guide-spots" title="${pct.toFixed(8)}%">${chance}</td>
         </tr>`;
-      })
-      .join("");
+        })
+        .join("");
   }
 
   function openGuide() {
@@ -2522,6 +2615,7 @@
     if (e.detail === 0) reelIn(e);
   });
   sellBtn?.addEventListener("click", () => sellCooler());
+  treasureUseBtn?.addEventListener("click", () => useTreasure());
   coolerList?.addEventListener("pointerdown", (e) => {
     const saveBtn = e.target.closest("[data-save-index]");
     if (saveBtn && coolerList.contains(saveBtn)) {
