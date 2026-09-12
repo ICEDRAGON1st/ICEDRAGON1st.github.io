@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913s": [
+    "Fishing Idle: fixed Your catch bay for player fish (same layout idea as Boat catch)"
+  ],
   "20260913r": [
     "Fishing Idle: Cast stays put — boat timer + catch bay use fixed reserved space"
   ],

@@ -459,6 +459,7 @@
   const catchCardNameEl = document.getElementById("catch-card-name");
   const catchCardValueEl = document.getElementById("catch-card-value");
   const catchCardRarityEl = document.getElementById("catch-card-rarity");
+  const catchBayEmptyEl = document.getElementById("catch-bay-empty");
   const coolerList = document.getElementById("cooler-list");
   const coolerCountEl = document.getElementById("cooler-count");
   const coolerMaxEl = document.getElementById("cooler-max");
@@ -1175,10 +1176,17 @@
     return map[rarity] || "#a8e6df";
   }
 
-  function hideCatchCard() {
+  function hideCatchCard(message) {
     if (!catchCardEl) return;
-    catchCardEl.hidden = true;
-    catchCardEl.className = "catch-card";
+    catchCardEl.className = "catch-bay is-empty";
+    if (catchCardFishEl) catchCardFishEl.innerHTML = "";
+    if (catchCardStarEl) catchCardStarEl.textContent = "";
+    if (catchCardNameEl) catchCardNameEl.textContent = "";
+    if (catchCardValueEl) catchCardValueEl.textContent = "";
+    if (catchCardRarityEl) catchCardRarityEl.textContent = "";
+    if (catchBayEmptyEl) {
+      catchBayEmptyEl.textContent = message || "Cast to catch a fish";
+    }
   }
 
   function showCatchCard(fish, val, perfect) {
@@ -1186,8 +1194,7 @@
       hideCatchCard();
       return;
     }
-    catchCardEl.hidden = false;
-    catchCardEl.className = `catch-card rarity-${fish.rarity}`;
+    catchCardEl.className = `catch-bay rarity-${fish.rarity}`;
     if (catchCardFishEl) catchCardFishEl.innerHTML = fishGlyphHtml(fish);
     if (catchCardStarEl) catchCardStarEl.textContent = perfect ? "★" : "☆";
     if (catchCardNameEl) catchCardNameEl.textContent = fish.name;
@@ -1263,15 +1270,15 @@
     if (next === "ready") {
       castBtnText.textContent = "Cast";
       castBtn.disabled = false;
-      hideCatchCard();
+      // Keep last catch visible in the bay until the next cast
     } else if (next === "waiting") {
       castBtnText.textContent = "Cancel";
       castBtn.disabled = false;
-      hideCatchCard();
+      hideCatchCard("Line is out…");
     } else if (next === "bite") {
       castBtnText.textContent = "Reel!";
       castBtn.disabled = false;
-      hideCatchCard();
+      hideCatchCard("Bite! Reel now");
     } else {
       castBtnText.textContent = "…";
       castBtn.disabled = true;
@@ -1492,6 +1499,7 @@
     if (phase !== "waiting") return;
     clearTimers();
     setPhase("ready");
+    hideCatchCard("Cast to catch a fish");
     setCatchLine("Line reeled in");
     window.HubSound?.play?.("miss");
   }
@@ -1519,11 +1527,12 @@
     clearTimers();
     setPhase("result");
     castBtn.classList.add("is-miss");
-    hideCatchCard();
+    hideCatchCard("It got away…");
     setCatchLine("It got away…", "miss");
     window.HubSound?.play?.("miss");
     setTimeout(() => {
       setPhase("ready");
+      hideCatchCard("Cast to catch a fish");
       setCatchLine("Ready to cast");
       render(false);
     }, 850);
@@ -1582,7 +1591,7 @@
       );
     } else {
       castBtn.classList.add("is-miss");
-      hideCatchCard();
+      hideCatchCard("Cooler full");
     }
     checkAchievements();
     setTimeout(() => {
