@@ -616,3 +616,31 @@ body.sell-mode .cow {
     min-height: 16rem;
   }
 }
+
+@media (max-width: 560px) {
+  .top-bar {
+    flex-wrap: wrap;
+    gap: 0.45rem 0.55rem;
+  }
+
+  .top-bar h1 {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 1.05rem;
+  }
+
+  .top-stats {
+    flex: 1 1 100%;
+    font-size: 0.78rem;
+  }
+
+  .stat-chip {
+    flex: 1 1 4.5rem;
+    min-width: 0;
+  }
+
+  .pasture {
+    grid-template-columns: repeat(4, 1fr);
+    min-height: 14rem;
+  }
+}

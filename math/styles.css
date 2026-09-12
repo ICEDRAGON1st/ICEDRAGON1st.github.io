@@ -301,7 +301,39 @@ body {
 }
 
 @media (max-width: 560px) {
+  .top-bar {
+    margin-bottom: 1.25rem;
+    padding: 0.75rem 0.85rem;
+    grid-template-columns: auto 1fr;
+    grid-template-areas:
+      "menu stats"
+      "title title";
+  }
+
+  .menu-btn {
+    grid-area: menu;
+    justify-self: start;
+    padding: 0.45rem 0.7rem;
+    font-size: 0.95rem;
+  }
+
+  .top-stats {
+    grid-area: stats;
+    justify-self: end;
+    font-size: 0.85rem;
+  }
+
+  .top-bar h1 {
+    grid-area: title;
+    font-size: 1.05rem;
+    text-align: left;
+  }
+
   .answers {
     grid-template-columns: 1fr;
+  }
+
+  .card {
+    padding: 1.25rem 1rem 1.4rem;
   }
 }

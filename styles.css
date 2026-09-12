@@ -3299,16 +3299,35 @@ html[data-theme="dark"] .hub-notify-item {
   .games-header {
     padding-bottom: 0.65rem;
     margin-bottom: 1rem;
+    flex-direction: column;
+    gap: 0.55rem;
+    align-items: stretch;
   }
 
   .games-header h2 {
     font-size: 1.3rem;
   }
 
+  .games-title-wrap {
+    order: 1;
+  }
+
+  .hub-streak-badge,
+  .games-back {
+    position: static;
+    align-self: flex-start;
+    transform: none;
+  }
+
   .hub-streak-badge {
+    order: 0;
     font-size: 0.68rem;
     padding: 0.25rem 0.4rem;
     gap: 0.2rem;
+  }
+
+  .games-back {
+    order: -1;
   }
 
   .hub-streak-timer {

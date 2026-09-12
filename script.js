@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914c": [
+    "Mobile GUI pass: stack Fishing on phones; fix Math/Space/Cows/Dino/canvas HUDs so layouts fit"
+  ],
   "20260914b": [
     "Fishing Idle: show live totals for wait, luck, sell boost, 2nd catch, perfect pay, cooler"
   ],

@@ -778,4 +778,9 @@ body {
   .shop-list {
     max-height: none;
   }
+
+  .shaft-viewport {
+    min-height: 220px;
+    height: min(42vh, 320px);
+  }
 }

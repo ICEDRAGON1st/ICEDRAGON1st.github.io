@@ -184,3 +184,26 @@ body {
 .hidden {
   display: none !important;
 }
+
+@media (max-width: 560px) {
+  body {
+    padding: 0.5rem;
+  }
+
+  .hud {
+    flex-wrap: wrap;
+    gap: 0.4rem 0.65rem;
+    width: 100%;
+  }
+
+  .hud-stats {
+    flex-wrap: wrap;
+    gap: 0.4rem 0.75rem;
+    font-size: 0.95rem;
+  }
+
+  #game {
+    width: 100%;
+    max-height: 78vh;
+  }
+}

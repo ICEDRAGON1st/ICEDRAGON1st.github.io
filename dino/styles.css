@@ -105,6 +105,33 @@ body {
   font-size: 0.8em;
 }
 
+@media (max-width: 560px) {
+  body {
+    padding: 0 0.55rem 1rem;
+  }
+
+  .hud {
+    flex-wrap: wrap;
+    gap: 0.4rem 0.55rem;
+  }
+
+  .hud-stats {
+    flex-wrap: wrap;
+    gap: 0.35rem 0.7rem;
+    font-size: 0.82rem;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  #game {
+    max-height: min(58vh, 420px);
+  }
+
+  .hint {
+    font-size: 0.8rem;
+  }
+}
+
 .overlay {
   position: fixed;
   inset: 0;

@@ -1849,6 +1849,58 @@ body {
   background: rgba(46, 196, 182, 0.08);
 }
 
+@media (max-width: 720px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  body {
+    padding: 0 0.7rem 1.75rem;
+  }
+
+  .stat-chip,
+  .bonus-row .stat-chip {
+    flex: 1 1 4.2rem;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .shop-cats {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding-bottom: 0.2rem;
+  }
+
+  .shop-cat-btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .shop-item,
+  .spot-item {
+    flex-wrap: wrap;
+    align-items: stretch;
+  }
+
+  .buy-btn,
+  .spot-btn {
+    min-width: 3.6rem;
+    width: 100%;
+  }
+
+  .shop-item-main,
+  .spot-item-main {
+    flex: 1 1 100%;
+  }
+
+  .top-stats {
+    font-size: 0.72rem;
+    line-height: 1.35;
+  }
+}
+
 @media (max-width: 560px) {
   .guide-table th:nth-child(5),
   .guide-table td:nth-child(5) {
@@ -1857,7 +1909,7 @@ body {
 
   .shop-list,
   .spot-list {
-    max-height: 28vh;
+    max-height: 36vh;
   }
 
   .top-bar {
@@ -1874,5 +1926,15 @@ body {
     grid-column: 1 / -1;
     justify-self: start;
     text-align: left;
+  }
+
+  .cast-stage {
+    width: min(220px, 78vw);
+    height: calc(min(220px, 78vw) + 1.35rem);
+  }
+
+  .cast-btn {
+    width: min(220px, 78vw);
+    height: min(220px, 78vw);
   }
 }
