@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260913o": [
+    "Fishing Idle: fix glitchy auto boat catch display (no more flicker)"
+  ],
   "20260913n": [
     "Hub Feedback: fix send when Mantle is rate-limited — saves locally and queues sync; less API spam"
   ],

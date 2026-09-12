@@ -1720,6 +1720,13 @@
 
   let lastBoatHaul = [];
   let lastBoatHaulUntil = 0;
+  let lastBoatHaulKey = "";
+
+  function boatHaulKey(entries) {
+    return (entries || [])
+      .map((h) => `${h.fish?.id || ""}:${h.val}:${h.sold ? 1 : 0}:${h.missed ? 1 : 0}`)
+      .join("|");
+  }
 
   function boatHaulHtml(entries) {
     if (!entries?.length) return "";
@@ -1738,14 +1745,34 @@
       .join("")}</div>`;
   }
 
-  function flashBoatHaul(entries) {
-    lastBoatHaul = entries.slice();
-    lastBoatHaulUntil = performance.now() + 5500;
+  function hideBoatHaul() {
+    lastBoatHaul = [];
+    lastBoatHaulUntil = 0;
+    lastBoatHaulKey = "";
     const el = boatHaulEl || document.getElementById("boat-haul");
-    if (el) {
-      el.hidden = false;
-      el.classList.remove("is-fading");
-      el.innerHTML = boatHaulHtml(entries);
+    if (!el) return;
+    el.hidden = true;
+    el.innerHTML = "";
+  }
+
+  function expireBoatHaulIfNeeded() {
+    if (!lastBoatHaul.length) return;
+    if (performance.now() < lastBoatHaulUntil) return;
+    hideBoatHaul();
+  }
+
+  function flashBoatHaul(entries) {
+    const list = (entries || []).slice();
+    const key = boatHaulKey(list);
+    lastBoatHaul = list;
+    lastBoatHaulUntil = performance.now() + 4500;
+    const el = boatHaulEl || document.getElementById("boat-haul");
+    if (!el) return;
+    el.hidden = false;
+    // Only rebuild DOM when the haul actually changes (avoids flicker)
+    if (key !== lastBoatHaulKey) {
+      lastBoatHaulKey = key;
+      el.innerHTML = boatHaulHtml(list);
     }
   }
 
@@ -1777,13 +1804,11 @@
           ? `Boat hauled ${kept.length} fish · ${best.fish.name}`
           : `Boat caught ${best.fish.name}`;
     setCatchLine(line, kept.length ? catchTone(best.fish.rarity) : "miss");
-    if (phase === "ready" && kept.length) {
-      showCatchCard(best.fish, best.val, false);
-    }
+    // Don't open the big catch card for boat hauls — it fights the cast UI.
     window.HubSound?.play?.(kept.length ? "click" : "miss");
     checkAchievements();
     renderCooler(true);
-    renderStats();
+    renderBoatTimers();
     saveSoon();
   }
 
@@ -1809,39 +1834,42 @@
     if (!boat) {
       boatTimersEl.innerHTML = "";
       boatTimersEl.classList.add("empty");
-      if (boatHaulEl) {
-        boatHaulEl.hidden = true;
-        boatHaulEl.innerHTML = "";
-      }
+      hideBoatHaul();
       return;
     }
+
     const interval = Number(boat.amount) || 1;
     const left = boatRemaining(boat);
     const pct = Math.max(0, Math.min(100, (1 - left / interval) * 100));
-    const haulLive = performance.now() < lastBoatHaulUntil && lastBoatHaul.length;
     boatTimersEl.classList.remove("empty");
-    boatTimersEl.innerHTML = `<div class="boat-timer" data-boat="boat">
-      <div class="boat-timer-top">
-        <span class="boat-timer-name">${boat.name} · Lv${boat.level}</span>
-        <span class="boat-timer-left">${formatTimer(left)}</span>
-      </div>
-      <div class="boat-timer-track" aria-hidden="true">
-        <div class="boat-timer-fill" style="width:${pct.toFixed(1)}%"></div>
-      </div>
-      <div class="boat-timer-meta">every ${interval}s · ${BOAT_TIERS[boat.level]?.multiHint || "1 fish"}</div>
-      ${haulLive ? boatHaulHtml(lastBoatHaul) : ""}
-    </div>`;
 
-    const el = boatHaulEl || document.getElementById("boat-haul");
-    if (el) {
-      if (haulLive) {
-        el.hidden = false;
-        el.innerHTML = boatHaulHtml(lastBoatHaul);
-      } else if (!el.hidden && performance.now() >= lastBoatHaulUntil) {
-        el.hidden = true;
-        el.innerHTML = "";
-      }
+    let root = boatTimersEl.querySelector(".boat-timer");
+    if (!root) {
+      boatTimersEl.innerHTML = `<div class="boat-timer" data-boat="boat">
+        <div class="boat-timer-top">
+          <span class="boat-timer-name"></span>
+          <span class="boat-timer-left"></span>
+        </div>
+        <div class="boat-timer-track" aria-hidden="true">
+          <div class="boat-timer-fill"></div>
+        </div>
+        <div class="boat-timer-meta"></div>
+      </div>`;
+      root = boatTimersEl.querySelector(".boat-timer");
     }
+
+    const nameEl = root.querySelector(".boat-timer-name");
+    const leftEl = root.querySelector(".boat-timer-left");
+    const fillEl = root.querySelector(".boat-timer-fill");
+    const metaEl = root.querySelector(".boat-timer-meta");
+    if (nameEl) nameEl.textContent = `${boat.name} · Lv${boat.level}`;
+    if (leftEl) leftEl.textContent = formatTimer(left);
+    if (fillEl) fillEl.style.width = `${pct.toFixed(1)}%`;
+    if (metaEl) {
+      metaEl.textContent = `every ${interval}s · ${BOAT_TIERS[boat.level]?.multiHint || "1 fish"}`;
+    }
+
+    expireBoatHaulIfNeeded();
   }
 
   function tickBoats(dt) {
