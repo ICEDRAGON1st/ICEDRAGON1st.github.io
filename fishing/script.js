@@ -325,6 +325,8 @@
     { id: "rod10", name: "Omega Rod", desc: "+0.15s bite window", cost: 45000000, kind: "window", amount: 0.15 },
     { id: "rod11", name: "Aurora Rod", desc: "+0.1s bite window", cost: 90000000, kind: "window", amount: 0.1 },
     { id: "rod12", name: "Apex Rod", desc: "+0.12s bite window", cost: 280000000, kind: "window", amount: 0.12 },
+    { id: "rod13", name: "Mirror Rod", desc: "+0.1s bite window", cost: 500000000, kind: "window", amount: 0.1 },
+    { id: "rod14", name: "Zenith Rod", desc: "+0.1s bite window", cost: 900000000, kind: "window", amount: 0.1 },
     { id: "bait1", name: "Worms", desc: "Faster bites (−12% wait)", cost: 60, kind: "speed", amount: 0.12 },
     { id: "bait2", name: "Crickets", desc: "Faster bites (−15% wait)", cost: 350, kind: "speed", amount: 0.15 },
     { id: "bait3", name: "Spinner", desc: "Faster bites (−18% wait)", cost: 1800, kind: "speed", amount: 0.18 },
@@ -334,6 +336,8 @@
     { id: "bait7", name: "Starroe", desc: "Faster bites (−34% wait)", cost: 900000, kind: "speed", amount: 0.34 },
     { id: "bait8", name: "Void Roe", desc: "Faster bites (−8% wait)", cost: 8000000, kind: "speed", amount: 0.08 },
     { id: "bait9", name: "Omega Bait", desc: "Faster bites (−10% wait)", cost: 45000000, kind: "speed", amount: 0.1 },
+    { id: "bait10", name: "Echo Chum", desc: "Faster bites (−6% wait)", cost: 120000000, kind: "speed", amount: 0.06 },
+    { id: "bait11", name: "Zenith Bait", desc: "Faster bites (−7% wait)", cost: 350000000, kind: "speed", amount: 0.07 },
     { id: "luck1", name: "Lucky Hook", desc: "+rarity luck", cost: 120, kind: "luck", amount: 8 },
     { id: "luck2", name: "Tide Charm", desc: "+rarity luck", cost: 700, kind: "luck", amount: 12 },
     { id: "luck3", name: "Pearl Lure", desc: "+rarity luck", cost: 4000, kind: "luck", amount: 16 },
@@ -345,6 +349,8 @@
     { id: "luck9", name: "Omega Coin", desc: "+rarity luck", cost: 60000000, kind: "luck", amount: 90 },
     { id: "luck10", name: "Prism Hook", desc: "+rarity luck", cost: 150000000, kind: "luck", amount: 100 },
     { id: "luck11", name: "Apex Charm", desc: "+rarity luck", cost: 400000000, kind: "luck", amount: 120 },
+    { id: "luck12", name: "Mirage Coin", desc: "+rarity luck", cost: 700000000, kind: "luck", amount: 130 },
+    { id: "luck13", name: "Zenith Lure", desc: "+rarity luck", cost: 1200000000, kind: "luck", amount: 150 },
     { id: "cooler1", name: "Ice Pack", desc: "+4 cooler slots", cost: 200, kind: "cooler", amount: 4 },
     { id: "cooler2", name: "Big Cooler", desc: "+6 cooler slots", cost: 1500, kind: "cooler", amount: 6 },
     { id: "cooler3", name: "Dock Freezer", desc: "+10 cooler slots", cost: 12000, kind: "cooler", amount: 10 },
@@ -355,6 +361,8 @@
     { id: "cooler8", name: "Omega Locker", desc: "+48 cooler slots", cost: 50000000, kind: "cooler", amount: 48 },
     { id: "cooler9", name: "Deep Cage", desc: "+56 cooler slots", cost: 120000000, kind: "cooler", amount: 56 },
     { id: "cooler10", name: "Apex Vault", desc: "+70 cooler slots", cost: 380000000, kind: "cooler", amount: 70 },
+    { id: "cooler11", name: "Cascade Hold", desc: "+80 cooler slots", cost: 650000000, kind: "cooler", amount: 80 },
+    { id: "cooler12", name: "Zenith Freezer", desc: "+100 cooler slots", cost: 1100000000, kind: "cooler", amount: 100 },
     { id: "sell1", name: "Merchant Scale", desc: "+5% sell value", cost: 500, kind: "value", amount: 0.05 },
     { id: "sell2", name: "Harbor Broker", desc: "+8% sell value", cost: 5000, kind: "value", amount: 0.08 },
     { id: "sell3", name: "Gold Ledger", desc: "+12% sell value", cost: 50000, kind: "value", amount: 0.12 },
@@ -363,12 +371,23 @@
     { id: "sell6", name: "Platinum Pit", desc: "+30% sell value", cost: 25000000, kind: "value", amount: 0.3 },
     { id: "sell7", name: "Dynasty Floor", desc: "+40% sell value", cost: 120000000, kind: "value", amount: 0.4 },
     { id: "sell8", name: "Apex Exchange", desc: "+50% sell value", cost: 400000000, kind: "value", amount: 0.5 },
+    { id: "sell9", name: "Titan Broker", desc: "+55% sell value", cost: 700000000, kind: "value", amount: 0.55 },
+    { id: "sell10", name: "Zenith Market", desc: "+65% sell value", cost: 1200000000, kind: "value", amount: 0.65 },
     { id: "net1", name: "Hand Net", desc: "6% chance for a second fish", cost: 2500, kind: "multi", amount: 0.06 },
     { id: "net2", name: "Drag Net", desc: "10% chance for a second fish", cost: 28000, kind: "multi", amount: 0.1 },
     { id: "net3", name: "Trawl Mesh", desc: "14% chance for a second fish", cost: 220000, kind: "multi", amount: 0.14 },
     { id: "net4", name: "Pulse Net", desc: "18% chance for a second fish", cost: 2200000, kind: "multi", amount: 0.18 },
     { id: "net5", name: "Void Snare", desc: "22% chance for a second fish", cost: 22000000, kind: "multi", amount: 0.22 },
-    { id: "net6", name: "Apex Net", desc: "28% chance for a second fish", cost: 160000000, kind: "multi", amount: 0.28 }
+    { id: "net6", name: "Apex Net", desc: "28% chance for a second fish", cost: 160000000, kind: "multi", amount: 0.28 },
+    { id: "net7", name: "Cascade Snare", desc: "8% chance for a second fish", cost: 400000000, kind: "multi", amount: 0.08 },
+    { id: "net8", name: "Zenith Net", desc: "10% chance for a second fish", cost: 900000000, kind: "multi", amount: 0.1 },
+    { id: "perfect1", name: "Steady Hands", desc: "+10% sell on perfect reels", cost: 1500, kind: "perfect", amount: 0.1 },
+    { id: "perfect2", name: "Keen Eye", desc: "+15% sell on perfect reels", cost: 18000, kind: "perfect", amount: 0.15 },
+    { id: "perfect3", name: "Timing Belt", desc: "+20% sell on perfect reels", cost: 150000, kind: "perfect", amount: 0.2 },
+    { id: "perfect4", name: "Focus Lens", desc: "+25% sell on perfect reels", cost: 1500000, kind: "perfect", amount: 0.25 },
+    { id: "perfect5", name: "Zen Pulse", desc: "+30% sell on perfect reels", cost: 15000000, kind: "perfect", amount: 0.3 },
+    { id: "perfect6", name: "Apex Timing", desc: "+40% sell on perfect reels", cost: 120000000, kind: "perfect", amount: 0.4 },
+    { id: "perfect7", name: "Zenith Focus", desc: "+50% sell on perfect reels", cost: 500000000, kind: "perfect", amount: 0.5 }
   ];
 
   /**
@@ -497,6 +516,11 @@
       blurb: "Nets — chance to land a second fish when you reel (not boats)."
     },
     {
+      id: "perfect",
+      title: "Perfect pay",
+      blurb: "Earn more when you sell fish caught on a perfect reel."
+    },
+    {
       id: "boat",
       title: "Auto boat",
       blurb: "One boat — upgrade for speed (min 7.5s) and multi-catch chances."
@@ -547,12 +571,12 @@
 
   function biteWindow() {
     const bonus = ownedGear("window").reduce((s, g) => s + g.amount, 0);
-    return Math.min(2.5, 0.45 + bonus);
+    return Math.min(2.8, 0.45 + bonus);
   }
 
   function waitScale() {
     const cut = ownedGear("speed").reduce((s, g) => s + g.amount, 0);
-    return Math.max(0.22, 1 - cut);
+    return Math.max(0.16, 1 - cut);
   }
 
   function luckBonus() {
@@ -567,8 +591,12 @@
     return ownedGear("value").reduce((s, g) => s + g.amount, 0);
   }
 
+  function perfectBonus() {
+    return ownedGear("perfect").reduce((s, g) => s + g.amount, 0);
+  }
+
   function multiCatchChance() {
-    return Math.min(0.7, ownedGear("multi").reduce((s, g) => s + g.amount, 0));
+    return Math.min(0.92, ownedGear("multi").reduce((s, g) => s + g.amount, 0));
   }
 
   function boats() {
@@ -687,12 +715,12 @@
   function normalizeCoolerEntry(entry) {
     if (typeof entry === "string") {
       const id = String(entry);
-      return fishById(id) ? { id, saved: false } : null;
+      return fishById(id) ? { id, saved: false, perfect: false } : null;
     }
     if (entry && typeof entry === "object") {
       const id = String(entry.id || "");
       if (!fishById(id)) return null;
-      return { id, saved: !!entry.saved };
+      return { id, saved: !!entry.saved, perfect: !!entry.perfect };
     }
     return null;
   }
@@ -703,6 +731,10 @@
 
   function isCoolerSaved(entry) {
     return !!entry?.saved;
+  }
+
+  function isCoolerPerfect(entry) {
+    return !!entry?.perfect;
   }
 
   function unsavedCoolerCount() {
@@ -944,9 +976,13 @@
     return total > 0 ? (100 * w) / total : 0;
   }
 
-  function fishValue(fish, spot) {
+  function fishValue(fish, spot, perfectOrEntry) {
     const base = Math.max(1, Math.floor(fish.value * (spot?.valueMult || 1)));
-    return Math.max(1, Math.floor(base * (1 + sellBonus())));
+    const perfect =
+      perfectOrEntry === true ||
+      (perfectOrEntry && typeof perfectOrEntry === "object" && !!perfectOrEntry.perfect);
+    const mult = 1 + sellBonus() + (perfect ? perfectBonus() : 0);
+    return Math.max(1, Math.floor(base * mult));
   }
 
   function shouldAutoSell(rarity) {
@@ -960,8 +996,9 @@
   function addToCooler(fish, opts = {}) {
     if (!fish) return false;
     noteCatch(fish);
+    const perfect = !!opts.perfect;
     if (opts.forceSell || shouldAutoSell(fish.rarity)) {
-      const val = fishValue(fish, currentSpot());
+      const val = fishValue(fish, currentSpot(), perfect);
       addCoins(val);
       if (!opts.silent) {
         setCatchLine(`Sold ${fish.name} for ${formatNum(val)}`, catchTone(fish.rarity));
@@ -975,7 +1012,7 @@
       window.HubSound?.play?.("miss");
       return false;
     }
-    state.cooler.push({ id: fish.id, saved: false });
+    state.cooler.push({ id: fish.id, saved: false, perfect });
     return true;
   }
 
@@ -1101,7 +1138,7 @@
     state.catches += 1;
     if (perfect) state.perfects += 1;
 
-    const ok = addToCooler(fish);
+    const ok = addToCooler(fish, { perfect });
     let bonusFish = null;
     if (ok && Math.random() < multiCatchChance()) {
       bonusFish = rollFish(spot, false);
@@ -1157,7 +1194,7 @@
       window.HubSound?.play?.("miss");
       return;
     }
-    const val = fishValue(fish, currentSpot());
+    const val = fishValue(fish, currentSpot(), entry);
     state.cooler.splice(i, 1);
     addCoins(val);
     setCatchLine(`Sold ${fish.name} for ${formatNum(val)}`, catchTone(fish.rarity));
@@ -1194,7 +1231,7 @@
         return;
       }
       const fish = fishById(coolerEntryId(entry));
-      if (fish) total += fishValue(fish, spot);
+      if (fish) total += fishValue(fish, spot, entry);
     });
     state.cooler = kept;
     addCoins(total);
@@ -1375,8 +1412,8 @@
 
   function coolerKey() {
     return `${state.spotId}|${state.cooler
-      .map((e) => `${coolerEntryId(e)}${isCoolerSaved(e) ? "*" : ""}`)
-      .join(",")}|${coolerMax()}`;
+      .map((e) => `${coolerEntryId(e)}${isCoolerSaved(e) ? "*" : ""}${isCoolerPerfect(e) ? "!" : ""}`)
+      .join(",")}|${coolerMax()}|${sellBonus().toFixed(3)}|${perfectBonus().toFixed(3)}`;
   }
 
   function renderCooler(force = false) {
@@ -1401,16 +1438,19 @@
       .map((entry, index) => {
         const fish = fishById(coolerEntryId(entry));
         if (!fish) return "";
-        const val = fishValue(fish, spot);
+        const val = fishValue(fish, spot, entry);
         const saved = isCoolerSaved(entry);
-        return `<div class="fish-chip ${fish.rarity}${saved ? " is-saved" : ""}" data-cooler-index="${index}">
+        const perfectMark = isCoolerPerfect(entry) ? " · perfect" : "";
+        return `<div class="fish-chip ${fish.rarity}${saved ? " is-saved" : ""}${
+          isCoolerPerfect(entry) ? " is-perfect" : ""
+        }" data-cooler-index="${index}">
           <button type="button" class="fish-chip-save" data-save-index="${index}" title="${
             saved ? "Unsave fish" : "Save fish (won't sell)"
           }" aria-label="${saved ? "Unsave" : "Save"} ${fish.name}" aria-pressed="${saved}">${
             saved ? "★" : "☆"
           }</button>
           <button type="button" class="fish-chip-sell" data-sell-index="${index}" title="${
-            saved ? "Saved — unpin to sell" : `Sell for ${formatNum(val)}`
+            saved ? "Saved — unpin to sell" : `Sell for ${formatNum(val)}${perfectMark}`
           }" ${saved ? "disabled" : ""}>
             <span class="fish-chip-name">${fish.name}</span>
             <span class="fish-chip-price">${formatNum(val)}</span>
