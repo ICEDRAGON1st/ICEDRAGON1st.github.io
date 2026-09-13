@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915y": [
+    "Fishing Idle: admin luck/sell mults allow up to 1000× (1.5× still works)"
+  ],
   "20260915x": [
     "Fishing Idle: four new rarities beyond Omega — Genesis, Paradox, Infinity, Absolute (12 new fish)"
   ],

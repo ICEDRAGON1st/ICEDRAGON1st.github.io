@@ -41,7 +41,7 @@
   const ADMIN_DEFAULT_MULT = 2;
   const ADMIN_MAX_MINUTES = 180;
   const ADMIN_MIN_MULT = 1.5;
-  const ADMIN_MAX_MULT = 100;
+  const ADMIN_MAX_MULT = 1000;
   const TREASURE_MONEY = {
     id: "coin_chest",
     name: "Coin Chest",
