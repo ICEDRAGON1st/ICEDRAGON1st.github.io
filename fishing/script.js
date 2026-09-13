@@ -663,6 +663,9 @@
   const guideBtn = document.getElementById("guide-btn");
   const menuGuideBtn = document.getElementById("menu-guide-btn");
   const guideOverlay = document.getElementById("guide-overlay");
+  const adminOverlay = document.getElementById("admin-overlay");
+  const adminBtn = document.getElementById("admin-btn");
+  const adminClose = document.getElementById("admin-close");
   const guideClose = document.getElementById("guide-close");
   const guideBody = document.getElementById("guide-body");
   const guideSpotMult = document.getElementById("guide-spot-mult");
@@ -974,14 +977,16 @@
   }
 
   function syncAdminPanel() {
-    const panel = document.getElementById("admin-panel");
-    if (!panel) return;
     const owner = isFishingOwner();
-    panel.classList.toggle("hidden", !owner);
-    panel.hidden = !owner;
-    if (!owner) return;
+    if (adminBtn) {
+      adminBtn.classList.toggle("hidden", !owner);
+      adminBtn.hidden = !owner;
+    }
+    if (adminOverlay && !owner) {
+      adminOverlay.classList.add("hidden");
+    }
     const status = document.getElementById("admin-status");
-    if (!status) return;
+    if (!status || !owner) return;
     const live = adminEventLive();
     if (live) {
       status.textContent = `Live: 2× ${live.kind === "luck" ? "luck" : "sell"} · ${formatTreasureClock(
@@ -990,6 +995,17 @@
     } else {
       status.textContent = "No admin event · commands: 2x sell · 2x luck · clear";
     }
+  }
+
+  function openAdmin() {
+    if (!isFishingOwner()) return;
+    syncAdminPanel();
+    adminOverlay?.classList.remove("hidden");
+    document.getElementById("admin-cmd-input")?.focus?.();
+  }
+
+  function closeAdmin() {
+    adminOverlay?.classList.add("hidden");
   }
 
   async function publishAdminEvent(kind, minutes = ADMIN_DEFAULT_MINUTES) {
@@ -3394,7 +3410,6 @@
     saveState();
     maybeSubmitBest(true);
     render();
-    syncAdminPanel();
     overlay?.classList.remove("hidden");
   }
 
@@ -3556,9 +3571,14 @@
   });
   startBtn?.addEventListener("click", closeMenu);
   menuBtn?.addEventListener("click", openMenu);
-  document.getElementById("admin-panel")?.addEventListener("click", (e) => {
+  adminBtn?.addEventListener("click", openAdmin);
+  adminClose?.addEventListener("click", closeAdmin);
+  adminOverlay?.addEventListener("click", (e) => {
+    if (e.target === adminOverlay) closeAdmin();
+  });
+  adminOverlay?.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-admin-cmd]");
-    if (!btn) return;
+    if (!btn || !adminOverlay.contains(btn)) return;
     e.preventDefault();
     runAdminCommand(btn.dataset.adminCmd);
   });
@@ -3580,6 +3600,11 @@
   });
   window.addEventListener("keydown", (e) => {
     if (e.code !== "Escape") return;
+    if (adminOverlay && !adminOverlay.classList.contains("hidden")) {
+      e.preventDefault();
+      closeAdmin();
+      return;
+    }
     if (guideOverlay && !guideOverlay.classList.contains("hidden")) {
       e.preventDefault();
       closeGuide();

@@ -8,13 +8,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260915n">
+  <link rel="stylesheet" href="styles.css?v=20260915o">
 </head>
 <body data-spot="creek">
   <header class="top-bar">
     <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
     <h1>Fishing Idle</h1>
     <div class="top-stats">
+      <button id="admin-btn" type="button" class="guide-btn admin-btn hidden" hidden>Admin</button>
       <button id="guide-btn" type="button" class="guide-btn">Fish guide</button>
       <span id="hud-spot">Creek</span>
       · Cooler <strong id="hud-cooler">0</strong>
@@ -265,6 +266,35 @@
     </div>
   </div>
 
+  <div id="admin-overlay" class="overlay admin-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="admin-title">
+    <div class="overlay-card admin-card">
+      <div class="guide-head">
+        <div>
+          <p class="eyebrow">ICE_DRAGON</p>
+          <h2 id="admin-title">Admin</h2>
+        </div>
+        <button id="admin-close" type="button" class="btn btn-ghost guide-close">Close</button>
+      </div>
+      <p id="admin-status" class="admin-status">No admin event</p>
+      <div class="admin-actions">
+        <button type="button" class="btn btn-ghost" data-admin-cmd="2x sell">2× Sell 5m</button>
+        <button type="button" class="btn btn-ghost" data-admin-cmd="2x luck">2× Luck 5m</button>
+        <button type="button" class="btn btn-ghost" data-admin-cmd="clear">Clear</button>
+      </div>
+      <form id="admin-cmd-form" class="admin-cmd-form">
+        <input
+          id="admin-cmd-input"
+          type="text"
+          maxlength="48"
+          placeholder="2x sell 10m · 2x luck · clear"
+          autocomplete="off"
+          spellcheck="false"
+        />
+        <button type="submit" class="btn">Run</button>
+      </form>
+    </div>
+  </div>
+
   <div id="overlay" class="overlay">
     <div class="overlay-card">
       <p class="eyebrow">Cast · bite · reel</p>
@@ -273,26 +303,6 @@
         Time your reel when the bobber dunks, fill the cooler, and climb the best-catch leaderboard.
       </p>
       <p class="score-line">Best catch: <strong id="overlay-best">—</strong></p>
-      <div id="admin-panel" class="admin-panel hidden" hidden>
-        <p class="admin-eyebrow">ICE_DRAGON admin</p>
-        <p id="admin-status" class="admin-status">No admin event</p>
-        <div class="admin-actions">
-          <button type="button" class="btn btn-ghost" data-admin-cmd="2x sell">2× Sell 5m</button>
-          <button type="button" class="btn btn-ghost" data-admin-cmd="2x luck">2× Luck 5m</button>
-          <button type="button" class="btn btn-ghost" data-admin-cmd="clear">Clear</button>
-        </div>
-        <form id="admin-cmd-form" class="admin-cmd-form">
-          <input
-            id="admin-cmd-input"
-            type="text"
-            maxlength="48"
-            placeholder="2x sell 10m · 2x luck · clear"
-            autocomplete="off"
-            spellcheck="false"
-          />
-          <button type="submit" class="btn">Run</button>
-        </form>
-      </div>
       <div class="overlay-actions">
         <button id="start-btn" type="button" class="btn">Play</button>
         <button id="menu-guide-btn" type="button" class="btn btn-ghost">Fish guide</button>
@@ -309,6 +319,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260914c"></script>
-  <script src="script.js?v=20260915n"></script>
+  <script src="script.js?v=20260915o"></script>
 </body>
 </html>

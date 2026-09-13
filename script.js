@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915o": [
+    "Fishing Idle: ICE_DRAGON Admin button in the top bar (next to Fish guide)"
+  ],
   "20260915n": [
     "Fishing Idle: ICE_DRAGON-only admin panel (2× sell / 2× luck / clear) for global events"
   ],
