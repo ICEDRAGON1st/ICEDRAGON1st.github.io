@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915b": [
+    "My Games: fix multi-account login — works from the username screen; saved accounts switch offline"
+  ],
   "20260915a": [
     "My Games: save multiple accounts on this device — create new, log in with a code, switch between them"
   ],
@@ -3470,6 +3473,7 @@ function maybeAskPlayerName(force = false) {
   playerNameModal?.classList.add("username-gate-force");
   playerNameModal?.classList.remove("hidden");
   document.body.classList.add("username-gate-open");
+  renderSavedAccounts();
   playerNameModalInput?.focus();
 }
 
@@ -3965,26 +3969,27 @@ function setPlayerCodeStatus(msg, isError) {
   el.classList.toggle("hidden", !msg);
 }
 
+function setGateCodeStatus(msg, isError) {
+  const el = document.getElementById("gate-code-status");
+  if (!el) return;
+  el.textContent = msg || "";
+  el.classList.toggle("is-error", !!isError);
+  el.classList.toggle("hidden", !msg);
+}
+
 function refreshPlayerCodeUI() {
   const el = document.getElementById("player-code-value");
-  if (!el || typeof HubPlays === "undefined") return;
-  el.textContent = HubPlays.getPlayerCode?.() || "————";
+  if (el && typeof HubPlays !== "undefined") {
+    el.textContent = HubPlays.getPlayerCode?.() || "————";
+  }
   renderSavedAccounts();
 }
 
-function renderSavedAccounts() {
-  const list = document.getElementById("player-accounts-list");
-  if (!list || typeof HubPlays === "undefined") return;
-  try {
-    HubPlays.rememberCurrentAccount?.();
-  } catch {}
-  const accounts = HubPlays.getSavedAccounts?.() || [];
-  const activeCode = HubPlays.normalizePlayerCode?.(HubPlays.getPlayerCode?.() || "") || "";
+function accountListHtml(accounts, activeCode) {
   if (!accounts.length) {
-    list.innerHTML = `<li class="player-accounts-empty">No saved accounts yet — log in with a code or create a new one.</li>`;
-    return;
+    return `<li class="player-accounts-empty">No saved accounts yet — create one or log in with a code.</li>`;
   }
-  list.innerHTML = accounts
+  return accounts
     .map((a) => {
       const code = HubPlays.formatPlayerCode?.(a.code) || a.code;
       const norm = HubPlays.normalizePlayerCode?.(code) || "";
@@ -4008,29 +4013,81 @@ function renderSavedAccounts() {
     .join("");
 }
 
-async function loginWithPlayerCode(raw) {
+function renderSavedAccounts() {
   if (typeof HubPlays === "undefined") return;
-  setPlayerCodeStatus("Logging in…", false);
-  const result = await HubPlays.restoreWithPlayerCode(raw);
+  try {
+    HubPlays.rememberCurrentAccount?.();
+  } catch {}
+  const accounts = HubPlays.getSavedAccounts?.() || [];
+  const activeCode = HubPlays.normalizePlayerCode?.(HubPlays.getPlayerCode?.() || "") || "";
+  const html = accountListHtml(accounts, activeCode);
+  const list = document.getElementById("player-accounts-list");
+  const gateList = document.getElementById("gate-accounts-list");
+  if (list) list.innerHTML = html;
+  if (gateList) gateList.innerHTML = html;
+}
+
+async function loginWithPlayerCode(raw, statusFn = setPlayerCodeStatus) {
+  if (typeof HubPlays === "undefined") return;
+  statusFn("Logging in…", false);
+  let result;
+  try {
+    result = await HubPlays.restoreWithPlayerCode(raw);
+  } catch (err) {
+    statusFn(err?.message || "Couldn't log in", true);
+    renderSavedAccounts();
+    return;
+  }
   if (!result?.ok) {
-    setPlayerCodeStatus(result?.error || "Couldn't log in", true);
+    statusFn(result?.error || "Couldn't log in", true);
     renderSavedAccounts();
     return;
   }
   if (result.already) {
-    setPlayerCodeStatus("Already on that account — saved on this device", false);
+    statusFn(
+      result.name
+        ? `Already on ${result.name} — saved on this device`
+        : "Already on that account — saved on this device",
+      false
+    );
     refreshPlayerCodeUI();
+    if (hasPlayerName()) hidePlayerNameModal();
     return;
   }
   if (playerNameInput && result.name) playerNameInput.value = result.name;
-  setPlayerCodeStatus(
+  if (playerNameModalInput && result.name) playerNameModalInput.value = result.name;
+  statusFn(
     result.name
       ? `Logged in as ${result.name}. Reloading…`
       : "Account restored. Reloading…",
     false
   );
   renderSavedAccounts();
-  setTimeout(() => window.location.reload(), 700);
+  setTimeout(() => window.location.reload(), 500);
+}
+
+async function createAccountFlow(statusFn = setPlayerCodeStatus) {
+  if (typeof HubPlays === "undefined") return;
+  const ok = window.confirm(
+    "Create a new blank account on this device?\n\nYour current account stays saved so you can switch back with its code."
+  );
+  if (!ok) return;
+  statusFn("Creating account…", false);
+  let result;
+  try {
+    result = await HubPlays.createNewAccount?.();
+  } catch (err) {
+    statusFn(err?.message || "Couldn't create account", true);
+    return;
+  }
+  if (!result?.ok) {
+    statusFn(result?.error || "Couldn't create account", true);
+    return;
+  }
+  if (playerNameInput) playerNameInput.value = "";
+  if (playerNameModalInput) playerNameModalInput.value = "";
+  statusFn(`New account ready · code ${result.code}. Reloading…`, false);
+  setTimeout(() => window.location.reload(), 500);
 }
 
 document.getElementById("player-code-copy-btn")?.addEventListener("click", async () => {
@@ -4047,54 +4104,59 @@ document.getElementById("player-code-copy-btn")?.addEventListener("click", async
 
 document.getElementById("player-code-restore-btn")?.addEventListener("click", async () => {
   const input = document.getElementById("player-code-restore-input");
-  await loginWithPlayerCode(input?.value || "");
+  await loginWithPlayerCode(input?.value || "", setPlayerCodeStatus);
 });
 
 document.getElementById("player-code-new-btn")?.addEventListener("click", async () => {
-  if (typeof HubPlays === "undefined") return;
-  const ok = window.confirm(
-    "Create a new blank account on this device?\n\nYour current account stays saved so you can switch back with its code."
-  );
-  if (!ok) return;
-  setPlayerCodeStatus("Creating account…", false);
-  const result = await HubPlays.createNewAccount?.();
-  if (!result?.ok) {
-    setPlayerCodeStatus(result?.error || "Couldn't create account", true);
-    return;
-  }
-  if (playerNameInput) playerNameInput.value = "";
-  setPlayerCodeStatus(
-    `New account ready · code ${result.code}. Reloading…`,
-    false
-  );
-  setTimeout(() => window.location.reload(), 700);
+  await createAccountFlow(setPlayerCodeStatus);
 });
 
-document.getElementById("player-accounts-list")?.addEventListener("click", async (e) => {
+document.getElementById("gate-code-login-btn")?.addEventListener("click", async () => {
+  const input = document.getElementById("gate-code-input");
+  await loginWithPlayerCode(input?.value || "", setGateCodeStatus);
+});
+
+document.getElementById("gate-new-account-btn")?.addEventListener("click", async () => {
+  await createAccountFlow(setGateCodeStatus);
+});
+
+function onAccountListClick(e) {
   const switchBtn = e.target.closest("[data-account-switch]");
   const forgetBtn = e.target.closest("[data-account-forget]");
   if (switchBtn) {
-    await loginWithPlayerCode(switchBtn.getAttribute("data-account-switch") || "");
+    const statusFn = e.currentTarget?.id === "gate-accounts-list" ? setGateCodeStatus : setPlayerCodeStatus;
+    loginWithPlayerCode(switchBtn.getAttribute("data-account-switch") || "", statusFn);
     return;
   }
   if (forgetBtn) {
     const code = forgetBtn.getAttribute("data-account-forget") || "";
     const active = HubPlays?.normalizePlayerCode?.(HubPlays.getPlayerCode?.() || "");
     const norm = HubPlays?.normalizePlayerCode?.(code);
+    const statusFn = e.currentTarget?.id === "gate-accounts-list" ? setGateCodeStatus : setPlayerCodeStatus;
     if (norm && active && norm === active) {
-      setPlayerCodeStatus("Can't forget the account you're using — switch first", true);
+      statusFn("Can't forget the account you're using — switch first", true);
       return;
     }
     HubPlays?.removeSavedAccount?.(code);
-    setPlayerCodeStatus(`Forgot ${HubPlays?.formatPlayerCode?.(code) || code}`, false);
+    statusFn(`Forgot ${HubPlays?.formatPlayerCode?.(code) || code}`, false);
     renderSavedAccounts();
   }
-});
+}
+
+document.getElementById("player-accounts-list")?.addEventListener("click", onAccountListClick);
+document.getElementById("gate-accounts-list")?.addEventListener("click", onAccountListClick);
 
 document.getElementById("player-code-restore-input")?.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     e.preventDefault();
     document.getElementById("player-code-restore-btn")?.click();
+  }
+});
+
+document.getElementById("gate-code-input")?.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    e.preventDefault();
+    document.getElementById("gate-code-login-btn")?.click();
   }
 });
 

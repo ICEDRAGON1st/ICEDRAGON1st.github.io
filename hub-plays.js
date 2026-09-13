@@ -442,7 +442,9 @@
   }
 
   async function createNewAccount() {
-    rememberCurrentAccount();
+    try {
+      rememberCurrentAccount();
+    } catch {}
     const id = `p-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     try {
       if (canUseLocalStorage()) localStorage.setItem(PLAYER_ID_KEY, id);
@@ -451,10 +453,9 @@
     clearAccountLocalIdentity();
     const code = formatPlayerCode(randomCodeParts());
     storePlayerCode(code);
-    try {
-      await ensurePlayerCodeRegistered();
-    } catch {}
     rememberCurrentAccount({ code, playerId: id, name: "" });
+    // Don't block account creation on MantleDB — register in background
+    ensurePlayerCodeRegistered().catch(() => {});
     return {
       ok: true,
       created: true,
@@ -660,25 +661,34 @@
       return { ok: false, error: "Enter your 8-character player code (like ABCD-EFGH)" };
     }
 
-    // Prefer a locally saved account when MantleDB is unavailable / rate-limited
     const localHit = loadAccountVault().find((a) => normalizePlayerCode(a.code) === norm);
 
-    let remote;
+    let remote = null;
     try {
       remote = await fetchCodesRemote();
     } catch {
       remote = null;
     }
 
-    const entry = remote?.[norm] || (localHit
-      ? { playerId: localHit.playerId, name: localHit.name, at: localHit.savedAt }
-      : null);
+    // Saved accounts on this device always work offline (no MantleDB required)
+    let entry = null;
+    if (localHit?.playerId) {
+      entry = {
+        playerId: localHit.playerId,
+        name: localHit.name || remote?.[norm]?.name || "",
+        at: localHit.savedAt || 0
+      };
+    } else if (remote?.[norm]?.playerId) {
+      entry = remote[norm];
+    }
+
     if (!entry?.playerId) {
       return {
         ok: false,
-        error: remote
-          ? "Unknown player code"
-          : "Can't check codes online — save/restore this code on this device first, or try again later"
+        error:
+          remote == null
+            ? "Can't reach the account server. Save this account on this device first (New account / Log in while online), then you can switch offline."
+            : "Unknown player code — create it here with New account, or check the code"
       };
     }
 
@@ -734,13 +744,16 @@
       name: restoredName
     });
 
+    // Best-effort remote register so the code works on other devices later
+    ensurePlayerCodeRegistered().catch(() => {});
+
     return {
       ok: true,
       name: restoredName,
       restored: true,
       code: formatPlayerCode(norm),
       playerId: entry.playerId,
-      fromLocal: !remote?.[norm] && !!localHit
+      fromLocal: !!localHit
     };
   }
 

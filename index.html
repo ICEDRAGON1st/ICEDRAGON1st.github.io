@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260915a">
+  <link rel="stylesheet" href="styles.css?v=20260915b">
 </head>
 <body data-guess-colors="ice">
   <div class="guess-bg" aria-hidden="true">
@@ -110,13 +110,23 @@
   </div>
 
   <div id="player-name-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="player-name-title">
-    <div class="modal-content">
+    <div class="modal-content player-name-modal-content">
       <h2 id="player-name-title">Pick a username</h2>
       <p class="modal-subtitle">You need a unique nickname to play. Once someone takes a name, nobody else can use it.</p>
       <input id="player-name-modal-input" type="text" maxlength="16" placeholder="e.g. ICE_DRAGON" autocomplete="nickname" class="player-name-modal-input" required>
       <p id="player-name-modal-status" class="player-name-status hidden" aria-live="polite"></p>
       <div class="modal-actions">
         <button id="player-name-save" type="button" class="modal-btn">Save & play</button>
+      </div>
+      <div class="gate-accounts">
+        <p class="gate-accounts-label">Already have an account?</p>
+        <div class="player-code-restore-row gate-code-row">
+          <input id="gate-code-input" type="text" maxlength="12" placeholder="Log in with code (ABCD-EFGH)" autocomplete="off" spellcheck="false">
+          <button id="gate-code-login-btn" type="button" class="hub-btn">Log in</button>
+        </div>
+        <button id="gate-new-account-btn" type="button" class="hub-btn gate-new-account-btn">Create new account</button>
+        <ul id="gate-accounts-list" class="player-accounts-list gate-accounts-list"></ul>
+        <p id="gate-code-status" class="player-name-status hidden" aria-live="polite"></p>
       </div>
     </div>
   </div>
@@ -552,7 +562,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260915a";
+    window.WORDLE_BUILD = "20260915b";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js",
       "words.js",
