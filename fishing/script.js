@@ -824,14 +824,10 @@
 
   /**
    * Luck used for fish weights + chest odds.
-   * Events/chests multiply gear luck; if you have no luck gear, a live luck
-   * mult still applies (floor of 1) so 2× / 100× admin events actually matter.
+   * Events/chests multiply the player's luck gear only (0 gear → still 0).
    */
   function effectiveLuckBonus() {
-    const gear = Math.max(0, luckBonus());
-    const mult = treasureLuckMult();
-    if (mult <= 1) return gear;
-    return Math.max(gear, 1) * mult;
+    return Math.max(0, luckBonus()) * treasureLuckMult();
   }
 
   /** Gear luck × treasure/event mult + current spot rarity (shown in live stats). */
@@ -3766,8 +3762,11 @@
       const moneyM = treasureMoneyMult();
       const effLuck = effectiveLuckBonus();
       if (luckM > 1 || eventLuckActive() || luckBoostActive()) {
+        const gear = luckBonus();
         bits.push(
-          `Luck ${formatMult(luckM)}× → effective +${formatMult(effLuck)} (odds below)`
+          gear > 0
+            ? `Luck ${formatMult(luckM)}× on your +${formatMult(gear)} gear → effective +${formatMult(effLuck)} (odds below)`
+            : `Luck ${formatMult(luckM)}× active · buy luck gear for it to multiply (odds use gear × mult)`
         );
       }
       if (moneyM > 1 || eventMoneyActive() || moneyBoostActive()) {

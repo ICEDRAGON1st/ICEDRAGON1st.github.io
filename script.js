@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915t": [
+    "Fishing Idle: luck events multiply your luck gear only (gear × event mult)"
+  ],
   "20260915s": [
     "Fishing Idle: luck events (2×–100×) correctly boost catch odds; fish guide shows active boosts"
   ],
