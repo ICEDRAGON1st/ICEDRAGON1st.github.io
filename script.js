@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914u": [
+    "Fishing Idle: rare fish odds nudged up a bit more"
+  ],
   "20260914t": [
     "Fishing Idle: boat uses full luck for fish; chest luck on boats stays at 35%"
   ],
