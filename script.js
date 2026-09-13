@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916f": [
+    "Fishing Idle: admin variant combos like shiny + gold in one event"
+  ],
   "20260916e": [
     "Fishing Idle: admin variant events (e.g. 5× gold / shiny) boost those catch odds"
   ],

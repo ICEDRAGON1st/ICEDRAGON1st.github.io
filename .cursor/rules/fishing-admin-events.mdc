@@ -36,8 +36,10 @@ For **variant** boosts (easier gold / shiny / etc.):
 }
 ```
 
-`target` may be `silver`, `gold`, `diamond`, `rainbow`, `shiny`, or `any`.
-You can also set `"kind": "gold"` (or shiny/etc.) — the game normalizes that to a variant event.
+`target` may be `silver`, `gold`, `diamond`, `rainbow`, `shiny`, `any`, or a combo like `gold+shiny` / `shiny+rainbow`.
+You can also set `"kind": "gold"` or `"kind": "shiny+gold"` — the game normalizes that to a variant event.
+
+In-game / chat commands: `5x shiny + gold`, `5x shiny plus diamond`, `3x gold shiny`.
 
 Clear with `"until": 0` and `"kind": null`.
 

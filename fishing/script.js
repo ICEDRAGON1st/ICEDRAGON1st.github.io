@@ -989,16 +989,49 @@
 
   const ADMIN_VARIANT_TARGETS = ["silver", "gold", "diamond", "rainbow", "shiny", "any"];
 
+  function decodeVariantTarget(raw) {
+    const parts = String(raw || "")
+      .toLowerCase()
+      .split(/[+&,/|\s]+/)
+      .map((p) => p.trim())
+      .filter(Boolean);
+    let primary = "";
+    let shiny = false;
+    for (const p of parts) {
+      if (p === "shiny") shiny = true;
+      else if (VARIANT_PRIMARY.includes(p) || p === "any") primary = p;
+    }
+    return { primary, shiny };
+  }
+
+  function encodeVariantTarget(spec) {
+    const bits = [];
+    if (spec?.primary) bits.push(spec.primary);
+    if (spec?.shiny) bits.push("shiny");
+    return bits.join("+");
+  }
+
   function normalizeAdminVariantTarget(raw) {
-    const t = String(raw || "").toLowerCase();
-    return ADMIN_VARIANT_TARGETS.includes(t) ? t : "";
+    const spec = decodeVariantTarget(raw);
+    if (!spec.primary && !spec.shiny) return "";
+    return encodeVariantTarget(spec);
+  }
+
+  function isVariantTargetSpec(raw) {
+    const spec = decodeVariantTarget(raw);
+    return !!(spec.primary || spec.shiny);
   }
 
   function formatAdminVariantLabel(target) {
-    const t = normalizeAdminVariantTarget(target);
-    if (t === "any") return "Any variant";
-    if (!t) return "Variant";
-    return t.charAt(0).toUpperCase() + t.slice(1);
+    const spec = decodeVariantTarget(target);
+    const bits = [];
+    if (spec.primary === "any") bits.push("Any");
+    else if (spec.primary) {
+      bits.push(spec.primary.charAt(0).toUpperCase() + spec.primary.slice(1));
+    }
+    if (spec.shiny) bits.push("Shiny");
+    if (!bits.length) return "Variant";
+    return bits.join(" + ");
   }
 
   function adminEventKindLabel(e) {
@@ -1011,9 +1044,11 @@
     if (!data || typeof data !== "object") return null;
     if (requireToken && String(data.token || "") !== ADMIN_EVENT_TOKEN) return null;
     let kind = String(data.kind || "").toLowerCase();
-    let target = normalizeAdminVariantTarget(data.target || data.variant);
-    if (ADMIN_VARIANT_TARGETS.includes(kind)) {
-      target = kind;
+    let target = normalizeAdminVariantTarget(
+      data.target || data.variant || (isVariantTargetSpec(kind) ? kind : "")
+    );
+    if (kind !== "luck" && kind !== "money" && kind !== "variant" && isVariantTargetSpec(kind)) {
+      target = normalizeAdminVariantTarget(kind);
       kind = "variant";
     }
     if (kind !== "luck" && kind !== "money" && kind !== "variant") return null;
@@ -1307,15 +1342,15 @@
     const clear = !kind || kind === "clear" || kind === "off";
     const wantGlobal = scope === "global";
     let eventKind = String(kind || "").toLowerCase();
-    let eventTarget = normalizeAdminVariantTarget(target);
-    if (ADMIN_VARIANT_TARGETS.includes(eventKind)) {
-      eventTarget = eventKind;
+    let eventTarget = normalizeAdminVariantTarget(target || (isVariantTargetSpec(eventKind) ? eventKind : ""));
+    if (eventKind !== "luck" && eventKind !== "money" && eventKind !== "variant" && isVariantTargetSpec(eventKind)) {
+      eventTarget = normalizeAdminVariantTarget(eventKind);
       eventKind = "variant";
     }
     if (eventKind === "variant" && !eventTarget) eventTarget = "gold";
     if (!clear && eventKind !== "luck" && eventKind !== "money" && eventKind !== "variant") {
       adminBusy = false;
-      setCatchLine("Try: 5x gold 10m · 3x shiny · 2x sell · clear", "miss");
+      setCatchLine("Try: 5x shiny + gold · 3x shiny · 2x sell · clear", "miss");
       return false;
     }
     const payload = {
@@ -1415,6 +1450,8 @@
       .trim()
       .toLowerCase()
       .replace(/×/g, "x")
+      .replace(/[+&|]/g, " ")
+      .replace(/\b(plus|and)\b/g, " ")
       .replace(/\s+/g, " ");
     if (!text) return null;
 
@@ -1456,7 +1493,12 @@
       }
     }
 
-    if (!usedExplicitMult && /^(sell|money|coin|luck|silver|gold|diamond|rainbow|shiny|any|variant)$/.test(text)) {
+    if (
+      !usedExplicitMult &&
+      /^(sell|money|coin|luck|silver|gold|diamond|rainbow|shiny|any|variant)(\s+(silver|gold|diamond|rainbow|shiny|any))*$/.test(
+        text
+      )
+    ) {
       mult = defaults.mult;
     }
 
@@ -1466,9 +1508,12 @@
     if (/\b(money|sell|coin)\b/.test(text) || /^(sell|money|coin)$/.test(text)) {
       return { kind: "money", minutes, mult, scope, target: "" };
     }
-    const variantWord = text.match(/\b(silver|gold|diamond|rainbow|shiny|any)\b/);
-    if (variantWord || /\bvariant\b/.test(text)) {
-      const target = normalizeAdminVariantTarget(variantWord?.[1] || "gold") || "gold";
+    const variantWords = [...text.matchAll(/\b(silver|gold|diamond|rainbow|shiny|any)\b/g)].map(
+      (m) => m[1]
+    );
+    if (variantWords.length || /\bvariant\b/.test(text)) {
+      const target =
+        normalizeAdminVariantTarget(variantWords.join("+") || "gold") || "gold";
       return { kind: "variant", minutes, mult, scope, target };
     }
     return null;
@@ -1477,7 +1522,7 @@
   async function runAdminCommand(raw) {
     const parsed = parseAdminCommand(raw);
     if (!parsed) {
-      setCatchLine("Try: 5x gold 10m · 3x shiny global · 2x sell · clear", "miss");
+      setCatchLine("Try: 5x shiny + gold · 3x shiny · 2x sell · clear", "miss");
       return;
     }
     if (parsed.scope === "local" || parsed.scope === "global") {
@@ -1574,6 +1619,10 @@
   function variantEventTarget(now = Date.now()) {
     const e = adminVariantEventLive(now);
     return e ? normalizeAdminVariantTarget(e.target) : "";
+  }
+
+  function variantEventSpec(now = Date.now()) {
+    return decodeVariantTarget(variantEventTarget(now));
   }
 
   function eventMoneyBonus(now = Date.now()) {
@@ -2027,10 +2076,10 @@
   /** Primary shares; admin variant events bias toward one tag. */
   function primaryVariantShares() {
     const shares = { silver: 0.5, gold: 0.28, diamond: 0.15, rainbow: 0.07 };
-    const target = variantEventTarget();
+    const spec = variantEventSpec();
     const mult = variantEventMult();
-    if (mult > 1 && VARIANT_PRIMARY.includes(target)) {
-      shares[target] *= mult;
+    if (mult > 1 && VARIANT_PRIMARY.includes(spec.primary)) {
+      shares[spec.primary] *= mult;
       const sum = VARIANT_PRIMARY.reduce((s, k) => s + shares[k], 0) || 1;
       VARIANT_PRIMARY.forEach((k) => {
         shares[k] /= sum;
@@ -2046,13 +2095,14 @@
     let primary = Math.min(0.1, (forBoat ? 0.008 : 0.014) + luck * 0.000035);
     let shiny = Math.min(0.04, (forBoat ? 0.0035 : 0.0065) + luck * 0.00002);
     const mult = variantEventMult();
-    const target = variantEventTarget();
-    if (mult > 1 && target) {
-      if (target === "shiny") {
+    const spec = variantEventSpec();
+    if (mult > 1 && (spec.primary || spec.shiny)) {
+      if (spec.shiny) {
         shiny = Math.min(0.9, shiny * mult);
-      } else if (target === "any") {
+      }
+      if (spec.primary === "any") {
         primary = Math.min(0.85, primary * mult);
-      } else if (VARIANT_PRIMARY.includes(target)) {
+      } else if (VARIANT_PRIMARY.includes(spec.primary)) {
         // More primaries overall, then biased toward the featured tag
         primary = Math.min(0.85, primary * Math.min(mult, 25));
       }
