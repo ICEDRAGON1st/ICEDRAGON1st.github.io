@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915w": [
+    "Fishing Idle: luck HUD uses k/m/b shorthand like sell boost"
+  ],
   "20260915v": [
     "Fishing Idle: sell boost % uses k/m/b shorthand (e.g. +37.7k%)"
   ],

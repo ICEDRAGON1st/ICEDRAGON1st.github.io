@@ -3604,7 +3604,10 @@
     if (hudSpotEl) hudSpotEl.textContent = spot.name;
     if (windowLabelEl) windowLabelEl.textContent = `${biteWindow().toFixed(2)}s`;
     if (waitLabelEl) waitLabelEl.textContent = waitCut ? `−${waitCut}%` : "—";
-    if (luckLabelEl) luckLabelEl.textContent = `+${Math.round(totalLuckBonus())}`;
+    if (luckLabelEl) {
+      const luck = totalLuckBonus();
+      luckLabelEl.textContent = luck > 0 ? `+${formatNum(luck)}` : String(Math.round(luck) || 0);
+    }
     if (sellLabelEl) sellLabelEl.textContent = formatPctBonus(totalSellFactor() - 1);
     if (eventChipEl) {
       const previewKind = eventLive ? eventKind : eventKindForStart(nextHalfHourStart());
@@ -3797,12 +3800,12 @@
       const effLuck = effectiveLuckBonus(spot);
       if (luckM > 1 || eventLuckActive() || luckBoostActive()) {
         bits.push(
-          `Luck ${formatMult(luckM)}× on gear+spot +${formatMult(base)} → HUD +${formatMult(
+          `Luck ${formatMult(luckM)}× on gear+spot +${formatNum(base)} → HUD +${formatNum(
             effLuck
           )} · top fish odds ~×${formatMult(luckM)} (odds below)`
         );
       } else {
-        bits.push(`Luck base gear+spot +${formatMult(base)} (odds below)`);
+        bits.push(`Luck base gear+spot +${formatNum(base)} (odds below)`);
       }
       if (moneyM > 1 || eventMoneyActive() || moneyBoostActive()) {
         bits.push(`Sell ${formatMult(moneyM)}× (Here pay)`);
