@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915d": [
+    "My Games: clearer message when logging in with a code that isn't saved on this device yet"
+  ],
   "20260915c": [
     "My Games: username screen now shows Log in / New account / saved accounts (was hidden behind a bare popup)"
   ],

@@ -687,8 +687,8 @@
         ok: false,
         error:
           remote == null
-            ? "Can't reach the account server. Save this account on this device first (New account / Log in while online), then you can switch offline."
-            : "Unknown player code — create it here with New account, or check the code"
+            ? "This code isn't saved on this device yet, and the account server is unreachable. Log in once while online (or on the device where that account already works) — then it stays in Saved accounts and works offline."
+            : "Unknown player code — check the code, or open New account on the device that made it and copy that code"
       };
     }
 
