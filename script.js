@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915n": [
+    "Fishing Idle: ICE_DRAGON-only admin panel (2× sell / 2× luck / clear) for global events"
+  ],
   "20260915m": [
     "Fishing Idle: ICE can trigger global 2× luck / 2× sell admin events for everyone"
   ],

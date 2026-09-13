@@ -1,5 +1,5 @@
 ---
-description: When user asks for fishing 2x luck/money admin abuse, push a global admin-event.json
+description: When user asks for fishing 2x luck/money admin abuse, trigger the global Mantle event
 alwaysApply: true
 ---
 
@@ -7,21 +7,29 @@ alwaysApply: true
 
 When the user asks to run a **global** Fishing Idle event — phrases like `2x luck admin abuse`, `2x money admin abuse`, `2x sell admin abuse`, or similar — do this immediately (do not only explain how):
 
-1. Write `fishing/admin-event.json` with an active window (default **5 minutes** unless they specify 1–60):
+## Preferred (instant): MantleDB POST
 
-```json
-{
-  "kind": "luck",
-  "until": <Date.now() + minutes*60*1000>,
-  "startedAt": <Date.now()>,
-  "note": "admin-abuse"
-}
+```powershell
+$now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
+$until = $now + (5 * 60 * 1000)   # or N minutes
+$body = @{
+  token = "ice-fish-evt-9f3a"
+  kind = "money"   # or "luck"
+  until = $until
+  startedAt = $now
+  note = "admin-abuse"
+} | ConvertTo-Json -Compress
+Invoke-RestMethod -Method Post -Uri "https://mantledb.sh/v2/icedragon1st-mygames/fishing-admin-events" -ContentType "application/json" -Body $body
 ```
 
-Use `"kind": "money"` for 2× sell / 2× money. To clear early, set `"until": 0` and `"kind": null`.
+Clear early: set `until = 0` (kind can stay luck/money).
 
-2. Commit + push immediately (Pages must update) — bump is **not** required for admin-event-only changes, but include the json file.
+## Fallback: Pages JSON
 
-3. Tell the user the event is live globally once GitHub Pages refreshes (usually under a minute; clients poll every ~15s).
+If Mantle fails, write `fishing/admin-event.json` the same shape (no token required) and commit + push.
+
+Default length is **5 minutes** unless the user specifies 1–60.
+
+ICE_DRAGON can also run these from the in-game Menu admin panel. Chat abuse still works so you can trigger without opening the game.
 
 Scheduled :00/:30 events still run; an active admin override replaces them until `until`.
