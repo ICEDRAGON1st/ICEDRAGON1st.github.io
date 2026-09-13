@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914t": [
+    "Fishing Idle: boat uses full luck for fish; chest luck on boats stays at 35%"
+  ],
   "20260914s": [
     "Fishing Idle: better fish are much more common (rare through endgame odds raised)"
   ],

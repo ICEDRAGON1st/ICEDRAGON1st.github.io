@@ -745,7 +745,8 @@
     const t = Math.max(0, Math.min(MAX_SPOT_RARITY, Number(spot?.rarity) || 0)) / MAX_SPOT_RARITY;
     // Base: ~0.10% creek → ~0.28% omega
     const base = 0.001 + t * 0.0018;
-    const luck = Math.max(0, luckBonus() * treasureLuckMult());
+    // Boat luck is 35% as strong; cast luck is full
+    const luck = Math.max(0, luckBonus() * treasureLuckMult() * (forBoat ? 0.35 : 1));
     // Soft scale so upgrades clearly raise odds (guide updates live)
     // luck 8 → ×1.08 · luck 30 → ×1.30 · luck 100 → ×2.00 · hard cap ×4
     const luckMult = 1 + Math.min(3, luck * 0.01);
@@ -1665,7 +1666,8 @@
   }
 
   function fishWeight(fish, spot, forBoat = false) {
-    const luck = luckBonus() * treasureLuckMult() * (forBoat ? 0.35 : 1);
+    // Luck is full strength for boats and casts; boat chest luck stays weaker separately
+    const luck = luckBonus() * treasureLuckMult();
     let w = (RARITY_WEIGHT[fish.rarity] || 10) * rarityFactor(fish.rarity, spot.rarity);
     if (fish.rarity === "uncommon") w += luck * 0.3;
     if (fish.rarity === "rare") w += luck * 0.28;
