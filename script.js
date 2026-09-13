@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916h": [
+    "Fishing Idle: catch book shows which fish you’ve discovered vs still missing"
+  ],
   "20260916g": [
     "Fishing Idle: luck/sell and variant admin events can run at the same time"
   ],

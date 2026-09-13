@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260916g">
+  <link rel="stylesheet" href="styles.css?v=20260916h">
 </head>
 <body data-spot="creek">
   <header class="top-bar">
@@ -16,6 +16,7 @@
     <h1>Fishing Idle</h1>
     <div class="top-stats">
       <button id="admin-btn" type="button" class="guide-btn admin-btn hidden" hidden>Admin</button>
+      <button id="book-btn" type="button" class="guide-btn">Catch book</button>
       <button id="guide-btn" type="button" class="guide-btn">Fish guide</button>
       <span id="hud-spot">Creek</span>
       · Cooler <strong id="hud-cooler">0</strong>
@@ -239,6 +240,24 @@
 
   <div id="float-layer" class="float-layer" aria-hidden="true"></div>
 
+  <div id="book-overlay" class="overlay book-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="book-title">
+    <div class="overlay-card guide-card">
+      <div class="guide-head">
+        <div>
+          <p class="eyebrow">Collection</p>
+          <h2 id="book-title">Catch book</h2>
+        </div>
+        <button id="book-close" type="button" class="btn btn-ghost guide-close">Close</button>
+      </div>
+      <p class="lead guide-lead book-lead">
+        Every fish you land is logged here.
+        <strong id="book-progress">0 / 0</strong> discovered.
+        Unknown entries stay silhouettes until you catch them.
+      </p>
+      <div id="book-body" class="book-body"></div>
+    </div>
+  </div>
+
   <div id="guide-overlay" class="overlay guide-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="guide-title">
     <div class="overlay-card guide-card">
       <div class="guide-head">
@@ -356,6 +375,7 @@
       <p class="score-line">Best catch: <strong id="overlay-best">—</strong></p>
       <div class="overlay-actions">
         <button id="start-btn" type="button" class="btn">Play</button>
+        <button id="menu-book-btn" type="button" class="btn btn-ghost">Catch book</button>
         <button id="menu-guide-btn" type="button" class="btn btn-ghost">Fish guide</button>
         <button id="games-btn" type="button" class="btn btn-ghost">Games</button>
       </div>
@@ -370,6 +390,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260914c"></script>
-  <script src="script.js?v=20260916g"></script>
+  <script src="script.js?v=20260916h"></script>
 </body>
 </html>

@@ -313,6 +313,112 @@ body.modal-open {
   padding: 0.5rem 0.75rem;
 }
 
+.book-overlay {
+  z-index: 45;
+  overscroll-behavior: contain;
+  touch-action: none;
+}
+
+.book-overlay .guide-card {
+  width: min(640px, 100%);
+}
+
+.book-lead strong {
+  color: var(--foam);
+}
+
+.book-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.book-section-title {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.book-section-title span {
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  opacity: 0.85;
+}
+
+.book-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(7.2rem, 1fr));
+  gap: 0.45rem;
+}
+
+.book-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.55rem 0.4rem 0.5rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.28);
+  text-align: center;
+  min-width: 0;
+}
+
+.book-card-glyph {
+  width: 3.2rem;
+  height: 1.6rem;
+  display: grid;
+  place-items: center;
+}
+
+.book-card-glyph .fish-glyph {
+  width: 3.2rem;
+  height: 1.6rem;
+}
+
+.book-card-name {
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.book-card-meta {
+  font-size: 0.62rem;
+  color: var(--muted);
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.book-card.is-unknown {
+  opacity: 0.72;
+}
+
+.book-card.is-unknown .book-card-sil .fish-glyph {
+  filter: brightness(0) opacity(0.55);
+}
+
+.book-card.is-unknown .book-card-name {
+  letter-spacing: 0.12em;
+}
+
+.book-card.is-caught {
+  border-color: rgba(46, 196, 182, 0.35);
+}
+
 .guide-overlay {
   z-index: 45;
   overscroll-behavior: contain;

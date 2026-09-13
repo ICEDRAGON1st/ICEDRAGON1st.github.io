@@ -699,14 +699,20 @@
   const gamesBtn = document.getElementById("games-btn");
   const menuBtn = document.getElementById("menu-btn");
   const guideBtn = document.getElementById("guide-btn");
+  const bookBtn = document.getElementById("book-btn");
   const menuGuideBtn = document.getElementById("menu-guide-btn");
+  const menuBookBtn = document.getElementById("menu-book-btn");
   const guideOverlay = document.getElementById("guide-overlay");
+  const bookOverlay = document.getElementById("book-overlay");
   const adminOverlay = document.getElementById("admin-overlay");
   const adminBtn = document.getElementById("admin-btn");
   const adminClose = document.getElementById("admin-close");
   const guideClose = document.getElementById("guide-close");
+  const bookClose = document.getElementById("book-close");
   const guideBody = document.getElementById("guide-body");
   const guideVariantsBody = document.getElementById("guide-variants-body");
+  const bookBody = document.getElementById("book-body");
+  const bookProgressEl = document.getElementById("book-progress");
   const guideSpotMult = document.getElementById("guide-spot-mult");
   const guideSpotName = document.getElementById("guide-spot-name");
   const floatLayer = document.getElementById("float-layer");
@@ -794,6 +800,7 @@
       autoSellRarities: defaultAutoSell(),
       bestCatchScore: 0,
       bestCatchId: "",
+      caught: {},
       boatLevel: 0,
       catches: 0,
       perfects: 0,
@@ -2177,6 +2184,15 @@
         const match = FISH.find((f) => catchScore(f) === next.bestCatchScore);
         if (match) next.bestCatchId = match.id;
       }
+      next.caught = {};
+      if (raw.caught && typeof raw.caught === "object") {
+        Object.keys(raw.caught).forEach((id) => {
+          if (fishById(id) && raw.caught[id]) next.caught[id] = true;
+        });
+      }
+      if (next.bestCatchId && fishById(next.bestCatchId)) {
+        next.caught[next.bestCatchId] = true;
+      }
       next.lastTick = Math.max(0, Number(raw.lastTick) || Date.now());
       SPOTS.forEach((s) => {
         next.unlocked[s.id] = s.id === "creek" || !!raw.unlocked?.[s.id];
@@ -2194,6 +2210,10 @@
             .filter(Boolean)
             .slice(0, coolerMaxFromOwned(next.owned))
         : [];
+      next.cooler.forEach((entry) => {
+        const id = coolerEntryId(entry);
+        if (id && fishById(id)) next.caught[id] = true;
+      });
       const now = Date.now();
       const moneyUntil = Math.max(
         0,
@@ -2420,7 +2440,8 @@
   }
 
   function noteCatch(fish) {
-    if (!fish) return;
+    if (!fish || isTreasureItem(fish)) return;
+    markCaught(fish);
     const score = catchScore(fish);
     if (score <= (state.bestCatchScore || 0)) return;
     state.bestCatchScore = score;
@@ -2429,6 +2450,23 @@
       localStorage.setItem(HIGH_SCORE_KEY, String(score));
     } catch {}
     maybeSubmitBest(true);
+  }
+
+  function markCaught(fish) {
+    if (!fish || isTreasureItem(fish) || !fish.id) return false;
+    if (!state.caught || typeof state.caught !== "object") state.caught = {};
+    if (state.caught[fish.id]) return false;
+    state.caught[fish.id] = true;
+    return true;
+  }
+
+  function hasCaught(id) {
+    return !!(state.caught && state.caught[id]);
+  }
+
+  function caughtCount() {
+    if (!state.caught || typeof state.caught !== "object") return 0;
+    return FISH.reduce((n, f) => n + (state.caught[f.id] ? 1 : 0), 0);
   }
 
   function maybeSubmitBest(force = false) {
@@ -4552,6 +4590,47 @@
         .join("");
   }
 
+  function renderBook() {
+    const total = FISH.length;
+    const found = caughtCount();
+    if (bookProgressEl) bookProgressEl.textContent = `${found} / ${total}`;
+    if (!bookBody) return;
+    const byRarity = {};
+    RARITIES.forEach((r) => {
+      byRarity[r] = [];
+    });
+    FISH.forEach((fish) => {
+      if (!byRarity[fish.rarity]) byRarity[fish.rarity] = [];
+      byRarity[fish.rarity].push(fish);
+    });
+    bookBody.innerHTML = RARITIES.map((rarity) => {
+      const list = byRarity[rarity] || [];
+      if (!list.length) return "";
+      const got = list.filter((f) => hasCaught(f.id)).length;
+      const cards = list
+        .map((fish) => {
+          const known = hasCaught(fish.id);
+          if (known) {
+            return `<div class="book-card is-caught rarity-${fish.rarity}" title="${fish.name} · ${fish.rarity} · ${formatNum(fish.value)} coins">
+              <span class="book-card-glyph" aria-hidden="true">${fishGlyphHtml(fish)}</span>
+              <span class="book-card-name">${fish.name}</span>
+              <span class="book-card-meta">${fish.rarity} · ${formatNum(fish.value)}</span>
+            </div>`;
+          }
+          return `<div class="book-card is-unknown rarity-${fish.rarity}" title="Not caught yet">
+              <span class="book-card-glyph book-card-sil" aria-hidden="true">${fishGlyphHtml(fish)}</span>
+              <span class="book-card-name">???</span>
+              <span class="book-card-meta">${fish.rarity}</span>
+            </div>`;
+        })
+        .join("");
+      return `<section class="book-section">
+        <h3 class="book-section-title rarity-${rarity}">${rarity} <span>${got}/${list.length}</span></h3>
+        <div class="book-grid">${cards}</div>
+      </section>`;
+    }).join("");
+  }
+
   let lastGuideBoostKey = "";
 
   function maybeRefreshGuide() {
@@ -4609,6 +4688,19 @@
 
   function closeGuide() {
     guideOverlay?.classList.add("hidden");
+    unlockPageScroll();
+  }
+
+  function openBook() {
+    renderBook();
+    bookOverlay?.classList.remove("hidden");
+    lockPageScroll();
+    const root = bookOverlay?.querySelector(".guide-card");
+    if (root) root.scrollTop = 0;
+  }
+
+  function closeBook() {
+    bookOverlay?.classList.add("hidden");
     unlockPageScroll();
   }
 
@@ -4697,14 +4789,43 @@
     runAdminCommand(raw);
   });
   guideBtn?.addEventListener("click", openGuide);
+  bookBtn?.addEventListener("click", openBook);
   menuGuideBtn?.addEventListener("click", () => {
     closeMenu();
     openGuide();
   });
+  menuBookBtn?.addEventListener("click", () => {
+    closeMenu();
+    openBook();
+  });
   guideClose?.addEventListener("click", closeGuide);
+  bookClose?.addEventListener("click", closeBook);
   guideOverlay?.addEventListener("click", (e) => {
     if (e.target === guideOverlay) closeGuide();
   });
+  bookOverlay?.addEventListener("click", (e) => {
+    if (e.target === bookOverlay) closeBook();
+  });
+  bookOverlay?.addEventListener(
+    "wheel",
+    (e) => {
+      const card = bookOverlay.querySelector(".guide-card");
+      if (!card) {
+        e.preventDefault();
+        return;
+      }
+      if (!card.contains(e.target) && e.target !== card) {
+        e.preventDefault();
+        return;
+      }
+      const atTop = card.scrollTop <= 0;
+      const atBottom = card.scrollTop + card.clientHeight >= card.scrollHeight - 1;
+      if ((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom)) {
+        e.preventDefault();
+      }
+    },
+    { passive: false }
+  );
   guideOverlay?.addEventListener(
     "wheel",
     (e) => {
@@ -4730,6 +4851,11 @@
     if (adminOverlay && !adminOverlay.classList.contains("hidden")) {
       e.preventDefault();
       closeAdmin();
+      return;
+    }
+    if (bookOverlay && !bookOverlay.classList.contains("hidden")) {
+      e.preventDefault();
+      closeBook();
       return;
     }
     if (guideOverlay && !guideOverlay.classList.contains("hidden")) {
@@ -4761,10 +4887,15 @@
     const fish = fishById(fishId) || fishFromCatchScore(n);
     if (!fish && n <= (state.bestCatchScore || 0)) return false;
     state.bestCatchScore = Math.max(state.bestCatchScore || 0, n);
-    if (fish) state.bestCatchId = fish.id;
-    else if (!state.bestCatchId) {
+    if (fish) {
+      state.bestCatchId = fish.id;
+      markCaught(fish);
+    } else if (!state.bestCatchId) {
       const match = fishFromCatchScore(state.bestCatchScore);
-      if (match) state.bestCatchId = match.id;
+      if (match) {
+        state.bestCatchId = match.id;
+        markCaught(match);
+      }
     }
     try {
       localStorage.setItem(HIGH_SCORE_KEY, String(state.bestCatchScore));
