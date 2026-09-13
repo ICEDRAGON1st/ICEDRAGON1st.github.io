@@ -1,11 +1,11 @@
 ---
-description: When user asks for fishing Nx luck/money admin abuse, push admin-event.json (Mantle is often rate-limited)
+description: When user asks for fishing Nx luck/money/variant admin abuse, push admin-event.json (Mantle is often rate-limited)
 alwaysApply: true
 ---
 
 # Fishing admin abuse events
 
-When the user asks to run a **global** Fishing Idle event — phrases like `2x luck admin abuse`, `5x sell 10m admin abuse`, or similar — do this immediately:
+When the user asks to run a **global** Fishing Idle event — phrases like `2x luck admin abuse`, `5x sell 10m admin abuse`, `5x gold admin abuse`, `3x shiny 10m`, or similar — do this immediately:
 
 ## Preferred: Pages JSON (reliable while Mantle is rate-limited)
 
@@ -21,7 +21,25 @@ When the user asks to run a **global** Fishing Idle event — phrases like `2x l
 }
 ```
 
-Use `"kind": "luck"` for luck. Clear with `"until": 0` and `"kind": null`.
+Use `"kind": "luck"` for luck.
+
+For **variant** boosts (easier gold / shiny / etc.):
+
+```json
+{
+  "kind": "variant",
+  "target": "gold",
+  "until": <Date.now() + minutes*60*1000>,
+  "startedAt": <Date.now()>,
+  "mult": <number>,
+  "note": "admin-abuse"
+}
+```
+
+`target` may be `silver`, `gold`, `diamond`, `rainbow`, `shiny`, or `any`.
+You can also set `"kind": "gold"` (or shiny/etc.) — the game normalizes that to a variant event.
+
+Clear with `"until": 0` and `"kind": null`.
 
 2. Commit + push immediately (no build bump needed for json-only).
 
@@ -29,8 +47,10 @@ Use `"kind": "luck"` for luck. Clear with `"until": 0` and `"kind": null`.
 
 Only if JSON push isn’t enough / user wants instant before Pages updates:
 
-`POST https://mantledb.sh/v2/icedragon1st-mygames/fishing-admin-events` with `token: "ice-fish-evt-9f3a"`, `kind`, `until`, `startedAt`, `mult`.
+`POST https://mantledb.sh/v2/icedragon1st-mygames/fishing-admin-events` with `token: "ice-fish-evt-9f3a"`, `kind`, `until`, `startedAt`, `mult`, and for variants also `target` / `variant`.
 
 Defaults: **2×** for **5 minutes**. Clamp mult **1.5–1000**, minutes 1–180.
+
+Variant admin events stack with the normal :00/:30 sell/luck windows (they do not replace them). Sell/luck admin still overrides the scheduled window.
 
 ICE_DRAGON in-game **Admin** applies instantly on their device and retries Mantle sync in the background. Chat abuse via JSON is the reliable way to hit **all** players when Mantle is hot.

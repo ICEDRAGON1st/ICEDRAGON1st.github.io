@@ -2322,6 +2322,28 @@ body[data-spot="mythforge"] .water-mist {
   color: #b8ecff;
 }
 
+.event-banner.event-variant {
+  border-color: rgba(240, 193, 75, 0.75);
+  background: linear-gradient(135deg, rgba(70, 45, 8, 0.95), rgba(20, 14, 6, 0.94));
+}
+
+.event-banner.event-variant strong,
+.event-banner.event-variant .event-banner-time {
+  color: #ffe29a;
+}
+
+.event-chip.event-variant {
+  border-color: rgba(240, 193, 75, 0.45);
+}
+
+.event-chip.event-variant strong {
+  color: #f0c14b;
+}
+
+body.event-variant .cast-btn {
+  box-shadow: 0 0 0 2px rgba(240, 193, 75, 0.35);
+}
+
 .event-banner.event-idle {
   border-color: rgba(255, 255, 255, 0.14);
   background: linear-gradient(135deg, rgba(24, 28, 38, 0.9), rgba(10, 12, 18, 0.9));

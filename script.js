@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916e": [
+    "Fishing Idle: admin variant events (e.g. 5× gold / shiny) boost those catch odds"
+  ],
   "20260916d": [
     "Fishing Idle: rare and higher fish are more common (odds + early spots softened)"
   ],

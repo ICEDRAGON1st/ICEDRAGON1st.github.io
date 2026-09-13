@@ -987,20 +987,55 @@
     return Math.max(1, Math.min(ADMIN_MAX_MINUTES, v));
   }
 
+  const ADMIN_VARIANT_TARGETS = ["silver", "gold", "diamond", "rainbow", "shiny", "any"];
+
+  function normalizeAdminVariantTarget(raw) {
+    const t = String(raw || "").toLowerCase();
+    return ADMIN_VARIANT_TARGETS.includes(t) ? t : "";
+  }
+
+  function formatAdminVariantLabel(target) {
+    const t = normalizeAdminVariantTarget(target);
+    if (t === "any") return "Any variant";
+    if (!t) return "Variant";
+    return t.charAt(0).toUpperCase() + t.slice(1);
+  }
+
+  function adminEventKindLabel(e) {
+    if (!e) return "";
+    if (e.kind === "variant") return formatAdminVariantLabel(e.target);
+    return e.kind === "luck" ? "luck" : "sell";
+  }
+
   function parseAdminEventPayload(data, requireToken = false) {
     if (!data || typeof data !== "object") return null;
     if (requireToken && String(data.token || "") !== ADMIN_EVENT_TOKEN) return null;
-    const kind = String(data.kind || "").toLowerCase();
-    if (kind !== "luck" && kind !== "money") return null;
+    let kind = String(data.kind || "").toLowerCase();
+    let target = normalizeAdminVariantTarget(data.target || data.variant);
+    if (ADMIN_VARIANT_TARGETS.includes(kind)) {
+      target = kind;
+      kind = "variant";
+    }
+    if (kind !== "luck" && kind !== "money" && kind !== "variant") return null;
+    if (kind === "variant" && !target) target = "gold";
     const until = Math.floor(Number(data.until) || 0);
     if (!Number.isFinite(until) || until <= Date.now()) return null;
     const startedAt = Math.floor(Number(data.startedAt) || until - EVENT_ACTIVE_MS);
     return {
       kind,
+      target: kind === "variant" ? target : "",
       until,
       startedAt: Number.isFinite(startedAt) ? startedAt : Date.now(),
       mult: clampAdminMult(data.mult ?? ADMIN_DEFAULT_MULT)
     };
+  }
+
+  function isBoostAdminPayload(e) {
+    return !!e && (e.kind === "luck" || e.kind === "money");
+  }
+
+  function isVariantAdminPayload(e) {
+    return !!e && e.kind === "variant";
   }
 
   function pickBetterAdminEvent(a, b) {
@@ -1048,6 +1083,16 @@
     if (!e) return null;
     if (now >= e.until) return null;
     return e;
+  }
+
+  function adminBoostEventLive(now = Date.now()) {
+    const e = adminEventLive(now);
+    return isBoostAdminPayload(e) ? e : null;
+  }
+
+  function adminVariantEventLive(now = Date.now()) {
+    const e = adminEventLive(now);
+    return isVariantAdminPayload(e) ? e : null;
   }
 
   async function fetchAdminJson(url, { trackRate = false } = {}) {
@@ -1167,7 +1212,7 @@
     if (live) {
       status.textContent = `Live (${localOnly ? "local" : pending ? "global · syncing" : "global"}): ${formatMult(
         live.mult
-      )}× ${live.kind === "luck" ? "luck" : "sell"} · ${formatTreasureClock(live.until - Date.now())} left`;
+      )}× ${adminEventKindLabel(live)} · ${formatTreasureClock(live.until - Date.now())} left`;
     } else {
       status.textContent = "No admin event · pick Local or Global, then start";
     }
@@ -1229,6 +1274,7 @@
       adminEventCache = parseAdminEventPayload(payload, true);
     }
     lastAnnouncedEventKey = "";
+    lastAnnouncedVariantKey = "";
     syncAdminPanel();
     renderStats();
   }
@@ -1246,7 +1292,8 @@
     kind,
     minutes = ADMIN_DEFAULT_MINUTES,
     mult = ADMIN_DEFAULT_MULT,
-    scope = getAdminScope()
+    scope = getAdminScope(),
+    target = ""
   ) {
     if (!isFishingOwner()) {
       setCatchLine("Admin commands are ICE_DRAGON only", "miss");
@@ -1259,9 +1306,23 @@
     const eventMult = clampAdminMult(mult);
     const clear = !kind || kind === "clear" || kind === "off";
     const wantGlobal = scope === "global";
+    let eventKind = String(kind || "").toLowerCase();
+    let eventTarget = normalizeAdminVariantTarget(target);
+    if (ADMIN_VARIANT_TARGETS.includes(eventKind)) {
+      eventTarget = eventKind;
+      eventKind = "variant";
+    }
+    if (eventKind === "variant" && !eventTarget) eventTarget = "gold";
+    if (!clear && eventKind !== "luck" && eventKind !== "money" && eventKind !== "variant") {
+      adminBusy = false;
+      setCatchLine("Try: 5x gold 10m · 3x shiny · 2x sell · clear", "miss");
+      return false;
+    }
     const payload = {
       token: ADMIN_EVENT_TOKEN,
-      kind: clear ? "luck" : kind,
+      kind: clear ? "luck" : eventKind,
+      target: clear || eventKind !== "variant" ? "" : eventTarget,
+      variant: clear || eventKind !== "variant" ? "" : eventTarget,
       until: clear ? 0 : now + mins * 60_000,
       startedAt: now,
       mult: clear ? ADMIN_DEFAULT_MULT : eventMult,
@@ -1269,6 +1330,13 @@
       note: wantGlobal ? "in-game-admin-global" : "in-game-admin-local",
       by: OWNER_NAME
     };
+    const label = clear
+      ? ""
+      : eventKind === "variant"
+        ? formatAdminVariantLabel(eventTarget)
+        : eventKind === "luck"
+          ? "luck"
+          : "sell";
 
     applyAdminLocally(payload, clear);
 
@@ -1278,9 +1346,7 @@
         setCatchLine("Local admin event cleared", "treasure");
       } else {
         setCatchLine(
-          `LOCAL ADMIN · ${formatMult(eventMult)}× ${
-            kind === "luck" ? "luck" : "sell"
-          } for ${mins}m (only you)`,
+          `LOCAL ADMIN · ${formatMult(eventMult)}× ${label} for ${mins}m (only you)`,
           "treasure"
         );
         window.HubSound?.play?.("win");
@@ -1296,9 +1362,7 @@
       setCatchLine("Clearing global admin event…", "treasure");
     } else {
       setCatchLine(
-        `GLOBAL ADMIN · ${formatMult(eventMult)}× ${
-          kind === "luck" ? "luck" : "sell"
-        } for ${mins}m (syncing…)`,
+        `GLOBAL ADMIN · ${formatMult(eventMult)}× ${label} for ${mins}m (syncing…)`,
         "treasure"
       );
       window.HubSound?.play?.("win");
@@ -1317,9 +1381,7 @@
         setCatchLine(
           clear
             ? "Cleared here · Mantle busy, will sync clear soon"
-            : `Live here · ${formatMult(eventMult)}× ${
-                kind === "luck" ? "luck" : "sell"
-              } · syncing global when Mantle frees up`,
+            : `Live here · ${formatMult(eventMult)}× ${label} · syncing global when Mantle frees up`,
           "treasure"
         );
         return true;
@@ -1330,9 +1392,7 @@
       setCatchLine(
         clear
           ? "Global admin event cleared"
-          : `GLOBAL ADMIN · ${formatMult(eventMult)}× ${
-              kind === "luck" ? "luck" : "sell"
-            } live for ${mins}m (all players)`,
+          : `GLOBAL ADMIN · ${formatMult(eventMult)}× ${label} live for ${mins}m (all players)`,
         "treasure"
       );
       return true;
@@ -1369,7 +1429,7 @@
     }
 
     if (/^(clear|off|stop|end)\b/.test(text)) {
-      return { kind: "clear", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope };
+      return { kind: "clear", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
     }
 
     let mult = defaults.mult;
@@ -1396,15 +1456,20 @@
       }
     }
 
-    if (!usedExplicitMult && /^(sell|money|coin|luck)$/.test(text)) {
+    if (!usedExplicitMult && /^(sell|money|coin|luck|silver|gold|diamond|rainbow|shiny|any|variant)$/.test(text)) {
       mult = defaults.mult;
     }
 
     if (/\bluck\b/.test(text) || text === "luck") {
-      return { kind: "luck", minutes, mult, scope };
+      return { kind: "luck", minutes, mult, scope, target: "" };
     }
     if (/\b(money|sell|coin)\b/.test(text) || /^(sell|money|coin)$/.test(text)) {
-      return { kind: "money", minutes, mult, scope };
+      return { kind: "money", minutes, mult, scope, target: "" };
+    }
+    const variantWord = text.match(/\b(silver|gold|diamond|rainbow|shiny|any)\b/);
+    if (variantWord || /\bvariant\b/.test(text)) {
+      const target = normalizeAdminVariantTarget(variantWord?.[1] || "gold") || "gold";
+      return { kind: "variant", minutes, mult, scope, target };
     }
     return null;
   }
@@ -1412,13 +1477,19 @@
   async function runAdminCommand(raw) {
     const parsed = parseAdminCommand(raw);
     if (!parsed) {
-      setCatchLine("Try: 5x sell 10m local · 3x luck global · clear", "miss");
+      setCatchLine("Try: 5x gold 10m · 3x shiny global · 2x sell · clear", "miss");
       return;
     }
     if (parsed.scope === "local" || parsed.scope === "global") {
       setAdminScope(parsed.scope);
     }
-    await publishAdminEvent(parsed.kind, parsed.minutes, parsed.mult, parsed.scope);
+    await publishAdminEvent(
+      parsed.kind,
+      parsed.minutes,
+      parsed.mult,
+      parsed.scope,
+      parsed.target || ""
+    );
   }
 
   function scheduledEventWindowStart(now = Date.now()) {
@@ -1426,20 +1497,20 @@
   }
 
   function eventWindowStart(now = Date.now()) {
-    const admin = adminEventLive(now);
+    const admin = adminBoostEventLive(now);
     if (admin) return admin.startedAt;
     return scheduledEventWindowStart(now);
   }
 
-  /** True during admin override, or first 5 minutes after :00 / :30. */
+  /** True during sell/luck admin override, or first 5 minutes after :00 / :30. */
   function eventIsLive(now = Date.now()) {
-    if (adminEventLive(now)) return true;
+    if (adminBoostEventLive(now)) return true;
     const start = scheduledEventWindowStart(now);
     return now >= start && now < start + EVENT_ACTIVE_MS;
   }
 
   function eventMsLeft(now = Date.now()) {
-    const admin = adminEventLive(now);
+    const admin = adminBoostEventLive(now);
     if (admin) return Math.max(0, admin.until - now);
     if (!eventIsLive(now)) return 0;
     return Math.max(0, scheduledEventWindowStart(now) + EVENT_ACTIVE_MS - now);
@@ -1471,9 +1542,9 @@
     return eventSlotIndex(startTs) % 2 === 0 ? "money" : "luck";
   }
 
-  /** Live event kind, or null when between windows. */
+  /** Live sell/luck event kind, or null when between windows. Variant admin is separate. */
   function currentEventKind(now = Date.now()) {
-    const admin = adminEventLive(now);
+    const admin = adminBoostEventLive(now);
     if (admin) return admin.kind;
     if (!eventIsLive(now)) return null;
     return eventKindForStart(scheduledEventWindowStart(now));
@@ -1490,9 +1561,19 @@
   function liveEventMult(now = Date.now()) {
     const kind = currentEventKind(now);
     if (!kind) return 1;
-    const admin = adminEventLive(now);
+    const admin = adminBoostEventLive(now);
     if (admin) return clampAdminMult(admin.mult);
     return kind === "luck" ? 1 + EVENT_LUCK_BONUS : 1 + EVENT_MONEY_BONUS;
+  }
+
+  function variantEventMult(now = Date.now()) {
+    const e = adminVariantEventLive(now);
+    return e ? clampAdminMult(e.mult) : 1;
+  }
+
+  function variantEventTarget(now = Date.now()) {
+    const e = adminVariantEventLive(now);
+    return e ? normalizeAdminVariantTarget(e.target) : "";
   }
 
   function eventMoneyBonus(now = Date.now()) {
@@ -1520,10 +1601,30 @@
   }
 
   let lastAnnouncedEventKey = "";
+  let lastAnnouncedVariantKey = "";
 
   function maybeAnnounceEvent() {
+    const variant = adminVariantEventLive();
+    if (variant) {
+      const vKey = `variant:${variant.target}:${variant.until}:${variant.mult}`;
+      if (vKey !== lastAnnouncedVariantKey) {
+        lastAnnouncedVariantKey = vKey;
+        const left = formatTreasureClock(Math.max(0, variant.until - Date.now()));
+        setCatchLine(
+          `ADMIN EVENT · ${formatMult(variant.mult)}× ${formatAdminVariantLabel(
+            variant.target
+          )} odds (${left} left)`,
+          "treasure"
+        );
+        window.HubSound?.play?.("win");
+        window.HubConfetti?.burst?.();
+      }
+    } else {
+      lastAnnouncedVariantKey = "";
+    }
+
     if (!eventIsLive()) return;
-    const admin = adminEventLive();
+    const admin = adminBoostEventLive();
     const key = admin
       ? `admin:${admin.kind}:${admin.until}:${admin.mult}`
       : String(eventSlotKey(eventWindowStart()));
@@ -1554,24 +1655,35 @@
     const live = eventIsLive();
     const kind = currentEventKind();
     const left = eventMsLeft();
-    const admin = adminEventLive();
+    const admin = adminBoostEventLive();
+    const variant = adminVariantEventLive();
     const nextStart = nextHalfHourStart();
     const nextKind = eventKindForStart(nextStart);
     const untilNext = msUntilNextEvent();
     const previewKind = live ? kind : nextKind;
     const multLabel = formatMult(live ? liveEventMult() : 2);
+    const variantMult = variant ? formatMult(variant.mult) : "";
+    const variantLeft = variant
+      ? formatTreasureClock(Math.max(0, variant.until - Date.now()))
+      : "";
 
     if (eventBannerEl) {
-      eventBannerEl.classList.toggle("event-idle", !live);
-      eventBannerEl.classList.toggle("is-live", live);
-      eventBannerEl.classList.toggle("event-money", previewKind === "money");
-      eventBannerEl.classList.toggle("event-luck", previewKind === "luck");
+      eventBannerEl.classList.toggle("event-idle", !live && !variant);
+      eventBannerEl.classList.toggle("is-live", live || !!variant);
+      eventBannerEl.classList.toggle("event-money", !variant && previewKind === "money");
+      eventBannerEl.classList.toggle("event-luck", !variant && previewKind === "luck");
+      eventBannerEl.classList.toggle("event-variant", !!variant);
     }
     if (eventBannerTagEl) {
-      eventBannerTagEl.textContent = live ? (admin ? "ADMIN LIVE" : "LIVE NOW") : "Next event";
+      eventBannerTagEl.textContent =
+        variant || admin ? "ADMIN LIVE" : live ? "LIVE NOW" : "Next event";
     }
     if (eventBannerTitleEl) {
-      if (live && kind === "luck") {
+      if (variant) {
+        eventBannerTitleEl.textContent = `${variantMult}× ${formatAdminVariantLabel(
+          variant.target
+        )} · Admin`;
+      } else if (live && kind === "luck") {
         eventBannerTitleEl.textContent = admin
           ? `${multLabel}× Luck · Admin`
           : "2× Luck Event";
@@ -1585,9 +1697,13 @@
       }
     }
     if (eventBannerTimeEl) {
-      eventBannerTimeEl.textContent = live
-        ? `${formatTreasureClock(left)} left`
-        : `in ${formatTreasureClock(untilNext)}`;
+      if (variant) {
+        eventBannerTimeEl.textContent = `${variantLeft} left`;
+      } else {
+        eventBannerTimeEl.textContent = live
+          ? `${formatTreasureClock(left)} left`
+          : `in ${formatTreasureClock(untilNext)}`;
+      }
     }
   }
 
@@ -1908,19 +2024,47 @@
     };
   }
 
+  /** Primary shares; admin variant events bias toward one tag. */
+  function primaryVariantShares() {
+    const shares = { silver: 0.5, gold: 0.28, diamond: 0.15, rainbow: 0.07 };
+    const target = variantEventTarget();
+    const mult = variantEventMult();
+    if (mult > 1 && VARIANT_PRIMARY.includes(target)) {
+      shares[target] *= mult;
+      const sum = VARIANT_PRIMARY.reduce((s, k) => s + shares[k], 0) || 1;
+      VARIANT_PRIMARY.forEach((k) => {
+        shares[k] /= sum;
+      });
+    }
+    return shares;
+  }
+
   /** Primary (silver/gold/diamond/rainbow) is exclusive; shiny can stack as a second tag. */
   function variantRollChances(spot = currentSpot(), forBoat = false) {
     const luck = effectiveLuckBonus(spot);
     // Rarer rolls: low base chance, slow luck scale, hard caps
-    const primary = Math.min(0.1, (forBoat ? 0.008 : 0.014) + luck * 0.000035);
-    const shiny = Math.min(0.04, (forBoat ? 0.0035 : 0.0065) + luck * 0.00002);
+    let primary = Math.min(0.1, (forBoat ? 0.008 : 0.014) + luck * 0.000035);
+    let shiny = Math.min(0.04, (forBoat ? 0.0035 : 0.0065) + luck * 0.00002);
+    const mult = variantEventMult();
+    const target = variantEventTarget();
+    if (mult > 1 && target) {
+      if (target === "shiny") {
+        shiny = Math.min(0.9, shiny * mult);
+      } else if (target === "any") {
+        primary = Math.min(0.85, primary * mult);
+      } else if (VARIANT_PRIMARY.includes(target)) {
+        // More primaries overall, then biased toward the featured tag
+        primary = Math.min(0.85, primary * Math.min(mult, 25));
+      }
+    }
+    const shares = primaryVariantShares();
     return {
       primary,
       shiny,
-      silver: primary * 0.5,
-      gold: primary * 0.28,
-      diamond: primary * 0.15,
-      rainbow: primary * 0.07
+      silver: primary * shares.silver,
+      gold: primary * shares.gold,
+      diamond: primary * shares.diamond,
+      rainbow: primary * shares.rainbow
     };
   }
 
@@ -1928,11 +2072,17 @@
     const chances = variantRollChances(spot, forBoat);
     let variant = "";
     if (Math.random() < chances.primary) {
-      const r = Math.random();
-      if (r < 0.5) variant = "silver";
-      else if (r < 0.78) variant = "gold";
-      else if (r < 0.93) variant = "diamond";
-      else variant = "rainbow";
+      const shares = primaryVariantShares();
+      let r = Math.random();
+      for (let i = 0; i < VARIANT_PRIMARY.length; i += 1) {
+        const key = VARIANT_PRIMARY[i];
+        r -= shares[key];
+        if (r <= 0) {
+          variant = key;
+          break;
+        }
+      }
+      if (!variant) variant = VARIANT_PRIMARY[VARIANT_PRIMARY.length - 1];
     }
     return { variant, shiny: Math.random() < chances.shiny };
   }
@@ -3834,7 +3984,8 @@
     document.body.classList.toggle("treasure-luck-boost", luckOn);
     document.body.classList.toggle("event-money", eventMoneyActive());
     document.body.classList.toggle("event-luck", eventLuckActive());
-    document.body.classList.toggle("event-idle", !eventLive);
+    document.body.classList.toggle("event-variant", !!adminVariantEventLive());
+    document.body.classList.toggle("event-idle", !eventLive && !adminVariantEventLive());
     applySpotTheme();
     if (coinCountEl) coinCountEl.textContent = formatNum(state.coins);
     if (spotLabelEl) spotLabelEl.textContent = spot.name;
@@ -3847,15 +3998,22 @@
     }
     if (sellLabelEl) sellLabelEl.textContent = formatPctBonus(totalSellFactor() - 1);
     if (eventChipEl) {
+      const variant = adminVariantEventLive();
       const previewKind = eventLive ? eventKind : eventKindForStart(nextHalfHourStart());
-      eventChipEl.classList.toggle("event-money", previewKind === "money");
-      eventChipEl.classList.toggle("event-luck", previewKind === "luck");
-      eventChipEl.classList.toggle("event-idle", !eventLive);
+      eventChipEl.classList.toggle("event-money", !variant && previewKind === "money");
+      eventChipEl.classList.toggle("event-luck", !variant && previewKind === "luck");
+      eventChipEl.classList.toggle("event-variant", !!variant);
+      eventChipEl.classList.toggle("event-idle", !eventLive && !variant);
     }
     if (eventLabelEl) {
-      const admin = adminEventLive();
+      const variant = adminVariantEventLive();
+      const admin = adminBoostEventLive();
       const multLabel = formatMult(liveEventMult());
-      if (eventLive && eventKind === "luck") {
+      if (variant) {
+        eventLabelEl.textContent = `Admin ${formatMult(variant.mult)}× ${formatAdminVariantLabel(
+          variant.target
+        )} · ${formatTreasureClock(Math.max(0, variant.until - Date.now()))} left`;
+      } else if (eventLive && eventKind === "luck") {
         eventLabelEl.textContent = `${admin ? "Admin " : ""}${multLabel}× luck · ${formatTreasureClock(eventLeft)} left`;
       } else if (eventLive && eventKind === "money") {
         eventLabelEl.textContent = `${admin ? "Admin " : ""}${multLabel}× sell · ${formatTreasureClock(eventLeft)} left`;
@@ -4035,6 +4193,12 @@
       if (moneyM > 1 || eventMoneyActive() || moneyBoostActive()) {
         bits.push(`Sell ${formatMult(moneyM)}× (Here pay)`);
       }
+      const vEvt = adminVariantEventLive();
+      if (vEvt) {
+        bits.push(
+          `${formatMult(vEvt.mult)}× ${formatAdminVariantLabel(vEvt.target)} variant odds`
+        );
+      }
       boostsEl.textContent = bits.length ? ` Active: ${bits.join(" · ")}.` : "";
       boostsEl.classList.toggle("is-live", bits.length > 0);
     }
@@ -4156,6 +4320,7 @@
   function maybeRefreshGuide() {
     if (!guideOverlay || guideOverlay.classList.contains("hidden")) return;
     const spot = currentSpot();
+    const variant = adminVariantEventLive();
     const key = [
       spot?.id,
       formatMult(treasureLuckMult()),
@@ -4165,7 +4330,8 @@
       luckBonus(),
       spotLuckBonus(spot),
       eventLuckActive() ? "L" : "",
-      eventMoneyActive() ? "M" : ""
+      eventMoneyActive() ? "M" : "",
+      variant ? `V:${variant.target}:${formatMult(variant.mult)}:${variant.until}` : ""
     ].join("|");
     if (key === lastGuideBoostKey) return;
     lastGuideBoostKey = key;
