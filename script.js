@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916d": [
+    "Fishing Idle: rare and higher fish are more common (odds + early spots softened)"
+  ],
   "20260916c": [
     "Fishing Idle: fish guide scrolls itself instead of the page behind it"
   ],
