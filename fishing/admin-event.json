@@ -1,6 +1,6 @@
-{
-  "kind": null,
-  "until": 0,
-  "startedAt": 0,
-  "note": "idle — set kind to luck|money and until (ms epoch) to go live"
+﻿{
+    "until":  1789320636153,
+    "note":  "admin-abuse",
+    "startedAt":  1789320336153,
+    "kind":  "money"
 }
