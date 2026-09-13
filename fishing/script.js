@@ -506,6 +506,10 @@
   const luckBoostLabelEl = document.getElementById("luck-boost-label");
   const eventChipEl = document.getElementById("event-chip");
   const eventLabelEl = document.getElementById("event-label");
+  const eventBannerEl = document.getElementById("event-banner");
+  const eventBannerTagEl = document.getElementById("event-banner-tag");
+  const eventBannerTitleEl = document.getElementById("event-banner-title");
+  const eventBannerTimeEl = document.getElementById("event-banner-time");
   const treasureStashEl = document.getElementById("treasure-stash");
   const moneyCountEl = document.getElementById("money-chest-count");
   const luckCountEl = document.getElementById("luck-chest-count");
@@ -825,23 +829,56 @@
     const start = eventWindowStart();
     const key = String(eventSlotKey(start));
     if (key === lastAnnouncedEventKey) return;
-    const first = !lastAnnouncedEventKey;
     lastAnnouncedEventKey = key;
-    if (first) return;
     const kind = currentEventKind();
     const left = formatTreasureClock(eventMsLeft());
     if (kind === "luck") {
       setCatchLine(
-        `Event live: 2× luck for 5:00 (${left} left) · stacks with Luck Chest → 2.5×`,
+        `EVENT LIVE · 2× luck for 5:00 (${left} left) · stacks with Luck Chest → 2.5×`,
         "treasure"
       );
     } else {
       setCatchLine(
-        `Event live: 2× sell for 5:00 (${left} left) · stacks with Coin Chest → 3×`,
+        `EVENT LIVE · 2× sell for 5:00 (${left} left) · stacks with Coin Chest → 3×`,
         "treasure"
       );
     }
     window.HubSound?.play?.("win");
+    window.HubConfetti?.burst?.();
+  }
+
+  function renderEventBanner() {
+    const live = eventIsLive();
+    const kind = currentEventKind();
+    const left = eventMsLeft();
+    const nextStart = nextHalfHourStart();
+    const nextKind = eventKindForStart(live ? nextStart : nextHalfHourStart());
+    const untilNext = msUntilNextEvent();
+
+    if (eventBannerEl) {
+      eventBannerEl.classList.toggle("event-idle", !live);
+      eventBannerEl.classList.toggle("is-live", live);
+      eventBannerEl.classList.toggle("event-money", kind === "money");
+      eventBannerEl.classList.toggle("event-luck", kind === "luck");
+    }
+    if (eventBannerTagEl) {
+      eventBannerTagEl.textContent = live ? "LIVE NOW" : "Next event";
+    }
+    if (eventBannerTitleEl) {
+      if (live && kind === "luck") {
+        eventBannerTitleEl.textContent = "2× Luck Event";
+      } else if (live && kind === "money") {
+        eventBannerTitleEl.textContent = "2× Sell Event";
+      } else {
+        eventBannerTitleEl.textContent =
+          nextKind === "luck" ? "Upcoming: 2× Luck" : "Upcoming: 2× Sell";
+      }
+    }
+    if (eventBannerTimeEl) {
+      eventBannerTimeEl.textContent = live
+        ? `${formatTreasureClock(left)} left`
+        : `in ${formatTreasureClock(untilNext)}`;
+    }
   }
 
   function isTreasureItem(fish) {
@@ -2716,6 +2753,7 @@
         } in ${formatTreasureClock(msUntilNextEvent())}`;
       }
     }
+    renderEventBanner();
     if (moneyChipEl) moneyChipEl.classList.toggle("hidden", !moneyOn);
     if (moneyLabelEl) {
       if (!moneyOn) moneyLabelEl.textContent = "—";

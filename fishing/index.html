@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260914y">
+  <link rel="stylesheet" href="styles.css?v=20260914z">
 </head>
 <body data-spot="creek">
   <header class="top-bar">
@@ -81,6 +81,13 @@
       </div>
       <div class="boat-zone">
         <div id="boat-timers" class="boat-timers empty" aria-live="polite"></div>
+      </div>
+
+      <div id="event-banner" class="event-banner event-idle" role="status" aria-live="polite">
+        <span class="event-banner-pulse" aria-hidden="true"></span>
+        <span class="event-banner-tag" id="event-banner-tag">Event</span>
+        <strong id="event-banner-title">Waiting for next event</strong>
+        <span id="event-banner-time" class="event-banner-time">—</span>
       </div>
 
       <div class="cast-stage">
@@ -277,6 +284,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260914c"></script>
-  <script src="script.js?v=20260914y"></script>
+  <script src="script.js?v=20260914z"></script>
 </body>
 </html>

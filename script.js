@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914z": [
+    "Fishing Idle: big LIVE event banner above the cast area so active events are obvious"
+  ],
   "20260914y": [
     "Fishing Idle: events only run for 5 minutes at :00/:30, then turn off until the next one"
   ],
