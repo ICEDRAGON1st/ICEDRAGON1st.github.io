@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914r": [
+    "Fishing Idle: offline boat progress can find chests (half as often as a live boat)"
+  ],
   "20260914q": [
     "Fishing Idle: luck gear now raises Coin/Luck Chest odds (Fish guide updates with your luck)"
   ],

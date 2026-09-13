@@ -758,8 +758,9 @@
     return treasureAnyChance(spot, forBoat) / 2;
   }
 
-  function rollTreasure(spot, forBoat = false) {
-    if (Math.random() >= treasureAnyChance(spot, forBoat)) return null;
+  function rollTreasure(spot, forBoat = false, chanceScale = 1) {
+    const scale = Math.max(0, Number(chanceScale) || 0);
+    if (Math.random() >= treasureAnyChance(spot, forBoat) * scale) return null;
     return Math.random() < 0.5 ? TREASURE_MONEY : TREASURE_LUCK;
   }
 
@@ -2324,10 +2325,17 @@
       return;
     }
     let gained = 0;
+    let chestsFound = 0;
     const spot = currentSpot();
     list.forEach((boat) => {
       const cycles = Math.floor(elapsed / 1000 / boat.amount);
       for (let i = 0; i < Math.min(cycles, 400); i += 1) {
+        // Offline chests are half as likely as a live boat haul
+        const chest = rollTreasure(spot, true, 0.5);
+        if (chest) {
+          if (storeTreasure(chest, { silent: true })) chestsFound += 1;
+          continue;
+        }
         const haul = rollBoatCatchCount(boat.level || boatLevel());
         for (let h = 0; h < haul; h += 1) {
           const fish = rollFish(spot, true);
@@ -2343,12 +2351,16 @@
       }
     });
     if (gained > 0) addCoins(gained);
-    if (gained > 0 || state.cooler.length) {
-      setCatchLine(
-        gained > 0
-          ? `While away your boat earned ${formatNum(gained)} coins`
-          : "Your boat filled part of your cooler while away"
-      );
+    if (gained > 0 || chestsFound > 0 || state.cooler.length) {
+      const bits = [];
+      if (gained > 0) bits.push(`earned ${formatNum(gained)} coins`);
+      if (chestsFound > 0) {
+        bits.push(
+          chestsFound === 1 ? "found 1 chest" : `found ${chestsFound} chests`
+        );
+      }
+      if (!bits.length) bits.push("filled part of your cooler");
+      setCatchLine(`While away your boat ${bits.join(" · ")}`);
     }
     state.lastTick = now;
   }
