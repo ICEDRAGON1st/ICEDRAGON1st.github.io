@@ -822,18 +822,27 @@
     return ownedGear("luck").reduce((s, g) => s + g.amount, 0);
   }
 
-  /**
-   * Luck used for fish weights + chest odds.
-   * Events/chests multiply the player's luck gear only (0 gear → still 0).
-   */
-  function effectiveLuckBonus() {
-    return Math.max(0, luckBonus()) * treasureLuckMult();
+  /** Spot rarity points that count as luck (Creek = 0, later spots higher). */
+  function spotLuckBonus(spot = currentSpot()) {
+    return Math.max(0, Number(spot?.rarity) || 0);
   }
 
-  /** Gear luck × treasure/event mult + current spot rarity (shown in live stats). */
+  /** Raw luck before chests/events: gear + current spot. */
+  function baseLuck(spot = currentSpot()) {
+    return Math.max(0, luckBonus()) + spotLuckBonus(spot);
+  }
+
+  /**
+   * Luck used for fish weights, chest odds, and the HUD.
+   * Chests/events multiply gear luck + spot luck together.
+   */
+  function effectiveLuckBonus(spot = currentSpot()) {
+    return baseLuck(spot) * treasureLuckMult();
+  }
+
+  /** Same as effective luck (gear + spot, then × boosts). */
   function totalLuckBonus() {
-    const spot = currentSpot();
-    return effectiveLuckBonus() + (Number(spot?.rarity) || 0);
+    return effectiveLuckBonus();
   }
 
   function coolerMax() {
@@ -1561,7 +1570,7 @@
     // Base: ~0.10% creek → ~0.28% omega
     const base = 0.001 + t * 0.0018;
     // Boat luck is 35% as strong; cast luck is full
-    const luck = Math.max(0, effectiveLuckBonus() * (forBoat ? 0.35 : 1));
+    const luck = Math.max(0, effectiveLuckBonus(spot) * (forBoat ? 0.35 : 1));
     // Soft scale so upgrades clearly raise odds (guide updates live)
     // luck 8 → ×1.08 · luck 30 → ×1.30 · luck 100 → ×2.00 · hard cap ×4
     const luckMult = 1 + Math.min(3, luck * 0.01);
@@ -2642,7 +2651,7 @@
 
   function fishWeight(fish, spot, forBoat = false) {
     // Luck is full strength for boats and casts; boat chest luck stays weaker separately
-    const luck = effectiveLuckBonus();
+    const luck = effectiveLuckBonus(spot);
     let w = (RARITY_WEIGHT[fish.rarity] || 10) * rarityFactor(fish.rarity, spot.rarity);
     if (fish.rarity === "uncommon") w += luck * 0.3;
     if (fish.rarity === "rare") w += luck * 0.28;
@@ -3760,14 +3769,16 @@
       const bits = [];
       const luckM = treasureLuckMult();
       const moneyM = treasureMoneyMult();
-      const effLuck = effectiveLuckBonus();
+      const base = baseLuck(spot);
+      const effLuck = effectiveLuckBonus(spot);
       if (luckM > 1 || eventLuckActive() || luckBoostActive()) {
-        const gear = luckBonus();
         bits.push(
-          gear > 0
-            ? `Luck ${formatMult(luckM)}× on your +${formatMult(gear)} gear → effective +${formatMult(effLuck)} (odds below)`
-            : `Luck ${formatMult(luckM)}× active · buy luck gear for it to multiply (odds use gear × mult)`
+          `Luck ${formatMult(luckM)}× on gear+spot +${formatMult(base)} → effective +${formatMult(
+            effLuck
+          )} (odds below)`
         );
+      } else {
+        bits.push(`Luck base gear+spot +${formatMult(base)} (odds below)`);
       }
       if (moneyM > 1 || eventMoneyActive() || moneyBoostActive()) {
         bits.push(`Sell ${formatMult(moneyM)}× (Here pay)`);
@@ -3830,8 +3841,10 @@
       spot?.id,
       formatMult(treasureLuckMult()),
       formatMult(treasureMoneyMult()),
-      formatMult(effectiveLuckBonus()),
+      formatMult(effectiveLuckBonus(spot)),
+      formatMult(baseLuck(spot)),
       luckBonus(),
+      spotLuckBonus(spot),
       eventLuckActive() ? "L" : "",
       eventMoneyActive() ? "M" : ""
     ].join("|");
