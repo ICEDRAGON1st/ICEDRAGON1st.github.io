@@ -12,7 +12,7 @@
     "#80ed99"
   ];
 
-  // Classic Block Blast-style polyominoes (no rotation).
+  // Classic polyominoes (no rotation).
   const SHAPES = [
     { cells: [[0, 0]], weight: 6 },
     { cells: [[0, 0], [0, 1]], weight: 10 },
@@ -199,7 +199,7 @@
     return grid.every((row) => row.every((v) => !v));
   }
 
-  // Block Blast-ish: 10 per cleared cell, multi-line bonus, streak multiplier.
+  // Scoring: 10 per cleared cell, multi-line bonus, streak multiplier.
   function scoreClear(lines, clearedBlocks) {
     if (lines <= 0) {
       streak = 0;

@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915j": [
+    "My Games: rename trademarked game URLs to match public titles; Block Sweep no longer says Blast"
+  ],
   "20260915i": [
     "Fishing Idle: Third catch gear — chance for a 3rd fish on cast after a 2nd catch lands"
   ],
@@ -451,13 +454,13 @@ const CHANGELOG = {
     "Remove unused player nickname dragon from the players list"
   ],
   "20260908az": [
-    "Block Blast: cleared rows/columns can be used again"
+    "Block Sweep: cleared rows/columns can be used again"
   ],
   "20260908ay": [
-    "Block Blast: drag-and-drop, combos, and closer scoring feel"
+    "Block Sweep: drag-and-drop, combos, and closer scoring feel"
   ],
   "20260908ax": [
-    "New game: Block Blast — place blocks, clear rows and columns"
+    "New game: Block Sweep — place blocks, clear rows and columns"
   ],
   "20260908aw": [
     "Mine Depth: reset ICE_DRAGON dig stats only"
@@ -897,18 +900,18 @@ const HUB_GAMES = [
   { id: "connect-four", name: "Drop Four", path: "connect-four/index.html" },
   { id: "math", name: "Math Sprint", path: "math/index.html" },
   { id: "sudoku", name: "Sudoku", path: "sudoku/index.html" },
-  { id: "flappy", name: "Wing Hop", path: "flappy-bird/index.html" },
+  { id: "flappy", name: "Wing Hop", path: "wing-hop/index.html" },
   { id: "tictactoe", name: "Tic Tac Toe", path: "tic-tac-toe/index.html" },
-  { id: "pixletris", name: "Pixel Drop", path: "pixletris/index.html" },
+  { id: "pixletris", name: "Pixel Drop", path: "pixel-drop/index.html" },
   { id: "clicker", name: "Crystal Clicker", path: "clicker/index.html" },
   { id: "stacker", name: "Tower Stack", path: "stacker/index.html" },
-  { id: "crossy", name: "Cross Walk", path: "crossy/index.html" },
+  { id: "crossy", name: "Cross Walk", path: "cross-walk/index.html" },
   { id: "fishing", name: "Fishing Idle", path: "fishing/index.html" },
   { id: "cows", name: "Cow Merge", path: "cows/index.html" },
-  { id: "dino", name: "Runosaur", path: "dino/index.html" },
+  { id: "dino", name: "Runosaur", path: "runosaur/index.html" },
   { id: "mine", name: "Mine Depth", path: "mine/index.html" },
-  { id: "blockblast", name: "Block Sweep", path: "block-blast/index.html" },
-  { id: "lemmings", name: "Dudes", path: "lemmings/index.html" }
+  { id: "blockblast", name: "Block Sweep", path: "block-sweep/index.html" },
+  { id: "lemmings", name: "Dudes", path: "dudes/index.html" }
 ];
 
 /** Leaderboard tabs = hub-only boards first, then games (Mine Depth splits into depth + ore). */

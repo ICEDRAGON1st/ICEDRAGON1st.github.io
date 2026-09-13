@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cross Walk</title>
+  <link rel="stylesheet" href="styles.css?v=20260914c">
+</head>
+<body>
+  <div class="hud">
+    <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
+    <div class="hud-stats">
+      <span>Score: <strong id="score">0</strong></span>
+      <span>Best: <strong id="high-score">0</strong></span>
+    </div>
+  </div>
+
+  <canvas id="game" width="420" height="720" aria-label="Cross Walk fantasy lanes"></canvas>
+
+  <div id="overlay" class="overlay">
+    <div class="overlay-card">
+      <h1 id="overlay-title">Cross Walk</h1>
+      <p id="overlay-text">
+        Hop across lava rails, ice rivers, and crystal meadows. Tap / ↑ forward · ← → sideways. Avoid carts and thin ice!
+      </p>
+      <div class="overlay-actions">
+        <button id="resume-btn" type="button" class="btn btn-secondary hidden">Resume</button>
+        <button id="view-board-btn" type="button" class="btn btn-secondary hidden">View board</button>
+        <button id="start-btn" type="button" class="btn">Start</button>
+        <button id="games-btn" type="button" class="btn btn-secondary">Games</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../hub-streak.js"></script>
+  <script src="../hub-achievements.js"></script>
+  <script src="../hub-sound.js"></script>
+  <script src="../hub-confetti.js"></script>
+  <script src="../hub-plays.js?v=20260911t"></script>
+  <script src="../hub-friends.js?v=20260907o"></script>
+  <script src="../hub-chat.js?v=20260907p"></script>
+  <script src="../hub-leaderboard.js?v=20260914c"></script>
+  <script src="script.js?v=20260914c"></script>
+</body>
+</html>
