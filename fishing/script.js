@@ -3552,10 +3552,20 @@
   }
 
   function formatPctBonus(n, signed = true) {
-    const pct = Math.round((Number(n) || 0) * 1000) / 10;
-    const text = Number.isInteger(pct) ? String(pct) : pct.toFixed(1);
+    const pct = (Number(n) || 0) * 100;
+    if (!Number.isFinite(pct)) return signed ? "+0%" : "0%";
+    const abs = Math.abs(pct);
+    const text =
+      abs < 1000
+        ? (() => {
+            const rounded = Math.round(abs * 10) / 10;
+            return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+          })()
+        : formatNum(abs);
     if (!signed) return `${text}%`;
-    return pct > 0 ? `+${text}%` : `${text}%`;
+    if (pct > 0) return `+${text}%`;
+    if (pct < 0) return `-${text}%`;
+    return `${text}%`;
   }
 
   function applySpotTheme() {

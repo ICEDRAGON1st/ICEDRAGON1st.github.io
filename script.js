@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915v": [
+    "Fishing Idle: sell boost % uses k/m/b shorthand (e.g. +37.7k%)"
+  ],
   "20260915u": [
     "Fishing Idle: luck mults now scale top-fish odds for real (100× luck ≈ 100× better omega odds)"
   ],
