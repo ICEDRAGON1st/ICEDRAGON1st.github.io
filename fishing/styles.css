@@ -345,6 +345,53 @@ body {
   font-weight: 700;
 }
 
+.guide-section-title {
+  margin: 0 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+}
+
+.guide-variants {
+  margin: 0 0 1rem;
+}
+
+.guide-variants-note {
+  margin: 0 0 0.55rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.guide-variants-wrap {
+  max-height: 16rem;
+}
+
+.guide-variant-note {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.guide-variant-row.variant-silver .guide-fish-name {
+  color: #c5ced6;
+}
+
+.guide-variant-row.variant-gold .guide-fish-name {
+  color: #f0c14b;
+}
+
+.guide-variant-row.variant-diamond .guide-fish-name {
+  color: #9adcf5;
+}
+
+.guide-variant-row.variant-rainbow .guide-fish-name {
+  color: #ff8fab;
+}
+
+.guide-variant-row.variant-shiny .guide-fish-name {
+  color: #ffe8a3;
+}
+
 .guide-table-wrap {
   overflow: auto;
   border: 1px solid var(--border);

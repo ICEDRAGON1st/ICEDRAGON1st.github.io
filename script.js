@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916a": [
+    "Fishing Idle: fish guide shows live cast/boat odds for each value variant"
+  ],
   "20260915z": [
     "Fishing Idle: silver/gold/diamond/rainbow value variants (+ shiny that can stack)"
   ],

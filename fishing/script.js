@@ -704,6 +704,7 @@
   const adminClose = document.getElementById("admin-close");
   const guideClose = document.getElementById("guide-close");
   const guideBody = document.getElementById("guide-body");
+  const guideVariantsBody = document.getElementById("guide-variants-body");
   const guideSpotMult = document.getElementById("guide-spot-mult");
   const guideSpotName = document.getElementById("guide-spot-name");
   const floatLayer = document.getElementById("float-layer");
@@ -1906,19 +1907,31 @@
   }
 
   /** Primary (silver/gold/diamond/rainbow) is exclusive; shiny can stack as a second tag. */
-  function rollFishVariants(spot = currentSpot(), forBoat = false) {
+  function variantRollChances(spot = currentSpot(), forBoat = false) {
     const luck = effectiveLuckBonus(spot);
-    const primaryChance = Math.min(0.28, (forBoat ? 0.025 : 0.045) + luck * 0.00012);
+    const primary = Math.min(0.28, (forBoat ? 0.025 : 0.045) + luck * 0.00012);
+    const shiny = Math.min(0.14, (forBoat ? 0.012 : 0.022) + luck * 0.00007);
+    return {
+      primary,
+      shiny,
+      silver: primary * 0.5,
+      gold: primary * 0.28,
+      diamond: primary * 0.15,
+      rainbow: primary * 0.07
+    };
+  }
+
+  function rollFishVariants(spot = currentSpot(), forBoat = false) {
+    const chances = variantRollChances(spot, forBoat);
     let variant = "";
-    if (Math.random() < primaryChance) {
+    if (Math.random() < chances.primary) {
       const r = Math.random();
       if (r < 0.5) variant = "silver";
       else if (r < 0.78) variant = "gold";
       else if (r < 0.93) variant = "diamond";
       else variant = "rainbow";
     }
-    const shinyChance = Math.min(0.14, (forBoat ? 0.012 : 0.022) + luck * 0.00007);
-    return { variant, shiny: Math.random() < shinyChance };
+    return { variant, shiny: Math.random() < chances.shiny };
   }
 
   function variantValueMult(variantOrEntry, shinyFlag) {
@@ -4019,6 +4032,73 @@
       }
       boostsEl.textContent = bits.length ? ` Active: ${bits.join(" · ")}.` : "";
       boostsEl.classList.toggle("is-live", bits.length > 0);
+    }
+    if (guideVariantsBody) {
+      const castV = variantRollChances(spot, false);
+      const boatV = variantRollChances(spot, true);
+      const variantRows = [
+        {
+          id: "silver",
+          name: "Silver",
+          mult: "×1.5",
+          note: "primary",
+          cast: castV.silver,
+          boat: boatV.silver
+        },
+        {
+          id: "gold",
+          name: "Gold",
+          mult: "×2",
+          note: "primary",
+          cast: castV.gold,
+          boat: boatV.gold
+        },
+        {
+          id: "diamond",
+          name: "Diamond",
+          mult: "×2.5",
+          note: "primary",
+          cast: castV.diamond,
+          boat: boatV.diamond
+        },
+        {
+          id: "rainbow",
+          name: "Rainbow",
+          mult: "×3",
+          note: "primary",
+          cast: castV.rainbow,
+          boat: boatV.rainbow
+        },
+        {
+          id: "any",
+          name: "Any primary",
+          mult: "—",
+          note: "one of the four",
+          cast: castV.primary,
+          boat: boatV.primary
+        },
+        {
+          id: "shiny",
+          name: "Shiny",
+          mult: "×3",
+          note: "stacks on primary",
+          cast: castV.shiny,
+          boat: boatV.shiny
+        }
+      ];
+      guideVariantsBody.innerHTML = variantRows
+        .map((row) => {
+          const castPct = 100 * row.cast;
+          const boatPct = 100 * row.boat;
+          return `<tr class="at-spot guide-variant-row variant-${row.id}">
+          <td class="guide-fish-name">${row.name}</td>
+          <td class="guide-rarity">${row.mult}</td>
+          <td class="guide-variant-note">${row.note}</td>
+          <td class="guide-spots" title="${castPct.toFixed(8)}%">${formatChance(castPct)}</td>
+          <td class="guide-spots" title="${boatPct.toFixed(8)}%">${formatChance(boatPct)}</td>
+        </tr>`;
+        })
+        .join("");
     }
     if (!guideBody) return;
     const chestP = treasureAnyChance(spot, false);
