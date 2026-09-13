@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260915o">
+  <link rel="stylesheet" href="styles.css?v=20260915p">
 </head>
 <body data-spot="creek">
   <header class="top-bar">
@@ -276,17 +276,27 @@
         <button id="admin-close" type="button" class="btn btn-ghost guide-close">Close</button>
       </div>
       <p id="admin-status" class="admin-status">No admin event</p>
+      <div class="admin-fields">
+        <label class="admin-field">
+          <span>Mult</span>
+          <input id="admin-mult" type="number" min="1.5" max="100" step="0.5" value="2" />
+        </label>
+        <label class="admin-field">
+          <span>Minutes</span>
+          <input id="admin-mins" type="number" min="1" max="180" step="1" value="5" />
+        </label>
+      </div>
       <div class="admin-actions">
-        <button type="button" class="btn btn-ghost" data-admin-cmd="2x sell">2× Sell 5m</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="2x luck">2× Luck 5m</button>
+        <button type="button" class="btn btn-ghost" data-admin-cmd="sell">Start sell</button>
+        <button type="button" class="btn btn-ghost" data-admin-cmd="luck">Start luck</button>
         <button type="button" class="btn btn-ghost" data-admin-cmd="clear">Clear</button>
       </div>
       <form id="admin-cmd-form" class="admin-cmd-form">
         <input
           id="admin-cmd-input"
           type="text"
-          maxlength="48"
-          placeholder="2x sell 10m · 2x luck · clear"
+          maxlength="64"
+          placeholder="5x sell 10m · 3x luck 15m · clear"
           autocomplete="off"
           spellcheck="false"
         />
@@ -319,6 +329,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260914c"></script>
-  <script src="script.js?v=20260915o"></script>
+  <script src="script.js?v=20260915p"></script>
 </body>
 </html>

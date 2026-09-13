@@ -34,6 +34,10 @@
   const ADMIN_EVENT_POLL_MS = 15_000;
   const ADMIN_EVENT_RATE_KEY = "mantle-rate-limit-until-v1";
   const ADMIN_DEFAULT_MINUTES = 5;
+  const ADMIN_DEFAULT_MULT = 2;
+  const ADMIN_MAX_MINUTES = 180;
+  const ADMIN_MIN_MULT = 1.5;
+  const ADMIN_MAX_MULT = 100;
   const TREASURE_MONEY = {
     id: "coin_chest",
     name: "Coin Chest",
@@ -904,6 +908,18 @@
     } catch {}
   }
 
+  function clampAdminMult(n) {
+    const v = Number(n);
+    if (!Number.isFinite(v)) return ADMIN_DEFAULT_MULT;
+    return Math.max(ADMIN_MIN_MULT, Math.min(ADMIN_MAX_MULT, Math.round(v * 100) / 100));
+  }
+
+  function clampAdminMinutes(n) {
+    const v = Math.floor(Number(n));
+    if (!Number.isFinite(v)) return ADMIN_DEFAULT_MINUTES;
+    return Math.max(1, Math.min(ADMIN_MAX_MINUTES, v));
+  }
+
   function parseAdminEventPayload(data, requireToken = false) {
     if (!data || typeof data !== "object") return null;
     if (requireToken && String(data.token || "") !== ADMIN_EVENT_TOKEN) return null;
@@ -915,7 +931,8 @@
     return {
       kind,
       until,
-      startedAt: Number.isFinite(startedAt) ? startedAt : Date.now()
+      startedAt: Number.isFinite(startedAt) ? startedAt : Date.now(),
+      mult: clampAdminMult(data.mult ?? ADMIN_DEFAULT_MULT)
     };
   }
 
@@ -989,11 +1006,11 @@
     if (!status || !owner) return;
     const live = adminEventLive();
     if (live) {
-      status.textContent = `Live: 2× ${live.kind === "luck" ? "luck" : "sell"} · ${formatTreasureClock(
-        live.until - Date.now()
-      )} left`;
+      status.textContent = `Live: ${formatMult(live.mult)}× ${
+        live.kind === "luck" ? "luck" : "sell"
+      } · ${formatTreasureClock(live.until - Date.now())} left`;
     } else {
-      status.textContent = "No admin event · commands: 2x sell · 2x luck · clear";
+      status.textContent = "No admin event · e.g. 5x sell 10m · 3x luck 15m · clear";
     }
   }
 
@@ -1008,7 +1025,20 @@
     adminOverlay?.classList.add("hidden");
   }
 
-  async function publishAdminEvent(kind, minutes = ADMIN_DEFAULT_MINUTES) {
+  function readAdminFormDefaults() {
+    const multEl = document.getElementById("admin-mult");
+    const minsEl = document.getElementById("admin-mins");
+    return {
+      mult: clampAdminMult(multEl?.value ?? ADMIN_DEFAULT_MULT),
+      minutes: clampAdminMinutes(minsEl?.value ?? ADMIN_DEFAULT_MINUTES)
+    };
+  }
+
+  async function publishAdminEvent(
+    kind,
+    minutes = ADMIN_DEFAULT_MINUTES,
+    mult = ADMIN_DEFAULT_MULT
+  ) {
     if (!isFishingOwner()) {
       setCatchLine("Admin commands are ICE_DRAGON only", "miss");
       return false;
@@ -1020,13 +1050,15 @@
     }
     adminBusy = true;
     const now = Date.now();
-    const mins = Math.max(1, Math.min(60, Math.floor(Number(minutes) || ADMIN_DEFAULT_MINUTES)));
+    const mins = clampAdminMinutes(minutes);
+    const eventMult = clampAdminMult(mult);
     const clear = !kind || kind === "clear" || kind === "off";
     const payload = {
       token: ADMIN_EVENT_TOKEN,
       kind: clear ? "luck" : kind,
       until: clear ? 0 : now + mins * 60_000,
       startedAt: now,
+      mult: clear ? ADMIN_DEFAULT_MULT : eventMult,
       note: "in-game-admin",
       by: OWNER_NAME
     };
@@ -1047,10 +1079,12 @@
       syncAdminPanel();
       renderStats();
       if (clear) {
-        setCatchLine("Admin event cleared globally", "ok");
+        setCatchLine("Admin event cleared globally", "treasure");
       } else {
         setCatchLine(
-          `ADMIN · 2× ${kind === "luck" ? "luck" : "sell"} live for ${mins}:00 (global)`,
+          `ADMIN · ${formatMult(eventMult)}× ${
+            kind === "luck" ? "luck" : "sell"
+          } live for ${mins}m (global)`,
           "treasure"
         );
         window.HubSound?.play?.("win");
@@ -1066,20 +1100,48 @@
   }
 
   function parseAdminCommand(raw) {
-    const text = String(raw || "")
+    let text = String(raw || "")
       .trim()
       .toLowerCase()
-      .replace(/[×x]/g, "x")
+      .replace(/×/g, "x")
       .replace(/\s+/g, " ");
     if (!text) return null;
-    if (/^(clear|off|stop|end)\b/.test(text)) return { kind: "clear", minutes: 0 };
-    const minsMatch = text.match(/\b(\d{1,2})\s*m(?:in(?:ute)?s?)?\b/);
-    const minutes = minsMatch ? Number(minsMatch[1]) : ADMIN_DEFAULT_MINUTES;
-    if (/\b(luck)\b/.test(text) || /2\s*x\s*luck/.test(text)) {
-      return { kind: "luck", minutes };
+    if (/^(clear|off|stop|end)\b/.test(text)) {
+      return { kind: "clear", minutes: 0, mult: ADMIN_DEFAULT_MULT };
     }
-    if (/\b(money|sell|coin)\b/.test(text) || /2\s*x\s*(money|sell)/.test(text)) {
-      return { kind: "money", minutes };
+
+    const defaults = readAdminFormDefaults();
+    let mult = defaults.mult;
+    let usedExplicitMult = false;
+    const multMatch = text.match(/(\d+(?:\.\d+)?)\s*x\b/);
+    if (multMatch) {
+      mult = clampAdminMult(multMatch[1]);
+      usedExplicitMult = true;
+      text = `${text.slice(0, multMatch.index)} ${text.slice(multMatch.index + multMatch[0].length)}`
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    let minutes = defaults.minutes;
+    const minsMatch = text.match(/\b(\d{1,3})\s*(?:m|mins?|minutes?)\b/);
+    if (minsMatch) {
+      minutes = clampAdminMinutes(minsMatch[1]);
+      text = text.replace(minsMatch[0], " ").replace(/\s+/g, " ").trim();
+    } else {
+      const bare = text.match(/\b(\d{1,3})$/);
+      if (bare) {
+        minutes = clampAdminMinutes(bare[1]);
+        text = text.replace(bare[0], " ").replace(/\s+/g, " ").trim();
+      }
+    }
+
+    if (!usedExplicitMult && /^(sell|money|coin|luck)$/.test(text)) {
+      mult = defaults.mult;
+    }
+
+    if (/\bluck\b/.test(text) || text === "luck") return { kind: "luck", minutes, mult };
+    if (/\b(money|sell|coin)\b/.test(text) || /^(sell|money|coin)$/.test(text)) {
+      return { kind: "money", minutes, mult };
     }
     return null;
   }
@@ -1087,10 +1149,10 @@
   async function runAdminCommand(raw) {
     const parsed = parseAdminCommand(raw);
     if (!parsed) {
-      setCatchLine("Unknown admin command · try: 2x sell · 2x luck · clear", "miss");
+      setCatchLine("Try: 5x sell 10m · 3x luck 15m · clear", "miss");
       return;
     }
-    await publishAdminEvent(parsed.kind, parsed.minutes);
+    await publishAdminEvent(parsed.kind, parsed.minutes, parsed.mult);
   }
 
   function scheduledEventWindowStart(now = Date.now()) {
@@ -1159,6 +1221,24 @@
     return currentEventKind(now) === "luck";
   }
 
+  function liveEventMult(now = Date.now()) {
+    const kind = currentEventKind(now);
+    if (!kind) return 1;
+    const admin = adminEventLive(now);
+    if (admin) return clampAdminMult(admin.mult);
+    return kind === "luck" ? 1 + EVENT_LUCK_BONUS : 1 + EVENT_MONEY_BONUS;
+  }
+
+  function eventMoneyBonus(now = Date.now()) {
+    if (!eventMoneyActive(now)) return 0;
+    return Math.max(0, liveEventMult(now) - 1);
+  }
+
+  function eventLuckBonus(now = Date.now()) {
+    if (!eventLuckActive(now)) return 0;
+    return Math.max(0, liveEventMult(now) - 1);
+  }
+
   function formatMult(n) {
     const v = Math.round((Number(n) || 1) * 100) / 100;
     if (Number.isInteger(v)) return String(v);
@@ -1166,19 +1246,11 @@
   }
 
   function treasureMoneyMult() {
-    return (
-      1 +
-      (moneyBoostActive() ? CHEST_MONEY_BONUS : 0) +
-      (eventMoneyActive() ? EVENT_MONEY_BONUS : 0)
-    );
+    return 1 + (moneyBoostActive() ? CHEST_MONEY_BONUS : 0) + eventMoneyBonus();
   }
 
   function treasureLuckMult() {
-    return (
-      1 +
-      (luckBoostActive() ? CHEST_LUCK_BONUS : 0) +
-      (eventLuckActive() ? EVENT_LUCK_BONUS : 0)
-    );
+    return 1 + (luckBoostActive() ? CHEST_LUCK_BONUS : 0) + eventLuckBonus();
   }
 
   let lastAnnouncedEventKey = "";
@@ -1187,21 +1259,24 @@
     if (!eventIsLive()) return;
     const admin = adminEventLive();
     const key = admin
-      ? `admin:${admin.kind}:${admin.until}`
+      ? `admin:${admin.kind}:${admin.until}:${admin.mult}`
       : String(eventSlotKey(eventWindowStart()));
     if (key === lastAnnouncedEventKey) return;
     lastAnnouncedEventKey = key;
     const kind = currentEventKind();
     const left = formatTreasureClock(eventMsLeft());
+    const multLabel = formatMult(liveEventMult());
     const tag = admin ? "ADMIN EVENT" : "EVENT LIVE";
     if (kind === "luck") {
+      const stacked = formatMult(1 + CHEST_LUCK_BONUS + (liveEventMult() - 1));
       setCatchLine(
-        `${tag} · 2× luck (${left} left) · stacks with Luck Chest → 2.5×`,
+        `${tag} · ${multLabel}× luck (${left} left) · stacks with Luck Chest → ${stacked}×`,
         "treasure"
       );
     } else {
+      const stacked = formatMult(1 + CHEST_MONEY_BONUS + (liveEventMult() - 1));
       setCatchLine(
-        `${tag} · 2× sell (${left} left) · stacks with Coin Chest → 3×`,
+        `${tag} · ${multLabel}× sell (${left} left) · stacks with Coin Chest → ${stacked}×`,
         "treasure"
       );
     }
@@ -1218,6 +1293,7 @@
     const nextKind = eventKindForStart(nextStart);
     const untilNext = msUntilNextEvent();
     const previewKind = live ? kind : nextKind;
+    const multLabel = formatMult(live ? liveEventMult() : 2);
 
     if (eventBannerEl) {
       eventBannerEl.classList.toggle("event-idle", !live);
@@ -1230,9 +1306,13 @@
     }
     if (eventBannerTitleEl) {
       if (live && kind === "luck") {
-        eventBannerTitleEl.textContent = admin ? "2× Luck · Admin" : "2× Luck Event";
+        eventBannerTitleEl.textContent = admin
+          ? `${multLabel}× Luck · Admin`
+          : "2× Luck Event";
       } else if (live && kind === "money") {
-        eventBannerTitleEl.textContent = admin ? "2× Sell · Admin" : "2× Sell Event";
+        eventBannerTitleEl.textContent = admin
+          ? `${multLabel}× Sell · Admin`
+          : "2× Sell Event";
       } else {
         eventBannerTitleEl.textContent =
           nextKind === "luck" ? "Upcoming: 2× Luck" : "Upcoming: 2× Sell";
@@ -3284,10 +3364,11 @@
     }
     if (eventLabelEl) {
       const admin = adminEventLive();
+      const multLabel = formatMult(liveEventMult());
       if (eventLive && eventKind === "luck") {
-        eventLabelEl.textContent = `${admin ? "Admin " : ""}2× luck · ${formatTreasureClock(eventLeft)} left`;
+        eventLabelEl.textContent = `${admin ? "Admin " : ""}${multLabel}× luck · ${formatTreasureClock(eventLeft)} left`;
       } else if (eventLive && eventKind === "money") {
-        eventLabelEl.textContent = `${admin ? "Admin " : ""}2× sell · ${formatTreasureClock(eventLeft)} left`;
+        eventLabelEl.textContent = `${admin ? "Admin " : ""}${multLabel}× sell · ${formatTreasureClock(eventLeft)} left`;
       } else {
         const nextStart = nextHalfHourStart();
         const nextKind = eventKindForStart(nextStart);

@@ -1,35 +1,38 @@
 ---
-description: When user asks for fishing 2x luck/money admin abuse, trigger the global Mantle event
+description: When user asks for fishing Nx luck/money admin abuse, trigger the global Mantle event
 alwaysApply: true
 ---
 
 # Fishing admin abuse events
 
-When the user asks to run a **global** Fishing Idle event — phrases like `2x luck admin abuse`, `2x money admin abuse`, `2x sell admin abuse`, or similar — do this immediately (do not only explain how):
+When the user asks to run a **global** Fishing Idle event — phrases like `2x luck admin abuse`, `5x sell 10m admin abuse`, `3x money 15 minutes`, or similar — do this immediately (do not only explain how):
 
 ## Preferred (instant): MantleDB POST
 
 ```powershell
 $now = [DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds()
-$until = $now + (5 * 60 * 1000)   # or N minutes
+$mins = 5          # from user, clamp 1–180
+$mult = 2          # from user, clamp 1.5–100
+$until = $now + ($mins * 60 * 1000)
 $body = @{
   token = "ice-fish-evt-9f3a"
   kind = "money"   # or "luck"
   until = $until
   startedAt = $now
+  mult = $mult
   note = "admin-abuse"
 } | ConvertTo-Json -Compress
 Invoke-RestMethod -Method Post -Uri "https://mantledb.sh/v2/icedragon1st-mygames/fishing-admin-events" -ContentType "application/json" -Body $body
 ```
 
-Clear early: set `until = 0` (kind can stay luck/money).
+Clear early: set `until = 0`.
 
 ## Fallback: Pages JSON
 
-If Mantle fails, write `fishing/admin-event.json` the same shape (no token required) and commit + push.
+If Mantle fails, write `fishing/admin-event.json` with `kind`, `until`, `startedAt`, `mult` (no token) and commit + push.
 
-Default length is **5 minutes** unless the user specifies 1–60.
+Defaults: **2×** for **5 minutes** unless the user specifies otherwise.
 
-ICE_DRAGON can also run these from the in-game Menu admin panel. Chat abuse still works so you can trigger without opening the game.
+ICE_DRAGON can also use the in-game **Admin** button (mult + minutes fields, or commands like `5x sell 10m`).
 
 Scheduled :00/:30 events still run; an active admin override replaces them until `until`.

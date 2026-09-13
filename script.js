@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915p": [
+    "Fishing Idle: admin events support custom mult + duration (e.g. 5x sell 10m)"
+  ],
   "20260915o": [
     "Fishing Idle: ICE_DRAGON Admin button in the top bar (next to Fish guide)"
   ],
