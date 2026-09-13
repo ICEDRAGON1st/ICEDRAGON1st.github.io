@@ -1346,7 +1346,9 @@
   display: none !important;
 }
 #username-gate-modal .username-gate-card {
-  width: min(24rem, 100%);
+  width: min(26rem, 100%);
+  max-height: min(90vh, 40rem);
+  overflow: auto;
   background: #121821;
   color: #f5f7fb;
   border: 1px solid rgba(255,255,255,0.12);
@@ -1384,7 +1386,8 @@
 #username-gate-modal .username-gate-status.is-ok {
   color: #69db7c;
 }
-#username-gate-modal button {
+#username-gate-modal #username-gate-save,
+#username-gate-modal #username-gate-new {
   width: 100%;
   border: 0;
   border-radius: 8px;
@@ -1395,9 +1398,77 @@
   background: #1c7ed6;
   color: #fff;
 }
+#username-gate-modal #username-gate-new {
+  margin-top: 0.45rem;
+  background: #2b3544;
+}
 #username-gate-modal button:disabled {
   opacity: 0.65;
   cursor: wait;
+}
+#username-gate-modal .username-gate-accounts {
+  margin-top: 1rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+#username-gate-modal .username-gate-accounts-label {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(220,228,240,0.9);
+}
+#username-gate-modal .username-gate-code-row {
+  display: flex;
+  gap: 0.45rem;
+  align-items: stretch;
+  margin-bottom: 0.35rem;
+}
+#username-gate-modal .username-gate-code-row input {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+#username-gate-modal .username-gate-code-row button {
+  flex: 0 0 auto;
+  border: 0;
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  background: #1c7ed6;
+  color: #fff;
+}
+#username-gate-modal .username-gate-accounts-list {
+  list-style: none;
+  margin: 0.65rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+#username-gate-modal .username-gate-accounts-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.6rem;
+  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  font-size: 0.85rem;
+}
+#username-gate-modal .username-gate-accounts-list button {
+  border: 0;
+  border-radius: 6px;
+  padding: 0.4rem 0.65rem;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  background: #1c7ed6;
+  color: #fff;
+}
+#username-gate-modal .username-gate-accounts-empty {
+  color: rgba(220,228,240,0.65);
+  font-size: 0.82rem;
 }
 body.username-gate-open {
   overflow: hidden !important;
@@ -1462,13 +1533,26 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 
   /**
    * Blocking popup: players must enter a unique username before playing.
+   * Prefer the hub #player-name-modal when present — it has Log in / New account / saved accounts.
    */
   function enforceUsernameGate() {
     if (hasRequiredName()) return true;
     ensureUsernameGateStyles();
     document.body.classList.add("username-gate-open");
 
-    // Prefer the dedicated gate modal everywhere so typing works reliably
+    const hubModal = document.getElementById("player-name-modal");
+    if (hubModal) {
+      document.getElementById("username-gate-modal")?.classList.add("hidden");
+      hubModal.classList.add("username-gate-force");
+      hubModal.classList.remove("hidden");
+      document.dispatchEvent(new CustomEvent("hub-username-gate-open"));
+      setTimeout(() => {
+        document.getElementById("player-name-modal-input")?.focus();
+      }, 0);
+      return false;
+    }
+
+    // Fallback for pages without the hub modal
     let modal = document.getElementById("username-gate-modal");
     if (!modal) {
       modal = document.createElement("div");
@@ -1479,35 +1563,179 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       modal.innerHTML = `
         <div class="username-gate-card">
           <h2 id="username-gate-title">Pick a username</h2>
-          <p>You need a unique nickname to play. If the school network blocks saving, you can still play with a local name for this session.</p>
+          <p>You need a unique nickname to play. Already have a code? Log in below.</p>
           <input id="username-gate-input" type="text" maxlength="16" placeholder="e.g. ICE_DRAGON" autocomplete="nickname">
           <div id="username-gate-status" class="username-gate-status" aria-live="polite"></div>
           <button id="username-gate-save" type="button">Save & play</button>
+          <div class="username-gate-accounts">
+            <p class="username-gate-accounts-label">Already have an account?</p>
+            <div class="username-gate-code-row">
+              <input id="username-gate-code-input" type="text" maxlength="12" placeholder="Code (ABCD-EFGH)" autocomplete="off" spellcheck="false">
+              <button id="username-gate-login" type="button">Log in</button>
+            </div>
+            <button id="username-gate-new" type="button">Create new account</button>
+            <ul id="username-gate-accounts-list" class="username-gate-accounts-list"></ul>
+          </div>
         </div>`;
       document.body.appendChild(modal);
       const input = modal.querySelector("#username-gate-input");
       const status = modal.querySelector("#username-gate-status");
       const btn = modal.querySelector("#username-gate-save");
+      const codeInput = modal.querySelector("#username-gate-code-input");
+      const loginBtn = modal.querySelector("#username-gate-login");
+      const newBtn = modal.querySelector("#username-gate-new");
+      const listEl = modal.querySelector("#username-gate-accounts-list");
+
+      const stopKeys = (el) => {
+        if (!el) return;
+        el.addEventListener("keydown", (e) => e.stopPropagation());
+        el.addEventListener("keyup", (e) => e.stopPropagation());
+        el.addEventListener("keypress", (e) => e.stopPropagation());
+      };
+      stopKeys(input);
+      stopKeys(codeInput);
+
       btn.addEventListener("click", () => submitUsernameGate(input, status, btn));
       input.addEventListener("keydown", (e) => {
-        e.stopPropagation();
         if (e.key === "Enter") submitUsernameGate(input, status, btn);
       });
-      input.addEventListener("keyup", (e) => e.stopPropagation());
-      input.addEventListener("keypress", (e) => e.stopPropagation());
+
+      const renderGateVault = () => {
+        try {
+          rememberCurrentAccount();
+        } catch {}
+        const accounts = getSavedAccounts();
+        const active = normalizePlayerCode(getPlayerCode());
+        if (!accounts.length) {
+          listEl.innerHTML = `<li class="username-gate-accounts-empty">No saved accounts on this device yet.</li>`;
+          return;
+        }
+        listEl.innerHTML = accounts
+          .map((a) => {
+            const code = formatPlayerCode(a.code);
+            const norm = normalizePlayerCode(code);
+            const activeNow = norm && norm === active;
+            const label = a.name || "Unnamed";
+            return `<li data-code="${code}">
+              <span><strong>${label}${activeNow ? " · active" : ""}</strong><br>${code}</span>
+              ${
+                activeNow
+                  ? ""
+                  : `<button type="button" data-switch="${code}">Switch</button>`
+              }
+            </li>`;
+          })
+          .join("");
+      };
+
+      const finishAccountSwitch = (result) => {
+        if (!result?.ok) {
+          setGateStatus(status, result?.error || "Couldn't log in", false);
+          renderGateVault();
+          return;
+        }
+        if (result.already) {
+          setGateStatus(
+            status,
+            result.name ? `Already on ${result.name}` : "Already on that account",
+            true
+          );
+          if (hasRequiredName()) {
+            document.body.classList.remove("username-gate-open");
+            modal.classList.add("hidden");
+            document.dispatchEvent(
+              new CustomEvent("hub-username-ready", { detail: { name: getName() } })
+            );
+          }
+          return;
+        }
+        setGateStatus(
+          status,
+          result.name
+            ? `Logged in as ${result.name}. Reloading…`
+            : result.created
+              ? `New account ready · ${result.code}. Reloading…`
+              : "Account ready. Reloading…",
+          true
+        );
+        setTimeout(() => window.location.reload(), 450);
+      };
+
+      loginBtn.addEventListener("click", async () => {
+        loginBtn.disabled = true;
+        setGateStatus(status, "Logging in…", false);
+        try {
+          finishAccountSwitch(await restoreWithPlayerCode(codeInput?.value || ""));
+        } catch (err) {
+          setGateStatus(status, err?.message || "Couldn't log in", false);
+        } finally {
+          loginBtn.disabled = false;
+        }
+      });
+      codeInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") loginBtn.click();
+      });
+      newBtn.addEventListener("click", async () => {
+        const ok = window.confirm(
+          "Create a new blank account on this device?\n\nYour current account stays saved so you can switch back with its code."
+        );
+        if (!ok) return;
+        newBtn.disabled = true;
+        setGateStatus(status, "Creating account…", false);
+        try {
+          finishAccountSwitch(await createNewAccount());
+        } catch (err) {
+          setGateStatus(status, err?.message || "Couldn't create account", false);
+        } finally {
+          newBtn.disabled = false;
+        }
+      });
+      listEl.addEventListener("click", async (e) => {
+        const sw = e.target.closest("[data-switch]");
+        if (!sw) return;
+        setGateStatus(status, "Switching…", false);
+        try {
+          finishAccountSwitch(await restoreWithPlayerCode(sw.getAttribute("data-switch") || ""));
+        } catch (err) {
+          setGateStatus(status, err?.message || "Couldn't switch", false);
+        }
+      });
+
       modal.addEventListener("click", (e) => {
         if (e.target === modal) input.focus();
       });
-    }
-
-    // Hide the old hub modal so only one popup is shown
-    const hubModal = document.getElementById("player-name-modal");
-    if (hubModal) {
-      hubModal.classList.add("hidden");
-      hubModal.classList.remove("username-gate-force");
+      renderGateVault();
     }
 
     modal.classList.remove("hidden");
+    try {
+      rememberCurrentAccount();
+      const listEl = modal.querySelector("#username-gate-accounts-list");
+      const accounts = getSavedAccounts();
+      const active = normalizePlayerCode(getPlayerCode());
+      if (listEl) {
+        if (!accounts.length) {
+          listEl.innerHTML = `<li class="username-gate-accounts-empty">No saved accounts on this device yet.</li>`;
+        } else {
+          listEl.innerHTML = accounts
+            .map((a) => {
+              const code = formatPlayerCode(a.code);
+              const norm = normalizePlayerCode(code);
+              const activeNow = norm && norm === active;
+              const label = a.name || "Unnamed";
+              return `<li data-code="${code}">
+                <span><strong>${label}${activeNow ? " · active" : ""}</strong><br>${code}</span>
+                ${
+                  activeNow
+                    ? ""
+                    : `<button type="button" data-switch="${code}">Switch</button>`
+                }
+              </li>`;
+            })
+            .join("");
+        }
+      }
+    } catch {}
     const input = modal.querySelector("#username-gate-input");
     setTimeout(() => input?.focus(), 0);
     return false;

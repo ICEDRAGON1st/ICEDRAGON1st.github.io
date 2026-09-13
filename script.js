@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915c": [
+    "My Games: username screen now shows Log in / New account / saved accounts (was hidden behind a bare popup)"
+  ],
   "20260915b": [
     "My Games: fix multi-account login — works from the username screen; saved accounts switch offline"
   ],
@@ -4154,10 +4157,17 @@ document.getElementById("player-code-restore-input")?.addEventListener("keydown"
 });
 
 document.getElementById("gate-code-input")?.addEventListener("keydown", (e) => {
+  e.stopPropagation();
   if (e.key === "Enter") {
     e.preventDefault();
     document.getElementById("gate-code-login-btn")?.click();
   }
+});
+document.getElementById("gate-code-input")?.addEventListener("keyup", (e) => e.stopPropagation());
+document.getElementById("gate-code-input")?.addEventListener("keypress", (e) => e.stopPropagation());
+
+document.addEventListener("hub-username-gate-open", () => {
+  renderSavedAccounts();
 });
 
 function escapeHtml(text) {
