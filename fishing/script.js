@@ -787,9 +787,15 @@
     const kind = currentEventKind();
     const left = formatTreasureClock(eventMsLeft());
     if (kind === "luck") {
-      setCatchLine(`Half-hour event: 2× luck for ${left} (stacks with Luck Chest → 2.5×)`, "treasure");
+      setCatchLine(
+        `Half-hour event: 2× luck for this half hour (${left} left) · stacks with Luck Chest → 2.5×`,
+        "treasure"
+      );
     } else {
-      setCatchLine(`Half-hour event: 2× sell for ${left} (stacks with Coin Chest → 3×)`, "treasure");
+      setCatchLine(
+        `Half-hour event: 2× sell for this half hour (${left} left) · stacks with Coin Chest → 3×`,
+        "treasure"
+      );
     }
     window.HubSound?.play?.("win");
   }
@@ -851,12 +857,13 @@
     if (!opts.silent) {
       const left = formatTreasureClock(state.moneyBoostUntil - now);
       const total = formatMult(treasureMoneyMult());
+      const eventNote = eventMoneyActive()
+        ? ` · event stacked → ${total}× sell (${formatTreasureClock(eventMsLeft())} left on event)`
+        : "";
       setCatchLine(
         wasActive
-          ? `Coin Chest · +5:00 · ${total}× sell · ${left} left`
-          : `Opened Coin Chest! ${total}× sell for 5:00${
-              eventMoneyActive() ? " (event stacked)" : ""
-            }`,
+          ? `Coin Chest · +5:00 chest time · ${total}× sell · ${left} left`
+          : `Opened Coin Chest! ${TREASURE_MULT}× sell for 5:00${eventNote}`,
         "treasure"
       );
       window.HubSound?.play?.("win");
@@ -874,12 +881,13 @@
     if (!opts.silent) {
       const left = formatTreasureClock(state.luckBoostUntil - now);
       const total = formatMult(treasureLuckMult());
+      const eventNote = eventLuckActive()
+        ? ` · event stacked → ${total}× luck (${formatTreasureClock(eventMsLeft())} left on event)`
+        : "";
       setCatchLine(
         wasActive
-          ? `Luck Chest · +5:00 · ${total}× luck · ${left} left`
-          : `Opened Luck Chest! ${total}× luck for 5:00${
-              eventLuckActive() ? " (event stacked)" : ""
-            }`,
+          ? `Luck Chest · +5:00 chest time · ${total}× luck · ${left} left`
+          : `Opened Luck Chest! ${TREASURE_LUCK_MULT}× luck for 5:00${eventNote}`,
         "treasure"
       );
       window.HubSound?.play?.("win");
@@ -2651,8 +2659,8 @@
     if (eventLabelEl) {
       eventLabelEl.textContent =
         eventKind === "luck"
-          ? `2× luck · ${formatTreasureClock(eventLeft)}`
-          : `2× sell · ${formatTreasureClock(eventLeft)}`;
+          ? `2× luck · ${formatTreasureClock(eventLeft)} left`
+          : `2× sell · ${formatTreasureClock(eventLeft)} left`;
     }
     if (moneyChipEl) moneyChipEl.classList.toggle("hidden", !moneyOn);
     if (moneyLabelEl) {
@@ -2660,7 +2668,7 @@
       else {
         const bits = [`${formatMult(treasureMoneyMult())}×`];
         if (moneyBoostActive()) bits.push(`chest ${formatTreasureClock(moneyLeft)}`);
-        if (eventMoneyActive()) bits.push(`event ${formatTreasureClock(eventLeft)}`);
+        if (eventMoneyActive()) bits.push(`event ${formatTreasureClock(eventLeft)} left`);
         moneyLabelEl.textContent = bits.join(" · ");
       }
     }
@@ -2670,7 +2678,7 @@
       else {
         const bits = [`${formatMult(treasureLuckMult())}×`];
         if (luckBoostActive()) bits.push(`chest ${formatTreasureClock(luckLeft)}`);
-        if (eventLuckActive()) bits.push(`event ${formatTreasureClock(eventLeft)}`);
+        if (eventLuckActive()) bits.push(`event ${formatTreasureClock(eventLeft)} left`);
         luckBoostLabelEl.textContent = bits.join(" · ");
       }
     }
