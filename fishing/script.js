@@ -19,6 +19,12 @@
   const TREASURE_MULT = 2;
   const TREASURE_LUCK_MULT = 1.5;
   const TREASURE_STASH_MAX = 25;
+  const EVENT_MS = 30 * 60 * 1000;
+  const EVENT_MONEY_BONUS = 1; // alone → 2× sell
+  const EVENT_LUCK_BONUS = 1; // alone → 2× luck
+  const CHEST_MONEY_BONUS = TREASURE_MULT - 1; // +1 → 2×
+  const CHEST_LUCK_BONUS = TREASURE_LUCK_MULT - 1; // +0.5 → 1.5×
+  // Chest + matching event stacks additively (luck chest + luck event = 2.5×)
   const TREASURE_MONEY = {
     id: "coin_chest",
     name: "Coin Chest",
@@ -497,6 +503,8 @@
   const moneyLabelEl = document.getElementById("money-label");
   const luckChipEl = document.getElementById("luck-boost-chip");
   const luckBoostLabelEl = document.getElementById("luck-boost-label");
+  const eventChipEl = document.getElementById("event-chip");
+  const eventLabelEl = document.getElementById("event-label");
   const treasureStashEl = document.getElementById("treasure-stash");
   const moneyCountEl = document.getElementById("money-chest-count");
   const luckCountEl = document.getElementById("luck-chest-count");
@@ -719,12 +727,71 @@
     return Math.max(0, until - Date.now());
   }
 
+  function eventSlot(now = Date.now()) {
+    return Math.floor(now / EVENT_MS);
+  }
+
+  function eventMsLeft(now = Date.now()) {
+    return Math.max(0, (eventSlot(now) + 1) * EVENT_MS - now);
+  }
+
+  function hashEventSlot(slot) {
+    let x = Math.imul(slot ^ 0x9e3779b9, 0x85ebca6b) >>> 0;
+    x = Math.imul(x ^ (x >>> 13), 0xc2b2ae35) >>> 0;
+    return (x ^ (x >>> 16)) >>> 0;
+  }
+
+  /** Global half-hour event — same for everyone (clock :00 / :30). */
+  function currentEventKind(now = Date.now()) {
+    return hashEventSlot(eventSlot(now)) % 2 === 0 ? "money" : "luck";
+  }
+
+  function eventMoneyActive(now = Date.now()) {
+    return currentEventKind(now) === "money";
+  }
+
+  function eventLuckActive(now = Date.now()) {
+    return currentEventKind(now) === "luck";
+  }
+
+  function formatMult(n) {
+    const v = Math.round((Number(n) || 1) * 100) / 100;
+    if (Number.isInteger(v)) return String(v);
+    return String(v).replace(/(\.\d*?[1-9])0+$/, "$1").replace(/\.$/, "");
+  }
+
   function treasureMoneyMult() {
-    return moneyBoostActive() ? TREASURE_MULT : 1;
+    return (
+      1 +
+      (moneyBoostActive() ? CHEST_MONEY_BONUS : 0) +
+      (eventMoneyActive() ? EVENT_MONEY_BONUS : 0)
+    );
   }
 
   function treasureLuckMult() {
-    return luckBoostActive() ? TREASURE_LUCK_MULT : 1;
+    return (
+      1 +
+      (luckBoostActive() ? CHEST_LUCK_BONUS : 0) +
+      (eventLuckActive() ? EVENT_LUCK_BONUS : 0)
+    );
+  }
+
+  let lastAnnouncedEventSlot = -1;
+
+  function maybeAnnounceEvent() {
+    const slot = eventSlot();
+    if (slot === lastAnnouncedEventSlot) return;
+    const first = lastAnnouncedEventSlot < 0;
+    lastAnnouncedEventSlot = slot;
+    if (first) return;
+    const kind = currentEventKind();
+    const left = formatTreasureClock(eventMsLeft());
+    if (kind === "luck") {
+      setCatchLine(`Half-hour event: 2× luck for ${left} (stacks with Luck Chest → 2.5×)`, "treasure");
+    } else {
+      setCatchLine(`Half-hour event: 2× sell for ${left} (stacks with Coin Chest → 3×)`, "treasure");
+    }
+    window.HubSound?.play?.("win");
   }
 
   function isTreasureItem(fish) {
@@ -783,10 +850,13 @@
     state.moneyBoostUntil = current + TREASURE_BOOST_MS;
     if (!opts.silent) {
       const left = formatTreasureClock(state.moneyBoostUntil - now);
+      const total = formatMult(treasureMoneyMult());
       setCatchLine(
         wasActive
-          ? `Coin Chest · +5:00 (still ${TREASURE_MULT}× sell) · ${left} left`
-          : `Opened Coin Chest! ${TREASURE_MULT}× sell for 5:00`,
+          ? `Coin Chest · +5:00 · ${total}× sell · ${left} left`
+          : `Opened Coin Chest! ${total}× sell for 5:00${
+              eventMoneyActive() ? " (event stacked)" : ""
+            }`,
         "treasure"
       );
       window.HubSound?.play?.("win");
@@ -803,10 +873,13 @@
     state.luckBoostUntil = current + TREASURE_BOOST_MS;
     if (!opts.silent) {
       const left = formatTreasureClock(state.luckBoostUntil - now);
+      const total = formatMult(treasureLuckMult());
       setCatchLine(
         wasActive
-          ? `Luck Chest · +5:00 (still ${TREASURE_LUCK_MULT}× luck) · ${left} left`
-          : `Opened Luck Chest! ${TREASURE_LUCK_MULT}× luck for 5:00`,
+          ? `Luck Chest · +5:00 · ${total}× luck · ${left} left`
+          : `Opened Luck Chest! ${total}× luck for 5:00${
+              eventLuckActive() ? " (event stacked)" : ""
+            }`,
         "treasure"
       );
       window.HubSound?.play?.("win");
@@ -2551,11 +2624,18 @@
     const waitCut = bait ? Math.round(bait.amount * 100) : 0;
     const moneyLeft = moneyMsLeft();
     const luckLeft = luckMsLeft();
+    const eventLeft = eventMsLeft();
+    const eventKind = currentEventKind();
+    const moneyOn = moneyBoostActive() || eventMoneyActive();
+    const luckOn = luckBoostActive() || eventLuckActive();
     if (moneyLeft <= 0 && state.moneyBoostUntil) state.moneyBoostUntil = 0;
     if (luckLeft <= 0 && state.luckBoostUntil) state.luckBoostUntil = 0;
-    document.body.classList.toggle("treasure-boost", moneyLeft > 0 || luckLeft > 0);
-    document.body.classList.toggle("treasure-money-boost", moneyLeft > 0);
-    document.body.classList.toggle("treasure-luck-boost", luckLeft > 0);
+    maybeAnnounceEvent();
+    document.body.classList.toggle("treasure-boost", moneyOn || luckOn);
+    document.body.classList.toggle("treasure-money-boost", moneyOn);
+    document.body.classList.toggle("treasure-luck-boost", luckOn);
+    document.body.classList.toggle("event-money", eventMoneyActive());
+    document.body.classList.toggle("event-luck", eventLuckActive());
     applySpotTheme();
     if (coinCountEl) coinCountEl.textContent = formatNum(state.coins);
     if (spotLabelEl) spotLabelEl.textContent = spot.name;
@@ -2564,15 +2644,35 @@
     if (waitLabelEl) waitLabelEl.textContent = waitCut ? `−${waitCut}%` : "—";
     if (luckLabelEl) luckLabelEl.textContent = `+${Math.round(totalLuckBonus())}`;
     if (sellLabelEl) sellLabelEl.textContent = formatPctBonus(totalSellFactor() - 1);
-    if (moneyChipEl) moneyChipEl.classList.toggle("hidden", moneyLeft <= 0);
-    if (moneyLabelEl) {
-      moneyLabelEl.textContent =
-        moneyLeft > 0 ? `${TREASURE_MULT}× · ${formatTreasureClock(moneyLeft)}` : "—";
+    if (eventChipEl) {
+      eventChipEl.classList.toggle("event-money", eventKind === "money");
+      eventChipEl.classList.toggle("event-luck", eventKind === "luck");
     }
-    if (luckChipEl) luckChipEl.classList.toggle("hidden", luckLeft <= 0);
+    if (eventLabelEl) {
+      eventLabelEl.textContent =
+        eventKind === "luck"
+          ? `2× luck · ${formatTreasureClock(eventLeft)}`
+          : `2× sell · ${formatTreasureClock(eventLeft)}`;
+    }
+    if (moneyChipEl) moneyChipEl.classList.toggle("hidden", !moneyOn);
+    if (moneyLabelEl) {
+      if (!moneyOn) moneyLabelEl.textContent = "—";
+      else {
+        const bits = [`${formatMult(treasureMoneyMult())}×`];
+        if (moneyBoostActive()) bits.push(`chest ${formatTreasureClock(moneyLeft)}`);
+        if (eventMoneyActive()) bits.push(`event ${formatTreasureClock(eventLeft)}`);
+        moneyLabelEl.textContent = bits.join(" · ");
+      }
+    }
+    if (luckChipEl) luckChipEl.classList.toggle("hidden", !luckOn);
     if (luckBoostLabelEl) {
-      luckBoostLabelEl.textContent =
-        luckLeft > 0 ? `${TREASURE_LUCK_MULT}× · ${formatTreasureClock(luckLeft)}` : "—";
+      if (!luckOn) luckBoostLabelEl.textContent = "—";
+      else {
+        const bits = [`${formatMult(treasureLuckMult())}×`];
+        if (luckBoostActive()) bits.push(`chest ${formatTreasureClock(luckLeft)}`);
+        if (eventLuckActive()) bits.push(`event ${formatTreasureClock(eventLeft)}`);
+        luckBoostLabelEl.textContent = bits.join(" · ");
+      }
     }
     if (multiLabelEl) multiLabelEl.textContent = formatPctBonus(multiCatchChance(), false);
     if (perfectLabelEl) perfectLabelEl.textContent = formatPctBonus(perfectBonus());

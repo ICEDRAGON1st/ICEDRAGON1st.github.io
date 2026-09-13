@@ -1703,6 +1703,33 @@ body[data-spot="eventhorizon"] .water-mist {
   color: #9fe0ff;
 }
 
+.event-chip {
+  border-color: rgba(180, 140, 255, 0.45);
+  background: linear-gradient(180deg, rgba(180, 140, 255, 0.16), rgba(0, 0, 0, 0.22));
+}
+
+.event-chip.event-money {
+  border-color: rgba(240, 193, 75, 0.5);
+  background: linear-gradient(180deg, rgba(240, 193, 75, 0.16), rgba(0, 0, 0, 0.22));
+}
+
+.event-chip.event-luck {
+  border-color: rgba(127, 212, 255, 0.5);
+  background: linear-gradient(180deg, rgba(127, 212, 255, 0.16), rgba(0, 0, 0, 0.22));
+}
+
+.event-chip strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.event-chip.event-money strong {
+  color: var(--gold);
+}
+
+.event-chip.event-luck strong {
+  color: #9fe0ff;
+}
+
 .guide-rarity.treasure {
   color: var(--gold);
   font-weight: 700;

@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914w": [
+    "Fishing Idle: half-hour 2× sell or 2× luck events (:00/:30); stacks with chests (2.5× luck / 3× sell)"
+  ],
   "20260914v": [
     "Fishing Idle: clearly higher rare-fish odds (hard refresh if the guide looks unchanged)"
   ],
