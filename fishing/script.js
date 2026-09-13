@@ -833,8 +833,9 @@
   }
 
   /**
-   * Luck used for fish weights, chest odds, and the HUD.
-   * Chests/events multiply gear luck + spot luck together.
+   * Luck used for HUD + chest odds: (gear + spot) × chest/event mult.
+   * Fish rarity odds use baseLuck + a separate rarity skew from treasureLuckMult
+   * (see fishWeight) so 100× luck actually improves ultra-rares ~100×.
    */
   function effectiveLuckBonus(spot = currentSpot()) {
     return baseLuck(spot) * treasureLuckMult();
@@ -843,6 +844,13 @@
   /** Same as effective luck (gear + spot, then × boosts). */
   function totalLuckBonus() {
     return effectiveLuckBonus();
+  }
+
+  /** How strongly a luck mult shifts weight toward this rarity (common=0 … omega=1). */
+  function luckRaritySkew(rarity) {
+    const rank = RARITY_RANK[rarity] || 1;
+    const top = RARITY_RANK.omega || 13;
+    return Math.max(0, Math.min(1, (rank - 1) / Math.max(1, top - 1)));
   }
 
   function coolerMax() {
@@ -2650,8 +2658,9 @@
   }
 
   function fishWeight(fish, spot, forBoat = false) {
-    // Luck is full strength for boats and casts; boat chest luck stays weaker separately
-    const luck = effectiveLuckBonus(spot);
+    // Gear + spot luck (no event mult) — additive progression toward rares
+    const luck = baseLuck(spot);
+    const boostMult = treasureLuckMult();
     let w = (RARITY_WEIGHT[fish.rarity] || 10) * rarityFactor(fish.rarity, spot.rarity);
     if (fish.rarity === "uncommon") w += luck * 0.3;
     if (fish.rarity === "rare") w += luck * 0.28;
@@ -2678,6 +2687,11 @@
     if (fish.rarity === "singularity") w *= (0.025 + t * 0.35) * (forBoat ? 0.09 : 1);
     if (fish.rarity === "omega") w *= (0.015 + t * 0.3) * (forBoat ? 0.06 : 1);
     w *= valueRarityScale(fish);
+    // Chest/event luck mult skews weight toward rarer tiers (omega ≈ ×mult)
+    // so 100× luck makes top fish ~100× more common instead of barely moving.
+    if (boostMult > 1) {
+      w *= Math.pow(boostMult, luckRaritySkew(fish.rarity));
+    }
     // Tiny floor — old 0.01 floor forced all ultra-rares to identical odds
     return Math.max(1e-15, w);
   }
@@ -3773,9 +3787,9 @@
       const effLuck = effectiveLuckBonus(spot);
       if (luckM > 1 || eventLuckActive() || luckBoostActive()) {
         bits.push(
-          `Luck ${formatMult(luckM)}× on gear+spot +${formatMult(base)} → effective +${formatMult(
+          `Luck ${formatMult(luckM)}× on gear+spot +${formatMult(base)} → HUD +${formatMult(
             effLuck
-          )} (odds below)`
+          )} · top fish odds ~×${formatMult(luckM)} (odds below)`
         );
       } else {
         bits.push(`Luck base gear+spot +${formatMult(base)} (odds below)`);

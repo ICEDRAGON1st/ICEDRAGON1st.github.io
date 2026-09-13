@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915u": [
+    "Fishing Idle: luck mults now scale top-fish odds for real (100× luck ≈ 100× better omega odds)"
+  ],
   "20260915t": [
     "Fishing Idle: luck boosts multiply gear luck + spot luck together"
   ],
