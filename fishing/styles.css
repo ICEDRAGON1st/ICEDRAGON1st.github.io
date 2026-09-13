@@ -1730,6 +1730,16 @@ body[data-spot="eventhorizon"] .water-mist {
   color: #9fe0ff;
 }
 
+.event-chip.event-idle {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.2);
+  opacity: 0.85;
+}
+
+.event-chip.event-idle strong {
+  color: var(--muted);
+}
+
 .guide-rarity.treasure {
   color: var(--gold);
   font-weight: 700;

@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914y": [
+    "Fishing Idle: events only run for 5 minutes at :00/:30, then turn off until the next one"
+  ],
   "20260914x": [
     "Fishing Idle: clarify that half-hour events last the full half hour (not 5 minutes)"
   ],

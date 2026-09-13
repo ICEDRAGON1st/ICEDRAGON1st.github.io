@@ -20,6 +20,7 @@
   const TREASURE_LUCK_MULT = 1.5;
   const TREASURE_STASH_MAX = 25;
   const EVENT_MS = 30 * 60 * 1000;
+  const EVENT_ACTIVE_MS = 5 * 60 * 1000; // only first 5 minutes of each :00 / :30
   const EVENT_MONEY_BONUS = 1; // alone → 2× sell
   const EVENT_LUCK_BONUS = 1; // alone → 2× luck
   const CHEST_MONEY_BONUS = TREASURE_MULT - 1; // +1 → 2×
@@ -727,12 +728,48 @@
     return Math.max(0, until - Date.now());
   }
 
-  function eventSlot(now = Date.now()) {
-    return Math.floor(now / EVENT_MS);
+  /** Local clock start of the current :00 or :30 block. */
+  function localHalfHourStart(now = Date.now()) {
+    const d = new Date(now);
+    const start = new Date(d);
+    start.setSeconds(0, 0);
+    start.setMinutes(d.getMinutes() < 30 ? 0 : 30);
+    return start.getTime();
+  }
+
+  function nextHalfHourStart(now = Date.now()) {
+    return localHalfHourStart(now) + EVENT_MS;
+  }
+
+  function eventWindowStart(now = Date.now()) {
+    return localHalfHourStart(now);
+  }
+
+  /** True only during the first 5 minutes after :00 / :30. */
+  function eventIsLive(now = Date.now()) {
+    const start = eventWindowStart(now);
+    return now >= start && now < start + EVENT_ACTIVE_MS;
   }
 
   function eventMsLeft(now = Date.now()) {
-    return Math.max(0, (eventSlot(now) + 1) * EVENT_MS - now);
+    if (!eventIsLive(now)) return 0;
+    return Math.max(0, eventWindowStart(now) + EVENT_ACTIVE_MS - now);
+  }
+
+  function msUntilNextEvent(now = Date.now()) {
+    if (eventIsLive(now)) return eventMsLeft(now);
+    return Math.max(0, nextHalfHourStart(now) - now);
+  }
+
+  function eventSlotKey(startTs) {
+    const d = new Date(startTs);
+    return (
+      d.getFullYear() * 1e8 +
+      (d.getMonth() + 1) * 1e6 +
+      d.getDate() * 1e4 +
+      d.getHours() * 100 +
+      d.getMinutes()
+    );
   }
 
   function hashEventSlot(slot) {
@@ -741,9 +778,14 @@
     return (x ^ (x >>> 16)) >>> 0;
   }
 
-  /** Global half-hour event — same for everyone (clock :00 / :30). */
+  function eventKindForStart(startTs) {
+    return hashEventSlot(eventSlotKey(startTs)) % 2 === 0 ? "money" : "luck";
+  }
+
+  /** Live event kind, or null when between windows. */
   function currentEventKind(now = Date.now()) {
-    return hashEventSlot(eventSlot(now)) % 2 === 0 ? "money" : "luck";
+    if (!eventIsLive(now)) return null;
+    return eventKindForStart(eventWindowStart(now));
   }
 
   function eventMoneyActive(now = Date.now()) {
@@ -776,24 +818,26 @@
     );
   }
 
-  let lastAnnouncedEventSlot = -1;
+  let lastAnnouncedEventKey = "";
 
   function maybeAnnounceEvent() {
-    const slot = eventSlot();
-    if (slot === lastAnnouncedEventSlot) return;
-    const first = lastAnnouncedEventSlot < 0;
-    lastAnnouncedEventSlot = slot;
+    if (!eventIsLive()) return;
+    const start = eventWindowStart();
+    const key = String(eventSlotKey(start));
+    if (key === lastAnnouncedEventKey) return;
+    const first = !lastAnnouncedEventKey;
+    lastAnnouncedEventKey = key;
     if (first) return;
     const kind = currentEventKind();
     const left = formatTreasureClock(eventMsLeft());
     if (kind === "luck") {
       setCatchLine(
-        `Half-hour event: 2× luck for this half hour (${left} left) · stacks with Luck Chest → 2.5×`,
+        `Event live: 2× luck for 5:00 (${left} left) · stacks with Luck Chest → 2.5×`,
         "treasure"
       );
     } else {
       setCatchLine(
-        `Half-hour event: 2× sell for this half hour (${left} left) · stacks with Coin Chest → 3×`,
+        `Event live: 2× sell for 5:00 (${left} left) · stacks with Coin Chest → 3×`,
         "treasure"
       );
     }
@@ -2634,6 +2678,7 @@
     const luckLeft = luckMsLeft();
     const eventLeft = eventMsLeft();
     const eventKind = currentEventKind();
+    const eventLive = eventIsLive();
     const moneyOn = moneyBoostActive() || eventMoneyActive();
     const luckOn = luckBoostActive() || eventLuckActive();
     if (moneyLeft <= 0 && state.moneyBoostUntil) state.moneyBoostUntil = 0;
@@ -2644,6 +2689,7 @@
     document.body.classList.toggle("treasure-luck-boost", luckOn);
     document.body.classList.toggle("event-money", eventMoneyActive());
     document.body.classList.toggle("event-luck", eventLuckActive());
+    document.body.classList.toggle("event-idle", !eventLive);
     applySpotTheme();
     if (coinCountEl) coinCountEl.textContent = formatNum(state.coins);
     if (spotLabelEl) spotLabelEl.textContent = spot.name;
@@ -2655,12 +2701,20 @@
     if (eventChipEl) {
       eventChipEl.classList.toggle("event-money", eventKind === "money");
       eventChipEl.classList.toggle("event-luck", eventKind === "luck");
+      eventChipEl.classList.toggle("event-idle", !eventLive);
     }
     if (eventLabelEl) {
-      eventLabelEl.textContent =
-        eventKind === "luck"
-          ? `2× luck · ${formatTreasureClock(eventLeft)} left`
-          : `2× sell · ${formatTreasureClock(eventLeft)} left`;
+      if (eventLive && eventKind === "luck") {
+        eventLabelEl.textContent = `2× luck · ${formatTreasureClock(eventLeft)} left`;
+      } else if (eventLive && eventKind === "money") {
+        eventLabelEl.textContent = `2× sell · ${formatTreasureClock(eventLeft)} left`;
+      } else {
+        const nextStart = nextHalfHourStart();
+        const nextKind = eventKindForStart(nextStart);
+        eventLabelEl.textContent = `Next ${
+          nextKind === "luck" ? "2× luck" : "2× sell"
+        } in ${formatTreasureClock(msUntilNextEvent())}`;
+      }
     }
     if (moneyChipEl) moneyChipEl.classList.toggle("hidden", !moneyOn);
     if (moneyLabelEl) {
