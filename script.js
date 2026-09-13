@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916b": [
+    "Fishing Idle: rarer variants; fish guide scrolls past the variants table again"
+  ],
   "20260916a": [
     "Fishing Idle: fish guide shows live cast/boat odds for each value variant"
   ],

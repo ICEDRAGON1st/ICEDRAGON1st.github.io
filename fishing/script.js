@@ -1909,8 +1909,9 @@
   /** Primary (silver/gold/diamond/rainbow) is exclusive; shiny can stack as a second tag. */
   function variantRollChances(spot = currentSpot(), forBoat = false) {
     const luck = effectiveLuckBonus(spot);
-    const primary = Math.min(0.28, (forBoat ? 0.025 : 0.045) + luck * 0.00012);
-    const shiny = Math.min(0.14, (forBoat ? 0.012 : 0.022) + luck * 0.00007);
+    // Rarer rolls: low base chance, slow luck scale, hard caps
+    const primary = Math.min(0.1, (forBoat ? 0.008 : 0.014) + luck * 0.000035);
+    const shiny = Math.min(0.04, (forBoat ? 0.0035 : 0.0065) + luck * 0.00002);
     return {
       primary,
       shiny,

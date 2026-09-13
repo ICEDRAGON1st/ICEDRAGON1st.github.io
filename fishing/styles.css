@@ -310,6 +310,8 @@ body {
   max-height: min(88vh, 720px);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
 }
 
 .guide-head {
@@ -318,6 +320,7 @@ body {
   justify-content: space-between;
   gap: 0.75rem;
   margin-bottom: 0.35rem;
+  flex: 0 0 auto;
 }
 
 .guide-head h2 {
@@ -330,8 +333,9 @@ body {
 }
 
 .guide-lead {
-  margin-bottom: 0.85rem;
+  margin-bottom: 0.65rem;
   font-size: 0.88rem;
+  flex: 0 0 auto;
 }
 
 .guide-boosts {
@@ -346,30 +350,41 @@ body {
 }
 
 .guide-section-title {
-  margin: 0 0 0.35rem;
-  font-size: 0.95rem;
+  margin: 0 0 0.3rem;
+  font-size: 0.9rem;
   font-weight: 800;
   letter-spacing: 0.02em;
 }
 
 .guide-variants {
-  margin: 0 0 1rem;
+  margin: 0 0 0.75rem;
+  flex: 0 0 auto;
 }
 
 .guide-variants-note {
-  margin: 0 0 0.55rem;
-  font-size: 0.8rem;
-  line-height: 1.4;
+  margin: 0 0 0.4rem;
+  font-size: 0.78rem;
+  line-height: 1.35;
   color: var(--muted);
 }
 
 .guide-variants-wrap {
-  max-height: 16rem;
+  max-height: none;
+  overflow: visible;
+}
+
+.guide-variants-table {
+  font-size: 0.8rem;
+}
+
+.guide-variants-table th,
+.guide-variants-table td {
+  padding: 0.35rem 0.5rem;
 }
 
 .guide-variant-note {
   color: var(--muted);
-  font-size: 0.78rem;
+  font-size: 0.72rem;
 }
 
 .guide-variant-row.variant-silver .guide-fish-name {
@@ -390,6 +405,13 @@ body {
 
 .guide-variant-row.variant-shiny .guide-fish-name {
   color: #ffe8a3;
+}
+
+.guide-fish-wrap {
+  flex: 1 1 auto;
+  min-height: 10rem;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .guide-table-wrap {
