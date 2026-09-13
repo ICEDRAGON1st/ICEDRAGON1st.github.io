@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914v": [
+    "Fishing Idle: clearly higher rare-fish odds (hard refresh if the guide looks unchanged)"
+  ],
   "20260914u": [
     "Fishing Idle: rare fish odds nudged up a bit more"
   ],
