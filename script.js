@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916i": [
+    "Fishing Idle: +1 fish each in Divine through Absolute (10 new fish)"
+  ],
   "20260916h": [
     "Fishing Idle: catch book shows which fish you’ve discovered vs still missing"
   ],
