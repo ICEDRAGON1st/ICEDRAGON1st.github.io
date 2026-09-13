@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915g": [
+    "Fishing Idle: sell and luck events now strictly alternate every half-hour (no long luck-only streaks)"
+  ],
   "20260915f": [
     "Hub: OscarVR29 can use the Tide hub look"
   ],

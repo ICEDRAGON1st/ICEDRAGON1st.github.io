@@ -776,14 +776,14 @@
     );
   }
 
-  function hashEventSlot(slot) {
-    let x = Math.imul(slot ^ 0x9e3779b9, 0x85ebca6b) >>> 0;
-    x = Math.imul(x ^ (x >>> 13), 0xc2b2ae35) >>> 0;
-    return (x ^ (x >>> 16)) >>> 0;
+  /** Half-hour index so consecutive :00 / :30 slots always alternate. */
+  function eventSlotIndex(startTs) {
+    return Math.floor(Number(startTs) / EVENT_MS);
   }
 
   function eventKindForStart(startTs) {
-    return hashEventSlot(eventSlotKey(startTs)) % 2 === 0 ? "money" : "luck";
+    // Strict alternate — money every other half-hour (no long luck-only streaks)
+    return eventSlotIndex(startTs) % 2 === 0 ? "money" : "luck";
   }
 
   /** Live event kind, or null when between windows. */
@@ -852,14 +852,15 @@
     const kind = currentEventKind();
     const left = eventMsLeft();
     const nextStart = nextHalfHourStart();
-    const nextKind = eventKindForStart(live ? nextStart : nextHalfHourStart());
+    const nextKind = eventKindForStart(nextStart);
     const untilNext = msUntilNextEvent();
+    const previewKind = live ? kind : nextKind;
 
     if (eventBannerEl) {
       eventBannerEl.classList.toggle("event-idle", !live);
       eventBannerEl.classList.toggle("is-live", live);
-      eventBannerEl.classList.toggle("event-money", kind === "money");
-      eventBannerEl.classList.toggle("event-luck", kind === "luck");
+      eventBannerEl.classList.toggle("event-money", previewKind === "money");
+      eventBannerEl.classList.toggle("event-luck", previewKind === "luck");
     }
     if (eventBannerTagEl) {
       eventBannerTagEl.textContent = live ? "LIVE NOW" : "Next event";
@@ -2736,8 +2737,9 @@
     if (luckLabelEl) luckLabelEl.textContent = `+${Math.round(totalLuckBonus())}`;
     if (sellLabelEl) sellLabelEl.textContent = formatPctBonus(totalSellFactor() - 1);
     if (eventChipEl) {
-      eventChipEl.classList.toggle("event-money", eventKind === "money");
-      eventChipEl.classList.toggle("event-luck", eventKind === "luck");
+      const previewKind = eventLive ? eventKind : eventKindForStart(nextHalfHourStart());
+      eventChipEl.classList.toggle("event-money", previewKind === "money");
+      eventChipEl.classList.toggle("event-luck", previewKind === "luck");
       eventChipEl.classList.toggle("event-idle", !eventLive);
     }
     if (eventLabelEl) {
@@ -2748,9 +2750,12 @@
       } else {
         const nextStart = nextHalfHourStart();
         const nextKind = eventKindForStart(nextStart);
+        const afterKind = eventKindForStart(nextStart + EVENT_MS);
         eventLabelEl.textContent = `Next ${
           nextKind === "luck" ? "2× luck" : "2× sell"
-        } in ${formatTreasureClock(msUntilNextEvent())}`;
+        } in ${formatTreasureClock(msUntilNextEvent())} · then ${
+          afterKind === "luck" ? "2× luck" : "2× sell"
+        }`;
       }
     }
     renderEventBanner();

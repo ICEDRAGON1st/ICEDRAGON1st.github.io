@@ -1840,6 +1840,44 @@ body[data-spot="eventhorizon"] .water-mist {
   color: var(--muted);
 }
 
+.event-banner.event-idle.event-money {
+  border-color: rgba(240, 193, 75, 0.45);
+  background: linear-gradient(135deg, rgba(55, 40, 12, 0.92), rgba(14, 12, 8, 0.9));
+  opacity: 1;
+}
+
+.event-banner.event-idle.event-money strong,
+.event-banner.event-idle.event-money .event-banner-time {
+  color: #e6c97a;
+}
+
+.event-banner.event-idle.event-luck {
+  border-color: rgba(127, 212, 255, 0.4);
+  background: linear-gradient(135deg, rgba(20, 40, 60, 0.92), rgba(10, 14, 22, 0.9));
+  opacity: 1;
+}
+
+.event-banner.event-idle.event-luck strong,
+.event-banner.event-idle.event-luck .event-banner-time {
+  color: #9fd6f0;
+}
+
+.event-chip.event-idle.event-money {
+  border-color: rgba(240, 193, 75, 0.4);
+}
+
+.event-chip.event-idle.event-money strong {
+  color: #e6c97a;
+}
+
+.event-chip.event-idle.event-luck {
+  border-color: rgba(127, 212, 255, 0.35);
+}
+
+.event-chip.event-idle.event-luck strong {
+  color: #9fd6f0;
+}
+
 body.event-money .cast-btn,
 body.event-luck .cast-btn {
   box-shadow:
