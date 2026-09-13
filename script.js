@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915i": [
+    "Fishing Idle: Third catch gear — chance for a 3rd fish on cast after a 2nd catch lands"
+  ],
   "20260915h": [
     "Fishing Idle: 5 new late spots (Prism Reef → Absolution Sea), more gear in every category, and 2 new boat tiers"
   ],

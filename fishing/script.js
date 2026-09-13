@@ -497,6 +497,18 @@
     { id: "net13", name: "Prism Snare", desc: "20% chance for a second fish", cost: 30000000000, kind: "multi", amount: 0.2 },
     { id: "net14", name: "Chrono Net", desc: "22% chance for a second fish", cost: 100000000000, kind: "multi", amount: 0.22 },
     { id: "net15", name: "Genesis Mesh", desc: "25% chance for a second fish", cost: 350000000000, kind: "multi", amount: 0.25 },
+    { id: "triple1", name: "Twin Hook", desc: "4% chance for a third fish (needs 2nd catch)", cost: 15000, kind: "triple", amount: 0.04 },
+    { id: "triple2", name: "Trident Line", desc: "7% chance for a third fish (needs 2nd catch)", cost: 120000, kind: "triple", amount: 0.07 },
+    { id: "triple3", name: "Triple Snare", desc: "10% chance for a third fish (needs 2nd catch)", cost: 900000, kind: "triple", amount: 0.1 },
+    { id: "triple4", name: "Cascade Trident", desc: "13% chance for a third fish (needs 2nd catch)", cost: 8000000, kind: "triple", amount: 0.13 },
+    { id: "triple5", name: "Void Triad", desc: "16% chance for a third fish (needs 2nd catch)", cost: 70000000, kind: "triple", amount: 0.16 },
+    { id: "triple6", name: "Apex Trident", desc: "20% chance for a third fish (needs 2nd catch)", cost: 500000000, kind: "triple", amount: 0.2 },
+    { id: "triple7", name: "Zenith Triad", desc: "8% chance for a third fish (needs 2nd catch)", cost: 1500000000, kind: "triple", amount: 0.08 },
+    { id: "triple8", name: "Rift Trident", desc: "10% chance for a third fish (needs 2nd catch)", cost: 4000000000, kind: "triple", amount: 0.1 },
+    { id: "triple9", name: "Quasar Triad", desc: "12% chance for a third fish (needs 2nd catch)", cost: 12000000000, kind: "triple", amount: 0.12 },
+    { id: "triple10", name: "Prism Trident", desc: "15% chance for a third fish (needs 2nd catch)", cost: 40000000000, kind: "triple", amount: 0.15 },
+    { id: "triple11", name: "Chrono Triad", desc: "18% chance for a third fish (needs 2nd catch)", cost: 150000000000, kind: "triple", amount: 0.18 },
+    { id: "triple12", name: "Genesis Trident", desc: "22% chance for a third fish (needs 2nd catch)", cost: 500000000000, kind: "triple", amount: 0.22 },
     { id: "perfect1", name: "Steady Hands", desc: "+10% sell on perfect reels", cost: 1500, kind: "perfect", amount: 0.1 },
     { id: "perfect2", name: "Keen Eye", desc: "+15% sell on perfect reels", cost: 18000, kind: "perfect", amount: 0.15 },
     { id: "perfect3", name: "Timing Belt", desc: "+20% sell on perfect reels", cost: 150000, kind: "perfect", amount: 0.2 },
@@ -608,6 +620,7 @@
   const moneyUseBtn = document.getElementById("money-chest-use-btn");
   const luckUseBtn = document.getElementById("luck-chest-use-btn");
   const multiLabelEl = document.getElementById("multi-label");
+  const tripleLabelEl = document.getElementById("triple-label");
   const perfectLabelEl = document.getElementById("perfect-label");
   const coolerStatLabelEl = document.getElementById("cooler-stat-label");
   const boatsLabelEl = document.getElementById("boats-label");
@@ -687,6 +700,11 @@
       id: "multi",
       title: "Second catch",
       blurb: "Nets — chance to land a second fish when you reel (not boats)."
+    },
+    {
+      id: "triple",
+      title: "Third catch",
+      blurb: "Tridents — if a second fish lands, chance for a third on the same cast."
     },
     {
       id: "perfect",
@@ -1129,6 +1147,10 @@
 
   function multiCatchChance() {
     return Math.min(0.92, ownedGear("multi").reduce((s, g) => s + g.amount, 0));
+  }
+
+  function tripleCatchChance() {
+    return Math.min(0.75, ownedGear("triple").reduce((s, g) => s + g.amount, 0));
   }
 
   function boats() {
@@ -2170,10 +2192,16 @@
 
     const ok = addToCooler(fish, { perfect });
     let bonusFish = null;
+    let thirdFish = null;
     if (ok && Math.random() < multiCatchChance()) {
       bonusFish = rollFish(spot, false);
       state.catches += 1;
       if (!addToCooler(bonusFish)) bonusFish = null;
+    }
+    if (ok && bonusFish && Math.random() < tripleCatchChance()) {
+      thirdFish = rollFish(spot, false);
+      state.catches += 1;
+      if (!addToCooler(thirdFish)) thirdFish = null;
     }
     setPhase("result");
     if (ok) {
@@ -2187,26 +2215,44 @@
           perfect: false
         });
       }
+      if (thirdFish) {
+        haul.push({
+          fish: thirdFish,
+          val: fishValue(thirdFish, spot, false),
+          perfect: false
+        });
+      }
       showCatchCard(haul);
       const tip = perfect ? "Perfect reel! " : "";
-      const bonusTip = bonusFish ? ` + ${bonusFish.name}` : "";
+      const extras = [bonusFish, thirdFish].filter(Boolean).map((f) => f.name);
+      const bonusTip = extras.length ? ` + ${extras.join(" + ")}` : "";
+      const toneFish =
+        [thirdFish, bonusFish, fish].find((f) => f && isShowcaseRarity(f.rarity)) || fish;
       setCatchLine(
         `${tip}Caught ${fish.name} (${fish.rarity})${bonusTip}`,
-        catchTone(bonusFish && isShowcaseRarity(bonusFish.rarity) ? bonusFish.rarity : fish.rarity)
+        catchTone(toneFish.rarity)
       );
       window.HubSound?.play?.(
-        perfect || isShowcaseRarity(fish.rarity) || (bonusFish && isShowcaseRarity(bonusFish.rarity))
+        perfect ||
+          isShowcaseRarity(fish.rarity) ||
+          (bonusFish && isShowcaseRarity(bonusFish.rarity)) ||
+          (thirdFish && isShowcaseRarity(thirdFish.rarity))
           ? "win"
           : "click"
       );
-      if (isShowcaseRarity(fish.rarity) || (bonusFish && isShowcaseRarity(bonusFish.rarity))) {
+      if (
+        isShowcaseRarity(fish.rarity) ||
+        (bonusFish && isShowcaseRarity(bonusFish.rarity)) ||
+        (thirdFish && isShowcaseRarity(thirdFish.rarity))
+      ) {
         window.HubConfetti?.burst?.();
       }
       const rect = castBtn.getBoundingClientRect();
+      const extrasN = [bonusFish, thirdFish].filter(Boolean).length;
       spawnFloat(
         evt?.clientX ?? rect.left + rect.width / 2,
         evt?.clientY ?? rect.top + 20,
-        bonusFish ? `${fish.name} +1` : fish.name
+        extrasN ? `${fish.name} +${extrasN}` : fish.name
       );
     } else {
       castBtn.classList.add("is-miss");
@@ -2872,6 +2918,7 @@
       }
     }
     if (multiLabelEl) multiLabelEl.textContent = formatPctBonus(multiCatchChance(), false);
+    if (tripleLabelEl) tripleLabelEl.textContent = formatPctBonus(tripleCatchChance(), false);
     if (perfectLabelEl) perfectLabelEl.textContent = formatPctBonus(perfectBonus());
     if (coolerStatLabelEl) coolerStatLabelEl.textContent = String(coolerMax());
     if (hudBestEl) hudBestEl.textContent = bestLabel;
