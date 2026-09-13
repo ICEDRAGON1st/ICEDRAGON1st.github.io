@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915a": [
+    "My Games: save multiple accounts on this device — create new, log in with a code, switch between them"
+  ],
   "20260914z": [
     "Fishing Idle: big LIVE event banner above the cast area so active events are obvious"
   ],
@@ -3966,6 +3969,68 @@ function refreshPlayerCodeUI() {
   const el = document.getElementById("player-code-value");
   if (!el || typeof HubPlays === "undefined") return;
   el.textContent = HubPlays.getPlayerCode?.() || "————";
+  renderSavedAccounts();
+}
+
+function renderSavedAccounts() {
+  const list = document.getElementById("player-accounts-list");
+  if (!list || typeof HubPlays === "undefined") return;
+  try {
+    HubPlays.rememberCurrentAccount?.();
+  } catch {}
+  const accounts = HubPlays.getSavedAccounts?.() || [];
+  const activeCode = HubPlays.normalizePlayerCode?.(HubPlays.getPlayerCode?.() || "") || "";
+  if (!accounts.length) {
+    list.innerHTML = `<li class="player-accounts-empty">No saved accounts yet — log in with a code or create a new one.</li>`;
+    return;
+  }
+  list.innerHTML = accounts
+    .map((a) => {
+      const code = HubPlays.formatPlayerCode?.(a.code) || a.code;
+      const norm = HubPlays.normalizePlayerCode?.(code) || "";
+      const active = norm && norm === activeCode;
+      const label = a.name || "Unnamed";
+      return `<li class="${active ? "is-active" : ""}" data-account-code="${escapeHtml(code)}">
+        <span class="player-accounts-meta">
+          <strong>${escapeHtml(label)}${active ? " · active" : ""}</strong>
+          <span>${escapeHtml(code)}</span>
+        </span>
+        <span class="player-accounts-actions">
+          ${
+            active
+              ? ""
+              : `<button type="button" class="hub-btn" data-account-switch="${escapeHtml(code)}">Switch</button>`
+          }
+          <button type="button" class="hub-btn" data-account-forget="${escapeHtml(code)}">Forget</button>
+        </span>
+      </li>`;
+    })
+    .join("");
+}
+
+async function loginWithPlayerCode(raw) {
+  if (typeof HubPlays === "undefined") return;
+  setPlayerCodeStatus("Logging in…", false);
+  const result = await HubPlays.restoreWithPlayerCode(raw);
+  if (!result?.ok) {
+    setPlayerCodeStatus(result?.error || "Couldn't log in", true);
+    renderSavedAccounts();
+    return;
+  }
+  if (result.already) {
+    setPlayerCodeStatus("Already on that account — saved on this device", false);
+    refreshPlayerCodeUI();
+    return;
+  }
+  if (playerNameInput && result.name) playerNameInput.value = result.name;
+  setPlayerCodeStatus(
+    result.name
+      ? `Logged in as ${result.name}. Reloading…`
+      : "Account restored. Reloading…",
+    false
+  );
+  renderSavedAccounts();
+  setTimeout(() => window.location.reload(), 700);
 }
 
 document.getElementById("player-code-copy-btn")?.addEventListener("click", async () => {
@@ -3981,28 +4046,49 @@ document.getElementById("player-code-copy-btn")?.addEventListener("click", async
 });
 
 document.getElementById("player-code-restore-btn")?.addEventListener("click", async () => {
-  if (typeof HubPlays === "undefined") return;
   const input = document.getElementById("player-code-restore-input");
-  const raw = input?.value || "";
-  setPlayerCodeStatus("Restoring…", false);
-  const result = await HubPlays.restoreWithPlayerCode(raw);
+  await loginWithPlayerCode(input?.value || "");
+});
+
+document.getElementById("player-code-new-btn")?.addEventListener("click", async () => {
+  if (typeof HubPlays === "undefined") return;
+  const ok = window.confirm(
+    "Create a new blank account on this device?\n\nYour current account stays saved so you can switch back with its code."
+  );
+  if (!ok) return;
+  setPlayerCodeStatus("Creating account…", false);
+  const result = await HubPlays.createNewAccount?.();
   if (!result?.ok) {
-    setPlayerCodeStatus(result?.error || "Couldn't restore", true);
+    setPlayerCodeStatus(result?.error || "Couldn't create account", true);
     return;
   }
-  if (result.already) {
-    setPlayerCodeStatus("This device already uses that code", false);
-    refreshPlayerCodeUI();
-    return;
-  }
-  if (playerNameInput && result.name) playerNameInput.value = result.name;
+  if (playerNameInput) playerNameInput.value = "";
   setPlayerCodeStatus(
-    result.name
-      ? `Restored as ${result.name}. Reloading…`
-      : "Player restored. Reloading…",
+    `New account ready · code ${result.code}. Reloading…`,
     false
   );
   setTimeout(() => window.location.reload(), 700);
+});
+
+document.getElementById("player-accounts-list")?.addEventListener("click", async (e) => {
+  const switchBtn = e.target.closest("[data-account-switch]");
+  const forgetBtn = e.target.closest("[data-account-forget]");
+  if (switchBtn) {
+    await loginWithPlayerCode(switchBtn.getAttribute("data-account-switch") || "");
+    return;
+  }
+  if (forgetBtn) {
+    const code = forgetBtn.getAttribute("data-account-forget") || "";
+    const active = HubPlays?.normalizePlayerCode?.(HubPlays.getPlayerCode?.() || "");
+    const norm = HubPlays?.normalizePlayerCode?.(code);
+    if (norm && active && norm === active) {
+      setPlayerCodeStatus("Can't forget the account you're using — switch first", true);
+      return;
+    }
+    HubPlays?.removeSavedAccount?.(code);
+    setPlayerCodeStatus(`Forgot ${HubPlays?.formatPlayerCode?.(code) || code}`, false);
+    renderSavedAccounts();
+  }
 });
 
 document.getElementById("player-code-restore-input")?.addEventListener("keydown", (e) => {

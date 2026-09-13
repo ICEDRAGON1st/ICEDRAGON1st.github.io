@@ -2121,6 +2121,67 @@ header h1 {
   letter-spacing: 0.04em;
 }
 
+.player-accounts-box {
+  margin: 0.35rem 0 0.25rem;
+}
+
+.player-accounts-list {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.player-accounts-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem 0.55rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  border: 1px solid var(--tile-border);
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+}
+
+.player-accounts-list li.is-active {
+  border-color: color-mix(in srgb, var(--correct) 55%, var(--tile-border));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--correct) 35%, transparent);
+}
+
+.player-accounts-meta {
+  flex: 1 1 8rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.player-accounts-meta strong {
+  font-size: 0.92rem;
+  color: var(--text);
+}
+
+.player-accounts-meta span {
+  font-size: 0.75rem;
+  color: var(--subtitle);
+  font-family: Consolas, "Courier New", monospace;
+  letter-spacing: 0.06em;
+}
+
+.player-accounts-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.player-accounts-empty {
+  margin: 0.35rem 0 0;
+  color: var(--subtitle);
+  font-size: 0.82rem;
+}
+
 .players-name-row label {
   font-size: 0.85rem;
   font-weight: 700;

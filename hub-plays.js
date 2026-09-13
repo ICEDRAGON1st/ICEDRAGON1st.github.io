@@ -7,6 +7,8 @@
   const NAME_KEY = "hub-player-name";
   const PLAYER_ID_KEY = "hub-player-id";
   const PLAYER_CODE_KEY = "hub-player-code";
+  const ACCOUNTS_KEY = "hub-accounts-v1";
+  const MAX_SAVED_ACCOUNTS = 12;
   const NAME_LOCK_KEY = "hub-player-name-locked";
   const LOCAL_KEY = "hub-plays-local-v1";
   const PROFILE_STYLE_KEY = "hub-profile-style-v1";
@@ -370,6 +372,97 @@
     return formatted;
   }
 
+  function loadAccountVault() {
+    try {
+      if (!canUseLocalStorage()) return [];
+      const raw = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || "[]");
+      if (!Array.isArray(raw)) return [];
+      return raw
+        .map((a) => ({
+          code: formatPlayerCode(a?.code || ""),
+          playerId: String(a?.playerId || ""),
+          name: sanitizeName(a?.name || ""),
+          savedAt: Number(a?.savedAt) || 0
+        }))
+        .filter((a) => normalizePlayerCode(a.code).length === 8 && a.playerId)
+        .slice(0, MAX_SAVED_ACCOUNTS);
+    } catch {
+      return [];
+    }
+  }
+
+  function saveAccountVault(list) {
+    try {
+      if (!canUseLocalStorage()) return;
+      localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(list.slice(0, MAX_SAVED_ACCOUNTS)));
+    } catch {}
+  }
+
+  /** Remember this device's known accounts so you can switch by code later. */
+  function rememberCurrentAccount(extra = {}) {
+    const code = formatPlayerCode(extra.code || readStoredPlayerCode() || getPlayerCode());
+    const norm = normalizePlayerCode(code);
+    if (norm.length !== 8) return getSavedAccounts();
+    const playerId = String(extra.playerId || getPlayerId() || "");
+    if (!playerId) return getSavedAccounts();
+    const name = sanitizeName(extra.name != null ? extra.name : getName() || "");
+    const list = loadAccountVault().filter((a) => normalizePlayerCode(a.code) !== norm);
+    list.unshift({
+      code: formatPlayerCode(norm),
+      playerId,
+      name,
+      savedAt: Date.now()
+    });
+    saveAccountVault(list);
+    return list;
+  }
+
+  function getSavedAccounts() {
+    return loadAccountVault();
+  }
+
+  function removeSavedAccount(rawCode) {
+    const norm = normalizePlayerCode(rawCode);
+    if (norm.length !== 8) return getSavedAccounts();
+    const list = loadAccountVault().filter((a) => normalizePlayerCode(a.code) !== norm);
+    saveAccountVault(list);
+    return list;
+  }
+
+  function clearAccountLocalIdentity() {
+    try {
+      if (!canUseLocalStorage()) return;
+      localStorage.removeItem(NAME_KEY);
+      localStorage.removeItem(NAME_LOCK_KEY);
+      localStorage.removeItem(PROFILE_STYLE_KEY);
+      localStorage.removeItem(ONLINE_TIME_KEY);
+      localStorage.removeItem(LOCAL_KEY);
+    } catch {}
+    sessionName = "";
+  }
+
+  async function createNewAccount() {
+    rememberCurrentAccount();
+    const id = `p-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    try {
+      if (canUseLocalStorage()) localStorage.setItem(PLAYER_ID_KEY, id);
+    } catch {}
+    sessionPlayerId = id;
+    clearAccountLocalIdentity();
+    const code = formatPlayerCode(randomCodeParts());
+    storePlayerCode(code);
+    try {
+      await ensurePlayerCodeRegistered();
+    } catch {}
+    rememberCurrentAccount({ code, playerId: id, name: "" });
+    return {
+      ok: true,
+      created: true,
+      code: formatPlayerCode(code),
+      playerId: id
+    };
+  }
+
   async function fetchCodesRemote() {
     const data = await fetchJson(CODES_API);
     if (!data || typeof data !== "object") return {};
@@ -549,7 +642,9 @@
       // Offline / rate-limited: keep local code
     }
 
-    return formatPlayerCode(norm);
+    const out = formatPlayerCode(norm);
+    rememberCurrentAccount({ code: out, playerId: me, name: getName() || "" });
+    return out;
   }
 
   function getPlayerCode() {
@@ -565,23 +660,41 @@
       return { ok: false, error: "Enter your 8-character player code (like ABCD-EFGH)" };
     }
 
+    // Prefer a locally saved account when MantleDB is unavailable / rate-limited
+    const localHit = loadAccountVault().find((a) => normalizePlayerCode(a.code) === norm);
+
     let remote;
     try {
       remote = await fetchCodesRemote();
     } catch {
-      return { ok: false, error: "Can't check codes right now — try again online" };
+      remote = null;
     }
 
-    const entry = remote[norm];
+    const entry = remote?.[norm] || (localHit
+      ? { playerId: localHit.playerId, name: localHit.name, at: localHit.savedAt }
+      : null);
     if (!entry?.playerId) {
-      return { ok: false, error: "Unknown player code" };
+      return {
+        ok: false,
+        error: remote
+          ? "Unknown player code"
+          : "Can't check codes online — save/restore this code on this device first, or try again later"
+      };
     }
 
     const me = getPlayerId();
     if (entry.playerId === me) {
       storePlayerCode(norm);
+      rememberCurrentAccount({
+        code: norm,
+        playerId: entry.playerId,
+        name: getName() || entry.name || ""
+      });
       return { ok: true, name: getName(), already: true, code: formatPlayerCode(norm) };
     }
+
+    // Keep the current account on this device before switching
+    rememberCurrentAccount();
 
     let names = namesCache;
     try {
@@ -590,8 +703,9 @@
     } catch {}
 
     const claim = findClaimByPlayerId(names, entry.playerId);
-    const restoredName = sanitizeName(claim?.name || entry.name || "");
+    const restoredName = sanitizeName(claim?.name || entry.name || localHit?.name || "");
 
+    clearAccountLocalIdentity();
     try {
       if (canUseLocalStorage()) {
         localStorage.setItem(PLAYER_ID_KEY, entry.playerId);
@@ -614,12 +728,19 @@
       lockNameToPlayerCode(nameKey(restoredName), entry.playerId, norm, restoredName).catch(() => {});
     }
 
+    rememberCurrentAccount({
+      code: norm,
+      playerId: entry.playerId,
+      name: restoredName
+    });
+
     return {
       ok: true,
       name: restoredName,
       restored: true,
       code: formatPlayerCode(norm),
-      playerId: entry.playerId
+      playerId: entry.playerId,
+      fromLocal: !remote?.[norm] && !!localHit
     };
   }
 
@@ -675,6 +796,9 @@
       if (!canUseLocalStorage()) return;
       if (name) localStorage.setItem(NAME_KEY, name);
       else localStorage.removeItem(NAME_KEY);
+    } catch {}
+    try {
+      rememberCurrentAccount({ name: name || "" });
     } catch {}
   }
 
@@ -2908,6 +3032,10 @@ body.light .menu-credit .player-name-creator {
     getPlayerCode,
     ensurePlayerCodeRegistered,
     restoreWithPlayerCode,
+    createNewAccount,
+    getSavedAccounts,
+    rememberCurrentAccount,
+    removeSavedAccount,
     normalizePlayerCode,
     formatPlayerCode,
     heartbeat,
@@ -2946,6 +3074,7 @@ body.light .menu-credit .player-name-creator {
 
   injectCreatorCredit();
   getPlayerCode();
+  rememberCurrentAccount();
   ensurePlayerCodeRegistered().catch(() => {});
   sync(true)
     .then(() => refreshCreatorCredits())
