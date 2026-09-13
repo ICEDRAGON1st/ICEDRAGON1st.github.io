@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916j": [
+    "Fishing Idle: catch book filter buttons for All, Normal, and each variant"
+  ],
   "20260916i": [
     "Fishing Idle: +1 fish each in Divine through Absolute (10 new fish)"
   ],

@@ -722,6 +722,7 @@
   const guideBody = document.getElementById("guide-body");
   const guideVariantsBody = document.getElementById("guide-variants-body");
   const bookBody = document.getElementById("book-body");
+  const bookFiltersEl = document.getElementById("book-filters");
   const bookProgressEl = document.getElementById("book-progress");
   const guideSpotMult = document.getElementById("guide-spot-mult");
   const guideSpotName = document.getElementById("guide-spot-name");
@@ -2197,11 +2198,14 @@
       next.caught = {};
       if (raw.caught && typeof raw.caught === "object") {
         Object.keys(raw.caught).forEach((id) => {
-          if (fishById(id) && raw.caught[id]) next.caught[id] = true;
+          if (!fishById(id) || !raw.caught[id]) return;
+          next.caught[id] = normalizeCaughtRecord(raw.caught[id]);
         });
       }
       if (next.bestCatchId && fishById(next.bestCatchId)) {
-        next.caught[next.bestCatchId] = true;
+        next.caught[next.bestCatchId] = normalizeCaughtRecord(
+          next.caught[next.bestCatchId] || true
+        );
       }
       next.lastTick = Math.max(0, Number(raw.lastTick) || Date.now());
       SPOTS.forEach((s) => {
@@ -2222,7 +2226,16 @@
         : [];
       next.cooler.forEach((entry) => {
         const id = coolerEntryId(entry);
-        if (id && fishById(id)) next.caught[id] = true;
+        const fish = fishById(id);
+        if (!fish) return;
+        const rec = normalizeCaughtRecord(next.caught[id]);
+        rec.any = true;
+        const variant = normalizeVariant(entry.variant);
+        const shiny = !!entry.shiny;
+        if (!variant && !shiny) rec.base = true;
+        if (variant && VARIANT_PRIMARY.includes(variant)) rec[variant] = true;
+        if (shiny) rec.shiny = true;
+        next.caught[id] = rec;
       });
       const now = Date.now();
       const moneyUntil = Math.max(
@@ -2449,9 +2462,9 @@
     return `${fish.rarity} · ${fish.name}`;
   }
 
-  function noteCatch(fish) {
+  function noteCatch(fish, entry) {
     if (!fish || isTreasureItem(fish)) return;
-    markCaught(fish);
+    markCaught(fish, entry);
     const score = catchScore(fish);
     if (score <= (state.bestCatchScore || 0)) return;
     state.bestCatchScore = score;
@@ -2462,21 +2475,97 @@
     maybeSubmitBest(true);
   }
 
-  function markCaught(fish) {
-    if (!fish || isTreasureItem(fish) || !fish.id) return false;
+  const BOOK_FILTERS = [
+    { id: "any", label: "All" },
+    { id: "base", label: "Normal" },
+    { id: "silver", label: "Silver" },
+    { id: "gold", label: "Gold" },
+    { id: "diamond", label: "Diamond" },
+    { id: "rainbow", label: "Rainbow" },
+    { id: "shiny", label: "Shiny" }
+  ];
+  let bookFilter = "any";
+
+  function blankCaughtRecord() {
+    return {
+      any: false,
+      base: false,
+      silver: false,
+      gold: false,
+      diamond: false,
+      rainbow: false,
+      shiny: false
+    };
+  }
+
+  function normalizeCaughtRecord(raw) {
+    const rec = blankCaughtRecord();
+    if (raw === true || raw === 1) {
+      rec.any = true;
+      rec.base = true;
+      return rec;
+    }
+    if (!raw || typeof raw !== "object") return rec;
+    rec.any = !!raw.any || !!raw.base || !!raw.silver || !!raw.gold || !!raw.diamond || !!raw.rainbow || !!raw.shiny;
+    rec.base = !!raw.base;
+    rec.silver = !!raw.silver;
+    rec.gold = !!raw.gold;
+    rec.diamond = !!raw.diamond;
+    rec.rainbow = !!raw.rainbow;
+    rec.shiny = !!raw.shiny;
+    if (!rec.any && (rec.base || rec.silver || rec.gold || rec.diamond || rec.rainbow || rec.shiny)) {
+      rec.any = true;
+    }
+    return rec;
+  }
+
+  function ensureCaughtRecord(id) {
     if (!state.caught || typeof state.caught !== "object") state.caught = {};
-    if (state.caught[fish.id]) return false;
-    state.caught[fish.id] = true;
-    return true;
+    state.caught[id] = normalizeCaughtRecord(state.caught[id]);
+    return state.caught[id];
   }
 
-  function hasCaught(id) {
-    return !!(state.caught && state.caught[id]);
+  function markCaught(fish, entry) {
+    if (!fish || isTreasureItem(fish) || !fish.id) return false;
+    const rec = ensureCaughtRecord(fish.id);
+    const variant = normalizeVariant(entry?.variant);
+    const shiny = !!entry?.shiny;
+    let changed = false;
+    if (!rec.any) {
+      rec.any = true;
+      changed = true;
+    }
+    if (!variant && !shiny) {
+      if (!rec.base) {
+        rec.base = true;
+        changed = true;
+      }
+    }
+    if (variant && VARIANT_PRIMARY.includes(variant) && !rec[variant]) {
+      rec[variant] = true;
+      changed = true;
+    }
+    if (shiny && !rec.shiny) {
+      rec.shiny = true;
+      changed = true;
+    }
+    return changed;
   }
 
-  function caughtCount() {
-    if (!state.caught || typeof state.caught !== "object") return 0;
-    return FISH.reduce((n, f) => n + (state.caught[f.id] ? 1 : 0), 0);
+  function hasCaught(id, filter = bookFilter) {
+    const raw = state.caught?.[id];
+    if (!raw) return false;
+    const rec = normalizeCaughtRecord(raw);
+    if (filter === "any") return !!rec.any;
+    return !!rec[filter];
+  }
+
+  function caughtCount(filter = bookFilter) {
+    return FISH.reduce((n, f) => n + (hasCaught(f.id, filter) ? 1 : 0), 0);
+  }
+
+  function bookFilterLabel(filter = bookFilter) {
+    return BOOK_FILTERS.find((f) => f.id === filter)?.label || "All";
   }
 
   function maybeSubmitBest(force = false) {
@@ -3361,7 +3450,6 @@
   /** @returns {object|null} cooler entry (even if auto-sold), or null if cooler full */
   function addToCooler(fish, opts = {}) {
     if (!fish) return null;
-    noteCatch(fish);
     const variants = normalizeVariants(opts.variants || rollFishVariants(currentSpot(), !!opts.forBoat));
     const entry = {
       id: fish.id,
@@ -3370,6 +3458,7 @@
       variant: variants.variant,
       shiny: variants.shiny
     };
+    noteCatch(fish, entry);
     if (opts.forceSell || shouldAutoSell(fish.rarity)) {
       const val = fishValue(fish, currentSpot(), entry);
       addCoins(val);
@@ -4030,7 +4119,7 @@
         for (let h = 0; h < haul; h += 1) {
           const fish = rollFish(spot, true);
           const variants = rollFishVariants(spot, true);
-          noteCatch(fish);
+          noteCatch(fish, variants);
           const val = fishValue(fish, spot, variants);
           if (shouldAutoSell(fish.rarity)) {
             gained += val;
@@ -4622,8 +4711,20 @@
 
   function renderBook() {
     const total = FISH.length;
-    const found = caughtCount();
-    if (bookProgressEl) bookProgressEl.textContent = `${found} / ${total}`;
+    const found = caughtCount(bookFilter);
+    if (bookProgressEl) {
+      bookProgressEl.textContent = `${found} / ${total} · ${bookFilterLabel(bookFilter)}`;
+    }
+    if (bookFiltersEl) {
+      bookFiltersEl.innerHTML = BOOK_FILTERS.map(
+        (f) =>
+          `<button type="button" class="book-filter-btn${
+            bookFilter === f.id ? " is-active" : ""
+          }${f.id !== "any" && f.id !== "base" ? ` variant-${f.id}` : ""}" data-book-filter="${
+            f.id
+          }" role="tab" aria-selected="${bookFilter === f.id}">${f.label}</button>`
+      ).join("");
+    }
     if (!bookBody) return;
     const byRarity = {};
     RARITIES.forEach((r) => {
@@ -4633,22 +4734,35 @@
       if (!byRarity[fish.rarity]) byRarity[fish.rarity] = [];
       byRarity[fish.rarity].push(fish);
     });
+    const showEntry =
+      bookFilter === "any" || bookFilter === "base"
+        ? null
+        : bookFilter === "shiny"
+          ? { shiny: true }
+          : { variant: bookFilter };
     bookBody.innerHTML = RARITIES.map((rarity) => {
       const list = byRarity[rarity] || [];
       if (!list.length) return "";
-      const got = list.filter((f) => hasCaught(f.id)).length;
+      const got = list.filter((f) => hasCaught(f.id, bookFilter)).length;
       const cards = list
         .map((fish) => {
-          const known = hasCaught(fish.id);
+          const known = hasCaught(fish.id, bookFilter);
           if (known) {
-            return `<div class="book-card is-caught rarity-${fish.rarity}" title="${fish.name} · ${fish.rarity} · ${formatNum(fish.value)} coins">
-              <span class="book-card-glyph" aria-hidden="true">${fishGlyphHtml(fish)}</span>
-              <span class="book-card-name">${fish.name}</span>
+            const label = showEntry ? formatFishName(fish, showEntry) : fish.name;
+            return `<div class="book-card is-caught rarity-${fish.rarity}${
+              showEntry ? ` ${variantClassList(showEntry)}` : ""
+            }" title="${label} · ${fish.rarity} · ${formatNum(fish.value)} coins">
+              <span class="book-card-glyph" aria-hidden="true">${fishGlyphHtml(fish, showEntry)}</span>
+              <span class="book-card-name">${label}</span>
               <span class="book-card-meta">${fish.rarity} · ${formatNum(fish.value)}</span>
             </div>`;
           }
-          return `<div class="book-card is-unknown rarity-${fish.rarity}" title="Not caught yet">
-              <span class="book-card-glyph book-card-sil" aria-hidden="true">${fishGlyphHtml(fish)}</span>
+          return `<div class="book-card is-unknown rarity-${fish.rarity}" title="Not caught yet · ${bookFilterLabel(
+            bookFilter
+          )}">
+              <span class="book-card-glyph book-card-sil" aria-hidden="true">${fishGlyphHtml(
+                fish
+              )}</span>
               <span class="book-card-name">???</span>
               <span class="book-card-meta">${fish.rarity}</span>
             </div>`;
@@ -4820,6 +4934,14 @@
   });
   guideBtn?.addEventListener("click", openGuide);
   bookBtn?.addEventListener("click", openBook);
+  bookFiltersEl?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-book-filter]");
+    if (!btn || !bookFiltersEl.contains(btn)) return;
+    const next = btn.getAttribute("data-book-filter");
+    if (!next || !BOOK_FILTERS.some((f) => f.id === next) || next === bookFilter) return;
+    bookFilter = next;
+    renderBook();
+  });
   menuGuideBtn?.addEventListener("click", () => {
     closeMenu();
     openGuide();
