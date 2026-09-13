@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915k": [
+    "Fishing Idle: cast pond shows the fish you caught (best fish if you land 2–3)"
+  ],
   "20260915j": [
     "My Games: rename trademarked game URLs to match public titles; Block Sweep no longer says Blast"
   ],

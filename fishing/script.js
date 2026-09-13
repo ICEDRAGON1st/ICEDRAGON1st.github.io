@@ -635,6 +635,8 @@
   const biteFill = document.getElementById("bite-fill");
   const biteMeter = document.querySelector(".bite-meter");
   const catchLineEl = document.getElementById("catch-line");
+  const bobber = document.getElementById("bobber");
+  const catchSilEl = document.getElementById("catch-sil");
   const catchCardEl = document.getElementById("catch-card");
   const catchHaulEl = document.getElementById("catch-haul");
   const coolerList = document.getElementById("cooler-list");
@@ -1723,6 +1725,36 @@
     </svg>`;
   }
 
+  function pickBestCatchFish(entries) {
+    const fishList = (Array.isArray(entries) ? entries : [entries])
+      .map((e) => e?.fish || e)
+      .filter((f) => f && !isTreasureItem(f));
+    if (!fishList.length) return null;
+    return fishList.reduce((best, f) => (catchScore(f) > catchScore(best) ? f : best));
+  }
+
+  function clearCatchSilhouette() {
+    if (!catchSilEl) return;
+    catchSilEl.innerHTML = "";
+    catchSilEl.className = "catch-sil";
+    catchSilEl.removeAttribute("data-fish");
+  }
+
+  function showCatchSilhouette(fish) {
+    if (!catchSilEl) return;
+    if (!fish || isTreasureItem(fish)) {
+      catchSilEl.innerHTML = `<span class="catch-sil-chest" aria-hidden="true">${
+        fish?.kind === "luck" ? "◇" : "▣"
+      }</span>`;
+      catchSilEl.className = `catch-sil is-treasure rarity-${fish?.kind || "money"}`;
+      catchSilEl.dataset.fish = fish?.id || "chest";
+      return;
+    }
+    catchSilEl.innerHTML = fishGlyphHtml(fish);
+    catchSilEl.className = `catch-sil rarity-${fish.rarity || "common"}`;
+    catchSilEl.dataset.fish = fish.id || "";
+  }
+
   function rarityColor(rarity) {
     const map = {
       common: "#adb5bd",
@@ -1876,6 +1908,7 @@
     } else if (next === "waiting") {
       castBtnText.textContent = "Cancel";
       castBtn.disabled = false;
+      clearCatchSilhouette();
       hideCatchCard("Line is out…");
     } else if (next === "bite") {
       castBtnText.textContent = "Reel!";
@@ -2166,6 +2199,7 @@
       const countKey = chestCountKey(chest.kind);
       setPhase("result");
       castBtn.classList.add("is-catch", "rarity-treasure", `rarity-${chest.kind}`);
+      showCatchSilhouette(chest);
       showCatchCard([{ fish: chest, val: 0, perfect, treasure: true, stored }]);
       const tip = perfect ? "Perfect reel! " : "";
       if (stored) {
@@ -2205,9 +2239,7 @@
     }
     setPhase("result");
     if (ok) {
-      castBtn.classList.add("is-catch", `rarity-${fish.rarity}`);
-      const val = fishValue(fish, spot, perfect);
-      const haul = [{ fish, val, perfect }];
+      const haul = [{ fish, val: fishValue(fish, spot, perfect), perfect }];
       if (bonusFish) {
         haul.push({
           fish: bonusFish,
@@ -2222,15 +2254,16 @@
           perfect: false
         });
       }
+      const showcase = pickBestCatchFish(haul) || fish;
+      castBtn.classList.add("is-catch", `rarity-${showcase.rarity}`);
+      showCatchSilhouette(showcase);
       showCatchCard(haul);
       const tip = perfect ? "Perfect reel! " : "";
       const extras = [bonusFish, thirdFish].filter(Boolean).map((f) => f.name);
       const bonusTip = extras.length ? ` + ${extras.join(" + ")}` : "";
-      const toneFish =
-        [thirdFish, bonusFish, fish].find((f) => f && isShowcaseRarity(f.rarity)) || fish;
       setCatchLine(
         `${tip}Caught ${fish.name} (${fish.rarity})${bonusTip}`,
-        catchTone(toneFish.rarity)
+        catchTone(showcase.rarity)
       );
       window.HubSound?.play?.(
         perfect ||
@@ -2252,9 +2285,10 @@
       spawnFloat(
         evt?.clientX ?? rect.left + rect.width / 2,
         evt?.clientY ?? rect.top + 20,
-        extrasN ? `${fish.name} +${extrasN}` : fish.name
+        extrasN ? `${showcase.name} +${extrasN}` : showcase.name
       );
     } else {
+      clearCatchSilhouette();
       castBtn.classList.add("is-miss");
       hideCatchCard("Cooler full");
     }
