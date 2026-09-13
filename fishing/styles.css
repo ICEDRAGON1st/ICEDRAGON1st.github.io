@@ -1503,28 +1503,99 @@ body[data-spot="mythforge"] .water-mist {
   overflow: visible;
 }
 
-.fish-glyph .body {
+.fish-glyph:not(.is-realistic) .body {
   fill: currentColor;
 }
 
-.fish-glyph .fin,
-.fish-glyph .tail,
-.fish-glyph .bill,
-.fish-glyph .spot {
+.fish-glyph:not(.is-realistic) .fin,
+.fish-glyph:not(.is-realistic) .tail,
+.fish-glyph:not(.is-realistic) .bill,
+.fish-glyph:not(.is-realistic) .spot {
   fill: currentColor;
-  opacity: 0.8;
+  opacity: 0.88;
+}
+
+.fish-glyph.is-realistic .fin,
+.fish-glyph.is-realistic .tail,
+.fish-glyph.is-realistic .bill,
+.fish-glyph.is-realistic .spot {
+  opacity: 0.92;
+}
+
+.fish-glyph .belly {
+  fill: rgba(255, 255, 255, 0.4);
+  pointer-events: none;
+}
+
+.fish-glyph .belly-fin {
+  opacity: 0.72;
+}
+
+.fish-glyph .whisker,
+.fish-glyph .gill,
+.fish-glyph .mouth,
+.fish-glyph .scales,
+.fish-glyph .stripe,
+.fish-glyph .tentacle {
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .fish-glyph .whisker {
-  fill: none;
+  stroke-width: 1.25;
+  opacity: 0.85;
+}
+
+.fish-glyph .gill {
+  stroke: #071820;
+  stroke-width: 1.1;
+  opacity: 0.35;
+}
+
+.fish-glyph .mouth {
+  stroke: #071820;
+  stroke-width: 1.05;
+  opacity: 0.7;
+}
+
+.fish-glyph .scales {
+  stroke: #071820;
+  stroke-width: 0.7;
+  opacity: 0.18;
+}
+
+.fish-glyph .stripe {
+  stroke: #071820;
+  stroke-width: 0.85;
+  opacity: 0.22;
+}
+
+.fish-glyph .tentacle {
+  stroke-width: 2.1;
+  opacity: 0.9;
+}
+
+.fish-glyph .eye-sclera {
+  fill: #f4f8fb;
 }
 
 .fish-glyph .eye {
   fill: #071820;
 }
 
+.fish-glyph .eye-glint {
+  fill: #ffffff;
+  opacity: 0.9;
+}
+
 .fish-glyph .shine {
-  fill: rgba(255, 255, 255, 0.35);
+  fill: rgba(255, 255, 255, 0.28);
+}
+
+.fish-glyph.is-realistic {
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.25));
 }
 
 .fish-glyph.shape-ghost {
@@ -1532,8 +1603,9 @@ body[data-spot="mythforge"] .water-mist {
   filter: drop-shadow(0 0 3px rgba(224, 176, 240, 0.45));
 }
 
-.fish-glyph.shape-octopus .fin {
-  opacity: 1;
+.fish-glyph.shape-octopus .tentacle,
+.fish-glyph.shape-jellyfish .tentacle {
+  opacity: 0.92;
 }
 
 .hint {

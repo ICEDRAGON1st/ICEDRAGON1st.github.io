@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915l": [
+    "Fishing Idle: more realistic fish art (gradients, belly shading, fins, eyes)"
+  ],
   "20260915k": [
     "Fishing Idle: cast pond shows the fish you caught (best fish if you land 2–3)"
   ],
