@@ -26,6 +26,9 @@
   const CHEST_MONEY_BONUS = TREASURE_MULT - 1; // +1 → 2×
   const CHEST_LUCK_BONUS = TREASURE_LUCK_MULT - 1; // +0.5 → 1.5×
   // Chest + matching event stacks additively (luck chest + luck event = 2.5×)
+  // Global admin override via fishing/admin-event.json (pushed live by ICE)
+  const ADMIN_EVENT_URL = "admin-event.json";
+  const ADMIN_EVENT_POLL_MS = 15_000;
   const TREASURE_MONEY = {
     id: "coin_chest",
     name: "Coin Chest",
@@ -857,19 +860,76 @@
     return localHalfHourStart(now) + EVENT_MS;
   }
 
-  function eventWindowStart(now = Date.now()) {
+  let adminEventCache = null; // { kind, until, startedAt } | null
+  let adminEventFetchedAt = 0;
+  let adminEventPollTimer = 0;
+
+  function parseAdminEventPayload(data) {
+    if (!data || typeof data !== "object") return null;
+    const kind = String(data.kind || "").toLowerCase();
+    if (kind !== "luck" && kind !== "money") return null;
+    const until = Math.floor(Number(data.until) || 0);
+    if (!Number.isFinite(until) || until <= Date.now()) return null;
+    const startedAt = Math.floor(Number(data.startedAt) || until - EVENT_ACTIVE_MS);
+    return {
+      kind,
+      until,
+      startedAt: Number.isFinite(startedAt) ? startedAt : Date.now()
+    };
+  }
+
+  function adminEventLive(now = Date.now()) {
+    const e = adminEventCache;
+    if (!e) return null;
+    if (now >= e.until) return null;
+    return e;
+  }
+
+  async function pollAdminEvent(force = false) {
+    const now = Date.now();
+    if (!force && now - adminEventFetchedAt < ADMIN_EVENT_POLL_MS) return;
+    adminEventFetchedAt = now;
+    try {
+      const res = await fetch(`${ADMIN_EVENT_URL}?t=${now}`, { cache: "no-store" });
+      if (res.status === 404) {
+        adminEventCache = null;
+        return;
+      }
+      if (!res.ok) return;
+      adminEventCache = parseAdminEventPayload(await res.json());
+    } catch {
+      /* offline — keep last cache until it expires */
+    }
+  }
+
+  function startAdminEventPolling() {
+    pollAdminEvent(true);
+    if (adminEventPollTimer) clearInterval(adminEventPollTimer);
+    adminEventPollTimer = setInterval(() => pollAdminEvent(false), ADMIN_EVENT_POLL_MS);
+  }
+
+  function scheduledEventWindowStart(now = Date.now()) {
     return localHalfHourStart(now);
   }
 
-  /** True only during the first 5 minutes after :00 / :30. */
+  function eventWindowStart(now = Date.now()) {
+    const admin = adminEventLive(now);
+    if (admin) return admin.startedAt;
+    return scheduledEventWindowStart(now);
+  }
+
+  /** True during admin override, or first 5 minutes after :00 / :30. */
   function eventIsLive(now = Date.now()) {
-    const start = eventWindowStart(now);
+    if (adminEventLive(now)) return true;
+    const start = scheduledEventWindowStart(now);
     return now >= start && now < start + EVENT_ACTIVE_MS;
   }
 
   function eventMsLeft(now = Date.now()) {
+    const admin = adminEventLive(now);
+    if (admin) return Math.max(0, admin.until - now);
     if (!eventIsLive(now)) return 0;
-    return Math.max(0, eventWindowStart(now) + EVENT_ACTIVE_MS - now);
+    return Math.max(0, scheduledEventWindowStart(now) + EVENT_ACTIVE_MS - now);
   }
 
   function msUntilNextEvent(now = Date.now()) {
@@ -900,8 +960,10 @@
 
   /** Live event kind, or null when between windows. */
   function currentEventKind(now = Date.now()) {
+    const admin = adminEventLive(now);
+    if (admin) return admin.kind;
     if (!eventIsLive(now)) return null;
-    return eventKindForStart(eventWindowStart(now));
+    return eventKindForStart(scheduledEventWindowStart(now));
   }
 
   function eventMoneyActive(now = Date.now()) {
@@ -938,20 +1000,23 @@
 
   function maybeAnnounceEvent() {
     if (!eventIsLive()) return;
-    const start = eventWindowStart();
-    const key = String(eventSlotKey(start));
+    const admin = adminEventLive();
+    const key = admin
+      ? `admin:${admin.kind}:${admin.until}`
+      : String(eventSlotKey(eventWindowStart()));
     if (key === lastAnnouncedEventKey) return;
     lastAnnouncedEventKey = key;
     const kind = currentEventKind();
     const left = formatTreasureClock(eventMsLeft());
+    const tag = admin ? "ADMIN EVENT" : "EVENT LIVE";
     if (kind === "luck") {
       setCatchLine(
-        `EVENT LIVE · 2× luck for 5:00 (${left} left) · stacks with Luck Chest → 2.5×`,
+        `${tag} · 2× luck (${left} left) · stacks with Luck Chest → 2.5×`,
         "treasure"
       );
     } else {
       setCatchLine(
-        `EVENT LIVE · 2× sell for 5:00 (${left} left) · stacks with Coin Chest → 3×`,
+        `${tag} · 2× sell (${left} left) · stacks with Coin Chest → 3×`,
         "treasure"
       );
     }
@@ -963,6 +1028,7 @@
     const live = eventIsLive();
     const kind = currentEventKind();
     const left = eventMsLeft();
+    const admin = adminEventLive();
     const nextStart = nextHalfHourStart();
     const nextKind = eventKindForStart(nextStart);
     const untilNext = msUntilNextEvent();
@@ -975,13 +1041,13 @@
       eventBannerEl.classList.toggle("event-luck", previewKind === "luck");
     }
     if (eventBannerTagEl) {
-      eventBannerTagEl.textContent = live ? "LIVE NOW" : "Next event";
+      eventBannerTagEl.textContent = live ? (admin ? "ADMIN LIVE" : "LIVE NOW") : "Next event";
     }
     if (eventBannerTitleEl) {
       if (live && kind === "luck") {
-        eventBannerTitleEl.textContent = "2× Luck Event";
+        eventBannerTitleEl.textContent = admin ? "2× Luck · Admin" : "2× Luck Event";
       } else if (live && kind === "money") {
-        eventBannerTitleEl.textContent = "2× Sell Event";
+        eventBannerTitleEl.textContent = admin ? "2× Sell · Admin" : "2× Sell Event";
       } else {
         eventBannerTitleEl.textContent =
           nextKind === "luck" ? "Upcoming: 2× Luck" : "Upcoming: 2× Sell";
@@ -3032,10 +3098,11 @@
       eventChipEl.classList.toggle("event-idle", !eventLive);
     }
     if (eventLabelEl) {
+      const admin = adminEventLive();
       if (eventLive && eventKind === "luck") {
-        eventLabelEl.textContent = `2× luck · ${formatTreasureClock(eventLeft)} left`;
+        eventLabelEl.textContent = `${admin ? "Admin " : ""}2× luck · ${formatTreasureClock(eventLeft)} left`;
       } else if (eventLive && eventKind === "money") {
-        eventLabelEl.textContent = `2× sell · ${formatTreasureClock(eventLeft)} left`;
+        eventLabelEl.textContent = `${admin ? "Admin " : ""}2× sell · ${formatTreasureClock(eventLeft)} left`;
       } else {
         const nextStart = nextHalfHourStart();
         const nextKind = eventKindForStart(nextStart);
@@ -3423,6 +3490,7 @@
   syncBestCatchFromLeaderboard();
   render();
   checkAchievements();
+  startAdminEventPolling();
   // Leaderboard sync may finish a moment later — refresh HUD when it does.
   setTimeout(syncBestCatchFromLeaderboard, 800);
   setTimeout(syncBestCatchFromLeaderboard, 2500);

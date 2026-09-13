@@ -1,0 +1,27 @@
+---
+description: When user asks for fishing 2x luck/money admin abuse, push a global admin-event.json
+alwaysApply: true
+---
+
+# Fishing admin abuse events
+
+When the user asks to run a **global** Fishing Idle event — phrases like `2x luck admin abuse`, `2x money admin abuse`, `2x sell admin abuse`, or similar — do this immediately (do not only explain how):
+
+1. Write `fishing/admin-event.json` with an active window (default **5 minutes** unless they specify 1–60):
+
+```json
+{
+  "kind": "luck",
+  "until": <Date.now() + minutes*60*1000>,
+  "startedAt": <Date.now()>,
+  "note": "admin-abuse"
+}
+```
+
+Use `"kind": "money"` for 2× sell / 2× money. To clear early, set `"until": 0` and `"kind": null`.
+
+2. Commit + push immediately (Pages must update) — bump is **not** required for admin-event-only changes, but include the json file.
+
+3. Tell the user the event is live globally once GitHub Pages refreshes (usually under a minute; clients poll every ~15s).
+
+Scheduled :00/:30 events still run; an active admin override replaces them until `until`.

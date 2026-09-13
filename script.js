@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915m": [
+    "Fishing Idle: ICE can trigger global 2× luck / 2× sell admin events for everyone"
+  ],
   "20260915l": [
     "Fishing Idle: more realistic fish art (gradients, belly shading, fins, eyes)"
   ],
