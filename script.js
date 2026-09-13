@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914q": [
+    "Fishing Idle: luck gear now raises Coin/Luck Chest odds (Fish guide updates with your luck)"
+  ],
   "20260914p": [
     "Fishing Idle: Coin Chest (2× sell) and Luck Chest (1.5× luck) are separate treasures"
   ],

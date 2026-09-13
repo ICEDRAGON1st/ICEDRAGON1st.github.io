@@ -367,23 +367,23 @@
     { id: "bait5", name: "Glow Shrimp", desc: "Faster bites (−26% wait)", cost: 220000, kind: "speed", amount: 0.26 },
     { id: "bait6", name: "Plasma Flies", desc: "Faster bites (−30% wait)", cost: 1800000, kind: "speed", amount: 0.3 },
     { id: "bait7", name: "Starroe", desc: "Faster bites (−34% wait)", cost: 15000000, kind: "speed", amount: 0.34 },
-    { id: "luck1", name: "Lucky Hook", desc: "+rarity luck", cost: 120, kind: "luck", amount: 8 },
-    { id: "luck2", name: "Tide Charm", desc: "+rarity luck", cost: 700, kind: "luck", amount: 12 },
-    { id: "luck3", name: "Pearl Lure", desc: "+rarity luck", cost: 4000, kind: "luck", amount: 16 },
-    { id: "luck4", name: "Siren Bell", desc: "+rarity luck", cost: 20000, kind: "luck", amount: 22 },
-    { id: "luck5", name: "Oracle Coin", desc: "+rarity luck", cost: 100000, kind: "luck", amount: 30 },
-    { id: "luck6", name: "Fate Hook", desc: "+rarity luck", cost: 500000, kind: "luck", amount: 40 },
-    { id: "luck7", name: "Cosmic Lure", desc: "+rarity luck", cost: 2500000, kind: "luck", amount: 55 },
-    { id: "luck8", name: "Horizon Charm", desc: "+rarity luck", cost: 12000000, kind: "luck", amount: 70 },
-    { id: "luck9", name: "Omega Coin", desc: "+rarity luck", cost: 60000000, kind: "luck", amount: 90 },
-    { id: "luck10", name: "Prism Hook", desc: "+rarity luck", cost: 150000000, kind: "luck", amount: 100 },
-    { id: "luck11", name: "Apex Charm", desc: "+rarity luck", cost: 400000000, kind: "luck", amount: 120 },
-    { id: "luck12", name: "Mirage Coin", desc: "+rarity luck", cost: 700000000, kind: "luck", amount: 130 },
-    { id: "luck13", name: "Zenith Lure", desc: "+rarity luck", cost: 1200000000, kind: "luck", amount: 150 },
-    { id: "luck14", name: "Rift Hook", desc: "+rarity luck", cost: 2000000000, kind: "luck", amount: 160 },
-    { id: "luck15", name: "Quasar Charm", desc: "+rarity luck", cost: 3500000000, kind: "luck", amount: 180 },
-    { id: "luck16", name: "Eclipse Coin", desc: "+rarity luck", cost: 5500000000, kind: "luck", amount: 200 },
-    { id: "luck17", name: "Helix Lure", desc: "+rarity luck", cost: 9000000000, kind: "luck", amount: 220 },
+    { id: "luck1", name: "Lucky Hook", desc: "+rarity luck · better chest finds", cost: 120, kind: "luck", amount: 8 },
+    { id: "luck2", name: "Tide Charm", desc: "+rarity luck · better chest finds", cost: 700, kind: "luck", amount: 12 },
+    { id: "luck3", name: "Pearl Lure", desc: "+rarity luck · better chest finds", cost: 4000, kind: "luck", amount: 16 },
+    { id: "luck4", name: "Siren Bell", desc: "+rarity luck · better chest finds", cost: 20000, kind: "luck", amount: 22 },
+    { id: "luck5", name: "Oracle Coin", desc: "+rarity luck · better chest finds", cost: 100000, kind: "luck", amount: 30 },
+    { id: "luck6", name: "Fate Hook", desc: "+rarity luck · better chest finds", cost: 500000, kind: "luck", amount: 40 },
+    { id: "luck7", name: "Cosmic Lure", desc: "+rarity luck · better chest finds", cost: 2500000, kind: "luck", amount: 55 },
+    { id: "luck8", name: "Horizon Charm", desc: "+rarity luck · better chest finds", cost: 12000000, kind: "luck", amount: 70 },
+    { id: "luck9", name: "Omega Coin", desc: "+rarity luck · better chest finds", cost: 60000000, kind: "luck", amount: 90 },
+    { id: "luck10", name: "Prism Hook", desc: "+rarity luck · better chest finds", cost: 150000000, kind: "luck", amount: 100 },
+    { id: "luck11", name: "Apex Charm", desc: "+rarity luck · better chest finds", cost: 400000000, kind: "luck", amount: 120 },
+    { id: "luck12", name: "Mirage Coin", desc: "+rarity luck · better chest finds", cost: 700000000, kind: "luck", amount: 130 },
+    { id: "luck13", name: "Zenith Lure", desc: "+rarity luck · better chest finds", cost: 1200000000, kind: "luck", amount: 150 },
+    { id: "luck14", name: "Rift Hook", desc: "+rarity luck · better chest finds", cost: 2000000000, kind: "luck", amount: 160 },
+    { id: "luck15", name: "Quasar Charm", desc: "+rarity luck · better chest finds", cost: 3500000000, kind: "luck", amount: 180 },
+    { id: "luck16", name: "Eclipse Coin", desc: "+rarity luck · better chest finds", cost: 5500000000, kind: "luck", amount: 200 },
+    { id: "luck17", name: "Helix Lure", desc: "+rarity luck · better chest finds", cost: 9000000000, kind: "luck", amount: 220 },
     { id: "cooler1", name: "Ice Pack", desc: "+4 cooler slots", cost: 200, kind: "cooler", amount: 4 },
     { id: "cooler2", name: "Big Cooler", desc: "+6 cooler slots", cost: 1500, kind: "cooler", amount: 6 },
     { id: "cooler3", name: "Dock Freezer", desc: "+10 cooler slots", cost: 12000, kind: "cooler", amount: 10 },
@@ -740,12 +740,18 @@
     return kind === "luck" ? TREASURE_LUCK : TREASURE_MONEY;
   }
 
-  /** Combined chance to find any chest; then 50/50 Coin vs Luck. */
+  /** Combined chance to find any chest; then 50/50 Coin vs Luck. Luck gear raises this. */
   function treasureAnyChance(spot, forBoat = false) {
     const t = Math.max(0, Math.min(MAX_SPOT_RARITY, Number(spot?.rarity) || 0)) / MAX_SPOT_RARITY;
-    // Very rare: ~0.10% creek → ~0.28% omega (boats ~35% of that)
+    // Base: ~0.10% creek → ~0.28% omega
     const base = 0.001 + t * 0.0018;
-    return forBoat ? base * 0.35 : base;
+    const luck = Math.max(0, luckBonus() * treasureLuckMult());
+    // Soft scale so upgrades clearly raise odds (guide updates live)
+    // luck 8 → ×1.08 · luck 30 → ×1.30 · luck 100 → ×2.00 · hard cap ×4
+    const luckMult = 1 + Math.min(3, luck * 0.01);
+    let p = base * luckMult;
+    if (forBoat) p *= 0.35;
+    return Math.min(0.06, p);
   }
 
   function treasureKindChance(spot, forBoat = false) {
