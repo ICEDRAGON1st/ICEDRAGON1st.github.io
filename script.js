@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915e": [
+    "My Games: accounts work without the account server — log in by code offline; Copy transfer to move an account to another device"
+  ],
   "20260915d": [
     "My Games: clearer message when logging in with a code that isn't saved on this device yet"
   ],
@@ -4063,9 +4066,11 @@ async function loginWithPlayerCode(raw, statusFn = setPlayerCodeStatus) {
   if (playerNameInput && result.name) playerNameInput.value = result.name;
   if (playerNameModalInput && result.name) playerNameModalInput.value = result.name;
   statusFn(
-    result.name
-      ? `Logged in as ${result.name}. Reloading…`
-      : "Account restored. Reloading…",
+    result.adopted
+      ? `Code ${result.code} added on this device (no server needed). Reloading…`
+      : result.name
+        ? `Logged in as ${result.name}. Reloading…`
+        : "Account restored. Reloading…",
     false
   );
   renderSavedAccounts();
@@ -4105,6 +4110,21 @@ document.getElementById("player-code-copy-btn")?.addEventListener("click", async
     setPlayerCodeStatus(`Copied ${code}`, false);
   } catch {
     setPlayerCodeStatus(`Your code is ${code}`, false);
+  }
+});
+
+document.getElementById("player-code-transfer-btn")?.addEventListener("click", async () => {
+  if (typeof HubPlays === "undefined") return;
+  const key = HubPlays.getAccountTransferKey?.() || "";
+  if (!key) {
+    setPlayerCodeStatus("No account to copy yet", true);
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(key);
+    setPlayerCodeStatus("Copied transfer key — paste into Log in on another device", false);
+  } catch {
+    setPlayerCodeStatus(key, false);
   }
 });
 

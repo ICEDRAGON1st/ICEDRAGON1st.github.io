@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260915d">
+  <link rel="stylesheet" href="styles.css?v=20260915e">
 </head>
 <body data-guess-colors="ice">
   <div class="guess-bg" aria-hidden="true">
@@ -121,7 +121,7 @@
       <div class="gate-accounts">
         <p class="gate-accounts-label">Already have an account?</p>
         <div class="player-code-restore-row gate-code-row">
-          <input id="gate-code-input" type="text" maxlength="12" placeholder="Log in with code (ABCD-EFGH)" autocomplete="off" spellcheck="false">
+          <input id="gate-code-input" type="text" maxlength="160" placeholder="Code or transfer key" autocomplete="off" spellcheck="false">
           <button id="gate-code-login-btn" type="button" class="hub-btn">Log in</button>
         </div>
         <button id="gate-new-account-btn" type="button" class="hub-btn gate-new-account-btn">Create new account</button>
@@ -303,13 +303,14 @@
         <p id="player-name-lock-hint" class="player-name-lock-hint">Lock your name to stop accidental changes. Your stats stay with your player code when you rename.</p>
         <div class="player-code-box">
           <p class="hub-settings-label">Your player code</p>
-          <p class="player-code-hint">Each account has a code. Save codes you care about — Restore / Switch logs you into that account on this device. Create New Account makes a fresh code without wiping your other saved ones. The name ICE_DRAGON can only be used with its owner’s player code.</p>
+          <p class="player-code-hint">Accounts are saved on this device — no account server needed to switch. Use Log in with a code, or New account. To move an account to another device, Copy transfer and paste that into Log in there. The name ICE_DRAGON can only be used with its owner’s player code.</p>
           <div class="player-code-row">
             <code id="player-code-value" class="player-code-value">————</code>
-            <button id="player-code-copy-btn" type="button" class="hub-btn">Copy</button>
+            <button id="player-code-copy-btn" type="button" class="hub-btn">Copy code</button>
+            <button id="player-code-transfer-btn" type="button" class="hub-btn">Copy transfer</button>
           </div>
           <div class="player-code-restore-row">
-            <input id="player-code-restore-input" type="text" maxlength="12" placeholder="Log in with code (ABCD-EFGH)" autocomplete="off" spellcheck="false">
+            <input id="player-code-restore-input" type="text" maxlength="160" placeholder="Code or transfer key" autocomplete="off" spellcheck="false">
             <button id="player-code-restore-btn" type="button" class="hub-btn">Log in</button>
             <button id="player-code-new-btn" type="button" class="hub-btn">New account</button>
           </div>
@@ -562,7 +563,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260915d";
+    window.WORDLE_BUILD = "20260915e";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js",
       "words.js",

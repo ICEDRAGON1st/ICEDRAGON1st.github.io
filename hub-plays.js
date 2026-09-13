@@ -8,6 +8,7 @@
   const PLAYER_ID_KEY = "hub-player-id";
   const PLAYER_CODE_KEY = "hub-player-code";
   const ACCOUNTS_KEY = "hub-accounts-v1";
+  const LOCAL_CODES_KEY = "hub-codes-local-v1";
   const MAX_SAVED_ACCOUNTS = 12;
   const NAME_LOCK_KEY = "hub-player-name-locked";
   const LOCAL_KEY = "hub-plays-local-v1";
@@ -372,6 +373,78 @@
     return formatted;
   }
 
+  function loadLocalCodes() {
+    try {
+      if (!canUseLocalStorage()) return {};
+      const raw = JSON.parse(localStorage.getItem(LOCAL_CODES_KEY) || "{}");
+      if (!raw || typeof raw !== "object") return {};
+      const out = {};
+      Object.entries(raw).forEach(([k, v]) => {
+        const key = normalizePlayerCode(k);
+        if (key.length !== 8 || !v || typeof v !== "object") return;
+        const playerId = String(v.playerId || "");
+        if (!playerId) return;
+        out[key] = {
+          playerId,
+          name: sanitizeName(v.name || ""),
+          at: Number(v.at) || 0
+        };
+      });
+      return out;
+    } catch {
+      return {};
+    }
+  }
+
+  function rememberLocalCode(code, playerId, name = "") {
+    const norm = normalizePlayerCode(code);
+    const id = String(playerId || "");
+    if (norm.length !== 8 || !id) return;
+    try {
+      if (!canUseLocalStorage()) return;
+      const map = loadLocalCodes();
+      map[norm] = {
+        playerId: id,
+        name: sanitizeName(name || map[norm]?.name || ""),
+        at: Date.now()
+      };
+      localStorage.setItem(LOCAL_CODES_KEY, JSON.stringify(map));
+    } catch {}
+  }
+
+  function lookupLocalCode(rawCode) {
+    const norm = normalizePlayerCode(rawCode);
+    if (norm.length !== 8) return null;
+    return loadLocalCodes()[norm] || null;
+  }
+
+  /** Stable offline identity when the account server is down and this code is new here. */
+  function playerIdForOfflineCode(norm) {
+    return `p-c-${normalizePlayerCode(norm).toLowerCase()}`;
+  }
+
+  function getAccountTransferKey() {
+    const code = formatPlayerCode(getPlayerCode());
+    const norm = normalizePlayerCode(code);
+    const playerId = getPlayerId();
+    if (norm.length !== 8 || !playerId) return "";
+    const name = sanitizeName(getName() || "");
+    return `MG1:${norm}:${playerId}:${name}`;
+  }
+
+  function parseAccountTransferKey(raw) {
+    const s = String(raw || "").trim();
+    const m = /^MG1:([A-Z0-9]{8}):([^:\s]+):(.*)$/i.exec(s);
+    if (!m) return null;
+    const norm = normalizePlayerCode(m[1]);
+    if (norm.length !== 8) return null;
+    return {
+      code: norm,
+      playerId: String(m[2] || ""),
+      name: sanitizeName(m[3] || "")
+    };
+  }
+
   function loadAccountVault() {
     try {
       if (!canUseLocalStorage()) return [];
@@ -406,6 +479,7 @@
     const playerId = String(extra.playerId || getPlayerId() || "");
     if (!playerId) return getSavedAccounts();
     const name = sanitizeName(extra.name != null ? extra.name : getName() || "");
+    rememberLocalCode(norm, playerId, name);
     const list = loadAccountVault().filter((a) => normalizePlayerCode(a.code) !== norm);
     list.unshift({
       code: formatPlayerCode(norm),
@@ -656,12 +730,14 @@
   }
 
   async function restoreWithPlayerCode(rawCode) {
-    const norm = normalizePlayerCode(rawCode);
+    const transfer = parseAccountTransferKey(rawCode);
+    const norm = transfer?.code || normalizePlayerCode(rawCode);
     if (norm.length !== 8) {
       return { ok: false, error: "Enter your 8-character player code (like ABCD-EFGH)" };
     }
 
     const localHit = loadAccountVault().find((a) => normalizePlayerCode(a.code) === norm);
+    const localCode = lookupLocalCode(norm);
 
     let remote = null;
     try {
@@ -670,26 +746,37 @@
       remote = null;
     }
 
-    // Saved accounts on this device always work offline (no MantleDB required)
+    // Local vault / local code map always win — no account server required
     let entry = null;
-    if (localHit?.playerId) {
+    let adopted = false;
+    if (transfer?.playerId) {
+      entry = {
+        playerId: transfer.playerId,
+        name: transfer.name || localHit?.name || localCode?.name || remote?.[norm]?.name || "",
+        at: Date.now()
+      };
+    } else if (localHit?.playerId) {
       entry = {
         playerId: localHit.playerId,
-        name: localHit.name || remote?.[norm]?.name || "",
+        name: localHit.name || localCode?.name || remote?.[norm]?.name || "",
         at: localHit.savedAt || 0
+      };
+    } else if (localCode?.playerId) {
+      entry = {
+        playerId: localCode.playerId,
+        name: localCode.name || remote?.[norm]?.name || "",
+        at: localCode.at || 0
       };
     } else if (remote?.[norm]?.playerId) {
       entry = remote[norm];
-    }
-
-    if (!entry?.playerId) {
-      return {
-        ok: false,
-        error:
-          remote == null
-            ? "This code isn't saved on this device yet, and the account server is unreachable. Log in once while online (or on the device where that account already works) — then it stays in Saved accounts and works offline."
-            : "Unknown player code — check the code, or open New account on the device that made it and copy that code"
+    } else {
+      // Server down or unknown code: still allow login on this device
+      entry = {
+        playerId: playerIdForOfflineCode(norm),
+        name: "",
+        at: Date.now()
       };
+      adopted = true;
     }
 
     const me = getPlayerId();
@@ -700,7 +787,13 @@
         playerId: entry.playerId,
         name: getName() || entry.name || ""
       });
-      return { ok: true, name: getName(), already: true, code: formatPlayerCode(norm) };
+      return {
+        ok: true,
+        name: getName(),
+        already: true,
+        code: formatPlayerCode(norm),
+        adopted
+      };
     }
 
     // Keep the current account on this device before switching
@@ -713,7 +806,7 @@
     } catch {}
 
     const claim = findClaimByPlayerId(names, entry.playerId);
-    const restoredName = sanitizeName(claim?.name || entry.name || localHit?.name || "");
+    const restoredName = sanitizeName(claim?.name || entry.name || localHit?.name || localCode?.name || "");
 
     clearAccountLocalIdentity();
     try {
@@ -753,7 +846,9 @@
       restored: true,
       code: formatPlayerCode(norm),
       playerId: entry.playerId,
-      fromLocal: !!localHit
+      fromLocal: !!(localHit || localCode),
+      adopted,
+      needsName: !restoredName
     };
   }
 
@@ -3277,6 +3372,7 @@ body.light .menu-credit .player-name-creator {
     getSavedAccounts,
     rememberCurrentAccount,
     removeSavedAccount,
+    getAccountTransferKey,
     normalizePlayerCode,
     formatPlayerCode,
     heartbeat,
