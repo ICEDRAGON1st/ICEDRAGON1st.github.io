@@ -29,6 +29,10 @@
   --astral: #66d9e8;
   --singularity: #ff6b9d;
   --omega: #ffe066;
+  --genesis: #9af0d8;
+  --paradox: #e040fb;
+  --infinity: #18ffff;
+  --absolute: #f8f9fa;
   /* Spot water look (overridden per body[data-spot]) */
   --spot-accent: #2ec4b6;
   --spot-page-a: #1a4a5c;
@@ -424,6 +428,18 @@ body {
 }
 .guide-rarity.omega {
   color: var(--omega);
+}
+.guide-rarity.genesis {
+  color: var(--genesis);
+}
+.guide-rarity.paradox {
+  color: var(--paradox);
+}
+.guide-rarity.infinity {
+  color: var(--infinity);
+}
+.guide-rarity.absolute {
+  color: var(--absolute);
 }
 
 .guide-spots {
@@ -1509,6 +1525,10 @@ body[data-spot="mythforge"] .water-mist {
 .cast-btn.phase-result.is-catch.rarity-astral .catch-sil,
 .cast-btn.phase-result.is-catch.rarity-singularity .catch-sil,
 .cast-btn.phase-result.is-catch.rarity-omega .catch-sil,
+.cast-btn.phase-result.is-catch.rarity-genesis .catch-sil,
+.cast-btn.phase-result.is-catch.rarity-paradox .catch-sil,
+.cast-btn.phase-result.is-catch.rarity-infinity .catch-sil,
+.cast-btn.phase-result.is-catch.rarity-absolute .catch-sil,
 .cast-btn.phase-result.is-catch.rarity-treasure .catch-sil {
   filter: drop-shadow(0 0 10px rgba(240, 193, 75, 0.55));
 }
@@ -1833,6 +1853,26 @@ body[data-spot="mythforge"] .water-mist {
 .catch-line.omega {
   color: var(--omega);
   text-shadow: 0 0 20px rgba(255, 224, 102, 0.6);
+}
+
+.catch-line.genesis {
+  color: var(--genesis);
+  text-shadow: 0 0 18px rgba(154, 240, 216, 0.55);
+}
+
+.catch-line.paradox {
+  color: var(--paradox);
+  text-shadow: 0 0 18px rgba(224, 64, 251, 0.55);
+}
+
+.catch-line.infinity {
+  color: var(--infinity);
+  text-shadow: 0 0 18px rgba(24, 255, 255, 0.55);
+}
+
+.catch-line.absolute {
+  color: var(--absolute);
+  text-shadow: 0 0 20px rgba(248, 249, 250, 0.65);
 }
 
 .catch-line.treasure {
@@ -2315,6 +2355,18 @@ body.treasure-boost .cast-btn {
 .auto-sell-opt.omega {
   color: var(--omega);
 }
+.auto-sell-opt.genesis {
+  color: var(--genesis);
+}
+.auto-sell-opt.paradox {
+  color: var(--paradox);
+}
+.auto-sell-opt.infinity {
+  color: var(--infinity);
+}
+.auto-sell-opt.absolute {
+  color: var(--absolute);
+}
 
 .cooler-list {
   display: flex;
@@ -2474,6 +2526,18 @@ body.treasure-boost .cast-btn {
 }
 .fish-chip.omega {
   color: var(--omega);
+}
+.fish-chip.genesis {
+  color: var(--genesis);
+}
+.fish-chip.paradox {
+  color: var(--paradox);
+}
+.fish-chip.infinity {
+  color: var(--infinity);
+}
+.fish-chip.absolute {
+  color: var(--absolute);
 }
 
 .sell-btn {

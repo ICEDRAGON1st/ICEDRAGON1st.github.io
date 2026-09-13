@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915x": [
+    "Fishing Idle: four new rarities beyond Omega — Genesis, Paradox, Infinity, Absolute (12 new fish)"
+  ],
   "20260915w": [
     "Fishing Idle: luck HUD uses k/m/b shorthand like sell boost"
   ],

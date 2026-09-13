@@ -73,7 +73,11 @@
     "cosmic",
     "astral",
     "singularity",
-    "omega"
+    "omega",
+    "genesis",
+    "paradox",
+    "infinity",
+    "absolute"
   ];
 
   const RARITY_RANK = {
@@ -89,7 +93,11 @@
     cosmic: 10,
     astral: 11,
     singularity: 12,
-    omega: 13
+    omega: 13,
+    genesis: 14,
+    paradox: 15,
+    infinity: 16,
+    absolute: 17
   };
 
   const RARITY_WEIGHT = {
@@ -105,7 +113,11 @@
     cosmic: 0.009,
     astral: 0.003,
     singularity: 0.001,
-    omega: 0.0003
+    omega: 0.0003,
+    genesis: 0.0001,
+    paradox: 0.000035,
+    infinity: 0.000012,
+    absolute: 0.000004
   };
 
   const FISH = [
@@ -181,7 +193,23 @@
     // Omega
     { id: "primefin", name: "Primefin", rarity: "omega", value: 15000000000 },
     { id: "absoluth", name: "Absoluth", rarity: "omega", value: 40000000000 },
-    { id: "theend", name: "The End Fish", rarity: "omega", value: 100000000000 }
+    { id: "theend", name: "The End Fish", rarity: "omega", value: 100000000000 },
+    // Genesis
+    { id: "originkoi", name: "Origin Koi", rarity: "genesis", value: 250000000000 },
+    { id: "dawnlevi", name: "Dawn Leviathan", rarity: "genesis", value: 600000000000 },
+    { id: "firstfin", name: "First Fin", rarity: "genesis", value: 1500000000000 },
+    // Paradox
+    { id: "twinparadox", name: "Twin Paradox", rarity: "paradox", value: 4000000000000 },
+    { id: "mirrorshark", name: "Mirror Shark", rarity: "paradox", value: 10000000000000 },
+    { id: "loopeel", name: "Loop Eel", rarity: "paradox", value: 25000000000000 },
+    // Infinity
+    { id: "endlessray", name: "Endless Ray", rarity: "infinity", value: 80000000000000 },
+    { id: "boundcod", name: "Boundless Cod", rarity: "infinity", value: 200000000000000 },
+    { id: "foreverend", name: "Forever End", rarity: "infinity", value: 500000000000000 },
+    // Absolute
+    { id: "absolutefin", name: "Absolute Fin", rarity: "absolute", value: 1500000000000000 },
+    { id: "finalabs", name: "Final Absolute", rarity: "absolute", value: 4000000000000000 },
+    { id: "theabsolute", name: "The Absolute", rarity: "absolute", value: 10000000000000000 }
   ];
 
   const SPOTS = [
@@ -390,7 +418,7 @@
       wait: [0.35, 0.75],
       valueMult: 64,
       rarity: 22,
-      blurb: "First waters · omega odds surge"
+      blurb: "First waters · genesis fish stir"
     },
     {
       id: "absolution",
@@ -399,7 +427,7 @@
       wait: [0.32, 0.7],
       valueMult: 85,
       rarity: 23,
-      blurb: "Beyond omega · the last shore"
+      blurb: "Beyond omega · absolute shores await"
     }
   ];
 
@@ -846,10 +874,11 @@
     return effectiveLuckBonus();
   }
 
-  /** How strongly a luck mult shifts weight toward this rarity (common=0 … omega=1). */
+  /** How strongly a luck mult shifts weight toward this rarity (common=0 … top=1). */
   function luckRaritySkew(rarity) {
     const rank = RARITY_RANK[rarity] || 1;
-    const top = RARITY_RANK.omega || 13;
+    const topName = RARITIES[RARITIES.length - 1];
+    const top = RARITY_RANK[topName] || rank;
     return Math.max(0, Math.min(1, (rank - 1) / Math.max(1, top - 1)));
   }
 
@@ -2009,7 +2038,19 @@
     collapse: "carp",
     primefin: "tuna",
     absoluth: "shark",
-    theend: "omega"
+    theend: "omega",
+    originkoi: "koi",
+    dawnlevi: "leviathan",
+    firstfin: "omega",
+    twinparadox: "bass",
+    mirrorshark: "shark",
+    loopeel: "eel",
+    endlessray: "ray",
+    boundcod: "cod",
+    foreverend: "omega",
+    absolutefin: "tuna",
+    finalabs: "leviathan",
+    theabsolute: "omega"
   };
 
   const FISH_TINT = {
@@ -2072,7 +2113,19 @@
     collapse: "#ffab91",
     primefin: "#ffe066",
     absoluth: "#ffd54f",
-    theend: "#fff59d"
+    theend: "#fff59d",
+    originkoi: "#b8f2e6",
+    dawnlevi: "#9af0d8",
+    firstfin: "#e6fff8",
+    twinparadox: "#e040fb",
+    mirrorshark: "#ce93d8",
+    loopeel: "#ea80fc",
+    endlessray: "#84ffff",
+    boundcod: "#18ffff",
+    foreverend: "#e0ffff",
+    absolutefin: "#f5f5f5",
+    finalabs: "#eeeeee",
+    theabsolute: "#ffffff"
   };
 
   function fishEye(cx, cy, r = 2.2) {
@@ -2451,7 +2504,11 @@
       cosmic: "#b197fc",
       astral: "#66d9e8",
       singularity: "#ff6b9d",
-      omega: "#ffe066"
+      omega: "#ffe066",
+      genesis: "#9af0d8",
+      paradox: "#e040fb",
+      infinity: "#18ffff",
+      absolute: "#f8f9fa"
     };
     return map[rarity] || "#a8e6df";
   }
@@ -2632,6 +2689,10 @@
     if (rarity === "astral") return 0.00012 + t * 0.08;
     if (rarity === "singularity") return 0.00004 + t * 0.045;
     if (rarity === "omega") return 0.000012 + t * 0.025;
+    if (rarity === "genesis") return 0.000004 + t * 0.014;
+    if (rarity === "paradox") return 0.0000014 + t * 0.008;
+    if (rarity === "infinity") return 0.0000005 + t * 0.0045;
+    if (rarity === "absolute") return 0.00000015 + t * 0.0025;
     return 1;
   }
 
@@ -2674,6 +2735,10 @@
     if (fish.rarity === "astral") w += luck * 0.0004;
     if (fish.rarity === "singularity") w += luck * 0.00014;
     if (fish.rarity === "omega") w += luck * 0.000045;
+    if (fish.rarity === "genesis") w += luck * 0.000015;
+    if (fish.rarity === "paradox") w += luck * 0.000005;
+    if (fish.rarity === "infinity") w += luck * 0.0000017;
+    if (fish.rarity === "absolute") w += luck * 0.00000055;
     // Spot still matters, but high rarities are less crushed on early waters
     const t = Math.max(0, Math.min(MAX_SPOT_RARITY, Number(spot.rarity) || 0)) / MAX_SPOT_RARITY;
     if (fish.rarity === "rare") w *= 0.82 + t * 0.18;
@@ -2686,6 +2751,10 @@
     if (fish.rarity === "astral") w *= (0.04 + t * 0.4) * (forBoat ? 0.14 : 1);
     if (fish.rarity === "singularity") w *= (0.025 + t * 0.35) * (forBoat ? 0.09 : 1);
     if (fish.rarity === "omega") w *= (0.015 + t * 0.3) * (forBoat ? 0.06 : 1);
+    if (fish.rarity === "genesis") w *= (0.01 + t * 0.24) * (forBoat ? 0.045 : 1);
+    if (fish.rarity === "paradox") w *= (0.007 + t * 0.2) * (forBoat ? 0.03 : 1);
+    if (fish.rarity === "infinity") w *= (0.0045 + t * 0.16) * (forBoat ? 0.02 : 1);
+    if (fish.rarity === "absolute") w *= (0.003 + t * 0.12) * (forBoat ? 0.012 : 1);
     w *= valueRarityScale(fish);
     // Chest/event luck mult skews weight toward rarer tiers (omega ≈ ×mult)
     // so 100× luck makes top fish ~100× more common instead of barely moving.
@@ -2768,26 +2837,24 @@
       "astral",
       "singularity",
       "omega",
+      "genesis",
+      "paradox",
+      "infinity",
+      "absolute",
       "treasure"
     );
     if (cls) catchLineEl.classList.add(cls);
   }
 
   function isShowcaseRarity(rarity) {
-    return (
-      rarity === "legendary" ||
-      rarity === "mythic" ||
-      rarity === "secret" ||
-      rarity === "divine" ||
-      rarity === "eternal" ||
-      rarity === "cosmic" ||
-      rarity === "astral" ||
-      rarity === "singularity" ||
-      rarity === "omega"
-    );
+    return (RARITY_RANK[rarity] || 0) >= RARITY_RANK.legendary;
   }
 
   function catchTone(rarity) {
+    if (rarity === "absolute") return "absolute";
+    if (rarity === "infinity") return "infinity";
+    if (rarity === "paradox") return "paradox";
+    if (rarity === "genesis") return "genesis";
     if (rarity === "omega") return "omega";
     if (rarity === "singularity") return "singularity";
     if (rarity === "astral") return "astral";
@@ -3754,21 +3821,7 @@
   }
 
   function rarityOrder(r) {
-    return {
-      common: 0,
-      uncommon: 1,
-      rare: 2,
-      epic: 3,
-      legendary: 4,
-      mythic: 5,
-      secret: 6,
-      divine: 7,
-      eternal: 8,
-      cosmic: 9,
-      astral: 10,
-      singularity: 11,
-      omega: 12
-    }[r] ?? 0;
+    return (RARITY_RANK[r] || 1) - 1;
   }
 
   function formatChance(pct) {
