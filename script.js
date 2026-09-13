@@ -25,9 +25,9 @@ const HUB_THEMES = {
   retro: { label: "Retro", eyebrow: "Terminal" },
   workshop: { label: "Workshop", eyebrow: "Workshop" },
   poster: { label: "Poster wall", eyebrow: "Now playing" },
-  aurora: { label: "Aurora", eyebrow: "Titles", ownerOnly: true },
-  mono: { label: "Mono", eyebrow: "Titles", ownerOnly: true },
-  tide: { label: "Tide", eyebrow: "Titles", ownerOnly: true }
+  aurora: { label: "Aurora", eyebrow: "Titles", allowedNames: ["ice_dragon"] },
+  mono: { label: "Mono", eyebrow: "Titles", allowedNames: ["ice_dragon"] },
+  tide: { label: "Tide", eyebrow: "Titles", allowedNames: ["ice_dragon", "oscarvr29"] }
 };
 
 const CREATOR_NAME = "ICE_DRAGON";
@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915f": [
+    "Hub: OscarVR29 can use the Tide hub look"
+  ],
   "20260915e": [
     "My Games: accounts work without the account server — log in by code offline; Copy transfer to move an account to another device"
   ],
@@ -2206,15 +2209,22 @@ function showGamesMessage(text, duration = 2000) {
   }
 }
 
+function currentHubPlayerKey() {
+  return String((typeof HubPlays !== "undefined" && HubPlays.getName?.()) || "")
+    .trim()
+    .toLowerCase();
+}
+
 function isHubOwner() {
-  return isCreatorName(
-    (typeof HubPlays !== "undefined" && HubPlays.getName?.()) || ""
-  );
+  return isCreatorName(currentHubPlayerKey());
 }
 
 function canUseHubTheme(themeId) {
   const def = HUB_THEMES[themeId];
   if (!def) return false;
+  if (Array.isArray(def.allowedNames) && def.allowedNames.length) {
+    return def.allowedNames.includes(currentHubPlayerKey());
+  }
   if (def.ownerOnly && !isHubOwner()) return false;
   return true;
 }
@@ -2225,11 +2235,9 @@ function getHubThemeId() {
 }
 
 function updateHubThemePicker() {
-  const owner = isHubOwner();
   hubThemePicker?.querySelectorAll("[data-hub-theme]").forEach((btn) => {
     const id = btn.dataset.hubTheme;
-    const def = HUB_THEMES[id];
-    const show = !def?.ownerOnly || owner;
+    const show = canUseHubTheme(id);
     btn.hidden = !show;
     btn.classList.toggle("hidden", !show);
   });
@@ -3160,7 +3168,7 @@ hubThemePicker?.addEventListener("click", (e) => {
   if (!btn || btn.hidden) return;
   const id = btn.dataset.hubTheme;
   if (!canUseHubTheme(id)) {
-    showGamesMessage("That hub look is for ICE_DRAGON only", 1800);
+    showGamesMessage("That hub look is locked for your account", 1800);
     return;
   }
   applyHubTheme(id);
