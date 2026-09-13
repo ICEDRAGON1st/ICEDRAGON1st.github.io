@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915z": [
+    "Fishing Idle: silver/gold/diamond/rainbow value variants (+ shiny that can stack)"
+  ],
   "20260915y": [
     "Fishing Idle: admin luck/sell mults allow up to 1000× (1.5× still works)"
   ],

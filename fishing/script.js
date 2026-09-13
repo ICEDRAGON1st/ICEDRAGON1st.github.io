@@ -1883,15 +1883,95 @@
     );
   }
 
+  const VARIANT_PRIMARY = ["silver", "gold", "diamond", "rainbow"];
+  const VARIANT_MULT = {
+    silver: 1.5,
+    gold: 2,
+    diamond: 2.5,
+    rainbow: 3
+  };
+  const SHINY_MULT = 3;
+
+  function normalizeVariant(raw) {
+    const v = String(raw || "").toLowerCase();
+    return VARIANT_PRIMARY.includes(v) ? v : "";
+  }
+
+  function normalizeVariants(raw) {
+    if (!raw || typeof raw !== "object") return { variant: "", shiny: false };
+    return {
+      variant: normalizeVariant(raw.variant),
+      shiny: !!raw.shiny
+    };
+  }
+
+  /** Primary (silver/gold/diamond/rainbow) is exclusive; shiny can stack as a second tag. */
+  function rollFishVariants(spot = currentSpot(), forBoat = false) {
+    const luck = effectiveLuckBonus(spot);
+    const primaryChance = Math.min(0.28, (forBoat ? 0.025 : 0.045) + luck * 0.00012);
+    let variant = "";
+    if (Math.random() < primaryChance) {
+      const r = Math.random();
+      if (r < 0.5) variant = "silver";
+      else if (r < 0.78) variant = "gold";
+      else if (r < 0.93) variant = "diamond";
+      else variant = "rainbow";
+    }
+    const shinyChance = Math.min(0.14, (forBoat ? 0.012 : 0.022) + luck * 0.00007);
+    return { variant, shiny: Math.random() < shinyChance };
+  }
+
+  function variantValueMult(variantOrEntry, shinyFlag) {
+    let variant = "";
+    let shiny = false;
+    if (variantOrEntry && typeof variantOrEntry === "object") {
+      variant = normalizeVariant(variantOrEntry.variant);
+      shiny = !!variantOrEntry.shiny;
+    } else {
+      variant = normalizeVariant(variantOrEntry);
+      shiny = !!shinyFlag;
+    }
+    return (VARIANT_MULT[variant] || 1) * (shiny ? SHINY_MULT : 1);
+  }
+
+  function formatVariantTitle(entry) {
+    const bits = [];
+    const v = normalizeVariant(entry?.variant);
+    if (v) bits.push(v.charAt(0).toUpperCase() + v.slice(1));
+    if (entry?.shiny) bits.push("Shiny");
+    return bits.join(" ");
+  }
+
+  function formatFishName(fish, entry) {
+    const title = formatVariantTitle(entry);
+    const name = fish?.name || "Fish";
+    return title ? `${title} ${name}` : name;
+  }
+
+  function variantClassList(entry) {
+    const classes = [];
+    const v = normalizeVariant(entry?.variant);
+    if (v) classes.push(`variant-${v}`);
+    if (entry?.shiny) classes.push("variant-shiny");
+    return classes.join(" ");
+  }
+
   function normalizeCoolerEntry(entry) {
     if (typeof entry === "string") {
       const id = String(entry);
-      return fishById(id) ? { id, saved: false, perfect: false } : null;
+      return fishById(id) ? { id, saved: false, perfect: false, variant: "", shiny: false } : null;
     }
     if (entry && typeof entry === "object") {
       const id = String(entry.id || "");
       if (!fishById(id)) return null;
-      return { id, saved: !!entry.saved, perfect: !!entry.perfect };
+      const variants = normalizeVariants(entry);
+      return {
+        id,
+        saved: !!entry.saved,
+        perfect: !!entry.perfect,
+        variant: variants.variant,
+        shiny: variants.shiny
+      };
     }
     return null;
   }
@@ -2416,14 +2496,23 @@
     }
   }
 
-  function fishGlyphHtml(fish) {
+  function fishGlyphHtml(fish, entry) {
     const id = typeof fish === "string" ? fish : fish?.id;
     const rarity = typeof fish === "string" ? fish : fish?.rarity;
     const shape = FISH_SHAPE[id] || "default";
-    const tone = FISH_TINT[id] || rarityColor(rarity);
-    const gid = `fg-${String(id || shape).replace(/[^a-z0-9]/gi, "")}${Math.abs(
+    const variant = normalizeVariant(entry?.variant);
+    const shiny = !!entry?.shiny;
+    let tone = FISH_TINT[id] || rarityColor(rarity);
+    if (variant === "silver") tone = "#c5ced6";
+    else if (variant === "gold") tone = "#f0c14b";
+    else if (variant === "diamond") tone = "#9adcf5";
+    else if (variant === "rainbow") tone = "#ff8fab";
+    const gid = `fg-${String(id || shape).replace(/[^a-z0-9]/gi, "")}${variant}${shiny ? "s" : ""}${Math.abs(
       Math.imul(
-        [...`${id || shape}:${tone}`].reduce((h, c) => (Math.imul(31, h) + c.charCodeAt(0)) | 0, 7)
+        [...`${id || shape}:${tone}:${variant}:${shiny}`].reduce(
+          (h, c) => (Math.imul(31, h) + c.charCodeAt(0)) | 0,
+          7
+        )
       )
     )
       .toString(36)
@@ -2436,7 +2525,8 @@
       .replace(/\bclass="fin"/g, `class="fin" fill="url(#${gid}-fin)"`)
       .replace(/\bclass="tail"/g, `class="tail" fill="url(#${gid}-fin)"`)
       .replace(/\bclass="bill"/g, `class="bill" fill="url(#${gid}-fin)"`);
-    return `<svg class="fish-glyph shape-${shape} is-realistic" viewBox="0 0 64 32" aria-hidden="true" style="color:${tone}">
+    const extraClass = variantClassList(entry);
+    return `<svg class="fish-glyph shape-${shape} is-realistic ${extraClass}" viewBox="0 0 64 32" aria-hidden="true" style="color:${tone}">
       <defs>
         <linearGradient id="${gid}-body" x1="0.15" y1="0" x2="0.2" y2="1">
           <stop offset="0%" stop-color="currentColor"/>
@@ -2475,7 +2565,7 @@
     catchSilEl.removeAttribute("data-fish");
   }
 
-  function showCatchSilhouette(fish) {
+  function showCatchSilhouette(fish, entry) {
     if (!catchSilEl) return;
     if (!fish || isTreasureItem(fish)) {
       catchSilEl.innerHTML = `<span class="catch-sil-chest" aria-hidden="true">${
@@ -2485,8 +2575,8 @@
       catchSilEl.dataset.fish = fish?.id || "chest";
       return;
     }
-    catchSilEl.innerHTML = fishGlyphHtml(fish);
-    catchSilEl.className = `catch-sil rarity-${fish.rarity || "common"}`;
+    catchSilEl.innerHTML = fishGlyphHtml(fish, entry);
+    catchSilEl.className = `catch-sil rarity-${fish.rarity || "common"} ${variantClassList(entry)}`.trim();
     catchSilEl.dataset.fish = fish.id || "";
   }
 
@@ -2521,7 +2611,7 @@
 
   function catchHaulHtml(entries) {
     return `<div class="boat-haul-list">${entries
-      .map(({ fish, val, perfect, treasure, stored }) => {
+      .map(({ fish, val, perfect, treasure, stored, entry }) => {
         if (treasure || isTreasureItem(fish)) {
           const detail = stored === false ? "stash full" : treasureUseLabel(fish);
           const kindClass = fish.kind === "luck" ? "treasure-luck" : "treasure-money";
@@ -2536,14 +2626,17 @@
           <span class="boat-haul-tag">${fish.kind === "luck" ? "luck" : "coin"}</span>
         </div>`;
         }
-        const tag = perfect ? "★ perfect" : fish.rarity;
-        return `<div class="boat-haul-item ${fish.rarity}">
-          <span class="boat-haul-glyph" aria-hidden="true">${fishGlyphHtml(fish)}</span>
+        const title = formatVariantTitle(entry);
+        const tagBits = [title, perfect ? "★ perfect" : "", fish.rarity].filter(Boolean);
+        const vMult = variantValueMult(entry);
+        const multTip = vMult > 1 ? ` · ×${formatMult(vMult)}` : "";
+        return `<div class="boat-haul-item ${fish.rarity} ${variantClassList(entry)}">
+          <span class="boat-haul-glyph" aria-hidden="true">${fishGlyphHtml(fish, entry)}</span>
           <span class="boat-haul-meta">
-            <span class="boat-haul-name">${fish.name}</span>
-            <span class="boat-haul-val">${formatNum(val)} · ${tag}</span>
+            <span class="boat-haul-name">${formatFishName(fish, entry)}</span>
+            <span class="boat-haul-val">${formatNum(val)}${multTip} · ${tagBits.join(" · ")}</span>
           </span>
-          <span class="boat-haul-tag">${fish.rarity}</span>
+          <span class="boat-haul-tag">${title || fish.rarity}</span>
         </div>`;
       })
       .join("")}</div>`;
@@ -2788,7 +2881,12 @@
     const perfect =
       perfectOrEntry === true ||
       (perfectOrEntry && typeof perfectOrEntry === "object" && !!perfectOrEntry.perfect);
-    const mult = (1 + sellBonus() + (perfect ? perfectBonus() : 0)) * treasureMoneyMult();
+    const variantMult =
+      perfectOrEntry && typeof perfectOrEntry === "object"
+        ? variantValueMult(perfectOrEntry)
+        : 1;
+    const mult =
+      (1 + sellBonus() + (perfect ? perfectBonus() : 0)) * treasureMoneyMult() * variantMult;
     return Math.max(1, Math.floor(base * mult));
   }
 
@@ -2800,27 +2898,38 @@
     return RARITIES.some((r) => shouldAutoSell(r));
   }
 
+  /** @returns {object|null} cooler entry (even if auto-sold), or null if cooler full */
   function addToCooler(fish, opts = {}) {
-    if (!fish) return false;
+    if (!fish) return null;
     noteCatch(fish);
-    const perfect = !!opts.perfect;
+    const variants = normalizeVariants(opts.variants || rollFishVariants(currentSpot(), !!opts.forBoat));
+    const entry = {
+      id: fish.id,
+      saved: false,
+      perfect: !!opts.perfect,
+      variant: variants.variant,
+      shiny: variants.shiny
+    };
     if (opts.forceSell || shouldAutoSell(fish.rarity)) {
-      const val = fishValue(fish, currentSpot(), perfect);
+      const val = fishValue(fish, currentSpot(), entry);
       addCoins(val);
       if (!opts.silent) {
-        setCatchLine(`Sold ${fish.name} for ${formatNum(val)}`, catchTone(fish.rarity));
+        setCatchLine(
+          `Sold ${formatFishName(fish, entry)} for ${formatNum(val)}`,
+          catchTone(fish.rarity)
+        );
       }
-      return true;
+      return entry;
     }
     if (state.cooler.length >= coolerMax()) {
       if (!opts.silent) {
         setCatchLine("Cooler full — sell or auto-sell this rarity", "miss");
       }
       window.HubSound?.play?.("miss");
-      return false;
+      return null;
     }
-    state.cooler.push({ id: fish.id, saved: false, perfect });
-    return true;
+    state.cooler.push(entry);
+    return entry;
   }
 
   function setCatchLine(text, cls = "") {
@@ -2979,45 +3088,56 @@
     state.catches += 1;
     if (perfect) state.perfects += 1;
 
-    const ok = addToCooler(fish, { perfect });
+    const entry = addToCooler(fish, { perfect });
     let bonusFish = null;
+    let bonusEntry = null;
     let thirdFish = null;
-    if (ok && Math.random() < multiCatchChance()) {
+    let thirdEntry = null;
+    if (entry && Math.random() < multiCatchChance()) {
       bonusFish = rollFish(spot, false);
       state.catches += 1;
-      if (!addToCooler(bonusFish)) bonusFish = null;
+      bonusEntry = addToCooler(bonusFish);
+      if (!bonusEntry) bonusFish = null;
     }
-    if (ok && bonusFish && Math.random() < tripleCatchChance()) {
+    if (entry && bonusFish && Math.random() < tripleCatchChance()) {
       thirdFish = rollFish(spot, false);
       state.catches += 1;
-      if (!addToCooler(thirdFish)) thirdFish = null;
+      thirdEntry = addToCooler(thirdFish);
+      if (!thirdEntry) thirdFish = null;
     }
     setPhase("result");
-    if (ok) {
-      const haul = [{ fish, val: fishValue(fish, spot, perfect), perfect }];
-      if (bonusFish) {
+    if (entry) {
+      const haul = [{ fish, val: fishValue(fish, spot, entry), perfect, entry }];
+      if (bonusFish && bonusEntry) {
         haul.push({
           fish: bonusFish,
-          val: fishValue(bonusFish, spot, false),
-          perfect: false
+          val: fishValue(bonusFish, spot, bonusEntry),
+          perfect: false,
+          entry: bonusEntry
         });
       }
-      if (thirdFish) {
+      if (thirdFish && thirdEntry) {
         haul.push({
           fish: thirdFish,
-          val: fishValue(thirdFish, spot, false),
-          perfect: false
+          val: fishValue(thirdFish, spot, thirdEntry),
+          perfect: false,
+          entry: thirdEntry
         });
       }
       const showcase = pickBestCatchFish(haul) || fish;
+      const showcaseEntry =
+        haul.find((h) => h.fish === showcase)?.entry || entry;
       castBtn.classList.add("is-catch", `rarity-${showcase.rarity}`);
-      showCatchSilhouette(showcase);
+      showCatchSilhouette(showcase, showcaseEntry);
       showCatchCard(haul);
       const tip = perfect ? "Perfect reel! " : "";
-      const extras = [bonusFish, thirdFish].filter(Boolean).map((f) => f.name);
+      const extras = [bonusFish, thirdFish].filter(Boolean).map((f, i) => {
+        const e = i === 0 ? bonusEntry : thirdEntry;
+        return formatFishName(f, e);
+      });
       const bonusTip = extras.length ? ` + ${extras.join(" + ")}` : "";
       setCatchLine(
-        `${tip}Caught ${fish.name} (${fish.rarity})${bonusTip}`,
+        `${tip}Caught ${formatFishName(fish, entry)} (${fish.rarity})${bonusTip}`,
         catchTone(showcase.rarity)
       );
       window.HubSound?.play?.(
@@ -3040,7 +3160,9 @@
       spawnFloat(
         evt?.clientX ?? rect.left + rect.width / 2,
         evt?.clientY ?? rect.top + 20,
-        extrasN ? `${showcase.name} +${extrasN}` : showcase.name
+        extrasN
+          ? `${formatFishName(showcase, showcaseEntry)} +${extrasN}`
+          : formatFishName(showcase, showcaseEntry)
       );
     } else {
       clearCatchSilhouette();
@@ -3069,14 +3191,20 @@
       return;
     }
     if (isCoolerSaved(entry)) {
-      setCatchLine(`${fish.name} is saved — unpin to sell`, "miss");
+      setCatchLine(
+        `${formatFishName(fish, entry)} is saved — unpin to sell`,
+        "miss"
+      );
       window.HubSound?.play?.("miss");
       return;
     }
     const val = fishValue(fish, currentSpot(), entry);
     state.cooler.splice(i, 1);
     addCoins(val);
-    setCatchLine(`Sold ${fish.name} for ${formatNum(val)}`, catchTone(fish.rarity));
+    setCatchLine(
+      `Sold ${formatFishName(fish, entry)} for ${formatNum(val)}`,
+      catchTone(fish.rarity)
+    );
     window.HubSound?.play?.("click");
     render(false);
     saveSoon();
@@ -3090,8 +3218,9 @@
     if (!entry || !fishById(coolerEntryId(entry))) return;
     entry.saved = !entry.saved;
     const fish = fishById(entry.id);
+    const label = formatFishName(fish, entry);
     setCatchLine(
-      entry.saved ? `Saved ${fish.name} — won't sell until unpinned` : `Unsaved ${fish.name}`
+      entry.saved ? `Saved ${label} — won't sell until unpinned` : `Unsaved ${label}`
     );
     window.HubSound?.play?.("click");
     render(false);
@@ -3210,7 +3339,7 @@
   function boatHaulHtml(entries) {
     if (!entries?.length) return "";
     return `<div class="boat-haul-list">${entries
-      .map(({ fish, val, sold, missed, treasure, stored }) => {
+      .map(({ fish, val, sold, missed, treasure, stored, entry }) => {
         if (treasure || isTreasureItem(fish)) {
           const detail =
             stored === false || missed ? "stash full" : treasureUseLabel(fish);
@@ -3227,13 +3356,14 @@
         </div>`;
         }
         const tag = missed ? "no room" : sold ? "sold" : "kept";
-        return `<div class="boat-haul-item ${fish.rarity}${missed ? " is-missed" : ""}">
-          <span class="boat-haul-glyph" aria-hidden="true">${fishGlyphHtml(fish)}</span>
+        const title = formatVariantTitle(entry);
+        return `<div class="boat-haul-item ${fish.rarity}${missed ? " is-missed" : ""} ${variantClassList(entry)}">
+          <span class="boat-haul-glyph" aria-hidden="true">${fishGlyphHtml(fish, entry)}</span>
           <span class="boat-haul-meta">
-            <span class="boat-haul-name">${fish.name}</span>
+            <span class="boat-haul-name">${formatFishName(fish, entry)}</span>
             <span class="boat-haul-val">${formatNum(val)} · ${tag}</span>
           </span>
-          <span class="boat-haul-tag">${fish.rarity}</span>
+          <span class="boat-haul-tag">${title || fish.rarity}</span>
         </div>`;
       })
       .join("")}</div>`;
@@ -3301,14 +3431,21 @@
     const haul = [];
     for (let i = 0; i < count; i += 1) {
       const fish = rollFish(spot, true);
+      const variants = rollFishVariants(spot, true);
       const sold = shouldAutoSell(fish.rarity);
-      const val = fishValue(fish, spot);
+      const val = fishValue(fish, spot, variants);
       if (sold || state.cooler.length < coolerMax()) {
-        addToCooler(fish, { silent: true });
+        addToCooler(fish, { silent: true, forBoat: true, variants });
         state.catches += 1;
-        haul.push({ fish, val, sold, missed: false });
+        haul.push({ fish, val, sold, missed: false, entry: variants });
       } else {
-        haul.push({ fish, val, sold: false, missed: true });
+        haul.push({
+          fish,
+          val,
+          sold: false,
+          missed: true,
+          entry: variants
+        });
       }
     }
     if (!haul.length) return;
@@ -3316,12 +3453,13 @@
     flashBoatHaul(haul);
     const best = haul.reduce((a, b) => (b.val >= a.val ? b : a), haul[0]);
     const kept = haul.filter((h) => !h.missed);
+    const bestName = formatFishName(best.fish, best.entry);
     const line =
       kept.length === 0
-        ? `Boat found ${best.fish.name} — cooler full`
+        ? `Boat found ${bestName} — cooler full`
         : kept.length > 1
-          ? `Boat hauled ${kept.length} fish · ${best.fish.name}`
-          : `Boat caught ${best.fish.name}`;
+          ? `Boat hauled ${kept.length} fish · ${bestName}`
+          : `Boat caught ${bestName}`;
     setCatchLine(line, kept.length ? catchTone(best.fish.rarity) : "miss");
     // Don't open the big catch card for boat hauls — it fights the cast UI.
     window.HubSound?.play?.(kept.length ? "click" : "miss");
@@ -3431,13 +3569,20 @@
         const haul = rollBoatCatchCount(boat.level || boatLevel());
         for (let h = 0; h < haul; h += 1) {
           const fish = rollFish(spot, true);
+          const variants = rollFishVariants(spot, true);
           noteCatch(fish);
+          const val = fishValue(fish, spot, variants);
           if (shouldAutoSell(fish.rarity)) {
-            gained += fishValue(fish, spot);
+            gained += val;
           } else if (state.cooler.length < coolerMax()) {
-            state.cooler.push({ id: fish.id, saved: false });
+            state.cooler.push({
+              id: fish.id,
+              saved: false,
+              variant: variants.variant,
+              shiny: variants.shiny
+            });
           } else {
-            gained += fishValue(fish, spot);
+            gained += val;
           }
         }
       }
@@ -3461,7 +3606,10 @@
 
   function coolerKey() {
     return `${state.spotId}|${state.cooler
-      .map((e) => `${coolerEntryId(e)}${isCoolerSaved(e) ? "*" : ""}${isCoolerPerfect(e) ? "!" : ""}`)
+      .map((e) => {
+        const n = normalizeCoolerEntry(e) || {};
+        return `${n.id || coolerEntryId(e)}${n.saved ? "*" : ""}${n.perfect ? "!" : ""}:${n.variant || ""}:${n.shiny ? 1 : 0}`;
+      })
       .join(",")}|${coolerMax()}|${sellBonus().toFixed(3)}|${perfectBonus().toFixed(3)}`;
   }
 
@@ -3489,20 +3637,26 @@
         if (!fish) return "";
         const val = fishValue(fish, spot, entry);
         const saved = isCoolerSaved(entry);
+        const label = formatFishName(fish, entry);
+        const vTitle = formatVariantTitle(entry);
         const perfectMark = isCoolerPerfect(entry) ? " · perfect" : "";
+        const vMult = variantValueMult(entry);
+        const multTip = vMult > 1 ? ` · ×${formatMult(vMult)}` : "";
         return `<div class="fish-chip ${fish.rarity}${saved ? " is-saved" : ""}${
           isCoolerPerfect(entry) ? " is-perfect" : ""
-        }" data-cooler-index="${index}">
-          <span class="fish-chip-glyph" aria-hidden="true">${fishGlyphHtml(fish)}</span>
+        } ${variantClassList(entry)}" data-cooler-index="${index}">
+          <span class="fish-chip-glyph" aria-hidden="true">${fishGlyphHtml(fish, entry)}</span>
           <button type="button" class="fish-chip-save" data-save-index="${index}" title="${
             saved ? "Unsave fish" : "Save fish (won't sell)"
-          }" aria-label="${saved ? "Unsave" : "Save"} ${fish.name}" aria-pressed="${saved}">${
+          }" aria-label="${saved ? "Unsave" : "Save"} ${label}" aria-pressed="${saved}">${
             saved ? "★" : "☆"
           }</button>
           <button type="button" class="fish-chip-sell" data-sell-index="${index}" title="${
-            saved ? "Saved — unpin to sell" : `Sell for ${formatNum(val)}${perfectMark}`
+            saved
+              ? "Saved — unpin to sell"
+              : `Sell for ${formatNum(val)}${perfectMark}${multTip}${vTitle ? ` · ${vTitle}` : ""}`
           }" ${saved ? "disabled" : ""}>
-            <span class="fish-chip-name">${fish.name}</span>
+            <span class="fish-chip-name">${label}</span>
             <span class="fish-chip-price">${formatNum(val)}</span>
           </button>
         </div>`;
