@@ -1201,11 +1201,13 @@
     if (!isFishingOwner()) return;
     syncAdminPanel();
     adminOverlay?.classList.remove("hidden");
+    lockPageScroll();
     document.getElementById("admin-cmd-input")?.focus?.();
   }
 
   function closeAdmin() {
     adminOverlay?.classList.add("hidden");
+    unlockPageScroll();
   }
 
   function readAdminFormDefaults() {
@@ -3981,10 +3983,12 @@
     maybeSubmitBest(true);
     render();
     overlay?.classList.remove("hidden");
+    lockPageScroll();
   }
 
   function closeMenu() {
     overlay?.classList.add("hidden");
+    unlockPageScroll();
     ensureSession();
   }
 
@@ -4168,14 +4172,41 @@
     renderGuide();
   }
 
+  let pageScrollLockY = 0;
+  let pageScrollLocks = 0;
+
+  function lockPageScroll() {
+    if (pageScrollLocks === 0) {
+      pageScrollLockY = window.scrollY || window.pageYOffset || 0;
+      document.documentElement.classList.add("modal-open");
+      document.body.classList.add("modal-open");
+      document.body.style.top = `-${pageScrollLockY}px`;
+    }
+    pageScrollLocks += 1;
+  }
+
+  function unlockPageScroll() {
+    if (pageScrollLocks <= 0) return;
+    pageScrollLocks -= 1;
+    if (pageScrollLocks > 0) return;
+    document.documentElement.classList.remove("modal-open");
+    document.body.classList.remove("modal-open");
+    document.body.style.top = "";
+    window.scrollTo(0, pageScrollLockY);
+  }
+
   function openGuide() {
     lastGuideBoostKey = "";
     renderGuide();
     guideOverlay?.classList.remove("hidden");
+    lockPageScroll();
+    const card = guideOverlay?.querySelector(".guide-card");
+    if (card) card.scrollTop = 0;
   }
 
   function closeGuide() {
     guideOverlay?.classList.add("hidden");
+    unlockPageScroll();
   }
 
   castBtn?.addEventListener("pointerup", (e) => {
@@ -4271,6 +4302,26 @@
   guideOverlay?.addEventListener("click", (e) => {
     if (e.target === guideOverlay) closeGuide();
   });
+  guideOverlay?.addEventListener(
+    "wheel",
+    (e) => {
+      const card = guideOverlay.querySelector(".guide-card");
+      if (!card) {
+        e.preventDefault();
+        return;
+      }
+      if (!card.contains(e.target) && e.target !== card) {
+        e.preventDefault();
+        return;
+      }
+      const atTop = card.scrollTop <= 0;
+      const atBottom = card.scrollTop + card.clientHeight >= card.scrollHeight - 1;
+      if ((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom)) {
+        e.preventDefault();
+      }
+    },
+    { passive: false }
+  );
   window.addEventListener("keydown", (e) => {
     if (e.code !== "Escape") return;
     if (adminOverlay && !adminOverlay.classList.contains("hidden")) {

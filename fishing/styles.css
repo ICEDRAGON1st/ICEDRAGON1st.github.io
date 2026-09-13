@@ -97,6 +97,19 @@ body {
   transition: background 0.55s ease;
 }
 
+html.modal-open,
+body.modal-open {
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+body.modal-open {
+  position: fixed;
+  left: 0;
+  right: 0;
+  width: 100%;
+}
+
 .top-bar {
   width: min(980px, 100%);
   margin: 0 0 1.25rem;
@@ -302,6 +315,8 @@ body {
 
 .guide-overlay {
   z-index: 45;
+  overscroll-behavior: contain;
+  touch-action: none;
 }
 
 .guide-card {
@@ -310,7 +325,11 @@ body {
   max-height: min(88vh, 720px);
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   min-height: 0;
 }
 
@@ -408,10 +427,9 @@ body {
 }
 
 .guide-fish-wrap {
-  flex: 1 1 auto;
-  min-height: 10rem;
-  overflow: auto;
-  -webkit-overflow-scrolling: touch;
+  flex: 0 0 auto;
+  min-height: 0;
+  overflow: visible;
 }
 
 .guide-table-wrap {
@@ -3002,6 +3020,7 @@ body.treasure-boost .cast-btn {
   padding: 1rem;
   background: rgba(4, 14, 18, 0.78);
   z-index: 40;
+  overscroll-behavior: contain;
 }
 
 .overlay.hidden {
