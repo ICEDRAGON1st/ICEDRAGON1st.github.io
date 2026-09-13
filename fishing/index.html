@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260915q">
+  <link rel="stylesheet" href="styles.css?v=20260915r">
 </head>
 <body data-spot="creek">
   <header class="top-bar">
@@ -276,6 +276,16 @@
         <button id="admin-close" type="button" class="btn btn-ghost guide-close">Close</button>
       </div>
       <p id="admin-status" class="admin-status">No admin event</p>
+      <div class="admin-scope" role="group" aria-label="Event scope">
+        <button type="button" id="admin-scope-local" class="admin-scope-btn is-active" data-admin-scope="local">
+          Local
+          <span>only you</span>
+        </button>
+        <button type="button" id="admin-scope-global" class="admin-scope-btn" data-admin-scope="global">
+          Global
+          <span>all players</span>
+        </button>
+      </div>
       <div class="admin-fields">
         <label class="admin-field">
           <span>Mult</span>
@@ -295,8 +305,8 @@
         <input
           id="admin-cmd-input"
           type="text"
-          maxlength="64"
-          placeholder="5x sell 10m · 3x luck 15m · clear"
+          maxlength="72"
+          placeholder="5x sell 10m local · 3x luck global · clear"
           autocomplete="off"
           spellcheck="false"
         />
@@ -329,6 +339,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260914c"></script>
-  <script src="script.js?v=20260915q"></script>
+  <script src="script.js?v=20260915r"></script>
 </body>
 </html>

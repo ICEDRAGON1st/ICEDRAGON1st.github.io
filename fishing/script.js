@@ -35,6 +35,7 @@
   const ADMIN_EVENT_RATE_KEY = "fishing-admin-mantle-until-v1";
   const ADMIN_EVENT_LOCAL_KEY = "fishing-admin-override-v1";
   const ADMIN_EVENT_PENDING_KEY = "fishing-admin-pending-v1";
+  const ADMIN_SCOPE_KEY = "fishing-admin-scope-v1";
   const ADMIN_RATE_BACKOFF_MS = 45_000;
   const ADMIN_DEFAULT_MINUTES = 5;
   const ADMIN_DEFAULT_MULT = 2;
@@ -1042,6 +1043,10 @@
   function restorePendingAdminPush() {
     const pending = readStoredAdmin(ADMIN_EVENT_PENDING_KEY);
     if (!pending || typeof pending !== "object") return;
+    if (String(pending.scope || "global") === "local") {
+      writeStoredAdmin(ADMIN_EVENT_PENDING_KEY, null);
+      return;
+    }
     pendingAdminPush = pending;
     const live = parseAdminEventPayload(pending, true);
     if (live) setLocalAdminOverride(pending, false);
@@ -1057,6 +1062,10 @@
 
   async function maybeRetryPendingAdminPush() {
     if (!pendingAdminPush || !isFishingOwner()) return;
+    if (String(pendingAdminPush.scope || "global") === "local") {
+      clearPendingAdminPush();
+      return;
+    }
     if (adminBusy || adminEventRateLimited()) return;
     const payload = pendingAdminPush;
     try {
@@ -1094,19 +1103,43 @@
     if (adminOverlay && !owner) {
       adminOverlay.classList.add("hidden");
     }
+    syncAdminScopeButtons();
     const status = document.getElementById("admin-status");
     if (!status || !owner) return;
     const live = adminEventLive();
     const pending = !!pendingAdminPush;
+    const localOnly = live && String(readStoredAdmin(ADMIN_EVENT_LOCAL_KEY)?.scope || "") === "local";
     if (live) {
-      status.textContent = `Live: ${formatMult(live.mult)}× ${
-        live.kind === "luck" ? "luck" : "sell"
-      } · ${formatTreasureClock(live.until - Date.now())} left${
-        pending ? " · syncing…" : ""
-      }`;
+      status.textContent = `Live (${localOnly ? "local" : pending ? "global · syncing" : "global"}): ${formatMult(
+        live.mult
+      )}× ${live.kind === "luck" ? "luck" : "sell"} · ${formatTreasureClock(live.until - Date.now())} left`;
     } else {
-      status.textContent = "No admin event · e.g. 5x sell 10m · 3x luck 15m · clear";
+      status.textContent = "No admin event · pick Local or Global, then start";
     }
+  }
+
+  function getAdminScope() {
+    try {
+      const saved = String(localStorage.getItem(ADMIN_SCOPE_KEY) || "").toLowerCase();
+      if (saved === "global" || saved === "local") return saved;
+    } catch {}
+    return "local";
+  }
+
+  function setAdminScope(scope) {
+    const next = scope === "global" ? "global" : "local";
+    try {
+      localStorage.setItem(ADMIN_SCOPE_KEY, next);
+    } catch {}
+    syncAdminScopeButtons();
+    return next;
+  }
+
+  function syncAdminScopeButtons() {
+    const scope = getAdminScope();
+    document.querySelectorAll("[data-admin-scope]").forEach((btn) => {
+      btn.classList.toggle("is-active", btn.dataset.adminScope === scope);
+    });
   }
 
   function openAdmin() {
@@ -1125,7 +1158,8 @@
     const minsEl = document.getElementById("admin-mins");
     return {
       mult: clampAdminMult(multEl?.value ?? ADMIN_DEFAULT_MULT),
-      minutes: clampAdminMinutes(minsEl?.value ?? ADMIN_DEFAULT_MINUTES)
+      minutes: clampAdminMinutes(minsEl?.value ?? ADMIN_DEFAULT_MINUTES),
+      scope: getAdminScope()
     };
   }
 
@@ -1142,10 +1176,20 @@
     renderStats();
   }
 
+  function clearPendingAdminPush() {
+    pendingAdminPush = null;
+    writeStoredAdmin(ADMIN_EVENT_PENDING_KEY, null);
+    if (adminRetryTimer) {
+      clearInterval(adminRetryTimer);
+      adminRetryTimer = 0;
+    }
+  }
+
   async function publishAdminEvent(
     kind,
     minutes = ADMIN_DEFAULT_MINUTES,
-    mult = ADMIN_DEFAULT_MULT
+    mult = ADMIN_DEFAULT_MULT,
+    scope = getAdminScope()
   ) {
     if (!isFishingOwner()) {
       setCatchLine("Admin commands are ICE_DRAGON only", "miss");
@@ -1157,29 +1201,47 @@
     const mins = clampAdminMinutes(minutes);
     const eventMult = clampAdminMult(mult);
     const clear = !kind || kind === "clear" || kind === "off";
+    const wantGlobal = scope === "global";
     const payload = {
       token: ADMIN_EVENT_TOKEN,
       kind: clear ? "luck" : kind,
       until: clear ? 0 : now + mins * 60_000,
       startedAt: now,
       mult: clear ? ADMIN_DEFAULT_MULT : eventMult,
-      note: "in-game-admin",
+      scope: wantGlobal ? "global" : "local",
+      note: wantGlobal ? "in-game-admin-global" : "in-game-admin-local",
       by: OWNER_NAME
     };
 
-    // Always apply for you immediately — Mantle sync is best-effort
     applyAdminLocally(payload, clear);
+
+    if (!wantGlobal) {
+      clearPendingAdminPush();
+      if (clear) {
+        setCatchLine("Local admin event cleared", "treasure");
+      } else {
+        setCatchLine(
+          `LOCAL ADMIN · ${formatMult(eventMult)}× ${
+            kind === "luck" ? "luck" : "sell"
+          } for ${mins}m (only you)`,
+          "treasure"
+        );
+        window.HubSound?.play?.("win");
+        window.HubConfetti?.burst?.();
+      }
+      adminBusy = false;
+      return true;
+    }
+
+    pendingAdminPush = payload;
+    writeStoredAdmin(ADMIN_EVENT_PENDING_KEY, payload);
     if (clear) {
-      pendingAdminPush = payload;
-      writeStoredAdmin(ADMIN_EVENT_PENDING_KEY, payload);
-      setCatchLine("Admin event cleared (syncing…)", "treasure");
+      setCatchLine("Clearing global admin event…", "treasure");
     } else {
-      pendingAdminPush = payload;
-      writeStoredAdmin(ADMIN_EVENT_PENDING_KEY, payload);
       setCatchLine(
-        `ADMIN · ${formatMult(eventMult)}× ${
+        `GLOBAL ADMIN · ${formatMult(eventMult)}× ${
           kind === "luck" ? "luck" : "sell"
-        } for ${mins}m (syncing to others…)`,
+        } for ${mins}m (syncing…)`,
         "treasure"
       );
       window.HubSound?.play?.("win");
@@ -1187,7 +1249,6 @@
     }
 
     try {
-      // Ignore hub-wide Mantle cooldown — always attempt this lightweight store
       const res = await fetch(ADMIN_EVENT_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1201,25 +1262,20 @@
             ? "Cleared here · Mantle busy, will sync clear soon"
             : `Live here · ${formatMult(eventMult)}× ${
                 kind === "luck" ? "luck" : "sell"
-              } · syncing when Mantle frees up`,
+              } · syncing global when Mantle frees up`,
           "treasure"
         );
         return true;
       }
       if (!res.ok) throw new Error("push failed");
       clearAdminEventRateLimited();
-      pendingAdminPush = null;
-      writeStoredAdmin(ADMIN_EVENT_PENDING_KEY, null);
-      if (adminRetryTimer) {
-        clearInterval(adminRetryTimer);
-        adminRetryTimer = 0;
-      }
+      clearPendingAdminPush();
       setCatchLine(
         clear
-          ? "Admin event cleared globally"
-          : `ADMIN · ${formatMult(eventMult)}× ${
+          ? "Global admin event cleared"
+          : `GLOBAL ADMIN · ${formatMult(eventMult)}× ${
               kind === "luck" ? "luck" : "sell"
-            } live for ${mins}m (global)`,
+            } live for ${mins}m (all players)`,
         "treasure"
       );
       return true;
@@ -1227,8 +1283,8 @@
       scheduleAdminRetry();
       setCatchLine(
         clear
-          ? "Cleared here · will sync when online"
-          : `Live here · will sync to others when online`,
+          ? "Cleared here · will sync global clear when online"
+          : "Live here · will sync to all players when online",
         "treasure"
       );
       return true;
@@ -1244,11 +1300,21 @@
       .replace(/×/g, "x")
       .replace(/\s+/g, " ");
     if (!text) return null;
-    if (/^(clear|off|stop|end)\b/.test(text)) {
-      return { kind: "clear", minutes: 0, mult: ADMIN_DEFAULT_MULT };
-    }
 
     const defaults = readAdminFormDefaults();
+    let scope = defaults.scope;
+    if (/\b(global|everyone|all)\b/.test(text)) {
+      scope = "global";
+      text = text.replace(/\b(global|everyone|all)\b/g, " ").replace(/\s+/g, " ").trim();
+    } else if (/\b(local|solo|me|only me)\b/.test(text)) {
+      scope = "local";
+      text = text.replace(/\b(local|solo|me|only me)\b/g, " ").replace(/\s+/g, " ").trim();
+    }
+
+    if (/^(clear|off|stop|end)\b/.test(text)) {
+      return { kind: "clear", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope };
+    }
+
     let mult = defaults.mult;
     let usedExplicitMult = false;
     const multMatch = text.match(/(\d+(?:\.\d+)?)\s*x\b/);
@@ -1277,9 +1343,11 @@
       mult = defaults.mult;
     }
 
-    if (/\bluck\b/.test(text) || text === "luck") return { kind: "luck", minutes, mult };
+    if (/\bluck\b/.test(text) || text === "luck") {
+      return { kind: "luck", minutes, mult, scope };
+    }
     if (/\b(money|sell|coin)\b/.test(text) || /^(sell|money|coin)$/.test(text)) {
-      return { kind: "money", minutes, mult };
+      return { kind: "money", minutes, mult, scope };
     }
     return null;
   }
@@ -1287,10 +1355,13 @@
   async function runAdminCommand(raw) {
     const parsed = parseAdminCommand(raw);
     if (!parsed) {
-      setCatchLine("Try: 5x sell 10m · 3x luck 15m · clear", "miss");
+      setCatchLine("Try: 5x sell 10m local · 3x luck global · clear", "miss");
       return;
     }
-    await publishAdminEvent(parsed.kind, parsed.minutes, parsed.mult);
+    if (parsed.scope === "local" || parsed.scope === "global") {
+      setAdminScope(parsed.scope);
+    }
+    await publishAdminEvent(parsed.kind, parsed.minutes, parsed.mult, parsed.scope);
   }
 
   function scheduledEventWindowStart(now = Date.now()) {
@@ -3793,6 +3864,12 @@
   adminBtn?.addEventListener("click", openAdmin);
   adminClose?.addEventListener("click", closeAdmin);
   adminOverlay?.addEventListener("click", (e) => {
+    const scopeBtn = e.target.closest("[data-admin-scope]");
+    if (scopeBtn && adminOverlay.contains(scopeBtn)) {
+      e.preventDefault();
+      setAdminScope(scopeBtn.dataset.adminScope);
+      return;
+    }
     if (e.target === adminOverlay) closeAdmin();
   });
   adminOverlay?.addEventListener("click", (e) => {

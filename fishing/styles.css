@@ -180,6 +180,45 @@ body {
   line-height: 1.35;
 }
 
+.admin-scope {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  margin-bottom: 0.65rem;
+}
+
+.admin-scope-btn {
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 0.65rem;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--text);
+  padding: 0.55rem 0.65rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  font-weight: 800;
+  font-size: 0.9rem;
+}
+
+.admin-scope-btn span {
+  font-weight: 600;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.admin-scope-btn.is-active {
+  border-color: rgba(240, 193, 75, 0.55);
+  background: rgba(240, 193, 75, 0.14);
+  color: #ffe8a3;
+}
+
+.admin-scope-btn.is-active span {
+  color: rgba(255, 232, 163, 0.75);
+}
+
 .admin-fields {
   display: flex;
   gap: 0.55rem;

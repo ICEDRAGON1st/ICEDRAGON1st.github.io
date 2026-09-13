@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915r": [
+    "Fishing Idle: admin Local vs Global toggle (only you, or all players)"
+  ],
   "20260915q": [
     "Fishing Idle: admin commands work even when Mantle is busy (apply now, sync later)"
   ],
