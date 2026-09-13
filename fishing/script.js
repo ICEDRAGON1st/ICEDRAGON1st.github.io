@@ -338,11 +338,56 @@
       wait: [0.45, 0.95],
       valueMult: 22,
       rarity: 18,
-      blurb: "Final waters · omega possible"
+      blurb: "Bright abyss · omega possible"
+    },
+    {
+      id: "prismreef",
+      name: "Prism Reef",
+      cost: 80000000000,
+      wait: [0.42, 0.9],
+      valueMult: 28,
+      rarity: 19,
+      blurb: "Fractured light · omega more often"
+    },
+    {
+      id: "chronowell",
+      name: "Chrono Well",
+      cost: 350000000000,
+      wait: [0.4, 0.85],
+      valueMult: 36,
+      rarity: 20,
+      blurb: "Time pools · rarest fish linger"
+    },
+    {
+      id: "mythforge",
+      name: "Mythforge Basin",
+      cost: 1.5e12,
+      wait: [0.38, 0.8],
+      valueMult: 48,
+      rarity: 21,
+      blurb: "Molten legend · endgame pays hard"
+    },
+    {
+      id: "genesispool",
+      name: "Genesis Pool",
+      cost: 7e12,
+      wait: [0.35, 0.75],
+      valueMult: 64,
+      rarity: 22,
+      blurb: "First waters · omega odds surge"
+    },
+    {
+      id: "absolution",
+      name: "Absolution Sea",
+      cost: 3e13,
+      wait: [0.32, 0.7],
+      valueMult: 85,
+      rarity: 23,
+      blurb: "Beyond omega · the last shore"
     }
   ];
 
-  const MAX_SPOT_RARITY = 18;
+  const MAX_SPOT_RARITY = 23;
 
   const GEAR = [
     { id: "rod1", name: "Willow Rod", desc: "+0.05s bite window", cost: 40, kind: "window", amount: 0.05 },
@@ -363,6 +408,10 @@
     { id: "rod16", name: "Tidebone Rod", desc: "+0.1s bite window", cost: 2800000000, kind: "window", amount: 0.1 },
     { id: "rod17", name: "Solstice Rod", desc: "+0.1s bite window", cost: 4500000000, kind: "window", amount: 0.1 },
     { id: "rod18", name: "Helix Rod", desc: "+0.12s bite window", cost: 7000000000, kind: "window", amount: 0.12 },
+    { id: "rod19", name: "Prism Rod", desc: "+0.14s bite window", cost: 18000000000, kind: "window", amount: 0.14 },
+    { id: "rod20", name: "Chrono Rod", desc: "+0.15s bite window", cost: 45000000000, kind: "window", amount: 0.15 },
+    { id: "rod21", name: "Mythforge Rod", desc: "+0.16s bite window", cost: 120000000000, kind: "window", amount: 0.16 },
+    { id: "rod22", name: "Genesis Rod", desc: "+0.18s bite window", cost: 400000000000, kind: "window", amount: 0.18 },
     { id: "bait10", name: "Echo Chum", desc: "Faster bites (−6% wait)", cost: 30, kind: "speed", amount: 0.06 },
     { id: "bait11", name: "Zenith Bait", desc: "Faster bites (−7% wait)", cost: 40, kind: "speed", amount: 0.07 },
     { id: "bait8", name: "Void Roe", desc: "Faster bites (−8% wait)", cost: 50, kind: "speed", amount: 0.08 },
@@ -374,6 +423,9 @@
     { id: "bait5", name: "Glow Shrimp", desc: "Faster bites (−26% wait)", cost: 220000, kind: "speed", amount: 0.26 },
     { id: "bait6", name: "Plasma Flies", desc: "Faster bites (−30% wait)", cost: 1800000, kind: "speed", amount: 0.3 },
     { id: "bait7", name: "Starroe", desc: "Faster bites (−34% wait)", cost: 15000000, kind: "speed", amount: 0.34 },
+    { id: "bait12", name: "Prism Chum", desc: "Faster bites (−36% wait)", cost: 80000000, kind: "speed", amount: 0.36 },
+    { id: "bait13", name: "Chrono Flies", desc: "Faster bites (−38% wait)", cost: 400000000, kind: "speed", amount: 0.38 },
+    { id: "bait14", name: "Genesis Roe", desc: "Faster bites (−40% wait)", cost: 2000000000, kind: "speed", amount: 0.4 },
     { id: "luck1", name: "Lucky Hook", desc: "+rarity luck · better chest finds", cost: 120, kind: "luck", amount: 8 },
     { id: "luck2", name: "Tide Charm", desc: "+rarity luck · better chest finds", cost: 700, kind: "luck", amount: 12 },
     { id: "luck3", name: "Pearl Lure", desc: "+rarity luck · better chest finds", cost: 4000, kind: "luck", amount: 16 },
@@ -391,6 +443,9 @@
     { id: "luck15", name: "Quasar Charm", desc: "+rarity luck · better chest finds", cost: 3500000000, kind: "luck", amount: 180 },
     { id: "luck16", name: "Eclipse Coin", desc: "+rarity luck · better chest finds", cost: 5500000000, kind: "luck", amount: 200 },
     { id: "luck17", name: "Helix Lure", desc: "+rarity luck · better chest finds", cost: 9000000000, kind: "luck", amount: 220 },
+    { id: "luck18", name: "Prism Fate", desc: "+rarity luck · better chest finds", cost: 25000000000, kind: "luck", amount: 250 },
+    { id: "luck19", name: "Chrono Bell", desc: "+rarity luck · better chest finds", cost: 80000000000, kind: "luck", amount: 280 },
+    { id: "luck20", name: "Genesis Charm", desc: "+rarity luck · better chest finds", cost: 250000000000, kind: "luck", amount: 320 },
     { id: "cooler1", name: "Ice Pack", desc: "+4 cooler slots", cost: 200, kind: "cooler", amount: 4 },
     { id: "cooler2", name: "Big Cooler", desc: "+6 cooler slots", cost: 1500, kind: "cooler", amount: 6 },
     { id: "cooler3", name: "Dock Freezer", desc: "+10 cooler slots", cost: 12000, kind: "cooler", amount: 10 },
@@ -407,6 +462,9 @@
     { id: "cooler14", name: "Quasar Cage", desc: "+120 cooler slots", cost: 3000000000, kind: "cooler", amount: 120 },
     { id: "cooler15", name: "Eclipse Vault", desc: "+140 cooler slots", cost: 5000000000, kind: "cooler", amount: 140 },
     { id: "cooler16", name: "Helix Freezer", desc: "+160 cooler slots", cost: 8000000000, kind: "cooler", amount: 160 },
+    { id: "cooler17", name: "Prism Hold", desc: "+180 cooler slots", cost: 22000000000, kind: "cooler", amount: 180 },
+    { id: "cooler18", name: "Chrono Vault", desc: "+200 cooler slots", cost: 70000000000, kind: "cooler", amount: 200 },
+    { id: "cooler19", name: "Genesis Locker", desc: "+240 cooler slots", cost: 220000000000, kind: "cooler", amount: 240 },
     { id: "sell1", name: "Merchant Scale", desc: "+5% sell value", cost: 500, kind: "value", amount: 0.05 },
     { id: "sell2", name: "Harbor Broker", desc: "+8% sell value", cost: 5000, kind: "value", amount: 0.08 },
     { id: "sell3", name: "Gold Ledger", desc: "+12% sell value", cost: 50000, kind: "value", amount: 0.12 },
@@ -421,6 +479,9 @@
     { id: "sell12", name: "Quasar Floor", desc: "+80% sell value", cost: 3500000000, kind: "value", amount: 0.8 },
     { id: "sell13", name: "Eclipse Pit", desc: "+90% sell value", cost: 5500000000, kind: "value", amount: 0.9 },
     { id: "sell14", name: "Helix Market", desc: "+100% sell value", cost: 9000000000, kind: "value", amount: 1 },
+    { id: "sell15", name: "Prism Exchange", desc: "+110% sell value", cost: 28000000000, kind: "value", amount: 1.1 },
+    { id: "sell16", name: "Chrono Floor", desc: "+125% sell value", cost: 90000000000, kind: "value", amount: 1.25 },
+    { id: "sell17", name: "Genesis Market", desc: "+150% sell value", cost: 300000000000, kind: "value", amount: 1.5 },
     { id: "net1", name: "Hand Net", desc: "6% chance for a second fish", cost: 2500, kind: "multi", amount: 0.06 },
     { id: "net2", name: "Drag Net", desc: "10% chance for a second fish", cost: 28000, kind: "multi", amount: 0.1 },
     { id: "net3", name: "Trawl Mesh", desc: "14% chance for a second fish", cost: 220000, kind: "multi", amount: 0.14 },
@@ -433,6 +494,9 @@
     { id: "net10", name: "Quasar Net", desc: "14% chance for a second fish", cost: 3200000000, kind: "multi", amount: 0.14 },
     { id: "net11", name: "Eclipse Snare", desc: "16% chance for a second fish", cost: 5500000000, kind: "multi", amount: 0.16 },
     { id: "net12", name: "Helix Net", desc: "18% chance for a second fish", cost: 9000000000, kind: "multi", amount: 0.18 },
+    { id: "net13", name: "Prism Snare", desc: "20% chance for a second fish", cost: 30000000000, kind: "multi", amount: 0.2 },
+    { id: "net14", name: "Chrono Net", desc: "22% chance for a second fish", cost: 100000000000, kind: "multi", amount: 0.22 },
+    { id: "net15", name: "Genesis Mesh", desc: "25% chance for a second fish", cost: 350000000000, kind: "multi", amount: 0.25 },
     { id: "perfect1", name: "Steady Hands", desc: "+10% sell on perfect reels", cost: 1500, kind: "perfect", amount: 0.1 },
     { id: "perfect2", name: "Keen Eye", desc: "+15% sell on perfect reels", cost: 18000, kind: "perfect", amount: 0.15 },
     { id: "perfect3", name: "Timing Belt", desc: "+20% sell on perfect reels", cost: 150000, kind: "perfect", amount: 0.2 },
@@ -443,7 +507,10 @@
     { id: "perfect8", name: "Rift Timing", desc: "+55% sell on perfect reels", cost: 1200000000, kind: "perfect", amount: 0.55 },
     { id: "perfect9", name: "Quasar Focus", desc: "+60% sell on perfect reels", cost: 2500000000, kind: "perfect", amount: 0.6 },
     { id: "perfect10", name: "Eclipse Pulse", desc: "+70% sell on perfect reels", cost: 4500000000, kind: "perfect", amount: 0.7 },
-    { id: "perfect11", name: "Helix Timing", desc: "+80% sell on perfect reels", cost: 8000000000, kind: "perfect", amount: 0.8 }
+    { id: "perfect11", name: "Helix Timing", desc: "+80% sell on perfect reels", cost: 8000000000, kind: "perfect", amount: 0.8 },
+    { id: "perfect12", name: "Prism Focus", desc: "+90% sell on perfect reels", cost: 28000000000, kind: "perfect", amount: 0.9 },
+    { id: "perfect13", name: "Chrono Pulse", desc: "+100% sell on perfect reels", cost: 90000000000, kind: "perfect", amount: 1 },
+    { id: "perfect14", name: "Genesis Timing", desc: "+120% sell on perfect reels", cost: 300000000000, kind: "perfect", amount: 1.2 }
   ];
 
   /**
@@ -490,6 +557,31 @@
         [0.7, 2]
       ],
       multiHint: "70% for 2 · 25% for 3 · 5% for 4"
+    },
+    {
+      name: "Prism Yacht",
+      interval: 7.5,
+      cost: 500000000,
+      multi: [
+        [0.06, 5],
+        [0.1, 4],
+        [0.24, 3],
+        [0.5, 2]
+      ],
+      multiHint: "50% for 2 · 24% for 3 · 10% for 4 · 6% for 5"
+    },
+    {
+      name: "Genesis Fleet",
+      interval: 7.5,
+      cost: 8000000000,
+      multi: [
+        [0.05, 6],
+        [0.08, 5],
+        [0.12, 4],
+        [0.25, 3],
+        [0.4, 2]
+      ],
+      multiHint: "40% for 2 · 25% for 3 · 12% for 4 · 8% for 5 · 5% for 6"
     }
   ];
   const BOAT_MAX_LEVEL = BOAT_TIERS.length - 1;

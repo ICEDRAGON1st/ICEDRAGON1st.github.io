@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915h": [
+    "Fishing Idle: 5 new late spots (Prism Reef → Absolution Sea), more gear in every category, and 2 new boat tiers"
+  ],
   "20260915g": [
     "Fishing Idle: sell and luck events now strictly alternate every half-hour (no long luck-only streaks)"
   ],
