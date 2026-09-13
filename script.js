@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260914s": [
+    "Fishing Idle: better fish are much more common (rare through endgame odds raised)"
+  ],
   "20260914r": [
     "Fishing Idle: offline boat progress can find chests (half as often as a live boat)"
   ],
