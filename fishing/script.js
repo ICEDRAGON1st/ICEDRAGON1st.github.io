@@ -32,7 +32,10 @@
   const ADMIN_EVENT_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-admin-events";
   const ADMIN_EVENT_TOKEN = "ice-fish-evt-9f3a";
   const ADMIN_EVENT_POLL_MS = 15_000;
-  const ADMIN_EVENT_RATE_KEY = "mantle-rate-limit-until-v1";
+  const ADMIN_EVENT_RATE_KEY = "fishing-admin-mantle-until-v1";
+  const ADMIN_EVENT_LOCAL_KEY = "fishing-admin-override-v1";
+  const ADMIN_EVENT_PENDING_KEY = "fishing-admin-pending-v1";
+  const ADMIN_RATE_BACKOFF_MS = 45_000;
   const ADMIN_DEFAULT_MINUTES = 5;
   const ADMIN_DEFAULT_MULT = 2;
   const ADMIN_MAX_MINUTES = 180;
@@ -872,10 +875,12 @@
     return localHalfHourStart(now) + EVENT_MS;
   }
 
-  let adminEventCache = null; // { kind, until, startedAt } | null
+  let adminEventCache = null; // { kind, until, startedAt, mult } | null
   let adminEventFetchedAt = 0;
   let adminEventPollTimer = 0;
   let adminBusy = false;
+  let adminRetryTimer = 0;
+  let pendingAdminPush = null;
 
   function playerNameLower() {
     try {
@@ -902,9 +907,15 @@
     }
   }
 
-  function markAdminEventRateLimited(ms = 15 * 60_000) {
+  function markAdminEventRateLimited(ms = ADMIN_RATE_BACKOFF_MS) {
     try {
-      localStorage.setItem(ADMIN_EVENT_RATE_KEY, String(Date.now() + Math.max(60_000, ms)));
+      localStorage.setItem(ADMIN_EVENT_RATE_KEY, String(Date.now() + Math.max(20_000, ms)));
+    } catch {}
+  }
+
+  function clearAdminEventRateLimited() {
+    try {
+      localStorage.removeItem(ADMIN_EVENT_RATE_KEY);
     } catch {}
   }
 
@@ -939,27 +950,62 @@
   function pickBetterAdminEvent(a, b) {
     if (!a) return b || null;
     if (!b) return a;
-    return a.until >= b.until ? a : b;
+    if (a.until !== b.until) return a.until >= b.until ? a : b;
+    return (a.mult || 0) >= (b.mult || 0) ? a : b;
+  }
+
+  function readStoredAdmin(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  function writeStoredAdmin(key, data) {
+    try {
+      if (!data) localStorage.removeItem(key);
+      else localStorage.setItem(key, JSON.stringify(data));
+    } catch {}
+  }
+
+  function localAdminOverride() {
+    return parseAdminEventPayload(readStoredAdmin(ADMIN_EVENT_LOCAL_KEY), true);
+  }
+
+  function setLocalAdminOverride(payload, clear = false) {
+    if (clear) {
+      writeStoredAdmin(ADMIN_EVENT_LOCAL_KEY, null);
+      return;
+    }
+    writeStoredAdmin(ADMIN_EVENT_LOCAL_KEY, payload);
+  }
+
+  function mergedAdminEvent() {
+    return pickBetterAdminEvent(adminEventCache, localAdminOverride());
   }
 
   function adminEventLive(now = Date.now()) {
-    const e = adminEventCache;
+    const e = mergedAdminEvent();
     if (!e) return null;
     if (now >= e.until) return null;
     return e;
   }
 
-  async function fetchAdminJson(url) {
+  async function fetchAdminJson(url, { trackRate = false } = {}) {
     try {
       const res = await fetch(url, { cache: "no-store" });
       if (res.status === 429) {
-        markAdminEventRateLimited();
-        return { rateLimited: true, data: null };
+        if (trackRate) markAdminEventRateLimited();
+        return { rateLimited: true, data: null, ok: false };
       }
-      if (res.status === 404 || !res.ok) return { rateLimited: false, data: null };
-      return { rateLimited: false, data: await res.json() };
+      if (res.status === 404) return { rateLimited: false, data: null, ok: true };
+      if (!res.ok) return { rateLimited: false, data: null, ok: false };
+      return { rateLimited: false, data: await res.json(), ok: true };
     } catch {
-      return { rateLimited: false, data: null };
+      return { rateLimited: false, data: null, ok: false };
     }
   }
 
@@ -967,30 +1013,76 @@
     const now = Date.now();
     if (!force && now - adminEventFetchedAt < ADMIN_EVENT_POLL_MS) return;
     adminEventFetchedAt = now;
-    if (adminEventRateLimited()) {
-      // Still allow same-origin JSON when Mantle is cooling down
-      const fileOnly = await fetchAdminJson(`${ADMIN_EVENT_URL}?t=${now}`);
-      const next = parseAdminEventPayload(fileOnly.data, false);
-      if (next || !adminEventLive(now)) adminEventCache = next;
-      syncAdminPanel();
-      return;
+
+    const file = await fetchAdminJson(`${ADMIN_EVENT_URL}?t=${now}`, { trackRate: false });
+    let mantleData = null;
+    if (!adminEventRateLimited()) {
+      const mantle = await fetchAdminJson(ADMIN_EVENT_API, { trackRate: true });
+      if (mantle.ok && !mantle.rateLimited) clearAdminEventRateLimited();
+      mantleData = mantle.data;
     }
-    const [mantle, file] = await Promise.all([
-      fetchAdminJson(ADMIN_EVENT_API),
-      fetchAdminJson(`${ADMIN_EVENT_URL}?t=${now}`)
-    ]);
-    if (mantle.rateLimited) markAdminEventRateLimited();
-    adminEventCache = pickBetterAdminEvent(
-      parseAdminEventPayload(mantle.data, true),
+
+    const remote = pickBetterAdminEvent(
+      parseAdminEventPayload(mantleData, true),
       parseAdminEventPayload(file.data, false)
     );
+    // Keep a fresher local owner override (e.g. while Mantle sync is pending)
+    adminEventCache = pickBetterAdminEvent(remote, localAdminOverride());
     syncAdminPanel();
+    maybeRetryPendingAdminPush();
   }
 
   function startAdminEventPolling() {
+    restorePendingAdminPush();
     pollAdminEvent(true);
     if (adminEventPollTimer) clearInterval(adminEventPollTimer);
     adminEventPollTimer = setInterval(() => pollAdminEvent(false), ADMIN_EVENT_POLL_MS);
+  }
+
+  function restorePendingAdminPush() {
+    const pending = readStoredAdmin(ADMIN_EVENT_PENDING_KEY);
+    if (!pending || typeof pending !== "object") return;
+    pendingAdminPush = pending;
+    const live = parseAdminEventPayload(pending, true);
+    if (live) setLocalAdminOverride(pending, false);
+    scheduleAdminRetry();
+  }
+
+  function scheduleAdminRetry() {
+    if (adminRetryTimer) return;
+    adminRetryTimer = setInterval(() => {
+      maybeRetryPendingAdminPush();
+    }, 20_000);
+  }
+
+  async function maybeRetryPendingAdminPush() {
+    if (!pendingAdminPush || !isFishingOwner()) return;
+    if (adminBusy || adminEventRateLimited()) return;
+    const payload = pendingAdminPush;
+    try {
+      const res = await fetch(ADMIN_EVENT_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (res.status === 429) {
+        markAdminEventRateLimited();
+        return;
+      }
+      if (!res.ok) return;
+      clearAdminEventRateLimited();
+      pendingAdminPush = null;
+      writeStoredAdmin(ADMIN_EVENT_PENDING_KEY, null);
+      if (adminRetryTimer) {
+        clearInterval(adminRetryTimer);
+        adminRetryTimer = 0;
+      }
+      adminEventCache = parseAdminEventPayload(payload, true);
+      syncAdminPanel();
+      setCatchLine("Admin event synced to all players", "treasure");
+    } catch {
+      /* keep pending */
+    }
   }
 
   function syncAdminPanel() {
@@ -1005,10 +1097,13 @@
     const status = document.getElementById("admin-status");
     if (!status || !owner) return;
     const live = adminEventLive();
+    const pending = !!pendingAdminPush;
     if (live) {
       status.textContent = `Live: ${formatMult(live.mult)}× ${
         live.kind === "luck" ? "luck" : "sell"
-      } · ${formatTreasureClock(live.until - Date.now())} left`;
+      } · ${formatTreasureClock(live.until - Date.now())} left${
+        pending ? " · syncing…" : ""
+      }`;
     } else {
       status.textContent = "No admin event · e.g. 5x sell 10m · 3x luck 15m · clear";
     }
@@ -1034,6 +1129,19 @@
     };
   }
 
+  function applyAdminLocally(payload, clear = false) {
+    if (clear) {
+      setLocalAdminOverride(null, true);
+      adminEventCache = null;
+    } else {
+      setLocalAdminOverride(payload, false);
+      adminEventCache = parseAdminEventPayload(payload, true);
+    }
+    lastAnnouncedEventKey = "";
+    syncAdminPanel();
+    renderStats();
+  }
+
   async function publishAdminEvent(
     kind,
     minutes = ADMIN_DEFAULT_MINUTES,
@@ -1044,10 +1152,6 @@
       return false;
     }
     if (adminBusy) return false;
-    if (adminEventRateLimited()) {
-      setCatchLine("Mantle rate-limited — try again later", "miss");
-      return false;
-    }
     adminBusy = true;
     const now = Date.now();
     const mins = clampAdminMinutes(minutes);
@@ -1062,7 +1166,28 @@
       note: "in-game-admin",
       by: OWNER_NAME
     };
+
+    // Always apply for you immediately — Mantle sync is best-effort
+    applyAdminLocally(payload, clear);
+    if (clear) {
+      pendingAdminPush = payload;
+      writeStoredAdmin(ADMIN_EVENT_PENDING_KEY, payload);
+      setCatchLine("Admin event cleared (syncing…)", "treasure");
+    } else {
+      pendingAdminPush = payload;
+      writeStoredAdmin(ADMIN_EVENT_PENDING_KEY, payload);
+      setCatchLine(
+        `ADMIN · ${formatMult(eventMult)}× ${
+          kind === "luck" ? "luck" : "sell"
+        } for ${mins}m (syncing to others…)`,
+        "treasure"
+      );
+      window.HubSound?.play?.("win");
+      window.HubConfetti?.burst?.();
+    }
+
     try {
+      // Ignore hub-wide Mantle cooldown — always attempt this lightweight store
       const res = await fetch(ADMIN_EVENT_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1070,30 +1195,43 @@
       });
       if (res.status === 429) {
         markAdminEventRateLimited();
-        setCatchLine("Mantle rate-limited — try again later", "miss");
-        return false;
-      }
-      if (!res.ok) throw new Error("push failed");
-      adminEventCache = clear ? null : parseAdminEventPayload(payload, true);
-      lastAnnouncedEventKey = "";
-      syncAdminPanel();
-      renderStats();
-      if (clear) {
-        setCatchLine("Admin event cleared globally", "treasure");
-      } else {
+        scheduleAdminRetry();
         setCatchLine(
-          `ADMIN · ${formatMult(eventMult)}× ${
-            kind === "luck" ? "luck" : "sell"
-          } live for ${mins}m (global)`,
+          clear
+            ? "Cleared here · Mantle busy, will sync clear soon"
+            : `Live here · ${formatMult(eventMult)}× ${
+                kind === "luck" ? "luck" : "sell"
+              } · syncing when Mantle frees up`,
           "treasure"
         );
-        window.HubSound?.play?.("win");
-        window.HubConfetti?.burst?.();
+        return true;
       }
+      if (!res.ok) throw new Error("push failed");
+      clearAdminEventRateLimited();
+      pendingAdminPush = null;
+      writeStoredAdmin(ADMIN_EVENT_PENDING_KEY, null);
+      if (adminRetryTimer) {
+        clearInterval(adminRetryTimer);
+        adminRetryTimer = 0;
+      }
+      setCatchLine(
+        clear
+          ? "Admin event cleared globally"
+          : `ADMIN · ${formatMult(eventMult)}× ${
+              kind === "luck" ? "luck" : "sell"
+            } live for ${mins}m (global)`,
+        "treasure"
+      );
       return true;
     } catch {
-      setCatchLine("Could not publish admin event", "miss");
-      return false;
+      scheduleAdminRetry();
+      setCatchLine(
+        clear
+          ? "Cleared here · will sync when online"
+          : `Live here · will sync to others when online`,
+        "treasure"
+      );
+      return true;
     } finally {
       adminBusy = false;
     }

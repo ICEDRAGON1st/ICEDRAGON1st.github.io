@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915q": [
+    "Fishing Idle: admin commands work even when Mantle is busy (apply now, sync later)"
+  ],
   "20260915p": [
     "Fishing Idle: admin events support custom mult + duration (e.g. 5x sell 10m)"
   ],
