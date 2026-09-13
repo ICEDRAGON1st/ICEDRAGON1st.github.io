@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260915s": [
+    "Fishing Idle: luck events (2×–100×) correctly boost catch odds; fish guide shows active boosts"
+  ],
   "20260915r": [
     "Fishing Idle: admin Local vs Global toggle (only you, or all players)"
   ],

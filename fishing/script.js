@@ -822,10 +822,22 @@
     return ownedGear("luck").reduce((s, g) => s + g.amount, 0);
   }
 
-  /** Gear luck + current spot rarity (shown in live stats). */
+  /**
+   * Luck used for fish weights + chest odds.
+   * Events/chests multiply gear luck; if you have no luck gear, a live luck
+   * mult still applies (floor of 1) so 2× / 100× admin events actually matter.
+   */
+  function effectiveLuckBonus() {
+    const gear = Math.max(0, luckBonus());
+    const mult = treasureLuckMult();
+    if (mult <= 1) return gear;
+    return Math.max(gear, 1) * mult;
+  }
+
+  /** Gear luck × treasure/event mult + current spot rarity (shown in live stats). */
   function totalLuckBonus() {
     const spot = currentSpot();
-    return luckBonus() * treasureLuckMult() + (Number(spot?.rarity) || 0);
+    return effectiveLuckBonus() + (Number(spot?.rarity) || 0);
   }
 
   function coolerMax() {
@@ -1553,7 +1565,7 @@
     // Base: ~0.10% creek → ~0.28% omega
     const base = 0.001 + t * 0.0018;
     // Boat luck is 35% as strong; cast luck is full
-    const luck = Math.max(0, luckBonus() * treasureLuckMult() * (forBoat ? 0.35 : 1));
+    const luck = Math.max(0, effectiveLuckBonus() * (forBoat ? 0.35 : 1));
     // Soft scale so upgrades clearly raise odds (guide updates live)
     // luck 8 → ×1.08 · luck 30 → ×1.30 · luck 100 → ×2.00 · hard cap ×4
     const luckMult = 1 + Math.min(3, luck * 0.01);
@@ -2634,7 +2646,7 @@
 
   function fishWeight(fish, spot, forBoat = false) {
     // Luck is full strength for boats and casts; boat chest luck stays weaker separately
-    const luck = luckBonus() * treasureLuckMult();
+    const luck = effectiveLuckBonus();
     let w = (RARITY_WEIGHT[fish.rarity] || 10) * rarityFactor(fish.rarity, spot.rarity);
     if (fish.rarity === "uncommon") w += luck * 0.3;
     if (fish.rarity === "rare") w += luck * 0.28;
@@ -3591,6 +3603,7 @@
     }
     renderEventBanner();
     syncAdminPanel();
+    maybeRefreshGuide();
     if (moneyChipEl) moneyChipEl.classList.toggle("hidden", !moneyOn);
     if (moneyLabelEl) {
       if (!moneyOn) moneyLabelEl.textContent = "—";
@@ -3746,6 +3759,23 @@
     const spot = currentSpot();
     if (guideSpotMult) guideSpotMult.textContent = `×${spot.valueMult}`;
     if (guideSpotName) guideSpotName.textContent = spot.name;
+    const boostsEl = document.getElementById("guide-boosts");
+    if (boostsEl) {
+      const bits = [];
+      const luckM = treasureLuckMult();
+      const moneyM = treasureMoneyMult();
+      const effLuck = effectiveLuckBonus();
+      if (luckM > 1 || eventLuckActive() || luckBoostActive()) {
+        bits.push(
+          `Luck ${formatMult(luckM)}× → effective +${formatMult(effLuck)} (odds below)`
+        );
+      }
+      if (moneyM > 1 || eventMoneyActive() || moneyBoostActive()) {
+        bits.push(`Sell ${formatMult(moneyM)}× (Here pay)`);
+      }
+      boostsEl.textContent = bits.length ? ` Active: ${bits.join(" · ")}.` : "";
+      boostsEl.classList.toggle("is-live", bits.length > 0);
+    }
     if (!guideBody) return;
     const chestP = treasureAnyChance(spot, false);
     const kindP = treasureKindChance(spot, false);
@@ -3792,7 +3822,27 @@
         .join("");
   }
 
+  let lastGuideBoostKey = "";
+
+  function maybeRefreshGuide() {
+    if (!guideOverlay || guideOverlay.classList.contains("hidden")) return;
+    const spot = currentSpot();
+    const key = [
+      spot?.id,
+      formatMult(treasureLuckMult()),
+      formatMult(treasureMoneyMult()),
+      formatMult(effectiveLuckBonus()),
+      luckBonus(),
+      eventLuckActive() ? "L" : "",
+      eventMoneyActive() ? "M" : ""
+    ].join("|");
+    if (key === lastGuideBoostKey) return;
+    lastGuideBoostKey = key;
+    renderGuide();
+  }
+
   function openGuide() {
+    lastGuideBoostKey = "";
     renderGuide();
     guideOverlay?.classList.remove("hidden");
   }
