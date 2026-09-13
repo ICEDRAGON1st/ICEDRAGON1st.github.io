@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916g": [
+    "Fishing Idle: luck/sell and variant admin events can run at the same time"
+  ],
   "20260916f": [
     "Fishing Idle: admin variant combos like shiny + gold in one event"
   ],

@@ -33,7 +33,9 @@
   const ADMIN_EVENT_TOKEN = "ice-fish-evt-9f3a";
   const ADMIN_EVENT_POLL_MS = 15_000;
   const ADMIN_EVENT_RATE_KEY = "fishing-admin-mantle-until-v1";
-  const ADMIN_EVENT_LOCAL_KEY = "fishing-admin-override-v1";
+  const ADMIN_EVENT_LOCAL_KEY = "fishing-admin-override-v1"; // legacy single-slot
+  const ADMIN_EVENT_LOCAL_BOOST_KEY = "fishing-admin-boost-v1";
+  const ADMIN_EVENT_LOCAL_VARIANT_KEY = "fishing-admin-variant-v1";
   const ADMIN_EVENT_PENDING_KEY = "fishing-admin-pending-v1";
   const ADMIN_SCOPE_KEY = "fishing-admin-scope-v1";
   const ADMIN_RATE_BACKOFF_MS = 45_000;
@@ -931,12 +933,13 @@
     return localHalfHourStart(now) + EVENT_MS;
   }
 
-  let adminEventCache = null; // { kind, until, startedAt, mult } | null
+  let adminBoostCache = null;
+  let adminVariantCache = null;
   let adminEventFetchedAt = 0;
   let adminEventPollTimer = 0;
   let adminBusy = false;
   let adminRetryTimer = 0;
-  let pendingAdminPush = null;
+  let pendingAdminPush = null; // full { boost, variant, ... } bundle
 
   function playerNameLower() {
     try {
@@ -1061,8 +1064,46 @@
       target: kind === "variant" ? target : "",
       until,
       startedAt: Number.isFinite(startedAt) ? startedAt : Date.now(),
-      mult: clampAdminMult(data.mult ?? ADMIN_DEFAULT_MULT)
+      mult: clampAdminMult(data.mult ?? ADMIN_DEFAULT_MULT),
+      scope: String(data.scope || "") || ""
     };
+  }
+
+  /** Parse boost + variant channels from new bundle or legacy single-event JSON. */
+  function parseAdminBundle(data, requireToken = false) {
+    if (!data || typeof data !== "object") return { boost: null, variant: null };
+    if (requireToken && String(data.token || "") !== ADMIN_EVENT_TOKEN) {
+      return { boost: null, variant: null };
+    }
+    const inherit = { token: data.token || (requireToken ? ADMIN_EVENT_TOKEN : undefined) };
+    let boost = null;
+    let variant = null;
+    if (data.boost && typeof data.boost === "object") {
+      boost = parseAdminEventPayload({ ...inherit, ...data.boost }, requireToken);
+      if (boost && !isBoostAdminPayload(boost)) boost = null;
+    }
+    if (data.variantEvt && typeof data.variantEvt === "object") {
+      variant = parseAdminEventPayload(
+        { ...inherit, kind: "variant", ...data.variantEvt },
+        requireToken
+      );
+      if (variant && !isVariantAdminPayload(variant)) variant = null;
+    } else if (data.variant && typeof data.variant === "object" && (data.variant.until || data.variant.kind)) {
+      variant = parseAdminEventPayload(
+        { ...inherit, kind: data.variant.kind || "variant", ...data.variant },
+        requireToken
+      );
+      if (variant && !isVariantAdminPayload(variant)) variant = null;
+    }
+    const single = parseAdminEventPayload(
+      requireToken ? data : { ...data, token: data.token },
+      requireToken
+    );
+    if (single) {
+      if (isBoostAdminPayload(single)) boost = pickBetterAdminEvent(boost, single);
+      if (isVariantAdminPayload(single)) variant = pickBetterAdminEvent(variant, single);
+    }
+    return { boost, variant };
   }
 
   function isBoostAdminPayload(e) {
@@ -1097,37 +1138,93 @@
     } catch {}
   }
 
-  function localAdminOverride() {
-    return parseAdminEventPayload(readStoredAdmin(ADMIN_EVENT_LOCAL_KEY), true);
-  }
+  let adminLocalMigrated = false;
 
-  function setLocalAdminOverride(payload, clear = false) {
-    if (clear) {
+  function migrateLegacyAdminLocal() {
+    if (adminLocalMigrated) return;
+    adminLocalMigrated = true;
+    const legacy = parseAdminEventPayload(readStoredAdmin(ADMIN_EVENT_LOCAL_KEY), true);
+    if (!legacy) {
       writeStoredAdmin(ADMIN_EVENT_LOCAL_KEY, null);
       return;
     }
-    writeStoredAdmin(ADMIN_EVENT_LOCAL_KEY, payload);
+    const stored = {
+      ...legacy,
+      token: ADMIN_EVENT_TOKEN,
+      scope: legacy.scope || "local"
+    };
+    if (isBoostAdminPayload(legacy) && !readStoredAdmin(ADMIN_EVENT_LOCAL_BOOST_KEY)) {
+      writeStoredAdmin(ADMIN_EVENT_LOCAL_BOOST_KEY, stored);
+    }
+    if (isVariantAdminPayload(legacy) && !readStoredAdmin(ADMIN_EVENT_LOCAL_VARIANT_KEY)) {
+      writeStoredAdmin(ADMIN_EVENT_LOCAL_VARIANT_KEY, stored);
+    }
+    writeStoredAdmin(ADMIN_EVENT_LOCAL_KEY, null);
   }
 
-  function mergedAdminEvent() {
-    return pickBetterAdminEvent(adminEventCache, localAdminOverride());
+  function localAdminBoost() {
+    migrateLegacyAdminLocal();
+    return parseAdminEventPayload(readStoredAdmin(ADMIN_EVENT_LOCAL_BOOST_KEY), true);
   }
 
-  function adminEventLive(now = Date.now()) {
-    const e = mergedAdminEvent();
-    if (!e) return null;
-    if (now >= e.until) return null;
-    return e;
+  function localAdminVariant() {
+    migrateLegacyAdminLocal();
+    return parseAdminEventPayload(readStoredAdmin(ADMIN_EVENT_LOCAL_VARIANT_KEY), true);
+  }
+
+  function setLocalAdminBoost(payload, clear = false) {
+    if (clear) writeStoredAdmin(ADMIN_EVENT_LOCAL_BOOST_KEY, null);
+    else writeStoredAdmin(ADMIN_EVENT_LOCAL_BOOST_KEY, payload);
+  }
+
+  function setLocalAdminVariant(payload, clear = false) {
+    if (clear) writeStoredAdmin(ADMIN_EVENT_LOCAL_VARIANT_KEY, null);
+    else writeStoredAdmin(ADMIN_EVENT_LOCAL_VARIANT_KEY, payload);
   }
 
   function adminBoostEventLive(now = Date.now()) {
-    const e = adminEventLive(now);
-    return isBoostAdminPayload(e) ? e : null;
+    const e = pickBetterAdminEvent(adminBoostCache, localAdminBoost());
+    if (!e || now >= e.until) return null;
+    return e;
   }
 
   function adminVariantEventLive(now = Date.now()) {
-    const e = adminEventLive(now);
-    return isVariantAdminPayload(e) ? e : null;
+    const e = pickBetterAdminEvent(adminVariantCache, localAdminVariant());
+    if (!e || now >= e.until) return null;
+    return e;
+  }
+
+  function serializeAdminChannel(e) {
+    if (!e) return null;
+    return {
+      kind: e.kind,
+      target: e.target || "",
+      until: e.until,
+      startedAt: e.startedAt,
+      mult: e.mult
+    };
+  }
+
+  function buildAdminSyncBundle(scope = getAdminScope()) {
+    const boost = localAdminBoost() || adminBoostCache;
+    const variant = localAdminVariant() || adminVariantCache;
+    const now = Date.now();
+    const liveBoost = boost && boost.until > now ? boost : null;
+    const liveVariant = variant && variant.until > now ? variant : null;
+    return {
+      token: ADMIN_EVENT_TOKEN,
+      scope: scope === "global" ? "global" : "local",
+      boost: serializeAdminChannel(liveBoost),
+      variant: serializeAdminChannel(liveVariant),
+      // Legacy flat fields = boost preferred, else variant (old clients)
+      kind: liveBoost?.kind || liveVariant?.kind || "luck",
+      target: liveVariant?.target || "",
+      until: Math.max(liveBoost?.until || 0, liveVariant?.until || 0),
+      startedAt: Math.max(liveBoost?.startedAt || 0, liveVariant?.startedAt || 0, now),
+      mult: liveBoost?.mult || liveVariant?.mult || ADMIN_DEFAULT_MULT,
+      note: scope === "global" ? "in-game-admin-global" : "in-game-admin-local",
+      by: OWNER_NAME
+    };
   }
 
   async function fetchAdminJson(url, { trackRate = false } = {}) {
@@ -1158,17 +1255,18 @@
       mantleData = mantle.data;
     }
 
-    const remote = pickBetterAdminEvent(
-      parseAdminEventPayload(mantleData, true),
-      parseAdminEventPayload(file.data, false)
-    );
-    // Keep a fresher local owner override (e.g. while Mantle sync is pending)
-    adminEventCache = pickBetterAdminEvent(remote, localAdminOverride());
+    const remoteA = parseAdminBundle(mantleData, true);
+    const remoteB = parseAdminBundle(file.data, false);
+    const remoteBoost = pickBetterAdminEvent(remoteA.boost, remoteB.boost);
+    const remoteVariant = pickBetterAdminEvent(remoteA.variant, remoteB.variant);
+    adminBoostCache = pickBetterAdminEvent(remoteBoost, localAdminBoost());
+    adminVariantCache = pickBetterAdminEvent(remoteVariant, localAdminVariant());
     syncAdminPanel();
     maybeRetryPendingAdminPush();
   }
 
   function startAdminEventPolling() {
+    migrateLegacyAdminLocal();
     restorePendingAdminPush();
     pollAdminEvent(true);
     if (adminEventPollTimer) clearInterval(adminEventPollTimer);
@@ -1183,8 +1281,11 @@
       return;
     }
     pendingAdminPush = pending;
-    const live = parseAdminEventPayload(pending, true);
-    if (live) setLocalAdminOverride(pending, false);
+    const bundle = parseAdminBundle(pending, true);
+    if (bundle.boost) setLocalAdminBoost({ ...bundle.boost, token: ADMIN_EVENT_TOKEN, scope: "global" });
+    if (bundle.variant) {
+      setLocalAdminVariant({ ...bundle.variant, token: ADMIN_EVENT_TOKEN, scope: "global" });
+    }
     scheduleAdminRetry();
   }
 
@@ -1221,7 +1322,9 @@
         clearInterval(adminRetryTimer);
         adminRetryTimer = 0;
       }
-      adminEventCache = parseAdminEventPayload(payload, true);
+      const bundle = parseAdminBundle(payload, true);
+      adminBoostCache = bundle.boost;
+      adminVariantCache = bundle.variant;
       syncAdminPanel();
       setCatchLine("Admin event synced to all players", "treasure");
     } catch {
@@ -1241,15 +1344,26 @@
     syncAdminScopeButtons();
     const status = document.getElementById("admin-status");
     if (!status || !owner) return;
-    const live = adminEventLive();
+    const boost = adminBoostEventLive();
+    const variant = adminVariantEventLive();
     const pending = !!pendingAdminPush;
-    const localOnly = live && String(readStoredAdmin(ADMIN_EVENT_LOCAL_KEY)?.scope || "") === "local";
-    if (live) {
-      status.textContent = `Live (${localOnly ? "local" : pending ? "global · syncing" : "global"}): ${formatMult(
-        live.mult
-      )}× ${adminEventKindLabel(live)} · ${formatTreasureClock(live.until - Date.now())} left`;
+    const bits = [];
+    if (boost) {
+      const localOnly = String(readStoredAdmin(ADMIN_EVENT_LOCAL_BOOST_KEY)?.scope || "") === "local";
+      bits.push(
+        `${formatMult(boost.mult)}× ${adminEventKindLabel(boost)} (${localOnly ? "local" : pending ? "syncing" : "global"} · ${formatTreasureClock(boost.until - Date.now())})`
+      );
+    }
+    if (variant) {
+      const localOnly = String(readStoredAdmin(ADMIN_EVENT_LOCAL_VARIANT_KEY)?.scope || "") === "local";
+      bits.push(
+        `${formatMult(variant.mult)}× ${adminEventKindLabel(variant)} (${localOnly ? "local" : pending ? "syncing" : "global"} · ${formatTreasureClock(variant.until - Date.now())})`
+      );
+    }
+    if (bits.length) {
+      status.textContent = `Live: ${bits.join(" · ")}`;
     } else {
-      status.textContent = "No admin event · pick Local or Global, then start";
+      status.textContent = "No admin event · luck/sell and variant can run together";
     }
   }
 
@@ -1300,13 +1414,28 @@
     };
   }
 
-  function applyAdminLocally(payload, clear = false) {
-    if (clear) {
-      setLocalAdminOverride(null, true);
-      adminEventCache = null;
-    } else {
-      setLocalAdminOverride(payload, false);
-      adminEventCache = parseAdminEventPayload(payload, true);
+  function applyAdminLocally(channel, payload, clear = false) {
+    if (channel === "variant") {
+      if (clear) {
+        setLocalAdminVariant(null, true);
+        adminVariantCache = null;
+      } else {
+        setLocalAdminVariant(payload, false);
+        adminVariantCache = parseAdminEventPayload(payload, true);
+      }
+    } else if (channel === "boost") {
+      if (clear) {
+        setLocalAdminBoost(null, true);
+        adminBoostCache = null;
+      } else {
+        setLocalAdminBoost(payload, false);
+        adminBoostCache = parseAdminEventPayload(payload, true);
+      }
+    } else if (channel === "all") {
+      setLocalAdminBoost(null, true);
+      setLocalAdminVariant(null, true);
+      adminBoostCache = null;
+      adminVariantCache = null;
     }
     lastAnnouncedEventKey = "";
     lastAnnouncedVariantKey = "";
@@ -1339,46 +1468,89 @@
     const now = Date.now();
     const mins = clampAdminMinutes(minutes);
     const eventMult = clampAdminMult(mult);
-    const clear = !kind || kind === "clear" || kind === "off";
+    const rawKind = String(kind || "").toLowerCase();
+    const clearAll = !rawKind || rawKind === "clear" || rawKind === "off" || rawKind === "clear-all";
+    const clearBoostOnly =
+      rawKind === "clear-boost" ||
+      rawKind === "clear-luck" ||
+      rawKind === "clear-sell" ||
+      rawKind === "clear-money";
+    const clearVariantOnly = rawKind === "clear-variant";
     const wantGlobal = scope === "global";
-    let eventKind = String(kind || "").toLowerCase();
-    let eventTarget = normalizeAdminVariantTarget(target || (isVariantTargetSpec(eventKind) ? eventKind : ""));
-    if (eventKind !== "luck" && eventKind !== "money" && eventKind !== "variant" && isVariantTargetSpec(eventKind)) {
+
+    let eventKind = rawKind;
+    let eventTarget = normalizeAdminVariantTarget(
+      target || (isVariantTargetSpec(eventKind) ? eventKind : "")
+    );
+    if (
+      eventKind !== "luck" &&
+      eventKind !== "money" &&
+      eventKind !== "variant" &&
+      isVariantTargetSpec(eventKind)
+    ) {
       eventTarget = normalizeAdminVariantTarget(eventKind);
       eventKind = "variant";
     }
     if (eventKind === "variant" && !eventTarget) eventTarget = "gold";
-    if (!clear && eventKind !== "luck" && eventKind !== "money" && eventKind !== "variant") {
+
+    const isClear = clearAll || clearBoostOnly || clearVariantOnly;
+    if (
+      !isClear &&
+      eventKind !== "luck" &&
+      eventKind !== "money" &&
+      eventKind !== "variant"
+    ) {
       adminBusy = false;
-      setCatchLine("Try: 5x shiny + gold · 3x shiny · 2x sell · clear", "miss");
+      setCatchLine("Try: 5x luck · 5x shiny + gold · clear · clear variant", "miss");
       return false;
     }
-    const payload = {
+
+    const channel =
+      clearAll || clearBoostOnly || clearVariantOnly
+        ? clearAll
+          ? "all"
+          : clearVariantOnly
+            ? "variant"
+            : "boost"
+        : eventKind === "variant"
+          ? "variant"
+          : "boost";
+
+    const channelPayload = {
       token: ADMIN_EVENT_TOKEN,
-      kind: clear ? "luck" : eventKind,
-      target: clear || eventKind !== "variant" ? "" : eventTarget,
-      variant: clear || eventKind !== "variant" ? "" : eventTarget,
-      until: clear ? 0 : now + mins * 60_000,
+      kind: eventKind === "variant" ? "variant" : eventKind,
+      target: eventKind === "variant" ? eventTarget : "",
+      until: now + mins * 60_000,
       startedAt: now,
-      mult: clear ? ADMIN_DEFAULT_MULT : eventMult,
+      mult: eventMult,
       scope: wantGlobal ? "global" : "local",
       note: wantGlobal ? "in-game-admin-global" : "in-game-admin-local",
       by: OWNER_NAME
     };
-    const label = clear
-      ? ""
+
+    if (clearAll) applyAdminLocally("all", null, true);
+    else if (clearBoostOnly) applyAdminLocally("boost", null, true);
+    else if (clearVariantOnly) applyAdminLocally("variant", null, true);
+    else applyAdminLocally(channel, channelPayload, false);
+
+    const label = isClear
+      ? clearAll
+        ? "all events"
+        : clearVariantOnly
+          ? "variant"
+          : "luck/sell"
       : eventKind === "variant"
         ? formatAdminVariantLabel(eventTarget)
         : eventKind === "luck"
           ? "luck"
           : "sell";
 
-    applyAdminLocally(payload, clear);
+    const bundle = buildAdminSyncBundle(wantGlobal ? "global" : "local");
 
     if (!wantGlobal) {
       clearPendingAdminPush();
-      if (clear) {
-        setCatchLine("Local admin event cleared", "treasure");
+      if (isClear) {
+        setCatchLine(`Local admin ${label} cleared`, "treasure");
       } else {
         setCatchLine(
           `LOCAL ADMIN · ${formatMult(eventMult)}× ${label} for ${mins}m (only you)`,
@@ -1391,10 +1563,10 @@
       return true;
     }
 
-    pendingAdminPush = payload;
-    writeStoredAdmin(ADMIN_EVENT_PENDING_KEY, payload);
-    if (clear) {
-      setCatchLine("Clearing global admin event…", "treasure");
+    pendingAdminPush = bundle;
+    writeStoredAdmin(ADMIN_EVENT_PENDING_KEY, bundle);
+    if (isClear) {
+      setCatchLine(`Clearing global admin ${label}…`, "treasure");
     } else {
       setCatchLine(
         `GLOBAL ADMIN · ${formatMult(eventMult)}× ${label} for ${mins}m (syncing…)`,
@@ -1408,14 +1580,14 @@
       const res = await fetch(ADMIN_EVENT_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(bundle)
       });
       if (res.status === 429) {
         markAdminEventRateLimited();
         scheduleAdminRetry();
         setCatchLine(
-          clear
-            ? "Cleared here · Mantle busy, will sync clear soon"
+          isClear
+            ? `Cleared here · Mantle busy, will sync ${label} clear soon`
             : `Live here · ${formatMult(eventMult)}× ${label} · syncing global when Mantle frees up`,
           "treasure"
         );
@@ -1425,8 +1597,8 @@
       clearAdminEventRateLimited();
       clearPendingAdminPush();
       setCatchLine(
-        clear
-          ? "Global admin event cleared"
+        isClear
+          ? `Global admin ${label} cleared`
           : `GLOBAL ADMIN · ${formatMult(eventMult)}× ${label} live for ${mins}m (all players)`,
         "treasure"
       );
@@ -1434,8 +1606,8 @@
     } catch {
       scheduleAdminRetry();
       setCatchLine(
-        clear
-          ? "Cleared here · will sync global clear when online"
+        isClear
+          ? `Cleared here · will sync ${label} clear when online`
           : "Live here · will sync to all players when online",
         "treasure"
       );
@@ -1466,6 +1638,12 @@
     }
 
     if (/^(clear|off|stop|end)\b/.test(text)) {
+      if (/\b(variant|silver|gold|diamond|rainbow|shiny|any)\b/.test(text)) {
+        return { kind: "clear-variant", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
+      }
+      if (/\b(luck|sell|money|coin|boost)\b/.test(text)) {
+        return { kind: "clear-boost", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
+      }
       return { kind: "clear", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
     }
 
@@ -1522,7 +1700,7 @@
   async function runAdminCommand(raw) {
     const parsed = parseAdminCommand(raw);
     if (!parsed) {
-      setCatchLine("Try: 5x shiny + gold · 3x shiny · 2x sell · clear", "miss");
+      setCatchLine("Try: 5x luck · 5x shiny + gold · clear · clear variant", "miss");
       return;
     }
     if (parsed.scope === "local" || parsed.scope === "global") {
@@ -1703,7 +1881,6 @@
   function renderEventBanner() {
     const live = eventIsLive();
     const kind = currentEventKind();
-    const left = eventMsLeft();
     const admin = adminBoostEventLive();
     const variant = adminVariantEventLive();
     const nextStart = nextHalfHourStart();
@@ -1712,15 +1889,12 @@
     const previewKind = live ? kind : nextKind;
     const multLabel = formatMult(live ? liveEventMult() : 2);
     const variantMult = variant ? formatMult(variant.mult) : "";
-    const variantLeft = variant
-      ? formatTreasureClock(Math.max(0, variant.until - Date.now()))
-      : "";
 
     if (eventBannerEl) {
       eventBannerEl.classList.toggle("event-idle", !live && !variant);
       eventBannerEl.classList.toggle("is-live", live || !!variant);
-      eventBannerEl.classList.toggle("event-money", !variant && previewKind === "money");
-      eventBannerEl.classList.toggle("event-luck", !variant && previewKind === "luck");
+      eventBannerEl.classList.toggle("event-money", live && previewKind === "money");
+      eventBannerEl.classList.toggle("event-luck", live && previewKind === "luck");
       eventBannerEl.classList.toggle("event-variant", !!variant);
     }
     if (eventBannerTagEl) {
@@ -1728,30 +1902,32 @@
         variant || admin ? "ADMIN LIVE" : live ? "LIVE NOW" : "Next event";
     }
     if (eventBannerTitleEl) {
-      if (variant) {
-        eventBannerTitleEl.textContent = `${variantMult}× ${formatAdminVariantLabel(
-          variant.target
-        )} · Admin`;
-      } else if (live && kind === "luck") {
-        eventBannerTitleEl.textContent = admin
-          ? `${multLabel}× Luck · Admin`
-          : "2× Luck Event";
+      const parts = [];
+      if (live && kind === "luck") {
+        parts.push(admin ? `${multLabel}× Luck` : "2× Luck");
       } else if (live && kind === "money") {
-        eventBannerTitleEl.textContent = admin
-          ? `${multLabel}× Sell · Admin`
-          : "2× Sell Event";
+        parts.push(admin ? `${multLabel}× Sell` : "2× Sell");
+      }
+      if (variant) {
+        parts.push(`${variantMult}× ${formatAdminVariantLabel(variant.target)}`);
+      }
+      if (parts.length) {
+        eventBannerTitleEl.textContent = `${parts.join(" + ")}${
+          admin || variant ? " · Admin" : " Event"
+        }`;
       } else {
         eventBannerTitleEl.textContent =
           nextKind === "luck" ? "Upcoming: 2× Luck" : "Upcoming: 2× Sell";
       }
     }
     if (eventBannerTimeEl) {
-      if (variant) {
-        eventBannerTimeEl.textContent = `${variantLeft} left`;
+      const times = [];
+      if (live) times.push(eventMsLeft());
+      if (variant) times.push(Math.max(0, variant.until - Date.now()));
+      if (times.length) {
+        eventBannerTimeEl.textContent = `${formatTreasureClock(Math.min(...times))} left`;
       } else {
-        eventBannerTimeEl.textContent = live
-          ? `${formatTreasureClock(left)} left`
-          : `in ${formatTreasureClock(untilNext)}`;
+        eventBannerTimeEl.textContent = `in ${formatTreasureClock(untilNext)}`;
       }
     }
   }
@@ -4050,8 +4226,8 @@
     if (eventChipEl) {
       const variant = adminVariantEventLive();
       const previewKind = eventLive ? eventKind : eventKindForStart(nextHalfHourStart());
-      eventChipEl.classList.toggle("event-money", !variant && previewKind === "money");
-      eventChipEl.classList.toggle("event-luck", !variant && previewKind === "luck");
+      eventChipEl.classList.toggle("event-money", eventLive && previewKind === "money");
+      eventChipEl.classList.toggle("event-luck", eventLive && previewKind === "luck");
       eventChipEl.classList.toggle("event-variant", !!variant);
       eventChipEl.classList.toggle("event-idle", !eventLive && !variant);
     }
@@ -4059,14 +4235,25 @@
       const variant = adminVariantEventLive();
       const admin = adminBoostEventLive();
       const multLabel = formatMult(liveEventMult());
-      if (variant) {
-        eventLabelEl.textContent = `Admin ${formatMult(variant.mult)}× ${formatAdminVariantLabel(
-          variant.target
-        )} · ${formatTreasureClock(Math.max(0, variant.until - Date.now()))} left`;
-      } else if (eventLive && eventKind === "luck") {
-        eventLabelEl.textContent = `${admin ? "Admin " : ""}${multLabel}× luck · ${formatTreasureClock(eventLeft)} left`;
+      const parts = [];
+      if (eventLive && eventKind === "luck") {
+        parts.push(
+          `${admin ? "Admin " : ""}${multLabel}× luck · ${formatTreasureClock(eventLeft)}`
+        );
       } else if (eventLive && eventKind === "money") {
-        eventLabelEl.textContent = `${admin ? "Admin " : ""}${multLabel}× sell · ${formatTreasureClock(eventLeft)} left`;
+        parts.push(
+          `${admin ? "Admin " : ""}${multLabel}× sell · ${formatTreasureClock(eventLeft)}`
+        );
+      }
+      if (variant) {
+        parts.push(
+          `Admin ${formatMult(variant.mult)}× ${formatAdminVariantLabel(
+            variant.target
+          )} · ${formatTreasureClock(Math.max(0, variant.until - Date.now()))}`
+        );
+      }
+      if (parts.length) {
+        eventLabelEl.textContent = `${parts.join(" · ")} left`;
       } else {
         const nextStart = nextHalfHourStart();
         const nextKind = eventKindForStart(nextStart);
