@@ -1056,7 +1056,7 @@ const HUB_GAMES = [
   { id: "fishing", name: "Fishing Idle", path: "fishing/index.html" },
   { id: "cows", name: "Cow Merge", path: "cows/index.html" },
   { id: "dino", name: "Runosaur", path: "runosaur/index.html" },
-  { id: "ramp", name: "Ramp Rush", path: "ramp-rush/index.html" },
+  { id: "ramp", name: "Ramp Rush", path: "ramp-rush/run.html" },
   { id: "mine", name: "Mine Depth", path: "mine/index.html" },
   { id: "blockblast", name: "Block Sweep", path: "block-sweep/index.html" },
   { id: "lemmings", name: "Dudes", path: "dudes/index.html" }
