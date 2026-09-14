@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917o": [
+    "Ramp Rush: mottled rock walls with grain, cracks, and weathered strata"
+  ],
   "20260917n": [
     "Ramp Rush: more realistic asphalt road and muted canyon scenery"
   ],
