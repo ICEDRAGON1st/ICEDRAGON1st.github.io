@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917e": [
+    "Ramp Rush: real 3D perspective canyon cliffs beside the track"
+  ],
   "20260917d": [
     "Ramp Rush: real sandstone canyon walls instead of soft hills"
   ],
