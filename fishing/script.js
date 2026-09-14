@@ -726,6 +726,8 @@
   const treasureStashEl = document.getElementById("treasure-stash");
   const moneyCountEl = document.getElementById("money-chest-count");
   const luckCountEl = document.getElementById("luck-chest-count");
+  const moneyChestTimerEl = document.getElementById("money-chest-timer");
+  const luckChestTimerEl = document.getElementById("luck-chest-timer");
   const moneyUseBtn = document.getElementById("money-chest-use-btn");
   const luckUseBtn = document.getElementById("luck-chest-use-btn");
   const multiLabelEl = document.getElementById("multi-label");
@@ -4599,7 +4601,7 @@
       if (!moneyOn) moneyLabelEl.textContent = "—";
       else {
         const bits = [`${formatMult(treasureMoneyMult())}×`];
-        if (moneyBoostActive()) bits.push(`chest ${formatTreasureClock(moneyLeft)}`);
+        if (moneyBoostActive()) bits.push(`chest ${formatTreasureClock(moneyLeft)} left`);
         if (eventMoneyActive()) bits.push(`event ${formatTreasureClock(eventLeft)} left`);
         moneyLabelEl.textContent = bits.join(" · ");
       }
@@ -4609,7 +4611,7 @@
       if (!luckOn) luckBoostLabelEl.textContent = "—";
       else {
         const bits = [`${formatMult(treasureLuckMult())}×`];
-        if (luckBoostActive()) bits.push(`chest ${formatTreasureClock(luckLeft)}`);
+        if (luckBoostActive()) bits.push(`chest ${formatTreasureClock(luckLeft)} left`);
         if (eventLuckActive()) bits.push(`event ${formatTreasureClock(eventLeft)} left`);
         luckBoostLabelEl.textContent = bits.join(" · ");
       }
@@ -4627,19 +4629,33 @@
   function renderTreasureStash() {
     const money = Math.max(0, Math.floor(Number(state.moneyChestCount) || 0));
     const luck = Math.max(0, Math.floor(Number(state.luckChestCount) || 0));
+    const moneyLeft = moneyMsLeft();
+    const luckLeft = luckMsLeft();
+    const moneyOn = moneyBoostActive();
+    const luckOn = luckBoostActive();
     if (moneyCountEl) moneyCountEl.textContent = String(money);
     if (luckCountEl) luckCountEl.textContent = String(luck);
+    if (moneyChestTimerEl) {
+      moneyChestTimerEl.classList.toggle("hidden", !moneyOn);
+      moneyChestTimerEl.textContent = moneyOn ? `${formatTreasureClock(moneyLeft)} left` : "";
+    }
+    if (luckChestTimerEl) {
+      luckChestTimerEl.classList.toggle("hidden", !luckOn);
+      luckChestTimerEl.textContent = luckOn ? `${formatTreasureClock(luckLeft)} left` : "";
+    }
+    moneyUseBtn?.closest(".treasure-stash-row")?.classList.toggle("is-boosted", moneyOn);
+    luckUseBtn?.closest(".treasure-stash-row")?.classList.toggle("is-boosted", luckOn);
     if (moneyUseBtn) {
       moneyUseBtn.disabled = money <= 0;
-      moneyUseBtn.textContent = moneyBoostActive() ? "Extend" : "Use";
+      moneyUseBtn.textContent = moneyOn ? "Extend" : "Use";
     }
     if (luckUseBtn) {
       luckUseBtn.disabled = luck <= 0;
-      luckUseBtn.textContent = luckBoostActive() ? "Extend" : "Use";
+      luckUseBtn.textContent = luckOn ? "Extend" : "Use";
     }
     if (treasureStashEl) {
-      treasureStashEl.classList.toggle("is-empty", money <= 0 && luck <= 0);
-      treasureStashEl.classList.toggle("is-active", moneyBoostActive() || luckBoostActive());
+      treasureStashEl.classList.toggle("is-empty", money <= 0 && luck <= 0 && !moneyOn && !luckOn);
+      treasureStashEl.classList.toggle("is-active", moneyOn || luckOn);
     }
   }
 

@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260916r">
+  <link rel="stylesheet" href="styles.css?v=20260917au">
 </head>
 <body data-spot="creek">
   <header class="top-bar">
@@ -165,6 +165,7 @@
           <span class="treasure-stash-meta">
             <strong>Coin Chest</strong>
             <span class="treasure-stash-count"><span id="money-chest-count">0</span> stored · 2× sell</span>
+            <span id="money-chest-timer" class="treasure-stash-timer hidden" aria-live="polite"></span>
           </span>
           <button id="money-chest-use-btn" type="button" class="btn btn-ghost treasure-use-btn" disabled>Use</button>
         </div>
@@ -173,6 +174,7 @@
           <span class="treasure-stash-meta">
             <strong>Luck Chest</strong>
             <span class="treasure-stash-count"><span id="luck-chest-count">0</span> stored · 1.5× luck</span>
+            <span id="luck-chest-timer" class="treasure-stash-timer hidden" aria-live="polite"></span>
           </span>
           <button id="luck-chest-use-btn" type="button" class="btn btn-ghost treasure-use-btn" disabled>Use</button>
         </div>
@@ -393,6 +395,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260916r"></script>
-  <script src="script.js?v=20260916r"></script>
+  <script src="script.js?v=20260917au"></script>
 </body>
 </html>

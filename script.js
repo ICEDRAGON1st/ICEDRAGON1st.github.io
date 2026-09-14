@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917au": [
+    "Fishing Idle: show countdown timers while chests are active"
+  ],
   "20260917at": [
     "Guac-A-Mole: avocados stay up about 0.5 seconds"
   ],
