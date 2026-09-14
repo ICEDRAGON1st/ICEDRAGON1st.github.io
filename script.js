@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917ay": [
+    "Cafe Queue: guest patience timers run faster"
+  ],
   "20260917ax": [
     "Bubble Pop Relay: bubbles spawn faster"
   ],
