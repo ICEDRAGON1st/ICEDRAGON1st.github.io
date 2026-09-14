@@ -74,6 +74,7 @@
     cows: "Cow Merge",
     dino: "Runosaur",
     ramp: "Ramp Rush",
+    guac: "Guac-A-Mole",
     mine: "Mine Depth",
     blockblast: "Block Sweep",
     lemmings: "Dudes"

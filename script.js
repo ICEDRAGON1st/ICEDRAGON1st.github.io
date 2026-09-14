@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917ao": [
+    "New game: Guac-A-Mole — smash ripe avocados, skip the rotten ones"
+  ],
   "20260917an": [
     "Ramp Rush: cleaner public notes and internal code names"
   ],
@@ -1156,6 +1159,7 @@ const HUB_GAMES = [
   { id: "cows", name: "Cow Merge", path: "cows/index.html" },
   { id: "dino", name: "Runosaur", path: "runosaur/index.html" },
   { id: "ramp", name: "Ramp Rush", path: "ramp-rush/run.html" },
+  { id: "guac", name: "Guac-A-Mole", path: "guac-a-mole/index.html" },
   { id: "mine", name: "Mine Depth", path: "mine/index.html" },
   { id: "blockblast", name: "Block Sweep", path: "block-sweep/index.html" },
   { id: "lemmings", name: "Dudes", path: "dudes/index.html" }
@@ -2140,6 +2144,10 @@ function getHubScore(gameId) {
     }
     case "ramp": {
       const score = readNumberKey("ramp-rush-high-score");
+      return { label: score ? `Best ${score}` : "No score yet", sort: score };
+    }
+    case "guac": {
+      const score = readNumberKey("guac-a-mole-high-score");
       return { label: score ? `Best ${score}` : "No score yet", sort: score };
     }
     case "blockblast": {
