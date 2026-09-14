@@ -19,13 +19,14 @@
   const W = canvas.width;
   const H = canvas.height;
   const FOV = 280;
-  const CAM_HEIGHT = 2.55;
-  const HORIZON = H * 0.16;
+  const CAM_HEIGHT = 2.35;
+  const HORIZON = H * 0.11;
   const SEGMENT_LEN = 4.5;
   const LOOK_AHEAD = 30;
   /** How steep the hill drops ahead of the ball (world Y falls as Z rises). */
-  const HILL_SLOPE = 0.55;
-  const GRAVITY_ACCEL = 3.8;
+  const HILL_SLOPE = 1.25;
+  const GRAVITY_ACCEL = 4.4;
+  const PLAYER_Z = 2.2;
 
   let best = Math.max(0, Math.floor(Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0));
   let running = false;
@@ -80,8 +81,8 @@
   }
 
   function groundY(z) {
-    // Track drops away downhill as you race forward (Y-up).
-    return -HILL_SLOPE * (z - worldZ);
+    // Drop relative to the ball so a steeper hill doesn't bury the player.
+    return -HILL_SLOPE * (z - (worldZ + PLAYER_Z));
   }
 
   function project(x, y, z) {
@@ -91,11 +92,12 @@
     const worldY = groundY(z) + y;
     const camY = CAM_HEIGHT;
     const scale = FOV / relZ;
-    // Canvas Y grows downward: ground below the camera lands under the horizon,
-    // and the slope makes distant track fall farther down the frame.
+    // Extra lean so the far ramp plunges harder down the frame.
+    const pitch = (z - (worldZ + PLAYER_Z)) * 3.2;
+    // Canvas Y grows downward: distant downhill track falls toward the bottom.
     return {
       x: W * 0.5 + x * scale,
-      y: HORIZON + (camY - worldY) * scale,
+      y: HORIZON + (camY - worldY) * scale + pitch,
       scale,
       z: relZ
     };
@@ -154,7 +156,7 @@
   }
 
   function currentSegment() {
-    const z = worldZ + 2.2;
+    const z = worldZ + PLAYER_Z;
     let bestSeg = segments[0];
     let bestDist = Infinity;
     for (const seg of segments) {
@@ -228,7 +230,7 @@
     // Gravity pulls you down the hill — speed builds like a real descent.
     const targetSpeed = Math.min(48, 12 + score * 0.055);
     speed += (targetSpeed - speed) * Math.min(1, GRAVITY_ACCEL * dt);
-    speed += HILL_SLOPE * 8 * dt;
+    speed += HILL_SLOPE * 10 * dt;
     if (speed > 48) speed = 48;
     worldZ += speed * dt;
     score += speed * dt * 0.55;
@@ -456,10 +458,10 @@
   }
 
   function drawBall() {
-    const p = project(ballX, 0.45, worldZ + 2.2);
+    const p = project(ballX, 0.45, worldZ + PLAYER_Z);
     if (!p) return;
     const r = Math.max(4, p.scale * 0.38);
-    const shadow = project(ballX, 0.02, worldZ + 2.2);
+    const shadow = project(ballX, 0.02, worldZ + PLAYER_Z);
     if (shadow) {
       ctx.beginPath();
       ctx.ellipse(shadow.x, shadow.y, r * 1.1, r * 0.35, 0, 0, Math.PI * 2);
