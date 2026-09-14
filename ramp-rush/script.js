@@ -18,16 +18,14 @@
   const HIGH_SCORE_KEY = "ramp-rush-high-score";
   const W = canvas.width;
   const H = canvas.height;
-  const FOV = 310;
-  const CAM_HEIGHT = 3.35;
-  const CAM_BACK = 5.2;
-  const HORIZON = H * 0.12;
+  const FOV = 300;
+  const CAM_HEIGHT = 2.6;
+  const CAM_BACK = 5.7;
+  const HORIZON = H * 0.2;
   const SEGMENT_LEN = 4.5;
   const LOOK_AHEAD = 30;
-  /** World Y drop per unit of Z. */
-  const HILL_SLOPE = 0.9;
-  /** Look down into the hill — higher cam + pitch sells the descent. */
-  const LOOK_DOWN = 0.2;
+  /** World Y drop per unit of Z — steep enough to read without breaking projection. */
+  const HILL_SLOPE = 0.78;
   const GRAVITY_ACCEL = 4.4;
   const PLAYER_Z = 2.2;
   const AIR_GRAVITY = 26;
@@ -96,27 +94,21 @@
 
   function camPose() {
     const camZ = worldZ + PLAYER_Z - CAM_BACK;
-    return { z: camZ, y: groundY(camZ) * 0.8 + CAM_HEIGHT };
+    return { z: camZ, y: groundY(camZ) + CAM_HEIGHT };
   }
 
   function project(x, y, z) {
     const cam = camPose();
-    let relZ = z - cam.z;
-    if (relZ <= 0.55) return null;
-    // y = height above the local track. Pitch the camera down into the hill.
+    const relZ = z - cam.z;
+    if (relZ <= 0.7) return null;
     const worldY = groundY(z) + y;
-    let relY = worldY - cam.y;
-    const cos = Math.cos(LOOK_DOWN);
-    const sin = Math.sin(LOOK_DOWN);
-    const ry = relY * cos - relZ * sin;
-    const rz = relY * sin + relZ * cos;
-    if (rz <= 0.55) return null;
-    const scale = FOV / rz;
+    const relY = worldY - cam.y;
+    const scale = FOV / relZ;
     return {
       x: W * 0.5 + x * scale,
-      y: HORIZON - ry * scale,
+      y: HORIZON - relY * scale,
       scale,
-      z: rz
+      z: relZ
     };
   }
 
@@ -486,11 +478,11 @@
 
   function cliffHeights(side, z) {
     const t = (z - worldZ) * 0.14 + side * 2.1;
-    const topIn = 4.6 + Math.abs(Math.sin(t * 0.8)) * 2.1 + Math.sin(t * 2.2) * 0.45;
-    const topOut = topIn + 2.2 + Math.abs(Math.sin(t * 1.15)) * 1.0;
+    const topIn = 4.2 + Math.abs(Math.sin(t * 0.8)) * 1.8 + Math.sin(t * 2.2) * 0.4;
+    const topOut = topIn + 1.8 + Math.abs(Math.sin(t * 1.15)) * 0.8;
     const xIn = side * (TRACK_HALF + 0.05);
-    const xOut = side * (22 + Math.sin(t * 0.65) * 0.7);
-    return { topIn, topOut, xIn, xOut, bot: -7.5 };
+    const xOut = side * (13.5 + Math.sin(t * 0.65) * 0.55);
+    return { topIn, topOut, xIn, xOut, bot: -5.5 };
   }
 
   function fillRibbon(tops, bots, fill) {
@@ -505,36 +497,35 @@
   }
 
   function drawDescentScenery() {
-    const nearZ = worldZ + 1.8;
-    const farZ = worldZ + 110;
-    const step = 2.0;
+    const nearZ = worldZ + 2.2;
+    const farZ = worldZ + 100;
+    const step = 2.2;
 
-    // Dark abyss under the corridor.
-    const floorTops = [];
-    const floorBots = [];
-    for (let z = nearZ; z <= farZ; z += step * 2) {
-      const pL = project(-TRACK_HALF - 0.4, -6.5, z);
-      const pR = project(TRACK_HALF + 0.4, -6.5, z);
-      if (pL && pR) {
-        floorTops.push(pL);
-        floorBots.push(pR);
-      }
+    // Abyss under the track (far → near), drawn as depth strips so it stays under the road.
+    for (let z = farZ; z >= nearZ; z -= step * 2) {
+      const z1 = z + step * 2;
+      const fade = Math.max(0.35, 1 - (z - worldZ) * 0.009);
+      rockQuad(
+        -TRACK_HALF - 0.3, -5.2, z,
+        TRACK_HALF + 0.3, -5.2, z,
+        TRACK_HALF + 0.3, -5.2, z1,
+        -TRACK_HALF - 0.3, -5.2, z1,
+        "rgba(0,0,0," + (0.75 * fade) + ")",
+        null
+      );
     }
-    fillRibbon(floorTops, floorBots, "rgba(0,0,0,0.88)");
 
     for (const side of [-1, 1]) {
       const topsIn = [];
       const botsIn = [];
       const topsOut = [];
       const botsOut = [];
-      const topsMid = [];
       for (let z = nearZ; z <= farZ; z += step) {
         const h = cliffHeights(side, z);
         const pTi = project(h.xIn, h.topIn, z);
         const pBi = project(h.xIn, h.bot, z);
         const pTo = project(h.xOut, h.topOut, z);
         const pBo = project(h.xOut, h.bot, z);
-        const pTm = project((h.xIn + h.xOut) * 0.5, h.topIn + 0.35, z);
         if (pTi && pBi) {
           topsIn.push(pTi);
           botsIn.push(pBi);
@@ -543,14 +534,12 @@
           topsOut.push(pTo);
           botsOut.push(pBo);
         }
-        if (pTm) topsMid.push(pTm);
       }
+      if (topsIn.length < 3) continue;
 
       const lit = side < 0;
-      // Outer bulk first (opaque — no sky through the wall).
       fillRibbon(topsOut, botsOut, lit ? "#4a2412" : "#3a1c10");
-      // Cap / thickness between outer rim and inner rim.
-      if (topsIn.length > 1 && topsOut.length > 1) {
+      if (topsOut.length > 1) {
         ctx.beginPath();
         ctx.moveTo(topsIn[0].x, topsIn[0].y);
         for (let i = 1; i < topsIn.length; i += 1) ctx.lineTo(topsIn[i].x, topsIn[i].y);
@@ -559,41 +548,17 @@
         ctx.fillStyle = lit ? "#8a4a28" : "#6a3820";
         ctx.fill();
       }
-      // Inner face sealed to the track edge.
       fillRibbon(topsIn, botsIn, lit ? "#b86434" : "#8f4a28");
 
-      // Darker base band so walls feel thick, not paper.
-      if (topsIn.length > 1 && botsIn.length > 1) {
-        ctx.beginPath();
-        let started = false;
-        for (let i = 0; i < topsIn.length; i += 1) {
-          const u = 0.62;
-          const x = topsIn[i].x * (1 - u) + botsIn[i].x * u;
-          const y = topsIn[i].y * (1 - u) + botsIn[i].y * u;
-          if (!started) {
-            ctx.moveTo(x, y);
-            started = true;
-          } else ctx.lineTo(x, y);
-        }
-        for (let i = botsIn.length - 1; i >= 0; i -= 1) ctx.lineTo(botsIn[i].x, botsIn[i].y);
-        ctx.closePath();
-        ctx.fillStyle = lit ? "rgba(40, 16, 8, 0.55)" : "rgba(28, 12, 6, 0.6)";
-        ctx.fill();
-      }
+      ctx.beginPath();
+      ctx.moveTo(topsIn[0].x, topsIn[0].y);
+      for (let i = 1; i < topsIn.length; i += 1) ctx.lineTo(topsIn[i].x, topsIn[i].y);
+      ctx.strokeStyle = lit ? "rgba(255, 200, 130, 0.4)" : "rgba(255, 180, 110, 0.25)";
+      ctx.lineWidth = 2.2;
+      ctx.stroke();
 
-      // Lit rim.
-      if (topsIn.length > 1) {
-        ctx.beginPath();
-        ctx.moveTo(topsIn[0].x, topsIn[0].y);
-        for (let i = 1; i < topsIn.length; i += 1) ctx.lineTo(topsIn[i].x, topsIn[i].y);
-        ctx.strokeStyle = lit ? "rgba(255, 200, 130, 0.45)" : "rgba(255, 180, 110, 0.28)";
-        ctx.lineWidth = 2.4;
-        ctx.stroke();
-      }
-
-      // Soft strata (no wireframe look).
-      for (let band = 0; band < 5; band += 1) {
-        const u = 0.18 + band * 0.14;
+      for (let band = 0; band < 4; band += 1) {
+        const u = 0.2 + band * 0.16;
         ctx.beginPath();
         let started = false;
         for (let i = 0; i < topsIn.length; i += 1) {
@@ -604,8 +569,8 @@
             started = true;
           } else ctx.lineTo(x, y);
         }
-        ctx.strokeStyle = "rgba(255, 190, 120," + (0.07 + (band % 2) * 0.04) + ")";
-        ctx.lineWidth = 1.3;
+        ctx.strokeStyle = "rgba(255, 190, 120," + (0.08 + (band % 2) * 0.04) + ")";
+        ctx.lineWidth = 1.2;
         ctx.stroke();
       }
     }

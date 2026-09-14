@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917l": [
+    "Ramp Rush: fix broken camera pitch so track and canyon render again"
+  ],
   "20260917k": [
     "Ramp Rush: opaque sealed canyon walls + downhill camera that keeps the track readable"
   ],
