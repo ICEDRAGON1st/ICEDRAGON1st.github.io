@@ -18,16 +18,16 @@
   const HIGH_SCORE_KEY = "ramp-rush-high-score";
   const W = canvas.width;
   const H = canvas.height;
-  const FOV = 300;
-  const CAM_HEIGHT = 2.75;
-  const CAM_BACK = 5.6;
-  const HORIZON = H * 0.18;
+  const FOV = 310;
+  const CAM_HEIGHT = 3.35;
+  const CAM_BACK = 5.2;
+  const HORIZON = H * 0.12;
   const SEGMENT_LEN = 4.5;
   const LOOK_AHEAD = 30;
   /** World Y drop per unit of Z. */
-  const HILL_SLOPE = 0.82;
-  /** Mild look-down so the drop reads without hiding the track. */
-  const LOOK_DOWN = 0.12;
+  const HILL_SLOPE = 0.9;
+  /** Look down into the hill — higher cam + pitch sells the descent. */
+  const LOOK_DOWN = 0.2;
   const GRAVITY_ACCEL = 4.4;
   const PLAYER_Z = 2.2;
   const AIR_GRAVITY = 26;
@@ -96,8 +96,7 @@
 
   function camPose() {
     const camZ = worldZ + PLAYER_Z - CAM_BACK;
-    // Slight lag behind the slope so far track sits lower on screen.
-    return { z: camZ, y: groundY(camZ) * 0.88 + CAM_HEIGHT };
+    return { z: camZ, y: groundY(camZ) * 0.8 + CAM_HEIGHT };
   }
 
   function project(x, y, z) {
@@ -490,7 +489,7 @@
     const topIn = 4.6 + Math.abs(Math.sin(t * 0.8)) * 2.1 + Math.sin(t * 2.2) * 0.45;
     const topOut = topIn + 2.2 + Math.abs(Math.sin(t * 1.15)) * 1.0;
     const xIn = side * (TRACK_HALF + 0.05);
-    const xOut = side * (16.5 + Math.sin(t * 0.65) * 0.7);
+    const xOut = side * (22 + Math.sin(t * 0.65) * 0.7);
     return { topIn, topOut, xIn, xOut, bot: -7.5 };
   }
 
@@ -563,6 +562,25 @@
       // Inner face sealed to the track edge.
       fillRibbon(topsIn, botsIn, lit ? "#b86434" : "#8f4a28");
 
+      // Darker base band so walls feel thick, not paper.
+      if (topsIn.length > 1 && botsIn.length > 1) {
+        ctx.beginPath();
+        let started = false;
+        for (let i = 0; i < topsIn.length; i += 1) {
+          const u = 0.62;
+          const x = topsIn[i].x * (1 - u) + botsIn[i].x * u;
+          const y = topsIn[i].y * (1 - u) + botsIn[i].y * u;
+          if (!started) {
+            ctx.moveTo(x, y);
+            started = true;
+          } else ctx.lineTo(x, y);
+        }
+        for (let i = botsIn.length - 1; i >= 0; i -= 1) ctx.lineTo(botsIn[i].x, botsIn[i].y);
+        ctx.closePath();
+        ctx.fillStyle = lit ? "rgba(40, 16, 8, 0.55)" : "rgba(28, 12, 6, 0.6)";
+        ctx.fill();
+      }
+
       // Lit rim.
       if (topsIn.length > 1) {
         ctx.beginPath();
@@ -589,23 +607,6 @@
         ctx.strokeStyle = "rgba(255, 190, 120," + (0.07 + (band % 2) * 0.04) + ")";
         ctx.lineWidth = 1.3;
         ctx.stroke();
-      }
-
-      // Side plugs so sky never peeks past near walls.
-      if (topsOut.length > 1) {
-        const edgeX = side < 0 ? 0 : W;
-        ctx.beginPath();
-        ctx.moveTo(edgeX, 0);
-        for (let i = 0; i < topsOut.length; i += 1) {
-          const sx = side < 0 ? Math.min(topsOut[i].x, W * 0.34) : Math.max(topsOut[i].x, W * 0.66);
-          ctx.lineTo(sx, topsOut[i].y);
-        }
-        const last = topsOut[topsOut.length - 1];
-        ctx.lineTo(side < 0 ? Math.min(last.x, W * 0.34) : Math.max(last.x, W * 0.66), H);
-        ctx.lineTo(edgeX, H);
-        ctx.closePath();
-        ctx.fillStyle = lit ? "#5a2c16" : "#422010";
-        ctx.fill();
       }
     }
   }
