@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917ab": [
+    "Ramp Rush: slightly wider road"
+  ],
   "20260917aa": [
     "Ramp Rush: realistic full-canvas space backdrop with Milky Way and planets"
   ],
