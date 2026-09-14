@@ -73,6 +73,7 @@
     fishing: "Fishing Idle",
     cows: "Cow Merge",
     dino: "Runosaur",
+    ramp: "Ramp Rush",
     mine: "Mine Depth",
     blockblast: "Block Sweep",
     lemmings: "Dudes"

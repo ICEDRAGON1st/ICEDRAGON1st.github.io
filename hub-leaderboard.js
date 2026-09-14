@@ -38,6 +38,7 @@
     fishing: { label: "Fishing Idle", lowerBetter: false, unit: "catch" },
     cows: { label: "Cow Merge", lowerBetter: false, unit: "cow" },
     dino: { label: "Runosaur", lowerBetter: false, unit: "score" },
+    ramp: { label: "Ramp Rush", lowerBetter: false, unit: "score" },
     blockblast: { label: "Block Sweep", lowerBetter: false, unit: "score" },
     lemmings: { label: "Dudes", lowerBetter: false, unit: "score" },
     mine: { label: "Mine Depth", lowerBetter: false, unit: "depth" },

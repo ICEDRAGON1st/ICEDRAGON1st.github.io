@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916s": [
+    "New game: Ramp Rush — original downhill ball runner (not affiliated with Slope)"
+  ],
   "20260916r": [
     "Fishing Idle: ICE_DRAGON best catch set to Shiny Primefin (still updates if you beat it)"
   ],
@@ -1011,6 +1014,7 @@ const HUB_GAMES = [
   { id: "fishing", name: "Fishing Idle", path: "fishing/index.html" },
   { id: "cows", name: "Cow Merge", path: "cows/index.html" },
   { id: "dino", name: "Runosaur", path: "runosaur/index.html" },
+  { id: "ramp", name: "Ramp Rush", path: "ramp-rush/index.html" },
   { id: "mine", name: "Mine Depth", path: "mine/index.html" },
   { id: "blockblast", name: "Block Sweep", path: "block-sweep/index.html" },
   { id: "lemmings", name: "Dudes", path: "dudes/index.html" }
@@ -1991,6 +1995,10 @@ function getHubScore(gameId) {
     }
     case "dino": {
       const score = readNumberKey("dino-run-high-score");
+      return { label: score ? `Best ${score}` : "No score yet", sort: score };
+    }
+    case "ramp": {
+      const score = readNumberKey("ramp-rush-high-score");
       return { label: score ? `Best ${score}` : "No score yet", sort: score };
     }
     case "blockblast": {

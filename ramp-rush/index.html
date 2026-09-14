@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Ramp Rush</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20260916s">
+</head>
+<body>
+  <header class="hud">
+    <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
+    <div class="hud-stats">
+      <span>Score <strong id="score">0</strong></span>
+      <span>Best <strong id="high-score">0</strong></span>
+      <span>Speed <strong id="speed-label">1.0×</strong></span>
+    </div>
+  </header>
+
+  <main class="shell">
+    <canvas id="game" width="900" height="560" aria-label="Ramp Rush downhill track"></canvas>
+    <div class="touch-controls" aria-label="Touch steering">
+      <button type="button" id="left-btn" class="touch-btn">◀</button>
+      <button type="button" id="right-btn" class="touch-btn">▶</button>
+    </div>
+    <p class="hint">Steer with <kbd>A</kbd>/<kbd>D</kbd> or <kbd>←</kbd>/<kbd>→</kbd>. Stay on the ramp — avoid red blocks and gaps.</p>
+  </main>
+
+  <div id="overlay" class="overlay">
+    <div class="overlay-card">
+      <p class="eyebrow">Downhill reflex</p>
+      <h1 id="overlay-title">Ramp Rush</h1>
+      <p id="overlay-text" class="lead">
+        Roll down an endless glowing ramp. Steer clear of gaps and hazard blocks as the track speeds up.
+      </p>
+      <p class="score-line">Best: <strong id="overlay-best">0</strong></p>
+      <div class="overlay-actions">
+        <button id="start-btn" type="button" class="btn">Play</button>
+        <button id="resume-btn" type="button" class="btn btn-ghost hidden">Resume</button>
+        <button id="games-btn" type="button" class="btn btn-ghost">Games</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../hub-streak.js"></script>
+  <script src="../hub-achievements.js?v=20260916s"></script>
+  <script src="../hub-sound.js"></script>
+  <script src="../hub-confetti.js"></script>
+  <script src="../hub-plays.js?v=20260916s"></script>
+  <script src="../hub-friends.js?v=20260907o"></script>
+  <script src="../hub-chat.js?v=20260907p"></script>
+  <script src="../hub-leaderboard.js?v=20260916s"></script>
+  <script src="script.js?v=20260916s"></script>
+</body>
+</html>
