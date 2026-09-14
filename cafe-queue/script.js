@@ -89,7 +89,7 @@
       orderId: item.id,
       orderEmoji: item.emoji,
       patience: 1,
-      decay: 0.0045 + Math.min(0.004, score * 0.00002)
+      decay: 0.009 + Math.min(0.006, score * 0.000035)
     };
   }
 
@@ -189,13 +189,13 @@
         }
       }
       spawnAcc += 1;
-      if (spawnAcc >= Math.max(8, 16 - Math.floor(score / 40)) && queue.length < 5) {
+      if (spawnAcc >= Math.max(6, 12 - Math.floor(score / 40)) && queue.length < 5) {
         spawnAcc = 0;
         queue.push(makeGuest());
       }
       updateHud();
       renderQueue();
-    }, 120);
+    }, 100);
   }
 
   function togglePause() {
