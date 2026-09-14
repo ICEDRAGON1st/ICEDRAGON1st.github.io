@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917aa": [
+    "Ramp Rush: realistic full-canvas space backdrop with Milky Way and planets"
+  ],
   "20260917z": [
     "Ramp Rush: denser starfield with planets, moons, nebulae, and comets"
   ],
