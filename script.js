@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917x": [
+    "Ramp Rush: locked 1× speed, snappier sideways steer, speed boosts on ramps"
+  ],
   "20260917w": [
     "Ramp Rush: sideways carving now clearly boosts downhill speed"
   ],
