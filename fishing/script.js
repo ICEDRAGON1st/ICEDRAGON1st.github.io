@@ -440,10 +440,46 @@
       valueMult: 85,
       rarity: 23,
       blurb: "Beyond omega · absolute shores await"
+    },
+    {
+      id: "singularitymere",
+      name: "Singularity Mere",
+      cost: 1.2e14,
+      wait: [0.3, 0.65],
+      valueMult: 110,
+      rarity: 24,
+      blurb: "Collapsed tides · singularity fish pull"
+    },
+    {
+      id: "paradoxbay",
+      name: "Paradox Bay",
+      cost: 5e14,
+      wait: [0.28, 0.6],
+      valueMult: 145,
+      rarity: 25,
+      blurb: "Two futures · paradox hauls pay"
+    },
+    {
+      id: "infinityreach",
+      name: "Infinity Reach",
+      cost: 2.2e15,
+      wait: [0.26, 0.55],
+      valueMult: 190,
+      rarity: 26,
+      blurb: "Endless shelf · infinity rarities rise"
+    },
+    {
+      id: "omnisea",
+      name: "Omni Sea",
+      cost: 1e16,
+      wait: [0.24, 0.5],
+      valueMult: 250,
+      rarity: 27,
+      blurb: "All waters as one · absolute peak"
     }
   ];
 
-  const MAX_SPOT_RARITY = 23;
+  const MAX_SPOT_RARITY = 27;
 
   const GEAR = [
     { id: "rod1", name: "Willow Rod", desc: "+0.05s bite window", cost: 40, kind: "window", amount: 0.05 },
@@ -468,6 +504,8 @@
     { id: "rod20", name: "Chrono Rod", desc: "+0.15s bite window", cost: 45000000000, kind: "window", amount: 0.15 },
     { id: "rod21", name: "Mythforge Rod", desc: "+0.16s bite window", cost: 120000000000, kind: "window", amount: 0.16 },
     { id: "rod22", name: "Genesis Rod", desc: "+0.18s bite window", cost: 400000000000, kind: "window", amount: 0.18 },
+    { id: "rod23", name: "Absolution Rod", desc: "+0.2s bite window", cost: 1.5e12, kind: "window", amount: 0.2 },
+    { id: "rod24", name: "Singularity Rod", desc: "+0.22s bite window", cost: 8e12, kind: "window", amount: 0.22 },
     { id: "bait10", name: "Echo Chum", desc: "Faster bites (−6% wait)", cost: 30, kind: "speed", amount: 0.06 },
     { id: "bait11", name: "Zenith Bait", desc: "Faster bites (−7% wait)", cost: 40, kind: "speed", amount: 0.07 },
     { id: "bait8", name: "Void Roe", desc: "Faster bites (−8% wait)", cost: 50, kind: "speed", amount: 0.08 },
@@ -482,6 +520,8 @@
     { id: "bait12", name: "Prism Chum", desc: "Faster bites (−36% wait)", cost: 80000000, kind: "speed", amount: 0.36 },
     { id: "bait13", name: "Chrono Flies", desc: "Faster bites (−38% wait)", cost: 400000000, kind: "speed", amount: 0.38 },
     { id: "bait14", name: "Genesis Roe", desc: "Faster bites (−40% wait)", cost: 2000000000, kind: "speed", amount: 0.4 },
+    { id: "bait15", name: "Absolution Chum", desc: "Faster bites (−42% wait)", cost: 2e10, kind: "speed", amount: 0.42 },
+    { id: "bait16", name: "Omni Bait", desc: "Faster bites (−44% wait)", cost: 2e11, kind: "speed", amount: 0.44 },
     { id: "luck1", name: "Lucky Hook", desc: "+rarity luck · better chest finds", cost: 120, kind: "luck", amount: 8 },
     { id: "luck2", name: "Tide Charm", desc: "+rarity luck · better chest finds", cost: 700, kind: "luck", amount: 12 },
     { id: "luck3", name: "Pearl Lure", desc: "+rarity luck · better chest finds", cost: 4000, kind: "luck", amount: 16 },
@@ -502,6 +542,8 @@
     { id: "luck18", name: "Prism Fate", desc: "+rarity luck · better chest finds", cost: 25000000000, kind: "luck", amount: 250 },
     { id: "luck19", name: "Chrono Bell", desc: "+rarity luck · better chest finds", cost: 80000000000, kind: "luck", amount: 280 },
     { id: "luck20", name: "Genesis Charm", desc: "+rarity luck · better chest finds", cost: 250000000000, kind: "luck", amount: 320 },
+    { id: "luck21", name: "Absolution Hook", desc: "+rarity luck · better chest finds", cost: 1e12, kind: "luck", amount: 360 },
+    { id: "luck22", name: "Singularity Coin", desc: "+rarity luck · better chest finds", cost: 5e12, kind: "luck", amount: 420 },
     { id: "cooler1", name: "Ice Pack", desc: "+4 cooler slots", cost: 200, kind: "cooler", amount: 4 },
     { id: "cooler2", name: "Big Cooler", desc: "+6 cooler slots", cost: 1500, kind: "cooler", amount: 6 },
     { id: "cooler3", name: "Dock Freezer", desc: "+10 cooler slots", cost: 12000, kind: "cooler", amount: 10 },
@@ -521,6 +563,8 @@
     { id: "cooler17", name: "Prism Hold", desc: "+180 cooler slots", cost: 22000000000, kind: "cooler", amount: 180 },
     { id: "cooler18", name: "Chrono Vault", desc: "+200 cooler slots", cost: 70000000000, kind: "cooler", amount: 200 },
     { id: "cooler19", name: "Genesis Locker", desc: "+240 cooler slots", cost: 220000000000, kind: "cooler", amount: 240 },
+    { id: "cooler20", name: "Absolution Hold", desc: "+280 cooler slots", cost: 9e11, kind: "cooler", amount: 280 },
+    { id: "cooler21", name: "Infinity Cage", desc: "+320 cooler slots", cost: 4e12, kind: "cooler", amount: 320 },
     { id: "sell1", name: "Merchant Scale", desc: "+5% sell value", cost: 500, kind: "value", amount: 0.05 },
     { id: "sell2", name: "Harbor Broker", desc: "+8% sell value", cost: 5000, kind: "value", amount: 0.08 },
     { id: "sell3", name: "Gold Ledger", desc: "+12% sell value", cost: 50000, kind: "value", amount: 0.12 },
@@ -538,6 +582,8 @@
     { id: "sell15", name: "Prism Exchange", desc: "+110% sell value", cost: 28000000000, kind: "value", amount: 1.1 },
     { id: "sell16", name: "Chrono Floor", desc: "+125% sell value", cost: 90000000000, kind: "value", amount: 1.25 },
     { id: "sell17", name: "Genesis Market", desc: "+150% sell value", cost: 300000000000, kind: "value", amount: 1.5 },
+    { id: "sell18", name: "Absolution Exchange", desc: "+175% sell value", cost: 1.2e12, kind: "value", amount: 1.75 },
+    { id: "sell19", name: "Omni Market", desc: "+200% sell value", cost: 6e12, kind: "value", amount: 2 },
     { id: "net1", name: "Hand Net", desc: "6% chance for a second fish", cost: 2500, kind: "multi", amount: 0.06 },
     { id: "net2", name: "Drag Net", desc: "10% chance for a second fish", cost: 28000, kind: "multi", amount: 0.1 },
     { id: "net3", name: "Trawl Mesh", desc: "14% chance for a second fish", cost: 220000, kind: "multi", amount: 0.14 },
@@ -553,6 +599,8 @@
     { id: "net13", name: "Prism Snare", desc: "20% chance for a second fish", cost: 30000000000, kind: "multi", amount: 0.2 },
     { id: "net14", name: "Chrono Net", desc: "22% chance for a second fish", cost: 100000000000, kind: "multi", amount: 0.22 },
     { id: "net15", name: "Genesis Mesh", desc: "25% chance for a second fish", cost: 350000000000, kind: "multi", amount: 0.25 },
+    { id: "net16", name: "Absolution Net", desc: "28% chance for a second fish", cost: 1.4e12, kind: "multi", amount: 0.28 },
+    { id: "net17", name: "Singularity Snare", desc: "30% chance for a second fish", cost: 7e12, kind: "multi", amount: 0.3 },
     { id: "triple1", name: "Twin Hook", desc: "4% chance for a third fish (needs 2nd catch)", cost: 15000, kind: "triple", amount: 0.04 },
     { id: "triple2", name: "Trident Line", desc: "7% chance for a third fish (needs 2nd catch)", cost: 120000, kind: "triple", amount: 0.07 },
     { id: "triple3", name: "Triple Snare", desc: "10% chance for a third fish (needs 2nd catch)", cost: 900000, kind: "triple", amount: 0.1 },
@@ -565,6 +613,8 @@
     { id: "triple10", name: "Prism Trident", desc: "15% chance for a third fish (needs 2nd catch)", cost: 40000000000, kind: "triple", amount: 0.15 },
     { id: "triple11", name: "Chrono Triad", desc: "18% chance for a third fish (needs 2nd catch)", cost: 150000000000, kind: "triple", amount: 0.18 },
     { id: "triple12", name: "Genesis Trident", desc: "22% chance for a third fish (needs 2nd catch)", cost: 500000000000, kind: "triple", amount: 0.22 },
+    { id: "triple13", name: "Absolution Triad", desc: "25% chance for a third fish (needs 2nd catch)", cost: 2e12, kind: "triple", amount: 0.25 },
+    { id: "triple14", name: "Infinity Trident", desc: "28% chance for a third fish (needs 2nd catch)", cost: 1e13, kind: "triple", amount: 0.28 },
     { id: "perfect1", name: "Steady Hands", desc: "+10% sell on perfect reels", cost: 1500, kind: "perfect", amount: 0.1 },
     { id: "perfect2", name: "Keen Eye", desc: "+15% sell on perfect reels", cost: 18000, kind: "perfect", amount: 0.15 },
     { id: "perfect3", name: "Timing Belt", desc: "+20% sell on perfect reels", cost: 150000, kind: "perfect", amount: 0.2 },
@@ -578,7 +628,9 @@
     { id: "perfect11", name: "Helix Timing", desc: "+80% sell on perfect reels", cost: 8000000000, kind: "perfect", amount: 0.8 },
     { id: "perfect12", name: "Prism Focus", desc: "+90% sell on perfect reels", cost: 28000000000, kind: "perfect", amount: 0.9 },
     { id: "perfect13", name: "Chrono Pulse", desc: "+100% sell on perfect reels", cost: 90000000000, kind: "perfect", amount: 1 },
-    { id: "perfect14", name: "Genesis Timing", desc: "+120% sell on perfect reels", cost: 300000000000, kind: "perfect", amount: 1.2 }
+    { id: "perfect14", name: "Genesis Timing", desc: "+120% sell on perfect reels", cost: 300000000000, kind: "perfect", amount: 1.2 },
+    { id: "perfect15", name: "Absolution Focus", desc: "+140% sell on perfect reels", cost: 1.2e12, kind: "perfect", amount: 1.4 },
+    { id: "perfect16", name: "Omni Timing", desc: "+160% sell on perfect reels", cost: 6e12, kind: "perfect", amount: 1.6 }
   ];
 
   /**

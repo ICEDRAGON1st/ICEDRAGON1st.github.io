@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916n": [
+    "Fishing Idle: 4 new spots and more endgame upgrades (no boat changes)"
+  ],
   "20260916m": [
     "Fishing Idle: catch book shows discovery percentage"
   ],
