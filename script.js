@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917ai": [
+    "Ramp Rush: kill blocks every 15 points"
+  ],
   "20260917ah": [
     "Ramp Rush: faster downhill speed"
   ],
