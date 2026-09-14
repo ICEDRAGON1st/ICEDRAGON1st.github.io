@@ -220,19 +220,22 @@
       if (!running || paused) return;
       rise += 0.012 + score * 0.00002;
       spawnAcc += 1;
-      if (spawnAcc >= Math.max(4, 9 - Math.floor(score / 80))) {
+      if (spawnAcc >= Math.max(2, 5 - Math.floor(score / 70))) {
         spawnAcc = 0;
-        const ok = dropInColumn(Math.floor(Math.random() * COLS), randColor());
-        if (!ok || topOccupied() || rise >= 1) {
-          endGame(rise >= 1 ? "The tide won." : "Bubbles reached the top.");
-          return;
+        const drops = 1 + (score > 100 && Math.random() < 0.35 ? 1 : 0);
+        for (let i = 0; i < drops; i += 1) {
+          const ok = dropInColumn(Math.floor(Math.random() * COLS), randColor());
+          if (!ok || topOccupied() || rise >= 1) {
+            endGame(rise >= 1 ? "The tide won." : "Bubbles reached the top.");
+            return;
+          }
         }
         gravity();
         renderBoard();
       }
       updateHud();
       if (rise >= 1) endGame("The tide won.");
-    }, 420);
+    }, 320);
   }
 
   function togglePause() {

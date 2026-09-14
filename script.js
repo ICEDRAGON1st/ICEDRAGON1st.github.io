@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917ax": [
+    "Bubble Pop Relay: bubbles spawn faster"
+  ],
   "20260917aw": [
     "New games: Bubble Pop Relay, Cafe Queue, and Garden Snap"
   ],
