@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917n": [
+    "Ramp Rush: more realistic asphalt road and muted canyon scenery"
+  ],
   "20260917m": [
     "Ramp Rush: dusk canyon scenery with layered cliffs and warmer depth"
   ],
