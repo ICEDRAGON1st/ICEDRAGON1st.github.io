@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917s": [
+    "Ramp Rush: Slope-style cyan/magenta neon rails, lamps, and glowing ball"
+  ],
   "20260917r": [
     "Ramp Rush: street lamps with cones and road light pools"
   ],
