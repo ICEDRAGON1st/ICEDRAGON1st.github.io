@@ -3248,12 +3248,12 @@
     if (boatLevel() >= 3) HubAchievements.unlock("fishing_fps_100");
     if (state.unlocked.deep) HubAchievements.unlock("fishing_voyage_1");
     if (state.unlocked.void) HubAchievements.unlock("fishing_voyage_1");
-    if (FISH.length > 0 && caughtCount("any") >= FISH.length) {
+    if (FISH.length > 0 && caughtCount("any") >= Math.ceil(FISH.length * 0.7)) {
       const newly = HubAchievements.unlock("fishing_all");
       window.HubPlays?.markMasterFisher?.().catch?.(() => {});
       if (newly) {
         setTimeout(() => {
-          setCatchLine("Catch book complete — title unlocked: MASTER FISHER", "perfect");
+          setCatchLine("70% catch book — title unlocked: MASTER FISHER", "perfect");
         }, 900);
       }
     }

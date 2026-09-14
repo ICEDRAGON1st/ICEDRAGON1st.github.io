@@ -107,7 +107,7 @@
     { id: "fishing_1m",          emoji: "🐋", name: "Whale Watcher",   desc: "Earn 1,000,000 coins in Fishing Idle" },
     { id: "fishing_fps_100",     emoji: "🚢", name: "Fleet Captain",   desc: "Upgrade your Fishing Idle auto boat to level 3" },
     { id: "fishing_voyage_1",    emoji: "🌊", name: "Deep Sea",        desc: "Unlock Deep Sea in Fishing Idle" },
-    { id: "fishing_all",         emoji: "📖", name: "Master Fisher",   desc: "Catch every fish in Fishing Idle" },
+    { id: "fishing_all",         emoji: "📖", name: "Master Fisher",   desc: "Discover 70% of the fish in Fishing Idle" },
     { id: "cows_1m",             emoji: "🏆", name: "Milk Tycoon",     desc: "Earn 1,000,000 milk in Cow Merge" },
     { id: "cows_tier_10",        emoji: "🌈", name: "Rainbow Ranch",   desc: "Reach Rainbow Cow in Cow Merge" },
     { id: "cows_tier_15",        emoji: "♾️", name: "Eternal Herd",    desc: "Reach Eternal Cow in Cow Merge" },
