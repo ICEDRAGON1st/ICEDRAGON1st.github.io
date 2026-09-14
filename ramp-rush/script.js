@@ -177,12 +177,12 @@
         const gw = rand(1.1, 1.8);
         gap = { x: side * (baseW * 0.5 - gw * 0.35), w: gw };
       } else if (difficulty > 0.2 && kindRoll < 0.45) {
-        const aerial = difficulty > 0.5 && Math.random() < 0.45;
+        // Ground killers only on normal track — air blocks spawn on jump voids.
         block = {
           x: rand(-baseW * 0.35, baseW * 0.35),
           w: rand(0.7, 1.25),
           h: rand(0.55, 1.15),
-          y: aerial ? rand(0.9, 2.4) : 0
+          y: 0
         };
       } else if (difficulty > 1.2 && kindRoll < 0.55) {
         taper = rand(0.35, 0.9);
@@ -238,7 +238,7 @@
           x: rand(-1.3, 1.3),
           w: rand(0.85, 1.3),
           h: rand(0.7, 1.15),
-          y: Math.random() < 0.45 ? rand(0.85, 1.8) : 0
+          y: 0
         }
       });
       featureCooldown = 22;
