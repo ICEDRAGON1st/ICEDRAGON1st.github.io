@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917h": [
+    "Ramp Rush: solid walls sealed to the track + readable downhill pitch"
+  ],
   "20260917g": [
     "Ramp Rush: solid canyon walls + clearer downhill camera pitch"
   ],

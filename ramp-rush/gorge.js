@@ -19,15 +19,15 @@
   const W = canvas.width;
   const H = canvas.height;
   const FOV = 300;
-  const CAM_HEIGHT = 3.15;
-  const CAM_BACK = 5.4;
-  const HORIZON = H * 0.14;
+  const CAM_HEIGHT = 2.9;
+  const CAM_BACK = 5.5;
+  const HORIZON = H * 0.16;
   const SEGMENT_LEN = 4.5;
   const LOOK_AHEAD = 30;
   /** World Y drop per unit of Z. */
-  const HILL_SLOPE = 0.88;
-  /** Extra camera pitch (radians) so the drop reads clearly on screen. */
-  const LOOK_DOWN = 0.42;
+  const HILL_SLOPE = 0.95;
+  /** Extra camera pitch (radians) — enough to read the drop, not hide the track. */
+  const LOOK_DOWN = 0.18;
   const GRAVITY_ACCEL = 4.4;
   const PLAYER_Z = 2.2;
   const AIR_GRAVITY = 26;
@@ -545,27 +545,24 @@
       }
     }
 
-    // Screen-edge rock plugs: fill canvas sides so sky can't peek past near walls.
+    // Screen-edge rock plugs (near only) — keep them outside the corridor.
     for (const side of [-1, 1]) {
       const samples = [];
-      for (let z = nearZ; z <= worldZ + 38; z += step) {
+      for (let z = nearZ; z <= worldZ + 28; z += step) {
         const h = cliffHeights(side, z);
-        const p = project(h.xOut, h.topOut, z);
+        const p = project(h.xOut * 0.92, h.topOut, z);
         if (p) samples.push(p);
       }
       if (samples.length < 2) continue;
+      const edgeX = side < 0 ? 0 : W;
       ctx.beginPath();
-      if (side < 0) {
-        ctx.moveTo(0, 0);
-        ctx.lineTo(samples[0].x, samples[0].y);
-        for (let i = 1; i < samples.length; i += 1) ctx.lineTo(samples[i].x, samples[i].y);
-        ctx.lineTo(0, H);
-      } else {
-        ctx.moveTo(W, 0);
-        ctx.lineTo(samples[0].x, samples[0].y);
-        for (let i = 1; i < samples.length; i += 1) ctx.lineTo(samples[i].x, samples[i].y);
-        ctx.lineTo(W, H);
+      ctx.moveTo(edgeX, 0);
+      ctx.lineTo(samples[0].x, Math.min(samples[0].y, H * 0.55));
+      for (let i = 1; i < samples.length; i += 1) {
+        const sx = side < 0 ? Math.min(samples[i].x, W * 0.28) : Math.max(samples[i].x, W * 0.72);
+        ctx.lineTo(sx, samples[i].y);
       }
+      ctx.lineTo(edgeX, H);
       ctx.closePath();
       ctx.fillStyle = side < 0 ? "#6a3218" : "#4e2412";
       ctx.fill();
