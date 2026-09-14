@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917as": [
+    "Guac-A-Mole: avocados duck back into holes faster"
+  ],
   "20260917ar": [
     "Guac-A-Mole: slightly faster spawn pace"
   ],
