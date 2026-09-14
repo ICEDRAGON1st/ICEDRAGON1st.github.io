@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917am": [
+    "Ramp Rush: easier achievements (5 / 12 / 25 / 40)"
+  ],
   "20260917al": [
     "Ramp Rush: reset all high scores, leaderboard, and achievements for everyone"
   ],

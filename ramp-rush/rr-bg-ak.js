@@ -100,10 +100,10 @@
 
   function checkAchievements() {
     if (!window.HubAchievements) return;
-    if (score >= 25 || best >= 25) HubAchievements.unlock("ramp_score_25");
-    if (score >= 75 || best >= 75) HubAchievements.unlock("ramp_score_75");
-    if (score >= 150 || best >= 150) HubAchievements.unlock("ramp_score_150");
-    if (best >= 250) HubAchievements.unlock("ramp_score_250");
+    if (score >= 5 || best >= 5) HubAchievements.unlock("ramp_score_25");
+    if (score >= 12 || best >= 12) HubAchievements.unlock("ramp_score_75");
+    if (score >= 25 || best >= 25) HubAchievements.unlock("ramp_score_150");
+    if (best >= 40) HubAchievements.unlock("ramp_score_250");
   }
 
   function groundY(z) {
@@ -753,7 +753,7 @@
       if (p.life <= 0) sparks.splice(i, 1);
     }
 
-    if (Math.floor(score) % 25 === 0) checkAchievements();
+    if (score > 0) checkAchievements();
     updateHud();
   }
 
