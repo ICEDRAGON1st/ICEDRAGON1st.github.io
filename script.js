@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917bd": [
+    "My Games: no more Guessword flash on load"
+  ],
   "20260917bc": [
     "What's new opens over My Games instead of Guessword"
   ],
@@ -4962,6 +4965,8 @@ showMessage(`Loaded · ${sixCount} six-letter words`);
 function bootAfterUsername() {
   // Land on My Games first so What's new never sits on the Guessword board.
   if (location.hash === "#wordle") {
+    document.documentElement.classList.add("playing-guessword");
+    gamesScreen?.classList.add("hidden");
     if (showWhatsNew()) {
       whatsNewOkBtn?.addEventListener("click", () => {
         hideWhatsNew();
