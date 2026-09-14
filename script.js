@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917z": [
+    "Ramp Rush: denser starfield with planets, moons, nebulae, and comets"
+  ],
   "20260917y": [
     "Ramp Rush: softer Slope-style edge hangs — recover before tipping off"
   ],
