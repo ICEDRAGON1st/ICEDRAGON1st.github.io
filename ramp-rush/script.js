@@ -430,161 +430,174 @@
   }
 
   function drawBackground() {
-    // Looking down a night canyon: cooler open sky above, abyss below.
+    // Clear sky → canyon haze → deep void.
     const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#6a90c8");
-    g.addColorStop(0.16, "#2a3f72");
-    g.addColorStop(0.34, "#12183a");
-    g.addColorStop(0.58, "#070714");
+    g.addColorStop(0, "#8eb6ef");
+    g.addColorStop(0.12, "#3d5f9a");
+    g.addColorStop(0.28, "#1a2748");
+    g.addColorStop(0.48, "#0c1230");
+    g.addColorStop(0.72, "#050816");
     g.addColorStop(1, "#000000");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
 
-    // Stars drift upward on screen — reads as falling downhill.
-    for (let i = 0; i < 60; i += 1) {
-      const sx = ((i * 97 + worldZ * 4) % W + W) % W;
-      const sy = ((i * 53 - worldZ * 9) % H + H) % H;
-      if (sy > H * 0.72) continue;
-      ctx.fillStyle = `rgba(200, 220, 255, ${0.18 + (i % 5) * 0.1})`;
-      ctx.fillRect(sx, sy, i % 6 === 0 ? 2 : 1, i % 6 === 0 ? 2 : 1);
+    // Horizon glow where the canyon drops away.
+    const glow = ctx.createLinearGradient(0, HORIZON - 30, 0, HORIZON + 90);
+    glow.addColorStop(0, "rgba(90, 210, 200, 0)");
+    glow.addColorStop(0.45, "rgba(70, 190, 210, 0.22)");
+    glow.addColorStop(1, "rgba(20, 40, 80, 0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, HORIZON - 40, W, 140);
+
+    // Stars drifting upward (descent cue).
+    for (let i = 0; i < 90; i += 1) {
+      const sx = ((i * 97 + worldZ * 5) % W + W) % W;
+      const sy = ((i * 53 - worldZ * 14) % (H * 0.7) + H * 0.7) % (H * 0.7);
+      const twinkle = 0.25 + (i % 5) * 0.12;
+      ctx.fillStyle = `rgba(220, 235, 255, ${twinkle})`;
+      const sz = i % 8 === 0 ? 2.5 : 1.2;
+      ctx.fillRect(sx, sy, sz, sz);
     }
 
-    // Distant descending ridge bands (parallax layers).
-    for (let layer = 0; layer < 3; layer += 1) {
-      const scroll = worldZ * (0.35 + layer * 0.25);
-      const baseY = HORIZON + 18 + layer * 34;
+    // Descending terrace ridges — brighter tops so they actually read.
+    const ridgeColors = [
+      { fill: "#243554", rim: "rgba(110, 200, 210, 0.45)", y: HORIZON + 8, drop: 0.55, scroll: 0.22 },
+      { fill: "#1a2740", rim: "rgba(90, 170, 190, 0.35)", y: HORIZON + 48, drop: 0.85, scroll: 0.4 },
+      { fill: "#101a30", rim: "rgba(70, 140, 170, 0.28)", y: HORIZON + 95, drop: 1.15, scroll: 0.65 }
+    ];
+    for (let layer = 0; layer < ridgeColors.length; layer += 1) {
+      const cfg = ridgeColors[layer];
+      const scroll = worldZ * cfg.scroll;
       ctx.beginPath();
-      ctx.moveTo(0, H);
-      ctx.lineTo(0, baseY + 40);
-      for (let i = 0; i <= 14; i += 1) {
-        const x = (i / 14) * W;
-        const drop = i * (10 + layer * 5);
-        const jagged = Math.sin(i * 1.4 + scroll * 0.08 + layer) * (12 + layer * 4);
-        ctx.lineTo(x, baseY + drop * 0.35 + jagged);
+      const pts = [];
+      for (let i = 0; i <= 16; i += 1) {
+        const x = (i / 16) * W;
+        // Ridges fall harder toward screen center-bottom = downhill valley.
+        const towardCenter = Math.abs(i / 16 - 0.5) * 2;
+        const drop = (1 - towardCenter) * 55 * cfg.drop + i * 2.2 * cfg.drop;
+        const jagged = Math.sin(i * 1.15 + scroll * 0.09 + layer * 2.1) * (10 + layer * 5);
+        const y = cfg.y + drop + jagged;
+        pts.push({ x, y });
       }
+      ctx.moveTo(0, H);
+      ctx.lineTo(pts[0].x, pts[0].y);
+      for (const p of pts) ctx.lineTo(p.x, p.y);
       ctx.lineTo(W, H);
       ctx.closePath();
-      const alpha = 0.35 + layer * 0.18;
-      ctx.fillStyle = `rgba(${10 + layer * 6}, ${14 + layer * 8}, ${28 + layer * 10}, ${alpha})`;
+      ctx.fillStyle = cfg.fill;
       ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (const p of pts) ctx.lineTo(p.x, p.y);
+      ctx.strokeStyle = cfg.rim;
+      ctx.lineWidth = 2;
+      ctx.stroke();
     }
 
-    // Soft nebula / fog in the deep void ahead.
-    const neb = ctx.createRadialGradient(W * 0.5, H * 0.7, 8, W * 0.5, H * 0.78, W * 0.5);
-    neb.addColorStop(0, "rgba(70, 30, 140, 0.2)");
-    neb.addColorStop(0.5, "rgba(20, 35, 100, 0.1)");
+    // Falling dust / speed particles.
+    for (let i = 0; i < 28; i += 1) {
+      const x = ((i * 131 + worldZ * 28) % (W + 40)) - 20;
+      const len = 18 + (i % 5) * 10;
+      const y0 = ((i * 67 - worldZ * 40) % (H + 60)) - 20;
+      ctx.strokeStyle = `rgba(160, 220, 255, ${0.1 + (i % 4) * 0.04})`;
+      ctx.lineWidth = 1 + (i % 3 === 0 ? 1 : 0);
+      ctx.beginPath();
+      ctx.moveTo(x, y0);
+      ctx.lineTo(x + (i % 2 === 0 ? 8 : -8), y0 + len);
+      ctx.stroke();
+    }
+
+    // Deep void pool under the track path.
+    const neb = ctx.createRadialGradient(W * 0.5, H * 0.78, 6, W * 0.5, H * 0.82, W * 0.42);
+    neb.addColorStop(0, "rgba(40, 20, 90, 0.28)");
+    neb.addColorStop(0.55, "rgba(10, 20, 50, 0.12)");
     neb.addColorStop(1, "rgba(0, 0, 0, 0)");
     ctx.fillStyle = neb;
     ctx.fillRect(0, 0, W, H);
-
-    // Motion streaks slanting down the canyon.
-    ctx.strokeStyle = "rgba(140, 190, 255, 0.08)";
-    for (let i = 0; i < 10; i += 1) {
-      const x = ((i * 97 + worldZ * 18) % (W + 80)) - 40;
-      ctx.beginPath();
-      ctx.moveTo(x, HORIZON + 10);
-      ctx.lineTo(x + (i % 2 === 0 ? 18 : -18), H * 0.85);
-      ctx.lineWidth = 1 + (i % 3);
-      ctx.stroke();
-    }
   }
 
   function drawDescentScenery() {
-    // 3D side cliffs, pillars, and shelves rushing past — reinforce downhill motion.
-    const startZ = worldZ + 4;
-    const endZ = worldZ + LOOK_AHEAD * SEGMENT_LEN * 0.9;
-    const step = 7.5;
+    // Lit canyon walls + pillars that rush past beside the track.
+    const startZ = worldZ + 5;
+    const endZ = worldZ + LOOK_AHEAD * SEGMENT_LEN * 0.85;
+    const step = 6.5;
 
     for (let z = Math.floor(startZ / step) * step; z < endZ; z += step) {
-      const seed = Math.floor(z / step);
-      const side = seed % 2 === 0 ? -1 : 1;
-      const both = seed % 5 === 0;
-      const kinds = both ? [-1, 1] : [side];
+      const seed = Math.floor(z * 1.01 / step);
+      const fade = Math.max(0.2, 1 - (z - worldZ) * 0.011);
+      const sides = seed % 4 === 0 ? [-1, 1] : [seed % 2 === 0 ? -1 : 1];
 
-      for (const s of kinds) {
-        const x = s * (9.5 + (seed % 3) * 1.4);
-        const tall = 2.2 + (seed % 4) * 0.85;
-        const shelf = -0.4 - (seed % 3) * 0.35;
+      for (const s of sides) {
+        const x = s * (8.6 + (seed % 4) * 1.1);
+        const tall = 2.8 + (seed % 5) * 0.7;
+        const foot = -1.2 - (seed % 3) * 0.35;
         const z0 = z;
-        const z1 = z + 3.2 + (seed % 3);
+        const z1 = z + 2.8 + (seed % 2);
 
-        // Cliff face / pillar
-        const topL = project(x - 0.7 * s, tall, z0);
-        const topR = project(x + 0.35 * s, tall * 0.85, z0);
-        const botL = project(x - 0.7 * s, shelf, z1);
-        const botR = project(x + 0.35 * s, shelf - 0.8, z1);
-        if (topL && topR && botL && botR) {
+        const outerTop = project(x + s * 1.1, tall, z0);
+        const innerTop = project(x - s * 0.15, tall * 0.75, z0);
+        const outerBot = project(x + s * 1.1, foot, z1);
+        const innerBot = project(x - s * 0.15, foot - 0.6, z1);
+        if (!(outerTop && innerTop && outerBot && innerBot)) continue;
+
+        ctx.beginPath();
+        ctx.moveTo(outerTop.x, outerTop.y);
+        ctx.lineTo(innerTop.x, innerTop.y);
+        ctx.lineTo(innerBot.x, innerBot.y);
+        ctx.lineTo(outerBot.x, outerBot.y);
+        ctx.closePath();
+        ctx.fillStyle = s < 0
+          ? `rgba(38, 58, 78, ${0.72 * fade})`
+          : `rgba(30, 48, 68, ${0.68 * fade})`;
+        ctx.fill();
+
+        // Bright rim so pillars don't disappear into the night.
+        ctx.beginPath();
+        ctx.moveTo(innerTop.x, innerTop.y);
+        ctx.lineTo(innerBot.x, innerBot.y);
+        ctx.strokeStyle = `rgba(90, 230, 220, ${0.35 * fade})`;
+        ctx.lineWidth = Math.max(1.5, innerTop.scale * 0.05);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(outerTop.x, outerTop.y);
+        ctx.lineTo(outerBot.x, outerBot.y);
+        ctx.strokeStyle = `rgba(40, 70, 100, ${0.4 * fade})`;
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // Downhill strata
+        for (let k = 0; k < 3; k += 1) {
+          const t = 0.18 + k * 0.22;
+          const a = project(x + s * 0.9, tall * (1 - t) + foot * t, z0 + (z1 - z0) * t);
+          const b = project(x, tall * 0.7 * (1 - t) + (foot - 0.3) * t, z0 + (z1 - z0) * t);
+          if (!a || !b) continue;
           ctx.beginPath();
-          ctx.moveTo(topL.x, topL.y);
-          ctx.lineTo(topR.x, topR.y);
-          ctx.lineTo(botR.x, botR.y);
-          ctx.lineTo(botL.x, botL.y);
-          ctx.closePath();
-          const fade = Math.max(0.15, 1 - (z - worldZ) * 0.012);
-          ctx.fillStyle = s < 0
-            ? `rgba(22, 36, 48, ${0.55 * fade})`
-            : `rgba(16, 28, 40, ${0.5 * fade})`;
-          ctx.fill();
-
-          // Strata lines slanting downhill
-          ctx.strokeStyle = `rgba(90, 140, 160, ${0.12 * fade})`;
+          ctx.moveTo(a.x, a.y);
+          ctx.lineTo(b.x, b.y);
+          ctx.strokeStyle = `rgba(120, 180, 200, ${0.16 * fade})`;
           ctx.lineWidth = 1;
-          for (let k = 0; k < 3; k += 1) {
-            const t = 0.2 + k * 0.25;
-            const a = project(x - 0.55 * s, tall * (1 - t) + shelf * t, z0 + t * (z1 - z0));
-            const b = project(x + 0.2 * s, tall * 0.85 * (1 - t) + (shelf - 0.5) * t, z0 + t * (z1 - z0));
-            if (a && b) {
-              ctx.beginPath();
-              ctx.moveTo(a.x, a.y);
-              ctx.lineTo(b.x, b.y);
-              ctx.stroke();
-            }
-          }
+          ctx.stroke();
         }
 
-        // Occasional floating ledge / rock to the side
-        if (seed % 3 === 1) {
-          const ly = 0.6 + (seed % 4) * 0.4;
-          const p0 = project(x + s * 1.8, ly, z0 + 1);
-          const p1 = project(x + s * 3.2, ly - 0.2, z0 + 2.2);
-          const p2 = project(x + s * 2.6, ly - 1.1, z0 + 2.4);
-          const p3 = project(x + s * 1.5, ly - 0.9, z0 + 1.2);
-          if (p0 && p1 && p2 && p3) {
+        // Occasional glowing crystal / marker on the cliff
+        if (seed % 3 === 2) {
+          const cy = 1.1 + (seed % 4) * 0.35;
+          const c0 = project(x + s * 0.35, cy + 0.55, z0 + 1.2);
+          const c1 = project(x + s * 0.55, cy, z0 + 1.5);
+          const c2 = project(x + s * 0.2, cy - 0.15, z0 + 1.1);
+          if (c0 && c1 && c2) {
             ctx.beginPath();
-            ctx.moveTo(p0.x, p0.y);
-            ctx.lineTo(p1.x, p1.y);
-            ctx.lineTo(p2.x, p2.y);
-            ctx.lineTo(p3.x, p3.y);
+            ctx.moveTo(c0.x, c0.y);
+            ctx.lineTo(c1.x, c1.y);
+            ctx.lineTo(c2.x, c2.y);
             ctx.closePath();
-            ctx.fillStyle = "rgba(40, 55, 70, 0.4)";
+            ctx.fillStyle = `rgba(80, 240, 220, ${0.45 * fade})`;
             ctx.fill();
           }
         }
       }
-    }
-
-    // Far vanishing canyon mouth — darker wedge ahead.
-    const farL = project(-16, 3.5, worldZ + 90);
-    const farR = project(16, 3.5, worldZ + 90);
-    const nearL = project(-11, -1.5, worldZ + 18);
-    const nearR = project(11, -1.5, worldZ + 18);
-    if (farL && farR && nearL && nearR) {
-      ctx.beginPath();
-      ctx.moveTo(0, HORIZON);
-      ctx.lineTo(farL.x, farL.y);
-      ctx.lineTo(nearL.x, nearL.y);
-      ctx.lineTo(0, H);
-      ctx.closePath();
-      ctx.fillStyle = "rgba(4, 8, 16, 0.35)";
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(W, HORIZON);
-      ctx.lineTo(farR.x, farR.y);
-      ctx.lineTo(nearR.x, nearR.y);
-      ctx.lineTo(W, H);
-      ctx.closePath();
-      ctx.fillStyle = "rgba(4, 8, 16, 0.35)";
-      ctx.fill();
     }
   }
 

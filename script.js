@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917b": [
+    "Ramp Rush: clearer downhill canyon background"
+  ],
   "20260917a": [
     "Ramp Rush: floating red blocks only appear on jump ramps"
   ],
