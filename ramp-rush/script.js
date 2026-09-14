@@ -430,105 +430,164 @@
   }
 
   function drawBackground() {
-    // Clear sky → canyon haze → deep void.
-    const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#9ec0f5");
-    g.addColorStop(0.14, "#4a6fad");
-    g.addColorStop(0.3, "#1e2f55");
-    g.addColorStop(0.52, "#0d1530");
-    g.addColorStop(0.75, "#050814");
-    g.addColorStop(1, "#000000");
-    ctx.fillStyle = g;
+    // Narrow sky strip above the canyon rims.
+    const sky = ctx.createLinearGradient(0, 0, 0, H * 0.45);
+    sky.addColorStop(0, "#6eb0e8");
+    sky.addColorStop(0.45, "#3a6a9a");
+    sky.addColorStop(1, "#1a3050");
+    ctx.fillStyle = sky;
     ctx.fillRect(0, 0, W, H);
 
-    // Horizon glow where the canyon drops away.
-    const glow = ctx.createLinearGradient(0, HORIZON - 30, 0, HORIZON + 90);
-    glow.addColorStop(0, "rgba(90, 210, 200, 0)");
-    glow.addColorStop(0.45, "rgba(70, 190, 210, 0.22)");
-    glow.addColorStop(1, "rgba(20, 40, 80, 0)");
-    ctx.fillStyle = glow;
-    ctx.fillRect(0, HORIZON - 40, W, 140);
-
-    // Stars drifting upward (descent cue).
-    for (let i = 0; i < 90; i += 1) {
-      const sx = ((i * 97 + worldZ * 5) % W + W) % W;
-      const sy = ((i * 53 - worldZ * 14) % (H * 0.7) + H * 0.7) % (H * 0.7);
-      const twinkle = 0.25 + (i % 5) * 0.12;
-      ctx.fillStyle = `rgba(220, 235, 255, ${twinkle})`;
-      const sz = i % 8 === 0 ? 2.5 : 1.2;
-      ctx.fillRect(sx, sy, sz, sz);
+    for (let i = 0; i < 40; i += 1) {
+      const sx = ((i * 97 + worldZ * 3) % W + W) % W;
+      const sy = ((i * 41 - worldZ * 8) % (H * 0.28) + H * 0.28) % (H * 0.28);
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.35 + (i % 4) * 0.1})`;
+      ctx.fillRect(sx, sy + 4, 1.5, 1.5);
     }
 
-    // Lit terrace ridges as bands (not full-screen fills).
-    const ridgeColors = [
-      { fill: "#3a5578", rim: "rgba(140, 240, 230, 0.7)", y: HORIZON + 6, drop: 0.7, scroll: 0.25, thick: 52 },
-      { fill: "#2a4060", rim: "rgba(100, 200, 220, 0.55)", y: HORIZON + 44, drop: 1.0, scroll: 0.45, thick: 70 },
-      { fill: "#1a2c48", rim: "rgba(80, 160, 190, 0.4)", y: HORIZON + 92, drop: 1.3, scroll: 0.7, thick: 88 }
-    ];
-    for (let layer = 0; layer < ridgeColors.length; layer += 1) {
-      const cfg = ridgeColors[layer];
-      const scroll = worldZ * cfg.scroll;
-      const pts = [];
-      for (let i = 0; i <= 18; i += 1) {
-        const x = (i / 18) * W;
-        const towardCenter = Math.abs(i / 18 - 0.5) * 2;
-        const drop = (1 - towardCenter) * 70 * cfg.drop + towardCenter * 8;
-        const jagged = Math.sin(i * 1.05 + scroll * 0.1 + layer * 2.2) * (11 + layer * 5);
-        pts.push({ x, y: cfg.y + drop + jagged });
-      }
+    drawCanyonWalls();
+  }
+
+  function drawCanyonWalls() {
+    // Steep sandstone cliffs left + right — reads as a real canyon, not hills.
+    const scroll = worldZ * 14;
+
+    function fillCliff(side) {
+      const s = side; // -1 left, +1 right
       ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (const p of pts) ctx.lineTo(p.x, p.y);
-      for (let i = pts.length - 1; i >= 0; i -= 1) {
-        ctx.lineTo(pts[i].x, pts[i].y + cfg.thick);
+      if (s < 0) {
+        ctx.moveTo(0, 0);
+        ctx.lineTo(W * 0.5 - 36, 0);
+      } else {
+        ctx.moveTo(W, 0);
+        ctx.lineTo(W * 0.5 + 36, 0);
+      }
+
+      // Jagged cliff rim dropping toward the vanishing throat.
+      for (let i = 0; i <= 10; i += 1) {
+        const t = i / 10;
+        const rimX = W * 0.5 + s * (36 + t * t * (W * 0.42));
+        const rimY = 6 + t * (HORIZON + 70) + Math.sin(i * 1.7 + scroll * 0.015 + s) * 10;
+        // Pull rim inward as we go down the canyon.
+        const pull = s * (1 - t) * 10;
+        ctx.lineTo(rimX - pull, rimY);
+      }
+
+      // Near bottom: wall sits just outside the track corridor.
+      if (s < 0) {
+        ctx.lineTo(W * 0.14, H);
+        ctx.lineTo(0, H);
+      } else {
+        ctx.lineTo(W * 0.86, H);
+        ctx.lineTo(W, H);
       }
       ctx.closePath();
-      ctx.fillStyle = cfg.fill;
+
+      const gx0 = s < 0 ? 0 : W;
+      const gx1 = s < 0 ? W * 0.4 : W * 0.6;
+      const rock = ctx.createLinearGradient(gx0, 0, gx1, H);
+      rock.addColorStop(0, "#d4895a");
+      rock.addColorStop(0.25, "#b05a32");
+      rock.addColorStop(0.55, "#6e3420");
+      rock.addColorStop(0.8, "#3a1a12");
+      rock.addColorStop(1, "#120806");
+      ctx.fillStyle = rock;
       ctx.fill();
 
+      // Horizontal rock strata scrolling down = you're dropping into the gorge.
+      for (let i = 0; i < 22; i += 1) {
+        const y = ((i * 42 + scroll) % (H + 50)) - 25;
+        const inset = 18 + (y / H) * 70;
+        ctx.beginPath();
+        if (s < 0) {
+          ctx.moveTo(0, y);
+          ctx.lineTo(Math.max(20, W * 0.34 - inset * 0.35), y + 3);
+        } else {
+          ctx.moveTo(W, y);
+          ctx.lineTo(Math.min(W - 20, W * 0.66 + inset * 0.35), y + 3);
+        }
+        ctx.strokeStyle = `rgba(255, 210, 160, ${0.1 + (i % 4) * 0.05})`;
+        ctx.lineWidth = 2 + (i % 3 === 0 ? 1.5 : 0);
+        ctx.stroke();
+      }
+
+      // Darker buttress ridges for rocky depth.
+      for (let b = 0; b < 5; b += 1) {
+        const bt = (b + 1) / 6;
+        const x0 = s < 0 ? bt * W * 0.22 : W - bt * W * 0.22;
+        const x1 = s < 0 ? bt * W * 0.3 + 18 : W - (bt * W * 0.3 + 18);
+        const y0 = 40 + b * 70 + (scroll * 0.2) % 40;
+        ctx.beginPath();
+        ctx.moveTo(x0, y0);
+        ctx.lineTo(x1, y0 + 90);
+        ctx.lineTo(x0 + s * -10, y0 + 160);
+        ctx.closePath();
+        ctx.fillStyle = `rgba(20, 8, 4, ${0.18 + b * 0.03})`;
+        ctx.fill();
+      }
+
+      // Bright sunlit rim edge.
       ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (const p of pts) ctx.lineTo(p.x, p.y);
-      ctx.strokeStyle = cfg.rim;
-      ctx.lineWidth = 2.5;
+      if (s < 0) {
+        ctx.moveTo(W * 0.5 - 36, 2);
+        for (let i = 0; i <= 10; i += 1) {
+          const t = i / 10;
+          const rimX = W * 0.5 - (36 + t * t * (W * 0.42));
+          const rimY = 6 + t * (HORIZON + 70) + Math.sin(i * 1.7 + scroll * 0.015 - 1) * 10;
+          ctx.lineTo(rimX + 10, rimY);
+        }
+      } else {
+        ctx.moveTo(W * 0.5 + 36, 2);
+        for (let i = 0; i <= 10; i += 1) {
+          const t = i / 10;
+          const rimX = W * 0.5 + (36 + t * t * (W * 0.42));
+          const rimY = 6 + t * (HORIZON + 70) + Math.sin(i * 1.7 + scroll * 0.015 + 1) * 10;
+          ctx.lineTo(rimX - 10, rimY);
+        }
+      }
+      ctx.strokeStyle = "rgba(255, 200, 130, 0.55)";
+      ctx.lineWidth = 3;
       ctx.stroke();
     }
 
-    // Falling dust / speed particles.
-    for (let i = 0; i < 28; i += 1) {
-      const x = ((i * 131 + worldZ * 28) % (W + 40)) - 20;
-      const len = 18 + (i % 5) * 10;
-      const y0 = ((i * 67 - worldZ * 40) % (H + 60)) - 20;
-      ctx.strokeStyle = `rgba(160, 220, 255, ${0.1 + (i % 4) * 0.04})`;
-      ctx.lineWidth = 1 + (i % 3 === 0 ? 1 : 0);
-      ctx.beginPath();
-      ctx.moveTo(x, y0);
-      ctx.lineTo(x + (i % 2 === 0 ? 8 : -8), y0 + len);
-      ctx.stroke();
-    }
+    fillCliff(-1);
+    fillCliff(1);
 
-    // Deep void pool under the track path.
-    const neb = ctx.createRadialGradient(W * 0.5, H * 0.78, 6, W * 0.5, H * 0.82, W * 0.42);
-    neb.addColorStop(0, "rgba(40, 20, 90, 0.28)");
-    neb.addColorStop(0.55, "rgba(10, 20, 50, 0.12)");
-    neb.addColorStop(1, "rgba(0, 0, 0, 0)");
-    ctx.fillStyle = neb;
-    ctx.fillRect(0, 0, W, H);
+    // Deep shadow / void in the canyon throat under the track.
+    const throat = ctx.createRadialGradient(W * 0.5, H * 0.72, 10, W * 0.5, H * 0.75, W * 0.35);
+    throat.addColorStop(0, "rgba(0, 0, 0, 0.55)");
+    throat.addColorStop(0.6, "rgba(20, 8, 5, 0.2)");
+    throat.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = throat;
+    ctx.fillRect(W * 0.2, H * 0.35, W * 0.6, H * 0.65);
+
+    // Falling grit.
+    for (let i = 0; i < 24; i += 1) {
+      const x = W * 0.18 + ((i * 97 + worldZ * 40) % (W * 0.64));
+      const y = ((i * 73 - worldZ * 55) % H + H) % H;
+      ctx.fillStyle = `rgba(230, 180, 120, ${0.15 + (i % 3) * 0.08})`;
+      ctx.fillRect(x, y, 2, 3 + (i % 4));
+    }
   }
 
   function drawDescentScenery() {
-    // Continuous canyon walls + lit pillars rushing past.
-    const wallZs = [12, 28, 48, 72, 100];
-    for (const rel of wallZs) {
-      const z0 = worldZ + rel;
-      const z1 = z0 + 14;
-      for (const s of [-1, 1]) {
-        const xOut = s * 13.5;
-        const xIn = s * 7.8;
-        const a = project(xOut, 4.2, z0);
-        const b = project(xIn, 1.2, z0);
-        const c = project(xIn, -2.4, z1);
-        const d = project(xOut, -1.2, z1);
+    // Close rock shelves / ledges beside the track so the gorge has near depth.
+    const startZ = worldZ + 6;
+    const endZ = worldZ + 70;
+    const step = 8;
+
+    for (let z = Math.floor(startZ / step) * step; z < endZ; z += step) {
+      const seed = Math.floor(z / step);
+      const fade = Math.max(0.2, 1 - (z - worldZ) * 0.014);
+      for (const s of seed % 2 === 0 ? [-1, 1] : [seed % 2 === 0 ? -1 : 1]) {
+        const x = s * (6.6 + (seed % 3) * 0.55);
+        const top = 1.6 + (seed % 4) * 0.55;
+        const z0 = z;
+        const z1 = z + 3.5;
+        const a = project(x, top, z0);
+        const b = project(x + s * 1.4, top * 0.6, z0);
+        const c = project(x + s * 1.4, -0.8, z1);
+        const d = project(x, -1.2, z1);
         if (!(a && b && c && d)) continue;
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);
@@ -536,87 +595,11 @@
         ctx.lineTo(c.x, c.y);
         ctx.lineTo(d.x, d.y);
         ctx.closePath();
-        ctx.fillStyle = s < 0 ? "rgba(45, 70, 95, 0.4)" : "rgba(35, 58, 82, 0.38)";
+        ctx.fillStyle = `rgba(90, 42, 24, ${0.75 * fade})`;
         ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(b.x, b.y);
-        ctx.lineTo(c.x, c.y);
-        ctx.strokeStyle = "rgba(90, 230, 220, 0.32)";
+        ctx.strokeStyle = `rgba(220, 150, 90, ${0.35 * fade})`;
         ctx.lineWidth = 2;
         ctx.stroke();
-      }
-    }
-
-    const startZ = worldZ + 5;
-    const endZ = worldZ + LOOK_AHEAD * SEGMENT_LEN * 0.85;
-    const step = 5.5;
-
-    for (let z = Math.floor(startZ / step) * step; z < endZ; z += step) {
-      const seed = Math.floor(z * 1.01 / step);
-      const fade = Math.max(0.25, 1 - (z - worldZ) * 0.01);
-      const sides = seed % 3 === 0 ? [-1, 1] : [seed % 2 === 0 ? -1 : 1];
-
-      for (const s of sides) {
-        const x = s * (8.2 + (seed % 4) * 0.9);
-        const tall = 3.2 + (seed % 5) * 0.75;
-        const foot = -1.4 - (seed % 3) * 0.4;
-        const z0 = z;
-        const z1 = z + 2.4 + (seed % 2);
-
-        const outerTop = project(x + s * 1.2, tall, z0);
-        const innerTop = project(x - s * 0.1, tall * 0.7, z0);
-        const outerBot = project(x + s * 1.2, foot, z1);
-        const innerBot = project(x - s * 0.1, foot - 0.7, z1);
-        if (!(outerTop && innerTop && outerBot && innerBot)) continue;
-
-        ctx.beginPath();
-        ctx.moveTo(outerTop.x, outerTop.y);
-        ctx.lineTo(innerTop.x, innerTop.y);
-        ctx.lineTo(innerBot.x, innerBot.y);
-        ctx.lineTo(outerBot.x, outerBot.y);
-        ctx.closePath();
-        ctx.fillStyle = s < 0
-          ? `rgba(55, 82, 108, ${0.8 * fade})`
-          : `rgba(44, 68, 92, ${0.76 * fade})`;
-        ctx.fill();
-
-        ctx.beginPath();
-        ctx.moveTo(innerTop.x, innerTop.y);
-        ctx.lineTo(innerBot.x, innerBot.y);
-        ctx.strokeStyle = `rgba(100, 245, 230, ${0.55 * fade})`;
-        ctx.lineWidth = Math.max(2, innerTop.scale * 0.06);
-        ctx.stroke();
-
-        if (seed % 2 === 0) {
-          const m1 = project(x + s * 0.3, tall * 0.55, z0 + 0.8);
-          const m2 = project(x + s * 0.7, tall * 0.35, z0 + 1.4);
-          const m3 = project(x + s * 0.3, tall * 0.15, z0 + 2.0);
-          if (m1 && m2 && m3) {
-            ctx.beginPath();
-            ctx.moveTo(m1.x, m1.y);
-            ctx.lineTo(m2.x, m2.y);
-            ctx.lineTo(m3.x, m3.y);
-            ctx.strokeStyle = `rgba(255, 210, 120, ${0.35 * fade})`;
-            ctx.lineWidth = 2;
-            ctx.stroke();
-          }
-        }
-
-        if (seed % 3 === 2) {
-          const cy = 1.3 + (seed % 4) * 0.4;
-          const c0 = project(x + s * 0.4, cy + 0.7, z0 + 1.1);
-          const c1 = project(x + s * 0.65, cy, z0 + 1.5);
-          const c2 = project(x + s * 0.25, cy - 0.2, z0 + 1.0);
-          if (c0 && c1 && c2) {
-            ctx.beginPath();
-            ctx.moveTo(c0.x, c0.y);
-            ctx.lineTo(c1.x, c1.y);
-            ctx.lineTo(c2.x, c2.y);
-            ctx.closePath();
-            ctx.fillStyle = `rgba(90, 255, 230, ${0.55 * fade})`;
-            ctx.fill();
-          }
-        }
       }
     }
   }

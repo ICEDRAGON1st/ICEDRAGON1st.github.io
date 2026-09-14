@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917d": [
+    "Ramp Rush: real sandstone canyon walls instead of soft hills"
+  ],
   "20260917c": [
     "Ramp Rush: punchier canyon terraces, walls, and descent cues"
   ],
