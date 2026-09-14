@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916z": [
+    "Ramp Rush: downhill canyon scenery in the background"
+  ],
   "20260916y": [
     "Ramp Rush: first jump or red hazard around 20 points"
   ],
