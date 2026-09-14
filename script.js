@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917q": [
+    "Ramp Rush: replace canyon with night highway scenery and guardrails"
+  ],
   "20260917p": [
     "Ramp Rush: fix glitchy rock strips; keep solid walls with light grit texture"
   ],
