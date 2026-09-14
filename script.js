@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917af": [
+    "Ramp Rush: Slope-accurate curved tunnels and city towers, in blue"
+  ],
   "20260917ae": [
     "Ramp Rush: Slope-style square tunnels with blue neon grid"
   ],
