@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917av": [
+    "Fishing Idle: :00/:30 events roll 1.5×, 2×, 3×, or 4×"
+  ],
   "20260917au": [
     "Fishing Idle: show countdown timers while chests are active"
   ],
