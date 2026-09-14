@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917ac": [
+    "Ramp Rush: killer blocks spawn in patterns, spaced 15–30 points apart"
+  ],
   "20260917ab": [
     "Ramp Rush: slightly wider road"
   ],
