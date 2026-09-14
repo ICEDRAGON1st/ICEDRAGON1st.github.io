@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917ag": [
+    "Ramp Rush: rarer arches, smoother climbs, no height teleports"
+  ],
   "20260917af": [
     "Ramp Rush: Slope-accurate curved tunnels and city towers, in blue"
   ],
