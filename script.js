@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917al": [
+    "Ramp Rush: reset all high scores, leaderboard, and achievements for everyone"
+  ],
   "20260917ak": [
     "Ramp Rush: +1 per kill-block group; spawn gaps use old 15-point distance"
   ],

@@ -12,6 +12,32 @@
   const STORAGE_KEY = "hub-achievements-v1";
   const PENDING_KEY = "hub-achievements-pending";
 
+  // One-time: clear Ramp Rush achievements for everyone (other games untouched).
+  try {
+    const RAMP_ACH_WIPE = "hub-ramp-ach-wipe-v1";
+    if (localStorage.getItem(RAMP_ACH_WIPE) !== "done") {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const data = JSON.parse(raw) || {};
+        Object.keys(data).forEach((id) => {
+          if (/^ramp_/i.test(id)) delete data[id];
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      }
+      const pendingRaw = localStorage.getItem(PENDING_KEY);
+      if (pendingRaw) {
+        const list = JSON.parse(pendingRaw);
+        if (Array.isArray(list)) {
+          localStorage.setItem(
+            PENDING_KEY,
+            JSON.stringify(list.filter((id) => !/^ramp_/i.test(String(id || ""))))
+          );
+        }
+      }
+      localStorage.setItem(RAMP_ACH_WIPE, "done");
+    }
+  } catch {}
+
   /* ── Achievement definitions (easy → hard) ── */
   const DEFINITIONS = [
     // Easy

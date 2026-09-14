@@ -17,6 +17,15 @@
   const MAX_PER_GAME = 50;
   const SYNC_GAP_MS = 4000;
 
+  // One-time: clear local Ramp Rush high score for everyone (leaderboard wipe companion).
+  try {
+    const RAMP_LOCAL_WIPE = "hub-ramp-local-wipe-v1";
+    if (localStorage.getItem(RAMP_LOCAL_WIPE) !== "done") {
+      localStorage.removeItem("ramp-rush-high-score");
+      localStorage.setItem(RAMP_LOCAL_WIPE, "done");
+    }
+  } catch {}
+
   const GAME_META = {
     wordle: { label: "Guessword", lowerBetter: false, unit: "wins" },
     space: { label: "Space Shooter", lowerBetter: false, unit: "score" },
@@ -750,6 +759,20 @@
       }
     }
     games.fishing = fishingBoard;
+
+    // Full Ramp Rush leaderboard reset (this game only).
+    const rampFullResetKey = "ramp:full-reset-20260914al";
+    const RAMP_FULL_RESET_AT = Date.UTC(2026, 8, 14, 19, 45, 0); // 2026-09-14 19:45 UTC
+    if (!resets[rampFullResetKey] || Number(resets[rampFullResetKey]) > RAMP_FULL_RESET_AT) {
+      resets[rampFullResetKey] = RAMP_FULL_RESET_AT;
+    }
+    const rampFullCut = Number(resets[rampFullResetKey]) || RAMP_FULL_RESET_AT;
+    const rampBoard = { ...(games.ramp || {}) };
+    Object.keys(rampBoard).forEach((key) => {
+      const at = Number(rampBoard[key]?.at) || 0;
+      if (at <= rampFullCut) delete rampBoard[key];
+    });
+    games.ramp = rampBoard;
 
     // Sticky name binds: keep scores under the player's current name after renames.
     // Seed: Gustav → Dellekai (same playerId).

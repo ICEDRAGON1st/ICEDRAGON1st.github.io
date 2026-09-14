@@ -16,6 +16,15 @@
   const rightBtn = document.getElementById("right-btn");
 
   const HIGH_SCORE_KEY = "ramp-rush-high-score";
+
+  // Companion wipe if hub scripts weren't loaded first.
+  try {
+    if (localStorage.getItem("hub-ramp-local-wipe-v1") !== "done") {
+      localStorage.removeItem(HIGH_SCORE_KEY);
+      localStorage.setItem("hub-ramp-local-wipe-v1", "done");
+    }
+  } catch {}
+
   const W = canvas.width;
   const H = canvas.height;
   const FOV = 300;
