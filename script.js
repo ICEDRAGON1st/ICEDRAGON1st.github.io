@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917t": [
+    "Ramp Rush: watch yourself fall off the road before the wipeout screen"
+  ],
   "20260917s": [
     "Ramp Rush: Slope-style cyan/magenta neon rails, lamps, and glowing ball"
   ],
