@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917ae": [
+    "Ramp Rush: Slope-style square tunnels with blue neon grid"
+  ],
   "20260917ad": [
     "Ramp Rush: green grid arches you can drive through or ride on top"
   ],
