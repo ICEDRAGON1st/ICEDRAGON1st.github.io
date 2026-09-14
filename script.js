@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916x": [
+    "Ramp Rush: fewer jumps, floating red hazards in the air"
+  ],
   "20260916w": [
     "Ramp Rush: launch ramps over void gaps you have to jump"
   ],

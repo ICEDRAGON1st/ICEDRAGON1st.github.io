@@ -119,14 +119,24 @@
 
   function enqueueJump(difficulty) {
     const peak = rand(1.35, 2.35 + Math.min(0.8, difficulty * 0.12));
-    const voidCount = Math.max(2, Math.min(5, Math.floor(rand(2.1, 3.2 + difficulty * 0.25))));
+    const voidCount = Math.max(2, Math.min(4, Math.floor(rand(2.1, 3.0 + difficulty * 0.2))));
     pendingSegs.push({ ramp: { h0: 0, h1: peak * 0.4 }, raise: 0 });
     pendingSegs.push({ ramp: { h0: peak * 0.4, h1: peak }, raise: 0 });
     for (let i = 0; i < voidCount; i += 1) {
-      pendingSegs.push({ void: true, width: Math.max(3.4, 6.5 - difficulty * 0.25) });
+      const spec = { void: true, width: Math.max(3.4, 6.5 - difficulty * 0.25) };
+      // Floating red killers in the jump lane.
+      if (i > 0 && Math.random() < 0.55 + Math.min(0.25, difficulty * 0.05)) {
+        spec.block = {
+          x: rand(-1.4, 1.4),
+          w: rand(0.75, 1.35),
+          h: rand(0.7, 1.25),
+          y: rand(peak * 0.35, peak * 0.95 + 0.6)
+        };
+      }
+      pendingSegs.push(spec);
     }
     pendingSegs.push({ raise: rand(0, 0.4), width: Math.max(3.4, 6.8 - difficulty * 0.2) });
-    featureCooldown = voidCount + 10;
+    featureCooldown = voidCount + 24;
   }
 
   function makeSegment(z, difficulty) {
@@ -145,7 +155,7 @@
           z,
           width: spec.width || baseW,
           gap: null,
-          block: null,
+          block: spec.block || null,
           ramp: null,
           raise: 0,
           void: true,
@@ -154,7 +164,7 @@
       }
       ramp = spec.ramp || null;
       raise = spec.raise || 0;
-    } else if (difficulty > 0.3 && featureCooldown <= 0 && Math.random() < 0.2) {
+    } else if (difficulty > 0.85 && featureCooldown <= 0 && Math.random() < 0.065) {
       enqueueJump(difficulty);
       return makeSegment(z, difficulty);
     } else {
@@ -163,13 +173,15 @@
         const side = Math.random() < 0.5 ? -1 : 1;
         const gw = rand(1.1, 1.8);
         gap = { x: side * (baseW * 0.5 - gw * 0.35), w: gw };
-      } else if (difficulty > 0.2 && kindRoll < 0.42) {
+      } else if (difficulty > 0.2 && kindRoll < 0.45) {
+        const aerial = difficulty > 0.5 && Math.random() < 0.45;
         block = {
           x: rand(-baseW * 0.35, baseW * 0.35),
           w: rand(0.7, 1.25),
-          h: rand(0.55, 1.1)
+          h: rand(0.55, 1.15),
+          y: aerial ? rand(0.9, 2.4) : 0
         };
-      } else if (difficulty > 1.2 && kindRoll < 0.52) {
+      } else if (difficulty > 1.2 && kindRoll < 0.55) {
         taper = rand(0.35, 0.9);
       }
     }
@@ -200,7 +212,7 @@
     nextSegZ = 0;
     segments = [];
     pendingSegs = [];
-    featureCooldown = 6;
+    featureCooldown = 28;
     sparks = [];
     shake = 0;
     dead = false;
@@ -208,8 +220,6 @@
       segments.push(makeSegment(nextSegZ, 0));
       nextSegZ += SEGMENT_LEN;
     }
-    // First jump soon after the starting runway so the void ramps show up early.
-    enqueueJump(0.8);
     updateHud();
   }
 
@@ -361,10 +371,16 @@
       return;
     }
 
-    if (seg.block && !seg.void) {
+    if (seg.block) {
       const bHalf = seg.block.w * 0.5;
-      const clearH = seg.block.h + 0.35;
-      if (Math.abs(ballX - seg.block.x) < bHalf + 0.22 && ballH < clearH) {
+      const baseH = seg.void ? 0 : (seg.ramp ? Math.max(seg.ramp.h0, seg.ramp.h1) : seg.raise || 0);
+      const bBottom = baseH + (seg.block.y || 0);
+      const bTop = bBottom + seg.block.h;
+      const ballBottom = ballH;
+      const ballTop = ballH + 0.85;
+      const overlapX = Math.abs(ballX - seg.block.x) < bHalf + 0.22;
+      const overlapY = ballTop > bBottom + 0.05 && ballBottom < bTop - 0.05;
+      if (overlapX && overlapY) {
         spawnSparks(W * 0.5, H * 0.7);
         die("You hit a hazard block.");
         return;
@@ -439,6 +455,7 @@
 
     if (seg.void) {
       drawVoidPlate(z0, z1, half + 0.6);
+      if (seg.block) drawHazardBlock(seg, 0, 0);
       return;
     }
 
@@ -531,36 +548,62 @@
     }
 
     if (seg.block) {
-      const bh = seg.block.w * 0.5;
-      const base = Math.max(h0, h1);
-      const top = base + seg.block.h;
-      const corners = [
-        project(seg.block.x - bh, base, z0 + 0.8),
-        project(seg.block.x + bh, base, z0 + 0.8),
-        project(seg.block.x + bh, base, z1 - 0.8),
-        project(seg.block.x - bh, base, z1 - 0.8),
-        project(seg.block.x - bh, top, z0 + 0.8),
-        project(seg.block.x + bh, top, z0 + 0.8),
-        project(seg.block.x + bh, top, z1 - 0.8),
-        project(seg.block.x - bh, top, z1 - 0.8)
-      ];
-      if (corners.every(Boolean)) {
+      drawHazardBlock(seg, h0, h1);
+    }
+  }
+
+  function drawHazardBlock(seg, h0, h1) {
+    const z0 = seg.z;
+    const z1 = seg.z + SEGMENT_LEN;
+    const bh = seg.block.w * 0.5;
+    const base = Math.max(h0, h1) + (seg.block.y || 0);
+    const top = base + seg.block.h;
+    const corners = [
+      project(seg.block.x - bh, base, z0 + 0.8),
+      project(seg.block.x + bh, base, z0 + 0.8),
+      project(seg.block.x + bh, base, z1 - 0.8),
+      project(seg.block.x - bh, base, z1 - 0.8),
+      project(seg.block.x - bh, top, z0 + 0.8),
+      project(seg.block.x + bh, top, z0 + 0.8),
+      project(seg.block.x + bh, top, z1 - 0.8),
+      project(seg.block.x - bh, top, z1 - 0.8)
+    ];
+    if (!corners.every(Boolean)) return;
+    ctx.beginPath();
+    ctx.moveTo(corners[4].x, corners[4].y);
+    ctx.lineTo(corners[5].x, corners[5].y);
+    ctx.lineTo(corners[6].x, corners[6].y);
+    ctx.lineTo(corners[7].x, corners[7].y);
+    ctx.closePath();
+    ctx.fillStyle = "#ff5d7a";
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(corners[0].x, corners[0].y);
+    ctx.lineTo(corners[1].x, corners[1].y);
+    ctx.lineTo(corners[5].x, corners[5].y);
+    ctx.lineTo(corners[4].x, corners[4].y);
+    ctx.closePath();
+    ctx.fillStyle = "#c43b55";
+    ctx.fill();
+    // Side face so floating killers read in mid-air.
+    ctx.beginPath();
+    ctx.moveTo(corners[1].x, corners[1].y);
+    ctx.lineTo(corners[2].x, corners[2].y);
+    ctx.lineTo(corners[6].x, corners[6].y);
+    ctx.lineTo(corners[5].x, corners[5].y);
+    ctx.closePath();
+    ctx.fillStyle = "#a8324a";
+    ctx.fill();
+    if ((seg.block.y || 0) > 0.2) {
+      const stem = project(seg.block.x, Math.max(0, base - 1.2), (z0 + z1) * 0.5);
+      const foot = project(seg.block.x, 0.02, (z0 + z1) * 0.5);
+      if (stem && foot) {
         ctx.beginPath();
-        ctx.moveTo(corners[4].x, corners[4].y);
-        ctx.lineTo(corners[5].x, corners[5].y);
-        ctx.lineTo(corners[6].x, corners[6].y);
-        ctx.lineTo(corners[7].x, corners[7].y);
-        ctx.closePath();
-        ctx.fillStyle = "#ff5d7a";
-        ctx.fill();
-        ctx.beginPath();
-        ctx.moveTo(corners[0].x, corners[0].y);
-        ctx.lineTo(corners[1].x, corners[1].y);
-        ctx.lineTo(corners[5].x, corners[5].y);
-        ctx.lineTo(corners[4].x, corners[4].y);
-        ctx.closePath();
-        ctx.fillStyle = "#c43b55";
-        ctx.fill();
+        ctx.moveTo(foot.x, foot.y);
+        ctx.lineTo(stem.x, stem.y);
+        ctx.strokeStyle = "rgba(255, 93, 122, 0.35)";
+        ctx.lineWidth = Math.max(1, stem.scale * 0.04);
+        ctx.stroke();
       }
     }
   }
