@@ -470,75 +470,94 @@
   }
 
   function drawDescentScenery() {
-    const nearZ = worldZ + 3;
-    const farZ = worldZ + 95;
-    const step = 5;
-
-    for (let z = Math.floor(farZ / step) * step; z >= nearZ; z -= step) {
-      const rel = z - worldZ;
-      const fade = Math.max(0.25, 1 - rel * 0.009);
-      const z1 = z + step * 0.92;
-      const seed = Math.floor(z / step);
-
-      for (const s of [-1, 1]) {
-        const xOut = s * (11.5 + (seed % 3) * 0.6);
-        const xMid = s * (8.2 + (seed % 2) * 0.35);
-        const top = 5.5 + (seed % 4) * 0.7;
-        const mid = 2.2 + (seed % 3) * 0.4;
-        const bot = -2.8 - (seed % 3) * 0.35;
-
-        const shade = s < 0 ? 1 : 0.82;
-        const rr = Math.floor((150 + (seed % 5) * 8) * shade * fade);
-        const gg = Math.floor((78 + (seed % 4) * 5) * shade * fade);
-        const bb = Math.floor((40 + (seed % 3) * 4) * shade * fade);
-        const fill = 'rgb(' + rr + ',' + gg + ',' + bb + ')';
-        const rim = 'rgba(255, 190, 120,' + (0.3 * fade) + ')';
-
-        rockQuad(xMid, top, z, xMid, bot, z, xMid, bot, z1, xMid, top, z1, fill, rim);
-        rockQuad(
-          xOut, top + 0.35, z,
-          xMid, top, z,
-          xMid, top, z1,
-          xOut, top + 0.2, z1,
-          'rgb(' + Math.min(255, rr + 40) + ',' + Math.min(255, gg + 22) + ',' + (bb + 12) + ')',
-          'rgba(255, 210, 140,' + (0.42 * fade) + ')'
-        );
-        rockQuad(
-          xOut, top + 0.2, z,
-          xOut, bot - 0.6, z,
-          xOut, bot - 0.6, z1,
-          xOut, top + 0.2, z1,
-          'rgb(' + Math.floor(rr * 0.55) + ',' + Math.floor(gg * 0.55) + ',' + Math.floor(bb * 0.55) + ')',
-          null
-        );
-
-        for (let k = 0; k < 4; k += 1) {
-          const yy = top - 0.7 - k * ((top - bot) / 4.5);
-          rockQuad(
-            xMid + s * 0.02, yy, z + 0.3,
-            xMid + s * 0.02, yy - 0.12, z + 0.3,
-            xMid + s * 0.02, yy - 0.12, z1 - 0.3,
-            xMid + s * 0.02, yy, z1 - 0.3,
-            'rgba(255, 200, 140,' + (0.14 * fade) + ')',
-            null
-          );
-        }
-
-        if (seed % 3 !== 1) {
-          const lx = s * (6.3 + (seed % 3) * 0.4);
-          const ly = mid * 0.45;
-          rockQuad(
-            lx, ly + 0.9, z + 0.8,
-            xMid - s * 0.2, ly + 0.5, z + 0.8,
-            xMid - s * 0.2, ly - 0.4, z + 2.6,
-            lx, ly - 0.2, z + 2.6,
-            'rgb(' + Math.floor(rr * 0.75) + ',' + Math.floor(gg * 0.7) + ',' + Math.floor(bb * 0.65) + ')',
-            'rgba(230, 160, 90,' + (0.35 * fade) + ')'
-          );
+    // Continuous cliff ribbons (not separate boxes) — left and right gorge walls.
+    function cliffFace(side, xBase, topAmp, fillBase, rimAlpha) {
+      const nearZ = worldZ + 2.5;
+      const farZ = worldZ + 100;
+      const step = 3.2;
+      const tops = [];
+      const bots = [];
+      for (let z = nearZ; z <= farZ; z += step) {
+        const t = (z - worldZ) * 0.17 + side * 2.4;
+        const x = side * (xBase + Math.sin(t * 1.1) * 0.55 + Math.sin(t * 2.3) * 0.25);
+        const top = 3.8 + topAmp * Math.abs(Math.sin(t * 0.9)) + Math.sin(t * 2.7) * 0.7 + Math.sin(t * 4.1) * 0.35;
+        const bot = -3.4 - Math.abs(Math.sin(t * 1.4)) * 0.5;
+        const pT = project(x, top, z);
+        const pB = project(x, bot, z);
+        if (pT && pB) {
+          tops.push(pT);
+          bots.push(pB);
         }
       }
+      if (tops.length < 3) return;
 
-      rockQuad(-11, -3.2, z, 11, -3.2, z, 11, -3.2, z1, -11, -3.2, z1, 'rgba(0,0,0,' + (0.4 * fade) + ')', null);
+      ctx.beginPath();
+      ctx.moveTo(tops[0].x, tops[0].y);
+      for (let i = 1; i < tops.length; i += 1) ctx.lineTo(tops[i].x, tops[i].y);
+      for (let i = bots.length - 1; i >= 0; i -= 1) ctx.lineTo(bots[i].x, bots[i].y);
+      ctx.closePath();
+      const fade = 0.92;
+      ctx.fillStyle = fillBase;
+      ctx.fill();
+
+      // Lit jagged rim.
+      ctx.beginPath();
+      ctx.moveTo(tops[0].x, tops[0].y);
+      for (let i = 1; i < tops.length; i += 1) ctx.lineTo(tops[i].x, tops[i].y);
+      ctx.strokeStyle = "rgba(255, 200, 130," + rimAlpha + ")";
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      // Rock strata across the face.
+      for (let band = 0; band < 7; band += 1) {
+        ctx.beginPath();
+        let started = false;
+        for (let i = 0; i < tops.length; i += 1) {
+          const u = band / 7;
+          const x = tops[i].x * (1 - u) + bots[i].x * u;
+          const y = tops[i].y * (1 - u) + bots[i].y * u;
+          if (!started) {
+            ctx.moveTo(x, y);
+            started = true;
+          } else ctx.lineTo(x, y);
+        }
+        ctx.strokeStyle = "rgba(255, 190, 120," + (0.1 + (band % 3) * 0.04) * fade + ")";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    }
+
+    // Outer darker mass, then inner lit face — reads as thick canyon walls.
+    cliffFace(-1, 12.2, 3.2, "#5a2c18", 0.2);
+    cliffFace(1, 12.2, 3.2, "#4a2414", 0.18);
+    cliffFace(-1, 8.4, 2.6, "#a85a32", 0.45);
+    cliffFace(1, 8.4, 2.6, "#8f4a28", 0.4);
+
+    // Near ledges / crumbled rock you pass.
+    const step = 6;
+    for (let z = Math.floor((worldZ + 6) / step) * step; z < worldZ + 55; z += step) {
+      const seed = Math.floor(z / step);
+      const fade = Math.max(0.3, 1 - (z - worldZ) * 0.015);
+      for (const s of [-1, 1]) {
+        if ((seed + (s > 0 ? 1 : 0)) % 2 === 0) continue;
+        const x0 = s * 6.1;
+        const x1 = s * 7.8;
+        const y = 0.2 + (seed % 3) * 0.35;
+        rockQuad(
+          x0, y + 1.1, z,
+          x1, y + 0.7, z,
+          x1, y - 0.5, z + 2.8,
+          x0, y - 0.2, z + 2.8,
+          "rgba(120, 55, 28," + (0.8 * fade) + ")",
+          "rgba(240, 180, 100," + (0.35 * fade) + ")"
+        );
+      }
+    }
+
+    // Abyss under the track corridor.
+    for (let z = worldZ + 4; z < worldZ + 90; z += 8) {
+      const fade = Math.max(0.2, 1 - (z - worldZ) * 0.01);
+      rockQuad(-9, -3.5, z, 9, -3.5, z, 9, -3.5, z + 8, -9, -3.5, z + 8, "rgba(0,0,0," + (0.45 * fade) + ")", null);
     }
   }
 

@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917f": [
+    "Ramp Rush: continuous jagged sandstone gorge walls in 3D"
+  ],
   "20260917e": [
     "Ramp Rush: real 3D perspective canyon cliffs beside the track"
   ],
