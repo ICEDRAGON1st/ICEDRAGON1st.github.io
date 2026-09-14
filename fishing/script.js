@@ -38,6 +38,10 @@
   const ADMIN_EVENT_LOCAL_BOOST_KEY = "fishing-admin-boost-v1";
   const ADMIN_EVENT_LOCAL_VARIANT_KEY = "fishing-admin-variant-v1";
   const ADMIN_EVENT_PENDING_KEY = "fishing-admin-pending-v1";
+  const FISH_GIFTS_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-gifts";
+  const FISH_GIFTS_TOKEN = "ice-fish-gift-9f3a";
+  const FISH_GIFTS_CLAIMED_KEY = "fishing-gifts-claimed-v1";
+  const FISH_GIFTS_POLL_MS = 12_000;
   const ADMIN_SCOPE_KEY = "fishing-admin-scope-v1";
   const ADMIN_RATE_BACKOFF_MS = 45_000;
   const ADMIN_DEFAULT_MINUTES = 5;
@@ -1692,6 +1696,349 @@
     }
   }
 
+  function fishLookupKey(raw) {
+    return String(raw || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "");
+  }
+
+  function resolveFishQuery(query) {
+    const key = fishLookupKey(query);
+    if (!key) return { fish: null, matches: [] };
+    const exactId = FISH.find((f) => f.id === key || fishLookupKey(f.id) === key);
+    if (exactId) return { fish: exactId, matches: [exactId] };
+    const exactName = FISH.find((f) => fishLookupKey(f.name) === key);
+    if (exactName) return { fish: exactName, matches: [exactName] };
+    const matches = FISH.filter(
+      (f) => fishLookupKey(f.name).includes(key) || fishLookupKey(f.id).includes(key)
+    );
+    if (matches.length === 1) return { fish: matches[0], matches };
+    return { fish: null, matches };
+  }
+
+  function parseGiveFishCommand(raw) {
+    const original = String(raw || "").trim();
+    if (!/^(give|gift)\s+fish\b/i.test(original)) return null;
+
+    let rest = original.replace(/^(give|gift)\s+fish\s+/i, "").trim();
+    if (!rest) {
+      return {
+        error: "Try: give fish primefin shiny gold · give fish trout to PlayerName"
+      };
+    }
+
+    let to = "me";
+    const toMatch = rest.match(/\bto\s+@?(.+)$/i);
+    if (toMatch) {
+      to = toMatch[1].trim();
+      rest = rest.slice(0, toMatch.index).trim();
+    } else if (/\b(me|self)\s*$/i.test(rest)) {
+      rest = rest.replace(/\b(me|self)\s*$/i, "").trim();
+      to = "me";
+    }
+
+    let count = 1;
+    const countMatch = rest.match(/(?:^|\s)(?:x\s*(\d{1,2})|(\d{1,2})\s*x)(?:\s|$)/i);
+    if (countMatch) {
+      count = Math.min(50, Math.max(1, Number(countMatch[1] || countMatch[2]) || 1));
+      rest = `${rest.slice(0, countMatch.index)} ${rest.slice(countMatch.index + countMatch[0].length)}`
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+
+    let variant = "";
+    let shiny = false;
+    let perfect = false;
+    const fishBits = [];
+    rest
+      .toLowerCase()
+      .replace(/[+&|]/g, " ")
+      .replace(/\s+/g, " ")
+      .trim()
+      .split(" ")
+      .filter(Boolean)
+      .forEach((token) => {
+        if (VARIANT_PRIMARY.includes(token)) variant = token;
+        else if (token === "shiny") shiny = true;
+        else if (token === "perfect") perfect = true;
+        else if (token === "normal" || token === "plain" || token === "base") {
+          variant = "";
+          shiny = false;
+        } else fishBits.push(token);
+      });
+
+    const resolved = resolveFishQuery(fishBits.join(" "));
+    if (!resolved.fish) {
+      if (resolved.matches.length > 1) {
+        return {
+          error: `Which fish? ${resolved.matches
+            .slice(0, 4)
+            .map((f) => f.id)
+            .join(", ")}`
+        };
+      }
+      return { error: "Unknown fish — use id or name (e.g. primefin, golden koi)" };
+    }
+
+    return {
+      kind: "give-fish",
+      fishId: resolved.fish.id,
+      variant,
+      shiny,
+      perfect,
+      count,
+      to
+    };
+  }
+
+  function grantFishToLocal(fish, opts = {}) {
+    if (!fish) return null;
+    const variants = normalizeVariants(opts.variants || {});
+    const entry = {
+      id: fish.id,
+      saved: !!opts.saved,
+      perfect: !!opts.perfect,
+      variant: variants.variant,
+      shiny: variants.shiny
+    };
+    noteCatch(fish, entry);
+    state.cooler.push(entry);
+    return entry;
+  }
+
+  function readClaimedGiftIds() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(FISH_GIFTS_CLAIMED_KEY) || "[]");
+      return new Set(Array.isArray(raw) ? raw.map(String) : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  function writeClaimedGiftIds(set) {
+    try {
+      const list = [...set].slice(-200);
+      localStorage.setItem(FISH_GIFTS_CLAIMED_KEY, JSON.stringify(list));
+    } catch {}
+  }
+
+  async function fetchFishGiftsDoc() {
+    try {
+      const res = await fetch(`${FISH_GIFTS_API}?t=${Date.now()}`, { cache: "no-store" });
+      if (res.status === 404) return { token: FISH_GIFTS_TOKEN, gifts: {} };
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data || typeof data !== "object") return { token: FISH_GIFTS_TOKEN, gifts: {} };
+      return {
+        token: data.token || FISH_GIFTS_TOKEN,
+        gifts: data.gifts && typeof data.gifts === "object" ? data.gifts : {}
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  async function postFishGiftsDoc(doc) {
+    const res = await fetch(FISH_GIFTS_API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token: FISH_GIFTS_TOKEN,
+        gifts: doc.gifts || {}
+      })
+    });
+    return res.ok;
+  }
+
+  async function lookupPlayerForGift(username) {
+    const key = String(username || "")
+      .trim()
+      .toLowerCase();
+    if (!key) return null;
+    try {
+      const res = await fetch(`https://mantledb.sh/v2/icedragon1st-mygames/name-registry?t=${Date.now()}`, {
+        cache: "no-store"
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const names = data?.names && typeof data.names === "object" ? data.names : data || {};
+        const claim = names[key];
+        if (claim?.playerId) {
+          return { playerId: claim.playerId, name: claim.name || username };
+        }
+      }
+    } catch {}
+    try {
+      const friends = window.HubFriends?.getFriends?.() || [];
+      const hit = friends.find((f) => String(f.name || "").trim().toLowerCase() === key);
+      if (hit?.id || hit?.playerId) {
+        return { playerId: hit.id || hit.playerId, name: hit.name || username };
+      }
+    } catch {}
+    return { playerId: "", name: username };
+  }
+
+  async function queueFishGift(payload) {
+    const remote = (await fetchFishGiftsDoc()) || { token: FISH_GIFTS_TOKEN, gifts: {} };
+    const id = `g-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    const gifts = { ...(remote.gifts || {}) };
+    // Drop very old claimed gifts to keep the doc small
+    const now = Date.now();
+    Object.entries(gifts).forEach(([gid, g]) => {
+      const at = Number(g?.at) || 0;
+      if (g?.claimed && now - at > 3 * 24 * 60 * 60 * 1000) delete gifts[gid];
+      else if (!g?.claimed && now - at > 14 * 24 * 60 * 60 * 1000) delete gifts[gid];
+    });
+    gifts[id] = {
+      id,
+      toName: String(payload.toName || "").toLowerCase(),
+      toPlayerId: String(payload.toPlayerId || ""),
+      toDisplay: String(payload.toDisplay || payload.toName || ""),
+      from: "ICE_DRAGON",
+      fishId: payload.fishId,
+      variant: normalizeVariant(payload.variant),
+      shiny: !!payload.shiny,
+      perfect: !!payload.perfect,
+      count: Math.min(50, Math.max(1, Number(payload.count) || 1)),
+      at: now,
+      claimed: false
+    };
+    return postFishGiftsDoc({ gifts });
+  }
+
+  async function markFishGiftClaimed(giftId) {
+    const remote = (await fetchFishGiftsDoc()) || { token: FISH_GIFTS_TOKEN, gifts: {} };
+    const gifts = { ...(remote.gifts || {}) };
+    const g = gifts[giftId];
+    if (!g || g.claimed) return true;
+    gifts[giftId] = {
+      ...g,
+      claimed: true,
+      claimedBy: playerNameLower(),
+      claimedAt: Date.now()
+    };
+    return postFishGiftsDoc({ gifts });
+  }
+
+  let fishGiftPollTimer = 0;
+  let fishGiftFetchedAt = 0;
+
+  async function pollFishGifts(force = false) {
+    const now = Date.now();
+    if (!force && now - fishGiftFetchedAt < FISH_GIFTS_POLL_MS) return;
+    fishGiftFetchedAt = now;
+    const doc = await fetchFishGiftsDoc();
+    if (!doc) return;
+    const me = playerNameLower();
+    const myId = String(window.HubPlays?.getPlayerId?.() || "");
+    if (!me && !myId) return;
+    const claimed = readClaimedGiftIds();
+    let gained = 0;
+    let label = "";
+    const toClaim = [];
+
+    Object.values(doc.gifts || {}).forEach((g) => {
+      if (!g || typeof g !== "object" || g.claimed) return;
+      const gid = String(g.id || "");
+      if (!gid || claimed.has(gid)) return;
+      const toName = String(g.toName || "").toLowerCase();
+      const toId = String(g.toPlayerId || "");
+      const forMe = (toName && toName === me) || (toId && myId && toId === myId);
+      if (!forMe) return;
+      const fish = fishById(g.fishId);
+      if (!fish) return;
+      const count = Math.min(50, Math.max(1, Number(g.count) || 1));
+      const entryOpts = {
+        variants: { variant: normalizeVariant(g.variant), shiny: !!g.shiny },
+        perfect: !!g.perfect
+      };
+      for (let i = 0; i < count; i += 1) grantFishToLocal(fish, entryOpts);
+      gained += count;
+      label = formatFishName(fish, entryOpts.variants);
+      claimed.add(gid);
+      toClaim.push(gid);
+    });
+
+    if (!gained) return;
+    writeClaimedGiftIds(claimed);
+    saveState();
+    render(true);
+    setCatchLine(
+      gained === 1 ? `Gift received: ${label}` : `Gift received: ${gained}× ${label}`,
+      "treasure"
+    );
+    window.HubSound?.play?.("win");
+    toClaim.forEach((gid) => {
+      markFishGiftClaimed(gid).catch(() => {});
+    });
+  }
+
+  function startFishGiftPolling() {
+    pollFishGifts(true);
+    if (fishGiftPollTimer) clearInterval(fishGiftPollTimer);
+    fishGiftPollTimer = setInterval(() => pollFishGifts(false), FISH_GIFTS_POLL_MS);
+  }
+
+  async function runGiveFishCommand(cmd) {
+    if (!isFishingOwner()) {
+      setCatchLine("Admin only", "miss");
+      return;
+    }
+    const fish = fishById(cmd.fishId);
+    if (!fish) {
+      setCatchLine("Unknown fish", "miss");
+      return;
+    }
+    const variants = {
+      variant: normalizeVariant(cmd.variant),
+      shiny: !!cmd.shiny
+    };
+    const count = Math.min(50, Math.max(1, Number(cmd.count) || 1));
+    const label = formatFishName(fish, variants);
+    const toRaw = String(cmd.to || "me").trim();
+    const toKey = toRaw.toLowerCase();
+    const isSelf =
+      !toKey || toKey === "me" || toKey === "self" || toKey === playerNameLower();
+
+    if (isSelf) {
+      for (let i = 0; i < count; i += 1) {
+        grantFishToLocal(fish, { variants, perfect: !!cmd.perfect });
+      }
+      saveState();
+      render(true);
+      setCatchLine(
+        count === 1 ? `Gave ${label} to you` : `Gave ${count}× ${label} to you`,
+        catchTone(fish.rarity)
+      );
+      window.HubSound?.play?.("win");
+      return;
+    }
+
+    setCatchLine(`Sending ${label} to ${toRaw}…`, "");
+    const target = await lookupPlayerForGift(toRaw);
+    const ok = await queueFishGift({
+      toName: toKey,
+      toPlayerId: target?.playerId || "",
+      toDisplay: target?.name || toRaw,
+      fishId: fish.id,
+      variant: variants.variant,
+      shiny: variants.shiny,
+      perfect: !!cmd.perfect,
+      count
+    });
+    if (!ok) {
+      setCatchLine("Couldn't queue fish gift — Mantle may be rate-limited", "miss");
+      window.HubSound?.play?.("miss");
+      return;
+    }
+    const who = target?.name || toRaw;
+    setCatchLine(
+      count === 1 ? `Queued ${label} for ${who}` : `Queued ${count}× ${label} for ${who}`,
+      catchTone(fish.rarity)
+    );
+    window.HubSound?.play?.("click");
+  }
+
   function parseAdminCommand(raw) {
     let text = String(raw || "")
       .trim()
@@ -1773,9 +2120,26 @@
   }
 
   async function runAdminCommand(raw) {
+    if (!isFishingOwner()) {
+      setCatchLine("Admin only", "miss");
+      return;
+    }
+    const gift = parseGiveFishCommand(raw);
+    if (gift) {
+      if (gift.error) {
+        setCatchLine(gift.error, "miss");
+        window.HubSound?.play?.("miss");
+        return;
+      }
+      await runGiveFishCommand(gift);
+      return;
+    }
     const parsed = parseAdminCommand(raw);
     if (!parsed) {
-      setCatchLine("Try: 5x luck · 5x shiny + gold · clear · clear variant", "miss");
+      setCatchLine(
+        "Try: 5x luck · give fish primefin shiny gold · give fish trout to Name · clear",
+        "miss"
+      );
       return;
     }
     if (parsed.scope === "local" || parsed.scope === "global") {
@@ -5363,6 +5727,7 @@
   render();
   checkAchievements();
   startAdminEventPolling();
+  startFishGiftPolling();
   // Leaderboard sync may finish a moment later — refresh HUD when it does.
   setTimeout(syncBestCatchFromLeaderboard, 800);
   setTimeout(syncBestCatchFromLeaderboard, 2500);
