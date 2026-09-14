@@ -2600,6 +2600,7 @@ function applyHubTheme(themeId = getHubThemeId()) {
 
 function showGamesScreen() {
   hideMenu();
+  document.documentElement.classList.remove("playing-guessword", "boot-guessword");
   gamesMessageEl.classList.remove("visible");
   gamesMessageEl.textContent = "";
   if (highScoresPanel) highScoresPanel.classList.add("hidden");
@@ -2629,6 +2630,7 @@ function showGamesScreen() {
 function hideGamesScreen() {
   stopStreakCountdown();
   gamesScreen.classList.add("hidden");
+  document.documentElement.classList.add("playing-guessword");
 }
 
 function backFromGames() {

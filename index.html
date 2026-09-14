@@ -7,6 +7,25 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>My Games</title>
+  <script>
+    // First paint: My Games hub, not Guessword (unless #wordle deep link).
+    if (location.hash === "#wordle") {
+      document.documentElement.classList.add("boot-guessword", "playing-guessword");
+    }
+  </script>
+  <style>
+    html:not(.playing-guessword) .guess-bg,
+    html:not(.playing-guessword) .app {
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    html:not(.playing-guessword) #games-screen {
+      display: block !important;
+    }
+    html.playing-guessword #games-screen.hidden {
+      display: none !important;
+    }
+  </style>
   <script src="site-config.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -142,7 +161,7 @@
     </div>
   </div>
 
-  <div id="games-screen" class="games-screen hidden" role="dialog" aria-modal="true" aria-labelledby="games-title">
+  <div id="games-screen" class="games-screen" role="dialog" aria-modal="true" aria-labelledby="games-title">
     <div class="hub-bg" aria-hidden="true">
       <div class="hub-bg-wash"></div>
       <div class="hub-bg-sparkle"></div>
@@ -603,7 +622,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260917bc";
+    window.WORDLE_BUILD = "20260917bd";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-plays.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js",
       "words.js",
