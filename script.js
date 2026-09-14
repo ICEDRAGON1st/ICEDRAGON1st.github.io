@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917u": [
+    "Ramp Rush: Slope-style chase camera that follows the ball sideways and on falls"
+  ],
   "20260917t": [
     "Ramp Rush: watch yourself fall off the road before the wipeout screen"
   ],
