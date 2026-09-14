@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916m": [
+    "Fishing Idle: catch book shows discovery percentage"
+  ],
   "20260916l": [
     "Fishing Idle: MASTER FISHER unlocks at 70% of the catch book"
   ],

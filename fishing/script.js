@@ -4722,8 +4722,9 @@
   function renderBook() {
     const total = FISH.length;
     const found = caughtCount(bookFilter);
+    const pct = total > 0 ? Math.floor((found / total) * 100) : 0;
     if (bookProgressEl) {
-      bookProgressEl.textContent = `${found} / ${total} · ${bookFilterLabel(bookFilter)}`;
+      bookProgressEl.textContent = `${found} / ${total} (${pct}%) · ${bookFilterLabel(bookFilter)}`;
     }
     if (bookFiltersEl) {
       bookFiltersEl.innerHTML = BOOK_FILTERS.map(
