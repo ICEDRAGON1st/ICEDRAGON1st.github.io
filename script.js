@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917an": [
+    "Ramp Rush: cleaner public notes and internal code names"
+  ],
   "20260917am": [
     "Ramp Rush: easier achievements (5 / 12 / 25 / 40)"
   ],
@@ -55,7 +58,7 @@ const CHANGELOG = {
     "Ramp Rush: +1 per kill-block group; spawn gaps use old 15-point distance"
   ],
   "20260917aj": [
-    "Ramp Rush: Slope-style scoring — 1 point per track section"
+    "Ramp Rush: scoring — 1 point per track section"
   ],
   "20260917ai": [
     "Ramp Rush: kill blocks every 15 points"
@@ -67,10 +70,10 @@ const CHANGELOG = {
     "Ramp Rush: rarer arches, smoother climbs, no height teleports"
   ],
   "20260917af": [
-    "Ramp Rush: Slope-accurate curved tunnels and city towers, in blue"
+    "Ramp Rush: curved neon tunnels and city towers, in blue"
   ],
   "20260917ae": [
-    "Ramp Rush: Slope-style square tunnels with blue neon grid"
+    "Ramp Rush: square tunnels with blue neon grid"
   ],
   "20260917ad": [
     "Ramp Rush: green grid arches you can drive through or ride on top"
@@ -88,7 +91,7 @@ const CHANGELOG = {
     "Ramp Rush: denser starfield with planets, moons, nebulae, and comets"
   ],
   "20260917y": [
-    "Ramp Rush: softer Slope-style edge hangs — recover before tipping off"
+    "Ramp Rush: softer edge hangs — recover before tipping off"
   ],
   "20260917x": [
     "Ramp Rush: locked 1× speed, snappier sideways steer, speed boosts on ramps"
@@ -100,13 +103,13 @@ const CHANGELOG = {
     "Ramp Rush: carving sideways boosts your downhill speed"
   ],
   "20260917u": [
-    "Ramp Rush: Slope-style chase camera that follows the ball sideways and on falls"
+    "Ramp Rush: chase camera that follows the ball sideways and on falls"
   ],
   "20260917t": [
     "Ramp Rush: watch yourself fall off the road before the wipeout screen"
   ],
   "20260917s": [
-    "Ramp Rush: Slope-style cyan/magenta neon rails, lamps, and glowing ball"
+    "Ramp Rush: cyan/magenta neon rails, lamps, and glowing ball"
   ],
   "20260917r": [
     "Ramp Rush: street lamps with cones and road light pools"
@@ -184,7 +187,7 @@ const CHANGELOG = {
     "Ramp Rush: steeper downhill hill view with gravity pull"
   ],
   "20260916s": [
-    "New game: Ramp Rush — original downhill ball runner (not affiliated with Slope)"
+    "New game: Ramp Rush — original downhill ball runner"
   ],
   "20260916r": [
     "Fishing Idle: ICE_DRAGON best catch set to Shiny Primefin (still updates if you beat it)"

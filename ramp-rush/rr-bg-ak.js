@@ -135,7 +135,7 @@
   }
 
   function updateCamera(dt) {
-    // Slope-style chase cam: keep the ball near center and ride its height.
+    // Chase cam: keep the ball near center and ride its height.
     const xRate = falling ? 7 : 11;
     const yRate = falling ? 6 : 8;
     camX += (ballX - camX) * Math.min(1, xRate * dt);
@@ -449,7 +449,7 @@
     return seg.raise || 0;
   }
 
-  function rampSlope(z) {
+  function rampGrade(z) {
     const seg = segmentAt(z);
     if (!seg) return 0;
     if (seg.archApproach) {
@@ -512,7 +512,7 @@
     airborne = true;
     if (opts.fling !== false) {
       const side = ballX === 0 ? (Math.random() < 0.5 ? -1 : 1) : Math.sign(ballX);
-      // Soft Slope-style tip-off — keep most of your sideways speed, no hard fling.
+      // Soft tip-off — keep most of your sideways speed, no hard fling.
       ballVX = side * Math.max(Math.abs(ballVX) * 0.85, 2.2);
       if (ballVH > 1) ballVH *= 0.35;
       else ballVH = Math.min(ballVH, 0.4);
@@ -618,7 +618,7 @@
       onArchPath = false;
     }
     const surf = surfaceHeight(pz);
-    const slope = rampSlope(pz);
+    const slope = rampGrade(pz);
 
     // Constant 1× downhill; ramps are speed-boost pads.
     const onBoost = !airborne && seg && seg.boost;
@@ -677,7 +677,7 @@
 
     if (!seg) return;
     const half = seg.width * 0.5;
-    // Slope-style lip: hang past the neon edge and steer back before tipping off.
+    // Edge lip: hang past the neon edge and steer back before tipping off.
     const lip = 0.72;
     const dropOff = half + lip;
 
@@ -1056,7 +1056,7 @@
       }
     }
 
-    // Blue grid towers like Slope's green city blocks
+    // Blue neon grid towers beside the track
     for (let z = Math.floor((worldZ + 3) / towerStep) * towerStep; z < worldZ + 78; z += towerStep) {
       const fade = Math.max(0.15, 1 - (z - worldZ) * 0.011);
       const h = 1.7 + ((Math.floor(z / towerStep) * 17) % 5) * 0.9;
@@ -1065,7 +1065,7 @@
         const x0 = side * (TRACK_HALF + 0.55);
         const x1 = side * (TRACK_HALF + 1.6 + (Math.floor(z / towerStep) % 3) * 0.22);
         const z1 = z + depth;
-        drawSlopeGridFace(
+        drawNeonGridFace(
           [
             project(Math.min(x0, x1), 0, z),
             project(Math.max(x0, x1), 0, z),
@@ -1079,7 +1079,7 @@
             vDiv: Math.max(3, Math.floor(h * 2.2))
           }
         );
-        drawSlopeGridFace(
+        drawNeonGridFace(
           [
             project(x1, 0, z),
             project(x1, 0, z1),
@@ -1175,7 +1175,7 @@
       ctx.fill();
     }
 
-    // Dark Slope-style track deck
+    // Dark neon track deck
     ctx.beginPath();
     ctx.moveTo(p0l.x, p0l.y);
     ctx.lineTo(p0r.x, p0r.y);
@@ -1270,7 +1270,7 @@
     glow: "rgba(30, 140, 255, 0.2)"
   };
 
-  function drawSlopeGridFace(corners, opts = {}) {
+  function drawNeonGridFace(corners, opts = {}) {
     if (!corners.every(Boolean)) return;
     const fill = opts.fill || SLOPE_BLUE.fill;
     const line = opts.line || SLOPE_BLUE.line;
@@ -1335,7 +1335,7 @@
     for (const side of [-1, 1]) {
       const x0 = side * lane;
       const x1 = side * half;
-      drawSlopeGridFace(
+      drawNeonGridFace(
         [
           project(Math.min(x0, x1), h0, z0),
           project(Math.max(x0, x1), h0, z0),
@@ -1344,7 +1344,7 @@
         ],
         { uDiv: 3, vDiv: 4 }
       );
-      drawSlopeGridFace(
+      drawNeonGridFace(
         [
           project(x0, 0, z0),
           project(x0, h0, z0),
@@ -1357,7 +1357,7 @@
   }
 
   function drawArchTunnel(seg, half) {
-    // Classic Slope arched tunnel (same shape as the green ref), in blue.
+    // Curved neon arched tunnel in blue.
     const z0 = seg.z;
     const z1 = seg.z + SEGMENT_LEN;
     const roof = seg.arch.roofH;
@@ -1371,7 +1371,7 @@
       const a1 = Math.PI - ((i + 1) / steps) * Math.PI;
       const pA = archPoint(outer, roof + thick, a0);
       const pB = archPoint(outer, roof + thick, a1);
-      drawSlopeGridFace(
+      drawNeonGridFace(
         [
           project(pA.x, pA.y, z0),
           project(pB.x, pB.y, z0),
@@ -1387,7 +1387,7 @@
       const a1 = Math.PI - ((i + 1) / steps) * Math.PI;
       const pA = archPoint(open, roof * 0.98, a0);
       const pB = archPoint(open, roof * 0.98, a1);
-      drawSlopeGridFace(
+      drawNeonGridFace(
         [
           project(pA.x, pA.y, z0),
           project(pB.x, pB.y, z0),
@@ -1406,7 +1406,7 @@
         const iB = archPoint(open, roof, a1);
         const oA = archPoint(outer, roof + thick, a0);
         const oB = archPoint(outer, roof + thick, a1);
-        drawSlopeGridFace(
+        drawNeonGridFace(
           [
             project(iA.x, iA.y, zz),
             project(iB.x, iB.y, zz),
@@ -1436,7 +1436,7 @@
       }
     }
 
-    drawSlopeGridFace(
+    drawNeonGridFace(
       [
         project(-outer, roof + thick, z0),
         project(outer, roof + thick, z0),
