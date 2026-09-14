@@ -432,11 +432,11 @@
   function drawBackground() {
     // Clear sky → canyon haze → deep void.
     const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#8eb6ef");
-    g.addColorStop(0.12, "#3d5f9a");
-    g.addColorStop(0.28, "#1a2748");
-    g.addColorStop(0.48, "#0c1230");
-    g.addColorStop(0.72, "#050816");
+    g.addColorStop(0, "#9ec0f5");
+    g.addColorStop(0.14, "#4a6fad");
+    g.addColorStop(0.3, "#1e2f55");
+    g.addColorStop(0.52, "#0d1530");
+    g.addColorStop(0.75, "#050814");
     g.addColorStop(1, "#000000");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
@@ -459,30 +459,29 @@
       ctx.fillRect(sx, sy, sz, sz);
     }
 
-    // Descending terrace ridges — brighter tops so they actually read.
+    // Lit terrace ridges as bands (not full-screen fills).
     const ridgeColors = [
-      { fill: "#243554", rim: "rgba(110, 200, 210, 0.45)", y: HORIZON + 8, drop: 0.55, scroll: 0.22 },
-      { fill: "#1a2740", rim: "rgba(90, 170, 190, 0.35)", y: HORIZON + 48, drop: 0.85, scroll: 0.4 },
-      { fill: "#101a30", rim: "rgba(70, 140, 170, 0.28)", y: HORIZON + 95, drop: 1.15, scroll: 0.65 }
+      { fill: "#3a5578", rim: "rgba(140, 240, 230, 0.7)", y: HORIZON + 6, drop: 0.7, scroll: 0.25, thick: 52 },
+      { fill: "#2a4060", rim: "rgba(100, 200, 220, 0.55)", y: HORIZON + 44, drop: 1.0, scroll: 0.45, thick: 70 },
+      { fill: "#1a2c48", rim: "rgba(80, 160, 190, 0.4)", y: HORIZON + 92, drop: 1.3, scroll: 0.7, thick: 88 }
     ];
     for (let layer = 0; layer < ridgeColors.length; layer += 1) {
       const cfg = ridgeColors[layer];
       const scroll = worldZ * cfg.scroll;
-      ctx.beginPath();
       const pts = [];
-      for (let i = 0; i <= 16; i += 1) {
-        const x = (i / 16) * W;
-        // Ridges fall harder toward screen center-bottom = downhill valley.
-        const towardCenter = Math.abs(i / 16 - 0.5) * 2;
-        const drop = (1 - towardCenter) * 55 * cfg.drop + i * 2.2 * cfg.drop;
-        const jagged = Math.sin(i * 1.15 + scroll * 0.09 + layer * 2.1) * (10 + layer * 5);
-        const y = cfg.y + drop + jagged;
-        pts.push({ x, y });
+      for (let i = 0; i <= 18; i += 1) {
+        const x = (i / 18) * W;
+        const towardCenter = Math.abs(i / 18 - 0.5) * 2;
+        const drop = (1 - towardCenter) * 70 * cfg.drop + towardCenter * 8;
+        const jagged = Math.sin(i * 1.05 + scroll * 0.1 + layer * 2.2) * (11 + layer * 5);
+        pts.push({ x, y: cfg.y + drop + jagged });
       }
-      ctx.moveTo(0, H);
-      ctx.lineTo(pts[0].x, pts[0].y);
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
       for (const p of pts) ctx.lineTo(p.x, p.y);
-      ctx.lineTo(W, H);
+      for (let i = pts.length - 1; i >= 0; i -= 1) {
+        ctx.lineTo(pts[i].x, pts[i].y + cfg.thick);
+      }
       ctx.closePath();
       ctx.fillStyle = cfg.fill;
       ctx.fill();
@@ -491,7 +490,7 @@
       ctx.moveTo(pts[0].x, pts[0].y);
       for (const p of pts) ctx.lineTo(p.x, p.y);
       ctx.strokeStyle = cfg.rim;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.5;
       ctx.stroke();
     }
 
@@ -518,27 +517,56 @@
   }
 
   function drawDescentScenery() {
-    // Lit canyon walls + pillars that rush past beside the track.
+    // Continuous canyon walls + lit pillars rushing past.
+    const wallZs = [12, 28, 48, 72, 100];
+    for (const rel of wallZs) {
+      const z0 = worldZ + rel;
+      const z1 = z0 + 14;
+      for (const s of [-1, 1]) {
+        const xOut = s * 13.5;
+        const xIn = s * 7.8;
+        const a = project(xOut, 4.2, z0);
+        const b = project(xIn, 1.2, z0);
+        const c = project(xIn, -2.4, z1);
+        const d = project(xOut, -1.2, z1);
+        if (!(a && b && c && d)) continue;
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.lineTo(c.x, c.y);
+        ctx.lineTo(d.x, d.y);
+        ctx.closePath();
+        ctx.fillStyle = s < 0 ? "rgba(45, 70, 95, 0.4)" : "rgba(35, 58, 82, 0.38)";
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(b.x, b.y);
+        ctx.lineTo(c.x, c.y);
+        ctx.strokeStyle = "rgba(90, 230, 220, 0.32)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+    }
+
     const startZ = worldZ + 5;
     const endZ = worldZ + LOOK_AHEAD * SEGMENT_LEN * 0.85;
-    const step = 6.5;
+    const step = 5.5;
 
     for (let z = Math.floor(startZ / step) * step; z < endZ; z += step) {
       const seed = Math.floor(z * 1.01 / step);
-      const fade = Math.max(0.2, 1 - (z - worldZ) * 0.011);
-      const sides = seed % 4 === 0 ? [-1, 1] : [seed % 2 === 0 ? -1 : 1];
+      const fade = Math.max(0.25, 1 - (z - worldZ) * 0.01);
+      const sides = seed % 3 === 0 ? [-1, 1] : [seed % 2 === 0 ? -1 : 1];
 
       for (const s of sides) {
-        const x = s * (8.6 + (seed % 4) * 1.1);
-        const tall = 2.8 + (seed % 5) * 0.7;
-        const foot = -1.2 - (seed % 3) * 0.35;
+        const x = s * (8.2 + (seed % 4) * 0.9);
+        const tall = 3.2 + (seed % 5) * 0.75;
+        const foot = -1.4 - (seed % 3) * 0.4;
         const z0 = z;
-        const z1 = z + 2.8 + (seed % 2);
+        const z1 = z + 2.4 + (seed % 2);
 
-        const outerTop = project(x + s * 1.1, tall, z0);
-        const innerTop = project(x - s * 0.15, tall * 0.75, z0);
-        const outerBot = project(x + s * 1.1, foot, z1);
-        const innerBot = project(x - s * 0.15, foot - 0.6, z1);
+        const outerTop = project(x + s * 1.2, tall, z0);
+        const innerTop = project(x - s * 0.1, tall * 0.7, z0);
+        const outerBot = project(x + s * 1.2, foot, z1);
+        const innerBot = project(x - s * 0.1, foot - 0.7, z1);
         if (!(outerTop && innerTop && outerBot && innerBot)) continue;
 
         ctx.beginPath();
@@ -548,52 +576,44 @@
         ctx.lineTo(outerBot.x, outerBot.y);
         ctx.closePath();
         ctx.fillStyle = s < 0
-          ? `rgba(38, 58, 78, ${0.72 * fade})`
-          : `rgba(30, 48, 68, ${0.68 * fade})`;
+          ? `rgba(55, 82, 108, ${0.8 * fade})`
+          : `rgba(44, 68, 92, ${0.76 * fade})`;
         ctx.fill();
 
-        // Bright rim so pillars don't disappear into the night.
         ctx.beginPath();
         ctx.moveTo(innerTop.x, innerTop.y);
         ctx.lineTo(innerBot.x, innerBot.y);
-        ctx.strokeStyle = `rgba(90, 230, 220, ${0.35 * fade})`;
-        ctx.lineWidth = Math.max(1.5, innerTop.scale * 0.05);
+        ctx.strokeStyle = `rgba(100, 245, 230, ${0.55 * fade})`;
+        ctx.lineWidth = Math.max(2, innerTop.scale * 0.06);
         ctx.stroke();
 
-        ctx.beginPath();
-        ctx.moveTo(outerTop.x, outerTop.y);
-        ctx.lineTo(outerBot.x, outerBot.y);
-        ctx.strokeStyle = `rgba(40, 70, 100, ${0.4 * fade})`;
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-
-        // Downhill strata
-        for (let k = 0; k < 3; k += 1) {
-          const t = 0.18 + k * 0.22;
-          const a = project(x + s * 0.9, tall * (1 - t) + foot * t, z0 + (z1 - z0) * t);
-          const b = project(x, tall * 0.7 * (1 - t) + (foot - 0.3) * t, z0 + (z1 - z0) * t);
-          if (!a || !b) continue;
-          ctx.beginPath();
-          ctx.moveTo(a.x, a.y);
-          ctx.lineTo(b.x, b.y);
-          ctx.strokeStyle = `rgba(120, 180, 200, ${0.16 * fade})`;
-          ctx.lineWidth = 1;
-          ctx.stroke();
+        if (seed % 2 === 0) {
+          const m1 = project(x + s * 0.3, tall * 0.55, z0 + 0.8);
+          const m2 = project(x + s * 0.7, tall * 0.35, z0 + 1.4);
+          const m3 = project(x + s * 0.3, tall * 0.15, z0 + 2.0);
+          if (m1 && m2 && m3) {
+            ctx.beginPath();
+            ctx.moveTo(m1.x, m1.y);
+            ctx.lineTo(m2.x, m2.y);
+            ctx.lineTo(m3.x, m3.y);
+            ctx.strokeStyle = `rgba(255, 210, 120, ${0.35 * fade})`;
+            ctx.lineWidth = 2;
+            ctx.stroke();
+          }
         }
 
-        // Occasional glowing crystal / marker on the cliff
         if (seed % 3 === 2) {
-          const cy = 1.1 + (seed % 4) * 0.35;
-          const c0 = project(x + s * 0.35, cy + 0.55, z0 + 1.2);
-          const c1 = project(x + s * 0.55, cy, z0 + 1.5);
-          const c2 = project(x + s * 0.2, cy - 0.15, z0 + 1.1);
+          const cy = 1.3 + (seed % 4) * 0.4;
+          const c0 = project(x + s * 0.4, cy + 0.7, z0 + 1.1);
+          const c1 = project(x + s * 0.65, cy, z0 + 1.5);
+          const c2 = project(x + s * 0.25, cy - 0.2, z0 + 1.0);
           if (c0 && c1 && c2) {
             ctx.beginPath();
             ctx.moveTo(c0.x, c0.y);
             ctx.lineTo(c1.x, c1.y);
             ctx.lineTo(c2.x, c2.y);
             ctx.closePath();
-            ctx.fillStyle = `rgba(80, 240, 220, ${0.45 * fade})`;
+            ctx.fillStyle = `rgba(90, 255, 230, ${0.55 * fade})`;
             ctx.fill();
           }
         }

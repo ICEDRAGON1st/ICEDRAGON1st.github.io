@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917c": [
+    "Ramp Rush: punchier canyon terraces, walls, and descent cues"
+  ],
   "20260917b": [
     "Ramp Rush: clearer downhill canyon background"
   ],
