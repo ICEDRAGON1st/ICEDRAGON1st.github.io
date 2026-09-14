@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916r": [
+    "Fishing Idle: ICE_DRAGON best catch set to Shiny Primefin (still updates if you beat it)"
+  ],
   "20260916q": [
     "Fishing Idle: best catch + leaderboard show Silver/Gold/Diamond/Rainbow/Shiny mutations (variants rank higher)"
   ],

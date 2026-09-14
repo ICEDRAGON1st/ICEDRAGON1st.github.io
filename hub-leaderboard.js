@@ -717,6 +717,37 @@
     // Drop old Abyss King floor seeds so they can't reappear after this wipe.
     delete resets["fishing:ice_dragon-abyss-king-v1"];
     delete resets["fishing:ice_dragon-abyss-king-v2"];
+
+    // One-time floor: ICE_DRAGON best catch → Shiny Primefin (can still be beaten).
+    const icePrimefinKey = "fishing:ice_dragon-primefin-shiny-v1";
+    if (!resets[icePrimefinKey]) {
+      resets[icePrimefinKey] = Date.now();
+      const prime = FISHING_CATCH_FISH.find((f) => f.id === "primefin");
+      if (prime) {
+        const shinyEntry = { variant: "", shiny: true };
+        const floorScore = fishingCatchScore(prime, shinyEntry);
+        const iceKey = "ice_dragon";
+        const existing = fishingBoard[iceKey];
+        const existingScore = Number(existing?.score) || 0;
+        if (floorScore > existingScore) {
+          fishingBoard[iceKey] = {
+            name: existing?.name || "ICE_DRAGON",
+            score: floorScore,
+            at: Date.now(),
+            playerId: String(existing?.playerId || ""),
+            lowerBetter: false,
+            fishing: {
+              id: prime.id,
+              name: prime.name,
+              rarity: prime.rarity,
+              value: prime.value,
+              variant: "",
+              shiny: true
+            }
+          };
+        }
+      }
+    }
     games.fishing = fishingBoard;
 
     // Sticky name binds: keep scores under the player's current name after renames.
