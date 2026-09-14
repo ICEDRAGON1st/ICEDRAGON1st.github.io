@@ -165,7 +165,7 @@
     combo = 0;
     lives = 3;
     spawnAcc = 0;
-    queue = [makeGuest(), makeGuest()];
+    queue = [makeGuest(), makeGuest(), makeGuest()];
     running = true;
     paused = false;
     updateHud();
@@ -189,7 +189,7 @@
         }
       }
       spawnAcc += 1;
-      if (spawnAcc >= Math.max(6, 12 - Math.floor(score / 40)) && queue.length < 5) {
+      if (spawnAcc >= Math.max(3, 7 - Math.floor(score / 35)) && queue.length < 6) {
         spawnAcc = 0;
         queue.push(makeGuest());
       }

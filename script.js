@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917az": [
+    "Cafe Queue: guests arrive faster"
+  ],
   "20260917ay": [
     "Cafe Queue: guest patience timers run faster"
   ],
