@@ -1263,7 +1263,7 @@
     for (const blk of segBlocks(seg)) drawHazardBlock(seg, blk, h0, h1);
   }
 
-  const SLOPE_BLUE = {
+  const NEON_BLUE = {
     fill: "rgba(0, 0, 0, 0.96)",
     line: "rgba(55, 210, 255, 0.95)",
     soft: "rgba(40, 170, 255, 0.35)",
@@ -1272,8 +1272,8 @@
 
   function drawNeonGridFace(corners, opts = {}) {
     if (!corners.every(Boolean)) return;
-    const fill = opts.fill || SLOPE_BLUE.fill;
-    const line = opts.line || SLOPE_BLUE.line;
+    const fill = opts.fill || NEON_BLUE.fill;
+    const line = opts.line || NEON_BLUE.line;
     const uDiv = opts.uDiv || 4;
     const vDiv = opts.vDiv || 3;
     ctx.beginPath();
@@ -1284,7 +1284,7 @@
     ctx.closePath();
     ctx.fillStyle = fill;
     ctx.fill();
-    ctx.strokeStyle = SLOPE_BLUE.glow;
+    ctx.strokeStyle = NEON_BLUE.glow;
     ctx.lineWidth = 3;
     ctx.stroke();
     ctx.strokeStyle = line;
@@ -1297,7 +1297,7 @@
       const dcy = d.y + (c.y - d.y) * u;
       return { x: abx + (dcx - abx) * v, y: aby + (dcy - aby) * v };
     };
-    ctx.strokeStyle = SLOPE_BLUE.soft;
+    ctx.strokeStyle = NEON_BLUE.soft;
     ctx.lineWidth = 1;
     for (let i = 1; i < uDiv; i += 1) {
       const u = i / uDiv;
