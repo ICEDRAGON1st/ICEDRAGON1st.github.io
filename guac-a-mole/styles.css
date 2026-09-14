@@ -143,25 +143,25 @@ body {
 .avocado {
   position: absolute;
   left: 50%;
-  bottom: 22%;
-  width: 58%;
+  bottom: 18%;
+  width: 52%;
   aspect-ratio: 0.78;
   transform: translate(-50%, 130%);
   opacity: 0;
   visibility: hidden;
-  transition: transform 0.16s ease-out, opacity 0.08s ease-out;
+  transition: transform 0.22s ease-out, opacity 0.1s ease-out;
   pointer-events: none;
   z-index: 2;
 }
 
 .hole.up .avocado {
-  transform: translate(-50%, 8%);
+  transform: translate(-50%, 42%);
   opacity: 1;
   visibility: visible;
 }
 
 .hole.hit .avocado {
-  transform: translate(-50%, 8%) scale(0.7) rotate(-18deg);
+  transform: translate(-50%, 42%) scale(0.7) rotate(-18deg);
   opacity: 0.35;
   visibility: visible;
   filter: blur(0.5px);
