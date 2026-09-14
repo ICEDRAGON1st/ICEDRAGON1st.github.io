@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917y": [
+    "Ramp Rush: softer Slope-style edge hangs — recover before tipping off"
+  ],
   "20260917x": [
     "Ramp Rush: locked 1× speed, snappier sideways steer, speed boosts on ramps"
   ],
