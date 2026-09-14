@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916t": [
+    "Ramp Rush: steeper downhill hill view with gravity pull"
+  ],
   "20260916s": [
     "New game: Ramp Rush — original downhill ball runner (not affiliated with Slope)"
   ],

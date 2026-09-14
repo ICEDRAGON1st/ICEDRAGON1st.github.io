@@ -18,11 +18,14 @@
   const HIGH_SCORE_KEY = "ramp-rush-high-score";
   const W = canvas.width;
   const H = canvas.height;
-  const FOV = 320;
-  const CAM_Y = 3.2;
-  const HORIZON = H * 0.28;
+  const FOV = 280;
+  const CAM_HEIGHT = 2.55;
+  const HORIZON = H * 0.16;
   const SEGMENT_LEN = 4.5;
-  const LOOK_AHEAD = 28;
+  const LOOK_AHEAD = 30;
+  /** How steep the hill drops ahead of the ball (world Y falls as Z rises). */
+  const HILL_SLOPE = 0.55;
+  const GRAVITY_ACCEL = 3.8;
 
   let best = Math.max(0, Math.floor(Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0));
   let running = false;
@@ -30,7 +33,7 @@
   let dead = false;
   let waitingStart = true;
   let score = 0;
-  let speed = 18;
+  let speed = 14;
   let ballX = 0;
   let ballVX = 0;
   let worldZ = 0;
@@ -57,7 +60,7 @@
     if (scoreEl) scoreEl.textContent = String(Math.floor(score));
     if (highScoreEl) highScoreEl.textContent = String(best);
     if (overlayBestEl) overlayBestEl.textContent = String(best);
-    if (speedLabelEl) speedLabelEl.textContent = `${(speed / 18).toFixed(1)}×`;
+    if (speedLabelEl) speedLabelEl.textContent = `${(speed / 14).toFixed(1)}×`;
   }
 
   function maybeSubmit(force = false) {
@@ -76,13 +79,23 @@
     if (best >= 250) HubAchievements.unlock("ramp_score_250");
   }
 
+  function groundY(z) {
+    // Track drops away downhill as you race forward (Y-up).
+    return -HILL_SLOPE * (z - worldZ);
+  }
+
   function project(x, y, z) {
     const relZ = z - worldZ;
-    if (relZ <= 0.35) return null;
+    if (relZ <= 0.55) return null;
+    // y = height above the local track surface. Camera sits above the player.
+    const worldY = groundY(z) + y;
+    const camY = CAM_HEIGHT;
     const scale = FOV / relZ;
+    // Canvas Y grows downward: ground below the camera lands under the horizon,
+    // and the slope makes distant track fall farther down the frame.
     return {
       x: W * 0.5 + x * scale,
-      y: HORIZON + (CAM_Y - y) * scale,
+      y: HORIZON + (camY - worldY) * scale,
       scale,
       z: relZ
     };
@@ -124,7 +137,7 @@
 
   function resetWorld() {
     score = 0;
-    speed = 18;
+    speed = 14;
     ballX = 0;
     ballVX = 0;
     worldZ = 0;
@@ -212,7 +225,11 @@
     ballVX *= Math.pow(0.08, dt);
     ballX += ballVX * dt;
 
-    speed = Math.min(42, 18 + score * 0.045);
+    // Gravity pulls you down the hill — speed builds like a real descent.
+    const targetSpeed = Math.min(48, 12 + score * 0.055);
+    speed += (targetSpeed - speed) * Math.min(1, GRAVITY_ACCEL * dt);
+    speed += HILL_SLOPE * 8 * dt;
+    if (speed > 48) speed = 48;
     worldZ += speed * dt;
     score += speed * dt * 0.55;
     fillAhead();
@@ -256,25 +273,76 @@
 
   function drawBackground() {
     const g = ctx.createLinearGradient(0, 0, 0, H);
-    g.addColorStop(0, "#0b1224");
-    g.addColorStop(0.35, "#121c38");
+    g.addColorStop(0, "#87b7ff");
+    g.addColorStop(0.22, "#3a5f9a");
+    g.addColorStop(0.42, "#152446");
     g.addColorStop(1, "#050814");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
 
-    for (let i = 0; i < 40; i += 1) {
-      const sx = ((i * 97 + worldZ * 8) % W + W) % W;
-      const sy = ((i * 53) % (HORIZON - 8)) + 8;
-      ctx.fillStyle = `rgba(200, 230, 255, ${0.15 + (i % 5) * 0.08})`;
+    // Distant mountain ridges below the sky (you're looking down a valley).
+    ctx.fillStyle = "#0d1830";
+    ctx.beginPath();
+    ctx.moveTo(0, HORIZON + 28);
+    for (let i = 0; i <= 12; i += 1) {
+      const x = (i / 12) * W;
+      const y = HORIZON + 18 + Math.sin(i * 1.7 + worldZ * 0.02) * 16 + (i % 3) * 8;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(W, H);
+    ctx.lineTo(0, H);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = "#101f3c";
+    ctx.beginPath();
+    ctx.moveTo(0, HORIZON + 54);
+    for (let i = 0; i <= 10; i += 1) {
+      const x = (i / 10) * W;
+      const y = HORIZON + 46 + Math.cos(i * 1.3 + worldZ * 0.03) * 12;
+      ctx.lineTo(x, y);
+    }
+    ctx.lineTo(W, H);
+    ctx.lineTo(0, H);
+    ctx.closePath();
+    ctx.fill();
+
+    for (let i = 0; i < 28; i += 1) {
+      const sx = ((i * 97 + worldZ * 5) % W + W) % W;
+      const sy = ((i * 53) % Math.max(12, HORIZON - 10)) + 6;
+      ctx.fillStyle = `rgba(255, 255, 255, ${0.2 + (i % 4) * 0.1})`;
       ctx.fillRect(sx, sy, 2, 2);
     }
+  }
 
-    const haze = ctx.createLinearGradient(0, HORIZON - 20, 0, HORIZON + 80);
-    haze.addColorStop(0, "rgba(61, 214, 198, 0)");
-    haze.addColorStop(0.5, "rgba(61, 214, 198, 0.12)");
-    haze.addColorStop(1, "rgba(5, 8, 20, 0)");
-    ctx.fillStyle = haze;
-    ctx.fillRect(0, HORIZON - 30, W, 120);
+  function drawHillSides() {
+    // Soft earth banks beside the ramp so it feels carved into a hillside.
+    const nearZ = worldZ + 1.2;
+    const farZ = worldZ + LOOK_AHEAD * SEGMENT_LEN * 0.85;
+    const leftNear = project(-14, -0.4, nearZ);
+    const leftFar = project(-9, -1.8, farZ);
+    const rightNear = project(14, -0.4, nearZ);
+    const rightFar = project(9, -1.8, farZ);
+    if (leftNear && leftFar) {
+      ctx.beginPath();
+      ctx.moveTo(0, H);
+      ctx.lineTo(leftNear.x, leftNear.y);
+      ctx.lineTo(leftFar.x, leftFar.y);
+      ctx.lineTo(0, HORIZON + 40);
+      ctx.closePath();
+      ctx.fillStyle = "rgba(28, 48, 32, 0.55)";
+      ctx.fill();
+    }
+    if (rightNear && rightFar) {
+      ctx.beginPath();
+      ctx.moveTo(W, H);
+      ctx.lineTo(rightNear.x, rightNear.y);
+      ctx.lineTo(rightFar.x, rightFar.y);
+      ctx.lineTo(W, HORIZON + 40);
+      ctx.closePath();
+      ctx.fillStyle = "rgba(28, 48, 32, 0.55)";
+      ctx.fill();
+    }
   }
 
   function drawSegment(seg) {
@@ -287,27 +355,51 @@
     const p1r = project(half, 0, z1);
     if (!p0l || !p0r || !p1l || !p1r) return;
 
+    // Thickness / cliff edge under the ramp.
+    const under0l = project(-half, -0.55, z0);
+    const under0r = project(half, -0.55, z0);
+    const under1l = project(-half, -0.55, z1);
+    const under1r = project(half, -0.55, z1);
+    if (under0l && under0r && under1l && under1r) {
+      ctx.beginPath();
+      ctx.moveTo(p0l.x, p0l.y);
+      ctx.lineTo(p1l.x, p1l.y);
+      ctx.lineTo(under1l.x, under1l.y);
+      ctx.lineTo(under0l.x, under0l.y);
+      ctx.closePath();
+      ctx.fillStyle = "#0a1224";
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(p0r.x, p0r.y);
+      ctx.lineTo(p1r.x, p1r.y);
+      ctx.lineTo(under1r.x, under1r.y);
+      ctx.lineTo(under0r.x, under0r.y);
+      ctx.closePath();
+      ctx.fillStyle = "#0a1224";
+      ctx.fill();
+    }
+
     ctx.beginPath();
     ctx.moveTo(p0l.x, p0l.y);
     ctx.lineTo(p0r.x, p0r.y);
     ctx.lineTo(p1r.x, p1r.y);
     ctx.lineTo(p1l.x, p1l.y);
     ctx.closePath();
-    ctx.fillStyle = seg.stripe ? "#1a2748" : "#15203c";
+    const shade = Math.max(0.35, 1 - seg.z * 0.002);
+    ctx.fillStyle = seg.stripe ? `rgba(36, 58, 98, ${shade})` : `rgba(26, 42, 74, ${shade})`;
     ctx.fill();
-    ctx.strokeStyle = "rgba(61, 214, 198, 0.35)";
+    ctx.strokeStyle = "rgba(61, 214, 198, 0.4)";
     ctx.lineWidth = 2;
     ctx.stroke();
 
-    // center dashed guide
-    const c0 = project(0, 0.02, z0 + 0.4);
-    const c1 = project(0, 0.02, z1 - 0.4);
+    const c0 = project(0, 0.03, z0 + 0.4);
+    const c1 = project(0, 0.03, z1 - 0.4);
     if (c0 && c1) {
       ctx.beginPath();
       ctx.moveTo(c0.x, c0.y);
       ctx.lineTo(c1.x, c1.y);
-      ctx.strokeStyle = "rgba(232, 244, 255, 0.18)";
-      ctx.lineWidth = Math.max(1, c0.scale * 0.05);
+      ctx.strokeStyle = "rgba(255, 230, 140, 0.28)";
+      ctx.lineWidth = Math.max(1, c0.scale * 0.06);
       ctx.stroke();
     }
 
@@ -393,6 +485,7 @@
       ctx.translate((Math.random() - 0.5) * shake * 2, (Math.random() - 0.5) * shake * 2);
     }
     drawBackground();
+    drawHillSides();
     const sorted = [...segments].sort((a, b) => b.z - a.z);
     sorted.forEach(drawSegment);
     drawBall();
