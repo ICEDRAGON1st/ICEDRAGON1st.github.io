@@ -230,7 +230,7 @@
       name: "Creek",
       cost: 0,
       wait: [1.4, 2.8],
-      valueMult: 0.7,
+      valueMult: 0.65,
       rarity: 0,
       blurb: "All fish · commons dominate · low pay"
     },
@@ -239,7 +239,7 @@
       name: "Pond",
       cost: 120,
       wait: [1.3, 2.6],
-      valueMult: 0.9,
+      valueMult: 0.8,
       rarity: 1,
       blurb: "All fish · slightly better odds"
     },
@@ -248,7 +248,7 @@
       name: "Marsh",
       cost: 400,
       wait: [1.25, 2.5],
-      valueMult: 1.0,
+      valueMult: 0.9,
       rarity: 2,
       blurb: "Murky water · a bit more uncommon"
     },
@@ -257,7 +257,7 @@
       name: "River",
       cost: 800,
       wait: [1.2, 2.4],
-      valueMult: 1.15,
+      valueMult: 1.0,
       rarity: 3,
       blurb: "All fish · uncommon/rare more often"
     },
@@ -266,7 +266,7 @@
       name: "Waterfall",
       cost: 2200,
       wait: [1.15, 2.3],
-      valueMult: 1.3,
+      valueMult: 1.1,
       rarity: 4,
       blurb: "Fast current · rares start showing"
     },
@@ -275,7 +275,7 @@
       name: "Lake",
       cost: 4500,
       wait: [1.1, 2.2],
-      valueMult: 1.45,
+      valueMult: 1.2,
       rarity: 5,
       blurb: "All fish · solid rare/epic odds"
     },
@@ -284,7 +284,7 @@
       name: "Coral Reef",
       cost: 12000,
       wait: [1.05, 2.1],
-      valueMult: 1.7,
+      valueMult: 1.35,
       rarity: 6,
       blurb: "Bright waters · epics more likely"
     },
@@ -293,7 +293,7 @@
       name: "Harbor",
       cost: 25000,
       wait: [1.0, 2.0],
-      valueMult: 1.9,
+      valueMult: 1.5,
       rarity: 7,
       blurb: "All fish · top rarities slightly less rare"
     },
@@ -302,7 +302,7 @@
       name: "Glacier Bay",
       cost: 70000,
       wait: [0.95, 1.9],
-      valueMult: 2.2,
+      valueMult: 1.7,
       rarity: 8,
       blurb: "Icy depth · legendaries thaw more often"
     },
@@ -311,7 +311,7 @@
       name: "Deep Sea",
       cost: 150000,
       wait: [0.9, 1.8],
-      valueMult: 2.6,
+      valueMult: 1.95,
       rarity: 9,
       blurb: "All fish · strong mythic odds"
     },
@@ -320,7 +320,7 @@
       name: "Abyssal Trench",
       cost: 400000,
       wait: [0.85, 1.7],
-      valueMult: 3.1,
+      valueMult: 2.2,
       rarity: 10,
       blurb: "Crushing dark · mythics & secrets stir"
     },
@@ -329,7 +329,7 @@
       name: "Tide Rift",
       cost: 1200000,
       wait: [0.8, 1.55],
-      valueMult: 3.7,
+      valueMult: 2.5,
       rarity: 11,
       blurb: "Warped tides · secrets less impossible"
     },
@@ -338,7 +338,7 @@
       name: "Void Lagoon",
       cost: 4000000,
       wait: [0.75, 1.4],
-      valueMult: 4.5,
+      valueMult: 2.9,
       rarity: 12,
       blurb: "Secrets stir · divine just possible"
     },
@@ -347,7 +347,7 @@
       name: "Celestial Pier",
       cost: 15000000,
       wait: [0.7, 1.3],
-      valueMult: 5.5,
+      valueMult: 3.4,
       rarity: 13,
       blurb: "Holy waters · divine & eternal odds"
     },
@@ -356,7 +356,7 @@
       name: "Aeon Basin",
       cost: 50000000,
       wait: [0.65, 1.2],
-      valueMult: 7,
+      valueMult: 4.0,
       rarity: 14,
       blurb: "Time thins · eternals swim here"
     },
@@ -365,7 +365,7 @@
       name: "Cosmic Rift",
       cost: 200000000,
       wait: [0.6, 1.1],
-      valueMult: 9,
+      valueMult: 4.8,
       rarity: 15,
       blurb: "Edge of everything · cosmic possible"
     },
@@ -374,7 +374,7 @@
       name: "Astral Shoals",
       cost: 800000000,
       wait: [0.55, 1.05],
-      valueMult: 12,
+      valueMult: 5.8,
       rarity: 16,
       blurb: "Starlit shallows · astral fish appear"
     },
@@ -383,7 +383,7 @@
       name: "Event Horizon",
       cost: 4000000000,
       wait: [0.5, 1.0],
-      valueMult: 16,
+      valueMult: 7.0,
       rarity: 17,
       blurb: "Light bends · singularity catches stir"
     },
@@ -392,7 +392,7 @@
       name: "Omega Deep",
       cost: 20000000000,
       wait: [0.45, 0.95],
-      valueMult: 22,
+      valueMult: 8.5,
       rarity: 18,
       blurb: "Bright abyss · omega possible"
     },
@@ -401,7 +401,7 @@
       name: "Prism Reef",
       cost: 80000000000,
       wait: [0.42, 0.9],
-      valueMult: 28,
+      valueMult: 10,
       rarity: 19,
       blurb: "Fractured light · omega more often"
     },
@@ -410,7 +410,7 @@
       name: "Chrono Well",
       cost: 350000000000,
       wait: [0.4, 0.85],
-      valueMult: 36,
+      valueMult: 12,
       rarity: 20,
       blurb: "Time pools · rarest fish linger"
     },
@@ -419,7 +419,7 @@
       name: "Mythforge Basin",
       cost: 1.5e12,
       wait: [0.38, 0.8],
-      valueMult: 48,
+      valueMult: 14,
       rarity: 21,
       blurb: "Molten legend · endgame pays hard"
     },
@@ -428,7 +428,7 @@
       name: "Genesis Pool",
       cost: 7e12,
       wait: [0.35, 0.75],
-      valueMult: 64,
+      valueMult: 17,
       rarity: 22,
       blurb: "First waters · genesis fish stir"
     },
@@ -437,7 +437,7 @@
       name: "Absolution Sea",
       cost: 3e13,
       wait: [0.32, 0.7],
-      valueMult: 85,
+      valueMult: 20,
       rarity: 23,
       blurb: "Beyond omega · absolute shores await"
     },
@@ -446,7 +446,7 @@
       name: "Singularity Mere",
       cost: 1.2e14,
       wait: [0.3, 0.65],
-      valueMult: 110,
+      valueMult: 24,
       rarity: 24,
       blurb: "Collapsed tides · singularity fish pull"
     },
@@ -455,7 +455,7 @@
       name: "Paradox Bay",
       cost: 5e14,
       wait: [0.28, 0.6],
-      valueMult: 145,
+      valueMult: 28,
       rarity: 25,
       blurb: "Two futures · paradox hauls pay"
     },
@@ -464,7 +464,7 @@
       name: "Infinity Reach",
       cost: 2.2e15,
       wait: [0.26, 0.55],
-      valueMult: 190,
+      valueMult: 33,
       rarity: 26,
       blurb: "Endless shelf · infinity rarities rise"
     },
@@ -473,7 +473,7 @@
       name: "Omni Sea",
       cost: 1e16,
       wait: [0.24, 0.5],
-      valueMult: 250,
+      valueMult: 40,
       rarity: 27,
       blurb: "All waters as one · absolute peak"
     }

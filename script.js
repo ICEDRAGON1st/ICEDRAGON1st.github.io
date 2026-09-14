@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916o": [
+    "Fishing Idle: spot sell multipliers nerfed (late spots especially)"
+  ],
   "20260916n": [
     "Fishing Idle: 4 new spots and more endgame upgrades (no boat changes)"
   ],
