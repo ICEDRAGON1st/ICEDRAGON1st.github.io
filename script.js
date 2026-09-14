@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917aj": [
+    "Ramp Rush: Slope-style scoring — 1 point per track section"
+  ],
   "20260917ai": [
     "Ramp Rush: kill blocks every 15 points"
   ],
