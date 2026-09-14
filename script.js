@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916w": [
+    "Ramp Rush: launch ramps over void gaps you have to jump"
+  ],
   "20260916v": [
     "Ramp Rush: fix chase camera so the downhill track reads clearly"
   ],
