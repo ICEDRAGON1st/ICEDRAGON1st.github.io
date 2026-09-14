@@ -31,12 +31,14 @@
   let timeLeft = SEASON_SECS;
   let tool = "plant";
   let plots = [];
+  let plotBtns = [];
   let harvests = 0;
   let running = false;
   let paused = false;
   let sessionStarted = false;
   let lastSubmitAt = 0;
   let tick = 0;
+  let dirty = true;
 
   function ensureSession() {
     if (sessionStarted) return;
@@ -74,34 +76,66 @@
       stage: "empty",
       crop: null,
       thirst: 0,
-      grow: 0
+      grow: 0,
+      viewKey: ""
     }));
+    dirty = true;
   }
 
-  function renderPlots() {
+  function plotView(p) {
+    let emoji = "";
+    let tag = "soil";
+    if (p.stage === "seed") {
+      emoji = "🌱";
+      tag = "seed";
+    } else if (p.stage === "growing") {
+      emoji = p.crop?.emoji || "🌿";
+      tag = p.thirst > 0.55 ? "thirsty" : "growing";
+    } else if (p.stage === "ripe") {
+      emoji = p.crop?.ripe || "✨";
+      tag = "ripe";
+    } else if (p.stage === "wilt") {
+      emoji = "🥀";
+      tag = "wilt";
+    }
+    return { emoji, tag, ready: p.stage === "ripe" };
+  }
+
+  function buildPlots() {
     plotsEl.innerHTML = "";
-    plots.forEach((p, i) => {
+    plotBtns = [];
+    for (let i = 0; i < PLOT_COUNT; i += 1) {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "plot" + (p.stage === "ripe" ? " ready" : "");
-      let emoji = "";
-      let tag = "soil";
-      if (p.stage === "seed") {
-        emoji = "🌱";
-        tag = "seed";
-      } else if (p.stage === "growing") {
-        emoji = p.crop?.emoji || "🌿";
-        tag = p.thirst > 0.55 ? "thirsty" : "growing";
-      } else if (p.stage === "ripe") {
-        emoji = p.crop?.ripe || "✨";
-        tag = "ripe";
-      } else if (p.stage === "wilt") {
-        emoji = "🥀";
-        tag = "wilt";
-      }
-      btn.innerHTML = `${emoji}<span class="tag">${tag}</span>`;
-      btn.addEventListener("click", () => useTool(i));
+      btn.className = "plot";
+      btn.innerHTML = `<span class="crop"></span><span class="tag">soil</span>`;
+      btn.addEventListener("pointerdown", (e) => {
+        e.preventDefault();
+        useTool(i);
+      });
       plotsEl.appendChild(btn);
+      plotBtns.push(btn);
+      if (plots[i]) plots[i].viewKey = "";
+    }
+    dirty = true;
+    paintPlots(true);
+  }
+
+  function paintPlots(force = false) {
+    if (!force && !dirty) return;
+    dirty = false;
+    plots.forEach((p, i) => {
+      const btn = plotBtns[i];
+      if (!btn) return;
+      const view = plotView(p);
+      const key = `${p.stage}|${view.tag}|${view.emoji}`;
+      if (!force && p.viewKey === key) return;
+      p.viewKey = key;
+      btn.classList.toggle("ready", view.ready);
+      const cropEl = btn.querySelector(".crop");
+      const tagEl = btn.querySelector(".tag");
+      if (cropEl) cropEl.textContent = view.emoji;
+      if (tagEl) tagEl.textContent = view.tag;
     });
   }
 
@@ -109,22 +143,25 @@
     if (!running || paused) return;
     ensureSession();
     const p = plots[i];
+    if (!p) return;
+
     if (tool === "plant") {
       if (p.stage !== "empty" && p.stage !== "wilt") {
         window.HubSound?.play?.("miss");
         return;
       }
-      p.stage = "seed";
+      // Plant straight into a watered seedling so clicks always "stick".
+      p.stage = "growing";
       p.crop = CROPS[Math.floor(Math.random() * CROPS.length)];
-      p.thirst = 0.35;
-      p.grow = 0;
+      p.thirst = 0.15;
+      p.grow = 0.05;
       window.HubSound?.play?.("click");
     } else if (tool === "water") {
       if (p.stage !== "seed" && p.stage !== "growing") {
         window.HubSound?.play?.("miss");
         return;
       }
-      p.thirst = Math.max(0, p.thirst - 0.55);
+      p.thirst = Math.max(0, p.thirst - 0.65);
       if (p.stage === "seed") p.stage = "growing";
       window.HubSound?.play?.("click");
     } else if (tool === "harvest") {
@@ -147,9 +184,12 @@
       }
       window.HubSound?.play?.("win");
       checkAchievements();
+    } else {
+      return;
     }
+    dirty = true;
     updateHud();
-    renderPlots();
+    paintPlots(true);
   }
 
   function endSeason(final = false) {
@@ -181,7 +221,7 @@
     emptyPlots();
     checkAchievements();
     updateHud();
-    renderPlots();
+    paintPlots(true);
   }
 
   function startGame() {
@@ -196,28 +236,37 @@
     running = true;
     paused = false;
     updateHud();
-    renderPlots();
+    buildPlots();
     overlay?.classList.add("hidden");
     resumeBtn?.classList.add("hidden");
     clearInterval(tick);
     tick = setInterval(() => {
       if (!running || paused) return;
       timeLeft -= 0.1;
+      let changed = false;
       plots.forEach((p) => {
-        if (p.stage === "seed" || p.stage === "growing") {
-          p.thirst += 0.018 + season * 0.002;
-          if (p.thirst < 0.7) p.grow += 0.028;
-          if (p.thirst >= 1.15) p.stage = "wilt";
-          else if (p.grow >= 1 && p.stage === "growing") p.stage = "ripe";
+        if (p.stage !== "growing" && p.stage !== "seed") return;
+        const before = `${p.stage}|${p.thirst > 0.55}|${p.grow >= 1}`;
+        p.thirst += 0.012 + season * 0.0015;
+        if (p.thirst < 0.75) p.grow += 0.03;
+        if (p.thirst >= 1.25) {
+          p.stage = "wilt";
+          changed = true;
+        } else if (p.grow >= 1 && (p.stage === "growing" || p.stage === "seed")) {
+          p.stage = "ripe";
+          changed = true;
+        } else if (`${p.stage}|${p.thirst > 0.55}|${p.grow >= 1}` !== before) {
+          changed = true;
         }
       });
+      if (changed) dirty = true;
       if (timeLeft <= 0) {
         if (season >= 4) endSeason(true);
         else endSeason(false);
         return;
       }
       updateHud();
-      renderPlots();
+      paintPlots();
     }, 100);
   }
 
@@ -243,7 +292,8 @@
   }
 
   toolBtns.forEach((btn) => {
-    btn.addEventListener("click", () => {
+    btn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
       tool = btn.dataset.tool;
       toolBtns.forEach((b) => b.classList.toggle("active", b === btn));
     });
@@ -269,7 +319,7 @@
   });
 
   emptyPlots();
-  renderPlots();
+  buildPlots();
   updateHud();
   maybeSubmit(false);
 })();
