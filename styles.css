@@ -2305,6 +2305,11 @@ header h1 {
   font-weight: 800;
 }
 
+.player-name-master-fisher {
+  color: #2ec4b6;
+  font-weight: 800;
+}
+
 .player-name-cheesy {
   font-weight: 800;
   background-color: #f0b429;
@@ -2412,6 +2417,11 @@ header h1 {
 .player-title-legend {
   color: #1a1a1a;
   background: #f1c40f;
+}
+
+.player-title-master-fisher {
+  color: #042f2e;
+  background: #2ec4b6;
 }
 
 .player-title-tester {
@@ -2536,6 +2546,11 @@ header h1 {
 .title-pick-btn.player-title-legend {
   color: #1a1a1a;
   background: #f1c40f;
+}
+
+.title-pick-btn.player-title-master-fisher {
+  color: #042f2e;
+  background: #2ec4b6;
 }
 
 .title-pick-btn.player-title-tester {

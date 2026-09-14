@@ -1051,6 +1051,10 @@
           ...newer,
           legend: !!(existing.legend || claim.legend),
           legendAt: Math.max(Number(existing.legendAt) || 0, Number(claim.legendAt) || 0) || undefined,
+          masterFisher: !!(existing.masterFisher || claim.masterFisher),
+          masterFisherAt:
+            Math.max(Number(existing.masterFisherAt) || 0, Number(claim.masterFisherAt) || 0) ||
+            undefined,
           activeTitle: pickStyle("activeTitle"),
           accentTitle: pickStyle("accentTitle"),
           accentColor: pickStyle("accentColor"),
@@ -1062,6 +1066,7 @@
         };
         if (out[key].claimedAt === Infinity) out[key].claimedAt = newer.claimedAt || older.claimedAt;
         if (!out[key].legendAt) delete out[key].legendAt;
+        if (!out[key].masterFisherAt) delete out[key].masterFisherAt;
         if (!out[key].profileUpdatedAt) delete out[key].profileUpdatedAt;
         return;
       }
@@ -1267,6 +1272,7 @@
           name: next,
           claimedAt: existing?.claimedAt || myClaimAt,
           legend: !!existing?.legend,
+          masterFisher: !!existing?.masterFisher,
           activeTitle: existing?.activeTitle || "",
           accentTitle: existing?.accentTitle || "",
           accentColor: existing?.accentColor || "",
@@ -1313,9 +1319,11 @@
 
       const nextNames = { ...remoteNames };
       let keepLegend = !!existing?.legend;
+      let keepMasterFisher = !!existing?.masterFisher;
       Object.keys(nextNames).forEach((k) => {
         if (k !== key && nextNames[k]?.playerId === me) {
           if (nextNames[k]?.legend) keepLegend = true;
+          if (nextNames[k]?.masterFisher) keepMasterFisher = true;
           delete nextNames[k];
         }
       });
@@ -1325,6 +1333,7 @@
         name: next,
         claimedAt: existing?.claimedAt || myClaimAt,
         legend: keepLegend,
+        masterFisher: keepMasterFisher,
         activeTitle: existing?.activeTitle || "",
         accentTitle: existing?.accentTitle || "",
         accentColor: existing?.accentColor || "",
@@ -2517,6 +2526,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       nameClass = extra.nameClass;
     } else if (accent === "#f1c40f") {
       nameClass = "player-name-legend";
+    } else if (accent === "#2ec4b6") {
+      nameClass = "player-name-master-fisher";
     } else if (accent === "#f0b429") {
       nameClass = "player-name-cheesy";
     } else if (accent === "#2f9e44") {
@@ -2613,6 +2624,10 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   color: #1a1a1a;
   background: #f1c40f;
 }
+.player-title-master-fisher {
+  color: #042f2e;
+  background: #2ec4b6;
+}
 .player-title-tester {
   color: #fff;
   background: #e03131;
@@ -2686,6 +2701,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 .menu-credit .player-name-tide,
 .site-credit .player-name-legend,
 .menu-credit .player-name-legend,
+.site-credit .player-name-master-fisher,
+.menu-credit .player-name-master-fisher,
 .site-credit .player-name-oscar,
 .menu-credit .player-name-oscar,
 .site-credit .player-name-cheesy,
@@ -2709,6 +2726,10 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 .site-credit .player-name-legend,
 .menu-credit .player-name-legend {
   color: #fcc419;
+}
+.site-credit .player-name-master-fisher,
+.menu-credit .player-name-master-fisher {
+  color: #2ec4b6;
 }
 .site-credit .player-name-cheesy,
 .menu-credit .player-name-cheesy {
@@ -2861,6 +2882,11 @@ body.light .menu-credit .player-name-creator {
     og: { id: "og", label: "OG", className: "player-title-og" },
     tester: { id: "tester", label: "TESTER", className: "player-title-tester" },
     legend: { id: "legend", label: "LEGEND", className: "player-title-legend" },
+    master_fisher: {
+      id: "master_fisher",
+      label: "MASTER FISHER",
+      className: "player-title-master-fisher"
+    },
     cheesy: { id: "cheesy", label: "CHEESY LIL GUY", className: "player-title-cheesy" }
   };
 
@@ -2869,6 +2895,7 @@ body.light .menu-credit .player-name-creator {
     og: "#2f9e44",
     tester: "#e03131",
     legend: "#f1c40f",
+    master_fisher: "#2ec4b6",
     cheesy: "#f0b429"
   };
 
@@ -2942,6 +2969,13 @@ body.light .menu-credit .player-name-creator {
     return !!(claim && claim.legend);
   }
 
+  function isMasterFisherName(name) {
+    const key = nameKey(name);
+    if (!key) return false;
+    const claim = namesCache[key];
+    return !!(claim && claim.masterFisher);
+  }
+
   function getClaimForName(name) {
     const key = nameKey(name);
     return key ? namesCache[key] || null : null;
@@ -2960,6 +2994,13 @@ body.light .menu-credit .player-name-creator {
 
   const CHEESY_NAME_KEYS = new Set(["oscarvr29"]);
 
+  function selfHasMasterFisher() {
+    return (
+      typeof HubAchievements !== "undefined" &&
+      !!HubAchievements.isUnlocked?.("fishing_all")
+    );
+  }
+
   function getAvailableTitleIds(name = getName()) {
     const ids = [];
     const key = nameKey(name);
@@ -2968,6 +3009,9 @@ body.light .menu-credit .player-name-creator {
     if (OG_NAME_KEYS.has(key)) ids.push("og");
     if (TESTER_NAME_KEYS.has(key)) ids.push("tester");
     if (CHEESY_NAME_KEYS.has(key)) ids.push("cheesy");
+    const selfMaster =
+      key === nameKey(getName()) && (isMasterFisherName(name) || selfHasMasterFisher());
+    if (isMasterFisherName(name) || selfMaster) ids.push("master_fisher");
     // ICE_DRAGON: reserved titles only (no LEGEND path on this account).
     if (key === "ice_dragon") return ids;
     const selfLegend =
@@ -2978,11 +3022,12 @@ body.light .menu-credit .player-name-creator {
     return ids;
   }
 
-  /** Titles shown in Players UI — unlocked ones, plus LEGEND for everyone. */
+  /** Titles shown in Players UI — unlocked ones, plus LEGEND / MASTER FISHER teases. */
   function getTitleShowcase(name = getName()) {
     const unlocked = new Set(getAvailableTitleIds(name));
     const ids = [...unlocked];
     if (!unlocked.has("legend")) ids.push("legend");
+    if (!unlocked.has("master_fisher")) ids.push("master_fisher");
     return ids.map((id) => {
       const def = TITLE_DEFS[id];
       return {
@@ -3280,6 +3325,16 @@ body.light .menu-credit .player-name-creator {
     return ok;
   }
 
+  async function markMasterFisher() {
+    const ok = await patchMyClaim((existing) => {
+      if (existing.masterFisher) return null;
+      const next = { ...existing, masterFisher: true, masterFisherAt: Date.now() };
+      if (!next.activeTitle) next.activeTitle = "master_fisher";
+      return next;
+    });
+    return ok;
+  }
+
   async function setActiveTitle(titleId) {
     const available = getAvailableTitleIds();
     const nextId = String(titleId || "").toLowerCase();
@@ -3389,6 +3444,8 @@ body.light .menu-credit .player-name-creator {
     reconcileOnlineSeconds,
     markLegend,
     isLegendName,
+    markMasterFisher,
+    isMasterFisherName,
     getAvailableTitleIds,
     getTitleShowcase,
     getColorShowcase,

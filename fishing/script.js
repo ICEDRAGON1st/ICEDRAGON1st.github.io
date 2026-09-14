@@ -2464,7 +2464,8 @@
 
   function noteCatch(fish, entry) {
     if (!fish || isTreasureItem(fish)) return;
-    markCaught(fish, entry);
+    const changed = markCaught(fish, entry);
+    if (changed) checkAchievements();
     const score = catchScore(fish);
     if (score <= (state.bestCatchScore || 0)) return;
     state.bestCatchScore = score;
@@ -3247,6 +3248,15 @@
     if (boatLevel() >= 3) HubAchievements.unlock("fishing_fps_100");
     if (state.unlocked.deep) HubAchievements.unlock("fishing_voyage_1");
     if (state.unlocked.void) HubAchievements.unlock("fishing_voyage_1");
+    if (FISH.length > 0 && caughtCount("any") >= FISH.length) {
+      const newly = HubAchievements.unlock("fishing_all");
+      window.HubPlays?.markMasterFisher?.().catch?.(() => {});
+      if (newly) {
+        setTimeout(() => {
+          setCatchLine("Catch book complete — title unlocked: MASTER FISHER", "perfect");
+        }, 900);
+      }
+    }
   }
 
   function ensureSession() {

@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916k": [
+    "Fishing Idle: MASTER FISHER title for catching every fish"
+  ],
   "20260916j": [
     "Fishing Idle: catch book filter buttons for All, Normal, and each variant"
   ],
@@ -4324,6 +4327,15 @@ function getPlayerTitleBadges(name) {
     ) {
       HubPlays.markLegend?.().catch(() => {});
     }
+    if (
+      typeof HubAchievements !== "undefined" &&
+      HubAchievements.isUnlocked?.("fishing_all") &&
+      hasPlayerName() &&
+      String(HubPlays.getName?.() || "").trim().toLowerCase() ===
+        String(name || "").trim().toLowerCase()
+    ) {
+      HubPlays.markMasterFisher?.().catch(() => {});
+    }
     const badge = HubPlays.getActiveTitleBadge(name);
     return badge ? [badge] : [];
   }
@@ -4350,6 +4362,7 @@ function formatPlayerNameHtml(name) {
   let nameClass = "player-name-custom";
   if (extra?.nameClass) nameClass = extra.nameClass;
   else if (accent === "#f1c40f") nameClass = "player-name-legend";
+  else if (accent === "#2ec4b6") nameClass = "player-name-master-fisher";
   else if (isCheesyAccent) nameClass = "player-name-cheesy";
   else if (accent === "#2f9e44") nameClass = "player-name-oscar";
   else if (accent === "#1c7ed6") nameClass = "player-name-creator";
@@ -4384,9 +4397,9 @@ function renderTitlePicker() {
     return;
   }
 
-  // Show unlocked titles always; LEGEND stays visible even when locked.
+  // Show unlocked titles always; LEGEND / MASTER FISHER stay visible even when locked.
   const showcase = (HubPlays.getTitleShowcase?.() || []).filter(
-    (t) => t.unlocked || t.id === "legend"
+    (t) => t.unlocked || t.id === "legend" || t.id === "master_fisher"
   );
   if (!showcase.length) {
     picker.classList.add("hidden");
@@ -4408,7 +4421,9 @@ function renderTitlePicker() {
       const locked = !opt.unlocked;
       const selected = !locked && (active === opt.id || (opt.id === "none" && active === "none"));
       const hint = locked
-        ? "Unlock all achievements"
+        ? opt.id === "master_fisher"
+          ? "Catch every fish in Fishing Idle"
+          : "Unlock all achievements"
         : opt.label;
       return `<button type="button" class="title-pick-btn ${escapeHtml(opt.className)}${
         selected ? " active" : ""
@@ -4438,7 +4453,7 @@ function renderColorPicker() {
     HubPlays.getColorShowcase?.() ||
     HubPlays.getTitleShowcase?.() ||
     []
-  ).filter((t) => t.unlocked || t.id === "legend");
+  ).filter((t) => t.unlocked || t.id === "legend" || t.id === "master_fisher");
   if (!showcase.length) {
     picker.classList.add("hidden");
     buttons.innerHTML = "";
@@ -4460,7 +4475,9 @@ function renderColorPicker() {
       const extra = HubPlays.EXTRA_COLORS?.[opt.id];
       const isAnimated = !!(opt.animated || extra?.animated);
       const hint = locked
-        ? "LEGEND yellow — unlock all achievements"
+        ? opt.id === "master_fisher"
+          ? "MASTER FISHER teal — catch every fish in Fishing Idle"
+          : "LEGEND yellow — unlock all achievements"
         : canPick
           ? isAnimated
             ? `${opt.label} animated color (keeps your title)`
@@ -4503,7 +4520,9 @@ document.getElementById("title-picker-buttons")?.addEventListener("click", async
     setPlayerNameStatus(
       id === "legend"
         ? "LEGEND (yellow) unlocks when you complete all achievements"
-        : id === "og"
+        : id === "master_fisher"
+          ? "MASTER FISHER unlocks when you catch every fish in Fishing Idle"
+          : id === "og"
           ? "OG (green) is a reserved title"
           : id === "tester"
             ? "TESTER (red) is a reserved title"
@@ -4543,7 +4562,9 @@ document.getElementById("color-picker-buttons")?.addEventListener("click", async
     setPlayerNameStatus(
       id === "legend"
         ? "Yellow unlocks with LEGEND (all achievements)"
-        : id === "og"
+        : id === "master_fisher"
+          ? "Teal unlocks with MASTER FISHER (catch every fish)"
+          : id === "og"
           ? "Green unlocks with the OG title"
           : id === "owner"
             ? "Blue is the OWNER color"
