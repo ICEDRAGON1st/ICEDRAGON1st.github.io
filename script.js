@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917bc": [
+    "What's new opens over My Games instead of Guessword"
+  ],
   "20260917bb": [
     "Garden Snap: force cache refresh so planting fix loads"
   ],
@@ -4954,21 +4957,25 @@ const sixCount = typeof WORDS_6 !== "undefined" ? WORDS_6.length : 0;
 applySiteConfig();
 showMessage(`Loaded · ${sixCount} six-letter words`);
 
-let afterWhatsNew = null;
-if (location.hash === "#wordle") {
-  afterWhatsNew = showMenu;
-} else {
-  afterWhatsNew = showGamesScreen;
-}
-
 function bootAfterUsername() {
+  // Land on My Games first so What's new never sits on the Guessword board.
+  if (location.hash === "#wordle") {
+    if (showWhatsNew()) {
+      whatsNewOkBtn?.addEventListener("click", () => {
+        hideWhatsNew();
+        showMenu();
+      }, { once: true });
+    } else {
+      showMenu();
+    }
+    return;
+  }
+
+  showGamesScreen();
   if (showWhatsNew()) {
     whatsNewOkBtn?.addEventListener("click", () => {
       hideWhatsNew();
-      afterWhatsNew?.();
-    });
-  } else {
-    afterWhatsNew?.();
+    }, { once: true });
   }
 }
 
