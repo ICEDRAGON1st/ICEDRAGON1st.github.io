@@ -45,9 +45,6 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
-  "20260917be": [
-    "Fishing Idle: admin give fish (mutations + to you or other players)"
-  ],
   "20260917bd": [
     "My Games: no more Guessword flash on load"
   ],
