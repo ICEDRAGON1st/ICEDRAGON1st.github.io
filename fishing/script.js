@@ -863,6 +863,8 @@
       autoSellRarities: defaultAutoSell(),
       bestCatchScore: 0,
       bestCatchId: "",
+      bestCatchVariant: "",
+      bestCatchShiny: false,
       caught: {},
       boatLevel: 0,
       catches: 0,
@@ -2240,13 +2242,27 @@
       next.perfects = Math.max(0, Math.floor(Number(raw.perfects) || 0));
       next.bestCatchScore = Math.max(0, Math.floor(Number(raw.bestCatchScore) || 0));
       next.bestCatchId = typeof raw.bestCatchId === "string" ? raw.bestCatchId : "";
+      next.bestCatchVariant = normalizeVariant(raw.bestCatchVariant);
+      next.bestCatchShiny = !!raw.bestCatchShiny;
       if (!next.bestCatchScore) {
         next.bestCatchScore = getStoredBest();
       }
       if (!next.bestCatchId && next.bestCatchScore) {
-        const match = FISH.find((f) => catchScore(f) === next.bestCatchScore);
+        const match = fishFromCatchScore(next.bestCatchScore);
         if (match) next.bestCatchId = match.id;
       }
+      try {
+        const meta = JSON.parse(localStorage.getItem(BEST_CATCH_META_KEY) || "null");
+        if (meta && typeof meta === "object") {
+          if (!next.bestCatchId && typeof meta.id === "string" && fishById(meta.id)) {
+            next.bestCatchId = meta.id;
+          }
+          if (meta.id && meta.id === next.bestCatchId) {
+            next.bestCatchVariant = normalizeVariant(meta.variant) || next.bestCatchVariant;
+            next.bestCatchShiny = !!(meta.shiny || next.bestCatchShiny);
+          }
+        }
+      } catch {}
       next.caught = {};
       if (raw.caught && typeof raw.caught === "object") {
         Object.keys(raw.caught).forEach((id) => {
@@ -2486,12 +2502,7 @@
       const best = Math.max(getStoredBest(), Math.floor(state.bestCatchScore || 0));
       localStorage.setItem(HIGH_SCORE_KEY, String(best));
       const fish = fishById(state.bestCatchId);
-      if (fish) {
-        localStorage.setItem(
-          BEST_CATCH_META_KEY,
-          JSON.stringify({ id: fish.id, name: fish.name, rarity: fish.rarity, value: fish.value })
-        );
-      }
+      if (fish) persistBestCatchMeta(fish, bestCatchEntry());
     } catch {}
   }
 
@@ -2499,32 +2510,87 @@
     return Math.max(0, Math.floor(Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0));
   }
 
-  function catchScore(fish) {
+  function catchScore(fish, entry) {
+    if (!fish) return 0;
+    const rank = RARITY_RANK[fish.rarity] || 1;
+    const tier = variantTier(entry);
+    return (rank * 100 + tier) * 100000 + Math.max(0, Math.floor(Number(fish.value) || 0));
+  }
+
+  function legacyCatchScore(fish) {
     if (!fish) return 0;
     const rank = RARITY_RANK[fish.rarity] || 1;
     return rank * 100000 + Math.max(0, Math.floor(Number(fish.value) || 0));
+  }
+
+  function variantTier(entry) {
+    const v = normalizeVariant(entry?.variant);
+    const primary = v === "silver" ? 1 : v === "gold" ? 2 : v === "diamond" ? 3 : v === "rainbow" ? 4 : 0;
+    return primary + (entry?.shiny ? 5 : 0);
+  }
+
+  function entryFromVariantTier(tier) {
+    const t = Math.max(0, Math.min(9, Math.floor(Number(tier) || 0)));
+    const shiny = t >= 5;
+    const primary = shiny ? t - 5 : t;
+    const variant =
+      primary === 1 ? "silver" : primary === 2 ? "gold" : primary === 3 ? "diamond" : primary === 4 ? "rainbow" : "";
+    return { variant, shiny };
+  }
+
+  function bestCatchEntry() {
+    return {
+      variant: normalizeVariant(state.bestCatchVariant),
+      shiny: !!state.bestCatchShiny
+    };
   }
 
   function formatBestCatch(fishOrScore) {
     const fish =
       typeof fishOrScore === "object" && fishOrScore
         ? fishOrScore
-        : fishById(state.bestCatchId) || FISH.find((f) => catchScore(f) === Number(fishOrScore));
+        : fishById(state.bestCatchId) || fishFromCatchScore(Number(fishOrScore));
     if (!fish) return "—";
-    return `${fish.rarity} · ${fish.name}`;
+    const entry =
+      typeof fishOrScore === "object" && fishOrScore && ("variant" in fishOrScore || "shiny" in fishOrScore)
+        ? fishOrScore
+        : bestCatchEntry();
+    const title = formatVariantTitle(entry);
+    const label = title ? `${title} ${fish.name}` : fish.name;
+    return `${fish.rarity} · ${label}`;
+  }
+
+  function persistBestCatchMeta(fish, entry) {
+    if (!fish) return;
+    try {
+      localStorage.setItem(
+        BEST_CATCH_META_KEY,
+        JSON.stringify({
+          id: fish.id,
+          name: fish.name,
+          rarity: fish.rarity,
+          value: fish.value,
+          variant: normalizeVariant(entry?.variant),
+          shiny: !!entry?.shiny
+        })
+      );
+    } catch {}
   }
 
   function noteCatch(fish, entry) {
     if (!fish || isTreasureItem(fish)) return;
     const changed = markCaught(fish, entry);
     if (changed) checkAchievements();
-    const score = catchScore(fish);
+    const score = catchScore(fish, entry);
     if (score <= (state.bestCatchScore || 0)) return;
     state.bestCatchScore = score;
     state.bestCatchId = fish.id;
+    state.bestCatchVariant = normalizeVariant(entry?.variant);
+    state.bestCatchShiny = !!entry?.shiny;
     try {
       localStorage.setItem(HIGH_SCORE_KEY, String(score));
     } catch {}
+    persistBestCatchMeta(fish, entry);
     maybeSubmitBest(true);
   }
 
@@ -2655,7 +2721,20 @@
     if (!force && now - lastSubmitAt < 4000) return;
     if (window.HubLeaderboard) {
       lastSubmitAt = now;
-      HubLeaderboard.submit("fishing", best).catch?.(() => {});
+      const fish = fishById(state.bestCatchId);
+      const entry = bestCatchEntry();
+      HubLeaderboard.submit("fishing", best, {
+        fishing: fish
+          ? {
+              id: fish.id,
+              name: fish.name,
+              rarity: fish.rarity,
+              value: fish.value,
+              variant: entry.variant,
+              shiny: entry.shiny
+            }
+          : null
+      }).catch?.(() => {});
     }
   }
 
@@ -3174,11 +3253,17 @@
   }
 
   function pickBestCatchFish(entries) {
-    const fishList = (Array.isArray(entries) ? entries : [entries])
-      .map((e) => e?.fish || e)
-      .filter((f) => f && !isTreasureItem(f));
-    if (!fishList.length) return null;
-    return fishList.reduce((best, f) => (catchScore(f) > catchScore(best) ? f : best));
+    const list = (Array.isArray(entries) ? entries : [entries])
+      .map((e) => {
+        if (e?.fish) return { fish: e.fish, entry: e.entry || e };
+        if (e && !isTreasureItem(e)) return { fish: e, entry: null };
+        return null;
+      })
+      .filter((x) => x && x.fish && !isTreasureItem(x.fish));
+    if (!list.length) return null;
+    return list.reduce((best, cur) =>
+      catchScore(cur.fish, cur.entry) > catchScore(best.fish, best.entry) ? cur : best
+    ).fish;
   }
 
   function clearCatchSilhouette() {
@@ -4431,7 +4516,7 @@
 
   function renderStats() {
     const spot = currentSpot();
-    const bestFish = fishById(state.bestCatchId) || FISH.find((f) => catchScore(f) === state.bestCatchScore);
+    const bestFish = fishById(state.bestCatchId) || fishFromCatchScore(state.bestCatchScore);
     const bestLabel = bestFish ? formatBestCatch(bestFish) : "—";
     const bait = equippedSpeedGear();
     const waitCut = bait ? Math.round(bait.amount * 100) : 0;
@@ -5118,10 +5203,45 @@
   function fishFromCatchScore(score) {
     const n = Math.floor(Number(score) || 0);
     if (n <= 0) return null;
-    return FISH.find((f) => catchScore(f) === n) || null;
+    for (const fish of FISH) {
+      for (let tier = 0; tier <= 9; tier += 1) {
+        if (catchScore(fish, entryFromVariantTier(tier)) === n) return fish;
+      }
+      if (legacyCatchScore(fish) === n) return fish;
+    }
+    let best = null;
+    let bestScore = -1;
+    for (const fish of FISH) {
+      for (let tier = 0; tier <= 9; tier += 1) {
+        const s = catchScore(fish, entryFromVariantTier(tier));
+        if (s <= n && s > bestScore) {
+          best = fish;
+          bestScore = s;
+        }
+      }
+      const legacy = legacyCatchScore(fish);
+      if (legacy <= n && legacy > bestScore) {
+        best = fish;
+        bestScore = legacy;
+      }
+    }
+    return best;
   }
 
-  function applyBestCatchScore(score, fishId) {
+  function entryFromCatchScore(score) {
+    const n = Math.floor(Number(score) || 0);
+    if (n <= 0) return { variant: "", shiny: false };
+    for (const fish of FISH) {
+      for (let tier = 0; tier <= 9; tier += 1) {
+        if (catchScore(fish, entryFromVariantTier(tier)) === n) {
+          return entryFromVariantTier(tier);
+        }
+      }
+    }
+    return { variant: "", shiny: false };
+  }
+
+  function applyBestCatchScore(score, fishId, meta = null) {
     const n = Math.floor(Number(score) || 0);
     if (n <= 0) return false;
     if (n < (state.bestCatchScore || 0)) return false;
@@ -5138,20 +5258,19 @@
         markCaught(match);
       }
     }
+    const decoded = entryFromCatchScore(n);
+    const entry = {
+      variant: normalizeVariant(meta?.variant) || decoded.variant,
+      shiny: !!(meta?.shiny || decoded.shiny)
+    };
+    if (n >= (state.bestCatchScore || 0)) {
+      state.bestCatchVariant = entry.variant;
+      state.bestCatchShiny = entry.shiny;
+    }
     try {
       localStorage.setItem(HIGH_SCORE_KEY, String(state.bestCatchScore));
       const bestFish = fishById(state.bestCatchId);
-      if (bestFish) {
-        localStorage.setItem(
-          BEST_CATCH_META_KEY,
-          JSON.stringify({
-            id: bestFish.id,
-            name: bestFish.name,
-            rarity: bestFish.rarity,
-            value: bestFish.value
-          })
-        );
-      }
+      if (bestFish) persistBestCatchMeta(bestFish, bestCatchEntry());
     } catch {}
     return true;
   }

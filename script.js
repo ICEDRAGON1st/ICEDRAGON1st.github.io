@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916q": [
+    "Fishing Idle: best catch + leaderboard show Silver/Gold/Diamond/Rainbow/Shiny mutations (variants rank higher)"
+  ],
   "20260916p": [
     "Fishing Idle: catch book Shiny is a toggle you can combine with Normal/Silver/Gold/Diamond/Rainbow"
   ],
@@ -1957,11 +1960,20 @@ function getHubScore(gameId) {
       return { label: score ? `Best ${score}` : "No score yet", sort: score };
     }
     case "fishing": {
-      const score = readNumberKey("fishing-best-catch-v1");
+      const score = Math.max(
+        readNumberKey("fishing-best-catch-v2"),
+        readNumberKey("fishing-best-catch-v1")
+      );
       if (!score) return { label: "No catch yet", sort: 0 };
+      let fishingMeta = null;
+      try {
+        fishingMeta = JSON.parse(localStorage.getItem("fishing-best-catch-meta-v2") || "null");
+      } catch {
+        fishingMeta = null;
+      }
       const label =
         typeof HubLeaderboard !== "undefined" && HubLeaderboard.formatScore
-          ? HubLeaderboard.formatScore("fishing", score)
+          ? HubLeaderboard.formatScore("fishing", score, { fishing: fishingMeta })
           : String(score);
       return { label: label.startsWith("Best ") ? label : `Best ${label}`, sort: score };
     }

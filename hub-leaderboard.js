@@ -146,7 +146,7 @@
     return `${text}${COMPACT_SUFFIXES[tier]}`;
   }
 
-  // Fishing Idle: leaderboard = best single catch (rarity + base value encoded).
+  // Fishing Idle: leaderboard = best single catch (rarity + variants + value).
   const FISHING_CATCH_FISH = [
     { id: "minnow", name: "Minnow", rarity: "common", value: 3 },
     { id: "perch", name: "Perch", rarity: "common", value: 5 },
@@ -193,21 +193,43 @@
     { id: "seraph", name: "Seraph Ray", rarity: "divine", value: 250000 },
     { id: "halo", name: "Halo Carp", rarity: "divine", value: 400000 },
     { id: "oracle", name: "Oracle Koi", rarity: "divine", value: 650000 },
+    { id: "choirfin", name: "Choirfin", rarity: "divine", value: 900000 },
     { id: "timeless", name: "Timeless Trout", rarity: "eternal", value: 1500000 },
     { id: "foreverfin", name: "Foreverfin", rarity: "eternal", value: 2800000 },
     { id: "aeon", name: "Aeon Shark", rarity: "eternal", value: 4500000 },
+    { id: "epochray", name: "Epoch Ray", rarity: "eternal", value: 7500000 },
     { id: "nebula", name: "Nebula Nettle", rarity: "cosmic", value: 12000000 },
     { id: "quasar", name: "Quasar Cod", rarity: "cosmic", value: 25000000 },
     { id: "omnifin", name: "Omnifin", rarity: "cosmic", value: 50000000 },
+    { id: "pulsarpike", name: "Pulsar Pike", rarity: "cosmic", value: 85000000 },
     { id: "stardrift", name: "Stardrift Ray", rarity: "astral", value: 120000000 },
     { id: "aurorafin", name: "Aurora Fin", rarity: "astral", value: 250000000 },
     { id: "galaxykoi", name: "Galaxy Koi", rarity: "astral", value: 500000000 },
+    { id: "cometcarp", name: "Comet Carp", rarity: "astral", value: 850000000 },
     { id: "eventide", name: "Eventide Eel", rarity: "singularity", value: 1200000000 },
     { id: "horizon", name: "Horizon Shark", rarity: "singularity", value: 2500000000 },
     { id: "collapse", name: "Collapse Carp", rarity: "singularity", value: 5000000000 },
+    { id: "riftray", name: "Rift Ray", rarity: "singularity", value: 9000000000 },
     { id: "primefin", name: "Primefin", rarity: "omega", value: 15000000000 },
     { id: "absoluth", name: "Absoluth", rarity: "omega", value: 40000000000 },
-    { id: "theend", name: "The End Fish", rarity: "omega", value: 100000000000 }
+    { id: "theend", name: "The End Fish", rarity: "omega", value: 100000000000 },
+    { id: "ultimafin", name: "Ultimafin", rarity: "omega", value: 180000000000 },
+    { id: "originkoi", name: "Origin Koi", rarity: "genesis", value: 250000000000 },
+    { id: "dawnlevi", name: "Dawn Leviathan", rarity: "genesis", value: 600000000000 },
+    { id: "firstfin", name: "First Fin", rarity: "genesis", value: 1500000000000 },
+    { id: "sparkfin", name: "Sparkfin", rarity: "genesis", value: 2800000000000 },
+    { id: "twinparadox", name: "Twin Paradox", rarity: "paradox", value: 4000000000000 },
+    { id: "mirrorshark", name: "Mirror Shark", rarity: "paradox", value: 10000000000000 },
+    { id: "loopeel", name: "Loop Eel", rarity: "paradox", value: 25000000000000 },
+    { id: "mobiusmarlin", name: "Mobius Marlin", rarity: "paradox", value: 45000000000000 },
+    { id: "endlessray", name: "Endless Ray", rarity: "infinity", value: 80000000000000 },
+    { id: "boundcod", name: "Boundless Cod", rarity: "infinity", value: 200000000000000 },
+    { id: "foreverend", name: "Forever End", rarity: "infinity", value: 500000000000000 },
+    { id: "perpetualpike", name: "Perpetual Pike", rarity: "infinity", value: 900000000000000 },
+    { id: "absolutefin", name: "Absolute Fin", rarity: "absolute", value: 1500000000000000 },
+    { id: "finalabs", name: "Final Absolute", rarity: "absolute", value: 4000000000000000 },
+    { id: "trueabs", name: "True Absolute", rarity: "absolute", value: 7000000000000000 },
+    { id: "theabsolute", name: "The Absolute", rarity: "absolute", value: 10000000000000000 }
   ];
 
   const FISHING_RARITY_RANK = {
@@ -223,34 +245,118 @@
     cosmic: 10,
     astral: 11,
     singularity: 12,
-    omega: 13
+    omega: 13,
+    genesis: 14,
+    paradox: 15,
+    infinity: 16,
+    absolute: 17
   };
 
-  function fishingCatchScore(fish) {
+  const FISHING_VARIANT_PRIMARY = ["silver", "gold", "diamond", "rainbow"];
+
+  function fishingNormalizeVariant(raw) {
+    const v = String(raw || "").toLowerCase();
+    return FISHING_VARIANT_PRIMARY.includes(v) ? v : "";
+  }
+
+  function fishingVariantTier(entry) {
+    const v = fishingNormalizeVariant(entry?.variant);
+    const primary = v === "silver" ? 1 : v === "gold" ? 2 : v === "diamond" ? 3 : v === "rainbow" ? 4 : 0;
+    return primary + (entry?.shiny ? 5 : 0);
+  }
+
+  function fishingEntryFromTier(tier) {
+    const t = Math.max(0, Math.min(9, Math.floor(Number(tier) || 0)));
+    const shiny = t >= 5;
+    const primary = shiny ? t - 5 : t;
+    const variant =
+      primary === 1 ? "silver" : primary === 2 ? "gold" : primary === 3 ? "diamond" : primary === 4 ? "rainbow" : "";
+    return { variant, shiny };
+  }
+
+  function fishingCatchScore(fish, entry) {
+    if (!fish) return 0;
+    const rank = FISHING_RARITY_RANK[fish.rarity] || 1;
+    const tier = fishingVariantTier(entry);
+    return (rank * 100 + tier) * 100000 + Math.max(0, Math.floor(Number(fish.value) || 0));
+  }
+
+  function fishingLegacyCatchScore(fish) {
     if (!fish) return 0;
     const rank = FISHING_RARITY_RANK[fish.rarity] || 1;
     return rank * 100000 + Math.max(0, Math.floor(Number(fish.value) || 0));
   }
 
-  function formatFishingCatch(score) {
+  function fishingVariantTitle(entry) {
+    const bits = [];
+    const v = fishingNormalizeVariant(entry?.variant);
+    if (v) bits.push(v.charAt(0).toUpperCase() + v.slice(1));
+    if (entry?.shiny) bits.push("Shiny");
+    return bits.join(" ");
+  }
+
+  function formatFishingCatchLabel(fish, entry) {
+    if (!fish) return "—";
+    const title = fishingVariantTitle(entry);
+    const name = title ? `${title} ${fish.name}` : fish.name;
+    return `${fish.rarity} · ${name}`;
+  }
+
+  function decodeFishingCatch(score) {
     const n = Math.floor(Number(score) || 0);
-    if (n <= 0) return "—";
-    let fish = FISHING_CATCH_FISH.find((f) => fishingCatchScore(f) === n);
-    if (!fish) {
-      // Prefer the best known catch at or below this score (handles odd/legacy values)
-      let best = null;
-      let bestScore = -1;
-      for (const f of FISHING_CATCH_FISH) {
-        const s = fishingCatchScore(f);
+    if (n <= 0) return null;
+    for (const fish of FISHING_CATCH_FISH) {
+      for (let tier = 0; tier <= 9; tier += 1) {
+        const entry = fishingEntryFromTier(tier);
+        if (fishingCatchScore(fish, entry) === n) return { fish, entry };
+      }
+      if (fishingLegacyCatchScore(fish) === n) return { fish, entry: { variant: "", shiny: false } };
+    }
+    let best = null;
+    let bestScore = -1;
+    for (const fish of FISHING_CATCH_FISH) {
+      for (let tier = 0; tier <= 9; tier += 1) {
+        const entry = fishingEntryFromTier(tier);
+        const s = fishingCatchScore(fish, entry);
         if (s <= n && s > bestScore) {
-          best = f;
+          best = { fish, entry };
           bestScore = s;
         }
       }
-      fish = best;
+      const legacy = fishingLegacyCatchScore(fish);
+      if (legacy <= n && legacy > bestScore) {
+        best = { fish, entry: { variant: "", shiny: false } };
+        bestScore = legacy;
+      }
     }
-    if (fish) return `${fish.rarity} · ${fish.name}`;
-    const rank = Math.floor(n / 100000);
+    return best;
+  }
+
+  function formatFishingCatch(score, entryMeta) {
+    if (entryMeta && typeof entryMeta === "object") {
+      const fish =
+        FISHING_CATCH_FISH.find((f) => f.id === entryMeta.id) ||
+        (entryMeta.name
+          ? {
+              id: entryMeta.id || "",
+              name: entryMeta.name,
+              rarity: entryMeta.rarity || "catch",
+              value: entryMeta.value || 0
+            }
+          : null);
+      if (fish) {
+        return formatFishingCatchLabel(fish, {
+          variant: fishingNormalizeVariant(entryMeta.variant),
+          shiny: !!entryMeta.shiny
+        });
+      }
+    }
+    const decoded = decodeFishingCatch(score);
+    if (decoded) return formatFishingCatchLabel(decoded.fish, decoded.entry);
+    const n = Math.floor(Number(score) || 0);
+    if (n <= 0) return "—";
+    const packed = Math.floor(n / 100000);
+    const rank = Math.floor(packed / 100) || Math.floor(n / 100000);
     const rarity =
       Object.keys(FISHING_RARITY_RANK).find((k) => FISHING_RARITY_RANK[k] === rank) || "catch";
     return rarity;
@@ -296,7 +402,7 @@
     return `Ore ${n}`;
   }
 
-  function formatScore(gameId, score) {
+  function formatScore(gameId, score, entry) {
     const m = meta(gameId);
     const n = Number(score);
     if (!Number.isFinite(n) || n <= 0) return "—";
@@ -304,7 +410,9 @@
     if (m.unit === "playtime") return formatPlaytime(n);
     if (m.unit === "wins") return `${Math.floor(n)} win${Math.floor(n) === 1 ? "" : "s"}`;
     if (m.unit === "streak") return `Streak ${Math.floor(n)}`;
-    if (m.unit === "catch" || gameId === "fishing") return formatFishingCatch(n);
+    if (m.unit === "catch" || gameId === "fishing") {
+      return formatFishingCatch(n, entry?.fishing || null);
+    }
     if (m.unit === "cow" || gameId === "cows") return formatCowTier(n);
     if (m.unit === "depth" || gameId === "mine") return `Best ${Math.floor(n)}m`;
     if (m.unit === "ore" || gameId === "mine-ore") return formatMineOre(n);
@@ -364,12 +472,24 @@
     const name = sanitizeName(entry.name || "");
     const score = Number(entry.score);
     if (!name || !Number.isFinite(score)) return null;
+    const fishing =
+      entry.fishing && typeof entry.fishing === "object"
+        ? {
+            id: String(entry.fishing.id || ""),
+            name: String(entry.fishing.name || ""),
+            rarity: String(entry.fishing.rarity || ""),
+            value: Number(entry.fishing.value) || 0,
+            variant: fishingNormalizeVariant(entry.fishing.variant),
+            shiny: !!entry.fishing.shiny
+          }
+        : null;
     return {
       name,
       score,
       at: Number(entry.at) || 0,
       playerId: String(entry.playerId || ""),
-      lowerBetter: typeof entry.lowerBetter === "boolean" ? entry.lowerBetter : !!fallbackLower
+      lowerBetter: typeof entry.lowerBetter === "boolean" ? entry.lowerBetter : !!fallbackLower,
+      fishing
     };
   }
 
@@ -740,7 +860,8 @@
       score: entry.score,
       at: entry.at,
       lowerBetter,
-      label: formatScore(gameId, entry.score),
+      fishing: entry.fishing || null,
+      label: formatScore(gameId, entry.score, entry),
       isYou: me && nameKey(entry.name) === me
     }));
   }
@@ -753,6 +874,17 @@
 
     const lowerBetter =
       typeof opts.lowerBetter === "boolean" ? opts.lowerBetter : meta(gameId).lowerBetter;
+    const fishingMeta =
+      opts.fishing && typeof opts.fishing === "object"
+        ? {
+            id: String(opts.fishing.id || ""),
+            name: String(opts.fishing.name || ""),
+            rarity: String(opts.fishing.rarity || ""),
+            value: Number(opts.fishing.value) || 0,
+            variant: fishingNormalizeVariant(opts.fishing.variant),
+            shiny: !!opts.fishing.shiny
+          }
+        : null;
 
     const run = async () => {
       await sync(true);
@@ -776,7 +908,8 @@
         score: n,
         at: Date.now(),
         playerId: me,
-        lowerBetter
+        lowerBetter,
+        ...(fishingMeta ? { fishing: fishingMeta } : {})
       };
       games[gameId] = trimBoard(board, lowerBetter);
       const next = applyResets({
