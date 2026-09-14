@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917ad": [
+    "Ramp Rush: green grid arches you can drive through or ride on top"
+  ],
   "20260917ac": [
     "Ramp Rush: killer blocks spawn in patterns, spaced 15–30 points apart"
   ],
