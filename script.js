@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917ar": [
+    "Guac-A-Mole: slightly faster spawn pace"
+  ],
   "20260917aq": [
     "Guac-A-Mole: lower peeks and slower, calmer spawn pace"
   ],
