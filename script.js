@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917j": [
+    "Ramp Rush: opaque canyon walls + downhill view that keeps the track visible"
+  ],
   "20260917i": [
     "Ramp Rush: sealed opaque canyon walls + stronger downhill camera"
   ],

@@ -19,15 +19,15 @@
   const W = canvas.width;
   const H = canvas.height;
   const FOV = 300;
-  const CAM_HEIGHT = 3.05;
-  const CAM_BACK = 5.35;
-  const HORIZON = H * 0.15;
+  const CAM_HEIGHT = 2.75;
+  const CAM_BACK = 5.6;
+  const HORIZON = H * 0.18;
   const SEGMENT_LEN = 4.5;
   const LOOK_AHEAD = 30;
   /** World Y drop per unit of Z. */
-  const HILL_SLOPE = 1.05;
-  /** Extra camera pitch (radians). */
-  const LOOK_DOWN = 0.22;
+  const HILL_SLOPE = 0.82;
+  /** Mild look-down so the drop reads without hiding the track. */
+  const LOOK_DOWN = 0.12;
   const GRAVITY_ACCEL = 4.4;
   const PLAYER_Z = 2.2;
   const AIR_GRAVITY = 26;
@@ -96,8 +96,8 @@
 
   function camPose() {
     const camZ = worldZ + PLAYER_Z - CAM_BACK;
-    // Drop slower than the ground so the view tips downhill.
-    return { z: camZ, y: groundY(camZ) * 0.68 + CAM_HEIGHT };
+    // Slight lag behind the slope so far track sits lower on screen.
+    return { z: camZ, y: groundY(camZ) * 0.88 + CAM_HEIGHT };
   }
 
   function project(x, y, z) {
