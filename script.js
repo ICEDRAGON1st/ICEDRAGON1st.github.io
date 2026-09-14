@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917w": [
+    "Ramp Rush: sideways carving now clearly boosts downhill speed"
+  ],
   "20260917v": [
     "Ramp Rush: carving sideways boosts your downhill speed"
   ],
