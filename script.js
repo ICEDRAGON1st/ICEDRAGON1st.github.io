@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917m": [
+    "Ramp Rush: dusk canyon scenery with layered cliffs and warmer depth"
+  ],
   "20260917l": [
     "Ramp Rush: fix broken camera pitch so track and canyon render again"
   ],

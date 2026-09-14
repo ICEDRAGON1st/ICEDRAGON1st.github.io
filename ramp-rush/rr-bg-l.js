@@ -429,29 +429,57 @@
   }
 
   function drawBackground() {
+    // Dusk canyon sky — warm horizon, cold upper air.
     const sky = ctx.createLinearGradient(0, 0, 0, H);
-    sky.addColorStop(0, "#5a8fc4");
-    sky.addColorStop(0.18, "#2a4a72");
-    sky.addColorStop(0.38, "#121c34");
-    sky.addColorStop(0.62, "#070b16");
-    sky.addColorStop(1, "#000000");
+    sky.addColorStop(0, "#0b1220");
+    sky.addColorStop(0.28, "#1a2a44");
+    sky.addColorStop(0.52, "#3a4f6e");
+    sky.addColorStop(0.72, "#7a6a58");
+    sky.addColorStop(0.88, "#c48a52");
+    sky.addColorStop(1, "#e8b070");
     ctx.fillStyle = sky;
     ctx.fillRect(0, 0, W, H);
 
-    // Distant mist band that tips down with the gorge.
-    const mist = ctx.createLinearGradient(0, HORIZON - 20, 0, HORIZON + 140);
-    mist.addColorStop(0, "rgba(90, 130, 170, 0)");
-    mist.addColorStop(0.45, "rgba(40, 70, 100, 0.35)");
-    mist.addColorStop(1, "rgba(0, 0, 0, 0)");
-    ctx.fillStyle = mist;
-    ctx.fillRect(0, HORIZON - 30, W, 200);
+    const glow = ctx.createRadialGradient(W * 0.62, HORIZON + 36, 8, W * 0.62, HORIZON + 36, W * 0.55);
+    glow.addColorStop(0, "rgba(255, 200, 120, 0.45)");
+    glow.addColorStop(0.35, "rgba(220, 120, 60, 0.18)");
+    glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, H);
 
-    for (let i = 0; i < 40; i += 1) {
-      const sx = ((i * 97 + worldZ * 3) % W + W) % W;
-      const sy = ((i * 53 - worldZ * 8) % (H * 0.28) + H * 0.28) % (H * 0.28);
-      ctx.fillStyle = "rgba(255,255,255," + (0.18 + (i % 4) * 0.08) + ")";
-      ctx.fillRect(sx, sy + 4, 1.5, 1.5);
+    for (let layer = 0; layer < 3; layer += 1) {
+      const baseY = HORIZON + 18 + layer * 22;
+      const amp = 28 + layer * 18;
+      const speed = 0.012 + layer * 0.006;
+      ctx.beginPath();
+      ctx.moveTo(0, H);
+      ctx.lineTo(0, baseY + 40);
+      for (let x = 0; x <= W; x += 18) {
+        const n =
+          Math.sin(x * 0.012 + worldZ * speed + layer * 1.7) * amp +
+          Math.sin(x * 0.031 + worldZ * speed * 1.4) * (amp * 0.35);
+        ctx.lineTo(x, baseY - n);
+      }
+      ctx.lineTo(W, H);
+      ctx.closePath();
+      const a = 0.22 + layer * 0.14;
+      ctx.fillStyle = "rgba(" + (28 + layer * 10) + "," + (18 + layer * 6) + "," + (24 + layer * 4) + "," + a + ")";
+      ctx.fill();
     }
+
+    for (let i = 0; i < 36; i += 1) {
+      const sx = ((i * 97 + worldZ * 1.2) % W + W) % W;
+      const sy = (i * 53) % (HORIZON * 0.85) + HORIZON * 0.05;
+      ctx.fillStyle = "rgba(255,255,255," + (0.12 + (i % 4) * 0.08) + ")";
+      ctx.fillRect(sx, sy, 1.4, 1.4);
+    }
+
+    const haze = ctx.createLinearGradient(0, HORIZON - 10, 0, H * 0.72);
+    haze.addColorStop(0, "rgba(180, 120, 70, 0)");
+    haze.addColorStop(0.4, "rgba(90, 55, 35, 0.22)");
+    haze.addColorStop(1, "rgba(0, 0, 0, 0.55)");
+    ctx.fillStyle = haze;
+    ctx.fillRect(0, HORIZON - 10, W, H * 0.72);
   }
 
   function rockQuad(x0, y0, z0, x1, y1, z1, x2, y2, z2, x3, y3, z3, fill, stroke) {
@@ -477,12 +505,17 @@
   }
 
   function cliffHeights(side, z) {
-    const t = (z - worldZ) * 0.14 + side * 2.1;
-    const topIn = 4.2 + Math.abs(Math.sin(t * 0.8)) * 1.8 + Math.sin(t * 2.2) * 0.4;
-    const topOut = topIn + 1.8 + Math.abs(Math.sin(t * 1.15)) * 0.8;
-    const xIn = side * (TRACK_HALF + 0.05);
-    const xOut = side * (13.5 + Math.sin(t * 0.65) * 0.55);
-    return { topIn, topOut, xIn, xOut, bot: -5.5 };
+    const t = (z - worldZ) * 0.13 + side * 2.3;
+    const jagged =
+      Math.abs(Math.sin(t * 0.75)) * 1.6 +
+      Math.abs(Math.sin(t * 1.9)) * 0.85 +
+      Math.sin(t * 3.4) * 0.35;
+    const topIn = 3.8 + jagged;
+    const topOut = topIn + 1.5 + Math.abs(Math.sin(t * 1.1)) * 0.9;
+    const xIn = side * (TRACK_HALF + 0.04);
+    const xMid = side * (7.8 + Math.sin(t * 0.9) * 0.4);
+    const xOut = side * (14.2 + Math.sin(t * 0.55) * 0.6);
+    return { topIn, topOut, xIn, xMid, xOut, bot: -5.2 };
   }
 
   function fillRibbon(tops, bots, fill) {
@@ -496,84 +529,124 @@
     ctx.fill();
   }
 
+  function shadeRock(base, fade, lit) {
+    const f = Math.max(0.35, Math.min(1, fade));
+    const m = lit ? 1 : 0.78;
+    return (
+      "rgb(" +
+      Math.floor(base[0] * f * m) +
+      "," +
+      Math.floor(base[1] * f * m) +
+      "," +
+      Math.floor(base[2] * f * m) +
+      ")"
+    );
+  }
+
   function drawDescentScenery() {
     const nearZ = worldZ + 2.2;
-    const farZ = worldZ + 100;
-    const step = 2.2;
+    const farZ = worldZ + 95;
+    const step = 2.0;
 
-    // Abyss under the track (far → near), drawn as depth strips so it stays under the road.
     for (let z = farZ; z >= nearZ; z -= step * 2) {
       const z1 = z + step * 2;
-      const fade = Math.max(0.35, 1 - (z - worldZ) * 0.009);
+      const fade = Math.max(0.3, 1 - (z - worldZ) * 0.01);
       rockQuad(
-        -TRACK_HALF - 0.3, -5.2, z,
-        TRACK_HALF + 0.3, -5.2, z,
-        TRACK_HALF + 0.3, -5.2, z1,
-        -TRACK_HALF - 0.3, -5.2, z1,
-        "rgba(0,0,0," + (0.75 * fade) + ")",
+        -TRACK_HALF - 0.4, -4.8, z,
+        TRACK_HALF + 0.4, -4.8, z,
+        TRACK_HALF + 0.4, -4.8, z1,
+        -TRACK_HALF - 0.4, -4.8, z1,
+        "rgba(0,0,0," + (0.7 * fade) + ")",
         null
       );
     }
 
     for (const side of [-1, 1]) {
-      const topsIn = [];
-      const botsIn = [];
-      const topsOut = [];
-      const botsOut = [];
+      const lit = side < 0;
+      const samples = [];
       for (let z = nearZ; z <= farZ; z += step) {
         const h = cliffHeights(side, z);
         const pTi = project(h.xIn, h.topIn, z);
         const pBi = project(h.xIn, h.bot, z);
+        const pTm = project(h.xMid, h.topIn * 0.95, z);
+        const pBm = project(h.xMid, h.bot, z);
         const pTo = project(h.xOut, h.topOut, z);
         const pBo = project(h.xOut, h.bot, z);
-        if (pTi && pBi) {
-          topsIn.push(pTi);
-          botsIn.push(pBi);
-        }
-        if (pTo && pBo) {
-          topsOut.push(pTo);
-          botsOut.push(pBo);
+        if (pTi && pBi && pTo && pBo) {
+          samples.push({
+            z,
+            h,
+            pTi,
+            pBi,
+            pTm,
+            pBm,
+            pTo,
+            pBo,
+            fade: Math.max(0.4, 1 - (z - worldZ) * 0.008)
+          });
         }
       }
-      if (topsIn.length < 3) continue;
+      if (samples.length < 3) continue;
 
-      const lit = side < 0;
-      fillRibbon(topsOut, botsOut, lit ? "#4a2412" : "#3a1c10");
-      if (topsOut.length > 1) {
-        ctx.beginPath();
-        ctx.moveTo(topsIn[0].x, topsIn[0].y);
-        for (let i = 1; i < topsIn.length; i += 1) ctx.lineTo(topsIn[i].x, topsIn[i].y);
-        for (let i = topsOut.length - 1; i >= 0; i -= 1) ctx.lineTo(topsOut[i].x, topsOut[i].y);
-        ctx.closePath();
-        ctx.fillStyle = lit ? "#8a4a28" : "#6a3820";
-        ctx.fill();
+      fillRibbon(
+        samples.map((s) => s.pTo),
+        samples.map((s) => s.pBo),
+        shadeRock([58, 30, 16], 0.85, lit)
+      );
+
+      const midOk = samples.filter((s) => s.pTm && s.pBm);
+      if (midOk.length > 2) {
+        fillRibbon(
+          midOk.map((s) => s.pTm),
+          midOk.map((s) => s.pBm),
+          shadeRock([110, 58, 30], 0.9, lit)
+        );
       }
-      fillRibbon(topsIn, botsIn, lit ? "#b86434" : "#8f4a28");
+
+      const topsIn = samples.map((s) => s.pTi);
+      const botsIn = samples.map((s) => s.pBi);
+      const topsOut = samples.map((s) => s.pTo);
+      fillRibbon(topsIn, botsIn, shadeRock(lit ? [186, 98, 48] : [150, 78, 40], 1, lit));
 
       ctx.beginPath();
       ctx.moveTo(topsIn[0].x, topsIn[0].y);
       for (let i = 1; i < topsIn.length; i += 1) ctx.lineTo(topsIn[i].x, topsIn[i].y);
-      ctx.strokeStyle = lit ? "rgba(255, 200, 130, 0.4)" : "rgba(255, 180, 110, 0.25)";
-      ctx.lineWidth = 2.2;
+      for (let i = topsOut.length - 1; i >= 0; i -= 1) ctx.lineTo(topsOut[i].x, topsOut[i].y);
+      ctx.closePath();
+      ctx.fillStyle = shadeRock(lit ? [210, 130, 70] : [160, 95, 55], 0.95, lit);
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.moveTo(topsIn[0].x, topsIn[0].y);
+      for (let i = 1; i < topsIn.length; i += 1) ctx.lineTo(topsIn[i].x, topsIn[i].y);
+      ctx.strokeStyle = lit ? "rgba(255, 210, 140, 0.55)" : "rgba(255, 180, 110, 0.28)";
+      ctx.lineWidth = 2.4;
       ctx.stroke();
 
-      for (let band = 0; band < 4; band += 1) {
-        const u = 0.2 + band * 0.16;
+      for (let band = 0; band < 5; band += 1) {
+        const u = 0.16 + band * 0.14;
         ctx.beginPath();
         let started = false;
         for (let i = 0; i < topsIn.length; i += 1) {
           const x = topsIn[i].x * (1 - u) + botsIn[i].x * u;
-          const y = topsIn[i].y * (1 - u) + botsIn[i].y * u;
+          const y = topsIn[i].y * (1 - u) + botsIn[i].y * u + Math.sin(i * 0.7 + band) * 1.2;
           if (!started) {
             ctx.moveTo(x, y);
             started = true;
           } else ctx.lineTo(x, y);
         }
-        ctx.strokeStyle = "rgba(255, 190, 120," + (0.08 + (band % 2) * 0.04) + ")";
-        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = "rgba(255, 195, 125," + (0.1 + (band % 2) * 0.05) + ")";
+        ctx.lineWidth = 1.35;
         ctx.stroke();
       }
     }
+
+    const fog = ctx.createRadialGradient(W * 0.5, HORIZON + 40, 40, W * 0.5, H * 0.55, H * 0.85);
+    fog.addColorStop(0, "rgba(20, 12, 8, 0)");
+    fog.addColorStop(0.65, "rgba(10, 6, 4, 0.12)");
+    fog.addColorStop(1, "rgba(0, 0, 0, 0.38)");
+    ctx.fillStyle = fog;
+    ctx.fillRect(0, 0, W, H);
   }
 
   function drawVoidPlate(z0, z1, half) {
