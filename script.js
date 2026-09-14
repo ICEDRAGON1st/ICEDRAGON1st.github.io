@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917aw": [
+    "New games: Bubble Pop Relay, Cafe Queue, and Garden Snap"
+  ],
   "20260917av": [
     "Fishing Idle: :00/:30 events roll 1.5×, 2×, 3×, or 4×"
   ],
@@ -1181,6 +1184,9 @@ const HUB_GAMES = [
   { id: "dino", name: "Runosaur", path: "runosaur/index.html" },
   { id: "ramp", name: "Ramp Rush", path: "ramp-rush/run.html" },
   { id: "guac", name: "Guac-A-Mole", path: "guac-a-mole/index.html" },
+  { id: "bubble", name: "Bubble Pop Relay", path: "bubble-pop/index.html" },
+  { id: "cafe", name: "Cafe Queue", path: "cafe-queue/index.html" },
+  { id: "garden", name: "Garden Snap", path: "garden-snap/index.html" },
   { id: "mine", name: "Mine Depth", path: "mine/index.html" },
   { id: "blockblast", name: "Block Sweep", path: "block-sweep/index.html" },
   { id: "lemmings", name: "Dudes", path: "dudes/index.html" }
@@ -2169,6 +2175,18 @@ function getHubScore(gameId) {
     }
     case "guac": {
       const score = readNumberKey("guac-a-mole-high-score");
+      return { label: score ? `Best ${score}` : "No score yet", sort: score };
+    }
+    case "bubble": {
+      const score = readNumberKey("bubble-pop-high-score");
+      return { label: score ? `Best ${score}` : "No score yet", sort: score };
+    }
+    case "cafe": {
+      const score = readNumberKey("cafe-queue-high-score");
+      return { label: score ? `Best ${score}` : "No score yet", sort: score };
+    }
+    case "garden": {
+      const score = readNumberKey("garden-snap-high-score");
       return { label: score ? `Best ${score}` : "No score yet", sort: score };
     }
     case "blockblast": {

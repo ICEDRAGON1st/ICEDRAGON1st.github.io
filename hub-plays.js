@@ -75,6 +75,9 @@
     dino: "Runosaur",
     ramp: "Ramp Rush",
     guac: "Guac-A-Mole",
+    bubble: "Bubble Pop Relay",
+    cafe: "Cafe Queue",
+    garden: "Garden Snap",
     mine: "Mine Depth",
     blockblast: "Block Sweep",
     lemmings: "Dudes"

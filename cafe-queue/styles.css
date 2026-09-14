@@ -1,0 +1,180 @@
+*,
+*::before,
+*::after { box-sizing: border-box; }
+:root {
+  --bean: #4a2c1a;
+  --cream: #fff4e5;
+}
+html, body { margin: 0; min-height: 100%; }
+body {
+  font-family: "Outfit", system-ui, sans-serif;
+  color: var(--bean);
+  background:
+    radial-gradient(ellipse at 15% 10%, rgba(255, 220, 170, 0.55) 0%, transparent 42%),
+    radial-gradient(ellipse at 90% 90%, rgba(120, 70, 40, 0.45) 0%, transparent 48%),
+    linear-gradient(160deg, #d4a574, #8b5a2b 55%, #5c3518);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 1rem 2rem;
+  user-select: none;
+}
+.hud {
+  width: min(520px, 100%);
+  margin: 0.85rem 0 1rem;
+  padding: 0.7rem 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  background: rgba(255, 244, 229, 0.94);
+  border-radius: 16px;
+  border: 2px solid rgba(74, 44, 26, 0.15);
+}
+.menu-btn, .btn {
+  appearance: none;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.menu-btn {
+  background: #fff;
+  border: 2px solid rgba(74, 44, 26, 0.18);
+  padding: 0.45rem 0.75rem;
+}
+.hud-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.75rem;
+  font-weight: 600;
+  font-size: 0.88rem;
+  color: #7a5640;
+}
+.hud-stats strong { color: var(--bean); font-weight: 800; }
+.shell { width: min(520px, 100%); display: flex; flex-direction: column; gap: 0.85rem; }
+.queue {
+  min-height: 150px;
+  display: flex;
+  gap: 0.55rem;
+  overflow-x: auto;
+  padding: 0.75rem;
+  border-radius: 18px;
+  background: rgba(40, 22, 12, 0.28);
+  border: 2px solid rgba(255, 244, 229, 0.2);
+}
+.guest {
+  flex: 0 0 auto;
+  width: 108px;
+  padding: 0.55rem;
+  border-radius: 14px;
+  background: var(--cream);
+  text-align: center;
+  box-shadow: 0 6px 0 rgba(40, 22, 12, 0.2);
+}
+.guest.active { outline: 3px solid #e8a045; }
+.guest-face { font-size: 1.7rem; line-height: 1; }
+.guest-order { font-size: 1.35rem; margin: 0.25rem 0; }
+.guest-bar {
+  height: 7px;
+  border-radius: 99px;
+  background: #e7d3ba;
+  overflow: hidden;
+}
+.guest-bar > span {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #7ac74f, #e8a045, #d64545);
+  transform-origin: left center;
+}
+.counter {
+  padding: 0.85rem;
+  border-radius: 18px;
+  background: rgba(255, 244, 229, 0.92);
+  border: 2px solid rgba(74, 44, 26, 0.12);
+}
+.counter-label {
+  margin: 0 0 0.55rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.78rem;
+  color: #8a6348;
+}
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.55rem;
+}
+.item-btn {
+  appearance: none;
+  border: 2px solid rgba(74, 44, 26, 0.12);
+  border-radius: 14px;
+  background: #fff;
+  padding: 0.75rem 0.4rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+}
+.item-btn .emoji { font-size: 1.55rem; }
+.item-btn:active { transform: translateY(1px); }
+.hint {
+  margin: 0;
+  text-align: center;
+  color: rgba(255, 244, 229, 0.95);
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.25);
+}
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgba(40, 22, 12, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 20;
+}
+.overlay.hidden { display: none; }
+.overlay-card {
+  width: min(400px, 100%);
+  padding: 1.5rem 1.3rem;
+  border-radius: 22px;
+  background: linear-gradient(165deg, #fff8ee, #f0d9b8);
+  text-align: center;
+  box-shadow: 0 22px 50px rgba(0,0,0,0.28);
+}
+.eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #a86b32;
+}
+.overlay-card h1 {
+  margin: 0 0 0.5rem;
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
+}
+.lead { margin: 0 0 0.85rem; color: #7a5640; line-height: 1.45; }
+.score-line { margin: 0 0 1.1rem; font-weight: 700; }
+.overlay-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 0.55rem; }
+.btn {
+  background: linear-gradient(180deg, #c47a3a, #7a4018);
+  color: #fff;
+  padding: 0.7rem 1.2rem;
+  box-shadow: 0 4px 0 #4a2410;
+}
+.btn-ghost {
+  background: #fff;
+  color: var(--bean);
+  border: 2px solid rgba(74, 44, 26, 0.2);
+  box-shadow: none;
+}
+.hidden { display: none !important; }

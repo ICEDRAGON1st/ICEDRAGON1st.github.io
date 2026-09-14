@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Garden Snap</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20260917aw">
+</head>
+<body>
+  <header class="hud">
+    <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
+    <div class="hud-stats">
+      <span>Score <strong id="score">0</strong></span>
+      <span>Best <strong id="high-score">0</strong></span>
+      <span>Season <strong id="season">1</strong></span>
+      <span>Time <strong id="timer">40</strong></span>
+    </div>
+  </header>
+  <main class="shell">
+    <div class="tools" role="group" aria-label="Garden tools">
+      <button type="button" class="tool active" data-tool="plant">🌱 Plant</button>
+      <button type="button" class="tool" data-tool="water">💧 Water</button>
+      <button type="button" class="tool" data-tool="harvest">🧺 Harvest</button>
+    </div>
+    <div id="plots" class="plots" role="grid" aria-label="Garden plots"></div>
+    <p class="hint">Plant, water, then harvest ripe crops before the season ends. Dry plants wilt.</p>
+  </main>
+  <div id="overlay" class="overlay">
+    <div class="overlay-card">
+      <p class="eyebrow">Tiny farm</p>
+      <h1 id="overlay-title">Garden Snap</h1>
+      <p id="overlay-text" class="lead">Race through short seasons — plant, water, and harvest for points.</p>
+      <p class="score-line">Best: <strong id="overlay-best">0</strong></p>
+      <div class="overlay-actions">
+        <button id="start-btn" type="button" class="btn">Plant season</button>
+        <button id="resume-btn" type="button" class="btn btn-ghost hidden">Resume</button>
+        <button id="games-btn" type="button" class="btn btn-ghost">Games</button>
+      </div>
+    </div>
+  </div>
+  <script src="../hub-streak.js"></script>
+  <script src="../hub-achievements.js?v=20260917aw"></script>
+  <script src="../hub-sound.js"></script>
+  <script src="../hub-confetti.js"></script>
+  <script src="../hub-plays.js?v=20260917aw"></script>
+  <script src="../hub-friends.js?v=20260907o"></script>
+  <script src="../hub-chat.js?v=20260907p"></script>
+  <script src="../hub-leaderboard.js?v=20260917aw"></script>
+  <script src="script.js?v=20260917aw"></script>
+</body>
+</html>

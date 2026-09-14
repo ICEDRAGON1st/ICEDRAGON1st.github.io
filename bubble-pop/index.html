@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Bubble Pop Relay</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20260917aw">
+</head>
+<body>
+  <header class="hud">
+    <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
+    <div class="hud-stats">
+      <span>Score <strong id="score">0</strong></span>
+      <span>Best <strong id="high-score">0</strong></span>
+      <span>Cleared <strong id="cleared">0</strong></span>
+    </div>
+  </header>
+  <main class="shell">
+    <div class="stage">
+      <div id="danger" class="danger-line" aria-hidden="true"></div>
+      <div id="board" class="board" role="grid" aria-label="Bubble field"></div>
+    </div>
+    <p class="hint">Tap a cluster of 2+ same-color bubbles. Clear them before the tide fills the tank.</p>
+  </main>
+  <div id="overlay" class="overlay">
+    <div class="overlay-card">
+      <p class="eyebrow">Color rush</p>
+      <h1 id="overlay-title">Bubble Pop Relay</h1>
+      <p id="overlay-text" class="lead">Pop matching clusters before the rising line swallows the tank.</p>
+      <p class="score-line">Best: <strong id="overlay-best">0</strong></p>
+      <div class="overlay-actions">
+        <button id="start-btn" type="button" class="btn">Play</button>
+        <button id="resume-btn" type="button" class="btn btn-ghost hidden">Resume</button>
+        <button id="games-btn" type="button" class="btn btn-ghost">Games</button>
+      </div>
+    </div>
+  </div>
+  <script src="../hub-streak.js"></script>
+  <script src="../hub-achievements.js?v=20260917aw"></script>
+  <script src="../hub-sound.js"></script>
+  <script src="../hub-confetti.js"></script>
+  <script src="../hub-plays.js?v=20260917aw"></script>
+  <script src="../hub-friends.js?v=20260907o"></script>
+  <script src="../hub-chat.js?v=20260907p"></script>
+  <script src="../hub-leaderboard.js?v=20260917aw"></script>
+  <script src="script.js?v=20260917aw"></script>
+</body>
+</html>
