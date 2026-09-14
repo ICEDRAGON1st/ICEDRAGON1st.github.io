@@ -18,13 +18,14 @@
   const HIGH_SCORE_KEY = "ramp-rush-high-score";
   const W = canvas.width;
   const H = canvas.height;
-  const FOV = 280;
-  const CAM_HEIGHT = 2.35;
-  const HORIZON = H * 0.11;
+  const FOV = 300;
+  const CAM_HEIGHT = 2.55;
+  const CAM_BACK = 5.8;
+  const HORIZON = H * 0.2;
   const SEGMENT_LEN = 4.5;
   const LOOK_AHEAD = 30;
-  /** How steep the hill drops ahead of the ball (world Y falls as Z rises). */
-  const HILL_SLOPE = 1.25;
+  /** World Y drop per unit of Z — steep, but camera looks along the slope. */
+  const HILL_SLOPE = 0.72;
   const GRAVITY_ACCEL = 4.4;
   const PLAYER_Z = 2.2;
 
@@ -81,23 +82,26 @@
   }
 
   function groundY(z) {
-    // Drop relative to the ball so a steeper hill doesn't bury the player.
-    return -HILL_SLOPE * (z - (worldZ + PLAYER_Z));
+    return -HILL_SLOPE * z;
+  }
+
+  function camPose() {
+    const camZ = worldZ + PLAYER_Z - CAM_BACK;
+    return { z: camZ, y: groundY(camZ) + CAM_HEIGHT };
   }
 
   function project(x, y, z) {
-    const relZ = z - worldZ;
-    if (relZ <= 0.55) return null;
-    // y = height above the local track surface. Camera sits above the player.
+    const cam = camPose();
+    const relZ = z - cam.z;
+    if (relZ <= 0.7) return null;
+    // y = height above the local track. Camera sits behind + above the ball.
     const worldY = groundY(z) + y;
-    const camY = CAM_HEIGHT;
+    const relY = worldY - cam.y;
     const scale = FOV / relZ;
-    // Extra lean so the far ramp plunges harder down the frame.
-    const pitch = (z - (worldZ + PLAYER_Z)) * 3.2;
-    // Canvas Y grows downward: distant downhill track falls toward the bottom.
     return {
       x: W * 0.5 + x * scale,
-      y: HORIZON + (camY - worldY) * scale + pitch,
+      // Y-up world → canvas grows down; near track lands low, far toward horizon.
+      y: HORIZON - relY * scale,
       scale,
       z: relZ
     };
@@ -319,20 +323,20 @@
 
   function drawHillSides() {
     // Soft earth banks beside the ramp so it feels carved into a hillside.
-    const nearZ = worldZ + 1.2;
-    const farZ = worldZ + LOOK_AHEAD * SEGMENT_LEN * 0.85;
-    const leftNear = project(-14, -0.4, nearZ);
-    const leftFar = project(-9, -1.8, farZ);
-    const rightNear = project(14, -0.4, nearZ);
-    const rightFar = project(9, -1.8, farZ);
+    const nearZ = worldZ + PLAYER_Z + 1.5;
+    const farZ = worldZ + PLAYER_Z + LOOK_AHEAD * SEGMENT_LEN * 0.75;
+    const leftNear = project(-12, -0.35, nearZ);
+    const leftFar = project(-8, -2.2, farZ);
+    const rightNear = project(12, -0.35, nearZ);
+    const rightFar = project(8, -2.2, farZ);
     if (leftNear && leftFar) {
       ctx.beginPath();
       ctx.moveTo(0, H);
       ctx.lineTo(leftNear.x, leftNear.y);
       ctx.lineTo(leftFar.x, leftFar.y);
-      ctx.lineTo(0, HORIZON + 40);
+      ctx.lineTo(0, HORIZON + 24);
       ctx.closePath();
-      ctx.fillStyle = "rgba(28, 48, 32, 0.55)";
+      ctx.fillStyle = "rgba(28, 48, 32, 0.5)";
       ctx.fill();
     }
     if (rightNear && rightFar) {
@@ -340,9 +344,9 @@
       ctx.moveTo(W, H);
       ctx.lineTo(rightNear.x, rightNear.y);
       ctx.lineTo(rightFar.x, rightFar.y);
-      ctx.lineTo(W, HORIZON + 40);
+      ctx.lineTo(W, HORIZON + 24);
       ctx.closePath();
-      ctx.fillStyle = "rgba(28, 48, 32, 0.55)";
+      ctx.fillStyle = "rgba(28, 48, 32, 0.5)";
       ctx.fill();
     }
   }
@@ -387,7 +391,7 @@
     ctx.lineTo(p1r.x, p1r.y);
     ctx.lineTo(p1l.x, p1l.y);
     ctx.closePath();
-    const shade = Math.max(0.35, 1 - seg.z * 0.002);
+    const shade = Math.max(0.4, 1 - p0l.z * 0.012);
     ctx.fillStyle = seg.stripe ? `rgba(36, 58, 98, ${shade})` : `rgba(26, 42, 74, ${shade})`;
     ctx.fill();
     ctx.strokeStyle = "rgba(61, 214, 198, 0.4)";

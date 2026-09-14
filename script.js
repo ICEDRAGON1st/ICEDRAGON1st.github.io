@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916v": [
+    "Ramp Rush: fix chase camera so the downhill track reads clearly"
+  ],
   "20260916u": [
     "Ramp Rush: steeper downhill plunge"
   ],
