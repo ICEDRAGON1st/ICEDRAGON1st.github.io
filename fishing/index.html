@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260917au">
+  <link rel="stylesheet" href="styles.css?v=20260917av">
 </head>
 <body data-spot="creek">
   <header class="top-bar">
@@ -56,7 +56,7 @@
           <span class="stat-chip-label">Sell boost</span>
           <strong id="sell-label">+0%</strong>
         </div>
-        <div class="stat-chip event-chip event-idle" id="event-chip" title="At :00 and :30, a 5-minute 2× sell or 2× luck event (they alternate). Stacks with chests.">
+        <div class="stat-chip event-chip event-idle" id="event-chip" title="At :00 and :30, a 5-minute sell or luck event rolls 1.5× / 2× / 3× / 4× (they alternate sell/luck). Stacks with chests.">
           <span class="stat-chip-label">Event</span>
           <strong id="event-label">—</strong>
         </div>
@@ -156,7 +156,7 @@
         </div>
       </div>
 
-      <p class="hint">Cast, wait for the bobber to dunk, then tap <strong>Reel</strong>. Rare <strong>Coin</strong> and <strong>Luck Chests</strong> go to your stash. At each :00 / :30 a global <strong>2× sell</strong> or <strong>2× luck</strong> event runs for <strong>5 minutes</strong> (they alternate; stacks with chests). ICE can also start a global admin event anytime. Tap again while waiting to cancel. Sell fish from your cooler.</p>
+      <p class="hint">Cast, wait for the bobber to dunk, then tap <strong>Reel</strong>. Rare <strong>Coin</strong> and <strong>Luck Chests</strong> go to your stash. At each :00 / :30 a global <strong>sell</strong> or <strong>luck</strong> event runs for <strong>5 minutes</strong> at <strong>1.5×, 2×, 3×, or 4×</strong> (they alternate; stacks with chests). ICE can also start a global admin event anytime. Tap again while waiting to cancel. Sell fish from your cooler.</p>
       <p id="catch-line" class="catch-line" aria-live="polite">Ready to cast</p>
 
       <div id="treasure-stash" class="treasure-stash is-empty" aria-live="polite">
@@ -178,7 +178,7 @@
           </span>
           <button id="luck-chest-use-btn" type="button" class="btn btn-ghost treasure-use-btn" disabled>Use</button>
         </div>
-        <p class="treasure-stash-hint">Two different chests. Events at :00 / :30 last 5 minutes and stack with them (luck + luck event = 2.5×; coin + sell event = 3×). Opening more of the same chest only adds time.</p>
+        <p class="treasure-stash-hint">Two different chests. Events at :00 / :30 last 5 minutes at 1.5×–4× and stack with them. Opening more of the same chest only adds time.</p>
       </div>
 
       <div class="cooler-bar">
@@ -395,6 +395,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260916r"></script>
-  <script src="script.js?v=20260917au"></script>
+  <script src="script.js?v=20260917av"></script>
 </body>
 </html>

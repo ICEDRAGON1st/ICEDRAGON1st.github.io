@@ -22,11 +22,11 @@
   const TREASURE_STASH_MAX = 25;
   const EVENT_MS = 30 * 60 * 1000;
   const EVENT_ACTIVE_MS = 5 * 60 * 1000; // only first 5 minutes of each :00 / :30
-  const EVENT_MONEY_BONUS = 1; // alone → 2× sell
-  const EVENT_LUCK_BONUS = 1; // alone → 2× luck
+  /** Scheduled :00 / :30 events roll one of these (same for all players per slot). */
+  const EVENT_MULT_OPTIONS = [1.5, 2, 3, 4];
   const CHEST_MONEY_BONUS = TREASURE_MULT - 1; // +1 → 2×
   const CHEST_LUCK_BONUS = TREASURE_LUCK_MULT - 1; // +0.5 → 1.5×
-  // Chest + matching event stacks additively (luck chest + luck event = 2.5×)
+  // Chest + matching event stacks additively with the rolled event mult
   // Global admin override: Mantle (ICE in-game) + admin-event.json (chat push)
   const OWNER_NAME = "ice_dragon";
   const ADMIN_EVENT_URL = "admin-event.json";
@@ -1840,6 +1840,14 @@
     return eventSlotIndex(startTs) % 2 === 0 ? "money" : "luck";
   }
 
+  /** Deterministic mult for a :00 / :30 slot so every client matches. */
+  function eventMultForStart(startTs) {
+    let x = (eventSlotIndex(startTs) * 2654435761) >>> 0;
+    x ^= x >>> 16;
+    x = Math.imul(x ^ (x >>> 13), 2246822519) >>> 0;
+    return EVENT_MULT_OPTIONS[x % EVENT_MULT_OPTIONS.length];
+  }
+
   /** Live sell/luck event kind, or null when between windows. Variant admin is separate. */
   function currentEventKind(now = Date.now()) {
     const admin = adminBoostEventLive(now);
@@ -1861,7 +1869,7 @@
     if (!kind) return 1;
     const admin = adminBoostEventLive(now);
     if (admin) return clampAdminMult(admin.mult);
-    return kind === "luck" ? 1 + EVENT_LUCK_BONUS : 1 + EVENT_MONEY_BONUS;
+    return eventMultForStart(scheduledEventWindowStart(now));
   }
 
   function variantEventMult(now = Date.now()) {
@@ -1960,9 +1968,10 @@
     const variant = adminVariantEventLive();
     const nextStart = nextHalfHourStart();
     const nextKind = eventKindForStart(nextStart);
+    const nextMult = formatMult(eventMultForStart(nextStart));
     const untilNext = msUntilNextEvent();
     const previewKind = live ? kind : nextKind;
-    const multLabel = formatMult(live ? liveEventMult() : 2);
+    const multLabel = formatMult(live ? liveEventMult() : eventMultForStart(nextStart));
     const variantMult = variant ? formatMult(variant.mult) : "";
 
     if (eventBannerEl) {
@@ -1979,9 +1988,9 @@
     if (eventBannerTitleEl) {
       const parts = [];
       if (live && kind === "luck") {
-        parts.push(admin ? `${multLabel}× Luck` : "2× Luck");
+        parts.push(`${multLabel}× Luck`);
       } else if (live && kind === "money") {
-        parts.push(admin ? `${multLabel}× Sell` : "2× Sell");
+        parts.push(`${multLabel}× Sell`);
       }
       if (variant) {
         parts.push(`${variantMult}× ${formatAdminVariantLabel(variant.target)}`);
@@ -1992,7 +2001,9 @@
         }`;
       } else {
         eventBannerTitleEl.textContent =
-          nextKind === "luck" ? "Upcoming: 2× Luck" : "Upcoming: 2× Sell";
+          nextKind === "luck"
+            ? `Upcoming: ${nextMult}× Luck`
+            : `Upcoming: ${nextMult}× Sell`;
       }
     }
     if (eventBannerTimeEl) {
@@ -4585,11 +4596,14 @@
       } else {
         const nextStart = nextHalfHourStart();
         const nextKind = eventKindForStart(nextStart);
-        const afterKind = eventKindForStart(nextStart + EVENT_MS);
-        eventLabelEl.textContent = `Next ${
-          nextKind === "luck" ? "2× luck" : "2× sell"
-        } in ${formatTreasureClock(msUntilNextEvent())} · then ${
-          afterKind === "luck" ? "2× luck" : "2× sell"
+        const afterStart = nextStart + EVENT_MS;
+        const afterKind = eventKindForStart(afterStart);
+        const nextMult = formatMult(eventMultForStart(nextStart));
+        const afterMult = formatMult(eventMultForStart(afterStart));
+        eventLabelEl.textContent = `Next ${nextMult}× ${
+          nextKind === "luck" ? "luck" : "sell"
+        } in ${formatTreasureClock(msUntilNextEvent())} · then ${afterMult}× ${
+          afterKind === "luck" ? "luck" : "sell"
         }`;
       }
     }
