@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916p": [
+    "Fishing Idle: catch book Shiny is a toggle you can combine with Normal/Silver/Gold/Diamond/Rainbow"
+  ],
   "20260916o": [
     "Fishing Idle: spot sell multipliers nerfed (late spots especially)"
   ],

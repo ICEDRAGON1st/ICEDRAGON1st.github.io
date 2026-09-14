@@ -2534,10 +2534,10 @@
     { id: "silver", label: "Silver" },
     { id: "gold", label: "Gold" },
     { id: "diamond", label: "Diamond" },
-    { id: "rainbow", label: "Rainbow" },
-    { id: "shiny", label: "Shiny" }
+    { id: "rainbow", label: "Rainbow" }
   ];
   let bookFilter = "any";
+  let bookShinyOn = false;
 
   function blankCaughtRecord() {
     return {
@@ -2605,20 +2605,41 @@
     return changed;
   }
 
-  function hasCaught(id, filter = bookFilter) {
+  function hasCaught(id, filter = bookFilter, shinyOn = bookShinyOn) {
     const raw = state.caught?.[id];
     if (!raw) return false;
     const rec = normalizeCaughtRecord(raw);
-    if (filter === "any") return !!rec.any;
+    if (shinyOn && !rec.shiny) return false;
+    if (filter === "any") return shinyOn ? !!rec.shiny : !!rec.any;
+    if (filter === "base") {
+      if (shinyOn) {
+        // Normal + Shiny = shiny with no primary value variant
+        return (
+          !!rec.shiny && !rec.silver && !rec.gold && !rec.diamond && !rec.rainbow
+        );
+      }
+      return !!rec.base;
+    }
     return !!rec[filter];
   }
 
-  function caughtCount(filter = bookFilter) {
-    return FISH.reduce((n, f) => n + (hasCaught(f.id, filter) ? 1 : 0), 0);
+  function caughtCount(filter = bookFilter, shinyOn = bookShinyOn) {
+    return FISH.reduce((n, f) => n + (hasCaught(f.id, filter, shinyOn) ? 1 : 0), 0);
   }
 
-  function bookFilterLabel(filter = bookFilter) {
-    return BOOK_FILTERS.find((f) => f.id === filter)?.label || "All";
+  function bookFilterLabel(filter = bookFilter, shinyOn = bookShinyOn) {
+    const base = BOOK_FILTERS.find((f) => f.id === filter)?.label || "All";
+    return shinyOn ? `${base} · Shiny` : base;
+  }
+
+  function bookShowEntry(filter = bookFilter, shinyOn = bookShinyOn) {
+    const entry = {};
+    if (filter === "silver" || filter === "gold" || filter === "diamond" || filter === "rainbow") {
+      entry.variant = filter;
+    }
+    if (shinyOn) entry.shiny = true;
+    if (!entry.variant && !entry.shiny) return null;
+    return entry;
   }
 
   function maybeSubmitBest(force = false) {
@@ -3300,7 +3321,7 @@
     if (boatLevel() >= 3) HubAchievements.unlock("fishing_fps_100");
     if (state.unlocked.deep) HubAchievements.unlock("fishing_voyage_1");
     if (state.unlocked.void) HubAchievements.unlock("fishing_voyage_1");
-    if (FISH.length > 0 && caughtCount("any") >= Math.ceil(FISH.length * 0.7)) {
+    if (FISH.length > 0 && caughtCount("any", false) >= Math.ceil(FISH.length * 0.7)) {
       const newly = HubAchievements.unlock("fishing_all");
       window.HubPlays?.markMasterFisher?.().catch?.(() => {});
       if (newly) {
@@ -4773,13 +4794,13 @@
 
   function renderBook() {
     const total = FISH.length;
-    const found = caughtCount(bookFilter);
+    const found = caughtCount();
     const pct = total > 0 ? Math.floor((found / total) * 100) : 0;
     if (bookProgressEl) {
-      bookProgressEl.textContent = `${found} / ${total} (${pct}%) · ${bookFilterLabel(bookFilter)}`;
+      bookProgressEl.textContent = `${found} / ${total} (${pct}%) · ${bookFilterLabel()}`;
     }
     if (bookFiltersEl) {
-      bookFiltersEl.innerHTML = BOOK_FILTERS.map(
+      const primaryBtns = BOOK_FILTERS.map(
         (f) =>
           `<button type="button" class="book-filter-btn${
             bookFilter === f.id ? " is-active" : ""
@@ -4787,6 +4808,12 @@
             f.id
           }" role="tab" aria-selected="${bookFilter === f.id}">${f.label}</button>`
       ).join("");
+      const shinyBtn = `<button type="button" class="book-filter-btn variant-shiny book-shiny-toggle${
+        bookShinyOn ? " is-active is-on" : ""
+      }" data-book-shiny-toggle="1" aria-pressed="${bookShinyOn}" title="Toggle shiny filter on or off">${
+        bookShinyOn ? "Shiny On" : "Shiny"
+      }</button>`;
+      bookFiltersEl.innerHTML = `${shinyBtn}<div class="book-filter-sep" aria-hidden="true"></div>${primaryBtns}`;
     }
     if (!bookBody) return;
     const byRarity = {};
@@ -4797,19 +4824,14 @@
       if (!byRarity[fish.rarity]) byRarity[fish.rarity] = [];
       byRarity[fish.rarity].push(fish);
     });
-    const showEntry =
-      bookFilter === "any" || bookFilter === "base"
-        ? null
-        : bookFilter === "shiny"
-          ? { shiny: true }
-          : { variant: bookFilter };
+    const showEntry = bookShowEntry();
     bookBody.innerHTML = RARITIES.map((rarity) => {
       const list = byRarity[rarity] || [];
       if (!list.length) return "";
-      const got = list.filter((f) => hasCaught(f.id, bookFilter)).length;
+      const got = list.filter((f) => hasCaught(f.id)).length;
       const cards = list
         .map((fish) => {
-          const known = hasCaught(fish.id, bookFilter);
+          const known = hasCaught(fish.id);
           if (known) {
             const label = showEntry ? formatFishName(fish, showEntry) : fish.name;
             return `<div class="book-card is-caught rarity-${fish.rarity}${
@@ -4820,9 +4842,7 @@
               <span class="book-card-meta">${fish.rarity} · ${formatNum(fish.value)}</span>
             </div>`;
           }
-          return `<div class="book-card is-unknown rarity-${fish.rarity}" title="Not caught yet · ${bookFilterLabel(
-            bookFilter
-          )}">
+          return `<div class="book-card is-unknown rarity-${fish.rarity}" title="Not caught yet · ${bookFilterLabel()}">
               <span class="book-card-glyph book-card-sil" aria-hidden="true">${fishGlyphHtml(
                 fish
               )}</span>
@@ -4998,6 +5018,12 @@
   guideBtn?.addEventListener("click", openGuide);
   bookBtn?.addEventListener("click", openBook);
   bookFiltersEl?.addEventListener("click", (e) => {
+    const shinyBtn = e.target.closest("[data-book-shiny-toggle]");
+    if (shinyBtn && bookFiltersEl.contains(shinyBtn)) {
+      bookShinyOn = !bookShinyOn;
+      renderBook();
+      return;
+    }
     const btn = e.target.closest("[data-book-filter]");
     if (!btn || !bookFiltersEl.contains(btn)) return;
     const next = btn.getAttribute("data-book-filter");

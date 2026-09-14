@@ -344,6 +344,12 @@ body.modal-open {
   padding-top: 0.1rem;
 }
 
+.book-filter-sep {
+  height: 1px;
+  margin: 0.15rem 0.35rem;
+  background: rgba(255, 255, 255, 0.12);
+}
+
 .book-filter-btn {
   appearance: none;
   border: 1px solid var(--border);
@@ -402,10 +408,15 @@ body.modal-open {
   color: #ffe8f4;
 }
 
-.book-filter-btn.variant-shiny.is-active {
+.book-filter-btn.variant-shiny.is-active,
+.book-filter-btn.book-shiny-toggle.is-on {
   border-color: rgba(255, 236, 140, 0.85);
   background: rgba(255, 236, 140, 0.14);
   color: #fff4b8;
+}
+
+.book-filter-btn.book-shiny-toggle:not(.is-on) {
+  opacity: 0.72;
 }
 
 .book-body {
