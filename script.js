@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917ah": [
+    "Ramp Rush: faster downhill speed"
+  ],
   "20260917ag": [
     "Ramp Rush: rarer arches, smoother climbs, no height teleports"
   ],
