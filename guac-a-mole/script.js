@@ -105,7 +105,7 @@
   function showHole(hole, rotten) {
     hole.up = true;
     hole.rotten = !!rotten;
-    const stay = Math.max(900, 1600 - score * 5 + Math.random() * 350);
+    const stay = Math.max(750, 1350 - score * 6 + Math.random() * 280);
     hole.hideAt = performance.now() + stay;
     hole.el.classList.toggle("rotten", hole.rotten);
     hole.el.classList.remove("hit", "burst");
@@ -217,8 +217,8 @@
       if (!running || paused) return;
       const upCount = holes.filter((h) => h.up).length;
       if (upCount === 0) spawnOne();
-      else if (upCount === 1 && score > 55 && Math.random() < 0.1) spawnOne();
-    }, 1100);
+      else if (upCount === 1 && score > 45 && Math.random() < 0.14) spawnOne();
+    }, 900);
     tickTimer = setInterval(() => {
       if (!running || paused) return;
       tickHoles(performance.now());
