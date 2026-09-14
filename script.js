@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260916y": [
+    "Ramp Rush: first jump or red hazard around 20 points"
+  ],
   "20260916x": [
     "Ramp Rush: fewer jumps, floating red hazards in the air"
   ],

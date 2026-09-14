@@ -147,6 +147,7 @@
     let raise = 0;
     let ramp = null;
     let isVoid = false;
+    let width = baseW;
 
     if (pendingSegs.length) {
       const spec = pendingSegs.shift();
@@ -164,6 +165,8 @@
       }
       ramp = spec.ramp || null;
       raise = spec.raise || 0;
+      block = spec.block || null;
+      if (spec.width) width = spec.width;
     } else if (difficulty > 0.85 && featureCooldown <= 0 && Math.random() < 0.065) {
       enqueueJump(difficulty);
       return makeSegment(z, difficulty);
@@ -183,6 +186,7 @@
         };
       } else if (difficulty > 1.2 && kindRoll < 0.55) {
         taper = rand(0.35, 0.9);
+        width = baseW - taper;
       }
     }
 
@@ -190,7 +194,7 @@
 
     return {
       z,
-      width: baseW - taper,
+      width,
       gap,
       block,
       ramp,
@@ -212,12 +216,36 @@
     nextSegZ = 0;
     segments = [];
     pendingSegs = [];
-    featureCooldown = 28;
     sparks = [];
     shake = 0;
     dead = false;
-    for (let i = 0; i < LOOK_AHEAD; i += 1) {
+
+    // Score ≈ 0.55 * worldZ, so ~20 points ≈ this many safe segments.
+    const firstHazardScore = 20;
+    const safeCount = Math.max(3, Math.floor(firstHazardScore / 0.55 / SEGMENT_LEN));
+    for (let i = 0; i < safeCount; i += 1) {
       segments.push(makeSegment(nextSegZ, 0));
+      nextSegZ += SEGMENT_LEN;
+    }
+
+    // First encounter: jump ramp or red killer around the 20-point mark.
+    if (Math.random() < 0.5) {
+      enqueueJump(0.9);
+    } else {
+      pendingSegs.push({
+        raise: 0,
+        block: {
+          x: rand(-1.3, 1.3),
+          w: rand(0.85, 1.3),
+          h: rand(0.7, 1.15),
+          y: Math.random() < 0.45 ? rand(0.85, 1.8) : 0
+        }
+      });
+      featureCooldown = 22;
+    }
+
+    while (segments.length < LOOK_AHEAD) {
+      segments.push(makeSegment(nextSegZ, 0.5));
       nextSegZ += SEGMENT_LEN;
     }
     updateHud();
