@@ -19,15 +19,15 @@
   const W = canvas.width;
   const H = canvas.height;
   const FOV = 300;
-  const CAM_HEIGHT = 2.9;
-  const CAM_BACK = 5.5;
-  const HORIZON = H * 0.16;
+  const CAM_HEIGHT = 3.05;
+  const CAM_BACK = 5.35;
+  const HORIZON = H * 0.15;
   const SEGMENT_LEN = 4.5;
   const LOOK_AHEAD = 30;
   /** World Y drop per unit of Z. */
-  const HILL_SLOPE = 0.95;
-  /** Extra camera pitch (radians) — enough to read the drop, not hide the track. */
-  const LOOK_DOWN = 0.18;
+  const HILL_SLOPE = 1.05;
+  /** Extra camera pitch (radians). */
+  const LOOK_DOWN = 0.22;
   const GRAVITY_ACCEL = 4.4;
   const PLAYER_Z = 2.2;
   const AIR_GRAVITY = 26;
@@ -96,7 +96,8 @@
 
   function camPose() {
     const camZ = worldZ + PLAYER_Z - CAM_BACK;
-    return { z: camZ, y: groundY(camZ) + CAM_HEIGHT };
+    // Drop slower than the ground so the view tips downhill.
+    return { z: camZ, y: groundY(camZ) * 0.68 + CAM_HEIGHT };
   }
 
   function project(x, y, z) {
@@ -485,108 +486,126 @@
   }
 
   function cliffHeights(side, z) {
-    const t = (z - worldZ) * 0.15 + side * 2.1;
-    const topIn = 5.2 + Math.abs(Math.sin(t * 0.85)) * 2.4 + Math.sin(t * 2.4) * 0.55;
-    const topOut = topIn + 1.6 + Math.abs(Math.sin(t * 1.3)) * 1.1;
-    const xIn = side * (TRACK_HALF + 0.08);
-    const xMid = side * (7.2 + Math.sin(t * 1.05) * 0.45);
-    const xOut = side * (15.5 + Math.sin(t * 0.7) * 0.9 + Math.sin(t * 2.1) * 0.35);
-    return { topIn, topOut, xIn, xMid, xOut, bot: -6.2 };
+    const t = (z - worldZ) * 0.14 + side * 2.1;
+    const topIn = 4.6 + Math.abs(Math.sin(t * 0.8)) * 2.1 + Math.sin(t * 2.2) * 0.45;
+    const topOut = topIn + 2.2 + Math.abs(Math.sin(t * 1.15)) * 1.0;
+    const xIn = side * (TRACK_HALF + 0.05);
+    const xOut = side * (16.5 + Math.sin(t * 0.65) * 0.7);
+    return { topIn, topOut, xIn, xOut, bot: -7.5 };
+  }
+
+  function fillRibbon(tops, bots, fill) {
+    if (tops.length < 2 || bots.length < 2) return;
+    ctx.beginPath();
+    ctx.moveTo(tops[0].x, tops[0].y);
+    for (let i = 1; i < tops.length; i += 1) ctx.lineTo(tops[i].x, tops[i].y);
+    for (let i = bots.length - 1; i >= 0; i -= 1) ctx.lineTo(bots[i].x, bots[i].y);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
   }
 
   function drawDescentScenery() {
-    const nearZ = worldZ + 2.0;
-    const farZ = worldZ + 105;
-    const step = 2.6;
+    const nearZ = worldZ + 1.8;
+    const farZ = worldZ + 110;
+    const step = 2.0;
 
-    // Opaque gorge floor so sky never shows under the track.
-    for (let z = farZ; z >= nearZ; z -= step * 2) {
-      const z1 = z + step * 2;
-      const fade = Math.max(0.35, 1 - (z - worldZ) * 0.008);
-      rockQuad(
-        -TRACK_HALF - 0.2, -5.8, z,
-        TRACK_HALF + 0.2, -5.8, z,
-        TRACK_HALF + 0.2, -5.8, z1,
-        -TRACK_HALF - 0.2, -5.8, z1,
-        "rgba(0,0,0," + (0.82 * fade) + ")",
-        null
-      );
-    }
-
-    // Solid canyon walls: far → near. Inner face seals against the track (no sky gaps).
-    for (let z = farZ; z >= nearZ; z -= step) {
-      const z1 = Math.min(z + step, farZ + step);
-      const dist = z - worldZ;
-      const shade = Math.max(0.45, 1 - dist * 0.007);
-      for (const side of [-1, 1]) {
-        const a = cliffHeights(side, z);
-        const b = cliffHeights(side, z1);
-        const lit = side < 0;
-        const face = lit
-          ? `rgb(${Math.floor(155 * shade)},${Math.floor(78 * shade)},${Math.floor(42 * shade)})`
-          : `rgb(${Math.floor(110 * shade)},${Math.floor(55 * shade)},${Math.floor(30 * shade)})`;
-        const deep = lit
-          ? `rgb(${Math.floor(78 * shade)},${Math.floor(38 * shade)},${Math.floor(20 * shade)})`
-          : `rgb(${Math.floor(55 * shade)},${Math.floor(28 * shade)},${Math.floor(14 * shade)})`;
-        const rim = lit
-          ? `rgb(${Math.floor(190 * shade)},${Math.floor(110 * shade)},${Math.floor(60 * shade)})`
-          : `rgb(${Math.floor(140 * shade)},${Math.floor(78 * shade)},${Math.floor(42 * shade)})`;
-
-        // Outer mass (fills width so the wall has bulk).
-        rockQuad(a.xMid, a.topIn, z, a.xOut, a.topOut, z, b.xOut, b.topOut, z1, b.xMid, b.topIn, z1, deep, null);
-        rockQuad(a.xOut, a.topOut, z, a.xOut, a.bot, z, b.xOut, b.bot, z1, b.xOut, b.topOut, z1, deep, null);
-
-        // Inner face glued to the track edge — kills see-through gaps.
-        rockQuad(a.xIn, a.topIn, z, a.xMid, a.topIn * 0.92, z, b.xMid, b.topIn * 0.92, z1, b.xIn, b.topIn, z1, rim, null);
-        rockQuad(a.xIn, a.topIn, z, b.xIn, b.topIn, z1, b.xIn, b.bot, z1, a.xIn, a.bot, z, face, null);
-
-        // Top ledge thickness.
-        rockQuad(a.xIn, a.topIn, z, a.xOut, a.topOut, z, b.xOut, b.topOut, z1, b.xIn, b.topIn, z1, rim, null);
+    // Dark abyss under the corridor.
+    const floorTops = [];
+    const floorBots = [];
+    for (let z = nearZ; z <= farZ; z += step * 2) {
+      const pL = project(-TRACK_HALF - 0.4, -6.5, z);
+      const pR = project(TRACK_HALF + 0.4, -6.5, z);
+      if (pL && pR) {
+        floorTops.push(pL);
+        floorBots.push(pR);
       }
     }
+    fillRibbon(floorTops, floorBots, "rgba(0,0,0,0.88)");
 
-    // Screen-edge rock plugs (near only) — keep them outside the corridor.
     for (const side of [-1, 1]) {
-      const samples = [];
-      for (let z = nearZ; z <= worldZ + 28; z += step) {
+      const topsIn = [];
+      const botsIn = [];
+      const topsOut = [];
+      const botsOut = [];
+      const topsMid = [];
+      for (let z = nearZ; z <= farZ; z += step) {
         const h = cliffHeights(side, z);
-        const p = project(h.xOut * 0.92, h.topOut, z);
-        if (p) samples.push(p);
+        const pTi = project(h.xIn, h.topIn, z);
+        const pBi = project(h.xIn, h.bot, z);
+        const pTo = project(h.xOut, h.topOut, z);
+        const pBo = project(h.xOut, h.bot, z);
+        const pTm = project((h.xIn + h.xOut) * 0.5, h.topIn + 0.35, z);
+        if (pTi && pBi) {
+          topsIn.push(pTi);
+          botsIn.push(pBi);
+        }
+        if (pTo && pBo) {
+          topsOut.push(pTo);
+          botsOut.push(pBo);
+        }
+        if (pTm) topsMid.push(pTm);
       }
-      if (samples.length < 2) continue;
-      const edgeX = side < 0 ? 0 : W;
-      ctx.beginPath();
-      ctx.moveTo(edgeX, 0);
-      ctx.lineTo(samples[0].x, Math.min(samples[0].y, H * 0.55));
-      for (let i = 1; i < samples.length; i += 1) {
-        const sx = side < 0 ? Math.min(samples[i].x, W * 0.28) : Math.max(samples[i].x, W * 0.72);
-        ctx.lineTo(sx, samples[i].y);
-      }
-      ctx.lineTo(edgeX, H);
-      ctx.closePath();
-      ctx.fillStyle = side < 0 ? "#6a3218" : "#4e2412";
-      ctx.fill();
-    }
 
-    // Strata lines on the near inner faces.
-    for (let band = 0; band < 6; band += 1) {
-      const u = 0.12 + band * 0.14;
-      for (const side of [-1, 1]) {
+      const lit = side < 0;
+      // Outer bulk first (opaque — no sky through the wall).
+      fillRibbon(topsOut, botsOut, lit ? "#4a2412" : "#3a1c10");
+      // Cap / thickness between outer rim and inner rim.
+      if (topsIn.length > 1 && topsOut.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(topsIn[0].x, topsIn[0].y);
+        for (let i = 1; i < topsIn.length; i += 1) ctx.lineTo(topsIn[i].x, topsIn[i].y);
+        for (let i = topsOut.length - 1; i >= 0; i -= 1) ctx.lineTo(topsOut[i].x, topsOut[i].y);
+        ctx.closePath();
+        ctx.fillStyle = lit ? "#8a4a28" : "#6a3820";
+        ctx.fill();
+      }
+      // Inner face sealed to the track edge.
+      fillRibbon(topsIn, botsIn, lit ? "#b86434" : "#8f4a28");
+
+      // Lit rim.
+      if (topsIn.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(topsIn[0].x, topsIn[0].y);
+        for (let i = 1; i < topsIn.length; i += 1) ctx.lineTo(topsIn[i].x, topsIn[i].y);
+        ctx.strokeStyle = lit ? "rgba(255, 200, 130, 0.45)" : "rgba(255, 180, 110, 0.28)";
+        ctx.lineWidth = 2.4;
+        ctx.stroke();
+      }
+
+      // Soft strata (no wireframe look).
+      for (let band = 0; band < 5; band += 1) {
+        const u = 0.18 + band * 0.14;
         ctx.beginPath();
         let started = false;
-        for (let z = nearZ; z <= worldZ + 70; z += step) {
-          const h = cliffHeights(side, z);
-          const y = h.bot * u + h.topIn * (1 - u);
-          const p = project(h.xIn, y, z);
-          if (!p) continue;
+        for (let i = 0; i < topsIn.length; i += 1) {
+          const x = topsIn[i].x * (1 - u) + botsIn[i].x * u;
+          const y = topsIn[i].y * (1 - u) + botsIn[i].y * u;
           if (!started) {
-            ctx.moveTo(p.x, p.y);
+            ctx.moveTo(x, y);
             started = true;
-          } else ctx.lineTo(p.x, p.y);
+          } else ctx.lineTo(x, y);
         }
-        ctx.strokeStyle = "rgba(255, 190, 120," + (0.08 + (band % 2) * 0.05) + ")";
-        ctx.lineWidth = 1.4;
+        ctx.strokeStyle = "rgba(255, 190, 120," + (0.07 + (band % 2) * 0.04) + ")";
+        ctx.lineWidth = 1.3;
         ctx.stroke();
+      }
+
+      // Side plugs so sky never peeks past near walls.
+      if (topsOut.length > 1) {
+        const edgeX = side < 0 ? 0 : W;
+        ctx.beginPath();
+        ctx.moveTo(edgeX, 0);
+        for (let i = 0; i < topsOut.length; i += 1) {
+          const sx = side < 0 ? Math.min(topsOut[i].x, W * 0.34) : Math.max(topsOut[i].x, W * 0.66);
+          ctx.lineTo(sx, topsOut[i].y);
+        }
+        const last = topsOut[topsOut.length - 1];
+        ctx.lineTo(side < 0 ? Math.min(last.x, W * 0.34) : Math.max(last.x, W * 0.66), H);
+        ctx.lineTo(edgeX, H);
+        ctx.closePath();
+        ctx.fillStyle = lit ? "#5a2c16" : "#422010";
+        ctx.fill();
       }
     }
   }
