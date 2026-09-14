@@ -45,6 +45,12 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917bb": [
+    "Garden Snap: force cache refresh so planting fix loads"
+  ],
+  "20260917ba": [
+    "Garden Snap: fix planting glitch (board no longer rebuilds every tick)"
+  ],
   "20260917az": [
     "Cafe Queue: guests arrive faster"
   ],
