@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917at": [
+    "Guac-A-Mole: avocados stay up about 0.5 seconds"
+  ],
   "20260917as": [
     "Guac-A-Mole: avocados duck back into holes faster"
   ],

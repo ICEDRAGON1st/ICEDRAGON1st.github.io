@@ -105,7 +105,7 @@
   function showHole(hole, rotten) {
     hole.up = true;
     hole.rotten = !!rotten;
-    const stay = Math.max(750, 1350 - score * 6 + Math.random() * 280);
+    const stay = 500 + Math.random() * 80;
     hole.hideAt = performance.now() + stay;
     hole.el.classList.toggle("rotten", hole.rotten);
     hole.el.classList.remove("hit", "burst");
