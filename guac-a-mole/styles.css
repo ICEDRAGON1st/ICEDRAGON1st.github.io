@@ -121,6 +121,7 @@ body {
   background: transparent;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
+  overflow: hidden;
 }
 
 .hole-bowl {
@@ -136,27 +137,33 @@ body {
     inset 0 10px 16px rgba(0, 0, 0, 0.35),
     0 4px 0 rgba(40, 22, 10, 0.35);
   overflow: hidden;
+  z-index: 1;
 }
 
 .avocado {
   position: absolute;
   left: 50%;
-  bottom: 28%;
+  bottom: 22%;
   width: 58%;
   aspect-ratio: 0.78;
-  transform: translate(-50%, 110%);
-  transition: transform 0.16s ease-out;
+  transform: translate(-50%, 130%);
+  opacity: 0;
+  visibility: hidden;
+  transition: transform 0.16s ease-out, opacity 0.08s ease-out;
   pointer-events: none;
   z-index: 2;
 }
 
 .hole.up .avocado {
   transform: translate(-50%, 8%);
+  opacity: 1;
+  visibility: visible;
 }
 
 .hole.hit .avocado {
   transform: translate(-50%, 8%) scale(0.7) rotate(-18deg);
   opacity: 0.35;
+  visibility: visible;
   filter: blur(0.5px);
 }
 

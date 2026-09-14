@@ -113,6 +113,8 @@
   }
 
   function spawnOne() {
+    const upCount = holes.filter((h) => h.up).length;
+    if (upCount >= 2) return;
     const free = holes.filter((h) => !h.up);
     if (!free.length) return;
     const hole = free[Math.floor(Math.random() * free.length)];
@@ -213,9 +215,11 @@
     clearInterval(tickTimer);
     spawnTimer = setInterval(() => {
       if (!running || paused) return;
-      const pops = 1 + (score > 25 ? 1 : 0) + (Math.random() < 0.25 ? 1 : 0);
-      for (let i = 0; i < pops; i += 1) spawnOne();
-    }, 520);
+      // Usually one at a time; rare second only if board is empty-ish.
+      const upCount = holes.filter((h) => h.up).length;
+      if (upCount === 0) spawnOne();
+      else if (upCount === 1 && score > 40 && Math.random() < 0.18) spawnOne();
+    }, 780);
     tickTimer = setInterval(() => {
       if (!running || paused) return;
       tickHoles(performance.now());

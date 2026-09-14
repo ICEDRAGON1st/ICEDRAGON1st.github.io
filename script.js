@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260917ap": [
+    "Guac-A-Mole: hide avocados in holes; fewer popups at once"
+  ],
   "20260917ao": [
     "New game: Guac-A-Mole — smash ripe avocados, skip the rotten ones"
   ],
