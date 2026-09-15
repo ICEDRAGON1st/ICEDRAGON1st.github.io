@@ -932,9 +932,11 @@
     return ownedGear("luck").reduce((s, g) => s + g.amount, 0);
   }
 
-  /** Spot rarity points that count as luck (Creek = 0, later spots higher). */
+  /** Spot luck — scales up hard on higher tiers (Creek = 0). */
   function spotLuckBonus(spot = currentSpot()) {
-    return Math.max(0, Number(spot?.rarity) || 0);
+    const r = Math.max(0, Number(spot?.rarity) || 0);
+    // r=5 → 40, r=10 → 130, r=15 → 270, r=20 → 460, r=27 → 810
+    return Math.floor(r * r + 3 * r);
   }
 
   /** Raw luck before chests/events: gear + current spot. */
@@ -4775,7 +4777,11 @@
       return `<div class="spot-item ${active ? "active" : ""}" data-spot-id="${spot.id}" role="listitem">
         <div class="spot-item-main">
           <div class="spot-item-name">${spot.name}</div>
-          <p class="spot-item-desc">${unlocked ? `${spot.blurb} · sell ×${spot.valueMult}` : "Locked spot"}</p>
+          <p class="spot-item-desc">${
+            unlocked
+              ? `${spot.blurb} · sell ×${spot.valueMult} · +${spotLuckBonus(spot)} luck`
+              : "Locked spot"
+          }</p>
         </div>
         ${action}
       </div>`;
