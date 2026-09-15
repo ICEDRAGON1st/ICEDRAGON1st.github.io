@@ -119,20 +119,35 @@
 
   function grantToSave(state, gift) {
     const fishId = String(gift.fishId || "");
-    const isBlock =
-      gift.item === "luckyblock" ||
-      fishId === "__luckyblock__" ||
-      fishId.toLowerCase() === "luckyblock";
-    if (isBlock) {
+    const item = String(gift.item || "").toLowerCase();
+    const idLower = fishId.toLowerCase();
+    let blockKey = "";
+    if (
+      item === "luckyblock-astral" ||
+      idLower === "__luckyblock_astral__" ||
+      idLower === "luckyblock-astral" ||
+      idLower === "astralluckyblock"
+    ) {
+      blockKey = "astralLuckyBlockCount";
+    } else if (
+      item === "luckyblock" ||
+      item === "luckyblock-absolute" ||
+      idLower === "__luckyblock__" ||
+      idLower === "luckyblock" ||
+      idLower === "absoluteluckyblock"
+    ) {
+      blockKey = "luckyBlockCount";
+    }
+    if (blockKey) {
       const count = Math.min(50, Math.max(1, Number(gift.count) || 1));
       const max = 50;
       let added = 0;
-      const cur = Math.max(0, Math.floor(Number(state.luckyBlockCount) || 0));
+      const cur = Math.max(0, Math.floor(Number(state[blockKey]) || 0));
       for (let i = 0; i < count; i += 1) {
         if (cur + added >= max) break;
         added += 1;
       }
-      state.luckyBlockCount = cur + added;
+      state[blockKey] = cur + added;
       return added;
     }
     if (!fishId) return 0;
@@ -194,18 +209,29 @@
   }
 
   function notify(gained, sampleId) {
-    const isBlock = sampleId === "__luckyblock__" || sampleId === "luckyblock";
+    const id = String(sampleId || "");
+    const isAstral =
+      id === "__luckyblock_astral__" ||
+      id === "luckyblock-astral" ||
+      id === "astralluckyblock";
+    const isAbsolute =
+      id === "__luckyblock__" ||
+      id === "luckyblock" ||
+      id === "absoluteluckyblock" ||
+      id === "luckyblock-absolute";
+    const isBlock = isAstral || isAbsolute;
+    const blockName = isAstral ? "Astral Lucky Block" : "Absolute Lucky Block";
     const body = isBlock
       ? gained === 1
-        ? "A Lucky Block was added to your Fishing Idle stash."
-        : `${gained} Lucky Blocks were added to your Fishing Idle stash.`
+        ? `A ${blockName} was added to your Fishing Idle stash.`
+        : `${gained} ${blockName}s were added to your Fishing Idle stash.`
       : gained === 1
         ? `A fish was added to your Fishing Idle cooler${sampleId ? ` (${sampleId})` : ""}.`
         : `${gained} fish were added to your Fishing Idle cooler.`;
     try {
       window.HubNotifications?.push?.({
         kind: "gift",
-        title: isBlock ? "Lucky Block gift" : "Fishing gift",
+        title: isBlock ? `${blockName} gift` : "Fishing gift",
         body,
         href: "fishing/index.html"
       });
@@ -245,7 +271,13 @@
       const n = grantToSave(state, g);
       if (!n) return;
       gained += n;
-      sampleId = String(g.item === "luckyblock" ? "__luckyblock__" : g.fishId || sampleId);
+      sampleId = String(
+        g.item === "luckyblock-astral" || g.fishId === "__luckyblock_astral__"
+          ? "__luckyblock_astral__"
+          : g.item === "luckyblock" || g.fishId === "__luckyblock__"
+            ? "__luckyblock__"
+            : g.fishId || sampleId
+      );
       claimed.add(gid);
       toClaim.push(gid);
     });

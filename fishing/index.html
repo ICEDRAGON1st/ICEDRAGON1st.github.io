@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260917bo">
+  <link rel="stylesheet" href="styles.css?v=20260917bp">
 </head>
 <body data-spot="creek">
   <header class="top-bar">
@@ -178,13 +178,21 @@
           </span>
           <button id="luck-chest-use-btn" type="button" class="btn btn-ghost treasure-use-btn" disabled>Use</button>
         </div>
-        <div id="lucky-block-row" class="treasure-stash-row treasure-luckyblock hidden" hidden>
-          <span class="treasure-stash-glyph luckyblock" aria-hidden="true">▣</span>
+        <div id="astral-lucky-block-row" class="treasure-stash-row treasure-luckyblock treasure-luckyblock-astral hidden" hidden>
+          <span class="treasure-stash-glyph luckyblock astral" aria-hidden="true">◇</span>
           <span class="treasure-stash-meta">
-            <strong>Lucky Block</strong>
-            <span class="treasure-stash-count"><span id="lucky-block-count">0</span> stored · singularity+ fish</span>
+            <strong>Astral Lucky Block</strong>
+            <span class="treasure-stash-count"><span id="astral-lucky-block-count">0</span> stored · divine–astral fish</span>
           </span>
-          <button id="lucky-block-use-btn" type="button" class="btn btn-ghost treasure-use-btn" disabled>Open</button>
+          <button id="astral-lucky-block-use-btn" type="button" class="btn btn-ghost treasure-use-btn" disabled>Open</button>
+        </div>
+        <div id="absolute-lucky-block-row" class="treasure-stash-row treasure-luckyblock treasure-luckyblock-absolute hidden" hidden>
+          <span class="treasure-stash-glyph luckyblock absolute" aria-hidden="true">▣</span>
+          <span class="treasure-stash-meta">
+            <strong>Absolute Lucky Block</strong>
+            <span class="treasure-stash-count"><span id="absolute-lucky-block-count">0</span> stored · singularity+ fish</span>
+          </span>
+          <button id="absolute-lucky-block-use-btn" type="button" class="btn btn-ghost treasure-use-btn" disabled>Open</button>
         </div>
         <p class="treasure-stash-hint">Two different chests. Events at :00 / :30 last 5 minutes at 1.5×–4× and stack with them. Opening more of the same chest only adds time. Lucky Blocks are admin-only for now.</p>
       </div>
@@ -330,12 +338,12 @@
     <div class="overlay-card lucky-block-card">
       <div class="guide-head">
         <div>
-          <p class="eyebrow">Admin item · luck ignored</p>
-          <h2 id="lucky-block-title">Lucky Block</h2>
+          <p id="lucky-block-eyebrow" class="eyebrow">Admin item · luck ignored</p>
+          <h2 id="lucky-block-title">Absolute Lucky Block</h2>
         </div>
         <button id="lucky-block-close" type="button" class="btn btn-ghost guide-close">Close</button>
       </div>
-      <p id="lucky-block-status" class="lucky-block-status">No Lucky Blocks stored</p>
+      <p id="lucky-block-status" class="lucky-block-status">No Absolute Lucky Blocks stored</p>
       <div class="lb-stage" aria-live="polite">
         <div class="lb-reel-frame">
           <div class="lb-reel-marker" aria-hidden="true"></div>
@@ -392,14 +400,15 @@
         <button type="button" class="btn btn-ghost" data-admin-cmd="shiny + gold">Shiny + gold</button>
         <button type="button" class="btn btn-ghost" data-admin-cmd="clear">Clear</button>
         <button type="button" class="btn btn-ghost" data-admin-cmd="give fish primefin">Give Primefin</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="give luckyblock">Give Lucky Block</button>
+        <button type="button" class="btn btn-ghost" data-admin-cmd="give astral luckyblock">Give Astral Block</button>
+        <button type="button" class="btn btn-ghost" data-admin-cmd="give absolute luckyblock">Give Absolute Block</button>
       </div>
       <form id="admin-cmd-form" class="admin-cmd-form">
         <input
           id="admin-cmd-input"
           type="text"
           maxlength="120"
-          placeholder="give luckyblock · give fish primefin shiny gold · 5x luck"
+          placeholder="give astral luckyblock · give absolute luckyblock · give fish primefin"
           autocomplete="off"
           spellcheck="false"
         />
@@ -433,6 +442,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260916r"></script>
-  <script src="script.js?v=20260917bo"></script>
+  <script src="script.js?v=20260917bp"></script>
 </body>
 </html>

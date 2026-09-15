@@ -67,15 +67,6 @@
     blurb: "Use for 1.5× luck for 5 minutes"
   };
   const TREASURES = [TREASURE_MONEY, TREASURE_LUCK];
-  const LUCKY_BLOCK = {
-    id: "lucky_block",
-    name: "Lucky Block",
-    rarity: "treasure",
-    kind: "luckyblock",
-    value: 0,
-    blurb: "Admin item · opens into a singularity+ fish (luck boosts ignored)"
-  };
-  const LUCKY_BLOCK_ID = "__luckyblock__";
   const LUCKY_BLOCK_STASH_MAX = 50;
 
   const RARITIES = [
@@ -138,10 +129,80 @@
     absolute: 0.00003
   };
 
-  /** Rarities eligible for Lucky Block (singularity and higher). */
-  const LUCKY_BLOCK_RARITIES = RARITIES.filter(
-    (r) => (RARITY_RANK[r] || 0) >= (RARITY_RANK.singularity || 12)
-  );
+  /** Admin Lucky Blocks: Astral = divine–astral, Absolute = singularity–absolute. */
+  const LUCKY_BLOCK_TYPES = {
+    astral: {
+      id: "astral",
+      name: "Astral Lucky Block",
+      giftId: "__luckyblock_astral__",
+      item: "luckyblock-astral",
+      stateKey: "astralLuckyBlockCount",
+      minRarity: "divine",
+      maxRarity: "astral",
+      rangeLabel: "divine–astral fish",
+      theme: "astral"
+    },
+    absolute: {
+      id: "absolute",
+      name: "Absolute Lucky Block",
+      giftId: "__luckyblock__",
+      item: "luckyblock",
+      stateKey: "luckyBlockCount",
+      minRarity: "singularity",
+      maxRarity: "absolute",
+      rangeLabel: "singularity+ fish",
+      theme: "absolute"
+    }
+  };
+
+  function luckyBlockDef(type) {
+    return LUCKY_BLOCK_TYPES[type] || LUCKY_BLOCK_TYPES.absolute;
+  }
+
+  function luckyBlockRarities(type) {
+    const def = luckyBlockDef(type);
+    const lo = RARITY_RANK[def.minRarity] || 0;
+    const hi = RARITY_RANK[def.maxRarity] || 0;
+    return RARITIES.filter((r) => {
+      const rank = RARITY_RANK[r] || 0;
+      return rank >= lo && rank <= hi;
+    });
+  }
+
+  function resolveLuckyBlockType(raw) {
+    const s = String(raw || "")
+      .toLowerCase()
+      .replace(/[\s_-]+/g, "");
+    if (!s) return "absolute";
+    if (s.includes("astral")) return "astral";
+    if (s.includes("absolute") || s === "luckyblock" || s === "block") return "absolute";
+    return null;
+  }
+
+  function luckyBlockTypeFromGift(g) {
+    const item = String(g?.item || "").toLowerCase();
+    const fishId = String(g?.fishId || "").toLowerCase();
+    if (
+      item === "luckyblock-astral" ||
+      fishId === "__luckyblock_astral__" ||
+      fishId === "luckyblock-astral" ||
+      fishId === "astralluckyblock" ||
+      fishId === "astral"
+    ) {
+      return "astral";
+    }
+    if (
+      item === "luckyblock" ||
+      item === "luckyblock-absolute" ||
+      fishId === "__luckyblock__" ||
+      fishId === "luckyblock" ||
+      fishId === "absoluteluckyblock" ||
+      fishId === "absolute"
+    ) {
+      return "absolute";
+    }
+    return null;
+  }
 
   const FISH = [
     // Common
@@ -813,10 +874,10 @@
   const luckChestTimerEl = document.getElementById("luck-chest-timer");
   const moneyUseBtn = document.getElementById("money-chest-use-btn");
   const luckUseBtn = document.getElementById("luck-chest-use-btn");
-  const luckyBlockCountEl = document.getElementById("lucky-block-count");
-  const luckyBlockUseBtn = document.getElementById("lucky-block-use-btn");
-  const luckyBlockRow = document.getElementById("lucky-block-row");
   const luckyBlockOverlay = document.getElementById("lucky-block-overlay");
+  const luckyBlockCardEl = luckyBlockOverlay?.querySelector(".lucky-block-card") || null;
+  const luckyBlockTitleEl = document.getElementById("lucky-block-title");
+  const luckyBlockEyebrowEl = document.getElementById("lucky-block-eyebrow");
   const luckyBlockStatusEl = document.getElementById("lucky-block-status");
   const luckyBlockReelEl = document.getElementById("lucky-block-reel");
   const luckyBlockResultEl = document.getElementById("lucky-block-result");
@@ -825,6 +886,13 @@
   const luckyBlockDismissBtn = document.getElementById("lucky-block-dismiss-btn");
   const luckyBlockSpinBtn = document.getElementById("lucky-block-spin-btn");
   const luckyBlockChancesBtn = document.getElementById("lucky-block-chances-btn");
+  const astralLuckyBlockCountEl = document.getElementById("astral-lucky-block-count");
+  const astralLuckyBlockUseBtn = document.getElementById("astral-lucky-block-use-btn");
+  const astralLuckyBlockRow = document.getElementById("astral-lucky-block-row");
+  const absoluteLuckyBlockCountEl = document.getElementById("absolute-lucky-block-count");
+  const absoluteLuckyBlockUseBtn = document.getElementById("absolute-lucky-block-use-btn");
+  const absoluteLuckyBlockRow = document.getElementById("absolute-lucky-block-row");
+  let activeLuckyBlockType = "absolute";
   let luckyBlockSpinning = false;
   let luckyBlockSpinTimer = 0;
   let luckyBlockChancesOpen = false;
@@ -979,7 +1047,8 @@
       luckBoostUntil: 0,
       moneyChestCount: 0,
       luckChestCount: 0,
-      luckyBlockCount: 0
+      luckyBlockCount: 0,
+      astralLuckyBlockCount: 0
     };
   }
 
@@ -2105,6 +2174,7 @@
     const claimed = readClaimedGiftIds();
     let gained = 0;
     let blocks = 0;
+    let blockLabel = "";
     let label = "";
     const toClaim = [];
 
@@ -2117,12 +2187,11 @@
       const forMe = (toName && toName === me) || (toId && myId && toId === myId);
       if (!forMe) return;
       const count = Math.min(50, Math.max(1, Number(g.count) || 1));
-      const isBlock =
-        g.item === "luckyblock" ||
-        String(g.fishId || "") === LUCKY_BLOCK_ID ||
-        String(g.fishId || "").toLowerCase() === "luckyblock";
-      if (isBlock) {
-        blocks += storeLuckyBlock(count, { silent: true });
+      const blockType = luckyBlockTypeFromGift(g);
+      if (blockType) {
+        const added = storeLuckyBlock(blockType, count, { silent: true });
+        blocks += added;
+        if (added) blockLabel = luckyBlockDef(blockType).name;
         claimed.add(gid);
         toClaim.push(gid);
         return;
@@ -2146,7 +2215,7 @@
     render(true);
     if (blocks && !gained) {
       setCatchLine(
-        blocks === 1 ? "Gift received: Lucky Block" : `Gift received: ${blocks}× Lucky Block`,
+        blocks === 1 ? `Gift received: ${blockLabel}` : `Gift received: ${blocks}× ${blockLabel}`,
         "treasure"
       );
     } else if (gained) {
@@ -2309,9 +2378,13 @@
 
   function parseGiveLuckyBlockCommand(raw) {
     const original = String(raw || "").trim();
-    if (!/^(give|gift)\s+lucky\s*-?\s*blocks?\b/i.test(original)) return null;
+    const head = original.match(
+      /^(give|gift)\s+(?:(astral|absolute)\s+)?lucky\s*-?\s*blocks?(?:\s+(astral|absolute))?\b/i
+    );
+    if (!head) return null;
 
-    let rest = original.replace(/^(give|gift)\s+lucky\s*-?\s*blocks?\s*/i, "").trim();
+    const type = resolveLuckyBlockType(head[2] || head[3] || "absolute") || "absolute";
+    let rest = original.slice(head[0].length).trim();
     let to = "me";
     const toMatch = rest.match(/\bto\s+@?(.+)$/i);
     if (toMatch) {
@@ -2328,7 +2401,7 @@
       count = Math.min(50, Math.max(1, Number(countMatch[1] || countMatch[2]) || 1));
     }
 
-    return { kind: "give-luckyblock", count, to };
+    return { kind: "give-luckyblock", type, count, to };
   }
 
   async function runGiveLuckyBlockCommand(cmd) {
@@ -2336,6 +2409,8 @@
       setCatchLine("Admin only", "miss");
       return;
     }
+    const type = resolveLuckyBlockType(cmd.type) || "absolute";
+    const def = luckyBlockDef(type);
     const count = Math.min(50, Math.max(1, Number(cmd.count) || 1));
     const toRaw = String(cmd.to || "me").trim();
     const toKey = toRaw.toLowerCase();
@@ -2343,33 +2418,33 @@
       !toKey || toKey === "me" || toKey === "self" || toKey === playerNameLower();
 
     if (isSelf) {
-      const added = storeLuckyBlock(count);
+      const added = storeLuckyBlock(type, count);
       if (!added) return;
       setCatchLine(
-        added === 1 ? "Gave Lucky Block to you" : `Gave ${added}× Lucky Block to you`,
+        added === 1 ? `Gave ${def.name} to you` : `Gave ${added}× ${def.name} to you`,
         "treasure"
       );
       return;
     }
 
-    setCatchLine(`Sending Lucky Block to ${toRaw}…`, "");
+    setCatchLine(`Sending ${def.name} to ${toRaw}…`, "");
     const target = await lookupPlayerForGift(toRaw);
     const ok = await queueFishGift({
       toName: toKey,
       toPlayerId: target?.playerId || "",
       toDisplay: target?.name || toRaw,
-      fishId: LUCKY_BLOCK_ID,
-      item: "luckyblock",
+      fishId: def.giftId,
+      item: def.item,
       count
     });
     if (!ok) {
-      setCatchLine("Couldn't queue Lucky Block — Mantle may be rate-limited", "miss");
+      setCatchLine(`Couldn't queue ${def.name} — Mantle may be rate-limited`, "miss");
       window.HubSound?.play?.("miss");
       return;
     }
     const who = target?.name || toRaw;
     setCatchLine(
-      count === 1 ? `Queued Lucky Block for ${who}` : `Queued ${count}× Lucky Block for ${who}`,
+      count === 1 ? `Queued ${def.name} for ${who}` : `Queued ${count}× ${def.name} for ${who}`,
       "treasure"
     );
     window.HubSound?.play?.("click");
@@ -2398,7 +2473,7 @@
     const parsed = parseAdminCommand(raw);
     if (!parsed) {
       setCatchLine(
-        "Try: 5x luck · give luckyblock · give fish primefin · clear",
+        "Try: 5x luck · give astral luckyblock · give absolute luckyblock · give fish primefin · clear",
         "miss"
       );
       return;
@@ -2805,26 +2880,33 @@
     saveSoon();
   }
 
-  function storeLuckyBlock(count = 1, opts = {}) {
+  function luckyBlockCount(type) {
+    const def = luckyBlockDef(type);
+    return Math.max(0, Math.floor(Number(state[def.stateKey]) || 0));
+  }
+
+  function storeLuckyBlock(type = "absolute", count = 1, opts = {}) {
+    const def = luckyBlockDef(type);
     const n = Math.min(50, Math.max(1, Math.floor(Number(count) || 1)));
     let added = 0;
     for (let i = 0; i < n; i += 1) {
-      if (state.luckyBlockCount >= LUCKY_BLOCK_STASH_MAX) break;
-      state.luckyBlockCount += 1;
+      if (luckyBlockCount(def.id) >= LUCKY_BLOCK_STASH_MAX) break;
+      state[def.stateKey] = luckyBlockCount(def.id) + 1;
       added += 1;
     }
     if (!added) {
       if (!opts.silent) {
-        setCatchLine(`Lucky Block stash full (${LUCKY_BLOCK_STASH_MAX})`, "miss");
+        setCatchLine(`${def.name} stash full (${LUCKY_BLOCK_STASH_MAX})`, "miss");
         window.HubSound?.play?.("miss");
       }
       return 0;
     }
     if (!opts.silent) {
+      const ready = luckyBlockCount(def.id);
       setCatchLine(
         added === 1
-          ? `Lucky Block stored · ${state.luckyBlockCount} ready`
-          : `${added}× Lucky Block stored · ${state.luckyBlockCount} ready`,
+          ? `${def.name} stored · ${ready} ready`
+          : `${added}× ${def.name} stored · ${ready} ready`,
         "treasure"
       );
       window.HubSound?.play?.("win");
@@ -2835,19 +2917,19 @@
   }
 
   /**
-   * Lucky Block roll: singularity+ only.
+   * Lucky Block roll for a type's rarity band.
    * Uses fixed rarity weights (not gear/chest/admin luck) so boosts never help.
    * Higher rarities stay much rarer than lower ones in the pool.
    */
-  function rollLuckyBlockFish() {
-    const weights = LUCKY_BLOCK_RARITIES.map((rarity) => ({
+  function rollLuckyBlockFish(type = "absolute") {
+    const rarities = luckyBlockRarities(type);
+    const weights = rarities.map((rarity) => ({
       rarity,
-      // Keep natural rarity curve; no luck multipliers applied here.
       w: Math.max(1e-12, Number(RARITY_WEIGHT[rarity]) || 1e-12)
     }));
     const total = weights.reduce((s, x) => s + x.w, 0) || 1;
     let roll = Math.random() * total;
-    let rarity = weights[0].rarity;
+    let rarity = weights[0]?.rarity || luckyBlockDef(type).minRarity;
     for (const row of weights) {
       roll -= row.w;
       if (roll <= 0) {
@@ -2857,17 +2939,20 @@
     }
     const pool = FISH.filter((f) => f.rarity === rarity);
     if (!pool.length) {
-      return FISH.find((f) => f.rarity === "singularity") || FISH[FISH.length - 1];
+      return (
+        FISH.find((f) => f.rarity === luckyBlockDef(type).minRarity) || FISH[FISH.length - 1]
+      );
     }
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
-  function luckyBlockPool() {
-    return FISH.filter((f) => LUCKY_BLOCK_RARITIES.includes(f.rarity));
+  function luckyBlockPool(type = activeLuckyBlockType) {
+    const rarities = luckyBlockRarities(type);
+    return FISH.filter((f) => rarities.includes(f.rarity));
   }
 
-  function luckyBlockOddsRows() {
-    const rows = LUCKY_BLOCK_RARITIES.map((rarity) => ({
+  function luckyBlockOddsRows(type = activeLuckyBlockType) {
+    const rows = luckyBlockRarities(type).map((rarity) => ({
       rarity,
       w: Math.max(1e-12, Number(RARITY_WEIGHT[rarity]) || 1e-12),
       fish: FISH.filter((f) => f.rarity === rarity)
@@ -2891,8 +2976,8 @@
     </div>`;
   }
 
-  function buildLuckyBlockReelStrip(winner) {
-    const pool = luckyBlockPool();
+  function buildLuckyBlockReelStrip(winner, type = activeLuckyBlockType) {
+    const pool = luckyBlockPool(type);
     const fallback = pool[0] || winner;
     const items = [];
     for (let i = 0; i < LB_REEL_LEN; i += 1) {
@@ -2904,14 +2989,20 @@
   }
 
   function updateLuckyBlockGuiStatus() {
-    const n = Math.max(0, Math.floor(Number(state.luckyBlockCount) || 0));
+    const def = luckyBlockDef(activeLuckyBlockType);
+    const n = luckyBlockCount(activeLuckyBlockType);
+    if (luckyBlockTitleEl) luckyBlockTitleEl.textContent = def.name;
+    if (luckyBlockEyebrowEl) {
+      luckyBlockEyebrowEl.textContent = `Admin item · ${def.rangeLabel} · luck ignored`;
+    }
+    if (luckyBlockCardEl) luckyBlockCardEl.dataset.theme = def.theme;
     if (luckyBlockStatusEl) {
       luckyBlockStatusEl.textContent =
         n <= 0
-          ? "No Lucky Blocks stored"
+          ? `No ${def.name}s stored`
           : n === 1
-            ? "1 Lucky Block ready · singularity+ fish · luck ignored"
-            : `${n} Lucky Blocks ready · singularity+ fish · luck ignored`;
+            ? `1 ${def.name} ready · ${def.rangeLabel}`
+            : `${n} ${def.name}s ready · ${def.rangeLabel}`;
     }
     if (luckyBlockSpinBtn) {
       luckyBlockSpinBtn.disabled = luckyBlockSpinning || n <= 0;
@@ -2927,7 +3018,7 @@
 
   function renderLuckyBlockChances() {
     if (!luckyBlockChancesEl) return;
-    const rows = luckyBlockOddsRows();
+    const rows = luckyBlockOddsRows(activeLuckyBlockType);
     luckyBlockChancesEl.innerHTML = `<p class="lb-chances-note">Rarity odds use the same weights as normal fishing (no luck boost). Within a rarity, each fish is equally likely.</p>${rows
       .map((row) => {
         const color = rarityColor(row.rarity);
@@ -2958,7 +3049,7 @@
 
   function resetLuckyBlockReelPreview() {
     if (!luckyBlockReelEl) return;
-    const pool = luckyBlockPool();
+    const pool = luckyBlockPool(activeLuckyBlockType);
     const preview = [];
     for (let i = 0; i < LB_REEL_VISIBLE + 2; i += 1) {
       preview.push(pool[Math.floor(Math.random() * pool.length)] || pool[0]);
@@ -2987,10 +3078,12 @@
       </div>`;
   }
 
-  function openLuckyBlockGui() {
-    const count = Math.max(0, Math.floor(Number(state.luckyBlockCount) || 0));
+  function openLuckyBlockGui(type = "absolute") {
+    activeLuckyBlockType = resolveLuckyBlockType(type) || "absolute";
+    const def = luckyBlockDef(activeLuckyBlockType);
+    const count = luckyBlockCount(activeLuckyBlockType);
     if (count <= 0 && !isFishingOwner()) {
-      setCatchLine("No Lucky Blocks stored", "miss");
+      setCatchLine(`No ${def.name}s stored`, "miss");
       window.HubSound?.play?.("miss");
       return;
     }
@@ -3013,6 +3106,7 @@
   }
 
   function finishLuckyBlockSpin(fish) {
+    const def = luckyBlockDef(activeLuckyBlockType);
     luckyBlockSpinning = false;
     const entry = grantFishToLocal(fish, { variants: { variant: "", shiny: false } });
     const val = fishValue(fish, currentSpot(), entry || { variant: "", shiny: false });
@@ -3021,7 +3115,7 @@
     showCatchSilhouette?.(fish);
     showCatchCard?.([{ fish, val, perfect: false, treasure: false, stored: true }]);
     setCatchLine(
-      `Lucky Block → ${formatFishName(fish, { variant: "", shiny: false })} (${fish.rarity})`,
+      `${def.name} → ${formatFishName(fish, { variant: "", shiny: false })} (${fish.rarity})`,
       catchTone(fish.rarity)
     );
     window.HubSound?.play?.("win");
@@ -3035,20 +3129,21 @@
 
   function spinLuckyBlock() {
     if (luckyBlockSpinning) return;
-    const count = Math.max(0, Math.floor(Number(state.luckyBlockCount) || 0));
+    const def = luckyBlockDef(activeLuckyBlockType);
+    const count = luckyBlockCount(activeLuckyBlockType);
     if (count <= 0) {
-      setCatchLine("No Lucky Blocks stored", "miss");
+      setCatchLine(`No ${def.name}s stored`, "miss");
       window.HubSound?.play?.("miss");
       updateLuckyBlockGuiStatus();
       return;
     }
     ensureSession();
-    state.luckyBlockCount = count - 1;
+    state[def.stateKey] = count - 1;
     renderTreasureStash();
     saveSoon();
 
-    const fish = rollLuckyBlockFish();
-    const { items, winAt } = buildLuckyBlockReelStrip(fish);
+    const fish = rollLuckyBlockFish(activeLuckyBlockType);
+    const { items, winAt } = buildLuckyBlockReelStrip(fish, activeLuckyBlockType);
     clearLuckyBlockResult();
     setLuckyBlockChancesVisible(false);
     luckyBlockSpinning = true;
@@ -3064,7 +3159,6 @@
     luckyBlockReelEl.style.transition = "none";
     luckyBlockReelEl.style.transform = "translate3d(0, 0, 0)";
     luckyBlockReelEl.innerHTML = items.map(lbReelItemHtml).join("");
-    // Center the winning row in the 3-row window.
     const offsetY = winAt * LB_REEL_ITEM_H - LB_REEL_ITEM_H;
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
@@ -3081,8 +3175,8 @@
     }, LB_SPIN_MS + 80);
   }
 
-  function openLuckyBlock() {
-    openLuckyBlockGui();
+  function openLuckyBlock(type = "absolute") {
+    openLuckyBlockGui(type);
   }
 
   function treasureUseLabel(chest) {
@@ -3267,6 +3361,10 @@
       next.luckyBlockCount = Math.max(
         0,
         Math.min(LUCKY_BLOCK_STASH_MAX, Math.floor(Number(raw.luckyBlockCount) || 0))
+      );
+      next.astralLuckyBlockCount = Math.max(
+        0,
+        Math.min(LUCKY_BLOCK_STASH_MAX, Math.floor(Number(raw.astralLuckyBlockCount) || 0))
       );
       return next;
     } catch {
@@ -5576,15 +5674,18 @@
   function renderTreasureStash() {
     const money = Math.max(0, Math.floor(Number(state.moneyChestCount) || 0));
     const luck = Math.max(0, Math.floor(Number(state.luckChestCount) || 0));
-    const blocks = Math.max(0, Math.floor(Number(state.luckyBlockCount) || 0));
+    const astralBlocks = luckyBlockCount("astral");
+    const absoluteBlocks = luckyBlockCount("absolute");
     const moneyLeft = moneyMsLeft();
     const luckLeft = luckMsLeft();
     const moneyOn = moneyBoostActive();
     const luckOn = luckBoostActive();
-    const showBlock = isFishingOwner() || blocks > 0;
+    const showAstral = isFishingOwner() || astralBlocks > 0;
+    const showAbsolute = isFishingOwner() || absoluteBlocks > 0;
     if (moneyCountEl) moneyCountEl.textContent = String(money);
     if (luckCountEl) luckCountEl.textContent = String(luck);
-    if (luckyBlockCountEl) luckyBlockCountEl.textContent = String(blocks);
+    if (astralLuckyBlockCountEl) astralLuckyBlockCountEl.textContent = String(astralBlocks);
+    if (absoluteLuckyBlockCountEl) absoluteLuckyBlockCountEl.textContent = String(absoluteBlocks);
     if (moneyChestTimerEl) {
       moneyChestTimerEl.classList.toggle("hidden", !moneyOn);
       moneyChestTimerEl.textContent = moneyOn ? `${formatTreasureClock(moneyLeft)} left` : "";
@@ -5603,18 +5704,31 @@
       luckUseBtn.disabled = luck <= 0;
       luckUseBtn.textContent = luckOn ? "Extend" : "Use";
     }
-    if (luckyBlockUseBtn) {
-      luckyBlockUseBtn.disabled = blocks <= 0;
-      luckyBlockUseBtn.textContent = "Open";
+    if (astralLuckyBlockUseBtn) {
+      astralLuckyBlockUseBtn.disabled = astralBlocks <= 0;
+      astralLuckyBlockUseBtn.textContent = "Open";
     }
-    if (luckyBlockRow) {
-      luckyBlockRow.classList.toggle("hidden", !showBlock);
-      luckyBlockRow.hidden = !showBlock;
+    if (absoluteLuckyBlockUseBtn) {
+      absoluteLuckyBlockUseBtn.disabled = absoluteBlocks <= 0;
+      absoluteLuckyBlockUseBtn.textContent = "Open";
+    }
+    if (astralLuckyBlockRow) {
+      astralLuckyBlockRow.classList.toggle("hidden", !showAstral);
+      astralLuckyBlockRow.hidden = !showAstral;
+    }
+    if (absoluteLuckyBlockRow) {
+      absoluteLuckyBlockRow.classList.toggle("hidden", !showAbsolute);
+      absoluteLuckyBlockRow.hidden = !showAbsolute;
     }
     if (treasureStashEl) {
       treasureStashEl.classList.toggle(
         "is-empty",
-        money <= 0 && luck <= 0 && blocks <= 0 && !moneyOn && !luckOn
+        money <= 0 &&
+          luck <= 0 &&
+          astralBlocks <= 0 &&
+          absoluteBlocks <= 0 &&
+          !moneyOn &&
+          !luckOn
       );
       treasureStashEl.classList.toggle("is-active", moneyOn || luckOn);
     }
@@ -6006,7 +6120,8 @@
   sellBtn?.addEventListener("click", () => sellCooler());
   moneyUseBtn?.addEventListener("click", () => useTreasure("money"));
   luckUseBtn?.addEventListener("click", () => useTreasure("luck"));
-  luckyBlockUseBtn?.addEventListener("click", () => openLuckyBlockGui());
+  astralLuckyBlockUseBtn?.addEventListener("click", () => openLuckyBlockGui("astral"));
+  absoluteLuckyBlockUseBtn?.addEventListener("click", () => openLuckyBlockGui("absolute"));
   luckyBlockCloseBtn?.addEventListener("click", () => closeLuckyBlockGui());
   luckyBlockDismissBtn?.addEventListener("click", () => closeLuckyBlockGui());
   luckyBlockSpinBtn?.addEventListener("click", () => spinLuckyBlock());
