@@ -24,6 +24,11 @@
   const EVENT_ACTIVE_MS = 5 * 60 * 1000; // only first 5 minutes of each :00 / :30
   /** Scheduled :00 / :30 events roll one of these (same for all players per slot). */
   const EVENT_MULT_OPTIONS = [1.5, 2, 3, 4];
+  /** Hourly Lucky Block drop window at :00 (runs alongside sell/luck). */
+  const LUCKY_BLOCK_EVENT_MS = 60 * 60 * 1000;
+  const LUCKY_BLOCK_EVENT_ACTIVE_MS = 5 * 60 * 1000;
+  /** Flat drop chance while the Lucky Block hour is live — luck never applies. */
+  const LUCKY_BLOCK_EVENT_CHANCE = 0.001;
   const CHEST_MONEY_BONUS = TREASURE_MULT - 1; // +1 → 2×
   const CHEST_LUCK_BONUS = TREASURE_LUCK_MULT - 1; // +0.5 → 1.5×
   // Chest + matching event stacks additively with the rolled event mult
@@ -1180,6 +1185,34 @@
 
   function nextHalfHourStart(now = Date.now()) {
     return localHalfHourStart(now) + EVENT_MS;
+  }
+
+  /** Local clock start of the current hour (:00). */
+  function localHourStart(now = Date.now()) {
+    const d = new Date(now);
+    const start = new Date(d);
+    start.setMinutes(0, 0, 0);
+    return start.getTime();
+  }
+
+  function nextHourStart(now = Date.now()) {
+    return localHourStart(now) + LUCKY_BLOCK_EVENT_MS;
+  }
+
+  /** True for the first 5 minutes of each hour (:00–:05). Independent of sell/luck. */
+  function luckyBlockEventIsLive(now = Date.now()) {
+    const start = localHourStart(now);
+    return now >= start && now < start + LUCKY_BLOCK_EVENT_ACTIVE_MS;
+  }
+
+  function luckyBlockEventMsLeft(now = Date.now()) {
+    if (!luckyBlockEventIsLive(now)) return 0;
+    return Math.max(0, localHourStart(now) + LUCKY_BLOCK_EVENT_ACTIVE_MS - now);
+  }
+
+  function msUntilNextLuckyBlockEvent(now = Date.now()) {
+    if (luckyBlockEventIsLive(now)) return luckyBlockEventMsLeft(now);
+    return Math.max(0, nextHourStart(now) - now);
   }
 
   let adminBoostCache = null;
@@ -2613,6 +2646,7 @@
   let lastAnnouncedEventKey = "";
   let lastAnnouncedVariantKey = "";
   let lastAnnouncedChestKey = "";
+  let lastAnnouncedLbEventKey = "";
 
   function maybeAnnounceEvent() {
     const variant = adminVariantEventLive();
@@ -2650,6 +2684,26 @@
       lastAnnouncedChestKey = "";
     }
 
+    if (luckyBlockEventIsLive()) {
+      const lbKey = `lb:${localHourStart()}`;
+      if (lbKey !== lastAnnouncedLbEventKey) {
+        lastAnnouncedLbEventKey = lbKey;
+        // When sell/luck is also live (:00), that announce covers both.
+        if (!eventIsLive()) {
+          setCatchLine(
+            `EVENT LIVE · Lucky Block hour · 0.1% Astral or Absolute (${formatTreasureClock(
+              luckyBlockEventMsLeft()
+            )} left) · luck ignored`,
+            "treasure"
+          );
+          window.HubSound?.play?.("win");
+          window.HubConfetti?.burst?.();
+        }
+      }
+    } else {
+      lastAnnouncedLbEventKey = "";
+    }
+
     if (!eventIsLive()) return;
     const admin = adminBoostEventLive();
     const key = admin
@@ -2661,16 +2715,19 @@
     const left = formatTreasureClock(eventMsLeft());
     const multLabel = formatMult(liveEventMult());
     const tag = admin ? "ADMIN EVENT" : "EVENT LIVE";
+    const lbNote = luckyBlockEventIsLive()
+      ? ` · + Lucky Block hour 0.1% (${formatTreasureClock(luckyBlockEventMsLeft())} left, luck ignored)`
+      : "";
     if (kind === "luck") {
       const stacked = formatMult(1 + CHEST_LUCK_BONUS + (liveEventMult() - 1));
       setCatchLine(
-        `${tag} · ${multLabel}× luck (${left} left) · stacks with Luck Chest → ${stacked}×`,
+        `${tag} · ${multLabel}× luck (${left} left) · stacks with Luck Chest → ${stacked}×${lbNote}`,
         "treasure"
       );
     } else {
       const stacked = formatMult(1 + CHEST_MONEY_BONUS + (liveEventMult() - 1));
       setCatchLine(
-        `${tag} · ${multLabel}× sell (${left} left) · stacks with Coin Chest → ${stacked}×`,
+        `${tag} · ${multLabel}× sell (${left} left) · stacks with Coin Chest → ${stacked}×${lbNote}`,
         "treasure"
       );
     }
@@ -2683,6 +2740,7 @@
     const kind = currentEventKind();
     const admin = adminBoostEventLive();
     const variant = adminVariantEventLive();
+    const lbLive = luckyBlockEventIsLive();
     const nextStart = nextHalfHourStart();
     const nextKind = eventKindForStart(nextStart);
     const nextMult = formatMult(eventMultForStart(nextStart));
@@ -2690,17 +2748,19 @@
     const previewKind = live ? kind : nextKind;
     const multLabel = formatMult(live ? liveEventMult() : eventMultForStart(nextStart));
     const variantMult = variant ? formatMult(variant.mult) : "";
+    const anyLive = live || !!variant || lbLive;
 
     if (eventBannerEl) {
-      eventBannerEl.classList.toggle("event-idle", !live && !variant);
-      eventBannerEl.classList.toggle("is-live", live || !!variant);
+      eventBannerEl.classList.toggle("event-idle", !anyLive);
+      eventBannerEl.classList.toggle("is-live", anyLive);
       eventBannerEl.classList.toggle("event-money", live && previewKind === "money");
       eventBannerEl.classList.toggle("event-luck", live && previewKind === "luck");
       eventBannerEl.classList.toggle("event-variant", !!variant);
+      eventBannerEl.classList.toggle("event-luckyblock", lbLive);
     }
     if (eventBannerTagEl) {
       eventBannerTagEl.textContent =
-        variant || admin ? "ADMIN LIVE" : live ? "LIVE NOW" : "Next event";
+        variant || admin ? "ADMIN LIVE" : anyLive ? "LIVE NOW" : "Next event";
     }
     if (eventBannerTitleEl) {
       const parts = [];
@@ -2709,6 +2769,7 @@
       } else if (live && kind === "money") {
         parts.push(`${multLabel}× Sell`);
       }
+      if (lbLive) parts.push("Lucky Blocks 0.1%");
       if (variant) {
         parts.push(`${variantMult}× ${formatAdminVariantLabel(variant.target)}`);
       }
@@ -2717,15 +2778,21 @@
           admin || variant ? " · Admin" : " Event"
         }`;
       } else {
-        eventBannerTitleEl.textContent =
+        const untilLb = msUntilNextLuckyBlockEvent();
+        const sellLuckLine =
           nextKind === "luck"
             ? `Upcoming: ${nextMult}× Luck`
             : `Upcoming: ${nextMult}× Sell`;
+        eventBannerTitleEl.textContent =
+          untilLb <= untilNext
+            ? `${sellLuckLine} · Lucky Blocks in ${formatTreasureClock(untilLb)}`
+            : sellLuckLine;
       }
     }
     if (eventBannerTimeEl) {
       const times = [];
       if (live) times.push(eventMsLeft());
+      if (lbLive) times.push(luckyBlockEventMsLeft());
       if (variant) times.push(Math.max(0, variant.until - Date.now()));
       if (times.length) {
         eventBannerTimeEl.textContent = `${formatTreasureClock(Math.min(...times))} left`;
@@ -2738,14 +2805,39 @@
   function isTreasureItem(fish) {
     return (
       fish?.rarity === "treasure" ||
+      fish?.kind === "luckyblock" ||
       fish?.id === "coin_chest" ||
       fish?.id === "luck_chest" ||
-      fish?.id === "sunken_chest"
+      fish?.id === "sunken_chest" ||
+      String(fish?.id || "").startsWith("lucky_block_")
     );
   }
 
   function treasureByKind(kind) {
     return kind === "luck" ? TREASURE_LUCK : TREASURE_MONEY;
+  }
+
+  function luckyBlockCatchItem(type) {
+    const def = luckyBlockDef(type);
+    return {
+      id: `lucky_block_${def.id}`,
+      name: def.name,
+      rarity: "treasure",
+      kind: "luckyblock",
+      blockType: def.id,
+      value: 0,
+      blurb: def.rangeLabel
+    };
+  }
+
+  /**
+   * Hourly Lucky Block drop. Flat 0.1% while the :00–:05 window is live.
+   * Luck gear, luck chests, and luck events never change this chance.
+   */
+  function rollLuckyBlockDrop() {
+    if (!luckyBlockEventIsLive()) return null;
+    if (Math.random() >= LUCKY_BLOCK_EVENT_CHANCE) return null;
+    return Math.random() < 0.5 ? "astral" : "absolute";
   }
 
   /** Combined chance to find any chest; then 50/50 Coin vs Luck. Luck gear raises this. */
@@ -3180,6 +3272,10 @@
   }
 
   function treasureUseLabel(chest) {
+    if (chest?.kind === "luckyblock") {
+      const def = luckyBlockDef(chest.blockType || "absolute");
+      return `stored · ${def.rangeLabel} · luck ignored`;
+    }
     if (chest.kind === "luck") {
       return `stored · Use for ${TREASURE_LUCK_MULT}× luck · 5:00`;
     }
@@ -4317,10 +4413,13 @@
   function showCatchSilhouette(fish, entry) {
     if (!catchSilEl) return;
     if (!fish || isTreasureItem(fish)) {
-      catchSilEl.innerHTML = `<span class="catch-sil-chest" aria-hidden="true">${
-        fish?.kind === "luck" ? "◇" : "▣"
-      }</span>`;
-      catchSilEl.className = `catch-sil is-treasure rarity-${fish?.kind || "money"}`;
+      const isLb = fish?.kind === "luckyblock";
+      const glyph =
+        fish?.kind === "luck" || fish?.blockType === "astral" ? "◇" : "▣";
+      catchSilEl.innerHTML = `<span class="catch-sil-chest" aria-hidden="true">${glyph}</span>`;
+      catchSilEl.className = `catch-sil is-treasure rarity-${
+        isLb ? fish.blockType || "absolute" : fish?.kind || "money"
+      }`;
       catchSilEl.dataset.fish = fish?.id || "chest";
       return;
     }
@@ -4363,16 +4462,28 @@
       .map(({ fish, val, perfect, treasure, stored, entry }) => {
         if (treasure || isTreasureItem(fish)) {
           const detail = stored === false ? "stash full" : treasureUseLabel(fish);
-          const kindClass = fish.kind === "luck" ? "treasure-luck" : "treasure-money";
+          const isLb = fish.kind === "luckyblock";
+          const kindClass = isLb
+            ? `treasure-luckyblock treasure-luckyblock-${fish.blockType || "absolute"}`
+            : fish.kind === "luck"
+              ? "treasure-luck"
+              : "treasure-money";
+          const glyph =
+            fish.kind === "luck" || fish.blockType === "astral" ? "◇" : "▣";
+          const tag = isLb
+            ? fish.blockType === "astral"
+              ? "astral"
+              : "absolute"
+            : fish.kind === "luck"
+              ? "luck"
+              : "coin";
           return `<div class="boat-haul-item treasure ${kindClass}">
-          <span class="boat-haul-glyph treasure-glyph" aria-hidden="true">${
-            fish.kind === "luck" ? "◇" : "▣"
-          }</span>
+          <span class="boat-haul-glyph treasure-glyph" aria-hidden="true">${glyph}</span>
           <span class="boat-haul-meta">
             <span class="boat-haul-name">${fish.name}</span>
             <span class="boat-haul-val">${detail}</span>
           </span>
-          <span class="boat-haul-tag">${fish.kind === "luck" ? "luck" : "coin"}</span>
+          <span class="boat-haul-tag">${tag}</span>
         </div>`;
         }
         const title = formatVariantTitle(entry);
@@ -4813,6 +4924,40 @@
     const perfect = remaining / windowMs > 0.55;
     const spot = currentSpot();
 
+    const lbType = rollLuckyBlockDrop();
+    if (lbType) {
+      state.catches += 1;
+      if (perfect) state.perfects += 1;
+      const added = storeLuckyBlock(lbType, 1, { silent: true });
+      const item = luckyBlockCatchItem(lbType);
+      setPhase("result");
+      castBtn.classList.add("is-catch", "rarity-treasure", `rarity-${lbType}`);
+      showCatchSilhouette(item);
+      showCatchCard([{ fish: item, val: 0, perfect, treasure: true, stored: added > 0 }]);
+      const tip = perfect ? "Perfect reel! " : "";
+      if (added > 0) {
+        setCatchLine(
+          `${tip}${item.name} stored · ${luckyBlockCount(lbType)} ready`,
+          "treasure"
+        );
+      } else {
+        setCatchLine(`${tip}${item.name} — stash full`, "miss");
+      }
+      const rect = castBtn.getBoundingClientRect();
+      spawnFloat(
+        evt?.clientX ?? rect.left + rect.width / 2,
+        evt?.clientY ?? rect.top + 20,
+        added > 0 ? "BLOCK +" : "STASH FULL"
+      );
+      checkAchievements();
+      setTimeout(() => {
+        setPhase("ready");
+        render(false);
+        saveSoon();
+      }, 1600);
+      return;
+    }
+
     const chest = rollTreasure(spot, false);
     if (chest) {
       state.catches += 1;
@@ -5101,16 +5246,28 @@
         if (treasure || isTreasureItem(fish)) {
           const detail =
             stored === false || missed ? "stash full" : treasureUseLabel(fish);
-          const kindClass = fish.kind === "luck" ? "treasure-luck" : "treasure-money";
+          const isLb = fish.kind === "luckyblock";
+          const kindClass = isLb
+            ? `treasure-luckyblock treasure-luckyblock-${fish.blockType || "absolute"}`
+            : fish.kind === "luck"
+              ? "treasure-luck"
+              : "treasure-money";
+          const glyph =
+            fish.kind === "luck" || fish.blockType === "astral" ? "◇" : "▣";
+          const tag = isLb
+            ? fish.blockType === "astral"
+              ? "astral"
+              : "absolute"
+            : fish.kind === "luck"
+              ? "luck"
+              : "coin";
           return `<div class="boat-haul-item treasure ${kindClass}">
-          <span class="boat-haul-glyph treasure-glyph" aria-hidden="true">${
-            fish.kind === "luck" ? "◇" : "▣"
-          }</span>
+          <span class="boat-haul-glyph treasure-glyph" aria-hidden="true">${glyph}</span>
           <span class="boat-haul-meta">
             <span class="boat-haul-name">${fish.name}</span>
             <span class="boat-haul-val">${detail}</span>
           </span>
-          <span class="boat-haul-tag">${fish.kind === "luck" ? "luck" : "coin"}</span>
+          <span class="boat-haul-tag">${tag}</span>
         </div>`;
         }
         const tag = missed ? "no room" : sold ? "sold" : "kept";
@@ -5164,6 +5321,27 @@
 
   function boatCatch(boat) {
     const spot = currentSpot();
+    const lbType = rollLuckyBlockDrop();
+    if (lbType) {
+      const added = storeLuckyBlock(lbType, 1, { silent: true });
+      const item = luckyBlockCatchItem(lbType);
+      flashBoatHaul([
+        { fish: item, val: 0, sold: false, missed: !added, treasure: true, stored: added > 0 }
+      ]);
+      setCatchLine(
+        added
+          ? `Boat found a ${item.name} · ${luckyBlockCount(lbType)} stored`
+          : `Boat found a ${item.name} — stash full`,
+        added ? "treasure" : "miss"
+      );
+      window.HubSound?.play?.(added ? "win" : "miss");
+      checkAchievements();
+      renderCooler(true);
+      renderTreasureStash();
+      renderBoatTimers();
+      saveSoon();
+      return;
+    }
     const chest = rollTreasure(spot, true);
     if (chest) {
       const stored = storeTreasure(chest, { silent: true });
@@ -5314,10 +5492,16 @@
     }
     let gained = 0;
     let chestsFound = 0;
+    let blocksFound = 0;
     const spot = currentSpot();
     list.forEach((boat) => {
       const cycles = Math.floor(elapsed / 1000 / boat.amount);
       for (let i = 0; i < Math.min(cycles, 400); i += 1) {
+        const lbType = rollLuckyBlockDrop();
+        if (lbType) {
+          if (storeLuckyBlock(lbType, 1, { silent: true })) blocksFound += 1;
+          continue;
+        }
         // Offline chests are half as likely as a live boat haul
         const chest = rollTreasure(spot, true, 0.5);
         if (chest) {
@@ -5346,12 +5530,17 @@
       }
     });
     if (gained > 0) addCoins(gained);
-    if (gained > 0 || chestsFound > 0 || state.cooler.length) {
+    if (gained > 0 || chestsFound > 0 || blocksFound > 0 || state.cooler.length) {
       const bits = [];
       if (gained > 0) bits.push(`earned ${formatNum(gained)} coins`);
       if (chestsFound > 0) {
         bits.push(
           chestsFound === 1 ? "found 1 chest" : `found ${chestsFound} chests`
+        );
+      }
+      if (blocksFound > 0) {
+        bits.push(
+          blocksFound === 1 ? "found 1 Lucky Block" : `found ${blocksFound} Lucky Blocks`
         );
       }
       if (!bits.length) bits.push("filled part of your cooler");
@@ -5570,6 +5759,8 @@
     const eventLeft = eventMsLeft();
     const eventKind = currentEventKind();
     const eventLive = eventIsLive();
+    const lbLive = luckyBlockEventIsLive();
+    const lbLeft = luckyBlockEventMsLeft();
     const moneyOn = moneyBoostActive() || eventMoneyActive();
     const luckOn = luckBoostActive() || eventLuckActive();
     if (moneyLeft <= 0 && state.moneyBoostUntil) state.moneyBoostUntil = 0;
@@ -5580,8 +5771,12 @@
     document.body.classList.toggle("treasure-luck-boost", luckOn);
     document.body.classList.toggle("event-money", eventMoneyActive());
     document.body.classList.toggle("event-luck", eventLuckActive());
+    document.body.classList.toggle("event-luckyblock", lbLive);
     document.body.classList.toggle("event-variant", !!adminVariantEventLive());
-    document.body.classList.toggle("event-idle", !eventLive && !adminVariantEventLive());
+    document.body.classList.toggle(
+      "event-idle",
+      !eventLive && !adminVariantEventLive() && !lbLive
+    );
     applySpotTheme();
     if (coinCountEl) coinCountEl.textContent = formatNum(state.coins);
     if (spotLabelEl) spotLabelEl.textContent = spot.name;
@@ -5598,8 +5793,9 @@
       const previewKind = eventLive ? eventKind : eventKindForStart(nextHalfHourStart());
       eventChipEl.classList.toggle("event-money", eventLive && previewKind === "money");
       eventChipEl.classList.toggle("event-luck", eventLive && previewKind === "luck");
+      eventChipEl.classList.toggle("event-luckyblock", lbLive);
       eventChipEl.classList.toggle("event-variant", !!variant);
-      eventChipEl.classList.toggle("event-idle", !eventLive && !variant);
+      eventChipEl.classList.toggle("event-idle", !eventLive && !variant && !lbLive);
     }
     if (eventLabelEl) {
       const variant = adminVariantEventLive();
@@ -5614,6 +5810,9 @@
         parts.push(
           `${admin ? "Admin " : ""}${multLabel}× sell · ${formatTreasureClock(eventLeft)}`
         );
+      }
+      if (lbLive) {
+        parts.push(`Lucky Blocks 0.1% · ${formatTreasureClock(lbLeft)}`);
       }
       if (variant) {
         parts.push(
@@ -5635,7 +5834,7 @@
           nextKind === "luck" ? "luck" : "sell"
         } in ${formatTreasureClock(msUntilNextEvent())} · then ${afterMult}× ${
           afterKind === "luck" ? "luck" : "sell"
-        }`;
+        } · Lucky Blocks in ${formatTreasureClock(msUntilNextLuckyBlockEvent())}`;
       }
     }
     renderEventBanner();

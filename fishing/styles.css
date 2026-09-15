@@ -2843,6 +2843,28 @@ body[data-spot="mythforge"] .water-mist {
   color: #b8ecff;
 }
 
+.event-banner.event-luckyblock {
+  border-color: rgba(251, 191, 36, 0.75);
+  background: linear-gradient(135deg, rgba(70, 52, 8, 0.95), rgba(20, 16, 6, 0.94));
+}
+
+.event-banner.event-luckyblock strong,
+.event-banner.event-luckyblock .event-banner-time {
+  color: #ffe08a;
+}
+
+.event-chip.event-luckyblock {
+  border-color: rgba(251, 191, 36, 0.45);
+}
+
+.event-chip.event-luckyblock strong {
+  color: #fbbf24;
+}
+
+body.event-luckyblock .cast-btn {
+  box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.35);
+}
+
 .event-banner.event-variant {
   border-color: rgba(240, 193, 75, 0.75);
   background: linear-gradient(135deg, rgba(70, 45, 8, 0.95), rgba(20, 14, 6, 0.94));
