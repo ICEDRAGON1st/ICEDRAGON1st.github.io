@@ -13,6 +13,7 @@
   const ICE_BOAT_GRANT_ID = "fishing-ice-dragon-boat-lv1-v1";
   const ICE_COINS_GRANT_ID = "fishing-ice-dragon-coins-1m-v1";
   const ICE_BEST_GRANT_ID = "fishing-ice-dragon-primefin-shiny-v1";
+  const ICE_LOCAL_WIPE_ID = "hub-fishing-ice-dragon-wipe-v1";
   const ICE_COINS_GRANT_AMOUNT = 1_000_000;
   const TICK_MS = 100;
   const COOLER_BASE = 12;
@@ -34,6 +35,53 @@
   // Chest + matching event stacks additively with the rolled event mult
   // Global admin override: Mantle (ICE in-game) + admin-event.json (chat push)
   const OWNER_NAME = "ice_dragon";
+
+  // One-time: reset ICE_DRAGON's local Fishing Idle progress only.
+  try {
+    const name = String(
+      (typeof HubPlays !== "undefined" && HubPlays.getName && HubPlays.getName()) ||
+        localStorage.getItem("hub-player-name") ||
+        ""
+    )
+      .trim()
+      .toLowerCase();
+    if (name === OWNER_NAME && localStorage.getItem(ICE_LOCAL_WIPE_ID) !== "done") {
+      const doomed = [];
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (key && /^fishing/i.test(key) && key !== ICE_LOCAL_WIPE_ID) doomed.push(key);
+      }
+      doomed.forEach((key) => localStorage.removeItem(key));
+      try {
+        const achKey = "hub-achievements-v1";
+        const raw = localStorage.getItem(achKey);
+        if (raw) {
+          const data = JSON.parse(raw) || {};
+          Object.keys(data).forEach((id) => {
+            if (/^fishing_/i.test(id)) delete data[id];
+          });
+          localStorage.setItem(achKey, JSON.stringify(data));
+        }
+        const pendingKey = "hub-achievements-pending";
+        const pendingRaw = localStorage.getItem(pendingKey);
+        if (pendingRaw) {
+          const list = JSON.parse(pendingRaw);
+          if (Array.isArray(list)) {
+            localStorage.setItem(
+              pendingKey,
+              JSON.stringify(list.filter((id) => !/^fishing_/i.test(String(id || ""))))
+            );
+          }
+        }
+      } catch {}
+      // Keep old one-time grants from re-applying after this wipe.
+      localStorage.setItem(ICE_BOAT_GRANT_ID, "done");
+      localStorage.setItem(ICE_COINS_GRANT_ID, "done");
+      localStorage.setItem(ICE_BEST_GRANT_ID, "done");
+      localStorage.setItem(ICE_LOCAL_WIPE_ID, "done");
+    }
+  } catch {}
+
   const ADMIN_EVENT_URL = "admin-event.json";
   const ADMIN_EVENT_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-admin-events";
   const ADMIN_EVENT_TOKEN = "ice-fish-evt-9f3a";

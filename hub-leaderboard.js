@@ -764,6 +764,28 @@
     }
     games.fishing = fishingBoard;
 
+    // One-time: wipe ICE_DRAGON from Fishing Idle best-catch board only.
+    const iceFishingWipeKey = "fishing:ice_dragon-v1";
+    const ICE_FISHING_WIPE_AT = Date.UTC(2026, 8, 15, 20, 25, 0); // 2026-09-15 20:25 UTC
+    if (!resets[iceFishingWipeKey] || Number(resets[iceFishingWipeKey]) > ICE_FISHING_WIPE_AT) {
+      resets[iceFishingWipeKey] = ICE_FISHING_WIPE_AT;
+    }
+    const iceFishingCut = Number(resets[iceFishingWipeKey]) || ICE_FISHING_WIPE_AT;
+    const ICE_FISHING_PLAYER_ID = "p-mtlztdny-r28rrb";
+    const iceFishingBoard = { ...(games.fishing || {}) };
+    Object.keys(iceFishingBoard).forEach((key) => {
+      const entry = iceFishingBoard[key];
+      if (!entry) return;
+      const keyName = nameKey(entry.name || key);
+      const isIce =
+        key === "ice_dragon" ||
+        keyName === "ice_dragon" ||
+        entry.playerId === ICE_FISHING_PLAYER_ID;
+      const at = Number(entry.at) || 0;
+      if (isIce && at <= iceFishingCut) delete iceFishingBoard[key];
+    });
+    games.fishing = iceFishingBoard;
+
     // Full Ramp Rush leaderboard reset (this game only).
     const rampFullResetKey = "ramp:full-reset-20260914al";
     const RAMP_FULL_RESET_AT = Date.UTC(2026, 8, 14, 19, 45, 0); // 2026-09-14 19:45 UTC
