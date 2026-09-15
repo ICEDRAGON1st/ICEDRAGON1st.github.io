@@ -935,8 +935,8 @@
   /** Spot luck — scales up hard on higher tiers (Creek = 0). */
   function spotLuckBonus(spot = currentSpot()) {
     const r = Math.max(0, Number(spot?.rarity) || 0);
-    // r=5 → 40, r=10 → 130, r=15 → 270, r=20 → 460, r=27 → 810
-    return Math.floor(r * r + 3 * r);
+    // r=5 → 125, r=10 → 400, r=15 → 825, r=20 → 1400, r=27 → 2457
+    return Math.floor(3 * r * r + 10 * r);
   }
 
   /** Raw luck before chests/events: gear + current spot. */
