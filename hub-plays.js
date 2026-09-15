@@ -3478,4 +3478,26 @@ body.light .menu-credit .player-name-creator {
   sync(true)
     .then(() => refreshCreatorCredits())
     .catch(() => refreshCreatorCredits());
+
+  // Claim Fishing Idle admin gifts while on hub / other games (not on fishing page).
+  (function bootFishingGiftClaimer() {
+    try {
+      if (window.HubFishingGifts) return;
+      if (/\/fishing(\/|$)/i.test(location.pathname || "")) return;
+      const scripts = document.getElementsByTagName("script");
+      let base = "";
+      for (let i = 0; i < scripts.length; i += 1) {
+        const src = scripts[i].src || "";
+        if (/hub-plays\.js/i.test(src)) {
+          base = src.replace(/hub-plays\.js[^/]*$/i, "");
+          break;
+        }
+      }
+      if (!base) return;
+      const el = document.createElement("script");
+      el.src = `${base}hub-fishing-gifts.js?v=${window.WORDLE_BUILD || "20260917bg"}`;
+      el.async = true;
+      document.head.appendChild(el);
+    } catch {}
+  })();
 })();
