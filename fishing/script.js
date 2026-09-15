@@ -37,6 +37,7 @@
   const ADMIN_EVENT_LOCAL_KEY = "fishing-admin-override-v1"; // legacy single-slot
   const ADMIN_EVENT_LOCAL_BOOST_KEY = "fishing-admin-boost-v1";
   const ADMIN_EVENT_LOCAL_VARIANT_KEY = "fishing-admin-variant-v1";
+  const ADMIN_EVENT_LOCAL_CHEST_KEY = "fishing-admin-chest-v1";
   const ADMIN_EVENT_PENDING_KEY = "fishing-admin-pending-v1";
   const FISH_GIFTS_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-gifts";
   const FISH_GIFTS_TOKEN = "ice-fish-gift-9f3a";
@@ -1016,6 +1017,7 @@
 
   let adminBoostCache = null;
   let adminVariantCache = null;
+  let adminChestCache = null;
   let adminEventFetchedAt = 0;
   let adminEventPollTimer = 0;
   let adminBusy = false;
@@ -1066,7 +1068,7 @@
   }
 
   function clampAdminMinutes(n) {
-    const v = Math.floor(Number(n));
+    const v = Math.round(Number(n) * 2) / 2;
     if (!Number.isFinite(v)) return ADMIN_DEFAULT_MINUTES;
     return Math.max(1, Math.min(ADMIN_MAX_MINUTES, v));
   }
@@ -1135,7 +1137,7 @@
       target = normalizeAdminVariantTarget(kind);
       kind = "variant";
     }
-    if (kind !== "luck" && kind !== "money" && kind !== "variant") return null;
+    if (kind !== "luck" && kind !== "money" && kind !== "variant" && kind !== "chest") return null;
     if (kind === "variant" && !target) target = "gold";
     const until = Math.floor(Number(data.until) || 0);
     if (!Number.isFinite(until) || until <= Date.now()) return null;
@@ -1152,13 +1154,14 @@
 
   /** Parse boost + variant channels from new bundle or legacy single-event JSON. */
   function parseAdminBundle(data, requireToken = false) {
-    if (!data || typeof data !== "object") return { boost: null, variant: null };
+    if (!data || typeof data !== "object") return { boost: null, variant: null, chest: null };
     if (requireToken && String(data.token || "") !== ADMIN_EVENT_TOKEN) {
-      return { boost: null, variant: null };
+      return { boost: null, variant: null, chest: null };
     }
     const inherit = { token: data.token || (requireToken ? ADMIN_EVENT_TOKEN : undefined) };
     let boost = null;
     let variant = null;
+    let chest = null;
     if (data.boost && typeof data.boost === "object") {
       boost = parseAdminEventPayload({ ...inherit, ...data.boost }, requireToken);
       if (boost && !isBoostAdminPayload(boost)) boost = null;
@@ -1176,6 +1179,13 @@
       );
       if (variant && !isVariantAdminPayload(variant)) variant = null;
     }
+    if (data.chest && typeof data.chest === "object") {
+      chest = parseAdminEventPayload(
+        { ...inherit, kind: data.chest.kind || "chest", ...data.chest },
+        requireToken
+      );
+      if (chest && !isChestAdminPayload(chest)) chest = null;
+    }
     const single = parseAdminEventPayload(
       requireToken ? data : { ...data, token: data.token },
       requireToken
@@ -1183,8 +1193,9 @@
     if (single) {
       if (isBoostAdminPayload(single)) boost = pickBetterAdminEvent(boost, single);
       if (isVariantAdminPayload(single)) variant = pickBetterAdminEvent(variant, single);
+      if (isChestAdminPayload(single)) chest = pickBetterAdminEvent(chest, single);
     }
-    return { boost, variant };
+    return { boost, variant, chest };
   }
 
   function isBoostAdminPayload(e) {
@@ -1193,6 +1204,10 @@
 
   function isVariantAdminPayload(e) {
     return !!e && e.kind === "variant";
+  }
+
+  function isChestAdminPayload(e) {
+    return !!e && e.kind === "chest";
   }
 
   function pickBetterAdminEvent(a, b) {
@@ -1263,6 +1278,16 @@
     else writeStoredAdmin(ADMIN_EVENT_LOCAL_VARIANT_KEY, payload);
   }
 
+  function localAdminChest() {
+    migrateLegacyAdminLocal();
+    return parseAdminEventPayload(readStoredAdmin(ADMIN_EVENT_LOCAL_CHEST_KEY), true);
+  }
+
+  function setLocalAdminChest(payload, clear = false) {
+    if (clear) writeStoredAdmin(ADMIN_EVENT_LOCAL_CHEST_KEY, null);
+    else writeStoredAdmin(ADMIN_EVENT_LOCAL_CHEST_KEY, payload);
+  }
+
   function adminBoostEventLive(now = Date.now()) {
     const e = pickBetterAdminEvent(adminBoostCache, localAdminBoost());
     if (!e || now >= e.until) return null;
@@ -1273,6 +1298,17 @@
     const e = pickBetterAdminEvent(adminVariantCache, localAdminVariant());
     if (!e || now >= e.until) return null;
     return e;
+  }
+
+  function adminChestEventLive(now = Date.now()) {
+    const e = pickBetterAdminEvent(adminChestCache, localAdminChest());
+    if (!e || now >= e.until) return null;
+    return e;
+  }
+
+  function eventChestMult(now = Date.now()) {
+    const e = adminChestEventLive(now);
+    return e ? Math.max(1, Number(e.mult) || 1) : 1;
   }
 
   function serializeAdminChannel(e) {
@@ -1289,20 +1325,28 @@
   function buildAdminSyncBundle(scope = getAdminScope()) {
     const boost = localAdminBoost() || adminBoostCache;
     const variant = localAdminVariant() || adminVariantCache;
+    const chest = localAdminChest() || adminChestCache;
     const now = Date.now();
     const liveBoost = boost && boost.until > now ? boost : null;
     const liveVariant = variant && variant.until > now ? variant : null;
+    const liveChest = chest && chest.until > now ? chest : null;
     return {
       token: ADMIN_EVENT_TOKEN,
       scope: scope === "global" ? "global" : "local",
       boost: serializeAdminChannel(liveBoost),
       variant: serializeAdminChannel(liveVariant),
+      chest: serializeAdminChannel(liveChest),
       // Legacy flat fields = boost preferred, else variant (old clients)
-      kind: liveBoost?.kind || liveVariant?.kind || "luck",
+      kind: liveBoost?.kind || liveVariant?.kind || liveChest?.kind || "luck",
       target: liveVariant?.target || "",
-      until: Math.max(liveBoost?.until || 0, liveVariant?.until || 0),
-      startedAt: Math.max(liveBoost?.startedAt || 0, liveVariant?.startedAt || 0, now),
-      mult: liveBoost?.mult || liveVariant?.mult || ADMIN_DEFAULT_MULT,
+      until: Math.max(liveBoost?.until || 0, liveVariant?.until || 0, liveChest?.until || 0),
+      startedAt: Math.max(
+        liveBoost?.startedAt || 0,
+        liveVariant?.startedAt || 0,
+        liveChest?.startedAt || 0,
+        now
+      ),
+      mult: liveBoost?.mult || liveVariant?.mult || liveChest?.mult || ADMIN_DEFAULT_MULT,
       note: scope === "global" ? "in-game-admin-global" : "in-game-admin-local",
       by: OWNER_NAME
     };
@@ -1340,8 +1384,10 @@
     const remoteB = parseAdminBundle(file.data, false);
     const remoteBoost = pickBetterAdminEvent(remoteA.boost, remoteB.boost);
     const remoteVariant = pickBetterAdminEvent(remoteA.variant, remoteB.variant);
+    const remoteChest = pickBetterAdminEvent(remoteA.chest, remoteB.chest);
     adminBoostCache = pickBetterAdminEvent(remoteBoost, localAdminBoost());
     adminVariantCache = pickBetterAdminEvent(remoteVariant, localAdminVariant());
+    adminChestCache = pickBetterAdminEvent(remoteChest, localAdminChest());
     syncAdminPanel();
     maybeRetryPendingAdminPush();
   }
@@ -1366,6 +1412,9 @@
     if (bundle.boost) setLocalAdminBoost({ ...bundle.boost, token: ADMIN_EVENT_TOKEN, scope: "global" });
     if (bundle.variant) {
       setLocalAdminVariant({ ...bundle.variant, token: ADMIN_EVENT_TOKEN, scope: "global" });
+    }
+    if (bundle.chest) {
+      setLocalAdminChest({ ...bundle.chest, token: ADMIN_EVENT_TOKEN, scope: "global" });
     }
     scheduleAdminRetry();
   }
@@ -1406,6 +1455,7 @@
       const bundle = parseAdminBundle(payload, true);
       adminBoostCache = bundle.boost;
       adminVariantCache = bundle.variant;
+      adminChestCache = bundle.chest;
       syncAdminPanel();
       setCatchLine("Admin event synced to all players", "treasure");
     } catch {
@@ -1427,6 +1477,7 @@
     if (!status || !owner) return;
     const boost = adminBoostEventLive();
     const variant = adminVariantEventLive();
+    const chest = adminChestEventLive();
     const pending = !!pendingAdminPush;
     const bits = [];
     if (boost) {
@@ -1441,10 +1492,16 @@
         `${formatMult(variant.mult)}× ${adminEventKindLabel(variant)} (${localOnly ? "local" : pending ? "syncing" : "global"} · ${formatTreasureClock(variant.until - Date.now())})`
       );
     }
+    if (chest) {
+      const localOnly = String(readStoredAdmin(ADMIN_EVENT_LOCAL_CHEST_KEY)?.scope || "") === "local";
+      bits.push(
+        `${formatMult(chest.mult)}× chests (${localOnly ? "local" : pending ? "syncing" : "global"} · ${formatTreasureClock(chest.until - Date.now())})`
+      );
+    }
     if (bits.length) {
       status.textContent = `Live: ${bits.join(" · ")}`;
     } else {
-      status.textContent = "No admin event · luck/sell and variant can run together";
+      status.textContent = "No admin event · luck/sell, variant, and chests can run together";
     }
   }
 
@@ -1504,6 +1561,14 @@
         setLocalAdminVariant(payload, false);
         adminVariantCache = parseAdminEventPayload(payload, true);
       }
+    } else if (channel === "chest") {
+      if (clear) {
+        setLocalAdminChest(null, true);
+        adminChestCache = null;
+      } else {
+        setLocalAdminChest(payload, false);
+        adminChestCache = parseAdminEventPayload(payload, true);
+      }
     } else if (channel === "boost") {
       if (clear) {
         setLocalAdminBoost(null, true);
@@ -1515,11 +1580,14 @@
     } else if (channel === "all") {
       setLocalAdminBoost(null, true);
       setLocalAdminVariant(null, true);
+      setLocalAdminChest(null, true);
       adminBoostCache = null;
       adminVariantCache = null;
+      adminChestCache = null;
     }
     lastAnnouncedEventKey = "";
     lastAnnouncedVariantKey = "";
+    lastAnnouncedChestKey = "";
     syncAdminPanel();
     renderStats();
   }
@@ -2278,6 +2346,7 @@
 
   let lastAnnouncedEventKey = "";
   let lastAnnouncedVariantKey = "";
+  let lastAnnouncedChestKey = "";
 
   function maybeAnnounceEvent() {
     const variant = adminVariantEventLive();
@@ -2297,6 +2366,22 @@
       }
     } else {
       lastAnnouncedVariantKey = "";
+    }
+
+    const chest = adminChestEventLive();
+    if (chest) {
+      const cKey = `chest:${chest.until}:${chest.mult}`;
+      if (cKey !== lastAnnouncedChestKey) {
+        lastAnnouncedChestKey = cKey;
+        const left = formatTreasureClock(Math.max(0, chest.until - Date.now()));
+        setCatchLine(
+          `ADMIN EVENT · ${formatMult(chest.mult)}× chest finds (${left} left)`,
+          "treasure"
+        );
+        window.HubSound?.play?.("win");
+      }
+    } else {
+      lastAnnouncedChestKey = "";
     }
 
     if (!eventIsLive()) return;
@@ -2409,7 +2494,10 @@
     const luckMult = 1 + Math.min(3, luck * 0.01);
     let p = base * luckMult;
     if (forBoat) p *= 0.35;
-    return Math.min(0.06, p);
+    const chestMult = eventChestMult();
+    p *= chestMult;
+    const cap = Math.min(0.45, 0.06 * Math.max(1, chestMult));
+    return Math.min(cap, p);
   }
 
   function treasureKindChance(spot, forBoat = false) {
