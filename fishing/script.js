@@ -816,6 +816,22 @@
   const luckyBlockCountEl = document.getElementById("lucky-block-count");
   const luckyBlockUseBtn = document.getElementById("lucky-block-use-btn");
   const luckyBlockRow = document.getElementById("lucky-block-row");
+  const luckyBlockOverlay = document.getElementById("lucky-block-overlay");
+  const luckyBlockStatusEl = document.getElementById("lucky-block-status");
+  const luckyBlockReelEl = document.getElementById("lucky-block-reel");
+  const luckyBlockResultEl = document.getElementById("lucky-block-result");
+  const luckyBlockChancesEl = document.getElementById("lucky-block-chances");
+  const luckyBlockCloseBtn = document.getElementById("lucky-block-close");
+  const luckyBlockDismissBtn = document.getElementById("lucky-block-dismiss-btn");
+  const luckyBlockSpinBtn = document.getElementById("lucky-block-spin-btn");
+  const luckyBlockChancesBtn = document.getElementById("lucky-block-chances-btn");
+  let luckyBlockSpinning = false;
+  let luckyBlockSpinTimer = 0;
+  let luckyBlockChancesOpen = false;
+  const LB_REEL_ITEM_H = 72;
+  const LB_REEL_VISIBLE = 3;
+  const LB_REEL_LEN = 34;
+  const LB_SPIN_MS = 4200;
   const multiLabelEl = document.getElementById("multi-label");
   const tripleLabelEl = document.getElementById("triple-label");
   const perfectLabelEl = document.getElementById("perfect-label");
@@ -2846,17 +2862,158 @@
     return pool[Math.floor(Math.random() * pool.length)];
   }
 
-  function openLuckyBlock() {
+  function luckyBlockPool() {
+    return FISH.filter((f) => LUCKY_BLOCK_RARITIES.includes(f.rarity));
+  }
+
+  function luckyBlockOddsRows() {
+    const rows = LUCKY_BLOCK_RARITIES.map((rarity) => ({
+      rarity,
+      w: Math.max(1e-12, Number(RARITY_WEIGHT[rarity]) || 1e-12),
+      fish: FISH.filter((f) => f.rarity === rarity)
+    }));
+    const total = rows.reduce((s, r) => s + r.w, 0) || 1;
+    return rows.map((r) => ({
+      ...r,
+      pct: (100 * r.w) / total,
+      fishPct: r.fish.length ? (100 * r.w) / total / r.fish.length : 0
+    }));
+  }
+
+  function lbReelItemHtml(fish) {
+    const color = rarityColor(fish.rarity);
+    return `<div class="lb-reel-item rarity-${fish.rarity}">
+      <span aria-hidden="true">${fishGlyphHtml(fish)}</span>
+      <span class="lb-reel-meta">
+        <span class="lb-reel-name">${fish.name}</span>
+        <span class="lb-reel-rarity" style="color:${color}">${fish.rarity}</span>
+      </span>
+    </div>`;
+  }
+
+  function buildLuckyBlockReelStrip(winner) {
+    const pool = luckyBlockPool();
+    const fallback = pool[0] || winner;
+    const items = [];
+    for (let i = 0; i < LB_REEL_LEN; i += 1) {
+      items.push(pool[Math.floor(Math.random() * pool.length)] || fallback);
+    }
+    const winAt = Math.max(8, LB_REEL_LEN - 5);
+    items[winAt] = winner;
+    return { items, winAt };
+  }
+
+  function updateLuckyBlockGuiStatus() {
+    const n = Math.max(0, Math.floor(Number(state.luckyBlockCount) || 0));
+    if (luckyBlockStatusEl) {
+      luckyBlockStatusEl.textContent =
+        n <= 0
+          ? "No Lucky Blocks stored"
+          : n === 1
+            ? "1 Lucky Block ready · singularity+ fish · luck ignored"
+            : `${n} Lucky Blocks ready · singularity+ fish · luck ignored`;
+    }
+    if (luckyBlockSpinBtn) {
+      luckyBlockSpinBtn.disabled = luckyBlockSpinning || n <= 0;
+      luckyBlockSpinBtn.textContent = luckyBlockSpinning ? "Opening…" : n > 0 ? "Open" : "None left";
+    }
+    if (luckyBlockCloseBtn) luckyBlockCloseBtn.disabled = luckyBlockSpinning;
+    if (luckyBlockDismissBtn) luckyBlockDismissBtn.disabled = luckyBlockSpinning;
+    if (luckyBlockChancesBtn) {
+      luckyBlockChancesBtn.disabled = luckyBlockSpinning;
+      luckyBlockChancesBtn.textContent = luckyBlockChancesOpen ? "Hide chances" : "Chances";
+    }
+  }
+
+  function renderLuckyBlockChances() {
+    if (!luckyBlockChancesEl) return;
+    const rows = luckyBlockOddsRows();
+    luckyBlockChancesEl.innerHTML = `<p class="lb-chances-note">Rarity odds use the same weights as normal fishing (no luck boost). Within a rarity, each fish is equally likely.</p>${rows
+      .map((row) => {
+        const color = rarityColor(row.rarity);
+        const fishList = row.fish
+          .map(
+            (f) =>
+              `<li title="${formatChance(row.fishPct)}">${f.name} · ${formatChance(row.fishPct)}</li>`
+          )
+          .join("");
+        return `<div class="lb-chance-row">
+          <span class="lb-chance-rarity" style="color:${color}">${row.rarity}</span>
+          <span class="lb-chance-pct" title="${row.pct.toFixed(8)}%">${formatChance(row.pct)}</span>
+          <ul class="lb-chance-fish">${fishList}</ul>
+        </div>`;
+      })
+      .join("")}`;
+  }
+
+  function setLuckyBlockChancesVisible(on) {
+    luckyBlockChancesOpen = !!on;
+    if (luckyBlockChancesEl) {
+      luckyBlockChancesEl.classList.toggle("hidden", !luckyBlockChancesOpen);
+      luckyBlockChancesEl.hidden = !luckyBlockChancesOpen;
+      if (luckyBlockChancesOpen) renderLuckyBlockChances();
+    }
+    updateLuckyBlockGuiStatus();
+  }
+
+  function resetLuckyBlockReelPreview() {
+    if (!luckyBlockReelEl) return;
+    const pool = luckyBlockPool();
+    const preview = [];
+    for (let i = 0; i < LB_REEL_VISIBLE + 2; i += 1) {
+      preview.push(pool[Math.floor(Math.random() * pool.length)] || pool[0]);
+    }
+    luckyBlockReelEl.classList.remove("is-spinning");
+    luckyBlockReelEl.style.transition = "none";
+    luckyBlockReelEl.style.transform = `translate3d(0, ${-LB_REEL_ITEM_H}px, 0)`;
+    luckyBlockReelEl.innerHTML = preview.map(lbReelItemHtml).join("");
+  }
+
+  function clearLuckyBlockResult() {
+    if (!luckyBlockResultEl) return;
+    luckyBlockResultEl.classList.add("hidden");
+    luckyBlockResultEl.innerHTML = "";
+  }
+
+  function showLuckyBlockResult(fish, val) {
+    if (!luckyBlockResultEl || !fish) return;
+    const color = rarityColor(fish.rarity);
+    luckyBlockResultEl.classList.remove("hidden");
+    luckyBlockResultEl.innerHTML = `<span aria-hidden="true">${fishGlyphHtml(fish)}</span>
+      <div>
+        <p class="lb-result-title">You got</p>
+        <p class="lb-result-name" style="color:${color}">${fish.name}</p>
+        <p class="lb-result-meta">${fish.rarity} · ${formatNum(val)} coins · added to cooler</p>
+      </div>`;
+  }
+
+  function openLuckyBlockGui() {
     const count = Math.max(0, Math.floor(Number(state.luckyBlockCount) || 0));
-    if (count <= 0) {
+    if (count <= 0 && !isFishingOwner()) {
       setCatchLine("No Lucky Blocks stored", "miss");
       window.HubSound?.play?.("miss");
       return;
     }
-    ensureSession();
-    state.luckyBlockCount = count - 1;
-    const fish = rollLuckyBlockFish();
-    // No variants / no luck influence — plain fish from the block.
+    clearTimeout(luckyBlockSpinTimer);
+    luckyBlockSpinning = false;
+    setLuckyBlockChancesVisible(false);
+    clearLuckyBlockResult();
+    resetLuckyBlockReelPreview();
+    updateLuckyBlockGuiStatus();
+    luckyBlockOverlay?.classList.remove("hidden");
+    lockPageScroll();
+  }
+
+  function closeLuckyBlockGui() {
+    if (luckyBlockSpinning) return;
+    clearTimeout(luckyBlockSpinTimer);
+    luckyBlockOverlay?.classList.add("hidden");
+    setLuckyBlockChancesVisible(false);
+    unlockPageScroll();
+  }
+
+  function finishLuckyBlockSpin(fish) {
+    luckyBlockSpinning = false;
     const entry = grantFishToLocal(fish, { variants: { variant: "", shiny: false } });
     const val = fishValue(fish, currentSpot(), entry || { variant: "", shiny: false });
     castBtn?.classList.remove("is-waiting", "is-bite");
@@ -2869,9 +3026,63 @@
     );
     window.HubSound?.play?.("win");
     if (isShowcaseRarity(fish.rarity)) window.HubConfetti?.burst?.();
+    showLuckyBlockResult(fish, val);
+    updateLuckyBlockGuiStatus();
     renderTreasureStash();
     render(true);
     saveSoon();
+  }
+
+  function spinLuckyBlock() {
+    if (luckyBlockSpinning) return;
+    const count = Math.max(0, Math.floor(Number(state.luckyBlockCount) || 0));
+    if (count <= 0) {
+      setCatchLine("No Lucky Blocks stored", "miss");
+      window.HubSound?.play?.("miss");
+      updateLuckyBlockGuiStatus();
+      return;
+    }
+    ensureSession();
+    state.luckyBlockCount = count - 1;
+    renderTreasureStash();
+    saveSoon();
+
+    const fish = rollLuckyBlockFish();
+    const { items, winAt } = buildLuckyBlockReelStrip(fish);
+    clearLuckyBlockResult();
+    setLuckyBlockChancesVisible(false);
+    luckyBlockSpinning = true;
+    updateLuckyBlockGuiStatus();
+    window.HubSound?.play?.("click");
+
+    if (!luckyBlockReelEl) {
+      finishLuckyBlockSpin(fish);
+      return;
+    }
+
+    luckyBlockReelEl.classList.remove("is-spinning");
+    luckyBlockReelEl.style.transition = "none";
+    luckyBlockReelEl.style.transform = "translate3d(0, 0, 0)";
+    luckyBlockReelEl.innerHTML = items.map(lbReelItemHtml).join("");
+    // Center the winning row in the 3-row window.
+    const offsetY = winAt * LB_REEL_ITEM_H - LB_REEL_ITEM_H;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        luckyBlockReelEl.classList.add("is-spinning");
+        luckyBlockReelEl.style.transition = "";
+        luckyBlockReelEl.style.transform = `translate3d(0, ${-offsetY}px, 0)`;
+      });
+    });
+
+    clearTimeout(luckyBlockSpinTimer);
+    luckyBlockSpinTimer = setTimeout(() => {
+      luckyBlockReelEl.classList.remove("is-spinning");
+      finishLuckyBlockSpin(fish);
+    }, LB_SPIN_MS + 80);
+  }
+
+  function openLuckyBlock() {
+    openLuckyBlockGui();
   }
 
   function treasureUseLabel(chest) {
@@ -5795,7 +6006,16 @@
   sellBtn?.addEventListener("click", () => sellCooler());
   moneyUseBtn?.addEventListener("click", () => useTreasure("money"));
   luckUseBtn?.addEventListener("click", () => useTreasure("luck"));
-  luckyBlockUseBtn?.addEventListener("click", () => openLuckyBlock());
+  luckyBlockUseBtn?.addEventListener("click", () => openLuckyBlockGui());
+  luckyBlockCloseBtn?.addEventListener("click", () => closeLuckyBlockGui());
+  luckyBlockDismissBtn?.addEventListener("click", () => closeLuckyBlockGui());
+  luckyBlockSpinBtn?.addEventListener("click", () => spinLuckyBlock());
+  luckyBlockChancesBtn?.addEventListener("click", () => {
+    setLuckyBlockChancesVisible(!luckyBlockChancesOpen);
+  });
+  luckyBlockOverlay?.addEventListener("click", (e) => {
+    if (e.target === luckyBlockOverlay) closeLuckyBlockGui();
+  });
   coolerList?.addEventListener("pointerdown", (e) => {
     const saveBtn = e.target.closest("[data-save-index]");
     if (saveBtn && coolerList.contains(saveBtn)) {
@@ -5942,6 +6162,11 @@
   );
   window.addEventListener("keydown", (e) => {
     if (e.code !== "Escape") return;
+    if (luckyBlockOverlay && !luckyBlockOverlay.classList.contains("hidden")) {
+      e.preventDefault();
+      closeLuckyBlockGui();
+      return;
+    }
     if (adminOverlay && !adminOverlay.classList.contains("hidden")) {
       e.preventDefault();
       closeAdmin();

@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260917bn">
+  <link rel="stylesheet" href="styles.css?v=20260917bo">
 </head>
 <body data-spot="creek">
   <header class="top-bar">
@@ -326,6 +326,34 @@
     </div>
   </div>
 
+  <div id="lucky-block-overlay" class="overlay lucky-block-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="lucky-block-title">
+    <div class="overlay-card lucky-block-card">
+      <div class="guide-head">
+        <div>
+          <p class="eyebrow">Admin item · luck ignored</p>
+          <h2 id="lucky-block-title">Lucky Block</h2>
+        </div>
+        <button id="lucky-block-close" type="button" class="btn btn-ghost guide-close">Close</button>
+      </div>
+      <p id="lucky-block-status" class="lucky-block-status">No Lucky Blocks stored</p>
+      <div class="lb-stage" aria-live="polite">
+        <div class="lb-reel-frame">
+          <div class="lb-reel-marker" aria-hidden="true"></div>
+          <div class="lb-reel-window">
+            <div id="lucky-block-reel" class="lb-reel"></div>
+          </div>
+        </div>
+        <div id="lucky-block-result" class="lb-result hidden"></div>
+      </div>
+      <div id="lucky-block-chances" class="lb-chances hidden" hidden></div>
+      <div class="lb-actions">
+        <button id="lucky-block-chances-btn" type="button" class="btn btn-ghost">Chances</button>
+        <button id="lucky-block-spin-btn" type="button" class="btn">Open</button>
+        <button id="lucky-block-dismiss-btn" type="button" class="btn btn-ghost">Close</button>
+      </div>
+    </div>
+  </div>
+
   <div id="admin-overlay" class="overlay admin-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="admin-title">
     <div class="overlay-card admin-card">
       <div class="guide-head">
@@ -405,6 +433,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260916r"></script>
-  <script src="script.js?v=20260917bn"></script>
+  <script src="script.js?v=20260917bo"></script>
 </body>
 </html>
