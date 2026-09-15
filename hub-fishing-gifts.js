@@ -119,6 +119,22 @@
 
   function grantToSave(state, gift) {
     const fishId = String(gift.fishId || "");
+    const isBlock =
+      gift.item === "luckyblock" ||
+      fishId === "__luckyblock__" ||
+      fishId.toLowerCase() === "luckyblock";
+    if (isBlock) {
+      const count = Math.min(50, Math.max(1, Number(gift.count) || 1));
+      const max = 50;
+      let added = 0;
+      const cur = Math.max(0, Math.floor(Number(state.luckyBlockCount) || 0));
+      for (let i = 0; i < count; i += 1) {
+        if (cur + added >= max) break;
+        added += 1;
+      }
+      state.luckyBlockCount = cur + added;
+      return added;
+    }
     if (!fishId) return 0;
     const count = Math.min(50, Math.max(1, Number(gift.count) || 1));
     const variant = normalizeVariant(gift.variant);
@@ -178,14 +194,18 @@
   }
 
   function notify(gained, sampleId) {
-    const body =
-      gained === 1
+    const isBlock = sampleId === "__luckyblock__" || sampleId === "luckyblock";
+    const body = isBlock
+      ? gained === 1
+        ? "A Lucky Block was added to your Fishing Idle stash."
+        : `${gained} Lucky Blocks were added to your Fishing Idle stash.`
+      : gained === 1
         ? `A fish was added to your Fishing Idle cooler${sampleId ? ` (${sampleId})` : ""}.`
         : `${gained} fish were added to your Fishing Idle cooler.`;
     try {
       window.HubNotifications?.push?.({
         kind: "gift",
-        title: "Fishing gift",
+        title: isBlock ? "Lucky Block gift" : "Fishing gift",
         body,
         href: "fishing/index.html"
       });
@@ -225,7 +245,7 @@
       const n = grantToSave(state, g);
       if (!n) return;
       gained += n;
-      sampleId = String(g.fishId || sampleId);
+      sampleId = String(g.item === "luckyblock" ? "__luckyblock__" : g.fishId || sampleId);
       claimed.add(gid);
       toClaim.push(gid);
     });

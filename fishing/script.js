@@ -67,6 +67,16 @@
     blurb: "Use for 1.5× luck for 5 minutes"
   };
   const TREASURES = [TREASURE_MONEY, TREASURE_LUCK];
+  const LUCKY_BLOCK = {
+    id: "lucky_block",
+    name: "Lucky Block",
+    rarity: "treasure",
+    kind: "luckyblock",
+    value: 0,
+    blurb: "Admin item · opens into a singularity+ fish (luck boosts ignored)"
+  };
+  const LUCKY_BLOCK_ID = "__luckyblock__";
+  const LUCKY_BLOCK_STASH_MAX = 50;
 
   const RARITIES = [
     "common",
@@ -127,6 +137,11 @@
     infinity: 0.00008,
     absolute: 0.00003
   };
+
+  /** Rarities eligible for Lucky Block (singularity and higher). */
+  const LUCKY_BLOCK_RARITIES = RARITIES.filter(
+    (r) => (RARITY_RANK[r] || 0) >= (RARITY_RANK.singularity || 12)
+  );
 
   const FISH = [
     // Common
@@ -798,6 +813,9 @@
   const luckChestTimerEl = document.getElementById("luck-chest-timer");
   const moneyUseBtn = document.getElementById("money-chest-use-btn");
   const luckUseBtn = document.getElementById("luck-chest-use-btn");
+  const luckyBlockCountEl = document.getElementById("lucky-block-count");
+  const luckyBlockUseBtn = document.getElementById("lucky-block-use-btn");
+  const luckyBlockRow = document.getElementById("lucky-block-row");
   const multiLabelEl = document.getElementById("multi-label");
   const tripleLabelEl = document.getElementById("triple-label");
   const perfectLabelEl = document.getElementById("perfect-label");
@@ -944,7 +962,8 @@
       moneyBoostUntil: 0,
       luckBoostUntil: 0,
       moneyChestCount: 0,
-      luckChestCount: 0
+      luckChestCount: 0,
+      luckyBlockCount: 0
     };
   }
 
@@ -2030,6 +2049,7 @@
       toDisplay: String(payload.toDisplay || payload.toName || ""),
       from: "ICE_DRAGON",
       fishId: payload.fishId,
+      item: payload.item || "",
       variant: normalizeVariant(payload.variant),
       shiny: !!payload.shiny,
       perfect: !!payload.perfect,
@@ -2068,6 +2088,7 @@
     if (!me && !myId) return;
     const claimed = readClaimedGiftIds();
     let gained = 0;
+    let blocks = 0;
     let label = "";
     const toClaim = [];
 
@@ -2079,9 +2100,19 @@
       const toId = String(g.toPlayerId || "");
       const forMe = (toName && toName === me) || (toId && myId && toId === myId);
       if (!forMe) return;
+      const count = Math.min(50, Math.max(1, Number(g.count) || 1));
+      const isBlock =
+        g.item === "luckyblock" ||
+        String(g.fishId || "") === LUCKY_BLOCK_ID ||
+        String(g.fishId || "").toLowerCase() === "luckyblock";
+      if (isBlock) {
+        blocks += storeLuckyBlock(count, { silent: true });
+        claimed.add(gid);
+        toClaim.push(gid);
+        return;
+      }
       const fish = fishById(g.fishId);
       if (!fish) return;
-      const count = Math.min(50, Math.max(1, Number(g.count) || 1));
       const entryOpts = {
         variants: { variant: normalizeVariant(g.variant), shiny: !!g.shiny },
         perfect: !!g.perfect
@@ -2093,14 +2124,21 @@
       toClaim.push(gid);
     });
 
-    if (!gained) return;
+    if (!gained && !blocks) return;
     writeClaimedGiftIds(claimed);
     saveState();
     render(true);
-    setCatchLine(
-      gained === 1 ? `Gift received: ${label}` : `Gift received: ${gained}× ${label}`,
-      "treasure"
-    );
+    if (blocks && !gained) {
+      setCatchLine(
+        blocks === 1 ? "Gift received: Lucky Block" : `Gift received: ${blocks}× Lucky Block`,
+        "treasure"
+      );
+    } else if (gained) {
+      setCatchLine(
+        gained === 1 ? `Gift received: ${label}` : `Gift received: ${gained}× ${label}`,
+        "treasure"
+      );
+    }
     window.HubSound?.play?.("win");
     toClaim.forEach((gid) => {
       markFishGiftClaimed(gid).catch(() => {});
@@ -2253,9 +2291,82 @@
     return null;
   }
 
+  function parseGiveLuckyBlockCommand(raw) {
+    const original = String(raw || "").trim();
+    if (!/^(give|gift)\s+lucky\s*-?\s*blocks?\b/i.test(original)) return null;
+
+    let rest = original.replace(/^(give|gift)\s+lucky\s*-?\s*blocks?\s*/i, "").trim();
+    let to = "me";
+    const toMatch = rest.match(/\bto\s+@?(.+)$/i);
+    if (toMatch) {
+      to = toMatch[1].trim();
+      rest = rest.slice(0, toMatch.index).trim();
+    } else if (/\b(me|self)\s*$/i.test(rest)) {
+      rest = rest.replace(/\b(me|self)\s*$/i, "").trim();
+      to = "me";
+    }
+
+    let count = 1;
+    const countMatch = rest.match(/(?:^|\s)(?:x\s*(\d{1,2})|(\d{1,2})\s*x)(?:\s|$)/i);
+    if (countMatch) {
+      count = Math.min(50, Math.max(1, Number(countMatch[1] || countMatch[2]) || 1));
+    }
+
+    return { kind: "give-luckyblock", count, to };
+  }
+
+  async function runGiveLuckyBlockCommand(cmd) {
+    if (!isFishingOwner()) {
+      setCatchLine("Admin only", "miss");
+      return;
+    }
+    const count = Math.min(50, Math.max(1, Number(cmd.count) || 1));
+    const toRaw = String(cmd.to || "me").trim();
+    const toKey = toRaw.toLowerCase();
+    const isSelf =
+      !toKey || toKey === "me" || toKey === "self" || toKey === playerNameLower();
+
+    if (isSelf) {
+      const added = storeLuckyBlock(count);
+      if (!added) return;
+      setCatchLine(
+        added === 1 ? "Gave Lucky Block to you" : `Gave ${added}× Lucky Block to you`,
+        "treasure"
+      );
+      return;
+    }
+
+    setCatchLine(`Sending Lucky Block to ${toRaw}…`, "");
+    const target = await lookupPlayerForGift(toRaw);
+    const ok = await queueFishGift({
+      toName: toKey,
+      toPlayerId: target?.playerId || "",
+      toDisplay: target?.name || toRaw,
+      fishId: LUCKY_BLOCK_ID,
+      item: "luckyblock",
+      count
+    });
+    if (!ok) {
+      setCatchLine("Couldn't queue Lucky Block — Mantle may be rate-limited", "miss");
+      window.HubSound?.play?.("miss");
+      return;
+    }
+    const who = target?.name || toRaw;
+    setCatchLine(
+      count === 1 ? `Queued Lucky Block for ${who}` : `Queued ${count}× Lucky Block for ${who}`,
+      "treasure"
+    );
+    window.HubSound?.play?.("click");
+  }
+
   async function runAdminCommand(raw) {
     if (!isFishingOwner()) {
       setCatchLine("Admin only", "miss");
+      return;
+    }
+    const blockGift = parseGiveLuckyBlockCommand(raw);
+    if (blockGift) {
+      await runGiveLuckyBlockCommand(blockGift);
       return;
     }
     const gift = parseGiveFishCommand(raw);
@@ -2271,7 +2382,7 @@
     const parsed = parseAdminCommand(raw);
     if (!parsed) {
       setCatchLine(
-        "Try: 5x luck · give fish primefin shiny gold · give fish trout to Name · clear",
+        "Try: 5x luck · give luckyblock · give fish primefin · clear",
         "miss"
       );
       return;
@@ -2678,6 +2789,91 @@
     saveSoon();
   }
 
+  function storeLuckyBlock(count = 1, opts = {}) {
+    const n = Math.min(50, Math.max(1, Math.floor(Number(count) || 1)));
+    let added = 0;
+    for (let i = 0; i < n; i += 1) {
+      if (state.luckyBlockCount >= LUCKY_BLOCK_STASH_MAX) break;
+      state.luckyBlockCount += 1;
+      added += 1;
+    }
+    if (!added) {
+      if (!opts.silent) {
+        setCatchLine(`Lucky Block stash full (${LUCKY_BLOCK_STASH_MAX})`, "miss");
+        window.HubSound?.play?.("miss");
+      }
+      return 0;
+    }
+    if (!opts.silent) {
+      setCatchLine(
+        added === 1
+          ? `Lucky Block stored · ${state.luckyBlockCount} ready`
+          : `${added}× Lucky Block stored · ${state.luckyBlockCount} ready`,
+        "treasure"
+      );
+      window.HubSound?.play?.("win");
+    }
+    renderTreasureStash();
+    saveSoon();
+    return added;
+  }
+
+  /**
+   * Lucky Block roll: singularity+ only.
+   * Uses fixed rarity weights (not gear/chest/admin luck) so boosts never help.
+   * Higher rarities stay much rarer than lower ones in the pool.
+   */
+  function rollLuckyBlockFish() {
+    const weights = LUCKY_BLOCK_RARITIES.map((rarity) => ({
+      rarity,
+      // Keep natural rarity curve; no luck multipliers applied here.
+      w: Math.max(1e-12, Number(RARITY_WEIGHT[rarity]) || 1e-12)
+    }));
+    const total = weights.reduce((s, x) => s + x.w, 0) || 1;
+    let roll = Math.random() * total;
+    let rarity = weights[0].rarity;
+    for (const row of weights) {
+      roll -= row.w;
+      if (roll <= 0) {
+        rarity = row.rarity;
+        break;
+      }
+    }
+    const pool = FISH.filter((f) => f.rarity === rarity);
+    if (!pool.length) {
+      return FISH.find((f) => f.rarity === "singularity") || FISH[FISH.length - 1];
+    }
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function openLuckyBlock() {
+    const count = Math.max(0, Math.floor(Number(state.luckyBlockCount) || 0));
+    if (count <= 0) {
+      setCatchLine("No Lucky Blocks stored", "miss");
+      window.HubSound?.play?.("miss");
+      return;
+    }
+    ensureSession();
+    state.luckyBlockCount = count - 1;
+    const fish = rollLuckyBlockFish();
+    // No variants / no luck influence — plain fish from the block.
+    const entry = grantFishToLocal(fish, { variants: { variant: "", shiny: false } });
+    const val = fishValue(fish, currentSpot(), entry || { variant: "", shiny: false });
+    castBtn?.classList.remove("is-waiting", "is-bite");
+    castBtn?.classList.add("is-catch", `rarity-${fish.rarity}`);
+    showCatchSilhouette?.(fish);
+    showCatchCard?.([{ fish, val, perfect: false, treasure: false, stored: true }]);
+    setCatchLine(
+      `Lucky Block → ${formatFishName(fish, { variant: "", shiny: false })} (${fish.rarity})`,
+      catchTone(fish.rarity)
+    );
+    window.HubSound?.play?.("win");
+    if (isShowcaseRarity(fish.rarity)) window.HubConfetti?.burst?.();
+    renderTreasureStash();
+    render(true);
+    saveSoon();
+  }
+
   function treasureUseLabel(chest) {
     if (chest.kind === "luck") {
       return `stored · Use for ${TREASURE_LUCK_MULT}× luck · 5:00`;
@@ -2856,6 +3052,10 @@
       next.luckChestCount = Math.max(
         0,
         Math.min(TREASURE_STASH_MAX, Math.floor(Number(raw.luckChestCount) || 0))
+      );
+      next.luckyBlockCount = Math.max(
+        0,
+        Math.min(LUCKY_BLOCK_STASH_MAX, Math.floor(Number(raw.luckyBlockCount) || 0))
       );
       return next;
     } catch {
@@ -5165,12 +5365,15 @@
   function renderTreasureStash() {
     const money = Math.max(0, Math.floor(Number(state.moneyChestCount) || 0));
     const luck = Math.max(0, Math.floor(Number(state.luckChestCount) || 0));
+    const blocks = Math.max(0, Math.floor(Number(state.luckyBlockCount) || 0));
     const moneyLeft = moneyMsLeft();
     const luckLeft = luckMsLeft();
     const moneyOn = moneyBoostActive();
     const luckOn = luckBoostActive();
+    const showBlock = isFishingOwner() || blocks > 0;
     if (moneyCountEl) moneyCountEl.textContent = String(money);
     if (luckCountEl) luckCountEl.textContent = String(luck);
+    if (luckyBlockCountEl) luckyBlockCountEl.textContent = String(blocks);
     if (moneyChestTimerEl) {
       moneyChestTimerEl.classList.toggle("hidden", !moneyOn);
       moneyChestTimerEl.textContent = moneyOn ? `${formatTreasureClock(moneyLeft)} left` : "";
@@ -5189,8 +5392,19 @@
       luckUseBtn.disabled = luck <= 0;
       luckUseBtn.textContent = luckOn ? "Extend" : "Use";
     }
+    if (luckyBlockUseBtn) {
+      luckyBlockUseBtn.disabled = blocks <= 0;
+      luckyBlockUseBtn.textContent = "Open";
+    }
+    if (luckyBlockRow) {
+      luckyBlockRow.classList.toggle("hidden", !showBlock);
+      luckyBlockRow.hidden = !showBlock;
+    }
     if (treasureStashEl) {
-      treasureStashEl.classList.toggle("is-empty", money <= 0 && luck <= 0 && !moneyOn && !luckOn);
+      treasureStashEl.classList.toggle(
+        "is-empty",
+        money <= 0 && luck <= 0 && blocks <= 0 && !moneyOn && !luckOn
+      );
       treasureStashEl.classList.toggle("is-active", moneyOn || luckOn);
     }
   }
@@ -5581,6 +5795,7 @@
   sellBtn?.addEventListener("click", () => sellCooler());
   moneyUseBtn?.addEventListener("click", () => useTreasure("money"));
   luckUseBtn?.addEventListener("click", () => useTreasure("luck"));
+  luckyBlockUseBtn?.addEventListener("click", () => openLuckyBlock());
   coolerList?.addEventListener("pointerdown", (e) => {
     const saveBtn = e.target.closest("[data-save-index]");
     if (saveBtn && coolerList.contains(saveBtn)) {

@@ -3495,7 +3495,7 @@ body.light .menu-credit .player-name-creator {
       }
       if (!base) return;
       const el = document.createElement("script");
-      el.src = `${base}hub-fishing-gifts.js?v=${window.WORDLE_BUILD || "20260917bg"}`;
+      el.src = `${base}hub-fishing-gifts.js?v=${window.WORDLE_BUILD || "20260917bn"}`;
       el.async = true;
       document.head.appendChild(el);
     } catch {}

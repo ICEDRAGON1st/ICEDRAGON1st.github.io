@@ -2376,6 +2376,15 @@ body[data-spot="mythforge"] .water-mist {
   text-shadow: 0 0 8px rgba(127, 212, 255, 0.45);
 }
 
+.treasure-stash-glyph.luckyblock {
+  color: #fbbf24;
+  text-shadow: 0 0 10px rgba(251, 191, 36, 0.5);
+}
+
+.treasure-stash-row.treasure-luckyblock {
+  border-color: rgba(251, 191, 36, 0.28);
+}
+
 .treasure-stash-meta {
   flex: 1 1 auto;
   min-width: 0;

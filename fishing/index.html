@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260917bk">
+  <link rel="stylesheet" href="styles.css?v=20260917bn">
 </head>
 <body data-spot="creek">
   <header class="top-bar">
@@ -178,7 +178,15 @@
           </span>
           <button id="luck-chest-use-btn" type="button" class="btn btn-ghost treasure-use-btn" disabled>Use</button>
         </div>
-        <p class="treasure-stash-hint">Two different chests. Events at :00 / :30 last 5 minutes at 1.5×–4× and stack with them. Opening more of the same chest only adds time.</p>
+        <div id="lucky-block-row" class="treasure-stash-row treasure-luckyblock hidden" hidden>
+          <span class="treasure-stash-glyph luckyblock" aria-hidden="true">▣</span>
+          <span class="treasure-stash-meta">
+            <strong>Lucky Block</strong>
+            <span class="treasure-stash-count"><span id="lucky-block-count">0</span> stored · singularity+ fish</span>
+          </span>
+          <button id="lucky-block-use-btn" type="button" class="btn btn-ghost treasure-use-btn" disabled>Open</button>
+        </div>
+        <p class="treasure-stash-hint">Two different chests. Events at :00 / :30 last 5 minutes at 1.5×–4× and stack with them. Opening more of the same chest only adds time. Lucky Blocks are admin-only for now.</p>
       </div>
 
       <div class="cooler-bar">
@@ -356,13 +364,14 @@
         <button type="button" class="btn btn-ghost" data-admin-cmd="shiny + gold">Shiny + gold</button>
         <button type="button" class="btn btn-ghost" data-admin-cmd="clear">Clear</button>
         <button type="button" class="btn btn-ghost" data-admin-cmd="give fish primefin">Give Primefin</button>
+        <button type="button" class="btn btn-ghost" data-admin-cmd="give luckyblock">Give Lucky Block</button>
       </div>
       <form id="admin-cmd-form" class="admin-cmd-form">
         <input
           id="admin-cmd-input"
           type="text"
           maxlength="120"
-          placeholder="give fish primefin shiny gold · give fish trout to Name · 5x luck"
+          placeholder="give luckyblock · give fish primefin shiny gold · 5x luck"
           autocomplete="off"
           spellcheck="false"
         />
@@ -396,6 +405,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260916r"></script>
-  <script src="script.js?v=20260917bl"></script>
+  <script src="script.js?v=20260917bn"></script>
 </body>
 </html>
