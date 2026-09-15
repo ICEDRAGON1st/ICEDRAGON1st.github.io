@@ -1,22 +1,11 @@
 ﻿{
   "boost": {
-    "kind": "luck",
-    "until": 1789486774723,
-    "startedAt": 1789486324723,
-    "mult": 1000
-  },
-  "variant": {
-    "kind": "variant",
-    "target": "shiny",
-    "until": 1789486774723,
-    "startedAt": 1789486324723,
-    "mult": 100
-  },
-  "chest": {
-    "kind": "chest",
-    "until": 1789486774723,
-    "startedAt": 1789486324723,
+    "kind": "money",
+    "until": 1789487725563,
+    "startedAt": 1789487125563,
     "mult": 5
   },
+  "variant": null,
+  "chest": null,
   "note": "admin-abuse"
 }
