@@ -3016,7 +3016,9 @@ body.light .menu-credit .player-name-creator {
     if (CHEESY_NAME_KEYS.has(key)) ids.push("cheesy");
     const selfMaster =
       key === nameKey(getName()) && (isMasterFisherName(name) || selfHasMasterFisher());
-    if (isMasterFisherName(name) || selfMaster) ids.push("master_fisher");
+    if (key === "ice_dragon" || isMasterFisherName(name) || selfMaster) {
+      ids.push("master_fisher");
+    }
     // ICE_DRAGON: reserved titles only (no LEGEND path on this account).
     if (key === "ice_dragon") return ids;
     const selfLegend =
@@ -3340,6 +3342,38 @@ body.light .menu-credit .player-name-creator {
     return ok;
   }
 
+  /** One-time: give ICE_DRAGON MASTER FISHER title + teal color permanently. */
+  const ICE_MASTER_FISHER_GRANT_ID = "hub-ice-master-fisher-grant-v1";
+
+  async function ensureIceMasterFisherGrant() {
+    try {
+      if (nameKey(getName()) !== "ice_dragon") return;
+      if (localStorage.getItem(ICE_MASTER_FISHER_GRANT_ID) === "done") {
+        // Still keep the permanent unlock path warm if profile lost the flag.
+        if (!isMasterFisherName("ice_dragon")) {
+          await patchMyClaim((existing) => ({
+            ...existing,
+            masterFisher: true,
+            masterFisherAt: existing.masterFisherAt || Date.now()
+          }));
+        }
+        return;
+      }
+      await patchMyClaim((existing) => ({
+        ...existing,
+        masterFisher: true,
+        masterFisherAt: existing.masterFisherAt || Date.now(),
+        activeTitle: "master_fisher",
+        accentTitle: "master_fisher",
+        accentColor: TITLE_COLORS.master_fisher
+      }));
+      localStorage.setItem(ICE_MASTER_FISHER_GRANT_ID, "done");
+      try {
+        window.dispatchEvent(new CustomEvent("hub-plays-profile"));
+      } catch {}
+    } catch {}
+  }
+
   async function setActiveTitle(titleId) {
     const available = getAvailableTitleIds();
     const nextId = String(titleId || "").toLowerCase();
@@ -3476,8 +3510,14 @@ body.light .menu-credit .player-name-creator {
   rememberCurrentAccount();
   ensurePlayerCodeRegistered().catch(() => {});
   sync(true)
-    .then(() => refreshCreatorCredits())
-    .catch(() => refreshCreatorCredits());
+    .then(async () => {
+      await ensureIceMasterFisherGrant();
+      refreshCreatorCredits();
+    })
+    .catch(async () => {
+      await ensureIceMasterFisherGrant();
+      refreshCreatorCredits();
+    });
 
   // Claim Fishing Idle admin gifts while on hub / other games (not on fishing page).
   (function bootFishingGiftClaimer() {
@@ -3495,7 +3535,7 @@ body.light .menu-credit .player-name-creator {
       }
       if (!base) return;
       const el = document.createElement("script");
-      el.src = `${base}hub-fishing-gifts.js?v=${window.WORDLE_BUILD || "20260917bp"}`;
+      el.src = `${base}hub-fishing-gifts.js?v=${window.WORDLE_BUILD || "20260917bt"}`;
       el.async = true;
       document.head.appendChild(el);
     } catch {}

@@ -4072,6 +4072,12 @@ function startOnlineCountPolling() {
   }, 60_000);
 }
 
+window.addEventListener("hub-plays-profile", () => {
+  try {
+    paintPlayersPanelLists();
+  } catch {}
+});
+
 function paintPlayersPanelLists() {
   if (!playersList || typeof HubPlays === "undefined") return;
   renderTitlePicker();
