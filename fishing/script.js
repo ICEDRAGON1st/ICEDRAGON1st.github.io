@@ -1123,6 +1123,7 @@
   function adminEventKindLabel(e) {
     if (!e) return "";
     if (e.kind === "variant") return formatAdminVariantLabel(e.target);
+    if (e.kind === "chest") return "chests";
     return e.kind === "luck" ? "luck" : "sell";
   }
 
