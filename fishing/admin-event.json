@@ -1,10 +1,16 @@
 ﻿{
   "boost": {
     "kind": "luck",
-    "until": 1789485412757,
-    "startedAt": 1789485112757,
-    "mult": 100
+    "until": 1789485700391,
+    "startedAt": 1789485520391,
+    "mult": 1000
   },
-  "variant": null,
+  "variant": {
+    "kind": "variant",
+    "target": "shiny",
+    "until": 1789485700391,
+    "startedAt": 1789485520391,
+    "mult": 10
+  },
   "note": "admin-abuse"
 }
