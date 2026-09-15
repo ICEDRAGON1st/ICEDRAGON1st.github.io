@@ -1,6 +1,10 @@
 ﻿{
-    "until":  1789325108187,
-    "note":  "admin-abuse",
-    "startedAt":  1789324808187,
-    "kind":  "money"
+  "boost": {
+    "kind": "luck",
+    "until": 1789485412757,
+    "startedAt": 1789485112757,
+    "mult": 100
+  },
+  "variant": null,
+  "note": "admin-abuse"
 }
