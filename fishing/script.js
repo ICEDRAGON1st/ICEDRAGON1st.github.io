@@ -13,8 +13,11 @@
   const ICE_BOAT_GRANT_ID = "fishing-ice-dragon-boat-lv1-v1";
   const ICE_COINS_GRANT_ID = "fishing-ice-dragon-coins-1m-v1";
   const ICE_BEST_GRANT_ID = "fishing-ice-dragon-primefin-shiny-v1";
+  const ICE_CHESTS_GRANT_ID = "fishing-ice-dragon-chests-20-23-v1";
   const ICE_LOCAL_WIPE_ID = "hub-fishing-ice-dragon-wipe-v1";
   const ICE_COINS_GRANT_AMOUNT = 1_000_000;
+  const ICE_MONEY_CHEST_GRANT = 20;
+  const ICE_LUCK_CHEST_GRANT = 23;
   const TICK_MS = 100;
   const COOLER_BASE = 12;
   const TREASURE_BOOST_MS = 5 * 60 * 1000;
@@ -6838,6 +6841,18 @@
       localStorage.setItem(ICE_BEST_GRANT_ID, "done");
       saveState();
       maybeSubmitBest(true);
+    }
+    if (name === "ice_dragon" && localStorage.getItem(ICE_CHESTS_GRANT_ID) !== "done") {
+      state.moneyChestCount = Math.min(
+        TREASURE_STASH_MAX,
+        Math.max(0, Math.floor(Number(state.moneyChestCount) || 0)) + ICE_MONEY_CHEST_GRANT
+      );
+      state.luckChestCount = Math.min(
+        TREASURE_STASH_MAX,
+        Math.max(0, Math.floor(Number(state.luckChestCount) || 0)) + ICE_LUCK_CHEST_GRANT
+      );
+      localStorage.setItem(ICE_CHESTS_GRANT_ID, "done");
+      saveState();
     }
   } catch {}
   applyOffline();
