@@ -18,12 +18,14 @@
   const ICE_COINS_GRANT_AMOUNT = 1_000_000;
   const ICE_MONEY_CHEST_GRANT = 20;
   const ICE_LUCK_CHEST_GRANT = 23;
+  const MF_CHESTS_GRANT_ID = "fishing-mf-chests-100-v1";
+  const MF_CHEST_TARGET = 100;
   const TICK_MS = 100;
   const COOLER_BASE = 12;
   const TREASURE_BOOST_MS = 5 * 60 * 1000;
   const TREASURE_MULT = 2;
   const TREASURE_LUCK_MULT = 1.5;
-  const TREASURE_STASH_MAX = 25;
+  const TREASURE_STASH_MAX = 100;
   const EVENT_MS = 30 * 60 * 1000;
   const EVENT_ACTIVE_MS = 5 * 60 * 1000; // only first 5 minutes of each :00 / :30
   /** Scheduled :00 / :30 events roll one of these (same for all players per slot). */
@@ -4962,6 +4964,39 @@
     checkAchievements();
   }
 
+  function playerHasMasterFisherTitle() {
+    try {
+      const name = String(
+        window.HubPlays?.getName?.() || localStorage.getItem("hub-player-name") || ""
+      ).trim();
+      if (!name) return false;
+      if (window.HubPlays?.isMasterFisherName?.(name)) return true;
+      const titles = window.HubPlays?.getAvailableTitleIds?.(name) || [];
+      if (titles.includes("master_fisher")) return true;
+      if (window.HubAchievements?.isUnlocked?.("fishing_all")) return true;
+    } catch {}
+    return false;
+  }
+
+  /** One-time: MASTER FISHER players get coin/luck stashes filled up to 100. */
+  function maybeGrantMasterFisherChests(opts = {}) {
+    try {
+      if (localStorage.getItem(MF_CHESTS_GRANT_ID) === "done") return false;
+      if (!playerHasMasterFisherTitle()) return false;
+      const money = Math.max(0, Math.floor(Number(state.moneyChestCount) || 0));
+      const luck = Math.max(0, Math.floor(Number(state.luckChestCount) || 0));
+      const nextMoney = Math.min(TREASURE_STASH_MAX, Math.max(money, MF_CHEST_TARGET));
+      const nextLuck = Math.min(TREASURE_STASH_MAX, Math.max(luck, MF_CHEST_TARGET));
+      state.moneyChestCount = nextMoney;
+      state.luckChestCount = nextLuck;
+      localStorage.setItem(MF_CHESTS_GRANT_ID, "done");
+      if (!opts.silent) saveState();
+      return nextMoney > money || nextLuck > luck;
+    } catch {
+      return false;
+    }
+  }
+
   function checkAchievements() {
     if (!window.HubAchievements) return;
     const life = state.lifetime;
@@ -4976,6 +5011,7 @@
     if (FISH.length > 0 && caughtCount("any", false) >= Math.ceil(FISH.length * 0.7)) {
       const newly = HubAchievements.unlock("fishing_all");
       window.HubPlays?.markMasterFisher?.().catch?.(() => {});
+      maybeGrantMasterFisherChests();
       if (newly) {
         setTimeout(() => {
           setCatchLine("70% catch book — title unlocked: MASTER FISHER", "perfect");
@@ -7099,14 +7135,23 @@
       localStorage.setItem(ICE_CHESTS_GRANT_ID, "done");
       saveState();
     }
+    maybeGrantMasterFisherChests();
   } catch {}
   applyOffline();
   setPhase("ready");
   syncBestCatchFromLeaderboard();
   render();
   checkAchievements();
+  maybeGrantMasterFisherChests();
   startAdminEventPolling();
   startFishGiftPolling();
+  // Titles / names may sync a moment later — retry the MF chest grant.
+  setTimeout(() => {
+    if (maybeGrantMasterFisherChests()) renderTreasureStash();
+  }, 1200);
+  setTimeout(() => {
+    if (maybeGrantMasterFisherChests()) renderTreasureStash();
+  }, 4000);
   // Leaderboard sync may finish a moment later — refresh HUD when it does.
   setTimeout(syncBestCatchFromLeaderboard, 800);
   setTimeout(syncBestCatchFromLeaderboard, 2500);
