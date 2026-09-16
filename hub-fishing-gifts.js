@@ -123,6 +123,13 @@
     const idLower = fishId.toLowerCase();
     let blockKey = "";
     if (
+      item === "luckyblock-zenith" ||
+      idLower === "__luckyblock_zenith__" ||
+      idLower === "luckyblock-zenith" ||
+      idLower === "zenithluckyblock"
+    ) {
+      blockKey = "zenithLuckyBlockCount";
+    } else if (
       item === "luckyblock-astral" ||
       idLower === "__luckyblock_astral__" ||
       idLower === "luckyblock-astral" ||
@@ -219,8 +226,16 @@
       id === "luckyblock" ||
       id === "absoluteluckyblock" ||
       id === "luckyblock-absolute";
-    const isBlock = isAstral || isAbsolute;
-    const blockName = isAstral ? "Astral Lucky Block" : "Absolute Lucky Block";
+    const isZenith =
+      id === "__luckyblock_zenith__" ||
+      id === "luckyblock-zenith" ||
+      id === "zenithluckyblock";
+    const isBlock = isAstral || isAbsolute || isZenith;
+    const blockName = isZenith
+      ? "Zenith Lucky Block"
+      : isAstral
+        ? "Astral Lucky Block"
+        : "Absolute Lucky Block";
     const body = isBlock
       ? gained === 1
         ? `A ${blockName} was added to your Fishing Idle stash.`
@@ -272,11 +287,13 @@
       if (!n) return;
       gained += n;
       sampleId = String(
-        g.item === "luckyblock-astral" || g.fishId === "__luckyblock_astral__"
-          ? "__luckyblock_astral__"
-          : g.item === "luckyblock" || g.fishId === "__luckyblock__"
-            ? "__luckyblock__"
-            : g.fishId || sampleId
+        g.item === "luckyblock-zenith" || g.fishId === "__luckyblock_zenith__"
+          ? "__luckyblock_zenith__"
+          : g.item === "luckyblock-astral" || g.fishId === "__luckyblock_astral__"
+            ? "__luckyblock_astral__"
+            : g.item === "luckyblock" || g.fishId === "__luckyblock__"
+              ? "__luckyblock__"
+              : g.fishId || sampleId
       );
       claimed.add(gid);
       toClaim.push(gid);

@@ -33,6 +33,8 @@
   const LUCKY_BLOCK_EVENT_ACTIVE_MS = 5 * 60 * 1000;
   /** Flat base drop chance while the Lucky Block hour is live — luck never applies. */
   const LUCKY_BLOCK_EVENT_CHANCE = 0.001;
+  /** Zenith Lucky Block base drop during the same windows — luck never applies. */
+  const LUCKY_BLOCK_ZENITH_EVENT_CHANCE = 0.0005;
   /** Scheduled :00 Lucky Block events roll one of these (same for all players per hour). */
   const LUCKY_BLOCK_EVENT_MULT_OPTIONS = [1, 1.5, 2, 3];
   const CHEST_MONEY_BONUS = TREASURE_MULT - 1; // +1 → 2×
@@ -200,7 +202,7 @@
     zenith: 0.0000005
   };
 
-  /** Admin Lucky Blocks: Astral = divine–astral, Absolute = singularity–absolute (no transcendent+). */
+  /** Admin Lucky Blocks: Astral / Absolute / Zenith (zenith = transcendent–zenith). */
   const LUCKY_BLOCK_TYPES = {
     astral: {
       id: "astral",
@@ -223,6 +225,17 @@
       maxRarity: "absolute",
       rangeLabel: "singularity–absolute fish",
       theme: "absolute"
+    },
+    zenith: {
+      id: "zenith",
+      name: "Zenith Lucky Block",
+      giftId: "__luckyblock_zenith__",
+      item: "luckyblock-zenith",
+      stateKey: "zenithLuckyBlockCount",
+      minRarity: "transcendent",
+      maxRarity: "zenith",
+      rangeLabel: "transcendent–zenith fish",
+      theme: "zenith"
     }
   };
 
@@ -245,6 +258,7 @@
       .toLowerCase()
       .replace(/[\s_-]+/g, "");
     if (!s) return "absolute";
+    if (s.includes("zenith")) return "zenith";
     if (s.includes("astral")) return "astral";
     if (s.includes("absolute") || s === "luckyblock" || s === "block") return "absolute";
     return null;
@@ -253,6 +267,15 @@
   function luckyBlockTypeFromGift(g) {
     const item = String(g?.item || "").toLowerCase();
     const fishId = String(g?.fishId || "").toLowerCase();
+    if (
+      item === "luckyblock-zenith" ||
+      fishId === "__luckyblock_zenith__" ||
+      fishId === "luckyblock-zenith" ||
+      fishId === "zenithluckyblock" ||
+      fishId === "zenith"
+    ) {
+      return "zenith";
+    }
     if (
       item === "luckyblock-astral" ||
       fishId === "__luckyblock_astral__" ||
@@ -1019,6 +1042,9 @@
   const absoluteLuckyBlockCountEl = document.getElementById("absolute-lucky-block-count");
   const absoluteLuckyBlockUseBtn = document.getElementById("absolute-lucky-block-use-btn");
   const absoluteLuckyBlockRow = document.getElementById("absolute-lucky-block-row");
+  const zenithLuckyBlockCountEl = document.getElementById("zenith-lucky-block-count");
+  const zenithLuckyBlockUseBtn = document.getElementById("zenith-lucky-block-use-btn");
+  const zenithLuckyBlockRow = document.getElementById("zenith-lucky-block-row");
   let activeLuckyBlockType = "absolute";
   let luckyBlockSpinning = false;
   let luckyBlockSpinTimer = 0;
@@ -1175,7 +1201,8 @@
       moneyChestCount: 0,
       luckChestCount: 0,
       luckyBlockCount: 0,
-      astralLuckyBlockCount: 0
+      astralLuckyBlockCount: 0,
+      zenithLuckyBlockCount: 0
     };
   }
 
@@ -1706,7 +1733,7 @@
   }
 
   /**
-   * Drop chance while a Lucky Block window is live.
+   * Drop chance while a Lucky Block window is live (Astral / Absolute pool).
    * Scheduled hour = base 0.1% × rolled 1×/1.5×/2×/3×. Admin mult scales the same base.
    * Luck gear / luck chests / luck events never change this.
    */
@@ -1727,8 +1754,26 @@
     return Math.min(0.25, p);
   }
 
-  function formatLuckyBlockChancePct(now = Date.now()) {
-    const p = luckyBlockEventChance(now) * 100;
+  /** Zenith Lucky Block drop during the same windows — base 0.05% × event mult. */
+  function luckyBlockZenithEventChance(now = Date.now()) {
+    const admin = adminLuckyBlockEventLive(now);
+    const scheduled = scheduledLuckyBlockEventIsLive(now);
+    if (!admin && !scheduled) return 0;
+    let p = 0;
+    if (scheduled) {
+      p = Math.max(
+        p,
+        LUCKY_BLOCK_ZENITH_EVENT_CHANCE * luckyBlockEventMultForStart(localHourStart(now))
+      );
+    }
+    if (admin) {
+      p = Math.max(p, LUCKY_BLOCK_ZENITH_EVENT_CHANCE * clampAdminMult(admin.mult));
+    }
+    return Math.min(0.25, p);
+  }
+
+  function formatLuckyBlockChancePct(now = Date.now(), chanceFn = luckyBlockEventChance) {
+    const p = chanceFn(now) * 100;
     if (p >= 1) return `${p.toFixed(2)}%`;
     if (p >= 0.1) return `${p.toFixed(2)}%`;
     return `${p.toFixed(3)}%`;
@@ -1736,7 +1781,7 @@
 
   function formatLuckyBlockEventLabel(now = Date.now()) {
     const mult = liveLuckyBlockEventMult(now);
-    return `${formatMult(mult)}× Lucky Blocks ${formatLuckyBlockChancePct(now)}`;
+    return `${formatMult(mult)}× Lucky Blocks ${formatLuckyBlockChancePct(now)} · Zenith ${formatLuckyBlockChancePct(now, luckyBlockZenithEventChance)}`;
   }
 
   function serializeAdminChannel(e) {
@@ -2722,7 +2767,7 @@
   function parseGiveLuckyBlockCommand(raw) {
     const original = String(raw || "").trim();
     const head = original.match(
-      /^(give|gift)\s+(?:(astral|absolute)\s+)?lucky\s*-?\s*blocks?(?:\s+(astral|absolute))?\b/i
+      /^(give|gift)\s+(?:(astral|absolute|zenith)\s+)?lucky\s*-?\s*blocks?(?:\s+(astral|absolute|zenith))?\b/i
     );
     if (!head) return null;
 
@@ -2816,7 +2861,7 @@
     const parsed = parseAdminCommand(raw);
     if (!parsed) {
       setCatchLine(
-        "Try: 5x luck · 5x luckyblock · give astral luckyblock · clear luckyblock · clear",
+        "Try: 5x luck · 5x luckyblock · give zenith luckyblock · clear luckyblock · clear",
         "miss"
       );
       return;
@@ -3005,7 +3050,7 @@
         if (!eventIsLive()) {
           const tag = adminLb ? "ADMIN EVENT" : "EVENT LIVE";
           setCatchLine(
-            `${tag} · ${formatLuckyBlockEventLabel()} Astral or Absolute (${formatTreasureClock(
+            `${tag} · ${formatLuckyBlockEventLabel()} (Astral / Absolute / Zenith · ${formatTreasureClock(
               luckyBlockEventMsLeft()
             )} left) · luck ignored`,
             "treasure"
@@ -3147,10 +3192,13 @@
   }
 
   /**
-   * Hourly / admin Lucky Block drop. Flat base 0.1% (admin mult can scale it).
-   * Luck gear, luck chests, and luck events never change this chance.
+   * Hourly / admin Lucky Block drop.
+   * Zenith: base 0.05% × event mult. Astral/Absolute: base 0.1% × event mult (50/50).
+   * Luck gear, luck chests, and luck events never change these chances.
    */
   function rollLuckyBlockDrop() {
+    const zenithP = luckyBlockZenithEventChance();
+    if (zenithP > 0 && Math.random() < zenithP) return "zenith";
     const p = luckyBlockEventChance();
     if (p <= 0) return null;
     if (Math.random() >= p) return null;
@@ -3778,6 +3826,10 @@
       next.astralLuckyBlockCount = Math.max(
         0,
         Math.min(LUCKY_BLOCK_STASH_MAX, Math.floor(Number(raw.astralLuckyBlockCount) || 0))
+      );
+      next.zenithLuckyBlockCount = Math.max(
+        0,
+        Math.min(LUCKY_BLOCK_STASH_MAX, Math.floor(Number(raw.zenithLuckyBlockCount) || 0))
       );
       return next;
     } catch {
@@ -4764,7 +4816,11 @@
     if (!fish || isTreasureItem(fish)) {
       const isLb = fish?.kind === "luckyblock";
       const glyph =
-        fish?.kind === "luck" || fish?.blockType === "astral" ? "◇" : "▣";
+        fish?.kind === "luck" || fish?.blockType === "astral"
+          ? "◇"
+          : fish?.blockType === "zenith"
+            ? "◆"
+            : "▣";
       catchSilEl.innerHTML = `<span class="catch-sil-chest" aria-hidden="true">${glyph}</span>`;
       catchSilEl.className = `catch-sil is-treasure rarity-${
         isLb ? fish.blockType || "absolute" : fish?.kind || "money"
@@ -4822,11 +4878,17 @@
               ? "treasure-luck"
               : "treasure-money";
           const glyph =
-            fish.kind === "luck" || fish.blockType === "astral" ? "◇" : "▣";
+            fish.kind === "luck" || fish.blockType === "astral"
+              ? "◇"
+              : fish.blockType === "zenith"
+                ? "◆"
+                : "▣";
           const tag = isLb
             ? fish.blockType === "astral"
               ? "astral"
-              : "absolute"
+              : fish.blockType === "zenith"
+                ? "zenith"
+                : "absolute"
             : fish.kind === "luck"
               ? "luck"
               : "coin";
@@ -5626,11 +5688,17 @@
               ? "treasure-luck"
               : "treasure-money";
           const glyph =
-            fish.kind === "luck" || fish.blockType === "astral" ? "◇" : "▣";
+            fish.kind === "luck" || fish.blockType === "astral"
+              ? "◇"
+              : fish.blockType === "zenith"
+                ? "◆"
+                : "▣";
           const tag = isLb
             ? fish.blockType === "astral"
               ? "astral"
-              : "absolute"
+              : fish.blockType === "zenith"
+                ? "zenith"
+                : "absolute"
             : fish.kind === "luck"
               ? "luck"
               : "coin";
@@ -6249,16 +6317,19 @@
     const luck = Math.max(0, Math.floor(Number(state.luckChestCount) || 0));
     const astralBlocks = luckyBlockCount("astral");
     const absoluteBlocks = luckyBlockCount("absolute");
+    const zenithBlocks = luckyBlockCount("zenith");
     const moneyLeft = moneyMsLeft();
     const luckLeft = luckMsLeft();
     const moneyOn = moneyBoostActive();
     const luckOn = luckBoostActive();
     const showAstral = isFishingOwner() || astralBlocks > 0;
     const showAbsolute = isFishingOwner() || absoluteBlocks > 0;
+    const showZenith = isFishingOwner() || zenithBlocks > 0;
     if (moneyCountEl) moneyCountEl.textContent = String(money);
     if (luckCountEl) luckCountEl.textContent = String(luck);
     if (astralLuckyBlockCountEl) astralLuckyBlockCountEl.textContent = String(astralBlocks);
     if (absoluteLuckyBlockCountEl) absoluteLuckyBlockCountEl.textContent = String(absoluteBlocks);
+    if (zenithLuckyBlockCountEl) zenithLuckyBlockCountEl.textContent = String(zenithBlocks);
     if (moneyChestTimerEl) {
       moneyChestTimerEl.classList.toggle("hidden", !moneyOn);
       moneyChestTimerEl.textContent = moneyOn ? `${formatTreasureClock(moneyLeft)} left` : "";
@@ -6285,6 +6356,10 @@
       absoluteLuckyBlockUseBtn.disabled = absoluteBlocks <= 0;
       absoluteLuckyBlockUseBtn.textContent = "Open";
     }
+    if (zenithLuckyBlockUseBtn) {
+      zenithLuckyBlockUseBtn.disabled = zenithBlocks <= 0;
+      zenithLuckyBlockUseBtn.textContent = "Open";
+    }
     if (astralLuckyBlockRow) {
       astralLuckyBlockRow.classList.toggle("hidden", !showAstral);
       astralLuckyBlockRow.hidden = !showAstral;
@@ -6293,6 +6368,10 @@
       absoluteLuckyBlockRow.classList.toggle("hidden", !showAbsolute);
       absoluteLuckyBlockRow.hidden = !showAbsolute;
     }
+    if (zenithLuckyBlockRow) {
+      zenithLuckyBlockRow.classList.toggle("hidden", !showZenith);
+      zenithLuckyBlockRow.hidden = !showZenith;
+    }
     if (treasureStashEl) {
       treasureStashEl.classList.toggle(
         "is-empty",
@@ -6300,6 +6379,7 @@
           luck <= 0 &&
           astralBlocks <= 0 &&
           absoluteBlocks <= 0 &&
+          zenithBlocks <= 0 &&
           !moneyOn &&
           !luckOn
       );
@@ -6695,6 +6775,7 @@
   luckUseBtn?.addEventListener("click", () => useTreasure("luck"));
   astralLuckyBlockUseBtn?.addEventListener("click", () => openLuckyBlockGui("astral"));
   absoluteLuckyBlockUseBtn?.addEventListener("click", () => openLuckyBlockGui("absolute"));
+  zenithLuckyBlockUseBtn?.addEventListener("click", () => openLuckyBlockGui("zenith"));
   luckyBlockCloseBtn?.addEventListener("click", () => closeLuckyBlockGui());
   luckyBlockDismissBtn?.addEventListener("click", () => closeLuckyBlockGui());
   luckyBlockSpinBtn?.addEventListener("click", () => spinLuckyBlock());

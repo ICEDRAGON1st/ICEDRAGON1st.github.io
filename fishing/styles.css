@@ -2435,6 +2435,11 @@ body[data-spot="mythforge"] .water-mist {
   text-shadow: 0 0 10px rgba(248, 249, 250, 0.45);
 }
 
+.treasure-stash-glyph.luckyblock.zenith {
+  color: #fbbf24;
+  text-shadow: 0 0 12px rgba(251, 191, 36, 0.6);
+}
+
 .treasure-stash-row.treasure-luckyblock {
   border-color: rgba(251, 191, 36, 0.28);
 }
@@ -2445,6 +2450,10 @@ body[data-spot="mythforge"] .water-mist {
 
 .treasure-stash-row.treasure-luckyblock-absolute {
   border-color: rgba(248, 249, 250, 0.28);
+}
+
+.treasure-stash-row.treasure-luckyblock-zenith {
+  border-color: rgba(251, 191, 36, 0.4);
 }
 
 .lucky-block-overlay {
@@ -2476,6 +2485,28 @@ body[data-spot="mythforge"] .water-mist {
 
 .lucky-block-card[data-theme="astral"] .lb-result-title {
   color: #9af0ff;
+}
+
+.lucky-block-card[data-theme="zenith"] .lb-reel-frame {
+  border-color: rgba(251, 191, 36, 0.45);
+  background:
+    linear-gradient(180deg, rgba(251, 191, 36, 0.16), transparent 35%),
+    rgba(0, 0, 0, 0.28);
+}
+
+.lucky-block-card[data-theme="zenith"] .lb-reel-marker {
+  border-color: rgba(251, 191, 36, 0.6);
+  background: rgba(251, 191, 36, 0.1);
+  box-shadow: 0 0 18px rgba(251, 191, 36, 0.22);
+}
+
+.lucky-block-card[data-theme="zenith"] .lb-result {
+  border-color: rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.12);
+}
+
+.lucky-block-card[data-theme="zenith"] .lb-result-title {
+  color: #fde68a;
 }
 
 .lucky-block-status {

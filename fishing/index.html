@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260917bx">
+  <link rel="stylesheet" href="styles.css?v=20260917by">
 </head>
 <body data-spot="creek">
   <header class="top-bar">
@@ -194,7 +194,15 @@
           </span>
           <button id="absolute-lucky-block-use-btn" type="button" class="btn btn-ghost treasure-use-btn" disabled>Open</button>
         </div>
-        <p class="treasure-stash-hint">Chests: events at :00 / :30 last 5 minutes at 1.5×–4× and stack with them. Lucky Block hour at every :00 for 5 minutes — rolls 1× / 1.5× / 2× / 3× on a 0.1% base drop (luck ignored).</p>
+        <div id="zenith-lucky-block-row" class="treasure-stash-row treasure-luckyblock treasure-luckyblock-zenith hidden" hidden>
+          <span class="treasure-stash-glyph luckyblock zenith" aria-hidden="true">◆</span>
+          <span class="treasure-stash-meta">
+            <strong>Zenith Lucky Block</strong>
+            <span class="treasure-stash-count"><span id="zenith-lucky-block-count">0</span> stored · transcendent–zenith fish</span>
+          </span>
+          <button id="zenith-lucky-block-use-btn" type="button" class="btn btn-ghost treasure-use-btn" disabled>Open</button>
+        </div>
+        <p class="treasure-stash-hint">Chests: events at :00 / :30 last 5 minutes at 1.5×–4× and stack with them. Lucky Block hour at every :00 for 5 minutes — Astral/Absolute 0.1% base · Zenith 0.05% base, rolled 1× / 1.5× / 2× / 3× (luck ignored).</p>
       </div>
 
       <div class="cooler-bar">
@@ -408,13 +416,14 @@
         <button type="button" class="btn btn-ghost" data-admin-cmd="give fish primefin">Give Primefin</button>
         <button type="button" class="btn btn-ghost" data-admin-cmd="give astral luckyblock">Give Astral Block</button>
         <button type="button" class="btn btn-ghost" data-admin-cmd="give absolute luckyblock">Give Absolute Block</button>
+        <button type="button" class="btn btn-ghost" data-admin-cmd="give zenith luckyblock">Give Zenith Block</button>
       </div>
       <form id="admin-cmd-form" class="admin-cmd-form">
         <input
           id="admin-cmd-input"
           type="text"
           maxlength="120"
-          placeholder="5x luckyblock · 5x luck · give astral luckyblock · clear luckyblock"
+          placeholder="5x luckyblock · 5x luck · give zenith luckyblock · clear luckyblock"
           autocomplete="off"
           spellcheck="false"
         />
@@ -448,6 +457,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260917br"></script>
-  <script src="script.js?v=20260917bx"></script>
+  <script src="script.js?v=20260917by"></script>
 </body>
 </html>
