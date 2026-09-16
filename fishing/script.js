@@ -31,8 +31,10 @@
   /** Hourly Lucky Block drop window at :00 (runs alongside sell/luck). */
   const LUCKY_BLOCK_EVENT_MS = 60 * 60 * 1000;
   const LUCKY_BLOCK_EVENT_ACTIVE_MS = 5 * 60 * 1000;
-  /** Flat drop chance while the Lucky Block hour is live — luck never applies. */
+  /** Flat base drop chance while the Lucky Block hour is live — luck never applies. */
   const LUCKY_BLOCK_EVENT_CHANCE = 0.001;
+  /** Scheduled :00 Lucky Block events roll one of these (same for all players per hour). */
+  const LUCKY_BLOCK_EVENT_MULT_OPTIONS = [1, 1.5, 2, 3];
   const CHEST_MONEY_BONUS = TREASURE_MULT - 1; // +1 → 2×
   const CHEST_LUCK_BONUS = TREASURE_LUCK_MULT - 1; // +0.5 → 1.5×
   // Chest + matching event stacks additively with the rolled event mult
@@ -1251,6 +1253,29 @@
     return localHourStart(now) + LUCKY_BLOCK_EVENT_MS;
   }
 
+  function luckyBlockHourSlotIndex(startTs) {
+    return Math.floor(Number(startTs) / LUCKY_BLOCK_EVENT_MS);
+  }
+
+  /** Deterministic mult for a :00 Lucky Block hour so every client matches. */
+  function luckyBlockEventMultForStart(startTs) {
+    let x = (luckyBlockHourSlotIndex(startTs) * 2654435761) >>> 0;
+    x ^= x >>> 16;
+    x = Math.imul(x ^ (x >>> 13), 2246822519) >>> 0;
+    // Separate salt from sell/luck slots so the rolls stay independent.
+    x = Math.imul(x ^ 0x9e3779b9, 2246822519) >>> 0;
+    return LUCKY_BLOCK_EVENT_MULT_OPTIONS[x % LUCKY_BLOCK_EVENT_MULT_OPTIONS.length];
+  }
+
+  function liveLuckyBlockEventMult(now = Date.now()) {
+    const admin = adminLuckyBlockEventLive(now);
+    if (admin) return clampAdminMult(admin.mult);
+    if (scheduledLuckyBlockEventIsLive(now)) {
+      return luckyBlockEventMultForStart(localHourStart(now));
+    }
+    return 1;
+  }
+
   /** Scheduled Lucky Block hour (:00–:05). Independent of sell/luck. */
   function scheduledLuckyBlockEventIsLive(now = Date.now()) {
     const start = localHourStart(now);
@@ -1614,13 +1639,20 @@
 
   /**
    * Drop chance while a Lucky Block window is live.
-   * Scheduled hour = flat 0.1%. Admin mult scales that base (luck still ignored).
+   * Scheduled hour = base 0.1% × rolled 1×/1.5×/2×/3×. Admin mult scales the same base.
+   * Luck gear / luck chests / luck events never change this.
    */
   function luckyBlockEventChance(now = Date.now()) {
     const admin = adminLuckyBlockEventLive(now);
     const scheduled = scheduledLuckyBlockEventIsLive(now);
     if (!admin && !scheduled) return 0;
-    let p = scheduled ? LUCKY_BLOCK_EVENT_CHANCE : 0;
+    let p = 0;
+    if (scheduled) {
+      p = Math.max(
+        p,
+        LUCKY_BLOCK_EVENT_CHANCE * luckyBlockEventMultForStart(localHourStart(now))
+      );
+    }
     if (admin) {
       p = Math.max(p, LUCKY_BLOCK_EVENT_CHANCE * clampAdminMult(admin.mult));
     }
@@ -1632,6 +1664,11 @@
     if (p >= 1) return `${p.toFixed(2)}%`;
     if (p >= 0.1) return `${p.toFixed(2)}%`;
     return `${p.toFixed(3)}%`;
+  }
+
+  function formatLuckyBlockEventLabel(now = Date.now()) {
+    const mult = liveLuckyBlockEventMult(now);
+    return `${formatMult(mult)}× Lucky Blocks ${formatLuckyBlockChancePct(now)}`;
   }
 
   function serializeAdminChannel(e) {
@@ -2893,14 +2930,14 @@
       const adminLb = adminLuckyBlockEventLive();
       const lbKey = adminLb
         ? `lb-admin:${adminLb.until}:${adminLb.mult}`
-        : `lb:${localHourStart()}`;
+        : `lb:${localHourStart()}:${liveLuckyBlockEventMult()}`;
       if (lbKey !== lastAnnouncedLbEventKey) {
         lastAnnouncedLbEventKey = lbKey;
         // When sell/luck is also live (:00), that announce covers both.
         if (!eventIsLive()) {
           const tag = adminLb ? "ADMIN EVENT" : "EVENT LIVE";
           setCatchLine(
-            `${tag} · Lucky Blocks · ${formatLuckyBlockChancePct()} Astral or Absolute (${formatTreasureClock(
+            `${tag} · ${formatLuckyBlockEventLabel()} Astral or Absolute (${formatTreasureClock(
               luckyBlockEventMsLeft()
             )} left) · luck ignored`,
             "treasure"
@@ -2925,7 +2962,7 @@
     const multLabel = formatMult(liveEventMult());
     const tag = admin ? "ADMIN EVENT" : "EVENT LIVE";
     const lbNote = luckyBlockEventIsLive()
-      ? ` · + Lucky Blocks ${formatLuckyBlockChancePct()} (${formatTreasureClock(luckyBlockEventMsLeft())} left, luck ignored)`
+      ? ` · + ${formatLuckyBlockEventLabel()} (${formatTreasureClock(luckyBlockEventMsLeft())} left, luck ignored)`
       : "";
     if (kind === "luck") {
       const stacked = formatMult(1 + CHEST_LUCK_BONUS + (liveEventMult() - 1));
@@ -2978,7 +3015,7 @@
       } else if (live && kind === "money") {
         parts.push(`${multLabel}× Sell`);
       }
-      if (lbLive) parts.push(`Lucky Blocks ${formatLuckyBlockChancePct()}`);
+      if (lbLive) parts.push(formatLuckyBlockEventLabel());
       if (variant) {
         parts.push(`${variantMult}× ${formatAdminVariantLabel(variant.target)}`);
       }
@@ -2988,13 +3025,15 @@
         }`;
       } else {
         const untilLb = msUntilNextLuckyBlockEvent();
+        const nextLbStart = nextHourStart();
+        const nextLbMult = formatMult(luckyBlockEventMultForStart(nextLbStart));
         const sellLuckLine =
           nextKind === "luck"
             ? `Upcoming: ${nextMult}× Luck`
             : `Upcoming: ${nextMult}× Sell`;
         eventBannerTitleEl.textContent =
           untilLb <= untilNext
-            ? `${sellLuckLine} · Lucky Blocks in ${formatTreasureClock(untilLb)}`
+            ? `${sellLuckLine} · ${nextLbMult}× Lucky Blocks in ${formatTreasureClock(untilLb)}`
             : sellLuckLine;
       }
     }
@@ -6022,7 +6061,7 @@
         );
       }
       if (lbLive) {
-        parts.push(`Lucky Blocks ${formatLuckyBlockChancePct()} · ${formatTreasureClock(lbLeft)}`);
+        parts.push(`${formatLuckyBlockEventLabel()} · ${formatTreasureClock(lbLeft)}`);
       }
       if (variant) {
         parts.push(
