@@ -1262,9 +1262,12 @@
     return Math.floor(9 * r * r + 30 * r);
   }
 
-  /** Raw luck before chests/events: gear + current spot. */
+  /** Flat luck from gear + spot is tripled into the live luck stat. */
+  const LUCK_STAT_MULT = 3;
+
+  /** Raw luck before chests/events: (gear + current spot) × 3. */
   function baseLuck(spot = currentSpot()) {
-    return Math.max(0, luckBonus()) + spotLuckBonus(spot);
+    return (Math.max(0, luckBonus()) + spotLuckBonus(spot)) * LUCK_STAT_MULT;
   }
 
   /**
