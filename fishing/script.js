@@ -145,7 +145,11 @@
     "genesis",
     "paradox",
     "infinity",
-    "absolute"
+    "absolute",
+    "transcendent",
+    "nexus",
+    "voidborn",
+    "zenith"
   ];
 
   const RARITY_RANK = {
@@ -165,7 +169,11 @@
     genesis: 14,
     paradox: 15,
     infinity: 16,
-    absolute: 17
+    absolute: 17,
+    transcendent: 18,
+    nexus: 19,
+    voidborn: 20,
+    zenith: 21
   };
 
   const RARITY_WEIGHT = {
@@ -185,10 +193,14 @@
     genesis: 0.0005,
     paradox: 0.0002,
     infinity: 0.00008,
-    absolute: 0.00003
+    absolute: 0.00003,
+    transcendent: 0.000011,
+    nexus: 0.000004,
+    voidborn: 0.0000014,
+    zenith: 0.0000005
   };
 
-  /** Admin Lucky Blocks: Astral = divine–astral, Absolute = singularity–absolute. */
+  /** Admin Lucky Blocks: Astral = divine–astral, Absolute = singularity–absolute (no transcendent+). */
   const LUCKY_BLOCK_TYPES = {
     astral: {
       id: "astral",
@@ -209,7 +221,7 @@
       stateKey: "luckyBlockCount",
       minRarity: "singularity",
       maxRarity: "absolute",
-      rangeLabel: "singularity+ fish",
+      rangeLabel: "singularity–absolute fish",
       theme: "absolute"
     }
   };
@@ -362,7 +374,27 @@
     { id: "absolutefin", name: "Absolute Fin", rarity: "absolute", value: 1500000000000000 },
     { id: "finalabs", name: "Final Absolute", rarity: "absolute", value: 4000000000000000 },
     { id: "trueabs", name: "True Absolute", rarity: "absolute", value: 7000000000000000 },
-    { id: "theabsolute", name: "The Absolute", rarity: "absolute", value: 10000000000000000 }
+    { id: "theabsolute", name: "The Absolute", rarity: "absolute", value: 10000000000000000 },
+    // Transcendent (fishing only — not in lucky blocks)
+    { id: "ascendray", name: "Ascend Ray", rarity: "transcendent", value: 2.5e16 },
+    { id: "overfin", name: "Overfin", rarity: "transcendent", value: 6e16 },
+    { id: "beyondkoi", name: "Beyond Koi", rarity: "transcendent", value: 1.2e17 },
+    { id: "transcendfin", name: "Transcendfin", rarity: "transcendent", value: 2.5e17 },
+    // Nexus
+    { id: "crossfin", name: "Crossfin", rarity: "nexus", value: 5e17 },
+    { id: "linkshark", name: "Link Shark", rarity: "nexus", value: 1.2e18 },
+    { id: "hubray", name: "Hub Ray", rarity: "nexus", value: 3e18 },
+    { id: "nexuskarp", name: "Nexus Karp", rarity: "nexus", value: 7e18 },
+    // Voidborn
+    { id: "nullray", name: "Null Ray", rarity: "voidborn", value: 1.5e19 },
+    { id: "hollowfin", name: "Hollowfin", rarity: "voidborn", value: 4e19 },
+    { id: "abyssnull", name: "Abyss Null", rarity: "voidborn", value: 9e19 },
+    { id: "thevoidborn", name: "The Voidborn", rarity: "voidborn", value: 2e20 },
+    // Zenith
+    { id: "peakfin", name: "Peakfin", rarity: "zenith", value: 5e20 },
+    { id: "crownray", name: "Crown Ray", rarity: "zenith", value: 1.2e21 },
+    { id: "apexkoi", name: "Apex Koi", rarity: "zenith", value: 3e21 },
+    { id: "thezenith", name: "The Zenith", rarity: "zenith", value: 8e21 }
   ];
 
   const SPOTS = [
@@ -617,10 +649,46 @@
       valueMult: 40,
       rarity: 27,
       blurb: "All waters as one · absolute peak"
+    },
+    {
+      id: "transcendfalls",
+      name: "Transcend Falls",
+      cost: 5e16,
+      wait: [0.22, 0.48],
+      valueMult: 48,
+      rarity: 28,
+      blurb: "Above absolute · transcendent stirs"
+    },
+    {
+      id: "nexusdeep",
+      name: "Nexus Deep",
+      cost: 2.5e17,
+      wait: [0.2, 0.45],
+      valueMult: 58,
+      rarity: 29,
+      blurb: "Linked tides · nexus fish converge"
+    },
+    {
+      id: "voidbornmere",
+      name: "Voidborn Mere",
+      cost: 1.2e18,
+      wait: [0.18, 0.42],
+      valueMult: 70,
+      rarity: 30,
+      blurb: "Hollow waters · voidborn haunt"
+    },
+    {
+      id: "zenithpeak",
+      name: "Zenith Peak",
+      cost: 6e18,
+      wait: [0.16, 0.4],
+      valueMult: 85,
+      rarity: 31,
+      blurb: "Highest shelf · zenith fish crown the haul"
     }
   ];
 
-  const MAX_SPOT_RARITY = 27;
+  const MAX_SPOT_RARITY = 31;
 
   const GEAR = [
     { id: "rod1", name: "Willow Rod", desc: "+0.05s bite window", cost: 40, kind: "window", amount: 0.05 },
@@ -4208,7 +4276,23 @@
     absolutefin: "tuna",
     finalabs: "leviathan",
     trueabs: "shark",
-    theabsolute: "omega"
+    theabsolute: "omega",
+    ascendray: "ray",
+    overfin: "tuna",
+    beyondkoi: "koi",
+    transcendfin: "omega",
+    crossfin: "tuna",
+    linkshark: "shark",
+    hubray: "ray",
+    nexuskarp: "carp",
+    nullray: "ray",
+    hollowfin: "tuna",
+    abyssnull: "leviathan",
+    thevoidborn: "omega",
+    peakfin: "tuna",
+    crownray: "ray",
+    apexkoi: "koi",
+    thezenith: "omega"
   };
 
   const FISH_TINT = {
@@ -4293,7 +4377,23 @@
     absolutefin: "#f5f5f5",
     finalabs: "#eeeeee",
     trueabs: "#fafafa",
-    theabsolute: "#ffffff"
+    theabsolute: "#ffffff",
+    ascendray: "#ffd6a5",
+    overfin: "#fdba74",
+    beyondkoi: "#fb923c",
+    transcendfin: "#fff7ed",
+    crossfin: "#c4b5fd",
+    linkshark: "#a78bfa",
+    hubray: "#8b5cf6",
+    nexuskarp: "#ddd6fe",
+    nullray: "#94a3b8",
+    hollowfin: "#64748b",
+    abyssnull: "#334155",
+    thevoidborn: "#e2e8f0",
+    peakfin: "#fcd34d",
+    crownray: "#fbbf24",
+    apexkoi: "#f59e0b",
+    thezenith: "#fffbeb"
   };
 
   function fishEye(cx, cy, r = 2.2) {
@@ -4695,7 +4795,11 @@
       genesis: "#9af0d8",
       paradox: "#e040fb",
       infinity: "#18ffff",
-      absolute: "#f8f9fa"
+      absolute: "#f8f9fa",
+      transcendent: "#fb923c",
+      nexus: "#a78bfa",
+      voidborn: "#94a3b8",
+      zenith: "#fbbf24"
     };
     return map[rarity] || "#a8e6df";
   }
@@ -4904,6 +5008,10 @@
     if (rarity === "paradox") return 0.000015 + t * 0.012;
     if (rarity === "infinity") return 0.000006 + t * 0.007;
     if (rarity === "absolute") return 0.0000025 + t * 0.004;
+    if (rarity === "transcendent") return 0.000001 + t * 0.0026;
+    if (rarity === "nexus") return 0.0000004 + t * 0.0016;
+    if (rarity === "voidborn") return 0.00000015 + t * 0.001;
+    if (rarity === "zenith") return 0.00000005 + t * 0.0006;
     return 1;
   }
 
@@ -4950,6 +5058,10 @@
     if (fish.rarity === "paradox") w += luck * 0.000015;
     if (fish.rarity === "infinity") w += luck * 0.0000055;
     if (fish.rarity === "absolute") w += luck * 0.000002;
+    if (fish.rarity === "transcendent") w += luck * 0.00000075;
+    if (fish.rarity === "nexus") w += luck * 0.00000028;
+    if (fish.rarity === "voidborn") w += luck * 0.0000001;
+    if (fish.rarity === "zenith") w += luck * 0.000000035;
     // Spot still matters, but high rarities are less crushed on early waters
     const t = Math.max(0, Math.min(MAX_SPOT_RARITY, Number(spot.rarity) || 0)) / MAX_SPOT_RARITY;
     if (fish.rarity === "rare") w *= 0.9 + t * 0.12;
@@ -4966,6 +5078,10 @@
     if (fish.rarity === "paradox") w *= (0.015 + t * 0.22) * (forBoat ? 0.04 : 1);
     if (fish.rarity === "infinity") w *= (0.01 + t * 0.18) * (forBoat ? 0.028 : 1);
     if (fish.rarity === "absolute") w *= (0.007 + t * 0.15) * (forBoat ? 0.018 : 1);
+    if (fish.rarity === "transcendent") w *= (0.005 + t * 0.12) * (forBoat ? 0.012 : 1);
+    if (fish.rarity === "nexus") w *= (0.0035 + t * 0.1) * (forBoat ? 0.008 : 1);
+    if (fish.rarity === "voidborn") w *= (0.0022 + t * 0.08) * (forBoat ? 0.005 : 1);
+    if (fish.rarity === "zenith") w *= (0.0014 + t * 0.065) * (forBoat ? 0.003 : 1);
     w *= valueRarityScale(fish);
     // Chest/event luck mult skews weight toward rarer tiers (omega ≈ ×mult)
     // so 100× luck makes top fish ~100× more common instead of barely moving.
@@ -5068,6 +5184,10 @@
       "paradox",
       "infinity",
       "absolute",
+      "transcendent",
+      "nexus",
+      "voidborn",
+      "zenith",
       "treasure"
     );
     if (cls) catchLineEl.classList.add(cls);
@@ -5078,6 +5198,10 @@
   }
 
   function catchTone(rarity) {
+    if (rarity === "zenith") return "zenith";
+    if (rarity === "voidborn") return "voidborn";
+    if (rarity === "nexus") return "nexus";
+    if (rarity === "transcendent") return "transcendent";
     if (rarity === "absolute") return "absolute";
     if (rarity === "infinity") return "infinity";
     if (rarity === "paradox") return "paradox";
