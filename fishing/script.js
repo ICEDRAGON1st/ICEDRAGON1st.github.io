@@ -18,14 +18,13 @@
   const ICE_COINS_GRANT_AMOUNT = 1_000_000;
   const ICE_MONEY_CHEST_GRANT = 20;
   const ICE_LUCK_CHEST_GRANT = 23;
-  const MF_CHESTS_GRANT_ID = "fishing-mf-chests-100-v1";
-  const MF_CHEST_TARGET = 100;
   const TICK_MS = 100;
   const COOLER_BASE = 12;
   const TREASURE_BOOST_MS = 5 * 60 * 1000;
   const TREASURE_MULT = 2;
   const TREASURE_LUCK_MULT = 1.5;
-  const TREASURE_STASH_MAX = 100;
+  const TREASURE_STASH_MAX = 25;
+  const TREASURE_STASH_MAX_MASTER = 100;
   const EVENT_MS = 30 * 60 * 1000;
   const EVENT_ACTIVE_MS = 5 * 60 * 1000; // only first 5 minutes of each :00 / :30
   /** Scheduled :00 / :30 events roll one of these (same for all players per slot). */
@@ -3297,9 +3296,10 @@
   function storeTreasure(chest, opts = {}) {
     const item = chest?.kind ? chest : TREASURE_MONEY;
     const key = chestCountKey(item.kind);
-    if (state[key] >= TREASURE_STASH_MAX) {
+    const max = treasureStashMax();
+    if (state[key] >= max) {
       if (!opts.silent) {
-        setCatchLine(`${item.name} stash full (${TREASURE_STASH_MAX}) — use one first`, "miss");
+        setCatchLine(`${item.name} stash full (${max}) — use one first`, "miss");
         window.HubSound?.play?.("miss");
       }
       return false;
@@ -3813,13 +3813,13 @@
       next.moneyChestCount = Math.max(
         0,
         Math.min(
-          TREASURE_STASH_MAX,
+          TREASURE_STASH_MAX_MASTER,
           Math.floor(Number(raw.moneyChestCount) || legacyCount || 0)
         )
       );
       next.luckChestCount = Math.max(
         0,
-        Math.min(TREASURE_STASH_MAX, Math.floor(Number(raw.luckChestCount) || 0))
+        Math.min(TREASURE_STASH_MAX_MASTER, Math.floor(Number(raw.luckChestCount) || 0))
       );
       next.luckyBlockCount = Math.max(
         0,
@@ -4978,23 +4978,22 @@
     return false;
   }
 
-  /** One-time: MASTER FISHER players get coin/luck stashes filled up to 100. */
-  function maybeGrantMasterFisherChests(opts = {}) {
-    try {
-      if (localStorage.getItem(MF_CHESTS_GRANT_ID) === "done") return false;
-      if (!playerHasMasterFisherTitle()) return false;
-      const money = Math.max(0, Math.floor(Number(state.moneyChestCount) || 0));
-      const luck = Math.max(0, Math.floor(Number(state.luckChestCount) || 0));
-      const nextMoney = Math.min(TREASURE_STASH_MAX, Math.max(money, MF_CHEST_TARGET));
-      const nextLuck = Math.min(TREASURE_STASH_MAX, Math.max(luck, MF_CHEST_TARGET));
-      state.moneyChestCount = nextMoney;
-      state.luckChestCount = nextLuck;
-      localStorage.setItem(MF_CHESTS_GRANT_ID, "done");
-      if (!opts.silent) saveState();
-      return nextMoney > money || nextLuck > luck;
-    } catch {
-      return false;
-    }
+  /** Coin/luck chest stash: 25 default, 100 with MASTER FISHER. */
+  function treasureStashMax() {
+    return playerHasMasterFisherTitle() ? TREASURE_STASH_MAX_MASTER : TREASURE_STASH_MAX;
+  }
+
+  function clampTreasureStashCounts(save = false) {
+    const max = treasureStashMax();
+    const money = Math.max(0, Math.floor(Number(state.moneyChestCount) || 0));
+    const luck = Math.max(0, Math.floor(Number(state.luckChestCount) || 0));
+    const nextMoney = Math.min(max, money);
+    const nextLuck = Math.min(max, luck);
+    if (nextMoney === money && nextLuck === luck) return false;
+    state.moneyChestCount = nextMoney;
+    state.luckChestCount = nextLuck;
+    if (save) saveState();
+    return true;
   }
 
   function checkAchievements() {
@@ -5011,7 +5010,6 @@
     if (FISH.length > 0 && caughtCount("any", false) >= Math.ceil(FISH.length * 0.7)) {
       const newly = HubAchievements.unlock("fishing_all");
       window.HubPlays?.markMasterFisher?.().catch?.(() => {});
-      maybeGrantMasterFisherChests();
       if (newly) {
         setTimeout(() => {
           setCatchLine("70% catch book — title unlocked: MASTER FISHER", "perfect");
@@ -7125,32 +7123,31 @@
     }
     if (name === "ice_dragon" && localStorage.getItem(ICE_CHESTS_GRANT_ID) !== "done") {
       state.moneyChestCount = Math.min(
-        TREASURE_STASH_MAX,
+        treasureStashMax(),
         Math.max(0, Math.floor(Number(state.moneyChestCount) || 0)) + ICE_MONEY_CHEST_GRANT
       );
       state.luckChestCount = Math.min(
-        TREASURE_STASH_MAX,
+        treasureStashMax(),
         Math.max(0, Math.floor(Number(state.luckChestCount) || 0)) + ICE_LUCK_CHEST_GRANT
       );
       localStorage.setItem(ICE_CHESTS_GRANT_ID, "done");
       saveState();
     }
-    maybeGrantMasterFisherChests();
   } catch {}
   applyOffline();
   setPhase("ready");
   syncBestCatchFromLeaderboard();
   render();
   checkAchievements();
-  maybeGrantMasterFisherChests();
+  clampTreasureStashCounts(true);
   startAdminEventPolling();
   startFishGiftPolling();
-  // Titles / names may sync a moment later — retry the MF chest grant.
+  // Titles may sync later — re-clamp once MASTER FISHER is known.
   setTimeout(() => {
-    if (maybeGrantMasterFisherChests()) renderTreasureStash();
+    if (clampTreasureStashCounts(true)) renderTreasureStash();
   }, 1200);
   setTimeout(() => {
-    if (maybeGrantMasterFisherChests()) renderTreasureStash();
+    if (clampTreasureStashCounts(true)) renderTreasureStash();
   }, 4000);
   // Leaderboard sync may finish a moment later — refresh HUD when it does.
   setTimeout(syncBestCatchFromLeaderboard, 800);

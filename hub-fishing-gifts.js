@@ -12,9 +12,6 @@
   const TOKEN = "ice-fish-gift-9f3a";
   const POLL_MS = 12_000;
   const VARIANT_PRIMARY = ["silver", "gold", "diamond", "rainbow"];
-  const MF_CHESTS_GRANT_ID = "fishing-mf-chests-100-v1";
-  const MF_CHEST_TARGET = 100;
-  const TREASURE_STASH_MAX = 100;
 
   let timer = 0;
   let lastFetch = 0;
@@ -97,54 +94,6 @@
       state.lastTick = Date.now();
       localStorage.setItem(SAVE_KEY, JSON.stringify(state));
     } catch {}
-  }
-
-  function playerHasMasterFisherTitle() {
-    try {
-      const name = String(
-        window.HubPlays?.getName?.() || localStorage.getItem("hub-player-name") || ""
-      ).trim();
-      if (!name) return false;
-      if (window.HubPlays?.isMasterFisherName?.(name)) return true;
-      const titles = window.HubPlays?.getAvailableTitleIds?.(name) || [];
-      if (titles.includes("master_fisher")) return true;
-      if (window.HubAchievements?.isUnlocked?.("fishing_all")) return true;
-    } catch {}
-    return false;
-  }
-
-  /** One-time: MASTER FISHER players get coin/luck stashes filled up to 100. */
-  function maybeGrantMasterFisherChests() {
-    try {
-      if (isFishingPage()) return false;
-      if (localStorage.getItem(MF_CHESTS_GRANT_ID) === "done") return false;
-      if (!playerHasMasterFisherTitle()) return false;
-      const state = readSave();
-      const money = Math.max(0, Math.floor(Number(state.moneyChestCount) || 0));
-      const luck = Math.max(0, Math.floor(Number(state.luckChestCount) || 0));
-      const nextMoney = Math.min(TREASURE_STASH_MAX, Math.max(money, MF_CHEST_TARGET));
-      const nextLuck = Math.min(TREASURE_STASH_MAX, Math.max(luck, MF_CHEST_TARGET));
-      state.moneyChestCount = nextMoney;
-      state.luckChestCount = nextLuck;
-      writeSave(state);
-      localStorage.setItem(MF_CHESTS_GRANT_ID, "done");
-      if (nextMoney > money || nextLuck > luck) {
-        try {
-          window.HubNotifications?.push?.({
-            kind: "gift",
-            title: "MASTER FISHER chests",
-            body: "Your Fishing Idle coin & luck chests were filled up to 100 each.",
-            href: "fishing/index.html"
-          });
-        } catch {}
-        try {
-          window.HubSound?.play?.("win");
-        } catch {}
-      }
-      return true;
-    } catch {
-      return false;
-    }
   }
 
   function markCaught(state, fishId, entry) {
@@ -308,7 +257,6 @@
   }
 
   async function poll(force = false) {
-    maybeGrantMasterFisherChests();
     if (isFishingPage()) return { gained: 0 };
     const now = Date.now();
     if (!force && now - lastFetch < POLL_MS) return { gained: 0 };
@@ -365,15 +313,11 @@
   function start() {
     if (started || isFishingPage()) return;
     started = true;
-    maybeGrantMasterFisherChests();
     poll(true);
     if (timer) clearInterval(timer);
     timer = setInterval(() => poll(false), POLL_MS);
     document.addEventListener("visibilitychange", () => {
-      if (!document.hidden) {
-        maybeGrantMasterFisherChests();
-        poll(true);
-      }
+      if (!document.hidden) poll(true);
     });
   }
 
@@ -387,12 +331,7 @@
 
   function boot() {
     // Wait a tick so HubPlays name/id are ready.
-    setTimeout(() => {
-      maybeGrantMasterFisherChests();
-      start();
-    }, 400);
-    setTimeout(maybeGrantMasterFisherChests, 2000);
-    setTimeout(maybeGrantMasterFisherChests, 6000);
+    setTimeout(start, 400);
   }
 
   if (document.readyState === "loading") {
