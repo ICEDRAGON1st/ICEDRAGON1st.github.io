@@ -6079,11 +6079,12 @@
         const afterKind = eventKindForStart(afterStart);
         const nextMult = formatMult(eventMultForStart(nextStart));
         const afterMult = formatMult(eventMultForStart(afterStart));
+        const nextLbMult = formatMult(luckyBlockEventMultForStart(nextHourStart()));
         eventLabelEl.textContent = `Next ${nextMult}× ${
           nextKind === "luck" ? "luck" : "sell"
         } in ${formatTreasureClock(msUntilNextEvent())} · then ${afterMult}× ${
           afterKind === "luck" ? "luck" : "sell"
-        } · Lucky Blocks in ${formatTreasureClock(msUntilNextLuckyBlockEvent())}`;
+        } · ${nextLbMult}× Lucky Blocks in ${formatTreasureClock(msUntilNextLuckyBlockEvent())}`;
       }
     }
     renderEventBanner();
