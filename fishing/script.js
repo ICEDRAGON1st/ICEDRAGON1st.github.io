@@ -6140,10 +6140,10 @@
     if (fish.rarity === "paradox") w += luck * 0.00022;
     if (fish.rarity === "infinity") w += luck * 0.00012;
     if (fish.rarity === "absolute") w += luck * 0.00007;
-    if (fish.rarity === "transcendent") w += luck * 0.00004;
-    if (fish.rarity === "nexus") w += luck * 0.000025;
-    if (fish.rarity === "voidborn") w += luck * 0.000015;
-    if (fish.rarity === "zenith") w += luck * 0.000009;
+    if (fish.rarity === "transcendent") w += luck * 0.00005;
+    if (fish.rarity === "nexus") w += luck * 0.000038;
+    if (fish.rarity === "voidborn") w += luck * 0.000028;
+    if (fish.rarity === "zenith") w += luck * 0.000031;
     // Spot still matters, but high rarities are less crushed on early waters
     const t = Math.max(0, Math.min(MAX_SPOT_RARITY, Number(spot.rarity) || 0)) / MAX_SPOT_RARITY;
     if (fish.rarity === "rare") w *= 0.9 + t * 0.12;
