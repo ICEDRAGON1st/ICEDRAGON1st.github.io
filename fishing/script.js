@@ -1204,6 +1204,7 @@
   const sellBtn = document.getElementById("sell-btn");
   const autoSellBox = document.getElementById("auto-sell-rarities");
   const shopList = document.getElementById("shop-list");
+  const questList = document.getElementById("quest-list");
   const shopCats = document.getElementById("shop-cats");
   const spotList = document.getElementById("spot-list");
   const overlay = document.getElementById("overlay");
@@ -1336,7 +1337,8 @@
       collectionLuckTold: false,
       collectionRainbowTold: false,
       collectionLbEventTold: false,
-      collectionLbAlwaysTold: false
+      collectionLbAlwaysTold: false,
+      quests: { dailyKey: "", weeklyKey: "", daily: [], weekly: [] }
     };
   }
 
@@ -3549,6 +3551,7 @@
     }
     ensureSession();
     state[key] -= 1;
+    noteQuestProgress("chest", 1, { duringEvent: eventIsLive() });
     if (item.kind === "luck") activateLuckBoost();
     else activateMoneyBoost();
     renderTreasureStash();
@@ -4055,6 +4058,7 @@
       next.collectionRainbowTold = !!raw.collectionRainbowTold;
       next.collectionLbEventTold = !!raw.collectionLbEventTold;
       next.collectionLbAlwaysTold = !!raw.collectionLbAlwaysTold;
+      next.quests = normalizeQuestsState(raw.quests);
       return next;
     } catch {
       return defaultState();
@@ -5226,6 +5230,392 @@
     return true;
   }
 
+  /* ========== DAILY / WEEKLY OBJECTIVES ========== */
+  const QUEST_DAILY_COUNT = 3;
+  const QUEST_WEEKLY_COUNT = 3;
+
+  const QUEST_DAILY_POOL = [
+    {
+      id: "d_perfect3",
+      kind: "perfect",
+      target: 3,
+      label: "Land 3 perfect reels",
+      reward: { coins: 750 }
+    },
+    {
+      id: "d_catch20",
+      kind: "catch",
+      target: 20,
+      label: "Catch 20 fish",
+      reward: { coins: 500 }
+    },
+    {
+      id: "d_sell30",
+      kind: "sell",
+      target: 30,
+      label: "Sell 30 fish",
+      reward: { coins: 650 }
+    },
+    {
+      id: "d_sell_epic12",
+      kind: "sell",
+      rarity: "epic",
+      target: 12,
+      label: "Sell 12 epic fish",
+      reward: { coins: 900, moneyChest: 1 }
+    },
+    {
+      id: "d_sell_rare20",
+      kind: "sell",
+      minRank: 3,
+      target: 20,
+      label: "Sell 20 rare-or-better fish",
+      reward: { coins: 800, luckChest: 1 }
+    },
+    {
+      id: "d_chest_event",
+      kind: "chest",
+      duringEvent: true,
+      target: 1,
+      label: "Open a chest during an event",
+      reward: { moneyChest: 1, luckChest: 1 }
+    },
+    {
+      id: "d_catch_leg5",
+      kind: "catch",
+      minRank: 5,
+      target: 5,
+      label: "Catch 5 legendary-or-better fish",
+      reward: { coins: 1200 }
+    },
+    {
+      id: "d_manual15",
+      kind: "catch",
+      manualOnly: true,
+      target: 15,
+      label: "Reel in 15 fish by hand",
+      reward: { coins: 550 }
+    },
+    {
+      id: "d_perfect8",
+      kind: "perfect",
+      target: 8,
+      label: "Land 8 perfect reels",
+      reward: { coins: 1500, luckChest: 1 }
+    },
+    {
+      id: "d_chest2",
+      kind: "chest",
+      target: 2,
+      label: "Open 2 chests from your stash",
+      reward: { coins: 400, moneyChest: 1 }
+    }
+  ];
+
+  const QUEST_WEEKLY_POOL = [
+    {
+      id: "w_perfect25",
+      kind: "perfect",
+      target: 25,
+      label: "Land 25 perfect reels",
+      reward: { coins: 8000, moneyChest: 2 }
+    },
+    {
+      id: "w_sell_epic50",
+      kind: "sell",
+      rarity: "epic",
+      target: 50,
+      label: "Sell 50 epic fish",
+      reward: { coins: 6000, luckChest: 2 }
+    },
+    {
+      id: "w_chest_event3",
+      kind: "chest",
+      duringEvent: true,
+      target: 3,
+      label: "Open 3 chests during events",
+      reward: { moneyChest: 2, luckChest: 2 }
+    },
+    {
+      id: "w_catch150",
+      kind: "catch",
+      target: 150,
+      label: "Catch 150 fish",
+      reward: { coins: 5000, moneyChest: 1 }
+    },
+    {
+      id: "w_sell_leg20",
+      kind: "sell",
+      minRank: 5,
+      target: 20,
+      label: "Sell 20 legendary-or-better fish",
+      reward: { coins: 10000, luckChest: 2, moneyChest: 1 }
+    },
+    {
+      id: "w_manual80",
+      kind: "catch",
+      manualOnly: true,
+      target: 80,
+      label: "Reel in 80 fish by hand",
+      reward: { coins: 7000, luckChest: 1 }
+    },
+    {
+      id: "w_perfect40",
+      kind: "perfect",
+      target: 40,
+      label: "Land 40 perfect reels",
+      reward: { coins: 12000, moneyChest: 3 }
+    },
+    {
+      id: "w_sell200",
+      kind: "sell",
+      target: 200,
+      label: "Sell 200 fish",
+      reward: { coins: 6500, moneyChest: 2 }
+    }
+  ];
+
+  const QUEST_POOL_BY_ID = Object.create(null);
+  QUEST_DAILY_POOL.forEach((q) => {
+    QUEST_POOL_BY_ID[q.id] = q;
+  });
+  QUEST_WEEKLY_POOL.forEach((q) => {
+    QUEST_POOL_BY_ID[q.id] = q;
+  });
+
+  function emptyQuestsState() {
+    return { dailyKey: "", weeklyKey: "", daily: [], weekly: [] };
+  }
+
+  function questDef(id) {
+    return QUEST_POOL_BY_ID[id] || null;
+  }
+
+  function pad2(n) {
+    return String(n).padStart(2, "0");
+  }
+
+  function localDateKey(d = new Date()) {
+    return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  }
+
+  /** Monday-based week id (local timezone). */
+  function localWeekKey(d = new Date()) {
+    const day = d.getDay();
+    const diff = (day + 6) % 7;
+    const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() - diff);
+    return localDateKey(monday);
+  }
+
+  function msUntilLocalMidnight(now = Date.now()) {
+    const d = new Date(now);
+    const next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1);
+    return Math.max(0, next.getTime() - now);
+  }
+
+  function msUntilNextMonday(now = Date.now()) {
+    const d = new Date(now);
+    const day = d.getDay();
+    const daysUntil = day === 0 ? 1 : 8 - day;
+    const next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + daysUntil);
+    return Math.max(0, next.getTime() - now);
+  }
+
+  function hashSeed(str) {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i += 1) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+
+  function seededPick(pool, seedStr, count) {
+    const a = pool.slice();
+    let s = hashSeed(seedStr);
+    for (let i = a.length - 1; i > 0; i -= 1) {
+      s = (Math.imul(s, 1664525) + 1013904223) >>> 0;
+      const j = s % (i + 1);
+      const tmp = a[i];
+      a[i] = a[j];
+      a[j] = tmp;
+    }
+    return a.slice(0, Math.min(count, a.length)).map((def) => ({
+      id: def.id,
+      progress: 0,
+      claimed: false
+    }));
+  }
+
+  function normalizeQuestEntry(raw) {
+    if (!raw || typeof raw !== "object") return null;
+    const id = String(raw.id || "");
+    if (!questDef(id)) return null;
+    return {
+      id,
+      progress: Math.max(0, Math.floor(Number(raw.progress) || 0)),
+      claimed: !!raw.claimed
+    };
+  }
+
+  function normalizeQuestsState(raw) {
+    const next = emptyQuestsState();
+    if (!raw || typeof raw !== "object") return next;
+    next.dailyKey = typeof raw.dailyKey === "string" ? raw.dailyKey : "";
+    next.weeklyKey = typeof raw.weeklyKey === "string" ? raw.weeklyKey : "";
+    next.daily = Array.isArray(raw.daily)
+      ? raw.daily.map(normalizeQuestEntry).filter(Boolean)
+      : [];
+    next.weekly = Array.isArray(raw.weekly)
+      ? raw.weekly.map(normalizeQuestEntry).filter(Boolean)
+      : [];
+    return next;
+  }
+
+  function ensureQuestsFresh() {
+    if (!state.quests || typeof state.quests !== "object") {
+      state.quests = emptyQuestsState();
+    }
+    const dayKey = localDateKey();
+    const weekKey = localWeekKey();
+    let changed = false;
+    if (state.quests.dailyKey !== dayKey || !state.quests.daily?.length) {
+      state.quests.dailyKey = dayKey;
+      state.quests.daily = seededPick(QUEST_DAILY_POOL, `daily:${dayKey}`, QUEST_DAILY_COUNT);
+      changed = true;
+    }
+    if (state.quests.weeklyKey !== weekKey || !state.quests.weekly?.length) {
+      state.quests.weeklyKey = weekKey;
+      state.quests.weekly = seededPick(QUEST_WEEKLY_POOL, `weekly:${weekKey}`, QUEST_WEEKLY_COUNT);
+      changed = true;
+    }
+    return changed;
+  }
+
+  function questMatches(def, kind, extra = {}) {
+    if (!def || def.kind !== kind) return false;
+    if (def.rarity && extra.rarity !== def.rarity) return false;
+    if (def.minRank != null) {
+      const rank = RARITY_RANK[extra.rarity] || 0;
+      if (rank < def.minRank) return false;
+    }
+    if (def.duringEvent && !extra.duringEvent) return false;
+    if (def.manualOnly && extra.forBoat) return false;
+    return true;
+  }
+
+  function noteQuestProgress(kind, amount = 1, extra = {}) {
+    if (!amount) return;
+    ensureQuestsFresh();
+    const n = Math.max(0, Math.floor(Number(amount) || 0));
+    if (!n) return;
+    let changed = false;
+    ["daily", "weekly"].forEach((period) => {
+      (state.quests[period] || []).forEach((q) => {
+        if (!q || q.claimed) return;
+        const def = questDef(q.id);
+        if (!questMatches(def, kind, extra)) return;
+        const before = q.progress || 0;
+        q.progress = Math.min(def.target, before + n);
+        if (q.progress !== before) changed = true;
+      });
+    });
+    if (changed) saveSoon();
+  }
+
+  function formatQuestReward(def) {
+    const bits = [];
+    const r = def.reward || {};
+    if (r.coins) bits.push(`${formatNum(r.coins)} coins`);
+    if (r.moneyChest) bits.push(`${r.moneyChest}× Coin Chest`);
+    if (r.luckChest) bits.push(`${r.luckChest}× Luck Chest`);
+    return bits.join(" · ") || "Reward";
+  }
+
+  function grantQuestChests(kind, count) {
+    const key = chestCountKey(kind);
+    const max = treasureStashMax();
+    const n = Math.max(0, Math.floor(Number(count) || 0));
+    let added = 0;
+    for (let i = 0; i < n; i += 1) {
+      if ((Number(state[key]) || 0) >= max) break;
+      state[key] = (Number(state[key]) || 0) + 1;
+      added += 1;
+    }
+    return added;
+  }
+
+  function claimQuest(period, id) {
+    ensureQuestsFresh();
+    if (period !== "daily" && period !== "weekly") return;
+    const q = (state.quests[period] || []).find((x) => x.id === id);
+    const def = questDef(id);
+    if (!q || !def || q.claimed || (q.progress || 0) < def.target) return;
+    ensureSession();
+    q.claimed = true;
+    const r = def.reward || {};
+    const bits = [];
+    if (r.coins) {
+      addCoins(r.coins);
+      bits.push(`${formatNum(r.coins)} coins`);
+    }
+    if (r.moneyChest) {
+      const n = grantQuestChests("money", r.moneyChest);
+      if (n) bits.push(`${n}× Coin Chest`);
+    }
+    if (r.luckChest) {
+      const n = grantQuestChests("luck", r.luckChest);
+      if (n) bits.push(`${n}× Luck Chest`);
+    }
+    setCatchLine(
+      bits.length ? `Objective claimed · ${bits.join(" · ")}` : "Objective claimed",
+      "treasure"
+    );
+    window.HubSound?.play?.("win");
+    window.HubConfetti?.burst?.();
+    renderTreasureStash();
+    render(false);
+    saveSoon();
+  }
+
+  function questRowHtml(period, q) {
+    const def = questDef(q.id);
+    if (!def) return "";
+    const progress = Math.min(def.target, Math.max(0, q.progress || 0));
+    const ready = !q.claimed && progress >= def.target;
+    const pct = def.target > 0 ? Math.min(100, Math.round((100 * progress) / def.target)) : 0;
+    const status = q.claimed ? "Claimed" : ready ? "Claim" : `${progress} / ${def.target}`;
+    return `<div class="quest-item${ready ? " is-ready" : ""}${
+      q.claimed ? " is-claimed" : ""
+    }" role="listitem">
+      <div class="quest-item-main">
+        <div class="quest-item-name">${def.label}</div>
+        <p class="quest-item-reward">${formatQuestReward(def)}</p>
+        <div class="quest-item-bar" aria-hidden="true"><span style="width:${pct}%"></span></div>
+        <div class="quest-item-progress">${progress} / ${def.target}</div>
+      </div>
+      <button type="button" class="quest-claim-btn" data-quest-claim="${period}" data-quest-id="${
+      q.id
+    }" ${ready ? "" : "disabled"}>${status}</button>
+    </div>`;
+  }
+
+  function renderQuests() {
+    if (!questList) return;
+    ensureQuestsFresh();
+    const dailyLeft = formatTreasureClock(msUntilLocalMidnight());
+    const weeklyLeft = formatTreasureClock(msUntilNextMonday());
+    questList.innerHTML = `
+      <div class="quest-section-title">Daily</div>
+      <div class="quest-section-meta">Resets in ${dailyLeft}</div>
+      ${(state.quests.daily || []).map((q) => questRowHtml("daily", q)).join("")}
+      <div class="quest-section-title">Weekly</div>
+      <div class="quest-section-meta">Resets in ${weeklyLeft}</div>
+      ${(state.quests.weekly || []).map((q) => questRowHtml("weekly", q)).join("")}
+    `;
+  }
+  /* ========== END OBJECTIVES ========== */
+
   function checkAchievements() {
     if (!window.HubAchievements) return;
     const life = state.lifetime;
@@ -5510,6 +5900,7 @@
     if (opts.forceSell || shouldAutoSell(fish.rarity)) {
       const val = fishValue(fish, currentSpot(), entry);
       addCoins(val);
+      noteQuestProgress("sell", 1, { rarity: fish.rarity });
       if (!opts.silent) {
         setCatchLine(
           `Sold ${formatFishName(fish, entry)} for ${formatNum(val)}`,
@@ -5663,7 +6054,10 @@
     const lbType = rollLuckyBlockDrop();
     if (lbType) {
       state.catches += 1;
-      if (perfect) state.perfects += 1;
+      if (perfect) {
+        state.perfects += 1;
+        noteQuestProgress("perfect", 1);
+      }
       const added = storeLuckyBlock(lbType, 1, { silent: true });
       const item = luckyBlockCatchItem(lbType);
       setPhase("result");
@@ -5697,7 +6091,10 @@
     const chest = rollTreasure(spot, false);
     if (chest) {
       state.catches += 1;
-      if (perfect) state.perfects += 1;
+      if (perfect) {
+        state.perfects += 1;
+        noteQuestProgress("perfect", 1);
+      }
       const stored = storeTreasure(chest);
       const countKey = chestCountKey(chest.kind);
       setPhase("result");
@@ -5725,9 +6122,13 @@
 
     const fish = rollFish(spot, false);
     state.catches += 1;
-    if (perfect) state.perfects += 1;
+    if (perfect) {
+      state.perfects += 1;
+      noteQuestProgress("perfect", 1);
+    }
 
     const entry = addToCooler(fish, { perfect });
+    if (entry) noteQuestProgress("catch", 1, { rarity: fish.rarity, forBoat: false });
     let bonusFish = null;
     let bonusEntry = null;
     let thirdFish = null;
@@ -5737,12 +6138,14 @@
       state.catches += 1;
       bonusEntry = addToCooler(bonusFish);
       if (!bonusEntry) bonusFish = null;
+      else noteQuestProgress("catch", 1, { rarity: bonusFish.rarity, forBoat: false });
     }
     if (entry && bonusFish && Math.random() < tripleCatchChance()) {
       thirdFish = rollFish(spot, false);
       state.catches += 1;
       thirdEntry = addToCooler(thirdFish);
       if (!thirdEntry) thirdFish = null;
+      else noteQuestProgress("catch", 1, { rarity: thirdFish.rarity, forBoat: false });
     }
     setPhase("result");
     if (entry) {
@@ -5840,6 +6243,7 @@
     const val = fishValue(fish, currentSpot(), entry);
     state.cooler.splice(i, 1);
     addCoins(val);
+    noteQuestProgress("sell", 1, { rarity: fish.rarity });
     setCatchLine(
       `Sold ${formatFishName(fish, entry)} for ${formatNum(val)}`,
       catchTone(fish.rarity)
@@ -5878,7 +6282,10 @@
         return;
       }
       const fish = fishById(coolerEntryId(entry));
-      if (fish) total += fishValue(fish, spot, entry);
+      if (fish) {
+        total += fishValue(fish, spot, entry);
+        noteQuestProgress("sell", 1, { rarity: fish.rarity });
+      }
     });
     state.cooler = kept;
     addCoins(total);
@@ -6115,6 +6522,7 @@
       if (sold || state.cooler.length < coolerMax()) {
         addToCooler(fish, { silent: true, forBoat: true, variants });
         state.catches += 1;
+        noteQuestProgress("catch", 1, { rarity: fish.rarity, forBoat: true });
         haul.push({ fish, val, sold, missed: false, entry: variants });
       } else {
         haul.push({
@@ -6714,9 +7122,9 @@
       const previewKind = eventLive ? eventKind : eventKindForStart(nextHalfHourStart());
       eventChipEl.classList.toggle("event-money", eventLive && previewKind === "money");
       eventChipEl.classList.toggle("event-luck", eventLive && previewKind === "luck");
-      eventChipEl.classList.toggle("event-luckyblock", lbLive);
+      eventChipEl.classList.toggle("event-luckyblock", lbLive || lbPassive);
       eventChipEl.classList.toggle("event-variant", !!variant);
-      eventChipEl.classList.toggle("event-idle", !eventLive && !variant && !lbLive);
+      eventChipEl.classList.toggle("event-idle", !eventLive && !variant && !lbLive && !lbPassive);
     }
     if (eventLabelEl) {
       const variant = adminVariantEventLive();
@@ -6878,6 +7286,7 @@
   function render(full = true) {
     renderStats();
     renderCooler();
+    renderQuests();
     if (full) {
       renderSpots();
       renderShop();
@@ -7333,6 +7742,11 @@
     if (!btn) return;
     shopCat = btn.dataset.shopCat || "all";
     renderShop();
+  });
+  questList?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-quest-claim]");
+    if (!btn || btn.disabled) return;
+    claimQuest(btn.dataset.questClaim, btn.dataset.questId);
   });
   document.getElementById("smart-shop-toggle")?.addEventListener("click", () => {
     if (!SMART_GEAR_SHOP) return;

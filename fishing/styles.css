@@ -3444,6 +3444,115 @@ body.treasure-boost .cast-btn {
   line-height: 1.4;
 }
 
+.quest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  max-height: min(38vh, 320px);
+  overflow: auto;
+  padding-right: 0.15rem;
+}
+
+.quest-section-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--teal);
+  padding: 0.1rem 0.15rem 0;
+}
+
+.quest-section-meta {
+  font-size: 0.7rem;
+  color: var(--muted);
+  padding: 0 0.15rem 0.2rem;
+}
+
+.quest-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.55rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.65rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+}
+
+.quest-item.is-ready {
+  border-color: color-mix(in srgb, var(--teal) 55%, var(--border));
+  background: color-mix(in srgb, var(--teal) 10%, rgba(0, 0, 0, 0.2));
+}
+
+.quest-item.is-claimed {
+  opacity: 0.62;
+}
+
+.quest-item-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.quest-item-name {
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.quest-item-reward {
+  margin: 0.2rem 0 0;
+  font-size: 0.7rem;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.quest-item-bar {
+  margin-top: 0.35rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.quest-item-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--teal) 75%, #fff 10%);
+  width: 0%;
+}
+
+.quest-item-progress {
+  margin-top: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--teal);
+}
+
+.quest-claim-btn {
+  appearance: none;
+  flex-shrink: 0;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.4rem 0.55rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--muted);
+  cursor: pointer;
+  align-self: center;
+}
+
+.quest-claim-btn:not(:disabled) {
+  border-color: var(--teal);
+  color: var(--teal);
+  cursor: pointer;
+}
+
+.quest-claim-btn:disabled {
+  cursor: default;
+}
+
 .gear-head {
   display: flex;
   align-items: center;
