@@ -709,10 +709,64 @@
       valueMult: 85,
       rarity: 31,
       blurb: "Highest shelf · zenith fish crown the haul"
+    },
+    {
+      id: "primordialshoals",
+      name: "Primordial Shoals",
+      cost: 3e19,
+      wait: [0.15, 0.38],
+      valueMult: 100,
+      rarity: 32,
+      blurb: "First seas remade · primordial pressure"
+    },
+    {
+      id: "sovereignreach",
+      name: "Sovereign Reach",
+      cost: 1.5e20,
+      wait: [0.14, 0.36],
+      valueMult: 120,
+      rarity: 33,
+      blurb: "Ruled tides · sovereign catches command"
+    },
+    {
+      id: "mythosbasin",
+      name: "Mythos Basin",
+      cost: 8e20,
+      wait: [0.13, 0.34],
+      valueMult: 145,
+      rarity: 34,
+      blurb: "Legend pools · mythos fish rewrite odds"
+    },
+    {
+      id: "finalitymere",
+      name: "Finality Mere",
+      cost: 4e21,
+      wait: [0.12, 0.32],
+      valueMult: 175,
+      rarity: 35,
+      blurb: "Last shallows · finality hauls end runs"
+    },
+    {
+      id: "crownreef",
+      name: "Crown Reef",
+      cost: 2e22,
+      wait: [0.11, 0.3],
+      valueMult: 210,
+      rarity: 36,
+      blurb: "Royal coral · crowned rarities glitter"
+    },
+    {
+      id: "originend",
+      name: "Origin End",
+      cost: 1e23,
+      wait: [0.1, 0.28],
+      valueMult: 250,
+      rarity: 37,
+      blurb: "Where waters began · and endgame pays"
     }
   ];
 
-  const MAX_SPOT_RARITY = 31;
+  const MAX_SPOT_RARITY = 37;
 
   const GEAR = [
     { id: "rod1", name: "Willow Rod", desc: "+0.05s bite window", cost: 40, kind: "window", amount: 0.05 },
