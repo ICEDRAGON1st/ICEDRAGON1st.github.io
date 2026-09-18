@@ -5231,9 +5231,9 @@
   }
 
   /* ========== DAILY / WEEKLY OBJECTIVES ========== */
-  const QUEST_DIFFICULTIES = ["easy", "medium", "hard"];
+  const QUEST_DIFFICULTIES = ["easy", "medium", "hard", "impossible"];
   /** Bump to force re-roll when objective layout changes. */
-  const QUEST_LAYOUT_VERSION = 3;
+  const QUEST_LAYOUT_VERSION = 4;
 
   const QUEST_DAILY_POOL = [
     // Easy
@@ -5385,6 +5385,60 @@
       target: 5,
       label: "Sell 5 mythic-or-better fish",
       reward: { coins: 2800, luckChest: 2 }
+    },
+    // Impossible
+    {
+      id: "d_i_perfect25",
+      difficulty: "impossible",
+      kind: "perfect",
+      target: 25,
+      label: "Land 25 perfect reels",
+      reward: { coins: 8000, moneyChest: 3, luckChest: 2 }
+    },
+    {
+      id: "d_i_sell_epic40",
+      difficulty: "impossible",
+      kind: "sell",
+      rarity: "epic",
+      target: 40,
+      label: "Sell 40 epic fish",
+      reward: { coins: 9000, moneyChest: 3, luckChest: 2 }
+    },
+    {
+      id: "d_i_catch_leg15",
+      difficulty: "impossible",
+      kind: "catch",
+      minRank: 5,
+      target: 15,
+      label: "Catch 15 legendary-or-better fish",
+      reward: { coins: 10000, luckChest: 3 }
+    },
+    {
+      id: "d_i_chest_event4",
+      difficulty: "impossible",
+      kind: "chest",
+      duringEvent: true,
+      target: 4,
+      label: "Open 4 chests during events",
+      reward: { moneyChest: 4, luckChest: 3 }
+    },
+    {
+      id: "d_i_manual60",
+      difficulty: "impossible",
+      kind: "catch",
+      manualOnly: true,
+      target: 60,
+      label: "Reel in 60 fish by hand",
+      reward: { coins: 7500, moneyChest: 2, luckChest: 2 }
+    },
+    {
+      id: "d_i_sell_mythic12",
+      difficulty: "impossible",
+      kind: "sell",
+      minRank: 6,
+      target: 12,
+      label: "Sell 12 mythic-or-better fish",
+      reward: { coins: 12000, luckChest: 4, moneyChest: 2 }
     }
   ];
 
@@ -5519,6 +5573,68 @@
       target: 200,
       label: "Reel in 200 fish by hand",
       reward: { coins: 21000, luckChest: 3, moneyChest: 1 }
+    },
+    // Impossible
+    {
+      id: "w_i_perfect150",
+      difficulty: "impossible",
+      kind: "perfect",
+      target: 150,
+      label: "Land 150 perfect reels",
+      reward: { coins: 50000, moneyChest: 6, luckChest: 4 }
+    },
+    {
+      id: "w_i_sell_epic200",
+      difficulty: "impossible",
+      kind: "sell",
+      rarity: "epic",
+      target: 200,
+      label: "Sell 200 epic fish",
+      reward: { coins: 45000, luckChest: 5, moneyChest: 4 }
+    },
+    {
+      id: "w_i_sell_leg80",
+      difficulty: "impossible",
+      kind: "sell",
+      minRank: 5,
+      target: 80,
+      label: "Sell 80 legendary-or-better fish",
+      reward: { coins: 55000, luckChest: 5, moneyChest: 5 }
+    },
+    {
+      id: "w_i_chest_event12",
+      difficulty: "impossible",
+      kind: "chest",
+      duringEvent: true,
+      target: 12,
+      label: "Open 12 chests during events",
+      reward: { moneyChest: 6, luckChest: 6 }
+    },
+    {
+      id: "w_i_catch1000",
+      difficulty: "impossible",
+      kind: "catch",
+      target: 1000,
+      label: "Catch 1000 fish",
+      reward: { coins: 40000, moneyChest: 5, luckChest: 3 }
+    },
+    {
+      id: "w_i_manual400",
+      difficulty: "impossible",
+      kind: "catch",
+      manualOnly: true,
+      target: 400,
+      label: "Reel in 400 fish by hand",
+      reward: { coins: 48000, luckChest: 5, moneyChest: 3 }
+    },
+    {
+      id: "w_i_sell_mythic30",
+      difficulty: "impossible",
+      kind: "sell",
+      minRank: 6,
+      target: 30,
+      label: "Sell 30 mythic-or-better fish",
+      reward: { coins: 60000, luckChest: 6, moneyChest: 4 }
     }
   ];
 
@@ -5541,6 +5657,7 @@
   function questDifficultyLabel(diff) {
     if (diff === "easy") return "Easy";
     if (diff === "hard") return "Hard";
+    if (diff === "impossible") return "Impossible";
     return "Medium";
   }
 

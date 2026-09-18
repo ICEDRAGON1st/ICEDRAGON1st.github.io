@@ -3529,6 +3529,16 @@ body.treasure-boost .cast-btn {
   background: color-mix(in srgb, #ff8a7a 12%, transparent);
 }
 
+.quest-diff-impossible {
+  color: #d4a0ff;
+  border-color: color-mix(in srgb, #d4a0ff 60%, var(--border));
+  background: color-mix(in srgb, #d4a0ff 14%, transparent);
+}
+
+.quest-item.quest-impossible {
+  border-left: 3px solid color-mix(in srgb, #d4a0ff 75%, transparent);
+}
+
 .quest-item.quest-hard {
   border-left: 3px solid color-mix(in srgb, #ff8a7a 70%, transparent);
 }
