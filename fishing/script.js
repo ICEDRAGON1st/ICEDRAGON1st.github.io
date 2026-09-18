@@ -187,20 +187,20 @@
     legendary: 6.5,
     mythic: 2.4,
     secret: 0.55,
-    divine: 0.2,
-    eternal: 0.08,
-    cosmic: 0.028,
-    astral: 0.011,
-    singularity: 0.012,
-    omega: 0.008,
-    genesis: 0.0045,
-    paradox: 0.0025,
-    infinity: 0.0014,
-    absolute: 0.0008,
-    transcendent: 0.0004,
-    nexus: 0.00022,
-    voidborn: 0.00012,
-    zenith: 0.00006
+    divine: 0.28,
+    eternal: 0.14,
+    cosmic: 0.07,
+    astral: 0.035,
+    singularity: 0.018,
+    omega: 0.01,
+    genesis: 0.0055,
+    paradox: 0.003,
+    infinity: 0.0016,
+    absolute: 0.0009,
+    transcendent: 0.00045,
+    nexus: 0.00024,
+    voidborn: 0.00013,
+    zenith: 0.00007
   };
 
   /** Admin Lucky Blocks: Astral / Absolute / Zenith (zenith = transcendent–zenith). */
@@ -5215,20 +5215,20 @@
     if (rarity === "legendary") return 0.18 + t * 0.42;
     if (rarity === "mythic") return 0.09 + t * 0.42;
     if (rarity === "secret") return 0.03 + t * 0.32;
-    if (rarity === "divine") return 0.012 + t * 0.26;
-    if (rarity === "eternal") return 0.005 + t * 0.2;
-    if (rarity === "cosmic") return 0.002 + t * 0.15;
-    if (rarity === "astral") return 0.0008 + t * 0.1;
-    if (rarity === "singularity") return 0.001 + t * 0.12;
-    if (rarity === "omega") return 0.0005 + t * 0.1;
-    if (rarity === "genesis") return 0.0003 + t * 0.09;
-    if (rarity === "paradox") return 0.0002 + t * 0.08;
-    if (rarity === "infinity") return 0.00012 + t * 0.07;
-    if (rarity === "absolute") return 0.00008 + t * 0.06;
-    if (rarity === "transcendent") return 0.00005 + t * 0.05;
-    if (rarity === "nexus") return 0.00003 + t * 0.045;
-    if (rarity === "voidborn") return 0.00002 + t * 0.04;
-    if (rarity === "zenith") return 0.000012 + t * 0.035;
+    if (rarity === "divine") return 0.02 + t * 0.32;
+    if (rarity === "eternal") return 0.01 + t * 0.26;
+    if (rarity === "cosmic") return 0.005 + t * 0.2;
+    if (rarity === "astral") return 0.0025 + t * 0.16;
+    if (rarity === "singularity") return 0.0012 + t * 0.13;
+    if (rarity === "omega") return 0.0006 + t * 0.11;
+    if (rarity === "genesis") return 0.00035 + t * 0.095;
+    if (rarity === "paradox") return 0.00022 + t * 0.085;
+    if (rarity === "infinity") return 0.00014 + t * 0.075;
+    if (rarity === "absolute") return 0.00009 + t * 0.065;
+    if (rarity === "transcendent") return 0.000055 + t * 0.055;
+    if (rarity === "nexus") return 0.000035 + t * 0.048;
+    if (rarity === "voidborn") return 0.000022 + t * 0.042;
+    if (rarity === "zenith") return 0.000014 + t * 0.036;
     return 1;
   }
 
@@ -5265,10 +5265,10 @@
     if (fish.rarity === "legendary") w += luck * 0.13;
     if (fish.rarity === "mythic") w += luck * 0.065;
     if (fish.rarity === "secret") w += luck * 0.022;
-    if (fish.rarity === "divine") w += luck * 0.011;
-    if (fish.rarity === "eternal") w += luck * 0.005;
-    if (fish.rarity === "cosmic") w += luck * 0.002;
-    if (fish.rarity === "astral") w += luck * 0.00085;
+    if (fish.rarity === "divine") w += luck * 0.018;
+    if (fish.rarity === "eternal") w += luck * 0.009;
+    if (fish.rarity === "cosmic") w += luck * 0.0045;
+    if (fish.rarity === "astral") w += luck * 0.0024;
     if (fish.rarity === "singularity") w += luck * 0.0012;
     if (fish.rarity === "omega") w += luck * 0.0007;
     if (fish.rarity === "genesis") w += luck * 0.0004;
@@ -5285,10 +5285,10 @@
     if (fish.rarity === "epic" || fish.rarity === "legendary") w *= 0.72 + t * 0.32;
     if (fish.rarity === "mythic") w *= 0.52 + t * 0.42;
     if (fish.rarity === "secret") w *= (0.38 + t * 0.45) * (forBoat ? 0.55 : 1);
-    if (fish.rarity === "divine") w *= (0.26 + t * 0.45) * (forBoat ? 0.45 : 1);
-    if (fish.rarity === "eternal") w *= (0.18 + t * 0.45) * (forBoat ? 0.35 : 1);
-    if (fish.rarity === "cosmic") w *= (0.12 + t * 0.42) * (forBoat ? 0.25 : 1);
-    if (fish.rarity === "astral") w *= (0.08 + t * 0.38) * (forBoat ? 0.18 : 1);
+    if (fish.rarity === "divine") w *= (0.3 + t * 0.5) * (forBoat ? 0.5 : 1);
+    if (fish.rarity === "eternal") w *= (0.24 + t * 0.5) * (forBoat ? 0.4 : 1);
+    if (fish.rarity === "cosmic") w *= (0.18 + t * 0.5) * (forBoat ? 0.3 : 1);
+    if (fish.rarity === "astral") w *= (0.14 + t * 0.52) * (forBoat ? 0.24 : 1);
     if (fish.rarity === "singularity") w *= (0.12 + t * 0.55) * (forBoat ? 0.2 : 1);
     if (fish.rarity === "omega") w *= (0.1 + t * 0.55) * (forBoat ? 0.16 : 1);
     if (fish.rarity === "genesis") w *= (0.09 + t * 0.55) * (forBoat ? 0.14 : 1);
