@@ -5682,12 +5682,12 @@
     return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
   }
 
-  /** Monday-based week id (local timezone). */
+  /** Saturday-based week id (resets Fri→Sat at local midnight). */
   function localWeekKey(d = new Date()) {
     const day = d.getDay();
-    const diff = (day + 6) % 7;
-    const monday = new Date(d.getFullYear(), d.getMonth(), d.getDate() - diff);
-    return localDateKey(monday);
+    const diff = (day + 1) % 7; // days since Saturday
+    const saturday = new Date(d.getFullYear(), d.getMonth(), d.getDate() - diff);
+    return localDateKey(saturday);
   }
 
   function msUntilLocalMidnight(now = Date.now()) {
@@ -5696,10 +5696,11 @@
     return Math.max(0, next.getTime() - now);
   }
 
-  function msUntilNextMonday(now = Date.now()) {
+  /** Next weekly reset: Saturday 00:00 local (between Friday and Saturday). */
+  function msUntilNextWeeklyReset(now = Date.now()) {
     const d = new Date(now);
     const day = d.getDay();
-    const daysUntil = day === 0 ? 1 : 8 - day;
+    const daysUntil = day === 6 ? 7 : (6 - day + 7) % 7;
     const next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + daysUntil);
     return Math.max(0, next.getTime() - now);
   }
@@ -5932,7 +5933,7 @@
     if (!questList) return;
     ensureQuestsFresh();
     const dailyLeft = formatQuestResetClock(msUntilLocalMidnight());
-    const weeklyLeft = formatQuestResetClock(msUntilNextMonday());
+    const weeklyLeft = formatQuestResetClock(msUntilNextWeeklyReset());
     questList.innerHTML = `
       <div class="quest-section-title">Daily</div>
       <div class="quest-section-meta">Resets in ${dailyLeft}</div>
