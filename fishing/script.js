@@ -839,41 +839,41 @@
     { id: "bait26", name: "Sovereign Roe", desc: "Faster bites (−88% wait)", cost: 3e19, kind: "speed", amount: 0.88 },
     { id: "bait27", name: "Mythos Flies", desc: "Faster bites (−89% wait)", cost: 1.5e20, kind: "speed", amount: 0.89 },
     { id: "bait28", name: "Finality Bait", desc: "Faster bites (−90% wait)", cost: 8e20, kind: "speed", amount: 0.9 },
-    { id: "luck1", name: "Lucky Hook", desc: "+55 luck · better chest finds", cost: 120, kind: "luck", amount: 55 },
-    { id: "luck2", name: "Tide Charm", desc: "+85 luck · better chest finds", cost: 700, kind: "luck", amount: 85 },
-    { id: "luck3", name: "Pearl Lure", desc: "+115 luck · better chest finds", cost: 4000, kind: "luck", amount: 115 },
-    { id: "luck4", name: "Siren Bell", desc: "+160 luck · better chest finds", cost: 20000, kind: "luck", amount: 160 },
-    { id: "luck5", name: "Oracle Coin", desc: "+220 luck · better chest finds", cost: 100000, kind: "luck", amount: 220 },
-    { id: "luck6", name: "Fate Hook", desc: "+300 luck · better chest finds", cost: 500000, kind: "luck", amount: 300 },
-    { id: "luck7", name: "Cosmic Lure", desc: "+410 luck · better chest finds", cost: 2500000, kind: "luck", amount: 410 },
-    { id: "luck8", name: "Horizon Charm", desc: "+530 luck · better chest finds", cost: 12000000, kind: "luck", amount: 530 },
-    { id: "luck9", name: "Omega Coin", desc: "+680 luck · better chest finds", cost: 60000000, kind: "luck", amount: 680 },
-    { id: "luck10", name: "Prism Hook", desc: "+780 luck · better chest finds", cost: 150000000, kind: "luck", amount: 780 },
-    { id: "luck11", name: "Apex Charm", desc: "+950 luck · better chest finds", cost: 400000000, kind: "luck", amount: 950 },
-    { id: "luck12", name: "Mirage Coin", desc: "+1,050 luck · better chest finds", cost: 700000000, kind: "luck", amount: 1050 },
-    { id: "luck13", name: "Zenith Lure", desc: "+1,250 luck · better chest finds", cost: 1200000000, kind: "luck", amount: 1250 },
-    { id: "luck14", name: "Rift Hook", desc: "+1,350 luck · better chest finds", cost: 2000000000, kind: "luck", amount: 1350 },
-    { id: "luck15", name: "Quasar Charm", desc: "+1,550 luck · better chest finds", cost: 3500000000, kind: "luck", amount: 1550 },
-    { id: "luck16", name: "Eclipse Coin", desc: "+1,750 luck · better chest finds", cost: 5500000000, kind: "luck", amount: 1750 },
-    { id: "luck17", name: "Helix Lure", desc: "+2,000 luck · better chest finds", cost: 9000000000, kind: "luck", amount: 2000 },
-    { id: "luck18", name: "Prism Fate", desc: "+2,300 luck · better chest finds", cost: 25000000000, kind: "luck", amount: 2300 },
-    { id: "luck19", name: "Chrono Bell", desc: "+2,700 luck · better chest finds", cost: 80000000000, kind: "luck", amount: 2700 },
-    { id: "luck20", name: "Genesis Charm", desc: "+3,200 luck · better chest finds", cost: 250000000000, kind: "luck", amount: 3200 },
-    { id: "luck21", name: "Absolution Hook", desc: "+3,700 luck · better chest finds", cost: 1e12, kind: "luck", amount: 3700 },
-    { id: "luck22", name: "Singularity Coin", desc: "+4,400 luck · better chest finds", cost: 5e12, kind: "luck", amount: 4400 },
-    { id: "luck23", name: "Paradox Hook", desc: "+5,400 luck · better chest finds", cost: 2.5e13, kind: "luck", amount: 5400 },
-    { id: "luck24", name: "Infinity Charm", desc: "+6,600 luck · better chest finds", cost: 1.2e14, kind: "luck", amount: 6600 },
-    { id: "luck25", name: "Absolute Coin", desc: "+8,400 luck · better chest finds", cost: 6e14, kind: "luck", amount: 8400 },
-    { id: "luck26", name: "True Fate Lure", desc: "+10,200 luck · better chest finds", cost: 3e15, kind: "luck", amount: 10200 },
-    { id: "luck27", name: "Omni Oracle", desc: "+12,500 luck · better chest finds", cost: 1.5e16, kind: "luck", amount: 12500 },
-    { id: "luck28", name: "Transcend Charm", desc: "+15,500 luck · better chest finds", cost: 8e16, kind: "luck", amount: 15500 },
-    { id: "luck29", name: "Nexus Hook", desc: "+19,500 luck · better chest finds", cost: 4e17, kind: "luck", amount: 19500 },
-    { id: "luck30", name: "Voidborn Coin", desc: "+25,000 luck · better chest finds", cost: 2e18, kind: "luck", amount: 25000 },
-    { id: "luck31", name: "Zenith Oracle", desc: "+33,000 luck · better chest finds", cost: 1e19, kind: "luck", amount: 33000 },
-    { id: "luck32", name: "Primordial Charm", desc: "+44,000 luck · better chest finds", cost: 5e19, kind: "luck", amount: 44000 },
-    { id: "luck33", name: "Sovereign Hook", desc: "+56,000 luck · better chest finds", cost: 2.5e20, kind: "luck", amount: 56000 },
-    { id: "luck34", name: "Mythos Coin", desc: "+72,000 luck · better chest finds", cost: 1.2e21, kind: "luck", amount: 72000 },
-    { id: "luck35", name: "Finality Oracle", desc: "+96,000 luck · better chest finds", cost: 6e21, kind: "luck", amount: 96000 },
+    { id: "luck1", name: "Lucky Hook", desc: "+48 luck · better chest finds", cost: 120, kind: "luck", amount: 48 },
+    { id: "luck2", name: "Tide Charm", desc: "+72 luck · better chest finds", cost: 700, kind: "luck", amount: 72 },
+    { id: "luck3", name: "Pearl Lure", desc: "+96 luck · better chest finds", cost: 4000, kind: "luck", amount: 96 },
+    { id: "luck4", name: "Siren Bell", desc: "+132 luck · better chest finds", cost: 20000, kind: "luck", amount: 132 },
+    { id: "luck5", name: "Oracle Coin", desc: "+180 luck · better chest finds", cost: 100000, kind: "luck", amount: 180 },
+    { id: "luck6", name: "Fate Hook", desc: "+240 luck · better chest finds", cost: 500000, kind: "luck", amount: 240 },
+    { id: "luck7", name: "Cosmic Lure", desc: "+330 luck · better chest finds", cost: 2500000, kind: "luck", amount: 330 },
+    { id: "luck8", name: "Horizon Charm", desc: "+420 luck · better chest finds", cost: 12000000, kind: "luck", amount: 420 },
+    { id: "luck9", name: "Omega Coin", desc: "+540 luck · better chest finds", cost: 60000000, kind: "luck", amount: 540 },
+    { id: "luck10", name: "Prism Hook", desc: "+600 luck · better chest finds", cost: 150000000, kind: "luck", amount: 600 },
+    { id: "luck11", name: "Apex Charm", desc: "+720 luck · better chest finds", cost: 400000000, kind: "luck", amount: 720 },
+    { id: "luck12", name: "Mirage Coin", desc: "+780 luck · better chest finds", cost: 700000000, kind: "luck", amount: 780 },
+    { id: "luck13", name: "Zenith Lure", desc: "+900 luck · better chest finds", cost: 1200000000, kind: "luck", amount: 900 },
+    { id: "luck14", name: "Rift Hook", desc: "+960 luck · better chest finds", cost: 2000000000, kind: "luck", amount: 960 },
+    { id: "luck15", name: "Quasar Charm", desc: "+1080 luck · better chest finds", cost: 3500000000, kind: "luck", amount: 1080 },
+    { id: "luck16", name: "Eclipse Coin", desc: "+1200 luck · better chest finds", cost: 5500000000, kind: "luck", amount: 1200 },
+    { id: "luck17", name: "Helix Lure", desc: "+1320 luck · better chest finds", cost: 9000000000, kind: "luck", amount: 1320 },
+    { id: "luck18", name: "Prism Fate", desc: "+1500 luck · better chest finds", cost: 25000000000, kind: "luck", amount: 1500 },
+    { id: "luck19", name: "Chrono Bell", desc: "+1680 luck · better chest finds", cost: 80000000000, kind: "luck", amount: 1680 },
+    { id: "luck20", name: "Genesis Charm", desc: "+1920 luck · better chest finds", cost: 250000000000, kind: "luck", amount: 1920 },
+    { id: "luck21", name: "Absolution Hook", desc: "+2160 luck · better chest finds", cost: 1e12, kind: "luck", amount: 2160 },
+    { id: "luck22", name: "Singularity Coin", desc: "+2520 luck · better chest finds", cost: 5e12, kind: "luck", amount: 2520 },
+    { id: "luck23", name: "Paradox Hook", desc: "+3000 luck · better chest finds", cost: 2.5e13, kind: "luck", amount: 3000 },
+    { id: "luck24", name: "Infinity Charm", desc: "+3600 luck · better chest finds", cost: 1.2e14, kind: "luck", amount: 3600 },
+    { id: "luck25", name: "Absolute Coin", desc: "+4500 luck · better chest finds", cost: 6e14, kind: "luck", amount: 4500 },
+    { id: "luck26", name: "True Fate Lure", desc: "+5400 luck · better chest finds", cost: 3e15, kind: "luck", amount: 5400 },
+    { id: "luck27", name: "Omni Oracle", desc: "+6600 luck · better chest finds", cost: 1.5e16, kind: "luck", amount: 6600 },
+    { id: "luck28", name: "Transcend Charm", desc: "+8000 luck · better chest finds", cost: 8e16, kind: "luck", amount: 8000 },
+    { id: "luck29", name: "Nexus Hook", desc: "+10000 luck · better chest finds", cost: 4e17, kind: "luck", amount: 10000 },
+    { id: "luck30", name: "Voidborn Coin", desc: "+13000 luck · better chest finds", cost: 2e18, kind: "luck", amount: 13000 },
+    { id: "luck31", name: "Zenith Oracle", desc: "+17000 luck · better chest finds", cost: 1e19, kind: "luck", amount: 17000 },
+    { id: "luck32", name: "Primordial Charm", desc: "+22000 luck · better chest finds", cost: 5e19, kind: "luck", amount: 22000 },
+    { id: "luck33", name: "Sovereign Hook", desc: "+28000 luck · better chest finds", cost: 2.5e20, kind: "luck", amount: 28000 },
+    { id: "luck34", name: "Mythos Coin", desc: "+36000 luck · better chest finds", cost: 1.2e21, kind: "luck", amount: 36000 },
+    { id: "luck35", name: "Finality Oracle", desc: "+48000 luck · better chest finds", cost: 6e21, kind: "luck", amount: 48000 },
     { id: "cooler1", name: "Ice Pack", desc: "+4 cooler slots", cost: 200, kind: "cooler", amount: 4 },
     { id: "cooler2", name: "Big Cooler", desc: "+6 cooler slots", cost: 1500, kind: "cooler", amount: 6 },
     { id: "cooler3", name: "Dock Freezer", desc: "+10 cooler slots", cost: 12000, kind: "cooler", amount: 10 },
@@ -1390,11 +1390,11 @@
     return ownedGear("luck").reduce((s, g) => s + g.amount, 0);
   }
 
-  /** Spot luck — higher waters add more, without blowing up the HUD. */
+  /** Spot luck — scales up on higher tiers (Creek = 0). */
   function spotLuckBonus(spot = currentSpot()) {
     const r = Math.max(0, Number(spot?.rarity) || 0);
-    // r=5 → 650, r=10 → 2.1K, r=20 → 8.2K, r=31 Zenith Peak → 19.3K, r=37 → 27.3K
-    return Math.floor(18 * r * r + 50 * r);
+    // r=5 → 375, r=10 → 1200, r=20 → 4200, r=31 Zenith Peak → 9579
+    return Math.floor(9 * r * r + 30 * r);
   }
 
   /** Flat luck from gear + spot is tripled into the live luck stat. */
@@ -6120,35 +6120,30 @@
   }
 
   function fishWeight(fish, spot, forBoat = false) {
-    // Gear + spot luck (no event mult) — skews toward rares instead of inflating uncommons
+    // Gear + spot luck (no event mult) — additive progression toward rares
     const luck = baseLuck(spot);
     const boostMult = treasureLuckMult();
-    const skew = luckRaritySkew(fish.rarity);
     let w = (RARITY_WEIGHT[fish.rarity] || 10) * rarityFactor(fish.rarity, spot.rarity);
-    if (fish.rarity === "uncommon") w += luck * 0.06;
-    if (fish.rarity === "rare") w += luck * 0.1;
-    if (fish.rarity === "epic") w += luck * 0.09;
-    if (fish.rarity === "legendary") w += luck * 0.07;
-    if (fish.rarity === "mythic") w += luck * 0.045;
-    if (fish.rarity === "secret") w += luck * 0.02;
-    if (fish.rarity === "divine") w += luck * 0.016;
-    if (fish.rarity === "eternal") w += luck * 0.01;
-    if (fish.rarity === "cosmic") w += luck * 0.006;
-    if (fish.rarity === "astral") w += luck * 0.0036;
-    if (fish.rarity === "singularity") w += luck * 0.0022;
-    if (fish.rarity === "omega") w += luck * 0.0014;
-    if (fish.rarity === "genesis") w += luck * 0.0009;
-    if (fish.rarity === "paradox") w += luck * 0.00055;
-    if (fish.rarity === "infinity") w += luck * 0.00035;
-    if (fish.rarity === "absolute") w += luck * 0.00022;
-    if (fish.rarity === "transcendent") w += luck * 0.00014;
-    if (fish.rarity === "nexus") w += luck * 0.00009;
-    if (fish.rarity === "voidborn") w += luck * 0.00006;
-    if (fish.rarity === "zenith") w += luck * 0.00004;
-    // 400k luck ≈ 5× for zenith vs common; commons get squeezed a little
-    const luckScale = 1 + Math.max(0, luck) / 100000;
-    w *= Math.pow(luckScale, skew);
-    if (skew < 0.2) w /= Math.pow(luckScale, 0.2 - skew);
+    if (fish.rarity === "uncommon") w += luck * 0.34;
+    if (fish.rarity === "rare") w += luck * 0.38;
+    if (fish.rarity === "epic") w += luck * 0.24;
+    if (fish.rarity === "legendary") w += luck * 0.13;
+    if (fish.rarity === "mythic") w += luck * 0.065;
+    if (fish.rarity === "secret") w += luck * 0.022;
+    if (fish.rarity === "divine") w += luck * 0.018;
+    if (fish.rarity === "eternal") w += luck * 0.009;
+    if (fish.rarity === "cosmic") w += luck * 0.0045;
+    if (fish.rarity === "astral") w += luck * 0.0024;
+    if (fish.rarity === "singularity") w += luck * 0.0012;
+    if (fish.rarity === "omega") w += luck * 0.0007;
+    if (fish.rarity === "genesis") w += luck * 0.0004;
+    if (fish.rarity === "paradox") w += luck * 0.00022;
+    if (fish.rarity === "infinity") w += luck * 0.00012;
+    if (fish.rarity === "absolute") w += luck * 0.00007;
+    if (fish.rarity === "transcendent") w += luck * 0.00004;
+    if (fish.rarity === "nexus") w += luck * 0.000025;
+    if (fish.rarity === "voidborn") w += luck * 0.000015;
+    if (fish.rarity === "zenith") w += luck * 0.000009;
     // Spot still matters, but high rarities are less crushed on early waters
     const t = Math.max(0, Math.min(MAX_SPOT_RARITY, Number(spot.rarity) || 0)) / MAX_SPOT_RARITY;
     if (fish.rarity === "rare") w *= 0.9 + t * 0.12;
