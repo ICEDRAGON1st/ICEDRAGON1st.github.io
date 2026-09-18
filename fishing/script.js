@@ -3460,6 +3460,19 @@
     return `${m}:${String(s).padStart(2, "0")}`;
   }
 
+  /** Long reset timers for objectives: "2d 5h 12m", "5h 12m", or "12m". */
+  function formatQuestResetClock(ms) {
+    const totalMin = Math.max(0, Math.ceil(Math.max(0, Number(ms) || 0) / 60000));
+    const days = Math.floor(totalMin / (60 * 24));
+    const hours = Math.floor((totalMin % (60 * 24)) / 60);
+    const mins = totalMin % 60;
+    const bits = [];
+    if (days > 0) bits.push(`${days}d`);
+    if (days > 0 || hours > 0) bits.push(`${hours}h`);
+    bits.push(`${mins}m`);
+    return bits.join(" ");
+  }
+
   function chestCountKey(kind) {
     return kind === "luck" ? "luckChestCount" : "moneyChestCount";
   }
@@ -5918,8 +5931,8 @@
   function renderQuests() {
     if (!questList) return;
     ensureQuestsFresh();
-    const dailyLeft = formatTreasureClock(msUntilLocalMidnight());
-    const weeklyLeft = formatTreasureClock(msUntilNextMonday());
+    const dailyLeft = formatQuestResetClock(msUntilLocalMidnight());
+    const weeklyLeft = formatQuestResetClock(msUntilNextMonday());
     questList.innerHTML = `
       <div class="quest-section-title">Daily</div>
       <div class="quest-section-meta">Resets in ${dailyLeft}</div>
