@@ -191,16 +191,16 @@
     eternal: 0.08,
     cosmic: 0.028,
     astral: 0.011,
-    singularity: 0.004,
-    omega: 0.0014,
-    genesis: 0.0005,
-    paradox: 0.0002,
-    infinity: 0.00008,
-    absolute: 0.00003,
-    transcendent: 0.000011,
-    nexus: 0.000004,
-    voidborn: 0.0000014,
-    zenith: 0.0000005
+    singularity: 0.012,
+    omega: 0.008,
+    genesis: 0.0045,
+    paradox: 0.0025,
+    infinity: 0.0014,
+    absolute: 0.0008,
+    transcendent: 0.0004,
+    nexus: 0.00022,
+    voidborn: 0.00012,
+    zenith: 0.00006
   };
 
   /** Admin Lucky Blocks: Astral / Absolute / Zenith (zenith = transcendent–zenith). */
@@ -5219,16 +5219,16 @@
     if (rarity === "eternal") return 0.005 + t * 0.2;
     if (rarity === "cosmic") return 0.002 + t * 0.15;
     if (rarity === "astral") return 0.0008 + t * 0.1;
-    if (rarity === "singularity") return 0.0003 + t * 0.06;
-    if (rarity === "omega") return 0.0001 + t * 0.035;
-    if (rarity === "genesis") return 0.00004 + t * 0.02;
-    if (rarity === "paradox") return 0.000015 + t * 0.012;
-    if (rarity === "infinity") return 0.000006 + t * 0.007;
-    if (rarity === "absolute") return 0.0000025 + t * 0.004;
-    if (rarity === "transcendent") return 0.000001 + t * 0.0026;
-    if (rarity === "nexus") return 0.0000004 + t * 0.0016;
-    if (rarity === "voidborn") return 0.00000015 + t * 0.001;
-    if (rarity === "zenith") return 0.00000005 + t * 0.0006;
+    if (rarity === "singularity") return 0.001 + t * 0.12;
+    if (rarity === "omega") return 0.0005 + t * 0.1;
+    if (rarity === "genesis") return 0.0003 + t * 0.09;
+    if (rarity === "paradox") return 0.0002 + t * 0.08;
+    if (rarity === "infinity") return 0.00012 + t * 0.07;
+    if (rarity === "absolute") return 0.00008 + t * 0.06;
+    if (rarity === "transcendent") return 0.00005 + t * 0.05;
+    if (rarity === "nexus") return 0.00003 + t * 0.045;
+    if (rarity === "voidborn") return 0.00002 + t * 0.04;
+    if (rarity === "zenith") return 0.000012 + t * 0.035;
     return 1;
   }
 
@@ -5269,16 +5269,16 @@
     if (fish.rarity === "eternal") w += luck * 0.005;
     if (fish.rarity === "cosmic") w += luck * 0.002;
     if (fish.rarity === "astral") w += luck * 0.00085;
-    if (fish.rarity === "singularity") w += luck * 0.00032;
-    if (fish.rarity === "omega") w += luck * 0.00011;
-    if (fish.rarity === "genesis") w += luck * 0.00004;
-    if (fish.rarity === "paradox") w += luck * 0.000015;
-    if (fish.rarity === "infinity") w += luck * 0.0000055;
-    if (fish.rarity === "absolute") w += luck * 0.000002;
-    if (fish.rarity === "transcendent") w += luck * 0.00000075;
-    if (fish.rarity === "nexus") w += luck * 0.00000028;
-    if (fish.rarity === "voidborn") w += luck * 0.0000001;
-    if (fish.rarity === "zenith") w += luck * 0.000000035;
+    if (fish.rarity === "singularity") w += luck * 0.0012;
+    if (fish.rarity === "omega") w += luck * 0.0007;
+    if (fish.rarity === "genesis") w += luck * 0.0004;
+    if (fish.rarity === "paradox") w += luck * 0.00022;
+    if (fish.rarity === "infinity") w += luck * 0.00012;
+    if (fish.rarity === "absolute") w += luck * 0.00007;
+    if (fish.rarity === "transcendent") w += luck * 0.00004;
+    if (fish.rarity === "nexus") w += luck * 0.000025;
+    if (fish.rarity === "voidborn") w += luck * 0.000015;
+    if (fish.rarity === "zenith") w += luck * 0.000009;
     // Spot still matters, but high rarities are less crushed on early waters
     const t = Math.max(0, Math.min(MAX_SPOT_RARITY, Number(spot.rarity) || 0)) / MAX_SPOT_RARITY;
     if (fish.rarity === "rare") w *= 0.9 + t * 0.12;
@@ -5289,16 +5289,16 @@
     if (fish.rarity === "eternal") w *= (0.18 + t * 0.45) * (forBoat ? 0.35 : 1);
     if (fish.rarity === "cosmic") w *= (0.12 + t * 0.42) * (forBoat ? 0.25 : 1);
     if (fish.rarity === "astral") w *= (0.08 + t * 0.38) * (forBoat ? 0.18 : 1);
-    if (fish.rarity === "singularity") w *= (0.05 + t * 0.35) * (forBoat ? 0.12 : 1);
-    if (fish.rarity === "omega") w *= (0.032 + t * 0.3) * (forBoat ? 0.08 : 1);
-    if (fish.rarity === "genesis") w *= (0.022 + t * 0.26) * (forBoat ? 0.06 : 1);
-    if (fish.rarity === "paradox") w *= (0.015 + t * 0.22) * (forBoat ? 0.04 : 1);
-    if (fish.rarity === "infinity") w *= (0.01 + t * 0.18) * (forBoat ? 0.028 : 1);
-    if (fish.rarity === "absolute") w *= (0.007 + t * 0.15) * (forBoat ? 0.018 : 1);
-    if (fish.rarity === "transcendent") w *= (0.005 + t * 0.12) * (forBoat ? 0.012 : 1);
-    if (fish.rarity === "nexus") w *= (0.0035 + t * 0.1) * (forBoat ? 0.008 : 1);
-    if (fish.rarity === "voidborn") w *= (0.0022 + t * 0.08) * (forBoat ? 0.005 : 1);
-    if (fish.rarity === "zenith") w *= (0.0014 + t * 0.065) * (forBoat ? 0.003 : 1);
+    if (fish.rarity === "singularity") w *= (0.12 + t * 0.55) * (forBoat ? 0.2 : 1);
+    if (fish.rarity === "omega") w *= (0.1 + t * 0.55) * (forBoat ? 0.16 : 1);
+    if (fish.rarity === "genesis") w *= (0.09 + t * 0.55) * (forBoat ? 0.14 : 1);
+    if (fish.rarity === "paradox") w *= (0.08 + t * 0.55) * (forBoat ? 0.12 : 1);
+    if (fish.rarity === "infinity") w *= (0.07 + t * 0.55) * (forBoat ? 0.1 : 1);
+    if (fish.rarity === "absolute") w *= (0.06 + t * 0.55) * (forBoat ? 0.08 : 1);
+    if (fish.rarity === "transcendent") w *= (0.055 + t * 0.55) * (forBoat ? 0.07 : 1);
+    if (fish.rarity === "nexus") w *= (0.05 + t * 0.55) * (forBoat ? 0.06 : 1);
+    if (fish.rarity === "voidborn") w *= (0.045 + t * 0.55) * (forBoat ? 0.05 : 1);
+    if (fish.rarity === "zenith") w *= (0.04 + t * 0.55) * (forBoat ? 0.04 : 1);
     w *= valueRarityScale(fish);
     // Chest/event luck mult skews weight toward rarer tiers (omega ≈ ×mult)
     // so 100× luck makes top fish ~100× more common instead of barely moving.
