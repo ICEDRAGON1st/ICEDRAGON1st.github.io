@@ -747,6 +747,10 @@
     { id: "rod30", name: "Nexus Rod", desc: "+0.34s bite window", cost: 1.2e17, kind: "window", amount: 0.34 },
     { id: "rod31", name: "Voidborn Rod", desc: "+0.36s bite window", cost: 6e17, kind: "window", amount: 0.36 },
     { id: "rod32", name: "Zenith Rod Ultima", desc: "+0.4s bite window", cost: 3e18, kind: "window", amount: 0.4 },
+    { id: "rod33", name: "Primordial Rod", desc: "+0.42s bite window", cost: 1.5e19, kind: "window", amount: 0.42 },
+    { id: "rod34", name: "Sovereign Rod", desc: "+0.45s bite window", cost: 7.5e19, kind: "window", amount: 0.45 },
+    { id: "rod35", name: "Mythos Rod", desc: "+0.48s bite window", cost: 4e20, kind: "window", amount: 0.48 },
+    { id: "rod36", name: "Finality Rod", desc: "+0.52s bite window", cost: 2e21, kind: "window", amount: 0.52 },
     { id: "bait10", name: "Echo Chum", desc: "Faster bites (−6% wait)", cost: 30, kind: "speed", amount: 0.06 },
     { id: "bait11", name: "Zenith Bait", desc: "Faster bites (−7% wait)", cost: 40, kind: "speed", amount: 0.07 },
     { id: "bait8", name: "Void Roe", desc: "Faster bites (−8% wait)", cost: 50, kind: "speed", amount: 0.08 },
@@ -771,6 +775,10 @@
     { id: "bait22", name: "Nexus Roe", desc: "Faster bites (−72% wait)", cost: 5e16, kind: "speed", amount: 0.72 },
     { id: "bait23", name: "Voidborn Flies", desc: "Faster bites (−78% wait)", cost: 2.5e17, kind: "speed", amount: 0.78 },
     { id: "bait24", name: "Zenith Bait Ultima", desc: "Faster bites (−84% wait)", cost: 1.2e18, kind: "speed", amount: 0.84 },
+    { id: "bait25", name: "Primordial Chum", desc: "Faster bites (−86% wait)", cost: 6e18, kind: "speed", amount: 0.86 },
+    { id: "bait26", name: "Sovereign Roe", desc: "Faster bites (−88% wait)", cost: 3e19, kind: "speed", amount: 0.88 },
+    { id: "bait27", name: "Mythos Flies", desc: "Faster bites (−89% wait)", cost: 1.5e20, kind: "speed", amount: 0.89 },
+    { id: "bait28", name: "Finality Bait", desc: "Faster bites (−90% wait)", cost: 8e20, kind: "speed", amount: 0.9 },
     { id: "luck1", name: "Lucky Hook", desc: "+48 luck · better chest finds", cost: 120, kind: "luck", amount: 48 },
     { id: "luck2", name: "Tide Charm", desc: "+72 luck · better chest finds", cost: 700, kind: "luck", amount: 72 },
     { id: "luck3", name: "Pearl Lure", desc: "+96 luck · better chest finds", cost: 4000, kind: "luck", amount: 96 },
@@ -802,6 +810,10 @@
     { id: "luck29", name: "Nexus Hook", desc: "+10000 luck · better chest finds", cost: 4e17, kind: "luck", amount: 10000 },
     { id: "luck30", name: "Voidborn Coin", desc: "+13000 luck · better chest finds", cost: 2e18, kind: "luck", amount: 13000 },
     { id: "luck31", name: "Zenith Oracle", desc: "+17000 luck · better chest finds", cost: 1e19, kind: "luck", amount: 17000 },
+    { id: "luck32", name: "Primordial Charm", desc: "+22000 luck · better chest finds", cost: 5e19, kind: "luck", amount: 22000 },
+    { id: "luck33", name: "Sovereign Hook", desc: "+28000 luck · better chest finds", cost: 2.5e20, kind: "luck", amount: 28000 },
+    { id: "luck34", name: "Mythos Coin", desc: "+36000 luck · better chest finds", cost: 1.2e21, kind: "luck", amount: 36000 },
+    { id: "luck35", name: "Finality Oracle", desc: "+48000 luck · better chest finds", cost: 6e21, kind: "luck", amount: 48000 },
     { id: "cooler1", name: "Ice Pack", desc: "+4 cooler slots", cost: 200, kind: "cooler", amount: 4 },
     { id: "cooler2", name: "Big Cooler", desc: "+6 cooler slots", cost: 1500, kind: "cooler", amount: 6 },
     { id: "cooler3", name: "Dock Freezer", desc: "+10 cooler slots", cost: 12000, kind: "cooler", amount: 10 },
@@ -831,6 +843,10 @@
     { id: "cooler27", name: "Nexus Vault", desc: "+850 cooler slots", cost: 6e16, kind: "cooler", amount: 850 },
     { id: "cooler28", name: "Voidborn Cage", desc: "+1000 cooler slots", cost: 3e17, kind: "cooler", amount: 1000 },
     { id: "cooler29", name: "Zenith Freezer Ultima", desc: "+1200 cooler slots", cost: 1.5e18, kind: "cooler", amount: 1200 },
+    { id: "cooler30", name: "Primordial Hold", desc: "+1400 cooler slots", cost: 7.5e18, kind: "cooler", amount: 1400 },
+    { id: "cooler31", name: "Sovereign Vault", desc: "+1700 cooler slots", cost: 4e19, kind: "cooler", amount: 1700 },
+    { id: "cooler32", name: "Mythos Cage", desc: "+2100 cooler slots", cost: 2e20, kind: "cooler", amount: 2100 },
+    { id: "cooler33", name: "Finality Locker", desc: "+2600 cooler slots", cost: 1e21, kind: "cooler", amount: 2600 },
     { id: "sell1", name: "Merchant Scale", desc: "+5% sell value", cost: 500, kind: "value", amount: 0.05 },
     { id: "sell2", name: "Harbor Broker", desc: "+8% sell value", cost: 5000, kind: "value", amount: 0.08 },
     { id: "sell3", name: "Gold Ledger", desc: "+12% sell value", cost: 50000, kind: "value", amount: 0.12 },
@@ -859,6 +875,10 @@
     { id: "sell26", name: "Nexus Exchange", desc: "+600% sell value", cost: 5e17, kind: "value", amount: 6 },
     { id: "sell27", name: "Voidborn Pit", desc: "+700% sell value", cost: 2.5e18, kind: "value", amount: 7 },
     { id: "sell28", name: "Zenith Floor Ultima", desc: "+850% sell value", cost: 1.2e19, kind: "value", amount: 8.5 },
+    { id: "sell29", name: "Primordial Market", desc: "+1000% sell value", cost: 6e19, kind: "value", amount: 10 },
+    { id: "sell30", name: "Sovereign Exchange", desc: "+1200% sell value", cost: 3e20, kind: "value", amount: 12 },
+    { id: "sell31", name: "Mythos Pit", desc: "+1450% sell value", cost: 1.5e21, kind: "value", amount: 14.5 },
+    { id: "sell32", name: "Finality Floor", desc: "+1800% sell value", cost: 8e21, kind: "value", amount: 18 },
     { id: "net1", name: "Hand Net", desc: "6% chance for a second fish", cost: 2500, kind: "multi", amount: 0.06 },
     { id: "net2", name: "Drag Net", desc: "10% chance for a second fish", cost: 28000, kind: "multi", amount: 0.1 },
     { id: "net3", name: "Trawl Mesh", desc: "14% chance for a second fish", cost: 220000, kind: "multi", amount: 0.14 },
@@ -884,6 +904,10 @@
     { id: "net23", name: "Nexus Mesh", desc: "50% chance for a second fish", cost: 1.1e17, kind: "multi", amount: 0.5 },
     { id: "net24", name: "Voidborn Net", desc: "55% chance for a second fish", cost: 5.5e17, kind: "multi", amount: 0.55 },
     { id: "net25", name: "Zenith Snare Ultima", desc: "60% chance for a second fish", cost: 2.8e18, kind: "multi", amount: 0.6 },
+    { id: "net26", name: "Primordial Net", desc: "65% chance for a second fish", cost: 1.4e19, kind: "multi", amount: 0.65 },
+    { id: "net27", name: "Sovereign Mesh", desc: "70% chance for a second fish", cost: 7e19, kind: "multi", amount: 0.7 },
+    { id: "net28", name: "Mythos Snare", desc: "76% chance for a second fish", cost: 3.5e20, kind: "multi", amount: 0.76 },
+    { id: "net29", name: "Finality Net", desc: "82% chance for a second fish", cost: 1.8e21, kind: "multi", amount: 0.82 },
     { id: "triple1", name: "Twin Hook", desc: "4% chance for a third fish (needs 2nd catch)", cost: 15000, kind: "triple", amount: 0.04 },
     { id: "triple2", name: "Trident Line", desc: "7% chance for a third fish (needs 2nd catch)", cost: 120000, kind: "triple", amount: 0.07 },
     { id: "triple3", name: "Triple Snare", desc: "10% chance for a third fish (needs 2nd catch)", cost: 900000, kind: "triple", amount: 0.1 },
@@ -906,6 +930,10 @@
     { id: "triple20", name: "Nexus Trident", desc: "48% chance for a third fish (needs 2nd catch)", cost: 1.5e17, kind: "triple", amount: 0.48 },
     { id: "triple21", name: "Voidborn Triad", desc: "52% chance for a third fish (needs 2nd catch)", cost: 7.5e17, kind: "triple", amount: 0.52 },
     { id: "triple22", name: "Zenith Trident Ultima", desc: "58% chance for a third fish (needs 2nd catch)", cost: 3.8e18, kind: "triple", amount: 0.58 },
+    { id: "triple23", name: "Primordial Triad", desc: "62% chance for a third fish (needs 2nd catch)", cost: 1.9e19, kind: "triple", amount: 0.62 },
+    { id: "triple24", name: "Sovereign Trident", desc: "67% chance for a third fish (needs 2nd catch)", cost: 9.5e19, kind: "triple", amount: 0.67 },
+    { id: "triple25", name: "Mythos Triad", desc: "72% chance for a third fish (needs 2nd catch)", cost: 4.8e20, kind: "triple", amount: 0.72 },
+    { id: "triple26", name: "Finality Trident", desc: "78% chance for a third fish (needs 2nd catch)", cost: 2.4e21, kind: "triple", amount: 0.78 },
     { id: "perfect1", name: "Steady Hands", desc: "+10% sell on perfect reels", cost: 1500, kind: "perfect", amount: 0.1 },
     { id: "perfect2", name: "Keen Eye", desc: "+15% sell on perfect reels", cost: 18000, kind: "perfect", amount: 0.15 },
     { id: "perfect3", name: "Timing Belt", desc: "+20% sell on perfect reels", cost: 150000, kind: "perfect", amount: 0.2 },
@@ -929,7 +957,11 @@
     { id: "perfect21", name: "Transcend Timing", desc: "+320% sell on perfect reels", cost: 2e16, kind: "perfect", amount: 3.2 },
     { id: "perfect22", name: "Nexus Focus", desc: "+370% sell on perfect reels", cost: 1e17, kind: "perfect", amount: 3.7 },
     { id: "perfect23", name: "Voidborn Pulse", desc: "+430% sell on perfect reels", cost: 5e17, kind: "perfect", amount: 4.3 },
-    { id: "perfect24", name: "Zenith Focus Ultima", desc: "+500% sell on perfect reels", cost: 2.5e18, kind: "perfect", amount: 5 }
+    { id: "perfect24", name: "Zenith Focus Ultima", desc: "+500% sell on perfect reels", cost: 2.5e18, kind: "perfect", amount: 5 },
+    { id: "perfect25", name: "Primordial Timing", desc: "+580% sell on perfect reels", cost: 1.2e19, kind: "perfect", amount: 5.8 },
+    { id: "perfect26", name: "Sovereign Focus", desc: "+680% sell on perfect reels", cost: 6e19, kind: "perfect", amount: 6.8 },
+    { id: "perfect27", name: "Mythos Pulse", desc: "+800% sell on perfect reels", cost: 3e20, kind: "perfect", amount: 8 },
+    { id: "perfect28", name: "Finality Focus", desc: "+950% sell on perfect reels", cost: 1.5e21, kind: "perfect", amount: 9.5 }
   ];
 
   /**
@@ -1275,12 +1307,12 @@
 
   function biteWindow() {
     const bonus = ownedGear("window").reduce((s, g) => s + g.amount, 0);
-    return Math.min(2.8, 0.45 + bonus);
+    return Math.min(4.0, 0.45 + bonus);
   }
 
   function waitScale() {
     const cut = equippedSpeedGear()?.amount || 0;
-    return Math.max(0.16, 1 - cut);
+    return Math.max(0.1, 1 - cut);
   }
 
   function luckBonus() {
@@ -3689,11 +3721,11 @@
   }
 
   function multiCatchChance() {
-    return Math.min(0.92, ownedGear("multi").reduce((s, g) => s + g.amount, 0));
+    return Math.min(0.98, ownedGear("multi").reduce((s, g) => s + g.amount, 0));
   }
 
   function tripleCatchChance() {
-    return Math.min(0.75, ownedGear("triple").reduce((s, g) => s + g.amount, 0));
+    return Math.min(0.9, ownedGear("triple").reduce((s, g) => s + g.amount, 0));
   }
 
   function boats() {
