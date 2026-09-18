@@ -1329,7 +1329,9 @@
       luckChestCount: 0,
       luckyBlockCount: 0,
       astralLuckyBlockCount: 0,
-      zenithLuckyBlockCount: 0
+      zenithLuckyBlockCount: 0,
+      /** Player preference for smarter gear shop (ignored if SMART_GEAR_SHOP is false). */
+      smartShop: true
     };
   }
 
@@ -3962,6 +3964,7 @@
         0,
         Math.min(LUCKY_BLOCK_STASH_MAX, Math.floor(Number(raw.zenithLuckyBlockCount) || 0))
       );
+      next.smartShop = raw.smartShop !== false;
       return next;
     } catch {
       return defaultState();
@@ -6243,6 +6246,26 @@
   }
 
   /* ========== SMART GEAR SHOP helpers (deletable with SMART_GEAR_SHOP) ========== */
+  function smartShopOn() {
+    return SMART_GEAR_SHOP && state.smartShop !== false;
+  }
+
+  function syncSmartShopToggle() {
+    const btn = document.getElementById("smart-shop-toggle");
+    if (!btn) return;
+    if (!SMART_GEAR_SHOP) {
+      btn.hidden = true;
+      return;
+    }
+    btn.hidden = false;
+    const on = smartShopOn();
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    btn.textContent = on ? "Simple list" : "Smart shop";
+    btn.title = on
+      ? "Show the full classic gear list"
+      : "Show next upgrades and collapse owned gear";
+  }
+
   function shopSmartKey(kind, part) {
     return `${kind}:${part}`;
   }
@@ -6461,7 +6484,8 @@
       btn.classList.toggle("active", btn.dataset.shopCat === active);
     });
 
-    shopList.classList.toggle("shop-smart", SMART_GEAR_SHOP);
+    shopList.classList.toggle("shop-smart", smartShopOn());
+    syncSmartShopToggle();
 
     const cats = SHOP_CATEGORIES.filter((c) => active === "all" || c.id === active);
     shopList.innerHTML = cats
@@ -6469,7 +6493,7 @@
         const rows =
           cat.id === "boat"
             ? boatRow()
-            : SMART_GEAR_SHOP
+            : smartShopOn()
               ? shopSmartCategoryRows(cat.id, gearRow)
               : GEAR.filter((g) => g.kind === cat.id).map((g) => gearRow(g)).join("");
         return `<div class="shop-category" data-category="${cat.id}">
@@ -7132,8 +7156,15 @@
     shopCat = btn.dataset.shopCat || "all";
     renderShop();
   });
+  document.getElementById("smart-shop-toggle")?.addEventListener("click", () => {
+    if (!SMART_GEAR_SHOP) return;
+    state.smartShop = !smartShopOn();
+    window.HubSound?.play?.("click");
+    renderShop();
+    saveSoon();
+  });
   shopList?.addEventListener("pointerdown", (e) => {
-    if (SMART_GEAR_SHOP) {
+    if (smartShopOn()) {
       const smartBtn = e.target.closest("[data-shop-smart]");
       if (smartBtn) {
         e.preventDefault();
