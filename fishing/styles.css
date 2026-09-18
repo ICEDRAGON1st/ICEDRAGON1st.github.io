@@ -2731,6 +2731,65 @@ body[data-spot="mythforge"] .water-mist {
   color: var(--muted);
 }
 
+.lb-qty {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 0.75rem;
+}
+
+.lb-qty-btn {
+  min-width: 2.7rem;
+  padding: 0.38rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.lb-qty-btn.is-active {
+  border-color: rgba(240, 193, 75, 0.7);
+  background: rgba(240, 193, 75, 0.16);
+  color: #f0c14b;
+}
+
+.lb-qty-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.lb-haul {
+  margin: 0.45rem 0 0;
+  padding: 0;
+  list-style: none;
+  max-height: 180px;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.22rem;
+}
+
+.lb-haul li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.55rem;
+  font-size: 0.78rem;
+}
+
+.lb-haul-name {
+  font-weight: 700;
+}
+
+.lb-haul-val {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .lb-actions {
   display: flex;
   flex-wrap: wrap;
@@ -2740,6 +2799,11 @@ body[data-spot="mythforge"] .water-mist {
 
 .lb-actions .btn {
   min-width: 5.5rem;
+}
+
+#lucky-block-skip-btn.is-on {
+  border-color: rgba(240, 193, 75, 0.7);
+  color: #f0c14b;
 }
 
 .treasure-stash-meta {

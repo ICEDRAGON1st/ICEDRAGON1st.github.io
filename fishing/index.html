@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260918v">
+  <link rel="stylesheet" href="styles.css?v=20260918w">
 </head>
 <body data-spot="creek">
   <header class="top-bar">
@@ -385,8 +385,15 @@
         <div id="lucky-block-result" class="lb-result hidden"></div>
       </div>
       <div id="lucky-block-chances" class="lb-chances hidden" hidden></div>
+      <div id="lucky-block-qty" class="lb-qty" role="group" aria-label="How many to open">
+        <button type="button" class="lb-qty-btn is-active" data-lb-qty="1">1</button>
+        <button type="button" class="lb-qty-btn" data-lb-qty="5">5</button>
+        <button type="button" class="lb-qty-btn" data-lb-qty="10">10</button>
+        <button type="button" class="lb-qty-btn" data-lb-qty="all">All</button>
+      </div>
       <div class="lb-actions">
         <button id="lucky-block-chances-btn" type="button" class="btn btn-ghost">Chances</button>
+        <button id="lucky-block-skip-btn" type="button" class="btn btn-ghost">Skip anim</button>
         <button id="lucky-block-spin-btn" type="button" class="btn">Open</button>
         <button id="lucky-block-dismiss-btn" type="button" class="btn btn-ghost">Close</button>
       </div>
@@ -476,6 +483,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260917br"></script>
-  <script src="script.js?v=20260918v"></script>
+  <script src="script.js?v=20260918w"></script>
 </body>
 </html>

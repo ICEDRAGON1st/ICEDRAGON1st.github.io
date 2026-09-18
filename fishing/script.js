@@ -1160,6 +1160,8 @@
   const luckyBlockCloseBtn = document.getElementById("lucky-block-close");
   const luckyBlockDismissBtn = document.getElementById("lucky-block-dismiss-btn");
   const luckyBlockSpinBtn = document.getElementById("lucky-block-spin-btn");
+  const luckyBlockSkipBtn = document.getElementById("lucky-block-skip-btn");
+  const luckyBlockQtyEl = document.getElementById("lucky-block-qty");
   const luckyBlockChancesBtn = document.getElementById("lucky-block-chances-btn");
   const astralLuckyBlockCountEl = document.getElementById("astral-lucky-block-count");
   const astralLuckyBlockUseBtn = document.getElementById("astral-lucky-block-use-btn");
@@ -1174,6 +1176,10 @@
   let luckyBlockSpinning = false;
   let luckyBlockSpinTimer = 0;
   let luckyBlockChancesOpen = false;
+  let luckyBlockOpenQty = 1;
+  let luckyBlockSkipAnim = false;
+  let luckyBlockPendingFish = null;
+  let luckyBlockPendingOffset = 0;
   const LB_REEL_ITEM_H = 72;
   const LB_REEL_VISIBLE = 3;
   const LB_REEL_LEN = 34;
@@ -3680,9 +3686,17 @@
     return { items, winAt };
   }
 
+  function luckyBlockQtyWanted() {
+    const n = luckyBlockCount(activeLuckyBlockType);
+    if (n <= 0) return 0;
+    if (luckyBlockOpenQty === "all") return n;
+    return Math.max(1, Math.min(n, Math.floor(Number(luckyBlockOpenQty) || 1)));
+  }
+
   function updateLuckyBlockGuiStatus() {
     const def = luckyBlockDef(activeLuckyBlockType);
     const n = luckyBlockCount(activeLuckyBlockType);
+    const qty = luckyBlockQtyWanted();
     if (luckyBlockTitleEl) luckyBlockTitleEl.textContent = def.name;
     if (luckyBlockEyebrowEl) {
       luckyBlockEyebrowEl.textContent = `Admin item · ${def.rangeLabel} · luck ignored`;
@@ -3696,9 +3710,31 @@
             ? `1 ${def.name} ready · ${def.rangeLabel}`
             : `${n} ${def.name}s ready · ${def.rangeLabel}`;
     }
+    luckyBlockQtyEl?.querySelectorAll("[data-lb-qty]").forEach((btn) => {
+      const key = btn.dataset.lbQty;
+      const need = key === "all" ? 1 : Math.floor(Number(key) || 1);
+      btn.disabled = luckyBlockSpinning || n < need;
+      btn.classList.toggle("is-active", String(luckyBlockOpenQty) === String(key));
+    });
     if (luckyBlockSpinBtn) {
       luckyBlockSpinBtn.disabled = luckyBlockSpinning || n <= 0;
-      luckyBlockSpinBtn.textContent = luckyBlockSpinning ? "Opening…" : n > 0 ? "Open" : "None left";
+      luckyBlockSpinBtn.textContent = luckyBlockSpinning
+        ? "Opening…"
+        : n <= 0
+          ? "None left"
+          : qty <= 1
+            ? "Open"
+            : `Open ${qty}`;
+    }
+    if (luckyBlockSkipBtn) {
+      luckyBlockSkipBtn.disabled = luckyBlockSpinning ? false : n <= 0;
+      luckyBlockSkipBtn.classList.toggle("is-on", luckyBlockSkipAnim);
+      luckyBlockSkipBtn.setAttribute("aria-pressed", luckyBlockSkipAnim ? "true" : "false");
+      luckyBlockSkipBtn.textContent = luckyBlockSpinning
+        ? "Skip"
+        : luckyBlockSkipAnim
+          ? "Skip on"
+          : "Skip anim";
     }
     if (luckyBlockCloseBtn) luckyBlockCloseBtn.disabled = luckyBlockSpinning;
     if (luckyBlockDismissBtn) luckyBlockDismissBtn.disabled = luckyBlockSpinning;
@@ -3758,15 +3794,57 @@
     luckyBlockResultEl.innerHTML = "";
   }
 
+  function pickLuckyBlockBest(rows) {
+    return (rows || []).reduce((best, row) => {
+      if (!row?.fish) return best;
+      if (!best?.fish) return row;
+      const d = rarityOrder(row.fish.rarity) - rarityOrder(best.fish.rarity);
+      if (d > 0) return row;
+      if (d < 0) return best;
+      return (row.val || 0) >= (best.val || 0) ? row : best;
+    }, null);
+  }
+
   function showLuckyBlockResult(fish, val) {
-    if (!luckyBlockResultEl || !fish) return;
-    const color = rarityColor(fish.rarity);
+    showLuckyBlockHaul([{ fish, val }]);
+  }
+
+  function showLuckyBlockHaul(rows) {
+    if (!luckyBlockResultEl) return;
+    const list = (Array.isArray(rows) ? rows : [rows]).filter((r) => r?.fish);
+    if (!list.length) {
+      clearLuckyBlockResult();
+      return;
+    }
+    const best = pickLuckyBlockBest(list);
+    const color = rarityColor(best.fish.rarity);
+    const total = list.reduce((s, r) => s + (Number(r.val) || 0), 0);
     luckyBlockResultEl.classList.remove("hidden");
-    luckyBlockResultEl.innerHTML = `<span aria-hidden="true">${fishGlyphHtml(fish)}</span>
+    if (list.length === 1) {
+      luckyBlockResultEl.innerHTML = `<span aria-hidden="true">${fishGlyphHtml(best.fish)}</span>
       <div>
         <p class="lb-result-title">You got</p>
-        <p class="lb-result-name" style="color:${color}">${fish.name}</p>
-        <p class="lb-result-meta">${fish.rarity} · ${formatNum(val)} coins · added to cooler</p>
+        <p class="lb-result-name" style="color:${color}">${best.fish.name}</p>
+        <p class="lb-result-meta">${best.fish.rarity} · ${formatNum(best.val)} coins · added to cooler</p>
+      </div>`;
+      return;
+    }
+    const sorted = [...list].sort(
+      (a, b) =>
+        rarityOrder(b.fish.rarity) - rarityOrder(a.fish.rarity) || (b.val || 0) - (a.val || 0)
+    );
+    const haul = sorted
+      .map((row) => {
+        const c = rarityColor(row.fish.rarity);
+        return `<li><span class="lb-haul-name" style="color:${c}">${row.fish.name}</span><span class="lb-haul-val">${row.fish.rarity} · ${formatNum(row.val)}</span></li>`;
+      })
+      .join("");
+    luckyBlockResultEl.innerHTML = `<span aria-hidden="true">${fishGlyphHtml(best.fish)}</span>
+      <div>
+        <p class="lb-result-title">Opened ${list.length}</p>
+        <p class="lb-result-name" style="color:${color}">Best: ${best.fish.name}</p>
+        <p class="lb-result-meta">${formatNum(total)} coins · added to cooler</p>
+        <ul class="lb-haul">${haul}</ul>
       </div>`;
   }
 
@@ -3781,6 +3859,8 @@
     }
     clearTimeout(luckyBlockSpinTimer);
     luckyBlockSpinning = false;
+    luckyBlockPendingFish = null;
+    luckyBlockPendingOffset = 0;
     setLuckyBlockChancesVisible(false);
     clearLuckyBlockResult();
     resetLuckyBlockReelPreview();
@@ -3797,22 +3877,93 @@
     unlockPageScroll();
   }
 
-  function finishLuckyBlockSpin(fish) {
-    const def = luckyBlockDef(activeLuckyBlockType);
-    luckyBlockSpinning = false;
+  function grantLuckyBlockRoll(fish) {
     const entry = grantFishToLocal(fish, { variants: { variant: "", shiny: false } });
     const val = fishValue(fish, currentSpot(), entry || { variant: "", shiny: false });
+    return { fish, val, entry: entry || { variant: "", shiny: false } };
+  }
+
+  function presentLuckyBlockHaul(rows) {
+    const list = (Array.isArray(rows) ? rows : [rows]).filter((r) => r?.fish);
+    if (!list.length) return;
+    const best = pickLuckyBlockBest(list);
+    const def = luckyBlockDef(activeLuckyBlockType);
     castBtn?.classList.remove("is-waiting", "is-bite");
-    castBtn?.classList.add("is-catch", `rarity-${fish.rarity}`);
-    showCatchSilhouette?.(fish);
-    showCatchCard?.([{ fish, val, perfect: false, treasure: false, stored: true }]);
-    setCatchLine(
-      `${def.name} → ${formatFishName(fish, { variant: "", shiny: false })} (${fish.rarity})`,
-      catchTone(fish.rarity)
-    );
+    castBtn?.classList.add("is-catch", `rarity-${best.fish.rarity}`);
+    showCatchSilhouette?.(best.fish);
+    showCatchCard?.(list.map((row) => ({ fish: row.fish, val: row.val, perfect: false, treasure: false, stored: true })));
+    if (list.length === 1) {
+      setCatchLine(
+        `${def.name} → ${formatFishName(best.fish, { variant: "", shiny: false })} (${best.fish.rarity})`,
+        catchTone(best.fish.rarity)
+      );
+    } else {
+      setCatchLine(
+        `Opened ${list.length} ${def.name}s · best ${formatFishName(best.fish, { variant: "", shiny: false })} (${best.fish.rarity})`,
+        catchTone(best.fish.rarity)
+      );
+    }
     window.HubSound?.play?.("win");
-    if (isShowcaseRarity(fish.rarity)) window.HubConfetti?.burst?.();
-    showLuckyBlockResult(fish, val);
+    if (list.some((row) => isShowcaseRarity(row.fish.rarity))) window.HubConfetti?.burst?.();
+    showLuckyBlockHaul(list);
+  }
+
+  function finishLuckyBlockSpin(fish) {
+    if (!luckyBlockSpinning || !fish) return;
+    luckyBlockSpinning = false;
+    luckyBlockPendingFish = null;
+    luckyBlockPendingOffset = 0;
+    presentLuckyBlockHaul([grantLuckyBlockRoll(fish)]);
+    updateLuckyBlockGuiStatus();
+    renderTreasureStash();
+    render(true);
+    saveSoon();
+  }
+
+  function skipLuckyBlockSpin() {
+    if (!luckyBlockSpinning || !luckyBlockPendingFish) return;
+    clearTimeout(luckyBlockSpinTimer);
+    if (luckyBlockReelEl) {
+      luckyBlockReelEl.classList.remove("is-spinning");
+      luckyBlockReelEl.style.transition = "none";
+      luckyBlockReelEl.style.transform = `translate3d(0, ${-luckyBlockPendingOffset}px, 0)`;
+    }
+    finishLuckyBlockSpin(luckyBlockPendingFish);
+  }
+
+  function toggleLuckyBlockSkipAnim() {
+    luckyBlockSkipAnim = !luckyBlockSkipAnim;
+    updateLuckyBlockGuiStatus();
+    window.HubSound?.play?.("click");
+  }
+
+  function setLuckyBlockOpenQty(qty) {
+    if (qty === "all") luckyBlockOpenQty = "all";
+    else luckyBlockOpenQty = Math.max(1, Math.floor(Number(qty) || 1));
+    updateLuckyBlockGuiStatus();
+  }
+
+  function openLuckyBlocksInstant(qty) {
+    const def = luckyBlockDef(activeLuckyBlockType);
+    const count = luckyBlockCount(activeLuckyBlockType);
+    const n = Math.max(1, Math.min(count, Math.floor(Number(qty) || 1), LUCKY_BLOCK_STASH_MAX));
+    if (count <= 0) {
+      setCatchLine(`No ${def.name}s stored`, "miss");
+      window.HubSound?.play?.("miss");
+      updateLuckyBlockGuiStatus();
+      return;
+    }
+    ensureSession();
+    state[def.stateKey] = count - n;
+    const rows = [];
+    for (let i = 0; i < n; i += 1) {
+      rows.push(grantLuckyBlockRoll(rollLuckyBlockFish(activeLuckyBlockType)));
+    }
+    clearLuckyBlockResult();
+    setLuckyBlockChancesVisible(false);
+    resetLuckyBlockReelPreview();
+    window.HubSound?.play?.("click");
+    presentLuckyBlockHaul(rows);
     updateLuckyBlockGuiStatus();
     renderTreasureStash();
     render(true);
@@ -3823,10 +3974,15 @@
     if (luckyBlockSpinning) return;
     const def = luckyBlockDef(activeLuckyBlockType);
     const count = luckyBlockCount(activeLuckyBlockType);
-    if (count <= 0) {
+    const qty = luckyBlockQtyWanted();
+    if (count <= 0 || qty <= 0) {
       setCatchLine(`No ${def.name}s stored`, "miss");
       window.HubSound?.play?.("miss");
       updateLuckyBlockGuiStatus();
+      return;
+    }
+    if (qty > 1 || luckyBlockSkipAnim) {
+      openLuckyBlocksInstant(qty);
       return;
     }
     ensureSession();
@@ -3839,6 +3995,8 @@
     clearLuckyBlockResult();
     setLuckyBlockChancesVisible(false);
     luckyBlockSpinning = true;
+    luckyBlockPendingFish = fish;
+    luckyBlockPendingOffset = winAt * LB_REEL_ITEM_H - LB_REEL_ITEM_H;
     updateLuckyBlockGuiStatus();
     window.HubSound?.play?.("click");
 
@@ -3851,9 +4009,10 @@
     luckyBlockReelEl.style.transition = "none";
     luckyBlockReelEl.style.transform = "translate3d(0, 0, 0)";
     luckyBlockReelEl.innerHTML = items.map(lbReelItemHtml).join("");
-    const offsetY = winAt * LB_REEL_ITEM_H - LB_REEL_ITEM_H;
+    const offsetY = luckyBlockPendingOffset;
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
+        if (!luckyBlockSpinning || luckyBlockPendingFish !== fish) return;
         luckyBlockReelEl.classList.add("is-spinning");
         luckyBlockReelEl.style.transition = "";
         luckyBlockReelEl.style.transform = `translate3d(0, ${-offsetY}px, 0)`;
@@ -3862,6 +4021,7 @@
 
     clearTimeout(luckyBlockSpinTimer);
     luckyBlockSpinTimer = setTimeout(() => {
+      if (!luckyBlockSpinning || luckyBlockPendingFish !== fish) return;
       luckyBlockReelEl.classList.remove("is-spinning");
       finishLuckyBlockSpin(fish);
     }, LB_SPIN_MS + 80);
@@ -8038,6 +8198,16 @@
   luckyBlockCloseBtn?.addEventListener("click", () => closeLuckyBlockGui());
   luckyBlockDismissBtn?.addEventListener("click", () => closeLuckyBlockGui());
   luckyBlockSpinBtn?.addEventListener("click", () => spinLuckyBlock());
+  luckyBlockSkipBtn?.addEventListener("click", () => {
+    if (luckyBlockSpinning) skipLuckyBlockSpin();
+    else toggleLuckyBlockSkipAnim();
+  });
+  luckyBlockQtyEl?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-lb-qty]");
+    if (!btn || luckyBlockSpinning) return;
+    setLuckyBlockOpenQty(btn.dataset.lbQty);
+    window.HubSound?.play?.("click");
+  });
   luckyBlockChancesBtn?.addEventListener("click", () => {
     setLuckyBlockChancesVisible(!luckyBlockChancesOpen);
   });
