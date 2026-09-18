@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260918w">
+  <link rel="stylesheet" href="styles.css?v=20260918x">
 </head>
 <body data-spot="creek">
   <header class="top-bar">
@@ -167,7 +167,15 @@
             <span class="treasure-stash-count"><span id="money-chest-count">0</span> stored · 2× sell</span>
             <span id="money-chest-timer" class="treasure-stash-timer hidden" aria-live="polite"></span>
           </span>
-          <button id="money-chest-use-btn" type="button" class="btn btn-ghost treasure-use-btn" disabled>Use</button>
+          <div class="treasure-use-col">
+            <div id="money-chest-qty" class="lb-qty treasure-qty" role="group" aria-label="How many coin chests to open">
+              <button type="button" class="lb-qty-btn is-active" data-chest-qty="1">1</button>
+              <button type="button" class="lb-qty-btn" data-chest-qty="5">5</button>
+              <button type="button" class="lb-qty-btn" data-chest-qty="10">10</button>
+              <button type="button" class="lb-qty-btn" data-chest-qty="all">All</button>
+            </div>
+            <button id="money-chest-use-btn" type="button" class="btn btn-ghost treasure-use-btn" disabled>Use</button>
+          </div>
         </div>
         <div class="treasure-stash-row treasure-luck">
           <span class="treasure-stash-glyph luck" aria-hidden="true">◇</span>
@@ -176,7 +184,15 @@
             <span class="treasure-stash-count"><span id="luck-chest-count">0</span> stored · 1.5× luck</span>
             <span id="luck-chest-timer" class="treasure-stash-timer hidden" aria-live="polite"></span>
           </span>
-          <button id="luck-chest-use-btn" type="button" class="btn btn-ghost treasure-use-btn" disabled>Use</button>
+          <div class="treasure-use-col">
+            <div id="luck-chest-qty" class="lb-qty treasure-qty" role="group" aria-label="How many luck chests to open">
+              <button type="button" class="lb-qty-btn is-active" data-chest-qty="1">1</button>
+              <button type="button" class="lb-qty-btn" data-chest-qty="5">5</button>
+              <button type="button" class="lb-qty-btn" data-chest-qty="10">10</button>
+              <button type="button" class="lb-qty-btn" data-chest-qty="all">All</button>
+            </div>
+            <button id="luck-chest-use-btn" type="button" class="btn btn-ghost treasure-use-btn" disabled>Use</button>
+          </div>
         </div>
         <div id="astral-lucky-block-row" class="treasure-stash-row treasure-luckyblock treasure-luckyblock-astral hidden" hidden>
           <span class="treasure-stash-glyph luckyblock astral" aria-hidden="true">◇</span>
@@ -483,6 +499,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260917br"></script>
-  <script src="script.js?v=20260918w"></script>
+  <script src="script.js?v=20260918x"></script>
 </body>
 </html>

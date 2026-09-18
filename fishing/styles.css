@@ -2432,7 +2432,27 @@ body[data-spot="mythforge"] .water-mist {
 .treasure-stash-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.65rem;
+}
+
+.treasure-use-col {
+  margin-left: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
+.treasure-qty {
+  margin: 0;
+  justify-content: flex-end;
+}
+
+.treasure-qty .lb-qty-btn {
+  min-width: 2.2rem;
+  padding: 0.22rem 0.48rem;
+  font-size: 0.72rem;
 }
 
 .treasure-stash-glyph {
@@ -2862,7 +2882,7 @@ body[data-spot="mythforge"] .water-mist {
 
 .treasure-use-btn {
   flex: 0 0 auto;
-  min-width: 4.5rem;
+  min-width: 5.4rem;
   padding: 0.35rem 0.7rem;
   font-weight: 700;
 }

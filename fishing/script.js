@@ -1149,6 +1149,10 @@
   const luckChestTimerEl = document.getElementById("luck-chest-timer");
   const moneyUseBtn = document.getElementById("money-chest-use-btn");
   const luckUseBtn = document.getElementById("luck-chest-use-btn");
+  const moneyChestQtyEl = document.getElementById("money-chest-qty");
+  const luckChestQtyEl = document.getElementById("luck-chest-qty");
+  let moneyChestOpenQty = 1;
+  let luckChestOpenQty = 1;
   const luckyBlockOverlay = document.getElementById("lucky-block-overlay");
   const luckyBlockCardEl = luckyBlockOverlay?.querySelector(".lucky-block-card") || null;
   const luckyBlockTitleEl = document.getElementById("lucky-block-title");
@@ -3483,23 +3487,70 @@
     return kind === "luck" ? "luckChestCount" : "moneyChestCount";
   }
 
+  function chestStoredCount(kind) {
+    const key = chestCountKey(kind);
+    return Math.max(0, Math.floor(Number(state[key]) || 0));
+  }
+
+  function chestQtySelection(kind) {
+    return kind === "luck" ? luckChestOpenQty : moneyChestOpenQty;
+  }
+
+  function chestQtyWanted(kind) {
+    const n = chestStoredCount(kind);
+    if (n <= 0) return 0;
+    const sel = chestQtySelection(kind);
+    if (sel === "all") return n;
+    return Math.max(1, Math.min(n, Math.floor(Number(sel) || 1)));
+  }
+
+  function setChestOpenQty(kind, qty) {
+    const next = qty === "all" ? "all" : Math.max(1, Math.floor(Number(qty) || 1));
+    if (kind === "luck") luckChestOpenQty = next;
+    else moneyChestOpenQty = next;
+    renderTreasureStash();
+  }
+
+  function syncChestQtyButtons(el, kind, count) {
+    if (!el) return;
+    const selected = String(chestQtySelection(kind));
+    el.querySelectorAll("[data-chest-qty]").forEach((btn) => {
+      const key = btn.dataset.chestQty;
+      const need = key === "all" ? 1 : Math.floor(Number(key) || 1);
+      btn.disabled = count < need;
+      btn.classList.toggle("is-active", selected === String(key));
+    });
+  }
+
+  function chestUseLabel(kind, count, boosted) {
+    const qty = chestQtyWanted(kind);
+    if (count <= 0) return "Use";
+    if (qty <= 1) return boosted ? "Extend" : "Use";
+    return boosted ? `Extend ${qty}` : `Use ${qty}`;
+  }
+
   function activateMoneyBoost(opts = {}) {
+    const n = Math.max(1, Math.floor(Number(opts.count) || 1));
     const now = Date.now();
     const wasActive = (Number(state.moneyBoostUntil) || 0) > now;
     const current = Math.max(now, Number(state.moneyBoostUntil) || 0);
-    state.moneyBoostUntil = current + TREASURE_BOOST_MS;
+    state.moneyBoostUntil = current + TREASURE_BOOST_MS * n;
     if (!opts.silent) {
+      const added = formatTreasureClock(TREASURE_BOOST_MS * n);
       const left = formatTreasureClock(state.moneyBoostUntil - now);
       const total = formatMult(treasureMoneyMult());
       const eventNote = eventMoneyActive()
         ? ` · event stacked → ${total}× sell (${formatTreasureClock(eventMsLeft())} left on event)`
         : "";
-      setCatchLine(
-        wasActive
-          ? `Coin Chest · +5:00 chest time · ${total}× sell · ${left} left`
-          : `Opened Coin Chest! ${TREASURE_MULT}× sell for 5:00${eventNote}`,
-        "treasure"
-      );
+      let line;
+      if (n > 1) {
+        line = `Opened ${n} Coin Chests · +${added} · ${total}× sell · ${left} left${eventNote}`;
+      } else if (wasActive) {
+        line = `Coin Chest · +5:00 chest time · ${total}× sell · ${left} left`;
+      } else {
+        line = `Opened Coin Chest! ${TREASURE_MULT}× sell for 5:00${eventNote}`;
+      }
+      setCatchLine(line, "treasure");
       window.HubSound?.play?.("win");
       window.HubConfetti?.burst?.();
     }
@@ -3508,22 +3559,27 @@
   }
 
   function activateLuckBoost(opts = {}) {
+    const n = Math.max(1, Math.floor(Number(opts.count) || 1));
     const now = Date.now();
     const wasActive = (Number(state.luckBoostUntil) || 0) > now;
     const current = Math.max(now, Number(state.luckBoostUntil) || 0);
-    state.luckBoostUntil = current + TREASURE_BOOST_MS;
+    state.luckBoostUntil = current + TREASURE_BOOST_MS * n;
     if (!opts.silent) {
+      const added = formatTreasureClock(TREASURE_BOOST_MS * n);
       const left = formatTreasureClock(state.luckBoostUntil - now);
       const total = formatMult(treasureLuckMult());
       const eventNote = eventLuckActive()
         ? ` · event stacked → ${total}× luck (${formatTreasureClock(eventMsLeft())} left on event)`
         : "";
-      setCatchLine(
-        wasActive
-          ? `Luck Chest · +5:00 chest time · ${total}× luck · ${left} left`
-          : `Opened Luck Chest! ${TREASURE_LUCK_MULT}× luck for 5:00${eventNote}`,
-        "treasure"
-      );
+      let line;
+      if (n > 1) {
+        line = `Opened ${n} Luck Chests · +${added} · ${total}× luck · ${left} left${eventNote}`;
+      } else if (wasActive) {
+        line = `Luck Chest · +5:00 chest time · ${total}× luck · ${left} left`;
+      } else {
+        line = `Opened Luck Chest! ${TREASURE_LUCK_MULT}× luck for 5:00${eventNote}`;
+      }
+      setCatchLine(line, "treasure");
       window.HubSound?.play?.("win");
       window.HubConfetti?.burst?.();
     }
@@ -3563,16 +3619,18 @@
   function useTreasure(kind) {
     const item = treasureByKind(kind);
     const key = chestCountKey(item.kind);
-    if (state[key] <= 0) {
+    const have = chestStoredCount(item.kind);
+    const n = chestQtyWanted(item.kind);
+    if (have <= 0 || n <= 0) {
       setCatchLine(`No ${item.name}s stored`, "miss");
       window.HubSound?.play?.("miss");
       return;
     }
     ensureSession();
-    state[key] -= 1;
-    noteQuestProgress("chest", 1, { duringEvent: eventIsLive() });
-    if (item.kind === "luck") activateLuckBoost();
-    else activateMoneyBoost();
+    state[key] = have - n;
+    noteQuestProgress("chest", n, { duringEvent: eventIsLive() });
+    if (item.kind === "luck") activateLuckBoost({ count: n });
+    else activateMoneyBoost({ count: n });
     renderTreasureStash();
     render(false);
     saveSoon();
@@ -7727,12 +7785,14 @@
     luckUseBtn?.closest(".treasure-stash-row")?.classList.toggle("is-boosted", luckOn);
     if (moneyUseBtn) {
       moneyUseBtn.disabled = money <= 0;
-      moneyUseBtn.textContent = moneyOn ? "Extend" : "Use";
+      moneyUseBtn.textContent = chestUseLabel("money", money, moneyOn);
     }
     if (luckUseBtn) {
       luckUseBtn.disabled = luck <= 0;
-      luckUseBtn.textContent = luckOn ? "Extend" : "Use";
+      luckUseBtn.textContent = chestUseLabel("luck", luck, luckOn);
     }
+    syncChestQtyButtons(moneyChestQtyEl, "money", money);
+    syncChestQtyButtons(luckChestQtyEl, "luck", luck);
     if (astralLuckyBlockUseBtn) {
       astralLuckyBlockUseBtn.disabled = astralBlocks <= 0;
       astralLuckyBlockUseBtn.textContent = "Open";
@@ -8192,6 +8252,18 @@
   sellBtn?.addEventListener("click", () => sellCooler());
   moneyUseBtn?.addEventListener("click", () => useTreasure("money"));
   luckUseBtn?.addEventListener("click", () => useTreasure("luck"));
+  moneyChestQtyEl?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-chest-qty]");
+    if (!btn || btn.disabled) return;
+    setChestOpenQty("money", btn.dataset.chestQty);
+    window.HubSound?.play?.("click");
+  });
+  luckChestQtyEl?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-chest-qty]");
+    if (!btn || btn.disabled) return;
+    setChestOpenQty("luck", btn.dataset.chestQty);
+    window.HubSound?.play?.("click");
+  });
   astralLuckyBlockUseBtn?.addEventListener("click", () => openLuckyBlockGui("astral"));
   absoluteLuckyBlockUseBtn?.addEventListener("click", () => openLuckyBlockGui("absolute"));
   zenithLuckyBlockUseBtn?.addEventListener("click", () => openLuckyBlockGui("zenith"));
