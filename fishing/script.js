@@ -1331,7 +1331,9 @@
       astralLuckyBlockCount: 0,
       zenithLuckyBlockCount: 0,
       /** Player preference for smarter gear shop (ignored if SMART_GEAR_SHOP is false). */
-      smartShop: true
+      smartShop: true,
+      /** Toast already shown for 75% collection luck bonus. */
+      collectionLuckTold: false
     };
   }
 
@@ -1392,10 +1394,35 @@
 
   /** Flat luck from gear + spot is tripled into the live luck stat. */
   const LUCK_STAT_MULT = 3;
+  /** Catch-book discovery reward past Master Fisher (70%). */
+  const COLLECTION_LUCK_PCT = 0.75;
+  const COLLECTION_LUCK_MULT = 1.5;
 
-  /** Raw luck before chests/events: (gear + current spot) × 3. */
+  function catchBookDiscoveryCount() {
+    return caughtCount("any", false);
+  }
+
+  function catchBookDiscoveryRatio() {
+    if (!FISH.length) return 0;
+    return catchBookDiscoveryCount() / FISH.length;
+  }
+
+  function hasCollectionLuckBonus() {
+    return catchBookDiscoveryRatio() >= COLLECTION_LUCK_PCT;
+  }
+
+  /** 1.5× all luck once 75% of the catch book is discovered. */
+  function collectionLuckMult() {
+    return hasCollectionLuckBonus() ? COLLECTION_LUCK_MULT : 1;
+  }
+
+  /** Raw luck before chests/events: (gear + current spot) × 3 × collection. */
   function baseLuck(spot = currentSpot()) {
-    return (Math.max(0, luckBonus()) + spotLuckBonus(spot)) * LUCK_STAT_MULT;
+    return (
+      (Math.max(0, luckBonus()) + spotLuckBonus(spot)) *
+      LUCK_STAT_MULT *
+      collectionLuckMult()
+    );
   }
 
   /**
@@ -3965,6 +3992,7 @@
         Math.min(LUCKY_BLOCK_STASH_MAX, Math.floor(Number(raw.zenithLuckyBlockCount) || 0))
       );
       next.smartShop = raw.smartShop !== false;
+      next.collectionLuckTold = !!raw.collectionLuckTold;
       return next;
     } catch {
       return defaultState();
@@ -5147,6 +5175,16 @@
           setCatchLine("70% catch book — title unlocked: MASTER FISHER", "perfect");
         }, 900);
       }
+    }
+    if (hasCollectionLuckBonus() && !state.collectionLuckTold) {
+      state.collectionLuckTold = true;
+      saveSoon();
+      setTimeout(() => {
+        setCatchLine(
+          `75% catch book — ${formatMult(COLLECTION_LUCK_MULT)}× luck forever`,
+          "perfect"
+        );
+      }, 1100);
     }
   }
 
@@ -6829,6 +6867,7 @@
       const bits = [];
       const luckM = treasureLuckMult();
       const moneyM = treasureMoneyMult();
+      const colM = collectionLuckMult();
       const base = baseLuck(spot);
       const effLuck = effectiveLuckBonus(spot);
       if (luckM > 1 || eventLuckActive() || luckBoostActive()) {
@@ -6839,6 +6878,11 @@
         );
       } else {
         bits.push(`Luck base gear+spot +${formatNum(base)} (odds below)`);
+      }
+      if (colM > 1) {
+        bits.push(
+          `${formatMult(colM)}× collection luck (75% catch book)`
+        );
       }
       if (moneyM > 1 || eventMoneyActive() || moneyBoostActive()) {
         bits.push(`Sell ${formatMult(moneyM)}× (Here pay)`);
@@ -6970,7 +7014,10 @@
     const found = caughtCount();
     const pct = total > 0 ? Math.floor((found / total) * 100) : 0;
     if (bookProgressEl) {
-      bookProgressEl.textContent = `${found} / ${total} (${pct}%) · ${bookFilterLabel()}`;
+      const reward = hasCollectionLuckBonus()
+        ? ` · ${formatMult(COLLECTION_LUCK_MULT)}× luck active`
+        : ` · 75% All: ${formatMult(COLLECTION_LUCK_MULT)}× luck`;
+      bookProgressEl.textContent = `${found} / ${total} (${pct}%) · ${bookFilterLabel()}${reward}`;
     }
     if (bookFiltersEl) {
       const primaryBtns = BOOK_FILTERS.map(
