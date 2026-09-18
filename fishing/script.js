@@ -5523,12 +5523,19 @@
     if (changed) saveSoon();
   }
 
+  function formatChestCountLabel(n, kind) {
+    const count = Math.max(0, Math.floor(Number(n) || 0));
+    const name = kind === "luck" ? "Luck Chest" : "Coin Chest";
+    if (count === 1) return `1 ${name}`;
+    return `${count} ${name}s`;
+  }
+
   function formatQuestReward(def) {
     const bits = [];
     const r = def.reward || {};
     if (r.coins) bits.push(`${formatNum(r.coins)} coins`);
-    if (r.moneyChest) bits.push(`${r.moneyChest}× Coin Chest`);
-    if (r.luckChest) bits.push(`${r.luckChest}× Luck Chest`);
+    if (r.moneyChest) bits.push(formatChestCountLabel(r.moneyChest, "money"));
+    if (r.luckChest) bits.push(formatChestCountLabel(r.luckChest, "luck"));
     return bits.join(" · ") || "Reward";
   }
 
