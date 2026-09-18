@@ -4,6 +4,17 @@
   box-sizing: border-box;
 }
 
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+canvas,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
 :root {
   --bg: #0c1624;
   --panel: #152238;
@@ -73,6 +84,15 @@ body {
   touch-action: manipulation;
   display: block;
   cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  outline: none;
+}
+
+#game:focus,
+#game:focus-visible {
+  outline: none;
 }
 
 .overlay {

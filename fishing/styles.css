@@ -4,6 +4,18 @@
   box-sizing: border-box;
 }
 
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+canvas,
+[role="button"],
+.cast-btn {
+  -webkit-tap-highlight-color: transparent;
+}
+
 :root {
   --bg-deep: #071820;
   --card: #143847;
@@ -1185,6 +1197,16 @@ body.modal-open {
   overflow: hidden;
   transition: box-shadow 0.25s ease, filter 0.2s ease;
   isolation: isolate;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  outline: none;
+}
+
+.cast-btn:focus,
+.cast-btn:focus-visible {
+  outline: none;
 }
 
 .cast-btn::before,

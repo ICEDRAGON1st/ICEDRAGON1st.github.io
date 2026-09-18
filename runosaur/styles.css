@@ -4,6 +4,17 @@
   box-sizing: border-box;
 }
 
+html {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+a,
+canvas,
+[role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+
 :root {
   --bg: #0e1a2e;
   --ink: #e8f4ff;
@@ -87,6 +98,15 @@ body {
   touch-action: none;
   cursor: pointer;
   box-shadow: 0 12px 40px rgba(0, 20, 50, 0.45);
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+  outline: none;
+}
+
+#game:focus,
+#game:focus-visible {
+  outline: none;
 }
 
 .touch-controls {
@@ -112,6 +132,13 @@ body {
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  outline: none;
+}
+
+.touch-btn:focus,
+.touch-btn:focus-visible {
+  outline: none;
 }
 
 .touch-btn:active,
