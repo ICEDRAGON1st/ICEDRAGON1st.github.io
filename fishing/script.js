@@ -1332,8 +1332,11 @@
       zenithLuckyBlockCount: 0,
       /** Player preference for smarter gear shop (ignored if SMART_GEAR_SHOP is false). */
       smartShop: true,
-      /** Toast already shown for 75% collection luck bonus. */
-      collectionLuckTold: false
+      /** Toast flags for catch-book collection rewards. */
+      collectionLuckTold: false,
+      collectionRainbowTold: false,
+      collectionLbEventTold: false,
+      collectionLbAlwaysTold: false
     };
   }
 
@@ -1394,9 +1397,14 @@
 
   /** Flat luck from gear + spot is tripled into the live luck stat. */
   const LUCK_STAT_MULT = 3;
-  /** Catch-book discovery reward past Master Fisher (70%). */
+  /** Catch-book discovery rewards (All discoveries, not variant filters). */
   const COLLECTION_LUCK_PCT = 0.75;
   const COLLECTION_LUCK_MULT = 1.5;
+  const COLLECTION_RAINBOW_PCT = 0.8;
+  const COLLECTION_RAINBOW_MULT = 2;
+  const COLLECTION_LB_EVENT_PCT = 0.9;
+  const COLLECTION_LB_EVENT_MULT = 1.25;
+  const COLLECTION_LB_ALWAYS_PCT = 1;
 
   function catchBookDiscoveryCount() {
     return caughtCount("any", false);
@@ -1411,9 +1419,31 @@
     return catchBookDiscoveryRatio() >= COLLECTION_LUCK_PCT;
   }
 
+  function hasCollectionRainbowBonus() {
+    return catchBookDiscoveryRatio() >= COLLECTION_RAINBOW_PCT;
+  }
+
+  function hasCollectionLbEventBonus() {
+    return catchBookDiscoveryRatio() >= COLLECTION_LB_EVENT_PCT;
+  }
+
+  function hasCollectionLbAlwaysBonus() {
+    return catchBookDiscoveryRatio() >= COLLECTION_LB_ALWAYS_PCT;
+  }
+
   /** 1.5× all luck once 75% of the catch book is discovered. */
   function collectionLuckMult() {
     return hasCollectionLuckBonus() ? COLLECTION_LUCK_MULT : 1;
+  }
+
+  /** 2× rainbow share among primary variants at 80%. */
+  function collectionRainbowMult() {
+    return hasCollectionRainbowBonus() ? COLLECTION_RAINBOW_MULT : 1;
+  }
+
+  /** 1.25× Lucky Block drop rate during LB events at 90%. */
+  function collectionLbEventMult() {
+    return hasCollectionLbEventBonus() ? COLLECTION_LB_EVENT_MULT : 1;
   }
 
   /** Raw luck before chests/events: (gear + current spot) × 3 × collection. */
@@ -1892,14 +1922,16 @@
   }
 
   /**
-   * Drop chance while a Lucky Block window is live (Astral / Absolute pool).
+   * Drop chance for Astral / Absolute Lucky Blocks.
    * Scheduled hour = base 0.1% × rolled 1×/1.5×/2×/3×. Admin mult scales the same base.
+   * 90% catch book: ×1.25 while an event is live. 100%: base 0.1% even outside events.
    * Luck gear / luck chests / luck events never change this.
    */
   function luckyBlockEventChance(now = Date.now()) {
     const admin = adminLuckyBlockEventLive(now);
     const scheduled = scheduledLuckyBlockEventIsLive(now);
-    if (!admin && !scheduled) return 0;
+    const always = hasCollectionLbAlwaysBonus();
+    if (!admin && !scheduled && !always) return 0;
     let p = 0;
     if (scheduled) {
       p = Math.max(
@@ -1910,14 +1942,21 @@
     if (admin) {
       p = Math.max(p, LUCKY_BLOCK_EVENT_CHANCE * clampAdminMult(admin.mult));
     }
+    if (always && !admin && !scheduled) {
+      p = Math.max(p, LUCKY_BLOCK_EVENT_CHANCE);
+    }
+    if ((admin || scheduled) && hasCollectionLbEventBonus()) {
+      p *= collectionLbEventMult();
+    }
     return Math.min(0.25, p);
   }
 
-  /** Zenith Lucky Block drop during the same windows — base 0.05% × event mult. */
+  /** Zenith Lucky Block drop — base 0.05% × event mult (same collection rules). */
   function luckyBlockZenithEventChance(now = Date.now()) {
     const admin = adminLuckyBlockEventLive(now);
     const scheduled = scheduledLuckyBlockEventIsLive(now);
-    if (!admin && !scheduled) return 0;
+    const always = hasCollectionLbAlwaysBonus();
+    if (!admin && !scheduled && !always) return 0;
     let p = 0;
     if (scheduled) {
       p = Math.max(
@@ -1927,6 +1966,12 @@
     }
     if (admin) {
       p = Math.max(p, LUCKY_BLOCK_ZENITH_EVENT_CHANCE * clampAdminMult(admin.mult));
+    }
+    if (always && !admin && !scheduled) {
+      p = Math.max(p, LUCKY_BLOCK_ZENITH_EVENT_CHANCE);
+    }
+    if ((admin || scheduled) && hasCollectionLbEventBonus()) {
+      p *= collectionLbEventMult();
     }
     return Math.min(0.25, p);
   }
@@ -1939,8 +1984,22 @@
   }
 
   function formatLuckyBlockEventLabel(now = Date.now()) {
+    const admin = adminLuckyBlockEventLive(now);
+    const scheduled = scheduledLuckyBlockEventIsLive(now);
     const mult = liveLuckyBlockEventMult(now);
-    return `${formatMult(mult)}× Lucky Blocks ${formatLuckyBlockChancePct(now)} · Zenith ${formatLuckyBlockChancePct(now, luckyBlockZenithEventChance)}`;
+    const astral = formatLuckyBlockChancePct(now);
+    const zenith = formatLuckyBlockChancePct(now, luckyBlockZenithEventChance);
+    if (admin || scheduled) {
+      const boost =
+        hasCollectionLbEventBonus() && collectionLbEventMult() > 1
+          ? ` · book ${formatMult(collectionLbEventMult())}×`
+          : "";
+      return `${formatMult(mult)}× Lucky Blocks ${astral} · Zenith ${zenith}${boost}`;
+    }
+    if (hasCollectionLbAlwaysBonus()) {
+      return `Book 100% Lucky Blocks ${astral} · Zenith ${zenith}`;
+    }
+    return `${formatMult(mult)}× Lucky Blocks ${astral} · Zenith ${zenith}`;
   }
 
   function serializeAdminChannel(e) {
@@ -3351,9 +3410,9 @@
   }
 
   /**
-   * Hourly / admin Lucky Block drop.
+   * Hourly / admin / collection Lucky Block drop.
    * Zenith: base 0.05% × event mult. Astral/Absolute: base 0.1% × event mult (50/50).
-   * Luck gear, luck chests, and luck events never change these chances.
+   * Luck gear never changes these; catch-book 90%/100% bonuses can.
    */
   function rollLuckyBlockDrop() {
     const zenithP = luckyBlockZenithEventChance();
@@ -3993,6 +4052,9 @@
       );
       next.smartShop = raw.smartShop !== false;
       next.collectionLuckTold = !!raw.collectionLuckTold;
+      next.collectionRainbowTold = !!raw.collectionRainbowTold;
+      next.collectionLbEventTold = !!raw.collectionLbEventTold;
+      next.collectionLbAlwaysTold = !!raw.collectionLbAlwaysTold;
       return next;
     } catch {
       return defaultState();
@@ -4035,6 +4097,14 @@
     const mult = variantEventMult();
     if (mult > 1 && VARIANT_PRIMARY.includes(spec.primary)) {
       shares[spec.primary] *= mult;
+      const sum = VARIANT_PRIMARY.reduce((s, k) => s + shares[k], 0) || 1;
+      VARIANT_PRIMARY.forEach((k) => {
+        shares[k] /= sum;
+      });
+    }
+    const rainbowMult = collectionRainbowMult();
+    if (rainbowMult > 1) {
+      shares.rainbow *= rainbowMult;
       const sum = VARIANT_PRIMARY.reduce((s, k) => s + shares[k], 0) || 1;
       VARIANT_PRIMARY.forEach((k) => {
         shares[k] /= sum;
@@ -5185,6 +5255,33 @@
           "perfect"
         );
       }, 1100);
+    }
+    if (hasCollectionRainbowBonus() && !state.collectionRainbowTold) {
+      state.collectionRainbowTold = true;
+      saveSoon();
+      setTimeout(() => {
+        setCatchLine(
+          `80% catch book — ${formatMult(COLLECTION_RAINBOW_MULT)}× rainbow chance`,
+          "perfect"
+        );
+      }, 1300);
+    }
+    if (hasCollectionLbEventBonus() && !state.collectionLbEventTold) {
+      state.collectionLbEventTold = true;
+      saveSoon();
+      setTimeout(() => {
+        setCatchLine(
+          `90% catch book — ${formatMult(COLLECTION_LB_EVENT_MULT)}× Lucky Blocks during events`,
+          "perfect"
+        );
+      }, 1500);
+    }
+    if (hasCollectionLbAlwaysBonus() && !state.collectionLbAlwaysTold) {
+      state.collectionLbAlwaysTold = true;
+      saveSoon();
+      setTimeout(() => {
+        setCatchLine("100% catch book — Lucky Blocks can drop anytime", "perfect");
+      }, 1700);
     }
   }
 
@@ -6583,6 +6680,8 @@
     const eventLive = eventIsLive();
     const lbLive = luckyBlockEventIsLive();
     const lbLeft = luckyBlockEventMsLeft();
+    const lbPassive =
+      !lbLive && hasCollectionLbAlwaysBonus() && luckyBlockEventChance() > 0;
     const moneyOn = moneyBoostActive() || eventMoneyActive();
     const luckOn = luckBoostActive() || eventLuckActive();
     if (moneyLeft <= 0 && state.moneyBoostUntil) state.moneyBoostUntil = 0;
@@ -6593,11 +6692,11 @@
     document.body.classList.toggle("treasure-luck-boost", luckOn);
     document.body.classList.toggle("event-money", eventMoneyActive());
     document.body.classList.toggle("event-luck", eventLuckActive());
-    document.body.classList.toggle("event-luckyblock", lbLive);
+    document.body.classList.toggle("event-luckyblock", lbLive || lbPassive);
     document.body.classList.toggle("event-variant", !!adminVariantEventLive());
     document.body.classList.toggle(
       "event-idle",
-      !eventLive && !adminVariantEventLive() && !lbLive
+      !eventLive && !adminVariantEventLive() && !lbLive && !lbPassive
     );
     applySpotTheme();
     if (coinCountEl) coinCountEl.textContent = formatNum(state.coins);
@@ -6635,6 +6734,8 @@
       }
       if (lbLive) {
         parts.push(`${formatLuckyBlockEventLabel()} · ${formatTreasureClock(lbLeft)}`);
+      } else if (hasCollectionLbAlwaysBonus() && luckyBlockEventChance() > 0) {
+        parts.push(`${formatLuckyBlockEventLabel()} · anytime`);
       }
       if (variant) {
         parts.push(
@@ -6644,7 +6745,13 @@
         );
       }
       if (parts.length) {
-        eventLabelEl.textContent = `${parts.join(" · ")} left`;
+        const hasTimed =
+          (eventLive && (eventKind === "luck" || eventKind === "money")) ||
+          lbLive ||
+          !!variant;
+        eventLabelEl.textContent = hasTimed
+          ? `${parts.join(" · ")} left`
+          : parts.join(" · ");
       } else {
         const nextStart = nextHalfHourStart();
         const nextKind = eventKindForStart(nextStart);
@@ -6884,6 +6991,21 @@
           `${formatMult(colM)}× collection luck (75% catch book)`
         );
       }
+      if (collectionRainbowMult() > 1) {
+        bits.push(
+          `${formatMult(collectionRainbowMult())}× rainbow share (80% catch book)`
+        );
+      }
+      if (hasCollectionLbEventBonus() || hasCollectionLbAlwaysBonus()) {
+        const lbBits = [];
+        if (hasCollectionLbEventBonus()) {
+          lbBits.push(`${formatMult(collectionLbEventMult())}× during LB events (90%)`);
+        }
+        if (hasCollectionLbAlwaysBonus()) {
+          lbBits.push("LB drops anytime (100%)");
+        }
+        bits.push(`Collection Lucky Blocks: ${lbBits.join(" · ")}`);
+      }
       if (moneyM > 1 || eventMoneyActive() || moneyBoostActive()) {
         bits.push(`Sell ${formatMult(moneyM)}× (Here pay)`);
       }
@@ -6928,7 +7050,9 @@
           id: "rainbow",
           name: "Rainbow",
           mult: "×3",
-          note: "primary",
+          note: hasCollectionRainbowBonus()
+            ? `primary · book ${formatMult(COLLECTION_RAINBOW_MULT)}×`
+            : "primary",
           cast: castV.rainbow,
           boat: boatV.rainbow
         },
@@ -7014,9 +7138,16 @@
     const found = caughtCount();
     const pct = total > 0 ? Math.floor((found / total) * 100) : 0;
     if (bookProgressEl) {
-      const reward = hasCollectionLuckBonus()
-        ? ` · ${formatMult(COLLECTION_LUCK_MULT)}× luck active`
-        : ` · 75% All: ${formatMult(COLLECTION_LUCK_MULT)}× luck`;
+      const tiers = [];
+      if (hasCollectionLuckBonus()) tiers.push(`${formatMult(COLLECTION_LUCK_MULT)}× luck`);
+      if (hasCollectionRainbowBonus()) tiers.push(`${formatMult(COLLECTION_RAINBOW_MULT)}× rainbow`);
+      if (hasCollectionLbEventBonus()) {
+        tiers.push(`${formatMult(COLLECTION_LB_EVENT_MULT)}× LB events`);
+      }
+      if (hasCollectionLbAlwaysBonus()) tiers.push("LB anytime");
+      const reward = tiers.length
+        ? ` · ${tiers.join(" · ")}`
+        : ` · 75% luck · 80% rainbow · 90% LB event · 100% LB anytime`;
       bookProgressEl.textContent = `${found} / ${total} (${pct}%) · ${bookFilterLabel()}${reward}`;
     }
     if (bookFiltersEl) {
