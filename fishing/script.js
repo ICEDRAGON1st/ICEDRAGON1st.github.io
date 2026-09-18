@@ -5233,7 +5233,7 @@
   /* ========== DAILY / WEEKLY OBJECTIVES ========== */
   const QUEST_DIFFICULTIES = ["easy", "medium", "hard"];
   /** Bump to force re-roll when objective layout changes. */
-  const QUEST_LAYOUT_VERSION = 2;
+  const QUEST_LAYOUT_VERSION = 3;
 
   const QUEST_DAILY_POOL = [
     // Easy
@@ -5394,131 +5394,131 @@
       id: "w_e_catch100",
       difficulty: "easy",
       kind: "catch",
-      target: 100,
-      label: "Catch 100 fish",
-      reward: { coins: 3500, moneyChest: 1 }
+      target: 200,
+      label: "Catch 200 fish",
+      reward: { coins: 5500, moneyChest: 1 }
     },
     {
       id: "w_e_sell120",
       difficulty: "easy",
       kind: "sell",
-      target: 120,
-      label: "Sell 120 fish",
-      reward: { coins: 4000, moneyChest: 1 }
+      target: 250,
+      label: "Sell 250 fish",
+      reward: { coins: 6000, moneyChest: 1 }
     },
     {
       id: "w_e_perfect15",
       difficulty: "easy",
       kind: "perfect",
-      target: 15,
-      label: "Land 15 perfect reels",
-      reward: { coins: 4500, luckChest: 1 }
+      target: 30,
+      label: "Land 30 perfect reels",
+      reward: { coins: 7000, luckChest: 1 }
     },
     {
       id: "w_e_manual40",
       difficulty: "easy",
       kind: "catch",
       manualOnly: true,
-      target: 40,
-      label: "Reel in 40 fish by hand",
-      reward: { coins: 3800 }
+      target: 80,
+      label: "Reel in 80 fish by hand",
+      reward: { coins: 6500, moneyChest: 1 }
     },
     // Medium
     {
       id: "w_m_perfect25",
       difficulty: "medium",
       kind: "perfect",
-      target: 25,
-      label: "Land 25 perfect reels",
-      reward: { coins: 8000, moneyChest: 2 }
+      target: 50,
+      label: "Land 50 perfect reels",
+      reward: { coins: 12000, moneyChest: 2, luckChest: 1 }
     },
     {
       id: "w_m_sell_epic40",
       difficulty: "medium",
       kind: "sell",
       rarity: "epic",
-      target: 40,
-      label: "Sell 40 epic fish",
-      reward: { coins: 7000, luckChest: 2 }
+      target: 75,
+      label: "Sell 75 epic fish",
+      reward: { coins: 11000, luckChest: 2 }
     },
     {
       id: "w_m_catch150",
       difficulty: "medium",
       kind: "catch",
-      target: 150,
-      label: "Catch 150 fish",
-      reward: { coins: 6500, moneyChest: 1, luckChest: 1 }
+      target: 300,
+      label: "Catch 300 fish",
+      reward: { coins: 10000, moneyChest: 2, luckChest: 1 }
     },
     {
       id: "w_m_chest_event2",
       difficulty: "medium",
       kind: "chest",
       duringEvent: true,
-      target: 2,
-      label: "Open 2 chests during events",
-      reward: { moneyChest: 2, luckChest: 1 }
+      target: 4,
+      label: "Open 4 chests during events",
+      reward: { moneyChest: 2, luckChest: 2 }
     },
     {
       id: "w_m_manual70",
       difficulty: "medium",
       kind: "catch",
       manualOnly: true,
-      target: 70,
-      label: "Reel in 70 fish by hand",
-      reward: { coins: 7500, luckChest: 1 }
+      target: 140,
+      label: "Reel in 140 fish by hand",
+      reward: { coins: 11500, luckChest: 2 }
     },
     // Hard
     {
       id: "w_h_perfect40",
       difficulty: "hard",
       kind: "perfect",
-      target: 40,
-      label: "Land 40 perfect reels",
-      reward: { coins: 14000, moneyChest: 3 }
+      target: 80,
+      label: "Land 80 perfect reels",
+      reward: { coins: 22000, moneyChest: 4 }
     },
     {
       id: "w_h_sell_epic50",
       difficulty: "hard",
       kind: "sell",
       rarity: "epic",
-      target: 50,
-      label: "Sell 50 epic fish",
-      reward: { coins: 12000, luckChest: 2, moneyChest: 1 }
+      target: 100,
+      label: "Sell 100 epic fish",
+      reward: { coins: 20000, luckChest: 3, moneyChest: 2 }
     },
     {
       id: "w_h_sell_leg20",
       difficulty: "hard",
       kind: "sell",
       minRank: 5,
-      target: 20,
-      label: "Sell 20 legendary-or-better fish",
-      reward: { coins: 15000, luckChest: 2, moneyChest: 2 }
+      target: 40,
+      label: "Sell 40 legendary-or-better fish",
+      reward: { coins: 25000, luckChest: 3, moneyChest: 2 }
     },
     {
       id: "w_h_chest_event3",
       difficulty: "hard",
       kind: "chest",
       duringEvent: true,
-      target: 3,
-      label: "Open 3 chests during events",
-      reward: { moneyChest: 3, luckChest: 2 }
+      target: 6,
+      label: "Open 6 chests during events",
+      reward: { moneyChest: 4, luckChest: 3 }
     },
     {
       id: "w_h_catch250",
       difficulty: "hard",
       kind: "catch",
-      target: 250,
-      label: "Catch 250 fish",
-      reward: { coins: 11000, moneyChest: 2, luckChest: 1 }
+      target: 500,
+      label: "Catch 500 fish",
+      reward: { coins: 18000, moneyChest: 3, luckChest: 2 }
     },
     {
       id: "w_h_manual100",
       difficulty: "hard",
       kind: "catch",
       manualOnly: true,
-      target: 100,
-      label: "Reel in 100 fish by hand",
-      reward: { coins: 13000, luckChest: 2 }
+      target: 200,
+      label: "Reel in 200 fish by hand",
+      reward: { coins: 21000, luckChest: 3, moneyChest: 1 }
     }
   ];
 
