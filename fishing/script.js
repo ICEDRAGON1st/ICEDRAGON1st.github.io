@@ -1336,6 +1336,10 @@
       lastTick: Date.now(),
       moneyBoostUntil: 0,
       luckBoostUntil: 0,
+      moneyBoostPaused: false,
+      luckBoostPaused: false,
+      moneyBoostPausedLeft: 0,
+      luckBoostPausedLeft: 0,
       moneyChestCount: 0,
       luckChestCount: 0,
       luckyBlockCount: 0,
@@ -1506,22 +1510,93 @@
     );
   }
 
+  function moneyBoostPaused() {
+    return !!state.moneyBoostPaused && moneyMsLeft() > 0;
+  }
+
+  function luckBoostPaused() {
+    return !!state.luckBoostPaused && luckMsLeft() > 0;
+  }
+
   function moneyBoostActive() {
-    return moneyMsLeft() > 0;
+    return !state.moneyBoostPaused && moneyMsLeft() > 0;
   }
 
   function luckBoostActive() {
-    return luckMsLeft() > 0;
+    return !state.luckBoostPaused && luckMsLeft() > 0;
   }
 
   function moneyMsLeft() {
+    if (state.moneyBoostPaused) {
+      return Math.max(0, Number(state.moneyBoostPausedLeft) || 0);
+    }
     const until = Math.max(0, Number(state.moneyBoostUntil) || 0);
     return Math.max(0, until - Date.now());
   }
 
   function luckMsLeft() {
+    if (state.luckBoostPaused) {
+      return Math.max(0, Number(state.luckBoostPausedLeft) || 0);
+    }
     const until = Math.max(0, Number(state.luckBoostUntil) || 0);
     return Math.max(0, until - Date.now());
+  }
+
+  function clearExpiredChestBoosts() {
+    if (moneyMsLeft() <= 0) {
+      state.moneyBoostUntil = 0;
+      state.moneyBoostPaused = false;
+      state.moneyBoostPausedLeft = 0;
+    }
+    if (luckMsLeft() <= 0) {
+      state.luckBoostUntil = 0;
+      state.luckBoostPaused = false;
+      state.luckBoostPausedLeft = 0;
+    }
+  }
+
+  function toggleChestBoostPause(kind) {
+    const luck = kind === "luck";
+    const left = luck ? luckMsLeft() : moneyMsLeft();
+    if (left <= 0) return;
+    const paused = luck ? !!state.luckBoostPaused : !!state.moneyBoostPaused;
+    if (paused) {
+      if (luck) {
+        state.luckBoostPaused = false;
+        state.luckBoostUntil = Date.now() + left;
+        state.luckBoostPausedLeft = 0;
+      } else {
+        state.moneyBoostPaused = false;
+        state.moneyBoostUntil = Date.now() + left;
+        state.moneyBoostPausedLeft = 0;
+      }
+      const total = formatMult(luck ? treasureLuckMult() : treasureMoneyMult());
+      setCatchLine(
+        luck
+          ? `Luck Chest resumed · ${total}× luck · ${formatTreasureClock(left)} left`
+          : `Coin Chest resumed · ${total}× sell · ${formatTreasureClock(left)} left`,
+        "treasure"
+      );
+    } else {
+      if (luck) {
+        state.luckBoostPaused = true;
+        state.luckBoostPausedLeft = left;
+        state.luckBoostUntil = 0;
+      } else {
+        state.moneyBoostPaused = true;
+        state.moneyBoostPausedLeft = left;
+        state.moneyBoostUntil = 0;
+      }
+      setCatchLine(
+        luck
+          ? `Luck Chest paused · ${formatTreasureClock(left)} saved · 1.5× luck off`
+          : `Coin Chest paused · ${formatTreasureClock(left)} saved · 2× sell off`,
+        "treasure"
+      );
+    }
+    window.HubSound?.play?.("click");
+    renderStats();
+    saveSoon();
   }
 
   /** Local clock start of the current :00 or :30 block. */
@@ -3532,20 +3607,28 @@
   function activateMoneyBoost(opts = {}) {
     const n = Math.max(1, Math.floor(Number(opts.count) || 1));
     const now = Date.now();
-    const wasActive = (Number(state.moneyBoostUntil) || 0) > now;
-    const current = Math.max(now, Number(state.moneyBoostUntil) || 0);
-    state.moneyBoostUntil = current + TREASURE_BOOST_MS * n;
+    const wasHeld = moneyMsLeft() > 0;
+    if (state.moneyBoostPaused) {
+      state.moneyBoostPausedLeft = moneyMsLeft() + TREASURE_BOOST_MS * n;
+    } else {
+      const current = Math.max(now, Number(state.moneyBoostUntil) || 0);
+      state.moneyBoostUntil = current + TREASURE_BOOST_MS * n;
+    }
     if (!opts.silent) {
       const added = formatTreasureClock(TREASURE_BOOST_MS * n);
-      const left = formatTreasureClock(state.moneyBoostUntil - now);
+      const left = formatTreasureClock(moneyMsLeft());
       const total = formatMult(treasureMoneyMult());
       const eventNote = eventMoneyActive()
         ? ` · event stacked → ${total}× sell (${formatTreasureClock(eventMsLeft())} left on event)`
         : "";
       let line;
-      if (n > 1) {
+      if (state.moneyBoostPaused) {
+        line = n > 1
+          ? `Opened ${n} Coin Chests · +${added} · ${left} paused · 2× sell off`
+          : `Coin Chest · +5:00 · ${left} paused · 2× sell off`;
+      } else if (n > 1) {
         line = `Opened ${n} Coin Chests · +${added} · ${total}× sell · ${left} left${eventNote}`;
-      } else if (wasActive) {
+      } else if (wasHeld) {
         line = `Coin Chest · +5:00 chest time · ${total}× sell · ${left} left`;
       } else {
         line = `Opened Coin Chest! ${TREASURE_MULT}× sell for 5:00${eventNote}`;
@@ -3561,20 +3644,28 @@
   function activateLuckBoost(opts = {}) {
     const n = Math.max(1, Math.floor(Number(opts.count) || 1));
     const now = Date.now();
-    const wasActive = (Number(state.luckBoostUntil) || 0) > now;
-    const current = Math.max(now, Number(state.luckBoostUntil) || 0);
-    state.luckBoostUntil = current + TREASURE_BOOST_MS * n;
+    const wasHeld = luckMsLeft() > 0;
+    if (state.luckBoostPaused) {
+      state.luckBoostPausedLeft = luckMsLeft() + TREASURE_BOOST_MS * n;
+    } else {
+      const current = Math.max(now, Number(state.luckBoostUntil) || 0);
+      state.luckBoostUntil = current + TREASURE_BOOST_MS * n;
+    }
     if (!opts.silent) {
       const added = formatTreasureClock(TREASURE_BOOST_MS * n);
-      const left = formatTreasureClock(state.luckBoostUntil - now);
+      const left = formatTreasureClock(luckMsLeft());
       const total = formatMult(treasureLuckMult());
       const eventNote = eventLuckActive()
         ? ` · event stacked → ${total}× luck (${formatTreasureClock(eventMsLeft())} left on event)`
         : "";
       let line;
-      if (n > 1) {
+      if (state.luckBoostPaused) {
+        line = n > 1
+          ? `Opened ${n} Luck Chests · +${added} · ${left} paused · 1.5× luck off`
+          : `Luck Chest · +5:00 · ${left} paused · 1.5× luck off`;
+      } else if (n > 1) {
         line = `Opened ${n} Luck Chests · +${added} · ${total}× luck · ${left} left${eventNote}`;
-      } else if (wasActive) {
+      } else if (wasHeld) {
         line = `Luck Chest · +5:00 chest time · ${total}× luck · ${left} left`;
       } else {
         line = `Opened Luck Chest! ${TREASURE_LUCK_MULT}× luck for 5:00${eventNote}`;
@@ -4258,8 +4349,28 @@
         Number(raw.moneyBoostUntil) || Number(raw.treasureBoostUntil) || 0
       );
       const luckUntil = Math.max(0, Number(raw.luckBoostUntil) || 0);
-      next.moneyBoostUntil = moneyUntil > now ? moneyUntil : 0;
-      next.luckBoostUntil = luckUntil > now ? luckUntil : 0;
+      next.moneyBoostPaused = !!raw.moneyBoostPaused;
+      next.luckBoostPaused = !!raw.luckBoostPaused;
+      next.moneyBoostPausedLeft = Math.max(0, Number(raw.moneyBoostPausedLeft) || 0);
+      next.luckBoostPausedLeft = Math.max(0, Number(raw.luckBoostPausedLeft) || 0);
+      if (next.moneyBoostPaused) {
+        next.moneyBoostUntil = 0;
+        if (next.moneyBoostPausedLeft <= 0) {
+          next.moneyBoostPaused = false;
+        }
+      } else {
+        next.moneyBoostUntil = moneyUntil > now ? moneyUntil : 0;
+        next.moneyBoostPausedLeft = 0;
+      }
+      if (next.luckBoostPaused) {
+        next.luckBoostUntil = 0;
+        if (next.luckBoostPausedLeft <= 0) {
+          next.luckBoostPaused = false;
+        }
+      } else {
+        next.luckBoostUntil = luckUntil > now ? luckUntil : 0;
+        next.luckBoostPausedLeft = 0;
+      }
       const legacyCount = Math.max(0, Math.floor(Number(raw.treasureCount) || 0));
       next.moneyChestCount = Math.max(
         0,
@@ -7639,8 +7750,7 @@
       !lbLive && hasCollectionLbAlwaysBonus() && luckyBlockEventChance() > 0;
     const moneyOn = moneyBoostActive() || eventMoneyActive();
     const luckOn = luckBoostActive() || eventLuckActive();
-    if (moneyLeft <= 0 && state.moneyBoostUntil) state.moneyBoostUntil = 0;
-    if (luckLeft <= 0 && state.luckBoostUntil) state.luckBoostUntil = 0;
+    clearExpiredChestBoosts();
     maybeAnnounceEvent();
     document.body.classList.toggle("treasure-boost", moneyOn || luckOn);
     document.body.classList.toggle("treasure-money-boost", moneyOn);
@@ -7765,6 +7875,10 @@
     const luckLeft = luckMsLeft();
     const moneyOn = moneyBoostActive();
     const luckOn = luckBoostActive();
+    const moneyHeld = moneyLeft > 0;
+    const luckHeld = luckLeft > 0;
+    const moneyPaused = moneyBoostPaused();
+    const luckPaused = luckBoostPaused();
     const showAstral = isFishingOwner() || astralBlocks > 0;
     const showAbsolute = isFishingOwner() || absoluteBlocks > 0;
     const showZenith = isFishingOwner() || zenithBlocks > 0;
@@ -7774,22 +7888,38 @@
     if (absoluteLuckyBlockCountEl) absoluteLuckyBlockCountEl.textContent = String(absoluteBlocks);
     if (zenithLuckyBlockCountEl) zenithLuckyBlockCountEl.textContent = String(zenithBlocks);
     if (moneyChestTimerEl) {
-      moneyChestTimerEl.classList.toggle("hidden", !moneyOn);
-      moneyChestTimerEl.textContent = moneyOn ? `${formatTreasureClock(moneyLeft)} left` : "";
+      moneyChestTimerEl.classList.toggle("hidden", !moneyHeld);
+      moneyChestTimerEl.classList.toggle("is-paused", moneyPaused);
+      moneyChestTimerEl.disabled = !moneyHeld;
+      moneyChestTimerEl.setAttribute("aria-pressed", moneyPaused ? "true" : "false");
+      moneyChestTimerEl.textContent = !moneyHeld
+        ? ""
+        : moneyPaused
+          ? `${formatTreasureClock(moneyLeft)} paused`
+          : `${formatTreasureClock(moneyLeft)} left`;
     }
     if (luckChestTimerEl) {
-      luckChestTimerEl.classList.toggle("hidden", !luckOn);
-      luckChestTimerEl.textContent = luckOn ? `${formatTreasureClock(luckLeft)} left` : "";
+      luckChestTimerEl.classList.toggle("hidden", !luckHeld);
+      luckChestTimerEl.classList.toggle("is-paused", luckPaused);
+      luckChestTimerEl.disabled = !luckHeld;
+      luckChestTimerEl.setAttribute("aria-pressed", luckPaused ? "true" : "false");
+      luckChestTimerEl.textContent = !luckHeld
+        ? ""
+        : luckPaused
+          ? `${formatTreasureClock(luckLeft)} paused`
+          : `${formatTreasureClock(luckLeft)} left`;
     }
     moneyUseBtn?.closest(".treasure-stash-row")?.classList.toggle("is-boosted", moneyOn);
     luckUseBtn?.closest(".treasure-stash-row")?.classList.toggle("is-boosted", luckOn);
+    moneyUseBtn?.closest(".treasure-stash-row")?.classList.toggle("is-paused", moneyPaused);
+    luckUseBtn?.closest(".treasure-stash-row")?.classList.toggle("is-paused", luckPaused);
     if (moneyUseBtn) {
       moneyUseBtn.disabled = money <= 0;
-      moneyUseBtn.textContent = chestUseLabel("money", money, moneyOn);
+      moneyUseBtn.textContent = chestUseLabel("money", money, moneyHeld);
     }
     if (luckUseBtn) {
       luckUseBtn.disabled = luck <= 0;
-      luckUseBtn.textContent = chestUseLabel("luck", luck, luckOn);
+      luckUseBtn.textContent = chestUseLabel("luck", luck, luckHeld);
     }
     syncChestQtyButtons(moneyChestQtyEl, "money", money);
     syncChestQtyButtons(luckChestQtyEl, "luck", luck);
@@ -7825,8 +7955,8 @@
           astralBlocks <= 0 &&
           absoluteBlocks <= 0 &&
           zenithBlocks <= 0 &&
-          !moneyOn &&
-          !luckOn
+          !moneyHeld &&
+          !luckHeld
       );
       treasureStashEl.classList.toggle("is-active", moneyOn || luckOn);
     }
@@ -8252,6 +8382,8 @@
   sellBtn?.addEventListener("click", () => sellCooler());
   moneyUseBtn?.addEventListener("click", () => useTreasure("money"));
   luckUseBtn?.addEventListener("click", () => useTreasure("luck"));
+  moneyChestTimerEl?.addEventListener("click", () => toggleChestBoostPause("money"));
+  luckChestTimerEl?.addEventListener("click", () => toggleChestBoostPause("luck"));
   moneyChestQtyEl?.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-chest-qty]");
     if (!btn || btn.disabled) return;
