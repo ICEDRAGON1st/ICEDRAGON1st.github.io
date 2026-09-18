@@ -5939,7 +5939,7 @@
       <div class="quest-section-meta">Resets in ${dailyLeft}</div>
       ${(state.quests.daily || []).map((q) => questRowHtml("daily", q)).join("")}
       <div class="quest-section-title">Weekly</div>
-      <div class="quest-section-meta">Resets in ${weeklyLeft}</div>
+      <div class="quest-section-meta">Resets Sat 12:00 AM · ${weeklyLeft} left</div>
       ${(state.quests.weekly || []).map((q) => questRowHtml("weekly", q)).join("")}
     `;
   }
