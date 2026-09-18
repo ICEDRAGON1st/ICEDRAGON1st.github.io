@@ -3509,6 +3509,58 @@ body.treasure-boost .cast-btn {
   line-height: 1.35;
 }
 
+/* ========== SMART GEAR SHOP (deletable with SMART_GEAR_SHOP flag) ========== */
+.shop-list.shop-smart .shop-smart-summary {
+  font-size: 0.72rem;
+  color: var(--muted);
+  padding: 0.15rem 0.2rem 0.35rem;
+  line-height: 1.35;
+}
+
+.shop-list.shop-smart .shop-smart-maxed {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--teal);
+  padding: 0.2rem 0.35rem 0.45rem;
+}
+
+.shop-list.shop-smart .shop-item.is-next-upgrade {
+  border-color: color-mix(in srgb, var(--teal) 55%, var(--border));
+  background: color-mix(in srgb, var(--teal) 12%, rgba(0, 0, 0, 0.2));
+}
+
+.shop-list.shop-smart .shop-item.is-soft-muted {
+  opacity: 0.55;
+}
+
+.shop-list.shop-smart .shop-item-smart-extra {
+  margin: 0.15rem 0 0;
+  font-size: 0.7rem;
+  color: color-mix(in srgb, var(--teal) 70%, var(--muted));
+  line-height: 1.3;
+}
+
+.shop-list.shop-smart .shop-smart-toggle {
+  appearance: none;
+  border: 1px dashed var(--border);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-align: left;
+  padding: 0.45rem 0.65rem;
+  border-radius: 0.55rem;
+  cursor: pointer;
+  width: 100%;
+}
+
+.shop-list.shop-smart .shop-smart-toggle:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--teal) 40%, var(--border));
+}
+/* ========== END SMART GEAR SHOP ========== */
+
 .shop-list,
 .spot-list {
   display: flex;

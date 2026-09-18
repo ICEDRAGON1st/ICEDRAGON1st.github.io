@@ -38,6 +38,12 @@
   const LUCKY_BLOCK_ZENITH_EVENT_CHANCE = 0.0005;
   /** Scheduled :00 Lucky Block events roll one of these (same for all players per hour). */
   const LUCKY_BLOCK_EVENT_MULT_OPTIONS = [1, 1.5, 2, 3];
+  /**
+   * Smarter gear shop: next upgrade first, collapse owned, show real deltas / soft caps.
+   * Easy remove: set false — OR delete this flag, all `shopSmart*` helpers, SMART_GEAR_SHOP
+   * branches in renderShop / shopList click, and the `SMART GEAR SHOP` CSS block.
+   */
+  const SMART_GEAR_SHOP = true;
   const CHEST_MONEY_BONUS = TREASURE_MULT - 1; // +1 → 2×
   const CHEST_LUCK_BONUS = TREASURE_LUCK_MULT - 1; // +0.5 → 1.5×
   // Chest + matching event stacks additively with the rolled event mult
@@ -1235,6 +1241,8 @@
   let biteEndsAt = 0;
   let boatAcc = {};
   let shopCat = "all";
+  /** Expand state for SMART_GEAR_SHOP only — keys like "window:owned" / "luck:more". */
+  const shopSmartExpand = Object.create(null);
 
   const SHOP_CATEGORIES = [
     {
@@ -6234,15 +6242,155 @@
     }).join("");
   }
 
+  /* ========== SMART GEAR SHOP helpers (deletable with SMART_GEAR_SHOP) ========== */
+  function shopSmartKey(kind, part) {
+    return `${kind}:${part}`;
+  }
+
+  function shopSmartIsOpen(kind, part) {
+    return !!shopSmartExpand[shopSmartKey(kind, part)];
+  }
+
+  function shopSmartOwnedSum(kind) {
+    return ownedGear(kind).reduce((s, g) => s + (Number(g.amount) || 0), 0);
+  }
+
+  function shopSmartDeltaExtra(item) {
+    const kind = item.kind;
+    const amt = Number(item.amount) || 0;
+    if (kind === "speed") {
+      const cur = equippedSpeedGear()?.amount || 0;
+      if (amt <= cur + 1e-9) {
+        return "Weaker than equipped bait — skip";
+      }
+      const beforeWait = Math.round((1 - cur) * 100);
+      const afterWait = Math.round(Math.max(0.1, 1 - amt) * 100);
+      if (beforeWait === afterWait) return "At wait cap — little/no gain";
+      return `Wait ${beforeWait}% → ${afterWait}% of base`;
+    }
+    const sum = shopSmartOwnedSum(kind);
+    if (kind === "window") {
+      const before = Math.min(4, 0.45 + sum);
+      const after = Math.min(4, 0.45 + sum + amt);
+      if (after <= before + 1e-9) return "Bite window at 4.0s cap";
+      return `Window ${before.toFixed(2)}s → ${after.toFixed(2)}s`;
+    }
+    if (kind === "multi") {
+      const before = Math.min(0.98, sum);
+      const after = Math.min(0.98, sum + amt);
+      if (after <= before + 1e-9) return "Second-catch at 98% cap";
+      return `2nd catch ${(before * 100).toFixed(0)}% → ${(after * 100).toFixed(0)}%`;
+    }
+    if (kind === "triple") {
+      const before = Math.min(0.9, sum);
+      const after = Math.min(0.9, sum + amt);
+      if (after <= before + 1e-9) return "Third-catch at 90% cap";
+      return `3rd catch ${(before * 100).toFixed(0)}% → ${(after * 100).toFixed(0)}%`;
+    }
+    if (kind === "luck") {
+      return `Luck ${formatNum(sum)} → ${formatNum(sum + amt)}`;
+    }
+    if (kind === "cooler") {
+      return `Slots ${COOLER_BASE + sum} → ${COOLER_BASE + sum + amt}`;
+    }
+    if (kind === "value") {
+      return `Sell ${formatPctBonus(sum)} → ${formatPctBonus(sum + amt)}`;
+    }
+    if (kind === "perfect") {
+      return `Perfect pay ${formatPctBonus(sum)} → ${formatPctBonus(sum + amt)}`;
+    }
+    return "";
+  }
+
+  function shopSmartSummary(kind) {
+    if (kind === "speed") {
+      const eq = equippedSpeedGear();
+      if (!eq) return "No bait equipped";
+      return `Equipped ${eq.name} (−${Math.round(eq.amount * 100)}% wait)`;
+    }
+    const sum = shopSmartOwnedSum(kind);
+    const n = ownedGear(kind).length;
+    if (!n) return "None owned yet";
+    if (kind === "window") {
+      const w = Math.min(4, 0.45 + sum);
+      return `${n} owned · window ${w.toFixed(2)}s / 4.0s`;
+    }
+    if (kind === "luck") return `${n} owned · +${formatNum(sum)} luck`;
+    if (kind === "cooler") return `${n} owned · ${COOLER_BASE + sum} slots`;
+    if (kind === "value") return `${n} owned · sell ${formatPctBonus(sum)}`;
+    if (kind === "perfect") return `${n} owned · perfect ${formatPctBonus(sum)}`;
+    if (kind === "multi") {
+      return `${n} owned · 2nd ${Math.min(98, Math.round(sum * 100))}% / 98%`;
+    }
+    if (kind === "triple") {
+      return `${n} owned · 3rd ${Math.min(90, Math.round(sum * 100))}% / 90%`;
+    }
+    return `${n} owned`;
+  }
+
+  function shopSmartCategoryRows(kind, gearRow) {
+    const items = GEAR.filter((g) => g.kind === kind);
+    const owned = items.filter((g) => state.owned[g.id]);
+    const unowned = items.filter((g) => !state.owned[g.id]);
+    const showOwned = shopSmartIsOpen(kind, "owned");
+    const showMore = shopSmartIsOpen(kind, "more");
+    const upcomingVisible = 2;
+    const head = unowned.slice(0, upcomingVisible);
+    const rest = unowned.slice(upcomingVisible);
+
+    let html = `<div class="shop-smart-summary">${shopSmartSummary(kind)}</div>`;
+
+    if (!unowned.length && owned.length) {
+      html += `<div class="shop-smart-maxed">Category maxed</div>`;
+    }
+
+    head.forEach((item, i) => {
+      html += gearRow(item, {
+        next: i === 0,
+        extra: shopSmartDeltaExtra(item)
+      });
+    });
+
+    if (rest.length) {
+      if (showMore) {
+        rest.forEach((item) => {
+          html += gearRow(item, { extra: shopSmartDeltaExtra(item) });
+        });
+        html += `<button type="button" class="shop-smart-toggle" data-shop-smart="${kind}" data-shop-smart-part="more">Hide ${rest.length} later upgrades</button>`;
+      } else {
+        html += `<button type="button" class="shop-smart-toggle" data-shop-smart="${kind}" data-shop-smart-part="more">Show ${rest.length} more upgrades</button>`;
+      }
+    }
+
+    if (owned.length) {
+      if (showOwned) {
+        owned.forEach((item) => {
+          const muted =
+            kind === "speed" &&
+            state.equippedSpeed !== item.id &&
+            item.amount < (equippedSpeedGear()?.amount || 0);
+          html += gearRow(item, { muted });
+        });
+        html += `<button type="button" class="shop-smart-toggle" data-shop-smart="${kind}" data-shop-smart-part="owned">Hide ${owned.length} owned</button>`;
+      } else {
+        html += `<button type="button" class="shop-smart-toggle" data-shop-smart="${kind}" data-shop-smart-part="owned">Show ${owned.length} owned</button>`;
+      }
+    }
+
+    return html;
+  }
+  /* ========== END SMART GEAR SHOP helpers ========== */
+
   function renderShop() {
     if (!shopList) return;
 
-    function gearRow(item) {
+    function gearRow(item, opts = {}) {
       const owned = !!state.owned[item.id];
       const exclusive = item.kind === "speed";
       const equipped = exclusive && state.equippedSpeed === item.id;
       let status = owned ? "Owned" : "Not owned";
       if (exclusive && owned) status = equipped ? "Equipped" : "Owned · tap Equip";
+      if (opts.next) status = "Next upgrade";
       let action;
       if (!owned) {
         action = `<button type="button" class="buy-btn" data-buy="${item.id}" ${
@@ -6253,10 +6401,22 @@
       } else {
         action = `<button type="button" class="buy-btn" disabled>✓</button>`;
       }
-      return `<div class="shop-item ${equipped ? "is-equipped" : ""}" role="listitem" data-shop-kind="${item.kind}">
+      const classes = [
+        "shop-item",
+        equipped ? "is-equipped" : "",
+        opts.next ? "is-next-upgrade" : "",
+        opts.muted ? "is-soft-muted" : ""
+      ]
+        .filter(Boolean)
+        .join(" ");
+      const extra = opts.extra
+        ? `<p class="shop-item-smart-extra">${opts.extra}</p>`
+        : "";
+      return `<div class="${classes}" role="listitem" data-shop-kind="${item.kind}">
         <div class="shop-item-main">
           <div class="shop-item-name">${item.name}</div>
           <p class="shop-item-desc">${item.desc}</p>
+          ${extra}
           <div class="shop-item-owned">${status}</div>
         </div>
         ${action}
@@ -6301,13 +6461,17 @@
       btn.classList.toggle("active", btn.dataset.shopCat === active);
     });
 
+    shopList.classList.toggle("shop-smart", SMART_GEAR_SHOP);
+
     const cats = SHOP_CATEGORIES.filter((c) => active === "all" || c.id === active);
     shopList.innerHTML = cats
       .map((cat) => {
         const rows =
           cat.id === "boat"
             ? boatRow()
-            : GEAR.filter((g) => g.kind === cat.id).map(gearRow).join("");
+            : SMART_GEAR_SHOP
+              ? shopSmartCategoryRows(cat.id, gearRow)
+              : GEAR.filter((g) => g.kind === cat.id).map((g) => gearRow(g)).join("");
         return `<div class="shop-category" data-category="${cat.id}">
           <div class="shop-category-head">
             <div class="shop-category-title">${cat.title}</div>
@@ -6969,6 +7133,20 @@
     renderShop();
   });
   shopList?.addEventListener("pointerdown", (e) => {
+    if (SMART_GEAR_SHOP) {
+      const smartBtn = e.target.closest("[data-shop-smart]");
+      if (smartBtn) {
+        e.preventDefault();
+        const kind = smartBtn.dataset.shopSmart;
+        const part = smartBtn.dataset.shopSmartPart;
+        if (kind && part) {
+          const key = shopSmartKey(kind, part);
+          shopSmartExpand[key] = !shopSmartExpand[key];
+          renderShop();
+        }
+        return;
+      }
+    }
     const equipBtn = e.target.closest("[data-equip]");
     if (equipBtn && !equipBtn.disabled) {
       e.preventDefault();
