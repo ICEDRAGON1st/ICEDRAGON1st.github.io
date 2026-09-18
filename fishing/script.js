@@ -5231,49 +5231,83 @@
   }
 
   /* ========== DAILY / WEEKLY OBJECTIVES ========== */
-  const QUEST_DAILY_COUNT = 3;
-  const QUEST_WEEKLY_COUNT = 3;
+  const QUEST_DIFFICULTIES = ["easy", "medium", "hard"];
+  /** Bump to force re-roll when objective layout changes. */
+  const QUEST_LAYOUT_VERSION = 2;
 
   const QUEST_DAILY_POOL = [
+    // Easy
     {
-      id: "d_perfect3",
+      id: "d_e_perfect3",
+      difficulty: "easy",
       kind: "perfect",
       target: 3,
       label: "Land 3 perfect reels",
-      reward: { coins: 750 }
+      reward: { coins: 400 }
     },
     {
-      id: "d_catch20",
+      id: "d_e_catch15",
+      difficulty: "easy",
       kind: "catch",
-      target: 20,
-      label: "Catch 20 fish",
-      reward: { coins: 500 }
+      target: 15,
+      label: "Catch 15 fish",
+      reward: { coins: 350 }
     },
     {
-      id: "d_sell30",
+      id: "d_e_sell20",
+      difficulty: "easy",
       kind: "sell",
-      target: 30,
-      label: "Sell 30 fish",
-      reward: { coins: 650 }
+      target: 20,
+      label: "Sell 20 fish",
+      reward: { coins: 400 }
     },
     {
-      id: "d_sell_epic12",
+      id: "d_e_manual10",
+      difficulty: "easy",
+      kind: "catch",
+      manualOnly: true,
+      target: 10,
+      label: "Reel in 10 fish by hand",
+      reward: { coins: 375 }
+    },
+    {
+      id: "d_e_chest1",
+      difficulty: "easy",
+      kind: "chest",
+      target: 1,
+      label: "Open 1 chest from your stash",
+      reward: { coins: 300, moneyChest: 1 }
+    },
+    // Medium
+    {
+      id: "d_m_perfect6",
+      difficulty: "medium",
+      kind: "perfect",
+      target: 6,
+      label: "Land 6 perfect reels",
+      reward: { coins: 900, luckChest: 1 }
+    },
+    {
+      id: "d_m_sell_epic10",
+      difficulty: "medium",
       kind: "sell",
       rarity: "epic",
-      target: 12,
-      label: "Sell 12 epic fish",
-      reward: { coins: 900, moneyChest: 1 }
+      target: 10,
+      label: "Sell 10 epic fish",
+      reward: { coins: 1000, moneyChest: 1 }
     },
     {
-      id: "d_sell_rare20",
+      id: "d_m_sell_rare18",
+      difficulty: "medium",
       kind: "sell",
       minRank: 3,
-      target: 20,
-      label: "Sell 20 rare-or-better fish",
-      reward: { coins: 800, luckChest: 1 }
+      target: 18,
+      label: "Sell 18 rare-or-better fish",
+      reward: { coins: 850, luckChest: 1 }
     },
     {
-      id: "d_chest_event",
+      id: "d_m_chest_event",
+      difficulty: "medium",
       kind: "chest",
       duringEvent: true,
       target: 1,
@@ -5281,97 +5315,210 @@
       reward: { moneyChest: 1, luckChest: 1 }
     },
     {
-      id: "d_catch_leg5",
+      id: "d_m_catch_leg4",
+      difficulty: "medium",
       kind: "catch",
       minRank: 5,
-      target: 5,
-      label: "Catch 5 legendary-or-better fish",
-      reward: { coins: 1200 }
+      target: 4,
+      label: "Catch 4 legendary-or-better fish",
+      reward: { coins: 1100 }
     },
     {
-      id: "d_manual15",
+      id: "d_m_manual20",
+      difficulty: "medium",
       kind: "catch",
       manualOnly: true,
-      target: 15,
-      label: "Reel in 15 fish by hand",
-      reward: { coins: 550 }
+      target: 20,
+      label: "Reel in 20 fish by hand",
+      reward: { coins: 800 }
     },
+    // Hard
     {
-      id: "d_perfect8",
+      id: "d_h_perfect12",
+      difficulty: "hard",
       kind: "perfect",
-      target: 8,
-      label: "Land 8 perfect reels",
-      reward: { coins: 1500, luckChest: 1 }
+      target: 12,
+      label: "Land 12 perfect reels",
+      reward: { coins: 2000, luckChest: 1, moneyChest: 1 }
     },
     {
-      id: "d_chest2",
+      id: "d_h_sell_epic20",
+      difficulty: "hard",
+      kind: "sell",
+      rarity: "epic",
+      target: 20,
+      label: "Sell 20 epic fish",
+      reward: { coins: 2200, moneyChest: 2 }
+    },
+    {
+      id: "d_h_catch_leg8",
+      difficulty: "hard",
+      kind: "catch",
+      minRank: 5,
+      target: 8,
+      label: "Catch 8 legendary-or-better fish",
+      reward: { coins: 2500, luckChest: 1 }
+    },
+    {
+      id: "d_h_chest_event2",
+      difficulty: "hard",
       kind: "chest",
+      duringEvent: true,
       target: 2,
-      label: "Open 2 chests from your stash",
-      reward: { coins: 400, moneyChest: 1 }
+      label: "Open 2 chests during events",
+      reward: { moneyChest: 2, luckChest: 1 }
+    },
+    {
+      id: "d_h_manual35",
+      difficulty: "hard",
+      kind: "catch",
+      manualOnly: true,
+      target: 35,
+      label: "Reel in 35 fish by hand",
+      reward: { coins: 1800, moneyChest: 1 }
+    },
+    {
+      id: "d_h_sell_mythic5",
+      difficulty: "hard",
+      kind: "sell",
+      minRank: 6,
+      target: 5,
+      label: "Sell 5 mythic-or-better fish",
+      reward: { coins: 2800, luckChest: 2 }
     }
   ];
 
   const QUEST_WEEKLY_POOL = [
+    // Easy
     {
-      id: "w_perfect25",
+      id: "w_e_catch100",
+      difficulty: "easy",
+      kind: "catch",
+      target: 100,
+      label: "Catch 100 fish",
+      reward: { coins: 3500, moneyChest: 1 }
+    },
+    {
+      id: "w_e_sell120",
+      difficulty: "easy",
+      kind: "sell",
+      target: 120,
+      label: "Sell 120 fish",
+      reward: { coins: 4000, moneyChest: 1 }
+    },
+    {
+      id: "w_e_perfect15",
+      difficulty: "easy",
+      kind: "perfect",
+      target: 15,
+      label: "Land 15 perfect reels",
+      reward: { coins: 4500, luckChest: 1 }
+    },
+    {
+      id: "w_e_manual40",
+      difficulty: "easy",
+      kind: "catch",
+      manualOnly: true,
+      target: 40,
+      label: "Reel in 40 fish by hand",
+      reward: { coins: 3800 }
+    },
+    // Medium
+    {
+      id: "w_m_perfect25",
+      difficulty: "medium",
       kind: "perfect",
       target: 25,
       label: "Land 25 perfect reels",
       reward: { coins: 8000, moneyChest: 2 }
     },
     {
-      id: "w_sell_epic50",
+      id: "w_m_sell_epic40",
+      difficulty: "medium",
+      kind: "sell",
+      rarity: "epic",
+      target: 40,
+      label: "Sell 40 epic fish",
+      reward: { coins: 7000, luckChest: 2 }
+    },
+    {
+      id: "w_m_catch150",
+      difficulty: "medium",
+      kind: "catch",
+      target: 150,
+      label: "Catch 150 fish",
+      reward: { coins: 6500, moneyChest: 1, luckChest: 1 }
+    },
+    {
+      id: "w_m_chest_event2",
+      difficulty: "medium",
+      kind: "chest",
+      duringEvent: true,
+      target: 2,
+      label: "Open 2 chests during events",
+      reward: { moneyChest: 2, luckChest: 1 }
+    },
+    {
+      id: "w_m_manual70",
+      difficulty: "medium",
+      kind: "catch",
+      manualOnly: true,
+      target: 70,
+      label: "Reel in 70 fish by hand",
+      reward: { coins: 7500, luckChest: 1 }
+    },
+    // Hard
+    {
+      id: "w_h_perfect40",
+      difficulty: "hard",
+      kind: "perfect",
+      target: 40,
+      label: "Land 40 perfect reels",
+      reward: { coins: 14000, moneyChest: 3 }
+    },
+    {
+      id: "w_h_sell_epic50",
+      difficulty: "hard",
       kind: "sell",
       rarity: "epic",
       target: 50,
       label: "Sell 50 epic fish",
-      reward: { coins: 6000, luckChest: 2 }
+      reward: { coins: 12000, luckChest: 2, moneyChest: 1 }
     },
     {
-      id: "w_chest_event3",
-      kind: "chest",
-      duringEvent: true,
-      target: 3,
-      label: "Open 3 chests during events",
-      reward: { moneyChest: 2, luckChest: 2 }
-    },
-    {
-      id: "w_catch150",
-      kind: "catch",
-      target: 150,
-      label: "Catch 150 fish",
-      reward: { coins: 5000, moneyChest: 1 }
-    },
-    {
-      id: "w_sell_leg20",
+      id: "w_h_sell_leg20",
+      difficulty: "hard",
       kind: "sell",
       minRank: 5,
       target: 20,
       label: "Sell 20 legendary-or-better fish",
-      reward: { coins: 10000, luckChest: 2, moneyChest: 1 }
+      reward: { coins: 15000, luckChest: 2, moneyChest: 2 }
     },
     {
-      id: "w_manual80",
+      id: "w_h_chest_event3",
+      difficulty: "hard",
+      kind: "chest",
+      duringEvent: true,
+      target: 3,
+      label: "Open 3 chests during events",
+      reward: { moneyChest: 3, luckChest: 2 }
+    },
+    {
+      id: "w_h_catch250",
+      difficulty: "hard",
+      kind: "catch",
+      target: 250,
+      label: "Catch 250 fish",
+      reward: { coins: 11000, moneyChest: 2, luckChest: 1 }
+    },
+    {
+      id: "w_h_manual100",
+      difficulty: "hard",
       kind: "catch",
       manualOnly: true,
-      target: 80,
-      label: "Reel in 80 fish by hand",
-      reward: { coins: 7000, luckChest: 1 }
-    },
-    {
-      id: "w_perfect40",
-      kind: "perfect",
-      target: 40,
-      label: "Land 40 perfect reels",
-      reward: { coins: 12000, moneyChest: 3 }
-    },
-    {
-      id: "w_sell200",
-      kind: "sell",
-      target: 200,
-      label: "Sell 200 fish",
-      reward: { coins: 6500, moneyChest: 2 }
+      target: 100,
+      label: "Reel in 100 fish by hand",
+      reward: { coins: 13000, luckChest: 2 }
     }
   ];
 
@@ -5384,11 +5531,17 @@
   });
 
   function emptyQuestsState() {
-    return { dailyKey: "", weeklyKey: "", daily: [], weekly: [] };
+    return { dailyKey: "", weeklyKey: "", layoutVersion: 0, daily: [], weekly: [] };
   }
 
   function questDef(id) {
     return QUEST_POOL_BY_ID[id] || null;
+  }
+
+  function questDifficultyLabel(diff) {
+    if (diff === "easy") return "Easy";
+    if (diff === "hard") return "Hard";
+    return "Medium";
   }
 
   function pad2(n) {
@@ -5447,6 +5600,24 @@
     }));
   }
 
+  /** One easy + one medium + one hard. */
+  function seededPickTiers(pool, seedStr) {
+    return QUEST_DIFFICULTIES.map((diff) => {
+      const subset = pool.filter((q) => q.difficulty === diff);
+      const picked = seededPick(subset, `${seedStr}:${diff}`, 1);
+      return picked[0] || null;
+    }).filter(Boolean);
+  }
+
+  function questListHasTiers(list) {
+    const have = new Set();
+    (list || []).forEach((q) => {
+      const d = questDef(q.id)?.difficulty;
+      if (d) have.add(d);
+    });
+    return QUEST_DIFFICULTIES.every((d) => have.has(d));
+  }
+
   function normalizeQuestEntry(raw) {
     if (!raw || typeof raw !== "object") return null;
     const id = String(raw.id || "");
@@ -5463,6 +5634,7 @@
     if (!raw || typeof raw !== "object") return next;
     next.dailyKey = typeof raw.dailyKey === "string" ? raw.dailyKey : "";
     next.weeklyKey = typeof raw.weeklyKey === "string" ? raw.weeklyKey : "";
+    next.layoutVersion = Math.max(0, Math.floor(Number(raw.layoutVersion) || 0));
     next.daily = Array.isArray(raw.daily)
       ? raw.daily.map(normalizeQuestEntry).filter(Boolean)
       : [];
@@ -5479,14 +5651,29 @@
     const dayKey = localDateKey();
     const weekKey = localWeekKey();
     let changed = false;
-    if (state.quests.dailyKey !== dayKey || !state.quests.daily?.length) {
+    const layoutStale = state.quests.layoutVersion !== QUEST_LAYOUT_VERSION;
+    if (
+      layoutStale ||
+      state.quests.dailyKey !== dayKey ||
+      !state.quests.daily?.length ||
+      !questListHasTiers(state.quests.daily)
+    ) {
       state.quests.dailyKey = dayKey;
-      state.quests.daily = seededPick(QUEST_DAILY_POOL, `daily:${dayKey}`, QUEST_DAILY_COUNT);
+      state.quests.daily = seededPickTiers(QUEST_DAILY_POOL, `daily:${dayKey}`);
       changed = true;
     }
-    if (state.quests.weeklyKey !== weekKey || !state.quests.weekly?.length) {
+    if (
+      layoutStale ||
+      state.quests.weeklyKey !== weekKey ||
+      !state.quests.weekly?.length ||
+      !questListHasTiers(state.quests.weekly)
+    ) {
       state.quests.weeklyKey = weekKey;
-      state.quests.weekly = seededPick(QUEST_WEEKLY_POOL, `weekly:${weekKey}`, QUEST_WEEKLY_COUNT);
+      state.quests.weekly = seededPickTiers(QUEST_WEEKLY_POOL, `weekly:${weekKey}`);
+      changed = true;
+    }
+    if (layoutStale) {
+      state.quests.layoutVersion = QUEST_LAYOUT_VERSION;
       changed = true;
     }
     return changed;
@@ -5568,11 +5755,11 @@
     }
     if (r.moneyChest) {
       const n = grantQuestChests("money", r.moneyChest);
-      if (n) bits.push(`${n}× Coin Chest`);
+      if (n) bits.push(formatChestCountLabel(n, "money"));
     }
     if (r.luckChest) {
       const n = grantQuestChests("luck", r.luckChest);
-      if (n) bits.push(`${n}× Luck Chest`);
+      if (n) bits.push(formatChestCountLabel(n, "luck"));
     }
     setCatchLine(
       bits.length ? `Objective claimed · ${bits.join(" · ")}` : "Objective claimed",
@@ -5592,11 +5779,15 @@
     const ready = !q.claimed && progress >= def.target;
     const pct = def.target > 0 ? Math.min(100, Math.round((100 * progress) / def.target)) : 0;
     const status = q.claimed ? "Claimed" : ready ? "Claim" : `${progress} / ${def.target}`;
-    return `<div class="quest-item${ready ? " is-ready" : ""}${
+    const diff = def.difficulty || "medium";
+    return `<div class="quest-item quest-${diff}${ready ? " is-ready" : ""}${
       q.claimed ? " is-claimed" : ""
     }" role="listitem">
       <div class="quest-item-main">
-        <div class="quest-item-name">${def.label}</div>
+        <div class="quest-item-top">
+          <span class="quest-diff quest-diff-${diff}">${questDifficultyLabel(diff)}</span>
+          <div class="quest-item-name">${def.label}</div>
+        </div>
         <p class="quest-item-reward">${formatQuestReward(def)}</p>
         <div class="quest-item-bar" aria-hidden="true"><span style="width:${pct}%"></span></div>
         <div class="quest-item-progress">${progress} / ${def.target}</div>

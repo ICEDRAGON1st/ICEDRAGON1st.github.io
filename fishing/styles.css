@@ -3492,6 +3492,55 @@ body.treasure-boost .cast-btn {
   min-width: 0;
 }
 
+.quest-item-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.5rem;
+}
+
+.quest-diff {
+  flex-shrink: 0;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.quest-diff-easy {
+  color: #7dcea0;
+  border-color: color-mix(in srgb, #7dcea0 55%, var(--border));
+  background: color-mix(in srgb, #7dcea0 12%, transparent);
+}
+
+.quest-diff-medium {
+  color: #f0c75e;
+  border-color: color-mix(in srgb, #f0c75e 55%, var(--border));
+  background: color-mix(in srgb, #f0c75e 12%, transparent);
+}
+
+.quest-diff-hard {
+  color: #ff8a7a;
+  border-color: color-mix(in srgb, #ff8a7a 55%, var(--border));
+  background: color-mix(in srgb, #ff8a7a 12%, transparent);
+}
+
+.quest-item.quest-hard {
+  border-left: 3px solid color-mix(in srgb, #ff8a7a 70%, transparent);
+}
+
+.quest-item.quest-medium {
+  border-left: 3px solid color-mix(in srgb, #f0c75e 70%, transparent);
+}
+
+.quest-item.quest-easy {
+  border-left: 3px solid color-mix(in srgb, #7dcea0 70%, transparent);
+}
+
 .quest-item-name {
   font-size: 0.82rem;
   font-weight: 700;
