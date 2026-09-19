@@ -3719,7 +3719,9 @@
     }
     ensureSession();
     state[key] = have - n;
-    noteQuestProgress("chest", n, { duringEvent: eventIsLive() });
+    noteQuestProgress("chest", n, {
+      duringEvent: eventIsLive() || luckyBlockEventIsLive() || !!adminChestEventLive()
+    });
     if (item.kind === "luck") activateLuckBoost({ count: n });
     else activateMoneyBoost({ count: n });
     renderTreasureStash();
@@ -5651,9 +5653,8 @@
       id: "d_m_chest_event",
       difficulty: "medium",
       kind: "chest",
-      duringEvent: true,
-      target: 1,
-      label: "Open a chest during an event",
+      target: 2,
+      label: "Open 2 chests from your stash",
       reward: { coins: 800, moneyChest: 1, luckChest: 1 }
     },
     {
@@ -5705,9 +5706,8 @@
       id: "d_h_chest_event2",
       difficulty: "hard",
       kind: "chest",
-      duringEvent: true,
-      target: 2,
-      label: "Open 2 chests during events",
+      target: 3,
+      label: "Open 3 chests from your stash",
       reward: { coins: 2000, moneyChest: 2, luckChest: 2 }
     },
     {
@@ -5759,9 +5759,8 @@
       id: "d_i_chest_event4",
       difficulty: "impossible",
       kind: "chest",
-      duringEvent: true,
-      target: 4,
-      label: "Open 4 chests during events",
+      target: 5,
+      label: "Open 5 chests from your stash",
       reward: { coins: 8000, moneyChest: 5, luckChest: 4 }
     },
     {
@@ -5849,9 +5848,8 @@
       id: "w_m_chest_event2",
       difficulty: "medium",
       kind: "chest",
-      duringEvent: true,
-      target: 4,
-      label: "Open 4 chests during events",
+      target: 5,
+      label: "Open 5 chests from your stash",
       reward: { coins: 11000, moneyChest: 3, luckChest: 3 }
     },
     {
@@ -5894,9 +5892,8 @@
       id: "w_h_chest_event3",
       difficulty: "hard",
       kind: "chest",
-      duringEvent: true,
-      target: 6,
-      label: "Open 6 chests during events",
+      target: 8,
+      label: "Open 8 chests from your stash",
       reward: { coins: 22000, moneyChest: 5, luckChest: 5 }
     },
     {
@@ -5947,9 +5944,8 @@
       id: "w_i_chest_event12",
       difficulty: "impossible",
       kind: "chest",
-      duringEvent: true,
       target: 12,
-      label: "Open 12 chests during events",
+      label: "Open 12 chests from your stash",
       reward: { coins: 50000, moneyChest: 10, luckChest: 8 }
     },
     {
