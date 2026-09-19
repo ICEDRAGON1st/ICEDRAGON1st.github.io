@@ -1069,6 +1069,32 @@ body.modal-open {
   font-size: 0.84rem;
 }
 
+.luck-dial-chip {
+  flex: 1 1 8.5rem;
+  max-width: 12rem;
+  min-width: 7.5rem;
+}
+
+.luck-max-label {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--teal) 70%, var(--muted));
+}
+
+.luck-dial {
+  display: block;
+  width: 100%;
+  margin-top: 0.35rem;
+  accent-color: var(--teal);
+  cursor: pointer;
+}
+
+.luck-dial:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 .boat-zone {
   width: 100%;
   max-width: 100%;

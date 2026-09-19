@@ -1136,6 +1136,8 @@
   const windowLabelEl = document.getElementById("window-label");
   const waitLabelEl = document.getElementById("wait-label");
   const luckLabelEl = document.getElementById("luck-label");
+  const luckMaxLabelEl = document.getElementById("luck-max-label");
+  const luckDialEl = document.getElementById("luck-dial");
   const sellLabelEl = document.getElementById("sell-label");
   const moneyChipEl = document.getElementById("money-chip");
   const moneyLabelEl = document.getElementById("money-label");
@@ -1365,7 +1367,10 @@
       collectionLbAlwaysTold: false,
       quests: { dailyKey: "", weeklyKey: "", daily: [], weekly: [] },
       echoLuckLevel: 0,
-      echoLuckReset: ECHO_LUCK_RESET_ID
+      echoLuckReset: ECHO_LUCK_RESET_ID,
+      /** Active luck dial — null means follow max. */
+      luckDial: null,
+      luckDialFollowMax: true
     };
   }
 
@@ -1564,13 +1569,43 @@
   }
 
   /** Raw luck before chests/events: (gear + current spot) × 3 × collection + Echo Charm. */
-  function baseLuck(spot = currentSpot()) {
+  function maxBaseLuck(spot = currentSpot()) {
     return (
       (Math.max(0, luckBonus()) + spotLuckBonus(spot)) *
         LUCK_STAT_MULT *
         collectionLuckMult() +
       echoLuckBonus()
     );
+  }
+
+  function clampLuckDial(value, max) {
+    const m = Math.max(0, Number(max) || 0);
+    if (m <= 0) return 0;
+    const min = Math.min(1, m);
+    let v = Number(value);
+    if (!Number.isFinite(v)) return m;
+    return Math.min(m, Math.max(min, v));
+  }
+
+  /** Active luck used for fishing — between 1 and your current max (or max if dial follows). */
+  function baseLuck(spot = currentSpot()) {
+    const max = maxBaseLuck(spot);
+    if (max <= 0) return 0;
+    if (state.luckDialFollowMax || state.luckDial == null) return max;
+    return clampLuckDial(state.luckDial, max);
+  }
+
+  function setLuckDial(raw) {
+    const max = maxBaseLuck();
+    if (max <= 0) {
+      state.luckDial = 0;
+      state.luckDialFollowMax = true;
+      return;
+    }
+    const next = clampLuckDial(raw, max);
+    state.luckDial = next;
+    state.luckDialFollowMax = next >= max * 0.999999;
+    if (state.luckDialFollowMax) state.luckDial = max;
   }
 
   /**
@@ -4595,6 +4630,13 @@
           Math.min(ECHO_LUCK_MAX_LEVEL, Math.floor(Number(raw.echoLuckLevel) || 0))
         );
         next.echoLuckReset = ECHO_LUCK_RESET_ID;
+      }
+      if (raw.luckDialFollowMax === false && Number.isFinite(Number(raw.luckDial))) {
+        next.luckDialFollowMax = false;
+        next.luckDial = Math.max(0, Number(raw.luckDial));
+      } else {
+        next.luckDialFollowMax = true;
+        next.luckDial = null;
       }
       return next;
     } catch {
@@ -8017,7 +8059,31 @@
     if (waitLabelEl) waitLabelEl.textContent = waitCut ? `−${waitCut}%` : "—";
     if (luckLabelEl) {
       const luck = totalLuckBonus();
+      const maxBase = maxBaseLuck(spot);
+      const activeBase = baseLuck(spot);
       luckLabelEl.textContent = luck > 0 ? `+${formatLuckAmt(luck)}` : String(Math.round(luck) || 0);
+      if (luckMaxLabelEl) {
+        luckMaxLabelEl.textContent =
+          maxBase > 0 && (!state.luckDialFollowMax || activeBase < maxBase * 0.999)
+            ? `· max +${formatLuckAmt(maxBase * treasureLuckMult())}`
+            : "";
+      }
+      if (luckDialEl) {
+        if (maxBase < 1) {
+          luckDialEl.disabled = true;
+          luckDialEl.min = "0";
+          luckDialEl.max = "1";
+          luckDialEl.value = "1";
+        } else {
+          const step =
+            maxBase < 1000 ? 1 : Math.max(1, Math.floor(maxBase / 500));
+          luckDialEl.disabled = false;
+          luckDialEl.min = "1";
+          luckDialEl.max = String(maxBase);
+          luckDialEl.step = String(step);
+          luckDialEl.value = String(activeBase);
+        }
+      }
     }
     if (sellLabelEl) sellLabelEl.textContent = formatPctBonus(totalSellFactor() - 1);
     if (eventChipEl) {
@@ -8329,8 +8395,16 @@
             effLuck
           )} · top fish odds ~×${formatMult(luckM)} (odds below)`
         );
+        const maxB = maxBaseLuck(spot);
+        if (maxB > base + 1e-9) {
+          bits.push(`dialed · max +${formatLuckAmt(maxB)}`);
+        }
       } else {
         bits.push(`Luck base gear+spot +${formatLuckAmt(base)} (odds below)`);
+        const maxB = maxBaseLuck(spot);
+        if (maxB > base + 1e-9) {
+          bits.push(`dialed · max +${formatLuckAmt(maxB)}`);
+        }
       }
       if (colM > 1) {
         bits.push(
@@ -8605,6 +8679,8 @@
       formatMult(treasureMoneyMult()),
       formatMult(effectiveLuckBonus(spot)),
       formatMult(baseLuck(spot)),
+      formatMult(maxBaseLuck(spot)),
+      state.luckDialFollowMax ? "F" : "D",
       luckBonus(),
       spotLuckBonus(spot),
       eventLuckActive() ? "L" : "",
@@ -8753,6 +8829,17 @@
     window.HubSound?.play?.("click");
     renderShop();
     saveSoon();
+  });
+  luckDialEl?.addEventListener("input", () => {
+    setLuckDial(luckDialEl.value);
+    lastGuideBoostKey = "";
+    render(false);
+    maybeRefreshGuide();
+    saveSoon();
+  });
+  luckDialEl?.addEventListener("change", () => {
+    setLuckDial(luckDialEl.value);
+    saveState();
   });
   shopList?.addEventListener("pointerdown", (e) => {
     if (smartShopOn()) {
