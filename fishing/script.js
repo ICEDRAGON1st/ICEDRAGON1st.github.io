@@ -1725,12 +1725,16 @@
     return ownedGear("luck").reduce((s, g) => s + g.amount, 0);
   }
 
-  /** Infinite luck shop: +0.0000001 luck (×2 each buy), cost ×3 each buy. */
+  /** Echo Charm: +0.0000001 luck (×2 each buy), cost ×3 each buy. Caps at 1B luck. */
   const ECHO_LUCK_ID = "luckEcho";
   const ECHO_LUCK_BASE = 0.0000001;
   const ECHO_LUCK_BASE_COST = 1;
   const ECHO_LUCK_COST_MULT = 3;
-  const ECHO_LUCK_MAX_LEVEL = 1022;
+  const ECHO_LUCK_BONUS_CAP = 1e9; // 1B max from Echo Charm
+  const ECHO_LUCK_MAX_LEVEL = Math.max(
+    1,
+    Math.ceil(1 + Math.log2(ECHO_LUCK_BONUS_CAP / ECHO_LUCK_BASE))
+  );
   /** Each Echo buy slightly lifts rarer fish. Tiny step + hard cap so commons stay
    *  common and zenith stays rare (old 1.14^n drowned the table). */
   const ECHO_RARITY_STEP = 1.02;
@@ -1746,18 +1750,27 @@
   function echoLuckBonus() {
     const n = echoLuckLevel();
     if (n <= 0) return 0;
-    return ECHO_LUCK_BASE * Math.pow(2, n - 1);
+    const raw = ECHO_LUCK_BASE * Math.pow(2, n - 1);
+    if (!Number.isFinite(raw) || raw <= 0) return 0;
+    return Math.min(ECHO_LUCK_BONUS_CAP, raw);
+  }
+
+  function echoLuckAtCap() {
+    return echoLuckBonus() >= ECHO_LUCK_BONUS_CAP - 1e-9;
   }
 
   function echoLuckNextBonus() {
+    if (echoLuckAtCap()) return ECHO_LUCK_BONUS_CAP;
     const n = echoLuckLevel();
     if (n >= ECHO_LUCK_MAX_LEVEL) return echoLuckBonus();
-    return ECHO_LUCK_BASE * Math.pow(2, n);
+    const raw = ECHO_LUCK_BASE * Math.pow(2, n);
+    if (!Number.isFinite(raw) || raw <= 0) return echoLuckBonus();
+    return Math.min(ECHO_LUCK_BONUS_CAP, raw);
   }
 
   function echoLuckCost() {
+    if (echoLuckAtCap() || echoLuckLevel() >= ECHO_LUCK_MAX_LEVEL) return Infinity;
     const n = echoLuckLevel();
-    if (n >= ECHO_LUCK_MAX_LEVEL) return Infinity;
     const cost = ECHO_LUCK_BASE_COST * Math.pow(ECHO_LUCK_COST_MULT, n);
     return Number.isFinite(cost) ? cost : Infinity;
   }
@@ -7933,13 +7946,18 @@
   }
 
   function buyEchoLuck() {
+    if (echoLuckAtCap()) return;
     const cost = echoLuckCost();
     if (!Number.isFinite(cost) || state.coins < cost) return;
     ensureSession();
     state.coins -= cost;
     state.echoLuckLevel = echoLuckLevel() + 1;
     window.HubSound?.play?.("click");
-    setCatchLine(`Echo Charm +${formatLuckAmt(echoLuckBonus())} luck`);
+    setCatchLine(
+      echoLuckAtCap()
+        ? `Echo Charm maxed · +${formatLuckAmt(echoLuckBonus())} luck`
+        : `Echo Charm +${formatLuckAmt(echoLuckBonus())} luck`
+    );
     checkAchievements();
     render();
     saveSoon();
@@ -8559,20 +8577,23 @@
     const cost = echoLuckCost();
     const next = echoLuckNextBonus();
     const now = echoLuckBonus();
-    const canBuy = Number.isFinite(cost) && state.coins >= cost;
-    const desc =
-      n <= 0
-        ? `+${formatLuckAmt(next)} luck · each buy doubles luck and triples cost`
-        : `+${formatLuckAmt(now)} luck → +${formatLuckAmt(next)} luck · cost ×3`;
-    const status =
-      n <= 0
+    const atCap = echoLuckAtCap();
+    const canBuy = !atCap && Number.isFinite(cost) && state.coins >= cost;
+    const desc = atCap
+      ? `Maxed at +${formatLuckAmt(ECHO_LUCK_BONUS_CAP)} luck`
+      : n <= 0
+        ? `+${formatLuckAmt(next)} luck · each buy doubles luck and triples cost · cap ${formatLuckAmt(ECHO_LUCK_BONUS_CAP)}`
+        : `+${formatLuckAmt(now)} luck → +${formatLuckAmt(next)} luck · cost ×3 · cap ${formatLuckAmt(ECHO_LUCK_BONUS_CAP)}`;
+    const status = atCap
+      ? `MAX · +${formatLuckAmt(now)} luck`
+      : n <= 0
         ? "Buy forever — starts at 1 coin"
         : `Bought ${formatNum(n)}× · +${formatLuckAmt(now)} luck`;
-    const btn = Number.isFinite(cost)
-      ? `<button type="button" class="buy-btn" data-buy="${ECHO_LUCK_ID}" ${
+    const btn = atCap || !Number.isFinite(cost)
+      ? `<button type="button" class="buy-btn" disabled>MAX</button>`
+      : `<button type="button" class="buy-btn" data-buy="${ECHO_LUCK_ID}" ${
           canBuy ? "" : "disabled"
-        }>${formatNum(cost)}</button>`
-      : `<button type="button" class="buy-btn" disabled>MAX</button>`;
+        }>${formatNum(cost)}</button>`;
     return `<div class="shop-item shop-item-echo is-next-upgrade" role="listitem" data-shop-kind="luck">
         <div class="shop-item-main">
           <div class="shop-item-name">Echo Charm</div>
