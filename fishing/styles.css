@@ -3990,6 +3990,10 @@ body.treasure-boost .cast-btn {
   background: color-mix(in srgb, var(--teal) 12%, rgba(0, 0, 0, 0.2));
 }
 
+.shop-item.shop-item-echo {
+  border-color: color-mix(in srgb, var(--teal) 50%, var(--border));
+}
+
 .shop-list.shop-smart .shop-item.is-soft-muted {
   opacity: 0.55;
 }

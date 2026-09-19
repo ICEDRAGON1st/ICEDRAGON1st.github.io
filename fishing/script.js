@@ -1276,7 +1276,7 @@
     {
       id: "luck",
       title: "Luck",
-      blurb: "Boost rarity odds toward rarer fish."
+      blurb: "Boost rarity odds toward rarer fish. Echo Charm can be bought forever."
     },
     {
       id: "cooler",
@@ -1359,7 +1359,8 @@
       collectionRainbowTold: false,
       collectionLbEventTold: false,
       collectionLbAlwaysTold: false,
-      quests: { dailyKey: "", weeklyKey: "", daily: [], weekly: [] }
+      quests: { dailyKey: "", weeklyKey: "", daily: [], weekly: [] },
+      echoLuckLevel: 0
     };
   }
 
@@ -1409,6 +1410,37 @@
 
   function luckBonus() {
     return ownedGear("luck").reduce((s, g) => s + g.amount, 0);
+  }
+
+  /** Infinite luck shop: +0.05 then doubles luck & cost each buy. */
+  const ECHO_LUCK_ID = "luckEcho";
+  const ECHO_LUCK_BASE = 0.05;
+  const ECHO_LUCK_BASE_COST = 1;
+  const ECHO_LUCK_MAX_LEVEL = 1022;
+
+  function echoLuckLevel() {
+    return Math.max(
+      0,
+      Math.min(ECHO_LUCK_MAX_LEVEL, Math.floor(Number(state.echoLuckLevel) || 0))
+    );
+  }
+
+  function echoLuckBonus() {
+    const n = echoLuckLevel();
+    if (n <= 0) return 0;
+    return ECHO_LUCK_BASE * Math.pow(2, n - 1);
+  }
+
+  function echoLuckNextBonus() {
+    const n = echoLuckLevel();
+    if (n >= ECHO_LUCK_MAX_LEVEL) return echoLuckBonus();
+    return ECHO_LUCK_BASE * Math.pow(2, n);
+  }
+
+  function echoLuckCost() {
+    const n = echoLuckLevel();
+    if (n >= ECHO_LUCK_MAX_LEVEL) return Infinity;
+    return ECHO_LUCK_BASE_COST * Math.pow(2, n);
   }
 
   /** Spot luck — scales up on higher tiers (Creek = 0). */
@@ -1505,12 +1537,13 @@
     return hasCollectionLbEventBonus() ? COLLECTION_LB_EVENT_MULT : 1;
   }
 
-  /** Raw luck before chests/events: (gear + current spot) × 3 × collection. */
+  /** Raw luck before chests/events: (gear + current spot) × 3 × collection + Echo Charm. */
   function baseLuck(spot = currentSpot()) {
     return (
       (Math.max(0, luckBonus()) + spotLuckBonus(spot)) *
-      LUCK_STAT_MULT *
-      collectionLuckMult()
+        LUCK_STAT_MULT *
+        collectionLuckMult() +
+      echoLuckBonus()
     );
   }
 
@@ -4503,6 +4536,10 @@
       next.collectionLbEventTold = !!raw.collectionLbEventTold;
       next.collectionLbAlwaysTold = !!raw.collectionLbAlwaysTold;
       next.quests = normalizeQuestsState(raw.quests);
+      next.echoLuckLevel = Math.max(
+        0,
+        Math.min(ECHO_LUCK_MAX_LEVEL, Math.floor(Number(raw.echoLuckLevel) || 0))
+      );
       return next;
     } catch {
       return defaultState();
@@ -5635,6 +5672,16 @@
     }
     const text = v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v.toFixed(2);
     return `${text.replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1")}${SUFFIXES[tier]}`;
+  }
+
+  function formatLuckAmt(n) {
+    const v = Number(n) || 0;
+    if (!Number.isFinite(v) || v <= 0) return "0";
+    if (v >= 1000) return formatNum(v);
+    const rounded = Math.round(v * 100) / 100;
+    if (v < 1) return rounded.toFixed(2);
+    if (Math.abs(rounded - Math.round(rounded)) < 1e-9) return String(Math.round(rounded));
+    return String(rounded);
   }
 
   function addCoins(amount) {
@@ -7055,9 +7102,26 @@
     saveSoon();
   }
 
+  function buyEchoLuck() {
+    const cost = echoLuckCost();
+    if (!Number.isFinite(cost) || state.coins < cost) return;
+    ensureSession();
+    state.coins -= cost;
+    state.echoLuckLevel = echoLuckLevel() + 1;
+    window.HubSound?.play?.("click");
+    setCatchLine(`Echo Charm +${formatLuckAmt(echoLuckBonus())} luck`);
+    checkAchievements();
+    render();
+    saveSoon();
+  }
+
   function buyGear(id) {
     if (id === "boat") {
       buyBoatUpgrade();
+      return;
+    }
+    if (id === ECHO_LUCK_ID) {
+      buyEchoLuck();
       return;
     }
     const item = GEAR.find((g) => g.id === id);
@@ -7632,12 +7696,19 @@
     }
     const sum = shopSmartOwnedSum(kind);
     const n = ownedGear(kind).length;
+    if (kind === "luck") {
+      const echo = echoLuckBonus();
+      const parts = [];
+      if (n) parts.push(`${n} owned · +${formatNum(sum)} luck`);
+      else parts.push("No luck gear owned yet");
+      if (echo > 0) parts.push(`Echo Charm +${formatLuckAmt(echo)}`);
+      return parts.join(" · ");
+    }
     if (!n) return "None owned yet";
     if (kind === "window") {
       const w = Math.min(4, 0.45 + sum);
       return `${n} owned · window ${w.toFixed(2)}s / 4.0s`;
     }
-    if (kind === "luck") return `${n} owned · +${formatNum(sum)} luck`;
     if (kind === "cooler") return `${n} owned · ${COOLER_BASE + sum} slots`;
     if (kind === "value") return `${n} owned · sell ${formatPctBonus(sum)}`;
     if (kind === "perfect") return `${n} owned · perfect ${formatPctBonus(sum)}`;
@@ -7650,6 +7721,35 @@
     return `${n} owned`;
   }
 
+  function echoLuckRow() {
+    const n = echoLuckLevel();
+    const cost = echoLuckCost();
+    const next = echoLuckNextBonus();
+    const now = echoLuckBonus();
+    const canBuy = Number.isFinite(cost) && state.coins >= cost;
+    const desc =
+      n <= 0
+        ? `+${formatLuckAmt(next)} luck · each buy doubles luck and cost`
+        : `+${formatLuckAmt(now)} luck → +${formatLuckAmt(next)} luck · cost doubles`;
+    const status =
+      n <= 0
+        ? "Buy forever — starts at 1 coin"
+        : `Bought ${formatNum(n)}× · +${formatLuckAmt(now)} luck`;
+    const btn = Number.isFinite(cost)
+      ? `<button type="button" class="buy-btn" data-buy="${ECHO_LUCK_ID}" ${
+          canBuy ? "" : "disabled"
+        }>${formatNum(cost)}</button>`
+      : `<button type="button" class="buy-btn" disabled>MAX</button>`;
+    return `<div class="shop-item shop-item-echo is-next-upgrade" role="listitem" data-shop-kind="luck">
+        <div class="shop-item-main">
+          <div class="shop-item-name">Echo Charm</div>
+          <p class="shop-item-desc">${desc}</p>
+          <div class="shop-item-owned">${status}</div>
+        </div>
+        ${btn}
+      </div>`;
+  }
+
   function shopSmartCategoryRows(kind, gearRow) {
     const items = GEAR.filter((g) => g.kind === kind);
     const owned = items.filter((g) => state.owned[g.id]);
@@ -7660,7 +7760,8 @@
     const head = unowned.slice(0, upcomingVisible);
     const rest = unowned.slice(upcomingVisible);
 
-    let html = `<div class="shop-smart-summary">${shopSmartSummary(kind)}</div>`;
+    let html = kind === "luck" ? echoLuckRow() : "";
+    html += `<div class="shop-smart-summary">${shopSmartSummary(kind)}</div>`;
 
     if (!unowned.length && owned.length) {
       html += `<div class="shop-smart-maxed">Category maxed</div>`;
@@ -7794,7 +7895,8 @@
             ? boatRow()
             : smartShopOn()
               ? shopSmartCategoryRows(cat.id, gearRow)
-              : GEAR.filter((g) => g.kind === cat.id).map((g) => gearRow(g)).join("");
+              : (cat.id === "luck" ? echoLuckRow() : "") +
+                GEAR.filter((g) => g.kind === cat.id).map((g) => gearRow(g)).join("");
         return `<div class="shop-category" data-category="${cat.id}">
           <div class="shop-category-head">
             <div class="shop-category-title">${cat.title}</div>
@@ -7869,7 +7971,7 @@
     if (waitLabelEl) waitLabelEl.textContent = waitCut ? `−${waitCut}%` : "—";
     if (luckLabelEl) {
       const luck = totalLuckBonus();
-      luckLabelEl.textContent = luck > 0 ? `+${formatNum(luck)}` : String(Math.round(luck) || 0);
+      luckLabelEl.textContent = luck > 0 ? `+${formatLuckAmt(luck)}` : String(Math.round(luck) || 0);
     }
     if (sellLabelEl) sellLabelEl.textContent = formatPctBonus(totalSellFactor() - 1);
     if (eventChipEl) {
@@ -8089,6 +8191,17 @@
           btn.textContent = formatNum(next.cost);
           return;
         }
+        if (id === ECHO_LUCK_ID) {
+          const cost = echoLuckCost();
+          if (!Number.isFinite(cost)) {
+            btn.disabled = true;
+            btn.textContent = "MAX";
+            return;
+          }
+          btn.disabled = state.coins < cost;
+          btn.textContent = formatNum(cost);
+          return;
+        }
         if (state.owned[id]) {
           btn.disabled = true;
           btn.textContent = "✓";
@@ -8166,12 +8279,12 @@
       const effLuck = effectiveLuckBonus(spot);
       if (luckM > 1 || eventLuckActive() || luckBoostActive()) {
         bits.push(
-          `Luck ${formatMult(luckM)}× on gear+spot +${formatNum(base)} → HUD +${formatNum(
+          `Luck ${formatMult(luckM)}× on gear+spot +${formatLuckAmt(base)} → HUD +${formatLuckAmt(
             effLuck
           )} · top fish odds ~×${formatMult(luckM)} (odds below)`
         );
       } else {
-        bits.push(`Luck base gear+spot +${formatNum(base)} (odds below)`);
+        bits.push(`Luck base gear+spot +${formatLuckAmt(base)} (odds below)`);
       }
       if (colM > 1) {
         bits.push(
