@@ -1234,6 +1234,7 @@
   const shinyMachineBtn = document.getElementById("shiny-machine-btn");
   const menuGuideBtn = document.getElementById("menu-guide-btn");
   const menuBookBtn = document.getElementById("menu-book-btn");
+  const menuShinyMachineBtn = document.getElementById("menu-shiny-machine-btn");
   const guideOverlay = document.getElementById("guide-overlay");
   const bookOverlay = document.getElementById("book-overlay");
   const shinyMachineOverlay = document.getElementById("shiny-machine-overlay");
