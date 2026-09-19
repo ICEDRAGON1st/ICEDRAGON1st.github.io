@@ -876,10 +876,64 @@
       valueMult: 750,
       rarity: 43,
       blurb: "Above the beginning · apex endgame"
+    },
+    {
+      id: "novareach",
+      name: "Nova Reach",
+      cost: 7e27,
+      wait: [0.065, 0.21],
+      valueMult: 900,
+      rarity: 44,
+      blurb: "Star-burst shelf · nova hauls flare"
+    },
+    {
+      id: "starborne",
+      name: "Starborne Shelf",
+      cost: 3.5e28,
+      wait: [0.06, 0.2],
+      valueMult: 1100,
+      rarity: 45,
+      blurb: "Born of stars · starborne odds climb"
+    },
+    {
+      id: "veilmere",
+      name: "Veil Mere",
+      cost: 1.8e29,
+      wait: [0.055, 0.19],
+      valueMult: 1350,
+      rarity: 46,
+      blurb: "Thin veil · rarities slip through"
+    },
+    {
+      id: "crownvoid",
+      name: "Crown Void",
+      cost: 9e29,
+      wait: [0.05, 0.18],
+      valueMult: 1650,
+      rarity: 47,
+      blurb: "Hollow crown · regal emptiness pays"
+    },
+    {
+      id: "liminalsea",
+      name: "Liminal Sea",
+      cost: 4.5e30,
+      wait: [0.045, 0.17],
+      valueMult: 2000,
+      rarity: 48,
+      blurb: "Between worlds · liminal catches linger"
+    },
+    {
+      id: "beyondapex",
+      name: "Beyond Apex",
+      cost: 2.2e31,
+      wait: [0.04, 0.16],
+      valueMult: 2500,
+      rarity: 49,
+      blurb: "Past the peak · beyond apex endgame"
     }
   ];
 
-  const MAX_SPOT_RARITY = 43;
+  const MAX_SPOT_RARITY = 49;
 
   const GEAR = [
     { id: "rod1", name: "Willow Rod", desc: "+0.05s bite window", cost: 40, kind: "window", amount: 0.05 },
@@ -922,6 +976,10 @@
     { id: "rod38", name: "Origin Rod", desc: "+0.58s bite window", cost: 5e22, kind: "window", amount: 0.58 },
     { id: "rod39", name: "Aether Rod", desc: "+0.62s bite window", cost: 2.5e23, kind: "window", amount: 0.62 },
     { id: "rod40", name: "Radiant Rod", desc: "+0.66s bite window", cost: 1.2e24, kind: "window", amount: 0.66 },
+    { id: "rod41", name: "Dusk Rod", desc: "+0.7s bite window", cost: 6e24, kind: "window", amount: 0.7 },
+    { id: "rod42", name: "Apex Rod Ultima", desc: "+0.74s bite window", cost: 3e25, kind: "window", amount: 0.74 },
+    { id: "rod43", name: "Nova Rod", desc: "+0.78s bite window", cost: 1.5e26, kind: "window", amount: 0.78 },
+    { id: "rod44", name: "Starborne Rod", desc: "+0.82s bite window", cost: 7.5e26, kind: "window", amount: 0.82 },
     { id: "bait10", name: "Echo Chum", desc: "Faster bites (−6% wait)", cost: 30, kind: "speed", amount: 0.06 },
     { id: "bait11", name: "Zenith Bait", desc: "Faster bites (−7% wait)", cost: 40, kind: "speed", amount: 0.07 },
     { id: "bait8", name: "Void Roe", desc: "Faster bites (−8% wait)", cost: 50, kind: "speed", amount: 0.08 },
@@ -954,6 +1012,10 @@
     { id: "bait30", name: "Origin Roe", desc: "Faster bites (−92% wait)", cost: 2e22, kind: "speed", amount: 0.92 },
     { id: "bait31", name: "Aether Flies", desc: "Faster bites (−93% wait)", cost: 1e23, kind: "speed", amount: 0.93 },
     { id: "bait32", name: "Radiant Bait", desc: "Faster bites (−94% wait)", cost: 5e23, kind: "speed", amount: 0.94 },
+    { id: "bait33", name: "Dusk Chum", desc: "Faster bites (−95% wait)", cost: 2.5e24, kind: "speed", amount: 0.95 },
+    { id: "bait34", name: "Apex Roe", desc: "Faster bites (−96% wait)", cost: 1.2e25, kind: "speed", amount: 0.96 },
+    { id: "bait35", name: "Nova Flies", desc: "Faster bites (−96.5% wait)", cost: 6e25, kind: "speed", amount: 0.965 },
+    { id: "bait36", name: "Starborne Bait", desc: "Faster bites (−97% wait)", cost: 3e26, kind: "speed", amount: 0.97 },
     { id: "luck1", name: "Lucky Hook", desc: "+48 luck · better chest finds", cost: 120, kind: "luck", amount: 48 },
     { id: "luck2", name: "Tide Charm", desc: "+72 luck · better chest finds", cost: 700, kind: "luck", amount: 72 },
     { id: "luck3", name: "Pearl Lure", desc: "+96 luck · better chest finds", cost: 4000, kind: "luck", amount: 96 },
@@ -993,6 +1055,10 @@
     { id: "luck37", name: "Origin Hook", desc: "+80000 luck · better chest finds", cost: 1.5e23, kind: "luck", amount: 80000 },
     { id: "luck38", name: "Aether Coin", desc: "+100000 luck · better chest finds", cost: 7e23, kind: "luck", amount: 100000 },
     { id: "luck39", name: "Radiant Oracle", desc: "+130000 luck · better chest finds", cost: 3.5e24, kind: "luck", amount: 130000 },
+    { id: "luck40", name: "Dusk Charm", desc: "+170000 luck · better chest finds", cost: 1.8e25, kind: "luck", amount: 170000 },
+    { id: "luck41", name: "Apex Hook", desc: "+220000 luck · better chest finds", cost: 9e25, kind: "luck", amount: 220000 },
+    { id: "luck42", name: "Nova Coin", desc: "+280000 luck · better chest finds", cost: 4.5e26, kind: "luck", amount: 280000 },
+    { id: "luck43", name: "Starborne Oracle", desc: "+360000 luck · better chest finds", cost: 2.2e27, kind: "luck", amount: 360000 },
     { id: "cooler1", name: "Ice Pack", desc: "+4 cooler slots", cost: 200, kind: "cooler", amount: 4 },
     { id: "cooler2", name: "Big Cooler", desc: "+6 cooler slots", cost: 1500, kind: "cooler", amount: 6 },
     { id: "cooler3", name: "Dock Freezer", desc: "+10 cooler slots", cost: 12000, kind: "cooler", amount: 10 },
@@ -1030,6 +1096,10 @@
     { id: "cooler35", name: "Origin Hold", desc: "+4000 cooler slots", cost: 2.5e22, kind: "cooler", amount: 4000 },
     { id: "cooler36", name: "Aether Cage", desc: "+5000 cooler slots", cost: 1.2e23, kind: "cooler", amount: 5000 },
     { id: "cooler37", name: "Radiant Locker", desc: "+6200 cooler slots", cost: 6e23, kind: "cooler", amount: 6200 },
+    { id: "cooler38", name: "Dusk Vault", desc: "+7800 cooler slots", cost: 3e24, kind: "cooler", amount: 7800 },
+    { id: "cooler39", name: "Apex Hold", desc: "+9800 cooler slots", cost: 1.5e25, kind: "cooler", amount: 9800 },
+    { id: "cooler40", name: "Nova Cage", desc: "+12000 cooler slots", cost: 7.5e25, kind: "cooler", amount: 12000 },
+    { id: "cooler41", name: "Starborne Locker", desc: "+15000 cooler slots", cost: 3.8e26, kind: "cooler", amount: 15000 },
     { id: "sell1", name: "Merchant Scale", desc: "+5% sell value", cost: 500, kind: "value", amount: 0.05 },
     { id: "sell2", name: "Harbor Broker", desc: "+8% sell value", cost: 5000, kind: "value", amount: 0.08 },
     { id: "sell3", name: "Gold Ledger", desc: "+12% sell value", cost: 50000, kind: "value", amount: 0.12 },
@@ -1066,6 +1136,10 @@
     { id: "sell34", name: "Origin Exchange", desc: "+2700% sell value", cost: 2e23, kind: "value", amount: 27 },
     { id: "sell35", name: "Aether Floor", desc: "+3300% sell value", cost: 1e24, kind: "value", amount: 33 },
     { id: "sell36", name: "Radiant Pit", desc: "+4000% sell value", cost: 5e24, kind: "value", amount: 40 },
+    { id: "sell37", name: "Dusk Market", desc: "+5000% sell value", cost: 2.5e25, kind: "value", amount: 50 },
+    { id: "sell38", name: "Apex Exchange", desc: "+6200% sell value", cost: 1.2e26, kind: "value", amount: 62 },
+    { id: "sell39", name: "Nova Floor", desc: "+7800% sell value", cost: 6e26, kind: "value", amount: 78 },
+    { id: "sell40", name: "Starborne Pit", desc: "+10000% sell value", cost: 3e27, kind: "value", amount: 100 },
     { id: "net1", name: "Hand Net", desc: "6% chance for a second fish", cost: 2500, kind: "multi", amount: 0.06 },
     { id: "net2", name: "Drag Net", desc: "10% chance for a second fish", cost: 28000, kind: "multi", amount: 0.1 },
     { id: "net3", name: "Trawl Mesh", desc: "14% chance for a second fish", cost: 220000, kind: "multi", amount: 0.14 },
@@ -1099,6 +1173,10 @@
     { id: "net31", name: "Origin Mesh", desc: "92% chance for a second fish", cost: 4.5e22, kind: "multi", amount: 0.92 },
     { id: "net32", name: "Aether Snare", desc: "95% chance for a second fish", cost: 2.2e23, kind: "multi", amount: 0.95 },
     { id: "net33", name: "Radiant Net", desc: "98% chance for a second fish", cost: 1.1e24, kind: "multi", amount: 0.98 },
+    { id: "net34", name: "Dusk Net", desc: "98.5% chance for a second fish", cost: 5.5e24, kind: "multi", amount: 0.985 },
+    { id: "net35", name: "Apex Mesh", desc: "99% chance for a second fish", cost: 2.8e25, kind: "multi", amount: 0.99 },
+    { id: "net36", name: "Nova Snare", desc: "99.3% chance for a second fish", cost: 1.4e26, kind: "multi", amount: 0.993 },
+    { id: "net37", name: "Starborne Net", desc: "99.5% chance for a second fish", cost: 7e26, kind: "multi", amount: 0.995 },
     { id: "triple1", name: "Twin Hook", desc: "4% chance for a third fish (needs 2nd catch)", cost: 15000, kind: "triple", amount: 0.04 },
     { id: "triple2", name: "Trident Line", desc: "7% chance for a third fish (needs 2nd catch)", cost: 120000, kind: "triple", amount: 0.07 },
     { id: "triple3", name: "Triple Snare", desc: "10% chance for a third fish (needs 2nd catch)", cost: 900000, kind: "triple", amount: 0.1 },
@@ -1129,6 +1207,10 @@
     { id: "triple28", name: "Origin Trident", desc: "88% chance for a third fish (needs 2nd catch)", cost: 6e22, kind: "triple", amount: 0.88 },
     { id: "triple29", name: "Aether Triad", desc: "92% chance for a third fish (needs 2nd catch)", cost: 3e23, kind: "triple", amount: 0.92 },
     { id: "triple30", name: "Radiant Trident", desc: "96% chance for a third fish (needs 2nd catch)", cost: 1.5e24, kind: "triple", amount: 0.96 },
+    { id: "triple31", name: "Dusk Triad", desc: "97% chance for a third fish (needs 2nd catch)", cost: 7.5e24, kind: "triple", amount: 0.97 },
+    { id: "triple32", name: "Apex Trident Ultima", desc: "97.5% chance for a third fish (needs 2nd catch)", cost: 3.8e25, kind: "triple", amount: 0.975 },
+    { id: "triple33", name: "Nova Triad", desc: "98% chance for a third fish (needs 2nd catch)", cost: 1.9e26, kind: "triple", amount: 0.98 },
+    { id: "triple34", name: "Starborne Trident", desc: "98.5% chance for a third fish (needs 2nd catch)", cost: 9.5e26, kind: "triple", amount: 0.985 },
     { id: "perfect1", name: "Steady Hands", desc: "+10% sell on perfect reels", cost: 1500, kind: "perfect", amount: 0.1 },
     { id: "perfect2", name: "Keen Eye", desc: "+15% sell on perfect reels", cost: 18000, kind: "perfect", amount: 0.15 },
     { id: "perfect3", name: "Timing Belt", desc: "+20% sell on perfect reels", cost: 150000, kind: "perfect", amount: 0.2 },
@@ -1160,7 +1242,11 @@
     { id: "perfect29", name: "Crown Timing", desc: "+1100% sell on perfect reels", cost: 7.5e21, kind: "perfect", amount: 11 },
     { id: "perfect30", name: "Origin Focus", desc: "+1300% sell on perfect reels", cost: 4e22, kind: "perfect", amount: 13 },
     { id: "perfect31", name: "Aether Pulse", desc: "+1550% sell on perfect reels", cost: 2e23, kind: "perfect", amount: 15.5 },
-    { id: "perfect32", name: "Radiant Focus", desc: "+1850% sell on perfect reels", cost: 1e24, kind: "perfect", amount: 18.5 }
+    { id: "perfect32", name: "Radiant Focus", desc: "+1850% sell on perfect reels", cost: 1e24, kind: "perfect", amount: 18.5 },
+    { id: "perfect33", name: "Dusk Timing", desc: "+2200% sell on perfect reels", cost: 5e24, kind: "perfect", amount: 22 },
+    { id: "perfect34", name: "Apex Focus Ultima", desc: "+2700% sell on perfect reels", cost: 2.5e25, kind: "perfect", amount: 27 },
+    { id: "perfect35", name: "Nova Pulse", desc: "+3300% sell on perfect reels", cost: 1.2e26, kind: "perfect", amount: 33 },
+    { id: "perfect36", name: "Starborne Focus", desc: "+4000% sell on perfect reels", cost: 6e26, kind: "perfect", amount: 40 }
   ];
 
   /**
@@ -1294,6 +1380,43 @@
         [0.26, 2]
       ],
       multiHint: "26% for 2 · 20% for 3 · 16% for 4 · 13% for 5 · 10% for 6 · 7% for 7 · 5% for 8 · 3% for 9 · 2% for 10"
+    },
+    {
+      name: "Nova Armada",
+      interval: 7.5,
+      cost: 4e22,
+      multi: [
+        [0.015, 11],
+        [0.025, 10],
+        [0.035, 9],
+        [0.05, 8],
+        [0.07, 7],
+        [0.09, 6],
+        [0.12, 5],
+        [0.15, 4],
+        [0.18, 3],
+        [0.24, 2]
+      ],
+      multiHint: "24% for 2 · 18% for 3 · 15% for 4 · 12% for 5 · 9% for 6 · 7% for 7 · 5% for 8 · 3.5% for 9 · 2.5% for 10 · 1.5% for 11"
+    },
+    {
+      name: "Starborne Carrier",
+      interval: 7.5,
+      cost: 2e25,
+      multi: [
+        [0.012, 12],
+        [0.02, 11],
+        [0.03, 10],
+        [0.04, 9],
+        [0.055, 8],
+        [0.07, 7],
+        [0.09, 6],
+        [0.11, 5],
+        [0.14, 4],
+        [0.17, 3],
+        [0.22, 2]
+      ],
+      multiHint: "22% for 2 · 17% for 3 · 14% for 4 · 11% for 5 · 9% for 6 · 7% for 7 · 5.5% for 8 · 4% for 9 · 3% for 10 · 2% for 11 · 1.2% for 12"
     }
   ];
   const BOAT_MAX_LEVEL = BOAT_TIERS.length - 1;
