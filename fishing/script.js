@@ -1631,27 +1631,35 @@
   }
 
   /**
-   * Luck tilts the 100% fish table: common + uncommon shrink, rarer tiers grow.
-   * 1 HUD luck counts as 3 in the tilt (not a 2× catch multiplier).
-   * Log scale so huge luck still moves odds without wiping commons or making Zenith common.
+   * Luck gates the fish table: low luck = commons dominate and high tiers are crushed.
+   * Raising luck unlocks rarer fish. Dialing luck down makes good fish much harder again.
    */
   function luckShiftPower(rarity) {
     const rank = RARITY_RANK[rarity] || 1;
     const top = RARITY_RANK[RARITIES[RARITIES.length - 1]] || rank;
     if (rank <= 2) return rank === 1 ? -1.1 : -0.7;
-    // Smooth climb only — never overboost Zenith past lower high-tiers
     return Math.max(0, (rank - 2) / Math.max(1, top - 2));
   }
 
   function luckWeightMult(rarity, luck) {
-    const L = Math.max(0, Number(luck) || 0) * 3;
-    if (L <= 0) return 1;
-    const power = luckShiftPower(rarity);
-    if (!power) return 1;
-    const factor = 1 + Math.log10(1 + L) / 2.8;
-    const m = Math.pow(factor, power);
-    if (!Number.isFinite(m) || m <= 0) return 1;
-    return Math.min(1e9, Math.max(1e-9, m));
+    const L = Math.max(0, Number(luck) || 0);
+    const skew = luckRaritySkew(rarity);
+    const rank = RARITY_RANK[rarity] || 1;
+
+    // Low luck → more commons / uncommons
+    if (rank === 1) return 1 + 3.2 / (1 + L / 18);
+    if (rank === 2) return 1 + 1.8 / (1 + L / 28);
+
+    // High tiers stay nearly locked until you have enough luck
+    const gate = 6 + skew * skew * 160;
+    const unlock = Math.pow(L / (L + gate), 1 + skew * 0.85);
+    const floor = Math.pow(0.012, 0.25 + skew * 0.75);
+    let m = floor + (1 - floor) * unlock;
+    // Extra lift once unlocked
+    const boost = Math.pow(1 + Math.log10(1 + L * 3) / 2.6, skew);
+    m *= boost;
+    if (!Number.isFinite(m) || m <= 0) return floor;
+    return Math.min(1e9, Math.max(floor, m));
   }
 
   function coolerMax() {
