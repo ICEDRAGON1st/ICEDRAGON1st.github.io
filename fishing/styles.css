@@ -7236,10 +7236,9 @@ body[data-spot="finalhorizon"] {
 }
 .aquarium-swimmers {
   position: absolute;
-  inset: 0.65rem 0.75rem 0.75rem;
+  inset: 0.7rem 0.85rem 0.85rem;
   z-index: 2;
   overflow: hidden;
-  container-type: size;
 }
 .aquarium-empty {
   position: absolute;
@@ -7259,23 +7258,17 @@ body[data-spot="finalhorizon"] {
   display: none;
 }
 .aqua-fish {
-  --fish-w: 3rem;
   position: absolute;
   left: 0;
-  top: var(--swim-top, 40%);
-  width: var(--fish-w);
-  height: calc(var(--fish-w) * 0.5);
+  top: 0;
   margin: 0;
   border: 0;
   background: transparent;
   padding: 0;
   cursor: pointer;
   transform-origin: center center;
-  animation: aqua-swim var(--swim-dur, 12s) linear var(--swim-delay, 0s) infinite;
+  will-change: transform;
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
-}
-.aqua-fish.is-flip {
-  animation-name: aqua-swim-flip;
 }
 .aqua-fish:hover,
 .aqua-fish:focus-visible {
@@ -7286,72 +7279,11 @@ body[data-spot="finalhorizon"] {
   display: block;
   width: 100%;
   height: 100%;
-  overflow: visible;
 }
 .aqua-fish-glyph .fish-glyph {
   width: 100%;
   height: 100%;
   display: block;
-}
-/* Stay fully inside the swim lane: travel exactly (lane width − fish width). */
-@keyframes aqua-swim {
-  0% {
-    transform: translate3d(0, 0, 0) scaleX(1);
-  }
-  25% {
-    transform: translate3d(calc((100cqi - var(--fish-w)) * 0.5), -4px, 0) scaleX(1);
-  }
-  49.9% {
-    transform: translate3d(calc(100cqi - var(--fish-w)), 3px, 0) scaleX(1);
-  }
-  50% {
-    transform: translate3d(calc(100cqi - var(--fish-w)), 3px, 0) scaleX(-1);
-  }
-  75% {
-    transform: translate3d(calc((100cqi - var(--fish-w)) * 0.5), -3px, 0) scaleX(-1);
-  }
-  100% {
-    transform: translate3d(0, 0, 0) scaleX(-1);
-  }
-}
-@keyframes aqua-swim-flip {
-  0% {
-    transform: translate3d(calc(100cqi - var(--fish-w)), 0, 0) scaleX(-1);
-  }
-  25% {
-    transform: translate3d(calc((100cqi - var(--fish-w)) * 0.5), 4px, 0) scaleX(-1);
-  }
-  49.9% {
-    transform: translate3d(0, -3px, 0) scaleX(-1);
-  }
-  50% {
-    transform: translate3d(0, -3px, 0) scaleX(1);
-  }
-  75% {
-    transform: translate3d(calc((100cqi - var(--fish-w)) * 0.5), 3px, 0) scaleX(1);
-  }
-  100% {
-    transform: translate3d(calc(100cqi - var(--fish-w)), 0, 0) scaleX(1);
-  }
-}
-/* Fallback when container query units are unavailable */
-@supports not (width: 1cqi) {
-  @keyframes aqua-swim {
-    0% { left: 0; transform: translateY(0) scaleX(1); }
-    25% { transform: translateY(-4px) scaleX(1); }
-    49.9% { left: calc(100% - var(--fish-w)); transform: translateY(3px) scaleX(1); }
-    50% { left: calc(100% - var(--fish-w)); transform: translateY(3px) scaleX(-1); }
-    75% { transform: translateY(-3px) scaleX(-1); }
-    100% { left: 0; transform: translateY(0) scaleX(-1); }
-  }
-  @keyframes aqua-swim-flip {
-    0% { left: calc(100% - var(--fish-w)); transform: translateY(0) scaleX(-1); }
-    25% { transform: translateY(4px) scaleX(-1); }
-    49.9% { left: 0; transform: translateY(-3px) scaleX(-1); }
-    50% { left: 0; transform: translateY(-3px) scaleX(1); }
-    75% { transform: translateY(3px) scaleX(1); }
-    100% { left: calc(100% - var(--fish-w)); transform: translateY(0) scaleX(1); }
-  }
 }
 .aquarium-drip {
   margin: 0;
@@ -7359,24 +7291,7 @@ body[data-spot="finalhorizon"] {
   color: var(--muted);
 }
 @media (prefers-reduced-motion: reduce) {
-  .aqua-fish,
   .aquarium-bubbles span {
     animation: none !important;
-  }
-  .aqua-fish {
-    position: relative;
-    left: auto;
-    top: auto !important;
-    display: inline-block;
-    margin: 0.25rem;
-    transform: none !important;
-  }
-  .aquarium-swimmers {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    padding: 0.6rem;
-    inset: 0.45rem;
   }
 }

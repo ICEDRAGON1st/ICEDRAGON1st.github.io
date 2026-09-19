@@ -2421,6 +2421,10 @@
 
   const AQUARIUM_SWIM_MAX = 18;
   let aquariumRenderKey = "";
+  /** @type {{ el: HTMLElement, x: number, y: number, vx: number, vy: number, w: number, h: number }[]} */
+  let aquariumSwimState = [];
+  let aquariumRaf = 0;
+  let aquariumLastTs = 0;
 
   function aquariumFishList() {
     const spot = currentSpot();
@@ -2441,6 +2445,75 @@
     return aquariumFishList()
       .map(({ entry, fish }) => `${fish.id}:${entry.variant || ""}:${entry.shiny ? 1 : 0}`)
       .join("|");
+  }
+
+  function stopAquariumSwim() {
+    if (aquariumRaf) {
+      cancelAnimationFrame(aquariumRaf);
+      aquariumRaf = 0;
+    }
+    aquariumLastTs = 0;
+    aquariumSwimState = [];
+  }
+
+  function applyAquaFishPose(fish) {
+    const facing = fish.vx >= 0 ? 1 : -1;
+    fish.el.style.transform = `translate(${fish.x.toFixed(1)}px, ${fish.y.toFixed(1)}px) scaleX(${facing})`;
+    fish.el.classList.toggle("facing-left", facing < 0);
+  }
+
+  function stepAquariumSwim(ts) {
+    aquariumRaf = 0;
+    const swimmers = document.getElementById("aquarium-swimmers");
+    if (!swimmers || !aquariumSwimState.length) {
+      aquariumLastTs = 0;
+      return;
+    }
+    if (!aquariumLastTs) aquariumLastTs = ts;
+    let dt = Math.min(0.05, Math.max(0.001, (ts - aquariumLastTs) / 1000));
+    aquariumLastTs = ts;
+
+    const laneW = swimmers.clientWidth;
+    const laneH = swimmers.clientHeight;
+    if (laneW < 8 || laneH < 8) {
+      aquariumRaf = requestAnimationFrame(stepAquariumSwim);
+      return;
+    }
+
+    aquariumSwimState.forEach((fish) => {
+      fish.x += fish.vx * dt;
+      fish.y += fish.vy * dt;
+      const maxX = Math.max(0, laneW - fish.w);
+      const maxY = Math.max(0, laneH - fish.h);
+      if (fish.x <= 0) {
+        fish.x = 0;
+        fish.vx = Math.abs(fish.vx);
+      } else if (fish.x >= maxX) {
+        fish.x = maxX;
+        fish.vx = -Math.abs(fish.vx);
+      }
+      if (fish.y <= 0) {
+        fish.y = 0;
+        fish.vy = Math.abs(fish.vy);
+      } else if (fish.y >= maxY) {
+        fish.y = maxY;
+        fish.vy = -Math.abs(fish.vy);
+      }
+      applyAquaFishPose(fish);
+    });
+
+    aquariumRaf = requestAnimationFrame(stepAquariumSwim);
+  }
+
+  function startAquariumSwim() {
+    if (aquariumRaf) return;
+    if (!aquariumSwimState.length) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) {
+      aquariumSwimState.forEach((fish) => applyAquaFishPose(fish));
+      return;
+    }
+    aquariumLastTs = 0;
+    aquariumRaf = requestAnimationFrame(stepAquariumSwim);
   }
 
   function renderAquarium(force = false) {
@@ -2471,24 +2544,51 @@
     tank.classList.toggle("has-fish", list.length > 0);
     if (emptyEl) emptyEl.hidden = list.length > 0;
 
-    if (!force && nextKey === aquariumRenderKey) return;
+    if (!force && nextKey === aquariumRenderKey) {
+      startAquariumSwim();
+      return;
+    }
     aquariumRenderKey = nextKey;
+    stopAquariumSwim();
 
     swimmers.innerHTML = list
       .map(({ index, entry, fish }, i) => {
         const label = formatFishName(fish, entry);
-        const dur = (9 + ((i * 37) % 11) + (fish.id.length % 5)).toFixed(1);
-        const delay = (-((i * 1.7) % 12)).toFixed(1);
-        const top = 12 + ((i * 17 + (RARITY_RANK[fish.rarity] || 1) * 3) % 52);
-        const fishW = (2.6 + Math.min(0.9, (RARITY_RANK[fish.rarity] || 1) * 0.035)).toFixed(2);
-        const flip = i % 2 === 1 ? " is-flip" : "";
-        return `<button type="button" class="aqua-fish${flip} ${fish.rarity} ${variantClassList(
+        const fishW = (42 + Math.min(18, (RARITY_RANK[fish.rarity] || 1) * 0.7)).toFixed(0);
+        return `<button type="button" class="aqua-fish ${fish.rarity} ${variantClassList(
           entry
-        )}" data-aqua-index="${index}" style="--swim-dur:${dur}s;--swim-delay:${delay}s;--swim-top:${top}%;--fish-w:${fishW}rem" title="${label} · tap to unsave" aria-label="Unsave ${label}">
+        )}" data-aqua-index="${index}" data-aqua-i="${i}" style="width:${fishW}px;height:${(
+          Number(fishW) * 0.5
+        ).toFixed(0)}px" title="${label} · tap to unsave" aria-label="Unsave ${label}">
           <span class="aqua-fish-glyph" aria-hidden="true">${fishGlyphHtml(fish, entry)}</span>
         </button>`;
       })
       .join("");
+
+    const laneW = Math.max(1, swimmers.clientWidth);
+    const laneH = Math.max(1, swimmers.clientHeight);
+    aquariumSwimState = [...swimmers.querySelectorAll(".aqua-fish")].map((el, i) => {
+      const w = el.offsetWidth || 48;
+      const h = el.offsetHeight || 24;
+      const maxX = Math.max(0, laneW - w);
+      const maxY = Math.max(0, laneH - h);
+      const speed = 28 + (i % 5) * 7 + ((list[i]?.fish?.id.length || 0) % 6) * 3;
+      const dir = i % 2 === 0 ? 1 : -1;
+      const x = Math.min(maxX, Math.max(0, (maxX * ((i * 37) % 100)) / 100));
+      const y = Math.min(maxY, Math.max(0, (maxY * ((i * 53 + 17) % 100)) / 100));
+      const fish = {
+        el,
+        x,
+        y,
+        vx: dir * speed,
+        vy: (i % 2 === 0 ? 1 : -1) * (6 + (i % 4) * 2),
+        w,
+        h
+      };
+      applyAquaFishPose(fish);
+      return fish;
+    });
+    startAquariumSwim();
   }
 
   function coolerEntriesView() {
