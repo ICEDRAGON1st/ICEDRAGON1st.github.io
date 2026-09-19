@@ -1415,9 +1415,9 @@
     return ownedGear("luck").reduce((s, g) => s + g.amount, 0);
   }
 
-  /** Infinite luck shop: +0.0005 luck (×2 each buy), cost ×3 each buy. */
+  /** Infinite luck shop: +0.00005 luck (×2 each buy), cost ×3 each buy. */
   const ECHO_LUCK_ID = "luckEcho";
-  const ECHO_LUCK_BASE = 0.0005;
+  const ECHO_LUCK_BASE = 0.00005;
   const ECHO_LUCK_BASE_COST = 1;
   const ECHO_LUCK_COST_MULT = 3;
   const ECHO_LUCK_MAX_LEVEL = 1022;
@@ -5705,6 +5705,7 @@
     const v = Number(n) || 0;
     if (!Number.isFinite(v) || v <= 0) return "0";
     if (v >= 1000) return formatNum(v);
+    if (v < 0.0001) return (Math.round(v * 100000) / 100000).toFixed(5);
     if (v < 0.001) return (Math.round(v * 10000) / 10000).toFixed(4);
     if (v < 0.01) return (Math.round(v * 1000) / 1000).toFixed(3);
     const rounded = Math.round(v * 100) / 100;
