@@ -1634,13 +1634,6 @@
    * Luck gates the fish table: low luck = commons dominate and high tiers are crushed.
    * Raising luck unlocks rarer fish. Dialing luck down makes good fish much harder again.
    */
-  function luckShiftPower(rarity) {
-    const rank = RARITY_RANK[rarity] || 1;
-    const top = RARITY_RANK[RARITIES[RARITIES.length - 1]] || rank;
-    if (rank <= 2) return rank === 1 ? -1.1 : -0.7;
-    return Math.max(0, (rank - 2) / Math.max(1, top - 2));
-  }
-
   function luckWeightMult(rarity, luck) {
     const L = Math.max(0, Number(luck) || 0);
     const skew = luckRaritySkew(rarity);
