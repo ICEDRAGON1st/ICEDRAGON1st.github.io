@@ -261,8 +261,8 @@
       item: "luckyblock-zenith",
       stateKey: "zenithLuckyBlockCount",
       minRarity: "transcendent",
-      maxRarity: "apex",
-      rangeLabel: "transcendent–apex fish",
+      maxRarity: "zenith",
+      rangeLabel: "transcendent–zenith fish",
       theme: "zenith"
     }
   };
