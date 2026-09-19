@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260920v">
+  <link rel="stylesheet" href="styles.css?v=20260920w">
 </head>
 <body data-spot="creek">
   <header class="top-bar">
@@ -85,6 +85,28 @@
         <div class="stat-chip">
           <span class="stat-chip-label">Cooler</span>
           <strong id="cooler-stat-label">12</strong>
+        </div>
+        <div class="stat-chip" id="weather-chip" title="Weather and tides shift bite speed and rarity odds for a few minutes">
+          <span class="stat-chip-label">Weather</span>
+          <strong id="weather-label">Clear</strong>
+        </div>
+        <div class="stat-chip" id="mastery-chip" title="Cast here to raise permanent local sell and luck">
+          <span class="stat-chip-label">Mastery</span>
+          <strong id="mastery-label">Lv 0</strong>
+        </div>
+        <div class="stat-chip combo-chip hidden" id="combo-chip" title="Perfect reels in a row boost luck and multi briefly">
+          <span class="stat-chip-label">Combo</span>
+          <strong id="combo-label">—</strong>
+        </div>
+        <div class="stat-chip aquarium-chip" id="aquarium-chip" title="Saved fish drip coins. Claim anytime.">
+          <span class="stat-chip-label">Aquarium</span>
+          <strong id="aquarium-label">Save fish for drip</strong>
+          <button type="button" id="aquarium-claim-btn" class="chip-mini-btn" disabled>Claim</button>
+        </div>
+        <div class="stat-chip community-chip" id="community-chip" title="Weekend community meter — everyone's catches fill it for a shared luck boost">
+          <span class="stat-chip-label">Community</span>
+          <strong id="community-label">Fri–Sun meter</strong>
+          <span class="community-bar" aria-hidden="true"><span id="community-fill" class="community-fill"></span></span>
         </div>
       </div>
       <div class="boat-zone">
@@ -226,6 +248,27 @@
       <div class="cooler-bar">
         <div class="cooler-head">
           <span>Cooler <strong id="cooler-count">0</strong>/<span id="cooler-max">12</span></span>
+          <div class="cooler-controls">
+            <label class="cooler-ctrl">
+              <span>Sort</span>
+              <select id="cooler-sort" aria-label="Sort cooler">
+                <option value="value">Value</option>
+                <option value="rarity">Rarity</option>
+                <option value="shiny">Shiny</option>
+                <option value="saved">Saved</option>
+                <option value="name">Name</option>
+              </select>
+            </label>
+            <label class="cooler-ctrl">
+              <span>Filter</span>
+              <select id="cooler-filter" aria-label="Filter cooler">
+                <option value="all">All</option>
+                <option value="saved">Saved</option>
+                <option value="shiny">Shiny</option>
+                <option value="unsaved">Unsaved</option>
+              </select>
+            </label>
+          </div>
         </div>
         <div class="auto-sell-panel">
           <span class="auto-sell-title">Auto-sell by rarity</span>
@@ -448,6 +491,16 @@
     </div>
   </div>
 
+  <div id="offline-claim-overlay" class="overlay offline-claim-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="offline-claim-title">
+    <div class="overlay-card offline-claim-card">
+      <p class="eyebrow">Boat haul</p>
+      <h2 id="offline-claim-title">While you were away</h2>
+      <p id="offline-claim-body" class="offline-claim-body">Your boat kept fishing.</p>
+      <p id="offline-claim-bonus" class="offline-claim-bonus"></p>
+      <button id="offline-claim-btn" type="button" class="btn">Claim</button>
+    </div>
+  </div>
+
   <div id="lucky-block-overlay" class="overlay lucky-block-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="lucky-block-title">
     <div class="overlay-card lucky-block-card">
       <div class="guide-head">
@@ -567,6 +620,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260917br"></script>
-  <script src="script.js?v=20260920v"></script>
+  <script src="script.js?v=20260920w"></script>
 </body>
 </html>

@@ -1800,7 +1800,26 @@
       echoLuckReset: ECHO_LUCK_RESET_ID,
       /** Active luck dial — null means follow max. */
       luckDial: null,
-      luckDialFollowMax: true
+      luckDialFollowMax: true,
+      /** Spot mastery: casts per spot id. */
+      spotCasts: {},
+      /** Weather cycle */
+      weatherId: "clear",
+      weatherUntil: 0,
+      /** Perfect reel combo */
+      combo: 0,
+      comboBoostUntil: 0,
+      /** Aquarium drip accrual */
+      aquariumBank: 0,
+      aquariumLastTick: Date.now(),
+      /** Cooler list controls */
+      coolerSort: "value",
+      coolerFilter: "all",
+      /** Pending offline haul claim */
+      pendingOffline: null,
+      /** Local community weekend contribution */
+      communityWeekKey: "",
+      communityContrib: 0
     };
   }
 
@@ -2014,10 +2033,12 @@
   /** Raw luck before chests/events: (gear + current spot) × 3 × collection + Echo Charm. */
   function maxBaseLuck(spot = currentSpot()) {
     return (
-      (Math.max(0, luckBonus()) + spotLuckBonus(spot)) *
+      (Math.max(0, luckBonus()) + spotLuckBonus(spot) + spotMasteryLuckBonus(spot)) *
         LUCK_STAT_MULT *
-        collectionLuckMult() +
-      echoLuckBonus()
+        collectionLuckMult() *
+        communityLuckMult() +
+      echoLuckBonus() +
+      comboLuckBonus()
     );
   }
 
@@ -2124,12 +2145,263 @@
     return ownedGear("value").reduce((s, g) => s + g.amount, 0);
   }
 
-  /** Effective sell vs fish base value: spot × gear sell boost × treasure. */
+  const COMMUNITY_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-community";
+  const COMMUNITY_TOKEN = "ice-fish-com-9f3a";
+  const COMMUNITY_GOAL = 2500;
+  const COMMUNITY_REWARD_MS = 30 * 60 * 1000;
+  const COMMUNITY_REWARD_MULT = 2;
+  const OFFLINE_CLAIM_BONUS_MS = 90 * 1000;
+  const OFFLINE_CLAIM_BONUS = 0.25;
+  const SPOT_MASTERY_PER = 40;
+  const SPOT_MASTERY_MAX = 25;
+  const WEATHER_MS = 5 * 60 * 1000;
+  const WEATHER_KINDS = {
+    clear: { id: "clear", label: "Clear", wait: 1, rare: 1 },
+    calm: { id: "calm", label: "Calm seas", wait: 0.7, rare: 0.92 },
+    storm: { id: "storm", label: "Storm", wait: 1.18, rare: 1.65 },
+    fog: { id: "fog", label: "Fog", wait: 1.08, rare: 0.7 },
+    tide: { id: "tide", label: "High tide", wait: 0.88, rare: 1.28 }
+  };
+  const WEATHER_ROTATION = ["clear", "calm", "tide", "storm", "fog", "clear", "calm", "storm"];
+  let communityCache = { weekKey: "", total: 0, goal: COMMUNITY_GOAL, rewardUntil: 0, rewardMult: COMMUNITY_REWARD_MULT };
+  let communityFetchAt = 0;
+
+  function spotMasteryCasts(spotId = state.spotId) {
+    return Math.max(0, Math.floor(Number(state.spotCasts?.[spotId]) || 0));
+  }
+
+  function spotMasteryLevel(spotId = state.spotId) {
+    return Math.min(SPOT_MASTERY_MAX, Math.floor(spotMasteryCasts(spotId) / SPOT_MASTERY_PER));
+  }
+
+  function spotMasterySellBonus(spot = currentSpot()) {
+    return spotMasteryLevel(spot?.id) * 0.015;
+  }
+
+  function spotMasteryLuckBonus(spot = currentSpot()) {
+    return spotMasteryLevel(spot?.id) * 10;
+  }
+
+  function noteSpotCast(spotId = state.spotId, n = 1) {
+    if (!spotId) return;
+    if (!state.spotCasts || typeof state.spotCasts !== "object") state.spotCasts = {};
+    state.spotCasts[spotId] = spotMasteryCasts(spotId) + Math.max(1, Math.floor(n));
+  }
+
+  function weatherDef(id = state.weatherId) {
+    return WEATHER_KINDS[id] || WEATHER_KINDS.clear;
+  }
+
+  function ensureWeather(now = Date.now()) {
+    if (!state.weatherUntil || state.weatherUntil <= now || !WEATHER_KINDS[state.weatherId]) {
+      const slot = Math.floor(now / WEATHER_MS) % WEATHER_ROTATION.length;
+      state.weatherId = WEATHER_ROTATION[slot] || "clear";
+      state.weatherUntil = Math.floor(now / WEATHER_MS) * WEATHER_MS + WEATHER_MS;
+    }
+    return weatherDef();
+  }
+
+  function weatherRareMult() {
+    return Number(ensureWeather().rare) || 1;
+  }
+
+  function weatherWaitMult() {
+    return Number(ensureWeather().wait) || 1;
+  }
+
+  function comboActive(now = Date.now()) {
+    return (state.combo || 0) > 0 && (state.comboBoostUntil || 0) > now;
+  }
+
+  function comboLuckBonus(now = Date.now()) {
+    if (!comboActive(now)) return 0;
+    return Math.min(12, state.combo) * 18;
+  }
+
+  function comboMultiBonus(now = Date.now()) {
+    if (!comboActive(now)) return 0;
+    return Math.min(12, state.combo) * 0.015;
+  }
+
+  function notePerfectCombo(perfect) {
+    if (perfect) {
+      state.combo = Math.min(99, (state.combo || 0) + 1);
+      state.comboBoostUntil = Date.now() + 45_000;
+    } else {
+      state.combo = 0;
+      state.comboBoostUntil = 0;
+    }
+  }
+
+  function communityWeekKey(now = Date.now()) {
+    const d = new Date(now);
+    const day = d.getDay(); // 0 Sun .. 6 Sat
+    // Weekend window: Friday 0:00 → Sunday end (treat Fri=5,Sat=6,Sun=0 as same week key from Friday)
+    const offset = day === 0 ? -2 : day === 6 ? -1 : day === 5 ? 0 : -(day + 2);
+    const fri = new Date(d.getFullYear(), d.getMonth(), d.getDate() + offset);
+    return `${fri.getFullYear()}-${fri.getMonth() + 1}-${fri.getDate()}`;
+  }
+
+  function communityWeekendLive(now = Date.now()) {
+    const day = new Date(now).getDay();
+    return day === 5 || day === 6 || day === 0;
+  }
+
+  function communityRewardLive(now = Date.now()) {
+    return (communityCache.rewardUntil || 0) > now;
+  }
+
+  function communityLuckMult(now = Date.now()) {
+    return communityRewardLive(now) ? Number(communityCache.rewardMult) || COMMUNITY_REWARD_MULT : 1;
+  }
+
+  async function fetchCommunityDoc() {
+    try {
+      const res = await fetch(`${COMMUNITY_API}?t=${Date.now()}`, { cache: "no-store" });
+      if (res.status === 404) return null;
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data || typeof data !== "object") return null;
+      return data;
+    } catch {
+      return null;
+    }
+  }
+
+  async function pushCommunityDoc(doc) {
+    try {
+      await fetch(COMMUNITY_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...doc, token: COMMUNITY_TOKEN })
+      });
+    } catch {}
+  }
+
+  async function syncCommunity(add = 0) {
+    const week = communityWeekKey();
+    if (state.communityWeekKey !== week) {
+      state.communityWeekKey = week;
+      state.communityContrib = 0;
+    }
+    if (add > 0) state.communityContrib += add;
+    if (!communityWeekendLive() && add <= 0) {
+      communityCache = {
+        weekKey: week,
+        total: 0,
+        goal: COMMUNITY_GOAL,
+        rewardUntil: communityCache.rewardUntil || 0,
+        rewardMult: COMMUNITY_REWARD_MULT
+      };
+      return communityCache;
+    }
+    const remote = (await fetchCommunityDoc()) || {};
+    let total = Math.max(0, Math.floor(Number(remote.total) || 0));
+    let rewardUntil = Math.max(0, Number(remote.rewardUntil) || 0);
+    const remoteWeek = String(remote.weekKey || "");
+    if (remoteWeek !== week) {
+      total = 0;
+      rewardUntil = 0;
+    }
+    total = Math.max(total + Math.max(0, add), state.communityContrib);
+    const goal = Math.max(500, Math.floor(Number(remote.goal) || COMMUNITY_GOAL));
+    if (total >= goal && rewardUntil < Date.now()) {
+      rewardUntil = Date.now() + COMMUNITY_REWARD_MS;
+    }
+    communityCache = {
+      weekKey: week,
+      total,
+      goal,
+      rewardUntil,
+      rewardMult: Number(remote.rewardMult) || COMMUNITY_REWARD_MULT
+    };
+    communityFetchAt = Date.now();
+    if (add > 0 || remoteWeek !== week || total !== Number(remote.total)) {
+      pushCommunityDoc(communityCache);
+    }
+    return communityCache;
+  }
+
+  function aquariumRatePerSec() {
+    const spot = currentSpot();
+    let rate = 0;
+    state.cooler.forEach((raw) => {
+      const entry = normalizeCoolerEntry(raw);
+      if (!entry?.saved) return;
+      const fish = fishById(entry.id);
+      if (!fish || isTreasureItem(fish)) return;
+      const rank = RARITY_RANK[fish.rarity] || 1;
+      const val = fishValue(fish, spot, entry);
+      rate += val * 0.00004 * (0.35 + rank * 0.08);
+    });
+    return rate;
+  }
+
+  function tickAquarium(force = false) {
+    const now = Date.now();
+    const last = Math.max(0, Number(state.aquariumLastTick) || now);
+    let elapsed = Math.max(0, now - last);
+    if (!force && elapsed < 1000) return 0;
+    elapsed = Math.min(elapsed, 6 * 3600 * 1000);
+    const gained = aquariumRatePerSec() * (elapsed / 1000);
+    state.aquariumLastTick = now;
+    if (gained > 0) {
+      state.aquariumBank = (Number(state.aquariumBank) || 0) + gained;
+    }
+    return gained;
+  }
+
+  function claimAquariumBank() {
+    tickAquarium(true);
+    const bank = Math.floor(Number(state.aquariumBank) || 0);
+    if (bank <= 0) return 0;
+    state.aquariumBank = 0;
+    addCoins(bank);
+    return bank;
+  }
+
+  function coolerEntriesView() {
+    const spot = currentSpot();
+    let rows = state.cooler
+      .map((raw, index) => {
+        const entry = normalizeCoolerEntry(raw);
+        if (!entry) return null;
+        const fish = fishById(entry.id);
+        if (!fish) return null;
+        return { index, entry, fish, val: fishValue(fish, spot, entry) };
+      })
+      .filter(Boolean);
+    const filter = state.coolerFilter || "all";
+    if (filter === "saved") rows = rows.filter((r) => r.entry.saved);
+    else if (filter === "shiny") rows = rows.filter((r) => r.entry.shiny);
+    else if (filter === "unsaved") rows = rows.filter((r) => !r.entry.saved);
+    const sort = state.coolerSort || "value";
+    rows.sort((a, b) => {
+      if (sort === "rarity") {
+        return (RARITY_RANK[b.fish.rarity] || 0) - (RARITY_RANK[a.fish.rarity] || 0) || b.val - a.val;
+      }
+      if (sort === "shiny") {
+        return Number(b.entry.shiny) - Number(a.entry.shiny) || b.val - a.val;
+      }
+      if (sort === "saved") {
+        return Number(b.entry.saved) - Number(a.entry.saved) || b.val - a.val;
+      }
+      if (sort === "name") {
+        return formatFishName(a.fish, a.entry).localeCompare(formatFishName(b.fish, b.entry));
+      }
+      return b.val - a.val;
+    });
+    return rows;
+  }
+
+  /** Effective sell vs fish base value: spot × gear sell boost × treasure × mastery. */
   function totalSellFactor() {
     const spot = currentSpot();
     return Math.max(
       0.01,
-      (Number(spot?.valueMult) || 1) * (1 + sellBonus()) * treasureMoneyMult()
+      (Number(spot?.valueMult) || 1) *
+        (1 + sellBonus() + spotMasterySellBonus(spot) + comboMultiBonus()) *
+        treasureMoneyMult()
     );
   }
 
@@ -4891,7 +5163,10 @@
   }
 
   function multiCatchChance() {
-    return Math.min(0.98, ownedGear("multi").reduce((s, g) => s + g.amount, 0));
+    return Math.min(
+      0.98,
+      ownedGear("multi").reduce((s, g) => s + g.amount, 0) + comboMultiBonus()
+    );
   }
 
   function tripleCatchChance() {
@@ -5114,6 +5389,29 @@
         next.luckDialFollowMax = true;
         next.luckDial = null;
       }
+      next.spotCasts = {};
+      if (raw.spotCasts && typeof raw.spotCasts === "object") {
+        Object.keys(raw.spotCasts).forEach((id) => {
+          const n = Math.floor(Number(raw.spotCasts[id]) || 0);
+          if (n > 0) next.spotCasts[id] = n;
+        });
+      }
+      next.weatherId = String(raw.weatherId || "clear");
+      next.weatherUntil = Math.max(0, Number(raw.weatherUntil) || 0);
+      next.combo = Math.max(0, Math.min(99, Math.floor(Number(raw.combo) || 0)));
+      next.comboBoostUntil = Math.max(0, Number(raw.comboBoostUntil) || 0);
+      next.aquariumBank = Math.max(0, Number(raw.aquariumBank) || 0);
+      next.aquariumLastTick = Math.max(0, Number(raw.aquariumLastTick) || Date.now());
+      next.coolerSort = ["value", "rarity", "shiny", "saved", "name"].includes(raw.coolerSort)
+        ? raw.coolerSort
+        : "value";
+      next.coolerFilter = ["all", "saved", "shiny", "unsaved"].includes(raw.coolerFilter)
+        ? raw.coolerFilter
+        : "all";
+      next.pendingOffline =
+        raw.pendingOffline && typeof raw.pendingOffline === "object" ? raw.pendingOffline : null;
+      next.communityWeekKey = String(raw.communityWeekKey || "");
+      next.communityContrib = Math.max(0, Math.floor(Number(raw.communityContrib) || 0));
       return next;
     } catch {
       return defaultState();
@@ -7318,6 +7616,13 @@
     if (fish.rarity === "apex") w *= (0.06 + t * 0.24) * (forBoat ? 0.06 : 1);
     w *= valueRarityScale(fish);
     w *= luckWeightMult(fish.rarity, luck);
+    // Weather / tide: storm & high tide lift high tiers; fog / calm lean common
+    const wx = weatherRareMult();
+    if (wx !== 1) {
+      const skew = luckRaritySkew(fish.rarity);
+      if (wx > 1) w *= Math.pow(wx, 0.35 + skew * 0.9);
+      else w *= Math.pow(wx, 1.1 - skew * 0.7);
+    }
     // Chest/event luck mult skews weight toward rarer tiers (omega ≈ ×mult)
     // so 100× luck makes top fish ~100× more common instead of barely moving.
     if (boostMult > 1) {
@@ -7355,7 +7660,13 @@
         ? variantValueMult(perfectOrEntry)
         : 1;
     const mult =
-      (1 + sellBonus() + (perfect ? perfectBonus() : 0)) * treasureMoneyMult() * variantMult;
+      (1 +
+        sellBonus() +
+        spotMasterySellBonus(spot) +
+        comboMultiBonus() +
+        (perfect ? perfectBonus() : 0)) *
+      treasureMoneyMult() *
+      variantMult;
     return Math.max(1, Math.floor(base * mult));
   }
 
@@ -7477,7 +7788,8 @@
     clearTimers();
     const spot = currentSpot();
     const [lo, hi] = spot.wait;
-    const waitMs = (lo + Math.random() * (hi - lo)) * 1000 * waitScale();
+    const waitMs =
+      (lo + Math.random() * (hi - lo)) * 1000 * waitScale() * weatherWaitMult();
     setPhase("waiting");
     flashCastSplash();
     setCatchLine("Line is out… tap again to cancel");
@@ -7516,6 +7828,8 @@
   function missBite() {
     if (phase !== "bite") return;
     clearTimers();
+    notePerfectCombo(false);
+    noteSpotCast(state.spotId, 1);
     setPhase("result");
     castBtn.classList.add("is-miss");
     hideCatchCard("It got away…");
@@ -7544,6 +7858,11 @@
     const windowMs = biteWindow() * 1000;
     const perfect = remaining / windowMs > 0.55;
     const spot = currentSpot();
+    notePerfectCombo(perfect);
+    noteSpotCast(spot.id, 1);
+    if (communityWeekendLive()) {
+      syncCommunity(1).catch(() => {});
+    }
 
     const lbType = rollLuckyBlockDrop();
     if (lbType) {
@@ -8426,6 +8745,7 @@
   function applyOffline() {
     const now = Date.now();
     const elapsed = Math.min(6 * 3600 * 1000, Math.max(0, now - (state.lastTick || now)));
+    tickAquarium(true);
     if (elapsed < 8000) {
       state.lastTick = now;
       return;
@@ -8438,6 +8758,7 @@
     let gained = 0;
     let chestsFound = 0;
     let blocksFound = 0;
+    let fishCaught = 0;
     const spot = currentSpot();
     list.forEach((boat) => {
       const cycles = Math.floor(elapsed / 1000 / boat.amount);
@@ -8458,6 +8779,7 @@
           const fish = rollFish(spot, true);
           const variants = rollFishVariants(spot, true);
           noteCatch(fish, variants);
+          fishCaught += 1;
           const val = fishValue(fish, spot, variants);
           if (shouldAutoSell(fish.rarity)) {
             gained += val;
@@ -8475,34 +8797,93 @@
       }
     });
     if (gained > 0) addCoins(gained);
-    if (gained > 0 || chestsFound > 0 || blocksFound > 0 || state.cooler.length) {
-      const bits = [];
-      if (gained > 0) bits.push(`earned ${formatNum(gained)} coins`);
-      if (chestsFound > 0) {
-        bits.push(
-          chestsFound === 1 ? "found 1 chest" : `found ${chestsFound} chests`
-        );
-      }
-      if (blocksFound > 0) {
-        bits.push(
-          blocksFound === 1 ? "found 1 Lucky Block" : `found ${blocksFound} Lucky Blocks`
-        );
-      }
-      if (!bits.length) bits.push("filled part of your cooler");
-      setCatchLine(`While away your boat ${bits.join(" · ")}`);
-    }
     state.lastTick = now;
+    if (gained > 0 || chestsFound > 0 || blocksFound > 0 || fishCaught > 0) {
+      const hours = Math.max(0.01, elapsed / 3600000);
+      state.pendingOffline = {
+        coins: gained,
+        chests: chestsFound,
+        blocks: blocksFound,
+        fish: fishCaught,
+        hours,
+        expiresAt: now + OFFLINE_CLAIM_BONUS_MS,
+        claimed: false
+      };
+      showOfflineClaim();
+    }
+  }
+
+  function offlineBonusReady() {
+    const p = state.pendingOffline;
+    if (!p || p.claimed) return false;
+    return Date.now() <= (Number(p.expiresAt) || 0);
+  }
+
+  function claimOfflineBonus() {
+    const p = state.pendingOffline;
+    if (!p || p.claimed) return 0;
+    const bonusReady = offlineBonusReady();
+    p.claimed = true;
+    let bonus = 0;
+    if (bonusReady && (Number(p.coins) || 0) > 0) {
+      bonus = Math.floor(Number(p.coins) * OFFLINE_CLAIM_BONUS);
+      if (bonus > 0) addCoins(bonus);
+    }
+    state.pendingOffline = null;
+    hideOfflineClaim();
+    if (bonus > 0) {
+      setCatchLine(`Claim bonus +${formatNum(bonus)} coins (+${Math.round(OFFLINE_CLAIM_BONUS * 100)}%)`);
+      window.HubSound?.play?.("win");
+    } else {
+      setCatchLine("Haul claimed");
+      window.HubSound?.play?.("click");
+    }
+    render(false);
+    saveSoon();
+    return bonus;
+  }
+
+  function showOfflineClaim() {
+    const overlay = document.getElementById("offline-claim-overlay");
+    const body = document.getElementById("offline-claim-body");
+    const bonusEl = document.getElementById("offline-claim-bonus");
+    const p = state.pendingOffline;
+    if (!overlay || !p) return;
+    const bits = [];
+    if (p.coins > 0) bits.push(`earned ${formatNum(p.coins)} coins`);
+    if (p.chests > 0) bits.push(p.chests === 1 ? "1 chest" : `${p.chests} chests`);
+    if (p.blocks > 0) bits.push(p.blocks === 1 ? "1 Lucky Block" : `${p.blocks} Lucky Blocks`);
+    if (p.fish > 0) bits.push(p.fish === 1 ? "1 fish" : `${p.fish} fish`);
+    if (body) {
+      body.textContent = `While away (${Number(p.hours).toFixed(1)}h) your boat ${
+        bits.length ? bits.join(" · ") : "kept casting"
+      }.`;
+    }
+    if (bonusEl) {
+      const pot = Math.floor((Number(p.coins) || 0) * OFFLINE_CLAIM_BONUS);
+      bonusEl.textContent =
+        pot > 0
+          ? `Claim within ${Math.round(OFFLINE_CLAIM_BONUS_MS / 1000)}s for +${formatNum(pot)} (+${Math.round(
+              OFFLINE_CLAIM_BONUS * 100
+            )}%)`
+          : "Tap claim to continue";
+    }
+    overlay.classList.remove("hidden");
+  }
+
+  function hideOfflineClaim() {
+    document.getElementById("offline-claim-overlay")?.classList.add("hidden");
   }
 
   let coolerRenderKey = "";
 
   function coolerKey() {
-    return `${state.spotId}|${state.cooler
+    return `${state.spotId}|${state.coolerSort}|${state.coolerFilter}|${state.cooler
       .map((e) => {
         const n = normalizeCoolerEntry(e) || {};
         return `${n.id || coolerEntryId(e)}${n.saved ? "*" : ""}${n.perfect ? "!" : ""}:${n.variant || ""}:${n.shiny ? 1 : 0}`;
       })
-      .join(",")}|${coolerMax()}|${sellBonus().toFixed(3)}|${perfectBonus().toFixed(3)}`;
+      .join(",")}|${coolerMax()}|${sellBonus().toFixed(3)}|${perfectBonus().toFixed(3)}|${spotMasteryLevel()}|${comboActive() ? state.combo : 0}`;
   }
 
   function renderCooler(force = false) {
@@ -8518,24 +8899,26 @@
       const rarity = input.dataset.rarity;
       input.checked = shouldAutoSell(rarity);
     });
+    const sortEl = document.getElementById("cooler-sort");
+    const filterEl = document.getElementById("cooler-filter");
+    if (sortEl && sortEl.value !== state.coolerSort) sortEl.value = state.coolerSort || "value";
+    if (filterEl && filterEl.value !== state.coolerFilter) {
+      filterEl.value = state.coolerFilter || "all";
+    }
     if (!coolerList) return;
     const nextKey = coolerKey();
     if (!force && nextKey === coolerRenderKey) return;
     coolerRenderKey = nextKey;
-    const spot = currentSpot();
-    coolerList.innerHTML = state.cooler
-      .map((entry, index) => {
-        const fish = fishById(coolerEntryId(entry));
-        if (!fish) return "";
-        const val = fishValue(fish, spot, entry);
-        const saved = isCoolerSaved(entry);
+    coolerList.innerHTML = coolerEntriesView()
+      .map(({ index, entry, fish, val }) => {
+        const saved = !!entry.saved;
         const label = formatFishName(fish, entry);
         const vTitle = formatVariantTitle(entry);
-        const perfectMark = isCoolerPerfect(entry) ? " · perfect" : "";
+        const perfectMark = entry.perfect ? " · perfect" : "";
         const vMult = variantValueMult(entry);
         const multTip = vMult > 1 ? ` · ×${formatMult(vMult)}` : "";
         return `<div class="fish-chip ${fish.rarity}${saved ? " is-saved" : ""}${
-          isCoolerPerfect(entry) ? " is-perfect" : ""
+          entry.perfect ? " is-perfect" : ""
         } ${variantClassList(entry)}" data-cooler-index="${index}">
           <span class="fish-chip-glyph" aria-hidden="true">${fishGlyphHtml(fish, entry)}</span>
           <button type="button" class="fish-chip-save" data-save-index="${index}" title="${
@@ -8577,7 +8960,9 @@
           <div class="spot-item-name">${spot.name}</div>
           <p class="spot-item-desc">${
             unlocked
-              ? `${spot.blurb} · sell ×${spot.valueMult} · +${spotLuckBonus(spot)} luck`
+              ? `${spot.blurb} · sell ×${spot.valueMult} · +${spotLuckBonus(spot)} luck · mastery Lv ${spotMasteryLevel(
+                  spot.id
+                )} (${spotMasteryCasts(spot.id)} casts)`
               : "Locked spot"
           }</p>
         </div>
@@ -8914,6 +9299,90 @@
     if (mood) mood.textContent = currentSpot()?.name || "Creek";
   }
 
+  function renderFeatureChips() {
+    const wx = ensureWeather();
+    const weatherChip = document.getElementById("weather-chip");
+    const weatherLabel = document.getElementById("weather-label");
+    const masteryChip = document.getElementById("mastery-chip");
+    const masteryLabel = document.getElementById("mastery-label");
+    const comboChip = document.getElementById("combo-chip");
+    const comboLabel = document.getElementById("combo-label");
+    const aquaChip = document.getElementById("aquarium-chip");
+    const aquaLabel = document.getElementById("aquarium-label");
+    const communityChip = document.getElementById("community-chip");
+    const communityLabel = document.getElementById("community-label");
+    const now = Date.now();
+
+    if (weatherLabel) {
+      const left = Math.max(0, (state.weatherUntil || 0) - now);
+      weatherLabel.textContent = `${wx.label} · ${formatTreasureClock(left)}`;
+    }
+    weatherChip?.classList.toggle("weather-storm", wx.id === "storm");
+    weatherChip?.classList.toggle("weather-calm", wx.id === "calm");
+    weatherChip?.classList.toggle("weather-tide", wx.id === "tide");
+    weatherChip?.classList.toggle("weather-fog", wx.id === "fog");
+
+    const mLv = spotMasteryLevel();
+    const mCasts = spotMasteryCasts();
+    const mNext = (mLv + 1) * SPOT_MASTERY_PER;
+    if (masteryLabel) {
+      masteryLabel.textContent =
+        mLv >= SPOT_MASTERY_MAX
+          ? `Lv ${mLv} MAX · +${formatPctBonus(spotMasterySellBonus())} sell · +${spotMasteryLuckBonus()} luck`
+          : `Lv ${mLv} · ${mCasts}/${mNext} · +${formatPctBonus(spotMasterySellBonus())} sell`;
+    }
+    masteryChip?.classList.toggle("is-live", mLv > 0);
+
+    const comboOn = comboActive(now);
+    if (comboLabel) {
+      comboLabel.textContent = comboOn
+        ? `×${state.combo} · ${formatTreasureClock(Math.max(0, state.comboBoostUntil - now))}`
+        : state.combo > 0
+          ? `×${state.combo} ended`
+          : "—";
+    }
+    comboChip?.classList.toggle("is-live", comboOn);
+    comboChip?.classList.toggle("hidden", !comboOn && !(state.combo > 0));
+
+    tickAquarium();
+    const bank = Math.floor(Number(state.aquariumBank) || 0);
+    const rate = aquariumRatePerSec();
+    if (aquaLabel) {
+      aquaLabel.textContent =
+        rate > 0
+          ? `${formatNum(bank)} banked · ${formatNum(Math.max(1, Math.floor(rate * 60)))}/min`
+          : bank > 0
+            ? `${formatNum(bank)} banked`
+            : "Save fish for drip";
+    }
+    aquaChip?.classList.toggle("is-live", bank > 0 || rate > 0);
+    const aquaBtn = document.getElementById("aquarium-claim-btn");
+    if (aquaBtn) aquaBtn.disabled = bank <= 0;
+
+    const weekend = communityWeekendLive(now);
+    const reward = communityRewardLive(now);
+    const total = communityCache.total || 0;
+    const goal = communityCache.goal || COMMUNITY_GOAL;
+    const pct = Math.min(100, Math.floor((100 * total) / Math.max(1, goal)));
+    if (communityLabel) {
+      if (reward) {
+        communityLabel.textContent = `${formatMult(communityCache.rewardMult || COMMUNITY_REWARD_MULT)}× luck · ${formatTreasureClock(
+          Math.max(0, communityCache.rewardUntil - now)
+        )}`;
+      } else if (weekend) {
+        communityLabel.textContent = `${formatNum(total)}/${formatNum(goal)} · ${pct}% · you ${formatNum(
+          state.communityContrib || 0
+        )}`;
+      } else {
+        communityLabel.textContent = "Fri–Sun meter";
+      }
+    }
+    communityChip?.classList.toggle("is-live", weekend || reward);
+    communityChip?.classList.toggle("is-reward", reward);
+    const fill = document.getElementById("community-fill");
+    if (fill) fill.style.width = `${pct}%`;
+  }
+
   function renderStats() {
     const spot = currentSpot();
     const bestFish = fishById(state.bestCatchId) || fishFromCatchScore(state.bestCatchScore);
@@ -8949,7 +9418,19 @@
     if (spotLabelEl) spotLabelEl.textContent = spot.name;
     if (hudSpotEl) hudSpotEl.textContent = spot.name;
     if (windowLabelEl) windowLabelEl.textContent = `${biteWindow().toFixed(2)}s`;
-    if (waitLabelEl) waitLabelEl.textContent = waitCut ? `−${waitCut}%` : "—";
+    if (waitLabelEl) {
+      const wx = ensureWeather();
+      const wxWait = Math.round((1 - wx.wait) * 100);
+      const baitBits = waitCut ? `−${waitCut}% bait` : "";
+      const weatherBits =
+        wx.wait < 1
+          ? `−${Math.abs(wxWait)}% ${wx.label}`
+          : wx.wait > 1
+            ? `+${wxWait}% ${wx.label}`
+            : "";
+      waitLabelEl.textContent =
+        [baitBits, weatherBits].filter(Boolean).join(" · ") || "—";
+    }
     if (luckLabelEl) {
       const luck = totalLuckBonus();
       const maxBase = maxBaseLuck(spot);
@@ -9064,6 +9545,7 @@
     if (tripleLabelEl) tripleLabelEl.textContent = formatPctBonus(tripleCatchChance(), false);
     if (perfectLabelEl) perfectLabelEl.textContent = formatPctBonus(perfectBonus());
     if (coolerStatLabelEl) coolerStatLabelEl.textContent = String(coolerMax());
+    renderFeatureChips();
     if (hudBestEl) hudBestEl.textContent = bestLabel;
     if (overlayBestEl) overlayBestEl.textContent = bestLabel;
     renderTreasureStash();
@@ -9229,6 +9711,8 @@
 
   function tick() {
     const before = coolerKey();
+    ensureWeather();
+    tickAquarium();
     tickBoats(TICK_MS / 1000);
     // Only rebuild cooler chips when contents change (constant rebuilds broke sell clicks)
     renderCooler(coolerKey() !== before);
@@ -9645,6 +10129,33 @@
     if (e.detail === 0) reelIn(e);
   });
   sellBtn?.addEventListener("click", () => sellCooler());
+  document.getElementById("cooler-sort")?.addEventListener("change", (e) => {
+    const v = e.target.value;
+    state.coolerSort = ["value", "rarity", "shiny", "saved", "name"].includes(v) ? v : "value";
+    coolerRenderKey = "";
+    renderCooler(true);
+    saveSoon();
+  });
+  document.getElementById("cooler-filter")?.addEventListener("change", (e) => {
+    const v = e.target.value;
+    state.coolerFilter = ["all", "saved", "shiny", "unsaved"].includes(v) ? v : "all";
+    coolerRenderKey = "";
+    renderCooler(true);
+    saveSoon();
+  });
+  document.getElementById("aquarium-claim-btn")?.addEventListener("click", () => {
+    const n = claimAquariumBank();
+    if (n > 0) {
+      setCatchLine(`Aquarium paid ${formatNum(n)} coins`);
+      window.HubSound?.play?.("win");
+      render(false);
+      saveSoon();
+    }
+  });
+  document.getElementById("offline-claim-btn")?.addEventListener("click", () => claimOfflineBonus());
+  document.getElementById("offline-claim-overlay")?.addEventListener("click", (e) => {
+    if (e.target?.id === "offline-claim-overlay") claimOfflineBonus();
+  });
   shinyMachineBtn?.addEventListener("click", () => openShinyMachine());
   shinyMachineCloseBtn?.addEventListener("click", () => closeShinyMachine());
   shinyMachineClearBtn?.addEventListener("click", () => {
@@ -10073,6 +10584,7 @@
     }
   } catch {}
   applyOffline();
+  if (state.pendingOffline && !state.pendingOffline.claimed) showOfflineClaim();
   setPhase("ready");
   syncBestCatchFromLeaderboard();
   render();
@@ -10080,6 +10592,10 @@
   clampTreasureStashCounts(true);
   startAdminEventPolling();
   startFishGiftPolling();
+  syncCommunity(0).catch(() => {});
+  setInterval(() => {
+    syncCommunity(0).catch(() => {});
+  }, 45000);
   // Titles may sync later — re-clamp once MASTER FISHER is known.
   setTimeout(() => {
     if (clampTreasureStashCounts(true)) renderTreasureStash();
