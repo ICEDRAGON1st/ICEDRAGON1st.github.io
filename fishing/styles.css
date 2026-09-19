@@ -1795,7 +1795,13 @@ body[data-spot="starborne"] .water-glints,
 body[data-spot="veilmere"] .water-glints,
 body[data-spot="crownvoid"] .water-glints,
 body[data-spot="liminalsea"] .water-glints,
-body[data-spot="beyondapex"] .water-glints { opacity: 0.7; }
+body[data-spot="beyondapex"] .water-glints,
+body[data-spot="continuumrift"] .water-glints,
+body[data-spot="miragebay"] .water-glints,
+body[data-spot="catalystpool"] .water-glints,
+body[data-spot="oblivionmere"] .water-glints,
+body[data-spot="empyreanshelf"] .water-glints,
+body[data-spot="finalhorizon"] .water-glints { opacity: 0.7; }
 body[data-spot="eventhorizon"] .water-mist {
   opacity: 0.4;
   background: radial-gradient(ellipse 80% 70% at 50% 30%, rgba(255, 40, 70, 0.22), transparent 70%);
@@ -4453,6 +4459,12 @@ body.treasure-boost .cast-btn {
 .spot-item[data-spot-id="crownvoid"] { --row-accent: #fde047; }
 .spot-item[data-spot-id="liminalsea"] { --row-accent: #5eead4; }
 .spot-item[data-spot-id="beyondapex"] { --row-accent: #f9a8d4; }
+.spot-item[data-spot-id="continuumrift"] { --row-accent: #67e8f9; }
+.spot-item[data-spot-id="miragebay"] { --row-accent: #e9d5ff; }
+.spot-item[data-spot-id="catalystpool"] { --row-accent: #86efac; }
+.spot-item[data-spot-id="oblivionmere"] { --row-accent: #64748b; }
+.spot-item[data-spot-id="empyreanshelf"] { --row-accent: #fde68a; }
+.spot-item[data-spot-id="finalhorizon"] { --row-accent: #fda4af; }
 
 .shop-item-main,
 .spot-item-main {
@@ -6796,6 +6808,252 @@ body[data-spot="beyondapex"] {
   --scene-shore-mid: #db2777;
   --scene-shore-bot: #9d174d;
   --scene-grass: linear-gradient(180deg, #fdf2f8 0%, #f472b6 100%);
+  --scene-prop-op: 0;
+}
+
+body[data-spot="continuumrift"] {
+  --spot-accent: #67e8f9;
+  --spot-page-a: #0a2228;
+  --spot-page-b: #041214;
+  --spot-page-mid: #020a0c;
+  --bg-deep: #010608;
+  --spot-btn-hi: rgba(103, 232, 249, 0.42);
+  --spot-btn-mid: #22d3ee;
+  --spot-btn-deep: #0e7490;
+  --spot-btn-lo: #155e75;
+  --spot-btn-edge: #083344;
+  --spot-ring: rgba(165, 243, 252, 0.68);
+  --spot-ring-glow: rgba(34, 211, 238, 0.26);
+  --spot-pond-hi: rgba(165, 243, 252, 0.32);
+  --spot-pond-top: #67e8f9;
+  --spot-pond-mid: #22d3ee;
+  --spot-pond-low: #0e7490;
+  --spot-pond-bot: #155e75;
+  --spot-sky: rgba(165, 243, 252, 0.3);
+  --spot-sky-mid: rgba(34, 211, 238, 0.14);
+  --spot-depth: rgba(2, 10, 14, 0.8);
+  --spot-depth-side: rgba(21, 94, 117, 0.28);
+  --spot-caustic: rgba(165, 243, 252, 0.18);
+  --spot-caustic-2: rgba(103, 232, 249, 0.1);
+  --spot-caustic-speed: 4.8s;
+  --spot-sheen-speed: 3.2s;
+  --scene-sky-top: #020a0c;
+  --scene-sky-mid: #0a2228;
+  --scene-sky-horizon: #0e7490;
+  --scene-sky-glow: rgba(103, 232, 249, 0.3);
+  --scene-sun: #ecfeff;
+  --scene-far: radial-gradient(ellipse 44% 52% at 50% 48%, rgba(34,211,238,0.28), transparent 70%);
+  --scene-mid: none;
+  --scene-shore-hi: #a5f3fc;
+  --scene-shore-top: #67e8f9;
+  --scene-shore-mid: #0e7490;
+  --scene-shore-bot: #155e75;
+  --scene-grass: linear-gradient(180deg, #ecfeff 0%, #22d3ee 100%);
+  --scene-prop-op: 0;
+}
+
+body[data-spot="miragebay"] {
+  --spot-accent: #e9d5ff;
+  --spot-page-a: #22142e;
+  --spot-page-b: #120a18;
+  --spot-page-mid: #0a0610;
+  --bg-deep: #050208;
+  --spot-btn-hi: rgba(233, 213, 255, 0.42);
+  --spot-btn-mid: #d8b4fe;
+  --spot-btn-deep: #9333ea;
+  --spot-btn-lo: #6b21a8;
+  --spot-btn-edge: #3b0764;
+  --spot-ring: rgba(243, 232, 255, 0.7);
+  --spot-ring-glow: rgba(216, 180, 254, 0.26);
+  --spot-pond-hi: rgba(243, 232, 255, 0.32);
+  --spot-pond-top: #e9d5ff;
+  --spot-pond-mid: #d8b4fe;
+  --spot-pond-low: #9333ea;
+  --spot-pond-bot: #6b21a8;
+  --spot-sky: rgba(243, 232, 255, 0.3);
+  --spot-sky-mid: rgba(216, 180, 254, 0.14);
+  --spot-depth: rgba(8, 4, 16, 0.82);
+  --spot-depth-side: rgba(107, 33, 168, 0.28);
+  --spot-caustic: rgba(243, 232, 255, 0.18);
+  --spot-caustic-2: rgba(233, 213, 255, 0.1);
+  --spot-caustic-speed: 5s;
+  --spot-sheen-speed: 3.4s;
+  --scene-sky-top: #0a0610;
+  --scene-sky-mid: #22142e;
+  --scene-sky-horizon: #9333ea;
+  --scene-sky-glow: rgba(233, 213, 255, 0.3);
+  --scene-sun: #faf5ff;
+  --scene-far: radial-gradient(ellipse 44% 52% at 50% 48%, rgba(216,180,254,0.28), transparent 70%);
+  --scene-mid: none;
+  --scene-shore-hi: #f3e8ff;
+  --scene-shore-top: #e9d5ff;
+  --scene-shore-mid: #9333ea;
+  --scene-shore-bot: #6b21a8;
+  --scene-grass: linear-gradient(180deg, #faf5ff 0%, #d8b4fe 100%);
+  --scene-prop-op: 0;
+}
+
+body[data-spot="catalystpool"] {
+  --spot-accent: #86efac;
+  --spot-page-a: #0e2418;
+  --spot-page-b: #06140c;
+  --spot-page-mid: #040c08;
+  --bg-deep: #020805;
+  --spot-btn-hi: rgba(134, 239, 172, 0.42);
+  --spot-btn-mid: #4ade80;
+  --spot-btn-deep: #16a34a;
+  --spot-btn-lo: #166534;
+  --spot-btn-edge: #052e16;
+  --spot-ring: rgba(187, 247, 208, 0.68);
+  --spot-ring-glow: rgba(74, 222, 128, 0.26);
+  --spot-pond-hi: rgba(187, 247, 208, 0.32);
+  --spot-pond-top: #86efac;
+  --spot-pond-mid: #4ade80;
+  --spot-pond-low: #16a34a;
+  --spot-pond-bot: #166534;
+  --spot-sky: rgba(187, 247, 208, 0.3);
+  --spot-sky-mid: rgba(74, 222, 128, 0.14);
+  --spot-depth: rgba(2, 12, 6, 0.8);
+  --spot-depth-side: rgba(22, 101, 52, 0.28);
+  --spot-caustic: rgba(187, 247, 208, 0.18);
+  --spot-caustic-2: rgba(134, 239, 172, 0.1);
+  --spot-caustic-speed: 4.9s;
+  --spot-sheen-speed: 3.3s;
+  --scene-sky-top: #040c08;
+  --scene-sky-mid: #0e2418;
+  --scene-sky-horizon: #16a34a;
+  --scene-sky-glow: rgba(134, 239, 172, 0.3);
+  --scene-sun: #f0fdf4;
+  --scene-far: radial-gradient(ellipse 44% 52% at 50% 48%, rgba(74,222,128,0.28), transparent 70%);
+  --scene-mid: none;
+  --scene-shore-hi: #bbf7d0;
+  --scene-shore-top: #86efac;
+  --scene-shore-mid: #16a34a;
+  --scene-shore-bot: #166534;
+  --scene-grass: linear-gradient(180deg, #f0fdf4 0%, #4ade80 100%);
+  --scene-prop-op: 0;
+}
+
+body[data-spot="oblivionmere"] {
+  --spot-accent: #94a3b8;
+  --spot-page-a: #14181e;
+  --spot-page-b: #080c10;
+  --spot-page-mid: #040608;
+  --bg-deep: #020406;
+  --spot-btn-hi: rgba(148, 163, 184, 0.4);
+  --spot-btn-mid: #64748b;
+  --spot-btn-deep: #334155;
+  --spot-btn-lo: #1e293b;
+  --spot-btn-edge: #0f172a;
+  --spot-ring: rgba(203, 213, 225, 0.65);
+  --spot-ring-glow: rgba(148, 163, 184, 0.24);
+  --spot-pond-hi: rgba(203, 213, 225, 0.28);
+  --spot-pond-top: #94a3b8;
+  --spot-pond-mid: #64748b;
+  --spot-pond-low: #334155;
+  --spot-pond-bot: #1e293b;
+  --spot-sky: rgba(203, 213, 225, 0.26);
+  --spot-sky-mid: rgba(100, 116, 139, 0.12);
+  --spot-depth: rgba(4, 6, 10, 0.85);
+  --spot-depth-side: rgba(51, 65, 85, 0.3);
+  --spot-caustic: rgba(203, 213, 225, 0.14);
+  --spot-caustic-2: rgba(148, 163, 184, 0.08);
+  --spot-caustic-speed: 5.4s;
+  --spot-sheen-speed: 3.8s;
+  --scene-sky-top: #040608;
+  --scene-sky-mid: #14181e;
+  --scene-sky-horizon: #334155;
+  --scene-sky-glow: rgba(148, 163, 184, 0.26);
+  --scene-sun: #f1f5f9;
+  --scene-far: radial-gradient(ellipse 44% 52% at 50% 48%, rgba(100,116,139,0.24), transparent 70%);
+  --scene-mid: none;
+  --scene-shore-hi: #cbd5e1;
+  --scene-shore-top: #94a3b8;
+  --scene-shore-mid: #334155;
+  --scene-shore-bot: #1e293b;
+  --scene-grass: linear-gradient(180deg, #f8fafc 0%, #64748b 100%);
+  --scene-prop-op: 0;
+}
+
+body[data-spot="empyreanshelf"] {
+  --spot-accent: #fde68a;
+  --spot-page-a: #2a220c;
+  --spot-page-b: #161208;
+  --spot-page-mid: #0e0a04;
+  --bg-deep: #080602;
+  --spot-btn-hi: rgba(253, 230, 138, 0.45);
+  --spot-btn-mid: #fbbf24;
+  --spot-btn-deep: #d97706;
+  --spot-btn-lo: #92400e;
+  --spot-btn-edge: #78350f;
+  --spot-ring: rgba(254, 243, 199, 0.72);
+  --spot-ring-glow: rgba(251, 191, 36, 0.28);
+  --spot-pond-hi: rgba(254, 243, 199, 0.34);
+  --spot-pond-top: #fde68a;
+  --spot-pond-mid: #fbbf24;
+  --spot-pond-low: #d97706;
+  --spot-pond-bot: #92400e;
+  --spot-sky: rgba(254, 243, 199, 0.32);
+  --spot-sky-mid: rgba(251, 191, 36, 0.14);
+  --spot-depth: rgba(12, 8, 2, 0.78);
+  --spot-depth-side: rgba(146, 64, 14, 0.28);
+  --spot-caustic: rgba(254, 243, 199, 0.2);
+  --spot-caustic-2: rgba(253, 230, 138, 0.12);
+  --spot-caustic-speed: 4.7s;
+  --spot-sheen-speed: 3.1s;
+  --scene-sky-top: #0e0a04;
+  --scene-sky-mid: #2a220c;
+  --scene-sky-horizon: #d97706;
+  --scene-sky-glow: rgba(253, 230, 138, 0.32);
+  --scene-sun: #fffbeb;
+  --scene-far: radial-gradient(ellipse 44% 52% at 50% 48%, rgba(251,191,36,0.3), transparent 70%);
+  --scene-mid: none;
+  --scene-shore-hi: #fef3c7;
+  --scene-shore-top: #fde68a;
+  --scene-shore-mid: #d97706;
+  --scene-shore-bot: #92400e;
+  --scene-grass: linear-gradient(180deg, #fffbeb 0%, #fbbf24 100%);
+  --scene-prop-op: 0;
+}
+
+body[data-spot="finalhorizon"] {
+  --spot-accent: #fda4af;
+  --spot-page-a: #2a1014;
+  --spot-page-b: #16080a;
+  --spot-page-mid: #0e0406;
+  --bg-deep: #080203;
+  --spot-btn-hi: rgba(253, 164, 175, 0.45);
+  --spot-btn-mid: #fb7185;
+  --spot-btn-deep: #e11d48;
+  --spot-btn-lo: #9f1239;
+  --spot-btn-edge: #4c0519;
+  --spot-ring: rgba(254, 205, 211, 0.72);
+  --spot-ring-glow: rgba(251, 113, 133, 0.28);
+  --spot-pond-hi: rgba(254, 205, 211, 0.34);
+  --spot-pond-top: #fda4af;
+  --spot-pond-mid: #fb7185;
+  --spot-pond-low: #e11d48;
+  --spot-pond-bot: #9f1239;
+  --spot-sky: rgba(254, 205, 211, 0.32);
+  --spot-sky-mid: rgba(251, 113, 133, 0.14);
+  --spot-depth: rgba(12, 2, 4, 0.82);
+  --spot-depth-side: rgba(159, 18, 57, 0.3);
+  --spot-caustic: rgba(254, 205, 211, 0.2);
+  --spot-caustic-2: rgba(253, 164, 175, 0.12);
+  --spot-caustic-speed: 4.5s;
+  --spot-sheen-speed: 2.9s;
+  --scene-sky-top: #0e0406;
+  --scene-sky-mid: #2a1014;
+  --scene-sky-horizon: #e11d48;
+  --scene-sky-glow: rgba(253, 164, 175, 0.34);
+  --scene-sun: #fff1f2;
+  --scene-far: radial-gradient(ellipse 44% 52% at 50% 48%, rgba(251,113,133,0.3), transparent 70%);
+  --scene-mid: none;
+  --scene-shore-hi: #fecdd3;
+  --scene-shore-top: #fda4af;
+  --scene-shore-mid: #e11d48;
+  --scene-shore-bot: #9f1239;
+  --scene-grass: linear-gradient(180deg, #fff1f2 0%, #fb7185 100%);
   --scene-prop-op: 0;
 }
 
