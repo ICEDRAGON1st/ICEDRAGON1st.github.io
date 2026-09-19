@@ -38,7 +38,7 @@
   /** Flat base drop chance while the Lucky Block hour is live — luck never applies. */
   const LUCKY_BLOCK_EVENT_CHANCE = 0.001;
   /** Zenith Lucky Block base drop during the same windows — luck never applies. */
-  const LUCKY_BLOCK_ZENITH_EVENT_CHANCE = 0.0005;
+  const LUCKY_BLOCK_ZENITH_EVENT_CHANCE = 0.001;
   /** Scheduled :00 Lucky Block events roll one of these (same for all players per hour). */
   const LUCKY_BLOCK_EVENT_MULT_OPTIONS = [1, 1.5, 2, 3];
   /**
@@ -2256,7 +2256,7 @@
     return Math.min(0.25, p);
   }
 
-  /** Zenith Lucky Block drop — base 0.05% × event mult (same collection rules). */
+  /** Zenith Lucky Block drop — base 0.1% × event mult (same collection rules). */
   function luckyBlockZenithEventChance(now = Date.now()) {
     const admin = adminLuckyBlockEventLive(now);
     const scheduled = scheduledLuckyBlockEventIsLive(now);
@@ -3716,7 +3716,7 @@
 
   /**
    * Hourly / admin / collection Lucky Block drop.
-   * Zenith: base 0.05% × event mult. Astral/Absolute: base 0.1% × event mult (50/50).
+   * All types: base 0.1% × event mult. Astral/Absolute split 50/50 after Zenith roll.
    * Luck gear never changes these; catch-book 90%/100% bonuses can.
    */
   function rollLuckyBlockDrop() {

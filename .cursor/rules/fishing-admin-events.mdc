@@ -46,7 +46,7 @@ Luck/sell, variant, chests, and luckyblock are **separate channels** and can run
 
 - `"boost"."kind"`: `"luck"` or `"money"` (sell)
 - `"variant"."target"`: `silver`, `gold`, `diamond`, `rainbow`, `shiny`, `any`, or combos like `gold+shiny`
-- `"luckyblock"."mult"`: scales Astral/Absolute base **0.1%** and Zenith base **0.05%** (e.g. `10` → **1%** / **0.5%**). Luck gear/events never affect it.
+- `"luckyblock"."mult"`: scales all Lucky Block bases **0.1%** (Astral/Absolute/Zenith; e.g. `10` → **1%**). Luck gear/events never affect it.
 - Omit or set a channel to `null` only when clearing that channel
 - Legacy single-event `{ "kind": "luck", "until": ... }` still works, but does not clear the other channel on clients that already have it
 
