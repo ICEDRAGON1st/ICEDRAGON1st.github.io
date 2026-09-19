@@ -1412,10 +1412,11 @@
     return ownedGear("luck").reduce((s, g) => s + g.amount, 0);
   }
 
-  /** Infinite luck shop: +0.005 then doubles luck & cost each buy. */
+  /** Infinite luck shop: +0.0005 luck (×2 each buy), cost ×3 each buy. */
   const ECHO_LUCK_ID = "luckEcho";
-  const ECHO_LUCK_BASE = 0.005;
+  const ECHO_LUCK_BASE = 0.0005;
   const ECHO_LUCK_BASE_COST = 1;
+  const ECHO_LUCK_COST_MULT = 3;
   const ECHO_LUCK_MAX_LEVEL = 1022;
   /** Each Echo buy multiplies rarer fish (zenith ≈ ×this); additive luck alone caps out. */
   const ECHO_RARITY_STEP = 1.14;
@@ -1442,7 +1443,8 @@
   function echoLuckCost() {
     const n = echoLuckLevel();
     if (n >= ECHO_LUCK_MAX_LEVEL) return Infinity;
-    return ECHO_LUCK_BASE_COST * Math.pow(2, n);
+    const cost = ECHO_LUCK_BASE_COST * Math.pow(ECHO_LUCK_COST_MULT, n);
+    return Number.isFinite(cost) ? cost : Infinity;
   }
 
   /** Additive luck stops changing relative odds once it dominates base weights.
@@ -5694,6 +5696,7 @@
     const v = Number(n) || 0;
     if (!Number.isFinite(v) || v <= 0) return "0";
     if (v >= 1000) return formatNum(v);
+    if (v < 0.001) return (Math.round(v * 10000) / 10000).toFixed(4);
     if (v < 0.01) return (Math.round(v * 1000) / 1000).toFixed(3);
     const rounded = Math.round(v * 100) / 100;
     if (v < 1) return rounded.toFixed(2);
@@ -7747,8 +7750,8 @@
     const canBuy = Number.isFinite(cost) && state.coins >= cost;
     const desc =
       n <= 0
-        ? `+${formatLuckAmt(next)} luck · each buy doubles luck and cost`
-        : `+${formatLuckAmt(now)} luck → +${formatLuckAmt(next)} luck · cost doubles`;
+        ? `+${formatLuckAmt(next)} luck · each buy doubles luck and triples cost`
+        : `+${formatLuckAmt(now)} luck → +${formatLuckAmt(next)} luck · cost ×3`;
     const status =
       n <= 0
         ? "Buy forever — starts at 1 coin"
