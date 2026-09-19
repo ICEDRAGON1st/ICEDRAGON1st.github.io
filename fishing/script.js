@@ -1593,6 +1593,28 @@
     return Math.max(0, Math.min(1, (rank - 1) / Math.max(1, top - 1)));
   }
 
+  /**
+   * Luck tilts the 100% fish table: common + uncommon shrink, rarer tiers grow.
+   * Log scale so huge luck still moves odds without wiping commons or making Zenith common.
+   */
+  function luckShiftPower(rarity) {
+    const rank = RARITY_RANK[rarity] || 1;
+    const top = RARITY_RANK[RARITIES[RARITIES.length - 1]] || rank;
+    if (rank <= 2) return rank === 1 ? -1 : -0.62;
+    return Math.max(0, (rank - 2) / Math.max(1, top - 2));
+  }
+
+  function luckWeightMult(rarity, luck) {
+    const L = Math.max(0, Number(luck) || 0);
+    if (L <= 0) return 1;
+    const power = luckShiftPower(rarity);
+    if (!power) return 1;
+    const factor = 1 + Math.log10(1 + L) / 3;
+    const m = Math.pow(factor, power);
+    if (!Number.isFinite(m) || m <= 0) return 1;
+    return Math.min(1e9, Math.max(1e-9, m));
+  }
+
   function coolerMax() {
     return COOLER_BASE + ownedGear("cooler").reduce((s, g) => s + g.amount, 0);
   }
@@ -6629,30 +6651,9 @@
   }
 
   function fishWeight(fish, spot, forBoat = false) {
-    // Gear + spot luck (no event mult) — additive progression toward rares
     const luck = baseLuck(spot);
     const boostMult = treasureLuckMult();
     let w = (RARITY_WEIGHT[fish.rarity] || 10) * rarityFactor(fish.rarity, spot.rarity);
-    if (fish.rarity === "uncommon") w += luck * 0.34;
-    if (fish.rarity === "rare") w += luck * 0.38;
-    if (fish.rarity === "epic") w += luck * 0.24;
-    if (fish.rarity === "legendary") w += luck * 0.13;
-    if (fish.rarity === "mythic") w += luck * 0.065;
-    if (fish.rarity === "secret") w += luck * 0.022;
-    if (fish.rarity === "divine") w += luck * 0.018;
-    if (fish.rarity === "eternal") w += luck * 0.009;
-    if (fish.rarity === "cosmic") w += luck * 0.0045;
-    if (fish.rarity === "astral") w += luck * 0.0024;
-    if (fish.rarity === "singularity") w += luck * 0.0012;
-    if (fish.rarity === "omega") w += luck * 0.0007;
-    if (fish.rarity === "genesis") w += luck * 0.0004;
-    if (fish.rarity === "paradox") w += luck * 0.00022;
-    if (fish.rarity === "infinity") w += luck * 0.00012;
-    if (fish.rarity === "absolute") w += luck * 0.00007;
-    if (fish.rarity === "transcendent") w += luck * 0.00005;
-    if (fish.rarity === "nexus") w += luck * 0.000038;
-    if (fish.rarity === "voidborn") w += luck * 0.000028;
-    if (fish.rarity === "zenith") w += luck * 0.000031;
     // Spot still matters, but high rarities are less crushed on early waters
     const t = Math.max(0, Math.min(MAX_SPOT_RARITY, Number(spot.rarity) || 0)) / MAX_SPOT_RARITY;
     if (fish.rarity === "rare") w *= 0.9 + t * 0.12;
@@ -6674,12 +6675,12 @@
     if (fish.rarity === "voidborn") w *= (0.045 + t * 0.55) * (forBoat ? 0.05 : 1);
     if (fish.rarity === "zenith") w *= (0.04 + t * 0.55) * (forBoat ? 0.04 : 1);
     w *= valueRarityScale(fish);
+    w *= luckWeightMult(fish.rarity, luck);
     // Chest/event luck mult skews weight toward rarer tiers (omega ≈ ×mult)
     // so 100× luck makes top fish ~100× more common instead of barely moving.
     if (boostMult > 1) {
       w *= Math.pow(boostMult, luckRaritySkew(fish.rarity));
     }
-    w *= echoRarityMult(fish.rarity);
     // Tiny floor — old 0.01 floor forced all ultra-rares to identical odds
     return Math.min(1e300, Math.max(1e-15, w));
   }
@@ -8427,7 +8428,7 @@
     const chestP = treasureAnyChance(spot, false);
     const kindP = treasureKindChance(spot, false);
     const fishShare = Math.max(0, 1 - chestP);
-    // Precompute once so weights/luck match the live cast odds
+    // Precompute once so weights/luck match the live reel: chests + fish = 100%
     const weights = FISH.map((f) => fishWeight(f, spot, false));
     const total = weights.reduce((a, b) => a + b, 0);
     const rows = FISH.map((fish, i) => ({
