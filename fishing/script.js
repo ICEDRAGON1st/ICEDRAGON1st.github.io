@@ -1412,11 +1412,13 @@
     return ownedGear("luck").reduce((s, g) => s + g.amount, 0);
   }
 
-  /** Infinite luck shop: +0.05 then doubles luck & cost each buy. */
+  /** Infinite luck shop: +0.005 then doubles luck & cost each buy. */
   const ECHO_LUCK_ID = "luckEcho";
-  const ECHO_LUCK_BASE = 0.05;
+  const ECHO_LUCK_BASE = 0.005;
   const ECHO_LUCK_BASE_COST = 1;
   const ECHO_LUCK_MAX_LEVEL = 1022;
+  /** Each Echo buy multiplies rarer fish (zenith ≈ ×this); additive luck alone caps out. */
+  const ECHO_RARITY_STEP = 1.14;
 
   function echoLuckLevel() {
     return Math.max(
@@ -1441,6 +1443,20 @@
     const n = echoLuckLevel();
     if (n >= ECHO_LUCK_MAX_LEVEL) return Infinity;
     return ECHO_LUCK_BASE_COST * Math.pow(2, n);
+  }
+
+  /** Additive luck stops changing relative odds once it dominates base weights.
+   *  Echo Charm also multiplies rarer tiers so each buy still moves fish chances. */
+  function echoRarityMult(rarity) {
+    const echo = echoLuckBonus();
+    if (!(echo > 0)) return 1;
+    const skew = luckRaritySkew(rarity);
+    if (skew <= 0) return 1;
+    const steps = Math.log2(1 + echo / ECHO_LUCK_BASE);
+    if (!Number.isFinite(steps) || steps <= 0) return 1;
+    const m = Math.pow(ECHO_RARITY_STEP, steps * skew);
+    if (!Number.isFinite(m) || m < 1) return 1;
+    return Math.min(m, 1e12);
   }
 
   /** Spot luck — scales up on higher tiers (Creek = 0). */
@@ -5678,6 +5694,7 @@
     const v = Number(n) || 0;
     if (!Number.isFinite(v) || v <= 0) return "0";
     if (v >= 1000) return formatNum(v);
+    if (v < 0.01) return (Math.round(v * 1000) / 1000).toFixed(3);
     const rounded = Math.round(v * 100) / 100;
     if (v < 1) return rounded.toFixed(2);
     if (Math.abs(rounded - Math.round(rounded)) < 1e-9) return String(Math.round(rounded));
@@ -6644,8 +6661,9 @@
     if (boostMult > 1) {
       w *= Math.pow(boostMult, luckRaritySkew(fish.rarity));
     }
+    w *= echoRarityMult(fish.rarity);
     // Tiny floor — old 0.01 floor forced all ultra-rares to identical odds
-    return Math.max(1e-15, w);
+    return Math.min(1e300, Math.max(1e-15, w));
   }
 
   function rollFish(spot, forBoat = false) {
