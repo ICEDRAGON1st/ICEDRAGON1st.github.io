@@ -1934,26 +1934,44 @@
   }
 
   /**
-   * Luck gates the fish table: low luck = commons dominate and high tiers are crushed.
-   * Raising luck unlocks rarer fish. Dialing luck down makes good fish much harder again.
+   * Luck tilts the fish table:
+   * higher luck → commons/uncommons get rarer, high tiers get less rare.
+   * Dialing luck down reverses that.
    */
   function luckWeightMult(rarity, luck) {
     const L = Math.max(0, Number(luck) || 0);
-    const skew = luckRaritySkew(rarity);
+    const skew = luckRaritySkew(rarity); // 0 = common … 1 = top
     const rank = RARITY_RANK[rarity] || 1;
 
-    // Low luck → more commons / uncommons
-    if (rank === 1) return 1 + 3.2 / (1 + L / 18);
-    if (rank === 2) return 1 + 1.8 / (1 + L / 28);
+    // How hard luck pushes the table (0 at no luck, soft-caps high)
+    // L≈1 → 0.2 · L≈10 → 0.7 · L≈50 → 1.1 · L≈500 → 1.6 · L≈5000 → 2.0
+    const tilt = Math.log10(1 + L * 4.5) / 2.15;
 
-    // High tiers stay nearly locked until you have enough luck
-    const gate = 6 + skew * skew * 160;
-    const unlock = Math.pow(L / (L + gate), 1 + skew * 0.85);
-    const floor = Math.pow(0.012, 0.25 + skew * 0.75);
+    // Commons / uncommons: strong at low luck, suppressed as luck rises
+    if (rank <= 2) {
+      const flood = (rank === 1 ? 3.6 : 1.9) / (1 + L / 12);
+      // Active suppress so high luck actually makes them rarer (not just "less boosted")
+      const suppress = Math.pow(1 + tilt, -(1.15 + (3 - rank) * 0.35));
+      const m = (1 + flood) * suppress;
+      if (!Number.isFinite(m) || m <= 0) return 0.04;
+      return Math.min(20, Math.max(0.04, m));
+    }
+
+    // Mid + high tiers: locked at low luck, unlocked and lifted as luck rises
+    const gate = 5 + skew * skew * 170;
+    const unlock = Math.pow(L / (L + gate), 0.9 + skew * 0.95);
+    const floor = Math.pow(0.008, 0.22 + skew * 0.82);
     let m = floor + (1 - floor) * unlock;
-    // Extra lift once unlocked
-    const boost = Math.pow(1 + Math.log10(1 + L * 3) / 2.6, skew);
-    m *= boost;
+
+    // Extra lift for rarer fish — higher luck = less rare
+    // Pivot so mid tiers stay near-neutral while top tiers climb hard
+    const signed = (skew - 0.28) * 2.2;
+    m *= Math.pow(1 + tilt, Math.max(0, signed) * 1.35);
+    // Mild suppress for low-mid (rare/epic) as luck gets very high
+    if (signed < 0) {
+      m *= Math.pow(1 + tilt, signed * 0.85);
+    }
+
     if (!Number.isFinite(m) || m <= 0) return floor;
     return Math.min(1e9, Math.max(floor, m));
   }
