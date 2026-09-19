@@ -252,7 +252,19 @@
 
   /** One-time / ongoing unlocks for specific player names. */
   const NAME_UNLOCKS = {
-    hjalte: ["streak_7", "streak_14", "streak_30"]
+    hjalte: [
+      "streak_7",
+      "streak_14",
+      "streak_30",
+      "fishing_100",
+      "fishing_1k",
+      "fishing_100k",
+      "fishing_1m",
+      "fishing_fps_10",
+      "fishing_fps_100",
+      "fishing_voyage_1",
+      "fishing_all"
+    ]
   };
 
   function applyNameUnlocks() {
