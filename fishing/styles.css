@@ -2688,7 +2688,7 @@ body[data-spot="mythforge"] .water-mist {
 }
 
 .shiny-machine-card {
-  width: min(460px, 100%);
+  width: min(560px, 100%);
   text-align: left;
 }
 
@@ -2701,17 +2701,23 @@ body[data-spot="mythforge"] .water-mist {
 
 .shiny-machine-slots {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
   margin-bottom: 12px;
+}
+
+@media (max-width: 560px) {
+  .shiny-machine-slots {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 .shiny-slot {
   display: flex;
   flex-direction: column;
   gap: 6px;
-  min-height: 78px;
-  padding: 10px 12px;
+  min-height: 72px;
+  padding: 8px 10px;
   border-radius: 12px;
   border: 1px dashed rgba(148, 163, 184, 0.35);
   background: rgba(15, 23, 42, 0.45);

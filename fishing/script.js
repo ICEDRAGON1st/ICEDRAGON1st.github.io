@@ -7219,8 +7219,8 @@
   }
 
   /* ========== Shiny Machine ========== */
-  const SHINY_MACHINE_CHANCE_ONE = 0.1;
-  const SHINY_MACHINE_CHANCE_TWO = 0.2;
+  const SHINY_MACHINE_MAX = 5;
+  const SHINY_MACHINE_CHANCES = [0, 0.2, 0.4, 0.6, 0.8, 1];
 
   function shinyMachineSelectedEntries() {
     return shinyMachineSlots
@@ -7250,9 +7250,12 @@
   }
 
   function shinyMachineChanceForCount(n) {
-    if (n >= 2) return SHINY_MACHINE_CHANCE_TWO;
-    if (n === 1) return SHINY_MACHINE_CHANCE_ONE;
-    return 0;
+    const count = Math.max(0, Math.min(SHINY_MACHINE_MAX, Math.floor(Number(n) || 0)));
+    return SHINY_MACHINE_CHANCES[count] || 0;
+  }
+
+  function shinyMachineChanceLabel(n) {
+    return `${Math.round(shinyMachineChanceForCount(n) * 100)}%`;
   }
 
   function openShinyMachine() {
@@ -7292,26 +7295,27 @@
       return;
     }
 
-    if (shinyMachineSlots.length >= 2) {
-      setShinyMachineStatus("Only 2 slots — clear one first.", "is-lose");
+    if (shinyMachineSlots.length >= SHINY_MACHINE_MAX) {
+      setShinyMachineStatus(`Only ${SHINY_MACHINE_MAX} slots — clear one first.`, "is-lose");
       window.HubSound?.play?.("miss");
       return;
     }
 
-    if (shinyMachineSlots.length === 1) {
+    if (shinyMachineSlots.length >= 1) {
       const first = normalizeCoolerEntry(state.cooler[shinyMachineSlots[0]]);
       if (!first || first.id !== entry.id) {
-        setShinyMachineStatus("Slot 2 needs the same fish species.", "is-lose");
+        setShinyMachineStatus("All slots need the same fish species.", "is-lose");
         window.HubSound?.play?.("miss");
         return;
       }
     }
 
     shinyMachineSlots.push(i);
+    const n = shinyMachineSlots.length;
     setShinyMachineStatus(
-      shinyMachineSlots.length === 2
-        ? "2× same fish · 20% for one shiny."
-        : "1 fish · 10% to become shiny."
+      n >= SHINY_MACHINE_MAX
+        ? `5× same fish · ${shinyMachineChanceLabel(n)} guaranteed shiny.`
+        : `${n}× same fish · ${shinyMachineChanceLabel(n)} for one shiny.`
     );
     renderShinyMachine();
     window.HubSound?.play?.("click");
@@ -7335,8 +7339,9 @@
       window.HubSound?.play?.("miss");
       return;
     }
-    if (selected.length === 2 && selected[0].entry.id !== selected[1].entry.id) {
-      setShinyMachineStatus("Both fish must be the same species.", "is-lose");
+    const speciesId = selected[0].entry.id;
+    if (selected.some((s) => s.entry.id !== speciesId)) {
+      setShinyMachineStatus("All fish must be the same species.", "is-lose");
       window.HubSound?.play?.("miss");
       return;
     }
@@ -7347,6 +7352,7 @@
     const win = Math.random() < chance;
     const keep = selected[0];
     const fish = keep.fish;
+    const count = selected.length;
     const indices = selected.map((s) => s.index).sort((a, b) => b - a);
 
     indices.forEach((idx) => {
@@ -7364,9 +7370,10 @@
       state.cooler.push(shinyEntry);
       noteCatch(fish, shinyEntry);
       const label = formatFishName(fish, shinyEntry);
+      const extras = count - 1;
       setShinyMachineStatus(
-        selected.length === 2
-          ? `Shiny! ${label} kept · the other was relished.`
+        extras > 0
+          ? `Shiny! ${label} kept · ${extras} relished.`
           : `Shiny! ${label} sparkles now.`,
         "is-win"
       );
@@ -7375,14 +7382,14 @@
     } else {
       const label = formatFishName(fish, keep.entry);
       setShinyMachineStatus(
-        selected.length === 2
-          ? `No shine — both ${label} were relished.`
+        count > 1
+          ? `No shine — ${count}× ${label} were relished.`
           : `No shine — ${label} was relished.`,
         "is-lose"
       );
       setCatchLine(
-        selected.length === 2
-          ? `Shiny Machine relished 2× ${label}`
+        count > 1
+          ? `Shiny Machine relished ${count}× ${label}`
           : `Shiny Machine relished ${label}`,
         "miss"
       );
@@ -7411,8 +7418,8 @@
       shinyMachineChanceEl.textContent =
         selected.length === 0
           ? "Chance: —"
-          : `Chance: ${(chance * 100).toFixed(0)}%${
-              selected.length === 2 ? " · one shiny if you win" : ""
+          : `Chance: ${Math.round(chance * 100)}%${
+              selected.length > 1 ? " · one shiny if you win" : ""
             }`;
     }
 
@@ -7447,7 +7454,9 @@
     if (shinyMachineRunBtn) {
       shinyMachineRunBtn.disabled = selected.length < 1 || shinyMachineBusy;
       shinyMachineRunBtn.textContent =
-        selected.length >= 2 ? "Run (20%)" : selected.length === 1 ? "Run (10%)" : "Run machine";
+        selected.length >= 1
+          ? `Run (${shinyMachineChanceLabel(selected.length)})`
+          : "Run machine";
     }
 
     if (!shinyMachinePickerEl) return;
@@ -7462,8 +7471,8 @@
         const on = selectedSet.has(index);
         const blocked =
           !on &&
-          ((shinyMachineSlots.length >= 2) ||
-            (shinyMachineSlots.length === 1 && requiredId && entry.id !== requiredId));
+          (shinyMachineSlots.length >= SHINY_MACHINE_MAX ||
+            (shinyMachineSlots.length >= 1 && requiredId && entry.id !== requiredId));
         const label = formatFishName(fish, entry);
         return `<button type="button" class="shiny-pick ${fish.rarity} ${variantClassList(entry)}${
           on ? " is-selected" : ""

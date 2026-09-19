@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260920k">
+  <link rel="stylesheet" href="styles.css?v=20260920l">
 </head>
 <body data-spot="creek">
   <header class="top-bar">
@@ -406,8 +406,9 @@
         <button id="shiny-machine-close" type="button" class="btn btn-ghost guide-close">Close</button>
       </div>
       <p class="shiny-machine-rules">
-        Put <strong>1</strong> non-shiny fish for a <strong>10%</strong> chance it becomes shiny — fail and it is relished (deleted).
-        Put <strong>2 of the same fish</strong> for <strong>20%</strong>: win keeps one shiny and deletes the other; fail deletes both.
+        Feed <strong>1–5 of the same</strong> non-shiny fish. Chance scales
+        <strong>20% / 40% / 60% / 80% / 100%</strong>.
+        Win keeps <strong>one shiny</strong>; the rest are relished (deleted). Fail relishes them all.
       </p>
       <div id="shiny-machine-slots" class="shiny-machine-slots" aria-label="Machine slots">
         <button type="button" class="shiny-slot" data-shiny-slot="0" aria-label="Slot 1 empty">
@@ -416,6 +417,18 @@
         </button>
         <button type="button" class="shiny-slot" data-shiny-slot="1" aria-label="Slot 2 empty">
           <span class="shiny-slot-label">Slot 2</span>
+          <span class="shiny-slot-body">Empty</span>
+        </button>
+        <button type="button" class="shiny-slot" data-shiny-slot="2" aria-label="Slot 3 empty">
+          <span class="shiny-slot-label">Slot 3</span>
+          <span class="shiny-slot-body">Empty</span>
+        </button>
+        <button type="button" class="shiny-slot" data-shiny-slot="3" aria-label="Slot 4 empty">
+          <span class="shiny-slot-label">Slot 4</span>
+          <span class="shiny-slot-body">Empty</span>
+        </button>
+        <button type="button" class="shiny-slot" data-shiny-slot="4" aria-label="Slot 5 empty">
+          <span class="shiny-slot-label">Slot 5</span>
           <span class="shiny-slot-body">Empty</span>
         </button>
       </div>
@@ -548,6 +561,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260917br"></script>
-  <script src="script.js?v=20260920k"></script>
+  <script src="script.js?v=20260920l"></script>
 </body>
 </html>
