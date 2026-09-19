@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260920i">
+  <link rel="stylesheet" href="styles.css?v=20260920j">
 </head>
 <body data-spot="creek">
   <header class="top-bar">
@@ -16,6 +16,7 @@
     <h1>Fishing Idle</h1>
     <div class="top-stats">
       <button id="admin-btn" type="button" class="guide-btn admin-btn hidden" hidden>Admin</button>
+      <button id="shiny-machine-btn" type="button" class="guide-btn">Shiny machine</button>
       <button id="book-btn" type="button" class="guide-btn">Catch book</button>
       <button id="guide-btn" type="button" class="guide-btn">Fish guide</button>
       <span id="hud-spot">Creek</span>
@@ -395,6 +396,39 @@
     </div>
   </div>
 
+  <div id="shiny-machine-overlay" class="overlay shiny-machine-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="shiny-machine-title">
+    <div class="overlay-card shiny-machine-card">
+      <div class="guide-head">
+        <div>
+          <p class="eyebrow">Sacrifice for shine</p>
+          <h2 id="shiny-machine-title">Shiny Machine</h2>
+        </div>
+        <button id="shiny-machine-close" type="button" class="btn btn-ghost guide-close">Close</button>
+      </div>
+      <p class="shiny-machine-rules">
+        Put <strong>1</strong> non-shiny fish for a <strong>10%</strong> chance it becomes shiny — fail and it is relished (deleted).
+        Put <strong>2 of the same fish</strong> for <strong>20%</strong>: win keeps one shiny and deletes the other; fail deletes both.
+      </p>
+      <div id="shiny-machine-slots" class="shiny-machine-slots" aria-label="Machine slots">
+        <button type="button" class="shiny-slot" data-shiny-slot="0" aria-label="Slot 1 empty">
+          <span class="shiny-slot-label">Slot 1</span>
+          <span class="shiny-slot-body">Empty</span>
+        </button>
+        <button type="button" class="shiny-slot" data-shiny-slot="1" aria-label="Slot 2 empty">
+          <span class="shiny-slot-label">Slot 2</span>
+          <span class="shiny-slot-body">Empty</span>
+        </button>
+      </div>
+      <p id="shiny-machine-chance" class="shiny-machine-chance">Chance: —</p>
+      <p id="shiny-machine-status" class="shiny-machine-status" aria-live="polite">Pick fish from your cooler below.</p>
+      <div id="shiny-machine-picker" class="shiny-machine-picker" role="list"></div>
+      <div class="shiny-machine-actions">
+        <button id="shiny-machine-clear" type="button" class="btn btn-ghost">Clear</button>
+        <button id="shiny-machine-run" type="button" class="btn" disabled>Run machine</button>
+      </div>
+    </div>
+  </div>
+
   <div id="lucky-block-overlay" class="overlay lucky-block-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="lucky-block-title">
     <div class="overlay-card lucky-block-card">
       <div class="guide-head">
@@ -498,6 +532,7 @@
       <p class="score-line">Best catch: <strong id="overlay-best">—</strong></p>
       <div class="overlay-actions">
         <button id="start-btn" type="button" class="btn">Play</button>
+        <button id="menu-shiny-machine-btn" type="button" class="btn btn-ghost">Shiny machine</button>
         <button id="menu-book-btn" type="button" class="btn btn-ghost">Catch book</button>
         <button id="menu-guide-btn" type="button" class="btn btn-ghost">Fish guide</button>
         <button id="games-btn" type="button" class="btn btn-ghost">Games</button>
@@ -513,6 +548,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260917br"></script>
-  <script src="script.js?v=20260920i"></script>
+  <script src="script.js?v=20260920j"></script>
 </body>
 </html>

@@ -1231,10 +1231,22 @@
   const menuBtn = document.getElementById("menu-btn");
   const guideBtn = document.getElementById("guide-btn");
   const bookBtn = document.getElementById("book-btn");
+  const shinyMachineBtn = document.getElementById("shiny-machine-btn");
   const menuGuideBtn = document.getElementById("menu-guide-btn");
   const menuBookBtn = document.getElementById("menu-book-btn");
   const guideOverlay = document.getElementById("guide-overlay");
   const bookOverlay = document.getElementById("book-overlay");
+  const shinyMachineOverlay = document.getElementById("shiny-machine-overlay");
+  const shinyMachineCloseBtn = document.getElementById("shiny-machine-close");
+  const shinyMachineClearBtn = document.getElementById("shiny-machine-clear");
+  const shinyMachineRunBtn = document.getElementById("shiny-machine-run");
+  const shinyMachineSlotsEl = document.getElementById("shiny-machine-slots");
+  const shinyMachinePickerEl = document.getElementById("shiny-machine-picker");
+  const shinyMachineChanceEl = document.getElementById("shiny-machine-chance");
+  const shinyMachineStatusEl = document.getElementById("shiny-machine-status");
+  /** Cooler indices selected for the Shiny Machine (0–2). */
+  let shinyMachineSlots = [];
+  let shinyMachineBusy = false;
   const adminOverlay = document.getElementById("admin-overlay");
   const adminBtn = document.getElementById("admin-btn");
   const adminClose = document.getElementById("admin-close");
@@ -7205,6 +7217,265 @@
     saveSoon();
   }
 
+  /* ========== Shiny Machine ========== */
+  const SHINY_MACHINE_CHANCE_ONE = 0.1;
+  const SHINY_MACHINE_CHANCE_TWO = 0.2;
+
+  function shinyMachineSelectedEntries() {
+    return shinyMachineSlots
+      .map((idx) => {
+        const i = Math.floor(Number(idx));
+        if (!Number.isFinite(i) || i < 0 || i >= state.cooler.length) return null;
+        const entry = normalizeCoolerEntry(state.cooler[i]);
+        if (!entry || entry.shiny) return null;
+        const fish = fishById(entry.id);
+        if (!fish || isTreasureItem(fish)) return null;
+        return { index: i, entry, fish };
+      })
+      .filter(Boolean);
+  }
+
+  function clearShinyMachineSlots(msg) {
+    shinyMachineSlots = [];
+    if (msg) setShinyMachineStatus(msg);
+    renderShinyMachine();
+  }
+
+  function setShinyMachineStatus(text, tone = "") {
+    if (!shinyMachineStatusEl) return;
+    shinyMachineStatusEl.textContent = text || "";
+    shinyMachineStatusEl.classList.remove("is-win", "is-lose");
+    if (tone) shinyMachineStatusEl.classList.add(tone);
+  }
+
+  function shinyMachineChanceForCount(n) {
+    if (n >= 2) return SHINY_MACHINE_CHANCE_TWO;
+    if (n === 1) return SHINY_MACHINE_CHANCE_ONE;
+    return 0;
+  }
+
+  function openShinyMachine() {
+    shinyMachineBusy = false;
+    shinyMachineSlots = shinyMachineSlots.filter((idx) => {
+      const i = Math.floor(Number(idx));
+      const entry = normalizeCoolerEntry(state.cooler[i]);
+      return entry && !entry.shiny && fishById(entry.id);
+    });
+    setShinyMachineStatus("Pick fish from your cooler below.");
+    renderShinyMachine();
+    shinyMachineOverlay?.classList.remove("hidden");
+    lockPageScroll();
+  }
+
+  function closeShinyMachine() {
+    if (shinyMachineBusy) return;
+    shinyMachineOverlay?.classList.add("hidden");
+    unlockPageScroll();
+  }
+
+  function toggleShinyMachinePick(index) {
+    if (shinyMachineBusy) return;
+    const i = Math.floor(Number(index));
+    if (!Number.isFinite(i) || i < 0 || i >= state.cooler.length) return;
+    const entry = normalizeCoolerEntry(state.cooler[i]);
+    if (!entry || entry.shiny) return;
+    const fish = fishById(entry.id);
+    if (!fish || isTreasureItem(fish)) return;
+
+    const pos = shinyMachineSlots.indexOf(i);
+    if (pos >= 0) {
+      shinyMachineSlots.splice(pos, 1);
+      setShinyMachineStatus("Removed from machine.");
+      renderShinyMachine();
+      window.HubSound?.play?.("click");
+      return;
+    }
+
+    if (shinyMachineSlots.length >= 2) {
+      setShinyMachineStatus("Only 2 slots — clear one first.", "is-lose");
+      window.HubSound?.play?.("miss");
+      return;
+    }
+
+    if (shinyMachineSlots.length === 1) {
+      const first = normalizeCoolerEntry(state.cooler[shinyMachineSlots[0]]);
+      if (!first || first.id !== entry.id) {
+        setShinyMachineStatus("Slot 2 needs the same fish species.", "is-lose");
+        window.HubSound?.play?.("miss");
+        return;
+      }
+    }
+
+    shinyMachineSlots.push(i);
+    setShinyMachineStatus(
+      shinyMachineSlots.length === 2
+        ? "2× same fish · 20% for one shiny."
+        : "1 fish · 10% to become shiny."
+    );
+    renderShinyMachine();
+    window.HubSound?.play?.("click");
+  }
+
+  function removeShinyMachineSlot(slotIndex) {
+    if (shinyMachineBusy) return;
+    const s = Math.floor(Number(slotIndex));
+    if (s < 0 || s >= shinyMachineSlots.length) return;
+    shinyMachineSlots.splice(s, 1);
+    setShinyMachineStatus("Slot cleared.");
+    renderShinyMachine();
+    window.HubSound?.play?.("click");
+  }
+
+  function runShinyMachine() {
+    if (shinyMachineBusy) return;
+    const selected = shinyMachineSelectedEntries();
+    if (!selected.length) {
+      setShinyMachineStatus("Put at least one fish in the machine.", "is-lose");
+      window.HubSound?.play?.("miss");
+      return;
+    }
+    if (selected.length === 2 && selected[0].entry.id !== selected[1].entry.id) {
+      setShinyMachineStatus("Both fish must be the same species.", "is-lose");
+      window.HubSound?.play?.("miss");
+      return;
+    }
+
+    ensureSession();
+    shinyMachineBusy = true;
+    const chance = shinyMachineChanceForCount(selected.length);
+    const win = Math.random() < chance;
+    const keep = selected[0];
+    const fish = keep.fish;
+    const indices = selected.map((s) => s.index).sort((a, b) => b - a);
+
+    indices.forEach((idx) => {
+      if (idx >= 0 && idx < state.cooler.length) state.cooler.splice(idx, 1);
+    });
+
+    if (win) {
+      const shinyEntry = {
+        id: keep.entry.id,
+        saved: !!keep.entry.saved,
+        perfect: !!keep.entry.perfect,
+        variant: normalizeVariant(keep.entry.variant),
+        shiny: true
+      };
+      state.cooler.push(shinyEntry);
+      noteCatch(fish, shinyEntry);
+      const label = formatFishName(fish, shinyEntry);
+      setShinyMachineStatus(
+        selected.length === 2
+          ? `Shiny! ${label} kept · the other was relished.`
+          : `Shiny! ${label} sparkles now.`,
+        "is-win"
+      );
+      setCatchLine(`Shiny Machine → ${label}`, catchTone(fish.rarity));
+      window.HubSound?.play?.("win");
+    } else {
+      const label = formatFishName(fish, keep.entry);
+      setShinyMachineStatus(
+        selected.length === 2
+          ? `No shine — both ${label} were relished.`
+          : `No shine — ${label} was relished.`,
+        "is-lose"
+      );
+      setCatchLine(
+        selected.length === 2
+          ? `Shiny Machine relished 2× ${label}`
+          : `Shiny Machine relished ${label}`,
+        "miss"
+      );
+      window.HubSound?.play?.("miss");
+    }
+
+    shinyMachineSlots = [];
+    shinyMachineBusy = false;
+    render(false);
+    renderShinyMachine();
+    saveSoon();
+  }
+
+  function renderShinyMachine() {
+    if (!shinyMachineOverlay || shinyMachineOverlay.classList.contains("hidden")) {
+      // Still refresh if open path calls before unhiding; allow closed no-op for picker
+    }
+    const selected = shinyMachineSelectedEntries();
+    // Drop stale indices if cooler changed under us
+    if (selected.length !== shinyMachineSlots.length) {
+      shinyMachineSlots = selected.map((s) => s.index);
+    }
+
+    const chance = shinyMachineChanceForCount(selected.length);
+    if (shinyMachineChanceEl) {
+      shinyMachineChanceEl.textContent =
+        selected.length === 0
+          ? "Chance: —"
+          : `Chance: ${(chance * 100).toFixed(0)}%${
+              selected.length === 2 ? " · one shiny if you win" : ""
+            }`;
+    }
+
+    if (shinyMachineSlotsEl) {
+      const slotBtns = shinyMachineSlotsEl.querySelectorAll("[data-shiny-slot]");
+      slotBtns.forEach((btn) => {
+        const slot = Math.floor(Number(btn.dataset.shinySlot));
+        const row = selected[slot];
+        btn.classList.toggle("is-filled", !!row);
+        const body = btn.querySelector(".shiny-slot-body");
+        let meta = btn.querySelector(".shiny-slot-meta");
+        if (row) {
+          if (body) body.textContent = formatFishName(row.fish, row.entry);
+          if (!meta) {
+            meta = document.createElement("span");
+            meta.className = "shiny-slot-meta";
+            btn.appendChild(meta);
+          }
+          meta.textContent = `${row.fish.rarity} · tap to remove`;
+          btn.setAttribute(
+            "aria-label",
+            `Slot ${slot + 1}: ${formatFishName(row.fish, row.entry)}. Tap to remove.`
+          );
+        } else {
+          if (body) body.textContent = "Empty";
+          meta?.remove();
+          btn.setAttribute("aria-label", `Slot ${slot + 1} empty`);
+        }
+      });
+    }
+
+    if (shinyMachineRunBtn) {
+      shinyMachineRunBtn.disabled = selected.length < 1 || shinyMachineBusy;
+      shinyMachineRunBtn.textContent =
+        selected.length >= 2 ? "Run (20%)" : selected.length === 1 ? "Run (10%)" : "Run machine";
+    }
+
+    if (!shinyMachinePickerEl) return;
+    const selectedSet = new Set(shinyMachineSlots);
+    const requiredId = selected[0]?.entry.id || "";
+    shinyMachinePickerEl.innerHTML = state.cooler
+      .map((raw, index) => {
+        const entry = normalizeCoolerEntry(raw);
+        if (!entry || entry.shiny) return "";
+        const fish = fishById(entry.id);
+        if (!fish || isTreasureItem(fish)) return "";
+        const on = selectedSet.has(index);
+        const blocked =
+          !on &&
+          ((shinyMachineSlots.length >= 2) ||
+            (shinyMachineSlots.length === 1 && requiredId && entry.id !== requiredId));
+        const label = formatFishName(fish, entry);
+        return `<button type="button" class="shiny-pick ${fish.rarity} ${variantClassList(entry)}${
+          on ? " is-selected" : ""
+        }" data-shiny-pick="${index}" role="listitem" ${blocked ? "disabled" : ""} title="${
+          blocked ? "Needs the same fish species" : on ? "Remove from machine" : "Add to machine"
+        }">
+          <span class="fish-glyph" aria-hidden="true">${fishGlyphHtml(fish, entry)}</span>
+          <span class="shiny-pick-name">${label}</span>
+        </button>`;
+      })
+      .join("");
+  }
+
   function buyEchoLuck() {
     const cost = echoLuckCost();
     if (!Number.isFinite(cost) || state.coins < cost) return;
@@ -7682,6 +7953,9 @@
         </div>`;
       })
       .join("");
+    if (shinyMachineOverlay && !shinyMachineOverlay.classList.contains("hidden")) {
+      renderShinyMachine();
+    }
   }
 
   function renderSpots() {
@@ -8767,6 +9041,27 @@
     if (e.detail === 0) reelIn(e);
   });
   sellBtn?.addEventListener("click", () => sellCooler());
+  shinyMachineBtn?.addEventListener("click", () => openShinyMachine());
+  shinyMachineCloseBtn?.addEventListener("click", () => closeShinyMachine());
+  shinyMachineClearBtn?.addEventListener("click", () => {
+    if (shinyMachineBusy) return;
+    clearShinyMachineSlots("Cleared.");
+    window.HubSound?.play?.("click");
+  });
+  shinyMachineRunBtn?.addEventListener("click", () => runShinyMachine());
+  shinyMachineSlotsEl?.addEventListener("click", (e) => {
+    const slotBtn = e.target.closest("[data-shiny-slot]");
+    if (!slotBtn || !shinyMachineSlotsEl.contains(slotBtn)) return;
+    removeShinyMachineSlot(slotBtn.dataset.shinySlot);
+  });
+  shinyMachinePickerEl?.addEventListener("click", (e) => {
+    const pick = e.target.closest("[data-shiny-pick]");
+    if (!pick || pick.disabled || !shinyMachinePickerEl.contains(pick)) return;
+    toggleShinyMachinePick(pick.dataset.shinyPick);
+  });
+  shinyMachineOverlay?.addEventListener("click", (e) => {
+    if (e.target === shinyMachineOverlay) closeShinyMachine();
+  });
   moneyUseBtn?.addEventListener("click", () => useTreasure("money"));
   luckUseBtn?.addEventListener("click", () => useTreasure("luck"));
   moneyChestTimerEl?.addEventListener("click", () => toggleChestBoostPause("money"));
@@ -8945,6 +9240,10 @@
     closeMenu();
     openBook();
   });
+  menuShinyMachineBtn?.addEventListener("click", () => {
+    closeMenu();
+    openShinyMachine();
+  });
   guideClose?.addEventListener("click", closeGuide);
   bookClose?.addEventListener("click", closeBook);
   guideOverlay?.addEventListener("click", (e) => {
@@ -8998,6 +9297,11 @@
     if (luckyBlockOverlay && !luckyBlockOverlay.classList.contains("hidden")) {
       e.preventDefault();
       closeLuckyBlockGui();
+      return;
+    }
+    if (shinyMachineOverlay && !shinyMachineOverlay.classList.contains("hidden")) {
+      e.preventDefault();
+      closeShinyMachine();
       return;
     }
     if (adminOverlay && !adminOverlay.classList.contains("hidden")) {

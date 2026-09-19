@@ -2683,6 +2683,165 @@ body[data-spot="mythforge"] .water-mist {
   border-color: rgba(251, 191, 36, 0.4);
 }
 
+.shiny-machine-overlay {
+  z-index: 46;
+}
+
+.shiny-machine-card {
+  width: min(460px, 100%);
+  text-align: left;
+}
+
+.shiny-machine-rules {
+  margin: 0 0 14px;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: rgba(226, 232, 240, 0.82);
+}
+
+.shiny-machine-slots {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.shiny-slot {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 78px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px dashed rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.45);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.shiny-slot:hover {
+  border-color: rgba(250, 204, 21, 0.45);
+}
+
+.shiny-slot.is-filled {
+  border-style: solid;
+  border-color: rgba(250, 204, 21, 0.4);
+  background:
+    linear-gradient(160deg, rgba(250, 204, 21, 0.12), transparent 55%),
+    rgba(15, 23, 42, 0.55);
+}
+
+.shiny-slot-label {
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.shiny-slot-body {
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+
+.shiny-slot-meta {
+  font-size: 0.78rem;
+  color: rgba(148, 163, 184, 0.95);
+}
+
+.shiny-machine-chance {
+  margin: 0 0 6px;
+  font-weight: 700;
+  color: #fbbf24;
+}
+
+.shiny-machine-status {
+  margin: 0 0 12px;
+  min-height: 1.35em;
+  font-size: 0.9rem;
+  color: rgba(226, 232, 240, 0.88);
+}
+
+.shiny-machine-status.is-win {
+  color: #fde68a;
+}
+
+.shiny-machine-status.is-lose {
+  color: #fda4af;
+}
+
+.shiny-machine-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: min(38vh, 280px);
+  overflow: auto;
+  padding: 4px 2px 8px;
+  margin-bottom: 12px;
+}
+
+.shiny-machine-picker:empty::before {
+  content: "No non-shiny fish in cooler";
+  color: rgba(148, 163, 184, 0.85);
+  font-size: 0.88rem;
+}
+
+.shiny-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 7px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.5);
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.shiny-pick:hover {
+  border-color: rgba(250, 204, 21, 0.45);
+}
+
+.shiny-pick.is-selected {
+  border-color: rgba(250, 204, 21, 0.65);
+  box-shadow: 0 0 0 1px rgba(250, 204, 21, 0.25);
+  background: rgba(250, 204, 21, 0.12);
+}
+
+.shiny-pick:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.shiny-pick .fish-glyph {
+  width: 1.35rem;
+  height: 1.35rem;
+  flex: 0 0 auto;
+}
+
+.shiny-pick-name {
+  font-weight: 650;
+  font-size: 0.86rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.shiny-machine-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.shiny-machine-actions .btn {
+  min-width: 7.5rem;
+}
+
 .lucky-block-overlay {
   z-index: 47;
 }
