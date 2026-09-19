@@ -1421,8 +1421,10 @@
   const ECHO_LUCK_BASE_COST = 1;
   const ECHO_LUCK_COST_MULT = 3;
   const ECHO_LUCK_MAX_LEVEL = 1022;
-  /** Each Echo buy multiplies rarer fish (zenith ≈ ×this); additive luck alone caps out. */
-  const ECHO_RARITY_STEP = 1.14;
+  /** Each Echo buy slightly lifts rarer fish. Tiny step + hard cap so commons stay
+   *  common and zenith stays rare (old 1.14^n drowned the table). */
+  const ECHO_RARITY_STEP = 1.02;
+  const ECHO_RARITY_EXTRA_CAP = 0.18;
 
   function echoLuckLevel() {
     return Math.max(
@@ -1459,9 +1461,10 @@
     if (skew <= 0) return 1;
     const steps = Math.log2(1 + echo / ECHO_LUCK_BASE);
     if (!Number.isFinite(steps) || steps <= 0) return 1;
-    const m = Math.pow(ECHO_RARITY_STEP, steps * skew);
+    const curve = skew * skew;
+    const m = Math.pow(ECHO_RARITY_STEP, steps * curve);
     if (!Number.isFinite(m) || m < 1) return 1;
-    return Math.min(m, 1e12);
+    return Math.min(m, 1 + ECHO_RARITY_EXTRA_CAP * curve);
   }
 
   /** Spot luck — scales up on higher tiers (Creek = 0). */
