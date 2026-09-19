@@ -1449,7 +1449,7 @@ body.modal-open {
   to { filter: brightness(1.06); }
 }
 
-/* Ã¢ÂÂÃ¢ÂÂ You're standing on the bank looking out Ã¢ÂÂÃ¢ÂÂ */
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ You're standing on the bank looking out ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
 .cast-scene {
   position: absolute;
   inset: 0;
@@ -4615,7 +4615,7 @@ body.treasure-boost .cast-btn {
   text-align: center;
 }
 
-/* Must beat .overlay-card width Ã¢ÂÂ guide uses both classes */
+/* Must beat .overlay-card width ÃÂ¢ÃÂÃÂ guide uses both classes */
 .guide-overlay .overlay-card.guide-card {
   width: min(680px, calc(100vw - 1.5rem));
   max-width: none;
@@ -4758,7 +4758,7 @@ body.treasure-boost .cast-btn {
   }
 }
 
-/* Ã¢ÂÂÃ¢ÂÂ Per-spot water atmospheres (cast pond + page wash) Ã¢ÂÂÃ¢ÂÂ */
+/* ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ Per-spot water atmospheres (cast pond + page wash) ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ */
 body[data-spot="creek"] {
   --spot-accent: #7ec85a;
   --spot-page-a: #4a7a38;
@@ -7058,7 +7058,7 @@ body[data-spot="finalhorizon"] {
 }
 
 
-/* ÂÂ Feature pack: mastery / weather / combo / aquarium / community / cooler ÂÂ */
+/* ÃÂÃÂ Feature pack: mastery / weather / combo / aquarium / community / cooler ÃÂÃÂ */
 .cooler-controls {
   display: flex;
   flex-wrap: wrap;
@@ -7170,7 +7170,7 @@ body[data-spot="finalhorizon"] {
   min-height: 1.2em;
 }
 
-/*  Visual aquarium tank  */
+/* ÂÂ Visual aquarium tank ÂÂ */
 .aquarium-card {
   text-align: left;
 }
@@ -7236,9 +7236,10 @@ body[data-spot="finalhorizon"] {
 }
 .aquarium-swimmers {
   position: absolute;
-  inset: 0.45rem 0.55rem;
+  inset: 0.65rem 0.75rem 0.75rem;
   z-index: 2;
   overflow: hidden;
+  container-type: size;
 }
 .aquarium-empty {
   position: absolute;
@@ -7258,18 +7259,20 @@ body[data-spot="finalhorizon"] {
   display: none;
 }
 .aqua-fish {
+  --fish-w: 3rem;
   position: absolute;
   left: 0;
   top: var(--swim-top, 40%);
-  width: 3.4rem;
-  max-width: 22%;
+  width: var(--fish-w);
+  height: calc(var(--fish-w) * 0.5);
+  margin: 0;
   border: 0;
   background: transparent;
   padding: 0;
   cursor: pointer;
+  transform-origin: center center;
   animation: aqua-swim var(--swim-dur, 12s) linear var(--swim-delay, 0s) infinite;
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
-  will-change: left, transform;
 }
 .aqua-fish.is-flip {
   animation-name: aqua-swim-flip;
@@ -7282,62 +7285,72 @@ body[data-spot="finalhorizon"] {
 .aqua-fish-glyph {
   display: block;
   width: 100%;
-  height: auto;
-  aspect-ratio: 2 / 1;
-  transform: scale(var(--swim-scale, 1));
-  transform-origin: center center;
+  height: 100%;
+  overflow: visible;
 }
 .aqua-fish-glyph .fish-glyph {
   width: 100%;
   height: 100%;
   display: block;
 }
+/* Stay fully inside the swim lane: travel exactly (lane width − fish width). */
 @keyframes aqua-swim {
   0% {
-    left: 0;
-    transform: scaleX(1) scaleY(1) translateY(0);
+    transform: translate3d(0, 0, 0) scaleX(1);
   }
-  20% {
-    transform: scaleX(1) scaleY(1) translateY(-5px);
+  25% {
+    transform: translate3d(calc((100cqi - var(--fish-w)) * 0.5), -4px, 0) scaleX(1);
   }
   49.9% {
-    left: calc(100% - 3.4rem);
-    transform: scaleX(1) scaleY(1) translateY(3px);
+    transform: translate3d(calc(100cqi - var(--fish-w)), 3px, 0) scaleX(1);
   }
   50% {
-    left: calc(100% - 3.4rem);
-    transform: scaleX(-1) scaleY(1) translateY(3px);
+    transform: translate3d(calc(100cqi - var(--fish-w)), 3px, 0) scaleX(-1);
   }
-  70% {
-    transform: scaleX(-1) scaleY(1) translateY(-4px);
+  75% {
+    transform: translate3d(calc((100cqi - var(--fish-w)) * 0.5), -3px, 0) scaleX(-1);
   }
   100% {
-    left: 0;
-    transform: scaleX(-1) scaleY(1) translateY(0);
+    transform: translate3d(0, 0, 0) scaleX(-1);
   }
 }
 @keyframes aqua-swim-flip {
   0% {
-    left: calc(100% - 3.4rem);
-    transform: scaleX(-1) scaleY(1) translateY(0);
+    transform: translate3d(calc(100cqi - var(--fish-w)), 0, 0) scaleX(-1);
   }
-  20% {
-    transform: scaleX(-1) scaleY(1) translateY(4px);
+  25% {
+    transform: translate3d(calc((100cqi - var(--fish-w)) * 0.5), 4px, 0) scaleX(-1);
   }
   49.9% {
-    left: 0;
-    transform: scaleX(-1) scaleY(1) translateY(-3px);
+    transform: translate3d(0, -3px, 0) scaleX(-1);
   }
   50% {
-    left: 0;
-    transform: scaleX(1) scaleY(1) translateY(-3px);
+    transform: translate3d(0, -3px, 0) scaleX(1);
   }
-  70% {
-    transform: scaleX(1) scaleY(1) translateY(5px);
+  75% {
+    transform: translate3d(calc((100cqi - var(--fish-w)) * 0.5), 3px, 0) scaleX(1);
   }
   100% {
-    left: calc(100% - 3.4rem);
-    transform: scaleX(1) scaleY(1) translateY(0);
+    transform: translate3d(calc(100cqi - var(--fish-w)), 0, 0) scaleX(1);
+  }
+}
+/* Fallback when container query units are unavailable */
+@supports not (width: 1cqi) {
+  @keyframes aqua-swim {
+    0% { left: 0; transform: translateY(0) scaleX(1); }
+    25% { transform: translateY(-4px) scaleX(1); }
+    49.9% { left: calc(100% - var(--fish-w)); transform: translateY(3px) scaleX(1); }
+    50% { left: calc(100% - var(--fish-w)); transform: translateY(3px) scaleX(-1); }
+    75% { transform: translateY(-3px) scaleX(-1); }
+    100% { left: 0; transform: translateY(0) scaleX(-1); }
+  }
+  @keyframes aqua-swim-flip {
+    0% { left: calc(100% - var(--fish-w)); transform: translateY(0) scaleX(-1); }
+    25% { transform: translateY(4px) scaleX(-1); }
+    49.9% { left: 0; transform: translateY(-3px) scaleX(-1); }
+    50% { left: 0; transform: translateY(-3px) scaleX(1); }
+    75% { transform: translateY(3px) scaleX(1); }
+    100% { left: calc(100% - var(--fish-w)); transform: translateY(0) scaleX(1); }
   }
 }
 .aquarium-drip {
@@ -7351,11 +7364,12 @@ body[data-spot="finalhorizon"] {
     animation: none !important;
   }
   .aqua-fish {
-    left: 8%;
     position: relative;
+    left: auto;
+    top: auto !important;
     display: inline-block;
     margin: 0.25rem;
-    top: auto !important;
+    transform: none !important;
   }
   .aquarium-swimmers {
     display: flex;
@@ -7363,5 +7377,6 @@ body[data-spot="finalhorizon"] {
     align-items: center;
     justify-content: center;
     padding: 0.6rem;
+    inset: 0.45rem;
   }
 }

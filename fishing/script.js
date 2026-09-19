@@ -2479,12 +2479,12 @@
         const label = formatFishName(fish, entry);
         const dur = (9 + ((i * 37) % 11) + (fish.id.length % 5)).toFixed(1);
         const delay = (-((i * 1.7) % 12)).toFixed(1);
-        const top = 10 + ((i * 17 + (RARITY_RANK[fish.rarity] || 1) * 3) % 58);
-        const scale = (0.85 + Math.min(0.35, (RARITY_RANK[fish.rarity] || 1) * 0.02)).toFixed(2);
+        const top = 12 + ((i * 17 + (RARITY_RANK[fish.rarity] || 1) * 3) % 52);
+        const fishW = (2.6 + Math.min(0.9, (RARITY_RANK[fish.rarity] || 1) * 0.035)).toFixed(2);
         const flip = i % 2 === 1 ? " is-flip" : "";
         return `<button type="button" class="aqua-fish${flip} ${fish.rarity} ${variantClassList(
           entry
-        )}" data-aqua-index="${index}" style="--swim-dur:${dur}s;--swim-delay:${delay}s;--swim-top:${top}%;--swim-scale:${scale}" title="${label} · tap to unsave" aria-label="Unsave ${label}">
+        )}" data-aqua-index="${index}" style="--swim-dur:${dur}s;--swim-delay:${delay}s;--swim-top:${top}%;--fish-w:${fishW}rem" title="${label} · tap to unsave" aria-label="Unsave ${label}">
           <span class="aqua-fish-glyph" aria-hidden="true">${fishGlyphHtml(fish, entry)}</span>
         </button>`;
       })
