@@ -1595,6 +1595,7 @@
 
   /**
    * Luck tilts the 100% fish table: common + uncommon shrink, rarer tiers grow.
+   * 1 HUD luck counts as 3 in the tilt (not a 2× catch multiplier).
    * Log scale so huge luck still moves odds without wiping commons or making Zenith common.
    */
   function luckShiftPower(rarity) {
@@ -1605,7 +1606,7 @@
   }
 
   function luckWeightMult(rarity, luck) {
-    const L = Math.max(0, Number(luck) || 0);
+    const L = Math.max(0, Number(luck) || 0) * 3;
     if (L <= 0) return 1;
     const power = luckShiftPower(rarity);
     if (!power) return 1;
