@@ -161,7 +161,13 @@
     "transcendent",
     "nexus",
     "voidborn",
-    "zenith"
+    "zenith",
+    "crown",
+    "origin",
+    "aether",
+    "radiant",
+    "dusk",
+    "apex"
   ];
 
   const RARITY_RANK = {
@@ -185,7 +191,13 @@
     transcendent: 18,
     nexus: 19,
     voidborn: 20,
-    zenith: 21
+    zenith: 21,
+    crown: 22,
+    origin: 23,
+    aether: 24,
+    radiant: 25,
+    dusk: 26,
+    apex: 27
   };
 
   const RARITY_WEIGHT = {
@@ -209,7 +221,13 @@
     transcendent: 0.072,
     nexus: 0.052,
     voidborn: 0.038,
-    zenith: 0.026
+    zenith: 0.026,
+    crown: 0.019,
+    origin: 0.014,
+    aether: 0.01,
+    radiant: 0.0072,
+    dusk: 0.0052,
+    apex: 0.0036
   };
 
   /** Admin Lucky Blocks: Astral / Absolute / Zenith (zenith = transcendent–zenith). */
@@ -243,8 +261,8 @@
       item: "luckyblock-zenith",
       stateKey: "zenithLuckyBlockCount",
       minRarity: "transcendent",
-      maxRarity: "zenith",
-      rangeLabel: "transcendent–zenith fish",
+      maxRarity: "apex",
+      rangeLabel: "transcendent–apex fish",
       theme: "zenith"
     }
   };
@@ -429,7 +447,37 @@
     { id: "apexkoi", name: "Apex Koi", rarity: "zenith", value: 3e21 },
     { id: "spirefin", name: "Spirefin", rarity: "zenith", value: 4.8e21 },
     { id: "solsticeray", name: "Solstice Ray", rarity: "zenith", value: 6.2e21 },
-    { id: "thezenith", name: "The Zenith", rarity: "zenith", value: 8e21 }
+    { id: "thezenith", name: "The Zenith", rarity: "zenith", value: 8e21 },
+    // Crown
+    { id: "diademfin", name: "Diadem Fin", rarity: "crown", value: 1.5e22 },
+    { id: "royalkoi", name: "Royal Koi", rarity: "crown", value: 4e22 },
+    { id: "coronet", name: "Coronet Ray", rarity: "crown", value: 9e22 },
+    { id: "thecrown", name: "The Crown", rarity: "crown", value: 2e23 },
+    // Origin
+    { id: "dawnorigin", name: "Dawn Origin", rarity: "origin", value: 5e23 },
+    { id: "sourcefin", name: "Sourcefin", rarity: "origin", value: 1.2e24 },
+    { id: "firsttide", name: "First Tide", rarity: "origin", value: 3e24 },
+    { id: "theorigin", name: "The Origin", rarity: "origin", value: 7e24 },
+    // Aether
+    { id: "skyfin", name: "Skyfin", rarity: "aether", value: 1.5e25 },
+    { id: "aetherray", name: "Aether Ray", rarity: "aether", value: 4e25 },
+    { id: "cloudmarlin", name: "Cloud Marlin", rarity: "aether", value: 9e25 },
+    { id: "theaether", name: "The Aether", rarity: "aether", value: 2e26 },
+    // Radiant
+    { id: "gleamray", name: "Gleam Ray", rarity: "radiant", value: 5e26 },
+    { id: "sunfin", name: "Sunfin", rarity: "radiant", value: 1.2e27 },
+    { id: "blazeel", name: "Blaze Eel", rarity: "radiant", value: 3e27 },
+    { id: "theradiant", name: "The Radiant", rarity: "radiant", value: 7e27 },
+    // Dusk
+    { id: "duskfin", name: "Duskfin", rarity: "dusk", value: 1.5e28 },
+    { id: "twilightshark", name: "Twilight Shark", rarity: "dusk", value: 4e28 },
+    { id: "umbrakoi", name: "Umbra Koi", rarity: "dusk", value: 9e28 },
+    { id: "thedusk", name: "The Dusk", rarity: "dusk", value: 2e29 },
+    // Apex
+    { id: "summitfin", name: "Summitfin", rarity: "apex", value: 5e29 },
+    { id: "pinnacleray", name: "Pinnacle Ray", rarity: "apex", value: 1.2e30 },
+    { id: "crestkoi", name: "Crest Koi", rarity: "apex", value: 3e30 },
+    { id: "theapex", name: "The Apex", rarity: "apex", value: 8e30 }
   ];
 
   const SPOTS = [
@@ -5310,7 +5358,31 @@
     apexkoi: "koi",
     spirefin: "mahi",
     solsticeray: "ray",
-    thezenith: "omega"
+    thezenith: "omega",
+    diademfin: "tuna",
+    royalkoi: "koi",
+    coronet: "ray",
+    thecrown: "omega",
+    dawnorigin: "leviathan",
+    sourcefin: "tuna",
+    firsttide: "mahi",
+    theorigin: "omega",
+    skyfin: "tuna",
+    aetherray: "ray",
+    cloudmarlin: "marlin",
+    theaether: "omega",
+    gleamray: "ray",
+    sunfin: "tuna",
+    blazeel: "eel",
+    theradiant: "omega",
+    duskfin: "tuna",
+    twilightshark: "shark",
+    umbrakoi: "koi",
+    thedusk: "omega",
+    summitfin: "tuna",
+    pinnacleray: "ray",
+    crestkoi: "koi",
+    theapex: "omega"
   };
 
   const FISH_TINT = {
@@ -5413,7 +5485,31 @@
     apexkoi: "#f59e0b",
     spirefin: "#fde68a",
     solsticeray: "#fef3c7",
-    thezenith: "#fffbeb"
+    thezenith: "#fffbeb",
+    diademfin: "#fde047",
+    royalkoi: "#facc15",
+    coronet: "#eab308",
+    thecrown: "#fef9c3",
+    dawnorigin: "#e2e8f0",
+    sourcefin: "#cbd5e1",
+    firsttide: "#94a3b8",
+    theorigin: "#f8fafc",
+    skyfin: "#7dd3fc",
+    aetherray: "#38bdf8",
+    cloudmarlin: "#0ea5e9",
+    theaether: "#e0f2fe",
+    gleamray: "#fde68a",
+    sunfin: "#fbbf24",
+    blazeel: "#f59e0b",
+    theradiant: "#fffbeb",
+    duskfin: "#fb923c",
+    twilightshark: "#f97316",
+    umbrakoi: "#c2410c",
+    thedusk: "#ffedd5",
+    summitfin: "#f472b6",
+    pinnacleray: "#ec4899",
+    crestkoi: "#db2777",
+    theapex: "#fce7f3"
   };
 
   function fishEye(cx, cy, r = 2.2) {
@@ -5823,7 +5919,13 @@
       transcendent: "#fb923c",
       nexus: "#a78bfa",
       voidborn: "#94a3b8",
-      zenith: "#fbbf24"
+      zenith: "#fbbf24",
+      crown: "#fde047",
+      origin: "#e2e8f0",
+      aether: "#7dd3fc",
+      radiant: "#fde68a",
+      dusk: "#fb923c",
+      apex: "#f472b6"
     };
     return map[rarity] || "#a8e6df";
   }
@@ -6823,6 +6925,12 @@
     if (rarity === "nexus") return 0.0032 + t * 0.11;
     if (rarity === "voidborn") return 0.0024 + t * 0.1;
     if (rarity === "zenith") return 0.0018 + t * 0.09;
+    if (rarity === "crown") return 0.0014 + t * 0.082;
+    if (rarity === "origin") return 0.0011 + t * 0.075;
+    if (rarity === "aether") return 0.00085 + t * 0.068;
+    if (rarity === "radiant") return 0.00065 + t * 0.062;
+    if (rarity === "dusk") return 0.0005 + t * 0.056;
+    if (rarity === "apex") return 0.00038 + t * 0.05;
     return 1;
   }
 
@@ -6872,6 +6980,12 @@
     if (fish.rarity === "nexus") w *= (0.175 + t * 0.4) * (forBoat ? 0.16 : 1);
     if (fish.rarity === "voidborn") w *= (0.15 + t * 0.38) * (forBoat ? 0.14 : 1);
     if (fish.rarity === "zenith") w *= (0.13 + t * 0.36) * (forBoat ? 0.12 : 1);
+    if (fish.rarity === "crown") w *= (0.115 + t * 0.34) * (forBoat ? 0.11 : 1);
+    if (fish.rarity === "origin") w *= (0.1 + t * 0.32) * (forBoat ? 0.1 : 1);
+    if (fish.rarity === "aether") w *= (0.09 + t * 0.3) * (forBoat ? 0.09 : 1);
+    if (fish.rarity === "radiant") w *= (0.08 + t * 0.28) * (forBoat ? 0.08 : 1);
+    if (fish.rarity === "dusk") w *= (0.07 + t * 0.26) * (forBoat ? 0.07 : 1);
+    if (fish.rarity === "apex") w *= (0.06 + t * 0.24) * (forBoat ? 0.06 : 1);
     w *= valueRarityScale(fish);
     w *= luckWeightMult(fish.rarity, luck);
     // Chest/event luck mult skews weight toward rarer tiers (omega ≈ ×mult)
@@ -6980,6 +7094,12 @@
       "nexus",
       "voidborn",
       "zenith",
+      "crown",
+      "origin",
+      "aether",
+      "radiant",
+      "dusk",
+      "apex",
       "treasure"
     );
     if (cls) catchLineEl.classList.add(cls);
@@ -6990,6 +7110,12 @@
   }
 
   function catchTone(rarity) {
+    if (rarity === "apex") return "apex";
+    if (rarity === "dusk") return "dusk";
+    if (rarity === "radiant") return "radiant";
+    if (rarity === "aether") return "aether";
+    if (rarity === "origin") return "origin";
+    if (rarity === "crown") return "crown";
     if (rarity === "zenith") return "zenith";
     if (rarity === "voidborn") return "voidborn";
     if (rarity === "nexus") return "nexus";

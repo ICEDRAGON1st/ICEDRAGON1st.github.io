@@ -49,6 +49,12 @@ canvas,
   --nexus: #a78bfa;
   --voidborn: #94a3b8;
   --zenith: #fbbf24;
+  --crown: #fde047;
+  --origin: #e2e8f0;
+  --aether: #7dd3fc;
+  --radiant: #fde68a;
+  --dusk: #fb923c;
+  --apex: #f472b6;
   /* Spot water look (overridden per body[data-spot]) */
   --spot-accent: #2ec4b6;
   --spot-page-a: #1a4a5c;
@@ -801,6 +807,24 @@ body.modal-open {
 }
 .guide-rarity.zenith {
   color: var(--zenith);
+}
+.guide-rarity.crown {
+  color: var(--crown);
+}
+.guide-rarity.origin {
+  color: var(--origin);
+}
+.guide-rarity.aether {
+  color: var(--aether);
+}
+.guide-rarity.radiant {
+  color: var(--radiant);
+}
+.guide-rarity.dusk {
+  color: var(--dusk);
+}
+.guide-rarity.apex {
+  color: var(--apex);
 }
 
 .guide-spots {
@@ -2078,6 +2102,12 @@ body[data-spot="mythforge"] .water-mist {
 .cast-btn.phase-result.is-catch.rarity-nexus .catch-sil,
 .cast-btn.phase-result.is-catch.rarity-voidborn .catch-sil,
 .cast-btn.phase-result.is-catch.rarity-zenith .catch-sil,
+.cast-btn.phase-result.is-catch.rarity-crown .catch-sil,
+.cast-btn.phase-result.is-catch.rarity-origin .catch-sil,
+.cast-btn.phase-result.is-catch.rarity-aether .catch-sil,
+.cast-btn.phase-result.is-catch.rarity-radiant .catch-sil,
+.cast-btn.phase-result.is-catch.rarity-dusk .catch-sil,
+.cast-btn.phase-result.is-catch.rarity-apex .catch-sil,
 .cast-btn.phase-result.is-catch.rarity-treasure .catch-sil {
   filter: drop-shadow(0 0 10px rgba(240, 193, 75, 0.55));
 }
@@ -2569,6 +2599,36 @@ body[data-spot="mythforge"] .water-mist {
 .catch-line.zenith {
   color: var(--zenith);
   text-shadow: 0 0 20px rgba(251, 191, 36, 0.65);
+}
+
+.catch-line.crown {
+  color: var(--crown);
+  text-shadow: 0 0 20px rgba(253, 224, 71, 0.65);
+}
+
+.catch-line.origin {
+  color: var(--origin);
+  text-shadow: 0 0 18px rgba(226, 232, 240, 0.55);
+}
+
+.catch-line.aether {
+  color: var(--aether);
+  text-shadow: 0 0 20px rgba(125, 211, 252, 0.6);
+}
+
+.catch-line.radiant {
+  color: var(--radiant);
+  text-shadow: 0 0 20px rgba(253, 230, 138, 0.65);
+}
+
+.catch-line.dusk {
+  color: var(--dusk);
+  text-shadow: 0 0 20px rgba(251, 146, 60, 0.6);
+}
+
+.catch-line.apex {
+  color: var(--apex);
+  text-shadow: 0 0 22px rgba(244, 114, 182, 0.65);
 }
 
 .catch-line.treasure {
@@ -3727,6 +3787,24 @@ body.treasure-boost .cast-btn {
 .auto-sell-opt.zenith {
   color: var(--zenith);
 }
+.auto-sell-opt.crown {
+  color: var(--crown);
+}
+.auto-sell-opt.origin {
+  color: var(--origin);
+}
+.auto-sell-opt.aether {
+  color: var(--aether);
+}
+.auto-sell-opt.radiant {
+  color: var(--radiant);
+}
+.auto-sell-opt.dusk {
+  color: var(--dusk);
+}
+.auto-sell-opt.apex {
+  color: var(--apex);
+}
 
 .cooler-list {
   display: flex;
@@ -3912,6 +3990,24 @@ body.treasure-boost .cast-btn {
 }
 .fish-chip.zenith {
   color: var(--zenith);
+}
+.fish-chip.crown {
+  color: var(--crown);
+}
+.fish-chip.origin {
+  color: var(--origin);
+}
+.fish-chip.aether {
+  color: var(--aether);
+}
+.fish-chip.radiant {
+  color: var(--radiant);
+}
+.fish-chip.dusk {
+  color: var(--dusk);
+}
+.fish-chip.apex {
+  color: var(--apex);
 }
 
 .sell-btn {
