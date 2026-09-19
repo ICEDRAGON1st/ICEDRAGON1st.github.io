@@ -809,6 +809,132 @@ body.modal-open {
   min-width: 0;
 }
 
+.collection-hud-card {
+  text-align: left;
+  cursor: pointer;
+}
+
+.collection-hud-card:hover {
+  border-color: rgba(46, 196, 182, 0.45);
+}
+
+.collection-hud-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.45rem;
+}
+
+.collection-hud-kicker {
+  margin: 0 0 0.12rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.collection-hud-card h2 {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+#collection-hud-pct {
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.collection-hud-bar {
+  height: 0.42rem;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+#collection-hud-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #f0c14b, #7fd4ff 55%, #69db7c);
+}
+
+.collection-hud-count {
+  margin: 0.35rem 0 0.55rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.collection-hud-tiers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+}
+
+.collection-tier {
+  display: grid;
+  grid-template-columns: 2.6rem 1fr auto;
+  gap: 0.4rem 0.55rem;
+  align-items: baseline;
+  padding: 0.32rem 0.45rem;
+  border-radius: 0.55rem;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.18);
+  font-size: 0.78rem;
+}
+
+.collection-tier.is-on {
+  border-color: rgba(240, 193, 75, 0.45);
+  background: rgba(240, 193, 75, 0.1);
+}
+
+.collection-tier.is-next {
+  border-color: rgba(46, 196, 182, 0.4);
+  background: rgba(46, 196, 182, 0.08);
+}
+
+.collection-tier-pct {
+  font-weight: 800;
+  color: var(--gold);
+  font-variant-numeric: tabular-nums;
+}
+
+.collection-tier.is-on .collection-tier-pct {
+  color: #ffe08a;
+}
+
+.collection-tier-name {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.collection-tier-hint {
+  grid-column: 2 / 3;
+  margin-top: -0.12rem;
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+.collection-tier-state {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.collection-tier.is-on .collection-tier-state {
+  color: #69db7c;
+}
+
+.collection-tier.is-next .collection-tier-state {
+  color: var(--foam);
+}
+
 .card {
   background: var(--card);
   border: 1px solid var(--border);

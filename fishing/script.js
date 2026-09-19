@@ -1239,6 +1239,12 @@
   const bookBody = document.getElementById("book-body");
   const bookFiltersEl = document.getElementById("book-filters");
   const bookProgressEl = document.getElementById("book-progress");
+  const collectionHudEl = document.getElementById("collection-hud");
+  const collectionHudPctEl = document.getElementById("collection-hud-pct");
+  const collectionHudFillEl = document.getElementById("collection-hud-fill");
+  const collectionHudCountEl = document.getElementById("collection-hud-count");
+  const collectionHudTiersEl = document.getElementById("collection-hud-tiers");
+  let lastCollectionHudKey = "";
   const guideSpotMult = document.getElementById("guide-spot-mult");
   const guideSpotName = document.getElementById("guide-spot-name");
   const floatLayer = document.getElementById("float-layer");
@@ -1415,6 +1421,7 @@
   /** Flat luck from gear + spot is tripled into the live luck stat. */
   const LUCK_STAT_MULT = 3;
   /** Catch-book discovery rewards (All discoveries, not variant filters). */
+  const COLLECTION_MASTER_PCT = 0.7;
   const COLLECTION_LUCK_PCT = 0.75;
   const COLLECTION_LUCK_MULT = 1.5;
   const COLLECTION_RAINBOW_PCT = 0.8;
@@ -1422,6 +1429,41 @@
   const COLLECTION_LB_EVENT_PCT = 0.9;
   const COLLECTION_LB_EVENT_MULT = 1.25;
   const COLLECTION_LB_ALWAYS_PCT = 1;
+
+  function collectionTiers() {
+    return [
+      {
+        pct: COLLECTION_MASTER_PCT,
+        label: "70%",
+        title: "MASTER FISHER",
+        hint: "100 Coin/Luck chest stash"
+      },
+      {
+        pct: COLLECTION_LUCK_PCT,
+        label: "75%",
+        title: `${formatMult(COLLECTION_LUCK_MULT)}× luck`,
+        hint: "all luck forever"
+      },
+      {
+        pct: COLLECTION_RAINBOW_PCT,
+        label: "80%",
+        title: `${formatMult(COLLECTION_RAINBOW_MULT)}× rainbow`,
+        hint: "rainbow variant chance"
+      },
+      {
+        pct: COLLECTION_LB_EVENT_PCT,
+        label: "90%",
+        title: `${formatMult(COLLECTION_LB_EVENT_MULT)}× Lucky Blocks`,
+        hint: "during Lucky Block events"
+      },
+      {
+        pct: COLLECTION_LB_ALWAYS_PCT,
+        label: "100%",
+        title: "Lucky Blocks anytime",
+        hint: "no event needed"
+      }
+    ];
+  }
 
   function catchBookDiscoveryCount() {
     return caughtCount("any", false);
@@ -6341,7 +6383,7 @@
     if (boatLevel() >= 3) HubAchievements.unlock("fishing_fps_100");
     if (state.unlocked.deep) HubAchievements.unlock("fishing_voyage_1");
     if (state.unlocked.void) HubAchievements.unlock("fishing_voyage_1");
-    if (FISH.length > 0 && caughtCount("any", false) >= Math.ceil(FISH.length * 0.7)) {
+    if (FISH.length > 0 && caughtCount("any", false) >= Math.ceil(FISH.length * COLLECTION_MASTER_PCT)) {
       const newly = HubAchievements.unlock("fishing_all");
       window.HubPlays?.markMasterFisher?.().catch?.(() => {});
       if (newly) {
@@ -7918,6 +7960,7 @@
     if (hudBestEl) hudBestEl.textContent = bestLabel;
     if (overlayBestEl) overlayBestEl.textContent = bestLabel;
     renderTreasureStash();
+    renderCollectionHud();
     renderBoatTimers();
   }
 
@@ -8277,7 +8320,40 @@
         .join("");
   }
 
+  function renderCollectionHud() {
+    const total = FISH.length;
+    const found = catchBookDiscoveryCount();
+    const ratio = catchBookDiscoveryRatio();
+    const pct = total > 0 ? Math.floor(ratio * 100) : 0;
+    const key = `${found}/${total}/${pct}/${playerHasMasterFisherTitle() ? 1 : 0}`;
+    if (key === lastCollectionHudKey) return;
+    lastCollectionHudKey = key;
+    if (collectionHudPctEl) collectionHudPctEl.textContent = `${pct}%`;
+    if (collectionHudFillEl) collectionHudFillEl.style.width = `${Math.max(0, Math.min(100, pct))}%`;
+    if (collectionHudCountEl) {
+      collectionHudCountEl.textContent = `${found} / ${total} discovered`;
+    }
+    if (!collectionHudTiersEl) return;
+    const tiers = collectionTiers();
+    const next = tiers.find((t) => ratio < t.pct);
+    collectionHudTiersEl.innerHTML = tiers
+      .map((tier) => {
+        const on =
+          ratio >= tier.pct || (tier.pct === COLLECTION_MASTER_PCT && playerHasMasterFisherTitle());
+        const isNext = !on && next && next.pct === tier.pct;
+        const state = on ? "On" : isNext ? "Next" : "Locked";
+        return `<div class="collection-tier${on ? " is-on" : ""}${isNext ? " is-next" : ""}">
+          <span class="collection-tier-pct">${tier.label}</span>
+          <span class="collection-tier-name">${tier.title}</span>
+          <span class="collection-tier-state">${state}</span>
+          <span class="collection-tier-hint">${tier.hint}</span>
+        </div>`;
+      })
+      .join("");
+  }
+
   function renderBook() {
+    renderCollectionHud();
     const total = FISH.length;
     const found = caughtCount();
     const pct = total > 0 ? Math.floor((found / total) * 100) : 0;
@@ -8574,6 +8650,13 @@
   });
   guideBtn?.addEventListener("click", openGuide);
   bookBtn?.addEventListener("click", openBook);
+  collectionHudEl?.addEventListener("click", openBook);
+  collectionHudEl?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      openBook();
+    }
+  });
   bookFiltersEl?.addEventListener("click", (e) => {
     const shinyBtn = e.target.closest("[data-book-shiny-toggle]");
     if (shinyBtn && bookFiltersEl.contains(shinyBtn)) {

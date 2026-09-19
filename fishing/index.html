@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260919c">
+  <link rel="stylesheet" href="styles.css?v=20260919d">
 </head>
 <body data-spot="creek">
   <header class="top-bar">
@@ -258,6 +258,18 @@
     </section>
 
     <section class="side-col">
+      <div class="card collection-hud-card" id="collection-hud" role="button" tabindex="0" aria-label="Catch book rewards">
+        <div class="collection-hud-head">
+          <div>
+            <p class="collection-hud-kicker">Catch book</p>
+            <h2>Collection rewards</h2>
+          </div>
+          <strong id="collection-hud-pct">0%</strong>
+        </div>
+        <div class="collection-hud-bar" aria-hidden="true"><span id="collection-hud-fill"></span></div>
+        <p id="collection-hud-count" class="collection-hud-count">0 / 0 discovered</p>
+        <div id="collection-hud-tiers" class="collection-hud-tiers"></div>
+      </div>
       <div class="card quests-card">
         <h2>Objectives</h2>
         <p class="shop-intro">
@@ -499,6 +511,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260917br"></script>
-  <script src="script.js?v=20260919c"></script>
+  <script src="script.js?v=20260919d"></script>
 </body>
 </html>
