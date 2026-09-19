@@ -552,10 +552,11 @@ body.modal-open {
   z-index: 45;
   overscroll-behavior: contain;
   touch-action: none;
+  padding: 0.5rem;
 }
 
 .guide-card {
-  width: min(1100px, 98vw);
+  width: min(1600px, calc(100vw - 1rem));
   text-align: left;
   max-height: min(88vh, 720px);
   display: flex;
@@ -566,6 +567,7 @@ body.modal-open {
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
   min-height: 0;
+  padding: 1.25rem 1.5rem 1.2rem;
 }
 
 .guide-head {
