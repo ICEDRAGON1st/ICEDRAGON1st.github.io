@@ -8435,15 +8435,12 @@
         .join("");
     }
     if (!guideBody) return;
-    const chestP = treasureAnyChance(spot, false);
     const kindP = treasureKindChance(spot, false);
-    const fishShare = Math.max(0, 1 - chestP);
-    // Precompute once so weights/luck match the live reel: chests + fish = 100%
     const weights = FISH.map((f) => fishWeight(f, spot, false));
     const total = weights.reduce((a, b) => a + b, 0);
     const rows = FISH.map((fish, i) => ({
       fish,
-      pct: total > 0 ? (100 * fishShare * weights[i]) / total : 0
+      pct: total > 0 ? (100 * weights[i]) / total : 0
     })).sort(
       (a, b) =>
         rarityOrder(a.fish.rarity) - rarityOrder(b.fish.rarity) ||
@@ -8459,12 +8456,20 @@
       <td class="guide-fish-name">${chest.name}</td>
       <td class="guide-rarity treasure">${chest.kind}</td>
       <td>—</td>
-      <td class="guide-here">${effect}</td>
-      <td class="guide-spots" title="${kindPct.toFixed(8)}%">${formatChance(kindPct)}</td>
+      <td class="guide-here">${effect} · extra (replaces fish)</td>
+      <td class="guide-spots" title="${kindPct.toFixed(8)}% of reels">${formatChance(kindPct)}</td>
     </tr>`;
     }).join("");
+    const totalRow = `<tr class="guide-total-row">
+      <td class="guide-fish-name">All fish</td>
+      <td class="guide-rarity">total</td>
+      <td>—</td>
+      <td class="guide-here">when you catch a fish</td>
+      <td class="guide-spots">100%</td>
+    </tr>`;
     guideBody.innerHTML =
       treasureRows +
+      totalRow +
       rows
         .map(({ fish, pct }) => {
           const here = fishValue(fish, spot);
