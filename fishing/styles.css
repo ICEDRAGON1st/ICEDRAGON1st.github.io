@@ -556,7 +556,7 @@ body.modal-open {
 }
 
 .guide-card {
-  width: min(900px, calc(100vw - 1.5rem));
+  width: min(680px, calc(100vw - 1.5rem));
   text-align: left;
   max-height: min(88vh, 720px);
   display: flex;
@@ -567,7 +567,7 @@ body.modal-open {
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
   min-height: 0;
-  padding: 1.25rem 1.5rem 1.2rem;
+  padding: 1.25rem 1.35rem 1.2rem;
 }
 
 .guide-head {
@@ -4272,10 +4272,10 @@ body.treasure-boost .cast-btn {
 
 /* Must beat .overlay-card width — guide uses both classes */
 .guide-overlay .overlay-card.guide-card {
-  width: min(900px, calc(100vw - 1.5rem));
+  width: min(680px, calc(100vw - 1.5rem));
   max-width: none;
   text-align: left;
-  padding: 1.25rem 1.5rem 1.2rem;
+  padding: 1.25rem 1.35rem 1.2rem;
 }
 
 .book-overlay .overlay-card.guide-card {
