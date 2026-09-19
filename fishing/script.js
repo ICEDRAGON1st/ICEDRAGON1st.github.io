@@ -3,6 +3,8 @@
   const HIGH_SCORE_KEY = "fishing-best-catch-v2";
   const BEST_CATCH_META_KEY = "fishing-best-catch-meta-v2";
   const CHEST_BOOST_SAVE_KEY = "fishing-chest-boost-v1";
+  /** One-time: wipe Echo Charm buys for every save that has not stamped this id. */
+  const ECHO_LUCK_RESET_ID = "echo-luck-reset-v1";
 
   // Drop old Fishing Idle progress keys (full reset — this game only)
   try {
@@ -1360,7 +1362,8 @@
       collectionLbEventTold: false,
       collectionLbAlwaysTold: false,
       quests: { dailyKey: "", weeklyKey: "", daily: [], weekly: [] },
-      echoLuckLevel: 0
+      echoLuckLevel: 0,
+      echoLuckReset: ECHO_LUCK_RESET_ID
     };
   }
 
@@ -4554,10 +4557,16 @@
       next.collectionLbEventTold = !!raw.collectionLbEventTold;
       next.collectionLbAlwaysTold = !!raw.collectionLbAlwaysTold;
       next.quests = normalizeQuestsState(raw.quests);
-      next.echoLuckLevel = Math.max(
-        0,
-        Math.min(ECHO_LUCK_MAX_LEVEL, Math.floor(Number(raw.echoLuckLevel) || 0))
-      );
+      if (raw.echoLuckReset !== ECHO_LUCK_RESET_ID) {
+        next.echoLuckLevel = 0;
+        next.echoLuckReset = ECHO_LUCK_RESET_ID;
+      } else {
+        next.echoLuckLevel = Math.max(
+          0,
+          Math.min(ECHO_LUCK_MAX_LEVEL, Math.floor(Number(raw.echoLuckLevel) || 0))
+        );
+        next.echoLuckReset = ECHO_LUCK_RESET_ID;
+      }
       return next;
     } catch {
       return defaultState();
