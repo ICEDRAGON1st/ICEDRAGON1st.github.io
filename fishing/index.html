@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260920x">
+  <link rel="stylesheet" href="styles.css?v=20260920y">
 </head>
 <body data-spot="creek">
   <header class="top-bar">
@@ -98,7 +98,7 @@
           <span class="stat-chip-label">Combo</span>
           <strong id="combo-label">—</strong>
         </div>
-        <div class="stat-chip aquarium-chip" id="aquarium-chip" title="Saved fish drip coins. Claim anytime.">
+        <div class="stat-chip aquarium-chip" id="aquarium-chip" title="Saved fish swim in the Aquarium and drip coins. Claim anytime.">
           <span class="stat-chip-label">Aquarium</span>
           <strong id="aquarium-label">Save fish for drip</strong>
           <button type="button" id="aquarium-claim-btn" class="chip-mini-btn" disabled>Claim</button>
@@ -303,7 +303,7 @@
           </div>
         </div>
         <div id="cooler-list" class="cooler-list"></div>
-        <p class="cooler-hint">☆ to save a fish (won't sell until unsaved). Tap the name to sell.</p>
+        <p class="cooler-hint">☆ to save a fish (won't sell · swims in the Aquarium). Tap the name to sell.</p>
         <button id="sell-btn" type="button" class="btn sell-btn" disabled>Sell all</button>
       </div>
     </section>
@@ -357,6 +357,26 @@
           Daily resets at local midnight · Weekly resets Saturday 12:00 AM (Fri→Sat). Claim coins and chests when done.
         </p>
         <div id="quest-list" class="quest-list" role="list"></div>
+      </div>
+
+      <div class="card aquarium-card" id="aquarium-card">
+        <div class="aquarium-head">
+          <div>
+            <p class="collection-hud-kicker">Tank</p>
+            <h2>Aquarium</h2>
+          </div>
+          <button type="button" id="aquarium-tank-claim" class="btn btn-ghost aquarium-claim-btn" disabled>Claim</button>
+        </div>
+        <p class="shop-intro">★ save a fish in the cooler to put it here — they swim and drip coins by rarity.</p>
+        <div id="aquarium-tank" class="aquarium-tank" aria-label="Aquarium tank">
+          <div class="aquarium-glass" aria-hidden="true"></div>
+          <div class="aquarium-bubbles" aria-hidden="true">
+            <span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <div id="aquarium-swimmers" class="aquarium-swimmers"></div>
+          <p id="aquarium-empty" class="aquarium-empty">Save a fish to fill the tank</p>
+        </div>
+        <p id="aquarium-drip-label" class="aquarium-drip">No drip yet</p>
       </div>
     </section>
   </main>
@@ -620,6 +640,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260917br"></script>
-  <script src="script.js?v=20260920x"></script>
+  <script src="script.js?v=20260920y"></script>
 </body>
 </html>

@@ -2419,6 +2419,78 @@
     return bank;
   }
 
+  const AQUARIUM_SWIM_MAX = 18;
+  let aquariumRenderKey = "";
+
+  function aquariumFishList() {
+    const spot = currentSpot();
+    return state.cooler
+      .map((raw, index) => {
+        const entry = normalizeCoolerEntry(raw);
+        if (!entry?.saved) return null;
+        const fish = fishById(entry.id);
+        if (!fish || isTreasureItem(fish)) return null;
+        return { index, entry, fish, val: fishValue(fish, spot, entry) };
+      })
+      .filter(Boolean)
+      .sort((a, b) => b.val - a.val || (RARITY_RANK[b.fish.rarity] || 0) - (RARITY_RANK[a.fish.rarity] || 0))
+      .slice(0, AQUARIUM_SWIM_MAX);
+  }
+
+  function aquariumKey() {
+    return aquariumFishList()
+      .map(({ entry, fish }) => `${fish.id}:${entry.variant || ""}:${entry.shiny ? 1 : 0}`)
+      .join("|");
+  }
+
+  function renderAquarium(force = false) {
+    const tank = document.getElementById("aquarium-tank");
+    const swimmers = document.getElementById("aquarium-swimmers");
+    const emptyEl = document.getElementById("aquarium-empty");
+    const dripEl = document.getElementById("aquarium-drip-label");
+    const tankClaim = document.getElementById("aquarium-tank-claim");
+    if (!tank || !swimmers) return;
+
+    tickAquarium();
+    const bank = Math.floor(Number(state.aquariumBank) || 0);
+    const rate = aquariumRatePerSec();
+    const list = aquariumFishList();
+    const nextKey = aquariumKey();
+
+    if (dripEl) {
+      dripEl.textContent =
+        list.length === 0
+          ? "Save fish in the cooler to stock the tank"
+          : rate > 0
+            ? `${list.length} swimming · ${formatNum(bank)} banked · ${formatNum(
+                Math.max(1, Math.floor(rate * 60))
+              )}/min`
+            : `${list.length} swimming · ${formatNum(bank)} banked`;
+    }
+    if (tankClaim) tankClaim.disabled = bank <= 0;
+    tank.classList.toggle("has-fish", list.length > 0);
+    if (emptyEl) emptyEl.hidden = list.length > 0;
+
+    if (!force && nextKey === aquariumRenderKey) return;
+    aquariumRenderKey = nextKey;
+
+    swimmers.innerHTML = list
+      .map(({ index, entry, fish }, i) => {
+        const label = formatFishName(fish, entry);
+        const dur = (9 + ((i * 37) % 11) + (fish.id.length % 5)).toFixed(1);
+        const delay = (-((i * 1.7) % 12)).toFixed(1);
+        const top = 8 + ((i * 17 + (RARITY_RANK[fish.rarity] || 1) * 3) % 72);
+        const scale = (0.72 + Math.min(0.55, (RARITY_RANK[fish.rarity] || 1) * 0.028)).toFixed(2);
+        const flip = i % 2 === 1 ? " is-flip" : "";
+        return `<button type="button" class="aqua-fish${flip} ${fish.rarity} ${variantClassList(
+          entry
+        )}" data-aqua-index="${index}" style="--swim-dur:${dur}s;--swim-delay:${delay}s;--swim-top:${top}%;--swim-scale:${scale}" title="${label} · tap to unsave" aria-label="Unsave ${label}">
+          <span class="aqua-fish-glyph" aria-hidden="true">${fishGlyphHtml(fish, entry)}</span>
+        </button>`;
+      })
+      .join("");
+  }
+
   function coolerEntriesView() {
     const spot = currentSpot();
     let rows = state.cooler
@@ -8136,7 +8208,9 @@
     const fish = fishById(entry.id);
     const label = formatFishName(fish, entry);
     setCatchLine(
-      entry.saved ? `Saved ${label} — won't sell until unpinned` : `Unsaved ${label}`
+      entry.saved
+        ? `Saved ${label} — in the Aquarium · won't sell`
+        : `Unsaved ${label}`
     );
     window.HubSound?.play?.("click");
     render(false);
@@ -8982,7 +9056,7 @@
         } ${variantClassList(entry)}" data-cooler-index="${index}">
           <span class="fish-chip-glyph" aria-hidden="true">${fishGlyphHtml(fish, entry)}</span>
           <button type="button" class="fish-chip-save" data-save-index="${index}" title="${
-            saved ? "Unsave fish" : "Save fish (won't sell)"
+            saved ? "Unsave — remove from Aquarium" : "Save fish (Aquarium · won't sell)"
           }" aria-label="${saved ? "Unsave" : "Save"} ${label}" aria-pressed="${saved}">${
             saved ? "★" : "☆"
           }</button>
@@ -9724,6 +9798,7 @@
   function render(full = true) {
     renderStats();
     renderCooler();
+    renderAquarium();
     renderQuests();
     if (full) {
       renderSpots();
@@ -9787,6 +9862,7 @@
     tickBoats(TICK_MS / 1000);
     // Only rebuild cooler chips when contents change (constant rebuilds broke sell clicks)
     renderCooler(coolerKey() !== before);
+    renderAquarium();
     renderStats();
     saveSoon();
   }
@@ -10222,6 +10298,20 @@
       render(false);
       saveSoon();
     }
+  });
+  document.getElementById("aquarium-tank-claim")?.addEventListener("click", () => {
+    const n = claimAquariumBank();
+    if (n > 0) {
+      setCatchLine(`Aquarium paid ${formatNum(n)} coins`);
+      window.HubSound?.play?.("win");
+      render(false);
+      saveSoon();
+    }
+  });
+  document.getElementById("aquarium-swimmers")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-aqua-index]");
+    if (!btn) return;
+    toggleSaveFish(btn.dataset.aquaIndex);
   });
   document.getElementById("offline-claim-btn")?.addEventListener("click", () => claimOfflineBonus());
   document.getElementById("offline-claim-overlay")?.addEventListener("click", (e) => {
