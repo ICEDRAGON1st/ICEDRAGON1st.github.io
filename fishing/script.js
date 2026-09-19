@@ -7810,6 +7810,7 @@
     }
 
     if (shinyMachineSlotsEl) {
+      const spot = currentSpot();
       const slotBtns = shinyMachineSlotsEl.querySelectorAll("[data-shiny-slot]");
       slotBtns.forEach((btn) => {
         const slot = Math.floor(Number(btn.dataset.shinySlot));
@@ -7818,16 +7819,18 @@
         const body = btn.querySelector(".shiny-slot-body");
         let meta = btn.querySelector(".shiny-slot-meta");
         if (row) {
+          const val = fishValue(row.fish, spot, row.entry);
+          const shinyVal = fishValue(row.fish, spot, { ...row.entry, shiny: true });
           if (body) body.textContent = formatFishName(row.fish, row.entry);
           if (!meta) {
             meta = document.createElement("span");
             meta.className = "shiny-slot-meta";
             btn.appendChild(meta);
           }
-          meta.textContent = `${row.fish.rarity} · tap to remove`;
+          meta.textContent = `${formatNum(val)} · shiny ${formatNum(shinyVal)} · tap to remove`;
           btn.setAttribute(
             "aria-label",
-            `Slot ${slot + 1}: ${formatFishName(row.fish, row.entry)}. Tap to remove.`
+            `Slot ${slot + 1}: ${formatFishName(row.fish, row.entry)}, sells for ${formatNum(val)}. Tap to remove.`
           );
         } else {
           if (body) body.textContent = "Empty";
@@ -7849,6 +7852,7 @@
     const selectedSet = new Set(shinyMachineSlots);
     const requiredId = selected[0]?.entry.id || "";
     const atMax = shinyMachineSlots.length >= SHINY_MACHINE_MAX;
+    const spot = currentSpot();
     shinyMachinePickerEl.innerHTML = state.cooler
       .map((raw, index) => {
         const entry = normalizeCoolerEntry(raw);
@@ -7860,13 +7864,20 @@
         if (requiredId && entry.id !== requiredId) return "";
         if (atMax && !on) return "";
         const label = formatFishName(fish, entry);
+        const val = fishValue(fish, spot, entry);
+        const shinyVal = fishValue(fish, spot, { ...entry, shiny: true });
         return `<button type="button" class="shiny-pick ${fish.rarity} ${variantClassList(entry)}${
           on ? " is-selected" : ""
         }" data-shiny-pick="${index}" role="listitem" title="${
-          on ? "Remove from machine" : "Add to machine"
+          on
+            ? `Remove · sells ${formatNum(val)} · shiny ${formatNum(shinyVal)}`
+            : `Add · sells ${formatNum(val)} · shiny ${formatNum(shinyVal)}`
         }">
           <span class="fish-glyph" aria-hidden="true">${fishGlyphHtml(fish, entry)}</span>
-          <span class="shiny-pick-name">${label}</span>
+          <span class="shiny-pick-text">
+            <span class="shiny-pick-name">${label}</span>
+            <span class="shiny-pick-val">${formatNum(val)} → <em>${formatNum(shinyVal)}</em></span>
+          </span>
         </button>`;
       })
       .join("");

@@ -2872,7 +2872,7 @@ body[data-spot="mythforge"] .water-mist {
   gap: 8px;
   max-width: 100%;
   padding: 7px 10px;
-  border-radius: 999px;
+  border-radius: 14px;
   border: 1px solid rgba(148, 163, 184, 0.28);
   background: rgba(15, 23, 42, 0.5);
   color: inherit;
@@ -2901,12 +2901,34 @@ body[data-spot="mythforge"] .water-mist {
   flex: 0 0 auto;
 }
 
+.shiny-pick-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  min-width: 0;
+}
+
 .shiny-pick-name {
   font-weight: 650;
   font-size: 0.86rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 11rem;
+}
+
+.shiny-pick-val {
+  font-size: 0.72rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: rgba(148, 163, 184, 0.95);
+  white-space: nowrap;
+}
+
+.shiny-pick-val em {
+  font-style: normal;
+  color: #fbbf24;
 }
 
 .shiny-machine-actions {
