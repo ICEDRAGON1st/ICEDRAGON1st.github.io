@@ -427,6 +427,8 @@
     { id: "peakfin", name: "Peakfin", rarity: "zenith", value: 5e20 },
     { id: "crownray", name: "Crown Ray", rarity: "zenith", value: 1.2e21 },
     { id: "apexkoi", name: "Apex Koi", rarity: "zenith", value: 3e21 },
+    { id: "spirefin", name: "Spirefin", rarity: "zenith", value: 4.8e21 },
+    { id: "solsticeray", name: "Solstice Ray", rarity: "zenith", value: 6.2e21 },
     { id: "thezenith", name: "The Zenith", rarity: "zenith", value: 8e21 }
   ];
 
@@ -5119,6 +5121,8 @@
     peakfin: "tuna",
     crownray: "ray",
     apexkoi: "koi",
+    spirefin: "mahi",
+    solsticeray: "ray",
     thezenith: "omega"
   };
 
@@ -5220,6 +5224,8 @@
     peakfin: "#fcd34d",
     crownray: "#fbbf24",
     apexkoi: "#f59e0b",
+    spirefin: "#fde68a",
+    solsticeray: "#fef3c7",
     thezenith: "#fffbeb"
   };
 
