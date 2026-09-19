@@ -555,9 +555,9 @@ body.modal-open {
 }
 
 .guide-card {
-  width: min(960px, 96vw);
+  width: min(1100px, 98vw);
   text-align: left;
-  max-height: min(94vh, 980px);
+  max-height: min(88vh, 720px);
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
