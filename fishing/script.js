@@ -2,6 +2,7 @@
   const SAVE_KEY = "fishing-save-v3";
   const HIGH_SCORE_KEY = "fishing-best-catch-v2";
   const BEST_CATCH_META_KEY = "fishing-best-catch-meta-v2";
+  const CHEST_BOOST_SAVE_KEY = "fishing-chest-boost-v1";
 
   // Drop old Fishing Idle progress keys (full reset — this game only)
   try {
@@ -1510,6 +1511,62 @@
     );
   }
 
+  function storedMs(raw) {
+    const n = Number(raw);
+    return Number.isFinite(n) ? Math.max(0, n) : 0;
+  }
+
+  function snapshotChestBoosts() {
+    if (state.moneyBoostPaused) {
+      state.moneyBoostPausedLeft = moneyMsLeft();
+      state.moneyBoostUntil = 0;
+    }
+    if (state.luckBoostPaused) {
+      state.luckBoostPausedLeft = luckMsLeft();
+      state.luckBoostUntil = 0;
+    }
+  }
+
+  function persistChestBoostBackup() {
+    try {
+      localStorage.setItem(
+        CHEST_BOOST_SAVE_KEY,
+        JSON.stringify({
+          moneyPaused: !!state.moneyBoostPaused,
+          luckPaused: !!state.luckBoostPaused,
+          moneyLeft: moneyMsLeft(),
+          luckLeft: luckMsLeft(),
+          savedAt: Date.now()
+        })
+      );
+    } catch {}
+  }
+
+  function readChestBoostBackup() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(CHEST_BOOST_SAVE_KEY) || "null");
+      return raw && typeof raw === "object" ? raw : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function restoreChestBoostChannel(paused, leftover, until, now, backupPaused, backupLeft) {
+    const left = storedMs(leftover);
+    if (paused && left > 0) {
+      return { paused: true, leftover: left, until: 0 };
+    }
+    const backup = storedMs(backupLeft);
+    if (backupPaused && backup > 0 && (!until || until <= now) && left <= 0) {
+      return { paused: true, leftover: backup, until: 0 };
+    }
+    const u = storedMs(until);
+    if (!paused && u > now) {
+      return { paused: false, leftover: 0, until: u };
+    }
+    return { paused: false, leftover: 0, until: 0 };
+  }
+
   function moneyBoostPaused() {
     return !!state.moneyBoostPaused && moneyMsLeft() > 0;
   }
@@ -1596,7 +1653,7 @@
     }
     window.HubSound?.play?.("click");
     renderStats();
-    saveSoon();
+    saveState();
   }
 
   /** Local clock start of the current :00 or :30 block. */
@@ -3638,7 +3695,7 @@
       window.HubConfetti?.burst?.();
     }
     renderStats();
-    saveSoon();
+    saveState();
   }
 
   function activateLuckBoost(opts = {}) {
@@ -3675,7 +3732,7 @@
       window.HubConfetti?.burst?.();
     }
     renderStats();
-    saveSoon();
+    saveState();
   }
 
   function storeTreasure(chest, opts = {}) {
@@ -4346,33 +4403,34 @@
         next.caught[id] = rec;
       });
       const now = Date.now();
+      const backup = readChestBoostBackup();
       const moneyUntil = Math.max(
         0,
         Number(raw.moneyBoostUntil) || Number(raw.treasureBoostUntil) || 0
       );
       const luckUntil = Math.max(0, Number(raw.luckBoostUntil) || 0);
-      next.moneyBoostPaused = !!raw.moneyBoostPaused;
-      next.luckBoostPaused = !!raw.luckBoostPaused;
-      next.moneyBoostPausedLeft = Math.max(0, Number(raw.moneyBoostPausedLeft) || 0);
-      next.luckBoostPausedLeft = Math.max(0, Number(raw.luckBoostPausedLeft) || 0);
-      if (next.moneyBoostPaused) {
-        next.moneyBoostUntil = 0;
-        if (next.moneyBoostPausedLeft <= 0) {
-          next.moneyBoostPaused = false;
-        }
-      } else {
-        next.moneyBoostUntil = moneyUntil > now ? moneyUntil : 0;
-        next.moneyBoostPausedLeft = 0;
-      }
-      if (next.luckBoostPaused) {
-        next.luckBoostUntil = 0;
-        if (next.luckBoostPausedLeft <= 0) {
-          next.luckBoostPaused = false;
-        }
-      } else {
-        next.luckBoostUntil = luckUntil > now ? luckUntil : 0;
-        next.luckBoostPausedLeft = 0;
-      }
+      const moneyRestored = restoreChestBoostChannel(
+        !!raw.moneyBoostPaused,
+        raw.moneyBoostPausedLeft,
+        moneyUntil,
+        now,
+        !!backup?.moneyPaused,
+        backup?.moneyLeft
+      );
+      const luckRestored = restoreChestBoostChannel(
+        !!raw.luckBoostPaused,
+        raw.luckBoostPausedLeft,
+        luckUntil,
+        now,
+        !!backup?.luckPaused,
+        backup?.luckLeft
+      );
+      next.moneyBoostPaused = moneyRestored.paused;
+      next.moneyBoostPausedLeft = moneyRestored.leftover;
+      next.moneyBoostUntil = moneyRestored.until;
+      next.luckBoostPaused = luckRestored.paused;
+      next.luckBoostPausedLeft = luckRestored.leftover;
+      next.luckBoostUntil = luckRestored.until;
       const legacyCount = Math.max(0, Math.floor(Number(raw.treasureCount) || 0));
       next.moneyChestCount = Math.max(
         0,
@@ -4583,8 +4641,10 @@
 
   function saveState() {
     try {
+      snapshotChestBoosts();
       state.lastTick = Date.now();
       localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+      persistChestBoostBackup();
       const best = Math.max(getStoredBest(), Math.floor(state.bestCatchScore || 0));
       localStorage.setItem(HIGH_SCORE_KEY, String(best));
       const fish = fishById(state.bestCatchId);
@@ -8786,5 +8846,9 @@
   window.addEventListener("beforeunload", () => {
     saveState();
     maybeSubmitBest(true);
+  });
+  window.addEventListener("pagehide", () => saveState());
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") saveState();
   });
 })();
