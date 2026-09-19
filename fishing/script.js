@@ -3756,11 +3756,25 @@
     return Math.random() < 0.5 ? TREASURE_MONEY : TREASURE_LUCK;
   }
 
+  /** Chest / event clocks: "12s", "4m 32s", "5h 46m", "2d 3h 12m", "1w 2d 4h 5m". */
   function formatTreasureClock(ms) {
-    const total = Math.max(0, Math.ceil(ms / 1000));
-    const m = Math.floor(total / 60);
-    const s = total % 60;
-    return `${m}:${String(s).padStart(2, "0")}`;
+    const totalSec = Math.max(0, Math.ceil(Math.max(0, Number(ms) || 0) / 1000));
+    if (totalSec < 60) return `${totalSec}s`;
+    const totalMin = Math.floor(totalSec / 60);
+    if (totalMin < 60) {
+      const s = totalSec % 60;
+      return `${totalMin}m ${String(s).padStart(2, "0")}s`;
+    }
+    const weeks = Math.floor(totalMin / (60 * 24 * 7));
+    const days = Math.floor((totalMin % (60 * 24 * 7)) / (60 * 24));
+    const hours = Math.floor((totalMin % (60 * 24)) / 60);
+    const mins = totalMin % 60;
+    const bits = [];
+    if (weeks > 0) bits.push(`${weeks}w`);
+    if (weeks > 0 || days > 0) bits.push(`${days}d`);
+    bits.push(`${hours}h`);
+    bits.push(`${mins}m`);
+    return bits.join(" ");
   }
 
   /** Long reset timers for objectives: "2d 5h 12m", "5h 12m", or "12m". */
