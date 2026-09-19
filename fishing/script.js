@@ -207,9 +207,9 @@
     infinity: 0.0016,
     absolute: 0.0009,
     transcendent: 0.00045,
-    nexus: 0.00024,
-    voidborn: 0.00013,
-    zenith: 0.00007
+    nexus: 0.00032,
+    voidborn: 0.0002,
+    zenith: 0.00028
   };
 
   /** Admin Lucky Blocks: Astral / Absolute / Zenith (zenith = transcendent–zenith). */
@@ -1602,7 +1602,10 @@
     const rank = RARITY_RANK[rarity] || 1;
     const top = RARITY_RANK[RARITIES[RARITIES.length - 1]] || rank;
     if (rank <= 2) return rank === 1 ? -1 : -0.62;
-    return Math.max(0, (rank - 2) / Math.max(1, top - 2));
+    let p = Math.max(0, (rank - 2) / Math.max(1, top - 2));
+    if (rank === top) p *= 1.5;
+    else if (rank >= top - 2) p *= 1.2;
+    return p;
   }
 
   function luckWeightMult(rarity, luck) {
@@ -6623,9 +6626,9 @@
     if (rarity === "infinity") return 0.00014 + t * 0.075;
     if (rarity === "absolute") return 0.00009 + t * 0.065;
     if (rarity === "transcendent") return 0.000055 + t * 0.055;
-    if (rarity === "nexus") return 0.000035 + t * 0.048;
-    if (rarity === "voidborn") return 0.000022 + t * 0.042;
-    if (rarity === "zenith") return 0.000014 + t * 0.036;
+    if (rarity === "nexus") return 0.00005 + t * 0.052;
+    if (rarity === "voidborn") return 0.00004 + t * 0.05;
+    if (rarity === "zenith") return 0.00008 + t * 0.055;
     return 1;
   }
 
@@ -6672,9 +6675,9 @@
     if (fish.rarity === "infinity") w *= (0.07 + t * 0.55) * (forBoat ? 0.1 : 1);
     if (fish.rarity === "absolute") w *= (0.06 + t * 0.55) * (forBoat ? 0.08 : 1);
     if (fish.rarity === "transcendent") w *= (0.055 + t * 0.55) * (forBoat ? 0.07 : 1);
-    if (fish.rarity === "nexus") w *= (0.05 + t * 0.55) * (forBoat ? 0.06 : 1);
-    if (fish.rarity === "voidborn") w *= (0.045 + t * 0.55) * (forBoat ? 0.05 : 1);
-    if (fish.rarity === "zenith") w *= (0.04 + t * 0.55) * (forBoat ? 0.04 : 1);
+    if (fish.rarity === "nexus") w *= (0.08 + t * 0.55) * (forBoat ? 0.1 : 1);
+    if (fish.rarity === "voidborn") w *= (0.1 + t * 0.55) * (forBoat ? 0.1 : 1);
+    if (fish.rarity === "zenith") w *= (0.14 + t * 0.55) * (forBoat ? 0.12 : 1);
     w *= valueRarityScale(fish);
     w *= luckWeightMult(fish.rarity, luck);
     // Chest/event luck mult skews weight toward rarer tiers (omega ≈ ×mult)
