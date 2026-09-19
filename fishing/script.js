@@ -1819,7 +1819,9 @@
       pendingOffline: null,
       /** Local community weekend contribution */
       communityWeekKey: "",
-      communityContrib: 0
+      communityContrib: 0,
+      /** Last community completion wave that granted an Astral LB */
+      communityLbClaimedWave: 0
     };
   }
 
@@ -2163,7 +2165,14 @@
     tide: { id: "tide", label: "High tide", wait: 0.88, rare: 1.28 }
   };
   const WEATHER_ROTATION = ["clear", "calm", "tide", "storm", "fog", "clear", "calm", "storm"];
-  let communityCache = { weekKey: "", total: 0, goal: COMMUNITY_GOAL, rewardUntil: 0, rewardMult: COMMUNITY_REWARD_MULT };
+  let communityCache = {
+    weekKey: "",
+    total: 0,
+    goal: COMMUNITY_GOAL,
+    rewardUntil: 0,
+    rewardMult: COMMUNITY_REWARD_MULT,
+    lbWave: 0
+  };
   let communityFetchAt = 0;
 
   function spotMasteryCasts(spotId = state.spotId) {
@@ -2285,41 +2294,91 @@
       state.communityContrib = 0;
     }
     if (add > 0) state.communityContrib += add;
-    if (!communityWeekendLive() && add <= 0) {
+    if (!communityWeekendLive() && add <= 0 && !communityRewardLive()) {
       communityCache = {
         weekKey: week,
         total: 0,
         goal: COMMUNITY_GOAL,
         rewardUntil: communityCache.rewardUntil || 0,
-        rewardMult: COMMUNITY_REWARD_MULT
+        rewardMult: COMMUNITY_REWARD_MULT,
+        lbWave: communityCache.lbWave || 0
       };
+      tryClaimCommunityAstral();
       return communityCache;
     }
     const remote = (await fetchCommunityDoc()) || {};
     let total = Math.max(0, Math.floor(Number(remote.total) || 0));
     let rewardUntil = Math.max(0, Number(remote.rewardUntil) || 0);
+    let lbWave = Math.max(0, Math.floor(Number(remote.lbWave) || 0));
     const remoteWeek = String(remote.weekKey || "");
+    const prevTotal = total;
+    const prevWave = lbWave;
+    const prevRewardUntil = rewardUntil;
     if (remoteWeek !== week) {
       total = 0;
       rewardUntil = 0;
+      lbWave = 0;
     }
     total = Math.max(total + Math.max(0, add), state.communityContrib);
     const goal = Math.max(500, Math.floor(Number(remote.goal) || COMMUNITY_GOAL));
-    if (total >= goal && rewardUntil < Date.now()) {
-      rewardUntil = Date.now() + COMMUNITY_REWARD_MS;
+    let completedNow = false;
+    if (total >= goal) {
+      if (rewardUntil < Date.now()) {
+        rewardUntil = Date.now() + COMMUNITY_REWARD_MS;
+      }
+      // First time this week hits the goal → mint a completion wave for LB grants
+      if (!lbWave) {
+        lbWave = Date.now();
+        completedNow = true;
+      }
     }
     communityCache = {
       weekKey: week,
       total,
       goal,
       rewardUntil,
-      rewardMult: Number(remote.rewardMult) || COMMUNITY_REWARD_MULT
+      rewardMult: Number(remote.rewardMult) || COMMUNITY_REWARD_MULT,
+      lbWave
     };
     communityFetchAt = Date.now();
-    if (add > 0 || remoteWeek !== week || total !== Number(remote.total)) {
+    if (
+      add > 0 ||
+      remoteWeek !== week ||
+      total !== prevTotal ||
+      lbWave !== prevWave ||
+      rewardUntil !== prevRewardUntil ||
+      completedNow
+    ) {
       pushCommunityDoc(communityCache);
     }
+    tryClaimCommunityAstral();
     return communityCache;
+  }
+
+  /** Contributors get 1 Astral Lucky Block once per completed community wave. */
+  function tryClaimCommunityAstral() {
+    const wave = Math.max(0, Math.floor(Number(communityCache.lbWave) || 0));
+    if (!wave) return false;
+    if ((state.communityContrib || 0) <= 0) return false;
+    if (Math.floor(Number(state.communityLbClaimedWave) || 0) === wave) return false;
+    const added = storeLuckyBlock("astral", 1, { silent: true });
+    state.communityLbClaimedWave = wave;
+    if (added > 0) {
+      setCatchLine(
+        `Community meter done! +1 Astral Lucky Block · ${luckyBlockCount("astral")} ready`,
+        "treasure"
+      );
+      window.HubSound?.play?.("win");
+      window.HubConfetti?.burst?.();
+      renderTreasureStash();
+      render(false);
+      saveSoon();
+      return true;
+    }
+    // Stash full — still mark claimed so we don't spam retries; they keep the luck boost
+    setCatchLine("Community meter done — Astral stash full", "miss");
+    saveSoon();
+    return false;
   }
 
   function aquariumRatePerSec() {
@@ -5412,6 +5471,7 @@
         raw.pendingOffline && typeof raw.pendingOffline === "object" ? raw.pendingOffline : null;
       next.communityWeekKey = String(raw.communityWeekKey || "");
       next.communityContrib = Math.max(0, Math.floor(Number(raw.communityContrib) || 0));
+      next.communityLbClaimedWave = Math.max(0, Math.floor(Number(raw.communityLbClaimedWave) || 0));
       return next;
     } catch {
       return defaultState();
@@ -9366,13 +9426,24 @@
     const pct = Math.min(100, Math.floor((100 * total) / Math.max(1, goal)));
     if (communityLabel) {
       if (reward) {
+        const lbTip =
+          (state.communityContrib || 0) > 0 &&
+          communityCache.lbWave &&
+          state.communityLbClaimedWave === communityCache.lbWave
+            ? " · Astral claimed"
+            : (state.communityContrib || 0) > 0
+              ? " · +Astral LB"
+              : "";
         communityLabel.textContent = `${formatMult(communityCache.rewardMult || COMMUNITY_REWARD_MULT)}× luck · ${formatTreasureClock(
           Math.max(0, communityCache.rewardUntil - now)
-        )}`;
+        )}${lbTip}`;
       } else if (weekend) {
-        communityLabel.textContent = `${formatNum(total)}/${formatNum(goal)} · ${pct}% · you ${formatNum(
-          state.communityContrib || 0
-        )}`;
+        const done = total >= goal;
+        communityLabel.textContent = done
+          ? `Done! · you ${formatNum(state.communityContrib || 0)} · Astral for helpers`
+          : `${formatNum(total)}/${formatNum(goal)} · ${pct}% · you ${formatNum(
+              state.communityContrib || 0
+            )}`;
       } else {
         communityLabel.textContent = "Fri–Sun meter";
       }
