@@ -7462,6 +7462,7 @@
     if (!shinyMachinePickerEl) return;
     const selectedSet = new Set(shinyMachineSlots);
     const requiredId = selected[0]?.entry.id || "";
+    const atMax = shinyMachineSlots.length >= SHINY_MACHINE_MAX;
     shinyMachinePickerEl.innerHTML = state.cooler
       .map((raw, index) => {
         const entry = normalizeCoolerEntry(raw);
@@ -7469,15 +7470,14 @@
         const fish = fishById(entry.id);
         if (!fish || isTreasureItem(fish)) return "";
         const on = selectedSet.has(index);
-        const blocked =
-          !on &&
-          (shinyMachineSlots.length >= SHINY_MACHINE_MAX ||
-            (shinyMachineSlots.length >= 1 && requiredId && entry.id !== requiredId));
+        // Only show fish that fit: same species once a slot is filled; when full, only selected.
+        if (requiredId && entry.id !== requiredId) return "";
+        if (atMax && !on) return "";
         const label = formatFishName(fish, entry);
         return `<button type="button" class="shiny-pick ${fish.rarity} ${variantClassList(entry)}${
           on ? " is-selected" : ""
-        }" data-shiny-pick="${index}" role="listitem" ${blocked ? "disabled" : ""} title="${
-          blocked ? "Needs the same fish species" : on ? "Remove from machine" : "Add to machine"
+        }" data-shiny-pick="${index}" role="listitem" title="${
+          on ? "Remove from machine" : "Add to machine"
         }">
           <span class="fish-glyph" aria-hidden="true">${fishGlyphHtml(fish, entry)}</span>
           <span class="shiny-pick-name">${label}</span>
