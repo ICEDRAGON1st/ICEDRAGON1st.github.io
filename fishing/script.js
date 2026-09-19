@@ -5618,7 +5618,7 @@
       kind: "chest",
       target: 1,
       label: "Open 1 chest from your stash",
-      reward: { coins: 300, moneyChest: 1 }
+      reward: { coins: 400, moneyChest: 1, luckChest: 1 }
     },
     // Medium
     {
@@ -5654,7 +5654,7 @@
       duringEvent: true,
       target: 1,
       label: "Open a chest during an event",
-      reward: { moneyChest: 1, luckChest: 1 }
+      reward: { coins: 800, moneyChest: 1, luckChest: 1 }
     },
     {
       id: "d_m_catch_leg4",
@@ -5708,7 +5708,7 @@
       duringEvent: true,
       target: 2,
       label: "Open 2 chests during events",
-      reward: { moneyChest: 2, luckChest: 1 }
+      reward: { coins: 2000, moneyChest: 2, luckChest: 2 }
     },
     {
       id: "d_h_manual35",
@@ -5762,7 +5762,7 @@
       duringEvent: true,
       target: 4,
       label: "Open 4 chests during events",
-      reward: { moneyChest: 4, luckChest: 3 }
+      reward: { coins: 8000, moneyChest: 5, luckChest: 4 }
     },
     {
       id: "d_i_manual60",
@@ -5852,7 +5852,7 @@
       duringEvent: true,
       target: 4,
       label: "Open 4 chests during events",
-      reward: { moneyChest: 2, luckChest: 2 }
+      reward: { coins: 11000, moneyChest: 3, luckChest: 3 }
     },
     {
       id: "w_m_manual70",
@@ -5897,7 +5897,7 @@
       duringEvent: true,
       target: 6,
       label: "Open 6 chests during events",
-      reward: { moneyChest: 4, luckChest: 3 }
+      reward: { coins: 22000, moneyChest: 5, luckChest: 5 }
     },
     {
       id: "w_h_catch250",
@@ -5950,7 +5950,7 @@
       duringEvent: true,
       target: 12,
       label: "Open 12 chests during events",
-      reward: { moneyChest: 6, luckChest: 6 }
+      reward: { coins: 50000, moneyChest: 10, luckChest: 8 }
     },
     {
       id: "w_i_catch1000",
