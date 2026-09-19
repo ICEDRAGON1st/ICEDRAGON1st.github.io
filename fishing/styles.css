@@ -4270,6 +4270,20 @@ body.treasure-boost .cast-btn {
   text-align: center;
 }
 
+/* Must beat .overlay-card width — guide uses both classes */
+.guide-overlay .overlay-card.guide-card {
+  width: min(1600px, calc(100vw - 1rem));
+  max-width: none;
+  text-align: left;
+  padding: 1.25rem 1.5rem 1.2rem;
+}
+
+.book-overlay .overlay-card.guide-card {
+  width: min(720px, calc(100vw - 1rem));
+  max-width: none;
+  text-align: left;
+}
+
 .eyebrow {
   margin: 0 0 0.35rem;
   font-size: 0.75rem;
