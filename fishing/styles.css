@@ -1449,7 +1449,7 @@ body.modal-open {
   to { filter: brightness(1.06); }
 }
 
-/* ââ You're standing on the bank looking out ââ */
+/* Ã¢ÂÂÃ¢ÂÂ You're standing on the bank looking out Ã¢ÂÂÃ¢ÂÂ */
 .cast-scene {
   position: absolute;
   inset: 0;
@@ -4615,7 +4615,7 @@ body.treasure-boost .cast-btn {
   text-align: center;
 }
 
-/* Must beat .overlay-card width â guide uses both classes */
+/* Must beat .overlay-card width Ã¢ÂÂ guide uses both classes */
 .guide-overlay .overlay-card.guide-card {
   width: min(680px, calc(100vw - 1.5rem));
   max-width: none;
@@ -4758,7 +4758,7 @@ body.treasure-boost .cast-btn {
   }
 }
 
-/* ââ Per-spot water atmospheres (cast pond + page wash) ââ */
+/* Ã¢ÂÂÃ¢ÂÂ Per-spot water atmospheres (cast pond + page wash) Ã¢ÂÂÃ¢ÂÂ */
 body[data-spot="creek"] {
   --spot-accent: #7ec85a;
   --spot-page-a: #4a7a38;
@@ -7058,7 +7058,7 @@ body[data-spot="finalhorizon"] {
 }
 
 
-/*  Feature pack: mastery / weather / combo / aquarium / community / cooler  */
+/* ÂÂ Feature pack: mastery / weather / combo / aquarium / community / cooler ÂÂ */
 .cooler-controls {
   display: flex;
   flex-wrap: wrap;
@@ -7170,7 +7170,7 @@ body[data-spot="finalhorizon"] {
   min-height: 1.2em;
 }
 
-/* �� Visual aquarium tank �� */
+/*  Visual aquarium tank  */
 .aquarium-card {
   text-align: left;
 }
@@ -7236,8 +7236,9 @@ body[data-spot="finalhorizon"] {
 }
 .aquarium-swimmers {
   position: absolute;
-  inset: 0;
+  inset: 0.45rem 0.55rem;
   z-index: 2;
+  overflow: hidden;
 }
 .aquarium-empty {
   position: absolute;
@@ -7258,15 +7259,17 @@ body[data-spot="finalhorizon"] {
 }
 .aqua-fish {
   position: absolute;
-  left: -18%;
+  left: 0;
   top: var(--swim-top, 40%);
-  transform: scale(var(--swim-scale, 1));
+  width: 3.4rem;
+  max-width: 22%;
   border: 0;
   background: transparent;
   padding: 0;
   cursor: pointer;
   animation: aqua-swim var(--swim-dur, 12s) linear var(--swim-delay, 0s) infinite;
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+  will-change: left, transform;
 }
 .aqua-fish.is-flip {
   animation-name: aqua-swim-flip;
@@ -7278,8 +7281,11 @@ body[data-spot="finalhorizon"] {
 }
 .aqua-fish-glyph {
   display: block;
-  width: 3.4rem;
-  height: 1.7rem;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 1;
+  transform: scale(var(--swim-scale, 1));
+  transform-origin: center center;
 }
 .aqua-fish-glyph .fish-glyph {
   width: 100%;
@@ -7287,20 +7293,52 @@ body[data-spot="finalhorizon"] {
   display: block;
 }
 @keyframes aqua-swim {
-  0% { left: -22%; transform: scale(var(--swim-scale, 1)) translateY(0); }
-  25% { transform: scale(var(--swim-scale, 1)) translateY(-6px); }
-  50% { left: 102%; transform: scale(var(--swim-scale, 1)) translateY(4px); }
-  50.01% { left: 102%; transform: scale(calc(var(--swim-scale, 1) * -1), var(--swim-scale, 1)) translateY(4px); }
-  75% { transform: scale(calc(var(--swim-scale, 1) * -1), var(--swim-scale, 1)) translateY(-5px); }
-  100% { left: -22%; transform: scale(calc(var(--swim-scale, 1) * -1), var(--swim-scale, 1)) translateY(0); }
+  0% {
+    left: 0;
+    transform: scaleX(1) scaleY(1) translateY(0);
+  }
+  20% {
+    transform: scaleX(1) scaleY(1) translateY(-5px);
+  }
+  49.9% {
+    left: calc(100% - 3.4rem);
+    transform: scaleX(1) scaleY(1) translateY(3px);
+  }
+  50% {
+    left: calc(100% - 3.4rem);
+    transform: scaleX(-1) scaleY(1) translateY(3px);
+  }
+  70% {
+    transform: scaleX(-1) scaleY(1) translateY(-4px);
+  }
+  100% {
+    left: 0;
+    transform: scaleX(-1) scaleY(1) translateY(0);
+  }
 }
 @keyframes aqua-swim-flip {
-  0% { left: 102%; transform: scale(calc(var(--swim-scale, 1) * -1), var(--swim-scale, 1)) translateY(0); }
-  25% { transform: scale(calc(var(--swim-scale, 1) * -1), var(--swim-scale, 1)) translateY(5px); }
-  50% { left: -22%; transform: scale(calc(var(--swim-scale, 1) * -1), var(--swim-scale, 1)) translateY(-4px); }
-  50.01% { left: -22%; transform: scale(var(--swim-scale, 1)) translateY(-4px); }
-  75% { transform: scale(var(--swim-scale, 1)) translateY(6px); }
-  100% { left: 102%; transform: scale(var(--swim-scale, 1)) translateY(0); }
+  0% {
+    left: calc(100% - 3.4rem);
+    transform: scaleX(-1) scaleY(1) translateY(0);
+  }
+  20% {
+    transform: scaleX(-1) scaleY(1) translateY(4px);
+  }
+  49.9% {
+    left: 0;
+    transform: scaleX(-1) scaleY(1) translateY(-3px);
+  }
+  50% {
+    left: 0;
+    transform: scaleX(1) scaleY(1) translateY(-3px);
+  }
+  70% {
+    transform: scaleX(1) scaleY(1) translateY(5px);
+  }
+  100% {
+    left: calc(100% - 3.4rem);
+    transform: scaleX(1) scaleY(1) translateY(0);
+  }
 }
 .aquarium-drip {
   margin: 0;
