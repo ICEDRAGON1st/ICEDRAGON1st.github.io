@@ -10418,8 +10418,11 @@ function aquariumRatePerSec() {
       settingsSoundEnabled.checked = window.HubSound?.isEnabled?.() !== false;
     }
     const vol = Math.round((window.HubSound?.getVolume?.() ?? 1) * 100);
-    if (settingsVolume) settingsVolume.value = String(Math.max(0, Math.min(300, vol)));
-    if (settingsVolumePct) settingsVolumePct.textContent = String(Math.max(0, Math.min(300, vol)));
+    const clamped = Math.max(0, Math.min(300, vol));
+    if (settingsVolume) settingsVolume.value = String(clamped);
+    if (settingsVolumePct && document.activeElement !== settingsVolumePct) {
+      settingsVolumePct.value = String(clamped);
+    }
     if (settingsSfxEnabled) settingsSfxEnabled.checked = sfxEnabled();
     if (settingsConfettiEnabled) settingsConfettiEnabled.checked = confettiEnabled();
     if (settingsLightningFlash) settingsLightningFlash.checked = lightningFlashEnabled();
@@ -11039,10 +11042,35 @@ function aquariumRatePerSec() {
     }
     syncSettingsPanel();
   });
-  settingsVolume?.addEventListener("input", () => {
-    const pct = Math.max(0, Math.min(300, Number(settingsVolume.value) || 0));
+  function applyVolumePercent(raw, { syncInput = true } = {}) {
+    const pct = Math.max(0, Math.min(300, Math.round(Number(raw) || 0)));
     window.HubSound?.setVolume?.(pct / 100);
-    if (settingsVolumePct) settingsVolumePct.textContent = String(pct);
+    if (settingsVolume) settingsVolume.value = String(pct);
+    if (syncInput && settingsVolumePct) settingsVolumePct.value = String(pct);
+    return pct;
+  }
+
+  settingsVolume?.addEventListener("input", () => {
+    applyVolumePercent(settingsVolume.value);
+  });
+  settingsVolumePct?.addEventListener("input", () => {
+    const n = Number(settingsVolumePct.value);
+    if (!Number.isFinite(n)) return;
+    applyVolumePercent(n, { syncInput: false });
+  });
+  settingsVolumePct?.addEventListener("change", () => {
+    applyVolumePercent(settingsVolumePct.value);
+  });
+  settingsVolumePct?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      applyVolumePercent(settingsVolumePct.value);
+      settingsVolumePct.blur();
+    }
+  });
+  settingsVolumePct?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    settingsVolumePct.select();
   });
   settingsLightningFlash?.addEventListener("change", () => {
     setLightningFlashEnabled(!!settingsLightningFlash.checked);

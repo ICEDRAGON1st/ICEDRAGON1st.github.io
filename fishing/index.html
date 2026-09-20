@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260921v">
+  <link rel="stylesheet" href="styles.css?v=20260921y">
 </head>
 <body data-spot="creek" data-hub-sound-btn="off">
   <div id="weather-fx" class="weather-fx" aria-hidden="true">
@@ -677,13 +677,25 @@
           </span>
           <input id="settings-sound-enabled" type="checkbox" checked />
         </label>
-        <label class="settings-row settings-volume">
+        <div class="settings-row settings-volume">
           <span>
             <strong>Volume</strong>
-            <span class="settings-hint"><span id="settings-volume-pct">100</span>%</span>
+            <span class="settings-hint settings-volume-pct-wrap">
+              <input
+                id="settings-volume-pct"
+                type="number"
+                min="0"
+                max="300"
+                step="1"
+                value="100"
+                inputmode="numeric"
+                aria-label="Volume percent"
+              />
+              <span aria-hidden="true">%</span>
+            </span>
           </span>
-          <input id="settings-volume" type="range" min="0" max="300" step="5" value="100" />
-        </label>
+          <input id="settings-volume" type="range" min="0" max="300" step="1" value="100" />
+        </div>
         <label class="settings-row settings-toggle">
           <span>
             <strong>Catch & UI beeps</strong>
@@ -717,6 +729,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260917br"></script>
-  <script src="script.js?v=20260921y"></script>
+  <script src="script.js?v=20260921z"></script>
 </body>
 </html>
