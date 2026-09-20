@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260921q">
+  <link rel="stylesheet" href="styles.css?v=20260921r">
 </head>
 <body data-spot="creek">
   <div id="weather-fx" class="weather-fx" aria-hidden="true">
@@ -24,8 +24,12 @@
     <span class="wx-haze"></span>
   </div>
   <header class="top-bar">
-    <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
-    <button id="settings-btn" type="button" class="menu-btn settings-btn" aria-label="Open settings">⚙</button>
+    <div class="top-bar-left">
+      <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
+      <button id="settings-btn" type="button" class="menu-btn settings-btn" aria-label="Open settings">⚙</button>
+    </div>
+    <!-- Keeps HubSound from injecting a wide #hub-sound-btn; mute lives in Settings -->
+    <button id="sound-btn" type="button" class="sound-btn-hidden" hidden aria-hidden="true" tabindex="-1"></button>
     <h1>Fishing Idle</h1>
     <div class="top-stats">
       <button id="admin-btn" type="button" class="guide-btn admin-btn hidden" hidden>Admin</button>
