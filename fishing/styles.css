@@ -2401,11 +2401,6 @@ body[data-spot="mythforge"] .water-mist {
   overflow: visible;
 }
 
-.fish-glyph .fish-pose {
-  transform-box: view-box;
-  transform-origin: center;
-}
-
 .fish-glyph:not(.is-realistic) .body {
   fill: currentColor;
 }

@@ -6477,19 +6477,19 @@ function aquariumRatePerSec() {
     cometcarp: "carp",
     eventide: "eel",
     horizon: "shark",
-    collapse: "boxfish",
+    collapse: "carp",
     riftray: "kite",
     primefin: "blade",
     absoluth: "bullshark",
     theend: "omega",
-    ultimafin: "crownfish",
+    ultimafin: "omega",
     originkoi: "koi",
     dawnlevi: "leviathan",
     firstfin: "angelfish",
     sparkfin: "butterfly",
     twinparadox: "bass",
     mirrorshark: "bullshark",
-    loopeel: "seahorse",
+    loopeel: "eel",
     mobiusmarlin: "marlin",
     endlessray: "kite",
     boundcod: "cod",
@@ -6498,7 +6498,7 @@ function aquariumRatePerSec() {
     absolutefin: "blade",
     finalabs: "leviathan",
     trueabs: "bullshark",
-    theabsolute: "crownfish",
+    theabsolute: "omega",
     ascendray: "kite",
     overfin: "tuna",
     beyondkoi: "koi",
@@ -6516,13 +6516,13 @@ function aquariumRatePerSec() {
     apexkoi: "koi",
     spirefin: "longnose",
     solsticeray: "ray",
-    thezenith: "crownfish",
-    diademfin: "crownfish",
+    thezenith: "omega",
+    diademfin: "angelfish",
     royalkoi: "koi",
     coronet: "kite",
-    thecrown: "crownfish",
+    thecrown: "omega",
     dawnorigin: "leviathan",
-    sourcefin: "seahorse",
+    sourcefin: "tuna",
     firsttide: "mahi",
     theorigin: "omega",
     skyfin: "butterfly",
@@ -6532,15 +6532,15 @@ function aquariumRatePerSec() {
     gleamray: "kite",
     sunfin: "angelfish",
     blazeel: "eel",
-    theradiant: "crownfish",
-    duskfin: "boxfish",
+    theradiant: "omega",
+    duskfin: "tuna",
     twilightshark: "bullshark",
     umbrakoi: "koi",
     thedusk: "ghost",
     summitfin: "blade",
     pinnacleray: "kite",
     crestkoi: "koi",
-    theapex: "crownfish"
+    theapex: "omega"
   };
 
   const FISH_TINT = {
@@ -6697,104 +6697,32 @@ function aquariumRatePerSec() {
     return h >>> 0;
   }
 
-  /** Per-fish silhouette + accent so two fish rarely look identical. */
+  /** Light per-fish paint tweaks only — no warping transforms. */
   function fishLookProfile(id) {
     const h = fishIdHash(id);
     return {
-      stretchX: 0.86 + ((h % 28) / 100),
-      stretchY: 0.8 + (((h >>> 5) % 34) / 100),
-      accent: h % 9,
-      stripe: (h >>> 8) % 5,
-      spots: (h >>> 11) % 4,
-      finBoost: (h >>> 14) % 3,
-      eye: 0.85 + (((h >>> 17) % 12) / 40),
-      belly: 0.35 + (((h >>> 20) % 40) / 100),
-      shade: 0.22 + (((h >>> 23) % 28) / 100)
+      mark: h % 4,
+      belly: 0.42 + (((h >>> 8) % 22) / 100),
+      shade: 0.28 + (((h >>> 14) % 18) / 100)
     };
   }
 
-  function fishGlyphAccents(look) {
-    const bits = [];
-    if (look.stripe === 1) {
-      bits.push(
-        `<path class="stripe" d="M20 11 Q34 8 48 12" stroke-width="1.4"/>`,
-        `<path class="stripe" d="M20 16 Q34 14 48 17" stroke-width="1.2"/>`,
-        `<path class="stripe" d="M20 21 Q34 19 47 22" stroke-width="1.1"/>`
-      );
-    } else if (look.stripe === 2) {
-      bits.push(
-        `<path class="stripe" d="M24 9 L28 23" stroke-width="1.3"/>`,
-        `<path class="stripe" d="M32 8 L36 24" stroke-width="1.3"/>`,
-        `<path class="stripe" d="M40 9 L43 23" stroke-width="1.2"/>`
-      );
-    } else if (look.stripe === 3) {
-      bits.push(`<path class="stripe" d="M18 15 Q33 10 50 15 Q33 20 18 15 Z" opacity="0.55" fill="currentColor" stroke="none"/>`);
-    } else if (look.stripe === 4) {
-      bits.push(
-        `<path class="stripe" d="M22 12 C30 10 40 10 48 13" stroke-width="1.6"/>`,
-        `<path class="stripe" d="M22 20 C30 22 40 22 48 19" stroke-width="1.4"/>`
-      );
+  /** Soft marks that stay inside the body (no spikes/bills that break the silhouette). */
+  function fishGlyphAccents(look, gid) {
+    if (look.mark === 1) {
+      return `<path class="stripe" d="M22 12 C32 10 42 10 48 13" fill="none" stroke="currentColor" stroke-width="1.3" opacity="0.35"/>
+        <path class="stripe" d="M22 18 C32 20 42 20 48 17" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.3"/>`;
     }
-    if (look.spots === 1) {
-      bits.push(
-        `<circle class="spot" cx="26" cy="14" r="1.4" fill="currentColor" opacity="0.35"/>`,
-        `<circle class="spot" cx="34" cy="18" r="1.7" fill="currentColor" opacity="0.3"/>`,
-        `<circle class="spot" cx="41" cy="13" r="1.2" fill="currentColor" opacity="0.35"/>`
-      );
-    } else if (look.spots === 2) {
-      bits.push(
-        `<circle class="spot" cx="28" cy="12" r="2.1" fill="currentColor" opacity="0.28"/>`,
-        `<circle class="spot" cx="38" cy="19" r="2.4" fill="currentColor" opacity="0.25"/>`
-      );
-    } else if (look.spots === 3) {
-      bits.push(
-        `<circle class="spot" cx="30" cy="15" r="1.1" fill="#fff" opacity="0.45"/>`,
-        `<circle class="spot" cx="36" cy="12" r="0.9" fill="#fff" opacity="0.4"/>`,
-        `<circle class="spot" cx="42" cy="17" r="1.2" fill="#fff" opacity="0.35"/>`
-      );
+    if (look.mark === 2) {
+      return `<circle class="spot" cx="28" cy="14" r="1.5" fill="currentColor" opacity="0.28"/>
+        <circle class="spot" cx="36" cy="18" r="1.7" fill="currentColor" opacity="0.24"/>
+        <circle class="spot" cx="42" cy="13" r="1.2" fill="currentColor" opacity="0.28"/>`;
     }
-    if (look.accent === 1) {
-      bits.push(`<path class="fin" d="M30 7 L33 0 L36 7 Z" opacity="0.95"/>`);
-    } else if (look.accent === 2) {
-      bits.push(
-        `<path class="fin" d="M28 6 L31 -1 L34 6 L37 -1 L40 6 Z" opacity="0.9"/>`
-      );
-    } else if (look.accent === 3) {
-      bits.push(
-        `<path class="bill" d="M54 14 L63 12 L54 18 Z" opacity="0.95"/>`
-      );
-    } else if (look.accent === 4) {
-      bits.push(
-        `<ellipse class="shine" cx="34" cy="10" rx="7" ry="2.5" fill="#fff" opacity="0.28"/>`,
-        `<circle class="spot" cx="48" cy="11" r="3.2" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.55"/>`
-      );
-    } else if (look.accent === 5) {
-      bits.push(
-        `<path class="whisker" d="M50 12 Q58 6 63 5"/>`,
-        `<path class="whisker" d="M50 18 Q58 24 63 26"/>`
-      );
-    } else if (look.accent === 6) {
-      bits.push(
-        `<path class="fin" d="M22 10 C18 4 24 2 28 8 Z" opacity="0.85"/>`,
-        `<path class="fin" d="M22 22 C18 28 24 30 28 24 Z" opacity="0.85"/>`
-      );
-    } else if (look.accent === 7) {
-      bits.push(
-        `<path class="fin" d="M16 16 C10 10 6 12 4 16 C6 20 10 22 16 16 Z" opacity="0.8"/>`,
-        `<circle class="spot" cx="34" cy="16" r="4.5" fill="none" stroke="#fff" stroke-width="1.1" opacity="0.4"/>`
-      );
-    } else if (look.accent === 8) {
-      bits.push(
-        `<path class="fin" d="M36 5 C40 -2 48 1 46 9 C42 5 38 5 36 5 Z" opacity="0.92"/>`,
-        `<path class="stripe" d="M24 16 L46 16" stroke-width="1.8" opacity="0.5"/>`
-      );
+    if (look.mark === 3) {
+      return `<ellipse class="shine" cx="34" cy="11" rx="6" ry="2.2" fill="#fff" opacity="0.22"/>
+        <path class="stripe" d="M24 16 L46 16" fill="none" stroke="currentColor" stroke-width="1.5" opacity="0.28"/>`;
     }
-    if (look.finBoost === 1) {
-      bits.push(`<path class="fin belly-fin" d="M24 23 C30 31 40 31 44 23 C36 28 30 28 24 23 Z" opacity="0.75"/>`);
-    } else if (look.finBoost === 2) {
-      bits.push(`<path class="fin" d="M40 8 C44 2 50 4 48 12 C45 8 42 8 40 8 Z" opacity="0.8"/>`);
-    }
-    return bits.join("\n");
+    return `<path class="scales" d="M24 14 Q25.5 16 24 18 M30 13 Q31.5 15 30 17 M36 14 Q37.5 16 36 18 M42 13 Q43.5 15 42 17" fill="none" stroke="url(#${gid}-fin)" stroke-width="1" opacity="0.35"/>`;
   }
 
   function fishGlyphParts(shape) {
@@ -7272,11 +7200,9 @@ function aquariumRatePerSec() {
       .replace(/\bclass="fin"/g, `class="fin" fill="url(#${gid}-fin)"`)
       .replace(/\bclass="tail"/g, `class="tail" fill="url(#${gid}-fin)"`)
       .replace(/\bclass="bill"/g, `class="bill" fill="url(#${gid}-fin)"`);
-    const accents = fishGlyphAccents(look);
+    const accents = fishGlyphAccents(look, gid);
     const extraClass = variantClassList(entry);
-    const sx = look.stretchX.toFixed(3);
-    const sy = look.stretchY.toFixed(3);
-    return `<svg class="fish-glyph shape-${shape} look-${look.accent} is-realistic ${extraClass}" viewBox="0 0 64 32" aria-hidden="true" style="color:${tone}">
+    return `<svg class="fish-glyph shape-${shape} look-${look.mark} is-realistic ${extraClass}" viewBox="0 0 64 32" aria-hidden="true" style="color:${tone}">
       <defs>
         <linearGradient id="${gid}-body" x1="0.15" y1="0" x2="0.2" y2="1">
           <stop offset="0%" stop-color="currentColor"/>
@@ -7289,17 +7215,15 @@ function aquariumRatePerSec() {
         </linearGradient>
         <linearGradient id="${gid}-belly" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
-          <stop offset="100%" stop-color="#ffffff" stop-opacity="${Math.min(0.7, look.belly + 0.15).toFixed(2)}"/>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="${Math.min(0.65, look.belly + 0.12).toFixed(2)}"/>
         </linearGradient>
         <linearGradient id="${gid}-fin" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stop-color="currentColor" stop-opacity="0.98"/>
           <stop offset="100%" stop-color="#031018" stop-opacity="0.35"/>
         </linearGradient>
       </defs>
-      <g class="fish-pose" transform="translate(32 16) scale(${sx} ${sy}) translate(-32 -16)">
-        ${parts}
-        ${accents}
-      </g>
+      ${parts}
+      ${accents}
     </svg>`;
   }
 
