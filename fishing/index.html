@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260921t">
+  <link rel="stylesheet" href="styles.css?v=20260921u">
 </head>
 <body data-spot="creek" data-hub-sound-btn="off">
   <div id="weather-fx" class="weather-fx" aria-hidden="true">
@@ -673,7 +673,7 @@
         <label class="settings-row settings-toggle">
           <span>
             <strong>Sound</strong>
-            <span class="settings-hint">Game + weather audio</span>
+            <span class="settings-hint">Master on/off (includes weather)</span>
           </span>
           <input id="settings-sound-enabled" type="checkbox" checked />
         </label>
@@ -683,6 +683,13 @@
             <span class="settings-hint"><span id="settings-volume-pct">100</span>%</span>
           </span>
           <input id="settings-volume" type="range" min="0" max="300" step="5" value="100" />
+        </label>
+        <label class="settings-row settings-toggle">
+          <span>
+            <strong>Catch & UI beeps</strong>
+            <span class="settings-hint">Fish catch, bite, clicks, misses</span>
+          </span>
+          <input id="settings-sfx-enabled" type="checkbox" checked />
         </label>
         <label class="settings-row settings-toggle">
           <span>
@@ -697,12 +704,12 @@
 
   <script src="../hub-streak.js"></script>
   <script src="../hub-achievements.js?v=20260919f"></script>
-  <script src="../hub-sound.js?v=20260921t"></script>
+  <script src="../hub-sound.js?v=20260921u"></script>
   <script src="../hub-confetti.js"></script>
   <script src="../hub-plays.js?v=20260917bt"></script>
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260917br"></script>
-  <script src="script.js?v=20260921t"></script>
+  <script src="script.js?v=20260921u"></script>
 </body>
 </html>

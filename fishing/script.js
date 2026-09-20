@@ -1676,6 +1676,7 @@
   const settingsVolume = document.getElementById("settings-volume");
   const settingsVolumePct = document.getElementById("settings-volume-pct");
   const settingsLightningFlash = document.getElementById("settings-lightning-flash");
+  const settingsSfxEnabled = document.getElementById("settings-sfx-enabled");
   const adminBtn = document.getElementById("admin-btn");
   const adminClose = document.getElementById("admin-close");
   const guideClose = document.getElementById("guide-close");
@@ -2430,7 +2431,7 @@
         `Community meter done! +1 Astral Lucky Block · ${luckyBlockCount("astral")} ready`,
         "treasure"
       );
-      window.HubSound?.play?.("win");
+      playSfx("win");
       window.HubConfetti?.burst?.();
       renderTreasureStash();
       render(false);
@@ -2838,7 +2839,7 @@
         "treasure"
       );
     }
-    window.HubSound?.play?.("click");
+    playSfx("click");
     renderStats();
     saveState();
   }
@@ -3914,7 +3915,7 @@
         setCatchLine(`Local admin ${label} cleared`, "treasure");
       } else {
         setCatchLine(`${liveLine("LOCAL ADMIN")} (only you)`, "treasure");
-        window.HubSound?.play?.("win");
+        playSfx("win");
         window.HubConfetti?.burst?.();
       }
       adminBusy = false;
@@ -3927,7 +3928,7 @@
       setCatchLine(`Clearing global admin ${label}…`, "treasure");
     } else {
       setCatchLine(`${liveLine("GLOBAL ADMIN")} (syncing…)`, "treasure");
-      window.HubSound?.play?.("win");
+      playSfx("win");
       window.HubConfetti?.burst?.();
     }
 
@@ -4266,7 +4267,7 @@
         "treasure"
       );
     }
-    window.HubSound?.play?.("win");
+    playSfx("win");
     toClaim.forEach((gid) => {
       markFishGiftClaimed(gid).catch(() => {});
     });
@@ -4309,7 +4310,7 @@
         count === 1 ? `Gave ${label} to you` : `Gave ${count}× ${label} to you`,
         catchTone(fish.rarity)
       );
-      window.HubSound?.play?.("win");
+      playSfx("win");
       return;
     }
 
@@ -4327,7 +4328,7 @@
     });
     if (!ok) {
       setCatchLine("Couldn't queue fish gift — Mantle may be rate-limited", "miss");
-      window.HubSound?.play?.("miss");
+      playSfx("miss");
       return;
     }
     const who = target?.name || toRaw;
@@ -4335,7 +4336,7 @@
       count === 1 ? `Queued ${label} for ${who}` : `Queued ${count}× ${label} for ${who}`,
       catchTone(fish.rarity)
     );
-    window.HubSound?.play?.("click");
+    playSfx("click");
   }
 
   function parseAdminCommand(raw) {
@@ -4511,7 +4512,7 @@
     });
     if (!ok) {
       setCatchLine(`Couldn't queue ${def.name} — Mantle may be rate-limited`, "miss");
-      window.HubSound?.play?.("miss");
+      playSfx("miss");
       return;
     }
     const who = target?.name || toRaw;
@@ -4519,7 +4520,7 @@
       count === 1 ? `Queued ${def.name} for ${who}` : `Queued ${count}× ${def.name} for ${who}`,
       "treasure"
     );
-    window.HubSound?.play?.("click");
+    playSfx("click");
   }
 
   async function runAdminCommand(raw) {
@@ -4536,7 +4537,7 @@
     if (gift) {
       if (gift.error) {
         setCatchLine(gift.error, "miss");
-        window.HubSound?.play?.("miss");
+        playSfx("miss");
         return;
       }
       await runGiveFishCommand(gift);
@@ -4700,7 +4701,7 @@
           )} odds (${left} left)`,
           "treasure"
         );
-        window.HubSound?.play?.("win");
+        playSfx("win");
         window.HubConfetti?.burst?.();
       }
     } else {
@@ -4717,7 +4718,7 @@
           `ADMIN EVENT · ${formatMult(chest.mult)}× chest finds (${left} left)`,
           "treasure"
         );
-        window.HubSound?.play?.("win");
+        playSfx("win");
       }
     } else {
       lastAnnouncedChestKey = "";
@@ -4739,7 +4740,7 @@
             )} left) · luck ignored`,
             "treasure"
           );
-          window.HubSound?.play?.("win");
+          playSfx("win");
           window.HubConfetti?.burst?.();
         }
       }
@@ -4774,7 +4775,7 @@
         "treasure"
       );
     }
-    window.HubSound?.play?.("win");
+    playSfx("win");
     window.HubConfetti?.burst?.();
   }
 
@@ -5043,7 +5044,7 @@
         line = `Opened Coin Chest! ${TREASURE_MULT}× sell for 5:00${eventNote}`;
       }
       setCatchLine(line, "treasure");
-      window.HubSound?.play?.("win");
+      playSfx("win");
       window.HubConfetti?.burst?.();
     }
     renderStats();
@@ -5080,7 +5081,7 @@
         line = `Opened Luck Chest! ${TREASURE_LUCK_MULT}× luck for 5:00${eventNote}`;
       }
       setCatchLine(line, "treasure");
-      window.HubSound?.play?.("win");
+      playSfx("win");
       window.HubConfetti?.burst?.();
     }
     renderStats();
@@ -5094,7 +5095,7 @@
     if (state[key] >= max) {
       if (!opts.silent) {
         setCatchLine(`${item.name} stash full (${max}) — use one first`, "miss");
-        window.HubSound?.play?.("miss");
+        playSfx("miss");
       }
       return false;
     }
@@ -5108,7 +5109,7 @@
         `${item.name} stored · ${state[key]} ready · tap Use for ${effect}`,
         "treasure"
       );
-      window.HubSound?.play?.("win");
+      playSfx("win");
       window.HubConfetti?.burst?.();
     }
     renderTreasureStash();
@@ -5123,7 +5124,7 @@
     const n = chestQtyWanted(item.kind);
     if (have <= 0 || n <= 0) {
       setCatchLine(`No ${item.name}s stored`, "miss");
-      window.HubSound?.play?.("miss");
+      playSfx("miss");
       return;
     }
     ensureSession();
@@ -5155,7 +5156,7 @@
     if (!added) {
       if (!opts.silent) {
         setCatchLine(`${def.name} stash full (${LUCKY_BLOCK_STASH_MAX})`, "miss");
-        window.HubSound?.play?.("miss");
+        playSfx("miss");
       }
       return 0;
     }
@@ -5167,7 +5168,7 @@
           : `${added}× ${def.name} stored · ${ready} ready`,
         "treasure"
       );
-      window.HubSound?.play?.("win");
+      playSfx("win");
     }
     renderTreasureStash();
     saveSoon();
@@ -5414,7 +5415,7 @@
     const count = luckyBlockCount(activeLuckyBlockType);
     if (count <= 0 && !isFishingOwner()) {
       setCatchLine(`No ${def.name}s stored`, "miss");
-      window.HubSound?.play?.("miss");
+      playSfx("miss");
       return;
     }
     clearTimeout(luckyBlockSpinTimer);
@@ -5463,7 +5464,7 @@
         catchTone(best.fish.rarity)
       );
     }
-    window.HubSound?.play?.("win");
+    playSfx("win");
     if (list.some((row) => isShowcaseRarity(row.fish.rarity))) window.HubConfetti?.burst?.();
     showLuckyBlockHaul(list);
   }
@@ -5494,7 +5495,7 @@
   function toggleLuckyBlockSkipAnim() {
     luckyBlockSkipAnim = !luckyBlockSkipAnim;
     updateLuckyBlockGuiStatus();
-    window.HubSound?.play?.("click");
+    playSfx("click");
   }
 
   function setLuckyBlockOpenQty(qty) {
@@ -5509,7 +5510,7 @@
     const n = Math.max(1, Math.min(count, Math.floor(Number(qty) || 1), LUCKY_BLOCK_STASH_MAX));
     if (count <= 0) {
       setCatchLine(`No ${def.name}s stored`, "miss");
-      window.HubSound?.play?.("miss");
+      playSfx("miss");
       updateLuckyBlockGuiStatus();
       return;
     }
@@ -5522,7 +5523,7 @@
     clearLuckyBlockResult();
     setLuckyBlockChancesVisible(false);
     resetLuckyBlockReelPreview();
-    window.HubSound?.play?.("click");
+    playSfx("click");
     presentLuckyBlockHaul(rows);
     updateLuckyBlockGuiStatus();
     renderTreasureStash();
@@ -5537,7 +5538,7 @@
     const qty = luckyBlockQtyWanted();
     if (count <= 0 || qty <= 0) {
       setCatchLine(`No ${def.name}s stored`, "miss");
-      window.HubSound?.play?.("miss");
+      playSfx("miss");
       updateLuckyBlockGuiStatus();
       return;
     }
@@ -5558,7 +5559,7 @@
     luckyBlockPendingFish = fish;
     luckyBlockPendingOffset = winAt * LB_REEL_ITEM_H - LB_REEL_ITEM_H;
     updateLuckyBlockGuiStatus();
-    window.HubSound?.play?.("click");
+    playSfx("click");
 
     if (!luckyBlockReelEl) {
       finishLuckyBlockSpin(fish);
@@ -7802,7 +7803,7 @@
       bits.length ? `Objective claimed · ${bits.join(" · ")}` : "Objective claimed",
       "treasure"
     );
-    window.HubSound?.play?.("win");
+    playSfx("win");
     window.HubConfetti?.burst?.();
     renderTreasureStash();
     render(false);
@@ -8154,7 +8155,7 @@
       if (!opts.silent) {
         setCatchLine("Cooler full — sell or auto-sell this rarity", "miss");
       }
-      window.HubSound?.play?.("miss");
+      playSfx("miss");
       return null;
     }
     state.cooler.push(entry);
@@ -8229,7 +8230,7 @@
     if (phase !== "ready") return;
     if (state.cooler.length >= coolerMax() && !anyAutoSellEnabled()) {
       setCatchLine("Cooler full — sell fish first", "miss");
-      window.HubSound?.play?.("miss");
+      playSfx("miss");
       return;
     }
     ensureSession();
@@ -8241,7 +8242,7 @@
     setPhase("waiting");
     flashCastSplash();
     setCatchLine("Line is out… tap again to cancel");
-    window.HubSound?.play?.("flap");
+    playSfx("flap");
     waitTimer = setTimeout(() => openBite(), waitMs);
     saveSoon();
   }
@@ -8252,7 +8253,7 @@
     setPhase("ready");
     hideCatchCard("Cast to catch a fish");
     setCatchLine("Line reeled in");
-    window.HubSound?.play?.("miss");
+    playSfx("miss");
   }
 
   function openBite() {
@@ -8261,7 +8262,7 @@
     biteEndsAt = performance.now() + windowSec * 1000;
     setPhase("bite");
     setCatchLine("Bite! Tap Reel now!", "");
-    window.HubSound?.play?.("click");
+    playSfx("click");
     if (biteFill) {
       biteFill.style.transition = "none";
       biteFill.style.transform = "scaleX(1)";
@@ -8282,7 +8283,7 @@
     castBtn.classList.add("is-miss");
     hideCatchCard("It got away…");
     setCatchLine("It got away…", "miss");
-    window.HubSound?.play?.("miss");
+    playSfx("miss");
     setTimeout(() => {
       setPhase("ready");
       hideCatchCard("Cast to catch a fish");
@@ -8443,7 +8444,7 @@
         `${tip}Caught ${formatFishName(fish, entry)} (${fish.rarity})${bonusTip}`,
         catchTone(showcase.rarity)
       );
-      window.HubSound?.play?.(
+      playSfx(
         perfect ||
           isShowcaseRarity(fish.rarity) ||
           (bonusFish && isShowcaseRarity(bonusFish.rarity)) ||
@@ -8498,7 +8499,7 @@
         `${formatFishName(fish, entry)} is saved — unpin to sell`,
         "miss"
       );
-      window.HubSound?.play?.("miss");
+      playSfx("miss");
       return;
     }
     const val = fishValue(fish, currentSpot(), entry);
@@ -8509,7 +8510,7 @@
       `Sold ${formatFishName(fish, entry)} for ${formatNum(val)}`,
       catchTone(fish.rarity)
     );
-    window.HubSound?.play?.("click");
+    playSfx("click");
     render(false);
     saveSoon();
   }
@@ -8528,7 +8529,7 @@
         ? `Saved ${label} — in the Aquarium · won't sell`
         : `Unsaved ${label}`
     );
-    window.HubSound?.play?.("click");
+    playSfx("click");
     render(false);
     saveSoon();
   }
@@ -8557,7 +8558,7 @@
         ? `Sold catch for ${formatNum(total)} · ${kept.length} saved kept`
         : `Sold catch for ${formatNum(total)} coins`
     );
-    window.HubSound?.play?.("win");
+    playSfx("win");
     render(false);
     saveSoon();
   }
@@ -8635,13 +8636,13 @@
       shinyMachineSlots.splice(pos, 1);
       setShinyMachineStatus("Removed from machine.");
       renderShinyMachine();
-      window.HubSound?.play?.("click");
+      playSfx("click");
       return;
     }
 
     if (shinyMachineSlots.length >= SHINY_MACHINE_MAX) {
       setShinyMachineStatus(`Only ${SHINY_MACHINE_MAX} slots — clear one first.`, "is-lose");
-      window.HubSound?.play?.("miss");
+      playSfx("miss");
       return;
     }
 
@@ -8649,7 +8650,7 @@
       const first = normalizeCoolerEntry(state.cooler[shinyMachineSlots[0]]);
       if (!first || first.id !== entry.id) {
         setShinyMachineStatus("All slots need the same fish species.", "is-lose");
-        window.HubSound?.play?.("miss");
+        playSfx("miss");
         return;
       }
     }
@@ -8662,7 +8663,7 @@
         : `${n}× same fish · ${shinyMachineChanceLabel(n)} for one shiny.`
     );
     renderShinyMachine();
-    window.HubSound?.play?.("click");
+    playSfx("click");
   }
 
   function removeShinyMachineSlot(slotIndex) {
@@ -8672,7 +8673,7 @@
     shinyMachineSlots.splice(s, 1);
     setShinyMachineStatus("Slot cleared.");
     renderShinyMachine();
-    window.HubSound?.play?.("click");
+    playSfx("click");
   }
 
   function runShinyMachine() {
@@ -8680,13 +8681,13 @@
     const selected = shinyMachineSelectedEntries();
     if (!selected.length) {
       setShinyMachineStatus("Put at least one fish in the machine.", "is-lose");
-      window.HubSound?.play?.("miss");
+      playSfx("miss");
       return;
     }
     const speciesId = selected[0].entry.id;
     if (selected.some((s) => s.entry.id !== speciesId)) {
       setShinyMachineStatus("All fish must be the same species.", "is-lose");
-      window.HubSound?.play?.("miss");
+      playSfx("miss");
       return;
     }
 
@@ -8722,7 +8723,7 @@
         "is-win"
       );
       setCatchLine(`Shiny Machine → ${label}`, catchTone(fish.rarity));
-      window.HubSound?.play?.("win");
+      playSfx("win");
     } else {
       const label = formatFishName(fish, keep.entry);
       setShinyMachineStatus(
@@ -8737,7 +8738,7 @@
           : `Shiny Machine relished ${label}`,
         "miss"
       );
-      window.HubSound?.play?.("miss");
+      playSfx("miss");
     }
 
     shinyMachineSlots = [];
@@ -8848,7 +8849,7 @@
     ensureSession();
     state.coins -= cost;
     state.echoLuckLevel = echoLuckLevel() + 1;
-    window.HubSound?.play?.("click");
+    playSfx("click");
     setCatchLine(
       echoLuckAtCap()
         ? `Echo Charm maxed · +${formatLuckAmt(echoLuckBonus())} luck`
@@ -8877,7 +8878,7 @@
       state.equippedSpeed = id;
       setCatchLine(`Bought & equipped ${item.name}`);
     }
-    window.HubSound?.play?.("click");
+    playSfx("click");
     checkAchievements();
     render();
     saveSoon();
@@ -8889,7 +8890,7 @@
     if (state.equippedSpeed === id) return;
     state.equippedSpeed = id;
     setCatchLine(`Equipped ${item.name}`);
-    window.HubSound?.play?.("click");
+    playSfx("click");
     render();
     saveSoon();
   }
@@ -8901,7 +8902,7 @@
     state.coins -= next.cost;
     state.boatLevel = next.level;
     boatAcc.boat = 0;
-    window.HubSound?.play?.("click");
+    playSfx("click");
     window.HubConfetti?.burst?.();
     setCatchLine(
       next.level === 1
@@ -8929,7 +8930,7 @@
     state.unlocked[id] = true;
     state.spotId = id;
     setCatchLine(`Unlocked ${spot.name}!`);
-    window.HubSound?.play?.("win");
+    playSfx("win");
     window.HubConfetti?.burst?.();
     checkAchievements();
     render();
@@ -9047,7 +9048,7 @@
           : `Boat found a ${item.name} — stash full`,
         added ? "treasure" : "miss"
       );
-      window.HubSound?.play?.(added ? "win" : "miss");
+      playSfx(added ? "win" : "miss");
       checkAchievements();
       renderCooler(true);
       renderTreasureStash();
@@ -9068,7 +9069,7 @@
           : `Boat found a ${chest.name} — stash full`,
         stored ? "treasure" : "miss"
       );
-      window.HubSound?.play?.(stored ? "win" : "miss");
+      playSfx(stored ? "win" : "miss");
       checkAchievements();
       renderCooler(true);
       renderTreasureStash();
@@ -9112,7 +9113,7 @@
           : `Boat caught ${bestName}`;
     setCatchLine(line, kept.length ? catchTone(best.fish.rarity) : "miss");
     // Don't open the big catch card for boat hauls — it fights the cast UI.
-    window.HubSound?.play?.(kept.length ? "click" : "miss");
+    playSfx(kept.length ? "click" : "miss");
     checkAchievements();
     renderCooler(true);
     renderBoatTimers();
@@ -9283,10 +9284,10 @@
     hideOfflineClaim();
     if (bonus > 0) {
       setCatchLine(`Claim bonus +${formatNum(bonus)} coins (+${Math.round(OFFLINE_CLAIM_BONUS * 100)}%)`);
-      window.HubSound?.play?.("win");
+      playSfx("win");
     } else {
       setCatchLine("Haul claimed");
-      window.HubSound?.play?.("click");
+      playSfx("click");
     }
     render(false);
     saveSoon();
@@ -9776,9 +9777,9 @@
   function syncWeatherSound(id = "none") {
     if (id === lastWeatherSoundId) return;
     lastWeatherSoundId = id;
-    if (id === "storm") window.HubSound?.play?.("weather-storm");
-    else if (id === "calm") window.HubSound?.play?.("weather-calm");
-    else window.HubSound?.play?.("weather-none");
+    if (id === "storm") playSfx("weather-storm");
+    else if (id === "calm") playSfx("weather-calm");
+    else playSfx("weather-none");
   }
 
   function applyWeatherFx(wx = ensureWeather()) {
@@ -10282,10 +10283,11 @@
     try {
       const raw = JSON.parse(localStorage.getItem(FISHING_PREFS_KEY) || "{}");
       return {
-        lightningFlash: raw.lightningFlash !== false
+        lightningFlash: raw.lightningFlash !== false,
+        sfx: raw.sfx !== false
       };
     } catch {
-      return { lightningFlash: true };
+      return { lightningFlash: true, sfx: true };
     }
   }
 
@@ -10295,6 +10297,26 @@
     try {
       localStorage.setItem(FISHING_PREFS_KEY, JSON.stringify(fishingPrefs));
     } catch {}
+  }
+
+  function sfxEnabled() {
+    return fishingPrefs.sfx !== false;
+  }
+
+  function setSfxEnabled(on) {
+    fishingPrefs.sfx = !!on;
+    saveFishingPrefs();
+  }
+
+  /** Game beeps (catch/UI). Weather ambients always pass through. */
+  function playSfx(kind, extra) {
+    const k = String(kind || "");
+    if (k.startsWith("weather-")) {
+      window.HubSound?.play?.(kind, extra);
+      return;
+    }
+    if (!sfxEnabled()) return;
+    window.HubSound?.play?.(kind, extra);
   }
 
   function lightningFlashEnabled() {
@@ -10320,6 +10342,7 @@
     const vol = Math.round((window.HubSound?.getVolume?.() ?? 1) * 100);
     if (settingsVolume) settingsVolume.value = String(Math.max(0, Math.min(300, vol)));
     if (settingsVolumePct) settingsVolumePct.textContent = String(Math.max(0, Math.min(300, vol)));
+    if (settingsSfxEnabled) settingsSfxEnabled.checked = sfxEnabled();
     if (settingsLightningFlash) settingsLightningFlash.checked = lightningFlashEnabled();
   }
 
@@ -10749,7 +10772,7 @@
     const n = claimAquariumBank();
     if (n > 0) {
       setCatchLine(`Aquarium paid ${formatNum(n)} coins`);
-      window.HubSound?.play?.("win");
+      playSfx("win");
       render(false);
       saveSoon();
     }
@@ -10758,7 +10781,7 @@
     const n = claimAquariumBank();
     if (n > 0) {
       setCatchLine(`Aquarium paid ${formatNum(n)} coins`);
-      window.HubSound?.play?.("win");
+      playSfx("win");
       render(false);
       saveSoon();
     }
@@ -10777,7 +10800,7 @@
   shinyMachineClearBtn?.addEventListener("click", () => {
     if (shinyMachineBusy) return;
     clearShinyMachineSlots("Cleared.");
-    window.HubSound?.play?.("click");
+    playSfx("click");
   });
   shinyMachineRunBtn?.addEventListener("click", () => runShinyMachine());
   shinyMachineSlotsEl?.addEventListener("click", (e) => {
@@ -10801,13 +10824,13 @@
     const btn = e.target.closest("[data-chest-qty]");
     if (!btn || btn.disabled) return;
     setChestOpenQty("money", btn.dataset.chestQty);
-    window.HubSound?.play?.("click");
+    playSfx("click");
   });
   luckChestQtyEl?.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-chest-qty]");
     if (!btn || btn.disabled) return;
     setChestOpenQty("luck", btn.dataset.chestQty);
-    window.HubSound?.play?.("click");
+    playSfx("click");
   });
   astralLuckyBlockUseBtn?.addEventListener("click", () => openLuckyBlockGui("astral"));
   absoluteLuckyBlockUseBtn?.addEventListener("click", () => openLuckyBlockGui("absolute"));
@@ -10823,7 +10846,7 @@
     const btn = e.target.closest("[data-lb-qty]");
     if (!btn || luckyBlockSpinning) return;
     setLuckyBlockOpenQty(btn.dataset.lbQty);
-    window.HubSound?.play?.("click");
+    playSfx("click");
   });
   luckyBlockChancesBtn?.addEventListener("click", () => {
     setLuckyBlockChancesVisible(!luckyBlockChancesOpen);
@@ -10867,7 +10890,7 @@
   document.getElementById("smart-shop-toggle")?.addEventListener("click", () => {
     if (!SMART_GEAR_SHOP) return;
     state.smartShop = !smartShopOn();
-    window.HubSound?.play?.("click");
+    playSfx("click");
     renderShop();
     saveSoon();
   });
@@ -10938,6 +10961,9 @@
   });
   settingsLightningFlash?.addEventListener("change", () => {
     setLightningFlashEnabled(!!settingsLightningFlash.checked);
+  });
+  settingsSfxEnabled?.addEventListener("change", () => {
+    setSfxEnabled(!!settingsSfxEnabled.checked);
   });
   adminBtn?.addEventListener("click", openAdmin);
   adminClose?.addEventListener("click", closeAdmin);
