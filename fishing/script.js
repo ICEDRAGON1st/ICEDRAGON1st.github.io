@@ -9576,6 +9576,12 @@
     document.body.dataset.weather = id;
     const stage = document.querySelector(".cast-stage");
     if (stage) stage.dataset.weather = id;
+    const fx = document.getElementById("weather-fx");
+    if (fx) {
+      fx.classList.toggle("is-storm", id === "storm");
+      fx.classList.toggle("is-calm", id === "calm");
+      fx.classList.toggle("is-active", id !== "none");
+    }
 
     const banner = document.getElementById("weather-banner");
     const iconEl = document.getElementById("weather-banner-icon");
