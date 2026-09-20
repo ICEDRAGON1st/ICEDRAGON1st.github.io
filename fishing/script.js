@@ -9558,18 +9558,58 @@
     return `${text}%`;
   }
 
+  function weatherBlurb(id = "none") {
+    if (id === "storm") return "More high-tier fish · slower bites";
+    if (id === "calm") return "Faster bites · slightly leaner rares";
+    return "No weather effect";
+  }
+
+  function weatherIcon(id = "none") {
+    if (id === "storm") return "⛈";
+    if (id === "calm") return "🌊";
+    return "☀";
+  }
+
+  function applyWeatherFx(wx = ensureWeather()) {
+    const id = wx?.id || "none";
+    const left = Math.max(0, (state.weatherUntil || 0) - Date.now());
+    document.body.dataset.weather = id;
+    const stage = document.querySelector(".cast-stage");
+    if (stage) stage.dataset.weather = id;
+
+    const banner = document.getElementById("weather-banner");
+    const iconEl = document.getElementById("weather-banner-icon");
+    const tagEl = document.getElementById("weather-banner-tag");
+    const titleEl = document.getElementById("weather-banner-title");
+    const effectEl = document.getElementById("weather-banner-effect");
+    const timeEl = document.getElementById("weather-banner-time");
+    if (banner) {
+      banner.classList.toggle("weather-storm", id === "storm");
+      banner.classList.toggle("weather-calm", id === "calm");
+      banner.classList.toggle("weather-none", id === "none");
+      banner.classList.toggle("is-live", id !== "none");
+    }
+    if (iconEl) iconEl.textContent = weatherIcon(id);
+    if (tagEl) tagEl.textContent = id === "none" ? "Weather" : "Live weather";
+    if (titleEl) titleEl.textContent = id === "none" ? "Clear skies" : wx.label;
+    if (effectEl) effectEl.textContent = weatherBlurb(id);
+    if (timeEl) timeEl.textContent = formatTreasureClock(left);
+  }
+
   function applySpotTheme() {
     const id = currentSpot()?.id || "creek";
     document.body.dataset.spot = id;
     if (castBtn) castBtn.dataset.spot = id;
     const mood = document.getElementById("spot-mood");
     if (mood) mood.textContent = currentSpot()?.name || "Creek";
+    applyWeatherFx();
   }
 
   function renderFeatureChips() {
     const wx = ensureWeather();
     const weatherChip = document.getElementById("weather-chip");
     const weatherLabel = document.getElementById("weather-label");
+    const weatherEffect = document.getElementById("weather-effect");
     const masteryChip = document.getElementById("mastery-chip");
     const masteryLabel = document.getElementById("mastery-label");
     const comboChip = document.getElementById("combo-chip");
@@ -9580,13 +9620,15 @@
     const communityLabel = document.getElementById("community-label");
     const now = Date.now();
 
+    applyWeatherFx(wx);
     if (weatherLabel) {
       const left = Math.max(0, (state.weatherUntil || 0) - now);
       weatherLabel.textContent =
         wx.id === "none"
           ? `Clear · ${formatTreasureClock(left)}`
-          : `${wx.label} · ${formatTreasureClock(left)}`;
+          : `${weatherIcon(wx.id)} ${wx.label} · ${formatTreasureClock(left)}`;
     }
+    if (weatherEffect) weatherEffect.textContent = weatherBlurb(wx.id);
     weatherChip?.classList.toggle("weather-storm", wx.id === "storm");
     weatherChip?.classList.toggle("weather-calm", wx.id === "calm");
     weatherChip?.classList.toggle("weather-none", wx.id === "none");
