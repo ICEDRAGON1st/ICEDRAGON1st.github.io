@@ -116,6 +116,7 @@
   const FISH_GIFTS_CLAIMED_KEY = "fishing-gifts-claimed-v1";
   const FISH_GIFTS_POLL_MS = 12_000;
   const ADMIN_SCOPE_KEY = "fishing-admin-scope-v1";
+  const FISHING_PREFS_KEY = "fishing-prefs-v1";
   const ADMIN_RATE_BACKOFF_MS = 45_000;
   const ADMIN_DEFAULT_MINUTES = 5;
   const ADMIN_DEFAULT_MULT = 2;
@@ -1667,6 +1668,14 @@
   let shinyMachineSlots = [];
   let shinyMachineBusy = false;
   const adminOverlay = document.getElementById("admin-overlay");
+  const settingsOverlay = document.getElementById("settings-overlay");
+  const settingsBtn = document.getElementById("settings-btn");
+  const settingsClose = document.getElementById("settings-close");
+  const menuSettingsBtn = document.getElementById("menu-settings-btn");
+  const settingsSoundEnabled = document.getElementById("settings-sound-enabled");
+  const settingsVolume = document.getElementById("settings-volume");
+  const settingsVolumePct = document.getElementById("settings-volume-pct");
+  const settingsLightningFlash = document.getElementById("settings-lightning-flash");
   const adminBtn = document.getElementById("admin-btn");
   const adminClose = document.getElementById("admin-close");
   const guideClose = document.getElementById("guide-close");
@@ -9783,7 +9792,9 @@
       fx.classList.toggle("is-storm", id === "storm");
       fx.classList.toggle("is-calm", id === "calm");
       fx.classList.toggle("is-active", id !== "none");
+      fx.classList.toggle("no-lightning-flash", !lightningFlashEnabled());
     }
+    document.body.classList.toggle("no-lightning-flash", !lightningFlashEnabled());
     if (id === "storm") ensureRainDrops();
     syncWeatherSound(id);
 
@@ -10265,6 +10276,64 @@
     overlay?.classList.add("hidden");
     unlockPageScroll();
     ensureSession();
+  }
+
+  function loadFishingPrefs() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(FISHING_PREFS_KEY) || "{}");
+      return {
+        lightningFlash: raw.lightningFlash !== false
+      };
+    } catch {
+      return { lightningFlash: true };
+    }
+  }
+
+  let fishingPrefs = loadFishingPrefs();
+
+  function saveFishingPrefs() {
+    try {
+      localStorage.setItem(FISHING_PREFS_KEY, JSON.stringify(fishingPrefs));
+    } catch {}
+  }
+
+  function lightningFlashEnabled() {
+    return fishingPrefs.lightningFlash !== false;
+  }
+
+  function setLightningFlashEnabled(on) {
+    fishingPrefs.lightningFlash = !!on;
+    saveFishingPrefs();
+    applyLightningFlashPref();
+  }
+
+  function applyLightningFlashPref() {
+    const on = lightningFlashEnabled();
+    document.body.classList.toggle("no-lightning-flash", !on);
+    document.getElementById("weather-fx")?.classList.toggle("no-lightning-flash", !on);
+  }
+
+  function syncSettingsPanel() {
+    if (settingsSoundEnabled) {
+      settingsSoundEnabled.checked = window.HubSound?.isEnabled?.() !== false;
+    }
+    const vol = Math.round((window.HubSound?.getVolume?.() ?? 1) * 100);
+    if (settingsVolume) settingsVolume.value = String(vol);
+    if (settingsVolumePct) settingsVolumePct.textContent = String(vol);
+    if (settingsLightningFlash) settingsLightningFlash.checked = lightningFlashEnabled();
+  }
+
+  function openSettings() {
+    syncSettingsPanel();
+    settingsOverlay?.classList.remove("hidden");
+    lockPageScroll();
+  }
+
+  function closeSettings() {
+    settingsOverlay?.classList.add("hidden");
+    if (overlay?.classList.contains("hidden") && adminOverlay?.classList.contains("hidden")) {
+      unlockPageScroll();
+    }
   }
 
   function rarityOrder(r) {
@@ -10847,6 +10916,29 @@
   });
   startBtn?.addEventListener("click", closeMenu);
   menuBtn?.addEventListener("click", openMenu);
+  settingsBtn?.addEventListener("click", openSettings);
+  settingsClose?.addEventListener("click", closeSettings);
+  menuSettingsBtn?.addEventListener("click", () => {
+    closeMenu();
+    openSettings();
+  });
+  settingsOverlay?.addEventListener("click", (e) => {
+    if (e.target === settingsOverlay) closeSettings();
+  });
+  settingsSoundEnabled?.addEventListener("change", () => {
+    const on = !!settingsSoundEnabled.checked;
+    if (on) window.HubSound?.setEnabled?.(true);
+    else window.HubSound?.setEnabled?.(false);
+    syncSettingsPanel();
+  });
+  settingsVolume?.addEventListener("input", () => {
+    const pct = Math.max(0, Math.min(100, Number(settingsVolume.value) || 0));
+    window.HubSound?.setVolume?.(pct / 100);
+    if (settingsVolumePct) settingsVolumePct.textContent = String(pct);
+  });
+  settingsLightningFlash?.addEventListener("change", () => {
+    setLightningFlashEnabled(!!settingsLightningFlash.checked);
+  });
   adminBtn?.addEventListener("click", openAdmin);
   adminClose?.addEventListener("click", closeAdmin);
   adminOverlay?.addEventListener("click", (e) => {
@@ -10964,6 +11056,11 @@
     if (shinyMachineOverlay && !shinyMachineOverlay.classList.contains("hidden")) {
       e.preventDefault();
       closeShinyMachine();
+      return;
+    }
+    if (settingsOverlay && !settingsOverlay.classList.contains("hidden")) {
+      e.preventDefault();
+      closeSettings();
       return;
     }
     if (adminOverlay && !adminOverlay.classList.contains("hidden")) {
@@ -11134,6 +11231,7 @@
   if (state.pendingOffline && !state.pendingOffline.claimed) showOfflineClaim();
   setPhase("ready");
   syncBestCatchFromLeaderboard();
+  applyLightningFlashPref();
   render();
   checkAchievements();
   clampTreasureStashCounts(true);

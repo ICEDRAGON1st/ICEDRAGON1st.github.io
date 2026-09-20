@@ -10,6 +10,7 @@
 (function () {
   const STORAGE_KEY = "hub-sound";
   const LEGACY_KEY = "wordle-sound";
+  const VOLUME_KEY = "hub-sound-volume";
 
   function loadEnabled() {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -20,8 +21,16 @@
     return true;
   }
 
+  function loadVolume() {
+    const n = Number(localStorage.getItem(VOLUME_KEY));
+    if (!Number.isFinite(n)) return 1;
+    return Math.max(0, Math.min(1, n));
+  }
+
   let enabled = loadEnabled();
+  let volume = loadVolume();
   let audioCtx = null;
+  let masterGain = null;
   let noiseBuffer = null;
   let rainBuffer = null;
   let thunderBuffer = null;
@@ -40,7 +49,49 @@
     if (!AC) return null;
     if (!audioCtx) audioCtx = new AC();
     if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+    ensureMaster(audioCtx);
     return audioCtx;
+  }
+
+  function ensureMaster(ctx) {
+    if (!ctx) return null;
+    if (!masterGain) {
+      masterGain = ctx.createGain();
+      masterGain.gain.value = volume;
+      masterGain.connect(ctx.destination);
+    }
+    return masterGain;
+  }
+
+  function getOut(ctx) {
+    const c = ctx || getAudio();
+    return ensureMaster(c);
+  }
+
+  function applyMasterVolume() {
+    if (!masterGain) return;
+    const v = enabled ? volume : 0;
+    try {
+      const t = (audioCtx && audioCtx.currentTime) || 0;
+      masterGain.gain.cancelScheduledValues(t);
+      masterGain.gain.setValueAtTime(Math.max(0, v), t);
+    } catch {
+      masterGain.gain.value = Math.max(0, v);
+    }
+  }
+
+  function setVolume(next) {
+    const n = Number(next);
+    volume = Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : volume;
+    try {
+      localStorage.setItem(VOLUME_KEY, String(volume));
+    } catch {}
+    applyMasterVolume();
+    return volume;
+  }
+
+  function getVolume() {
+    return volume;
   }
 
   function hubAssetUrl(relPath) {
@@ -101,7 +152,7 @@
     gain.gain.exponentialRampToValueAtTime(vol, t + 0.004);
     gain.gain.exponentialRampToValueAtTime(0.0001, t + Math.min(0.35, buf.duration + 0.04));
     src.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(getOut(ctx));
     src.start(t);
     return true;
   }
@@ -298,7 +349,7 @@
     gain.gain.linearRampToValueAtTime(0.7, now + 2.5);
     gain.gain.exponentialRampToValueAtTime(0.0001, now + dur);
     src.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(getOut(ctx));
     src.start(now, offset, dur);
 
     if (ambientNodes) {
@@ -331,7 +382,7 @@
       rainGain.gain.setValueAtTime(0.0001, t);
       rainGain.gain.exponentialRampToValueAtTime(stormRainSample ? 0.18 : 0.14, t + 1.1);
       rain.connect(rainGain);
-      rainGain.connect(ctx.destination);
+      rainGain.connect(getOut(ctx));
       rain.start(t);
       sources.push(rain);
       gains.push(rainGain);
@@ -376,7 +427,7 @@
     gain.gain.exponentialRampToValueAtTime(0.03, t + 1);
     src.connect(lp);
     lp.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(getOut(ctx));
     src.start(t);
     ambientNodes = { sources: [src], gains: [gain], timers: [] };
   }
@@ -405,7 +456,7 @@
     src.connect(hp);
     hp.connect(lp);
     lp.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(getOut(ctx));
     src.start(t);
 
     // Slow breathing swell on the bed
@@ -435,7 +486,7 @@
     drone.connect(droneLp);
     drone2.connect(droneLp);
     droneLp.connect(droneGain);
-    droneGain.connect(ctx.destination);
+    droneGain.connect(getOut(ctx));
     drone.start(t);
     drone2.start(t);
 
@@ -506,7 +557,7 @@
     gain.gain.exponentialRampToValueAtTime(vol, t + Math.max(0.004, attack));
     gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     osc.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(getOut(ctx));
     osc.start(t);
     osc.stop(t + dur + 0.03);
   }
@@ -530,7 +581,7 @@
     gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     osc.connect(filter);
     filter.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(getOut(ctx));
     osc.start(t);
     osc.stop(t + dur + 0.04);
   }
@@ -552,7 +603,7 @@
     gain.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     src.connect(filter);
     filter.connect(gain);
-    gain.connect(ctx.destination);
+    gain.connect(getOut(ctx));
     src.start(t);
     src.stop(t + dur + 0.02);
   }
@@ -655,8 +706,14 @@
     localStorage.setItem(STORAGE_KEY, enabled ? "on" : "off");
     localStorage.setItem(LEGACY_KEY, enabled ? "on" : "off");
     paintButtons();
-    if (enabled) play("click");
-    else stopAmbient();
+    if (enabled) {
+      getAudio();
+      applyMasterVolume();
+      play("click");
+    } else {
+      stopAmbient();
+      applyMasterVolume();
+    }
   }
 
   function toggle() {
@@ -738,6 +795,9 @@
     play,
     toggle,
     isEnabled: () => enabled,
+    setEnabled,
+    getVolume,
+    setVolume,
     unlock: getAudio,
     stopAmbient,
     setAmbientWeather

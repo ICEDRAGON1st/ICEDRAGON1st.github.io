@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260921l">
+  <link rel="stylesheet" href="styles.css?v=20260921q">
 </head>
 <body data-spot="creek">
   <div id="weather-fx" class="weather-fx" aria-hidden="true">
@@ -25,6 +25,7 @@
   </div>
   <header class="top-bar">
     <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
+    <button id="settings-btn" type="button" class="menu-btn settings-btn" aria-label="Open settings">⚙</button>
     <h1>Fishing Idle</h1>
     <div class="top-stats">
       <button id="admin-btn" type="button" class="guide-btn admin-btn hidden" hidden>Admin</button>
@@ -651,6 +652,7 @@
       <p class="score-line">Best catch: <strong id="overlay-best">—</strong></p>
       <div class="overlay-actions">
         <button id="start-btn" type="button" class="btn">Play</button>
+        <button id="menu-settings-btn" type="button" class="btn btn-ghost">Settings</button>
         <button id="menu-shiny-machine-btn" type="button" class="btn btn-ghost">Shiny machine</button>
         <button id="menu-book-btn" type="button" class="btn btn-ghost">Catch book</button>
         <button id="menu-guide-btn" type="button" class="btn btn-ghost">Fish guide</button>
@@ -659,14 +661,46 @@
     </div>
   </div>
 
+  <div id="settings-overlay" class="overlay settings-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="overlay-card settings-card">
+      <div class="guide-head">
+        <h2 id="settings-title">Settings</h2>
+        <button id="settings-close" type="button" class="btn btn-ghost">Close</button>
+      </div>
+      <div class="settings-rows">
+        <label class="settings-row settings-toggle">
+          <span>
+            <strong>Sound</strong>
+            <span class="settings-hint">Game + weather audio</span>
+          </span>
+          <input id="settings-sound-enabled" type="checkbox" checked />
+        </label>
+        <label class="settings-row settings-volume">
+          <span>
+            <strong>Volume</strong>
+            <span class="settings-hint"><span id="settings-volume-pct">100</span>%</span>
+          </span>
+          <input id="settings-volume" type="range" min="0" max="100" step="1" value="100" />
+        </label>
+        <label class="settings-row settings-toggle">
+          <span>
+            <strong>Lightning flash</strong>
+            <span class="settings-hint">Screen flash during storms</span>
+          </span>
+          <input id="settings-lightning-flash" type="checkbox" checked />
+        </label>
+      </div>
+    </div>
+  </div>
+
   <script src="../hub-streak.js"></script>
   <script src="../hub-achievements.js?v=20260919f"></script>
-  <script src="../hub-sound.js?v=20260921p"></script>
+  <script src="../hub-sound.js?v=20260921q"></script>
   <script src="../hub-confetti.js"></script>
   <script src="../hub-plays.js?v=20260917bt"></script>
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260917br"></script>
-  <script src="script.js?v=20260921l"></script>
+  <script src="script.js?v=20260921q"></script>
 </body>
 </html>

@@ -203,6 +203,80 @@ body.modal-open {
   display: none;
 }
 
+.settings-btn {
+  margin-left: 0.35rem;
+  min-width: 2.4rem;
+  padding-left: 0.55rem;
+  padding-right: 0.55rem;
+}
+
+.settings-overlay {
+  z-index: 47;
+}
+
+.settings-card {
+  width: min(380px, 100%);
+  text-align: left;
+}
+
+.settings-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.35rem;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.settings-row > span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.settings-row strong {
+  font-size: 0.95rem;
+}
+
+.settings-hint {
+  font-size: 0.75rem;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.settings-toggle input[type="checkbox"] {
+  width: 1.15rem;
+  height: 1.15rem;
+  accent-color: #38bdf8;
+  flex-shrink: 0;
+}
+
+.settings-volume {
+  flex-wrap: wrap;
+}
+
+.settings-volume input[type="range"] {
+  width: min(10rem, 42vw);
+  accent-color: #38bdf8;
+}
+
+.weather-fx.no-lightning-flash .wx-flash,
+body.no-lightning-flash .wx-flash {
+  display: none !important;
+  animation: none !important;
+  opacity: 0 !important;
+}
+
 .admin-overlay {
   z-index: 46;
 }
