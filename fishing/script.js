@@ -1804,7 +1804,7 @@
       /** Spot mastery: casts per spot id. */
       spotCasts: {},
       /** Weather cycle */
-      weatherId: "clear",
+      weatherId: "none",
       weatherUntil: 0,
       /** Perfect reel combo */
       combo: 0,
@@ -2157,14 +2157,32 @@
   const SPOT_MASTERY_PER = 40;
   const SPOT_MASTERY_MAX = 25;
   const WEATHER_MS = 5 * 60 * 1000;
+  /** 40% of periods have weather; when they do, 50/50 storm vs calm. */
+  const WEATHER_CHANCE = 0.4;
   const WEATHER_KINDS = {
-    clear: { id: "clear", label: "Clear", wait: 1, rare: 1 },
+    none: { id: "none", label: "Clear", wait: 1, rare: 1 },
+    clear: { id: "none", label: "Clear", wait: 1, rare: 1 },
     calm: { id: "calm", label: "Calm seas", wait: 0.7, rare: 0.92 },
-    storm: { id: "storm", label: "Storm", wait: 1.18, rare: 1.65 },
-    fog: { id: "fog", label: "Fog", wait: 1.08, rare: 0.7 },
-    tide: { id: "tide", label: "High tide", wait: 0.88, rare: 1.28 }
+    storm: { id: "storm", label: "Storm", wait: 1.18, rare: 1.65 }
   };
-  const WEATHER_ROTATION = ["clear", "calm", "tide", "storm", "fog", "clear", "calm", "storm"];
+  const WEATHER_ACTIVE = ["storm", "calm"];
+
+  function weatherSlotHash(slot) {
+    let x = Math.imul(Math.floor(Number(slot) || 0) ^ 0x9e3779b9, 0x85ebca6b) >>> 0;
+    x ^= x >>> 13;
+    x = Math.imul(x, 0xc2b2ae35) >>> 0;
+    x ^= x >>> 16;
+    return x >>> 0;
+  }
+
+  function rollWeatherIdForSlot(slot) {
+    const h = weatherSlotHash(slot);
+    // First roll: 40% chance weather triggers
+    if ((h % 1000) / 1000 >= WEATHER_CHANCE) return "none";
+    // Second roll: 50/50 between active weathers
+    return WEATHER_ACTIVE[(h >>> 10) % WEATHER_ACTIVE.length] || "storm";
+  }
+
   let communityCache = {
     weekKey: "",
     total: 0,
@@ -2198,14 +2216,26 @@
   }
 
   function weatherDef(id = state.weatherId) {
-    return WEATHER_KINDS[id] || WEATHER_KINDS.clear;
+    const key = id === "clear" || id === "fog" || id === "tide" || !id ? "none" : id;
+    return WEATHER_KINDS[key] || WEATHER_KINDS.none;
   }
 
   function ensureWeather(now = Date.now()) {
-    if (!state.weatherUntil || state.weatherUntil <= now || !WEATHER_KINDS[state.weatherId]) {
-      const slot = Math.floor(now / WEATHER_MS) % WEATHER_ROTATION.length;
-      state.weatherId = WEATHER_ROTATION[slot] || "clear";
-      state.weatherUntil = Math.floor(now / WEATHER_MS) * WEATHER_MS + WEATHER_MS;
+    const slot = Math.floor(now / WEATHER_MS);
+    const until = slot * WEATHER_MS + WEATHER_MS;
+    const rolled = rollWeatherIdForSlot(slot);
+    // Refresh when the period ends, or migrate old fog/tide/clear ids
+    if (
+      !state.weatherUntil ||
+      state.weatherUntil <= now ||
+      state.weatherUntil !== until ||
+      !WEATHER_KINDS[state.weatherId] ||
+      state.weatherId === "clear" ||
+      state.weatherId === "fog" ||
+      state.weatherId === "tide"
+    ) {
+      state.weatherId = rolled;
+      state.weatherUntil = until;
     }
     return weatherDef();
   }
@@ -5627,7 +5657,10 @@
           if (n > 0) next.spotCasts[id] = n;
         });
       }
-      next.weatherId = String(raw.weatherId || "clear");
+      next.weatherId = String(raw.weatherId || "none");
+      if (next.weatherId === "clear" || next.weatherId === "fog" || next.weatherId === "tide") {
+        next.weatherId = "none";
+      }
       next.weatherUntil = Math.max(0, Number(raw.weatherUntil) || 0);
       next.combo = Math.max(0, Math.min(99, Math.floor(Number(raw.combo) || 0)));
       next.comboBoostUntil = Math.max(0, Number(raw.comboBoostUntil) || 0);
@@ -9549,12 +9582,15 @@
 
     if (weatherLabel) {
       const left = Math.max(0, (state.weatherUntil || 0) - now);
-      weatherLabel.textContent = `${wx.label} · ${formatTreasureClock(left)}`;
+      weatherLabel.textContent =
+        wx.id === "none"
+          ? `Clear · ${formatTreasureClock(left)}`
+          : `${wx.label} · ${formatTreasureClock(left)}`;
     }
     weatherChip?.classList.toggle("weather-storm", wx.id === "storm");
     weatherChip?.classList.toggle("weather-calm", wx.id === "calm");
-    weatherChip?.classList.toggle("weather-tide", wx.id === "tide");
-    weatherChip?.classList.toggle("weather-fog", wx.id === "fog");
+    weatherChip?.classList.toggle("weather-none", wx.id === "none");
+    weatherChip?.classList.toggle("is-live", wx.id !== "none");
 
     const mLv = spotMasteryLevel();
     const mCasts = spotMasteryCasts();
