@@ -9824,12 +9824,24 @@ function aquariumRatePerSec() {
 
   let lastWeatherSoundId = "";
 
-  function syncWeatherSound(id = "none") {
-    if (id === lastWeatherSoundId) return;
+  function syncWeatherSound(id = "none", force = false) {
+    if (!force && id === lastWeatherSoundId) return;
+    // While muted, don't remember this weather as "already playing" — otherwise
+    // turning sound back on never restarts storm/calm ambient without a refresh.
+    if (window.HubSound?.isEnabled?.() === false) {
+      lastWeatherSoundId = "";
+      return;
+    }
     lastWeatherSoundId = id;
     if (id === "storm") playSfx("weather-storm");
     else if (id === "calm") playSfx("weather-calm");
     else playSfx("weather-none");
+  }
+
+  function restartWeatherSound() {
+    lastWeatherSoundId = "";
+    const id = document.body?.dataset?.weather || ensureWeather()?.id || "none";
+    syncWeatherSound(id, true);
   }
 
   function applyWeatherFx(wx = ensureWeather()) {
@@ -11017,8 +11029,14 @@ function aquariumRatePerSec() {
   });
   settingsSoundEnabled?.addEventListener("change", () => {
     const on = !!settingsSoundEnabled.checked;
-    if (on) window.HubSound?.setEnabled?.(true);
-    else window.HubSound?.setEnabled?.(false);
+    if (on) {
+      window.HubSound?.setEnabled?.(true);
+      window.HubSound?.unlock?.();
+      restartWeatherSound();
+    } else {
+      window.HubSound?.setEnabled?.(false);
+      lastWeatherSoundId = "";
+    }
     syncSettingsPanel();
   });
   settingsVolume?.addEventListener("input", () => {
