@@ -6039,9 +6039,11 @@ function aquariumRatePerSec() {
         rec.any = true;
         const variant = normalizeVariant(entry.variant);
         const shiny = !!entry.shiny;
-        if (!variant && !shiny) rec.base = true;
+        const mutation = normalizeMutation(entry.mutation);
+        if (!variant && !shiny && !mutation) rec.base = true;
         if (variant && VARIANT_PRIMARY.includes(variant)) rec[variant] = true;
         if (shiny) rec.shiny = true;
+        if (mutation && MUTATIONS.includes(mutation)) rec[mutation] = true;
         next.caught[id] = rec;
       });
       const now = Date.now();
@@ -6474,8 +6476,10 @@ function aquariumRatePerSec() {
     { id: "diamond", label: "Diamond" },
     { id: "rainbow", label: "Rainbow" }
   ];
+  const BOOK_MUTATIONS = [{ id: "toxic", label: "Toxic" }];
   let bookFilter = "any";
   let bookShinyOn = false;
+  let bookMutation = "";
 
   function blankCaughtRecord() {
     return {
@@ -6485,7 +6489,8 @@ function aquariumRatePerSec() {
       gold: false,
       diamond: false,
       rainbow: false,
-      shiny: false
+      shiny: false,
+      toxic: false
     };
   }
 
@@ -6497,14 +6502,26 @@ function aquariumRatePerSec() {
       return rec;
     }
     if (!raw || typeof raw !== "object") return rec;
-    rec.any = !!raw.any || !!raw.base || !!raw.silver || !!raw.gold || !!raw.diamond || !!raw.rainbow || !!raw.shiny;
+    rec.any =
+      !!raw.any ||
+      !!raw.base ||
+      !!raw.silver ||
+      !!raw.gold ||
+      !!raw.diamond ||
+      !!raw.rainbow ||
+      !!raw.shiny ||
+      !!raw.toxic;
     rec.base = !!raw.base;
     rec.silver = !!raw.silver;
     rec.gold = !!raw.gold;
     rec.diamond = !!raw.diamond;
     rec.rainbow = !!raw.rainbow;
     rec.shiny = !!raw.shiny;
-    if (!rec.any && (rec.base || rec.silver || rec.gold || rec.diamond || rec.rainbow || rec.shiny)) {
+    rec.toxic = !!raw.toxic;
+    if (
+      !rec.any &&
+      (rec.base || rec.silver || rec.gold || rec.diamond || rec.rainbow || rec.shiny || rec.toxic)
+    ) {
       rec.any = true;
     }
     return rec;
@@ -6521,12 +6538,13 @@ function aquariumRatePerSec() {
     const rec = ensureCaughtRecord(fish.id);
     const variant = normalizeVariant(entry?.variant);
     const shiny = !!entry?.shiny;
+    const mutation = normalizeMutation(entry?.mutation);
     let changed = false;
     if (!rec.any) {
       rec.any = true;
       changed = true;
     }
-    if (!variant && !shiny) {
+    if (!variant && !shiny && !mutation) {
       if (!rec.base) {
         rec.base = true;
         changed = true;
@@ -6540,15 +6558,25 @@ function aquariumRatePerSec() {
       rec.shiny = true;
       changed = true;
     }
+    if (mutation && MUTATIONS.includes(mutation) && !rec[mutation]) {
+      rec[mutation] = true;
+      changed = true;
+    }
     return changed;
   }
 
-  function hasCaught(id, filter = bookFilter, shinyOn = bookShinyOn) {
+  function hasCaught(id, filter = bookFilter, shinyOn = bookShinyOn, mutationOn = bookMutation) {
     const raw = state.caught?.[id];
     if (!raw) return false;
     const rec = normalizeCaughtRecord(raw);
     if (shinyOn && !rec.shiny) return false;
-    if (filter === "any") return shinyOn ? !!rec.shiny : !!rec.any;
+    if (mutationOn && !rec[mutationOn]) return false;
+    if (filter === "any") {
+      if (shinyOn && mutationOn) return !!rec.shiny && !!rec[mutationOn];
+      if (shinyOn) return !!rec.shiny;
+      if (mutationOn) return !!rec[mutationOn];
+      return !!rec.any;
+    }
     if (filter === "base") {
       if (shinyOn) {
         // Normal + Shiny = shiny with no primary value variant
@@ -6561,22 +6589,44 @@ function aquariumRatePerSec() {
     return !!rec[filter];
   }
 
-  function caughtCount(filter = bookFilter, shinyOn = bookShinyOn) {
-    return FISH.reduce((n, f) => n + (hasCaught(f.id, filter, shinyOn) ? 1 : 0), 0);
+  function caughtCount(
+    filter = bookFilter,
+    shinyOn = bookShinyOn,
+    mutationOn = bookMutation
+  ) {
+    return FISH.reduce(
+      (n, f) => n + (hasCaught(f.id, filter, shinyOn, mutationOn) ? 1 : 0),
+      0
+    );
   }
 
-  function bookFilterLabel(filter = bookFilter, shinyOn = bookShinyOn) {
+  function bookFilterLabel(
+    filter = bookFilter,
+    shinyOn = bookShinyOn,
+    mutationOn = bookMutation
+  ) {
     const base = BOOK_FILTERS.find((f) => f.id === filter)?.label || "All";
-    return shinyOn ? `${base} · Shiny` : base;
+    const bits = [base];
+    if (shinyOn) bits.push("Shiny");
+    if (mutationOn) {
+      const m = BOOK_MUTATIONS.find((x) => x.id === mutationOn)?.label || mutationOn;
+      bits.push(m);
+    }
+    return bits.join(" · ");
   }
 
-  function bookShowEntry(filter = bookFilter, shinyOn = bookShinyOn) {
+  function bookShowEntry(
+    filter = bookFilter,
+    shinyOn = bookShinyOn,
+    mutationOn = bookMutation
+  ) {
     const entry = {};
     if (filter === "silver" || filter === "gold" || filter === "diamond" || filter === "rainbow") {
       entry.variant = filter;
     }
     if (shinyOn) entry.shiny = true;
-    if (!entry.variant && !entry.shiny) return null;
+    if (mutationOn) entry.mutation = mutationOn;
+    if (!entry.variant && !entry.shiny && !entry.mutation) return null;
     return entry;
   }
 
@@ -11233,7 +11283,17 @@ function aquariumRatePerSec() {
       }" data-book-shiny-toggle="1" aria-pressed="${bookShinyOn}" title="Toggle shiny filter on or off">${
         bookShinyOn ? "Shiny On" : "Shiny"
       }</button>`;
-      bookFiltersEl.innerHTML = `${shinyBtn}<div class="book-filter-sep" aria-hidden="true"></div>${primaryBtns}`;
+      const mutationBtns = BOOK_MUTATIONS.map(
+        (m) =>
+          `<button type="button" class="book-filter-btn mutation-${m.id} book-mutation-toggle${
+            bookMutation === m.id ? " is-active is-on" : ""
+          }" data-book-mutation="${m.id}" aria-pressed="${
+            bookMutation === m.id
+          }" title="Toggle ${m.label} mutation look">${
+            bookMutation === m.id ? `${m.label} On` : m.label
+          }</button>`
+      ).join("");
+      bookFiltersEl.innerHTML = `${shinyBtn}<div class="book-filter-sep" aria-hidden="true"></div>${primaryBtns}<div class="book-filter-sep" aria-hidden="true"></div><p class="book-filter-kicker">Mutations</p>${mutationBtns}`;
     }
     closeBookInspect();
     if (!bookBody) return;
@@ -11712,6 +11772,13 @@ function aquariumRatePerSec() {
     const shinyBtn = e.target.closest("[data-book-shiny-toggle]");
     if (shinyBtn && bookFiltersEl.contains(shinyBtn)) {
       bookShinyOn = !bookShinyOn;
+      renderBook();
+      return;
+    }
+    const mutBtn = e.target.closest("[data-book-mutation]");
+    if (mutBtn && bookFiltersEl.contains(mutBtn)) {
+      const next = mutBtn.getAttribute("data-book-mutation") || "";
+      bookMutation = bookMutation === next ? "" : next;
       renderBook();
       return;
     }

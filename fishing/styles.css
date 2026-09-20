@@ -671,6 +671,27 @@ body.no-lightning-flash .wx-flash {
   opacity: 0.72;
 }
 
+.book-filter-kicker {
+  margin: 0.15rem 0 0;
+  padding: 0 0.2rem;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.book-filter-btn.mutation-toxic.is-active,
+.book-filter-btn.book-mutation-toggle.is-on.mutation-toxic {
+  border-color: rgba(74, 222, 128, 0.85);
+  background: rgba(34, 197, 94, 0.16);
+  color: #bbf7d0;
+}
+
+.book-filter-btn.book-mutation-toggle:not(.is-on) {
+  opacity: 0.72;
+}
+
 .book-body {
   flex: 1 1 auto;
   min-width: 0;
