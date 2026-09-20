@@ -780,6 +780,8 @@ body.no-lightning-flash .wx-flash {
   color: inherit;
   font: inherit;
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
   transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease;
 }
 
@@ -2882,49 +2884,292 @@ body[data-spot="mythforge"] .water-mist {
 .boat-haul-item.mutation-toxic .fish-glyph,
 .catch-sil.mutation-toxic .fish-glyph,
 .book-card.mutation-toxic .fish-glyph,
-.aqua-fish.mutation-toxic .fish-glyph {
-  color: #4ade80 !important;
-  filter: drop-shadow(0 0 5px rgba(74, 222, 128, 0.75));
-  animation: mutation-toxic-pulse 1.8s ease-in-out infinite;
+.aqua-fish.mutation-toxic .fish-glyph,
+.shiny-pick.mutation-toxic .fish-glyph,
+.book-inspect-glyph .fish-glyph.mutation-toxic {
+  color: #65a30d !important;
+  filter:
+    drop-shadow(0 0 4px rgba(163, 230, 53, 0.85))
+    drop-shadow(0 0 10px rgba(74, 222, 128, 0.55))
+    drop-shadow(0 2px 0 rgba(21, 128, 61, 0.35));
+  animation: mutation-toxic-pulse 1.6s ease-in-out infinite;
+  overflow: visible;
+}
+
+.fish-glyph.mutation-toxic .toxic-marks {
+  animation: mutation-toxic-marks 2.4s ease-in-out infinite;
+}
+
+.fish-glyph.mutation-toxic .toxic-drip,
+.fish-glyph.mutation-toxic .toxic-drip-bead {
+  animation: mutation-toxic-drip 1.8s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: top center;
+}
+
+.fish-glyph.mutation-toxic .toxic-spore,
+.fish-glyph.mutation-toxic .toxic-bubble {
+  animation: mutation-toxic-spore 2.2s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.fish-glyph.mutation-toxic .toxic-haze {
+  animation: mutation-toxic-haze 2.8s ease-in-out infinite;
+}
+
+.fish-glyph.mutation-toxic .toxic-vein {
+  animation: mutation-toxic-vein 1.9s ease-in-out infinite;
 }
 
 .fish-glyph.mutation-toxic.variant-shiny,
 .fish-chip.mutation-toxic.variant-shiny .fish-glyph,
 .boat-haul-item.mutation-toxic.variant-shiny .fish-glyph,
-.catch-sil.mutation-toxic.variant-shiny .fish-glyph {
+.catch-sil.mutation-toxic.variant-shiny .fish-glyph,
+.book-card.mutation-toxic.variant-shiny .fish-glyph {
   animation:
-    mutation-toxic-pulse 1.8s ease-in-out infinite,
+    mutation-toxic-pulse 1.6s ease-in-out infinite,
     variant-shiny-pulse 1.6s ease-in-out infinite;
 }
 
 .fish-chip.mutation-toxic,
-.boat-haul-item.mutation-toxic {
-  border-color: rgba(74, 222, 128, 0.55);
-  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.18);
+.boat-haul-item.mutation-toxic,
+.book-card.mutation-toxic,
+.shiny-pick.mutation-toxic {
+  position: relative;
+  border-color: rgba(132, 204, 22, 0.7);
+  box-shadow:
+    inset 0 0 0 1px rgba(74, 222, 128, 0.28),
+    0 0 14px rgba(74, 222, 128, 0.22),
+    0 0 2px rgba(163, 230, 53, 0.45);
+  background:
+    radial-gradient(circle at 78% 18%, rgba(190, 242, 100, 0.22), transparent 42%),
+    radial-gradient(circle at 18% 82%, rgba(34, 197, 94, 0.18), transparent 48%),
+    rgba(6, 40, 24, 0.42);
+  overflow: hidden;
 }
 
 .fish-chip.mutation-toxic::before,
-.boat-haul-item.mutation-toxic::before {
+.boat-haul-item.mutation-toxic::before,
+.book-card.mutation-toxic::before,
+.shiny-pick.mutation-toxic::before {
   content: "";
   position: absolute;
   inset: 0;
   pointer-events: none;
   border-radius: inherit;
-  background: radial-gradient(
-    circle at 70% 30%,
-    rgba(134, 239, 172, 0.28),
-    transparent 55%
-  );
+  background:
+    radial-gradient(circle at 72% 28%, rgba(190, 242, 100, 0.35), transparent 38%),
+    radial-gradient(circle at 30% 70%, rgba(74, 222, 128, 0.22), transparent 45%),
+    linear-gradient(180deg, transparent 55%, rgba(21, 128, 61, 0.22) 100%);
+  opacity: 0.95;
+  animation: mutation-toxic-card-glow 2.4s ease-in-out infinite;
+}
+
+.fish-chip.mutation-toxic::after,
+.boat-haul-item.mutation-toxic::after,
+.book-card.mutation-toxic::after {
+  content: "";
+  position: absolute;
+  left: 12%;
+  right: 12%;
+  top: -8%;
+  height: 120%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 20% 18%, rgba(217, 249, 157, 0.85) 0 1.5px, transparent 2px),
+    radial-gradient(circle at 55% 12%, rgba(134, 239, 172, 0.75) 0 1.2px, transparent 1.8px),
+    radial-gradient(circle at 78% 28%, rgba(163, 230, 53, 0.7) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 40% 42%, rgba(190, 242, 100, 0.55) 0 1.1px, transparent 1.7px),
+    radial-gradient(circle at 68% 58%, rgba(74, 222, 128, 0.5) 0 1px, transparent 1.5px);
+  animation: mutation-toxic-spores 3.2s linear infinite;
   opacity: 0.85;
+  mix-blend-mode: screen;
+}
+
+/* Keep shiny sheen when toxic + shiny stack (shiny normally owns ::after). */
+.fish-chip.mutation-toxic.variant-shiny::after,
+.boat-haul-item.mutation-toxic.variant-shiny::after {
+  background:
+    linear-gradient(
+      120deg,
+      transparent 28%,
+      rgba(255, 255, 255, 0.2) 48%,
+      transparent 68%
+    ),
+    radial-gradient(circle at 20% 18%, rgba(217, 249, 157, 0.75) 0 1.5px, transparent 2px),
+    radial-gradient(circle at 70% 30%, rgba(163, 230, 53, 0.65) 0 1px, transparent 1.6px);
+  background-size: 200% 100%, auto, auto;
+  animation:
+    variant-shiny-sheen 2.2s ease-in-out infinite,
+    mutation-toxic-spores 3.2s linear infinite;
+  mix-blend-mode: screen;
+}
+
+.catch-sil.mutation-toxic {
+  filter:
+    drop-shadow(0 0 8px rgba(163, 230, 53, 0.75))
+    drop-shadow(0 0 18px rgba(74, 222, 128, 0.45))
+    drop-shadow(0 3px 6px rgba(0, 0, 0, 0.45));
+}
+
+.catch-sil.mutation-toxic::before {
+  content: "";
+  position: absolute;
+  inset: -18% -10%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 45%, rgba(190, 242, 100, 0.28), transparent 58%),
+    radial-gradient(circle at 30% 70%, rgba(34, 197, 94, 0.18), transparent 50%);
+  animation: mutation-toxic-haze 2.4s ease-in-out infinite;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.aqua-fish.mutation-toxic {
+  filter:
+    drop-shadow(0 0 6px rgba(163, 230, 53, 0.7))
+    drop-shadow(0 0 14px rgba(74, 222, 128, 0.4))
+    drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
+}
+
+.aqua-fish.mutation-toxic:hover,
+.aqua-fish.mutation-toxic:focus-visible {
+  filter:
+    drop-shadow(0 0 10px rgba(217, 249, 157, 0.9))
+    drop-shadow(0 0 18px rgba(74, 222, 128, 0.65));
+}
+
+.book-inspect.is-toxic .book-inspect-panel {
+  border-color: rgba(132, 204, 22, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(74, 222, 128, 0.22),
+    0 18px 48px rgba(6, 40, 24, 0.55),
+    0 0 36px rgba(74, 222, 128, 0.18);
+  background:
+    radial-gradient(circle at 70% 12%, rgba(163, 230, 53, 0.16), transparent 42%),
+    radial-gradient(circle at 20% 88%, rgba(22, 101, 52, 0.35), transparent 50%),
+    rgba(6, 28, 22, 0.96);
+}
+
+.book-inspect.is-toxic .book-inspect-glyph {
+  filter:
+    drop-shadow(0 0 10px rgba(163, 230, 53, 0.65))
+    drop-shadow(0 0 22px rgba(74, 222, 128, 0.4));
+}
+
+.book-inspect.is-toxic .book-inspect-title {
+  color: #d9f99d;
+  text-shadow: 0 0 12px rgba(132, 204, 22, 0.35);
+}
+
+.book-inspect.is-toxic .book-inspect-meta {
+  color: #86efac;
 }
 
 @keyframes mutation-toxic-pulse {
   0%,
   100% {
-    filter: drop-shadow(0 0 3px rgba(74, 222, 128, 0.4));
+    filter:
+      drop-shadow(0 0 3px rgba(74, 222, 128, 0.45))
+      drop-shadow(0 0 8px rgba(34, 197, 94, 0.3))
+      brightness(1);
+    color: #65a30d;
+  }
+  35% {
+    filter:
+      drop-shadow(0 0 7px rgba(190, 242, 100, 0.9))
+      drop-shadow(0 0 16px rgba(74, 222, 128, 0.65))
+      brightness(1.12);
+    color: #a3e635;
+  }
+  70% {
+    filter:
+      drop-shadow(0 0 5px rgba(134, 239, 172, 0.75))
+      drop-shadow(0 0 12px rgba(22, 163, 74, 0.5))
+      brightness(1.05);
+    color: #4ade80;
+  }
+}
+
+@keyframes mutation-toxic-marks {
+  0%,
+  100% {
+    opacity: 0.92;
   }
   50% {
-    filter: drop-shadow(0 0 7px rgba(134, 239, 172, 0.75));
+    opacity: 1;
+  }
+}
+
+@keyframes mutation-toxic-drip {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(1.2px);
+    opacity: 1;
+  }
+}
+
+@keyframes mutation-toxic-spore {
+  0%,
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateY(-1.4px) scale(1.15);
+    opacity: 0.95;
+  }
+}
+
+@keyframes mutation-toxic-haze {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 0.95;
+  }
+}
+
+@keyframes mutation-toxic-vein {
+  0%,
+  100% {
+    opacity: 0.4;
+    stroke-opacity: 0.45;
+  }
+  50% {
+    opacity: 0.9;
+    stroke-opacity: 0.85;
+  }
+}
+
+@keyframes mutation-toxic-card-glow {
+  0%,
+  100% {
+    opacity: 0.75;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@keyframes mutation-toxic-spores {
+  0% {
+    transform: translateY(0);
+    opacity: 0.55;
+  }
+  50% {
+    transform: translateY(6%);
+    opacity: 0.95;
+  }
+  100% {
+    transform: translateY(12%);
+    opacity: 0.4;
   }
 }
 
@@ -2948,6 +3193,15 @@ body[data-spot="mythforge"] .water-mist {
 
 body.event-mutation .cast-btn {
   box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.28), 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
+body.event-mutation {
+  --toxic-wash: rgba(22, 101, 52, 0.12);
+}
+
+body.event-mutation .pond-shell,
+body.event-mutation .stage {
+  box-shadow: inset 0 0 40px rgba(74, 222, 128, 0.08);
 }
 
 .fish-glyph.shape-ghost {

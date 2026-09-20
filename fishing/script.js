@@ -7010,6 +7010,45 @@ function aquariumRatePerSec() {
     return `<path class="scales" d="M24 14 Q25.5 16 24 18 M30 13 Q31.5 15 30 17 M36 14 Q37.5 16 36 18 M42 13 Q43.5 15 42 17" fill="none" stroke="url(#${gid}-fin)" stroke-width="1" opacity="0.35"/>`;
   }
 
+  /** Toxic mutation: sludge blotches, acid veins, drips, and spore bubbles. */
+  function fishGlyphToxicDetails(gid) {
+    return `<defs>
+        <radialGradient id="${gid}-toxic-glow" cx="0.45" cy="0.4" r="0.7">
+          <stop offset="0%" stop-color="#bef264" stop-opacity="0.55"/>
+          <stop offset="45%" stop-color="#4ade80" stop-opacity="0.22"/>
+          <stop offset="100%" stop-color="#14532d" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="${gid}-toxic-slime" x1="0" y1="0" x2="0.2" y2="1">
+          <stop offset="0%" stop-color="#d9f99d" stop-opacity="0.75"/>
+          <stop offset="40%" stop-color="#4ade80" stop-opacity="0.55"/>
+          <stop offset="100%" stop-color="#14532d" stop-opacity="0.7"/>
+        </linearGradient>
+      </defs>
+      <ellipse class="toxic-haze" cx="34" cy="16" rx="26" ry="11" fill="url(#${gid}-toxic-glow)"/>
+      <g class="toxic-marks">
+        <ellipse class="toxic-blotch" cx="29" cy="13.5" rx="4.6" ry="3" fill="#052e16" opacity="0.55"/>
+        <ellipse class="toxic-blotch" cx="40" cy="18" rx="3.8" ry="2.5" fill="#14532d" opacity="0.5"/>
+        <ellipse class="toxic-blotch" cx="23" cy="19" rx="2.9" ry="1.9" fill="#166534" opacity="0.48"/>
+        <ellipse class="toxic-blotch" cx="46" cy="14" rx="2.4" ry="1.6" fill="#3f6212" opacity="0.42"/>
+        <ellipse class="toxic-scar" cx="35" cy="16.5" rx="3.2" ry="1.15" fill="url(#${gid}-toxic-slime)" opacity="0.7" transform="rotate(-16 35 16.5)"/>
+        <path class="toxic-vein" d="M20 14 C27 11 34 16 44 12" fill="none" stroke="#bbf7d0" stroke-width="0.75" opacity="0.65"/>
+        <path class="toxic-vein" d="M24 20 C31 23 39 19 48 22" fill="none" stroke="#86efac" stroke-width="0.6" opacity="0.5"/>
+        <path class="toxic-vein" d="M26 12 C30 15 36 14 41 17" fill="none" stroke="#a3e635" stroke-width="0.5" opacity="0.45"/>
+        <path class="toxic-drip" d="M27 22 Q28.4 26.5 27.6 29.5" fill="none" stroke="#4ade80" stroke-width="1.35" stroke-linecap="round" opacity="0.85"/>
+        <path class="toxic-drip" d="M36 23.5 Q37.6 27.5 36.5 30.5" fill="none" stroke="#a3e635" stroke-width="1.1" stroke-linecap="round" opacity="0.75"/>
+        <path class="toxic-drip" d="M43 21 Q44 24.5 43.2 27" fill="none" stroke="#86efac" stroke-width="0.9" stroke-linecap="round" opacity="0.65"/>
+        <circle class="toxic-drip-bead" cx="27.6" cy="29.5" r="1.15" fill="#bef264" opacity="0.85"/>
+        <circle class="toxic-drip-bead" cx="36.5" cy="30.5" r="1" fill="#4ade80" opacity="0.8"/>
+        <circle class="toxic-spore" cx="32" cy="10.5" r="1.25" fill="#d9f99d" opacity="0.8"/>
+        <circle class="toxic-spore" cx="45" cy="15.5" r="1" fill="#86efac" opacity="0.7"/>
+        <circle class="toxic-spore" cx="25" cy="15.5" r="0.8" fill="#bef264" opacity="0.65"/>
+        <circle class="toxic-spore" cx="38" cy="12" r="0.65" fill="#f7fee7" opacity="0.55"/>
+        <circle class="toxic-bubble" cx="37" cy="9.5" r="1.55" fill="none" stroke="#bbf7d0" stroke-width="0.65" opacity="0.6"/>
+        <circle class="toxic-bubble" cx="21" cy="16" r="1.15" fill="none" stroke="#86efac" stroke-width="0.55" opacity="0.5"/>
+        <circle class="toxic-bubble" cx="48" cy="18" r="0.95" fill="none" stroke="#a3e635" stroke-width="0.5" opacity="0.45"/>
+      </g>`;
+  }
+
   function fishGlyphParts(shape) {
     switch (shape) {
       case "catfish":
@@ -7469,7 +7508,8 @@ function aquariumRatePerSec() {
     else if (variant === "gold") tone = "#f0c14b";
     else if (variant === "diamond") tone = "#9adcf5";
     else if (variant === "rainbow") tone = "#ff8fab";
-    if (mutation === "toxic") tone = "#4ade80";
+    if (mutation === "toxic") tone = "#65a30d";
+    const isToxic = mutation === "toxic";
     const gid = `fg-${String(id || shape).replace(/[^a-z0-9]/gi, "")}${variant}${shiny ? "s" : ""}${mutation || ""}${Math.abs(
       Math.imul(
         [...`${id || shape}:${tone}:${variant}:${shiny}:${mutation}`].reduce(
@@ -7489,29 +7529,51 @@ function aquariumRatePerSec() {
       .replace(/\bclass="tail"/g, `class="tail" fill="url(#${gid}-fin)"`)
       .replace(/\bclass="bill"/g, `class="bill" fill="url(#${gid}-fin)"`);
     const accents = fishGlyphAccents(look, gid);
+    const toxicDetails = isToxic ? fishGlyphToxicDetails(gid) : "";
     const extraClass = variantClassList(entry);
-    return `<svg class="fish-glyph shape-${shape} look-${look.mark} is-realistic ${extraClass}" viewBox="0 0 64 32" aria-hidden="true" style="color:${tone}">
+    const bodyStops = isToxic
+      ? `<stop offset="0%" stop-color="#a3e635"/>
+          <stop offset="35%" stop-color="#4ade80" stop-opacity="0.95"/>
+          <stop offset="70%" stop-color="#166534" stop-opacity="0.9"/>
+          <stop offset="100%" stop-color="#052e16" stop-opacity="0.85"/>`
+      : `<stop offset="0%" stop-color="currentColor"/>
+          <stop offset="55%" stop-color="currentColor" stop-opacity="0.92"/>
+          <stop offset="100%" stop-color="#f7fbff" stop-opacity="${look.belly.toFixed(2)}"/>`;
+    const bellyStops = isToxic
+      ? `<stop offset="0%" stop-color="#d9f99d" stop-opacity="0.45"/>
+          <stop offset="55%" stop-color="#86efac" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="#14532d" stop-opacity="0.55"/>`
+      : `<stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="#ffffff" stop-opacity="${Math.min(0.65, look.belly + 0.12).toFixed(2)}"/>`;
+    const shadeStops = isToxic
+      ? `<stop offset="0%" stop-color="#022c22" stop-opacity="0.72"/>
+          <stop offset="100%" stop-color="#3f6212" stop-opacity="0.35"/>`
+      : `<stop offset="0%" stop-color="#041018" stop-opacity="${look.shade.toFixed(2)}"/>
+          <stop offset="100%" stop-color="currentColor" stop-opacity="0.2"/>`;
+    const finStops = isToxic
+      ? `<stop offset="0%" stop-color="#bef264" stop-opacity="0.95"/>
+          <stop offset="55%" stop-color="#22c55e" stop-opacity="0.85"/>
+          <stop offset="100%" stop-color="#052e16" stop-opacity="0.55"/>`
+      : `<stop offset="0%" stop-color="currentColor" stop-opacity="0.98"/>
+          <stop offset="100%" stop-color="#031018" stop-opacity="0.35"/>`;
+    return `<svg class="fish-glyph shape-${shape} look-${look.mark} is-realistic ${extraClass}" viewBox="0 0 64 32" aria-hidden="true" style="color:${tone}" overflow="visible">
       <defs>
         <linearGradient id="${gid}-body" x1="0.15" y1="0" x2="0.2" y2="1">
-          <stop offset="0%" stop-color="currentColor"/>
-          <stop offset="55%" stop-color="currentColor" stop-opacity="0.92"/>
-          <stop offset="100%" stop-color="#f7fbff" stop-opacity="${look.belly.toFixed(2)}"/>
+          ${bodyStops}
         </linearGradient>
         <linearGradient id="${gid}-shade" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#041018" stop-opacity="${look.shade.toFixed(2)}"/>
-          <stop offset="100%" stop-color="currentColor" stop-opacity="0.2"/>
+          ${shadeStops}
         </linearGradient>
         <linearGradient id="${gid}-belly" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
-          <stop offset="100%" stop-color="#ffffff" stop-opacity="${Math.min(0.65, look.belly + 0.12).toFixed(2)}"/>
+          ${bellyStops}
         </linearGradient>
         <linearGradient id="${gid}-fin" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="currentColor" stop-opacity="0.98"/>
-          <stop offset="100%" stop-color="#031018" stop-opacity="0.35"/>
+          ${finStops}
         </linearGradient>
       </defs>
       ${parts}
       ${accents}
+      ${toxicDetails}
     </svg>`;
   }
 
@@ -11417,6 +11479,7 @@ function aquariumRatePerSec() {
     if (!bookInspectEl) return;
     bookInspectEl.classList.add("hidden");
     bookInspectEl.hidden = true;
+    bookInspectEl.classList.remove("is-toxic");
     if (bookInspectGlyphEl) bookInspectGlyphEl.innerHTML = "";
   }
 
@@ -11436,8 +11499,15 @@ function aquariumRatePerSec() {
     }
     if (bookInspectTitleEl) bookInspectTitleEl.textContent = label;
     if (bookInspectMetaEl) {
+      const mut = known ? normalizeMutation(showEntry?.mutation) : "";
+      const mutNote =
+        mut === "toxic"
+          ? " · Toxic ×4 · acid veins, sludge drips, spore haze"
+          : mut
+            ? ` · ${mut}`
+            : "";
       bookInspectMetaEl.textContent = known
-        ? `${fish.rarity} · ${formatNum(fish.value)} coins`
+        ? `${fish.rarity} · ${formatNum(fish.value)} coins${mutNote}`
         : `${fish.rarity} · not caught yet`;
     }
     if (bookInspectHintEl) {
@@ -11445,12 +11515,18 @@ function aquariumRatePerSec() {
       if (known && showEntry?.variant) bits.push(showEntry.variant);
       if (known && showEntry?.shiny) bits.push("shiny");
       if (known && showEntry?.mutation) bits.push(showEntry.mutation);
+      const toxicHint =
+        known && showEntry?.mutation === "toxic"
+          ? "Toxic mutation: bile-green flesh, glowing veins, and dripping sludge · tap outside to close"
+          : "";
       bookInspectHintEl.textContent = known
-        ? bits.length
-          ? `Viewing ${bits.join(" + ")} look · tap outside to close`
-          : "Tap outside or Close to go back"
+        ? toxicHint ||
+          (bits.length
+            ? `Viewing ${bits.join(" + ")} look · tap outside to close`
+            : "Tap outside or Close to go back")
         : "Catch this fish to reveal its look";
     }
+    bookInspectEl.classList.toggle("is-toxic", known && showEntry?.mutation === "toxic");
     bookInspectEl.hidden = false;
     bookInspectEl.classList.remove("hidden");
   }
