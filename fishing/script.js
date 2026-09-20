@@ -2019,7 +2019,8 @@
   }
 
   function catchBookDiscoveryCount() {
-    return caughtCount("any", false);
+    // Always overall base discoveries — ignore shiny/mutation book filters.
+    return caughtCount("any", false, "");
   }
 
   function catchBookDiscoveryRatio() {
