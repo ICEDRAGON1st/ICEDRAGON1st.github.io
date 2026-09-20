@@ -481,23 +481,24 @@ body.no-lightning-flash .wx-flash {
 
 .book-layout {
   display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.65rem;
   min-height: 0;
 }
 
 .book-filters {
   flex: 0 0 auto;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 0.35rem;
   padding-top: 0.1rem;
+  width: 100%;
 }
 
 .book-filter-sep {
-  height: 1px;
-  margin: 0.15rem 0.35rem;
-  background: rgba(255, 255, 255, 0.12);
+  display: none;
 }
 
 .book-filter-btn {
@@ -512,7 +513,7 @@ body.no-lightning-flash .wx-flash {
   text-transform: uppercase;
   padding: 0.45rem 0.55rem;
   border-radius: 999px;
-  min-width: 4.6rem;
+  min-width: 0;
   cursor: pointer;
   line-height: 1.1;
   transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
@@ -579,25 +580,14 @@ body.no-lightning-flash .wx-flash {
 
 @media (max-width: 560px) {
   .book-layout {
-    flex-direction: column;
     gap: 0.55rem;
   }
 
   .book-toolbar {
-    position: static;
-    max-width: none;
-    width: 100%;
-  }
-
-  .book-filters {
-    flex-direction: row;
-    flex-wrap: wrap;
-    position: static;
     width: 100%;
   }
 
   .book-filter-btn {
-    min-width: 0;
     flex: 1 1 auto;
   }
 }
@@ -7249,8 +7239,9 @@ body[data-spot="finalhorizon"] {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  align-self: flex-start;
-  max-width: 11rem;
+  width: 100%;
+  max-width: none;
+  position: static;
 }
 #book-search {
   width: 100%;
