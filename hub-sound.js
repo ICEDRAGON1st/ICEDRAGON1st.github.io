@@ -329,7 +329,7 @@
       rain.loop = true;
       const rainGain = ctx.createGain();
       rainGain.gain.setValueAtTime(0.0001, t);
-      rainGain.gain.exponentialRampToValueAtTime(stormRainSample ? 0.4 : 0.32, t + 1.1);
+      rainGain.gain.exponentialRampToValueAtTime(stormRainSample ? 0.18 : 0.14, t + 1.1);
       rain.connect(rainGain);
       rainGain.connect(ctx.destination);
       rain.start(t);
