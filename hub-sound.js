@@ -24,6 +24,7 @@
   let audioCtx = null;
   let noiseBuffer = null;
   let rainBuffer = null;
+  let thunderBuffer = null;
   let surfBuffer = null;
   let keySamples = [];
   let keySamplesLoading = null;
@@ -127,41 +128,61 @@
 
   function getRainBuffer(ctx) {
     if (rainBuffer && rainBuffer.sampleRate === ctx.sampleRate) return rainBuffer;
-    const len = Math.floor(ctx.sampleRate * 3.2);
-    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const sr = ctx.sampleRate;
+    const len = Math.floor(sr * 4);
+    const buf = ctx.createBuffer(1, len, sr);
     const data = buf.getChannelData(0);
-    let pink = 0;
-    for (let i = 0; i < len; i += 1) {
-      const white = Math.random() * 2 - 1;
-      // Light pink bed — soft rain sheet, not white static
-      pink = (pink + 0.045 * white) / 1.045;
-      let sample = pink * 0.55;
-      // Dense droplet ticks (rain, not crackle-static)
-      if (Math.random() < 0.085) {
-        const drop = (Math.random() * 2 - 1) * (0.35 + Math.random() * 0.55);
-        // Tiny decaying splat
-        const splatLen = 4 + Math.floor(Math.random() * 10);
-        for (let k = 0; k < splatLen && i + k < len; k += 1) {
-          data[i + k] = (data[i + k] || 0) + drop * Math.exp(-k * 0.45);
+    // Sparse droplet impulses only — no continuous hiss bed
+    let i = 0;
+    while (i < len) {
+      // Gap between drops (~0.8–4 ms at 48k) → audible patter, not static sheet
+      const gap = 40 + Math.floor(Math.random() * 160);
+      i += gap;
+      if (i >= len) break;
+      const amp = 0.25 + Math.random() * 0.75;
+      const sign = Math.random() < 0.5 ? -1 : 1;
+      // Short wet splat (0.4–2 ms)
+      const splat = 6 + Math.floor(Math.random() * 28);
+      for (let k = 0; k < splat && i + k < len; k += 1) {
+        const env = Math.exp(-k / (3 + Math.random() * 5));
+        // Mild high-freq tick, not broadband static
+        const tick = sign * amp * env * (0.55 + 0.45 * Math.sin(k * 1.7));
+        data[i + k] += tick;
+      }
+      // Occasional bigger drop
+      if (Math.random() < 0.04) {
+        const heavy = 18 + Math.floor(Math.random() * 40);
+        const hAmp = 0.7 + Math.random() * 0.5;
+        for (let k = 0; k < heavy && i + k < len; k += 1) {
+          data[i + k] += sign * hAmp * Math.exp(-k / 10) * (Math.random() * 0.4 + 0.6);
         }
       }
-      // Occasional heavier drop
-      if (Math.random() < 0.008) {
-        const heavy = (Math.random() * 2 - 1) * 0.9;
-        const splatLen = 8 + Math.floor(Math.random() * 18);
-        for (let k = 0; k < splatLen && i + k < len; k += 1) {
-          data[i + k] = (data[i + k] || 0) + heavy * Math.exp(-k * 0.28);
-        }
-      }
-      data[i] = (data[i] || 0) + sample;
+      i += splat;
     }
-    // Soft normalize
     let peak = 0.001;
-    for (let i = 0; i < len; i += 1) peak = Math.max(peak, Math.abs(data[i]));
-    const norm = 0.9 / peak;
-    for (let i = 0; i < len; i += 1) data[i] *= norm;
+    for (let n = 0; n < len; n += 1) peak = Math.max(peak, Math.abs(data[n]));
+    const norm = 0.85 / peak;
+    for (let n = 0; n < len; n += 1) data[n] *= norm;
     rainBuffer = buf;
     return rainBuffer;
+  }
+
+  /** Long brown rumble for thunder (no fade envelope — safe to loop). */
+  function getThunderBuffer(ctx) {
+    if (thunderBuffer && thunderBuffer.sampleRate === ctx.sampleRate) return thunderBuffer;
+    const len = Math.floor(ctx.sampleRate * 2.5);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    let b0 = 0;
+    let b1 = 0;
+    for (let i = 0; i < len; i += 1) {
+      const white = Math.random() * 2 - 1;
+      b0 = (b0 + 0.03 * white) / 1.03;
+      b1 = (b1 + 0.06 * b0) / 1.06;
+      data[i] = b1 * 5.5;
+    }
+    thunderBuffer = buf;
+    return thunderBuffer;
   }
 
   /** Soft brown-ish water bed — no rain crackle. */
@@ -213,178 +234,183 @@
     ambientKind = null;
   }
 
-  function playThunderClap() {
+  function playThunderClap(rainGains = null) {
     const ctx = getAudio();
     if (!ctx || !enabled) return;
     const now = ctx.currentTime;
-    const strike = 0.75 + Math.random() * 0.35;
+    const strike = 0.85 + Math.random() * 0.4;
 
-    // Sharp crack (close lightning)
+    // Hard-duck rain so thunder wins
+    if (rainGains && rainGains.length) {
+      const targets = [0.028, 0.014];
+      rainGains.forEach((g, i) => {
+        try {
+          const cur = Math.max(0.0001, g.gain.value);
+          const back = targets[i] || cur;
+          g.gain.cancelScheduledValues(now);
+          g.gain.setValueAtTime(cur, now);
+          g.gain.exponentialRampToValueAtTime(0.003, now + 0.05);
+          g.gain.exponentialRampToValueAtTime(back, now + 2.4);
+        } catch {}
+      });
+    }
+
+    // Loud crack — mid/high so laptop speakers hear it
     noiseHit({
-      dur: 0.08,
-      vol: 0.14 * strike,
-      freq: 2200 + Math.random() * 900,
-      q: 0.55,
+      dur: 0.12,
+      vol: 0.42 * strike,
+      freq: 1800 + Math.random() * 700,
+      q: 0.7,
       type: "bandpass"
     });
     noiseHit({
-      dur: 0.14,
-      vol: 0.1 * strike,
-      freq: 900 + Math.random() * 400,
-      q: 0.4,
+      dur: 0.2,
+      vol: 0.32 * strike,
+      freq: 650 + Math.random() * 250,
+      q: 0.45,
       type: "bandpass",
-      delay: 0.02
+      delay: 0.025
     });
-
-    // Body boom — long low noise roll
-    const body = ctx.createBufferSource();
-    body.buffer = getNoiseBuffer(ctx);
-    body.loop = true;
-    const bodyLp = ctx.createBiquadFilter();
-    bodyLp.type = "lowpass";
-    bodyLp.frequency.setValueAtTime(380, now);
-    bodyLp.frequency.exponentialRampToValueAtTime(90, now + 1.8);
-    bodyLp.Q.setValueAtTime(0.6, now);
-    const bodyGain = ctx.createGain();
-    bodyGain.gain.setValueAtTime(0.0001, now);
-    bodyGain.gain.exponentialRampToValueAtTime(0.16 * strike, now + 0.04);
-    bodyGain.gain.exponentialRampToValueAtTime(0.08 * strike, now + 0.35);
-    bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + 2.4);
-    body.connect(bodyLp);
-    bodyLp.connect(bodyGain);
-    bodyGain.connect(ctx.destination);
-    body.start(now);
-    body.stop(now + 2.5);
-
-    // Deep sub rumble that rolls down
-    softTone({
-      freq: 55 + Math.random() * 18,
-      dur: 1.8,
-      vol: 0.07 * strike,
-      slide: -28,
-      attack: 0.06,
-      lp: 180,
+    noiseHit({
+      dur: 0.35,
+      vol: 0.28 * strike,
+      freq: 220,
+      q: 0.4,
+      type: "lowpass",
       delay: 0.04
     });
+
+    // Long rumble body (dedicated buffer, no fade loop)
+    const body = ctx.createBufferSource();
+    body.buffer = getThunderBuffer(ctx);
+    body.loop = true;
+    const bodyBp = ctx.createBiquadFilter();
+    bodyBp.type = "lowpass";
+    bodyBp.frequency.setValueAtTime(520, now);
+    bodyBp.frequency.exponentialRampToValueAtTime(110, now + 2);
+    bodyBp.Q.setValueAtTime(0.7, now);
+    const bodyGain = ctx.createGain();
+    bodyGain.gain.setValueAtTime(0.0001, now);
+    bodyGain.gain.exponentialRampToValueAtTime(0.55 * strike, now + 0.03);
+    bodyGain.gain.exponentialRampToValueAtTime(0.28 * strike, now + 0.45);
+    bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + 2.8);
+    body.connect(bodyBp);
+    bodyBp.connect(bodyGain);
+    bodyGain.connect(ctx.destination);
+    body.start(now);
+    body.stop(now + 2.9);
+
+    // Punchy mid-bass (audible on phones/laptops — not just 40Hz sub)
     softTone({
-      freq: 38,
-      dur: 2.2,
-      vol: 0.05 * strike,
-      slide: -12,
-      attack: 0.12,
-      lp: 120,
-      delay: 0.12
+      freq: 120 + Math.random() * 40,
+      dur: 1.4,
+      vol: 0.22 * strike,
+      slide: -55,
+      attack: 0.03,
+      lp: 400,
+      delay: 0.02
+    });
+    softTone({
+      freq: 70 + Math.random() * 20,
+      dur: 2.0,
+      vol: 0.18 * strike,
+      slide: -30,
+      attack: 0.08,
+      lp: 220,
+      delay: 0.06
+    });
+    softTone({
+      freq: 48,
+      dur: 2.4,
+      vol: 0.12 * strike,
+      slide: -14,
+      attack: 0.15,
+      lp: 140,
+      delay: 0.1
     });
 
-    // Distant echo crack
-    noiseHit({
-      dur: 0.45,
-      vol: 0.055 * strike,
-      freq: 160,
-      q: 0.35,
-      type: "lowpass",
-      delay: 0.28 + Math.random() * 0.15
-    });
+    // Rolling echo
     noiseHit({
       dur: 0.7,
-      vol: 0.04 * strike,
+      vol: 0.18 * strike,
+      freq: 140,
+      q: 0.35,
+      type: "lowpass",
+      delay: 0.32 + Math.random() * 0.12
+    });
+    noiseHit({
+      dur: 1.0,
+      vol: 0.12 * strike,
       freq: 90,
       q: 0.3,
       type: "lowpass",
-      delay: 0.55 + Math.random() * 0.2
+      delay: 0.7 + Math.random() * 0.25
     });
   }
 
   function startStormAmbient() {
     const ctx = getAudio();
     if (!ctx) return;
+    // Force fresh rain buffer (older builds cached a hissy loop)
+    rainBuffer = null;
     stopAmbient();
     ambientKind = "storm";
     const t = ctx.currentTime;
 
-    // Close rain patter (droplet buffer, bright but not static)
+    // Quiet droplet rain — patter, not a noise sheet
     const near = ctx.createBufferSource();
     near.buffer = getRainBuffer(ctx);
     near.loop = true;
     const nearHp = ctx.createBiquadFilter();
     nearHp.type = "highpass";
-    nearHp.frequency.setValueAtTime(420, t);
-    const nearBp = ctx.createBiquadFilter();
-    nearBp.type = "bandpass";
-    nearBp.frequency.setValueAtTime(2100, t);
-    nearBp.Q.setValueAtTime(0.35, t);
+    nearHp.frequency.setValueAtTime(700, t);
     const nearLp = ctx.createBiquadFilter();
     nearLp.type = "lowpass";
-    nearLp.frequency.setValueAtTime(6800, t);
+    nearLp.frequency.setValueAtTime(4800, t);
     const nearGain = ctx.createGain();
     nearGain.gain.setValueAtTime(0.0001, t);
-    nearGain.gain.exponentialRampToValueAtTime(0.07, t + 0.9);
+    nearGain.gain.exponentialRampToValueAtTime(0.028, t + 0.8);
     near.connect(nearHp);
-    nearHp.connect(nearBp);
-    nearBp.connect(nearLp);
+    nearHp.connect(nearLp);
     nearLp.connect(nearGain);
     nearGain.connect(ctx.destination);
     near.start(t);
 
-    // Softer distant rain sheet
+    // Quieter distant layer
     const far = ctx.createBufferSource();
     far.buffer = getRainBuffer(ctx);
     far.loop = true;
-    far.playbackRate.setValueAtTime(0.82, t);
+    far.playbackRate.setValueAtTime(0.75, t);
     const farLp = ctx.createBiquadFilter();
     farLp.type = "lowpass";
-    farLp.frequency.setValueAtTime(1600, t);
+    farLp.frequency.setValueAtTime(1400, t);
     const farHp = ctx.createBiquadFilter();
     farHp.type = "highpass";
-    farHp.frequency.setValueAtTime(180, t);
+    farHp.frequency.setValueAtTime(250, t);
     const farGain = ctx.createGain();
     farGain.gain.setValueAtTime(0.0001, t);
-    farGain.gain.exponentialRampToValueAtTime(0.04, t + 1.2);
+    farGain.gain.exponentialRampToValueAtTime(0.014, t + 1.1);
     far.connect(farHp);
     farHp.connect(farLp);
     farLp.connect(farGain);
     farGain.connect(ctx.destination);
-    far.start(t + 0.15);
+    far.start(t + 0.2);
 
-    // Quiet storm bed rumble (not the thunder itself)
-    const rumble = ctx.createOscillator();
-    rumble.type = "sine";
-    rumble.frequency.setValueAtTime(42, t);
-    const rumbleGain = ctx.createGain();
-    rumbleGain.gain.setValueAtTime(0.0001, t);
-    rumbleGain.gain.exponentialRampToValueAtTime(0.012, t + 1.4);
-    rumble.connect(rumbleGain);
-    rumbleGain.connect(ctx.destination);
-    rumble.start(t);
-
+    const rainGains = [nearGain, farGain];
     const timers = [];
-    let thunderTimer = 0;
     const scheduleThunder = (delayMs) => {
-      thunderTimer = setTimeout(() => {
+      const id = setTimeout(() => {
         if (!enabled || ambientKind !== "storm") return;
-        playThunderClap();
-        // Duck rain slightly under the boom, then recover
-        try {
-          const now = ctx.currentTime;
-          nearGain.gain.cancelScheduledValues(now);
-          farGain.gain.cancelScheduledValues(now);
-          nearGain.gain.setValueAtTime(Math.max(0.0001, nearGain.gain.value), now);
-          farGain.gain.setValueAtTime(Math.max(0.0001, farGain.gain.value), now);
-          nearGain.gain.exponentialRampToValueAtTime(0.04, now + 0.06);
-          farGain.gain.exponentialRampToValueAtTime(0.025, now + 0.06);
-          nearGain.gain.exponentialRampToValueAtTime(0.07, now + 1.4);
-          farGain.gain.exponentialRampToValueAtTime(0.04, now + 1.5);
-        } catch {}
-        scheduleThunder(4200 + Math.random() * 5200);
+        playThunderClap(rainGains);
+        scheduleThunder(3800 + Math.random() * 4800);
       }, delayMs);
-      timers.push(thunderTimer);
+      timers.push(id);
     };
-    // Opening thunder so storm is obvious
-    scheduleThunder(500);
+    scheduleThunder(450);
 
     ambientNodes = {
-      sources: [near, far, rumble],
-      gains: [nearGain, farGain, rumbleGain],
+      sources: [near, far],
+      gains: rainGains,
       timers
     };
   }
