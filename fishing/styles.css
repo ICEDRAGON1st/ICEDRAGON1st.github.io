@@ -165,6 +165,22 @@ body.modal-open {
   cursor: pointer;
 }
 
+.top-bar-left {
+  justify-self: start;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.top-bar-left .menu-btn {
+  justify-self: auto;
+}
+
+.sound-btn-hidden,
+#hub-sound-btn {
+  display: none !important;
+}
+
 .top-stats {
   justify-self: end;
   font-size: 0.82rem;
@@ -204,10 +220,10 @@ body.modal-open {
 }
 
 .settings-btn {
-  margin-left: 0.35rem;
   min-width: 2.4rem;
   padding-left: 0.55rem;
   padding-right: 0.55rem;
+  margin-left: 0;
 }
 
 .settings-overlay {
