@@ -1677,6 +1677,7 @@
   const settingsVolumePct = document.getElementById("settings-volume-pct");
   const settingsLightningFlash = document.getElementById("settings-lightning-flash");
   const settingsSfxEnabled = document.getElementById("settings-sfx-enabled");
+  const settingsConfettiEnabled = document.getElementById("settings-confetti-enabled");
   const adminBtn = document.getElementById("admin-btn");
   const adminClose = document.getElementById("admin-close");
   const guideClose = document.getElementById("guide-close");
@@ -2432,7 +2433,7 @@
         "treasure"
       );
       playSfx("win");
-      window.HubConfetti?.burst?.();
+      burstConfetti();
       renderTreasureStash();
       render(false);
       saveSoon();
@@ -3916,7 +3917,7 @@
       } else {
         setCatchLine(`${liveLine("LOCAL ADMIN")} (only you)`, "treasure");
         playSfx("win");
-        window.HubConfetti?.burst?.();
+        burstConfetti();
       }
       adminBusy = false;
       return true;
@@ -3929,7 +3930,7 @@
     } else {
       setCatchLine(`${liveLine("GLOBAL ADMIN")} (syncing…)`, "treasure");
       playSfx("win");
-      window.HubConfetti?.burst?.();
+      burstConfetti();
     }
 
     try {
@@ -4702,7 +4703,7 @@
           "treasure"
         );
         playSfx("win");
-        window.HubConfetti?.burst?.();
+        burstConfetti();
       }
     } else {
       lastAnnouncedVariantKey = "";
@@ -4741,7 +4742,7 @@
             "treasure"
           );
           playSfx("win");
-          window.HubConfetti?.burst?.();
+          burstConfetti();
         }
       }
     } else {
@@ -4776,7 +4777,7 @@
       );
     }
     playSfx("win");
-    window.HubConfetti?.burst?.();
+    burstConfetti();
   }
 
   function renderEventBanner() {
@@ -5045,7 +5046,7 @@
       }
       setCatchLine(line, "treasure");
       playSfx("win");
-      window.HubConfetti?.burst?.();
+      burstConfetti();
     }
     renderStats();
     saveState();
@@ -5082,7 +5083,7 @@
       }
       setCatchLine(line, "treasure");
       playSfx("win");
-      window.HubConfetti?.burst?.();
+      burstConfetti();
     }
     renderStats();
     saveState();
@@ -5110,7 +5111,7 @@
         "treasure"
       );
       playSfx("win");
-      window.HubConfetti?.burst?.();
+      burstConfetti();
     }
     renderTreasureStash();
     saveSoon();
@@ -5465,7 +5466,7 @@
       );
     }
     playSfx("win");
-    if (list.some((row) => isShowcaseRarity(row.fish.rarity))) window.HubConfetti?.burst?.();
+    if (list.some((row) => isShowcaseRarity(row.fish.rarity))) burstConfetti();
     showLuckyBlockHaul(list);
   }
 
@@ -7804,7 +7805,7 @@
       "treasure"
     );
     playSfx("win");
-    window.HubConfetti?.burst?.();
+    burstConfetti();
     renderTreasureStash();
     render(false);
     saveSoon();
@@ -8457,7 +8458,7 @@
         (bonusFish && isShowcaseRarity(bonusFish.rarity)) ||
         (thirdFish && isShowcaseRarity(thirdFish.rarity))
       ) {
-        window.HubConfetti?.burst?.();
+        burstConfetti();
       }
       const rect = castBtn.getBoundingClientRect();
       const extrasN = [bonusFish, thirdFish].filter(Boolean).length;
@@ -8903,7 +8904,7 @@
     state.boatLevel = next.level;
     boatAcc.boat = 0;
     playSfx("click");
-    window.HubConfetti?.burst?.();
+    burstConfetti();
     setCatchLine(
       next.level === 1
         ? `Hired ${next.name} — every ${next.interval}s · ${next.multiHint}`
@@ -8931,7 +8932,7 @@
     state.spotId = id;
     setCatchLine(`Unlocked ${spot.name}!`);
     playSfx("win");
-    window.HubConfetti?.burst?.();
+    burstConfetti();
     checkAchievements();
     render();
     saveSoon();
@@ -10284,10 +10285,11 @@
       const raw = JSON.parse(localStorage.getItem(FISHING_PREFS_KEY) || "{}");
       return {
         lightningFlash: raw.lightningFlash !== false,
-        sfx: raw.sfx !== false
+        sfx: raw.sfx !== false,
+        confetti: raw.confetti !== false
       };
     } catch {
-      return { lightningFlash: true, sfx: true };
+      return { lightningFlash: true, sfx: true, confetti: true };
     }
   }
 
@@ -10306,6 +10308,20 @@
   function setSfxEnabled(on) {
     fishingPrefs.sfx = !!on;
     saveFishingPrefs();
+  }
+
+  function confettiEnabled() {
+    return fishingPrefs.confetti !== false;
+  }
+
+  function setConfettiEnabled(on) {
+    fishingPrefs.confetti = !!on;
+    saveFishingPrefs();
+  }
+
+  function burstConfetti(opts) {
+    if (!confettiEnabled()) return;
+    window.HubConfetti?.burst?.(opts);
   }
 
   /** Game beeps (catch/UI). Weather ambients always pass through. */
@@ -10343,6 +10359,7 @@
     if (settingsVolume) settingsVolume.value = String(Math.max(0, Math.min(300, vol)));
     if (settingsVolumePct) settingsVolumePct.textContent = String(Math.max(0, Math.min(300, vol)));
     if (settingsSfxEnabled) settingsSfxEnabled.checked = sfxEnabled();
+    if (settingsConfettiEnabled) settingsConfettiEnabled.checked = confettiEnabled();
     if (settingsLightningFlash) settingsLightningFlash.checked = lightningFlashEnabled();
   }
 
@@ -10964,6 +10981,9 @@
   });
   settingsSfxEnabled?.addEventListener("change", () => {
     setSfxEnabled(!!settingsSfxEnabled.checked);
+  });
+  settingsConfettiEnabled?.addEventListener("change", () => {
+    setConfettiEnabled(!!settingsConfettiEnabled.checked);
   });
   adminBtn?.addEventListener("click", openAdmin);
   adminClose?.addEventListener("click", closeAdmin);
