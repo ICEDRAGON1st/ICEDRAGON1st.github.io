@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260923d">
+  <link rel="stylesheet" href="styles.css?v=20260923e">
 </head>
 <body data-spot="creek" data-hub-sound-btn="off">
   <div id="weather-fx" class="weather-fx" aria-hidden="true">
@@ -405,14 +405,17 @@
           <button type="button" id="aquarium-tank-claim" class="btn btn-ghost aquarium-claim-btn" disabled>Claim</button>
         </div>
         <p class="shop-intro">★ save a fish in the cooler to put it here — they swim and drip coins by rarity.</p>
-        <div id="aquarium-tank" class="aquarium-tank" aria-label="Aquarium tank">
+        <div id="aquarium-tank" class="aquarium-tank" tabindex="0" role="button" aria-label="Aquarium tank · tap to enlarge" title="Tap tank to enlarge · tap a fish to inspect">
           <div class="aquarium-glass" aria-hidden="true"></div>
           <div class="aquarium-bubbles" aria-hidden="true">
             <span></span><span></span><span></span><span></span><span></span>
           </div>
           <div id="aquarium-swimmers" class="aquarium-swimmers"></div>
           <p id="aquarium-empty" class="aquarium-empty">Save a fish to fill the tank</p>
+          <button type="button" id="aquarium-expand-close" class="btn btn-ghost aquarium-expand-close hidden" hidden>Close</button>
+          <span class="aquarium-expand-hint" aria-hidden="true">Tap to enlarge</span>
         </div>
+        <button type="button" id="aquarium-expand-backdrop" class="aquarium-expand-backdrop hidden" hidden aria-label="Close enlarged aquarium"></button>
         <p id="aquarium-drip-label" class="aquarium-drip">No drip yet</p>
       </div>
     </section>
@@ -777,6 +780,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260917br"></script>
-  <script src="script.js?v=20260923d"></script>
+  <script src="script.js?v=20260923e"></script>
 </body>
 </html>

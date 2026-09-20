@@ -2755,6 +2755,7 @@ function aquariumRatePerSec() {
 
   const AQUARIUM_SWIM_MAX = 18;
   let aquariumRenderKey = "";
+  let aquariumExpanded = false;
   /** @type {{ el: HTMLElement, x: number, y: number, vx: number, vy: number, w: number, h: number }[]} */
   let aquariumSwimState = [];
   let aquariumRaf = 0;
@@ -2853,6 +2854,34 @@ function aquariumRatePerSec() {
     aquariumRaf = requestAnimationFrame(stepAquariumSwim);
   }
 
+  function setAquariumExpanded(on) {
+    const tank = document.getElementById("aquarium-tank");
+    const backdrop = document.getElementById("aquarium-expand-backdrop");
+    const closeBtn = document.getElementById("aquarium-expand-close");
+    const next = !!on;
+    if (aquariumExpanded === next) return;
+    aquariumExpanded = next;
+    tank?.classList.toggle("is-expanded", aquariumExpanded);
+    tank?.setAttribute("aria-expanded", aquariumExpanded ? "true" : "false");
+    tank?.setAttribute(
+      "aria-label",
+      aquariumExpanded ? "Enlarged aquarium · tap a fish to inspect" : "Aquarium tank · tap to enlarge"
+    );
+    if (backdrop) {
+      backdrop.hidden = !aquariumExpanded;
+      backdrop.classList.toggle("hidden", !aquariumExpanded);
+    }
+    if (closeBtn) {
+      closeBtn.hidden = !aquariumExpanded;
+      closeBtn.classList.toggle("hidden", !aquariumExpanded);
+    }
+    if (aquariumExpanded) lockPageScroll();
+    else unlockPageScroll();
+    aquariumRenderKey = "";
+    // Wait a frame so expanded size is measured for swim lanes.
+    requestAnimationFrame(() => renderAquarium(true));
+  }
+
   function renderAquarium(force = false) {
     const tank = document.getElementById("aquarium-tank");
     const swimmers = document.getElementById("aquarium-swimmers");
@@ -2865,7 +2894,7 @@ function aquariumRatePerSec() {
     const bank = Math.floor(Number(state.aquariumBank) || 0);
     const rate = aquariumRatePerSec();
     const list = aquariumFishList();
-    const nextKey = aquariumKey();
+    const nextKey = `${aquariumKey()}|${aquariumExpanded ? 1 : 0}`;
 
     if (dripEl) {
       dripEl.textContent =
@@ -2879,6 +2908,7 @@ function aquariumRatePerSec() {
     }
     if (tankClaim) tankClaim.disabled = bank <= 0;
     tank.classList.toggle("has-fish", list.length > 0);
+    tank.classList.toggle("is-expanded", aquariumExpanded);
     if (emptyEl) emptyEl.hidden = list.length > 0;
 
     if (!force && nextKey === aquariumRenderKey) {
@@ -2888,10 +2918,14 @@ function aquariumRatePerSec() {
     aquariumRenderKey = nextKey;
     stopAquariumSwim();
 
+    const sizeMult = aquariumExpanded ? 1.9 : 1;
     swimmers.innerHTML = list
       .map(({ index, entry, fish }, i) => {
         const label = formatFishName(fish, entry);
-        const fishW = (42 + Math.min(18, (RARITY_RANK[fish.rarity] || 1) * 0.7)).toFixed(0);
+        const fishW = (
+          (42 + Math.min(18, (RARITY_RANK[fish.rarity] || 1) * 0.7)) *
+          sizeMult
+        ).toFixed(0);
         return `<button type="button" class="aqua-fish ${fish.rarity} ${variantClassList(
           entry
         )}" data-aqua-index="${index}" data-aqua-i="${i}" style="width:${fishW}px;height:${(
@@ -2909,7 +2943,8 @@ function aquariumRatePerSec() {
       const h = el.offsetHeight || 24;
       const maxX = Math.max(0, laneW - w);
       const maxY = Math.max(0, laneH - h);
-      const speed = 28 + (i % 5) * 7 + ((list[i]?.fish?.id.length || 0) % 6) * 3;
+      const speed =
+        (28 + (i % 5) * 7 + ((list[i]?.fish?.id.length || 0) % 6) * 3) * (aquariumExpanded ? 1.15 : 1);
       const dir = i % 2 === 0 ? 1 : -1;
       const x = Math.min(maxX, Math.max(0, (maxX * ((i * 37) % 100)) / 100));
       const y = Math.min(maxY, Math.max(0, (maxY * ((i * 53 + 17) % 100)) / 100));
@@ -2918,7 +2953,7 @@ function aquariumRatePerSec() {
         x,
         y,
         vx: dir * speed,
-        vy: (i % 2 === 0 ? 1 : -1) * (2.5 + (i % 3) * 1.2),
+        vy: (i % 2 === 0 ? 1 : -1) * (2.5 + (i % 3) * 1.2) * (aquariumExpanded ? 1.2 : 1),
         w,
         h
       };
@@ -11935,12 +11970,31 @@ function aquariumRatePerSec() {
   document.getElementById("aquarium-swimmers")?.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-aqua-index]");
     if (!btn) return;
+    e.stopPropagation();
     const index = Math.floor(Number(btn.dataset.aquaIndex));
     if (!Number.isFinite(index) || index < 0 || index >= state.cooler.length) return;
     const entry = normalizeCoolerEntry(state.cooler[index]);
     const fish = entry ? fishById(entry.id) : null;
     if (!fish) return;
     openBookInspect(fish.id, entry, { fromAquarium: true, coolerIndex: index });
+  });
+  document.getElementById("aquarium-tank")?.addEventListener("click", (e) => {
+    if (e.target.closest("[data-aqua-index]")) return;
+    if (e.target.closest("#aquarium-expand-close")) return;
+    if (!aquariumExpanded) setAquariumExpanded(true);
+  });
+  document.getElementById("aquarium-tank")?.addEventListener("keydown", (e) => {
+    if (e.code !== "Enter" && e.code !== "Space") return;
+    if (aquariumExpanded) return;
+    e.preventDefault();
+    setAquariumExpanded(true);
+  });
+  document.getElementById("aquarium-expand-close")?.addEventListener("click", (e) => {
+    e.stopPropagation();
+    setAquariumExpanded(false);
+  });
+  document.getElementById("aquarium-expand-backdrop")?.addEventListener("click", () => {
+    setAquariumExpanded(false);
   });
   document.getElementById("offline-claim-btn")?.addEventListener("click", () => claimOfflineBonus());
   document.getElementById("offline-claim-overlay")?.addEventListener("click", (e) => {
@@ -12291,13 +12345,19 @@ function aquariumRatePerSec() {
       closeAdmin();
       return;
     }
+    if (bookInspectEl && !bookInspectEl.classList.contains("hidden")) {
+      e.preventDefault();
+      closeBookInspect();
+      return;
+    }
+    if (aquariumExpanded) {
+      e.preventDefault();
+      setAquariumExpanded(false);
+      return;
+    }
     if (bookOverlay && !bookOverlay.classList.contains("hidden")) {
       e.preventDefault();
-      if (bookInspectEl && !bookInspectEl.classList.contains("hidden")) {
-        closeBookInspect();
-      } else {
-        closeBook();
-      }
+      closeBook();
       return;
     }
     if (guideOverlay && !guideOverlay.classList.contains("hidden")) {
