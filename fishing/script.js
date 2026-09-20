@@ -2725,6 +2725,7 @@ function aquariumRatePerSec() {
     const variant = String(entry?.variant || "").toLowerCase();
     const bits = [label, rarity, id, variant, fish.name?.toLowerCase() || ""];
     if (entry?.shiny) bits.push("shiny");
+    if (entry?.mutation) bits.push(String(entry.mutation).toLowerCase(), "mutation");
     if (entry?.perfect) bits.push("perfect");
     if (entry?.saved) bits.push("saved");
     return bits.some((b) => b && b.includes(q));
