@@ -7249,8 +7249,6 @@ body[data-spot="finalhorizon"] {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  position: sticky;
-  top: 0;
   align-self: flex-start;
   max-width: 11rem;
 }
