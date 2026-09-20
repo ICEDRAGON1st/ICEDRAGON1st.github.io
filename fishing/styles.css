@@ -480,6 +480,103 @@ body.no-lightning-flash .wx-flash {
   color: var(--foam);
 }
 
+.book-intro {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0 0 0.75rem;
+}
+
+.book-statline {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.65rem;
+  font-size: 0.95rem;
+  color: var(--foam);
+}
+
+.book-statline strong {
+  font-variant-numeric: tabular-nums;
+  color: var(--gold);
+}
+
+.book-view-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.book-active-bonuses {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--teal);
+}
+
+.book-active-bonuses[hidden] {
+  display: none;
+}
+
+.book-blurb {
+  margin: 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.book-blurb-tip {
+  font-size: 0.76rem;
+}
+
+.book-reward-list {
+  list-style: none;
+  margin: 0.1rem 0 0;
+  padding: 0.45rem 0.55rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: 0.28rem 0.75rem;
+  border-radius: 0.65rem;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.book-reward-list li {
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.3;
+  color: var(--muted);
+}
+
+.book-reward-list strong {
+  color: var(--foam);
+  font-variant-numeric: tabular-nums;
+  margin-right: 0.25rem;
+}
+
+.guide-intro {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0 0 0.75rem;
+}
+
+.guide-blurb {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.guide-blurb strong {
+  color: var(--foam);
+}
+
 .book-layout {
   display: flex;
   align-items: stretch;

@@ -1687,6 +1687,8 @@
   const bookBody = document.getElementById("book-body");
   const bookFiltersEl = document.getElementById("book-filters");
   const bookProgressEl = document.getElementById("book-progress");
+  const bookViewLabelEl = document.getElementById("book-view-label");
+  const bookActiveBonusesEl = document.getElementById("book-active-bonuses");
   const collectionHudEl = document.getElementById("collection-hud");
   const collectionHudPctEl = document.getElementById("collection-hud-pct");
   const collectionHudFillEl = document.getElementById("collection-hud-fill");
@@ -10945,6 +10947,12 @@ function aquariumRatePerSec() {
     const found = caughtCount();
     const pct = total > 0 ? Math.floor((found / total) * 100) : 0;
     if (bookProgressEl) {
+      bookProgressEl.textContent = `${found} / ${total} (${pct}%)`;
+    }
+    if (bookViewLabelEl) {
+      bookViewLabelEl.textContent = bookFilterLabel();
+    }
+    if (bookActiveBonusesEl) {
       const tiers = [];
       if (hasCollectionLuckBonus()) tiers.push(`${formatMult(COLLECTION_LUCK_MULT)}× luck`);
       if (hasCollectionRainbowBonus()) tiers.push(`${formatMult(COLLECTION_RAINBOW_MULT)}× rainbow`);
@@ -10952,10 +10960,13 @@ function aquariumRatePerSec() {
         tiers.push(`${formatMult(COLLECTION_LB_EVENT_MULT)}× LB events`);
       }
       if (hasCollectionLbAlwaysBonus()) tiers.push("LB anytime");
-      const reward = tiers.length
-        ? ` · ${tiers.join(" · ")}`
-        : ` · 75% luck · 80% rainbow · 90% LB event · 100% LB anytime`;
-      bookProgressEl.textContent = `${found} / ${total} (${pct}%) · ${bookFilterLabel()}${reward}`;
+      if (tiers.length) {
+        bookActiveBonusesEl.hidden = false;
+        bookActiveBonusesEl.textContent = `Active: ${tiers.join(" · ")}`;
+      } else {
+        bookActiveBonusesEl.hidden = true;
+        bookActiveBonusesEl.textContent = "";
+      }
     }
     if (bookFiltersEl) {
       const primaryBtns = BOOK_FILTERS.map(
