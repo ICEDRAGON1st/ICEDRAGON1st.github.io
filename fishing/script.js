@@ -11094,8 +11094,7 @@ function aquariumRatePerSec() {
     renderBook();
     bookOverlay?.classList.remove("hidden");
     lockPageScroll();
-    const root = bookOverlay?.querySelector(".guide-card");
-    if (root) root.scrollTop = 0;
+    if (bookBody) bookBody.scrollTop = 0;
   }
 
   function closeBook() {
@@ -11439,8 +11438,9 @@ function aquariumRatePerSec() {
   bookOverlay?.addEventListener(
     "wheel",
     (e) => {
+      const scroller = bookBody;
       const card = bookOverlay.querySelector(".guide-card");
-      if (!card) {
+      if (!scroller || !card) {
         e.preventDefault();
         return;
       }
@@ -11448,11 +11448,8 @@ function aquariumRatePerSec() {
         e.preventDefault();
         return;
       }
-      const atTop = card.scrollTop <= 0;
-      const atBottom = card.scrollTop + card.clientHeight >= card.scrollHeight - 1;
-      if ((e.deltaY < 0 && atTop) || (e.deltaY > 0 && atBottom)) {
-        e.preventDefault();
-      }
+      e.preventDefault();
+      scroller.scrollTop += e.deltaY;
     },
     { passive: false }
   );
