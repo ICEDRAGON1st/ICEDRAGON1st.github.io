@@ -1827,6 +1827,8 @@
       /** Cooler list controls */
       coolerSort: "value",
       coolerFilter: "all",
+      coolerSearch: "",
+      bookSearch: "",
       /** Pending offline haul claim */
       pendingOffline: null,
       /** Local community weekend contribution */
@@ -2703,6 +2705,29 @@ function aquariumRatePerSec() {
     startAquariumSwim();
   }
 
+  function normalizeSearchQuery(q) {
+    return String(q || "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .slice(0, 48);
+  }
+
+  function fishMatchesSearch(fish, entry, query) {
+    const q = normalizeSearchQuery(query);
+    if (!q) return true;
+    if (!fish) return false;
+    const label = formatFishName(fish, entry).toLowerCase();
+    const rarity = String(fish.rarity || "").toLowerCase();
+    const id = String(fish.id || "").toLowerCase();
+    const variant = String(entry?.variant || "").toLowerCase();
+    const bits = [label, rarity, id, variant, fish.name?.toLowerCase() || ""];
+    if (entry?.shiny) bits.push("shiny");
+    if (entry?.perfect) bits.push("perfect");
+    if (entry?.saved) bits.push("saved");
+    return bits.some((b) => b && b.includes(q));
+  }
+
   function coolerEntriesView() {
     const spot = currentSpot();
     let rows = state.cooler
@@ -2718,6 +2743,10 @@ function aquariumRatePerSec() {
     if (filter === "saved") rows = rows.filter((r) => r.entry.saved);
     else if (filter === "shiny") rows = rows.filter((r) => r.entry.shiny);
     else if (filter === "unsaved") rows = rows.filter((r) => !r.entry.saved);
+    const search = state.coolerSearch || "";
+    if (normalizeSearchQuery(search)) {
+      rows = rows.filter((r) => fishMatchesSearch(r.fish, r.entry, search));
+    }
     const sort = state.coolerSort || "value";
     rows.sort((a, b) => {
       if (sort === "rarity") {
@@ -5905,6 +5934,8 @@ function aquariumRatePerSec() {
       next.coolerFilter = ["all", "saved", "shiny", "unsaved"].includes(raw.coolerFilter)
         ? raw.coolerFilter
         : "all";
+      next.coolerSearch = String(raw.coolerSearch || "").slice(0, 48);
+      next.bookSearch = String(raw.bookSearch || "").slice(0, 48);
       next.pendingOffline =
         raw.pendingOffline && typeof raw.pendingOffline === "object" ? raw.pendingOffline : null;
       next.communityWeekKey = String(raw.communityWeekKey || "");
@@ -9379,7 +9410,9 @@ function aquariumRatePerSec() {
   let coolerRenderKey = "";
 
   function coolerKey() {
-    return `${state.spotId}|${state.coolerSort}|${state.coolerFilter}|${state.cooler
+    return `${state.spotId}|${state.coolerSort}|${state.coolerFilter}|${normalizeSearchQuery(
+      state.coolerSearch
+    )}|${state.cooler
       .map((e) => {
         const n = normalizeCoolerEntry(e) || {};
         return `${n.id || coolerEntryId(e)}${n.saved ? "*" : ""}${n.perfect ? "!" : ""}:${n.variant || ""}:${n.shiny ? 1 : 0}`;
@@ -9402,15 +9435,31 @@ function aquariumRatePerSec() {
     });
     const sortEl = document.getElementById("cooler-sort");
     const filterEl = document.getElementById("cooler-filter");
+    const searchEl = document.getElementById("cooler-search");
     if (sortEl && sortEl.value !== state.coolerSort) sortEl.value = state.coolerSort || "value";
     if (filterEl && filterEl.value !== state.coolerFilter) {
       filterEl.value = state.coolerFilter || "all";
+    }
+    if (searchEl && document.activeElement !== searchEl) {
+      const q = state.coolerSearch || "";
+      if (searchEl.value !== q) searchEl.value = q;
     }
     if (!coolerList) return;
     const nextKey = coolerKey();
     if (!force && nextKey === coolerRenderKey) return;
     coolerRenderKey = nextKey;
-    coolerList.innerHTML = coolerEntriesView()
+    const rows = coolerEntriesView();
+    const searchQ = normalizeSearchQuery(state.coolerSearch);
+    if (!rows.length) {
+      coolerList.innerHTML = searchQ
+        ? `<p class="cooler-empty">No fish matching “${searchQ.replace(/[<>&"]/g, "")}”</p>`
+        : `<p class="cooler-empty">Cooler is empty</p>`;
+      if (shinyMachineOverlay && !shinyMachineOverlay.classList.contains("hidden")) {
+        renderShinyMachine();
+      }
+      return;
+    }
+    coolerList.innerHTML = rows
       .map(({ index, entry, fish, val }) => {
         const saved = !!entry.saved;
         const label = formatFishName(fish, entry);
@@ -10709,16 +10758,23 @@ function aquariumRatePerSec() {
       bookFiltersEl.innerHTML = `${shinyBtn}<div class="book-filter-sep" aria-hidden="true"></div>${primaryBtns}`;
     }
     if (!bookBody) return;
+    const searchEl = document.getElementById("book-search");
+    if (searchEl && document.activeElement !== searchEl) {
+      const q = state.bookSearch || "";
+      if (searchEl.value !== q) searchEl.value = q;
+    }
     const byRarity = {};
     RARITIES.forEach((r) => {
       byRarity[r] = [];
     });
+    const bookQ = normalizeSearchQuery(state.bookSearch);
+    const showEntry = bookShowEntry();
     FISH.forEach((fish) => {
       if (!byRarity[fish.rarity]) byRarity[fish.rarity] = [];
+      if (bookQ && !fishMatchesSearch(fish, null, bookQ)) return;
       byRarity[fish.rarity].push(fish);
     });
-    const showEntry = bookShowEntry();
-    bookBody.innerHTML = RARITIES.map((rarity) => {
+    const sections = RARITIES.map((rarity) => {
       const list = byRarity[rarity] || [];
       if (!list.length) return "";
       const got = list.filter((f) => hasCaught(f.id)).length;
@@ -10749,6 +10805,11 @@ function aquariumRatePerSec() {
         <div class="book-grid">${cards}</div>
       </section>`;
     }).join("");
+    bookBody.innerHTML =
+      sections ||
+      (bookQ
+        ? `<p class="book-empty">No fish matching “${bookQ.replace(/[<>&"]/g, "")}”</p>`
+        : "");
   }
 
   let lastGuideBoostKey = "";
@@ -10848,6 +10909,17 @@ function aquariumRatePerSec() {
     state.coolerFilter = ["all", "saved", "shiny", "unsaved"].includes(v) ? v : "all";
     coolerRenderKey = "";
     renderCooler(true);
+    saveSoon();
+  });
+  document.getElementById("cooler-search")?.addEventListener("input", (e) => {
+    state.coolerSearch = normalizeSearchQuery(e.target.value);
+    coolerRenderKey = "";
+    renderCooler(true);
+    saveSoon();
+  });
+  document.getElementById("book-search")?.addEventListener("input", (e) => {
+    state.bookSearch = normalizeSearchQuery(e.target.value);
+    renderBook();
     saveSoon();
   });
   document.getElementById("aquarium-claim-btn")?.addEventListener("click", () => {

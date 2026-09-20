@@ -491,8 +491,6 @@ body.no-lightning-flash .wx-flash {
   display: flex;
   flex-direction: column;
   gap: 0.35rem;
-  position: sticky;
-  top: 0;
   padding-top: 0.1rem;
 }
 
@@ -583,6 +581,12 @@ body.no-lightning-flash .wx-flash {
   .book-layout {
     flex-direction: column;
     gap: 0.55rem;
+  }
+
+  .book-toolbar {
+    position: static;
+    max-width: none;
+    width: 100%;
   }
 
   .book-filters {
@@ -7213,7 +7217,8 @@ body[data-spot="finalhorizon"] {
   font-size: 0.72rem;
   color: var(--muted);
 }
-.cooler-ctrl select {
+.cooler-ctrl select,
+.cooler-ctrl input[type="search"] {
   font: inherit;
   font-size: 0.78rem;
   color: var(--foam);
@@ -7221,6 +7226,48 @@ body[data-spot="finalhorizon"] {
   border: 1px solid var(--border);
   border-radius: 0.4rem;
   padding: 0.2rem 0.35rem;
+}
+.cooler-search-ctrl input[type="search"] {
+  width: min(9.5rem, 42vw);
+  min-width: 6.5rem;
+}
+.cooler-search-ctrl input[type="search"]::placeholder {
+  color: rgba(186, 230, 253, 0.45);
+}
+.cooler-empty,
+.book-empty {
+  margin: 0.55rem 0 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.65rem;
+  border: 1px dashed var(--border);
+  background: rgba(0, 0, 0, 0.14);
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+.book-toolbar {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  max-width: 11rem;
+}
+#book-search {
+  width: 100%;
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--foam);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.4rem 0.5rem;
+}
+#book-search::placeholder {
+  color: rgba(186, 230, 253, 0.45);
 }
 .chip-mini-btn {
   margin-top: 0.25rem;

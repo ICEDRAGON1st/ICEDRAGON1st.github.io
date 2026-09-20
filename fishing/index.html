@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260921y">
+  <link rel="stylesheet" href="styles.css?v=20260921z">
 </head>
 <body data-spot="creek" data-hub-sound-btn="off">
   <div id="weather-fx" class="weather-fx" aria-hidden="true">
@@ -275,6 +275,17 @@
         <div class="cooler-head">
           <span>Cooler <strong id="cooler-count">0</strong>/<span id="cooler-max">12</span></span>
           <div class="cooler-controls">
+            <label class="cooler-ctrl cooler-search-ctrl">
+              <span>Search</span>
+              <input
+                id="cooler-search"
+                type="search"
+                placeholder="Name or rarity…"
+                autocomplete="off"
+                spellcheck="false"
+                aria-label="Search cooler fish"
+              />
+            </label>
             <label class="cooler-ctrl">
               <span>Sort</span>
               <select id="cooler-sort" aria-label="Sort cooler">
@@ -429,7 +440,17 @@
         Toggle <strong>Shiny</strong> on/off, then pick All, Normal, Silver, Gold, Diamond, or Rainbow.
       </p>
       <div class="book-layout">
-        <div id="book-filters" class="book-filters" role="tablist" aria-label="Variant filter"></div>
+        <div class="book-toolbar">
+          <input
+            id="book-search"
+            type="search"
+            placeholder="Search fish or rarity…"
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="Search catch book"
+          />
+          <div id="book-filters" class="book-filters" role="tablist" aria-label="Variant filter"></div>
+        </div>
         <div id="book-body" class="book-body"></div>
       </div>
     </div>
@@ -729,6 +750,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260917br"></script>
-  <script src="script.js?v=20260921z"></script>
+  <script src="script.js?v=20260922a"></script>
 </body>
 </html>
