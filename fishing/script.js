@@ -2674,9 +2674,7 @@ function aquariumRatePerSec() {
         )}" data-aqua-index="${index}" data-aqua-i="${i}" style="width:${fishW}px;height:${(
           Number(fishW) * 0.5
         ).toFixed(0)}px" title="${label} · tap to unsave" aria-label="Unsave ${label}">
-          <span class="aqua-fish-glyph" aria-hidden="true" style="animation-delay:${(-i * 0.13).toFixed(
-            2
-          )}s">${fishGlyphHtml(fish, entry)}</span>
+          <span class="aqua-fish-glyph" aria-hidden="true">${fishGlyphHtml(fish, entry)}</span>
         </button>`;
       })
       .join("");

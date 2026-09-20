@@ -7467,40 +7467,36 @@ body[data-spot="finalhorizon"] {
   display: block;
   width: 100%;
   height: 100%;
-  transform-origin: 72% 50%;
-  animation: aqua-tail-swim 0.5s ease-in-out infinite;
-}
-.aqua-fish.facing-left .aqua-fish-glyph {
-  transform-origin: 28% 50%;
-  animation-name: aqua-tail-swim-left;
 }
 .aqua-fish-glyph .fish-glyph {
   width: 100%;
   height: 100%;
   display: block;
+  overflow: visible;
 }
-@keyframes aqua-tail-swim {
+.aqua-fish-glyph .fish-glyph .tail {
+  transform-box: fill-box;
+  transform-origin: 100% 50%;
+  animation: aqua-tail-flick 0.48s ease-in-out infinite;
+}
+.aqua-fish:nth-child(odd) .fish-glyph .tail {
+  animation-duration: 0.42s;
+  animation-delay: -0.14s;
+}
+.aqua-fish:nth-child(3n) .fish-glyph .tail {
+  animation-duration: 0.56s;
+  animation-delay: -0.27s;
+}
+@keyframes aqua-tail-flick {
   0%,
   100% {
-    transform: skewX(0deg) scaleX(1);
+    transform: rotate(0deg);
   }
   25% {
-    transform: skewX(-11deg) scaleX(1.05);
+    transform: rotate(-16deg);
   }
   75% {
-    transform: skewX(9deg) scaleX(0.97);
-  }
-}
-@keyframes aqua-tail-swim-left {
-  0%,
-  100% {
-    transform: skewX(0deg) scaleX(1);
-  }
-  25% {
-    transform: skewX(11deg) scaleX(1.05);
-  }
-  75% {
-    transform: skewX(-9deg) scaleX(0.97);
+    transform: rotate(14deg);
   }
 }
 .aquarium-drip {
@@ -7510,7 +7506,7 @@ body[data-spot="finalhorizon"] {
 }
 @media (prefers-reduced-motion: reduce) {
   .aquarium-bubbles span,
-  .aqua-fish-glyph {
+  .aqua-fish-glyph .fish-glyph .tail {
     animation: none !important;
   }
 }
