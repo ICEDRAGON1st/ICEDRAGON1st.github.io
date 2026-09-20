@@ -6729,18 +6729,31 @@ function aquariumRatePerSec() {
   const BOOK_FILTERS = [
     { id: "any", label: "All" },
     { id: "base", label: "Normal" },
-    { id: "silver", label: "Silver" },
-    { id: "gold", label: "Gold" },
-    { id: "diamond", label: "Diamond" },
-    { id: "rainbow", label: "Rainbow" }
+    { id: "silver", label: "Silver", mult: 1.5 },
+    { id: "gold", label: "Gold", mult: 2 },
+    { id: "diamond", label: "Diamond", mult: 2.5 },
+    { id: "rainbow", label: "Rainbow", mult: 3 }
   ];
   const BOOK_MUTATIONS = [
-    { id: "toxic", label: "Toxic" },
-    { id: "lava", label: "Lava" }
+    { id: "toxic", label: "Toxic", mult: 4 },
+    { id: "lava", label: "Lava", mult: 5 }
   ];
   let bookFilter = "any";
   let bookShinyOn = false;
   let bookMutation = "";
+
+  function bookFilterMultText(mult) {
+    const n = Number(mult);
+    if (!Number.isFinite(n) || n <= 1) return "";
+    return `×${formatMult(n)}`;
+  }
+
+  function bookFilterButtonLabel(name, mult, on = false) {
+    const m = bookFilterMultText(mult);
+    const base = on ? `${name} On` : name;
+    if (!m) return base;
+    return `${base} <span class="book-filter-mult">${m}</span>`;
+  }
 
   function blankCaughtRecord() {
     const rec = {
@@ -11741,22 +11754,26 @@ function aquariumRatePerSec() {
             bookFilter === f.id ? " is-active" : ""
           }${f.id !== "any" && f.id !== "base" ? ` variant-${f.id}` : ""}" data-book-filter="${
             f.id
-          }" role="tab" aria-selected="${bookFilter === f.id}">${f.label}</button>`
+          }" role="tab" aria-selected="${bookFilter === f.id}" title="${
+            f.mult ? `${f.label} · ${bookFilterMultText(f.mult)} value` : f.label
+          }">${bookFilterButtonLabel(f.label, f.mult)}</button>`
       ).join("");
       const shinyBtn = `<button type="button" class="book-filter-btn variant-shiny book-shiny-toggle${
         bookShinyOn ? " is-active is-on" : ""
-      }" data-book-shiny-toggle="1" aria-pressed="${bookShinyOn}" title="Toggle shiny filter on or off">${
-        bookShinyOn ? "Shiny On" : "Shiny"
-      }</button>`;
+      }" data-book-shiny-toggle="1" aria-pressed="${bookShinyOn}" title="Toggle shiny filter · ×${formatMult(
+        SHINY_MULT
+      )} value">${bookFilterButtonLabel("Shiny", SHINY_MULT, bookShinyOn)}</button>`;
       const mutationBtns = BOOK_MUTATIONS.map(
         (m) =>
           `<button type="button" class="book-filter-btn mutation-${m.id} book-mutation-toggle${
             bookMutation === m.id ? " is-active is-on" : ""
           }" data-book-mutation="${m.id}" aria-pressed="${
             bookMutation === m.id
-          }" title="Toggle ${m.label} mutation look">${
-            bookMutation === m.id ? `${m.label} On` : m.label
-          }</button>`
+          }" title="Toggle ${m.label} mutation · ${bookFilterMultText(m.mult)} value">${bookFilterButtonLabel(
+            m.label,
+            m.mult,
+            bookMutation === m.id
+          )}</button>`
       ).join("");
       bookFiltersEl.innerHTML = `${shinyBtn}<div class="book-filter-sep" aria-hidden="true"></div>${primaryBtns}<div class="book-filter-sep" aria-hidden="true"></div><p class="book-filter-kicker">Mutations</p>${mutationBtns}`;
     }

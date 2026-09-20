@@ -607,17 +607,38 @@ body.no-lightning-flash .wx-flash {
   background: rgba(0, 0, 0, 0.32);
   color: var(--foam);
   font: inherit;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  padding: 0.55rem 0.6rem;
+  padding: 0.55rem 0.55rem;
   border-radius: 999px;
   min-width: 0;
   width: 100%;
   cursor: pointer;
   line-height: 1.15;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.28rem;
+  flex-wrap: wrap;
   transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.book-filter-mult {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  color: #9ad5cf;
+  opacity: 0.95;
+}
+
+.book-filter-btn.is-active .book-filter-mult,
+.book-filter-btn.book-shiny-toggle.is-on .book-filter-mult,
+.book-filter-btn.book-mutation-toggle.is-on .book-filter-mult {
+  color: inherit;
+  opacity: 1;
 }
 
 .book-filter-btn:hover {
