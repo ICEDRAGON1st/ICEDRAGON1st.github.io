@@ -1,4 +1,4 @@
-﻿{
+{
   "boost": {
     "kind": "money",
     "until": 1789487725563,
@@ -6,6 +6,9 @@
     "mult": 5
   },
   "variant": null,
+  "mutation": null,
   "chest": null,
+  "luckyblock": null,
+  "weather": null,
   "note": "admin-abuse"
 }

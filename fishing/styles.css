@@ -2740,6 +2740,68 @@ body[data-spot="mythforge"] .water-mist {
   }
 }
 
+.fish-glyph.mutation-toxic,
+.fish-chip.mutation-toxic .fish-glyph,
+.boat-haul-item.mutation-toxic .fish-glyph,
+.catch-sil.mutation-toxic .fish-glyph {
+  color: #86efac;
+  filter: drop-shadow(0 0 4px rgba(74, 222, 128, 0.55));
+  animation: mutation-toxic-pulse 1.8s ease-in-out infinite;
+}
+
+.fish-chip.mutation-toxic,
+.boat-haul-item.mutation-toxic {
+  border-color: rgba(74, 222, 128, 0.55);
+  box-shadow: inset 0 0 0 1px rgba(34, 197, 94, 0.18);
+}
+
+.fish-chip.mutation-toxic::before,
+.boat-haul-item.mutation-toxic::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle at 70% 30%,
+    rgba(134, 239, 172, 0.28),
+    transparent 55%
+  );
+  opacity: 0.85;
+}
+
+@keyframes mutation-toxic-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 3px rgba(74, 222, 128, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 7px rgba(134, 239, 172, 0.75));
+  }
+}
+
+.event-banner.event-mutation {
+  border-color: rgba(74, 222, 128, 0.45);
+  background: linear-gradient(120deg, rgba(20, 83, 45, 0.55), rgba(6, 40, 24, 0.4));
+}
+
+.event-banner.event-mutation strong,
+.event-banner.event-mutation .event-banner-time {
+  color: #bbf7d0;
+}
+
+.event-chip.event-mutation {
+  border-color: rgba(74, 222, 128, 0.5);
+}
+
+.event-chip.event-mutation strong {
+  color: #86efac;
+}
+
+body.event-mutation .cast-btn {
+  box-shadow: 0 0 0 1px rgba(74, 222, 128, 0.28), 0 12px 28px rgba(0, 0, 0, 0.35);
+}
+
 .fish-glyph.shape-ghost {
   opacity: 0.85;
   filter: drop-shadow(0 0 3px rgba(224, 176, 240, 0.45));

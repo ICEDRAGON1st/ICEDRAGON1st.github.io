@@ -110,6 +110,7 @@
   const ADMIN_EVENT_LOCAL_CHEST_KEY = "fishing-admin-chest-v1";
   const ADMIN_EVENT_LOCAL_LB_KEY = "fishing-admin-luckyblock-v1";
   const ADMIN_EVENT_LOCAL_WEATHER_KEY = "fishing-admin-weather-v1";
+  const ADMIN_EVENT_LOCAL_MUTATION_KEY = "fishing-admin-mutation-v1";
   const ADMIN_EVENT_PENDING_KEY = "fishing-admin-pending-v1";
   const FISH_GIFTS_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-gifts";
   const FISH_GIFTS_TOKEN = "ice-fish-gift-9f3a";
@@ -1781,6 +1782,7 @@
       bestCatchId: "",
       bestCatchVariant: "",
       bestCatchShiny: false,
+      bestCatchMutation: "",
       caught: {},
       boatLevel: 0,
       catches: 0,
@@ -2554,7 +2556,10 @@ function aquariumRatePerSec() {
 
   function aquariumKey() {
     return aquariumFishList()
-      .map(({ entry, fish }) => `${fish.id}:${entry.variant || ""}:${entry.shiny ? 1 : 0}`)
+      .map(
+        ({ entry, fish }) =>
+          `${fish.id}:${entry.variant || ""}:${entry.shiny ? 1 : 0}:${entry.mutation || ""}`
+      )
       .join("|");
   }
 
@@ -2995,6 +3000,7 @@ function aquariumRatePerSec() {
   let adminChestCache = null;
   let adminLuckyBlockCache = null;
   let adminWeatherCache = null;
+  let adminMutationCache = null;
   let adminEventFetchedAt = 0;
   let adminEventPollTimer = 0;
   let adminBusy = false;
@@ -3100,6 +3106,10 @@ function aquariumRatePerSec() {
   function adminEventKindLabel(e) {
     if (!e) return "";
     if (e.kind === "variant") return formatAdminVariantLabel(e.target);
+    if (e.kind === "mutation") {
+      const m = normalizeMutation(e.target) || "toxic";
+      return m.charAt(0).toUpperCase() + m.slice(1);
+    }
     if (e.kind === "chest") return "chests";
     if (e.kind === "luckyblock") return "lucky blocks";
     if (e.kind === "weather") {
@@ -3120,6 +3130,11 @@ function aquariumRatePerSec() {
       weatherId = normalizeAdminWeatherId(kind === "weather-none" ? "none" : kind);
       kind = "weather";
     }
+    let mutationTarget = normalizeMutation(data.target || data.mutation || "");
+    if (kind === "toxic" || MUTATIONS.includes(kind)) {
+      mutationTarget = normalizeMutation(kind === "mutation" ? mutationTarget || "toxic" : kind) || "toxic";
+      kind = "mutation";
+    }
     let target = normalizeAdminVariantTarget(
       data.target || data.variant || (isVariantTargetSpec(kind) ? kind : "")
     );
@@ -3131,6 +3146,7 @@ function aquariumRatePerSec() {
       kind !== "luck" &&
       kind !== "money" &&
       kind !== "variant" &&
+      kind !== "mutation" &&
       kind !== "chest" &&
       kind !== "luckyblock" &&
       kind !== "weather"
@@ -3138,6 +3154,11 @@ function aquariumRatePerSec() {
       return null;
     }
     if (kind === "variant" && !target) target = "gold";
+    if (kind === "mutation") {
+      mutationTarget = mutationTarget || normalizeMutation(data.target) || "toxic";
+      if (!mutationTarget) return null;
+      target = mutationTarget;
+    }
     if (kind === "weather") {
       weatherId = weatherId || normalizeAdminWeatherId(data.target) || "storm";
       if (!weatherId) return null;
@@ -3148,7 +3169,8 @@ function aquariumRatePerSec() {
     const startedAt = Math.floor(Number(data.startedAt) || until - EVENT_ACTIVE_MS);
     return {
       kind,
-      target: kind === "variant" || kind === "weather" ? target : "",
+      target:
+        kind === "variant" || kind === "weather" || kind === "mutation" ? target : "",
       until,
       startedAt: Number.isFinite(startedAt) ? startedAt : Date.now(),
       mult: kind === "weather" ? 1 : clampAdminMult(data.mult ?? ADMIN_DEFAULT_MULT),
@@ -3156,13 +3178,27 @@ function aquariumRatePerSec() {
     };
   }
 
-  /** Parse boost + variant + chest + luckyblock channels from bundle or legacy JSON. */
+  /** Parse boost + variant + chest + luckyblock + weather + mutation channels. */
   function parseAdminBundle(data, requireToken = false) {
     if (!data || typeof data !== "object") {
-      return { boost: null, variant: null, chest: null, luckyblock: null, weather: null };
+      return {
+        boost: null,
+        variant: null,
+        chest: null,
+        luckyblock: null,
+        weather: null,
+        mutation: null
+      };
     }
     if (requireToken && String(data.token || "") !== ADMIN_EVENT_TOKEN) {
-      return { boost: null, variant: null, chest: null, luckyblock: null, weather: null };
+      return {
+        boost: null,
+        variant: null,
+        chest: null,
+        luckyblock: null,
+        weather: null,
+        mutation: null
+      };
     }
     const inherit = { token: data.token || (requireToken ? ADMIN_EVENT_TOKEN : undefined) };
     let boost = null;
@@ -3170,6 +3206,7 @@ function aquariumRatePerSec() {
     let chest = null;
     let luckyblock = null;
     let weather = null;
+    let mutation = null;
     if (data.boost && typeof data.boost === "object") {
       boost = parseAdminEventPayload({ ...inherit, ...data.boost }, requireToken);
       if (boost && !isBoostAdminPayload(boost)) boost = null;
@@ -3208,6 +3245,13 @@ function aquariumRatePerSec() {
       );
       if (weather && !isWeatherAdminPayload(weather)) weather = null;
     }
+    if (data.mutation && typeof data.mutation === "object") {
+      mutation = parseAdminEventPayload(
+        { ...inherit, kind: data.mutation.kind || "mutation", ...data.mutation },
+        requireToken
+      );
+      if (mutation && !isMutationAdminPayload(mutation)) mutation = null;
+    }
     const single = parseAdminEventPayload(
       requireToken ? data : { ...data, token: data.token },
       requireToken
@@ -3218,8 +3262,9 @@ function aquariumRatePerSec() {
       if (isChestAdminPayload(single)) chest = pickBetterAdminEvent(chest, single);
       if (isLuckyBlockAdminPayload(single)) luckyblock = pickBetterAdminEvent(luckyblock, single);
       if (isWeatherAdminPayload(single)) weather = pickBetterAdminEvent(weather, single);
+      if (isMutationAdminPayload(single)) mutation = pickBetterAdminEvent(mutation, single);
     }
-    return { boost, variant, chest, luckyblock, weather };
+    return { boost, variant, chest, luckyblock, weather, mutation };
   }
 
   function isBoostAdminPayload(e) {
@@ -3228,6 +3273,10 @@ function aquariumRatePerSec() {
 
   function isVariantAdminPayload(e) {
     return !!e && e.kind === "variant";
+  }
+
+  function isMutationAdminPayload(e) {
+    return !!e && e.kind === "mutation" && !!normalizeMutation(e.target);
   }
 
   function isChestAdminPayload(e) {
@@ -3340,6 +3389,16 @@ function aquariumRatePerSec() {
     else writeStoredAdmin(ADMIN_EVENT_LOCAL_WEATHER_KEY, payload);
   }
 
+  function localAdminMutation() {
+    migrateLegacyAdminLocal();
+    return parseAdminEventPayload(readStoredAdmin(ADMIN_EVENT_LOCAL_MUTATION_KEY), true);
+  }
+
+  function setLocalAdminMutation(payload, clear = false) {
+    if (clear) writeStoredAdmin(ADMIN_EVENT_LOCAL_MUTATION_KEY, null);
+    else writeStoredAdmin(ADMIN_EVENT_LOCAL_MUTATION_KEY, payload);
+  }
+
   function adminWeatherEventLive(now = Date.now()) {
     const e = pickBetterAdminEvent(adminWeatherCache, localAdminWeather());
     if (!e || !isWeatherAdminPayload(e) || now >= e.until) return null;
@@ -3355,6 +3414,12 @@ function aquariumRatePerSec() {
   function adminVariantEventLive(now = Date.now()) {
     const e = pickBetterAdminEvent(adminVariantCache, localAdminVariant());
     if (!e || now >= e.until) return null;
+    return e;
+  }
+
+  function adminMutationEventLive(now = Date.now()) {
+    const e = pickBetterAdminEvent(adminMutationCache, localAdminMutation());
+    if (!e || !isMutationAdminPayload(e) || now >= e.until) return null;
     return e;
   }
 
@@ -3473,12 +3538,14 @@ function aquariumRatePerSec() {
     const chest = localAdminChest() || adminChestCache;
     const luckyblock = localAdminLuckyBlock() || adminLuckyBlockCache;
     const weather = localAdminWeather() || adminWeatherCache;
+    const mutation = localAdminMutation() || adminMutationCache;
     const now = Date.now();
     const liveBoost = boost && boost.until > now ? boost : null;
     const liveVariant = variant && variant.until > now ? variant : null;
     const liveChest = chest && chest.until > now ? chest : null;
     const liveLb = luckyblock && luckyblock.until > now ? luckyblock : null;
     const liveWeather = weather && weather.until > now ? weather : null;
+    const liveMutation = mutation && mutation.until > now ? mutation : null;
     return {
       token: ADMIN_EVENT_TOKEN,
       scope: scope === "global" ? "global" : "local",
@@ -3487,18 +3554,21 @@ function aquariumRatePerSec() {
       chest: serializeAdminChannel(liveChest),
       luckyblock: serializeAdminChannel(liveLb),
       weather: serializeAdminChannel(liveWeather),
+      mutation: serializeAdminChannel(liveMutation),
       // Legacy flat fields = boost preferred, else variant (old clients)
       kind:
         liveBoost?.kind ||
         liveVariant?.kind ||
+        liveMutation?.kind ||
         liveChest?.kind ||
         liveLb?.kind ||
         liveWeather?.kind ||
         "luck",
-      target: liveVariant?.target || liveWeather?.target || "",
+      target: liveVariant?.target || liveMutation?.target || liveWeather?.target || "",
       until: Math.max(
         liveBoost?.until || 0,
         liveVariant?.until || 0,
+        liveMutation?.until || 0,
         liveChest?.until || 0,
         liveLb?.until || 0,
         liveWeather?.until || 0
@@ -3506,6 +3576,7 @@ function aquariumRatePerSec() {
       startedAt: Math.max(
         liveBoost?.startedAt || 0,
         liveVariant?.startedAt || 0,
+        liveMutation?.startedAt || 0,
         liveChest?.startedAt || 0,
         liveLb?.startedAt || 0,
         liveWeather?.startedAt || 0,
@@ -3514,6 +3585,7 @@ function aquariumRatePerSec() {
       mult:
         liveBoost?.mult ||
         liveVariant?.mult ||
+        liveMutation?.mult ||
         liveChest?.mult ||
         liveLb?.mult ||
         liveWeather?.mult ||
@@ -3558,11 +3630,13 @@ function aquariumRatePerSec() {
     const remoteChest = pickBetterAdminEvent(remoteA.chest, remoteB.chest);
     const remoteLb = pickBetterAdminEvent(remoteA.luckyblock, remoteB.luckyblock);
     const remoteWeather = pickBetterAdminEvent(remoteA.weather, remoteB.weather);
+    const remoteMutation = pickBetterAdminEvent(remoteA.mutation, remoteB.mutation);
     adminBoostCache = pickBetterAdminEvent(remoteBoost, localAdminBoost());
     adminVariantCache = pickBetterAdminEvent(remoteVariant, localAdminVariant());
     adminChestCache = pickBetterAdminEvent(remoteChest, localAdminChest());
     adminLuckyBlockCache = pickBetterAdminEvent(remoteLb, localAdminLuckyBlock());
     adminWeatherCache = pickBetterAdminEvent(remoteWeather, localAdminWeather());
+    adminMutationCache = pickBetterAdminEvent(remoteMutation, localAdminMutation());
     syncAdminPanel();
     maybeRetryPendingAdminPush();
     applyWeatherFx();
@@ -3640,6 +3714,7 @@ function aquariumRatePerSec() {
       adminChestCache = bundle.chest;
       adminLuckyBlockCache = bundle.luckyblock;
       adminWeatherCache = bundle.weather;
+      adminMutationCache = bundle.mutation;
       syncAdminPanel();
       applyWeatherFx();
       setCatchLine("Admin event synced to all players", "treasure");
@@ -3662,6 +3737,7 @@ function aquariumRatePerSec() {
     if (!status || !owner) return;
     const boost = adminBoostEventLive();
     const variant = adminVariantEventLive();
+    const mutation = adminMutationEventLive();
     const chest = adminChestEventLive();
     const luckyblock = adminLuckyBlockEventLive();
     const weather = adminWeatherEventLive();
@@ -3677,6 +3753,12 @@ function aquariumRatePerSec() {
       const localOnly = String(readStoredAdmin(ADMIN_EVENT_LOCAL_VARIANT_KEY)?.scope || "") === "local";
       bits.push(
         `${formatMult(variant.mult)}× ${adminEventKindLabel(variant)} (${localOnly ? "local" : pending ? "syncing" : "global"} · ${formatTreasureClock(variant.until - Date.now())})`
+      );
+    }
+    if (mutation) {
+      const localOnly = String(readStoredAdmin(ADMIN_EVENT_LOCAL_MUTATION_KEY)?.scope || "") === "local";
+      bits.push(
+        `${formatMult(mutation.mult)}× ${adminEventKindLabel(mutation)} (${localOnly ? "local" : pending ? "syncing" : "global"} · ${formatTreasureClock(mutation.until - Date.now())})`
       );
     }
     if (chest) {
@@ -3701,7 +3783,7 @@ function aquariumRatePerSec() {
       status.textContent = `Live: ${bits.join(" · ")}`;
     } else {
       status.textContent =
-        "No admin event · luck/sell, variant, chests, lucky blocks, and weather can run together";
+        "No admin event · luck/sell, variant, mutation, chests, lucky blocks, and weather can run together";
     }
   }
 
@@ -3785,6 +3867,14 @@ function aquariumRatePerSec() {
         setLocalAdminWeather(payload, false);
         adminWeatherCache = parseAdminEventPayload(payload, true);
       }
+    } else if (channel === "mutation") {
+      if (clear) {
+        setLocalAdminMutation(null, true);
+        adminMutationCache = null;
+      } else {
+        setLocalAdminMutation(payload, false);
+        adminMutationCache = parseAdminEventPayload(payload, true);
+      }
     } else if (channel === "boost") {
       if (clear) {
         setLocalAdminBoost(null, true);
@@ -3796,17 +3886,20 @@ function aquariumRatePerSec() {
     } else if (channel === "all") {
       setLocalAdminBoost(null, true);
       setLocalAdminVariant(null, true);
+      setLocalAdminMutation(null, true);
       setLocalAdminChest(null, true);
       setLocalAdminLuckyBlock(null, true);
       setLocalAdminWeather(null, true);
       adminBoostCache = null;
       adminVariantCache = null;
+      adminMutationCache = null;
       adminChestCache = null;
       adminLuckyBlockCache = null;
       adminWeatherCache = null;
     }
     lastAnnouncedEventKey = "";
     lastAnnouncedVariantKey = "";
+    lastAnnouncedMutationKey = "";
     lastAnnouncedChestKey = "";
     lastAnnouncedLbEventKey = "";
     syncAdminPanel();
@@ -3847,6 +3940,8 @@ function aquariumRatePerSec() {
       rawKind === "clear-sell" ||
       rawKind === "clear-money";
     const clearVariantOnly = rawKind === "clear-variant";
+    const clearMutationOnly =
+      rawKind === "clear-mutation" || rawKind === "clear-toxic" || rawKind === "clear-mutations";
     const clearLuckyBlockOnly =
       rawKind === "clear-luckyblock" || rawKind === "clear-lb" || rawKind === "clear-block";
     const clearWeatherOnly =
@@ -3857,6 +3952,9 @@ function aquariumRatePerSec() {
     let eventTarget = normalizeAdminVariantTarget(
       target || (isVariantTargetSpec(eventKind) ? eventKind : "")
     );
+    let mutationTarget = normalizeMutation(
+      target || (eventKind === "mutation" ? "toxic" : eventKind)
+    );
     let weatherId = normalizeAdminWeatherId(
       eventKind === "weather" ? target : eventKind === "weather-none" ? "none" : eventKind
     );
@@ -3866,11 +3964,20 @@ function aquariumRatePerSec() {
     if (eventKind === "weather") {
       weatherId = weatherId || normalizeAdminWeatherId(target) || "storm";
       eventTarget = "";
+      mutationTarget = "";
+    }
+    if (eventKind === "toxic" || eventKind === "mutation" || MUTATIONS.includes(eventKind)) {
+      mutationTarget =
+        normalizeMutation(eventKind === "mutation" ? mutationTarget || "toxic" : eventKind) ||
+        "toxic";
+      eventKind = "mutation";
+      eventTarget = "";
     }
     if (
       eventKind !== "luck" &&
       eventKind !== "money" &&
       eventKind !== "variant" &&
+      eventKind !== "mutation" &&
       eventKind !== "chest" &&
       eventKind !== "luckyblock" &&
       eventKind !== "weather" &&
@@ -3880,21 +3987,28 @@ function aquariumRatePerSec() {
       eventKind = "variant";
     }
     if (eventKind === "variant" && !eventTarget) eventTarget = "gold";
+    if (eventKind === "mutation" && !mutationTarget) mutationTarget = "toxic";
 
     const isClear =
-      clearAll || clearBoostOnly || clearVariantOnly || clearLuckyBlockOnly || clearWeatherOnly;
+      clearAll ||
+      clearBoostOnly ||
+      clearVariantOnly ||
+      clearMutationOnly ||
+      clearLuckyBlockOnly ||
+      clearWeatherOnly;
     if (
       !isClear &&
       eventKind !== "luck" &&
       eventKind !== "money" &&
       eventKind !== "variant" &&
+      eventKind !== "mutation" &&
       eventKind !== "chest" &&
       eventKind !== "luckyblock" &&
       eventKind !== "weather"
     ) {
       adminBusy = false;
       setCatchLine(
-        "Try: 5x luck · storm · calm · sunny · 5x luckyblock · clear · clear weather",
+        "Try: 5x luck · 5x toxic · storm · calm · sunny · 5x luckyblock · clear · clear mutation",
         "miss"
       );
       return false;
@@ -3904,36 +4018,48 @@ function aquariumRatePerSec() {
       ? "all"
       : clearVariantOnly
         ? "variant"
-        : clearLuckyBlockOnly
-          ? "luckyblock"
-          : clearWeatherOnly
-            ? "weather"
-            : clearBoostOnly
-              ? "boost"
-              : eventKind === "variant"
-                ? "variant"
-                : eventKind === "chest"
-                  ? "chest"
-                  : eventKind === "luckyblock"
-                    ? "luckyblock"
-                    : eventKind === "weather"
-                      ? "weather"
-                      : "boost";
+        : clearMutationOnly
+          ? "mutation"
+          : clearLuckyBlockOnly
+            ? "luckyblock"
+            : clearWeatherOnly
+              ? "weather"
+              : clearBoostOnly
+                ? "boost"
+                : eventKind === "variant"
+                  ? "variant"
+                  : eventKind === "mutation"
+                    ? "mutation"
+                    : eventKind === "chest"
+                      ? "chest"
+                      : eventKind === "luckyblock"
+                        ? "luckyblock"
+                        : eventKind === "weather"
+                          ? "weather"
+                          : "boost";
 
     const channelPayload = {
       token: ADMIN_EVENT_TOKEN,
       kind:
         eventKind === "variant"
           ? "variant"
-          : eventKind === "chest"
-            ? "chest"
-            : eventKind === "luckyblock"
-              ? "luckyblock"
-              : eventKind === "weather"
-                ? "weather"
-                : eventKind,
+          : eventKind === "mutation"
+            ? "mutation"
+            : eventKind === "chest"
+              ? "chest"
+              : eventKind === "luckyblock"
+                ? "luckyblock"
+                : eventKind === "weather"
+                  ? "weather"
+                  : eventKind,
       target:
-        eventKind === "variant" ? eventTarget : eventKind === "weather" ? weatherId : "",
+        eventKind === "variant"
+          ? eventTarget
+          : eventKind === "mutation"
+            ? mutationTarget
+            : eventKind === "weather"
+              ? weatherId
+              : "",
       until: now + mins * 60_000,
       startedAt: now,
       mult: eventKind === "weather" ? 1 : eventMult,
@@ -3945,6 +4071,7 @@ function aquariumRatePerSec() {
     if (clearAll) applyAdminLocally("all", null, true);
     else if (clearBoostOnly) applyAdminLocally("boost", null, true);
     else if (clearVariantOnly) applyAdminLocally("variant", null, true);
+    else if (clearMutationOnly) applyAdminLocally("mutation", null, true);
     else if (clearLuckyBlockOnly) applyAdminLocally("luckyblock", null, true);
     else if (clearWeatherOnly) applyAdminLocally("weather", null, true);
     else applyAdminLocally(channel, channelPayload, false);
@@ -3956,22 +4083,26 @@ function aquariumRatePerSec() {
         ? "all events"
         : clearVariantOnly
           ? "variant"
-          : clearLuckyBlockOnly
-            ? "lucky blocks"
-            : clearWeatherOnly
-              ? "weather"
-              : "luck/sell"
+          : clearMutationOnly
+            ? "mutation"
+            : clearLuckyBlockOnly
+              ? "lucky blocks"
+              : clearWeatherOnly
+                ? "weather"
+                : "luck/sell"
       : eventKind === "variant"
         ? formatAdminVariantLabel(eventTarget)
-        : eventKind === "luckyblock"
-          ? "lucky blocks"
-          : eventKind === "chest"
-            ? "chests"
-            : eventKind === "weather"
-              ? weatherLabel
-              : eventKind === "luck"
-                ? "luck"
-                : "sell";
+        : eventKind === "mutation"
+          ? adminEventKindLabel({ kind: "mutation", target: mutationTarget })
+          : eventKind === "luckyblock"
+            ? "lucky blocks"
+            : eventKind === "chest"
+              ? "chests"
+              : eventKind === "weather"
+                ? weatherLabel
+                : eventKind === "luck"
+                  ? "luck"
+                  : "sell";
 
     const chanceNote =
       !isClear && eventKind === "luckyblock"
@@ -4104,6 +4235,7 @@ function aquariumRatePerSec() {
 
     let variant = "";
     let shiny = false;
+    let mutation = "";
     let perfect = false;
     const fishBits = [];
     rest
@@ -4116,10 +4248,13 @@ function aquariumRatePerSec() {
       .forEach((token) => {
         if (VARIANT_PRIMARY.includes(token)) variant = token;
         else if (token === "shiny") shiny = true;
-        else if (token === "perfect") perfect = true;
+        else if (MUTATIONS.includes(token) || token === "mutation") {
+          mutation = token === "mutation" ? "toxic" : token;
+        } else if (token === "perfect") perfect = true;
         else if (token === "normal" || token === "plain" || token === "base") {
           variant = "";
           shiny = false;
+          mutation = "";
         } else fishBits.push(token);
       });
 
@@ -4141,6 +4276,7 @@ function aquariumRatePerSec() {
       fishId: resolved.fish.id,
       variant,
       shiny,
+      mutation,
       perfect,
       count,
       to
@@ -4155,7 +4291,8 @@ function aquariumRatePerSec() {
       saved: !!opts.saved,
       perfect: !!opts.perfect,
       variant: variants.variant,
-      shiny: variants.shiny
+      shiny: variants.shiny,
+      mutation: variants.mutation
     };
     noteCatch(fish, entry);
     state.cooler.push(entry);
@@ -4255,6 +4392,7 @@ function aquariumRatePerSec() {
       item: payload.item || "",
       variant: normalizeVariant(payload.variant),
       shiny: !!payload.shiny,
+      mutation: normalizeMutation(payload.mutation),
       perfect: !!payload.perfect,
       count: Math.min(50, Math.max(1, Number(payload.count) || 1)),
       at: now,
@@ -4317,7 +4455,11 @@ function aquariumRatePerSec() {
       const fish = fishById(g.fishId);
       if (!fish) return;
       const entryOpts = {
-        variants: { variant: normalizeVariant(g.variant), shiny: !!g.shiny },
+        variants: {
+          variant: normalizeVariant(g.variant),
+          shiny: !!g.shiny,
+          mutation: normalizeMutation(g.mutation)
+        },
         perfect: !!g.perfect
       };
       for (let i = 0; i < count; i += 1) grantFishToLocal(fish, entryOpts);
@@ -4366,7 +4508,8 @@ function aquariumRatePerSec() {
     }
     const variants = {
       variant: normalizeVariant(cmd.variant),
-      shiny: !!cmd.shiny
+      shiny: !!cmd.shiny,
+      mutation: normalizeMutation(cmd.mutation)
     };
     const count = Math.min(50, Math.max(1, Number(cmd.count) || 1));
     const label = formatFishName(fish, variants);
@@ -4398,6 +4541,7 @@ function aquariumRatePerSec() {
       fishId: fish.id,
       variant: variants.variant,
       shiny: variants.shiny,
+      mutation: variants.mutation,
       perfect: !!cmd.perfect,
       count
     });
@@ -4440,6 +4584,9 @@ function aquariumRatePerSec() {
       }
       if (/\b(variant|silver|gold|diamond|rainbow|shiny|any)\b/.test(text)) {
         return { kind: "clear-variant", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
+      }
+      if (/\b(mutation|toxic|mutations)\b/.test(text)) {
+        return { kind: "clear-mutation", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
       }
       if (/\blucky\s*-?\s*blocks?\b|\bluckyblock\b|\blb\b/.test(text)) {
         return { kind: "clear-luckyblock", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
@@ -4506,6 +4653,9 @@ function aquariumRatePerSec() {
     }
     if (/\blucky\s*-?\s*blocks?\b/.test(text) || /\bluckyblock\b/.test(text) || text === "lb") {
       return { kind: "luckyblock", minutes, mult, scope, target: "" };
+    }
+    if (/\btoxic\b/.test(text) || /\bmutation\b/.test(text)) {
+      return { kind: "mutation", minutes, mult, scope, target: "toxic" };
     }
     if (/\bluck\b/.test(text) || text === "luck") {
       return { kind: "luck", minutes, mult, scope, target: "" };
@@ -4734,6 +4884,16 @@ function aquariumRatePerSec() {
     return decodeVariantTarget(variantEventTarget(now));
   }
 
+  function mutationEventMult(now = Date.now()) {
+    const e = adminMutationEventLive(now);
+    return e ? clampAdminMult(e.mult) : 1;
+  }
+
+  function mutationEventTarget(now = Date.now()) {
+    const e = adminMutationEventLive(now);
+    return e ? normalizeMutation(e.target) : "";
+  }
+
   function eventMoneyBonus(now = Date.now()) {
     if (!eventMoneyActive(now)) return 0;
     return Math.max(0, liveEventMult(now) - 1);
@@ -4760,6 +4920,7 @@ function aquariumRatePerSec() {
 
   let lastAnnouncedEventKey = "";
   let lastAnnouncedVariantKey = "";
+  let lastAnnouncedMutationKey = "";
   let lastAnnouncedChestKey = "";
   let lastAnnouncedLbEventKey = "";
 
@@ -4781,6 +4942,23 @@ function aquariumRatePerSec() {
       }
     } else {
       lastAnnouncedVariantKey = "";
+    }
+
+    const mutation = adminMutationEventLive();
+    if (mutation) {
+      const mKey = `mutation:${mutation.target}:${mutation.until}:${mutation.mult}`;
+      if (mKey !== lastAnnouncedMutationKey) {
+        lastAnnouncedMutationKey = mKey;
+        const left = formatTreasureClock(Math.max(0, mutation.until - Date.now()));
+        setCatchLine(
+          `ADMIN EVENT · ${formatMult(mutation.mult)}× ${adminEventKindLabel(mutation)} mutation (${left} left)`,
+          "treasure"
+        );
+        playSfx("win");
+        burstConfetti();
+      }
+    } else {
+      lastAnnouncedMutationKey = "";
     }
 
     const chest = adminChestEventLive();
@@ -4859,6 +5037,7 @@ function aquariumRatePerSec() {
     const kind = currentEventKind();
     const admin = adminBoostEventLive();
     const variant = adminVariantEventLive();
+    const mutation = adminMutationEventLive();
     const lbLive = luckyBlockEventIsLive();
     const nextStart = nextHalfHourStart();
     const nextKind = eventKindForStart(nextStart);
@@ -4867,7 +5046,8 @@ function aquariumRatePerSec() {
     const previewKind = live ? kind : nextKind;
     const multLabel = formatMult(live ? liveEventMult() : eventMultForStart(nextStart));
     const variantMult = variant ? formatMult(variant.mult) : "";
-    const anyLive = live || !!variant || lbLive;
+    const mutationMult = mutation ? formatMult(mutation.mult) : "";
+    const anyLive = live || !!variant || !!mutation || lbLive;
 
     if (eventBannerEl) {
       eventBannerEl.classList.toggle("event-idle", !anyLive);
@@ -4875,11 +5055,12 @@ function aquariumRatePerSec() {
       eventBannerEl.classList.toggle("event-money", live && previewKind === "money");
       eventBannerEl.classList.toggle("event-luck", live && previewKind === "luck");
       eventBannerEl.classList.toggle("event-variant", !!variant);
+      eventBannerEl.classList.toggle("event-mutation", !!mutation);
       eventBannerEl.classList.toggle("event-luckyblock", lbLive);
     }
     if (eventBannerTagEl) {
       eventBannerTagEl.textContent =
-        variant || admin ? "ADMIN LIVE" : anyLive ? "LIVE NOW" : "Next event";
+        variant || mutation || admin ? "ADMIN LIVE" : anyLive ? "LIVE NOW" : "Next event";
     }
     if (eventBannerTitleEl) {
       const parts = [];
@@ -4892,9 +5073,12 @@ function aquariumRatePerSec() {
       if (variant) {
         parts.push(`${variantMult}× ${formatAdminVariantLabel(variant.target)}`);
       }
+      if (mutation) {
+        parts.push(`${mutationMult}× ${adminEventKindLabel(mutation)}`);
+      }
       if (parts.length) {
         eventBannerTitleEl.textContent = `${parts.join(" + ")}${
-          admin || variant ? " · Admin" : " Event"
+          admin || variant || mutation ? " · Admin" : " Event"
         }`;
       } else {
         const untilLb = msUntilNextLuckyBlockEvent();
@@ -4916,6 +5100,7 @@ function aquariumRatePerSec() {
       if (live) times.push(eventMsLeft());
       if (lbLive) times.push(luckyBlockEventMsLeft());
       if (variant) times.push(Math.max(0, variant.until - Date.now()));
+      if (mutation) times.push(Math.max(0, mutation.until - Date.now()));
       if (times.length) {
         eventBannerTimeEl.textContent = `${formatBannerClock(Math.min(...times))} left`;
       } else {
@@ -5772,6 +5957,7 @@ function aquariumRatePerSec() {
       next.bestCatchId = typeof raw.bestCatchId === "string" ? raw.bestCatchId : "";
       next.bestCatchVariant = normalizeVariant(raw.bestCatchVariant);
       next.bestCatchShiny = !!raw.bestCatchShiny;
+      next.bestCatchMutation = normalizeMutation(raw.bestCatchMutation);
       if (!next.bestCatchScore) {
         next.bestCatchScore = getStoredBest();
       }
@@ -5788,6 +5974,8 @@ function aquariumRatePerSec() {
           if (meta.id && meta.id === next.bestCatchId) {
             next.bestCatchVariant = normalizeVariant(meta.variant) || next.bestCatchVariant;
             next.bestCatchShiny = !!(meta.shiny || next.bestCatchShiny);
+            next.bestCatchMutation =
+              normalizeMutation(meta.mutation) || next.bestCatchMutation;
           }
         }
       } catch {}
@@ -5795,6 +5983,7 @@ function aquariumRatePerSec() {
         next.bestCatchId = "";
         next.bestCatchVariant = "";
         next.bestCatchShiny = false;
+        next.bestCatchMutation = "";
       }
       next.caught = {};
       if (raw.caught && typeof raw.caught === "object") {
@@ -5965,6 +6154,16 @@ function aquariumRatePerSec() {
     rainbow: 3
   };
   const SHINY_MULT = 3;
+  /** Mutations stack with primary variants + shiny. Admin-gated for now. */
+  const MUTATIONS = ["toxic"];
+  const MUTATION_MULT = {
+    toxic: 4
+  };
+
+  function normalizeMutation(raw) {
+    const m = String(raw || "").toLowerCase();
+    return MUTATIONS.includes(m) ? m : "";
+  }
 
   function normalizeVariant(raw) {
     const v = String(raw || "").toLowerCase();
@@ -5972,10 +6171,11 @@ function aquariumRatePerSec() {
   }
 
   function normalizeVariants(raw) {
-    if (!raw || typeof raw !== "object") return { variant: "", shiny: false };
+    if (!raw || typeof raw !== "object") return { variant: "", shiny: false, mutation: "" };
     return {
       variant: normalizeVariant(raw.variant),
-      shiny: !!raw.shiny
+      shiny: !!raw.shiny,
+      mutation: normalizeMutation(raw.mutation)
     };
   }
 
@@ -6048,20 +6248,34 @@ function aquariumRatePerSec() {
       }
       if (!variant) variant = VARIANT_PRIMARY[VARIANT_PRIMARY.length - 1];
     }
-    return { variant, shiny: Math.random() < chances.shiny };
+    let mutation = "";
+    const mutTarget = mutationEventTarget();
+    const mutMult = mutationEventMult();
+    // Mutations are admin-only for now — no natural roll without a live event.
+    if (mutTarget && mutMult > 1) {
+      const chance = Math.min(0.95, 0.12 * mutMult);
+      if (Math.random() < chance) mutation = mutTarget;
+    }
+    return { variant, shiny: Math.random() < chances.shiny, mutation };
   }
 
   function variantValueMult(variantOrEntry, shinyFlag) {
     let variant = "";
     let shiny = false;
+    let mutation = "";
     if (variantOrEntry && typeof variantOrEntry === "object") {
       variant = normalizeVariant(variantOrEntry.variant);
       shiny = !!variantOrEntry.shiny;
+      mutation = normalizeMutation(variantOrEntry.mutation);
     } else {
       variant = normalizeVariant(variantOrEntry);
       shiny = !!shinyFlag;
     }
-    return (VARIANT_MULT[variant] || 1) * (shiny ? SHINY_MULT : 1);
+    return (
+      (VARIANT_MULT[variant] || 1) *
+      (shiny ? SHINY_MULT : 1) *
+      (MUTATION_MULT[mutation] || 1)
+    );
   }
 
   function formatVariantTitle(entry) {
@@ -6069,6 +6283,8 @@ function aquariumRatePerSec() {
     const v = normalizeVariant(entry?.variant);
     if (v) bits.push(v.charAt(0).toUpperCase() + v.slice(1));
     if (entry?.shiny) bits.push("Shiny");
+    const m = normalizeMutation(entry?.mutation);
+    if (m) bits.push(m.charAt(0).toUpperCase() + m.slice(1));
     return bits.join(" ");
   }
 
@@ -6083,13 +6299,17 @@ function aquariumRatePerSec() {
     const v = normalizeVariant(entry?.variant);
     if (v) classes.push(`variant-${v}`);
     if (entry?.shiny) classes.push("variant-shiny");
+    const m = normalizeMutation(entry?.mutation);
+    if (m) classes.push(`mutation-${m}`);
     return classes.join(" ");
   }
 
   function normalizeCoolerEntry(entry) {
     if (typeof entry === "string") {
       const id = String(entry);
-      return fishById(id) ? { id, saved: false, perfect: false, variant: "", shiny: false } : null;
+      return fishById(id)
+        ? { id, saved: false, perfect: false, variant: "", shiny: false, mutation: "" }
+        : null;
     }
     if (entry && typeof entry === "object") {
       const id = String(entry.id || "");
@@ -6100,7 +6320,8 @@ function aquariumRatePerSec() {
         saved: !!entry.saved,
         perfect: !!entry.perfect,
         variant: variants.variant,
-        shiny: variants.shiny
+        shiny: variants.shiny,
+        mutation: variants.mutation
       };
     }
     return null;
@@ -6155,22 +6376,25 @@ function aquariumRatePerSec() {
   function variantTier(entry) {
     const v = normalizeVariant(entry?.variant);
     const primary = v === "silver" ? 1 : v === "gold" ? 2 : v === "diamond" ? 3 : v === "rainbow" ? 4 : 0;
-    return primary + (entry?.shiny ? 5 : 0);
+    return primary + (entry?.shiny ? 5 : 0) + (normalizeMutation(entry?.mutation) ? 10 : 0);
   }
 
   function entryFromVariantTier(tier) {
-    const t = Math.max(0, Math.min(9, Math.floor(Number(tier) || 0)));
-    const shiny = t >= 5;
-    const primary = shiny ? t - 5 : t;
+    const t = Math.max(0, Math.min(19, Math.floor(Number(tier) || 0)));
+    const mutation = t >= 10 ? "toxic" : "";
+    const base = mutation ? t - 10 : t;
+    const shiny = base >= 5;
+    const primary = shiny ? base - 5 : base;
     const variant =
       primary === 1 ? "silver" : primary === 2 ? "gold" : primary === 3 ? "diamond" : primary === 4 ? "rainbow" : "";
-    return { variant, shiny };
+    return { variant, shiny, mutation };
   }
 
   function bestCatchEntry() {
     return {
       variant: normalizeVariant(state.bestCatchVariant),
-      shiny: !!state.bestCatchShiny
+      shiny: !!state.bestCatchShiny,
+      mutation: normalizeMutation(state.bestCatchMutation)
     };
   }
 
@@ -6200,7 +6424,8 @@ function aquariumRatePerSec() {
           rarity: fish.rarity,
           value: fish.value,
           variant: normalizeVariant(entry?.variant),
-          shiny: !!entry?.shiny
+          shiny: !!entry?.shiny,
+          mutation: normalizeMutation(entry?.mutation)
         })
       );
     } catch {}
@@ -6216,6 +6441,7 @@ function aquariumRatePerSec() {
     state.bestCatchId = fish.id;
     state.bestCatchVariant = normalizeVariant(entry?.variant);
     state.bestCatchShiny = !!entry?.shiny;
+    state.bestCatchMutation = normalizeMutation(entry?.mutation);
     try {
       localStorage.setItem(HIGH_SCORE_KEY, String(score));
     } catch {}
@@ -8425,7 +8651,8 @@ function aquariumRatePerSec() {
       saved: false,
       perfect: !!opts.perfect,
       variant: variants.variant,
-      shiny: variants.shiny
+      shiny: variants.shiny,
+      mutation: variants.mutation
     };
     noteCatch(fish, entry);
     if (opts.forceSell || shouldAutoSell(fish.rarity)) {
@@ -10272,9 +10499,14 @@ function aquariumRatePerSec() {
     document.body.classList.toggle("event-luck", eventLuckActive());
     document.body.classList.toggle("event-luckyblock", lbLive || lbPassive);
     document.body.classList.toggle("event-variant", !!adminVariantEventLive());
+    document.body.classList.toggle("event-mutation", !!adminMutationEventLive());
     document.body.classList.toggle(
       "event-idle",
-      !eventLive && !adminVariantEventLive() && !lbLive && !lbPassive
+      !eventLive &&
+        !adminVariantEventLive() &&
+        !adminMutationEventLive() &&
+        !lbLive &&
+        !lbPassive
     );
     applySpotTheme();
     if (coinCountEl) coinCountEl.textContent = formatNum(state.coins);
@@ -10325,15 +10557,21 @@ function aquariumRatePerSec() {
     if (sellLabelEl) sellLabelEl.textContent = formatPctBonus(totalSellFactor() - 1);
     if (eventChipEl) {
       const variant = adminVariantEventLive();
+      const mutation = adminMutationEventLive();
       const previewKind = eventLive ? eventKind : eventKindForStart(nextHalfHourStart());
       eventChipEl.classList.toggle("event-money", eventLive && previewKind === "money");
       eventChipEl.classList.toggle("event-luck", eventLive && previewKind === "luck");
       eventChipEl.classList.toggle("event-luckyblock", lbLive || lbPassive);
       eventChipEl.classList.toggle("event-variant", !!variant);
-      eventChipEl.classList.toggle("event-idle", !eventLive && !variant && !lbLive && !lbPassive);
+      eventChipEl.classList.toggle("event-mutation", !!mutation);
+      eventChipEl.classList.toggle(
+        "event-idle",
+        !eventLive && !variant && !mutation && !lbLive && !lbPassive
+      );
     }
     if (eventLabelEl) {
       const variant = adminVariantEventLive();
+      const mutation = adminMutationEventLive();
       const admin = adminBoostEventLive();
       const multLabel = formatMult(liveEventMult());
       const parts = [];
@@ -10358,11 +10596,17 @@ function aquariumRatePerSec() {
           )} · ${formatTreasureClock(Math.max(0, variant.until - Date.now()))}`
         );
       }
+      if (mutation) {
+        parts.push(
+          `Admin ${formatMult(mutation.mult)}× ${adminEventKindLabel(mutation)} · ${formatTreasureClock(Math.max(0, mutation.until - Date.now()))}`
+        );
+      }
       if (parts.length) {
         const hasTimed =
           (eventLive && (eventKind === "luck" || eventKind === "money")) ||
           lbLive ||
-          !!variant;
+          !!variant ||
+          !!mutation;
         eventLabelEl.textContent = hasTimed
           ? `${parts.join(" · ")} left`
           : parts.join(" · ");
