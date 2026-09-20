@@ -1685,6 +1685,7 @@
   const guideBody = document.getElementById("guide-body");
   const guideVariantsBody = document.getElementById("guide-variants-body");
   const bookBody = document.getElementById("book-body");
+  const bookSectionsEl = document.getElementById("book-sections");
   const bookFiltersEl = document.getElementById("book-filters");
   const bookProgressEl = document.getElementById("book-progress");
   const collectionHudEl = document.getElementById("collection-hud");
@@ -10973,7 +10974,7 @@ function aquariumRatePerSec() {
       }</button>`;
       bookFiltersEl.innerHTML = `${shinyBtn}<div class="book-filter-sep" aria-hidden="true"></div>${primaryBtns}`;
     }
-    if (!bookBody) return;
+    if (!bookSectionsEl && !bookBody) return;
     const searchEl = document.getElementById("book-search");
     if (searchEl && document.activeElement !== searchEl) {
       const q = state.bookSearch || "";
@@ -11021,11 +11022,13 @@ function aquariumRatePerSec() {
         <div class="book-grid">${cards}</div>
       </section>`;
     }).join("");
-    bookBody.innerHTML =
+    const html =
       sections ||
       (bookQ
         ? `<p class="book-empty">No fish matching “${bookQ.replace(/[<>&"]/g, "")}”</p>`
         : "");
+    if (bookSectionsEl) bookSectionsEl.innerHTML = html;
+    else bookBody.innerHTML = html;
   }
 
   let lastGuideBoostKey = "";

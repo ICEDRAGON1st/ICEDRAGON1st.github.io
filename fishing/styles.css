@@ -480,21 +480,17 @@ body.no-lightning-flash .wx-flash {
 }
 
 .book-layout {
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.65rem;
-  min-height: 0;
+  display: block;
 }
 
 .book-filters {
-  flex: 0 0 auto;
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
   gap: 0.35rem;
   padding-top: 0.1rem;
   width: 100%;
+  position: static;
 }
 
 .book-filter-sep {
@@ -571,22 +567,13 @@ body.no-lightning-flash .wx-flash {
 }
 
 .book-body {
-  flex: 1 1 auto;
-  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
+  min-width: 0;
 }
 
 @media (max-width: 560px) {
-  .book-layout {
-    gap: 0.55rem;
-  }
-
-  .book-toolbar {
-    width: 100%;
-  }
-
   .book-filter-btn {
     flex: 1 1 auto;
   }
@@ -7235,13 +7222,14 @@ body[data-spot="finalhorizon"] {
   font-size: 0.85rem;
 }
 .book-toolbar {
-  flex: 0 0 auto;
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
   width: 100%;
   max-width: none;
   position: static;
+  flex: 0 0 auto;
+  margin-bottom: 0.15rem;
 }
 #book-search {
   width: 100%;
