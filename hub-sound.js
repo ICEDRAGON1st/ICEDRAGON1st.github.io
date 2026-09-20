@@ -24,7 +24,7 @@
   function loadVolume() {
     const n = Number(localStorage.getItem(VOLUME_KEY));
     if (!Number.isFinite(n)) return 1;
-    return Math.max(0, Math.min(1, n));
+    return Math.max(0, Math.min(3, n));
   }
 
   let enabled = loadEnabled();
@@ -82,7 +82,7 @@
 
   function setVolume(next) {
     const n = Number(next);
-    volume = Number.isFinite(n) ? Math.max(0, Math.min(1, n)) : volume;
+    volume = Number.isFinite(n) ? Math.max(0, Math.min(3, n)) : volume;
     try {
       localStorage.setItem(VOLUME_KEY, String(volume));
     } catch {}

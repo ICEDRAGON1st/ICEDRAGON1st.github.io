@@ -10318,8 +10318,8 @@
       settingsSoundEnabled.checked = window.HubSound?.isEnabled?.() !== false;
     }
     const vol = Math.round((window.HubSound?.getVolume?.() ?? 1) * 100);
-    if (settingsVolume) settingsVolume.value = String(vol);
-    if (settingsVolumePct) settingsVolumePct.textContent = String(vol);
+    if (settingsVolume) settingsVolume.value = String(Math.max(0, Math.min(300, vol)));
+    if (settingsVolumePct) settingsVolumePct.textContent = String(Math.max(0, Math.min(300, vol)));
     if (settingsLightningFlash) settingsLightningFlash.checked = lightningFlashEnabled();
   }
 
