@@ -2290,6 +2290,19 @@
     return (communityCache.rewardUntil || 0) > now;
   }
 
+  function communityMeterFinished(cache = communityCache) {
+    const goal = Math.max(1, Number(cache.goal) || COMMUNITY_GOAL);
+    const total = Math.max(0, Number(cache.total) || 0);
+    return total >= goal && Math.max(0, Number(cache.lbWave) || 0) > 0;
+  }
+
+  /** Incomplete meters stay open every day; new meters start on weekends after a finish. */
+  function communityAcceptsCasts(now = Date.now()) {
+    if (communityRewardLive(now) && communityMeterFinished()) return false;
+    if (!communityMeterFinished()) return true;
+    return communityWeekendLive(now);
+  }
+
   function communityLuckMult(now = Date.now()) {
     return communityRewardLive(now) ? Number(communityCache.rewardMult) || COMMUNITY_REWARD_MULT : 1;
   }
@@ -2318,52 +2331,56 @@
   }
 
   async function syncCommunity(add = 0) {
-    const week = communityWeekKey();
-    if (state.communityWeekKey !== week) {
-      state.communityWeekKey = week;
-      state.communityContrib = 0;
-    }
-    if (add > 0) state.communityContrib += add;
-    if (!communityWeekendLive() && add <= 0 && !communityRewardLive()) {
-      communityCache = {
-        weekKey: week,
-        total: 0,
-        goal: COMMUNITY_GOAL,
-        rewardUntil: communityCache.rewardUntil || 0,
-        rewardMult: COMMUNITY_REWARD_MULT,
-        lbWave: communityCache.lbWave || 0
-      };
-      tryClaimCommunityAstral();
-      return communityCache;
-    }
+    const calendarWeek = communityWeekKey();
     const remote = (await fetchCommunityDoc()) || {};
     let total = Math.max(0, Math.floor(Number(remote.total) || 0));
     let rewardUntil = Math.max(0, Number(remote.rewardUntil) || 0);
     let lbWave = Math.max(0, Math.floor(Number(remote.lbWave) || 0));
-    const remoteWeek = String(remote.weekKey || "");
+    let meterKey = String(remote.weekKey || calendarWeek);
+    const goal = Math.max(500, Math.floor(Number(remote.goal) || COMMUNITY_GOAL));
     const prevTotal = total;
     const prevWave = lbWave;
     const prevRewardUntil = rewardUntil;
-    if (remoteWeek !== week) {
+    const prevKey = meterKey;
+
+    const finished = total >= goal && lbWave > 0;
+    const rewardOver = rewardUntil <= Date.now();
+
+    // Only reset after the goal is finished (and the luck reward window ends)
+    if (finished && rewardOver) {
+      meterKey = calendarWeek;
+      if (meterKey === String(remote.weekKey)) {
+        meterKey = `${calendarWeek}-n${Math.floor(Date.now() / 60000)}`;
+      }
       total = 0;
-      rewardUntil = 0;
       lbWave = 0;
+      rewardUntil = 0;
     }
-    total = Math.max(total + Math.max(0, add), state.communityContrib);
-    const goal = Math.max(500, Math.floor(Number(remote.goal) || COMMUNITY_GOAL));
+
+    if (state.communityWeekKey !== meterKey) {
+      state.communityWeekKey = meterKey;
+      state.communityContrib = 0;
+    }
+
+    const blockingReward = total >= goal && lbWave > 0 && rewardUntil > Date.now();
+    const castAdd = add > 0 && !blockingReward ? Math.max(0, Math.floor(add)) : 0;
+    if (castAdd > 0) state.communityContrib += castAdd;
+
+    total = Math.max(total + castAdd, state.communityContrib);
+
     let completedNow = false;
     if (total >= goal) {
       if (rewardUntil < Date.now()) {
         rewardUntil = Date.now() + COMMUNITY_REWARD_MS;
       }
-      // First time this week hits the goal → mint a completion wave for LB grants
       if (!lbWave) {
         lbWave = Date.now();
         completedNow = true;
       }
     }
+
     communityCache = {
-      weekKey: week,
+      weekKey: meterKey,
       total,
       goal,
       rewardUntil,
@@ -2372,8 +2389,8 @@
     };
     communityFetchAt = Date.now();
     if (
-      add > 0 ||
-      remoteWeek !== week ||
+      castAdd > 0 ||
+      meterKey !== prevKey ||
       total !== prevTotal ||
       lbWave !== prevWave ||
       rewardUntil !== prevRewardUntil ||
@@ -8125,7 +8142,7 @@
     const spot = currentSpot();
     notePerfectCombo(perfect);
     noteSpotCast(spot.id, 1);
-    if (communityWeekendLive()) {
+    if (communityAcceptsCasts()) {
       syncCommunity(1).catch(() => {});
     }
 
@@ -9701,6 +9718,8 @@
     const total = communityCache.total || 0;
     const goal = communityCache.goal || COMMUNITY_GOAL;
     const pct = Math.min(100, Math.floor((100 * total) / Math.max(1, goal)));
+    const finished = communityMeterFinished();
+    const meterLive = !finished || reward || weekend;
     if (communityLabel) {
       if (reward) {
         const lbTip =
@@ -9714,18 +9733,17 @@
         communityLabel.textContent = `${formatMult(communityCache.rewardMult || COMMUNITY_REWARD_MULT)}× luck · ${formatTreasureClock(
           Math.max(0, communityCache.rewardUntil - now)
         )}${lbTip}`;
+      } else if (!finished) {
+        communityLabel.textContent = `${formatNum(total)}/${formatNum(goal)} · ${pct}% · you ${formatNum(
+          state.communityContrib || 0
+        )} · stays until done`;
       } else if (weekend) {
-        const done = total >= goal;
-        communityLabel.textContent = done
-          ? `Done! · you ${formatNum(state.communityContrib || 0)} · Astral for helpers`
-          : `${formatNum(total)}/${formatNum(goal)} · ${pct}% · you ${formatNum(
-              state.communityContrib || 0
-            )}`;
+        communityLabel.textContent = `Ready · you ${formatNum(state.communityContrib || 0)}`;
       } else {
-        communityLabel.textContent = "Fri–Sun meter";
+        communityLabel.textContent = "Next meter Fri–Sun";
       }
     }
-    communityChip?.classList.toggle("is-live", weekend || reward);
+    communityChip?.classList.toggle("is-live", meterLive && (!finished || reward || weekend));
     communityChip?.classList.toggle("is-reward", reward);
     const fill = document.getElementById("community-fill");
     if (fill) fill.style.width = `${pct}%`;
