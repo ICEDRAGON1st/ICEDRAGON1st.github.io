@@ -285,8 +285,8 @@
         const cur = Math.max(0.0001, rainGain.gain.value);
         rainGain.gain.cancelScheduledValues(now);
         rainGain.gain.setValueAtTime(cur, now);
-        rainGain.gain.exponentialRampToValueAtTime(0.1, now + 0.1);
-        rainGain.gain.exponentialRampToValueAtTime(0.36, now + 4);
+        rainGain.gain.exponentialRampToValueAtTime(0.05, now + 0.1);
+        rainGain.gain.exponentialRampToValueAtTime(0.18, now + 4);
       } catch {}
     }
 
