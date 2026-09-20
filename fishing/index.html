@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260923h">
+  <link rel="stylesheet" href="styles.css?v=20260923i">
 </head>
 <body data-spot="creek" data-hub-sound-btn="off">
   <div id="weather-fx" class="weather-fx" aria-hidden="true">
@@ -491,7 +491,7 @@
         <p class="guide-blurb">
           Value variants (one primary): <strong>Silver</strong> ×1.5 · <strong>Gold</strong> ×2 · <strong>Diamond</strong> ×2.5 · <strong>Rainbow</strong> ×3.
           <strong>Shiny</strong> ×3 is separate and stacks (e.g. Gold Shiny = ×6).
-          <strong>Mutations</strong> (admin for now): <strong>Toxic</strong> ×4 stacks on top.
+          <strong>Mutations</strong> (admin for now): <strong>Toxic</strong> ×4 · <strong>Lava</strong> ×5 — stack on top.
         </p>
         <p class="guide-blurb">
           This spot pays <strong id="guide-spot-mult">×0.7</strong> at <span id="guide-spot-name">Creek</span> and makes rares harder.
@@ -506,7 +506,7 @@
         <h3 class="guide-section-title">Variants</h3>
         <p class="guide-variants-note">
           Rolled on every fish (not chests). Only one primary can hit; Shiny is separate and can stack (e.g. Gold Shiny = ×6).
-          Mutations (Toxic ×4) are admin-gated for now and also stack. Odds rise with luck and match your current gear / boosts.
+          Mutations (Toxic ×4 · Lava ×5) are admin-gated for now and also stack. Odds rise with luck and match your current gear / boosts.
         </p>
         <div class="guide-table-wrap guide-variants-wrap">
           <table class="guide-table guide-variants-table">
@@ -668,6 +668,7 @@
         <button type="button" class="btn btn-ghost" data-admin-cmd="shiny">Start shiny</button>
         <button type="button" class="btn btn-ghost" data-admin-cmd="shiny + gold">Shiny + gold</button>
         <button type="button" class="btn btn-ghost" data-admin-cmd="toxic">Start toxic</button>
+        <button type="button" class="btn btn-ghost" data-admin-cmd="lava">Start lava</button>
         <button type="button" class="btn btn-ghost" data-admin-cmd="luckyblock">Start lucky blocks</button>
         <button type="button" class="btn btn-ghost" data-admin-cmd="storm">Storm</button>
         <button type="button" class="btn btn-ghost" data-admin-cmd="calm">Calm seas</button>
@@ -686,7 +687,7 @@
           id="admin-cmd-input"
           type="text"
           maxlength="120"
-          placeholder="storm · 5x toxic · 5x luck · clear mutation"
+          placeholder="storm · 5x toxic · 5x lava · 5x luck · clear mutation"
           autocomplete="off"
           spellcheck="false"
         />
@@ -780,6 +781,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260917br"></script>
-  <script src="script.js?v=20260923h"></script>
+  <script src="script.js?v=20260923i"></script>
 </body>
 </html>

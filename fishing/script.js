@@ -4268,7 +4268,7 @@ function aquariumRatePerSec() {
     ) {
       adminBusy = false;
       setCatchLine(
-        "Try: 5x luck · 5x toxic · storm · calm · sunny · 5x luckyblock · clear · clear mutation",
+        "Try: 5x luck · 5x toxic · 5x lava · storm · calm · sunny · 5x luckyblock · clear · clear mutation",
         "miss"
       );
       return false;
@@ -4845,7 +4845,7 @@ function aquariumRatePerSec() {
       if (/\b(variant|silver|gold|diamond|rainbow|shiny|any)\b/.test(text)) {
         return { kind: "clear-variant", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
       }
-      if (/\b(mutation|toxic|mutations)\b/.test(text)) {
+      if (/\b(mutation|toxic|lava|mutations)\b/.test(text)) {
         return { kind: "clear-mutation", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
       }
       if (/\blucky\s*-?\s*blocks?\b|\bluckyblock\b|\blb\b/.test(text)) {
@@ -4913,6 +4913,9 @@ function aquariumRatePerSec() {
     }
     if (/\blucky\s*-?\s*blocks?\b/.test(text) || /\bluckyblock\b/.test(text) || text === "lb") {
       return { kind: "luckyblock", minutes, mult, scope, target: "" };
+    }
+    if (/\blava\b/.test(text)) {
+      return { kind: "mutation", minutes, mult, scope, target: "lava" };
     }
     if (/\btoxic\b/.test(text) || /\bmutation\b/.test(text)) {
       return { kind: "mutation", minutes, mult, scope, target: "toxic" };
@@ -6421,9 +6424,10 @@ function aquariumRatePerSec() {
   };
   const SHINY_MULT = 3;
   /** Mutations stack with primary variants + shiny. Admin-gated for now. */
-  const MUTATIONS = ["toxic"];
+  const MUTATIONS = ["toxic", "lava"];
   const MUTATION_MULT = {
-    toxic: 4
+    toxic: 4,
+    lava: 5
   };
 
   function normalizeMutation(raw) {
@@ -6723,13 +6727,16 @@ function aquariumRatePerSec() {
     { id: "diamond", label: "Diamond" },
     { id: "rainbow", label: "Rainbow" }
   ];
-  const BOOK_MUTATIONS = [{ id: "toxic", label: "Toxic" }];
+  const BOOK_MUTATIONS = [
+    { id: "toxic", label: "Toxic" },
+    { id: "lava", label: "Lava" }
+  ];
   let bookFilter = "any";
   let bookShinyOn = false;
   let bookMutation = "";
 
   function blankCaughtRecord() {
-    return {
+    const rec = {
       any: false,
       base: false,
       silver: false,
@@ -6737,9 +6744,12 @@ function aquariumRatePerSec() {
       diamond: false,
       rainbow: false,
       shiny: false,
-      toxic: false,
       looks: {}
     };
+    MUTATIONS.forEach((m) => {
+      rec[m] = false;
+    });
+    return rec;
   }
 
   /** Exact catch look key, e.g. base+toxic, silver+toxic, silver+shiny+toxic. */
@@ -6780,18 +6790,26 @@ function aquariumRatePerSec() {
       !!raw.diamond ||
       !!raw.rainbow ||
       !!raw.shiny ||
-      !!raw.toxic;
+      MUTATIONS.some((m) => !!raw[m]);
     rec.base = !!raw.base;
     rec.silver = !!raw.silver;
     rec.gold = !!raw.gold;
     rec.diamond = !!raw.diamond;
     rec.rainbow = !!raw.rainbow;
     rec.shiny = !!raw.shiny;
-    rec.toxic = !!raw.toxic;
+    MUTATIONS.forEach((m) => {
+      rec[m] = !!raw[m];
+    });
     rec.looks = normalizeCaughtLooks(raw.looks);
     if (
       !rec.any &&
-      (rec.base || rec.silver || rec.gold || rec.diamond || rec.rainbow || rec.shiny || rec.toxic)
+      (rec.base ||
+        rec.silver ||
+        rec.gold ||
+        rec.diamond ||
+        rec.rainbow ||
+        rec.shiny ||
+        MUTATIONS.some((m) => rec[m]))
     ) {
       rec.any = true;
     }
@@ -7365,6 +7383,42 @@ function aquariumRatePerSec() {
       </g>`;
   }
 
+  /** Lava mutation: magma cracks, embers, molten glow. */
+  function fishGlyphLavaDetails(gid) {
+    return `<defs>
+        <radialGradient id="${gid}-lava-glow" cx="0.48" cy="0.42" r="0.72">
+          <stop offset="0%" stop-color="#fdba74" stop-opacity="0.65"/>
+          <stop offset="40%" stop-color="#f97316" stop-opacity="0.28"/>
+          <stop offset="100%" stop-color="#7c2d12" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="${gid}-lava-molten" x1="0" y1="0" x2="0.25" y2="1">
+          <stop offset="0%" stop-color="#fde68a" stop-opacity="0.9"/>
+          <stop offset="45%" stop-color="#f97316" stop-opacity="0.75"/>
+          <stop offset="100%" stop-color="#9a3412" stop-opacity="0.8"/>
+        </linearGradient>
+      </defs>
+      <ellipse class="lava-haze" cx="34" cy="16" rx="26" ry="11" fill="url(#${gid}-lava-glow)"/>
+      <g class="lava-marks">
+        <ellipse class="lava-blotch" cx="28" cy="14" rx="4.8" ry="3.1" fill="#431407" opacity="0.6"/>
+        <ellipse class="lava-blotch" cx="41" cy="18.5" rx="3.9" ry="2.6" fill="#7c2d12" opacity="0.55"/>
+        <ellipse class="lava-blotch" cx="22" cy="19" rx="2.8" ry="1.9" fill="#9a3412" opacity="0.48"/>
+        <path class="lava-crack" d="M21 13 C27 15 33 12 40 16 C44 18 48 15 52 17" fill="none" stroke="url(#${gid}-lava-molten)" stroke-width="1.15" opacity="0.9"/>
+        <path class="lava-crack" d="M24 20 C30 18 36 21 45 19" fill="none" stroke="#fb923c" stroke-width="0.7" opacity="0.7"/>
+        <path class="lava-crack" d="M26 11 C31 13 37 11 42 14" fill="none" stroke="#fbbf24" stroke-width="0.55" opacity="0.65"/>
+        <ellipse class="lava-vent" cx="34" cy="15.5" rx="3.4" ry="1.3" fill="url(#${gid}-lava-molten)" opacity="0.85" transform="rotate(-12 34 15.5)"/>
+        <circle class="lava-ember" cx="31" cy="10" r="1.2" fill="#fde68a" opacity="0.9"/>
+        <circle class="lava-ember" cx="44" cy="13.5" r="1" fill="#fb923c" opacity="0.85"/>
+        <circle class="lava-ember" cx="25" cy="16" r="0.85" fill="#f97316" opacity="0.75"/>
+        <circle class="lava-ember" cx="38" cy="19" r="0.7" fill="#fdba74" opacity="0.7"/>
+        <circle class="lava-spark" cx="36" cy="9" r="1.5" fill="none" stroke="#fdba74" stroke-width="0.6" opacity="0.55"/>
+        <circle class="lava-spark" cx="20" cy="15" r="1.1" fill="none" stroke="#f97316" stroke-width="0.5" opacity="0.5"/>
+        <path class="lava-drip" d="M29 22 Q30.2 26 29.4 29" fill="none" stroke="#f97316" stroke-width="1.3" stroke-linecap="round" opacity="0.85"/>
+        <path class="lava-drip" d="M37 23 Q38.4 27 37.5 30" fill="none" stroke="#fb923c" stroke-width="1.05" stroke-linecap="round" opacity="0.75"/>
+        <circle class="lava-drip-bead" cx="29.4" cy="29" r="1.2" fill="#fbbf24" opacity="0.9"/>
+        <circle class="lava-drip-bead" cx="37.5" cy="30" r="1" fill="#f97316" opacity="0.85"/>
+      </g>`;
+  }
+
   function fishGlyphParts(shape) {
     switch (shape) {
       case "catfish":
@@ -7825,7 +7879,9 @@ function aquariumRatePerSec() {
     else if (variant === "diamond") tone = "#9adcf5";
     else if (variant === "rainbow") tone = "#ff8fab";
     if (mutation === "toxic") tone = "#65a30d";
+    else if (mutation === "lava") tone = "#ea580c";
     const isToxic = mutation === "toxic";
+    const isLava = mutation === "lava";
     const gid = `fg-${String(id || shape).replace(/[^a-z0-9]/gi, "")}${variant}${shiny ? "s" : ""}${mutation || ""}${Math.abs(
       Math.imul(
         [...`${id || shape}:${tone}:${variant}:${shiny}:${mutation}`].reduce(
@@ -7845,33 +7901,53 @@ function aquariumRatePerSec() {
       .replace(/\bclass="tail"/g, `class="tail" fill="url(#${gid}-fin)"`)
       .replace(/\bclass="bill"/g, `class="bill" fill="url(#${gid}-fin)"`);
     const accents = fishGlyphAccents(look, gid);
-    const toxicDetails = isToxic ? fishGlyphToxicDetails(gid) : "";
+    const mutationDetails = isToxic
+      ? fishGlyphToxicDetails(gid)
+      : isLava
+        ? fishGlyphLavaDetails(gid)
+        : "";
     const extraClass = variantClassList(entry);
-    const bodyStops = isToxic
-      ? `<stop offset="0%" stop-color="#a3e635"/>
+    let bodyStops;
+    let bellyStops;
+    let shadeStops;
+    let finStops;
+    if (isToxic) {
+      bodyStops = `<stop offset="0%" stop-color="#a3e635"/>
           <stop offset="35%" stop-color="#4ade80" stop-opacity="0.95"/>
           <stop offset="70%" stop-color="#166534" stop-opacity="0.9"/>
-          <stop offset="100%" stop-color="#052e16" stop-opacity="0.85"/>`
-      : `<stop offset="0%" stop-color="currentColor"/>
+          <stop offset="100%" stop-color="#052e16" stop-opacity="0.85"/>`;
+      bellyStops = `<stop offset="0%" stop-color="#d9f99d" stop-opacity="0.45"/>
+          <stop offset="55%" stop-color="#86efac" stop-opacity="0.35"/>
+          <stop offset="100%" stop-color="#14532d" stop-opacity="0.55"/>`;
+      shadeStops = `<stop offset="0%" stop-color="#022c22" stop-opacity="0.72"/>
+          <stop offset="100%" stop-color="#3f6212" stop-opacity="0.35"/>`;
+      finStops = `<stop offset="0%" stop-color="#bef264" stop-opacity="0.95"/>
+          <stop offset="55%" stop-color="#22c55e" stop-opacity="0.85"/>
+          <stop offset="100%" stop-color="#052e16" stop-opacity="0.55"/>`;
+    } else if (isLava) {
+      bodyStops = `<stop offset="0%" stop-color="#fdba74"/>
+          <stop offset="30%" stop-color="#f97316" stop-opacity="0.98"/>
+          <stop offset="65%" stop-color="#c2410c" stop-opacity="0.92"/>
+          <stop offset="100%" stop-color="#431407" stop-opacity="0.9"/>`;
+      bellyStops = `<stop offset="0%" stop-color="#fde68a" stop-opacity="0.55"/>
+          <stop offset="55%" stop-color="#fb923c" stop-opacity="0.4"/>
+          <stop offset="100%" stop-color="#7c2d12" stop-opacity="0.6"/>`;
+      shadeStops = `<stop offset="0%" stop-color="#1c1917" stop-opacity="0.78"/>
+          <stop offset="100%" stop-color="#9a3412" stop-opacity="0.4"/>`;
+      finStops = `<stop offset="0%" stop-color="#fbbf24" stop-opacity="0.95"/>
+          <stop offset="55%" stop-color="#ea580c" stop-opacity="0.88"/>
+          <stop offset="100%" stop-color="#431407" stop-opacity="0.6"/>`;
+    } else {
+      bodyStops = `<stop offset="0%" stop-color="currentColor"/>
           <stop offset="55%" stop-color="currentColor" stop-opacity="0.92"/>
           <stop offset="100%" stop-color="#f7fbff" stop-opacity="${look.belly.toFixed(2)}"/>`;
-    const bellyStops = isToxic
-      ? `<stop offset="0%" stop-color="#d9f99d" stop-opacity="0.45"/>
-          <stop offset="55%" stop-color="#86efac" stop-opacity="0.35"/>
-          <stop offset="100%" stop-color="#14532d" stop-opacity="0.55"/>`
-      : `<stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
+      bellyStops = `<stop offset="0%" stop-color="#ffffff" stop-opacity="0.18"/>
           <stop offset="100%" stop-color="#ffffff" stop-opacity="${Math.min(0.65, look.belly + 0.12).toFixed(2)}"/>`;
-    const shadeStops = isToxic
-      ? `<stop offset="0%" stop-color="#022c22" stop-opacity="0.72"/>
-          <stop offset="100%" stop-color="#3f6212" stop-opacity="0.35"/>`
-      : `<stop offset="0%" stop-color="#041018" stop-opacity="${look.shade.toFixed(2)}"/>
+      shadeStops = `<stop offset="0%" stop-color="#041018" stop-opacity="${look.shade.toFixed(2)}"/>
           <stop offset="100%" stop-color="currentColor" stop-opacity="0.2"/>`;
-    const finStops = isToxic
-      ? `<stop offset="0%" stop-color="#bef264" stop-opacity="0.95"/>
-          <stop offset="55%" stop-color="#22c55e" stop-opacity="0.85"/>
-          <stop offset="100%" stop-color="#052e16" stop-opacity="0.55"/>`
-      : `<stop offset="0%" stop-color="currentColor" stop-opacity="0.98"/>
+      finStops = `<stop offset="0%" stop-color="currentColor" stop-opacity="0.98"/>
           <stop offset="100%" stop-color="#031018" stop-opacity="0.35"/>`;
+    }
     return `<svg class="fish-glyph shape-${shape} look-${look.mark} is-realistic ${extraClass}" viewBox="0 0 64 32" aria-hidden="true" style="color:${tone}" overflow="visible">
       <defs>
         <linearGradient id="${gid}-body" x1="0.15" y1="0" x2="0.2" y2="1">
@@ -7889,7 +7965,7 @@ function aquariumRatePerSec() {
       </defs>
       ${parts}
       ${accents}
-      ${toxicDetails}
+      ${mutationDetails}
     </svg>`;
   }
 
@@ -8825,7 +8901,7 @@ function aquariumRatePerSec() {
     if (boatLevel() >= 3) HubAchievements.unlock("fishing_fps_100");
     if (state.unlocked.deep) HubAchievements.unlock("fishing_voyage_1");
     if (state.unlocked.void) HubAchievements.unlock("fishing_voyage_1");
-    if (FISH.length > 0 && caughtCount("any", false) >= Math.ceil(FISH.length * COLLECTION_MASTER_PCT)) {
+    if (FISH.length > 0 && caughtCount("any", false, "") >= Math.ceil(FISH.length * COLLECTION_MASTER_PCT)) {
       const newly = HubAchievements.unlock("fishing_all");
       window.HubPlays?.markMasterFisher?.().catch?.(() => {});
       if (newly) {
@@ -11799,7 +11875,7 @@ function aquariumRatePerSec() {
     if (!bookInspectEl) return;
     bookInspectEl.classList.add("hidden");
     bookInspectEl.hidden = true;
-    bookInspectEl.classList.remove("is-toxic");
+    bookInspectEl.classList.remove("is-toxic", "is-lava");
     bookInspectCoolerIndex = -1;
     if (bookInspectActionBtn) {
       bookInspectActionBtn.hidden = true;
@@ -11847,9 +11923,11 @@ function aquariumRatePerSec() {
       const mutNote =
         mut === "toxic"
           ? " · Toxic ×4 · acid veins, sludge drips, spore haze"
-          : mut
-            ? ` · ${mut}`
-            : "";
+          : mut === "lava"
+            ? " · Lava ×5 · magma cracks, embers, molten glow"
+            : mut
+              ? ` · ${mut}`
+              : "";
       if (!known) {
         bookInspectMetaEl.textContent = `${fish.rarity} · not caught yet`;
       } else if (fromAquarium) {
@@ -11865,17 +11943,19 @@ function aquariumRatePerSec() {
       if (known && showEntry?.variant) bits.push(showEntry.variant);
       if (known && showEntry?.shiny) bits.push("shiny");
       if (known && showEntry?.mutation) bits.push(showEntry.mutation);
-      const toxicHint =
+      const mutHint =
         known && showEntry?.mutation === "toxic"
           ? "Toxic mutation: bile-green flesh, glowing veins, and dripping sludge · tap outside to close"
-          : "";
+          : known && showEntry?.mutation === "lava"
+            ? "Lava mutation: molten cracks, ember sparks, and dripping magma · tap outside to close"
+            : "";
       if (fromAquarium) {
         bookInspectHintEl.textContent = bits.length
           ? `Saved aquarium look · ${bits.join(" + ")} · tap outside to close`
           : "Saved in the Aquarium · tap outside to close";
       } else {
         bookInspectHintEl.textContent = known
-          ? toxicHint ||
+          ? mutHint ||
             (bits.length
               ? `Viewing ${bits.join(" + ")} look · tap outside to close`
               : "Tap outside or Close to go back")
@@ -11899,6 +11979,7 @@ function aquariumRatePerSec() {
       }
     }
     bookInspectEl.classList.toggle("is-toxic", known && showEntry?.mutation === "toxic");
+    bookInspectEl.classList.toggle("is-lava", known && showEntry?.mutation === "lava");
     bookInspectEl.hidden = false;
     bookInspectEl.classList.remove("hidden");
   }

@@ -60,7 +60,7 @@ Luck/sell, variant, mutation, chests, luckyblock, and weather are **separate cha
 
 - `"boost"."kind"`: `"luck"` or `"money"` (sell)
 - `"variant"."target"`: `silver`, `gold`, `diamond`, `rainbow`, `shiny`, `any`, or combos like `gold+shiny`
-- `"mutation"."target"`: `toxic` (admin-gated mutation; ×4 value; stacks with variants + shiny)
+- `"mutation"."target"`: `toxic` (×4) or `lava` (×5); admin-gated; stacks with variants + shiny
 - `"luckyblock"."mult"`: scales all Lucky Block bases **0.1%** (Astral/Absolute/Zenith; e.g. `10` → **1%**). Luck gear/events never affect it.
 - `"weather"."target"`: `storm`, `calm`, or `none` (clear skies). Mult is unused (keep `1`).
 - Omit or set a channel to `null` only when clearing that channel
@@ -82,6 +82,6 @@ Only if JSON push isn’t enough / user wants instant before Pages updates:
 
 Defaults: **2×** for **5 minutes** (weather has no mult). Clamp mult **1–1000**, minutes 1–180.
 
-In-game commands: `5x luck`, `5x shiny + gold`, `5x toxic`, `5x luckyblock`, `storm`, `calm`, `sunny`, `clear`, `clear luck`, `clear variant`, `clear mutation`, `clear luckyblock`, `clear weather`.
+In-game commands: `5x luck`, `5x shiny + gold`, `5x toxic`, `5x lava`, `5x luckyblock`, `storm`, `calm`, `sunny`, `clear`, `clear luck`, `clear variant`, `clear mutation`, `clear luckyblock`, `clear weather`.
 
 ICE_DRAGON in-game **Admin** applies instantly on their device and retries Mantle sync in the background. Chat abuse via JSON is the reliable way to hit **all** players when Mantle is hot.
