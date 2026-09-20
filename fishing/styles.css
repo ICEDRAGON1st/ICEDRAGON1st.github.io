@@ -7592,11 +7592,11 @@ body[data-weather="calm"]::before {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .wx-rain,
   .wx-flash,
   .wx-cloud,
   .wx-haze,
-  .wx-spark {
+  .wx-spark,
+  .wx-drop {
     animation: none !important;
   }
 }
