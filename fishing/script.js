@@ -109,6 +109,7 @@
   const ADMIN_EVENT_LOCAL_VARIANT_KEY = "fishing-admin-variant-v1";
   const ADMIN_EVENT_LOCAL_CHEST_KEY = "fishing-admin-chest-v1";
   const ADMIN_EVENT_LOCAL_LB_KEY = "fishing-admin-luckyblock-v1";
+  const ADMIN_EVENT_LOCAL_WEATHER_KEY = "fishing-admin-weather-v1";
   const ADMIN_EVENT_PENDING_KEY = "fishing-admin-pending-v1";
   const FISH_GIFTS_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-gifts";
   const FISH_GIFTS_TOKEN = "ice-fish-gift-9f3a";
@@ -2220,23 +2221,28 @@
     return WEATHER_KINDS[key] || WEATHER_KINDS.none;
   }
 
+  function normalizeAdminWeatherId(raw) {
+    const s = String(raw || "")
+      .trim()
+      .toLowerCase();
+    if (s === "storm" || s === "rain" || s === "thunder") return "storm";
+    if (s === "calm" || s === "sea" || s === "seas") return "calm";
+    if (s === "none" || s === "clear" || s === "off" || s === "sunny") return "none";
+    return "";
+  }
+
   function ensureWeather(now = Date.now()) {
+    const admin = adminWeatherEventLive(now);
+    if (admin) {
+      state.weatherId = admin.weatherId;
+      state.weatherUntil = admin.until;
+      return weatherDef(admin.weatherId);
+    }
     const slot = Math.floor(now / WEATHER_MS);
     const until = slot * WEATHER_MS + WEATHER_MS;
     const rolled = rollWeatherIdForSlot(slot);
-    // Refresh when the period ends, or migrate old fog/tide/clear ids
-    if (
-      !state.weatherUntil ||
-      state.weatherUntil <= now ||
-      state.weatherUntil !== until ||
-      !WEATHER_KINDS[state.weatherId] ||
-      state.weatherId === "clear" ||
-      state.weatherId === "fog" ||
-      state.weatherId === "tide"
-    ) {
-      state.weatherId = rolled;
-      state.weatherUntil = until;
-    }
+    state.weatherId = rolled;
+    state.weatherUntil = until;
     return weatherDef();
   }
 
@@ -2903,6 +2909,7 @@
   let adminVariantCache = null;
   let adminChestCache = null;
   let adminLuckyBlockCache = null;
+  let adminWeatherCache = null;
   let adminEventFetchedAt = 0;
   let adminEventPollTimer = 0;
   let adminBusy = false;
@@ -3010,6 +3017,12 @@
     if (e.kind === "variant") return formatAdminVariantLabel(e.target);
     if (e.kind === "chest") return "chests";
     if (e.kind === "luckyblock") return "lucky blocks";
+    if (e.kind === "weather") {
+      const id = normalizeAdminWeatherId(e.target);
+      if (id === "storm") return "storm";
+      if (id === "calm") return "calm seas";
+      return "clear weather";
+    }
     return e.kind === "luck" ? "luck" : "sell";
   }
 
@@ -3017,6 +3030,11 @@
     if (!data || typeof data !== "object") return null;
     if (requireToken && String(data.token || "") !== ADMIN_EVENT_TOKEN) return null;
     let kind = String(data.kind || "").toLowerCase();
+    let weatherId = normalizeAdminWeatherId(data.target || data.weather || "");
+    if (kind === "storm" || kind === "calm" || kind === "weather-none") {
+      weatherId = normalizeAdminWeatherId(kind === "weather-none" ? "none" : kind);
+      kind = "weather";
+    }
     let target = normalizeAdminVariantTarget(
       data.target || data.variant || (isVariantTargetSpec(kind) ? kind : "")
     );
@@ -3029,20 +3047,26 @@
       kind !== "money" &&
       kind !== "variant" &&
       kind !== "chest" &&
-      kind !== "luckyblock"
+      kind !== "luckyblock" &&
+      kind !== "weather"
     ) {
       return null;
     }
     if (kind === "variant" && !target) target = "gold";
+    if (kind === "weather") {
+      weatherId = weatherId || normalizeAdminWeatherId(data.target) || "storm";
+      if (!weatherId) return null;
+      target = weatherId;
+    }
     const until = Math.floor(Number(data.until) || 0);
     if (!Number.isFinite(until) || until <= Date.now()) return null;
     const startedAt = Math.floor(Number(data.startedAt) || until - EVENT_ACTIVE_MS);
     return {
       kind,
-      target: kind === "variant" ? target : "",
+      target: kind === "variant" || kind === "weather" ? target : "",
       until,
       startedAt: Number.isFinite(startedAt) ? startedAt : Date.now(),
-      mult: clampAdminMult(data.mult ?? ADMIN_DEFAULT_MULT),
+      mult: kind === "weather" ? 1 : clampAdminMult(data.mult ?? ADMIN_DEFAULT_MULT),
       scope: String(data.scope || "") || ""
     };
   }
@@ -3050,16 +3074,17 @@
   /** Parse boost + variant + chest + luckyblock channels from bundle or legacy JSON. */
   function parseAdminBundle(data, requireToken = false) {
     if (!data || typeof data !== "object") {
-      return { boost: null, variant: null, chest: null, luckyblock: null };
+      return { boost: null, variant: null, chest: null, luckyblock: null, weather: null };
     }
     if (requireToken && String(data.token || "") !== ADMIN_EVENT_TOKEN) {
-      return { boost: null, variant: null, chest: null, luckyblock: null };
+      return { boost: null, variant: null, chest: null, luckyblock: null, weather: null };
     }
     const inherit = { token: data.token || (requireToken ? ADMIN_EVENT_TOKEN : undefined) };
     let boost = null;
     let variant = null;
     let chest = null;
     let luckyblock = null;
+    let weather = null;
     if (data.boost && typeof data.boost === "object") {
       boost = parseAdminEventPayload({ ...inherit, ...data.boost }, requireToken);
       if (boost && !isBoostAdminPayload(boost)) boost = null;
@@ -3091,6 +3116,13 @@
       );
       if (luckyblock && !isLuckyBlockAdminPayload(luckyblock)) luckyblock = null;
     }
+    if (data.weather && typeof data.weather === "object") {
+      weather = parseAdminEventPayload(
+        { ...inherit, kind: data.weather.kind || "weather", ...data.weather },
+        requireToken
+      );
+      if (weather && !isWeatherAdminPayload(weather)) weather = null;
+    }
     const single = parseAdminEventPayload(
       requireToken ? data : { ...data, token: data.token },
       requireToken
@@ -3100,8 +3132,9 @@
       if (isVariantAdminPayload(single)) variant = pickBetterAdminEvent(variant, single);
       if (isChestAdminPayload(single)) chest = pickBetterAdminEvent(chest, single);
       if (isLuckyBlockAdminPayload(single)) luckyblock = pickBetterAdminEvent(luckyblock, single);
+      if (isWeatherAdminPayload(single)) weather = pickBetterAdminEvent(weather, single);
     }
-    return { boost, variant, chest, luckyblock };
+    return { boost, variant, chest, luckyblock, weather };
   }
 
   function isBoostAdminPayload(e) {
@@ -3118,6 +3151,10 @@
 
   function isLuckyBlockAdminPayload(e) {
     return !!e && e.kind === "luckyblock";
+  }
+
+  function isWeatherAdminPayload(e) {
+    return !!e && e.kind === "weather" && !!normalizeAdminWeatherId(e.target);
   }
 
   function pickBetterAdminEvent(a, b) {
@@ -3206,6 +3243,22 @@
   function setLocalAdminLuckyBlock(payload, clear = false) {
     if (clear) writeStoredAdmin(ADMIN_EVENT_LOCAL_LB_KEY, null);
     else writeStoredAdmin(ADMIN_EVENT_LOCAL_LB_KEY, payload);
+  }
+
+  function localAdminWeather() {
+    migrateLegacyAdminLocal();
+    return parseAdminEventPayload(readStoredAdmin(ADMIN_EVENT_LOCAL_WEATHER_KEY), true);
+  }
+
+  function setLocalAdminWeather(payload, clear = false) {
+    if (clear) writeStoredAdmin(ADMIN_EVENT_LOCAL_WEATHER_KEY, null);
+    else writeStoredAdmin(ADMIN_EVENT_LOCAL_WEATHER_KEY, payload);
+  }
+
+  function adminWeatherEventLive(now = Date.now()) {
+    const e = pickBetterAdminEvent(adminWeatherCache, localAdminWeather());
+    if (!e || !isWeatherAdminPayload(e) || now >= e.until) return null;
+    return { ...e, weatherId: normalizeAdminWeatherId(e.target) };
   }
 
   function adminBoostEventLive(now = Date.now()) {
@@ -3334,11 +3387,13 @@
     const variant = localAdminVariant() || adminVariantCache;
     const chest = localAdminChest() || adminChestCache;
     const luckyblock = localAdminLuckyBlock() || adminLuckyBlockCache;
+    const weather = localAdminWeather() || adminWeatherCache;
     const now = Date.now();
     const liveBoost = boost && boost.until > now ? boost : null;
     const liveVariant = variant && variant.until > now ? variant : null;
     const liveChest = chest && chest.until > now ? chest : null;
     const liveLb = luckyblock && luckyblock.until > now ? luckyblock : null;
+    const liveWeather = weather && weather.until > now ? weather : null;
     return {
       token: ADMIN_EVENT_TOKEN,
       scope: scope === "global" ? "global" : "local",
@@ -3346,25 +3401,29 @@
       variant: serializeAdminChannel(liveVariant),
       chest: serializeAdminChannel(liveChest),
       luckyblock: serializeAdminChannel(liveLb),
+      weather: serializeAdminChannel(liveWeather),
       // Legacy flat fields = boost preferred, else variant (old clients)
       kind:
         liveBoost?.kind ||
         liveVariant?.kind ||
         liveChest?.kind ||
         liveLb?.kind ||
+        liveWeather?.kind ||
         "luck",
-      target: liveVariant?.target || "",
+      target: liveVariant?.target || liveWeather?.target || "",
       until: Math.max(
         liveBoost?.until || 0,
         liveVariant?.until || 0,
         liveChest?.until || 0,
-        liveLb?.until || 0
+        liveLb?.until || 0,
+        liveWeather?.until || 0
       ),
       startedAt: Math.max(
         liveBoost?.startedAt || 0,
         liveVariant?.startedAt || 0,
         liveChest?.startedAt || 0,
         liveLb?.startedAt || 0,
+        liveWeather?.startedAt || 0,
         now
       ),
       mult:
@@ -3372,6 +3431,7 @@
         liveVariant?.mult ||
         liveChest?.mult ||
         liveLb?.mult ||
+        liveWeather?.mult ||
         ADMIN_DEFAULT_MULT,
       note: scope === "global" ? "in-game-admin-global" : "in-game-admin-local",
       by: OWNER_NAME
@@ -3412,12 +3472,15 @@
     const remoteVariant = pickBetterAdminEvent(remoteA.variant, remoteB.variant);
     const remoteChest = pickBetterAdminEvent(remoteA.chest, remoteB.chest);
     const remoteLb = pickBetterAdminEvent(remoteA.luckyblock, remoteB.luckyblock);
+    const remoteWeather = pickBetterAdminEvent(remoteA.weather, remoteB.weather);
     adminBoostCache = pickBetterAdminEvent(remoteBoost, localAdminBoost());
     adminVariantCache = pickBetterAdminEvent(remoteVariant, localAdminVariant());
     adminChestCache = pickBetterAdminEvent(remoteChest, localAdminChest());
     adminLuckyBlockCache = pickBetterAdminEvent(remoteLb, localAdminLuckyBlock());
+    adminWeatherCache = pickBetterAdminEvent(remoteWeather, localAdminWeather());
     syncAdminPanel();
     maybeRetryPendingAdminPush();
+    applyWeatherFx();
   }
 
   function startAdminEventPolling() {
@@ -3446,6 +3509,9 @@
     }
     if (bundle.luckyblock) {
       setLocalAdminLuckyBlock({ ...bundle.luckyblock, token: ADMIN_EVENT_TOKEN, scope: "global" });
+    }
+    if (bundle.weather) {
+      setLocalAdminWeather({ ...bundle.weather, token: ADMIN_EVENT_TOKEN, scope: "global" });
     }
     scheduleAdminRetry();
   }
@@ -3488,7 +3554,9 @@
       adminVariantCache = bundle.variant;
       adminChestCache = bundle.chest;
       adminLuckyBlockCache = bundle.luckyblock;
+      adminWeatherCache = bundle.weather;
       syncAdminPanel();
+      applyWeatherFx();
       setCatchLine("Admin event synced to all players", "treasure");
     } catch {
       /* keep pending */
@@ -3511,6 +3579,7 @@
     const variant = adminVariantEventLive();
     const chest = adminChestEventLive();
     const luckyblock = adminLuckyBlockEventLive();
+    const weather = adminWeatherEventLive();
     const pending = !!pendingAdminPush;
     const bits = [];
     if (boost) {
@@ -3537,11 +3606,17 @@
         `${formatMult(luckyblock.mult)}× lucky blocks · ${formatLuckyBlockChancePct()} (${localOnly ? "local" : pending ? "syncing" : "global"} · ${formatTreasureClock(luckyblock.until - Date.now())})`
       );
     }
+    if (weather) {
+      const localOnly = String(readStoredAdmin(ADMIN_EVENT_LOCAL_WEATHER_KEY)?.scope || "") === "local";
+      bits.push(
+        `${adminEventKindLabel(weather)} (${localOnly ? "local" : pending ? "syncing" : "global"} · ${formatTreasureClock(weather.until - Date.now())})`
+      );
+    }
     if (bits.length) {
       status.textContent = `Live: ${bits.join(" · ")}`;
     } else {
       status.textContent =
-        "No admin event · luck/sell, variant, chests, and lucky blocks can run together";
+        "No admin event · luck/sell, variant, chests, lucky blocks, and weather can run together";
     }
   }
 
@@ -3617,6 +3692,14 @@
         setLocalAdminLuckyBlock(payload, false);
         adminLuckyBlockCache = parseAdminEventPayload(payload, true);
       }
+    } else if (channel === "weather") {
+      if (clear) {
+        setLocalAdminWeather(null, true);
+        adminWeatherCache = null;
+      } else {
+        setLocalAdminWeather(payload, false);
+        adminWeatherCache = parseAdminEventPayload(payload, true);
+      }
     } else if (channel === "boost") {
       if (clear) {
         setLocalAdminBoost(null, true);
@@ -3630,10 +3713,12 @@
       setLocalAdminVariant(null, true);
       setLocalAdminChest(null, true);
       setLocalAdminLuckyBlock(null, true);
+      setLocalAdminWeather(null, true);
       adminBoostCache = null;
       adminVariantCache = null;
       adminChestCache = null;
       adminLuckyBlockCache = null;
+      adminWeatherCache = null;
     }
     lastAnnouncedEventKey = "";
     lastAnnouncedVariantKey = "";
@@ -3641,6 +3726,7 @@
     lastAnnouncedLbEventKey = "";
     syncAdminPanel();
     renderStats();
+    if (channel === "weather" || channel === "all") applyWeatherFx();
   }
 
   function clearPendingAdminPush() {
@@ -3678,18 +3764,31 @@
     const clearVariantOnly = rawKind === "clear-variant";
     const clearLuckyBlockOnly =
       rawKind === "clear-luckyblock" || rawKind === "clear-lb" || rawKind === "clear-block";
+    const clearWeatherOnly =
+      rawKind === "clear-weather" || rawKind === "clear-wx" || rawKind === "clear-storm";
     const wantGlobal = scope === "global";
 
     let eventKind = rawKind;
     let eventTarget = normalizeAdminVariantTarget(
       target || (isVariantTargetSpec(eventKind) ? eventKind : "")
     );
+    let weatherId = normalizeAdminWeatherId(
+      eventKind === "weather" ? target : eventKind === "weather-none" ? "none" : eventKind
+    );
+    if (weatherId && eventKind !== "weather") {
+      eventKind = "weather";
+    }
+    if (eventKind === "weather") {
+      weatherId = weatherId || normalizeAdminWeatherId(target) || "storm";
+      eventTarget = "";
+    }
     if (
       eventKind !== "luck" &&
       eventKind !== "money" &&
       eventKind !== "variant" &&
       eventKind !== "chest" &&
       eventKind !== "luckyblock" &&
+      eventKind !== "weather" &&
       isVariantTargetSpec(eventKind)
     ) {
       eventTarget = normalizeAdminVariantTarget(eventKind);
@@ -3697,18 +3796,20 @@
     }
     if (eventKind === "variant" && !eventTarget) eventTarget = "gold";
 
-    const isClear = clearAll || clearBoostOnly || clearVariantOnly || clearLuckyBlockOnly;
+    const isClear =
+      clearAll || clearBoostOnly || clearVariantOnly || clearLuckyBlockOnly || clearWeatherOnly;
     if (
       !isClear &&
       eventKind !== "luck" &&
       eventKind !== "money" &&
       eventKind !== "variant" &&
       eventKind !== "chest" &&
-      eventKind !== "luckyblock"
+      eventKind !== "luckyblock" &&
+      eventKind !== "weather"
     ) {
       adminBusy = false;
       setCatchLine(
-        "Try: 5x luck · 5x luckyblock · 5x shiny + gold · clear · clear luckyblock",
+        "Try: 5x luck · storm · calm · sunny · 5x luckyblock · clear · clear weather",
         "miss"
       );
       return false;
@@ -3720,15 +3821,19 @@
         ? "variant"
         : clearLuckyBlockOnly
           ? "luckyblock"
-          : clearBoostOnly
-            ? "boost"
-            : eventKind === "variant"
-              ? "variant"
-              : eventKind === "chest"
-                ? "chest"
-                : eventKind === "luckyblock"
-                  ? "luckyblock"
-                  : "boost";
+          : clearWeatherOnly
+            ? "weather"
+            : clearBoostOnly
+              ? "boost"
+              : eventKind === "variant"
+                ? "variant"
+                : eventKind === "chest"
+                  ? "chest"
+                  : eventKind === "luckyblock"
+                    ? "luckyblock"
+                    : eventKind === "weather"
+                      ? "weather"
+                      : "boost";
 
     const channelPayload = {
       token: ADMIN_EVENT_TOKEN,
@@ -3739,11 +3844,14 @@
             ? "chest"
             : eventKind === "luckyblock"
               ? "luckyblock"
-              : eventKind,
-      target: eventKind === "variant" ? eventTarget : "",
+              : eventKind === "weather"
+                ? "weather"
+                : eventKind,
+      target:
+        eventKind === "variant" ? eventTarget : eventKind === "weather" ? weatherId : "",
       until: now + mins * 60_000,
       startedAt: now,
-      mult: eventMult,
+      mult: eventKind === "weather" ? 1 : eventMult,
       scope: wantGlobal ? "global" : "local",
       note: wantGlobal ? "in-game-admin-global" : "in-game-admin-local",
       by: OWNER_NAME
@@ -3753,8 +3861,11 @@
     else if (clearBoostOnly) applyAdminLocally("boost", null, true);
     else if (clearVariantOnly) applyAdminLocally("variant", null, true);
     else if (clearLuckyBlockOnly) applyAdminLocally("luckyblock", null, true);
+    else if (clearWeatherOnly) applyAdminLocally("weather", null, true);
     else applyAdminLocally(channel, channelPayload, false);
 
+    const weatherLabel =
+      weatherId === "storm" ? "storm" : weatherId === "calm" ? "calm seas" : "clear weather";
     const label = isClear
       ? clearAll
         ? "all events"
@@ -3762,21 +3873,29 @@
           ? "variant"
           : clearLuckyBlockOnly
             ? "lucky blocks"
-            : "luck/sell"
+            : clearWeatherOnly
+              ? "weather"
+              : "luck/sell"
       : eventKind === "variant"
         ? formatAdminVariantLabel(eventTarget)
         : eventKind === "luckyblock"
           ? "lucky blocks"
           : eventKind === "chest"
             ? "chests"
-            : eventKind === "luck"
-              ? "luck"
-              : "sell";
+            : eventKind === "weather"
+              ? weatherLabel
+              : eventKind === "luck"
+                ? "luck"
+                : "sell";
 
     const chanceNote =
       !isClear && eventKind === "luckyblock"
         ? ` · ${formatLuckyBlockChancePct()} drop (luck ignored)`
         : "";
+    const liveLine = (prefix) =>
+      eventKind === "weather"
+        ? `${prefix} · ${label} for ${mins}m`
+        : `${prefix} · ${formatMult(eventMult)}× ${label} for ${mins}m${chanceNote}`;
 
     const bundle = buildAdminSyncBundle(wantGlobal ? "global" : "local");
 
@@ -3785,10 +3904,7 @@
       if (isClear) {
         setCatchLine(`Local admin ${label} cleared`, "treasure");
       } else {
-        setCatchLine(
-          `LOCAL ADMIN · ${formatMult(eventMult)}× ${label} for ${mins}m (only you)${chanceNote}`,
-          "treasure"
-        );
+        setCatchLine(`${liveLine("LOCAL ADMIN")} (only you)`, "treasure");
         window.HubSound?.play?.("win");
         window.HubConfetti?.burst?.();
       }
@@ -3801,10 +3917,7 @@
     if (isClear) {
       setCatchLine(`Clearing global admin ${label}…`, "treasure");
     } else {
-      setCatchLine(
-        `GLOBAL ADMIN · ${formatMult(eventMult)}× ${label} for ${mins}m (syncing…)${chanceNote}`,
-        "treasure"
-      );
+      setCatchLine(`${liveLine("GLOBAL ADMIN")} (syncing…)`, "treasure");
       window.HubSound?.play?.("win");
       window.HubConfetti?.burst?.();
     }
@@ -3821,7 +3934,9 @@
         setCatchLine(
           isClear
             ? `Cleared here · Mantle busy, will sync ${label} clear soon`
-            : `Live here · ${formatMult(eventMult)}× ${label} · syncing global when Mantle frees up`,
+            : eventKind === "weather"
+              ? `Live here · ${label} · syncing global when Mantle frees up`
+              : `Live here · ${formatMult(eventMult)}× ${label} · syncing global when Mantle frees up`,
           "treasure"
         );
         return true;
@@ -3832,7 +3947,9 @@
       setCatchLine(
         isClear
           ? `Global admin ${label} cleared`
-          : `GLOBAL ADMIN · ${formatMult(eventMult)}× ${label} live for ${mins}m (all players)`,
+          : eventKind === "weather"
+            ? `GLOBAL ADMIN · ${label} live for ${mins}m (all players)`
+            : `GLOBAL ADMIN · ${formatMult(eventMult)}× ${label} live for ${mins}m (all players)`,
         "treasure"
       );
       return true;
@@ -4233,6 +4350,9 @@
     }
 
     if (/^(clear|off|stop|end)\b/.test(text)) {
+      if (/\bweather\b/.test(text) || /\b(storm|calm|wx)\b/.test(text)) {
+        return { kind: "clear-weather", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
+      }
       if (/\b(variant|silver|gold|diamond|rainbow|shiny|any)\b/.test(text)) {
         return { kind: "clear-variant", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
       }
@@ -4242,7 +4362,13 @@
       if (/\b(luck|sell|money|coin|boost)\b/.test(text)) {
         return { kind: "clear-boost", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
       }
-      return { kind: "clear", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
+      // "clear skies" / "clear sky" → force clear weather (not clear-all)
+      if (/\b(skies|sky)\b/.test(text)) {
+        /* fall through after stripping clear */
+        text = text.replace(/^(clear|off|stop|end)\b/, "weather").replace(/\s+/g, " ").trim();
+      } else {
+        return { kind: "clear", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
+      }
     }
 
     let mult = defaults.mult;
@@ -4271,13 +4397,28 @@
 
     if (
       !usedExplicitMult &&
-      /^(sell|money|coin|luck|luckyblock|lucky\s*-?\s*blocks?|lb|silver|gold|diamond|rainbow|shiny|any|variant)(\s+(silver|gold|diamond|rainbow|shiny|any))*$/.test(
+      /^(sell|money|coin|luck|luckyblock|lucky\s*-?\s*blocks?|lb|silver|gold|diamond|rainbow|shiny|any|variant|storm|calm|sunny|weather)(\s+(silver|gold|diamond|rainbow|shiny|any|storm|calm|none|clear|sunny|skies|sky))*$/.test(
         text
       )
     ) {
       mult = defaults.mult;
     }
 
+    if (/\bstorm\b/.test(text) || /\brain\b/.test(text) || /\bthunder\b/.test(text)) {
+      return { kind: "weather", minutes, mult: 1, scope, target: "storm" };
+    }
+    if (/\bcalm\b/.test(text)) {
+      return { kind: "weather", minutes, mult: 1, scope, target: "calm" };
+    }
+    if (
+      /\bsunny\b/.test(text) ||
+      /\b(skies|sky)\b/.test(text) ||
+      /\bweather\s+(none|clear|off)\b/.test(text) ||
+      /^(none|clear)$/.test(text) ||
+      text === "weather"
+    ) {
+      return { kind: "weather", minutes, mult: 1, scope, target: "none" };
+    }
     if (/\blucky\s*-?\s*blocks?\b/.test(text) || /\bluckyblock\b/.test(text) || text === "lb") {
       return { kind: "luckyblock", minutes, mult, scope, target: "" };
     }
@@ -4395,7 +4536,7 @@
     const parsed = parseAdminCommand(raw);
     if (!parsed) {
       setCatchLine(
-        "Try: 5x luck · 5x luckyblock · give zenith luckyblock · clear luckyblock · clear",
+        "Try: storm · calm · sunny · 5x luck · 5x luckyblock · clear weather · clear",
         "miss"
       );
       return;
