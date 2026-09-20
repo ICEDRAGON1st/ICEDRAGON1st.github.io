@@ -1681,6 +1681,13 @@
   const guideBody = document.getElementById("guide-body");
   const guideVariantsBody = document.getElementById("guide-variants-body");
   const bookBody = document.getElementById("book-body");
+  const bookInspectEl = document.getElementById("book-inspect");
+  const bookInspectGlyphEl = document.getElementById("book-inspect-glyph");
+  const bookInspectTitleEl = document.getElementById("book-inspect-title");
+  const bookInspectMetaEl = document.getElementById("book-inspect-meta");
+  const bookInspectHintEl = document.getElementById("book-inspect-hint");
+  const bookInspectCloseBtn = document.getElementById("book-inspect-close");
+  const bookInspectBackdrop = document.getElementById("book-inspect-backdrop");
   const bookFiltersEl = document.getElementById("book-filters");
   const bookProgressEl = document.getElementById("book-progress");
   const bookViewLabelEl = document.getElementById("book-view-label");
@@ -11228,6 +11235,7 @@ function aquariumRatePerSec() {
       }</button>`;
       bookFiltersEl.innerHTML = `${shinyBtn}<div class="book-filter-sep" aria-hidden="true"></div>${primaryBtns}`;
     }
+    closeBookInspect();
     if (!bookBody) return;
     const searchEl = document.getElementById("book-search");
     if (searchEl && document.activeElement !== searchEl) {
@@ -11254,21 +11262,21 @@ function aquariumRatePerSec() {
           const known = hasCaught(fish.id);
           if (known) {
             const label = showEntry ? formatFishName(fish, showEntry) : fish.name;
-            return `<div class="book-card is-caught rarity-${fish.rarity}${
+            return `<button type="button" class="book-card is-caught rarity-${fish.rarity}${
               showEntry ? ` ${variantClassList(showEntry)}` : ""
-            }" title="${label} · ${fish.rarity} · ${formatNum(fish.value)} coins">
+            }" data-book-inspect="${fish.id}" title="${label} · ${fish.rarity} · ${formatNum(fish.value)} coins · tap to inspect">
               <span class="book-card-glyph" aria-hidden="true">${fishGlyphHtml(fish, showEntry)}</span>
               <span class="book-card-name">${label}</span>
               <span class="book-card-meta">${fish.rarity} · ${formatNum(fish.value)}</span>
-            </div>`;
+            </button>`;
           }
-          return `<div class="book-card is-unknown rarity-${fish.rarity}" title="Not caught yet · ${bookFilterLabel()}">
+          return `<button type="button" class="book-card is-unknown rarity-${fish.rarity}" data-book-inspect="${fish.id}" title="Not caught yet · ${bookFilterLabel()} · tap to inspect">
               <span class="book-card-glyph book-card-sil" aria-hidden="true">${fishGlyphHtml(
                 fish
               )}</span>
               <span class="book-card-name">???</span>
               <span class="book-card-meta">${fish.rarity}</span>
-            </div>`;
+            </button>`;
         })
         .join("");
       return `<section class="book-section">
@@ -11345,14 +11353,58 @@ function aquariumRatePerSec() {
     unlockPageScroll();
   }
 
+  function closeBookInspect() {
+    if (!bookInspectEl) return;
+    bookInspectEl.classList.add("hidden");
+    bookInspectEl.hidden = true;
+    if (bookInspectGlyphEl) bookInspectGlyphEl.innerHTML = "";
+  }
+
+  function openBookInspect(fishId) {
+    const fish = fishById(fishId);
+    if (!fish || !bookInspectEl) return;
+    const known = hasCaught(fish.id);
+    const showEntry = known ? bookShowEntry() : null;
+    const label = known
+      ? showEntry
+        ? formatFishName(fish, showEntry)
+        : fish.name
+      : "???";
+    if (bookInspectGlyphEl) {
+      bookInspectGlyphEl.classList.toggle("is-unknown", !known);
+      bookInspectGlyphEl.innerHTML = fishGlyphHtml(fish, showEntry || undefined);
+    }
+    if (bookInspectTitleEl) bookInspectTitleEl.textContent = label;
+    if (bookInspectMetaEl) {
+      bookInspectMetaEl.textContent = known
+        ? `${fish.rarity} · ${formatNum(fish.value)} coins`
+        : `${fish.rarity} · not caught yet`;
+    }
+    if (bookInspectHintEl) {
+      const bits = [];
+      if (known && showEntry?.variant) bits.push(showEntry.variant);
+      if (known && showEntry?.shiny) bits.push("shiny");
+      if (known && showEntry?.mutation) bits.push(showEntry.mutation);
+      bookInspectHintEl.textContent = known
+        ? bits.length
+          ? `Viewing ${bits.join(" + ")} look · tap outside to close`
+          : "Tap outside or Close to go back"
+        : "Catch this fish to reveal its look";
+    }
+    bookInspectEl.hidden = false;
+    bookInspectEl.classList.remove("hidden");
+  }
+
   function openBook() {
     renderBook();
     bookOverlay?.classList.remove("hidden");
     lockPageScroll();
+    closeBookInspect();
     if (bookBody) bookBody.scrollTop = 0;
   }
 
   function closeBook() {
+    closeBookInspect();
     bookOverlay?.classList.add("hidden");
     unlockPageScroll();
   }
@@ -11670,6 +11722,13 @@ function aquariumRatePerSec() {
     bookFilter = next;
     renderBook();
   });
+  bookBody?.addEventListener("click", (e) => {
+    const card = e.target.closest("[data-book-inspect]");
+    if (!card || !bookBody.contains(card)) return;
+    openBookInspect(card.getAttribute("data-book-inspect"));
+  });
+  bookInspectCloseBtn?.addEventListener("click", closeBookInspect);
+  bookInspectBackdrop?.addEventListener("click", closeBookInspect);
   menuGuideBtn?.addEventListener("click", () => {
     closeMenu();
     openGuide();
@@ -11752,7 +11811,11 @@ function aquariumRatePerSec() {
     }
     if (bookOverlay && !bookOverlay.classList.contains("hidden")) {
       e.preventDefault();
-      closeBook();
+      if (bookInspectEl && !bookInspectEl.classList.contains("hidden")) {
+        closeBookInspect();
+      } else {
+        closeBook();
+      }
       return;
     }
     if (guideOverlay && !guideOverlay.classList.contains("hidden")) {
