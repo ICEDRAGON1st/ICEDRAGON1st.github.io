@@ -11943,7 +11943,9 @@ function aquariumRatePerSec() {
           fishValue(fish, currentSpot(), entryOverride || showEntry)
         )}${mutNote}`;
       } else {
-        bookInspectMetaEl.textContent = `${fish.rarity} · ${formatNum(fish.value)} coins${mutNote}`;
+        bookInspectMetaEl.textContent = `${fish.rarity} · ${formatNum(
+          bookLookValue(fish, showEntry)
+        )} coins${mutNote}`;
       }
     }
     if (bookInspectHintEl) {
