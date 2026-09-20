@@ -7406,14 +7406,16 @@ function aquariumRatePerSec() {
     const look = fishLookProfile(id);
     const variant = normalizeVariant(entry?.variant);
     const shiny = !!entry?.shiny;
+    const mutation = normalizeMutation(entry?.mutation);
     let tone = FISH_TINT[id] || rarityColor(rarity);
     if (variant === "silver") tone = "#c5ced6";
     else if (variant === "gold") tone = "#f0c14b";
     else if (variant === "diamond") tone = "#9adcf5";
     else if (variant === "rainbow") tone = "#ff8fab";
-    const gid = `fg-${String(id || shape).replace(/[^a-z0-9]/gi, "")}${variant}${shiny ? "s" : ""}${Math.abs(
+    if (mutation === "toxic") tone = "#4ade80";
+    const gid = `fg-${String(id || shape).replace(/[^a-z0-9]/gi, "")}${variant}${shiny ? "s" : ""}${mutation || ""}${Math.abs(
       Math.imul(
-        [...`${id || shape}:${tone}:${variant}:${shiny}`].reduce(
+        [...`${id || shape}:${tone}:${variant}:${shiny}:${mutation}`].reduce(
           (h, c) => (Math.imul(31, h) + c.charCodeAt(0)) | 0,
           7
         )

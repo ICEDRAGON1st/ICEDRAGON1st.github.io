@@ -2743,10 +2743,21 @@ body[data-spot="mythforge"] .water-mist {
 .fish-glyph.mutation-toxic,
 .fish-chip.mutation-toxic .fish-glyph,
 .boat-haul-item.mutation-toxic .fish-glyph,
-.catch-sil.mutation-toxic .fish-glyph {
-  color: #86efac;
-  filter: drop-shadow(0 0 4px rgba(74, 222, 128, 0.55));
+.catch-sil.mutation-toxic .fish-glyph,
+.book-card.mutation-toxic .fish-glyph,
+.aqua-fish.mutation-toxic .fish-glyph {
+  color: #4ade80 !important;
+  filter: drop-shadow(0 0 5px rgba(74, 222, 128, 0.75));
   animation: mutation-toxic-pulse 1.8s ease-in-out infinite;
+}
+
+.fish-glyph.mutation-toxic.variant-shiny,
+.fish-chip.mutation-toxic.variant-shiny .fish-glyph,
+.boat-haul-item.mutation-toxic.variant-shiny .fish-glyph,
+.catch-sil.mutation-toxic.variant-shiny .fish-glyph {
+  animation:
+    mutation-toxic-pulse 1.8s ease-in-out infinite,
+    variant-shiny-pulse 1.6s ease-in-out infinite;
 }
 
 .fish-chip.mutation-toxic,
