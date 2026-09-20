@@ -2347,14 +2347,15 @@
     return Math.max(0, until);
   }
 
+  /** @returns {{ found: boolean, data?: object } | null} null = request failed (do not treat as empty). */
   async function fetchCommunityDoc() {
     try {
       const res = await fetch(`${COMMUNITY_API}?t=${Date.now()}`, { cache: "no-store" });
-      if (res.status === 404) return null;
+      if (res.status === 404) return { found: false };
       if (!res.ok) return null;
       const data = await res.json();
       if (!data || typeof data !== "object") return null;
-      return data;
+      return { found: true, data };
     } catch {
       return null;
     }
@@ -2372,7 +2373,22 @@
 
   async function syncCommunity(add = 0) {
     const calendarWeek = communityWeekKey();
-    const remote = (await fetchCommunityDoc()) || {};
+    const fetched = await fetchCommunityDoc();
+    if (!fetched) {
+      // Rate-limit / network miss — never invent a fresh empty meter (that re-grants Astral + luck)
+      communityCache.rewardUntil = clampCommunityRewardUntil(
+        communityCache.rewardUntil,
+        communityCache.lbWave
+      );
+      communityCache.rewardMult = clampCommunityRewardMult(communityCache.rewardMult);
+      if (add > 0 && communityAcceptsCasts()) {
+        state.communityContrib += Math.max(0, Math.floor(add));
+        saveSoon();
+      }
+      tryClaimCommunityAstral();
+      return communityCache;
+    }
+    const remote = fetched.found && fetched.data ? fetched.data : {};
     let total = Math.max(0, Math.floor(Number(remote.total) || 0));
     let lbWave = Math.max(0, Math.floor(Number(remote.lbWave) || 0));
     let rewardUntil = clampCommunityRewardUntil(Number(remote.rewardUntil) || 0, lbWave);
