@@ -2333,11 +2333,11 @@
     return total >= goal && Math.max(0, Number(cache.lbWave) || 0) > 0;
   }
 
-  /** Incomplete meters stay open every day; new meters start on weekends after a finish. */
+  /** Incomplete meters stay open every day; after a finish, a new meter starts once the luck reward ends. */
   function communityAcceptsCasts(now = Date.now()) {
+    // Only pause contributions during the active post-goal luck reward window.
     if (communityRewardLive(now) && communityMeterFinished()) return false;
-    if (!communityMeterFinished()) return true;
-    return communityWeekendLive(now);
+    return true;
   }
 
   function communityLuckMult(now = Date.now()) {
@@ -2420,12 +2420,9 @@
     const finished = total >= goal && lbWave > 0;
     const rewardOver = rewardUntil <= Date.now();
 
-    // Only reset after the goal is finished and the luck reward window ends
+    // After the luck reward ends, clear the meter so everyone can fill it again.
     if (finished && rewardOver) {
-      meterKey = calendarWeek;
-      if (meterKey === String(remote.weekKey)) {
-        meterKey = `${calendarWeek}-n${Math.floor(Date.now() / 60000)}`;
-      }
+      meterKey = `${calendarWeek}-r${Date.now()}`;
       total = 0;
       lbWave = 0;
       rewardUntil = 0;
@@ -10637,13 +10634,12 @@ function aquariumRatePerSec() {
     const aquaBtn = document.getElementById("aquarium-claim-btn");
     if (aquaBtn) aquaBtn.disabled = bank <= 0;
 
-    const weekend = communityWeekendLive(now);
     const reward = communityRewardLive(now);
     const total = communityCache.total || 0;
     const goal = communityCache.goal || COMMUNITY_GOAL;
     const pct = Math.min(100, Math.floor((100 * total) / Math.max(1, goal)));
     const finished = communityMeterFinished();
-    const meterLive = !finished || reward || weekend;
+    const meterLive = !finished || reward;
     if (communityLabel) {
       if (reward) {
         const lbTip =
@@ -10661,17 +10657,19 @@ function aquariumRatePerSec() {
       } else if (!finished) {
         communityLabel.textContent = `${formatNum(total)}/${formatNum(goal)} · ${pct}% · you ${formatNum(
           state.communityContrib || 0
-        )} · stays until done`;
-      } else if (weekend) {
-        communityLabel.textContent = `Ready · you ${formatNum(state.communityContrib || 0)}`;
+        )}`;
       } else {
-        communityLabel.textContent = "Next meter Fri–Sun";
+        communityLabel.textContent = "Complete · restarting…";
+        // Nudge a sync so the shared meter clears once the reward window is over.
+        if (Date.now() - communityFetchAt > 5000) {
+          syncCommunity(0).catch(() => {});
+        }
       }
     }
-    communityChip?.classList.toggle("is-live", meterLive && (!finished || reward || weekend));
+    communityChip?.classList.toggle("is-live", meterLive || !finished);
     communityChip?.classList.toggle("is-reward", reward);
     const fill = document.getElementById("community-fill");
-    if (fill) fill.style.width = `${pct}%`;
+    if (fill) fill.style.width = `${finished && !reward ? 100 : pct}%`;
   }
 
   function renderStats() {
