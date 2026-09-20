@@ -24,6 +24,7 @@
   let audioCtx = null;
   let noiseBuffer = null;
   let rainBuffer = null;
+  let surfBuffer = null;
   let keySamples = [];
   let keySamplesLoading = null;
   let ambientKind = null;
@@ -141,6 +142,29 @@
     return rainBuffer;
   }
 
+  /** Soft brown-ish water bed — no rain crackle. */
+  function getSurfBuffer(ctx) {
+    if (surfBuffer && surfBuffer.sampleRate === ctx.sampleRate) return surfBuffer;
+    const len = Math.floor(ctx.sampleRate * 4);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    let b0 = 0;
+    let b1 = 0;
+    let b2 = 0;
+    for (let i = 0; i < len; i += 1) {
+      const white = Math.random() * 2 - 1;
+      // Triple integrate → very soft low rumble, like distant shore
+      b0 = (b0 + 0.02 * white) / 1.02;
+      b1 = (b1 + 0.035 * b0) / 1.035;
+      b2 = (b2 + 0.05 * b1) / 1.05;
+      // Slow amplitude swell baked into the loop
+      const swell = 0.72 + 0.28 * Math.sin((i / len) * Math.PI * 2);
+      data[i] = b2 * 4.2 * swell;
+    }
+    surfBuffer = buf;
+    return surfBuffer;
+  }
+
   function stopAmbient() {
     if (!ambientNodes) {
       ambientKind = null;
@@ -236,91 +260,89 @@
     ambientKind = "calm";
     const t = ctx.currentTime;
 
-    // Gentle surf / lapping water bed (audible, not a whisper)
+    // Soft low shore wash (not filtered rain)
     const src = ctx.createBufferSource();
-    src.buffer = getRainBuffer(ctx);
+    src.buffer = getSurfBuffer(ctx);
     src.loop = true;
-    const bp = ctx.createBiquadFilter();
-    bp.type = "bandpass";
-    bp.frequency.setValueAtTime(680, t);
-    bp.Q.setValueAtTime(0.7, t);
     const lp = ctx.createBiquadFilter();
     lp.type = "lowpass";
-    lp.frequency.setValueAtTime(2400, t);
+    lp.frequency.setValueAtTime(520, t);
+    lp.Q.setValueAtTime(0.5, t);
+    const hp = ctx.createBiquadFilter();
+    hp.type = "highpass";
+    hp.frequency.setValueAtTime(55, t);
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.exponentialRampToValueAtTime(0.07, t + 0.55);
-    src.connect(bp);
-    bp.connect(lp);
+    gain.gain.exponentialRampToValueAtTime(0.055, t + 1.4);
+    src.connect(hp);
+    hp.connect(lp);
     lp.connect(gain);
     gain.connect(ctx.destination);
     src.start(t);
 
-    // Warm sea pad
-    const pad = ctx.createOscillator();
-    pad.type = "sine";
-    pad.frequency.setValueAtTime(174.6, t); // F3
-    const pad2 = ctx.createOscillator();
-    pad2.type = "triangle";
-    pad2.frequency.setValueAtTime(220, t); // A3
-    const pad3 = ctx.createOscillator();
-    pad3.type = "sine";
-    pad3.frequency.setValueAtTime(261.6, t); // C4
-    const padGain = ctx.createGain();
-    padGain.gain.setValueAtTime(0.0001, t);
-    padGain.gain.exponentialRampToValueAtTime(0.045, t + 0.7);
-    const padLp = ctx.createBiquadFilter();
-    padLp.type = "lowpass";
-    padLp.frequency.setValueAtTime(1400, t);
-    pad.connect(padLp);
-    pad2.connect(padLp);
-    pad3.connect(padLp);
-    padLp.connect(padGain);
-    padGain.connect(ctx.destination);
-    pad.start(t);
-    pad2.start(t);
-    pad3.start(t);
+    // Slow breathing swell on the bed
+    const lfo = ctx.createOscillator();
+    lfo.type = "sine";
+    lfo.frequency.setValueAtTime(0.08, t);
+    const lfoGain = ctx.createGain();
+    lfoGain.gain.setValueAtTime(0, t);
+    lfoGain.gain.linearRampToValueAtTime(0.012, t + 1.6);
+    lfo.connect(lfoGain);
+    lfoGain.connect(gain.gain);
+    lfo.start(t);
 
-    // Clear start chime so calm is obvious when it begins
-    softTone({ freq: 523, dur: 0.35, vol: 0.05, slide: 40, attack: 0.04, lp: 2200 });
-    softTone({ freq: 659, dur: 0.45, vol: 0.04, slide: 30, attack: 0.05, lp: 2400, delay: 0.12 });
-    softTone({ freq: 784, dur: 0.55, vol: 0.03, slide: 20, attack: 0.06, lp: 2600, delay: 0.24 });
+    // Very soft deep drone — water presence, not a chord
+    const drone = ctx.createOscillator();
+    drone.type = "sine";
+    drone.frequency.setValueAtTime(62, t);
+    const drone2 = ctx.createOscillator();
+    drone2.type = "sine";
+    drone2.frequency.setValueAtTime(93, t);
+    const droneGain = ctx.createGain();
+    droneGain.gain.setValueAtTime(0.0001, t);
+    droneGain.gain.exponentialRampToValueAtTime(0.022, t + 1.8);
+    const droneLp = ctx.createBiquadFilter();
+    droneLp.type = "lowpass";
+    droneLp.frequency.setValueAtTime(280, t);
+    drone.connect(droneLp);
+    drone2.connect(droneLp);
+    droneLp.connect(droneGain);
+    droneGain.connect(ctx.destination);
+    drone.start(t);
+    drone2.start(t);
 
     const timers = [];
+    // Rare soft water laps — quiet, low, spaced out
     const lap = () => {
       if (!enabled || ambientKind !== "calm") return;
+      const soft = 0.012 + Math.random() * 0.01;
       softTone({
-        freq: 390 + Math.random() * 90,
-        dur: 0.7,
-        vol: 0.035,
-        slide: 25 + Math.random() * 20,
-        attack: 0.1,
-        lp: 1800
-      });
-      softTone({
-        freq: 520 + Math.random() * 60,
-        dur: 0.45,
-        vol: 0.022,
-        slide: 15,
-        attack: 0.08,
-        lp: 2200,
-        delay: 0.08
+        freq: 110 + Math.random() * 40,
+        dur: 1.4 + Math.random() * 0.6,
+        vol: soft,
+        slide: -18 - Math.random() * 12,
+        attack: 0.35,
+        lp: 420
       });
       noiseHit({
-        dur: 0.22,
-        vol: 0.03,
-        freq: 900,
-        q: 0.45,
+        dur: 0.55 + Math.random() * 0.25,
+        vol: soft * 0.9,
+        freq: 280 + Math.random() * 120,
+        q: 0.35,
         type: "lowpass",
-        delay: 0.02
+        delay: 0.05
       });
     };
-    timers.push(setTimeout(lap, 900));
-    timers.push(setInterval(lap, 2800));
+    timers.push(setTimeout(lap, 2200));
+    timers.push(
+      setInterval(() => {
+        if (Math.random() < 0.65) lap();
+      }, 5200 + Math.random() * 2400)
+    );
 
     ambientNodes = {
-      sources: [src, pad, pad2, pad3],
-      gains: [gain, padGain],
+      sources: [src, lfo, drone, drone2],
+      gains: [gain, droneGain, lfoGain],
       timers
     };
   }
