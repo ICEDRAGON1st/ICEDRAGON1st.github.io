@@ -6044,6 +6044,9 @@ function aquariumRatePerSec() {
         if (variant && VARIANT_PRIMARY.includes(variant)) rec[variant] = true;
         if (shiny) rec.shiny = true;
         if (mutation && MUTATIONS.includes(mutation)) rec[mutation] = true;
+        const look = caughtLookKey(variant, shiny, mutation);
+        if (!rec.looks || typeof rec.looks !== "object") rec.looks = {};
+        rec.looks[look] = true;
         next.caught[id] = rec;
       });
       const now = Date.now();
@@ -6490,8 +6493,30 @@ function aquariumRatePerSec() {
       diamond: false,
       rainbow: false,
       shiny: false,
-      toxic: false
+      toxic: false,
+      looks: {}
     };
+  }
+
+  /** Exact catch look key, e.g. base+toxic, silver+toxic, silver+shiny+toxic. */
+  function caughtLookKey(variant, shiny, mutation) {
+    const bits = [];
+    const v = normalizeVariant(variant);
+    if (v && VARIANT_PRIMARY.includes(v)) bits.push(v);
+    else bits.push("base");
+    if (shiny) bits.push("shiny");
+    const m = normalizeMutation(mutation);
+    if (m) bits.push(m);
+    return bits.join("+");
+  }
+
+  function normalizeCaughtLooks(raw) {
+    const looks = {};
+    if (!raw || typeof raw !== "object") return looks;
+    Object.keys(raw).forEach((k) => {
+      if (raw[k]) looks[String(k)] = true;
+    });
+    return looks;
   }
 
   function normalizeCaughtRecord(raw) {
@@ -6499,6 +6524,7 @@ function aquariumRatePerSec() {
     if (raw === true || raw === 1) {
       rec.any = true;
       rec.base = true;
+      rec.looks.base = true;
       return rec;
     }
     if (!raw || typeof raw !== "object") return rec;
@@ -6518,11 +6544,20 @@ function aquariumRatePerSec() {
     rec.rainbow = !!raw.rainbow;
     rec.shiny = !!raw.shiny;
     rec.toxic = !!raw.toxic;
+    rec.looks = normalizeCaughtLooks(raw.looks);
     if (
       !rec.any &&
       (rec.base || rec.silver || rec.gold || rec.diamond || rec.rainbow || rec.shiny || rec.toxic)
     ) {
       rec.any = true;
+    }
+    // Backfill plain looks from legacy flags (no mutation/shiny combos guessed).
+    if (!Object.keys(rec.looks).length) {
+      if (rec.base) rec.looks.base = true;
+      VARIANT_PRIMARY.forEach((v) => {
+        if (rec[v]) rec.looks[v] = true;
+      });
+      if (rec.shiny) rec.looks["base+shiny"] = true;
     }
     return rec;
   }
@@ -6562,24 +6597,61 @@ function aquariumRatePerSec() {
       rec[mutation] = true;
       changed = true;
     }
+    const look = caughtLookKey(variant, shiny, mutation);
+    if (!rec.looks || typeof rec.looks !== "object") rec.looks = {};
+    if (!rec.looks[look]) {
+      rec.looks[look] = true;
+      changed = true;
+    }
     return changed;
+  }
+
+  function hasCaughtLook(rec, filter = bookFilter, shinyOn = bookShinyOn, mutationOn = bookMutation) {
+    const looks = rec?.looks && typeof rec.looks === "object" ? rec.looks : {};
+    const keys = Object.keys(looks).filter((k) => looks[k]);
+    if (filter === "any") {
+      return keys.some((k) => {
+        const parts = k.split("+");
+        if (mutationOn && !parts.includes(mutationOn)) return false;
+        if (shinyOn && !parts.includes("shiny")) return false;
+        if (!mutationOn && !shinyOn) return true;
+        return true;
+      });
+    }
+    if (filter === "base") {
+      return keys.some((k) => {
+        const parts = k.split("+");
+        if (parts[0] !== "base") return false;
+        if (mutationOn && !parts.includes(mutationOn)) return false;
+        if (!mutationOn && parts.some((p) => MUTATIONS.includes(p))) return false;
+        if (shinyOn && !parts.includes("shiny")) return false;
+        if (!shinyOn && parts.includes("shiny")) return false;
+        return true;
+      });
+    }
+    if (!VARIANT_PRIMARY.includes(filter)) return false;
+    const want = caughtLookKey(filter, shinyOn, mutationOn);
+    if (looks[want]) return true;
+    // Exact match only when mutation/shiny filters are on — no cross-painting combos.
+    if (mutationOn || shinyOn) return false;
+    return !!rec[filter];
   }
 
   function hasCaught(id, filter = bookFilter, shinyOn = bookShinyOn, mutationOn = bookMutation) {
     const raw = state.caught?.[id];
     if (!raw) return false;
     const rec = normalizeCaughtRecord(raw);
+    // Mutation views require the exact variant + mutation look (no cross-painting).
+    if (mutationOn) {
+      return hasCaughtLook(rec, filter, shinyOn, mutationOn);
+    }
     if (shinyOn && !rec.shiny) return false;
-    if (mutationOn && !rec[mutationOn]) return false;
     if (filter === "any") {
-      if (shinyOn && mutationOn) return !!rec.shiny && !!rec[mutationOn];
       if (shinyOn) return !!rec.shiny;
-      if (mutationOn) return !!rec[mutationOn];
       return !!rec.any;
     }
     if (filter === "base") {
       if (shinyOn) {
-        // Normal + Shiny = shiny with no primary value variant
         return (
           !!rec.shiny && !rec.silver && !rec.gold && !rec.diamond && !rec.rainbow
         );
@@ -11370,7 +11442,6 @@ function aquariumRatePerSec() {
     });
     const bookQ = normalizeSearchQuery(state.bookSearch);
     const showEntry = bookShowEntry();
-    const caughtOnly = !!(bookMutation || bookShinyOn || bookFilter !== "any");
     FISH.forEach((fish) => {
       if (!byRarity[fish.rarity]) byRarity[fish.rarity] = [];
       if (bookQ && !fishMatchesSearch(fish, null, bookQ)) return;
@@ -11380,9 +11451,7 @@ function aquariumRatePerSec() {
       const list = byRarity[rarity] || [];
       if (!list.length) return "";
       const got = list.filter((f) => hasCaught(f.id)).length;
-      const displayList = caughtOnly ? list.filter((f) => hasCaught(f.id)) : list;
-      if (!displayList.length) return "";
-      const cards = displayList
+      const cards = list
         .map((fish) => {
           const known = hasCaught(fish.id);
           if (known) {
@@ -11413,9 +11482,7 @@ function aquariumRatePerSec() {
       sections ||
       (bookQ
         ? `<p class="book-empty">No fish matching “${bookQ.replace(/[<>&"]/g, "")}”</p>`
-        : caughtOnly
-          ? `<p class="book-empty">None caught yet for ${bookFilterLabel()}</p>`
-          : "");
+        : "");
   }
 
   let lastGuideBoostKey = "";
