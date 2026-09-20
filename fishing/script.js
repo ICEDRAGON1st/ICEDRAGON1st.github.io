@@ -9570,6 +9570,24 @@
     return "☀";
   }
 
+  function ensureRainDrops() {
+    const layer = document.getElementById("wx-rain-layer");
+    if (!layer || layer.dataset.ready === "1") return;
+    const n = 72;
+    let html = "";
+    for (let i = 0; i < n; i += 1) {
+      const left = ((i * 37) % 100) + (i % 7) * 0.35;
+      const delay = -((i * 0.17) % 4.5);
+      const dur = 0.75 + (i % 9) * 0.12 + (i % 3) * 0.05;
+      const size = 0.7 + (i % 5) * 0.18;
+      const drift = ((i % 5) - 2) * 0.35;
+      const opacity = 0.35 + (i % 6) * 0.08;
+      html += `<span class="wx-drop" style="--dx:${left.toFixed(2)}%;--delay:${delay.toFixed(2)}s;--dur:${dur.toFixed(2)}s;--size:${size.toFixed(2)};--drift:${drift.toFixed(2)}px;--op:${opacity.toFixed(2)}"></span>`;
+    }
+    layer.innerHTML = html;
+    layer.dataset.ready = "1";
+  }
+
   function applyWeatherFx(wx = ensureWeather()) {
     const id = wx?.id || "none";
     const left = Math.max(0, (state.weatherUntil || 0) - Date.now());
@@ -9582,6 +9600,7 @@
       fx.classList.toggle("is-calm", id === "calm");
       fx.classList.toggle("is-active", id !== "none");
     }
+    if (id === "storm") ensureRainDrops();
 
     const banner = document.getElementById("weather-banner");
     const iconEl = document.getElementById("weather-banner-icon");
