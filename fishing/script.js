@@ -6548,6 +6548,13 @@ function aquariumRatePerSec() {
     );
   }
 
+  /** Catch book display value: base coins × active look (variant / shiny / mutation). */
+  function bookLookValue(fish, entry) {
+    const base = Math.max(0, Number(fish?.value) || 0);
+    const mult = entry ? variantValueMult(entry) : 1;
+    return Math.max(1, Math.floor(base * mult));
+  }
+
   function formatVariantTitle(entry) {
     const bits = [];
     const v = normalizeVariant(entry?.variant);
@@ -11780,12 +11787,13 @@ function aquariumRatePerSec() {
           const known = hasCaught(fish.id);
           if (known) {
             const label = showEntry ? formatFishName(fish, showEntry) : fish.name;
+            const lookVal = bookLookValue(fish, showEntry);
             return `<button type="button" class="book-card is-caught rarity-${fish.rarity}${
               showEntry ? ` ${variantClassList(showEntry)}` : ""
-            }" data-book-inspect="${fish.id}" title="${label} · ${fish.rarity} · ${formatNum(fish.value)} coins · tap to inspect">
+            }" data-book-inspect="${fish.id}" title="${label} · ${fish.rarity} · ${formatNum(lookVal)} coins · tap to inspect">
               <span class="book-card-glyph" aria-hidden="true">${fishGlyphHtml(fish, showEntry)}</span>
               <span class="book-card-name">${label}</span>
-              <span class="book-card-meta">${fish.rarity} · ${formatNum(fish.value)}</span>
+              <span class="book-card-meta">${fish.rarity} · ${formatNum(lookVal)}</span>
             </button>`;
           }
           return `<button type="button" class="book-card is-unknown rarity-${fish.rarity}" data-book-inspect="${fish.id}" title="Not caught yet · ${bookFilterLabel()} · tap to inspect">
