@@ -10962,7 +10962,7 @@ function aquariumRatePerSec() {
       if (hasCollectionLbAlwaysBonus()) tiers.push("LB anytime");
       if (tiers.length) {
         bookActiveBonusesEl.hidden = false;
-        bookActiveBonusesEl.textContent = `Active: ${tiers.join(" · ")}`;
+        bookActiveBonusesEl.textContent = tiers.join(" · ");
       } else {
         bookActiveBonusesEl.hidden = true;
         bookActiveBonusesEl.textContent = "";
