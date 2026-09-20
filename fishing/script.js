@@ -11232,6 +11232,7 @@
   setPhase("ready");
   syncBestCatchFromLeaderboard();
   applyLightningFlashPref();
+  document.getElementById("hub-sound-btn")?.remove();
   render();
   checkAchievements();
   clampTreasureStashCounts(true);

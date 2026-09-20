@@ -757,6 +757,11 @@
   }
 
   function bindUi() {
+    // Fishing (and others) can opt out — Settings owns mute/volume there.
+    if (document.body?.getAttribute("data-hub-sound-btn") === "off") {
+      document.getElementById("hub-sound-btn")?.remove();
+      return;
+    }
     let btn = document.getElementById("sound-btn");
     if (!btn) {
       const menu = document.getElementById("menu-btn");
