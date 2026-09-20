@@ -235,57 +235,94 @@
     stopAmbient();
     ambientKind = "calm";
     const t = ctx.currentTime;
+
+    // Gentle surf / lapping water bed (audible, not a whisper)
     const src = ctx.createBufferSource();
     src.buffer = getRainBuffer(ctx);
     src.loop = true;
-    const filter = ctx.createBiquadFilter();
-    filter.type = "lowpass";
-    filter.frequency.setValueAtTime(900, t);
-    filter.Q.setValueAtTime(0.4, t);
+    const bp = ctx.createBiquadFilter();
+    bp.type = "bandpass";
+    bp.frequency.setValueAtTime(680, t);
+    bp.Q.setValueAtTime(0.7, t);
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.setValueAtTime(2400, t);
     const gain = ctx.createGain();
     gain.gain.setValueAtTime(0.0001, t);
-    gain.gain.exponentialRampToValueAtTime(0.022, t + 1.1);
-    src.connect(filter);
-    filter.connect(gain);
+    gain.gain.exponentialRampToValueAtTime(0.07, t + 0.55);
+    src.connect(bp);
+    bp.connect(lp);
+    lp.connect(gain);
     gain.connect(ctx.destination);
     src.start(t);
 
+    // Warm sea pad
     const pad = ctx.createOscillator();
     pad.type = "sine";
-    pad.frequency.setValueAtTime(196, t);
+    pad.frequency.setValueAtTime(174.6, t); // F3
     const pad2 = ctx.createOscillator();
-    pad2.type = "sine";
-    pad2.frequency.setValueAtTime(246.9, t);
+    pad2.type = "triangle";
+    pad2.frequency.setValueAtTime(220, t); // A3
+    const pad3 = ctx.createOscillator();
+    pad3.type = "sine";
+    pad3.frequency.setValueAtTime(261.6, t); // C4
     const padGain = ctx.createGain();
     padGain.gain.setValueAtTime(0.0001, t);
-    padGain.gain.exponentialRampToValueAtTime(0.016, t + 1.4);
+    padGain.gain.exponentialRampToValueAtTime(0.045, t + 0.7);
     const padLp = ctx.createBiquadFilter();
     padLp.type = "lowpass";
-    padLp.frequency.setValueAtTime(700, t);
+    padLp.frequency.setValueAtTime(1400, t);
     pad.connect(padLp);
     pad2.connect(padLp);
+    pad3.connect(padLp);
     padLp.connect(padGain);
     padGain.connect(ctx.destination);
     pad.start(t);
     pad2.start(t);
+    pad3.start(t);
 
-    // Soft swell accents
+    // Clear start chime so calm is obvious when it begins
+    softTone({ freq: 523, dur: 0.35, vol: 0.05, slide: 40, attack: 0.04, lp: 2200 });
+    softTone({ freq: 659, dur: 0.45, vol: 0.04, slide: 30, attack: 0.05, lp: 2400, delay: 0.12 });
+    softTone({ freq: 784, dur: 0.55, vol: 0.03, slide: 20, attack: 0.06, lp: 2600, delay: 0.24 });
+
     const timers = [];
-    timers.push(
-      setInterval(() => {
-        if (!enabled || ambientKind !== "calm") return;
-        softTone({
-          freq: 330 + Math.random() * 40,
-          dur: 0.55,
-          vol: 0.012,
-          slide: 18,
-          attack: 0.12,
-          lp: 1100
-        });
-      }, 3800)
-    );
+    const lap = () => {
+      if (!enabled || ambientKind !== "calm") return;
+      softTone({
+        freq: 390 + Math.random() * 90,
+        dur: 0.7,
+        vol: 0.035,
+        slide: 25 + Math.random() * 20,
+        attack: 0.1,
+        lp: 1800
+      });
+      softTone({
+        freq: 520 + Math.random() * 60,
+        dur: 0.45,
+        vol: 0.022,
+        slide: 15,
+        attack: 0.08,
+        lp: 2200,
+        delay: 0.08
+      });
+      noiseHit({
+        dur: 0.22,
+        vol: 0.03,
+        freq: 900,
+        q: 0.45,
+        type: "lowpass",
+        delay: 0.02
+      });
+    };
+    timers.push(setTimeout(lap, 900));
+    timers.push(setInterval(lap, 2800));
 
-    ambientNodes = { sources: [src, pad, pad2], gains: [gain, padGain], timers };
+    ambientNodes = {
+      sources: [src, pad, pad2, pad3],
+      gains: [gain, padGain],
+      timers
+    };
   }
 
   function setAmbientWeather(kind) {
