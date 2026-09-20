@@ -10932,7 +10932,7 @@
     syncSettingsPanel();
   });
   settingsVolume?.addEventListener("input", () => {
-    const pct = Math.max(0, Math.min(100, Number(settingsVolume.value) || 0));
+    const pct = Math.max(0, Math.min(300, Number(settingsVolume.value) || 0));
     window.HubSound?.setVolume?.(pct / 100);
     if (settingsVolumePct) settingsVolumePct.textContent = String(pct);
   });
