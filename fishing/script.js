@@ -2867,6 +2867,8 @@ function aquariumRatePerSec() {
       "aria-label",
       aquariumExpanded ? "Enlarged aquarium · tap a fish to inspect" : "Aquarium tank · tap to enlarge"
     );
+    if (aquariumExpanded) tank?.removeAttribute("title");
+    else tank?.setAttribute("title", "Tap tank to enlarge · tap a fish to inspect");
     if (backdrop) {
       backdrop.hidden = !aquariumExpanded;
       backdrop.classList.toggle("hidden", !aquariumExpanded);
