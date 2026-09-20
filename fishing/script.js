@@ -1837,9 +1837,11 @@
       bookSearch: "",
       /** Pending offline haul claim */
       pendingOffline: null,
-      /** Local community weekend contribution */
+      /** Local community contribution toward the current meter */
       communityWeekKey: "",
       communityContrib: 0,
+      /** Casts waiting to flush to Mantle while rate-limited / batched */
+      communityPendingAdds: 0,
       /** Last community meter that granted an Astral LB */
       communityLbClaimedKey: "",
       /** Legacy wave id (migrated into claimedKey) */
@@ -2170,10 +2172,29 @@
   }
 
   const COMMUNITY_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-community";
+  const COMMUNITY_PAGES_URL = "community.json";
   const COMMUNITY_TOKEN = "ice-fish-com-9f3a";
   const COMMUNITY_GOAL = 2500;
   const COMMUNITY_REWARD_MS = 30 * 60 * 1000;
   const COMMUNITY_REWARD_MULT = 2;
+  /** Min gap between Mantle round-trips (namespace is tightly rate-limited). */
+  const COMMUNITY_SYNC_GAP_MS = 120_000;
+  const COMMUNITY_POLL_MS = 180_000;
+  const COMMUNITY_FLUSH_CASTS = 12;
+  const COMMUNITY_RATE_BACKOFF_MS = 20 * 60 * 1000;
+
+  let communityCache = {
+    weekKey: "",
+    total: 0,
+    goal: COMMUNITY_GOAL,
+    rewardUntil: 0,
+    rewardMult: COMMUNITY_REWARD_MULT,
+    lbWave: 0
+  };
+  let communityFetchAt = 0;
+  let communityRateLimitedUntil = 0;
+  let communitySyncTimer = 0;
+  let communitySyncInFlight = false;
   const OFFLINE_CLAIM_BONUS_MS = 90 * 1000;
   const OFFLINE_CLAIM_BONUS = 0.25;
   const SPOT_MASTERY_PER = 40;
@@ -2204,16 +2225,6 @@
     // Second roll: 50/50 between active weathers
     return WEATHER_ACTIVE[(h >>> 10) % WEATHER_ACTIVE.length] || "storm";
   }
-
-  let communityCache = {
-    weekKey: "",
-    total: 0,
-    goal: COMMUNITY_GOAL,
-    rewardUntil: 0,
-    rewardMult: COMMUNITY_REWARD_MULT,
-    lbWave: 0
-  };
-  let communityFetchAt = 0;
 
   function spotMasteryCasts(spotId = state.spotId) {
     return Math.max(0, Math.floor(Number(state.spotCasts?.[spotId]) || 0));
@@ -2364,113 +2375,308 @@
     return Math.max(0, until);
   }
 
-  /** @returns {{ found: boolean, data?: object } | null} null = request failed (do not treat as empty). */
-  async function fetchCommunityDoc() {
+  function communityRateLimited(now = Date.now()) {
+    return now < communityRateLimitedUntil;
+  }
+
+  function markCommunityRateLimited(ms = COMMUNITY_RATE_BACKOFF_MS) {
+    communityRateLimitedUntil = Date.now() + Math.max(60_000, ms);
+  }
+
+  function clearCommunityRateLimited() {
+    communityRateLimitedUntil = 0;
+  }
+
+  function normalizeCommunityDoc(raw, fallbackKey = "") {
+    if (!raw || typeof raw !== "object") return null;
+    if (raw.error) return null;
+    const lbWave = Math.max(0, Math.floor(Number(raw.lbWave) || 0));
+    return {
+      weekKey: String(raw.weekKey || fallbackKey || ""),
+      total: Math.max(0, Math.floor(Number(raw.total) || 0)),
+      goal: Math.max(500, Math.floor(Number(raw.goal) || COMMUNITY_GOAL)),
+      rewardUntil: clampCommunityRewardUntil(Number(raw.rewardUntil) || 0, lbWave),
+      rewardMult: clampCommunityRewardMult(raw.rewardMult),
+      lbWave
+    };
+  }
+
+  function pickBetterCommunityDoc(a, b) {
+    if (!a) return b || null;
+    if (!b) return a;
+    const aFin = a.total >= a.goal && a.lbWave > 0;
+    const bFin = b.total >= b.goal && b.lbWave > 0;
+    // Prefer an active reward window.
+    if (a.rewardUntil > Date.now() && !(b.rewardUntil > Date.now())) return a;
+    if (b.rewardUntil > Date.now() && !(a.rewardUntil > Date.now())) return b;
+    // Prefer unfinished meters with more progress.
+    if (!aFin && !bFin) {
+      if (a.total !== b.total) return a.total > b.total ? a : b;
+      return (a.weekKey || "").length >= (b.weekKey || "").length ? a : b;
+    }
+    // Prefer unfinished over finished+expired.
+    if (!aFin && bFin && b.rewardUntil <= Date.now()) return a;
+    if (!bFin && aFin && a.rewardUntil <= Date.now()) return b;
+    if (a.lbWave !== b.lbWave) return a.lbWave > b.lbWave ? a : b;
+    return a.total >= b.total ? a : b;
+  }
+
+  async function fetchCommunityJson(url, { trackRate = false } = {}) {
     try {
-      const res = await fetch(`${COMMUNITY_API}?t=${Date.now()}`, { cache: "no-store" });
-      if (res.status === 404) return { found: false };
-      if (!res.ok) return null;
+      const res = await fetch(`${url}${url.includes("?") ? "&" : "?"}t=${Date.now()}`, {
+        cache: "no-store"
+      });
+      if (res.status === 429) {
+        if (trackRate) markCommunityRateLimited();
+        return { rateLimited: true, found: false, data: null, ok: false };
+      }
+      if (res.status === 404) return { rateLimited: false, found: false, data: null, ok: true };
+      if (!res.ok) return { rateLimited: false, found: false, data: null, ok: false };
       const data = await res.json();
-      if (!data || typeof data !== "object") return null;
-      return { found: true, data };
+      if (data && typeof data === "object" && data.error) {
+        if (/rate limit/i.test(String(data.error) + String(data.message || ""))) {
+          if (trackRate) markCommunityRateLimited();
+          return { rateLimited: true, found: false, data: null, ok: false };
+        }
+        return { rateLimited: false, found: false, data: null, ok: false };
+      }
+      return { rateLimited: false, found: true, data, ok: true };
     } catch {
-      return null;
+      return { rateLimited: false, found: false, data: null, ok: false };
     }
   }
 
+  /** @returns {{ found: boolean, data?: object } | null} null = request failed (do not treat as empty). */
+  async function fetchCommunityDoc() {
+    const pages = await fetchCommunityJson(COMMUNITY_PAGES_URL, { trackRate: false });
+    let mantle = { rateLimited: false, found: false, data: null, ok: false };
+    if (!communityRateLimited()) {
+      mantle = await fetchCommunityJson(COMMUNITY_API, { trackRate: true });
+      if (mantle.ok && !mantle.rateLimited) clearCommunityRateLimited();
+    }
+    const pagesDoc = pages.found ? normalizeCommunityDoc(pages.data) : null;
+    const mantleDoc = mantle.found ? normalizeCommunityDoc(mantle.data) : null;
+
+    if (mantleDoc) {
+      return { found: true, data: pickBetterCommunityDoc(mantleDoc, pagesDoc) || mantleDoc };
+    }
+
+    // Mantle down / rate-limited: keep the last good cache so Pages can't wipe progress.
+    if (mantle.rateLimited || !mantle.ok) {
+      if (communityCache.weekKey || communityCache.total || communityCache.lbWave) {
+        return {
+          found: true,
+          data: normalizeCommunityDoc(communityCache, communityCache.weekKey)
+        };
+      }
+      if (pagesDoc) return { found: true, data: pagesDoc };
+      return null;
+    }
+
+    // Mantle reachable but empty
+    if (pagesDoc) return { found: true, data: pagesDoc };
+    if (pages.ok || mantle.ok) return { found: false };
+    return null;
+  }
+
   async function pushCommunityDoc(doc) {
+    if (communityRateLimited()) return false;
     try {
-      await fetch(COMMUNITY_API, {
+      const res = await fetch(COMMUNITY_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...doc, token: COMMUNITY_TOKEN })
       });
-    } catch {}
+      if (res.status === 429) {
+        markCommunityRateLimited();
+        return false;
+      }
+      if (!res.ok) return false;
+      clearCommunityRateLimited();
+      return true;
+    } catch {
+      return false;
+    }
   }
 
-  async function syncCommunity(add = 0) {
-    const calendarWeek = communityWeekKey();
-    const fetched = await fetchCommunityDoc();
-    if (!fetched) {
-      // Rate-limit / network miss — never invent a fresh empty meter (that re-grants Astral + luck)
-      communityCache.rewardUntil = clampCommunityRewardUntil(
-        communityCache.rewardUntil,
-        communityCache.lbWave
-      );
-      communityCache.rewardMult = clampCommunityRewardMult(communityCache.rewardMult);
-      if (add > 0 && communityAcceptsCasts()) {
-        state.communityContrib += Math.max(0, Math.floor(add));
-        saveSoon();
+  function communityDisplayTotal() {
+    const base = Math.max(0, Number(communityCache.total) || 0);
+    const pending = Math.max(0, Math.floor(Number(state.communityPendingAdds) || 0));
+    if (communityMeterFinished() && communityRewardLive()) return base;
+    return base + pending;
+  }
+
+  /** Queue a cast locally; Mantle is flushed in batches to survive rate limits. */
+  function noteCommunityCast() {
+    if (!communityAcceptsCasts()) return;
+    // Local restart if reward already ended but Mantle hasn't cleared yet.
+    if (communityMeterFinished() && !communityRewardLive()) {
+      communityCache = {
+        weekKey: `${communityWeekKey()}-local-${Date.now()}`,
+        total: 0,
+        goal: Math.max(500, Number(communityCache.goal) || COMMUNITY_GOAL),
+        rewardUntil: 0,
+        rewardMult: clampCommunityRewardMult(communityCache.rewardMult),
+        lbWave: 0
+      };
+      state.communityWeekKey = communityCache.weekKey;
+      state.communityContrib = 0;
+      state.communityPendingAdds = 0;
+    }
+    state.communityPendingAdds = Math.max(0, Math.floor(Number(state.communityPendingAdds) || 0)) + 1;
+    state.communityContrib = Math.max(0, Math.floor(Number(state.communityContrib) || 0)) + 1;
+    saveSoon();
+    const pending = state.communityPendingAdds;
+    if (pending >= COMMUNITY_FLUSH_CASTS) {
+      syncCommunity(true).catch(() => {});
+    } else {
+      scheduleCommunitySync();
+    }
+  }
+
+  function scheduleCommunitySync() {
+    if (communitySyncTimer) return;
+    communitySyncTimer = setTimeout(() => {
+      communitySyncTimer = 0;
+      syncCommunity(false).catch(() => {});
+    }, Math.min(COMMUNITY_SYNC_GAP_MS, 45_000));
+  }
+
+  async function syncCommunity(force = false) {
+    if (communitySyncInFlight) {
+      if (force) scheduleCommunitySync();
+      return communityCache;
+    }
+    const now = Date.now();
+    const pending = Math.max(0, Math.floor(Number(state.communityPendingAdds) || 0));
+    if (
+      !force &&
+      !pending &&
+      now - communityFetchAt < COMMUNITY_SYNC_GAP_MS
+    ) {
+      return communityCache;
+    }
+    if (!force && communityRateLimited(now) && pending < COMMUNITY_FLUSH_CASTS) {
+      // Keep local UI moving; try again later.
+      applyCommunityOfflineTick(pending);
+      scheduleCommunitySync();
+      return communityCache;
+    }
+
+    communitySyncInFlight = true;
+    try {
+      const calendarWeek = communityWeekKey();
+      const fetched = await fetchCommunityDoc();
+      if (!fetched) {
+        applyCommunityOfflineTick(pending);
+        scheduleCommunitySync();
+        tryClaimCommunityAstral();
+        return communityCache;
+      }
+
+      const remote = fetched.found && fetched.data ? fetched.data : {};
+      let total = Math.max(0, Math.floor(Number(remote.total) || 0));
+      let lbWave = Math.max(0, Math.floor(Number(remote.lbWave) || 0));
+      let rewardUntil = clampCommunityRewardUntil(Number(remote.rewardUntil) || 0, lbWave);
+      let meterKey = String(remote.weekKey || calendarWeek);
+      const goal = Math.max(500, Math.floor(Number(remote.goal) || COMMUNITY_GOAL));
+      const rewardMult = clampCommunityRewardMult(remote.rewardMult);
+      const prevTotal = total;
+      const prevWave = lbWave;
+      const prevRewardUntil = rewardUntil;
+      const prevKey = meterKey;
+
+      const finished = total >= goal && lbWave > 0;
+      const rewardOver = rewardUntil <= Date.now();
+
+      // After the luck reward ends, clear the meter so everyone can fill it again.
+      if (finished && rewardOver) {
+        meterKey = `${calendarWeek}-r${Date.now()}`;
+        total = 0;
+        lbWave = 0;
+        rewardUntil = 0;
+      }
+
+      if (state.communityWeekKey !== meterKey) {
+        state.communityWeekKey = meterKey;
+        state.communityContrib = pending;
+      }
+
+      const blockingReward = total >= goal && lbWave > 0 && rewardUntil > Date.now();
+      const castAdd = !blockingReward ? pending : 0;
+      if (castAdd > 0) {
+        // pending casts were already counted into communityContrib locally
+        state.communityPendingAdds = Math.max(0, pending - castAdd);
+      }
+
+      total = total + castAdd;
+
+      let completedNow = false;
+      if (total >= goal && !lbWave) {
+        lbWave = Date.now();
+        rewardUntil = Date.now() + COMMUNITY_REWARD_MS;
+        completedNow = true;
+      } else if (total >= goal && lbWave) {
+        rewardUntil = clampCommunityRewardUntil(rewardUntil, lbWave);
+      }
+
+      communityCache = {
+        weekKey: meterKey,
+        total,
+        goal,
+        rewardUntil,
+        rewardMult,
+        lbWave
+      };
+      communityFetchAt = Date.now();
+      saveSoon();
+
+      if (
+        castAdd > 0 ||
+        meterKey !== prevKey ||
+        total !== prevTotal ||
+        lbWave !== prevWave ||
+        rewardUntil !== prevRewardUntil ||
+        completedNow
+      ) {
+        const pushed = await pushCommunityDoc(communityCache);
+        if (!pushed && castAdd > 0) {
+          // Keep pending so another client/session can retry the flush.
+          state.communityPendingAdds = Math.max(
+            0,
+            Math.floor(Number(state.communityPendingAdds) || 0)
+          ) + castAdd;
+          communityCache.total = Math.max(0, total - castAdd);
+          saveSoon();
+        }
       }
       tryClaimCommunityAstral();
       return communityCache;
+    } finally {
+      communitySyncInFlight = false;
     }
-    const remote = fetched.found && fetched.data ? fetched.data : {};
-    let total = Math.max(0, Math.floor(Number(remote.total) || 0));
-    let lbWave = Math.max(0, Math.floor(Number(remote.lbWave) || 0));
-    let rewardUntil = clampCommunityRewardUntil(Number(remote.rewardUntil) || 0, lbWave);
-    let meterKey = String(remote.weekKey || calendarWeek);
-    const goal = Math.max(500, Math.floor(Number(remote.goal) || COMMUNITY_GOAL));
-    const rewardMult = clampCommunityRewardMult(remote.rewardMult);
-    const prevTotal = total;
-    const prevWave = lbWave;
-    const prevRewardUntil = rewardUntil;
-    const prevKey = meterKey;
+  }
 
-    const finished = total >= goal && lbWave > 0;
-    const rewardOver = rewardUntil <= Date.now();
-
-    // After the luck reward ends, clear the meter so everyone can fill it again.
-    if (finished && rewardOver) {
-      meterKey = `${calendarWeek}-r${Date.now()}`;
-      total = 0;
-      lbWave = 0;
-      rewardUntil = 0;
+  function applyCommunityOfflineTick(pending = Math.floor(Number(state.communityPendingAdds) || 0)) {
+    communityCache.rewardUntil = clampCommunityRewardUntil(
+      communityCache.rewardUntil,
+      communityCache.lbWave
+    );
+    communityCache.rewardMult = clampCommunityRewardMult(communityCache.rewardMult);
+    if (communityMeterFinished() && !communityRewardLive()) {
+      communityCache = {
+        weekKey: `${communityWeekKey()}-local-${Date.now()}`,
+        total: 0,
+        goal: Math.max(500, Number(communityCache.goal) || COMMUNITY_GOAL),
+        rewardUntil: 0,
+        rewardMult: clampCommunityRewardMult(communityCache.rewardMult),
+        lbWave: 0
+      };
+      if (state.communityWeekKey !== communityCache.weekKey) {
+        state.communityWeekKey = communityCache.weekKey;
+        state.communityContrib = pending;
+      }
     }
-
-    if (state.communityWeekKey !== meterKey) {
-      state.communityWeekKey = meterKey;
-      state.communityContrib = 0;
-    }
-
-    const blockingReward = total >= goal && lbWave > 0 && rewardUntil > Date.now();
-    const castAdd = add > 0 && !blockingReward ? Math.max(0, Math.floor(add)) : 0;
-    if (castAdd > 0) state.communityContrib += castAdd;
-
-    total = Math.max(total + castAdd, state.communityContrib);
-
-    let completedNow = false;
-    if (total >= goal && !lbWave) {
-      // First completion only — do not renew reward on later syncs
-      lbWave = Date.now();
-      rewardUntil = Date.now() + COMMUNITY_REWARD_MS;
-      completedNow = true;
-    } else if (total >= goal && lbWave) {
-      // Keep existing window; clamp so a bad remote can't make luck infinite
-      rewardUntil = clampCommunityRewardUntil(rewardUntil, lbWave);
-    }
-
-    communityCache = {
-      weekKey: meterKey,
-      total,
-      goal,
-      rewardUntil,
-      rewardMult,
-      lbWave
-    };
-    communityFetchAt = Date.now();
-    if (
-      castAdd > 0 ||
-      meterKey !== prevKey ||
-      total !== prevTotal ||
-      lbWave !== prevWave ||
-      rewardUntil !== prevRewardUntil ||
-      completedNow
-    ) {
-      pushCommunityDoc(communityCache);
-    }
-    tryClaimCommunityAstral();
-    return communityCache;
   }
 
   /** Contributors get 1 Astral Lucky Block once per completed meter (weekKey). */
@@ -6150,6 +6356,7 @@ function aquariumRatePerSec() {
         raw.pendingOffline && typeof raw.pendingOffline === "object" ? raw.pendingOffline : null;
       next.communityWeekKey = String(raw.communityWeekKey || "");
       next.communityContrib = Math.max(0, Math.floor(Number(raw.communityContrib) || 0));
+      next.communityPendingAdds = Math.max(0, Math.floor(Number(raw.communityPendingAdds) || 0));
       next.communityLbClaimedKey = String(raw.communityLbClaimedKey || "");
       next.communityLbClaimedWave = Math.max(0, Math.floor(Number(raw.communityLbClaimedWave) || 0));
       return next;
@@ -9025,9 +9232,7 @@ function aquariumRatePerSec() {
     const spot = currentSpot();
     notePerfectCombo(perfect);
     noteSpotCast(spot.id, 1);
-    if (communityAcceptsCasts()) {
-      syncCommunity(1).catch(() => {});
-    }
+    noteCommunityCast();
 
     const lbType = rollLuckyBlockDrop();
     if (lbType) {
@@ -10635,10 +10840,11 @@ function aquariumRatePerSec() {
     if (aquaBtn) aquaBtn.disabled = bank <= 0;
 
     const reward = communityRewardLive(now);
-    const total = communityCache.total || 0;
+    const total = communityDisplayTotal();
     const goal = communityCache.goal || COMMUNITY_GOAL;
     const pct = Math.min(100, Math.floor((100 * total) / Math.max(1, goal)));
     const finished = communityMeterFinished();
+    const pending = Math.max(0, Math.floor(Number(state.communityPendingAdds) || 0));
     const meterLive = !finished || reward;
     if (communityLabel) {
       if (reward) {
@@ -10655,14 +10861,18 @@ function aquariumRatePerSec() {
           Math.max(0, communityCache.rewardUntil - now)
         )}${lbTip}`;
       } else if (!finished) {
+        const syncTip = communityRateLimited(now)
+          ? " · syncing later"
+          : pending > 0
+            ? ` · +${formatNum(pending)} pending`
+            : "";
         communityLabel.textContent = `${formatNum(total)}/${formatNum(goal)} · ${pct}% · you ${formatNum(
           state.communityContrib || 0
-        )}`;
+        )}${syncTip}`;
       } else {
         communityLabel.textContent = "Complete · restarting…";
-        // Nudge a sync so the shared meter clears once the reward window is over.
         if (Date.now() - communityFetchAt > 5000) {
-          syncCommunity(0).catch(() => {});
+          syncCommunity(true).catch(() => {});
         }
       }
     }
@@ -12196,10 +12406,10 @@ function aquariumRatePerSec() {
   clampTreasureStashCounts(true);
   startAdminEventPolling();
   startFishGiftPolling();
-  syncCommunity(0).catch(() => {});
+  syncCommunity(true).catch(() => {});
   setInterval(() => {
-    syncCommunity(0).catch(() => {});
-  }, 45000);
+    syncCommunity(false).catch(() => {});
+  }, COMMUNITY_POLL_MS);
   // Titles may sync later — re-clamp once MASTER FISHER is known.
   setTimeout(() => {
     if (clampTreasureStashCounts(true)) renderTreasureStash();
