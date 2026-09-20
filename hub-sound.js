@@ -4,7 +4,8 @@
  *
  * window.HubSound.play(kind)
  * kinds: click, key, back, error, flip, win, lose, hint, achieve,
- *        eat, place, match, shoot, hit, clear, flap, merge, draw
+ *        eat, place, match, shoot, hit, clear, flap, merge, draw,
+ *        weather-storm, weather-calm, weather-none
  */
 (function () {
   const STORAGE_KEY = "hub-sound";
@@ -22,8 +23,11 @@
   let enabled = loadEnabled();
   let audioCtx = null;
   let noiseBuffer = null;
+  let rainBuffer = null;
   let keySamples = [];
   let keySamplesLoading = null;
+  let ambientKind = null;
+  let ambientNodes = null;
 
   function getAudio() {
     if (!enabled) return null;
@@ -118,6 +122,188 @@
     }
     noiseBuffer = buf;
     return noiseBuffer;
+  }
+
+  function getRainBuffer(ctx) {
+    if (rainBuffer && rainBuffer.sampleRate === ctx.sampleRate) return rainBuffer;
+    const len = Math.floor(ctx.sampleRate * 2.5);
+    const buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < len; i += 1) {
+      const white = Math.random() * 2 - 1;
+      last = (last + 0.018 * white) / 1.018;
+      // Soft hiss with a bit of crackle for rain texture
+      const crackle = Math.random() < 0.012 ? (Math.random() * 2 - 1) * 0.35 : 0;
+      data[i] = last * 2.8 + crackle * 0.15;
+    }
+    rainBuffer = buf;
+    return rainBuffer;
+  }
+
+  function stopAmbient() {
+    if (!ambientNodes) {
+      ambientKind = null;
+      return;
+    }
+    (ambientNodes.timers || []).forEach((id) => {
+      clearInterval(id);
+      clearTimeout(id);
+    });
+    (ambientNodes.sources || []).forEach((src) => {
+      try {
+        src.stop();
+      } catch {}
+      try {
+        src.disconnect();
+      } catch {}
+    });
+    (ambientNodes.gains || []).forEach((gain) => {
+      try {
+        gain.disconnect();
+      } catch {}
+    });
+    ambientNodes = null;
+    ambientKind = null;
+  }
+
+  function startStormAmbient() {
+    const ctx = getAudio();
+    if (!ctx) return;
+    stopAmbient();
+    ambientKind = "storm";
+    const t = ctx.currentTime;
+    const src = ctx.createBufferSource();
+    src.buffer = getRainBuffer(ctx);
+    src.loop = true;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "bandpass";
+    filter.frequency.setValueAtTime(1400, t);
+    filter.Q.setValueAtTime(0.55, t);
+    const lp = ctx.createBiquadFilter();
+    lp.type = "lowpass";
+    lp.frequency.setValueAtTime(4200, t);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.045, t + 0.8);
+    src.connect(filter);
+    filter.connect(lp);
+    lp.connect(gain);
+    gain.connect(ctx.destination);
+    src.start(t);
+
+    // Soft distant rumble bed
+    const rumble = ctx.createOscillator();
+    rumble.type = "sine";
+    rumble.frequency.setValueAtTime(48, t);
+    const rumbleGain = ctx.createGain();
+    rumbleGain.gain.setValueAtTime(0.0001, t);
+    rumbleGain.gain.exponentialRampToValueAtTime(0.018, t + 1.2);
+    rumble.connect(rumbleGain);
+    rumbleGain.connect(ctx.destination);
+    rumble.start(t);
+
+    const timers = [];
+    const boom = () => {
+      if (!enabled || ambientKind !== "storm") return;
+      const now = ctx.currentTime;
+      noiseHit({ dur: 0.55, vol: 0.07, freq: 120, q: 0.4, type: "lowpass" });
+      noiseHit({ dur: 0.35, vol: 0.04, freq: 280, q: 0.6, type: "lowpass", delay: 0.08 });
+      softTone({ freq: 70, dur: 0.9, vol: 0.03, slide: -20, attack: 0.08, lp: 220, delay: 0.02 });
+      // Keep rain from clipping during thunder
+      try {
+        gain.gain.cancelScheduledValues(now);
+        gain.gain.setValueAtTime(Math.max(0.0001, gain.gain.value), now);
+        gain.gain.exponentialRampToValueAtTime(0.028, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.045, now + 1.1);
+      } catch {}
+    };
+    // Opening thunder stinger
+    timers.push(setTimeout(boom, 400));
+    timers.push(
+      setInterval(() => {
+        if (Math.random() < 0.55) boom();
+      }, 5200 + Math.random() * 2800)
+    );
+
+    ambientNodes = { sources: [src, rumble], gains: [gain, rumbleGain], timers };
+  }
+
+  function startCalmAmbient() {
+    const ctx = getAudio();
+    if (!ctx) return;
+    stopAmbient();
+    ambientKind = "calm";
+    const t = ctx.currentTime;
+    const src = ctx.createBufferSource();
+    src.buffer = getRainBuffer(ctx);
+    src.loop = true;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(900, t);
+    filter.Q.setValueAtTime(0.4, t);
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.022, t + 1.1);
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    src.start(t);
+
+    const pad = ctx.createOscillator();
+    pad.type = "sine";
+    pad.frequency.setValueAtTime(196, t);
+    const pad2 = ctx.createOscillator();
+    pad2.type = "sine";
+    pad2.frequency.setValueAtTime(246.9, t);
+    const padGain = ctx.createGain();
+    padGain.gain.setValueAtTime(0.0001, t);
+    padGain.gain.exponentialRampToValueAtTime(0.016, t + 1.4);
+    const padLp = ctx.createBiquadFilter();
+    padLp.type = "lowpass";
+    padLp.frequency.setValueAtTime(700, t);
+    pad.connect(padLp);
+    pad2.connect(padLp);
+    padLp.connect(padGain);
+    padGain.connect(ctx.destination);
+    pad.start(t);
+    pad2.start(t);
+
+    // Soft swell accents
+    const timers = [];
+    timers.push(
+      setInterval(() => {
+        if (!enabled || ambientKind !== "calm") return;
+        softTone({
+          freq: 330 + Math.random() * 40,
+          dur: 0.55,
+          vol: 0.012,
+          slide: 18,
+          attack: 0.12,
+          lp: 1100
+        });
+      }, 3800)
+    );
+
+    ambientNodes = { sources: [src, pad, pad2], gains: [gain, padGain], timers };
+  }
+
+  function setAmbientWeather(kind) {
+    if (!enabled) {
+      stopAmbient();
+      return;
+    }
+    if (kind === "storm") {
+      if (ambientKind === "storm") return;
+      startStormAmbient();
+      return;
+    }
+    if (kind === "calm") {
+      if (ambientKind === "calm") return;
+      startCalmAmbient();
+      return;
+    }
+    stopAmbient();
   }
 
   function tone({ freq, dur = 0.08, type = "square", vol = 0.07, slide = 0, delay = 0, attack = 0.012 }) {
@@ -268,6 +454,12 @@
       });
     } else if (kind === "merge") {
       tone({ freq: 430, dur: 0.09, type: "triangle", vol: 0.055, slide: 90 });
+    } else if (kind === "weather-storm") {
+      setAmbientWeather("storm");
+    } else if (kind === "weather-calm") {
+      setAmbientWeather("calm");
+    } else if (kind === "weather-none" || kind === "weather-stop") {
+      setAmbientWeather("none");
     }
   }
 
@@ -277,6 +469,7 @@
     localStorage.setItem(LEGACY_KEY, enabled ? "on" : "off");
     paintButtons();
     if (enabled) play("click");
+    else stopAmbient();
   }
 
   function toggle() {
@@ -358,6 +551,8 @@
     play,
     toggle,
     isEnabled: () => enabled,
-    unlock: getAudio
+    unlock: getAudio,
+    stopAmbient,
+    setAmbientWeather
   };
 })();

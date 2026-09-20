@@ -9605,6 +9605,16 @@
     layer.dataset.ready = "1";
   }
 
+  let lastWeatherSoundId = "";
+
+  function syncWeatherSound(id = "none") {
+    if (id === lastWeatherSoundId) return;
+    lastWeatherSoundId = id;
+    if (id === "storm") window.HubSound?.play?.("weather-storm");
+    else if (id === "calm") window.HubSound?.play?.("weather-calm");
+    else window.HubSound?.play?.("weather-none");
+  }
+
   function applyWeatherFx(wx = ensureWeather()) {
     const id = wx?.id || "none";
     const left = Math.max(0, (state.weatherUntil || 0) - Date.now());
@@ -9618,6 +9628,7 @@
       fx.classList.toggle("is-active", id !== "none");
     }
     if (id === "storm") ensureRainDrops();
+    syncWeatherSound(id);
 
     const banner = document.getElementById("weather-banner");
     const iconEl = document.getElementById("weather-banner-icon");
@@ -11001,9 +11012,19 @@
   window.addEventListener("beforeunload", () => {
     saveState();
     maybeSubmitBest(true);
+    window.HubSound?.stopAmbient?.();
   });
-  window.addEventListener("pagehide", () => saveState());
+  window.addEventListener("pagehide", () => {
+    saveState();
+    window.HubSound?.stopAmbient?.();
+  });
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "hidden") saveState();
+    if (document.visibilityState === "hidden") {
+      saveState();
+      lastWeatherSoundId = "";
+      window.HubSound?.stopAmbient?.();
+    } else {
+      applyWeatherFx();
+    }
   });
 })();
