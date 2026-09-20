@@ -11370,6 +11370,7 @@ function aquariumRatePerSec() {
     });
     const bookQ = normalizeSearchQuery(state.bookSearch);
     const showEntry = bookShowEntry();
+    const caughtOnly = !!(bookMutation || bookShinyOn || bookFilter !== "any");
     FISH.forEach((fish) => {
       if (!byRarity[fish.rarity]) byRarity[fish.rarity] = [];
       if (bookQ && !fishMatchesSearch(fish, null, bookQ)) return;
@@ -11379,7 +11380,9 @@ function aquariumRatePerSec() {
       const list = byRarity[rarity] || [];
       if (!list.length) return "";
       const got = list.filter((f) => hasCaught(f.id)).length;
-      const cards = list
+      const displayList = caughtOnly ? list.filter((f) => hasCaught(f.id)) : list;
+      if (!displayList.length) return "";
+      const cards = displayList
         .map((fish) => {
           const known = hasCaught(fish.id);
           if (known) {
@@ -11410,7 +11413,9 @@ function aquariumRatePerSec() {
       sections ||
       (bookQ
         ? `<p class="book-empty">No fish matching “${bookQ.replace(/[<>&"]/g, "")}”</p>`
-        : "");
+        : caughtOnly
+          ? `<p class="book-empty">None caught yet for ${bookFilterLabel()}</p>`
+          : "");
   }
 
   let lastGuideBoostKey = "";
