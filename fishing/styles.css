@@ -7476,27 +7476,26 @@ body[data-spot="finalhorizon"] {
 }
 .aqua-fish-glyph .fish-glyph .tail {
   transform-box: fill-box;
+  /* Pivot at the body joint so the fin never floats away */
   transform-origin: 100% 50%;
-  animation: aqua-tail-flick 0.48s ease-in-out infinite;
+  animation: aqua-tail-flick 0.5s ease-in-out infinite;
 }
 .aqua-fish:nth-child(odd) .fish-glyph .tail {
-  animation-duration: 0.42s;
+  animation-duration: 0.44s;
   animation-delay: -0.14s;
 }
 .aqua-fish:nth-child(3n) .fish-glyph .tail {
-  animation-duration: 0.56s;
+  animation-duration: 0.58s;
   animation-delay: -0.27s;
 }
 @keyframes aqua-tail-flick {
   0%,
   100% {
-    transform: rotate(0deg);
+    transform: scaleX(1) scaleY(1);
   }
-  25% {
-    transform: rotate(-16deg);
-  }
-  75% {
-    transform: rotate(14deg);
+  50% {
+    /* Compress toward the body — no rotate gap */
+    transform: scaleX(0.78) scaleY(1.08);
   }
 }
 .aquarium-drip {
