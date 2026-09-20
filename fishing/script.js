@@ -6887,20 +6887,20 @@ function aquariumRatePerSec() {
           ${fishEye(50, 13, 2)}`;
       case "angelfish":
         return `
-          <path class="fin" d="M28 16 C22 -2 34 -4 38 14 C34 8 30 12 28 16 Z"/>
-          <path class="fin" d="M28 16 C22 34 34 36 38 18 C34 24 30 20 28 16 Z"/>
-          <path class="tail" d="M8 16 C4 10 2 12 1 16 C2 20 4 22 8 16 Z"/>
-          <ellipse class="body shade" cx="36" cy="16.5" rx="14" ry="10"/>
-          <ellipse class="body" cx="36" cy="16" rx="13.5" ry="9.4"/>
-          <ellipse class="belly" cx="36" cy="20" rx="8" ry="4"/>
-          <path class="stripe" d="M30 8 L30 24" stroke-width="2"/>
-          <path class="stripe" d="M36 7 L36 25" stroke-width="1.6"/>
-          ${fishEye(46, 13, 2)}`;
+          <path class="fin" d="M30 16 C24 -1 36 -3 40 14 C36 8 32 12 30 16 Z"/>
+          <path class="fin" d="M30 16 C24 33 36 35 40 18 C36 24 32 20 30 16 Z"/>
+          <path class="tail" d="M22 16 C12 8 4 10 1 16 C4 22 12 24 22 16 Z"/>
+          <ellipse class="body shade" cx="38" cy="16.5" rx="16" ry="10"/>
+          <ellipse class="body" cx="38" cy="16" rx="15.5" ry="9.4"/>
+          <ellipse class="belly" cx="38" cy="20" rx="9" ry="4"/>
+          <path class="stripe" d="M32 8 L32 24" stroke-width="2"/>
+          <path class="stripe" d="M38 7 L38 25" stroke-width="1.6"/>
+          ${fishEye(48, 13, 2)}`;
       case "boxfish":
         return `
           <path class="fin" d="M28 8 C32 2 40 3 40 10 C36 7 30 8 28 8 Z"/>
           <path class="fin" d="M28 24 C32 30 40 29 40 22 C36 25 30 24 28 24 Z"/>
-          <path class="tail" d="M6 16 C3 11 1 13 1 16 C1 19 3 21 6 16 Z"/>
+          <path class="tail" d="M16 16 C8 10 3 12 1 16 C3 20 8 22 16 16 Z"/>
           <rect class="body shade" x="14" y="8" width="38" height="17" rx="4"/>
           <rect class="body" x="15" y="8.5" width="36" height="15.5" rx="3.5"/>
           <rect class="belly" x="20" y="16" width="24" height="6" rx="2" opacity="0.5"/>
@@ -6914,14 +6914,14 @@ function aquariumRatePerSec() {
           ${fishEye(46, 8.5, 1.6)}`;
       case "butterfly":
         return `
-          <path class="fin" d="M30 16 C18 2 40 0 44 14 C38 8 32 12 30 16 Z"/>
-          <path class="fin" d="M30 16 C18 30 40 32 44 18 C38 24 32 20 30 16 Z"/>
-          <path class="tail" d="M10 16 C6 11 3 13 2 16 C3 19 6 21 10 16 Z"/>
-          <ellipse class="body shade" cx="38" cy="16.5" rx="12" ry="7"/>
-          <ellipse class="body" cx="38" cy="16" rx="11.5" ry="6.5"/>
-          <circle class="spot" cx="34" cy="14" r="2" fill="#fff" opacity="0.45"/>
-          <circle class="spot" cx="40" cy="18" r="1.6" fill="#fff" opacity="0.4"/>
-          ${fishEye(47, 14, 1.9)}`;
+          <path class="fin" d="M32 16 C20 2 42 0 46 14 C40 8 34 12 32 16 Z"/>
+          <path class="fin" d="M32 16 C20 30 42 32 46 18 C40 24 34 20 32 16 Z"/>
+          <path class="tail" d="M26 16 C14 10 5 12 2 16 C5 20 14 22 26 16 Z"/>
+          <ellipse class="body shade" cx="40" cy="16.5" rx="14" ry="7.5"/>
+          <ellipse class="body" cx="40" cy="16" rx="13.5" ry="7"/>
+          <circle class="spot" cx="36" cy="14" r="2" fill="#fff" opacity="0.45"/>
+          <circle class="spot" cx="42" cy="18" r="1.6" fill="#fff" opacity="0.4"/>
+          ${fishEye(50, 14, 1.9)}`;
       case "longnose":
         return `
           <path class="fin belly-fin" d="M30 21 C34 27 42 26 46 21 C40 24 34 24 30 21 Z"/>
@@ -6952,12 +6952,13 @@ function aquariumRatePerSec() {
           ${fishEye(50, 13, 2.1)}`;
       case "kite":
         return `
-          <path class="fin" d="M32 16 C8 4 6 12 28 16 C6 20 8 28 32 16 Z"/>
-          <path class="fin" d="M32 16 C56 4 58 12 36 16 C58 20 56 28 32 16 Z"/>
-          <path class="body shade" d="M26 16 C28 12 36 11 40 15 C42 18 36 22 28 20 C25 18 25 17 26 16 Z"/>
-          <path class="body" d="M26 16 C28 12.5 36 11.5 39.5 15 C41.5 17.5 36 21 28.5 19.5 C25.5 18 25.5 17 26 16 Z"/>
-          <path class="tail" d="M24 20 C20 28 28 30 30 24"/>
-          ${fishEye(36, 14.5, 1.5)}`;
+          <path class="fin" d="M34 16 C12 5 8 12 30 16 C8 20 12 27 34 16 Z"/>
+          <path class="fin" d="M34 16 C56 5 60 12 38 16 C60 20 56 27 34 16 Z"/>
+          <path class="tail" d="M28 18 C22 24 24 30 30 26 C28 28 30 22 28 18 Z"/>
+          <ellipse class="body shade" cx="36" cy="16.5" rx="10" ry="6"/>
+          <ellipse class="body" cx="36" cy="16" rx="9.5" ry="5.5"/>
+          <ellipse class="belly" cx="36" cy="18.5" rx="6" ry="2.8"/>
+          ${fishEye(42, 14.5, 1.5)}`;
       case "bullshark":
         return `
           <path class="fin belly-fin" d="M26 22 C30 30 42 30 46 22 C38 27 30 27 26 22 Z"/>

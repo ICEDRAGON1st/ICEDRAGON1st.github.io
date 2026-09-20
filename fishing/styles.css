@@ -7456,6 +7456,7 @@ body[data-spot="finalhorizon"] {
   cursor: pointer;
   transform-origin: center center;
   will-change: transform;
+  overflow: visible;
   filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.35));
 }
 .aqua-fish:hover,
@@ -7467,6 +7468,7 @@ body[data-spot="finalhorizon"] {
   display: block;
   width: 100%;
   height: 100%;
+  overflow: visible;
 }
 .aqua-fish-glyph .fish-glyph {
   width: 100%;
@@ -7474,28 +7476,27 @@ body[data-spot="finalhorizon"] {
   display: block;
   overflow: visible;
 }
+/* Soft joint-anchored flap — origin in viewBox space at the body seam */
 .aqua-fish-glyph .fish-glyph .tail {
-  transform-box: fill-box;
-  /* Pivot at the body joint so the fin never floats away */
-  transform-origin: 100% 50%;
-  animation: aqua-tail-flick 0.5s ease-in-out infinite;
+  transform-box: view-box;
+  transform-origin: 16px 16px;
+  animation: aqua-tail-flick 0.55s ease-in-out infinite;
 }
 .aqua-fish:nth-child(odd) .fish-glyph .tail {
-  animation-duration: 0.44s;
-  animation-delay: -0.14s;
+  animation-duration: 0.48s;
+  animation-delay: -0.16s;
 }
 .aqua-fish:nth-child(3n) .fish-glyph .tail {
-  animation-duration: 0.58s;
-  animation-delay: -0.27s;
+  animation-duration: 0.62s;
+  animation-delay: -0.3s;
 }
 @keyframes aqua-tail-flick {
   0%,
   100% {
-    transform: scaleX(1) scaleY(1);
+    transform: rotate(0deg);
   }
   50% {
-    /* Compress toward the body — no rotate gap */
-    transform: scaleX(0.78) scaleY(1.08);
+    transform: rotate(-6deg);
   }
 }
 .aquarium-drip {
