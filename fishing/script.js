@@ -2534,14 +2534,11 @@ function aquariumRatePerSec() {
   }
 
   const AQUARIUM_SWIM_MAX = 18;
-  const AQUA_FISH_CYCLE_MS = 10000;
   let aquariumRenderKey = "";
-  /** @type {{ el: HTMLElement, x: number, y: number, vx: number, vy: number, w: number, h: number, phase: number, baseVx: number, baseVy: number }[]} */
+  /** @type {{ el: HTMLElement, x: number, y: number, vx: number, vy: number, w: number, h: number }[]} */
   let aquariumSwimState = [];
   let aquariumRaf = 0;
   let aquariumLastTs = 0;
-  let aquariumCycleStarted = 0;
-  let aquariumHookedI = -1;
 
   function aquariumFishList() {
     const spot = currentSpot();
@@ -2571,24 +2568,12 @@ function aquariumRatePerSec() {
     }
     aquariumLastTs = 0;
     aquariumSwimState = [];
-    aquariumHookedI = -1;
   }
 
   function applyAquaFishPose(fish) {
     const facing = fish.vx >= 0 ? 1 : -1;
-    const bob = Math.sin(fish.phase || 0) * 1.8;
-    const tilt = Math.sin((fish.phase || 0) * 1.25) * (fish.hooked ? 10 : 3.5);
-    const lift = fish.hooked ? fish.hookLift || 0 : 0;
-    fish.el.style.transform = `translate(${fish.x.toFixed(1)}px, ${(fish.y + bob - lift).toFixed(
-      1
-    )}px) scaleX(${facing}) rotate(${tilt.toFixed(1)}deg)`;
+    fish.el.style.transform = `translate(${fish.x.toFixed(1)}px, ${fish.y.toFixed(1)}px) scaleX(${facing})`;
     fish.el.classList.toggle("facing-left", facing < 0);
-    fish.el.classList.toggle("is-hooked", !!fish.hooked);
-  }
-
-  function aquaCycleProgress(now) {
-    if (!aquariumCycleStarted) aquariumCycleStarted = now;
-    return ((now - aquariumCycleStarted) % AQUA_FISH_CYCLE_MS) / AQUA_FISH_CYCLE_MS;
   }
 
   function stepAquariumSwim(ts) {
@@ -2609,63 +2594,24 @@ function aquariumRatePerSec() {
       return;
     }
 
-    const prog = aquaCycleProgress(ts);
-    const biteWindow = prog >= 0.44 && prog < 0.72;
-    if (biteWindow) {
-      if (aquariumHookedI < 0 || !aquariumSwimState[aquariumHookedI]) {
-        // Prefer a fish nearer the bobber (upper-right)
-        let best = 0;
-        let bestScore = Infinity;
-        aquariumSwimState.forEach((f, i) => {
-          const score = Math.hypot(f.x - laneW * 0.72, f.y - laneH * 0.42);
-          if (score < bestScore) {
-            bestScore = score;
-            best = i;
-          }
-        });
-        aquariumHookedI = best;
-      }
-    } else {
-      aquariumHookedI = -1;
-    }
-
-    const hookX = laneW * 0.7;
-    const hookY = laneH * 0.38;
-    const reelLift = biteWindow && prog >= 0.54 ? Math.min(28, (prog - 0.54) * 160) : 0;
-
-    aquariumSwimState.forEach((fish, i) => {
-      fish.phase = (fish.phase || 0) + dt * (5.5 + (i % 4) * 0.7);
-      fish.hooked = i === aquariumHookedI;
-      fish.hookLift = fish.hooked ? reelLift : 0;
-
-      if (fish.hooked) {
-        const pull = 2.8;
-        fish.vx += (hookX - fish.x - fish.w * 0.5) * pull * dt;
-        fish.vy += (hookY - fish.y - fish.h * 0.5) * pull * dt;
-        fish.vx *= 0.92;
-        fish.vy *= 0.92;
-      } else if (Math.abs(fish.vx) < 12) {
-        fish.vx = (fish.baseVx || 30) * (fish.vx >= 0 ? 1 : -1);
-      }
-
+    aquariumSwimState.forEach((fish) => {
       fish.x += fish.vx * dt;
       fish.y += fish.vy * dt;
-
       const maxX = Math.max(0, laneW - fish.w);
       const maxY = Math.max(0, laneH - fish.h);
       if (fish.x <= 0) {
         fish.x = 0;
-        fish.vx = Math.abs(fish.baseVx || fish.vx || 28);
+        fish.vx = Math.abs(fish.vx);
       } else if (fish.x >= maxX) {
         fish.x = maxX;
-        fish.vx = -Math.abs(fish.baseVx || fish.vx || 28);
+        fish.vx = -Math.abs(fish.vx);
       }
       if (fish.y <= 0) {
         fish.y = 0;
-        fish.vy = Math.abs(fish.baseVy || fish.vy || 8);
+        fish.vy = Math.abs(fish.vy);
       } else if (fish.y >= maxY) {
         fish.y = maxY;
-        fish.vy = -Math.abs(fish.baseVy || fish.vy || 8);
+        fish.vy = -Math.abs(fish.vy);
       }
       applyAquaFishPose(fish);
     });
@@ -2681,7 +2627,6 @@ function aquariumRatePerSec() {
       return;
     }
     aquariumLastTs = 0;
-    if (!aquariumCycleStarted) aquariumCycleStarted = performance.now();
     aquariumRaf = requestAnimationFrame(stepAquariumSwim);
   }
 
@@ -2728,7 +2673,7 @@ function aquariumRatePerSec() {
           entry
         )}" data-aqua-index="${index}" data-aqua-i="${i}" style="width:${fishW}px;height:${(
           Number(fishW) * 0.5
-        ).toFixed(0)}px;animation-delay:${(-i * 0.11).toFixed(2)}s" title="${label} · tap to unsave" aria-label="Unsave ${label}">
+        ).toFixed(0)}px" title="${label} · tap to unsave" aria-label="Unsave ${label}">
           <span class="aqua-fish-glyph" aria-hidden="true" style="animation-delay:${(-i * 0.13).toFixed(
             2
           )}s">${fishGlyphHtml(fish, entry)}</span>
@@ -2747,20 +2692,14 @@ function aquariumRatePerSec() {
       const dir = i % 2 === 0 ? 1 : -1;
       const x = Math.min(maxX, Math.max(0, (maxX * ((i * 37) % 100)) / 100));
       const y = Math.min(maxY, Math.max(0, (maxY * ((i * 53 + 17) % 100)) / 100));
-      const vy = (i % 2 === 0 ? 1 : -1) * (6 + (i % 4) * 2);
       const fish = {
         el,
         x,
         y,
         vx: dir * speed,
-        vy,
-        baseVx: speed,
-        baseVy: Math.abs(vy),
+        vy: (i % 2 === 0 ? 1 : -1) * (2.5 + (i % 3) * 1.2),
         w,
-        h,
-        phase: (i * 1.7) % (Math.PI * 2),
-        hooked: false,
-        hookLift: 0
+        h
       };
       applyAquaFishPose(fish);
       return fish;
