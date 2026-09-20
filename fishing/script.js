@@ -2269,7 +2269,16 @@
   }
 
   function comboActive(now = Date.now()) {
+    clearExpiredCombo(now);
     return (state.combo || 0) > 0 && (state.comboBoostUntil || 0) > now;
+  }
+
+  function clearExpiredCombo(now = Date.now()) {
+    if ((state.combo || 0) > 0 && (state.comboBoostUntil || 0) <= now) {
+      state.combo = 0;
+      state.comboBoostUntil = 0;
+      saveSoon();
+    }
   }
 
   function comboLuckBonus(now = Date.now()) {
@@ -10415,12 +10424,10 @@ function aquariumRatePerSec() {
     if (comboLabel) {
       comboLabel.textContent = comboOn
         ? `×${state.combo} · ${formatTreasureClock(Math.max(0, state.comboBoostUntil - now))}`
-        : state.combo > 0
-          ? `×${state.combo} ended`
-          : "—";
+        : "—";
     }
     comboChip?.classList.toggle("is-live", comboOn);
-    comboChip?.classList.toggle("hidden", !comboOn && !(state.combo > 0));
+    comboChip?.classList.toggle("hidden", !comboOn);
 
     tickAquarium();
     const bank = Math.floor(Number(state.aquariumBank) || 0);
