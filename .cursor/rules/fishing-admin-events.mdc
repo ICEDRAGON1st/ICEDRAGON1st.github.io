@@ -80,7 +80,7 @@ Only if JSON push isn’t enough / user wants instant before Pages updates:
 
 `POST https://mantledb.sh/v2/icedragon1st-mygames/fishing-admin-events` with `token: "ice-fish-evt-9f3a"` and the same bundle (`boost` + `variant` + `mutation` + `chest` + `luckyblock` + `weather`).
 
-Defaults: **2×** for **5 minutes** (weather has no mult). Clamp mult **1.5–1000**, minutes 1–180.
+Defaults: **2×** for **5 minutes** (weather has no mult). Clamp mult **1–1000**, minutes 1–180.
 
 In-game commands: `5x luck`, `5x shiny + gold`, `5x toxic`, `5x luckyblock`, `storm`, `calm`, `sunny`, `clear`, `clear luck`, `clear variant`, `clear mutation`, `clear luckyblock`, `clear weather`.
 

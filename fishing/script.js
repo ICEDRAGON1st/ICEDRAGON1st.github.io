@@ -122,7 +122,7 @@
   const ADMIN_DEFAULT_MINUTES = 5;
   const ADMIN_DEFAULT_MULT = 2;
   const ADMIN_MAX_MINUTES = 180;
-  const ADMIN_MIN_MULT = 1.5;
+  const ADMIN_MIN_MULT = 1;
   const ADMIN_MAX_MULT = 1000;
   const TREASURE_MONEY = {
     id: "coin_chest",
@@ -6271,7 +6271,7 @@ function aquariumRatePerSec() {
     const mutTarget = mutationEventTarget();
     const mutMult = mutationEventMult();
     // Mutations are admin-only for now — no natural roll without a live event.
-    if (mutTarget && mutMult > 1) {
+    if (mutTarget && mutMult >= 1) {
       const chance = Math.min(0.95, 0.12 * mutMult);
       if (Math.random() < chance) mutation = mutTarget;
     }
