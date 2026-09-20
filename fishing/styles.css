@@ -685,6 +685,12 @@ body.no-lightning-flash .wx-flash {
   padding-right: 0.1rem;
 }
 
+@media (max-width: 720px) {
+  .book-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 560px) {
   .book-layout {
     flex-direction: column;
@@ -705,6 +711,10 @@ body.no-lightning-flash .wx-flash {
   .book-filter-btn {
     min-width: 0;
     flex: 1 1 auto;
+  }
+
+  .book-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 
@@ -729,17 +739,17 @@ body.no-lightning-flash .wx-flash {
 
 .book-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(5.8rem, 1fr));
-  gap: 0.35rem;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.4rem;
 }
 
 .book-card {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.12rem;
-  padding: 0.4rem 0.28rem 0.35rem;
-  border-radius: 0.6rem;
+  gap: 0.14rem;
+  padding: 0.45rem 0.3rem 0.4rem;
+  border-radius: 0.65rem;
   border: 1px solid var(--border);
   background: rgba(0, 0, 0, 0.28);
   text-align: center;
@@ -747,19 +757,19 @@ body.no-lightning-flash .wx-flash {
 }
 
 .book-card-glyph {
-  width: 2.8rem;
-  height: 1.4rem;
+  width: 3rem;
+  height: 1.5rem;
   display: grid;
   place-items: center;
 }
 
 .book-card-glyph .fish-glyph {
-  width: 2.8rem;
-  height: 1.4rem;
+  width: 3rem;
+  height: 1.5rem;
 }
 
 .book-card-name {
-  font-size: 0.66rem;
+  font-size: 0.7rem;
   font-weight: 700;
   line-height: 1.15;
   max-width: 100%;
@@ -769,7 +779,7 @@ body.no-lightning-flash .wx-flash {
 }
 
 .book-card-meta {
-  font-size: 0.58rem;
+  font-size: 0.6rem;
   color: var(--muted);
   line-height: 1.15;
   max-width: 100%;

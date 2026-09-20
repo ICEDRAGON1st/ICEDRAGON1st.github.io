@@ -334,17 +334,13 @@
     { id: "perch", name: "Perch", rarity: "common", value: 5 },
     { id: "bluegill", name: "Bluegill", rarity: "common", value: 6 },
     { id: "sardine", name: "Sardine", rarity: "common", value: 4 },
-    { id: "smelt", name: "Smelt", rarity: "common", value: 5 },
     { id: "carp", name: "Carp", rarity: "common", value: 7 },
     { id: "roach", name: "Roach", rarity: "common", value: 4 },
-    { id: "goby", name: "Goby", rarity: "common", value: 6 },
     // Uncommon
     { id: "trout", name: "Trout", rarity: "uncommon", value: 14 },
     { id: "bass", name: "Bass", rarity: "uncommon", value: 18 },
     { id: "catfish", name: "Catfish", rarity: "uncommon", value: 22 },
-    { id: "walleye", name: "Walleye", rarity: "uncommon", value: 20 },
     { id: "snapper", name: "Snapper", rarity: "uncommon", value: 24 },
-    { id: "mackerel", name: "Mackerel", rarity: "uncommon", value: 16 },
     { id: "cod", name: "Cod", rarity: "uncommon", value: 19 },
     { id: "flounder", name: "Flounder", rarity: "uncommon", value: 21 },
     // Rare
@@ -354,7 +350,6 @@
     { id: "grouper", name: "Grouper", rarity: "rare", value: 70 },
     { id: "barracuda", name: "Barracuda", rarity: "rare", value: 65 },
     { id: "sturgeon", name: "Sturgeon", rarity: "rare", value: 80 },
-    { id: "eel", name: "Moray Eel", rarity: "rare", value: 58 },
     // Epic
     { id: "tuna", name: "Tuna", rarity: "epic", value: 120 },
     { id: "marlin", name: "Marlin", rarity: "epic", value: 180 },
@@ -5796,6 +5791,11 @@ function aquariumRatePerSec() {
           }
         }
       } catch {}
+      if (next.bestCatchId && !fishById(next.bestCatchId)) {
+        next.bestCatchId = "";
+        next.bestCatchVariant = "";
+        next.bestCatchShiny = false;
+      }
       next.caught = {};
       if (raw.caught && typeof raw.caught === "object") {
         Object.keys(raw.caught).forEach((id) => {
@@ -6423,16 +6423,12 @@ function aquariumRatePerSec() {
     perch: "perch",
     bluegill: "panfish",
     sardine: "slender",
-    smelt: "mackerel",
     carp: "carp",
     roach: "panfish",
-    goby: "goby",
     trout: "trout",
     bass: "bass",
     catfish: "catfish",
-    walleye: "pike",
     snapper: "snapper",
-    mackerel: "mackerel",
     cod: "cod",
     flounder: "flat",
     salmon: "salmon",
@@ -6441,7 +6437,6 @@ function aquariumRatePerSec() {
     grouper: "grouper",
     barracuda: "barracuda",
     sturgeon: "sturgeon",
-    eel: "eel",
     tuna: "tuna",
     marlin: "marlin",
     swordfish: "swordfish",
@@ -6550,16 +6545,12 @@ function aquariumRatePerSec() {
     perch: "#8fbc6b",
     bluegill: "#6db3c9",
     sardine: "#b8c4cc",
-    smelt: "#a8b8c0",
     carp: "#d4a373",
     roach: "#c9a66b",
-    goby: "#9aa88a",
     trout: "#7eb8a0",
     bass: "#6a9e6e",
     catfish: "#8a7f6e",
-    walleye: "#c4b05a",
     snapper: "#e07860",
-    mackerel: "#6a9aaa",
     cod: "#8fa0b0",
     flounder: "#c2a878",
     salmon: "#e0898a",
@@ -6568,7 +6559,6 @@ function aquariumRatePerSec() {
     grouper: "#b08968",
     barracuda: "#8aa0a8",
     sturgeon: "#9a9080",
-    eel: "#6d7a6a",
     tuna: "#5b7fa0",
     marlin: "#4f8fb8",
     swordfish: "#7a90a8",
