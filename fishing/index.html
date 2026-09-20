@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260923c">
+  <link rel="stylesheet" href="styles.css?v=20260923d">
 </head>
 <body data-spot="creek" data-hub-sound-btn="off">
   <div id="weather-fx" class="weather-fx" aria-hidden="true">
@@ -457,16 +457,18 @@
         </div>
         <div id="book-body" class="book-body"></div>
       </div>
-      <div id="book-inspect" class="book-inspect hidden" role="dialog" aria-modal="true" aria-labelledby="book-inspect-title" hidden>
-        <button type="button" class="book-inspect-backdrop" id="book-inspect-backdrop" aria-label="Close inspect"></button>
-        <div class="book-inspect-panel">
-          <button type="button" class="btn btn-ghost book-inspect-close" id="book-inspect-close">Close</button>
-          <div id="book-inspect-glyph" class="book-inspect-glyph" aria-hidden="true"></div>
-          <h3 id="book-inspect-title" class="book-inspect-title">Fish</h3>
-          <p id="book-inspect-meta" class="book-inspect-meta"></p>
-          <p id="book-inspect-hint" class="book-inspect-hint"></p>
-        </div>
-      </div>
+    </div>
+  </div>
+
+  <div id="book-inspect" class="book-inspect hidden" role="dialog" aria-modal="true" aria-labelledby="book-inspect-title" hidden>
+    <button type="button" class="book-inspect-backdrop" id="book-inspect-backdrop" aria-label="Close inspect"></button>
+    <div class="book-inspect-panel">
+      <button type="button" class="btn btn-ghost book-inspect-close" id="book-inspect-close">Close</button>
+      <div id="book-inspect-glyph" class="book-inspect-glyph" aria-hidden="true"></div>
+      <h3 id="book-inspect-title" class="book-inspect-title">Fish</h3>
+      <p id="book-inspect-meta" class="book-inspect-meta"></p>
+      <p id="book-inspect-hint" class="book-inspect-hint"></p>
+      <button type="button" id="book-inspect-action" class="btn book-inspect-action hidden" hidden>Unsave</button>
     </div>
   </div>
 
@@ -775,6 +777,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260917br"></script>
-  <script src="script.js?v=20260923c"></script>
+  <script src="script.js?v=20260923d"></script>
 </body>
 </html>

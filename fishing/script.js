@@ -1688,6 +1688,8 @@
   const bookInspectHintEl = document.getElementById("book-inspect-hint");
   const bookInspectCloseBtn = document.getElementById("book-inspect-close");
   const bookInspectBackdrop = document.getElementById("book-inspect-backdrop");
+  const bookInspectActionBtn = document.getElementById("book-inspect-action");
+  let bookInspectCoolerIndex = -1;
   const bookFiltersEl = document.getElementById("book-filters");
   const bookProgressEl = document.getElementById("book-progress");
   const bookViewLabelEl = document.getElementById("book-view-label");
@@ -2894,7 +2896,7 @@ function aquariumRatePerSec() {
           entry
         )}" data-aqua-index="${index}" data-aqua-i="${i}" style="width:${fishW}px;height:${(
           Number(fishW) * 0.5
-        ).toFixed(0)}px" title="${label} · tap to unsave" aria-label="Unsave ${label}">
+        ).toFixed(0)}px" title="${label} · tap to inspect" aria-label="Inspect ${label}">
           <span class="aqua-fish-glyph" aria-hidden="true">${fishGlyphHtml(fish, entry)}</span>
         </button>`;
       })
@@ -11760,14 +11762,38 @@ function aquariumRatePerSec() {
     bookInspectEl.classList.add("hidden");
     bookInspectEl.hidden = true;
     bookInspectEl.classList.remove("is-toxic");
+    bookInspectCoolerIndex = -1;
+    if (bookInspectActionBtn) {
+      bookInspectActionBtn.hidden = true;
+      bookInspectActionBtn.classList.add("hidden");
+      bookInspectActionBtn.textContent = "Unsave";
+      bookInspectActionBtn.onclick = null;
+    }
     if (bookInspectGlyphEl) bookInspectGlyphEl.innerHTML = "";
   }
 
-  function openBookInspect(fishId) {
+  function openBookInspect(fishId, entryOverride = null, opts = {}) {
     const fish = fishById(fishId);
     if (!fish || !bookInspectEl) return;
-    const known = hasCaught(fish.id);
-    const showEntry = known ? bookShowEntry() : null;
+    const fromAquarium = !!opts.fromAquarium;
+    const coolerIndex = Math.floor(Number(opts.coolerIndex));
+    bookInspectCoolerIndex =
+      fromAquarium && Number.isFinite(coolerIndex) && coolerIndex >= 0 ? coolerIndex : -1;
+
+    let showEntry = null;
+    let known = true;
+    if (entryOverride && typeof entryOverride === "object") {
+      showEntry = {
+        variant: normalizeVariant(entryOverride.variant),
+        shiny: !!entryOverride.shiny,
+        mutation: normalizeMutation(entryOverride.mutation)
+      };
+      if (!showEntry.variant && !showEntry.shiny && !showEntry.mutation) showEntry = null;
+    } else {
+      known = hasCaught(fish.id);
+      showEntry = known ? bookShowEntry() : null;
+    }
+
     const label = known
       ? showEntry
         ? formatFishName(fish, showEntry)
@@ -11786,9 +11812,15 @@ function aquariumRatePerSec() {
           : mut
             ? ` · ${mut}`
             : "";
-      bookInspectMetaEl.textContent = known
-        ? `${fish.rarity} · ${formatNum(fish.value)} coins${mutNote}`
-        : `${fish.rarity} · not caught yet`;
+      if (!known) {
+        bookInspectMetaEl.textContent = `${fish.rarity} · not caught yet`;
+      } else if (fromAquarium) {
+        bookInspectMetaEl.textContent = `${fish.rarity} · sell ${formatNum(
+          fishValue(fish, currentSpot(), entryOverride || showEntry)
+        )}${mutNote}`;
+      } else {
+        bookInspectMetaEl.textContent = `${fish.rarity} · ${formatNum(fish.value)} coins${mutNote}`;
+      }
     }
     if (bookInspectHintEl) {
       const bits = [];
@@ -11799,12 +11831,34 @@ function aquariumRatePerSec() {
         known && showEntry?.mutation === "toxic"
           ? "Toxic mutation: bile-green flesh, glowing veins, and dripping sludge · tap outside to close"
           : "";
-      bookInspectHintEl.textContent = known
-        ? toxicHint ||
-          (bits.length
-            ? `Viewing ${bits.join(" + ")} look · tap outside to close`
-            : "Tap outside or Close to go back")
-        : "Catch this fish to reveal its look";
+      if (fromAquarium) {
+        bookInspectHintEl.textContent = bits.length
+          ? `Saved aquarium look · ${bits.join(" + ")} · tap outside to close`
+          : "Saved in the Aquarium · tap outside to close";
+      } else {
+        bookInspectHintEl.textContent = known
+          ? toxicHint ||
+            (bits.length
+              ? `Viewing ${bits.join(" + ")} look · tap outside to close`
+              : "Tap outside or Close to go back")
+          : "Catch this fish to reveal its look";
+      }
+    }
+    if (bookInspectActionBtn) {
+      if (fromAquarium && bookInspectCoolerIndex >= 0) {
+        bookInspectActionBtn.hidden = false;
+        bookInspectActionBtn.classList.remove("hidden");
+        bookInspectActionBtn.textContent = "Unsave from Aquarium";
+        bookInspectActionBtn.onclick = () => {
+          const idx = bookInspectCoolerIndex;
+          closeBookInspect();
+          toggleSaveFish(idx);
+        };
+      } else {
+        bookInspectActionBtn.hidden = true;
+        bookInspectActionBtn.classList.add("hidden");
+        bookInspectActionBtn.onclick = null;
+      }
     }
     bookInspectEl.classList.toggle("is-toxic", known && showEntry?.mutation === "toxic");
     bookInspectEl.hidden = false;
@@ -11881,7 +11935,12 @@ function aquariumRatePerSec() {
   document.getElementById("aquarium-swimmers")?.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-aqua-index]");
     if (!btn) return;
-    toggleSaveFish(btn.dataset.aquaIndex);
+    const index = Math.floor(Number(btn.dataset.aquaIndex));
+    if (!Number.isFinite(index) || index < 0 || index >= state.cooler.length) return;
+    const entry = normalizeCoolerEntry(state.cooler[index]);
+    const fish = entry ? fishById(entry.id) : null;
+    if (!fish) return;
+    openBookInspect(fish.id, entry, { fromAquarium: true, coolerIndex: index });
   });
   document.getElementById("offline-claim-btn")?.addEventListener("click", () => claimOfflineBonus());
   document.getElementById("offline-claim-overlay")?.addEventListener("click", (e) => {
