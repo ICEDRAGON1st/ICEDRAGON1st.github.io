@@ -4678,9 +4678,10 @@
           nextKind === "luck"
             ? `Upcoming: ${nextMult}× Luck`
             : `Upcoming: ${nextMult}× Sell`;
+        // Keep the countdown only in the time column so the title width stays stable.
         eventBannerTitleEl.textContent =
           untilLb <= untilNext
-            ? `${sellLuckLine} · ${nextLbMult}× Lucky Blocks in ${formatTreasureClock(untilLb)}`
+            ? `${sellLuckLine} · ${nextLbMult}× Lucky Blocks`
             : sellLuckLine;
       }
     }
@@ -4690,9 +4691,11 @@
       if (lbLive) times.push(luckyBlockEventMsLeft());
       if (variant) times.push(Math.max(0, variant.until - Date.now()));
       if (times.length) {
-        eventBannerTimeEl.textContent = `${formatTreasureClock(Math.min(...times))} left`;
+        eventBannerTimeEl.textContent = `${formatBannerClock(Math.min(...times))} left`;
       } else {
-        eventBannerTimeEl.textContent = `in ${formatTreasureClock(untilNext)}`;
+        const untilLb = msUntilNextLuckyBlockEvent();
+        const showMs = untilLb <= untilNext ? untilLb : untilNext;
+        eventBannerTimeEl.textContent = `in ${formatBannerClock(showMs)}`;
       }
     }
   }
@@ -4786,6 +4789,19 @@
     bits.push(`${hours}h`);
     bits.push(`${mins}m`);
     return bits.join(" ");
+  }
+
+  /** Fixed-width countdown for banners so digit changes don't shift layout. */
+  function formatBannerClock(ms) {
+    const totalSec = Math.max(0, Math.ceil(Math.max(0, Number(ms) || 0) / 1000));
+    if (totalSec < 3600) {
+      const m = Math.floor(totalSec / 60);
+      const s = totalSec % 60;
+      return `${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
+    }
+    const hours = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    return `${String(hours).padStart(2, "0")}h ${String(m).padStart(2, "0")}m`;
   }
 
   /** Long reset timers for objectives: "2d 5h 12m", "5h 12m", or "12m". */
@@ -9646,7 +9662,7 @@
     if (tagEl) tagEl.textContent = id === "none" ? "Weather" : "Live weather";
     if (titleEl) titleEl.textContent = id === "none" ? "Clear skies" : wx.label;
     if (effectEl) effectEl.textContent = weatherBlurb(id);
-    if (timeEl) timeEl.textContent = formatTreasureClock(left);
+    if (timeEl) timeEl.textContent = formatBannerClock(left);
   }
 
   function applySpotTheme() {
@@ -9675,11 +9691,8 @@
 
     applyWeatherFx(wx);
     if (weatherLabel) {
-      const left = Math.max(0, (state.weatherUntil || 0) - now);
       weatherLabel.textContent =
-        wx.id === "none"
-          ? `Clear · ${formatTreasureClock(left)}`
-          : `${weatherIcon(wx.id)} ${wx.label} · ${formatTreasureClock(left)}`;
+        wx.id === "none" ? "Clear" : `${weatherIcon(wx.id)} ${wx.label}`;
     }
     if (weatherEffect) weatherEffect.textContent = weatherBlurb(wx.id);
     weatherChip?.classList.toggle("weather-storm", wx.id === "storm");

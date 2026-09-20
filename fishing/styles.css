@@ -3422,12 +3422,14 @@ body[data-spot="mythforge"] .water-mist {
   border: 2px solid rgba(180, 140, 255, 0.45);
   background: linear-gradient(135deg, rgba(40, 28, 70, 0.95), rgba(12, 16, 28, 0.92));
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 0.45rem 0.75rem;
   overflow: hidden;
   text-align: left;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+  min-height: 3.35rem;
+  box-sizing: border-box;
 }
 
 .event-banner-pulse {
@@ -3468,14 +3470,22 @@ body[data-spot="mythforge"] .water-mist {
   font-size: 1.15rem;
   line-height: 1.2;
   color: #f4f0ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .event-banner-time {
-  flex: 0 0 auto;
+  flex: 0 0 9.5rem;
+  width: 9.5rem;
+  min-width: 9.5rem;
+  text-align: right;
   font-size: 0.95rem;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
   color: #cbb8ff;
+  white-space: nowrap;
 }
 
 .event-banner.event-money {
@@ -7329,6 +7339,7 @@ body[data-spot="finalhorizon"] {
 
 .weather-banner {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 0.65rem;
   width: 100%;
@@ -7339,6 +7350,7 @@ body[data-spot="finalhorizon"] {
   border: 1px solid var(--border);
   background: rgba(0, 0, 0, 0.22);
   box-sizing: border-box;
+  min-height: 3.55rem;
 }
 .weather-banner-icon {
   flex: 0 0 auto;
@@ -7368,17 +7380,32 @@ body[data-spot="finalhorizon"] {
   font-size: 0.98rem;
   color: var(--foam);
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-height: 1.2em;
 }
 .weather-banner-effect {
   font-size: 0.75rem;
   color: var(--muted);
+  min-height: 2.25em;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .weather-banner-time {
-  flex: 0 0 auto;
+  flex: 0 0 7.5rem;
+  width: 7.5rem;
+  min-width: 7.5rem;
+  text-align: right;
   font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, "Cascadia Mono", "Segoe UI Mono", Menlo, Consolas, monospace;
   font-weight: 700;
   font-size: 0.85rem;
   color: var(--muted);
+  white-space: nowrap;
 }
 .weather-banner.is-live .weather-banner-time {
   color: var(--foam);
