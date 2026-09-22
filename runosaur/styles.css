@@ -102,6 +102,7 @@ body {
   user-select: none;
   -webkit-user-select: none;
   outline: none;
+  image-rendering: auto;
 }
 
 #game:focus,

@@ -51,6 +51,16 @@
   const jumpBtn = document.getElementById("jump-btn");
   const duckBtn = document.getElementById("duck-btn");
 
+  /** Positive modulo — JS `%` stays negative for negative inputs and glitches scroll loops. */
+  function wrapMod(n, m) {
+    const mod = Number(m) || 1;
+    return ((Number(n) % mod) + mod) % mod;
+  }
+
+  function px(n) {
+    return Math.round(Number(n) || 0);
+  }
+
   function duckHeld() {
     return duckKeyHeld || duckBtnHeld || !!pointerGesture?.ducked;
   }
@@ -255,9 +265,9 @@
     if (!running || paused || dead) return;
     anim += dt;
     speed = Math.min(720, 340 + score * 0.55);
-    deepCave = Math.floor(score / 400) % 2 === 1;
+    deepCave = score >= 400;
     chaseBreath += dt;
-    groundX = (groundX - speed * dt) % 48;
+    groundX = wrapMod(groundX - speed * dt, 48);
     score += speed * dt * 0.085;
 
     flakes.forEach((f) => {
@@ -317,23 +327,28 @@
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
 
-    // Ice ceiling teeth
+    // Ice ceiling teeth — integer scroll so tiles don't shimmer/jump
+    const ceilPeriod = 70;
+    const ceilScroll = wrapMod(groundX * 0.35, ceilPeriod);
     ctx.fillStyle = deepCave ? "rgba(140, 180, 220, 0.22)" : "rgba(180, 220, 255, 0.28)";
-    for (let x = -20 + (groundX * 0.4) % 70; x < W + 40; x += 70) {
+    for (let x = -ceilPeriod + px(ceilScroll); x < W + ceilPeriod; x += ceilPeriod) {
+      const ix = px(x);
+      const tip = 28 + ((ix % 40) + 40) % 40;
       ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x + 18, 28 + (x % 40));
-      ctx.lineTo(x + 36, 0);
+      ctx.moveTo(ix, 0);
+      ctx.lineTo(ix + 18, tip);
+      ctx.lineTo(ix + 36, 0);
       ctx.fill();
     }
 
-    // Distant ice walls
+    // Distant ice walls — sample on a fixed grid; scroll phase only (no subpixel path jitter)
+    const wallPhase = wrapMod(groundX * 0.55, Math.PI * 2 * 50) ;
     ctx.fillStyle = deepCave ? "rgba(60, 90, 130, 0.35)" : "rgba(90, 140, 190, 0.25)";
     ctx.beginPath();
     ctx.moveTo(0, GROUND_Y - 40);
-    for (let x = 0; x <= W; x += 80) {
-      const y = GROUND_Y - 90 - Math.sin((x + groundX) * 0.02) * 28;
-      ctx.lineTo(x, y);
+    for (let x = 0; x <= W; x += 40) {
+      const y = GROUND_Y - 90 - Math.sin((x + wallPhase) * 0.02) * 28;
+      ctx.lineTo(x, px(y));
     }
     ctx.lineTo(W, GROUND_Y);
     ctx.lineTo(0, GROUND_Y);
@@ -408,31 +423,39 @@
     ctx.strokeStyle = deepCave ? "#a8c8e0" : "#d8f0ff";
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(0, GROUND_Y);
-    ctx.lineTo(W, GROUND_Y);
+    ctx.moveTo(0, GROUND_Y + 0.5);
+    ctx.lineTo(W, GROUND_Y + 0.5);
     ctx.stroke();
 
+    const tile = 64;
+    const scroll = px(wrapMod(groundX, tile));
     ctx.fillStyle = deepCave ? "rgba(200, 230, 255, 0.25)" : "rgba(255, 255, 255, 0.45)";
-    for (let x = groundX; x < W + 64; x += 64) {
+    for (let x = scroll - tile; x < W + tile; x += tile) {
+      const ix = px(x);
       ctx.beginPath();
-      ctx.moveTo(x + 8, GROUND_Y + 8);
-      ctx.lineTo(x + 18, GROUND_Y + 22);
-      ctx.lineTo(x + 4, GROUND_Y + 22);
+      ctx.moveTo(ix + 8, GROUND_Y + 8);
+      ctx.lineTo(ix + 18, GROUND_Y + 22);
+      ctx.lineTo(ix + 4, GROUND_Y + 22);
       ctx.fill();
-      ctx.fillRect(x + 36, GROUND_Y + 28, 14, 3);
+      ctx.fillRect(ix + 36, GROUND_Y + 28, 14, 3);
     }
   }
 
   function drawFlake(f) {
     ctx.fillStyle = deepCave ? "rgba(180, 210, 240, 0.35)" : "rgba(255, 255, 255, 0.7)";
     ctx.beginPath();
-    ctx.arc(f.x, f.y, f.r, 0, Math.PI * 2);
+    ctx.arc(px(f.x), px(f.y), f.r, 0, Math.PI * 2);
     ctx.fill();
   }
 
   function drawRunner() {
     if (!dino) return;
-    const { x, y, w, h, ducking, onGround } = dino;
+    const x = px(dino.x);
+    const y = px(dino.y);
+    const w = dino.w;
+    const h = dino.h;
+    const ducking = dino.ducking;
+    const onGround = dino.onGround;
     const leg = onGround ? Math.floor(anim * speed * 0.02) % 2 : 0;
     const body = deepCave ? "#c5d8ec" : "#e8f4ff";
     const accent = deepCave ? "#5b8fd4" : "#3d7ecc";
@@ -517,21 +540,25 @@
     const tip = deepCave ? "#8eb4d4" : "#d8f2ff";
     const base = deepCave ? "#4a6e90" : "#6a9ec4";
     const drawOne = (ox, oy, ow, oh) => {
-      const g = ctx.createLinearGradient(ox, oy, ox + ow, oy + oh);
+      const x = px(ox);
+      const y = px(oy);
+      const w = Math.max(1, px(ow));
+      const h = Math.max(1, px(oh));
+      const g = ctx.createLinearGradient(x, y, x + w, y + h);
       g.addColorStop(0, tip);
       g.addColorStop(1, base);
       ctx.fillStyle = g;
       ctx.beginPath();
-      ctx.moveTo(ox + ow * 0.5, oy);
-      ctx.lineTo(ox + ow, oy + oh);
-      ctx.lineTo(ox, oy + oh);
+      ctx.moveTo(x + w * 0.5, y);
+      ctx.lineTo(x + w, y + h);
+      ctx.lineTo(x, y + h);
       ctx.closePath();
       ctx.fill();
       ctx.strokeStyle = "rgba(255,255,255,0.35)";
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(ox + ow * 0.5, oy + 4);
-      ctx.lineTo(ox + ow * 0.5, oy + oh - 6);
+      ctx.moveTo(x + Math.floor(w * 0.5) + 0.5, y + 4);
+      ctx.lineTo(x + Math.floor(w * 0.5) + 0.5, y + h - 6);
       ctx.stroke();
     };
     drawOne(o.x, o.y, o.w, o.h);
@@ -540,16 +567,20 @@
 
   function drawBat(o) {
     const flap = Math.sin(anim * 14) > 0;
-    const cx = o.x + o.w / 2;
-    const cy = o.y + o.h * 0.55;
+    const ox = px(o.x);
+    const oy = px(o.y);
+    const ow = px(o.w);
+    const oh = px(o.h);
+    const cx = ox + ow / 2;
+    const cy = oy + oh * 0.55;
     // Hanging ice tether — reads as “go under”
     ctx.strokeStyle = deepCave ? "rgba(160,200,240,0.55)" : "rgba(210,235,255,0.7)";
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(cx - 10, o.y - 8);
-    ctx.lineTo(cx - 6, o.y + 10);
-    ctx.moveTo(cx + 10, o.y - 8);
-    ctx.lineTo(cx + 6, o.y + 10);
+    ctx.moveTo(cx - 10, oy - 8);
+    ctx.lineTo(cx - 6, oy + 10);
+    ctx.moveTo(cx + 10, oy - 8);
+    ctx.lineTo(cx + 6, oy + 10);
     ctx.stroke();
     ctx.fillStyle = deepCave ? "#9bb8d4" : "#c5e0f5";
     ctx.beginPath();
@@ -580,7 +611,7 @@
     ctx.fill();
     ctx.fillStyle = "rgba(180, 230, 255, 0.55)";
     ctx.beginPath();
-    ctx.moveTo(cx, o.y + 6);
+    ctx.moveTo(cx, oy + 6);
     ctx.lineTo(cx + 8, cy);
     ctx.lineTo(cx - 8, cy);
     ctx.fill();
@@ -589,12 +620,15 @@
       ctx.fillStyle = "rgba(255, 220, 120, 0.85)";
       ctx.font = "700 14px Outfit, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("↓ DUCK", cx, o.y - 12);
+      ctx.fillText("↓ DUCK", cx, oy - 12);
     }
   }
 
   function draw() {
     ctx.clearRect(0, 0, W, H);
+    ctx.imageSmoothingEnabled = true;
+    ctx.shadowBlur = 0;
+    ctx.shadowColor = "transparent";
     drawCaveBackdrop();
     drawChaseDragon();
     flakes.forEach(drawFlake);
@@ -609,6 +643,7 @@
     ctx.shadowBlur = 6;
     ctx.fillText(String(Math.floor(score)).padStart(5, "0"), W - 24, 40);
     ctx.shadowBlur = 0;
+    ctx.shadowColor = "transparent";
     if (waitingStart && !dead) {
       ctx.textAlign = "center";
       ctx.font = "700 30px Outfit, sans-serif";
@@ -625,7 +660,7 @@
     if (running && !paused && !dead) update(dt);
     else if (!running && !dead) {
       anim += dt;
-      groundX = (groundX - 40 * dt) % 48;
+      groundX = wrapMod(groundX - 40 * dt, 48);
     }
     draw();
   }
