@@ -3260,7 +3260,7 @@ function aquariumRatePerSec() {
   let adminChestCache = null;
   let adminLuckyBlockCache = null;
   let adminWeatherCache = null;
-  let adminMutationCache = null;
+  let adminMutationCache = emptyMutationMap();
   let adminEventFetchedAt = 0;
   let adminEventPollTimer = 0;
   let adminBusy = false;
@@ -3506,11 +3506,9 @@ function aquariumRatePerSec() {
       if (weather && !isWeatherAdminPayload(weather)) weather = null;
     }
     if (data.mutation && typeof data.mutation === "object") {
-      mutation = parseAdminEventPayload(
-        { ...inherit, kind: data.mutation.kind || "mutation", ...data.mutation },
-        requireToken
-      );
-      if (mutation && !isMutationAdminPayload(mutation)) mutation = null;
+      mutation = parseMutationMap(data.mutation, requireToken, inherit);
+    } else {
+      mutation = emptyMutationMap();
     }
     const single = parseAdminEventPayload(
       requireToken ? data : { ...data, token: data.token },
@@ -3522,7 +3520,9 @@ function aquariumRatePerSec() {
       if (isChestAdminPayload(single)) chest = pickBetterAdminEvent(chest, single);
       if (isLuckyBlockAdminPayload(single)) luckyblock = pickBetterAdminEvent(luckyblock, single);
       if (isWeatherAdminPayload(single)) weather = pickBetterAdminEvent(weather, single);
-      if (isMutationAdminPayload(single)) mutation = pickBetterAdminEvent(mutation, single);
+      if (isMutationAdminPayload(single)) {
+        mutation = mergeMutationMaps(mutation, parseMutationMap(single, requireToken, inherit));
+      }
     }
     return { boost, variant, chest, luckyblock, weather, mutation };
   }
@@ -3537,6 +3537,87 @@ function aquariumRatePerSec() {
 
   function isMutationAdminPayload(e) {
     return !!e && e.kind === "mutation" && !!normalizeMutation(e.target);
+  }
+
+  function emptyMutationMap() {
+    return { toxic: null, lava: null, neon: null };
+  }
+
+  /** Normalize legacy single mutation OR { toxic, lava, neon } map. */
+  function parseMutationMap(raw, requireToken = false, inherit = {}) {
+    const map = emptyMutationMap();
+    if (!raw || typeof raw !== "object") return map;
+    const keyed = MUTATIONS.some((m) => raw[m] && typeof raw[m] === "object");
+    if (keyed) {
+      MUTATIONS.forEach((m) => {
+        const src = raw[m];
+        if (!src || typeof src !== "object") return;
+        const e = parseAdminEventPayload(
+          { ...inherit, ...src, kind: "mutation", target: m },
+          requireToken
+        );
+        if (e && isMutationAdminPayload(e)) map[m] = { ...e, kind: "mutation", target: m };
+      });
+      return map;
+    }
+    const single = parseAdminEventPayload(
+      { ...inherit, kind: raw.kind || "mutation", ...raw },
+      requireToken
+    );
+    if (single && isMutationAdminPayload(single)) {
+      const t = normalizeMutation(single.target);
+      if (t) map[t] = { ...single, kind: "mutation", target: t };
+    }
+    return map;
+  }
+
+  function mutationMapHasAny(map) {
+    if (!map || typeof map !== "object") return false;
+    return MUTATIONS.some((m) => isMutationAdminPayload(map[m]));
+  }
+
+  function mergeMutationMaps(a, b) {
+    const out = emptyMutationMap();
+    MUTATIONS.forEach((m) => {
+      out[m] = pickBetterAdminEvent(a?.[m] || null, b?.[m] || null);
+    });
+    return out;
+  }
+
+  function pruneMutationMap(map, now = Date.now()) {
+    const out = emptyMutationMap();
+    if (!map || typeof map !== "object") return out;
+    MUTATIONS.forEach((m) => {
+      const e = map[m];
+      if (e && isMutationAdminPayload(e) && e.until > now) out[m] = e;
+    });
+    return out;
+  }
+
+  function serializeMutationMap(map, now = Date.now()) {
+    const live = pruneMutationMap(map, now);
+    if (!mutationMapHasAny(live)) return null;
+    const out = {};
+    MUTATIONS.forEach((m) => {
+      if (live[m]) out[m] = serializeAdminChannel(live[m]);
+    });
+    return out;
+  }
+
+  function adminMutationEventsLive(now = Date.now()) {
+    const map = mergeMutationMaps(adminMutationCache, localAdminMutation());
+    const list = [];
+    MUTATIONS.forEach((m) => {
+      const e = map?.[m];
+      if (e && isMutationAdminPayload(e) && now < e.until) list.push(e);
+    });
+    return list;
+  }
+
+  function formatLiveMutationBits(now = Date.now()) {
+    return adminMutationEventsLive(now).map(
+      (e) => `${formatMult(e.mult)}× ${adminEventKindLabel(e)}`
+    );
   }
 
   function isChestAdminPayload(e) {
@@ -3651,12 +3732,52 @@ function aquariumRatePerSec() {
 
   function localAdminMutation() {
     migrateLegacyAdminLocal();
-    return parseAdminEventPayload(readStoredAdmin(ADMIN_EVENT_LOCAL_MUTATION_KEY), true);
+    return parseMutationMap(readStoredAdmin(ADMIN_EVENT_LOCAL_MUTATION_KEY), true, {
+      token: ADMIN_EVENT_TOKEN
+    });
   }
 
-  function setLocalAdminMutation(payload, clear = false) {
-    if (clear) writeStoredAdmin(ADMIN_EVENT_LOCAL_MUTATION_KEY, null);
-    else writeStoredAdmin(ADMIN_EVENT_LOCAL_MUTATION_KEY, payload);
+  function writeLocalMutationMap(map) {
+    const live = pruneMutationMap(map);
+    if (!mutationMapHasAny(live)) {
+      writeStoredAdmin(ADMIN_EVENT_LOCAL_MUTATION_KEY, null);
+      return;
+    }
+    const payload = { token: ADMIN_EVENT_TOKEN, scope: "local" };
+    MUTATIONS.forEach((m) => {
+      if (live[m]) {
+        payload[m] = {
+          ...serializeAdminChannel(live[m]),
+          token: ADMIN_EVENT_TOKEN,
+          scope: live[m].scope || "local"
+        };
+      }
+    });
+    writeStoredAdmin(ADMIN_EVENT_LOCAL_MUTATION_KEY, payload);
+  }
+
+  function setLocalAdminMutation(payload, clear = false, clearTarget = "") {
+    if (clear) {
+      const target = normalizeMutation(clearTarget);
+      if (target) {
+        const map = localAdminMutation();
+        map[target] = null;
+        writeLocalMutationMap(map);
+      } else {
+        writeStoredAdmin(ADMIN_EVENT_LOCAL_MUTATION_KEY, null);
+      }
+      return;
+    }
+    const e = parseAdminEventPayload(payload, true);
+    if (!e || !isMutationAdminPayload(e)) return;
+    const map = localAdminMutation();
+    map[normalizeMutation(e.target)] = e;
+    // Preserve scope from payload on the stored blob
+    const scope = String(payload?.scope || e.scope || "local");
+    MUTATIONS.forEach((m) => {
+      if (map[m]) map[m] = { ...map[m], scope: m === e.target ? scope : map[m].scope || scope };
+    });
+    writeLocalMutationMap(map);
   }
 
   function adminWeatherEventLive(now = Date.now()) {
@@ -3677,10 +3798,17 @@ function aquariumRatePerSec() {
     return e;
   }
 
+  /** Any live mutation (prefers highest-value type for single-slot callers). */
   function adminMutationEventLive(now = Date.now()) {
-    const e = pickBetterAdminEvent(adminMutationCache, localAdminMutation());
-    if (!e || !isMutationAdminPayload(e) || now >= e.until) return null;
-    return e;
+    const list = adminMutationEventsLive(now);
+    if (!list.length) return null;
+    return list.reduce((best, e) => {
+      if (!best) return e;
+      const bm = MUTATION_MULT[best.target] || 0;
+      const em = MUTATION_MULT[e.target] || 0;
+      if (em !== bm) return em > bm ? e : best;
+      return e.until >= best.until ? e : best;
+    }, null);
   }
 
   function adminChestEventLive(now = Date.now()) {
@@ -3798,14 +3926,21 @@ function aquariumRatePerSec() {
     const chest = localAdminChest() || adminChestCache;
     const luckyblock = localAdminLuckyBlock() || adminLuckyBlockCache;
     const weather = localAdminWeather() || adminWeatherCache;
-    const mutation = localAdminMutation() || adminMutationCache;
+    const mutationMap = mergeMutationMaps(localAdminMutation(), adminMutationCache);
     const now = Date.now();
     const liveBoost = boost && boost.until > now ? boost : null;
     const liveVariant = variant && variant.until > now ? variant : null;
     const liveChest = chest && chest.until > now ? chest : null;
     const liveLb = luckyblock && luckyblock.until > now ? luckyblock : null;
     const liveWeather = weather && weather.until > now ? weather : null;
-    const liveMutation = mutation && mutation.until > now ? mutation : null;
+    const liveMutations = pruneMutationMap(mutationMap, now);
+    const liveMutationList = MUTATIONS.map((m) => liveMutations[m]).filter(Boolean);
+    const liveMutation = liveMutationList[0] || null;
+    const mutationUntil = liveMutationList.reduce((max, e) => Math.max(max, e.until || 0), 0);
+    const mutationStarted = liveMutationList.reduce(
+      (max, e) => Math.max(max, e.startedAt || 0),
+      0
+    );
     return {
       token: ADMIN_EVENT_TOKEN,
       scope: scope === "global" ? "global" : "local",
@@ -3814,7 +3949,7 @@ function aquariumRatePerSec() {
       chest: serializeAdminChannel(liveChest),
       luckyblock: serializeAdminChannel(liveLb),
       weather: serializeAdminChannel(liveWeather),
-      mutation: serializeAdminChannel(liveMutation),
+      mutation: serializeMutationMap(liveMutations, now),
       // Legacy flat fields = boost preferred, else variant (old clients)
       kind:
         liveBoost?.kind ||
@@ -3828,7 +3963,7 @@ function aquariumRatePerSec() {
       until: Math.max(
         liveBoost?.until || 0,
         liveVariant?.until || 0,
-        liveMutation?.until || 0,
+        mutationUntil,
         liveChest?.until || 0,
         liveLb?.until || 0,
         liveWeather?.until || 0
@@ -3836,7 +3971,7 @@ function aquariumRatePerSec() {
       startedAt: Math.max(
         liveBoost?.startedAt || 0,
         liveVariant?.startedAt || 0,
-        liveMutation?.startedAt || 0,
+        mutationStarted,
         liveChest?.startedAt || 0,
         liveLb?.startedAt || 0,
         liveWeather?.startedAt || 0,
@@ -3890,13 +4025,13 @@ function aquariumRatePerSec() {
     const remoteChest = pickBetterAdminEvent(remoteA.chest, remoteB.chest);
     const remoteLb = pickBetterAdminEvent(remoteA.luckyblock, remoteB.luckyblock);
     const remoteWeather = pickBetterAdminEvent(remoteA.weather, remoteB.weather);
-    const remoteMutation = pickBetterAdminEvent(remoteA.mutation, remoteB.mutation);
+    const remoteMutation = mergeMutationMaps(remoteA.mutation, remoteB.mutation);
     adminBoostCache = pickBetterAdminEvent(remoteBoost, localAdminBoost());
     adminVariantCache = pickBetterAdminEvent(remoteVariant, localAdminVariant());
     adminChestCache = pickBetterAdminEvent(remoteChest, localAdminChest());
     adminLuckyBlockCache = pickBetterAdminEvent(remoteLb, localAdminLuckyBlock());
     adminWeatherCache = pickBetterAdminEvent(remoteWeather, localAdminWeather());
-    adminMutationCache = pickBetterAdminEvent(remoteMutation, localAdminMutation());
+    adminMutationCache = mergeMutationMaps(remoteMutation, localAdminMutation());
     syncAdminPanel();
     maybeRetryPendingAdminPush();
     applyWeatherFx();
@@ -3931,6 +4066,13 @@ function aquariumRatePerSec() {
     }
     if (bundle.weather) {
       setLocalAdminWeather({ ...bundle.weather, token: ADMIN_EVENT_TOKEN, scope: "global" });
+    }
+    if (mutationMapHasAny(bundle.mutation)) {
+      MUTATIONS.forEach((m) => {
+        const e = bundle.mutation?.[m];
+        if (!e) return;
+        setLocalAdminMutation({ ...e, token: ADMIN_EVENT_TOKEN, scope: "global" }, false);
+      });
     }
     scheduleAdminRetry();
   }
@@ -3974,7 +4116,7 @@ function aquariumRatePerSec() {
       adminChestCache = bundle.chest;
       adminLuckyBlockCache = bundle.luckyblock;
       adminWeatherCache = bundle.weather;
-      adminMutationCache = bundle.mutation;
+      adminMutationCache = bundle.mutation || emptyMutationMap();
       syncAdminPanel();
       applyWeatherFx();
       setCatchLine("Admin event synced to all players", "treasure");
@@ -3997,7 +4139,7 @@ function aquariumRatePerSec() {
     if (!status || !owner) return;
     const boost = adminBoostEventLive();
     const variant = adminVariantEventLive();
-    const mutation = adminMutationEventLive();
+    const mutationBits = formatLiveMutationBits();
     const chest = adminChestEventLive();
     const luckyblock = adminLuckyBlockEventLive();
     const weather = adminWeatherEventLive();
@@ -4015,11 +4157,16 @@ function aquariumRatePerSec() {
         `${formatMult(variant.mult)}× ${adminEventKindLabel(variant)} (${localOnly ? "local" : pending ? "syncing" : "global"} · ${formatTreasureClock(variant.until - Date.now())})`
       );
     }
-    if (mutation) {
-      const localOnly = String(readStoredAdmin(ADMIN_EVENT_LOCAL_MUTATION_KEY)?.scope || "") === "local";
-      bits.push(
-        `${formatMult(mutation.mult)}× ${adminEventKindLabel(mutation)} (${localOnly ? "local" : pending ? "syncing" : "global"} · ${formatTreasureClock(mutation.until - Date.now())})`
+    if (mutationBits.length) {
+      const localMap = localAdminMutation();
+      const localOnly = MUTATIONS.some(
+        (m) => localMap[m] && String(localMap[m].scope || "") === "local"
       );
+      adminMutationEventsLive().forEach((mutation) => {
+        bits.push(
+          `${formatMult(mutation.mult)}× ${adminEventKindLabel(mutation)} (${localOnly ? "local" : pending ? "syncing" : "global"} · ${formatTreasureClock(mutation.until - Date.now())})`
+        );
+      });
     }
     if (chest) {
       const localOnly = String(readStoredAdmin(ADMIN_EVENT_LOCAL_CHEST_KEY)?.scope || "") === "local";
@@ -4043,7 +4190,7 @@ function aquariumRatePerSec() {
       status.textContent = `Live: ${bits.join(" · ")}`;
     } else {
       status.textContent =
-        "No admin event · luck/sell, variant, mutation, chests, lucky blocks, and weather can run together";
+        "No admin event · luck/sell, variant, toxic/lava/neon, chests, lucky blocks, and weather can run together";
     }
   }
 
@@ -4129,11 +4276,21 @@ function aquariumRatePerSec() {
       }
     } else if (channel === "mutation") {
       if (clear) {
-        setLocalAdminMutation(null, true);
-        adminMutationCache = null;
+        const clearTarget = normalizeMutation(payload?.target || payload?.clearTarget || "");
+        setLocalAdminMutation(null, true, clearTarget);
+        if (clearTarget) {
+          adminMutationCache = mergeMutationMaps(adminMutationCache, emptyMutationMap());
+          if (adminMutationCache) adminMutationCache[clearTarget] = null;
+        } else {
+          adminMutationCache = emptyMutationMap();
+        }
       } else {
         setLocalAdminMutation(payload, false);
-        adminMutationCache = parseAdminEventPayload(payload, true);
+        const e = parseAdminEventPayload(payload, true);
+        if (e && isMutationAdminPayload(e)) {
+          const t = normalizeMutation(e.target);
+          adminMutationCache = mergeMutationMaps(adminMutationCache, { [t]: e });
+        }
       }
     } else if (channel === "boost") {
       if (clear) {
@@ -4152,7 +4309,7 @@ function aquariumRatePerSec() {
       setLocalAdminWeather(null, true);
       adminBoostCache = null;
       adminVariantCache = null;
-      adminMutationCache = null;
+      adminMutationCache = emptyMutationMap();
       adminChestCache = null;
       adminLuckyBlockCache = null;
       adminWeatherCache = null;
@@ -4200,8 +4357,11 @@ function aquariumRatePerSec() {
       rawKind === "clear-sell" ||
       rawKind === "clear-money";
     const clearVariantOnly = rawKind === "clear-variant";
+    const clearToxicOnly = rawKind === "clear-toxic";
+    const clearLavaOnly = rawKind === "clear-lava";
+    const clearNeonOnly = rawKind === "clear-neon";
     const clearMutationOnly =
-      rawKind === "clear-mutation" || rawKind === "clear-toxic" || rawKind === "clear-mutations";
+      rawKind === "clear-mutation" || rawKind === "clear-mutations";
     const clearLuckyBlockOnly =
       rawKind === "clear-luckyblock" || rawKind === "clear-lb" || rawKind === "clear-block";
     const clearWeatherOnly =
@@ -4254,6 +4414,9 @@ function aquariumRatePerSec() {
       clearBoostOnly ||
       clearVariantOnly ||
       clearMutationOnly ||
+      clearToxicOnly ||
+      clearLavaOnly ||
+      clearNeonOnly ||
       clearLuckyBlockOnly ||
       clearWeatherOnly;
     if (
@@ -4268,17 +4431,25 @@ function aquariumRatePerSec() {
     ) {
       adminBusy = false;
       setCatchLine(
-        "Try: 5x luck · 5x toxic · 5x lava · 5x neon · storm · calm · sunny · 5x luckyblock · clear · clear mutation",
+        "Try: 5x luck · 5x toxic · 5x lava · 5x neon · storm · calm · sunny · 5x luckyblock · clear · clear toxic · clear mutation",
         "miss"
       );
       return false;
     }
 
+    const clearMutationTarget = clearToxicOnly
+      ? "toxic"
+      : clearLavaOnly
+        ? "lava"
+        : clearNeonOnly
+          ? "neon"
+          : "";
+
     const channel = clearAll
       ? "all"
       : clearVariantOnly
         ? "variant"
-        : clearMutationOnly
+        : clearMutationOnly || clearToxicOnly || clearLavaOnly || clearNeonOnly
           ? "mutation"
           : clearLuckyBlockOnly
             ? "luckyblock"
@@ -4332,24 +4503,30 @@ function aquariumRatePerSec() {
     else if (clearBoostOnly) applyAdminLocally("boost", null, true);
     else if (clearVariantOnly) applyAdminLocally("variant", null, true);
     else if (clearMutationOnly) applyAdminLocally("mutation", null, true);
-    else if (clearLuckyBlockOnly) applyAdminLocally("luckyblock", null, true);
+    else if (clearToxicOnly || clearLavaOnly || clearNeonOnly) {
+      applyAdminLocally("mutation", { target: clearMutationTarget }, true);
+    } else if (clearLuckyBlockOnly) applyAdminLocally("luckyblock", null, true);
     else if (clearWeatherOnly) applyAdminLocally("weather", null, true);
     else applyAdminLocally(channel, channelPayload, false);
 
     const weatherLabel =
       weatherId === "storm" ? "storm" : weatherId === "calm" ? "calm seas" : "clear weather";
+    const mutationClearLabel = clearMutationTarget
+      ? clearMutationTarget
+      : clearMutationOnly
+        ? "all mutations"
+        : "";
     const label = isClear
       ? clearAll
         ? "all events"
         : clearVariantOnly
           ? "variant"
-          : clearMutationOnly
-            ? "mutation"
-            : clearLuckyBlockOnly
+          : mutationClearLabel ||
+            (clearLuckyBlockOnly
               ? "lucky blocks"
               : clearWeatherOnly
                 ? "weather"
-                : "luck/sell"
+                : "luck/sell")
       : eventKind === "variant"
         ? formatAdminVariantLabel(eventTarget)
         : eventKind === "mutation"
@@ -4845,7 +5022,16 @@ function aquariumRatePerSec() {
       if (/\b(variant|silver|gold|diamond|rainbow|shiny|any)\b/.test(text)) {
         return { kind: "clear-variant", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
       }
-      if (/\b(mutation|toxic|lava|neon|mutations)\b/.test(text)) {
+      if (/\btoxic\b/.test(text)) {
+        return { kind: "clear-toxic", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "toxic" };
+      }
+      if (/\blava\b/.test(text)) {
+        return { kind: "clear-lava", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "lava" };
+      }
+      if (/\bneon\b/.test(text)) {
+        return { kind: "clear-neon", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "neon" };
+      }
+      if (/\b(mutation|mutations)\b/.test(text)) {
         return { kind: "clear-mutation", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
       }
       if (/\blucky\s*-?\s*blocks?\b|\bluckyblock\b|\blb\b/.test(text)) {
@@ -5160,6 +5346,13 @@ function aquariumRatePerSec() {
     return e ? normalizeMutation(e.target) : "";
   }
 
+  function mutationEventMultFor(target, now = Date.now()) {
+    const t = normalizeMutation(target);
+    if (!t) return 1;
+    const e = adminMutationEventsLive(now).find((x) => normalizeMutation(x.target) === t);
+    return e ? clampAdminMult(e.mult) : 1;
+  }
+
   function eventMoneyBonus(now = Date.now()) {
     if (!eventMoneyActive(now)) return 0;
     return Math.max(0, liveEventMult(now) - 1);
@@ -5210,16 +5403,19 @@ function aquariumRatePerSec() {
       lastAnnouncedVariantKey = "";
     }
 
-    const mutation = adminMutationEventLive();
-    if (mutation) {
-      const mKey = `mutation:${mutation.target}:${mutation.until}:${mutation.mult}`;
+    const mutations = adminMutationEventsLive();
+    if (mutations.length) {
+      const mKey = mutations
+        .map((m) => `${m.target}:${m.until}:${m.mult}`)
+        .sort()
+        .join("|");
       if (mKey !== lastAnnouncedMutationKey) {
         lastAnnouncedMutationKey = mKey;
-        const left = formatTreasureClock(Math.max(0, mutation.until - Date.now()));
-        setCatchLine(
-          `ADMIN EVENT · ${formatMult(mutation.mult)}× ${adminEventKindLabel(mutation)} mutation (${left} left)`,
-          "treasure"
-        );
+        const bits = mutations.map((m) => {
+          const left = formatTreasureClock(Math.max(0, m.until - Date.now()));
+          return `${formatMult(m.mult)}× ${adminEventKindLabel(m)} (${left})`;
+        });
+        setCatchLine(`ADMIN EVENT · ${bits.join(" · ")} mutation`, "treasure");
         playSfx("win");
         burstConfetti();
       }
@@ -5303,7 +5499,7 @@ function aquariumRatePerSec() {
     const kind = currentEventKind();
     const admin = adminBoostEventLive();
     const variant = adminVariantEventLive();
-    const mutation = adminMutationEventLive();
+    const mutations = adminMutationEventsLive();
     const lbLive = luckyBlockEventIsLive();
     const nextStart = nextHalfHourStart();
     const nextKind = eventKindForStart(nextStart);
@@ -5312,8 +5508,7 @@ function aquariumRatePerSec() {
     const previewKind = live ? kind : nextKind;
     const multLabel = formatMult(live ? liveEventMult() : eventMultForStart(nextStart));
     const variantMult = variant ? formatMult(variant.mult) : "";
-    const mutationMult = mutation ? formatMult(mutation.mult) : "";
-    const anyLive = live || !!variant || !!mutation || lbLive;
+    const anyLive = live || !!variant || mutations.length > 0 || lbLive;
 
     if (eventBannerEl) {
       eventBannerEl.classList.toggle("event-idle", !anyLive);
@@ -5321,12 +5516,12 @@ function aquariumRatePerSec() {
       eventBannerEl.classList.toggle("event-money", live && previewKind === "money");
       eventBannerEl.classList.toggle("event-luck", live && previewKind === "luck");
       eventBannerEl.classList.toggle("event-variant", !!variant);
-      eventBannerEl.classList.toggle("event-mutation", !!mutation);
+      eventBannerEl.classList.toggle("event-mutation", mutations.length > 0);
       eventBannerEl.classList.toggle("event-luckyblock", lbLive);
     }
     if (eventBannerTagEl) {
       eventBannerTagEl.textContent =
-        variant || mutation || admin ? "ADMIN LIVE" : anyLive ? "LIVE NOW" : "Next event";
+        variant || mutations.length || admin ? "ADMIN LIVE" : anyLive ? "LIVE NOW" : "Next event";
     }
     if (eventBannerTitleEl) {
       const parts = [];
@@ -5339,12 +5534,10 @@ function aquariumRatePerSec() {
       if (variant) {
         parts.push(`${variantMult}× ${formatAdminVariantLabel(variant.target)}`);
       }
-      if (mutation) {
-        parts.push(`${mutationMult}× ${adminEventKindLabel(mutation)}`);
-      }
+      formatLiveMutationBits().forEach((bit) => parts.push(bit));
       if (parts.length) {
         eventBannerTitleEl.textContent = `${parts.join(" + ")}${
-          admin || variant || mutation ? " · Admin" : " Event"
+          admin || variant || mutations.length ? " · Admin" : " Event"
         }`;
       } else {
         const untilLb = msUntilNextLuckyBlockEvent();
@@ -5366,7 +5559,7 @@ function aquariumRatePerSec() {
       if (live) times.push(eventMsLeft());
       if (lbLive) times.push(luckyBlockEventMsLeft());
       if (variant) times.push(Math.max(0, variant.until - Date.now()));
-      if (mutation) times.push(Math.max(0, mutation.until - Date.now()));
+      mutations.forEach((m) => times.push(Math.max(0, m.until - Date.now())));
       if (times.length) {
         eventBannerTimeEl.textContent = `${formatBannerClock(Math.min(...times))} left`;
       } else {
@@ -6523,12 +6716,21 @@ function aquariumRatePerSec() {
       if (!variant) variant = VARIANT_PRIMARY[VARIANT_PRIMARY.length - 1];
     }
     let mutation = "";
-    const mutTarget = mutationEventTarget();
-    const mutMult = mutationEventMult();
-    // Mutations are admin-only for now — no natural roll without a live event.
-    if (mutTarget && mutMult >= 1) {
-      const chance = Math.min(0.95, 0.12 * mutMult);
-      if (Math.random() < chance) mutation = mutTarget;
+    const liveMutations = adminMutationEventsLive();
+    // Each live mutation type rolls independently; if several hit, keep the highest-value one.
+    if (liveMutations.length) {
+      const hits = [];
+      liveMutations.forEach((e) => {
+        const mult = clampAdminMult(e.mult);
+        if (mult < 1) return;
+        const chance = Math.min(0.95, 0.12 * mult);
+        if (Math.random() < chance) hits.push(normalizeMutation(e.target));
+      });
+      if (hits.length === 1) mutation = hits[0];
+      else if (hits.length > 1) {
+        hits.sort((a, b) => (MUTATION_MULT[b] || 0) - (MUTATION_MULT[a] || 0));
+        mutation = hits[0];
+      }
     }
     return { variant, shiny: Math.random() < chances.shiny, mutation };
   }
@@ -11107,12 +11309,12 @@ function aquariumRatePerSec() {
     document.body.classList.toggle("event-luck", eventLuckActive());
     document.body.classList.toggle("event-luckyblock", lbLive || lbPassive);
     document.body.classList.toggle("event-variant", !!adminVariantEventLive());
-    document.body.classList.toggle("event-mutation", !!adminMutationEventLive());
+    document.body.classList.toggle("event-mutation", adminMutationEventsLive().length > 0);
     document.body.classList.toggle(
       "event-idle",
       !eventLive &&
         !adminVariantEventLive() &&
-        !adminMutationEventLive() &&
+        !adminMutationEventsLive().length &&
         !lbLive &&
         !lbPassive
     );
@@ -11165,21 +11367,21 @@ function aquariumRatePerSec() {
     if (sellLabelEl) sellLabelEl.textContent = formatPctBonus(totalSellFactor() - 1);
     if (eventChipEl) {
       const variant = adminVariantEventLive();
-      const mutation = adminMutationEventLive();
+      const mutations = adminMutationEventsLive();
       const previewKind = eventLive ? eventKind : eventKindForStart(nextHalfHourStart());
       eventChipEl.classList.toggle("event-money", eventLive && previewKind === "money");
       eventChipEl.classList.toggle("event-luck", eventLive && previewKind === "luck");
       eventChipEl.classList.toggle("event-luckyblock", lbLive || lbPassive);
       eventChipEl.classList.toggle("event-variant", !!variant);
-      eventChipEl.classList.toggle("event-mutation", !!mutation);
+      eventChipEl.classList.toggle("event-mutation", mutations.length > 0);
       eventChipEl.classList.toggle(
         "event-idle",
-        !eventLive && !variant && !mutation && !lbLive && !lbPassive
+        !eventLive && !variant && !mutations.length && !lbLive && !lbPassive
       );
     }
     if (eventLabelEl) {
       const variant = adminVariantEventLive();
-      const mutation = adminMutationEventLive();
+      const mutations = adminMutationEventsLive();
       const admin = adminBoostEventLive();
       const multLabel = formatMult(liveEventMult());
       const parts = [];
@@ -11204,17 +11406,17 @@ function aquariumRatePerSec() {
           )} · ${formatTreasureClock(Math.max(0, variant.until - Date.now()))}`
         );
       }
-      if (mutation) {
+      mutations.forEach((mutation) => {
         parts.push(
           `Admin ${formatMult(mutation.mult)}× ${adminEventKindLabel(mutation)} · ${formatTreasureClock(Math.max(0, mutation.until - Date.now()))}`
         );
-      }
+      });
       if (parts.length) {
         const hasTimed =
           (eventLive && (eventKind === "luck" || eventKind === "money")) ||
           lbLive ||
           !!variant ||
-          !!mutation;
+          mutations.length > 0;
         eventLabelEl.textContent = hasTimed
           ? `${parts.join(" · ")} left`
           : parts.join(" · ");
