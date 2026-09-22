@@ -10013,7 +10013,15 @@ function aquariumRatePerSec() {
     shinyMachineBusy = true;
     const chance = shinyMachineChanceForCount(selected.length);
     const win = Math.random() < chance;
-    const keep = selected[0];
+    // Prefer the strongest look among inputs so a mutated/variant fish keeps its tags + shiny.
+    const keep = selected.reduce((best, cur) => {
+      if (!best) return cur;
+      const b = variantValueMult(best.entry);
+      const c = variantValueMult(cur.entry);
+      if (c !== b) return c > b ? cur : best;
+      if (!!cur.entry.perfect !== !!best.entry.perfect) return cur.entry.perfect ? cur : best;
+      return best;
+    }, null);
     const fish = keep.fish;
     const count = selected.length;
     const indices = selected.map((s) => s.index).sort((a, b) => b - a);
@@ -10028,7 +10036,8 @@ function aquariumRatePerSec() {
         saved: !!keep.entry.saved,
         perfect: !!keep.entry.perfect,
         variant: normalizeVariant(keep.entry.variant),
-        shiny: true
+        shiny: true,
+        mutation: normalizeMutation(keep.entry.mutation)
       };
       state.cooler.push(shinyEntry);
       noteCatch(fish, shinyEntry);
