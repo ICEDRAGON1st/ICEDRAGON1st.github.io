@@ -5131,12 +5131,23 @@ body.treasure-boost .cast-btn {
   flex-wrap: wrap;
   align-content: flex-start;
   gap: 0.35rem;
-  height: 7.2rem;
-  min-height: 7.2rem;
-  max-height: 7.2rem;
+  height: auto;
+  min-height: 10rem;
+  max-height: min(42vh, 22rem);
   overflow: auto;
   margin-bottom: 0.55rem;
   flex: 0 0 auto;
+  scrollbar-gutter: stable;
+}
+
+.cooler-showing {
+  margin: -0.25rem 0 0.45rem;
+  font-size: 0.72rem;
+  color: var(--muted);
+}
+
+.cooler-showing[hidden] {
+  display: none;
 }
 
 .fish-chip {

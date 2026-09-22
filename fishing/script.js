@@ -3003,6 +3003,7 @@ function aquariumRatePerSec() {
         return { index, entry, fish, val: fishValue(fish, spot, entry) };
       })
       .filter(Boolean);
+    const totalValid = rows.length;
     const filter = state.coolerFilter || "all";
     if (filter === "saved") rows = rows.filter((r) => r.entry.saved);
     else if (filter === "shiny") rows = rows.filter((r) => r.entry.shiny);
@@ -3027,7 +3028,7 @@ function aquariumRatePerSec() {
       }
       return b.val - a.val;
     });
-    return rows;
+    return { rows, totalValid };
   }
 
   /** Effective sell vs fish base value: spot × gear sell boost × treasure × mastery. */
@@ -8125,7 +8126,7 @@ function aquariumRatePerSec() {
     }
   }
 
-  function fishGlyphHtml(fish, entry) {
+  function fishGlyphHtml(fish, entry, uid = "") {
     const id = typeof fish === "string" ? fish : fish?.id;
     const rarity = typeof fish === "string" ? fish : fish?.rarity;
     const shape = FISH_SHAPE[id] || "default";
@@ -8144,9 +8145,12 @@ function aquariumRatePerSec() {
     const isToxic = mutation === "toxic";
     const isLava = mutation === "lava";
     const isNeon = mutation === "neon";
-    const gid = `fg-${String(id || shape).replace(/[^a-z0-9]/gi, "")}${variant}${shiny ? "s" : ""}${mutation || ""}${Math.abs(
+    const uidBit = String(uid || "")
+      .replace(/[^a-z0-9]/gi, "")
+      .slice(0, 8);
+    const gid = `fg-${String(id || shape).replace(/[^a-z0-9]/gi, "")}${variant}${shiny ? "s" : ""}${mutation || ""}${uidBit}${Math.abs(
       Math.imul(
-        [...`${id || shape}:${tone}:${variant}:${shiny}:${mutation}`].reduce(
+        [...`${id || shape}:${tone}:${variant}:${shiny}:${mutation}:${uidBit}`].reduce(
           (h, c) => (Math.imul(31, h) + c.charCodeAt(0)) | 0,
           7
         )
@@ -10714,11 +10718,27 @@ function aquariumRatePerSec() {
     const nextKey = coolerKey();
     if (!force && nextKey === coolerRenderKey) return;
     coolerRenderKey = nextKey;
-    const rows = coolerEntriesView();
+    const { rows, totalValid } = coolerEntriesView();
     const searchQ = normalizeSearchQuery(state.coolerSearch);
+    const filter = state.coolerFilter || "all";
+    const showingEl = document.getElementById("cooler-showing");
+    if (showingEl) {
+      const filtered = rows.length < totalValid;
+      if (filtered) {
+        showingEl.hidden = false;
+        showingEl.textContent = `Showing ${rows.length} of ${totalValid}${
+          searchQ ? ` · search “${searchQ}”` : ""
+        }${filter !== "all" ? ` · filter ${filter}` : ""} — clear search/filter to see all.`;
+      } else {
+        showingEl.hidden = true;
+        showingEl.textContent = "";
+      }
+    }
     if (!rows.length) {
-      coolerList.innerHTML = searchQ
-        ? `<p class="cooler-empty">No fish matching “${searchQ.replace(/[<>&"]/g, "")}”</p>`
+      coolerList.innerHTML = searchQ || filter !== "all"
+        ? `<p class="cooler-empty">No fish matching${
+            searchQ ? ` “${searchQ.replace(/[<>&"]/g, "")}”` : ""
+          }${filter !== "all" ? ` (${filter})` : ""}</p>`
         : `<p class="cooler-empty">Cooler is empty</p>`;
       if (shinyMachineOverlay && !shinyMachineOverlay.classList.contains("hidden")) {
         renderShinyMachine();
@@ -10733,10 +10753,16 @@ function aquariumRatePerSec() {
         const perfectMark = entry.perfect ? " · perfect" : "";
         const vMult = variantValueMult(entry);
         const multTip = vMult > 1 ? ` · ×${formatMult(vMult)}` : "";
+        let glyph = "";
+        try {
+          glyph = fishGlyphHtml(fish, entry, `c${index}`);
+        } catch {
+          glyph = "";
+        }
         return `<div class="fish-chip ${fish.rarity}${saved ? " is-saved" : ""}${
           entry.perfect ? " is-perfect" : ""
         } ${variantClassList(entry)}" data-cooler-index="${index}">
-          <span class="fish-chip-glyph" aria-hidden="true">${fishGlyphHtml(fish, entry)}</span>
+          <span class="fish-chip-glyph" aria-hidden="true">${glyph}</span>
           <button type="button" class="fish-chip-save" data-save-index="${index}" title="${
             saved ? "Unsave — remove from Aquarium" : "Save fish (Aquarium · won't sell)"
           }" aria-label="${saved ? "Unsave" : "Save"} ${label}" aria-pressed="${saved}">${
