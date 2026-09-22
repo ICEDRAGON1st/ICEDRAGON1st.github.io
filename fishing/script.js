@@ -4268,7 +4268,7 @@ function aquariumRatePerSec() {
     ) {
       adminBusy = false;
       setCatchLine(
-        "Try: 5x luck · 5x toxic · 5x lava · storm · calm · sunny · 5x luckyblock · clear · clear mutation",
+        "Try: 5x luck · 5x toxic · 5x lava · 5x neon · storm · calm · sunny · 5x luckyblock · clear · clear mutation",
         "miss"
       );
       return false;
@@ -4845,7 +4845,7 @@ function aquariumRatePerSec() {
       if (/\b(variant|silver|gold|diamond|rainbow|shiny|any)\b/.test(text)) {
         return { kind: "clear-variant", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
       }
-      if (/\b(mutation|toxic|lava|mutations)\b/.test(text)) {
+      if (/\b(mutation|toxic|lava|neon|mutations)\b/.test(text)) {
         return { kind: "clear-mutation", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
       }
       if (/\blucky\s*-?\s*blocks?\b|\bluckyblock\b|\blb\b/.test(text)) {
@@ -4913,6 +4913,9 @@ function aquariumRatePerSec() {
     }
     if (/\blucky\s*-?\s*blocks?\b/.test(text) || /\bluckyblock\b/.test(text) || text === "lb") {
       return { kind: "luckyblock", minutes, mult, scope, target: "" };
+    }
+    if (/\bneon\b/.test(text)) {
+      return { kind: "mutation", minutes, mult, scope, target: "neon" };
     }
     if (/\blava\b/.test(text)) {
       return { kind: "mutation", minutes, mult, scope, target: "lava" };
@@ -6424,10 +6427,11 @@ function aquariumRatePerSec() {
   };
   const SHINY_MULT = 3;
   /** Mutations stack with primary variants + shiny. Admin-gated for now. */
-  const MUTATIONS = ["toxic", "lava"];
+  const MUTATIONS = ["toxic", "lava", "neon"];
   const MUTATION_MULT = {
     toxic: 4,
-    lava: 5
+    lava: 5,
+    neon: 6
   };
 
   function normalizeMutation(raw) {
@@ -6736,7 +6740,8 @@ function aquariumRatePerSec() {
   ];
   const BOOK_MUTATIONS = [
     { id: "toxic", label: "Toxic", mult: 4 },
-    { id: "lava", label: "Lava", mult: 5 }
+    { id: "lava", label: "Lava", mult: 5 },
+    { id: "neon", label: "Neon", mult: 6 }
   ];
   let bookFilter = "any";
   let bookShinyOn = false;
@@ -7439,6 +7444,36 @@ function aquariumRatePerSec() {
       </g>`;
   }
 
+  /** Neon mutation: electric arcs, cyan/magenta glow, pulse nodes. */
+  function fishGlyphNeonDetails(gid) {
+    return `<defs>
+        <radialGradient id="${gid}-neon-glow" cx="0.5" cy="0.4" r="0.75">
+          <stop offset="0%" stop-color="#f0abfc" stop-opacity="0.55"/>
+          <stop offset="40%" stop-color="#22d3ee" stop-opacity="0.3"/>
+          <stop offset="100%" stop-color="#4c1d95" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="${gid}-neon-arc" x1="0" y1="0" x2="1" y2="0.4">
+          <stop offset="0%" stop-color="#67e8f9" stop-opacity="0.95"/>
+          <stop offset="50%" stop-color="#e879f9" stop-opacity="0.9"/>
+          <stop offset="100%" stop-color="#22d3ee" stop-opacity="0.85"/>
+        </linearGradient>
+      </defs>
+      <ellipse class="neon-haze" cx="34" cy="16" rx="26" ry="11" fill="url(#${gid}-neon-glow)"/>
+      <g class="neon-marks">
+        <path class="neon-arc" d="M20 12 C28 8 36 10 44 9 C48 8.5 52 11 54 14" fill="none" stroke="url(#${gid}-neon-arc)" stroke-width="1.2" opacity="0.95"/>
+        <path class="neon-arc" d="M22 20 C30 22 38 18 48 21" fill="none" stroke="#a78bfa" stroke-width="0.75" opacity="0.75"/>
+        <path class="neon-arc" d="M24 15 C32 17 40 14 50 16" fill="none" stroke="#67e8f9" stroke-width="0.55" opacity="0.7"/>
+        <circle class="neon-node" cx="30" cy="11" r="1.35" fill="#f0abfc" opacity="0.95"/>
+        <circle class="neon-node" cx="42" cy="13" r="1.15" fill="#67e8f9" opacity="0.9"/>
+        <circle class="neon-node" cx="26" cy="18" r="0.95" fill="#e879f9" opacity="0.85"/>
+        <circle class="neon-node" cx="46" cy="18.5" r="0.85" fill="#22d3ee" opacity="0.8"/>
+        <circle class="neon-ring" cx="35" cy="15" r="2.2" fill="none" stroke="#f5d0fe" stroke-width="0.65" opacity="0.7"/>
+        <circle class="neon-ring" cx="23" cy="14" r="1.5" fill="none" stroke="#67e8f9" stroke-width="0.5" opacity="0.55"/>
+        <path class="neon-spark" d="M33 8 L34.2 10.2 L36.5 10.5 L34.8 12.2 L35.2 14.5 L33 13.2 L30.8 14.5 L31.2 12.2 L29.5 10.5 L31.8 10.2 Z" fill="#f0abfc" opacity="0.75"/>
+        <ellipse class="neon-stripe" cx="36" cy="17" rx="8" ry="1.2" fill="#22d3ee" opacity="0.28"/>
+      </g>`;
+  }
+
   function fishGlyphParts(shape) {
     switch (shape) {
       case "catfish":
@@ -7900,8 +7935,10 @@ function aquariumRatePerSec() {
     else if (variant === "rainbow") tone = "#ff8fab";
     if (mutation === "toxic") tone = "#65a30d";
     else if (mutation === "lava") tone = "#ea580c";
+    else if (mutation === "neon") tone = "#22d3ee";
     const isToxic = mutation === "toxic";
     const isLava = mutation === "lava";
+    const isNeon = mutation === "neon";
     const gid = `fg-${String(id || shape).replace(/[^a-z0-9]/gi, "")}${variant}${shiny ? "s" : ""}${mutation || ""}${Math.abs(
       Math.imul(
         [...`${id || shape}:${tone}:${variant}:${shiny}:${mutation}`].reduce(
@@ -7925,7 +7962,9 @@ function aquariumRatePerSec() {
       ? fishGlyphToxicDetails(gid)
       : isLava
         ? fishGlyphLavaDetails(gid)
-        : "";
+        : isNeon
+          ? fishGlyphNeonDetails(gid)
+          : "";
     const extraClass = variantClassList(entry);
     let bodyStops;
     let bellyStops;
@@ -7957,6 +7996,19 @@ function aquariumRatePerSec() {
       finStops = `<stop offset="0%" stop-color="#fbbf24" stop-opacity="0.95"/>
           <stop offset="55%" stop-color="#ea580c" stop-opacity="0.88"/>
           <stop offset="100%" stop-color="#431407" stop-opacity="0.6"/>`;
+    } else if (isNeon) {
+      bodyStops = `<stop offset="0%" stop-color="#f0abfc"/>
+          <stop offset="30%" stop-color="#22d3ee" stop-opacity="0.98"/>
+          <stop offset="65%" stop-color="#7c3aed" stop-opacity="0.92"/>
+          <stop offset="100%" stop-color="#1e1b4b" stop-opacity="0.9"/>`;
+      bellyStops = `<stop offset="0%" stop-color="#e0f2fe" stop-opacity="0.55"/>
+          <stop offset="55%" stop-color="#a5f3fc" stop-opacity="0.4"/>
+          <stop offset="100%" stop-color="#4c1d95" stop-opacity="0.55"/>`;
+      shadeStops = `<stop offset="0%" stop-color="#0f172a" stop-opacity="0.8"/>
+          <stop offset="100%" stop-color="#6d28d9" stop-opacity="0.4"/>`;
+      finStops = `<stop offset="0%" stop-color="#67e8f9" stop-opacity="0.98"/>
+          <stop offset="55%" stop-color="#e879f9" stop-opacity="0.88"/>
+          <stop offset="100%" stop-color="#312e81" stop-opacity="0.6"/>`;
     } else {
       bodyStops = `<stop offset="0%" stop-color="currentColor"/>
           <stop offset="55%" stop-color="currentColor" stop-opacity="0.92"/>
@@ -11900,7 +11952,7 @@ function aquariumRatePerSec() {
     if (!bookInspectEl) return;
     bookInspectEl.classList.add("hidden");
     bookInspectEl.hidden = true;
-    bookInspectEl.classList.remove("is-toxic", "is-lava");
+    bookInspectEl.classList.remove("is-toxic", "is-lava", "is-neon");
     bookInspectCoolerIndex = -1;
     if (bookInspectActionBtn) {
       bookInspectActionBtn.hidden = true;
@@ -11950,9 +12002,11 @@ function aquariumRatePerSec() {
           ? " · Toxic ×4 · acid veins, sludge drips, spore haze"
           : mut === "lava"
             ? " · Lava ×5 · magma cracks, embers, molten glow"
-            : mut
-              ? ` · ${mut}`
-              : "";
+            : mut === "neon"
+              ? " · Neon ×6 · electric arcs, cyan/magenta pulse"
+              : mut
+                ? ` · ${mut}`
+                : "";
       if (!known) {
         bookInspectMetaEl.textContent = `${fish.rarity} · not caught yet`;
       } else if (fromAquarium) {
@@ -11975,7 +12029,9 @@ function aquariumRatePerSec() {
           ? "Toxic mutation: bile-green flesh, glowing veins, and dripping sludge · tap outside to close"
           : known && showEntry?.mutation === "lava"
             ? "Lava mutation: molten cracks, ember sparks, and dripping magma · tap outside to close"
-            : "";
+            : known && showEntry?.mutation === "neon"
+              ? "Neon mutation: electric arcs, cyan/magenta pulse nodes · tap outside to close"
+              : "";
       if (fromAquarium) {
         bookInspectHintEl.textContent = bits.length
           ? `Saved aquarium look · ${bits.join(" + ")} · tap outside to close`
@@ -12007,6 +12063,7 @@ function aquariumRatePerSec() {
     }
     bookInspectEl.classList.toggle("is-toxic", known && showEntry?.mutation === "toxic");
     bookInspectEl.classList.toggle("is-lava", known && showEntry?.mutation === "lava");
+    bookInspectEl.classList.toggle("is-neon", known && showEntry?.mutation === "neon");
     bookInspectEl.hidden = false;
     bookInspectEl.classList.remove("hidden");
   }
