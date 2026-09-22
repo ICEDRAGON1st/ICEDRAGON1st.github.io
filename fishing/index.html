@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260923o">
+  <link rel="stylesheet" href="styles.css?v=20260923p">
 </head>
 <body data-spot="creek" data-hub-sound-btn="off">
   <div id="weather-fx" class="weather-fx" aria-hidden="true">
@@ -309,7 +309,15 @@
         </div>
         <div class="auto-sell-panel">
           <span class="auto-sell-title">Auto-sell by rarity</span>
-          <p class="auto-sell-note">Mutations never auto-sell — they always go in the cooler.</p>
+          <button
+            type="button"
+            id="auto-sell-mutations-btn"
+            class="auto-sell-mutations-btn"
+            aria-pressed="false"
+            title="When on, mutated fish auto-sell with their rarity"
+          >
+            Mutation auto-sell: Off
+          </button>
           <div id="auto-sell-rarities" class="auto-sell-rarities" role="group" aria-label="Auto-sell rarities">
             <label class="auto-sell-opt common"><input type="checkbox" data-rarity="common" /> Common</label>
             <label class="auto-sell-opt uncommon"><input type="checkbox" data-rarity="uncommon" /> Uncommon</label>
@@ -341,7 +349,7 @@
           </div>
         </div>
         <div id="cooler-list" class="cooler-list"></div>
-        <p class="cooler-hint">☆ to save a fish (won't sell · swims in the Aquarium). Tap the name to sell (mutations: Sell unsaved only). Mutations never auto-sell.</p>
+        <p class="cooler-hint">☆ to save a fish (won't sell · swims in the Aquarium). Tap the name to sell. Mutation auto-sell is a separate toggle above.</p>
         <button id="sell-btn" type="button" class="btn sell-btn" disabled>Sell all</button>
       </div>
     </section>
@@ -787,6 +795,6 @@
   <script src="../hub-friends.js?v=20260907o"></script>
   <script src="../hub-chat.js?v=20260907p"></script>
   <script src="../hub-leaderboard.js?v=20260917br"></script>
-  <script src="script.js?v=20260923o"></script>
+  <script src="script.js?v=20260923p"></script>
 </body>
 </html>

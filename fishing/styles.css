@@ -4988,12 +4988,34 @@ body.treasure-boost .cast-btn {
   margin-bottom: 0.4rem;
 }
 
-.auto-sell-note {
-  margin: -0.15rem 0 0.45rem;
-  font-size: 0.7rem;
-  line-height: 1.35;
+.auto-sell-mutations-btn {
+  appearance: none;
+  font: inherit;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 0 0.5rem;
+  padding: 0.35rem 0.7rem;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(120, 200, 180, 0.35);
+  background: rgba(0, 0, 0, 0.28);
   color: var(--muted);
-  opacity: 0.9;
+  cursor: pointer;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.auto-sell-mutations-btn:hover {
+  border-color: rgba(120, 220, 190, 0.55);
+  color: #d7fff2;
+}
+
+.auto-sell-mutations-btn[aria-pressed="true"] {
+  border-color: rgba(80, 230, 170, 0.7);
+  background: rgba(30, 120, 90, 0.45);
+  color: #b6ffe0;
+  box-shadow: 0 0 0 1px rgba(80, 230, 170, 0.25);
 }
 
 .auto-sell-rarities {

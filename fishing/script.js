@@ -1787,6 +1787,8 @@
       equippedSpeed: "",
       cooler: [],
       autoSellRarities: defaultAutoSell(),
+      /** When true, mutated fish auto-sell with their rarity; off keeps them in the cooler. */
+      autoSellMutations: false,
       bestCatchScore: 0,
       bestCatchId: "",
       bestCatchVariant: "",
@@ -6410,6 +6412,7 @@ function aquariumRatePerSec() {
           next.autoSellRarities[r] = true;
         });
       }
+      next.autoSellMutations = !!raw.autoSellMutations;
       next.catches = Math.max(0, Math.floor(Number(raw.catches) || 0));
       next.perfects = Math.max(0, Math.floor(Number(raw.perfects) || 0));
       next.bestCatchScore = Math.max(0, Math.floor(Number(raw.bestCatchScore) || 0));
@@ -9435,11 +9438,26 @@ function aquariumRatePerSec() {
     return !!state.autoSellRarities?.[rarity];
   }
 
-  /** Auto-sell by rarity — mutated fish are never auto-sold (kept for the cooler). */
+  function autoSellMutationsOn() {
+    return !!state.autoSellMutations;
+  }
+
+  /** Auto-sell by rarity — mutations skipped unless Mutation auto-sell is on. */
   function shouldAutoSellFish(fish, entry) {
     if (!fish || !shouldAutoSell(fish.rarity)) return false;
-    if (normalizeMutation(entry?.mutation)) return false;
+    if (normalizeMutation(entry?.mutation) && !autoSellMutationsOn()) return false;
     return true;
+  }
+
+  function syncAutoSellMutationsBtn() {
+    const btn = document.getElementById("auto-sell-mutations-btn");
+    if (!btn) return;
+    const on = autoSellMutationsOn();
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    btn.textContent = on ? "Mutation auto-sell: On" : "Mutation auto-sell: Off";
+    btn.title = on
+      ? "On — mutated fish auto-sell with their rarity (tap to turn off)"
+      : "Off — mutated fish stay in the cooler (tap to turn on)";
   }
 
   function anyAutoSellEnabled() {
@@ -10680,6 +10698,7 @@ function aquariumRatePerSec() {
       const rarity = input.dataset.rarity;
       input.checked = shouldAutoSell(rarity);
     });
+    syncAutoSellMutationsBtn();
     const sortEl = document.getElementById("cooler-sort");
     const filterEl = document.getElementById("cooler-filter");
     const searchEl = document.getElementById("cooler-search");
@@ -10709,21 +10728,11 @@ function aquariumRatePerSec() {
     coolerList.innerHTML = rows
       .map(({ index, entry, fish, val }) => {
         const saved = !!entry.saved;
-        const mutated = !!normalizeMutation(entry.mutation);
         const label = formatFishName(fish, entry);
         const vTitle = formatVariantTitle(entry);
         const perfectMark = entry.perfect ? " · perfect" : "";
         const vMult = variantValueMult(entry);
         const multTip = vMult > 1 ? ` · ×${formatMult(vMult)}` : "";
-        const sellBody = `<span class="fish-chip-name">${label}</span>
-            <span class="fish-chip-price">${formatNum(val)}</span>`;
-        const sellCtrl = mutated
-          ? `<div class="fish-chip-sell is-mutation" title="Mutation — no one-tap sell · use Sell unsaved (or ★ save)">${sellBody}</div>`
-          : `<button type="button" class="fish-chip-sell" data-sell-index="${index}" title="${
-              saved
-                ? "Saved — unpin to sell"
-                : `Sell for ${formatNum(val)}${perfectMark}${multTip}${vTitle ? ` · ${vTitle}` : ""}`
-            }" ${saved ? "disabled" : ""}>${sellBody}</button>`;
         return `<div class="fish-chip ${fish.rarity}${saved ? " is-saved" : ""}${
           entry.perfect ? " is-perfect" : ""
         } ${variantClassList(entry)}" data-cooler-index="${index}">
@@ -10733,7 +10742,14 @@ function aquariumRatePerSec() {
           }" aria-label="${saved ? "Unsave" : "Save"} ${label}" aria-pressed="${saved}">${
             saved ? "★" : "☆"
           }</button>
-          ${sellCtrl}
+          <button type="button" class="fish-chip-sell" data-sell-index="${index}" title="${
+            saved
+              ? "Saved — unpin to sell"
+              : `Sell for ${formatNum(val)}${perfectMark}${multTip}${vTitle ? ` · ${vTitle}` : ""}`
+          }" ${saved ? "disabled" : ""}>
+            <span class="fish-chip-name">${label}</span>
+            <span class="fish-chip-price">${formatNum(val)}</span>
+          </button>
         </div>`;
       })
       .join("");
@@ -12469,6 +12485,18 @@ function aquariumRatePerSec() {
     const rarity = input.dataset.rarity;
     if (!RARITIES.includes(rarity)) return;
     state.autoSellRarities[rarity] = !!input.checked;
+    saveSoon();
+  });
+  document.getElementById("auto-sell-mutations-btn")?.addEventListener("click", () => {
+    state.autoSellMutations = !autoSellMutationsOn();
+    syncAutoSellMutationsBtn();
+    playSfx("click");
+    setCatchLine(
+      state.autoSellMutations
+        ? "Mutation auto-sell on — mutated fish sell with rarity auto-sell"
+        : "Mutation auto-sell off — mutated fish stay in the cooler",
+      "treasure"
+    );
     saveSoon();
   });
   shopCats?.addEventListener("click", (e) => {
