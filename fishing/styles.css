@@ -4988,6 +4988,14 @@ body.treasure-boost .cast-btn {
   margin-bottom: 0.4rem;
 }
 
+.auto-sell-note {
+  margin: -0.15rem 0 0.45rem;
+  font-size: 0.7rem;
+  line-height: 1.35;
+  color: var(--muted);
+  opacity: 0.9;
+}
+
 .auto-sell-rarities {
   display: flex;
   flex-wrap: wrap;
@@ -5188,6 +5196,11 @@ body.treasure-boost .cast-btn {
 .fish-chip-sell:disabled {
   cursor: not-allowed;
   opacity: 0.85;
+}
+
+.fish-chip-sell.is-mutation {
+  cursor: default;
+  opacity: 0.95;
 }
 
 .fish-chip-name {

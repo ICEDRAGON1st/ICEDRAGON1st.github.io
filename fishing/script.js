@@ -9233,6 +9233,13 @@ function aquariumRatePerSec() {
     return !!state.autoSellRarities?.[rarity];
   }
 
+  /** Auto-sell by rarity — mutated fish are never auto-sold (kept for the cooler). */
+  function shouldAutoSellFish(fish, entry) {
+    if (!fish || !shouldAutoSell(fish.rarity)) return false;
+    if (normalizeMutation(entry?.mutation)) return false;
+    return true;
+  }
+
   function anyAutoSellEnabled() {
     return RARITIES.some((r) => shouldAutoSell(r));
   }
@@ -9250,7 +9257,7 @@ function aquariumRatePerSec() {
       mutation: variants.mutation
     };
     noteCatch(fish, entry);
-    if (opts.forceSell || shouldAutoSell(fish.rarity)) {
+    if (opts.forceSell || shouldAutoSellFish(fish, entry)) {
       const val = fishValue(fish, currentSpot(), entry);
       addCoins(val);
       noteQuestProgress("sell", 1, { rarity: fish.rarity });
@@ -10191,7 +10198,7 @@ function aquariumRatePerSec() {
     for (let i = 0; i < count; i += 1) {
       const fish = rollFish(spot, true);
       const variants = rollFishVariants(spot, true);
-      const sold = shouldAutoSell(fish.rarity);
+      const sold = shouldAutoSellFish(fish, variants);
       const val = fishValue(fish, spot, variants);
       if (sold || state.cooler.length < coolerMax()) {
         addToCooler(fish, { silent: true, forBoat: true, variants });
@@ -10341,14 +10348,15 @@ function aquariumRatePerSec() {
           noteCatch(fish, variants);
           fishCaught += 1;
           const val = fishValue(fish, spot, variants);
-          if (shouldAutoSell(fish.rarity)) {
+          if (shouldAutoSellFish(fish, variants)) {
             gained += val;
           } else if (state.cooler.length < coolerMax()) {
             state.cooler.push({
               id: fish.id,
               saved: false,
               variant: variants.variant,
-              shiny: variants.shiny
+              shiny: variants.shiny,
+              mutation: variants.mutation
             });
           } else {
             gained += val;
@@ -10443,7 +10451,7 @@ function aquariumRatePerSec() {
     )}|${state.cooler
       .map((e) => {
         const n = normalizeCoolerEntry(e) || {};
-        return `${n.id || coolerEntryId(e)}${n.saved ? "*" : ""}${n.perfect ? "!" : ""}:${n.variant || ""}:${n.shiny ? 1 : 0}`;
+        return `${n.id || coolerEntryId(e)}${n.saved ? "*" : ""}${n.perfect ? "!" : ""}:${n.variant || ""}:${n.shiny ? 1 : 0}:${n.mutation || ""}`;
       })
       .join(",")}|${coolerMax()}|${sellBonus().toFixed(3)}|${perfectBonus().toFixed(3)}|${spotMasteryLevel()}|${comboActive() ? state.combo : 0}`;
   }
@@ -10490,11 +10498,21 @@ function aquariumRatePerSec() {
     coolerList.innerHTML = rows
       .map(({ index, entry, fish, val }) => {
         const saved = !!entry.saved;
+        const mutated = !!normalizeMutation(entry.mutation);
         const label = formatFishName(fish, entry);
         const vTitle = formatVariantTitle(entry);
         const perfectMark = entry.perfect ? " · perfect" : "";
         const vMult = variantValueMult(entry);
         const multTip = vMult > 1 ? ` · ×${formatMult(vMult)}` : "";
+        const sellBody = `<span class="fish-chip-name">${label}</span>
+            <span class="fish-chip-price">${formatNum(val)}</span>`;
+        const sellCtrl = mutated
+          ? `<div class="fish-chip-sell is-mutation" title="Mutation — no one-tap sell · use Sell unsaved (or ★ save)">${sellBody}</div>`
+          : `<button type="button" class="fish-chip-sell" data-sell-index="${index}" title="${
+              saved
+                ? "Saved — unpin to sell"
+                : `Sell for ${formatNum(val)}${perfectMark}${multTip}${vTitle ? ` · ${vTitle}` : ""}`
+            }" ${saved ? "disabled" : ""}>${sellBody}</button>`;
         return `<div class="fish-chip ${fish.rarity}${saved ? " is-saved" : ""}${
           entry.perfect ? " is-perfect" : ""
         } ${variantClassList(entry)}" data-cooler-index="${index}">
@@ -10504,14 +10522,7 @@ function aquariumRatePerSec() {
           }" aria-label="${saved ? "Unsave" : "Save"} ${label}" aria-pressed="${saved}">${
             saved ? "★" : "☆"
           }</button>
-          <button type="button" class="fish-chip-sell" data-sell-index="${index}" title="${
-            saved
-              ? "Saved — unpin to sell"
-              : `Sell for ${formatNum(val)}${perfectMark}${multTip}${vTitle ? ` · ${vTitle}` : ""}`
-          }" ${saved ? "disabled" : ""}>
-            <span class="fish-chip-name">${label}</span>
-            <span class="fish-chip-price">${formatNum(val)}</span>
-          </button>
+          ${sellCtrl}
         </div>`;
       })
       .join("");
