@@ -61,6 +61,13 @@
     return Math.round(Number(n) || 0);
   }
 
+  /** Keep scroll continuous; only wrap at draw time so parallax layers don't jump. */
+  const SCROLL_WRAP = 6720; // LCM-ish of 48/64/70 tile sizes
+
+  function scrollPos(scale, period) {
+    return wrapMod(groundX * scale, period);
+  }
+
   function duckHeld() {
     return duckKeyHeld || duckBtnHeld || !!pointerGesture?.ducked;
   }
@@ -267,7 +274,8 @@
     speed = Math.min(720, 340 + score * 0.55);
     deepCave = score >= 400;
     chaseBreath += dt;
-    groundX = wrapMod(groundX - speed * dt, 48);
+    groundX -= speed * dt;
+    if (groundX < -SCROLL_WRAP * 8) groundX = wrapMod(groundX, SCROLL_WRAP) - SCROLL_WRAP;
     score += speed * dt * 0.085;
 
     flakes.forEach((f) => {
@@ -327,13 +335,15 @@
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
 
-    // Ice ceiling teeth — integer scroll so tiles don't shimmer/jump
+    // Ice ceiling teeth — tooth shape keyed by index (not screen x) so they don't morph while scrolling
     const ceilPeriod = 70;
-    const ceilScroll = wrapMod(groundX * 0.35, ceilPeriod);
+    const ceilScroll = -scrollPos(0.35, ceilPeriod);
     ctx.fillStyle = deepCave ? "rgba(140, 180, 220, 0.22)" : "rgba(180, 220, 255, 0.28)";
-    for (let x = -ceilPeriod + px(ceilScroll); x < W + ceilPeriod; x += ceilPeriod) {
-      const ix = px(x);
-      const tip = 28 + ((ix % 40) + 40) % 40;
+    const ceilStart = Math.floor((-40 - ceilScroll) / ceilPeriod) - 1;
+    const ceilEnd = Math.ceil((W + 40 - ceilScroll) / ceilPeriod) + 1;
+    for (let i = ceilStart; i <= ceilEnd; i += 1) {
+      const ix = px(i * ceilPeriod + ceilScroll);
+      const tip = 22 + ((i % 5) + 5) % 5 * 7;
       ctx.beginPath();
       ctx.moveTo(ix, 0);
       ctx.lineTo(ix + 18, tip);
@@ -341,17 +351,17 @@
       ctx.fill();
     }
 
-    // Distant ice walls — sample on a fixed grid; scroll phase only (no subpixel path jitter)
-    const wallPhase = wrapMod(groundX * 0.55, Math.PI * 2 * 50) ;
+    // Distant ice walls — continuous phase (no short wrap on groundX)
+    const wallPhase = groundX * 0.55;
     ctx.fillStyle = deepCave ? "rgba(60, 90, 130, 0.35)" : "rgba(90, 140, 190, 0.25)";
     ctx.beginPath();
-    ctx.moveTo(0, GROUND_Y - 40);
-    for (let x = 0; x <= W; x += 40) {
+    ctx.moveTo(0, GROUND_Y);
+    for (let x = 0; x <= W; x += 20) {
       const y = GROUND_Y - 90 - Math.sin((x + wallPhase) * 0.02) * 28;
-      ctx.lineTo(x, px(y));
+      ctx.lineTo(x, y);
     }
     ctx.lineTo(W, GROUND_Y);
-    ctx.lineTo(0, GROUND_Y);
+    ctx.closePath();
     ctx.fill();
   }
 
@@ -428,10 +438,12 @@
     ctx.stroke();
 
     const tile = 64;
-    const scroll = px(wrapMod(groundX, tile));
+    const scroll = -px(scrollPos(1, tile));
     ctx.fillStyle = deepCave ? "rgba(200, 230, 255, 0.25)" : "rgba(255, 255, 255, 0.45)";
-    for (let x = scroll - tile; x < W + tile; x += tile) {
-      const ix = px(x);
+    const start = Math.floor((-tile - scroll) / tile) - 1;
+    const end = Math.ceil((W + tile - scroll) / tile) + 1;
+    for (let i = start; i <= end; i += 1) {
+      const ix = px(i * tile + scroll);
       ctx.beginPath();
       ctx.moveTo(ix + 8, GROUND_Y + 8);
       ctx.lineTo(ix + 18, GROUND_Y + 22);
@@ -660,7 +672,8 @@
     if (running && !paused && !dead) update(dt);
     else if (!running && !dead) {
       anim += dt;
-      groundX = wrapMod(groundX - 40 * dt, 48);
+      groundX -= 40 * dt;
+      if (groundX < -SCROLL_WRAP * 8) groundX = wrapMod(groundX, SCROLL_WRAP) - SCROLL_WRAP;
     }
     draw();
   }
