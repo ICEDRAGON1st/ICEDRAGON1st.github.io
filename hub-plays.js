@@ -3009,7 +3009,10 @@ body.light .menu-credit .player-name-creator {
       label: "MASTER FISHER",
       className: "player-title-master-fisher"
     },
-    cheesy: { id: "cheesy", label: "CHEESY LIL GUY", className: "player-title-cheesy" }
+    cheesy: { id: "cheesy", label: "CHEESY LIL GUY", className: "player-title-cheesy" },
+    hub1: { id: "hub1", label: "#1", className: "player-title-hub1" },
+    hub2: { id: "hub2", label: "#2", className: "player-title-hub2" },
+    hub3: { id: "hub3", label: "#3", className: "player-title-hub3" }
   };
 
   const TITLE_COLORS = {
@@ -3018,8 +3021,41 @@ body.light .menu-credit .player-name-creator {
     tester: "#e03131",
     legend: "#f1c40f",
     master_fisher: "#2ec4b6",
-    cheesy: "#f0b429"
+    cheesy: "#f0b429",
+    hub1: "#fbbf24",
+    hub2: "#94a3b8",
+    hub3: "#d97706"
   };
+
+  const HUB_POINTS_TITLE_IDS = ["hub1", "hub2", "hub3"];
+  let hubPointsTitleByKey = {};
+  let hubPointsTitleAt = 0;
+
+  function refreshHubPointsTitles(force = false) {
+    if (!force && Date.now() - hubPointsTitleAt < 4000) return;
+    hubPointsTitleAt = Date.now();
+    const next = {};
+    try {
+      const board =
+        (typeof window.HubLeaderboard !== "undefined" &&
+          (HubLeaderboard.getHubPointsBoard?.() || HubLeaderboard.getBoard?.("hub-points"))) ||
+        [];
+      board.slice(0, 3).forEach((row, i) => {
+        const key = nameKey(row?.name);
+        if (key) next[key] = i + 1;
+      });
+    } catch {}
+    hubPointsTitleByKey = next;
+  }
+
+  function getHubPointsTitleId(name = getName()) {
+    refreshHubPointsTitles();
+    const rank = hubPointsTitleByKey[nameKey(name)] || 0;
+    if (rank === 1) return "hub1";
+    if (rank === 2) return "hub2";
+    if (rank === 3) return "hub3";
+    return "";
+  }
 
   const EXTRA_COLORS = {
     aurora: {
@@ -3136,6 +3172,8 @@ body.light .menu-credit .player-name-creator {
     if (key === "ice_dragon" || isMasterFisherName(name) || selfMaster) {
       ids.push("master_fisher");
     }
+    const hubTitle = getHubPointsTitleId(name);
+    if (hubTitle) ids.push(hubTitle);
     // ICE_DRAGON: reserved titles only (no LEGEND path on this account).
     if (key === "ice_dragon") return ids;
     const selfLegend =
@@ -3150,8 +3188,13 @@ body.light .menu-credit .player-name-creator {
   function getTitleShowcase(name = getName()) {
     const unlocked = new Set(getAvailableTitleIds(name));
     const ids = [...unlocked];
-    if (!unlocked.has("legend")) ids.push("legend");
+    if (!unlocked.has("legend") && nameKey(name) !== "ice_dragon") ids.push("legend");
     if (!unlocked.has("master_fisher")) ids.push("master_fisher");
+    HUB_POINTS_TITLE_IDS.forEach((id) => {
+      if (!unlocked.has(id) && !ids.includes(id)) {
+        /* only show locked hub titles if this player could compete — skip empty tease */
+      }
+    });
     return ids.map((id) => {
       const def = TITLE_DEFS[id];
       return {
@@ -3171,10 +3214,16 @@ body.light .menu-credit .player-name-creator {
     const chosen = String(claim?.activeTitle || "").toLowerCase();
     if (chosen === "none") {
       // Reserved titles stay visible unless the player also has LEGEND to hide.
-      if (!available.includes("legend")) return available[0];
+      if (!available.includes("legend")) {
+        const hub = HUB_POINTS_TITLE_IDS.find((id) => available.includes(id));
+        return hub || available[0];
+      }
       return "none";
     }
     if (chosen && available.includes(chosen)) return chosen;
+    // Prefer live Hub Points podium title when nothing else is chosen
+    const hub = HUB_POINTS_TITLE_IDS.find((id) => available.includes(id));
+    if (hub) return hub;
     return available[0];
   }
 
@@ -3607,6 +3656,8 @@ body.light .menu-credit .player-name-creator {
     getColorShowcase,
     getActiveTitleId,
     getActiveTitleBadge,
+    getHubPointsTitleId,
+    refreshHubPointsTitles,
     setActiveTitle,
     getAccentColor,
     getActiveAccentTitleId,

@@ -2451,6 +2451,21 @@ header h1 {
   background: #e03131;
 }
 
+.player-title-hub1 {
+  color: #1a1200;
+  background: linear-gradient(135deg, #fde68a, #f59e0b 55%, #b45309);
+}
+
+.player-title-hub2 {
+  color: #0f172a;
+  background: linear-gradient(135deg, #e2e8f0, #94a3b8 55%, #64748b);
+}
+
+.player-title-hub3 {
+  color: #1c1006;
+  background: linear-gradient(135deg, #fdba74, #d97706 55%, #9a3412);
+}
+
 .player-title-cheesy,
 .player-title.player-title-cheese-holes {
   color: #3b2a0a !important;
@@ -2578,6 +2593,21 @@ header h1 {
 .title-pick-btn.player-title-tester {
   color: #fff;
   background: #e03131;
+}
+
+.title-pick-btn.player-title-hub1 {
+  color: #1a1200;
+  background: linear-gradient(135deg, #fde68a, #f59e0b 55%, #b45309);
+}
+
+.title-pick-btn.player-title-hub2 {
+  color: #0f172a;
+  background: linear-gradient(135deg, #e2e8f0, #94a3b8 55%, #64748b);
+}
+
+.title-pick-btn.player-title-hub3 {
+  color: #1c1006;
+  background: linear-gradient(135deg, #fdba74, #d97706 55%, #9a3412);
 }
 
 .title-pick-btn.player-title-cheesy {
