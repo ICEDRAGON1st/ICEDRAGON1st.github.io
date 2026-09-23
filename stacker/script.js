@@ -15,19 +15,19 @@ const W = canvas.width;
 const H = canvas.height;
 const HIGH_SCORE_KEY = "stacker-high-score";
 
-const BLOCK_H = 1.15;
-const START_SIZE = 5.2;
-const MIN_SIZE = 0.4;
+const BLOCK_H = 1.7;
+const START_SIZE = 4.8;
+const MIN_SIZE = 0.35;
 const PERFECT = 0.1;
-const BASE_SPEED = 4.8;
-const SPEED_STEP = 0.16;
-const MAX_SPEED = 10.5;
-const MOVE_SPAN = 5.8;
+const BASE_SPEED = 4.6;
+const SPEED_STEP = 0.15;
+const MAX_SPEED = 10;
+const MOVE_SPAN = 4.6;
 
-/** Isometric tile scale */
-const TILE_X = 30;
-const TILE_Y = 15;
-const TILE_Z = 24;
+/** Isometric tile scale — strong vertical so floors read as a tower */
+const TILE_X = 26;
+const TILE_Y = 13;
+const TILE_Z = 36;
 
 const COLORS = [
   "#7c9cff",
@@ -99,7 +99,7 @@ function iso(x, y, z) {
   const yy = y - camY;
   return {
     x: W * 0.5 + (x - z) * TILE_X,
-    y: H * 0.72 - yy * TILE_Z + (x + z) * TILE_Y
+    y: H * 0.78 - yy * TILE_Z + (x + z) * TILE_Y
   };
 }
 
@@ -346,7 +346,7 @@ function placeBlock() {
   }
   updateHud();
 
-  targetCamY = Math.max(0, placed.y - 2.6);
+  targetCamY = Math.max(0, placed.y - 1.8);
   spawnCurrent();
   checkAchievements();
 }
@@ -518,7 +518,25 @@ function draw() {
   drawGround();
 
   const solids = [...stack, ...debris];
-  if (current) solids.push(current);
+  if (current) {
+    // Ghost of the landing pad under the moving slab
+    const top = stack[stack.length - 1];
+    if (top) {
+      drawBox(
+        {
+          x: top.x,
+          y: current.y - 0.02,
+          z: top.z,
+          w: top.w,
+          d: top.d,
+          h: 0.08,
+          color: "#ffffff"
+        },
+        0.18
+      );
+    }
+    solids.push(current);
+  }
 
   // Painter: lower floors first; same height → farther (smaller x+z) first
   solids
