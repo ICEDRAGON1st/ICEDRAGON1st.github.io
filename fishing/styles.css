@@ -560,6 +560,25 @@ body.no-lightning-flash .wx-flash {
   align-self: flex-end;
 }
 
+.admin-cmd-history {
+  display: flex;
+  gap: 0.25rem;
+  flex: 0 0 auto;
+  align-self: flex-end;
+}
+
+.admin-cmd-hist-btn {
+  min-width: 2.1rem;
+  padding: 0.5rem 0.45rem !important;
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.admin-cmd-hist-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
 @media (max-width: 380px) {
   .admin-actions,
   .admin-actions-clear {

@@ -4312,6 +4312,7 @@ function aquariumRatePerSec() {
   function openAdmin() {
     if (!isFishingOwner()) return;
     syncAdminPanel();
+    syncAdminHistoryButtons();
     adminOverlay?.classList.remove("hidden");
     lockPageScroll();
     document.getElementById("admin-cmd-input")?.focus?.();
@@ -4322,6 +4323,104 @@ function aquariumRatePerSec() {
     hideAdminCmdSuggest();
     unlockPageScroll();
   }
+
+  const ADMIN_CMD_HISTORY_KEY = "fishing-admin-cmd-history-v1";
+  const ADMIN_CMD_HISTORY_MAX = 40;
+  let adminCmdHistory = [];
+  /** -1 = drafting new command; 0..n-1 = browsing history */
+  let adminCmdHistoryIndex = -1;
+
+  function loadAdminCmdHistory() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(ADMIN_CMD_HISTORY_KEY) || "[]");
+      if (!Array.isArray(raw)) return [];
+      return raw
+        .map((x) => String(x || "").trim())
+        .filter(Boolean)
+        .slice(-ADMIN_CMD_HISTORY_MAX);
+    } catch {
+      return [];
+    }
+  }
+
+  function saveAdminCmdHistory() {
+    try {
+      localStorage.setItem(
+        ADMIN_CMD_HISTORY_KEY,
+        JSON.stringify(adminCmdHistory.slice(-ADMIN_CMD_HISTORY_MAX))
+      );
+    } catch {}
+  }
+
+  function syncAdminHistoryButtons() {
+    const back = document.getElementById("admin-cmd-back");
+    const forward = document.getElementById("admin-cmd-forward");
+    if (!back || !forward) return;
+    const len = adminCmdHistory.length;
+    const canBack =
+      len > 0 && (adminCmdHistoryIndex < 0 || adminCmdHistoryIndex > 0);
+    const canForward = adminCmdHistoryIndex >= 0;
+    back.disabled = !canBack;
+    forward.disabled = !canForward;
+  }
+
+  function fillAdminCmdInput(text, { suggest = false } = {}) {
+    const input = document.getElementById("admin-cmd-input");
+    if (!input) return;
+    input.value = String(text || "");
+    hideAdminCmdSuggest();
+    input.focus();
+    try {
+      const end = input.value.length;
+      input.setSelectionRange(end, end);
+    } catch {}
+    if (suggest && input.value.trim()) refreshAdminCmdSuggest();
+    else hideAdminCmdSuggest();
+  }
+
+  function pushAdminCmdHistory(raw) {
+    const cmd = String(raw || "").trim();
+    if (!cmd) return;
+    if (adminCmdHistory[adminCmdHistory.length - 1] === cmd) {
+      adminCmdHistoryIndex = -1;
+      syncAdminHistoryButtons();
+      return;
+    }
+    adminCmdHistory.push(cmd);
+    if (adminCmdHistory.length > ADMIN_CMD_HISTORY_MAX) {
+      adminCmdHistory = adminCmdHistory.slice(-ADMIN_CMD_HISTORY_MAX);
+    }
+    adminCmdHistoryIndex = -1;
+    saveAdminCmdHistory();
+    syncAdminHistoryButtons();
+  }
+
+  function adminCmdHistoryBack() {
+    if (!adminCmdHistory.length) return;
+    if (adminCmdHistoryIndex < 0) {
+      adminCmdHistoryIndex = adminCmdHistory.length - 1;
+    } else if (adminCmdHistoryIndex > 0) {
+      adminCmdHistoryIndex -= 1;
+    } else {
+      return;
+    }
+    fillAdminCmdInput(adminCmdHistory[adminCmdHistoryIndex]);
+    syncAdminHistoryButtons();
+  }
+
+  function adminCmdHistoryForward() {
+    if (adminCmdHistoryIndex < 0) return;
+    if (adminCmdHistoryIndex < adminCmdHistory.length - 1) {
+      adminCmdHistoryIndex += 1;
+      fillAdminCmdInput(adminCmdHistory[adminCmdHistoryIndex]);
+    } else {
+      adminCmdHistoryIndex = -1;
+      fillAdminCmdInput("");
+    }
+    syncAdminHistoryButtons();
+  }
+
+  adminCmdHistory = loadAdminCmdHistory();
 
   const ADMIN_CMD_SUGGESTIONS = [
     "give fish ",
@@ -5695,6 +5794,8 @@ function aquariumRatePerSec() {
       setCatchLine("Admin only", "miss");
       return;
     }
+    const trimmed = String(raw || "").trim();
+    if (trimmed) pushAdminCmdHistory(trimmed);
     const blockGift = parseGiveLuckyBlockCommand(raw);
     if (blockGift) {
       await runGiveLuckyBlockCommand(blockGift);
@@ -13151,6 +13252,12 @@ function aquariumRatePerSec() {
     if (!btn || !adminOverlay.contains(btn)) return;
     e.preventDefault();
     runAdminCommand(btn.dataset.adminCmd);
+  });
+  document.getElementById("admin-cmd-back")?.addEventListener("click", () => {
+    adminCmdHistoryBack();
+  });
+  document.getElementById("admin-cmd-forward")?.addEventListener("click", () => {
+    adminCmdHistoryForward();
   });
   document.getElementById("admin-cmd-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
