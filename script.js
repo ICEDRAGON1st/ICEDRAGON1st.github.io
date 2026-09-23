@@ -1198,7 +1198,7 @@ const HUB_GAMES = [
   { id: "tictactoe", name: "Tic Tac Toe", path: "tic-tac-toe/index.html" },
   { id: "pixletris", name: "Pixel Drop", path: "pixel-drop/index.html" },
   { id: "clicker", name: "Crystal Clicker", path: "clicker/index.html" },
-  { id: "stacker", name: "Tower Stack", path: "stacker/index.html" },
+  { id: "stacker", name: "Tower Stack 3D", path: "stacker/index.html" },
   { id: "crossy", name: "Cross Walk", path: "cross-walk/index.html" },
   { id: "fishing", name: "Fishing Idle", path: "fishing/index.html" },
   { id: "cows", name: "Cow Merge", path: "cows/index.html" },

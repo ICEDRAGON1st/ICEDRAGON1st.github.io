@@ -5,8 +5,8 @@
 }
 
 :root {
-  --bg: #0c1020;
-  --panel: #161c33;
+  --bg: #070b16;
+  --panel: #141b33;
   --text: #eef2ff;
   --muted: #9aa3c7;
   --accent: #7c9cff;
@@ -24,7 +24,8 @@ body {
   padding: 1rem;
   font-family: "Segoe UI", system-ui, sans-serif;
   background:
-    radial-gradient(ellipse at top, #1a2450 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 0%, #243060 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 100%, #1a1040 0%, transparent 45%),
     var(--bg);
   color: var(--text);
 }
@@ -68,11 +69,12 @@ body {
   height: auto;
   max-height: 86vh;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   background: #070b18;
   touch-action: manipulation;
   display: block;
   cursor: pointer;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.45);
 }
 
 .overlay {
