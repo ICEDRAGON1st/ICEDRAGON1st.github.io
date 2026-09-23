@@ -5026,10 +5026,12 @@ function bootAfterUsername() {
     } else {
       showMenu();
     }
+    window.dismissHubBootLoader?.();
     return;
   }
 
   showGamesScreen();
+  window.dismissHubBootLoader?.();
   if (showWhatsNew()) {
     whatsNewOkBtn?.addEventListener("click", () => {
       hideWhatsNew();

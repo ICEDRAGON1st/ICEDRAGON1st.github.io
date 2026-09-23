@@ -9,9 +9,13 @@
   <title>My Games</title>
   <script>
     // First paint: My Games hub, not Guessword (unless #wordle deep link).
-    if (location.hash === "#wordle") {
-      document.documentElement.classList.add("boot-guessword", "playing-guessword");
-    }
+    (function () {
+      if (location.hash === "#wordle") {
+        document.documentElement.classList.add("boot-guessword", "playing-guessword");
+        return;
+      }
+      document.documentElement.classList.add("hub-booting");
+    })();
   </script>
   <style>
     html:not(.playing-guessword) .guess-bg,
@@ -25,14 +29,77 @@
     html.playing-guessword #games-screen.hidden {
       display: none !important;
     }
+
+    /* Full-screen hub boot loader — covers blue FOUC while scripts load */
+    html.hub-booting,
+    html.hub-booting body {
+      overflow: hidden !important;
+    }
+    #hub-boot-loader {
+      position: fixed;
+      inset: 0;
+      z-index: 100000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 1rem;
+      margin: 0;
+      padding: 1.5rem;
+      background:
+        radial-gradient(ellipse at 50% 20%, #1a2750 0%, transparent 55%),
+        linear-gradient(180deg, #0c1224 0%, #070b16 100%);
+      color: #e8eefc;
+      font-family: "Outfit", "Segoe UI", system-ui, sans-serif;
+      text-align: center;
+      pointer-events: all;
+      user-select: none;
+    }
+    html.hub-booting #hub-boot-loader {
+      display: flex;
+    }
+    #hub-boot-loader .hub-boot-mark {
+      font-size: clamp(1.6rem, 5vw, 2.2rem);
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      margin: 0;
+    }
+    #hub-boot-loader .hub-boot-sub {
+      margin: 0;
+      color: #9aa8c7;
+      font-size: 0.95rem;
+      font-weight: 600;
+    }
+    #hub-boot-loader .hub-boot-spin {
+      width: 2.4rem;
+      height: 2.4rem;
+      border-radius: 50%;
+      border: 3px solid rgba(124, 156, 255, 0.22);
+      border-top-color: #7c9cff;
+      animation: hub-boot-spin 0.75s linear infinite;
+      margin-top: 0.35rem;
+    }
+    @keyframes hub-boot-spin {
+      to { transform: rotate(360deg); }
+    }
+    html.hub-booting #games-screen,
+    html.hub-booting #menu-modal,
+    html.hub-booting #achievement-toast {
+      pointer-events: none !important;
+    }
   </style>
   <script src="site-config.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260917bd">
+  <link rel="stylesheet" href="styles.css?v=20260923aq">
 </head>
 <body data-guess-colors="ice">
+  <div id="hub-boot-loader" aria-live="polite" aria-busy="true">
+    <p class="hub-boot-mark">My Games</p>
+    <p class="hub-boot-sub">Loading hub…</p>
+    <div class="hub-boot-spin" aria-hidden="true"></div>
+  </div>
   <div class="guess-bg" aria-hidden="true">
     <span class="guess-bg-orb guess-bg-orb-a"></span>
     <span class="guess-bg-orb guess-bg-orb-b"></span>
@@ -620,9 +687,23 @@
     </div>
   </div>
 
+  <script>
+    // Restore hub look before full CSS/scripts finish so the hub doesn't flash wrong.
+    (function () {
+      try {
+        if (document.documentElement.classList.contains("playing-guessword")) return;
+        var theme = localStorage.getItem("hub-look-theme") || "classic";
+        var gs = document.getElementById("games-screen");
+        if (!gs || !theme || theme === "classic") return;
+        if (!/^[a-z0-9-]+$/i.test(theme)) return;
+        gs.classList.add("hub-theme-" + theme);
+      } catch (e) {}
+    })();
+  </script>
+
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260923ai";
+    window.WORDLE_BUILD = "20260923aq";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-supabase.js", "hub-account-bag.js", "hub-plays.js", "hub-fishing-gifts.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js",
       "words.js",
@@ -646,8 +727,24 @@
       "wordle-themes.js",
       "script.js"
     ];
+    function dismissHubBootLoader() {
+      try {
+        document.documentElement.classList.remove("hub-booting");
+        var loader = document.getElementById("hub-boot-loader");
+        if (loader) {
+          loader.setAttribute("aria-busy", "false");
+          loader.hidden = true;
+          loader.style.display = "none";
+        }
+      } catch (e) {}
+    }
+    window.dismissHubBootLoader = dismissHubBootLoader;
     function loadNext(i) {
-      if (i >= scripts.length) return;
+      if (i >= scripts.length) {
+        // Scripts finished; give init a tick, then drop the loader.
+        setTimeout(dismissHubBootLoader, 40);
+        return;
+      }
       const el = document.createElement("script");
       el.src = scripts[i] + "?v=" + window.WORDLE_BUILD;
       el.onload = function () { loadNext(i + 1); };
@@ -658,6 +755,8 @@
       document.body.appendChild(el);
     }
     loadNext(0);
+    // Safety: never leave the loader stuck
+    setTimeout(dismissHubBootLoader, 20000);
   </script>
 
   <!-- Achievement toast container -->
