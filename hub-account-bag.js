@@ -28,6 +28,10 @@
     "hub-sound",
     "hub-sound-enabled",
     "hub-sound-volume",
+    "hub-look-theme",
+    "hub-favorites",
+    "hub-last-game",
+    "hub-played-games",
     // Fishing
     "fishing-save-v3",
     "fishing-best-catch-v2",
@@ -288,6 +292,14 @@
       try {
         snapshot(playerIdNow());
       } catch {}
+    });
+    // Hub look / favorites change → upload bag soon
+    document.addEventListener("click", (e) => {
+      const t = e.target;
+      if (!t || !t.closest) return;
+      if (t.closest("[data-hub-theme]") || t.closest(".fav-btn")) {
+        setTimeout(tick, 120);
+      }
     });
   }
 
