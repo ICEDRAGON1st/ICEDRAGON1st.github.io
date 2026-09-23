@@ -29,6 +29,7 @@
     "hub-sound-enabled",
     "hub-sound-volume",
     "hub-look-theme",
+    "hub-look-set-at",
     "hub-favorites",
     "hub-last-game",
     "hub-played-games",
@@ -179,6 +180,26 @@
       kv["hub-achievements-pending"] = JSON.stringify([...set].slice(-80));
     } catch {}
 
+    // Hub look: prefer whichever side last explicitly set a look
+    try {
+      const lt = String(localKv["hub-look-theme"] || "").trim();
+      const rt = String(remoteKv["hub-look-theme"] || "").trim();
+      const localAt = Number(localKv["hub-look-set-at"]) || 0;
+      const remoteAt = Number(remoteKv["hub-look-set-at"]) || 0;
+      if (localAt || remoteAt) {
+        const useRemote = remoteAt >= localAt;
+        kv["hub-look-theme"] = useRemote ? rt || lt : lt || rt;
+        kv["hub-look-set-at"] = String(Math.max(localAt, remoteAt));
+      } else {
+        // Legacy bags: don't let plain "classic"/missing wipe a real theme
+        const localReal = lt && lt !== "classic";
+        const remoteReal = rt && rt !== "classic";
+        if (localReal && !remoteReal) kv["hub-look-theme"] = lt;
+        else if (remoteReal && !localReal) kv["hub-look-theme"] = rt;
+        else if (localReal && remoteReal) kv["hub-look-theme"] = preferRemote ? rt : lt;
+      }
+    } catch {}
+
     return {
       playerId: remoteBag.playerId || localBag.playerId,
       updatedAt: Math.max(Number(localBag.updatedAt) || 0, Number(remoteBag.updatedAt) || 0),
@@ -196,6 +217,13 @@
         else localStorage.setItem(key, String(value));
       } catch {}
     });
+    try {
+      document.dispatchEvent(
+        new CustomEvent("hub-account-bag-applied", {
+          detail: { playerId: bag.playerId || playerIdNow(), theme: bag.kv["hub-look-theme"] || null }
+        })
+      );
+    } catch {}
   }
 
   async function syncUp(playerId) {
@@ -283,31 +311,69 @@
       if (!id) return;
       syncUp(id).catch(() => {});
     };
+    const pullTick = () => {
+      const id = playerIdNow();
+      if (!id || !window.HubSupabase?.ready) return;
+      pullAndApply(id).catch(() => {});
+    };
+    // Pull first so phone look/settings land, then periodic upload
+    setTimeout(pullTick, 1200);
     setTimeout(tick, 8000);
     setInterval(tick, 3 * 60_000);
+    setInterval(pullTick, 5 * 60_000);
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) tick();
+      else pullTick();
     });
     window.addEventListener("pagehide", () => {
       try {
         snapshot(playerIdNow());
       } catch {}
     });
-    // Hub look / favorites change → upload bag soon
+    document.addEventListener("hub-look-changed", (e) => {
+      const theme = e?.detail?.theme;
+      if (theme) {
+        try {
+          localStorage.setItem("hub-look-theme", String(theme));
+          localStorage.setItem("hub-look-set-at", String(Date.now()));
+        } catch {}
+      }
+      setTimeout(tick, 40);
+    });
     document.addEventListener("click", (e) => {
       const t = e.target;
       if (!t || !t.closest) return;
-      if (t.closest("[data-hub-theme]") || t.closest(".fav-btn")) {
-        setTimeout(tick, 120);
-      }
+      if (t.closest(".fav-btn")) setTimeout(tick, 120);
     });
   }
 
-  // Migrate: first visit after update, stash current keys under active player
+  // Migrate: first visit after update, stash current keys under active player.
+  // Only create a vault entry if missing — do NOT bump updatedAt on every load
+  // (that made local "classic" clobber a real hub look from the other device).
   try {
     const id = playerIdNow();
     if (id && !loadVault()[id]) {
       snapshot(id);
+    } else if (id) {
+      const vault = loadVault();
+      const bag = vault[id];
+      if (bag && bag.kv && typeof bag.kv === "object") {
+        let filled = false;
+        BAG_KEYS.forEach((key) => {
+          if (bag.kv[key] != null) return;
+          try {
+            const v = localStorage.getItem(key);
+            if (v != null) {
+              bag.kv[key] = v;
+              filled = true;
+            }
+          } catch {}
+        });
+        if (filled) {
+          vault[id] = bag;
+          saveVault(vault);
+        }
+      }
     }
   } catch {}
 

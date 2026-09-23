@@ -2583,18 +2583,23 @@ function updateHubThemePicker() {
   });
 }
 
-function applyHubTheme(themeId = getHubThemeId()) {
-  const id = canUseHubTheme(themeId) ? themeId : "classic";
-  try {
-    localStorage.setItem(HUB_THEME_KEY, id);
-  } catch {}
+/** Apply hub look. Pass a theme id to save it; call with no args to refresh UI only (won't overwrite storage). */
+function applyHubTheme(themeId) {
+  const explicit = arguments.length > 0 && themeId != null;
+  const raw = explicit ? String(themeId) : localStorage.getItem(HUB_THEME_KEY) || "classic";
+  if (explicit && canUseHubTheme(raw)) {
+    try {
+      localStorage.setItem(HUB_THEME_KEY, raw);
+    } catch {}
+  }
+  const id = canUseHubTheme(raw) ? raw : "classic";
   if (gamesScreen) {
     [...gamesScreen.classList].forEach((cls) => {
       if (cls.startsWith("hub-theme-")) gamesScreen.classList.remove(cls);
     });
     if (id !== "classic") gamesScreen.classList.add(`hub-theme-${id}`);
   }
-  if (gamesEyebrow) gamesEyebrow.textContent = HUB_THEMES[id].eyebrow;
+  if (gamesEyebrow) gamesEyebrow.textContent = HUB_THEMES[id]?.eyebrow || "Hub";
   updateHubThemePicker();
   hubThemePicker?.querySelectorAll("[data-hub-theme]").forEach((btn) => {
     btn.classList.toggle("active", btn.dataset.hubTheme === id);
@@ -2846,32 +2851,32 @@ async function submitGuess() {
   submitting = true;
   recordHubDailyPlay();
   try {
-    const evaluation = evaluateGuess(guess, state.secretWord);
-    const row = state.currentRow;
+  const evaluation = evaluateGuess(guess, state.secretWord);
+  const row = state.currentRow;
 
-    for (let i = 0; i < COLS; i++) {
-      state.board[row][i].status = evaluation[i];
-      updateKeyState(state.board[row][i].letter, evaluation[i]);
-    }
-
-    saveState();
-    await animateRowFlip(row);
-
-    if (guess === state.secretWord) {
-      handleWin(row);
-      return;
-    }
-
-    state.currentRow++;
-    state.currentCol = 0;
-
-    if (state.currentRow >= ROWS) {
-      handleLoss();
-      return;
-    }
+  for (let i = 0; i < COLS; i++) {
+    state.board[row][i].status = evaluation[i];
+    updateKeyState(state.board[row][i].letter, evaluation[i]);
+  }
 
     saveState();
-    render();
+  await animateRowFlip(row);
+
+  if (guess === state.secretWord) {
+    handleWin(row);
+    return;
+  }
+
+  state.currentRow++;
+  state.currentCol = 0;
+
+  if (state.currentRow >= ROWS) {
+    handleLoss();
+    return;
+  }
+
+  saveState();
+  render();
   } finally {
     submitting = false;
   }
@@ -3514,7 +3519,23 @@ hubThemePicker?.addEventListener("click", (e) => {
     return;
   }
   applyHubTheme(id);
+  try {
+    localStorage.setItem("hub-look-set-at", String(Date.now()));
+  } catch {}
+  try {
+    document.dispatchEvent(new CustomEvent("hub-look-changed", { detail: { theme: id } }));
+  } catch {}
+  if (window.HubAccountBag?.syncUp) {
+    HubAccountBag.syncUp().catch(() => {});
+  }
   showGamesMessage(`Hub look: ${HUB_THEMES[id]?.label || "Classic"}`, 1600);
+});
+
+document.addEventListener("hub-account-bag-applied", () => {
+  applyHubTheme();
+});
+document.addEventListener("hub-username-ready", () => {
+  applyHubTheme();
 });
 
 function refreshNotificationPermStatus() {
