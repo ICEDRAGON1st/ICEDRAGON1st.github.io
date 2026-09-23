@@ -4406,6 +4406,7 @@ function aquariumRatePerSec() {
   function buildAdminCmdSuggestions(value) {
     const raw = String(value || "");
     const lower = raw.toLowerCase();
+    if (!raw.trim()) return [];
 
     const toMatch = lower.match(/^(.*?\bto\s+)(@?)([^\s]*)$/i);
     if (toMatch && /\b(give|gift)\b/.test(toMatch[1])) {
