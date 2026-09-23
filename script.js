@@ -4392,7 +4392,7 @@ function accountListHtml(accounts, activeCode) {
               ? ""
               : `<button type="button" class="hub-btn" data-account-switch="${escapeHtml(code)}">Switch</button>`
           }
-          <button type="button" class="hub-btn" data-account-forget="${escapeHtml(code)}">Forget</button>
+          <button type="button" class="hub-btn" data-account-forget="${escapeHtml(code)}" title="Requires typing the player code">Forget…</button>
         </span>
       </li>`;
     })
@@ -4540,8 +4540,32 @@ function onAccountListClick(e) {
       statusFn("Can't forget the account you're using — switch first", true);
       return;
     }
+    const formatted = HubPlays?.formatPlayerCode?.(code) || code;
+    const saved = (HubPlays?.getSavedAccounts?.() || []).find(
+      (a) => HubPlays?.normalizePlayerCode?.(a.code) === norm
+    );
+    const label = saved?.name || "Unnamed";
+    const ok = window.confirm(
+      `Forget "${label}" on this device?\n\nCode: ${formatted}\n\nThis only removes it from this device's list. The account still exists — you can log in again with the code.\n\nPress OK, then type the code to unlock forget.`
+    );
+    if (!ok) {
+      statusFn("Forget cancelled", false);
+      return;
+    }
+    const typed = window.prompt(
+      `Type the player code to forget "${label}":\n\n${formatted}`
+    );
+    if (typed == null) {
+      statusFn("Forget cancelled", false);
+      return;
+    }
+    const typedNorm = HubPlays?.normalizePlayerCode?.(typed) || "";
+    if (!norm || typedNorm !== norm) {
+      statusFn("Code didn't match — account kept", true);
+      return;
+    }
     HubPlays?.removeSavedAccount?.(code);
-    statusFn(`Forgot ${HubPlays?.formatPlayerCode?.(code) || code}`, false);
+    statusFn(`Forgot ${formatted} (${label})`, false);
     renderSavedAccounts();
   }
 }
