@@ -115,7 +115,7 @@ function drawPoly(points, fill) {
 
 /**
  * Draw a box centered at (x,z) with size w×d and bottom at y.
- * Faces: left (darker), right (medium), top (bright) — classic Stack look.
+ * Visible faces for this iso: +z (front), +x (side), top.
  */
 function drawBox(b, alpha = 1) {
   const x0 = b.x - b.w / 2;
@@ -125,8 +125,6 @@ function drawBox(b, alpha = 1) {
   const y0 = b.y;
   const y1 = b.y + b.h;
 
-  // 8 corners in iso
-  const p000 = iso(x0, y0, z0);
   const p100 = iso(x1, y0, z0);
   const p010 = iso(x0, y1, z0);
   const p110 = iso(x1, y1, z0);
@@ -138,28 +136,27 @@ function drawBox(b, alpha = 1) {
   ctx.save();
   ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
 
-  // Left face (−x visible edge in this iso): x0 side toward +z
-  drawPoly([p001, p000, p010, p011], shade(b.color, 0.62));
-  // Right face (+x): x1 side toward +z
-  drawPoly([p100, p101, p111, p110], shade(b.color, 0.78));
-  // Top
-  drawPoly([p010, p110, p111, p011], shade(b.color, 1.08));
+  // Front (+z) — darker
+  drawPoly([p001, p101, p111, p011], shade(b.color, 0.68));
+  // Side (+x) — medium
+  drawPoly([p100, p101, p111, p110], shade(b.color, 0.82));
+  // Top — brightest
+  drawPoly([p010, p110, p111, p011], shade(b.color, 1.1));
 
   if (b.perfect) {
     ctx.globalAlpha = Math.max(0, Math.min(1, alpha)) * 0.35;
     drawPoly([p010, p110, p111, p011], "#ffffff");
   }
 
-  // Crisp top outline
-  ctx.globalAlpha = Math.max(0, Math.min(1, alpha)) * 0.35;
+  ctx.globalAlpha = Math.max(0, Math.min(1, alpha)) * 0.4;
   ctx.beginPath();
   ctx.moveTo(p010.x, p010.y);
   ctx.lineTo(p110.x, p110.y);
   ctx.lineTo(p111.x, p111.y);
   ctx.lineTo(p011.x, p011.y);
   ctx.closePath();
-  ctx.strokeStyle = "rgba(255,255,255,0.55)";
-  ctx.lineWidth = 1.25;
+  ctx.strokeStyle = "rgba(255,255,255,0.5)";
+  ctx.lineWidth = 1.2;
   ctx.stroke();
 
   ctx.restore();
