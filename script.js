@@ -2403,6 +2403,11 @@ async function refreshLeaderboardsPanel(opts = {}) {
     HubPlays?.reconcileOnlineSeconds?.();
   }
   renderLeaderboardList();
+  try {
+    HubPlays?.refreshHubPointsTitles?.(true);
+    renderTitlePicker();
+    if (playersRosterMode) renderPlayersRoster(playersRosterMode);
+  } catch {}
 }
 
 let leaderboardRefreshTimer = null;
