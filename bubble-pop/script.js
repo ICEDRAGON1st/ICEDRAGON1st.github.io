@@ -42,7 +42,7 @@
     if (highScoreEl) highScoreEl.textContent = String(best);
     if (overlayBest) overlayBest.textContent = String(best);
     if (clearedEl) clearedEl.textContent = String(cleared);
-    if (dangerEl) dangerEl.style.height = `${8 + rise * 6}%`;
+    if (dangerEl) dangerEl.style.height = `${Math.max(6, Math.min(100, rise * 100))}%`;
   }
 
   function maybeSubmit(force = false) {
