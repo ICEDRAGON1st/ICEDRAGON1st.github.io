@@ -13177,7 +13177,10 @@ function aquariumRatePerSec() {
     const input = document.getElementById("admin-cmd-input");
     const list = document.getElementById("admin-cmd-suggest");
     input?.addEventListener("input", () => refreshAdminCmdSuggest());
-    input?.addEventListener("focus", () => refreshAdminCmdSuggest());
+    input?.addEventListener("focus", () => {
+      if (String(input.value || "").trim()) refreshAdminCmdSuggest();
+      else hideAdminCmdSuggest();
+    });
     input?.addEventListener("keydown", (e) => {
       const open = list && !list.hidden && adminCmdSuggestItems.length;
       if (e.key === "ArrowDown" && open) {
