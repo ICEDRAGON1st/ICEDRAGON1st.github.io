@@ -15,14 +15,19 @@ const W = canvas.width;
 const H = canvas.height;
 const HIGH_SCORE_KEY = "stacker-high-score";
 
-const BLOCK_H = 1;
-const START_SIZE = 6.5;
-const MIN_SIZE = 0.45;
-const PERFECT = 0.12;
-const BASE_SPEED = 5.2;
-const SPEED_STEP = 0.18;
-const MAX_SPEED = 11;
-const MOVE_SPAN = 9.5;
+const BLOCK_H = 1.15;
+const START_SIZE = 5.2;
+const MIN_SIZE = 0.4;
+const PERFECT = 0.1;
+const BASE_SPEED = 4.8;
+const SPEED_STEP = 0.16;
+const MAX_SPEED = 10.5;
+const MOVE_SPAN = 7.5;
+
+/** Isometric tile scale */
+const TILE_X = 28;
+const TILE_Y = 14;
+const TILE_Z = 22;
 
 const COLORS = [
   "#7c9cff",
@@ -44,8 +49,6 @@ let running = false;
 let menuMode = "start";
 let camY = 0;
 let targetCamY = 0;
-let camYaw = 0.55;
-let targetYaw = 0.55;
 let lastTime = 0;
 let shake = 0;
 let perfectFlash = 0;
@@ -76,7 +79,8 @@ function colorFor(index) {
 }
 
 function hexToRgb(hex) {
-  const h = hex.replace("#", "");
+  const h = String(hex || "#888888").replace("#", "");
+  if (h.length !== 6) return { r: 120, g: 140, b: 200 };
   return {
     r: parseInt(h.slice(0, 2), 16),
     g: parseInt(h.slice(2, 4), 16),
@@ -90,80 +94,74 @@ function shade(hex, f) {
   return `rgb(${t(r)},${t(g)},${t(b)})`;
 }
 
-/** Perspective project world (x,y,z) → screen */
-function project(x, y, z) {
-  const cy = y - camY;
-  const cos = Math.cos(camYaw);
-  const sin = Math.sin(camYaw);
-  const rx = x * cos - z * sin;
-  const rz = x * sin + z * cos;
-  const dist = 22;
-  const scale = (260 * dist) / (dist + rz + 10);
+/** World (x right, y up, z toward camera-right) → screen */
+function iso(x, y, z) {
+  const yy = y - camY;
   return {
-    x: W / 2 + rx * scale * 0.42,
-    y: H * 0.62 - cy * scale * 0.38 - rz * scale * 0.12,
-    s: scale,
-    depth: rz
+    x: W * 0.5 + (x - z) * TILE_X,
+    y: H * 0.72 - yy * TILE_Z + (x + z) * TILE_Y
   };
 }
 
-function boxCorners(b) {
-  const { x, y, z, w, d, h } = b;
-  const x0 = x - w / 2;
-  const x1 = x + w / 2;
-  const z0 = z - d / 2;
-  const z1 = z + d / 2;
-  const y0 = y;
-  const y1 = y + h;
-  return [
-    [x0, y0, z0],
-    [x1, y0, z0],
-    [x1, y0, z1],
-    [x0, y0, z1],
-    [x0, y1, z0],
-    [x1, y1, z0],
-    [x1, y1, z1],
-    [x0, y1, z1]
-  ].map(([px, py, pz]) => project(px, py, pz));
-}
-
-function drawFace(pts, fill, stroke) {
+function drawPoly(points, fill) {
+  if (!points.length) return;
   ctx.beginPath();
-  ctx.moveTo(pts[0].x, pts[0].y);
-  for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
   ctx.closePath();
   ctx.fillStyle = fill;
   ctx.fill();
-  if (stroke) {
-    ctx.strokeStyle = stroke;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
 }
 
+/**
+ * Draw a box centered at (x,z) with size w×d and bottom at y.
+ * Faces: left (darker), right (medium), top (bright) — classic Stack look.
+ */
 function drawBox(b, alpha = 1) {
-  const c = boxCorners(b);
-  // faces: top 4-5-6-7, right 1-2-6-5, left 0-3-7-4 (depending on yaw)
-  const top = [c[4], c[5], c[6], c[7]];
-  const front = [c[3], c[2], c[6], c[7]];
-  const side = [c[1], c[2], c[6], c[5]];
+  const x0 = b.x - b.w / 2;
+  const x1 = b.x + b.w / 2;
+  const z0 = b.z - b.d / 2;
+  const z1 = b.z + b.d / 2;
+  const y0 = b.y;
+  const y1 = b.y + b.h;
 
-  const depthKey = (face) => face.reduce((s, p) => s + p.depth, 0) / face.length;
-  const faces = [
-    { pts: front, fill: shade(b.color, 0.72), key: depthKey(front) },
-    { pts: side, fill: shade(b.color, 0.55), key: depthKey(side) },
-    { pts: top, fill: shade(b.color, 1.05), key: depthKey(top) }
-  ].sort((a, b2) => a.key - b2.key);
+  // 8 corners in iso
+  const p000 = iso(x0, y0, z0);
+  const p100 = iso(x1, y0, z0);
+  const p010 = iso(x0, y1, z0);
+  const p110 = iso(x1, y1, z0);
+  const p001 = iso(x0, y0, z1);
+  const p101 = iso(x1, y0, z1);
+  const p011 = iso(x0, y1, z1);
+  const p111 = iso(x1, y1, z1);
 
   ctx.save();
-  ctx.globalAlpha = alpha;
-  faces.forEach((f) => {
-    drawFace(f.pts, f.fill, "rgba(0,0,0,0.18)");
-  });
+  ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+
+  // Left face (−x visible edge in this iso): x0 side toward +z
+  drawPoly([p001, p000, p010, p011], shade(b.color, 0.62));
+  // Right face (+x): x1 side toward +z
+  drawPoly([p100, p101, p111, p110], shade(b.color, 0.78));
+  // Top
+  drawPoly([p010, p110, p111, p011], shade(b.color, 1.08));
+
   if (b.perfect) {
-    ctx.globalAlpha = alpha * 0.9;
-    drawFace(top, "rgba(255,255,255,0.22)");
+    ctx.globalAlpha = Math.max(0, Math.min(1, alpha)) * 0.35;
+    drawPoly([p010, p110, p111, p011], "#ffffff");
   }
+
+  // Crisp top outline
+  ctx.globalAlpha = Math.max(0, Math.min(1, alpha)) * 0.35;
+  ctx.beginPath();
+  ctx.moveTo(p010.x, p010.y);
+  ctx.lineTo(p110.x, p110.y);
+  ctx.lineTo(p111.x, p111.y);
+  ctx.lineTo(p011.x, p011.y);
+  ctx.closePath();
+  ctx.strokeStyle = "rgba(255,255,255,0.55)";
+  ctx.lineWidth = 1.25;
+  ctx.stroke();
+
   ctx.restore();
 }
 
@@ -183,8 +181,6 @@ function resetGame() {
   score = 0;
   camY = 0;
   targetCamY = 0;
-  camYaw = 0.55;
-  targetYaw = 0.55;
   shake = 0;
   perfectFlash = 0;
   playedThisRun = false;
@@ -208,7 +204,14 @@ function spawnCurrent() {
     speed,
     color: colorFor(stack.length)
   };
-  targetYaw = 0.45 + (stack.length % 2) * 0.22;
+}
+
+function spawnDebris(piece) {
+  debris.push({
+    ...piece,
+    life: 1.05,
+    vy: 0.8 + Math.random() * 0.6
+  });
 }
 
 function placeBlock() {
@@ -222,14 +225,12 @@ function placeBlock() {
 
   const prev = stack[stack.length - 1];
   const axis = current.axis;
-
-  let overlap;
   let placed;
 
   if (axis === "x") {
     const left = Math.max(current.x - current.w / 2, prev.x - prev.w / 2);
     const right = Math.min(current.x + current.w / 2, prev.x + prev.w / 2);
-    overlap = right - left;
+    const overlap = right - left;
     if (overlap <= 0) {
       endGame(false);
       return;
@@ -247,10 +248,10 @@ function placeBlock() {
       color: current.color,
       perfect
     };
-    // debris slabs
+
     const cutL = current.x - current.w / 2;
     const cutR = current.x + current.w / 2;
-    if (!perfect && cutL < left - 0.01) {
+    if (!perfect && cutL < left - 0.02) {
       spawnDebris({
         x: (cutL + left) / 2,
         y: current.y,
@@ -259,11 +260,11 @@ function placeBlock() {
         d: current.d,
         h: BLOCK_H,
         color: current.color,
-        vx: -3.5,
+        vx: -4,
         vz: 0
       });
     }
-    if (!perfect && cutR > right + 0.01) {
+    if (!perfect && cutR > right + 0.02) {
       spawnDebris({
         x: (right + cutR) / 2,
         y: current.y,
@@ -272,14 +273,14 @@ function placeBlock() {
         d: current.d,
         h: BLOCK_H,
         color: current.color,
-        vx: 3.5,
+        vx: 4,
         vz: 0
       });
     }
   } else {
     const near = Math.max(current.z - current.d / 2, prev.z - prev.d / 2);
     const far = Math.min(current.z + current.d / 2, prev.z + prev.d / 2);
-    overlap = far - near;
+    const overlap = far - near;
     if (overlap <= 0) {
       endGame(false);
       return;
@@ -297,9 +298,10 @@ function placeBlock() {
       color: current.color,
       perfect
     };
+
     const cutN = current.z - current.d / 2;
     const cutF = current.z + current.d / 2;
-    if (!perfect && cutN < near - 0.01) {
+    if (!perfect && cutN < near - 0.02) {
       spawnDebris({
         x: current.x,
         y: current.y,
@@ -309,10 +311,10 @@ function placeBlock() {
         h: BLOCK_H,
         color: current.color,
         vx: 0,
-        vz: -3.5
+        vz: -4
       });
     }
-    if (!perfect && cutF > far + 0.01) {
+    if (!perfect && cutF > far + 0.02) {
       spawnDebris({
         x: current.x,
         y: current.y,
@@ -322,7 +324,7 @@ function placeBlock() {
         h: BLOCK_H,
         color: current.color,
         vx: 0,
-        vz: 3.5
+        vz: 4
       });
     }
   }
@@ -347,17 +349,9 @@ function placeBlock() {
   }
   updateHud();
 
-  targetCamY = Math.max(0, placed.y - 3.2);
+  targetCamY = Math.max(0, placed.y - 2.6);
   spawnCurrent();
   checkAchievements();
-}
-
-function spawnDebris(piece) {
-  debris.push({
-    ...piece,
-    life: 1.1,
-    vy: 1.2 + Math.random() * 0.8
-  });
 }
 
 function checkAchievements() {
@@ -372,8 +366,8 @@ function endGame(fromMenu) {
   if (current) {
     spawnDebris({
       ...current,
-      vx: current.axis === "x" ? current.dir * 4 : 0,
-      vz: current.axis === "z" ? current.dir * 4 : 0
+      vx: current.axis === "x" ? current.dir * 5 : 0,
+      vz: current.axis === "z" ? current.dir * 5 : 0
     });
   }
   current = null;
@@ -458,14 +452,13 @@ function update(dt) {
   }
 
   camY += (targetCamY - camY) * Math.min(1, dt * 5);
-  camYaw += (targetYaw - camYaw) * Math.min(1, dt * 3);
 
   debris = debris.filter((p) => {
     p.life -= dt;
     p.y -= p.vy * dt;
     p.x += (p.vx || 0) * dt;
     p.z += (p.vz || 0) * dt;
-    p.vy += 10 * dt;
+    p.vy += 9 * dt;
     return p.life > 0;
   });
 
@@ -475,46 +468,42 @@ function update(dt) {
 
 function drawBackground() {
   const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, "#152048");
-  g.addColorStop(0.55, "#0c1228");
+  g.addColorStop(0, "#1a2750");
+  g.addColorStop(0.55, "#0d142c");
   g.addColorStop(1, "#070b16");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
 
-  // soft horizon glow
-  const hg = ctx.createRadialGradient(W / 2, H * 0.7, 20, W / 2, H * 0.72, 280);
-  hg.addColorStop(0, "rgba(80,120,255,0.18)");
+  const hg = ctx.createRadialGradient(W / 2, H * 0.75, 10, W / 2, H * 0.78, 260);
+  hg.addColorStop(0, "rgba(90,130,255,0.16)");
   hg.addColorStop(1, "rgba(0,0,0,0)");
   ctx.fillStyle = hg;
   ctx.fillRect(0, 0, W, H);
 }
 
 function drawGround() {
-  const size = 18;
-  const pts = [
-    project(-size, 0, -size),
-    project(size, 0, -size),
-    project(size, 0, size),
-    project(-size, 0, size)
-  ];
-  drawFace(pts, "rgba(30,40,75,0.85)", "rgba(90,110,180,0.25)");
+  const s = 10;
+  const a = iso(-s, 0, -s);
+  const b = iso(s, 0, -s);
+  const c = iso(s, 0, s);
+  const d = iso(-s, 0, s);
+  drawPoly([a, b, c, d], "rgba(28,38,72,0.92)");
 
-  // grid
   ctx.save();
-  ctx.strokeStyle = "rgba(120,150,255,0.12)";
+  ctx.strokeStyle = "rgba(130,160,255,0.14)";
   ctx.lineWidth = 1;
-  for (let i = -8; i <= 8; i++) {
-    const a = project(i * 2, 0.01, -size);
-    const b = project(i * 2, 0.01, size);
+  for (let i = -5; i <= 5; i++) {
+    const p0 = iso(i, 0.02, -s);
+    const p1 = iso(i, 0.02, s);
     ctx.beginPath();
-    ctx.moveTo(a.x, a.y);
-    ctx.lineTo(b.x, b.y);
+    ctx.moveTo(p0.x, p0.y);
+    ctx.lineTo(p1.x, p1.y);
     ctx.stroke();
-    const c = project(-size, 0.01, i * 2);
-    const d = project(size, 0.01, i * 2);
+    const q0 = iso(-s, 0.02, i);
+    const q1 = iso(s, 0.02, i);
     ctx.beginPath();
-    ctx.moveTo(c.x, c.y);
-    ctx.lineTo(d.x, d.y);
+    ctx.moveTo(q0.x, q0.y);
+    ctx.lineTo(q1.x, q1.y);
     ctx.stroke();
   }
   ctx.restore();
@@ -529,18 +518,21 @@ function draw() {
 
   ctx.save();
   ctx.translate(sx, sy);
-
   drawGround();
 
-  // Draw from bottom to top so higher floors paint on top in screen space
-  const solids = [...stack];
+  const solids = [...stack, ...debris];
   if (current) solids.push(current);
+
+  // Painter: farther (smaller x+z) first, then lower y
   solids
     .slice()
-    .sort((a, b) => a.y - b.y)
-    .forEach((b) => drawBox(b));
-
-  debris.forEach((p) => drawBox(p, Math.max(0, p.life)));
+    .sort((a, b) => {
+      const da = a.x + a.z;
+      const db = b.x + b.z;
+      if (Math.abs(da - db) > 0.01) return da - db;
+      return a.y - b.y;
+    })
+    .forEach((b) => drawBox(b, b.life != null ? Math.max(0, b.life) : 1));
 
   ctx.restore();
 
