@@ -803,8 +803,15 @@
       };
     } else if (remote?.[norm]?.playerId) {
       entry = remote[norm];
+    } else if (remote != null) {
+      // Codes server responded but this code isn't registered — don't invent a new ID
+      // (that used to clone names like ICE_DRAGON PHONE onto p-c-…).
+      return {
+        ok: false,
+        error: "Code not found. Open the account on the original device and copy its player code / transfer key."
+      };
     } else {
-      // Server down or unknown code: still allow login on this device
+      // Server unreachable: still allow login on this device with a stable offline id
       entry = {
         playerId: playerIdForOfflineCode(norm),
         name: "",
@@ -2392,12 +2399,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   function getAllTimeCount() {
-    const enriched = buildAllTimeMap(
-      allTimeCache,
-      cache.plays || loadLocal().plays || [],
-      namesCache
-    );
-    return Object.values(enriched).filter((p) => !isPlaceholderName(p?.name)).length;
+    return getAllTimePlayers().length;
   }
 
   function getAllTimePlayers() {
@@ -2407,20 +2409,51 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       namesCache
     );
     const now = Date.now();
-    return Object.entries(enriched)
-      .map(([playerId, p]) => {
-        const firstAt = Number(p.firstAt) || 0;
-        const lastAt = Math.max(Number(p.lastAt) || 0, firstAt);
-        return {
-          playerId,
-          name: sanitizeName(p.name || "") || "Guest",
-          firstAt,
-          lastAt,
-          online: lastAt > 0 && now - lastAt < ONLINE_TTL_MS
-        };
-      })
-      .filter((p) => !isPlaceholderName(p.name))
-      .sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
+    const byName = new Map();
+    Object.entries(enriched).forEach(([playerId, p]) => {
+      const name = sanitizeName(p.name || "") || "Guest";
+      if (isPlaceholderName(name)) return;
+      // Drop broken offline clones (p-c-…) when a real account owns the name
+      if (/^p-c-/i.test(playerId)) {
+        const claim = namesCache[nameKey(name)];
+        if (claim?.playerId && claim.playerId !== playerId) return;
+      }
+      const firstAt = Number(p.firstAt) || 0;
+      const lastAt = Math.max(Number(p.lastAt) || 0, firstAt);
+      const row = {
+        playerId,
+        name,
+        firstAt,
+        lastAt,
+        online: lastAt > 0 && now - lastAt < ONLINE_TTL_MS
+      };
+      const key = nameKey(name);
+      const prev = byName.get(key);
+      if (!prev) {
+        byName.set(key, row);
+        return;
+      }
+      const claimId = namesCache[key]?.playerId || "";
+      let keep = prev;
+      let drop = row;
+      if (claimId && claimId === row.playerId) {
+        keep = row;
+        drop = prev;
+      } else if (claimId && claimId === prev.playerId) {
+        keep = prev;
+        drop = row;
+      } else if ((row.firstAt || 0) && (row.firstAt || 0) < (prev.firstAt || Infinity)) {
+        keep = row;
+        drop = prev;
+      }
+      byName.set(key, {
+        ...keep,
+        firstAt: Math.min(keep.firstAt || 0, drop.firstAt || keep.firstAt || 0) || keep.firstAt,
+        lastAt: Math.max(keep.lastAt || 0, drop.lastAt || 0),
+        online: !!(keep.online || drop.online)
+      });
+    });
+    return [...byName.values()].sort((a, b) => (b.lastAt || 0) - (a.lastAt || 0));
   }
 
   function getLastSeen(playerId) {
