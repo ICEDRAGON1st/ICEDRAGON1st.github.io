@@ -3172,10 +3172,13 @@ body.light .menu-credit .player-name-creator {
     if (key === "ice_dragon" || isMasterFisherName(name) || selfMaster) {
       ids.push("master_fisher");
     }
+    // Owner can equip Hub Points podium titles even though they don't earn points.
+    if (key === "ice_dragon") {
+      ids.push("hub1", "hub2", "hub3");
+      return ids;
+    }
     const hubTitle = getHubPointsTitleId(name);
     if (hubTitle) ids.push(hubTitle);
-    // ICE_DRAGON: reserved titles only (no LEGEND path on this account).
-    if (key === "ice_dragon") return ids;
     const selfLegend =
       key === nameKey(getName()) &&
       typeof HubAchievements !== "undefined" &&
