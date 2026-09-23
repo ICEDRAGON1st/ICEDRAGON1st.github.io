@@ -23,8 +23,13 @@
   const DINO_W = 62;
   // Overhead hazards must sit in this band: hits standing, clears ducking
   // Stand hitbox top ≈ GROUND_Y - 66; duck hitbox top ≈ GROUND_Y - 34
-  const OVERHEAD_BOTTOM = 52; // from ground up — obstacle bottom at GROUND_Y - 52
+  const OVERHEAD_BOTTOM = 52;
   const OVERHEAD_H = 44;
+
+  // Iso extrusion (matches Tower Stack feel, side-scroller layout)
+  const ISO_X = 0.62;
+  const ISO_Y = 0.36;
+  const PATH_Z = 56;
 
   let best = Math.max(0, Math.floor(Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0));
   let running = false;
@@ -51,7 +56,6 @@
   const jumpBtn = document.getElementById("jump-btn");
   const duckBtn = document.getElementById("duck-btn");
 
-  /** Positive modulo — JS `%` stays negative for negative inputs and glitches scroll loops. */
   function wrapMod(n, m) {
     const mod = Number(m) || 1;
     return ((Number(n) % mod) + mod) % mod;
@@ -61,8 +65,7 @@
     return Math.round(Number(n) || 0);
   }
 
-  /** Keep scroll continuous; only wrap at draw time so parallax layers don't jump. */
-  const SCROLL_WRAP = 6720; // LCM-ish of 48/64/70 tile sizes
+  const SCROLL_WRAP = 6720;
 
   function scrollPos(scale, period) {
     return wrapMod(groundX * scale, period);
@@ -106,7 +109,8 @@
       x: (i * 97) % W,
       y: (i * 53) % (GROUND_Y - 40),
       s: 0.4 + (i % 5) * 0.18,
-      r: 1.2 + (i % 4)
+      r: 1.2 + (i % 4),
+      z: 8 + (i % 7) * 6
     }));
     updateHud();
   }
@@ -172,7 +176,6 @@
 
   function spawnObstacle() {
     const roll = Math.random();
-    // Must-duck overhead: standing hits, ducking slides under
     if (score > 90 && roll < 0.32) {
       obstacles.push({
         type: "bat",
@@ -259,10 +262,10 @@
   }
 
   function openMenu(canResume) {
-    overlayTitle.textContent = canResume ? "Paused" : "Runosaur";
+    overlayTitle.textContent = canResume ? "Paused" : "Runosaur 3D";
     overlayText.textContent = canResume
       ? "The dragon is still behind you…"
-      : "Race through ice caves — jump frost spikes, hold ↓ / S to duck under low crystal bats, and stay ahead of the dragon.";
+      : "Race the 3D ice caves — jump frost crystals, hold ↓ / S to duck under hanging bats, and stay ahead of the dragon.";
     startBtn.textContent = canResume || dead ? "Play again" : "Play";
     resumeBtn?.classList.toggle("hidden", !canResume);
     overlay?.classList.remove("hidden");
@@ -324,315 +327,441 @@
     if (Math.floor(score) % 25 === 0) maybeSubmit(false);
   }
 
+  /* ——— 3D helpers ——— */
+  function hexToRgb(hex) {
+    const h = String(hex || "").replace("#", "");
+    const n = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h, 16);
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+  }
+
+  function shade(hex, f) {
+    const { r, g, b } = hexToRgb(hex);
+    const t = (c) => Math.max(0, Math.min(255, Math.round(c * f)));
+    return `rgb(${t(r)},${t(g)},${t(b)})`;
+  }
+
+  /** World: x along run, y up from ground, z into scene (0 = near). */
+  function iso(x, y, z) {
+    return {
+      x: x + z * ISO_X,
+      y: GROUND_Y - y - z * ISO_Y
+    };
+  }
+
+  function drawPoly(points, fill) {
+    if (!points.length) return;
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+    ctx.closePath();
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+
+  /**
+   * Axis-aligned box in world space.
+   * x,y,z = min corner; w,h,d = size. y is up from ground.
+   */
+  function drawBox3(b, alpha = 1) {
+    const x0 = b.x;
+    const x1 = b.x + b.w;
+    const y0 = b.y;
+    const y1 = b.y + b.h;
+    const z0 = b.z;
+    const z1 = b.z + b.d;
+
+    const p000 = iso(x0, y0, z0);
+    const p100 = iso(x1, y0, z0);
+    const p010 = iso(x0, y1, z0);
+    const p110 = iso(x1, y1, z0);
+    const p001 = iso(x0, y0, z1);
+    const p101 = iso(x1, y0, z1);
+    const p011 = iso(x0, y1, z1);
+    const p111 = iso(x1, y1, z1);
+
+    ctx.save();
+    ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+
+    // Far face (back) — slightly visible for depth
+    drawPoly([p000, p100, p110, p010], shade(b.color, 0.55));
+    // Left (+ toward -x) when visible
+    drawPoly([p000, p001, p011, p010], shade(b.color, 0.72));
+    // Front (+z toward camera-right / near edge of path)
+    drawPoly([p001, p101, p111, p011], shade(b.color, 0.88));
+    // Right
+    drawPoly([p100, p101, p111, p110], shade(b.color, 0.78));
+    // Top
+    drawPoly([p010, p110, p111, p011], shade(b.color, 1.12));
+
+    ctx.globalAlpha = Math.max(0, Math.min(1, alpha)) * 0.35;
+    ctx.beginPath();
+    ctx.moveTo(p010.x, p010.y);
+    ctx.lineTo(p110.x, p110.y);
+    ctx.lineTo(p111.x, p111.y);
+    ctx.lineTo(p011.x, p011.y);
+    ctx.closePath();
+    ctx.strokeStyle = "rgba(255,255,255,0.55)";
+    ctx.lineWidth = 1.1;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /** Crystal pyramid / spike spike standing on ground. */
+  function drawCrystal(x, baseY, w, h, d, color) {
+    const y0 = GROUND_Y - baseY - h;
+    const worldY0 = baseY;
+    // tip at top center
+    const tip = iso(x + w * 0.5, worldY0 + h, d * 0.5);
+    const fl = iso(x, worldY0, 0);
+    const fr = iso(x + w, worldY0, 0);
+    const bl = iso(x, worldY0, d);
+    const br = iso(x + w, worldY0, d);
+    void y0;
+    drawPoly([tip, bl, br], shade(color, 0.7));
+    drawPoly([tip, fl, bl], shade(color, 0.85));
+    drawPoly([tip, fr, br], shade(color, 0.95));
+    drawPoly([tip, fl, fr], shade(color, 1.15));
+    ctx.strokeStyle = "rgba(255,255,255,0.4)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(tip.x, tip.y);
+    ctx.lineTo((fl.x + fr.x) / 2, (fl.y + fr.y) / 2);
+    ctx.stroke();
+  }
+
   function drawCaveBackdrop() {
-    const top = deepCave ? "#070b18" : "#122038";
-    const mid = deepCave ? "#10182c" : "#1a3358";
-    const bot = deepCave ? "#1a2438" : "#2a4a72";
+    const top = deepCave ? "#050812" : "#0c1a30";
+    const mid = deepCave ? "#0c1424" : "#163050";
+    const bot = deepCave ? "#152038" : "#264868";
     const g = ctx.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, top);
-    g.addColorStop(0.55, mid);
+    g.addColorStop(0.5, mid);
     g.addColorStop(1, bot);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
 
-    // Ice ceiling teeth — tooth shape keyed by index (not screen x) so they don't morph while scrolling
-    const ceilPeriod = 70;
-    const ceilScroll = -scrollPos(0.35, ceilPeriod);
-    ctx.fillStyle = deepCave ? "rgba(140, 180, 220, 0.22)" : "rgba(180, 220, 255, 0.28)";
-    const ceilStart = Math.floor((-40 - ceilScroll) / ceilPeriod) - 1;
-    const ceilEnd = Math.ceil((W + 40 - ceilScroll) / ceilPeriod) + 1;
+    // Far cave mouth / tunnel depth
+    const tunnel = ctx.createRadialGradient(W * 0.55, GROUND_Y * 0.42, 20, W * 0.55, GROUND_Y * 0.5, W * 0.55);
+    tunnel.addColorStop(0, deepCave ? "rgba(8,12,22,0.95)" : "rgba(12,22,40,0.75)");
+    tunnel.addColorStop(0.55, "rgba(20,40,70,0.25)");
+    tunnel.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = tunnel;
+    ctx.fillRect(0, 0, W, GROUND_Y);
+
+    // Ceiling ice slabs (3D)
+    const ceilPeriod = 78;
+    const ceilScroll = -scrollPos(0.32, ceilPeriod);
+    const ceilColor = deepCave ? "#4a6588" : "#7aa8cc";
+    const ceilStart = Math.floor((-80 - ceilScroll) / ceilPeriod) - 1;
+    const ceilEnd = Math.ceil((W + 80 - ceilScroll) / ceilPeriod) + 1;
     for (let i = ceilStart; i <= ceilEnd; i += 1) {
-      const ix = px(i * ceilPeriod + ceilScroll);
-      const tip = 22 + ((i % 5) + 5) % 5 * 7;
-      ctx.beginPath();
-      ctx.moveTo(ix, 0);
-      ctx.lineTo(ix + 18, tip);
-      ctx.lineTo(ix + 36, 0);
-      ctx.fill();
+      const ix = i * ceilPeriod + ceilScroll;
+      const tipH = 18 + ((i % 5) + 5) % 5 * 6;
+      drawBox3(
+        {
+          x: ix,
+          y: GROUND_Y - tipH - 24,
+          z: 10 + (i % 3) * 8,
+          w: 42,
+          h: tipH,
+          d: 28,
+          color: ceilColor
+        },
+        deepCave ? 0.55 : 0.7
+      );
     }
 
-    // Distant ice walls — continuous phase (no short wrap on groundX)
-    const wallPhase = groundX * 0.55;
-    ctx.fillStyle = deepCave ? "rgba(60, 90, 130, 0.35)" : "rgba(90, 140, 190, 0.25)";
-    ctx.beginPath();
-    ctx.moveTo(0, GROUND_Y);
-    for (let x = 0; x <= W; x += 20) {
-      const y = GROUND_Y - 90 - Math.sin((x + wallPhase) * 0.02) * 28;
-      ctx.lineTo(x, y);
+    // Side cave walls as stacked 3D pillars
+    const wallPhase = groundX * 0.4;
+    const wallColor = deepCave ? "#2a3e58" : "#3d6288";
+    for (let i = -1; i < 10; i++) {
+      const bx = wrapMod(i * 140 + wallPhase * 0.15, W + 160) - 80;
+      drawBox3(
+        {
+          x: bx - 20,
+          y: 40 + Math.sin(i * 1.7) * 12,
+          z: PATH_Z + 18,
+          w: 36,
+          h: GROUND_Y - 90 - Math.sin(i * 1.7) * 20,
+          d: 40,
+          color: wallColor
+        },
+        0.55
+      );
     }
-    ctx.lineTo(W, GROUND_Y);
-    ctx.closePath();
-    ctx.fill();
   }
 
-  function drawChaseDragon() {
-    const bob = Math.sin(anim * 2.2) * 10;
-    const x = -30 + Math.min(18, score * 0.04);
-    const y = GROUND_Y - 130 + bob;
-    ctx.save();
-    ctx.globalAlpha = 0.55;
-    ctx.fillStyle = deepCave ? "#1c1028" : "#241438";
-    // Body
-    ctx.beginPath();
-    ctx.ellipse(x + 70, y + 40, 70, 32, -0.15, 0, Math.PI * 2);
-    ctx.fill();
-    // Neck + head
-    ctx.beginPath();
-    ctx.moveTo(x + 110, y + 30);
-    ctx.quadraticCurveTo(x + 150, y + 10, x + 168, y + 28);
-    ctx.quadraticCurveTo(x + 150, y + 48, x + 118, y + 46);
-    ctx.fill();
-    // Horns
-    ctx.fillStyle = deepCave ? "#6a8cb0" : "#9ec5e8";
-    ctx.beginPath();
-    ctx.moveTo(x + 148, y + 18);
-    ctx.lineTo(x + 142, y - 8);
-    ctx.lineTo(x + 156, y + 16);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(x + 158, y + 20);
-    ctx.lineTo(x + 168, y - 4);
-    ctx.lineTo(x + 164, y + 22);
-    ctx.fill();
-    // Eye
-    ctx.fillStyle = "#ff6b6b";
-    ctx.beginPath();
-    ctx.arc(x + 158, y + 28, 3.5, 0, Math.PI * 2);
-    ctx.fill();
-    // Wing
-    const flap = Math.sin(anim * 5) * 18;
-    ctx.fillStyle = deepCave ? "rgba(40, 20, 60, 0.7)" : "rgba(60, 30, 90, 0.65)";
-    ctx.beginPath();
-    ctx.moveTo(x + 50, y + 30);
-    ctx.quadraticCurveTo(x + 20, y - 10 + flap, x - 10, y + 20);
-    ctx.quadraticCurveTo(x + 30, y + 50, x + 55, y + 42);
-    ctx.fill();
-    // Frost breath pulse
-    if (Math.sin(chaseBreath * 3) > 0.55) {
-      const breath = ctx.createLinearGradient(x + 168, y + 30, x + 230, y + 30);
-      breath.addColorStop(0, "rgba(180, 230, 255, 0.55)");
-      breath.addColorStop(1, "rgba(180, 230, 255, 0)");
-      ctx.fillStyle = breath;
-      ctx.beginPath();
-      ctx.moveTo(x + 168, y + 26);
-      ctx.quadraticCurveTo(x + 200, y + 18, x + 228, y + 30);
-      ctx.quadraticCurveTo(x + 200, y + 42, x + 168, y + 34);
-      ctx.fill();
-    }
-    ctx.restore();
-  }
+  function drawGround3D() {
+    const iceTop = deepCave ? "#4a6a88" : "#8ec4e8";
+    const iceSide = deepCave ? "#2e4860" : "#5a98c0";
+    const iceFront = deepCave ? "#3a5878" : "#6eb0d8";
 
-  function drawGround() {
-    const ice = ctx.createLinearGradient(0, GROUND_Y, 0, H);
-    ice.addColorStop(0, deepCave ? "#3d5a78" : "#7eb6d9");
-    ice.addColorStop(0.35, deepCave ? "#2a4058" : "#5a9bc4");
-    ice.addColorStop(1, deepCave ? "#1a2838" : "#3a6e94");
-    ctx.fillStyle = ice;
-    ctx.fillRect(0, GROUND_Y, W, H - GROUND_Y);
+    // Perspective path slab
+    const nearZ = 0;
+    const farZ = PATH_Z;
+    const pad = 40;
+    const a = iso(-pad, 0, nearZ);
+    const b = iso(W + pad, 0, nearZ);
+    const c = iso(W + pad, 0, farZ);
+    const d = iso(-pad, 0, farZ);
+    drawPoly([a, b, c, d], shade(iceTop, 1.05));
 
-    ctx.strokeStyle = deepCave ? "#a8c8e0" : "#d8f0ff";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(0, GROUND_Y + 0.5);
-    ctx.lineTo(W, GROUND_Y + 0.5);
-    ctx.stroke();
+    // Front thickness edge
+    const a2 = { x: a.x, y: a.y + 28 };
+    const b2 = { x: b.x, y: b.y + 28 };
+    drawPoly([a, b, b2, a2], shade(iceFront, 0.9));
+    const b3 = { x: c.x, y: c.y + 18 };
+    drawPoly([b, c, b3, b2], shade(iceSide, 0.75));
 
-    const tile = 64;
-    const scroll = -px(scrollPos(1, tile));
-    ctx.fillStyle = deepCave ? "rgba(200, 230, 255, 0.25)" : "rgba(255, 255, 255, 0.45)";
+    // Grid lines scrolling along the path
+    const tile = 56;
+    const scroll = -scrollPos(1, tile);
+    ctx.strokeStyle = deepCave ? "rgba(180,210,240,0.22)" : "rgba(255,255,255,0.35)";
+    ctx.lineWidth = 1.2;
     const start = Math.floor((-tile - scroll) / tile) - 1;
     const end = Math.ceil((W + tile - scroll) / tile) + 1;
     for (let i = start; i <= end; i += 1) {
-      const ix = px(i * tile + scroll);
+      const x = i * tile + scroll;
+      const p0 = iso(x, 0.5, nearZ);
+      const p1 = iso(x, 0.5, farZ);
       ctx.beginPath();
-      ctx.moveTo(ix + 8, GROUND_Y + 8);
-      ctx.lineTo(ix + 18, GROUND_Y + 22);
-      ctx.lineTo(ix + 4, GROUND_Y + 22);
-      ctx.fill();
-      ctx.fillRect(ix + 36, GROUND_Y + 28, 14, 3);
+      ctx.moveTo(p0.x, p0.y);
+      ctx.lineTo(p1.x, p1.y);
+      ctx.stroke();
+    }
+    for (let zi = 0; zi <= 4; zi++) {
+      const z = (zi / 4) * farZ;
+      const p0 = iso(-pad, 0.5, z);
+      const p1 = iso(W + pad, 0.5, z);
+      ctx.beginPath();
+      ctx.moveTo(p0.x, p0.y);
+      ctx.lineTo(p1.x, p1.y);
+      ctx.stroke();
+    }
+
+    // Frost chunks on the path
+    ctx.fillStyle = deepCave ? "rgba(200,230,255,0.2)" : "rgba(255,255,255,0.4)";
+    for (let i = start; i <= end; i += 2) {
+      const x = i * tile + scroll + 12;
+      drawBox3(
+        {
+          x,
+          y: 0,
+          z: 8 + (i % 3) * 6,
+          w: 10,
+          h: 4,
+          d: 10,
+          color: deepCave ? "#9bb8d0" : "#d8f0ff"
+        },
+        0.85
+      );
     }
   }
 
   function drawFlake(f) {
-    ctx.fillStyle = deepCave ? "rgba(180, 210, 240, 0.35)" : "rgba(255, 255, 255, 0.7)";
+    const p = iso(f.x, GROUND_Y - f.y, f.z || 20);
+    ctx.fillStyle = deepCave ? "rgba(180, 210, 240, 0.4)" : "rgba(255, 255, 255, 0.75)";
     ctx.beginPath();
-    ctx.arc(px(f.x), px(f.y), f.r, 0, Math.PI * 2);
+    ctx.arc(px(p.x), px(p.y), f.r, 0, Math.PI * 2);
     ctx.fill();
+  }
+
+  function drawChaseDragon() {
+    const bob = Math.sin(anim * 2.2) * 8;
+    const baseX = -40 + Math.min(22, score * 0.04);
+    const lift = 55 + bob;
+    const z = 22;
+    const body = deepCave ? "#2a1838" : "#3a2458";
+    const wing = deepCave ? "#1a1028" : "#2a1840";
+    const horn = deepCave ? "#6a8cb0" : "#9ec5e8";
+
+    // Body blocks
+    drawBox3({ x: baseX, y: lift, z, w: 90, h: 36, d: 34, color: body }, 0.75);
+    drawBox3({ x: baseX + 78, y: lift + 10, z: z + 4, w: 48, h: 26, d: 26, color: body }, 0.8);
+    drawBox3({ x: baseX + 118, y: lift + 14, z: z + 6, w: 28, h: 20, d: 20, color: shade(body, 1.1) }, 0.85);
+    // Horns
+    drawCrystal(baseX + 128, lift + 34, 10, 22, 10, horn);
+    drawCrystal(baseX + 138, lift + 32, 8, 18, 8, horn);
+    // Eye
+    const eye = iso(baseX + 136, lift + 26, z + 22);
+    ctx.fillStyle = "#ff5a5a";
+    ctx.beginPath();
+    ctx.arc(eye.x, eye.y, 3.5, 0, Math.PI * 2);
+    ctx.fill();
+    // Wing flap
+    const flap = Math.sin(anim * 5) * 14;
+    drawBox3(
+      {
+        x: baseX + 20,
+        y: lift + 28 + flap * 0.3,
+        z: z - 8,
+        w: 50,
+        h: 8,
+        d: 48 + flap * 0.4,
+        color: wing
+      },
+      0.65
+    );
+    if (Math.sin(chaseBreath * 3) > 0.55) {
+      const breathOrigin = iso(baseX + 148, lift + 22, z + 18);
+      const breath = ctx.createLinearGradient(breathOrigin.x, breathOrigin.y, breathOrigin.x + 70, breathOrigin.y);
+      breath.addColorStop(0, "rgba(180, 230, 255, 0.55)");
+      breath.addColorStop(1, "rgba(180, 230, 255, 0)");
+      ctx.fillStyle = breath;
+      ctx.beginPath();
+      ctx.moveTo(breathOrigin.x, breathOrigin.y - 4);
+      ctx.quadraticCurveTo(breathOrigin.x + 36, breathOrigin.y - 12, breathOrigin.x + 68, breathOrigin.y);
+      ctx.quadraticCurveTo(breathOrigin.x + 36, breathOrigin.y + 12, breathOrigin.x, breathOrigin.y + 4);
+      ctx.fill();
+    }
   }
 
   function drawRunner() {
     if (!dino) return;
-    const x = px(dino.x);
-    const y = px(dino.y);
-    const w = dino.w;
+    const x = dino.x;
+    const footY = GROUND_Y - dino.y - dino.h;
     const h = dino.h;
+    const w = dino.w;
     const ducking = dino.ducking;
     const onGround = dino.onGround;
     const leg = onGround ? Math.floor(anim * speed * 0.02) % 2 : 0;
+    const z = 16;
     const body = deepCave ? "#c5d8ec" : "#e8f4ff";
     const accent = deepCave ? "#5b8fd4" : "#3d7ecc";
     const belly = deepCave ? "#8aa8c8" : "#b8d4f0";
+    const shadowA = Math.max(0.12, 0.35 - (dino.y < GROUND_Y - dino.h ? (GROUND_Y - dino.h - dino.y) * 0.002 : 0));
 
-    ctx.fillStyle = accent;
+    // Shadow on path
+    ctx.save();
+    ctx.globalAlpha = shadowA;
+    drawPoly(
+      [
+        iso(x + 8, 0.5, z + 4),
+        iso(x + w - 4, 0.5, z + 4),
+        iso(x + w - 4, 0.5, z + 28),
+        iso(x + 8, 0.5, z + 28)
+      ],
+      "#0a1520"
+    );
+    ctx.restore();
+
     if (ducking) {
-      // Low glide — wings tucked
-      ctx.beginPath();
-      ctx.ellipse(x + w * 0.45, y + h * 0.55, w * 0.55, h * 0.38, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = body;
-      ctx.beginPath();
-      ctx.ellipse(x + w * 0.85, y + h * 0.45, 16, 12, 0.1, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#1a2a40";
-      ctx.fillRect(x + w + 8, y + h * 0.38, 5, 5);
-      // Tail
-      ctx.fillStyle = accent;
-      ctx.beginPath();
-      ctx.moveTo(x + 4, y + h * 0.5);
-      ctx.lineTo(x - 16, y + h * 0.35);
-      ctx.lineTo(x + 2, y + h * 0.65);
-      ctx.fill();
+      drawBox3({ x: x + 4, y: footY + 6, z, w: w * 0.85, h: h * 0.7, d: 34, color: accent }, 1);
+      drawBox3({ x: x + w * 0.55, y: footY + 10, z: z + 4, w: 28, h: h * 0.45, d: 26, color: body }, 1);
+      drawBox3({ x: x - 10, y: footY + 12, z: z + 8, w: 18, h: 10, d: 14, color: accent }, 1);
+      const eye = iso(x + w * 0.9, footY + h * 0.55, z + 28);
+      ctx.fillStyle = "#0a1520";
+      ctx.fillRect(eye.x, eye.y, 4, 4);
     } else {
+      // Legs
+      drawBox3(
+        { x: x + 16, y: footY, z: z + 6, w: 12, h: 16 + (leg ? 3 : 0), d: 14, color: accent },
+        1
+      );
+      drawBox3(
+        { x: x + 34, y: footY, z: z + 10, w: 12, h: 16 + (leg ? 0 : 3), d: 14, color: accent },
+        1
+      );
       // Body
-      ctx.beginPath();
-      ctx.ellipse(x + 28, y + 40, 22, 20, -0.2, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = belly;
-      ctx.beginPath();
-      ctx.ellipse(x + 30, y + 46, 14, 12, -0.15, 0, Math.PI * 2);
-      ctx.fill();
+      drawBox3({ x: x + 10, y: footY + 14, z, w: 36, h: 32, d: 30, color: accent }, 1);
+      drawBox3({ x: x + 16, y: footY + 18, z: z + 4, w: 24, h: 18, d: 22, color: belly }, 1);
       // Head
-      ctx.fillStyle = body;
-      ctx.beginPath();
-      ctx.ellipse(x + 52, y + 22, 16, 13, -0.25, 0, Math.PI * 2);
-      ctx.fill();
-      // Snout
-      ctx.fillStyle = accent;
-      ctx.beginPath();
-      ctx.ellipse(x + 66, y + 26, 9, 6, 0.1, 0, Math.PI * 2);
-      ctx.fill();
+      drawBox3({ x: x + 38, y: footY + 36, z: z + 4, w: 26, h: 22, d: 24, color: body }, 1);
+      drawBox3({ x: x + 58, y: footY + 40, z: z + 8, w: 14, h: 12, d: 16, color: accent }, 1);
+      // Horn
+      drawCrystal(x + 44, footY + 56, 10, 16, 10, "#9ec5e8");
+      // Wing
+      const wing = Math.sin(anim * 10) * 6;
+      drawBox3(
+        {
+          x: x + 6,
+          y: footY + 28 + wing * 0.2,
+          z: z - 6,
+          w: 18,
+          h: 8,
+          d: 36 + wing * 0.3,
+          color: deepCave ? "#6a90c8" : "#5a96dc"
+        },
+        0.92
+      );
+      // Tail
+      drawBox3({ x: x - 8, y: footY + 22, z: z + 10, w: 22, h: 10, d: 12, color: accent }, 1);
       // Eye
+      const eye = iso(x + 52, footY + 50, z + 28);
       ctx.fillStyle = "#0a1520";
       ctx.beginPath();
-      ctx.arc(x + 56, y + 18, 3, 0, Math.PI * 2);
+      ctx.arc(eye.x, eye.y, 3, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = "#fff";
       ctx.beginPath();
-      ctx.arc(x + 55, y + 17, 1.2, 0, Math.PI * 2);
-      ctx.fill();
-      // Horn
-      ctx.fillStyle = "#9ec5e8";
-      ctx.beginPath();
-      ctx.moveTo(x + 48, y + 12);
-      ctx.lineTo(x + 44, y - 2);
-      ctx.lineTo(x + 54, y + 12);
-      ctx.fill();
-      // Wing (small flap)
-      const wing = Math.sin(anim * 10) * 8;
-      ctx.fillStyle = deepCave ? "rgba(100, 140, 200, 0.85)" : "rgba(90, 150, 220, 0.9)";
-      ctx.beginPath();
-      ctx.moveTo(x + 22, y + 32);
-      ctx.quadraticCurveTo(x + 8, y + 8 + wing, x - 6, y + 28);
-      ctx.quadraticCurveTo(x + 14, y + 40, x + 24, y + 38);
-      ctx.fill();
-      // Legs
-      ctx.fillStyle = accent;
-      ctx.fillRect(x + 18, y + h - 14, 10, 14 + (leg ? 3 : 0));
-      ctx.fillRect(x + 36, y + h - 14, 10, 14 + (leg ? 0 : 3));
-      // Tail
-      ctx.beginPath();
-      ctx.moveTo(x + 10, y + 42);
-      ctx.quadraticCurveTo(x - 8, y + 36, x - 18, y + 48);
-      ctx.quadraticCurveTo(x - 2, y + 50, x + 12, y + 48);
+      ctx.arc(eye.x - 1, eye.y - 1, 1.1, 0, Math.PI * 2);
       ctx.fill();
     }
   }
 
   function drawSpike(o) {
     const tip = deepCave ? "#8eb4d4" : "#d8f2ff";
-    const base = deepCave ? "#4a6e90" : "#6a9ec4";
-    const drawOne = (ox, oy, ow, oh) => {
-      const x = px(ox);
-      const y = px(oy);
-      const w = Math.max(1, px(ow));
-      const h = Math.max(1, px(oh));
-      const g = ctx.createLinearGradient(x, y, x + w, y + h);
-      g.addColorStop(0, tip);
-      g.addColorStop(1, base);
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.moveTo(x + w * 0.5, y);
-      ctx.lineTo(x + w, y + h);
-      ctx.lineTo(x, y + h);
-      ctx.closePath();
-      ctx.fill();
-      ctx.strokeStyle = "rgba(255,255,255,0.35)";
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(x + Math.floor(w * 0.5) + 0.5, y + 4);
-      ctx.lineTo(x + Math.floor(w * 0.5) + 0.5, y + h - 6);
-      ctx.stroke();
-    };
-    drawOne(o.x, o.y, o.w, o.h);
-    if (o.twin) drawOne(o.x + o.w + 8, o.y + 6, o.w, o.h - 6);
+    const baseH = o.h;
+    const worldY = GROUND_Y - o.y - o.h;
+    void worldY;
+    drawCrystal(o.x, 0, o.w, baseH, 28, tip);
+    if (o.twin) drawCrystal(o.x + o.w + 8, 0, o.w, baseH - 6, 24, tip);
   }
 
   function drawBat(o) {
     const flap = Math.sin(anim * 14) > 0;
-    const ox = px(o.x);
-    const oy = px(o.y);
-    const ow = px(o.w);
-    const oh = px(o.h);
-    const cx = ox + ow / 2;
-    const cy = oy + oh * 0.55;
-    // Hanging ice tether — reads as “go under”
+    const baseY = GROUND_Y - o.y - o.h;
+    const z = 20;
+    const color = deepCave ? "#9bb8d4" : "#c5e0f5";
+    // Ice tether from ceiling
+    const top = iso(o.x + o.w * 0.5, GROUND_Y - 8, z + 10);
+    const mid = iso(o.x + o.w * 0.5, baseY + o.h, z + 10);
     ctx.strokeStyle = deepCave ? "rgba(160,200,240,0.55)" : "rgba(210,235,255,0.7)";
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.moveTo(cx - 10, oy - 8);
-    ctx.lineTo(cx - 6, oy + 10);
-    ctx.moveTo(cx + 10, oy - 8);
-    ctx.lineTo(cx + 6, oy + 10);
+    ctx.moveTo(top.x - 10, 4);
+    ctx.lineTo(mid.x - 6, mid.y);
+    ctx.moveTo(top.x + 10, 4);
+    ctx.lineTo(mid.x + 6, mid.y);
     ctx.stroke();
-    ctx.fillStyle = deepCave ? "#9bb8d4" : "#c5e0f5";
-    ctx.beginPath();
-    ctx.ellipse(cx, cy, 18, 12, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = deepCave ? "#6a90b8" : "#7eb0d8";
-    ctx.beginPath();
-    if (flap) {
-      ctx.moveTo(cx - 4, cy);
-      ctx.quadraticCurveTo(cx - 28, cy - 22, cx - 40, cy + 2);
-      ctx.quadraticCurveTo(cx - 18, cy + 8, cx - 4, cy + 6);
-    } else {
-      ctx.moveTo(cx - 4, cy + 2);
-      ctx.quadraticCurveTo(cx - 26, cy + 24, cx - 38, cy + 8);
-      ctx.quadraticCurveTo(cx - 16, cy + 8, cx - 4, cy + 6);
-    }
-    ctx.fill();
-    ctx.beginPath();
-    if (flap) {
-      ctx.moveTo(cx + 4, cy);
-      ctx.quadraticCurveTo(cx + 28, cy - 22, cx + 40, cy + 2);
-      ctx.quadraticCurveTo(cx + 18, cy + 8, cx + 4, cy + 6);
-    } else {
-      ctx.moveTo(cx + 4, cy + 2);
-      ctx.quadraticCurveTo(cx + 26, cy + 24, cx + 38, cy + 8);
-      ctx.quadraticCurveTo(cx + 16, cy + 8, cx + 4, cy + 6);
-    }
-    ctx.fill();
-    ctx.fillStyle = "rgba(180, 230, 255, 0.55)";
-    ctx.beginPath();
-    ctx.moveTo(cx, oy + 6);
-    ctx.lineTo(cx + 8, cy);
-    ctx.lineTo(cx - 8, cy);
-    ctx.fill();
-    // Subtle “duck” cue when close
+
+    drawBox3(
+      {
+        x: o.x + 10,
+        y: baseY + 8,
+        z,
+        w: o.w - 20,
+        h: o.h - 12,
+        d: 28,
+        color
+      },
+      1
+    );
+    // Wings
+    const wingD = flap ? 40 : 22;
+    drawBox3(
+      { x: o.x - 8, y: baseY + 14, z: z + 4, w: 22, h: 8, d: wingD, color: shade(color, 0.85) },
+      0.9
+    );
+    drawBox3(
+      {
+        x: o.x + o.w - 14,
+        y: baseY + 14,
+        z: z + 4,
+        w: 22,
+        h: 8,
+        d: wingD,
+        color: shade(color, 0.85)
+      },
+      0.9
+    );
+
     if (dino && o.x < dino.x + 220 && o.x + o.w > dino.x - 20 && !dino.ducking) {
-      ctx.fillStyle = "rgba(255, 220, 120, 0.85)";
+      const label = iso(o.x + o.w * 0.5, baseY + o.h + 10, z);
+      ctx.fillStyle = "rgba(255, 220, 120, 0.9)";
       ctx.font = "700 14px Outfit, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText("↓ DUCK", cx, oy - 12);
+      ctx.fillText("↓ DUCK", label.x, label.y);
     }
   }
 
@@ -644,7 +773,7 @@
     drawCaveBackdrop();
     drawChaseDragon();
     flakes.forEach(drawFlake);
-    drawGround();
+    drawGround3D();
     obstacles.forEach((o) => (o.type === "bat" ? drawBat(o) : drawSpike(o)));
     drawRunner();
 
@@ -659,7 +788,7 @@
     if (waitingStart && !dead) {
       ctx.textAlign = "center";
       ctx.font = "700 30px Outfit, sans-serif";
-      ctx.fillText("Press Space / Tap to flee", W / 2, H * 0.42);
+      ctx.fillText("Press Space / Tap to flee", W / 2, H * 0.38);
     }
   }
 

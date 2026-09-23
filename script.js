@@ -1202,7 +1202,7 @@ const HUB_GAMES = [
   { id: "crossy", name: "Cross Walk", path: "cross-walk/index.html" },
   { id: "fishing", name: "Fishing Idle", path: "fishing/index.html" },
   { id: "cows", name: "Cow Merge", path: "cows/index.html" },
-  { id: "dino", name: "Runosaur", path: "runosaur/index.html" },
+  { id: "dino", name: "Runosaur 3D", path: "runosaur/index.html" },
   { id: "ramp", name: "Ramp Rush", path: "ramp-rush/run.html" },
   { id: "guac", name: "Guac-A-Mole", path: "guac-a-mole/index.html" },
   { id: "bubble", name: "Bubble Pop Relay", path: "bubble-pop/index.html" },
