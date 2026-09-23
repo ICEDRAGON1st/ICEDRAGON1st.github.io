@@ -553,17 +553,31 @@
     try {
       rememberCurrentAccount();
     } catch {}
+    const prevId = getPlayerId();
+    if (window.HubAccountBag?.syncUp) {
+      try {
+        await HubAccountBag.syncUp(prevId);
+      } catch {}
+    }
     const id = `p-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     try {
       if (canUseLocalStorage()) localStorage.setItem(PLAYER_ID_KEY, id);
     } catch {}
     sessionPlayerId = id;
     clearAccountLocalIdentity();
+    if (window.HubAccountBag?.clearBagKeys) {
+      try {
+        HubAccountBag.clearBagKeys();
+      } catch {}
+    }
     const code = formatPlayerCode(randomCodeParts());
     storePlayerCode(code);
     rememberCurrentAccount({ code, playerId: id, name: "" });
     // Don't block account creation on MantleDB — register in background
     ensurePlayerCodeRegistered().catch(() => {});
+    if (window.HubAccountBag?.syncUp) {
+      HubAccountBag.syncUp(id).catch(() => {});
+    }
     return {
       ok: true,
       created: true,
@@ -839,6 +853,16 @@
 
     // Keep the current account on this device before switching
     rememberCurrentAccount();
+    const prevId = me;
+
+    // Save leaving account's achievements / settings / saves (local + Supabase)
+    if (window.HubAccountBag?.syncUp && prevId && prevId !== entry.playerId) {
+      try {
+        await HubAccountBag.syncUp(prevId);
+      } catch (err) {
+        console.warn("[HubPlays] account bag syncUp failed", err);
+      }
+    }
 
     let names = namesCache;
     try {
@@ -857,9 +881,21 @@
     } catch {}
     sessionPlayerId = entry.playerId;
     storePlayerCode(norm);
+
+    // Load this account's bag (achievements, name lock, fishing, highs…)
+    if (window.HubAccountBag?.pullAndApply) {
+      try {
+        await HubAccountBag.pullAndApply(entry.playerId);
+      } catch (err) {
+        console.warn("[HubPlays] account bag pull failed", err);
+      }
+    }
+
+    // Registry name wins when present; bag may already have set it
     if (restoredName) storeLocalName(restoredName);
     try {
-      setNameLocked(false);
+      // Keep bag lock if present; otherwise start unlocked
+      if (localStorage.getItem(NAME_LOCK_KEY) !== "1") setNameLocked(false);
     } catch {}
 
     try {
@@ -875,15 +911,18 @@
     rememberCurrentAccount({
       code: norm,
       playerId: entry.playerId,
-      name: restoredName
+      name: restoredName || getName() || ""
     });
 
     // Best-effort remote register so the code works on other devices later
     ensurePlayerCodeRegistered().catch(() => {});
+    if (window.HubAccountBag?.syncUp) {
+      HubAccountBag.syncUp(entry.playerId).catch(() => {});
+    }
 
     return {
       ok: true,
-      name: restoredName,
+      name: restoredName || getName() || "",
       restored: true,
       code: formatPlayerCode(norm),
       playerId: entry.playerId,
