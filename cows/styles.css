@@ -432,6 +432,49 @@ body {
   gap: 0.45rem;
 }
 
+.shop-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0 0 0.7rem;
+}
+
+.shop-cat-btn {
+  appearance: none;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.shop-cat-btn:hover {
+  border-color: var(--grass);
+  color: var(--text);
+}
+
+.shop-cat-btn.active {
+  background: rgba(107, 191, 89, 0.2);
+  border-color: var(--grass);
+  color: var(--cream);
+}
+
+.shop-empty {
+  margin: 0.35rem 0 0;
+  padding: 0.75rem 0.6rem;
+  border-radius: 0.75rem;
+  background: rgba(0, 0, 0, 0.14);
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
 .shop-item {
   display: flex;
   align-items: center;
@@ -642,5 +685,18 @@ body.sell-mode .cow {
   .pasture {
     grid-template-columns: repeat(4, 1fr);
     min-height: 14rem;
+  }
+
+  .shop-cats {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding-bottom: 0.2rem;
+  }
+
+  .shop-cat-btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
   }
 }

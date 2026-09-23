@@ -74,6 +74,7 @@
   const buyBtn = document.getElementById("buy-btn");
   const sellModeBtn = document.getElementById("sell-mode-btn");
   const shopList = document.getElementById("shop-list");
+  const shopCats = document.getElementById("shop-cats");
   const overlay = document.getElementById("overlay");
   const overlayBestEl = document.getElementById("overlay-best");
   const startBtn = document.getElementById("start-btn");
@@ -94,6 +95,18 @@
   let pastureDirty = false;
   let drag = null;
   let floatEl = null;
+  let shopCat = "all";
+
+  const SHOP_CAT_LABELS = {
+    all: "All",
+    discount: "Calf cost",
+    mult: "Herd milk/s",
+    sell: "Sell value",
+    offline: "Offline",
+    spawn: "Better buys",
+    auto: "Auto-buy",
+    merge: "Auto-merge"
+  };
 
   function defaultState() {
     const owned = {};
@@ -657,16 +670,36 @@
     }
   }
 
+  function updateShopCats() {
+    const active = shopCat || "all";
+    shopCats?.querySelectorAll("[data-shop-cat]").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.shopCat === active);
+    });
+  }
+
+  function filteredUpgrades() {
+    if (!shopCat || shopCat === "all") return UPGRADES;
+    return UPGRADES.filter((u) => u.kind === shopCat);
+  }
+
   function renderShop() {
     if (!shopList) return;
-    shopList.innerHTML = UPGRADES.map((u) => {
-      const owned = state.owned[u.id] || 0;
-      const cost = upgradeCost(u);
-      const done = !Number.isFinite(cost);
-      const can = !done && state.milk >= cost;
-      const ownedLabel =
-        u.kind === "mult" ? `Owned: ${owned}` : owned > 0 ? "Owned" : "Not owned";
-      return `<div class="shop-item" role="listitem">
+    updateShopCats();
+    const list = filteredUpgrades();
+    if (!list.length) {
+      const label = SHOP_CAT_LABELS[shopCat] || shopCat;
+      shopList.innerHTML = `<p class="shop-empty">No ${label} upgrades.</p>`;
+      return;
+    }
+    shopList.innerHTML = list
+      .map((u) => {
+        const owned = state.owned[u.id] || 0;
+        const cost = upgradeCost(u);
+        const done = !Number.isFinite(cost);
+        const can = !done && state.milk >= cost;
+        const ownedLabel =
+          u.kind === "mult" ? `Owned: ${owned}` : owned > 0 ? "Owned" : "Not owned";
+        return `<div class="shop-item" role="listitem" data-shop-kind="${u.kind}">
         <div class="shop-item-main">
           <div class="shop-item-name">${u.name}</div>
           <p class="shop-item-desc">${u.desc}</p>
@@ -676,7 +709,8 @@
           ${done ? "Owned" : formatNum(cost)}
         </button>
       </div>`;
-    }).join("");
+      })
+      .join("");
   }
 
   function renderGuide() {
@@ -866,6 +900,16 @@
     sellModeBtn.classList.toggle("is-on", sellMode);
     sellModeBtn.setAttribute("aria-pressed", String(sellMode));
     setStatus(sellMode ? "Sell mode on — tap a cow to sell" : "Sell mode off");
+  });
+
+  shopCats?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-shop-cat]");
+    if (!btn || !shopCats.contains(btn)) return;
+    const next = btn.dataset.shopCat || "all";
+    if (next === shopCat) return;
+    shopCat = next;
+    window.HubSound?.play?.("click");
+    renderShop();
   });
 
   shopList?.addEventListener("click", (e) => {
