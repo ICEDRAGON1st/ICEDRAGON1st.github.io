@@ -3191,15 +3191,11 @@ body.light .menu-credit .player-name-creator {
   function getTitleShowcase(name = getName()) {
     const unlocked = new Set(getAvailableTitleIds(name));
     const ids = [...unlocked];
-    if (!unlocked.has("legend") && nameKey(name) !== "ice_dragon") ids.push("legend");
+    if (!unlocked.has("legend")) ids.push("legend");
     if (!unlocked.has("master_fisher")) ids.push("master_fisher");
-    HUB_POINTS_TITLE_IDS.forEach((id) => {
-      if (!unlocked.has(id) && !ids.includes(id)) {
-        /* only show locked hub titles if this player could compete — skip empty tease */
-      }
-    });
     return ids.map((id) => {
       const def = TITLE_DEFS[id];
+      if (!def) return null;
       return {
         id,
         label: def.label,
@@ -3207,7 +3203,7 @@ body.light .menu-credit .player-name-creator {
         unlocked: unlocked.has(id),
         color: TITLE_COLORS[id] || "#888888"
       };
-    });
+    }).filter(Boolean);
   }
 
   function getActiveTitleId(name = getName()) {
