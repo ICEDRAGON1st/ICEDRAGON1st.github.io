@@ -13154,9 +13154,15 @@ function aquariumRatePerSec() {
   document.getElementById("admin-cmd-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     const input = document.getElementById("admin-cmd-input");
-    if (adminCmdSuggestItems.length && adminCmdSuggestIndex >= 0) {
-      const list = document.getElementById("admin-cmd-suggest");
-      if (list && !list.hidden) {
+    const list = document.getElementById("admin-cmd-suggest");
+    if (
+      list &&
+      !list.hidden &&
+      adminCmdSuggestItems.length &&
+      adminCmdSuggestIndex >= 0
+    ) {
+      const item = adminCmdSuggestItems[adminCmdSuggestIndex];
+      if (item && String(input?.value || "") !== item.value) {
         applyAdminCmdSuggestion(adminCmdSuggestIndex);
         return;
       }
