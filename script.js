@@ -1213,8 +1213,9 @@ const HUB_GAMES = [
   { id: "lemmings", name: "Dudes", path: "dudes/index.html" }
 ];
 
-/** Leaderboard tabs = hub-only boards first, then games (Mine Depth splits into depth + ore). */
+/** Leaderboard tabs = hub points + hub-only boards first, then games (Mine Depth splits into depth + ore). */
 const LEADERBOARD_GAMES = [
+  { id: "hub-points", name: "Hub Points" },
   { id: "online-time", name: "Time Online" },
   ...HUB_GAMES.flatMap((game) =>
     game.id === "mine"
@@ -2311,7 +2312,7 @@ function sortGamesGrid() {
   cards.forEach((card) => gamesGrid.appendChild(card));
 }
 
-let selectedLeaderboardGame = "online-time";
+let selectedLeaderboardGame = "hub-points";
 
 function renderHighScoresList() {
   if (!highScoresList) return;
@@ -2354,21 +2355,34 @@ function renderLeaderboardList() {
   if (!rows.length) {
     leaderboardList.innerHTML = "";
     leaderboardEmpty.textContent =
-      selectedLeaderboardGame === "online-time"
-        ? "No time logged yet — stay on the site with a username to claim #1."
-        : "No scores yet — play to claim #1.";
+      selectedLeaderboardGame === "hub-points"
+        ? "No hub points yet — place top 10 on any board to earn them."
+        : selectedLeaderboardGame === "online-time"
+          ? "No time logged yet — stay on the site with a username to claim #1."
+          : "No scores yet — play to claim #1.";
     leaderboardEmpty.classList.remove("hidden");
     return;
   }
 
   leaderboardEmpty.classList.add("hidden");
+  const showPlacementPts = selectedLeaderboardGame !== "hub-points";
   leaderboardList.innerHTML = rows
     .map((row) => {
       const rankClass = row.rank <= 3 ? "lb-rank top" : "lb-rank";
+      const pts = Number(row.points) || 0;
+      const ptsHtml =
+        showPlacementPts && pts > 0
+          ? `<span class="lb-points" title="Placement points for this board">+${pts}</span>`
+          : showPlacementPts
+            ? `<span class="lb-points is-zero" title="Outside top 10 — 0 points">0</span>`
+            : "";
       return `<li class="${row.isYou ? "is-you" : ""}">
         <span class="${rankClass}">#${row.rank}</span>
         <span class="lb-name">${formatPlayerNameHtml(row.name)}${row.isYou ? " (you)" : ""}</span>
-        <span class="lb-score">${escapeHtml(row.label)}</span>
+        <span class="lb-score-wrap">
+          ${ptsHtml}
+          <span class="lb-score">${escapeHtml(row.label)}</span>
+        </span>
       </li>`;
     })
     .join("");

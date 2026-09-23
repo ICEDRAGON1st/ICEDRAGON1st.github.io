@@ -962,6 +962,9 @@
   }
 
   function getBoard(gameId) {
+    if (gameId === "hub-points") {
+      return getHubPointsBoard();
+    }
     const lowerBetter = meta(gameId).lowerBetter;
     const board = ((cache.games || {})[gameId]) || ((loadLocal().games || {})[gameId]) || {};
     const me = nameKey(getPlayerName());
@@ -974,16 +977,73 @@
         }
         return (a.at || 0) - (b.at || 0);
       });
-    return rows.map((entry, i) => ({
-      rank: i + 1,
-      name: entry.name,
-      score: entry.score,
-      at: entry.at,
-      lowerBetter,
-      fishing: entry.fishing || null,
-      label: formatScore(gameId, entry.score, entry),
-      isYou: me && nameKey(entry.name) === me
-    }));
+    return rows.map((entry, i) => {
+      const rank = i + 1;
+      const points = pointsForRank(rank);
+      return {
+        rank,
+        name: entry.name,
+        score: entry.score,
+        at: entry.at,
+        lowerBetter,
+        fishing: entry.fishing || null,
+        points,
+        label: formatScore(gameId, entry.score, entry),
+        isYou: me && nameKey(entry.name) === me
+      };
+    });
+  }
+
+  /** Top 10 placement points: #1=10 … #10=1, else 0. Recalculates live when ranks change. */
+  function pointsForRank(rank) {
+    const r = Math.floor(Number(rank) || 0);
+    if (r < 1 || r > 10) return 0;
+    return 11 - r;
+  }
+
+  function getHubPointsBoard() {
+    const byKey = new Map();
+    const me = nameKey(getPlayerName());
+    GAME_IDS.forEach((gameId) => {
+      if (gameId === "hub-points") return;
+      const board = getBoard(gameId);
+      board.forEach((row) => {
+        const pts = pointsForRank(row.rank);
+        if (pts <= 0) return;
+        const key = nameKey(row.name);
+        if (!key) return;
+        const prev = byKey.get(key) || {
+          name: row.name,
+          points: 0,
+          boards: 0,
+          bestRank: row.rank
+        };
+        prev.points += pts;
+        prev.boards += 1;
+        prev.bestRank = Math.min(prev.bestRank || 99, row.rank);
+        prev.name = row.name || prev.name;
+        byKey.set(key, prev);
+      });
+    });
+    return [...byKey.values()]
+      .sort((a, b) => {
+        if (b.points !== a.points) return b.points - a.points;
+        if (a.bestRank !== b.bestRank) return a.bestRank - b.bestRank;
+        return String(a.name).localeCompare(String(b.name));
+      })
+      .map((row, i) => ({
+        rank: i + 1,
+        name: row.name,
+        score: row.points,
+        points: row.points,
+        boards: row.boards,
+        label:
+          row.boards === 1
+            ? `${row.points} pts · 1 board`
+            : `${row.points} pts · ${row.boards} boards`,
+        isYou: !!(me && nameKey(row.name) === me),
+        lowerBetter: false
+      }));
   }
 
   async function submit(gameId, score, opts = {}) {
@@ -1117,6 +1177,8 @@
     sync,
     getBoard,
     getMyScore,
+    getHubPointsBoard,
+    pointsForRank,
     clearPlayer,
     rebindPlayerName,
     formatScore,
