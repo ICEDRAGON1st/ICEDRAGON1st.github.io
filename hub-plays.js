@@ -97,7 +97,7 @@
     tictactoe: "Tic Tac Toe",
     pixletris: "Pixel Drop",
     clicker: "Crystal Clicker",
-    stacker: "Tower Stack",
+    stacker: "Tower Stack 3D",
     crossy: "Cross Walk",
     fishing: "Fishing Idle",
     cows: "Cow Merge",
