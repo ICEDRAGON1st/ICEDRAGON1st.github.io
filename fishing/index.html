@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260923q">
+  <link rel="stylesheet" href="styles.css?v=20260923w">
 </head>
 <body data-spot="creek" data-hub-sound-btn="off">
   <div id="weather-fx" class="weather-fx" aria-hidden="true">
@@ -672,37 +672,66 @@
           <input id="admin-mins" type="number" min="1" max="180" step="1" value="5" />
         </label>
       </div>
-      <div class="admin-actions">
-        <button type="button" class="btn btn-ghost" data-admin-cmd="sell">Start sell</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="luck">Start luck</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="gold">Start gold</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="shiny">Start shiny</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="shiny + gold">Shiny + gold</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="toxic">Start toxic</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="lava">Start lava</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="neon">Start neon</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="luckyblock">Start lucky blocks</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="storm">Storm</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="calm">Calm seas</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="sunny">Clear skies</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="clear">Clear</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="clear weather">Clear weather</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="clear mutation">Clear all mutations</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="clear toxic">Clear toxic</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="clear lava">Clear lava</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="clear neon">Clear neon</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="clear luckyblock">Clear lucky blocks</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="give fish primefin">Give Primefin</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="give astral luckyblock">Give Astral Block</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="give absolute luckyblock">Give Absolute Block</button>
-        <button type="button" class="btn btn-ghost" data-admin-cmd="give zenith luckyblock">Give Zenith Block</button>
+
+      <div class="admin-section">
+        <p class="admin-section-label">Boosts</p>
+        <div class="admin-actions">
+          <button type="button" class="btn btn-ghost" data-admin-cmd="sell">Sell</button>
+          <button type="button" class="btn btn-ghost" data-admin-cmd="luck">Luck</button>
+          <button type="button" class="btn btn-ghost" data-admin-cmd="gold">Gold</button>
+          <button type="button" class="btn btn-ghost" data-admin-cmd="shiny">Shiny</button>
+          <button type="button" class="btn btn-ghost" data-admin-cmd="shiny + gold">Shiny+Gold</button>
+          <button type="button" class="btn btn-ghost" data-admin-cmd="luckyblock">Lucky blocks</button>
+        </div>
       </div>
+
+      <div class="admin-section">
+        <p class="admin-section-label">Mutations</p>
+        <div class="admin-actions">
+          <button type="button" class="btn btn-ghost" data-admin-cmd="toxic">Toxic</button>
+          <button type="button" class="btn btn-ghost" data-admin-cmd="lava">Lava</button>
+          <button type="button" class="btn btn-ghost" data-admin-cmd="neon">Neon</button>
+        </div>
+      </div>
+
+      <div class="admin-section">
+        <p class="admin-section-label">Weather</p>
+        <div class="admin-actions">
+          <button type="button" class="btn btn-ghost" data-admin-cmd="storm">Storm</button>
+          <button type="button" class="btn btn-ghost" data-admin-cmd="calm">Calm</button>
+          <button type="button" class="btn btn-ghost" data-admin-cmd="sunny">Clear skies</button>
+        </div>
+      </div>
+
+      <div class="admin-section">
+        <p class="admin-section-label">Give <span class="admin-section-hint">Global = everyone</span></p>
+        <div class="admin-actions">
+          <button type="button" class="btn btn-ghost" data-admin-cmd="give fish primefin">Primefin</button>
+          <button type="button" class="btn btn-ghost" data-admin-cmd="give astral luckyblock">Astral</button>
+          <button type="button" class="btn btn-ghost" data-admin-cmd="give absolute luckyblock">Absolute</button>
+          <button type="button" class="btn btn-ghost" data-admin-cmd="give zenith luckyblock">Zenith</button>
+        </div>
+      </div>
+
+      <div class="admin-section">
+        <p class="admin-section-label">Clear</p>
+        <div class="admin-actions admin-actions-clear">
+          <button type="button" class="btn btn-ghost" data-admin-cmd="clear">All</button>
+          <button type="button" class="btn btn-ghost" data-admin-cmd="clear weather">Weather</button>
+          <button type="button" class="btn btn-ghost" data-admin-cmd="clear mutation">Mutations</button>
+          <button type="button" class="btn btn-ghost" data-admin-cmd="clear toxic">Toxic</button>
+          <button type="button" class="btn btn-ghost" data-admin-cmd="clear lava">Lava</button>
+          <button type="button" class="btn btn-ghost" data-admin-cmd="clear neon">Neon</button>
+          <button type="button" class="btn btn-ghost" data-admin-cmd="clear luckyblock">Lucky blocks</button>
+        </div>
+      </div>
+
       <form id="admin-cmd-form" class="admin-cmd-form">
         <input
           id="admin-cmd-input"
           type="text"
           maxlength="120"
-          placeholder="give fish primefin · give astral luckyblock · to me / to everyone"
+          placeholder="5x luck · storm · give fish trout to Name"
           autocomplete="off"
           spellcheck="false"
         />
@@ -797,6 +826,6 @@
   <script src="../hub-friends.js?v=20260923u"></script>
   <script src="../hub-chat.js?v=20260923u"></script>
   <script src="../hub-leaderboard.js?v=20260923u"></script>
-  <script src="script.js?v=20260923v"></script>
+  <script src="script.js?v=20260923w"></script>
 </body>
 </html>
