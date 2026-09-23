@@ -4736,7 +4736,7 @@ function aquariumRatePerSec() {
     let rest = original.replace(/^(give|gift)\s+fish\s+/i, "").trim();
     if (!rest) {
       return {
-        error: "Try: give fish primefin shiny gold · give fish trout to PlayerName"
+        error: "Try: give fish primefin shiny gold · give fish trout to everyone"
       };
     }
 
@@ -4745,6 +4745,9 @@ function aquariumRatePerSec() {
     if (toMatch) {
       to = toMatch[1].trim();
       rest = rest.slice(0, toMatch.index).trim();
+    } else if (/\b(everyone|everybody|all players|all|global)\s*$/i.test(rest)) {
+      to = "everyone";
+      rest = rest.replace(/\b(everyone|everybody|all players|all|global)\s*$/i, "").trim();
     } else if (/\b(me|self)\s*$/i.test(rest)) {
       rest = rest.replace(/\b(me|self)\s*$/i, "").trim();
       to = "me";
@@ -4807,6 +4810,36 @@ function aquariumRatePerSec() {
       count,
       to
     };
+  }
+
+  function isEveryoneGiftTarget(raw) {
+    const key = String(raw || "")
+      .trim()
+      .toLowerCase();
+    return (
+      key === "everyone" ||
+      key === "everybody" ||
+      key === "all" ||
+      key === "all players" ||
+      key === "global" ||
+      key === "*" ||
+      key === "players"
+    );
+  }
+
+  function isBroadcastGift(g) {
+    if (!g || typeof g !== "object") return false;
+    if (g.broadcast) return true;
+    const toName = String(g.toName || "").toLowerCase();
+    return (
+      toName === "*" ||
+      toName === "everyone" ||
+      toName === "everybody" ||
+      toName === "all" ||
+      toName === "all players" ||
+      toName === "global" ||
+      toName === "players"
+    );
   }
 
   function grantFishToLocal(fish, opts = {}) {
@@ -4950,7 +4983,9 @@ function aquariumRatePerSec() {
       perfect: !!payload.perfect,
       count: Math.min(50, Math.max(1, Number(payload.count) || 1)),
       at: now,
-      claimed: false
+      broadcast: !!payload.broadcast,
+      claimed: false,
+      claimedBy: {}
     };
     return postFishGiftsDoc({ gifts });
   }
@@ -4959,11 +4994,31 @@ function aquariumRatePerSec() {
     const remote = (await fetchFishGiftsDoc()) || { token: FISH_GIFTS_TOKEN, gifts: {} };
     const gifts = { ...(remote.gifts || {}) };
     const g = gifts[giftId];
-    if (!g || g.claimed) return true;
+    if (!g) return true;
+    const me = playerNameLower();
+    const myId = String(window.HubPlays?.getPlayerId?.() || "");
+    if (isBroadcastGift(g)) {
+      const by =
+        g.claimedBy && typeof g.claimedBy === "object" && !Array.isArray(g.claimedBy)
+          ? { ...g.claimedBy }
+          : {};
+      const key = myId || me;
+      if (!key) return true;
+      by[key] = Date.now();
+      gifts[giftId] = {
+        ...g,
+        broadcast: true,
+        claimed: false,
+        claimedBy: by,
+        claimedAt: Date.now()
+      };
+      return postFishGiftsDoc({ gifts });
+    }
+    if (g.claimed) return true;
     gifts[giftId] = {
       ...g,
       claimed: true,
-      claimedBy: playerNameLower(),
+      claimedBy: me || myId,
       claimedAt: Date.now()
     };
     return postFishGiftsDoc({ gifts });
@@ -4989,12 +5044,22 @@ function aquariumRatePerSec() {
     const toClaim = [];
 
     Object.values(doc.gifts || {}).forEach((g) => {
-      if (!g || typeof g !== "object" || g.claimed) return;
+      if (!g || typeof g !== "object") return;
+      const broadcast = isBroadcastGift(g);
+      if (!broadcast && g.claimed) return;
       const gid = String(g.id || "");
       if (!gid || claimed.has(gid)) return;
+      if (broadcast) {
+        const by =
+          g.claimedBy && typeof g.claimedBy === "object" && !Array.isArray(g.claimedBy)
+            ? g.claimedBy
+            : {};
+        if ((myId && by[myId]) || (me && by[me])) return;
+      }
       const toName = String(g.toName || "").toLowerCase();
       const toId = String(g.toPlayerId || "");
-      const forMe = (toName && toName === me) || (toId && myId && toId === myId);
+      const forMe =
+        broadcast || (toName && toName === me) || (toId && myId && toId === myId);
       if (!forMe) return;
       const count = Math.min(50, Math.max(1, Number(g.count) || 1));
       const blockType = luckyBlockTypeFromGift(g);
@@ -5067,10 +5132,20 @@ function aquariumRatePerSec() {
     };
     const count = Math.min(50, Math.max(1, Number(cmd.count) || 1));
     const label = formatFishName(fish, variants);
-    const toRaw = String(cmd.to || "me").trim();
+    let toRaw = String(cmd.to || "me").trim();
+    // Global admin scope + no explicit target → everyone
+    if (
+      (!toRaw || toRaw.toLowerCase() === "me" || toRaw.toLowerCase() === "self") &&
+      getAdminScope() === "global" &&
+      !cmd.forceSelf
+    ) {
+      toRaw = "everyone";
+    }
     const toKey = toRaw.toLowerCase();
+    const isEveryone = isEveryoneGiftTarget(toKey);
     const isSelf =
-      !toKey || toKey === "me" || toKey === "self" || toKey === playerNameLower();
+      !isEveryone &&
+      (!toKey || toKey === "me" || toKey === "self" || toKey === playerNameLower());
 
     if (isSelf) {
       for (let i = 0; i < count; i += 1) {
@@ -5083,6 +5158,37 @@ function aquariumRatePerSec() {
         catchTone(fish.rarity)
       );
       playSfx("win");
+      return;
+    }
+
+    if (isEveryone) {
+      setCatchLine(`Sending ${label} to everyone…`, "");
+      const ok = await queueFishGift({
+        toName: "*",
+        toPlayerId: "",
+        toDisplay: "everyone",
+        broadcast: true,
+        fishId: fish.id,
+        variant: variants.variant,
+        shiny: variants.shiny,
+        mutation: variants.mutation,
+        perfect: !!cmd.perfect,
+        count
+      });
+      if (!ok) {
+        setCatchLine("Couldn't queue fish gift — try again", "miss");
+        playSfx("miss");
+        return;
+      }
+      setCatchLine(
+        count === 1
+          ? `Queued ${label} for everyone`
+          : `Queued ${count}× ${label} for everyone`,
+        catchTone(fish.rarity)
+      );
+      playSfx("click");
+      // Claim on this device too
+      pollFishGifts(true).catch(() => {});
       return;
     }
 
@@ -5100,7 +5206,7 @@ function aquariumRatePerSec() {
       count
     });
     if (!ok) {
-      setCatchLine("Couldn't queue fish gift — Mantle may be rate-limited", "miss");
+      setCatchLine("Couldn't queue fish gift — try again", "miss");
       playSfx("miss");
       return;
     }
@@ -5257,6 +5363,9 @@ function aquariumRatePerSec() {
     if (toMatch) {
       to = toMatch[1].trim();
       rest = rest.slice(0, toMatch.index).trim();
+    } else if (/\b(everyone|everybody|all players|all|global)\s*$/i.test(rest)) {
+      to = "everyone";
+      rest = rest.replace(/\b(everyone|everybody|all players|all|global)\s*$/i, "").trim();
     } else if (/\b(me|self)\s*$/i.test(rest)) {
       rest = rest.replace(/\b(me|self)\s*$/i, "").trim();
       to = "me";
@@ -5279,10 +5388,19 @@ function aquariumRatePerSec() {
     const type = resolveLuckyBlockType(cmd.type) || "absolute";
     const def = luckyBlockDef(type);
     const count = Math.min(50, Math.max(1, Number(cmd.count) || 1));
-    const toRaw = String(cmd.to || "me").trim();
+    let toRaw = String(cmd.to || "me").trim();
+    if (
+      (!toRaw || toRaw.toLowerCase() === "me" || toRaw.toLowerCase() === "self") &&
+      getAdminScope() === "global" &&
+      !cmd.forceSelf
+    ) {
+      toRaw = "everyone";
+    }
     const toKey = toRaw.toLowerCase();
+    const isEveryone = isEveryoneGiftTarget(toKey);
     const isSelf =
-      !toKey || toKey === "me" || toKey === "self" || toKey === playerNameLower();
+      !isEveryone &&
+      (!toKey || toKey === "me" || toKey === "self" || toKey === playerNameLower());
 
     if (isSelf) {
       const added = storeLuckyBlock(type, count);
@@ -5291,6 +5409,33 @@ function aquariumRatePerSec() {
         added === 1 ? `Gave ${def.name} to you` : `Gave ${added}× ${def.name} to you`,
         "treasure"
       );
+      return;
+    }
+
+    if (isEveryone) {
+      setCatchLine(`Sending ${def.name} to everyone…`, "");
+      const ok = await queueFishGift({
+        toName: "*",
+        toPlayerId: "",
+        toDisplay: "everyone",
+        broadcast: true,
+        fishId: def.giftId,
+        item: def.item,
+        count
+      });
+      if (!ok) {
+        setCatchLine(`Couldn't queue ${def.name} — try again`, "miss");
+        playSfx("miss");
+        return;
+      }
+      setCatchLine(
+        count === 1
+          ? `Queued ${def.name} for everyone`
+          : `Queued ${count}× ${def.name} for everyone`,
+        "treasure"
+      );
+      playSfx("click");
+      pollFishGifts(true).catch(() => {});
       return;
     }
 
@@ -5305,7 +5450,7 @@ function aquariumRatePerSec() {
       count
     });
     if (!ok) {
-      setCatchLine(`Couldn't queue ${def.name} — Mantle may be rate-limited`, "miss");
+      setCatchLine(`Couldn't queue ${def.name} — try again`, "miss");
       playSfx("miss");
       return;
     }

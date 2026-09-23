@@ -223,15 +223,50 @@
     }
   }
 
+  function isBroadcastGift(g) {
+    if (!g || typeof g !== "object") return false;
+    if (g.broadcast) return true;
+    const toName = String(g.toName || "").toLowerCase();
+    return (
+      toName === "*" ||
+      toName === "everyone" ||
+      toName === "everybody" ||
+      toName === "all" ||
+      toName === "all players" ||
+      toName === "global" ||
+      toName === "players"
+    );
+  }
+
   async function markClaimedRemote(giftId) {
     const doc = (await fetchDoc()) || { gifts: {} };
     const gifts = { ...(doc.gifts || {}) };
     const g = gifts[giftId];
-    if (!g || g.claimed) return true;
+    if (!g) return true;
+    const me = playerNameLower();
+    const myId = playerId();
+    if (isBroadcastGift(g)) {
+      const by =
+        g.claimedBy && typeof g.claimedBy === "object" && !Array.isArray(g.claimedBy)
+          ? { ...g.claimedBy }
+          : {};
+      const key = myId || me;
+      if (!key) return true;
+      by[key] = Date.now();
+      gifts[giftId] = {
+        ...g,
+        broadcast: true,
+        claimed: false,
+        claimedBy: by,
+        claimedAt: Date.now()
+      };
+      return postDoc(gifts);
+    }
+    if (g.claimed) return true;
     gifts[giftId] = {
       ...g,
       claimed: true,
-      claimedBy: playerNameLower(),
+      claimedBy: me || myId,
       claimedAt: Date.now()
     };
     return postDoc(gifts);
@@ -298,12 +333,22 @@
     const state = readSave();
 
     Object.values(doc.gifts || {}).forEach((g) => {
-      if (!g || typeof g !== "object" || g.claimed) return;
+      if (!g || typeof g !== "object") return;
+      const broadcast = isBroadcastGift(g);
+      if (!broadcast && g.claimed) return;
       const gid = String(g.id || "");
       if (!gid || claimed.has(gid)) return;
+      if (broadcast) {
+        const by =
+          g.claimedBy && typeof g.claimedBy === "object" && !Array.isArray(g.claimedBy)
+            ? g.claimedBy
+            : {};
+        if ((myId && by[myId]) || (me && by[me])) return;
+      }
       const toName = String(g.toName || "").toLowerCase();
       const toId = String(g.toPlayerId || "");
-      const forMe = (toName && toName === me) || (toId && myId && toId === myId);
+      const forMe =
+        broadcast || (toName && toName === me) || (toId && myId && toId === myId);
       if (!forMe) return;
       const n = grantToSave(state, g);
       if (!n) return;
