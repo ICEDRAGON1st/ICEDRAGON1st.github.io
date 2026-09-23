@@ -2400,18 +2400,17 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 
   function buildAllTimeMap(remote, plays, names, meEntry) {
     const purgedPlays = purgePlaysList(plays).plays;
+    // Do NOT fold live presence into the persisted all-time map — that stamped
+    // fresh lastAt values and made everyone look "online now".
     return purgeAllTimePlayers(
-      applyPresenceLastSeen(
-        trimAllTime(
+      trimAllTime(
+        mergeAllTime(
           mergeAllTime(
-            mergeAllTime(
-              mergeAllTime(remote || {}, namesFromPlays(purgedPlays)),
-              namesFromRegistry(purgeNameRegistry(names).names)
-            ),
-            meEntry || {}
-          )
-        ),
-        presenceCache
+            mergeAllTime(remote || {}, namesFromPlays(purgedPlays)),
+            namesFromRegistry(purgeNameRegistry(names).names)
+          ),
+          meEntry || {}
+        )
       )
     ).players;
   }
@@ -2441,6 +2440,11 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     return getAllTimePlayers().length;
   }
 
+  function isPresentOnline(playerId, now = Date.now()) {
+    const at = Number(presenceCache[String(playerId || "")]?.at) || 0;
+    return at > 0 && now - at < ONLINE_TTL_MS;
+  }
+
   function getAllTimePlayers() {
     const enriched = buildAllTimeMap(
       allTimeCache,
@@ -2458,13 +2462,15 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
         if (claim?.playerId && claim.playerId !== playerId) return;
       }
       const firstAt = Number(p.firstAt) || 0;
-      const lastAt = Math.max(Number(p.lastAt) || 0, firstAt);
+      const presenceAt = Number(presenceCache[playerId]?.at) || 0;
+      const online = isPresentOnline(playerId, now);
+      const lastAt = Math.max(Number(p.lastAt) || 0, firstAt, presenceAt || 0);
       const row = {
         playerId,
         name,
         firstAt,
         lastAt,
-        online: lastAt > 0 && now - lastAt < ONLINE_TTL_MS
+        online
       };
       const key = nameKey(name);
       const prev = byName.get(key);
@@ -2514,14 +2520,16 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   function formatLastOnline(playerIdOrAt, opts = {}) {
     const onlineLabel = opts.onlineLabel || "online now";
     const prefix = opts.prefix || "last online";
-    let at = 0;
-    if (typeof playerIdOrAt === "number") {
-      at = playerIdOrAt;
-    } else {
-      at = getLastSeen(playerIdOrAt);
+    if (typeof playerIdOrAt !== "number") {
+      const id = String(playerIdOrAt || "");
+      if (isPresentOnline(id)) return onlineLabel;
+      const at = getLastSeen(id);
+      if (!at) return opts.empty || "";
+      return `${prefix} ${formatWhen(at)}`;
     }
+    const at = playerIdOrAt;
     if (!at) return opts.empty || "";
-    if (Date.now() - at < ONLINE_TTL_MS) return onlineLabel;
+    // Raw timestamps are "last seen", never treat as live online
     return `${prefix} ${formatWhen(at)}`;
   }
 
