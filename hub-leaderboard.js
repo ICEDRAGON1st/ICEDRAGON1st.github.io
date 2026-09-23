@@ -16,6 +16,11 @@
   const LOCAL_KEY = "hub-leaderboards-v1";
   const MAX_PER_GAME = 50;
   const SYNC_GAP_MS = 4000;
+  const SUPABASE_DOC_ID = "leaderboards";
+
+  function supabaseReady() {
+    return !!(window.HubSupabase && HubSupabase.ready && HubSupabase.getDoc && HubSupabase.upsertDoc);
+  }
 
   // One-time: clear local Ramp Rush high score for everyone (leaderboard wipe companion).
   try {
@@ -474,11 +479,45 @@
   }
 
   async function fetchRemote() {
+    // Prefer Supabase when available (Mantle free tier rate-limits under load).
+    if (supabaseReady()) {
+      try {
+        const data = await HubSupabase.getDoc(SUPABASE_DOC_ID);
+        if (data && typeof data === "object") {
+          const games = data.games && typeof data.games === "object" ? data.games : {};
+          const resets = data.resets && typeof data.resets === "object" ? data.resets : {};
+          return { games, resets };
+        }
+        // Empty/missing doc — treat as blank board (table may be freshly created).
+        return { games: {}, resets: {} };
+      } catch (err) {
+        // Fall through to Mantle if Supabase isn't set up yet / offline.
+        console.warn("[HubLeaderboard] Supabase read failed, trying Mantle", err);
+      }
+    }
     const data = await fetchJson(API);
     if (!data || typeof data !== "object") return { games: {}, resets: {} };
     const games = data.games && typeof data.games === "object" ? data.games : {};
     const resets = data.resets && typeof data.resets === "object" ? data.resets : {};
     return { games, resets };
+  }
+
+  async function pushRemote(merged) {
+    let ok = false;
+    if (supabaseReady()) {
+      try {
+        await HubSupabase.upsertDoc(SUPABASE_DOC_ID, merged);
+        ok = true;
+      } catch (err) {
+        console.warn("[HubLeaderboard] Supabase write failed", err);
+      }
+    }
+    // Keep Mantle as backup while migrating (ignore failures / rate limits).
+    try {
+      await postJson(API, merged);
+      ok = true;
+    } catch {}
+    if (!ok) throw new Error("push failed");
   }
 
   function normalizeEntry(entry, fallbackLower) {
@@ -841,7 +880,7 @@
         const remote = await fetchRemote();
         const merged = mergeBoards(loadLocal(), remote);
         saveLocal(merged);
-        await postJson(API, merged);
+        await pushRemote(merged);
       } catch {}
       lastSync = Date.now();
       return true;
@@ -887,7 +926,7 @@
         merged.resets = { ...(merged.resets || {}), [`namebind:${id}`]: name };
         const rebound = applyResets(merged);
         saveLocal(rebound);
-        await postJson(API, rebound);
+        await pushRemote(rebound);
       } catch {}
       lastSync = Date.now();
       return true;
@@ -910,7 +949,7 @@
       const merged = mergeBoards(local, remote);
       saveLocal(merged);
       try {
-        await postJson(API, merged);
+        await pushRemote(merged);
       } catch {
         // offline — local still works
       }
@@ -1003,7 +1042,7 @@
         // Prefer freshest local (includes Time Online ticks during the fetch).
         const merged = mergeBoards(loadLocal(), remote);
         saveLocal(merged);
-        await postJson(API, merged);
+        await pushRemote(merged);
       } catch {
         // keep local
       }
