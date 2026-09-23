@@ -1,5 +1,5 @@
 /**
- * hub-feedback.js — player ideas/bugs sent to ICE via MantleDB.
+ * hub-feedback.js — player ideas/bugs via Supabase (Mantle fallback).
  *
  * window.HubFeedback:
  *   submit({ text, type, game }) → Promise<{ ok, error?, warning?, queued? }>
@@ -12,6 +12,7 @@
   const NS = "icedragon1st-mygames";
   const PATH = "player-feedback";
   const API = `https://mantledb.sh/v2/${NS}/${PATH}`;
+  const DOC_ID = "player-feedback";
   const LOCAL_KEY = "hub-feedback-v1";
   const READ_KEY = "hub-feedback-read-at-v1";
   const LAST_SEND_KEY = "hub-feedback-last-send-v1";
@@ -22,6 +23,10 @@
   const SEND_COOLDOWN_MS = 20000;
   const RATE_LIMIT_BACKOFF_MS = 20 * 60_000;
   const OWNER_NAME = "ice_dragon";
+
+  function sb() {
+    return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
+  }
 
   let cache = { items: [] };
   let syncing = false;
@@ -203,13 +208,20 @@
   }
 
   async function fetchRemote() {
-    const data = await fetchJson(API);
+    const api = sb();
+    const data = api ? await api.getPrefer(DOC_ID, API) : await fetchJson(API);
     if (!data || typeof data !== "object") return { items: [] };
     return { items: Array.isArray(data.items) ? data.items : [] };
   }
 
   async function pushRemote(items) {
-    await postJson(API, { items: items.slice(0, MAX_ITEMS) });
+    const payload = { items: items.slice(0, MAX_ITEMS) };
+    const api = sb();
+    if (api) {
+      await api.pushPrefer(DOC_ID, payload, API);
+      return;
+    }
+    await postJson(API, payload);
   }
 
   function list() {
@@ -230,7 +242,7 @@
 
   async function flushPending() {
     const pending = loadPendingIds();
-    if (!pending.length || isRateLimited()) return false;
+    if (!pending.length || (isRateLimited() && !sb())) return false;
     const pendingSet = new Set(pending);
     const localItems = mergeItems(cache.items, loadLocal().items);
     const toPush = localItems.filter((item) => pendingSet.has(item.id));
@@ -258,7 +270,7 @@
 
   async function sync(force = false) {
     if (syncing && !force) return cache;
-    if (isRateLimited() && !force) {
+    if (isRateLimited() && !sb() && !force) {
       cache = loadLocal();
       return cache;
     }
@@ -316,7 +328,7 @@
       localStorage.setItem(LAST_SEND_KEY, String(now));
     } catch {}
 
-    if (isRateLimited()) {
+    if (isRateLimited() && !sb()) {
       return {
         ok: true,
         queued: true,
@@ -365,8 +377,8 @@
   }
 
   cache = loadLocal();
-  // Soft sync on load — skip if Mantle is cooling down
-  if (!isRateLimited()) {
+  // Soft sync on load — skip only if Mantle is cooling down and Supabase is unavailable
+  if (!isRateLimited() || sb()) {
     sync().catch(() => {});
   }
 

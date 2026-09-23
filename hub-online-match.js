@@ -1,5 +1,6 @@
 /**
  * hub-online-match.js — shared online rooms for turn games (TTT, Connect Four).
+ * Prefers Supabase; Mantle is fallback.
  *
  * window.HubOnlineMatch:
  *   quickMatch(game), cancelQuickMatch(game)
@@ -10,6 +11,7 @@
   const NS = "icedragon1st-mygames";
   const PATH = "online-matches";
   const API = `https://mantledb.sh/v2/${NS}/${PATH}`;
+  const DOC_ID = "online-matches";
   const LOCAL_KEY = "hub-online-matches-v1";
   const ACTIVE_KEY = "hub-online-active-room-v1";
   const WAIT_TTL_MS = 3 * 60 * 1000;
@@ -17,6 +19,10 @@
   const POLL_MS = 1100;
   const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const MUTATE_RETRIES = 3;
+
+  function sb() {
+    return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
+  }
 
   const GAMES = {
     tictactoe: {
@@ -115,9 +121,19 @@
   }
 
   async function fetchRemote() {
-    const data = await fetchJson(API);
+    const api = sb();
+    const data = api ? await api.getPrefer(DOC_ID, API) : await fetchJson(API);
     if (!data || typeof data !== "object") return { rooms: {} };
     return { rooms: data.rooms && typeof data.rooms === "object" ? data.rooms : {} };
+  }
+
+  async function pushRemote(next) {
+    const api = sb();
+    if (api) {
+      await api.pushPrefer(DOC_ID, next, API);
+      return;
+    }
+    await postJson(API, next);
   }
 
   function pruneRooms(rooms) {
@@ -169,7 +185,7 @@
         if (!next) return null;
         saveLocal(next);
         try {
-          await postJson(API, next);
+          await pushRemote(next);
         } catch {
           // Keep local optimistic state; retry merge next loop / poll.
           return next;

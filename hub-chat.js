@@ -1,5 +1,5 @@
 /**
- * hub-chat.js — DMs, global chat, and group chats via MantleDB.
+ * hub-chat.js — DMs, global chat, and group chats via Supabase (Mantle fallback).
  *
  * window.HubChat:
  *   openThread(friendId) / openGlobal() / openGroup(id) / closeThread()
@@ -13,6 +13,7 @@
   const NS = "icedragon1st-mygames";
   const PATH = "friend-chat";
   const API = `https://mantledb.sh/v2/${NS}/${PATH}`;
+  const DOC_ID = "friend-chat";
   const LOCAL_KEY = "hub-chat-v1";
   const READ_KEY = "hub-chat-read-v1";
   const MAX_MESSAGES = 100;
@@ -20,6 +21,10 @@
   const MAX_GROUP_NAME = 24;
   const POLL_MS = 3500;
   const GLOBAL_KEY = "global";
+
+  function sb() {
+    return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
+  }
 
   let cache = { threads: {} };
   let syncing = false;
@@ -127,11 +132,21 @@
   }
 
   async function fetchRemote() {
-    const data = await fetchJson(API);
+    const api = sb();
+    const data = api ? await api.getPrefer(DOC_ID, API) : await fetchJson(API);
     if (!data || typeof data !== "object") return { threads: {} };
     return {
       threads: data.threads && typeof data.threads === "object" ? data.threads : {}
     };
+  }
+
+  async function pushRemote(next) {
+    const api = sb();
+    if (api) {
+      await api.pushPrefer(DOC_ID, next, API);
+      return;
+    }
+    await postJson(API, next);
   }
 
   function normalizeMessage(msg) {
@@ -247,7 +262,7 @@
       if (!next) return false;
       saveLocal(next);
       try {
-        await postJson(API, next);
+        await pushRemote(next);
       } catch {
         // Keep local write even if remote push fails.
         return true;

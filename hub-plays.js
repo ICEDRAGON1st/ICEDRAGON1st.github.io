@@ -1,6 +1,6 @@
 /**
  * hub-plays.js — nickname + shared recent-players log.
- * Uses MantleDB (browser-only) so the site owner can see who played.
+ * Prefers Supabase hub_docs; Mantle is fallback while migrating.
  * Nicknames are unique (case-insensitive) via a dedicated name-registry store.
  */
 (function () {
@@ -27,6 +27,35 @@
   const RESERVATIONS_API = `https://mantledb.sh/v2/${NS}/${RESERVATIONS_PATH}`;
   const PRESENCE_API = `https://mantledb.sh/v2/${NS}/${PRESENCE_PATH}`;
   const ALLTIME_API = `https://mantledb.sh/v2/${NS}/${ALLTIME_PATH}`;
+
+  function sb() {
+    return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
+  }
+
+  async function fetchDoc(docId, mantleUrl) {
+    const api = sb();
+    if (api) {
+      try {
+        return await api.getPrefer(docId, mantleUrl);
+      } catch (err) {
+        if (err && err.rateLimited) {
+          markRateLimited();
+          throw err;
+        }
+        throw err;
+      }
+    }
+    return fetchJson(mantleUrl);
+  }
+
+  async function pushDoc(docId, data, mantleUrl) {
+    const api = sb();
+    if (api) {
+      await api.pushPrefer(docId, data, mantleUrl);
+      return;
+    }
+    await postJson(mantleUrl, data);
+  }
   const CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
   /** These names can only be used by the player code that locked them. */
   const CODE_LOCKED_NAMES = new Set(["ice_dragon"]);
@@ -199,10 +228,10 @@
     try {
       if (localStorage.getItem(DRAGON_PURGE_FLAG) === "done") return;
     } catch {}
-    if (isRateLimited()) return;
+    if (isRateLimited() && !sb()) return;
     let verifiedClean = false;
     try {
-      const data = await fetchJson(NAMES_API);
+      const data = await fetchDoc("name-registry", NAMES_API);
       const raw =
         data && typeof data === "object"
           ? data.names && typeof data.names === "object"
@@ -221,7 +250,7 @@
       );
     } catch {}
     try {
-      const data = await fetchJson(ALLTIME_API);
+      const data = await fetchDoc("players-alltime", ALLTIME_API);
       const rawPlayers =
         data && typeof data === "object"
           ? data.players && typeof data.players === "object"
@@ -263,7 +292,7 @@
     try {
       if (localStorage.getItem(RAINBOW_PURGE_FLAG) === "done") return;
     } catch {}
-    if (isRateLimited()) return;
+    if (isRateLimited() && !sb()) return;
     let verifiedClean = false;
     try {
       const local = loadLocalProfileStyle();
@@ -286,7 +315,7 @@
       }
     } catch {}
     try {
-      const data = await fetchJson(NAMES_API);
+      const data = await fetchDoc("name-registry", NAMES_API);
       const raw =
         data && typeof data === "object"
           ? data.names && typeof data.names === "object"
@@ -544,7 +573,7 @@
   }
 
   async function fetchCodesRemote() {
-    const data = await fetchJson(CODES_API);
+    const data = await fetchDoc("player-codes", CODES_API);
     if (!data || typeof data !== "object") return {};
     const codes = data.codes && typeof data.codes === "object" ? data.codes : data;
     const out = {};
@@ -562,7 +591,7 @@
   }
 
   async function pushCodesRemote(codes) {
-    await postJson(CODES_API, { codes });
+    await pushDoc("player-codes", { codes }, CODES_API);
   }
 
   function isCodeLockedName(key) {
@@ -570,7 +599,7 @@
   }
 
   async function fetchReservationsRemote() {
-    const data = await fetchJson(RESERVATIONS_API);
+    const data = await fetchDoc("name-reservations", RESERVATIONS_API);
     if (!data || typeof data !== "object") return {};
     const map = data.reservations && typeof data.reservations === "object" ? data.reservations : data;
     const out = {};
@@ -588,7 +617,7 @@
   }
 
   async function pushReservationsRemote(reservations) {
-    await postJson(RESERVATIONS_API, { reservations });
+    await pushDoc("name-reservations", { reservations }, RESERVATIONS_API);
   }
 
   function reservationAllows(res, playerId, code) {
@@ -983,7 +1012,7 @@
   }
 
   async function fetchPlaysRemote() {
-    const data = await fetchJson(PLAYS_API);
+    const data = await fetchDoc("plays-log", PLAYS_API);
     if (!data) return { plays: [], counts: {} };
     return {
       plays: Array.isArray(data.plays) ? data.plays : [],
@@ -992,14 +1021,18 @@
   }
 
   async function pushPlaysRemote(data) {
-    await postJson(PLAYS_API, {
-      plays: data.plays || [],
-      counts: data.counts || {}
-    });
+    await pushDoc(
+      "plays-log",
+      {
+        plays: data.plays || [],
+        counts: data.counts || {}
+      },
+      PLAYS_API
+    );
   }
 
   async function fetchNamesRemote() {
-    const data = await fetchJson(NAMES_API);
+    const data = await fetchDoc("name-registry", NAMES_API);
     if (!data || typeof data !== "object") return {};
     const names = data.names && typeof data.names === "object" ? data.names : data;
     // Ignore accidental non-claim fields
@@ -1011,7 +1044,7 @@
   }
 
   async function pushNamesRemote(names) {
-    await postJson(NAMES_API, { names });
+    await pushDoc("name-registry", { names }, NAMES_API);
   }
 
   function mergeLogs(a, b) {
@@ -1906,7 +1939,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   async function fetchPresenceRemote() {
-    const data = await fetchJson(PRESENCE_API);
+    const data = await fetchDoc("presence", PRESENCE_API);
     if (!data || typeof data !== "object") return {};
     const players = data.players && typeof data.players === "object" ? data.players : data;
     const out = {};
@@ -1920,7 +1953,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   async function pushPresenceRemote(players) {
-    await postJson(PRESENCE_API, { players });
+    await pushDoc("presence", { players }, PRESENCE_API);
   }
 
   function mergePresence(a, b) {
@@ -2119,7 +2152,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       // Keep yourself visible even when MantleDB is rate-limited / offline.
       markSelfOnlineLocal(now);
 
-      if (isRateLimited()) {
+      if (isRateLimited() && !sb()) {
         return getOnlineCount();
       }
 
@@ -2169,7 +2202,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   async function fetchAllTimeRemote() {
-    const data = await fetchJson(ALLTIME_API);
+    const data = await fetchDoc("players-alltime", ALLTIME_API);
     if (!data || typeof data !== "object") return {};
     const players = data.players && typeof data.players === "object" ? data.players : data;
     const out = {};
@@ -2193,10 +2226,14 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   async function pushAllTimeRemote(players) {
-    await postJson(ALLTIME_API, {
-      players,
-      total: Object.keys(players).length
-    });
+    await pushDoc(
+      "players-alltime",
+      {
+        players,
+        total: Object.keys(players).length
+      },
+      ALLTIME_API
+    );
   }
 
   function rememberAllTime(players) {
@@ -2422,7 +2459,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
    */
   async function registerAllTime() {
     if (allTimeBusy) return getAllTimeCount();
-    if (isRateLimited()) return getAllTimeCount();
+    if (isRateLimited() && !sb()) return getAllTimeCount();
     allTimeBusy = true;
     try {
       await ensureDragonPurged();
@@ -3233,7 +3270,7 @@ body.light .menu-credit .player-name-creator {
     // hard-fail every picker click with "Couldn't save …".
     const finishLocal = (existing) => applyClaimLocally(key, current, me, updater, existing);
 
-    if (isRateLimited()) {
+    if (isRateLimited() && !sb()) {
       return finishLocal(namesCache[key] || getClaimForName(current));
     }
 

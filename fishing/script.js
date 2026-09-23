@@ -101,6 +101,7 @@
 
   const ADMIN_EVENT_URL = "admin-event.json";
   const ADMIN_EVENT_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-admin-events";
+  const ADMIN_EVENT_DOC = "fishing-admin-events";
   const ADMIN_EVENT_TOKEN = "ice-fish-evt-9f3a";
   const ADMIN_EVENT_POLL_MS = 15_000;
   const ADMIN_EVENT_RATE_KEY = "fishing-admin-mantle-until-v1";
@@ -113,7 +114,12 @@
   const ADMIN_EVENT_LOCAL_MUTATION_KEY = "fishing-admin-mutation-v1";
   const ADMIN_EVENT_PENDING_KEY = "fishing-admin-pending-v1";
   const FISH_GIFTS_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-gifts";
+  const FISH_GIFTS_DOC = "fishing-gifts";
   const FISH_GIFTS_TOKEN = "ice-fish-gift-9f3a";
+
+  function fishingSb() {
+    return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
+  }
   const FISH_GIFTS_CLAIMED_KEY = "fishing-gifts-claimed-v1";
   const FISH_GIFTS_POLL_MS = 12_000;
   const ADMIN_SCOPE_KEY = "fishing-admin-scope-v1";
@@ -2177,6 +2183,7 @@
   }
 
   const COMMUNITY_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-community";
+  const COMMUNITY_DOC = "fishing-community";
   const COMMUNITY_PAGES_URL = "community.json";
   const COMMUNITY_TOKEN = "ice-fish-com-9f3a";
   const COMMUNITY_GOAL = 2500;
@@ -2454,13 +2461,27 @@
   /** @returns {{ found: boolean, data?: object } | null} null = request failed (do not treat as empty). */
   async function fetchCommunityDoc() {
     const pages = await fetchCommunityJson(COMMUNITY_PAGES_URL, { trackRate: false });
+    let sbDoc = null;
+    const api = fishingSb();
+    if (api) {
+      try {
+        const raw = await api.getDoc(COMMUNITY_DOC);
+        if (raw && typeof raw === "object") sbDoc = normalizeCommunityDoc(raw);
+      } catch {
+        /* fall through */
+      }
+    }
     let mantle = { rateLimited: false, found: false, data: null, ok: false };
-    if (!communityRateLimited()) {
+    if (!sbDoc && !communityRateLimited()) {
       mantle = await fetchCommunityJson(COMMUNITY_API, { trackRate: true });
       if (mantle.ok && !mantle.rateLimited) clearCommunityRateLimited();
     }
     const pagesDoc = pages.found ? normalizeCommunityDoc(pages.data) : null;
     const mantleDoc = mantle.found ? normalizeCommunityDoc(mantle.data) : null;
+
+    if (sbDoc) {
+      return { found: true, data: pickBetterCommunityDoc(sbDoc, pagesDoc) || sbDoc };
+    }
 
     if (mantleDoc) {
       return { found: true, data: pickBetterCommunityDoc(mantleDoc, pagesDoc) || mantleDoc };
@@ -2485,22 +2506,34 @@
   }
 
   async function pushCommunityDoc(doc) {
-    if (communityRateLimited()) return false;
+    const payload = { ...doc, token: COMMUNITY_TOKEN };
+    let ok = false;
+    const api = fishingSb();
+    if (api) {
+      try {
+        await api.upsertDoc(COMMUNITY_DOC, payload);
+        ok = true;
+      } catch {
+        /* try Mantle */
+      }
+    }
+    if (communityRateLimited() && ok) return true;
+    if (communityRateLimited()) return ok;
     try {
       const res = await fetch(COMMUNITY_API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...doc, token: COMMUNITY_TOKEN })
+        body: JSON.stringify(payload)
       });
       if (res.status === 429) {
         markCommunityRateLimited();
-        return false;
+        return ok;
       }
-      if (!res.ok) return false;
+      if (!res.ok) return ok;
       clearCommunityRateLimited();
       return true;
     } catch {
-      return false;
+      return ok;
     }
   }
 
@@ -4014,6 +4047,15 @@ function aquariumRatePerSec() {
     adminEventFetchedAt = now;
 
     const file = await fetchAdminJson(`${ADMIN_EVENT_URL}?t=${now}`, { trackRate: false });
+    let supabaseData = null;
+    const api = fishingSb();
+    if (api) {
+      try {
+        supabaseData = await api.getDoc(ADMIN_EVENT_DOC);
+      } catch {
+        supabaseData = null;
+      }
+    }
     let mantleData = null;
     if (!adminEventRateLimited()) {
       const mantle = await fetchAdminJson(ADMIN_EVENT_API, { trackRate: true });
@@ -4021,14 +4063,33 @@ function aquariumRatePerSec() {
       mantleData = mantle.data;
     }
 
+    const remoteSb = parseAdminBundle(supabaseData, false);
     const remoteA = parseAdminBundle(mantleData, true);
     const remoteB = parseAdminBundle(file.data, false);
-    const remoteBoost = pickBetterAdminEvent(remoteA.boost, remoteB.boost);
-    const remoteVariant = pickBetterAdminEvent(remoteA.variant, remoteB.variant);
-    const remoteChest = pickBetterAdminEvent(remoteA.chest, remoteB.chest);
-    const remoteLb = pickBetterAdminEvent(remoteA.luckyblock, remoteB.luckyblock);
-    const remoteWeather = pickBetterAdminEvent(remoteA.weather, remoteB.weather);
-    const remoteMutation = mergeMutationMaps(remoteA.mutation, remoteB.mutation);
+    const remoteBoost = pickBetterAdminEvent(
+      pickBetterAdminEvent(remoteSb.boost, remoteA.boost),
+      remoteB.boost
+    );
+    const remoteVariant = pickBetterAdminEvent(
+      pickBetterAdminEvent(remoteSb.variant, remoteA.variant),
+      remoteB.variant
+    );
+    const remoteChest = pickBetterAdminEvent(
+      pickBetterAdminEvent(remoteSb.chest, remoteA.chest),
+      remoteB.chest
+    );
+    const remoteLb = pickBetterAdminEvent(
+      pickBetterAdminEvent(remoteSb.luckyblock, remoteA.luckyblock),
+      remoteB.luckyblock
+    );
+    const remoteWeather = pickBetterAdminEvent(
+      pickBetterAdminEvent(remoteSb.weather, remoteA.weather),
+      remoteB.weather
+    );
+    const remoteMutation = mergeMutationMaps(
+      mergeMutationMaps(remoteSb.mutation, remoteA.mutation),
+      remoteB.mutation
+    );
     adminBoostCache = pickBetterAdminEvent(remoteBoost, localAdminBoost());
     adminVariantCache = pickBetterAdminEvent(remoteVariant, localAdminVariant());
     adminChestCache = pickBetterAdminEvent(remoteChest, localAdminChest());
@@ -4087,14 +4148,20 @@ function aquariumRatePerSec() {
     }, 20_000);
   }
 
-  async function maybeRetryPendingAdminPush() {
-    if (!pendingAdminPush || !isFishingOwner()) return;
-    if (String(pendingAdminPush.scope || "global") === "local") {
-      clearPendingAdminPush();
-      return;
+  async function pushAdminBundleRemote(payload) {
+    let ok = false;
+    const api = fishingSb();
+    if (api) {
+      try {
+        await api.upsertDoc(ADMIN_EVENT_DOC, payload);
+        ok = true;
+      } catch {
+        /* Mantle / retry */
+      }
     }
-    if (adminBusy || adminEventRateLimited()) return;
-    const payload = pendingAdminPush;
+    if (adminEventRateLimited()) {
+      return { ok, rateLimited: !ok };
+    }
     try {
       const res = await fetch(ADMIN_EVENT_API, {
         method: "POST",
@@ -4103,10 +4170,31 @@ function aquariumRatePerSec() {
       });
       if (res.status === 429) {
         markAdminEventRateLimited();
+        return { ok, rateLimited: true };
+      }
+      if (!res.ok) return { ok, rateLimited: false };
+      clearAdminEventRateLimited();
+      return { ok: true, rateLimited: false };
+    } catch {
+      return { ok, rateLimited: false };
+    }
+  }
+
+  async function maybeRetryPendingAdminPush() {
+    if (!pendingAdminPush || !isFishingOwner()) return;
+    if (String(pendingAdminPush.scope || "global") === "local") {
+      clearPendingAdminPush();
+      return;
+    }
+    if (adminBusy) return;
+    if (adminEventRateLimited() && !fishingSb()) return;
+    const payload = pendingAdminPush;
+    try {
+      const result = await pushAdminBundleRemote(payload);
+      if (!result.ok) {
+        if (result.rateLimited) scheduleAdminRetry();
         return;
       }
-      if (!res.ok) return;
-      clearAdminEventRateLimited();
       pendingAdminPush = null;
       writeStoredAdmin(ADMIN_EVENT_PENDING_KEY, null);
       if (adminRetryTimer) {
@@ -4579,42 +4667,40 @@ function aquariumRatePerSec() {
     }
 
     try {
-      const res = await fetch(ADMIN_EVENT_API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(bundle)
-      });
-      if (res.status === 429) {
-        markAdminEventRateLimited();
-        scheduleAdminRetry();
+      const result = await pushAdminBundleRemote(bundle);
+      if (result.ok) {
+        clearPendingAdminPush();
         setCatchLine(
           isClear
-            ? `Cleared here · Mantle busy, will sync ${label} clear soon`
+            ? `Global admin ${label} cleared`
             : eventKind === "weather"
-              ? `Live here · ${label} · syncing global when Mantle frees up`
-              : `Live here · ${formatMult(eventMult)}× ${label} · syncing global when Mantle frees up`,
+              ? `GLOBAL ADMIN · ${label} live for ${mins}m (all players)`
+              : `GLOBAL ADMIN · ${formatMult(eventMult)}× ${label} live for ${mins}m (all players)`,
           "treasure"
         );
         return true;
       }
-      if (!res.ok) throw new Error("push failed");
-      clearAdminEventRateLimited();
-      clearPendingAdminPush();
-      setCatchLine(
-        isClear
-          ? `Global admin ${label} cleared`
-          : eventKind === "weather"
-            ? `GLOBAL ADMIN · ${label} live for ${mins}m (all players)`
-            : `GLOBAL ADMIN · ${formatMult(eventMult)}× ${label} live for ${mins}m (all players)`,
-        "treasure"
-      );
-      return true;
+      if (result.rateLimited) {
+        scheduleAdminRetry();
+        setCatchLine(
+          isClear
+            ? `Cleared here · syncing ${label} clear soon`
+            : eventKind === "weather"
+              ? `Live here · ${label} · syncing global…`
+              : `Live here · ${formatMult(eventMult)}× ${label} · syncing global…`,
+          "treasure"
+        );
+        return true;
+      }
+      throw new Error("push failed");
     } catch {
       scheduleAdminRetry();
       setCatchLine(
         isClear
-          ? `Cleared here · will sync ${label} clear when online`
-          : "Live here · will sync to all players when online",
+          ? `Cleared here · will sync ${label} clear soon`
+          : eventKind === "weather"
+            ? `Live here · ${label} · syncing global…`
+            : `Live here · ${formatMult(eventMult)}× ${label} · syncing global…`,
         "treasure"
       );
       return true;
@@ -4757,10 +4843,20 @@ function aquariumRatePerSec() {
 
   async function fetchFishGiftsDoc() {
     try {
-      const res = await fetch(`${FISH_GIFTS_API}?t=${Date.now()}`, { cache: "no-store" });
-      if (res.status === 404) return { token: FISH_GIFTS_TOKEN, gifts: {} };
-      if (!res.ok) return null;
-      const data = await res.json();
+      const api = fishingSb();
+      let data = null;
+      if (api) {
+        try {
+          data = await api.getPrefer(FISH_GIFTS_DOC, FISH_GIFTS_API);
+        } catch {
+          data = null;
+        }
+      } else {
+        const res = await fetch(`${FISH_GIFTS_API}?t=${Date.now()}`, { cache: "no-store" });
+        if (res.status === 404) return { token: FISH_GIFTS_TOKEN, gifts: {} };
+        if (!res.ok) return null;
+        data = await res.json();
+      }
       if (!data || typeof data !== "object") return { token: FISH_GIFTS_TOKEN, gifts: {} };
       return {
         token: data.token || FISH_GIFTS_TOKEN,
@@ -4772,13 +4868,23 @@ function aquariumRatePerSec() {
   }
 
   async function postFishGiftsDoc(doc) {
+    const payload = {
+      token: FISH_GIFTS_TOKEN,
+      gifts: doc.gifts || {}
+    };
+    const api = fishingSb();
+    if (api) {
+      try {
+        await api.pushPrefer(FISH_GIFTS_DOC, payload, FISH_GIFTS_API);
+        return true;
+      } catch {
+        return false;
+      }
+    }
     const res = await fetch(FISH_GIFTS_API, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        token: FISH_GIFTS_TOKEN,
-        gifts: doc.gifts || {}
-      })
+      body: JSON.stringify(payload)
     });
     return res.ok;
   }
@@ -4789,16 +4895,24 @@ function aquariumRatePerSec() {
       .toLowerCase();
     if (!key) return null;
     try {
-      const res = await fetch(`https://mantledb.sh/v2/icedragon1st-mygames/name-registry?t=${Date.now()}`, {
-        cache: "no-store"
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const names = data?.names && typeof data.names === "object" ? data.names : data || {};
-        const claim = names[key];
-        if (claim?.playerId) {
-          return { playerId: claim.playerId, name: claim.name || username };
-        }
+      const api = fishingSb();
+      let data = null;
+      if (api) {
+        data = await api.getPrefer(
+          "name-registry",
+          "https://mantledb.sh/v2/icedragon1st-mygames/name-registry"
+        );
+      } else {
+        const res = await fetch(
+          `https://mantledb.sh/v2/icedragon1st-mygames/name-registry?t=${Date.now()}`,
+          { cache: "no-store" }
+        );
+        if (res.ok) data = await res.json();
+      }
+      const names = data?.names && typeof data.names === "object" ? data.names : data || {};
+      const claim = names[key];
+      if (claim?.playerId) {
+        return { playerId: claim.playerId, name: claim.name || username };
       }
     } catch {}
     try {

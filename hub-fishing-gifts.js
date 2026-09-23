@@ -3,15 +3,21 @@
  * Writes into localStorage fishing-save-v3 so fish are waiting in the cooler.
  *
  * Skips auto-claim on the fishing page (live game handles that).
+ * Prefers Supabase; Mantle is fallback.
  * window.HubFishingGifts: start / stop / poll
  */
 (function () {
   const SAVE_KEY = "fishing-save-v3";
   const CLAIMED_KEY = "fishing-gifts-claimed-v1";
   const API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-gifts";
+  const DOC_ID = "fishing-gifts";
   const TOKEN = "ice-fish-gift-9f3a";
   const POLL_MS = 12_000;
   const VARIANT_PRIMARY = ["silver", "gold", "diamond", "rainbow"];
+
+  function sb() {
+    return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
+  }
 
   let timer = 0;
   let lastFetch = 0;
@@ -174,10 +180,20 @@
 
   async function fetchDoc() {
     try {
-      const res = await fetch(`${API}?t=${Date.now()}`, { cache: "no-store" });
-      if (res.status === 404) return { token: TOKEN, gifts: {} };
-      if (!res.ok) return null;
-      const data = await res.json();
+      const api = sb();
+      let data = null;
+      if (api) {
+        try {
+          data = await api.getPrefer(DOC_ID, API);
+        } catch {
+          data = null;
+        }
+      } else {
+        const res = await fetch(`${API}?t=${Date.now()}`, { cache: "no-store" });
+        if (res.status === 404) return { token: TOKEN, gifts: {} };
+        if (!res.ok) return null;
+        data = await res.json();
+      }
       if (!data || typeof data !== "object") return { token: TOKEN, gifts: {} };
       return {
         token: data.token || TOKEN,
@@ -189,11 +205,17 @@
   }
 
   async function postDoc(gifts) {
+    const payload = { token: TOKEN, gifts };
     try {
+      const api = sb();
+      if (api) {
+        await api.pushPrefer(DOC_ID, payload, API);
+        return true;
+      }
       const res = await fetch(API, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token: TOKEN, gifts })
+        body: JSON.stringify(payload)
       });
       return res.ok;
     } catch {

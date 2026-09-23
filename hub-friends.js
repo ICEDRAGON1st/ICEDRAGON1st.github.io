@@ -1,5 +1,5 @@
 /**
- * hub-friends.js — friend requests + game invites via MantleDB.
+ * hub-friends.js — friend requests + game invites via Supabase (Mantle fallback).
  *
  * window.HubFriends:
  *   sendRequest(username), acceptRequest(id), declineRequest(id), removeFriend(id)
@@ -11,9 +11,14 @@
   const NS = "icedragon1st-mygames";
   const PATH = "friends";
   const API = `https://mantledb.sh/v2/${NS}/${PATH}`;
+  const DOC_ID = "friends";
   const LOCAL_KEY = "hub-friends-v1";
   const INVITE_TTL_MS = 5 * 60 * 1000;
   const POLL_MS = 4000;
+
+  function sb() {
+    return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
+  }
 
   let cache = { profiles: {}, invites: {} };
   let syncing = false;
@@ -86,12 +91,22 @@
   }
 
   async function fetchRemote() {
-    const data = await fetchJson(API);
+    const api = sb();
+    const data = api ? await api.getPrefer(DOC_ID, API) : await fetchJson(API);
     if (!data || typeof data !== "object") return { profiles: {}, invites: {} };
     return {
       profiles: data.profiles && typeof data.profiles === "object" ? data.profiles : {},
       invites: data.invites && typeof data.invites === "object" ? data.invites : {}
     };
+  }
+
+  async function pushRemote(next) {
+    const api = sb();
+    if (api) {
+      await api.pushPrefer(DOC_ID, next, API);
+      return;
+    }
+    await postJson(API, next);
   }
 
   function ensureProfile(profiles, playerId, name) {
@@ -174,7 +189,7 @@
       if (!next) return false;
       saveLocal(next);
       try {
-        await postJson(API, next);
+        await pushRemote(next);
       } catch {
         return false;
       }
@@ -205,7 +220,7 @@
       }
       saveLocal(merged);
       try {
-        await postJson(API, merged);
+        await pushRemote(merged);
       } catch {}
       return cache;
     } finally {
@@ -222,7 +237,10 @@
       } catch {}
     }
     try {
-      const data = await fetchJson(`https://mantledb.sh/v2/${NS}/name-registry`);
+      const api = sb();
+      const data = api
+        ? await api.getPrefer("name-registry", `https://mantledb.sh/v2/${NS}/name-registry`)
+        : await fetchJson(`https://mantledb.sh/v2/${NS}/name-registry`);
       const names = data?.names && typeof data.names === "object" ? data.names : data || {};
       const claim = names[key];
       if (claim?.playerId) {
