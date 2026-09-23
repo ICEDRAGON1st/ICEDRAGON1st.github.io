@@ -644,51 +644,60 @@
     const ducking = dino.ducking;
     const onGround = dino.onGround;
     const leg = onGround ? Math.floor(anim * speed * 0.028) % 2 : 0;
-    const body = deepCave ? "#d0e4f8" : "#f2f9ff";
-    const accent = deepCave ? "#4a8ad8" : "#2f7fd4";
-    const belly = deepCave ? "#9ec0e0" : "#b8d8f5";
-    const wingC = deepCave ? "#6aa0e0" : "#5aa0ef";
+    const body = deepCave ? "#d8ecff" : "#f4fbff";
+    const accent = deepCave ? "#5a9aef" : "#3a8aef";
+    const belly = deepCave ? "#a8c8e8" : "#c0dff8";
+    const wingC = deepCave ? "#7ab0ff" : "#68b0ff";
 
-    // Ground shadow
     const sh = project(x, 0.8, z + 6);
     ctx.save();
-    ctx.globalAlpha = Math.max(0.15, 0.45 - y * 0.0035);
+    ctx.globalAlpha = Math.max(0.18, 0.5 - y * 0.0035);
     ctx.fillStyle = "#041018";
     ctx.beginPath();
-    ctx.ellipse(sh.x, sh.groundY + 2, 42 * sh.s, 14 * sh.s, 0, 0, Math.PI * 2);
+    ctx.ellipse(sh.x, sh.groundY + 2, 58 * sh.s, 18 * sh.s, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
+    // Large rear-view block dino so it reads clearly into the cave
     if (ducking) {
-      drawBoxAt(x, y + 2, z, 70, DUCK_H * 0.9, 48, accent);
-      drawBoxAt(x + 22, y + 8, z + 8, 36, 18, 32, body);
-      drawBoxAt(x - 28, y + 10, z + 10, 24, 12, 18, accent);
-      const eye = project(x + 36, y + 18, z + 36);
-      ctx.fillStyle = "#0a1520";
-      ctx.beginPath();
-      ctx.arc(eye.x, eye.y, 4, 0, Math.PI * 2);
-      ctx.fill();
+      drawBoxAt(x, y + 2, z, 96, 40, 58, accent);
+      drawBoxAt(x + 18, y + 10, z + 10, 50, 24, 42, body);
+      drawBoxAt(x - 38, y + 12, z + 14, 32, 14, 24, accent);
     } else {
-      drawBoxAt(x - 14, y, z + 6, 16, 18 + (leg ? 4 : 0), 16, accent);
-      drawBoxAt(x + 14, y, z + 10, 16, 18 + (leg ? 0 : 4), 16, accent);
-      drawBoxAt(x, y + 14, z, 52, 42, 44, accent);
-      drawBoxAt(x + 2, y + 20, z + 6, 34, 24, 32, belly);
-      drawBoxAt(x + 14, y + 48, z + 6, 38, 28, 34, body);
-      drawBoxAt(x + 30, y + 54, z + 14, 20, 16, 22, accent);
-      drawBoxAt(x + 6, y + 72, z + 10, 12, 18, 12, "#b8e0ff");
-      const wing = Math.sin(anim * 11) * 7;
-      drawBoxAt(x - 24, y + 34 + wing * 0.25, z - 6, 22, 10, 46, wingC);
-      drawBoxAt(x - 30, y + 28, z + 12, 26, 12, 16, accent);
-      const eye = project(x + 22, y + 64, z + 36);
+      drawBoxAt(x - 20, y, z + 8, 24, 28 + (leg ? 6 : 0), 24, accent);
+      drawBoxAt(x + 20, y, z + 14, 24, 28 + (leg ? 0 : 6), 24, accent);
+      drawBoxAt(x, y + 24, z, 76, 56, 58, accent);
+      drawBoxAt(x, y + 30, z + 8, 50, 34, 44, belly);
+      drawBoxAt(x + 4, y + 72, z + 6, 56, 44, 48, body);
+      drawBoxAt(x + 26, y + 82, z + 18, 28, 22, 30, accent);
+      drawBoxAt(x - 6, y + 108, z + 14, 16, 24, 16, "#d0f0ff");
+      drawBoxAt(x + 16, y + 112, z + 18, 14, 20, 14, "#d0f0ff");
+      const wing = Math.sin(anim * 11) * 8;
+      drawBoxAt(x - 36, y + 44 + wing * 0.25, z - 8, 30, 12, 62, wingC);
+      drawBoxAt(x - 44, y + 38, z + 16, 36, 16, 22, accent);
+      const eyeL = project(x - 8, y + 94, z + 48);
+      const eyeR = project(x + 20, y + 94, z + 50);
       ctx.fillStyle = "#0a1520";
       ctx.beginPath();
-      ctx.arc(eye.x, eye.y, 4.2, 0, Math.PI * 2);
+      ctx.arc(eyeL.x, eyeL.y, 5.5, 0, Math.PI * 2);
+      ctx.arc(eyeR.x, eyeR.y, 5.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = "#fff";
       ctx.beginPath();
-      ctx.arc(eye.x - 1.2, eye.y - 1.2, 1.4, 0, Math.PI * 2);
+      ctx.arc(eyeL.x - 1.5, eyeL.y - 1.5, 1.7, 0, Math.PI * 2);
+      ctx.arc(eyeR.x - 1.5, eyeR.y - 1.5, 1.7, 0, Math.PI * 2);
       ctx.fill();
     }
+
+    const rim = project(x, y + (ducking ? 26 : 60), z + 8);
+    ctx.save();
+    ctx.globalAlpha = 0.25;
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(rim.x, rim.y, (ducking ? 42 : 58) * rim.s * 1.45, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.restore();
   }
 
   function drawSpike(o) {
