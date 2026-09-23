@@ -378,8 +378,26 @@
   }
 
   function calfCost() {
-    const base = 10 * Math.pow(1.045, state.calvesBought);
-    return Math.max(5, Math.floor(base * discountFactor()));
+    const buys = Math.max(0, Number(state.calvesBought) || 0);
+    // Soft two-phase curve — old 1.045^buys exploded once auto-buy kicked in
+    let base;
+    if (buys <= 200) {
+      base = 10 * Math.pow(1.028, buys);
+    } else if (buys <= 500) {
+      base = 10 * Math.pow(1.028, 200) * Math.pow(1.014, buys - 200);
+    } else {
+      base = 10 * Math.pow(1.028, 200) * Math.pow(1.014, 300) * Math.pow(1.008, buys - 500);
+    }
+    // Higher spawn starts cost more, but stay fair vs milk income
+    const tier = spawnTier();
+    const tierMult = Math.pow(1.75, Math.max(0, tier - 1));
+    let cost = base * tierMult * discountFactor();
+    // Soft affordability ceiling: ~40s of herd milk/s once you have income
+    const mps = herdMps();
+    if (mps > 15) {
+      cost = Math.min(cost, mps * 40);
+    }
+    return Math.max(5, Math.floor(cost));
   }
 
   function sellValue(tier) {
