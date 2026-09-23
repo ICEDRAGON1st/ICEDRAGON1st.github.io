@@ -22,12 +22,12 @@ const PERFECT = 0.1;
 const BASE_SPEED = 4.8;
 const SPEED_STEP = 0.16;
 const MAX_SPEED = 10.5;
-const MOVE_SPAN = 7.5;
+const MOVE_SPAN = 5.8;
 
 /** Isometric tile scale */
-const TILE_X = 28;
-const TILE_Y = 14;
-const TILE_Z = 22;
+const TILE_X = 30;
+const TILE_Y = 15;
+const TILE_Z = 24;
 
 const COLORS = [
   "#7c9cff",
@@ -523,14 +523,12 @@ function draw() {
   const solids = [...stack, ...debris];
   if (current) solids.push(current);
 
-  // Painter: farther (smaller x+z) first, then lower y
+  // Painter: lower floors first; same height → farther (smaller x+z) first
   solids
     .slice()
     .sort((a, b) => {
-      const da = a.x + a.z;
-      const db = b.x + b.z;
-      if (Math.abs(da - db) > 0.01) return da - db;
-      return a.y - b.y;
+      if (Math.abs(a.y - b.y) > 0.05) return a.y - b.y;
+      return a.x + a.z - (b.x + b.z);
     })
     .forEach((b) => drawBox(b, b.life != null ? Math.max(0, b.life) : 1));
 
