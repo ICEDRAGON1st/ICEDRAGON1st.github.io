@@ -4319,7 +4319,234 @@ function aquariumRatePerSec() {
 
   function closeAdmin() {
     adminOverlay?.classList.add("hidden");
+    hideAdminCmdSuggest();
     unlockPageScroll();
+  }
+
+  const ADMIN_CMD_SUGGESTIONS = [
+    "give fish ",
+    "give astral luckyblock",
+    "give absolute luckyblock",
+    "give zenith luckyblock",
+    "5x luck",
+    "5x sell",
+    "5x gold",
+    "5x shiny",
+    "5x shiny + gold",
+    "5x toxic",
+    "5x lava",
+    "5x neon",
+    "5x luckyblock",
+    "storm",
+    "calm",
+    "sunny",
+    "clear",
+    "clear weather",
+    "clear mutation",
+    "clear toxic",
+    "clear lava",
+    "clear neon",
+    "clear luckyblock",
+    "luck",
+    "sell",
+    "gold",
+    "shiny",
+    "toxic",
+    "lava",
+    "neon",
+    "luckyblock",
+    "global",
+    "local"
+  ];
+
+  let adminCmdSuggestItems = [];
+  let adminCmdSuggestIndex = -1;
+
+  function collectAdminPlayerNames() {
+    const map = new Map();
+    const add = (raw) => {
+      const name = String(raw || "").trim();
+      if (!name) return;
+      if (/^guest-/i.test(name) || name.toLowerCase() === "player" || name.toLowerCase() === "guest") {
+        return;
+      }
+      const key = name.toLowerCase();
+      const prev = map.get(key);
+      if (!prev || name.length > prev.length) map.set(key, name);
+    };
+    ["everyone", "me"].forEach(add);
+    try {
+      window.HubPlays?.getOnlinePlayers?.().forEach((p) => add(p?.name));
+    } catch {}
+    try {
+      window.HubPlays?.getAllTimePlayers?.().forEach((p) => add(p?.name));
+    } catch {}
+    try {
+      const names = window.HubPlays?.getStatus?.()?.names || {};
+      Object.values(names).forEach((claim) => add(claim?.name));
+    } catch {}
+    try {
+      window.HubFriends?.getFriends?.().forEach((f) => add(f?.name));
+    } catch {}
+    return [...map.values()].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  }
+
+  function scoreSuggestMatch(text, query) {
+    const t = String(text || "").toLowerCase();
+    const q = String(query || "").toLowerCase();
+    if (!q) return 1;
+    if (t === q) return 100;
+    if (t.startsWith(q)) return 80 - Math.min(20, t.length - q.length);
+    const parts = t.split(/[\s_+-]+/);
+    if (parts.some((p) => p.startsWith(q))) return 55;
+    if (t.includes(q)) return 30;
+    return 0;
+  }
+
+  function buildAdminCmdSuggestions(value) {
+    const raw = String(value || "");
+    const lower = raw.toLowerCase();
+
+    const toMatch = lower.match(/^(.*?\bto\s+)(@?)([^\s]*)$/i);
+    if (toMatch && /\b(give|gift)\b/.test(toMatch[1])) {
+      const prefix = toMatch[3] || "";
+      const head = raw.slice(0, raw.length - (toMatch[2].length + toMatch[3].length));
+      return collectAdminPlayerNames()
+        .map((name) => ({
+          label: name,
+          hint: name === "everyone" || name === "me" ? "target" : "player",
+          value: `${head}${name}`,
+          score: scoreSuggestMatch(name, prefix)
+        }))
+        .filter((item) => item.score > 0 || !prefix)
+        .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label))
+        .slice(0, 8);
+    }
+
+    const fishHead = lower.match(/^(give|gift)\s+fish\s+/i);
+    if (fishHead && !/\bto\b/.test(lower)) {
+      const after = raw.slice(fishHead[0].length);
+      const query = after.trim();
+      const tokens = query.toLowerCase().split(/\s+/).filter(Boolean);
+      const knownMods = new Set([
+        ...VARIANT_PRIMARY,
+        ...MUTATIONS,
+        "shiny",
+        "perfect",
+        "normal",
+        "plain",
+        "base",
+        "mutation"
+      ]);
+      const fishTokens = tokens.filter((t) => !knownMods.has(t) && !/^\d+x$|^x\d+$/i.test(t));
+      const fishQuery = fishTokens.join(" ");
+      const head = raw.slice(0, fishHead[0].length);
+      const trailMods = tokens.filter((t) => knownMods.has(t)).join(" ");
+      return FISH.map((f) => {
+        const idScore = scoreSuggestMatch(f.id, fishQuery);
+        const nameScore = scoreSuggestMatch(f.name, fishQuery);
+        const score = Math.max(idScore, nameScore);
+        return {
+          label: f.name,
+          hint: f.id,
+          value: `${head}${f.id}${trailMods ? ` ${trailMods}` : ""} `,
+          score
+        };
+      })
+        .filter((item) => item.score > 0 || !fishQuery)
+        .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label))
+        .slice(0, 8);
+    }
+
+    const q = lower.trim();
+    return ADMIN_CMD_SUGGESTIONS.map((cmd) => ({
+      label: cmd.trim(),
+      hint: "command",
+      value: cmd,
+      score: scoreSuggestMatch(cmd, q)
+    }))
+      .filter((item) => item.score > 0 || !q)
+      .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label))
+      .slice(0, 8);
+  }
+
+  function hideAdminCmdSuggest() {
+    adminCmdSuggestItems = [];
+    adminCmdSuggestIndex = -1;
+    const list = document.getElementById("admin-cmd-suggest");
+    if (!list) return;
+    list.innerHTML = "";
+    list.classList.add("hidden");
+    list.hidden = true;
+  }
+
+  function renderAdminCmdSuggest(items) {
+    const list = document.getElementById("admin-cmd-suggest");
+    if (!list) return;
+    adminCmdSuggestItems = items || [];
+    adminCmdSuggestIndex = adminCmdSuggestItems.length ? 0 : -1;
+    if (!adminCmdSuggestItems.length) {
+      hideAdminCmdSuggest();
+      return;
+    }
+    list.innerHTML = adminCmdSuggestItems
+      .map(
+        (item, i) => `
+      <li role="presentation">
+        <button type="button" class="admin-cmd-suggest-item${i === adminCmdSuggestIndex ? " is-active" : ""}" data-admin-suggest="${i}" role="option" aria-selected="${i === adminCmdSuggestIndex ? "true" : "false"}">
+          ${escapeHtml(item.label)}
+          <span>${escapeHtml(item.hint || "")}</span>
+        </button>
+      </li>`
+      )
+      .join("");
+    list.classList.remove("hidden");
+    list.hidden = false;
+  }
+
+  function refreshAdminCmdSuggest() {
+    const input = document.getElementById("admin-cmd-input");
+    if (!input || adminOverlay?.classList.contains("hidden")) {
+      hideAdminCmdSuggest();
+      return;
+    }
+    renderAdminCmdSuggest(buildAdminCmdSuggestions(input.value));
+  }
+
+  function applyAdminCmdSuggestion(index = adminCmdSuggestIndex) {
+    const input = document.getElementById("admin-cmd-input");
+    const item = adminCmdSuggestItems[index];
+    if (!input || !item) return false;
+    input.value = item.value;
+    hideAdminCmdSuggest();
+    input.focus();
+    try {
+      const end = input.value.length;
+      input.setSelectionRange(end, end);
+    } catch {}
+    // If still mid-command (give fish / to …), keep suggesting
+    refreshAdminCmdSuggest();
+    return true;
+  }
+
+  function moveAdminCmdSuggest(delta) {
+    if (!adminCmdSuggestItems.length) return;
+    const len = adminCmdSuggestItems.length;
+    adminCmdSuggestIndex = (adminCmdSuggestIndex + delta + len) % len;
+    const list = document.getElementById("admin-cmd-suggest");
+    list?.querySelectorAll(".admin-cmd-suggest-item").forEach((btn, i) => {
+      btn.classList.toggle("is-active", i === adminCmdSuggestIndex);
+      btn.setAttribute("aria-selected", i === adminCmdSuggestIndex ? "true" : "false");
+      if (i === adminCmdSuggestIndex) btn.scrollIntoView({ block: "nearest" });
+    });
+  }
+
+  function escapeHtml(raw) {
+    return String(raw || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
   }
 
   function readAdminFormDefaults() {
@@ -12927,10 +13154,64 @@ function aquariumRatePerSec() {
   document.getElementById("admin-cmd-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     const input = document.getElementById("admin-cmd-input");
+    if (adminCmdSuggestItems.length && adminCmdSuggestIndex >= 0) {
+      const list = document.getElementById("admin-cmd-suggest");
+      if (list && !list.hidden) {
+        applyAdminCmdSuggestion(adminCmdSuggestIndex);
+        return;
+      }
+    }
     const raw = input?.value || "";
     if (input) input.value = "";
+    hideAdminCmdSuggest();
     runAdminCommand(raw);
   });
+  {
+    const input = document.getElementById("admin-cmd-input");
+    const list = document.getElementById("admin-cmd-suggest");
+    input?.addEventListener("input", () => refreshAdminCmdSuggest());
+    input?.addEventListener("focus", () => refreshAdminCmdSuggest());
+    input?.addEventListener("keydown", (e) => {
+      const open = list && !list.hidden && adminCmdSuggestItems.length;
+      if (e.key === "ArrowDown" && open) {
+        e.preventDefault();
+        moveAdminCmdSuggest(1);
+        return;
+      }
+      if (e.key === "ArrowUp" && open) {
+        e.preventDefault();
+        moveAdminCmdSuggest(-1);
+        return;
+      }
+      if ((e.key === "Tab" || e.key === "Enter") && open && adminCmdSuggestIndex >= 0) {
+        // Tab always completes; Enter completes once, second Enter submits via form
+        if (e.key === "Tab") {
+          e.preventDefault();
+          applyAdminCmdSuggestion(adminCmdSuggestIndex);
+          return;
+        }
+        // Enter: if suggestion value differs from input, apply; else let submit run
+        const item = adminCmdSuggestItems[adminCmdSuggestIndex];
+        if (item && String(input.value || "") !== item.value) {
+          e.preventDefault();
+          applyAdminCmdSuggestion(adminCmdSuggestIndex);
+        }
+        return;
+      }
+      if (e.key === "Escape") {
+        if (open) {
+          e.preventDefault();
+          hideAdminCmdSuggest();
+        }
+      }
+    });
+    list?.addEventListener("mousedown", (e) => {
+      const btn = e.target.closest("[data-admin-suggest]");
+      if (!btn) return;
+      e.preventDefault();
+      applyAdminCmdSuggestion(Number(btn.dataset.adminSuggest));
+    });
+  }
   guideBtn?.addEventListener("click", openGuide);
   bookBtn?.addEventListener("click", openBook);
   collectionHudEl?.addEventListener("click", openBook);

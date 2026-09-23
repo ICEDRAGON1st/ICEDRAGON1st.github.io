@@ -478,9 +478,15 @@ body.no-lightning-flash .wx-flash {
   border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.admin-cmd-form input {
+.admin-cmd-wrap {
+  position: relative;
   flex: 1;
   min-width: 0;
+}
+
+.admin-cmd-form input {
+  width: 100%;
+  box-sizing: border-box;
   border-radius: 0.55rem;
   border: 1px solid var(--border);
   background: rgba(0, 0, 0, 0.25);
@@ -495,9 +501,63 @@ body.no-lightning-flash .wx-flash {
   outline-offset: 1px;
 }
 
+.admin-cmd-suggest {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 0.3rem);
+  z-index: 5;
+  margin: 0;
+  padding: 0.3rem;
+  list-style: none;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #0d1520;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+  max-height: 11.5rem;
+  overflow: auto;
+}
+
+.admin-cmd-suggest.hidden,
+.admin-cmd-suggest[hidden] {
+  display: none !important;
+}
+
+.admin-cmd-suggest-item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.55rem;
+  width: 100%;
+  border: 0;
+  border-radius: 0.45rem;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.84rem;
+  font-weight: 700;
+  text-align: left;
+  padding: 0.42rem 0.5rem;
+  cursor: pointer;
+}
+
+.admin-cmd-suggest-item span {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: lowercase;
+}
+
+.admin-cmd-suggest-item.is-active,
+.admin-cmd-suggest-item:hover {
+  background: rgba(61, 214, 184, 0.16);
+  color: #b8fff0;
+}
+
 .admin-cmd-form .btn {
   flex: 0 0 auto;
   padding: 0.5rem 0.75rem;
+  align-self: flex-end;
 }
 
 @media (max-width: 380px) {

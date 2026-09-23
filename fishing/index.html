@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260923w">
+  <link rel="stylesheet" href="styles.css?v=20260923x">
 </head>
 <body data-spot="creek" data-hub-sound-btn="off">
   <div id="weather-fx" class="weather-fx" aria-hidden="true">
@@ -727,14 +727,19 @@
       </div>
 
       <form id="admin-cmd-form" class="admin-cmd-form">
-        <input
-          id="admin-cmd-input"
-          type="text"
-          maxlength="120"
-          placeholder="5x luck · storm · give fish trout to Name"
-          autocomplete="off"
-          spellcheck="false"
-        />
+        <div class="admin-cmd-wrap">
+          <input
+            id="admin-cmd-input"
+            type="text"
+            maxlength="120"
+            placeholder="5x luck · storm · give fish trout to Name"
+            autocomplete="off"
+            spellcheck="false"
+            aria-autocomplete="list"
+            aria-controls="admin-cmd-suggest"
+          />
+          <ul id="admin-cmd-suggest" class="admin-cmd-suggest hidden" role="listbox" hidden></ul>
+        </div>
         <button type="submit" class="btn">Run</button>
       </form>
     </div>
@@ -826,6 +831,6 @@
   <script src="../hub-friends.js?v=20260923u"></script>
   <script src="../hub-chat.js?v=20260923u"></script>
   <script src="../hub-leaderboard.js?v=20260923u"></script>
-  <script src="script.js?v=20260923w"></script>
+  <script src="script.js?v=20260923x"></script>
 </body>
 </html>
