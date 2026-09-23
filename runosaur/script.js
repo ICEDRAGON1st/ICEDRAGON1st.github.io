@@ -15,21 +15,17 @@
   const HIGH_SCORE_KEY = "dino-run-high-score";
   const W = canvas.width;
   const H = canvas.height;
-  const GROUND_Y = H - 78;
-  const GRAVITY = 2800;
-  const JUMP_V = -900;
-  const DUCK_H = 42;
-  const STAND_H = 74;
-  const DINO_W = 62;
-  // Overhead hazards must sit in this band: hits standing, clears ducking
-  // Stand hitbox top ≈ GROUND_Y - 66; duck hitbox top ≈ GROUND_Y - 34
-  const OVERHEAD_BOTTOM = 52;
-  const OVERHEAD_H = 44;
 
-  // Iso extrusion (matches Tower Stack feel, side-scroller layout)
-  const ISO_X = 0.62;
-  const ISO_Y = 0.36;
-  const PATH_Z = 56;
+  // Into-the-screen pseudo-3D
+  const CAM_D = 280;
+  const HORIZON = H * 0.28;
+  const NEAR_Y = H * 0.92;
+  const PATH_HALF = 160;
+  const PLAYER_Z = 42;
+  const GRAVITY = 2400;
+  const JUMP_V = -820;
+  const STAND_H = 58;
+  const DUCK_H = 28;
 
   let best = Math.max(0, Math.floor(Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0));
   let running = false;
@@ -37,8 +33,7 @@
   let dead = false;
   let waitingStart = true;
   let score = 0;
-  let speed = 340;
-  let groundX = 0;
+  let speed = 280;
   let dino = null;
   let obstacles = [];
   let flakes = [];
@@ -53,23 +48,9 @@
   let duckKeyHeld = false;
   let duckBtnHeld = false;
   let pointerGesture = null;
+  let roadPhase = 0;
   const jumpBtn = document.getElementById("jump-btn");
   const duckBtn = document.getElementById("duck-btn");
-
-  function wrapMod(n, m) {
-    const mod = Number(m) || 1;
-    return ((Number(n) % mod) + mod) % mod;
-  }
-
-  function px(n) {
-    return Math.round(Number(n) || 0);
-  }
-
-  const SCROLL_WRAP = 6720;
-
-  function scrollPos(scale, period) {
-    return wrapMod(groundX * scale, period);
-  }
 
   function duckHeld() {
     return duckKeyHeld || duckBtnHeld || !!pointerGesture?.ducked;
@@ -88,29 +69,27 @@
 
   function resetWorld() {
     score = 0;
-    speed = 340;
-    groundX = 0;
+    speed = 280;
+    roadPhase = 0;
     obstacles = [];
-    spawnTimer = 1.1;
+    spawnTimer = 1.2;
     anim = 0;
     deepCave = false;
     chaseBreath = 0;
     dead = false;
     dino = {
-      x: 100,
-      y: GROUND_Y - STAND_H,
+      x: 0,
+      y: 0,
       vy: 0,
-      w: DINO_W,
       h: STAND_H,
       onGround: true,
       ducking: false
     };
-    flakes = Array.from({ length: 28 }, (_, i) => ({
-      x: (i * 97) % W,
-      y: (i * 53) % (GROUND_Y - 40),
-      s: 0.4 + (i % 5) * 0.18,
-      r: 1.2 + (i % 4),
-      z: 8 + (i % 7) * 6
+    flakes = Array.from({ length: 36 }, (_, i) => ({
+      x: ((i * 97) % 200) - 100,
+      y: 20 + (i * 37) % 120,
+      z: 80 + (i * 53) % 700,
+      r: 1.2 + (i % 4) * 0.4
     }));
     updateHud();
   }
@@ -162,7 +141,6 @@
     dino.onGround = false;
     dino.ducking = false;
     dino.h = STAND_H;
-    dino.y = Math.min(dino.y, GROUND_Y - dino.h);
     window.HubSound?.play?.("click");
   }
 
@@ -171,51 +149,37 @@
     if (!dino.onGround && on) return;
     dino.ducking = !!on;
     dino.h = on ? DUCK_H : STAND_H;
-    dino.y = GROUND_Y - dino.h;
+    if (on) dino.y = 0;
   }
 
   function spawnObstacle() {
     const roll = Math.random();
-    if (score > 90 && roll < 0.32) {
+    const lane = (Math.random() - 0.5) * PATH_HALF * 1.1;
+    if (score > 80 && roll < 0.34) {
       obstacles.push({
         type: "bat",
         mustDuck: true,
-        x: W + 20,
-        y: GROUND_Y - OVERHEAD_BOTTOM - OVERHEAD_H,
-        w: 72,
-        h: OVERHEAD_H,
+        x: lane * 0.35,
+        y: 48,
+        z: 920,
+        w: 70,
+        h: 36,
         passed: false
       });
       return;
     }
     const tall = Math.random() < 0.45;
     const twin = !tall && Math.random() < 0.35;
-    const h = tall ? 82 : 56;
-    const w = tall ? 34 : 26;
     obstacles.push({
       type: "spike",
-      x: W + 20,
-      y: GROUND_Y - h,
-      w,
-      h,
+      x: lane,
+      y: 0,
+      z: 920,
+      w: tall ? 38 : 28,
+      h: tall ? 70 : 48,
       twin,
       passed: false
     });
-  }
-
-  function hitbox(dinoBox) {
-    const topPad = dinoBox.ducking ? 4 : 8;
-    const bottomPad = 10;
-    return {
-      x: dinoBox.x + 10,
-      y: dinoBox.y + topPad,
-      w: dinoBox.w - 18,
-      h: Math.max(16, dinoBox.h - topPad - bottomPad)
-    };
-  }
-
-  function overlaps(a, b) {
-    return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
   }
 
   function die() {
@@ -265,36 +229,54 @@
     overlayTitle.textContent = canResume ? "Paused" : "Runosaur 3D";
     overlayText.textContent = canResume
       ? "The dragon is still behind you…"
-      : "Race the 3D ice caves — jump frost crystals, hold ↓ / S to duck under hanging bats, and stay ahead of the dragon.";
+      : "Run into the ice cave — jump frost crystals, hold ↓ / S to duck under hanging bats, and stay ahead of the dragon.";
     startBtn.textContent = canResume || dead ? "Play again" : "Play";
     resumeBtn?.classList.toggle("hidden", !canResume);
     overlay?.classList.remove("hidden");
   }
 
+  /** World (x across, y up, z forward) → screen + scale */
+  function project(x, y, z) {
+    const zz = Math.max(8, z);
+    const scale = CAM_D / (CAM_D + zz);
+    const groundY = HORIZON + (NEAR_Y - HORIZON) * (1 - scale * 0.92);
+    return {
+      x: W * 0.5 + x * scale,
+      y: groundY - y * scale,
+      s: scale,
+      groundY
+    };
+  }
+
+  function pathEdgeX(z, side) {
+    const p = project(side * PATH_HALF, 0, z);
+    return p.x;
+  }
+
   function update(dt) {
     if (!running || paused || dead) return;
     anim += dt;
-    speed = Math.min(720, 340 + score * 0.55);
+    speed = Math.min(640, 280 + score * 0.5);
     deepCave = score >= 400;
     chaseBreath += dt;
-    groundX -= speed * dt;
-    if (groundX < -SCROLL_WRAP * 8) groundX = wrapMod(groundX, SCROLL_WRAP) - SCROLL_WRAP;
-    score += speed * dt * 0.085;
+    roadPhase += speed * dt;
+    score += speed * dt * 0.09;
 
     flakes.forEach((f) => {
-      f.x -= f.s * speed * 0.12 * dt;
-      f.y += Math.sin(anim * 2 + f.x * 0.01) * 8 * dt;
-      if (f.x < -20) {
-        f.x = W + 20 + Math.random() * 80;
-        f.y = 20 + Math.random() * (GROUND_Y - 60);
+      f.z -= speed * 0.55 * dt;
+      f.x += Math.sin(anim + f.z * 0.01) * 8 * dt;
+      if (f.z < 20) {
+        f.z = 700 + Math.random() * 200;
+        f.x = (Math.random() - 0.5) * 220;
+        f.y = 30 + Math.random() * 100;
       }
     });
 
     if (dino) {
       dino.vy += GRAVITY * dt;
       dino.y += dino.vy * dt;
-      if (dino.y >= GROUND_Y - dino.h) {
-        dino.y = GROUND_Y - dino.h;
+      if (dino.y <= 0) {
+        dino.y = 0;
         dino.vy = 0;
         dino.onGround = true;
         if (duckHeld()) setDuck(true);
@@ -306,28 +288,38 @@
     spawnTimer -= dt;
     if (spawnTimer <= 0) {
       spawnObstacle();
-      const gap = Math.max(0.75, 1.55 - score * 0.0018);
-      spawnTimer = gap + Math.random() * 0.55;
+      const gap = Math.max(0.7, 1.45 - score * 0.0016);
+      spawnTimer = gap + Math.random() * 0.5;
     }
 
-    const box = hitbox(dino);
+    const hitTop = dino.y + dino.h;
+    const hitBot = dino.y + (dino.ducking ? 4 : 10);
     obstacles.forEach((o) => {
-      o.x -= speed * dt;
-      if (!o.passed && o.x + o.w < dino.x) o.passed = true;
-      const ob =
-        o.type === "spike" && o.twin
-          ? { x: o.x, y: o.y, w: o.w * 2 + 8, h: o.h }
-          : { x: o.x, y: o.y, w: o.w, h: o.h };
-      if (overlaps(box, ob)) die();
+      o.z -= speed * dt;
+      if (!o.passed && o.z < PLAYER_Z - 8) o.passed = true;
+
+      // Collision band near the player
+      if (o.z < PLAYER_Z + 55 && o.z > PLAYER_Z - 25) {
+        const dx = Math.abs(o.x - dino.x);
+        const reach = o.type === "bat" ? 55 : o.twin ? 70 : 42;
+        if (dx < reach) {
+          if (o.type === "bat") {
+            // Must duck: hits if standing head is high enough
+            if (hitTop > o.y - 4 && hitBot < o.y + o.h) die();
+          } else {
+            // Ground crystal: jump over
+            if (dino.y < o.h - 8) die();
+          }
+        }
+      }
     });
-    obstacles = obstacles.filter((o) => o.x > -80);
+    obstacles = obstacles.filter((o) => o.z > -40);
 
     updateHud();
     checkAchievements();
     if (Math.floor(score) % 25 === 0) maybeSubmit(false);
   }
 
-  /* ——— 3D helpers ——— */
   function hexToRgb(hex) {
     const h = String(hex || "").replace("#", "");
     const n = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h, 16);
@@ -340,278 +332,235 @@
     return `rgb(${t(r)},${t(g)},${t(b)})`;
   }
 
-  /** World: x along run, y up from ground, z into scene (0 = near). */
-  function iso(x, y, z) {
-    return {
-      x: x + z * ISO_X,
-      y: GROUND_Y - y - z * ISO_Y
-    };
-  }
-
-  function drawPoly(points, fill) {
+  function drawPoly(points, fill, stroke) {
     if (!points.length) return;
     ctx.beginPath();
     ctx.moveTo(points[0].x, points[0].y);
     for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
     ctx.closePath();
-    ctx.fillStyle = fill;
-    ctx.fill();
+    if (fill) {
+      ctx.fillStyle = fill;
+      ctx.fill();
+    }
+    if (stroke) {
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
   }
 
-  /**
-   * Axis-aligned box in world space.
-   * x,y,z = min corner; w,h,d = size. y is up from ground.
-   */
-  function drawBox3(b, alpha = 1) {
-    const x0 = b.x;
-    const x1 = b.x + b.w;
-    const y0 = b.y;
-    const y1 = b.y + b.h;
-    const z0 = b.z;
-    const z1 = b.z + b.d;
+  /** Box standing on path: bottom center at (x,0,z), size w×h×d */
+  function drawBoxAt(x, y, z, w, h, d, color, alpha = 1) {
+    const z0 = z;
+    const z1 = z + d;
+    const y0 = y;
+    const y1 = y + h;
+    const x0 = x - w / 2;
+    const x1 = x + w / 2;
 
-    const p000 = iso(x0, y0, z0);
-    const p100 = iso(x1, y0, z0);
-    const p010 = iso(x0, y1, z0);
-    const p110 = iso(x1, y1, z0);
-    const p001 = iso(x0, y0, z1);
-    const p101 = iso(x1, y0, z1);
-    const p011 = iso(x0, y1, z1);
-    const p111 = iso(x1, y1, z1);
+    const flb = project(x0, y0, z0);
+    const frb = project(x1, y0, z0);
+    const blb = project(x0, y0, z1);
+    const brb = project(x1, y0, z1);
+    const flt = project(x0, y1, z0);
+    const frt = project(x1, y1, z0);
+    const blt = project(x0, y1, z1);
+    const brt = project(x1, y1, z1);
 
     ctx.save();
-    ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
-
-    // Far face (back) — slightly visible for depth
-    drawPoly([p000, p100, p110, p010], shade(b.color, 0.55));
-    // Left (+ toward -x) when visible
-    drawPoly([p000, p001, p011, p010], shade(b.color, 0.72));
-    // Front (+z toward camera-right / near edge of path)
-    drawPoly([p001, p101, p111, p011], shade(b.color, 0.88));
-    // Right
-    drawPoly([p100, p101, p111, p110], shade(b.color, 0.78));
+    ctx.globalAlpha = alpha;
+    // Far
+    drawPoly([blb, brb, brt, blt], shade(color, 0.55));
+    // Left / right
+    drawPoly([flb, blb, blt, flt], shade(color, 0.72));
+    drawPoly([frb, brb, brt, frt], shade(color, 0.78));
+    // Near front
+    drawPoly([flb, frb, frt, flt], shade(color, 0.92));
     // Top
-    drawPoly([p010, p110, p111, p011], shade(b.color, 1.12));
-
-    ctx.globalAlpha = Math.max(0, Math.min(1, alpha)) * 0.35;
-    ctx.beginPath();
-    ctx.moveTo(p010.x, p010.y);
-    ctx.lineTo(p110.x, p110.y);
-    ctx.lineTo(p111.x, p111.y);
-    ctx.lineTo(p011.x, p011.y);
-    ctx.closePath();
-    ctx.strokeStyle = "rgba(255,255,255,0.55)";
-    ctx.lineWidth = 1.1;
-    ctx.stroke();
+    drawPoly([flt, frt, brt, blt], shade(color, 1.15), "rgba(255,255,255,0.35)");
     ctx.restore();
   }
 
-  /** Crystal pyramid / spike spike standing on ground. */
-  function drawCrystal(x, baseY, w, h, d, color) {
-    const y0 = GROUND_Y - baseY - h;
-    const worldY0 = baseY;
-    // tip at top center
-    const tip = iso(x + w * 0.5, worldY0 + h, d * 0.5);
-    const fl = iso(x, worldY0, 0);
-    const fr = iso(x + w, worldY0, 0);
-    const bl = iso(x, worldY0, d);
-    const br = iso(x + w, worldY0, d);
-    void y0;
-    drawPoly([tip, bl, br], shade(color, 0.7));
+  function drawCrystalAt(x, z, w, h, color) {
+    const tip = project(x, h, z + w * 0.2);
+    const fl = project(x - w / 2, 0, z);
+    const fr = project(x + w / 2, 0, z);
+    const bl = project(x - w / 2, 0, z + w * 0.7);
+    const br = project(x + w / 2, 0, z + w * 0.7);
+    drawPoly([tip, bl, br], shade(color, 0.65));
     drawPoly([tip, fl, bl], shade(color, 0.85));
     drawPoly([tip, fr, br], shade(color, 0.95));
-    drawPoly([tip, fl, fr], shade(color, 1.15));
-    ctx.strokeStyle = "rgba(255,255,255,0.4)";
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(tip.x, tip.y);
-    ctx.lineTo((fl.x + fr.x) / 2, (fl.y + fr.y) / 2);
-    ctx.stroke();
+    drawPoly([tip, fl, fr], shade(color, 1.18), "rgba(255,255,255,0.45)");
   }
 
-  function drawCaveBackdrop() {
-    const top = deepCave ? "#050812" : "#0c1a30";
-    const mid = deepCave ? "#0c1424" : "#163050";
-    const bot = deepCave ? "#152038" : "#264868";
+  function drawBackdrop() {
+    const top = deepCave ? "#04060e" : "#0a1528";
+    const mid = deepCave ? "#0c1424" : "#143048";
     const g = ctx.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, top);
-    g.addColorStop(0.5, mid);
-    g.addColorStop(1, bot);
+    g.addColorStop(0.35, mid);
+    g.addColorStop(1, deepCave ? "#101828" : "#1a3858");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
 
-    // Far cave mouth / tunnel depth
-    const tunnel = ctx.createRadialGradient(W * 0.55, GROUND_Y * 0.42, 20, W * 0.55, GROUND_Y * 0.5, W * 0.55);
-    tunnel.addColorStop(0, deepCave ? "rgba(8,12,22,0.95)" : "rgba(12,22,40,0.75)");
-    tunnel.addColorStop(0.55, "rgba(20,40,70,0.25)");
-    tunnel.addColorStop(1, "rgba(0,0,0,0)");
-    ctx.fillStyle = tunnel;
-    ctx.fillRect(0, 0, W, GROUND_Y);
+    // Tunnel vanishing point glow
+    const glow = ctx.createRadialGradient(W * 0.5, HORIZON, 4, W * 0.5, HORIZON, W * 0.42);
+    glow.addColorStop(0, deepCave ? "rgba(40,70,110,0.55)" : "rgba(90,150,210,0.45)");
+    glow.addColorStop(0.45, deepCave ? "rgba(20,40,70,0.2)" : "rgba(40,80,130,0.18)");
+    glow.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, NEAR_Y);
 
-    // Ceiling ice slabs (3D)
-    const ceilPeriod = 78;
-    const ceilScroll = -scrollPos(0.32, ceilPeriod);
-    const ceilColor = deepCave ? "#4a6588" : "#7aa8cc";
-    const ceilStart = Math.floor((-80 - ceilScroll) / ceilPeriod) - 1;
-    const ceilEnd = Math.ceil((W + 80 - ceilScroll) / ceilPeriod) + 1;
-    for (let i = ceilStart; i <= ceilEnd; i += 1) {
-      const ix = i * ceilPeriod + ceilScroll;
-      const tipH = 18 + ((i % 5) + 5) % 5 * 6;
-      drawBox3(
-        {
-          x: ix,
-          y: GROUND_Y - tipH - 24,
-          z: 10 + (i % 3) * 8,
-          w: 42,
-          h: tipH,
-          d: 28,
-          color: ceilColor
-        },
-        deepCave ? 0.55 : 0.7
-      );
+    // Cave walls (perspective strips)
+    const wallColor = deepCave ? "#1a2a40" : "#2a4a6e";
+    const wallDark = deepCave ? "#0e1624" : "#183048";
+    const nearL = pathEdgeX(18, -1);
+    const nearR = pathEdgeX(18, 1);
+    const farL = pathEdgeX(900, -1);
+    const farR = pathEdgeX(900, 1);
+    drawPoly(
+      [
+        { x: 0, y: 0 },
+        { x: farL, y: HORIZON },
+        { x: nearL, y: NEAR_Y },
+        { x: 0, y: H }
+      ],
+      wallDark
+    );
+    drawPoly(
+      [
+        { x: W, y: 0 },
+        { x: farR, y: HORIZON },
+        { x: nearR, y: NEAR_Y },
+        { x: W, y: H }
+      ],
+      wallDark
+    );
+    // Inner ice wall ribs
+    for (let i = 0; i < 8; i++) {
+      const z0 = 60 + i * 100;
+      const z1 = z0 + 40;
+      const a = project(-PATH_HALF - 30, 0, z0);
+      const b = project(-PATH_HALF - 10, 90 + (i % 3) * 20, z0);
+      const c = project(-PATH_HALF - 10, 90 + (i % 3) * 20, z1);
+      const d = project(-PATH_HALF - 30, 0, z1);
+      drawPoly([a, b, c, d], shade(wallColor, 0.9 + (i % 2) * 0.1), "rgba(140,190,230,0.15)");
+      const a2 = project(PATH_HALF + 30, 0, z0);
+      const b2 = project(PATH_HALF + 10, 90 + (i % 3) * 20, z0);
+      const c2 = project(PATH_HALF + 10, 90 + (i % 3) * 20, z1);
+      const d2 = project(PATH_HALF + 30, 0, z1);
+      drawPoly([a2, b2, c2, d2], shade(wallColor, 0.9 + (i % 2) * 0.1), "rgba(140,190,230,0.15)");
     }
 
-    // Side cave walls as stacked 3D pillars
-    const wallPhase = groundX * 0.4;
-    const wallColor = deepCave ? "#2a3e58" : "#3d6288";
-    for (let i = -1; i < 10; i++) {
-      const bx = wrapMod(i * 140 + wallPhase * 0.15, W + 160) - 80;
-      drawBox3(
-        {
-          x: bx - 20,
-          y: 40 + Math.sin(i * 1.7) * 12,
-          z: PATH_Z + 18,
-          w: 36,
-          h: GROUND_Y - 90 - Math.sin(i * 1.7) * 20,
-          d: 40,
-          color: wallColor
-        },
-        0.55
-      );
+    // Ceiling ice fangs converging to horizon
+    for (let i = 0; i < 12; i++) {
+      const z = 40 + i * 70;
+      const p = project(((i % 5) - 2) * 28, 130, z);
+      const s = p.s;
+      ctx.fillStyle = deepCave ? "rgba(120,160,200,0.35)" : "rgba(180,220,255,0.4)";
+      ctx.beginPath();
+      ctx.moveTo(p.x - 14 * s, HORIZON - 10);
+      ctx.lineTo(p.x, p.y - 40 * s);
+      ctx.lineTo(p.x + 14 * s, HORIZON - 10);
+      ctx.fill();
     }
   }
 
-  function drawGround3D() {
-    const iceTop = deepCave ? "#4a6a88" : "#8ec4e8";
-    const iceSide = deepCave ? "#2e4860" : "#5a98c0";
-    const iceFront = deepCave ? "#3a5878" : "#6eb0d8";
+  function drawRoad() {
+    const ice = deepCave ? "#3d5a78" : "#7eb8dc";
+    const iceDark = deepCave ? "#2a4058" : "#5a98c0";
+    const nearL = project(-PATH_HALF, 0, 12);
+    const nearR = project(PATH_HALF, 0, 12);
+    const farL = project(-PATH_HALF, 0, 880);
+    const farR = project(PATH_HALF, 0, 880);
+    drawPoly([nearL, nearR, farR, farL], shade(ice, 1.05));
 
-    // Perspective path slab
-    const nearZ = 0;
-    const farZ = PATH_Z;
-    const pad = 40;
-    const a = iso(-pad, 0, nearZ);
-    const b = iso(W + pad, 0, nearZ);
-    const c = iso(W + pad, 0, farZ);
-    const d = iso(-pad, 0, farZ);
-    drawPoly([a, b, c, d], shade(iceTop, 1.05));
+    // Side curb thickness
+    drawPoly(
+      [
+        nearL,
+        farL,
+        { x: farL.x - 18, y: farL.y + 6 },
+        { x: nearL.x - 36, y: nearL.y + 18 }
+      ],
+      shade(iceDark, 0.8)
+    );
+    drawPoly(
+      [
+        nearR,
+        farR,
+        { x: farR.x + 18, y: farR.y + 6 },
+        { x: nearR.x + 36, y: nearR.y + 18 }
+      ],
+      shade(iceDark, 0.75)
+    );
 
-    // Front thickness edge
-    const a2 = { x: a.x, y: a.y + 28 };
-    const b2 = { x: b.x, y: b.y + 28 };
-    drawPoly([a, b, b2, a2], shade(iceFront, 0.9));
-    const b3 = { x: c.x, y: c.y + 18 };
-    drawPoly([b, c, b3, b2], shade(iceSide, 0.75));
-
-    // Grid lines scrolling along the path
-    const tile = 56;
-    const scroll = -scrollPos(1, tile);
-    ctx.strokeStyle = deepCave ? "rgba(180,210,240,0.22)" : "rgba(255,255,255,0.35)";
-    ctx.lineWidth = 1.2;
-    const start = Math.floor((-tile - scroll) / tile) - 1;
-    const end = Math.ceil((W + tile - scroll) / tile) + 1;
-    for (let i = start; i <= end; i += 1) {
-      const x = i * tile + scroll;
-      const p0 = iso(x, 0.5, nearZ);
-      const p1 = iso(x, 0.5, farZ);
+    // Scrolling center dashes + cross lines
+    ctx.strokeStyle = deepCave ? "rgba(200,230,255,0.25)" : "rgba(255,255,255,0.4)";
+    ctx.lineWidth = 2;
+    const spacing = 70;
+    const phase = roadPhase % spacing;
+    for (let z = 20 + (spacing - phase); z < 850; z += spacing) {
+      const a = project(-PATH_HALF, 0.5, z);
+      const b = project(PATH_HALF, 0.5, z);
+      ctx.globalAlpha = Math.min(1, z / 120);
       ctx.beginPath();
-      ctx.moveTo(p0.x, p0.y);
-      ctx.lineTo(p1.x, p1.y);
+      ctx.moveTo(a.x, a.y);
+      ctx.lineTo(b.x, b.y);
+      ctx.stroke();
+      const c0 = project(-8, 0.5, z);
+      const c1 = project(8, 0.5, z + 28);
+      ctx.beginPath();
+      ctx.moveTo(c0.x, c0.y);
+      ctx.lineTo(c1.x, c1.y);
       ctx.stroke();
     }
-    for (let zi = 0; zi <= 4; zi++) {
-      const z = (zi / 4) * farZ;
-      const p0 = iso(-pad, 0.5, z);
-      const p1 = iso(W + pad, 0.5, z);
-      ctx.beginPath();
-      ctx.moveTo(p0.x, p0.y);
-      ctx.lineTo(p1.x, p1.y);
-      ctx.stroke();
-    }
+    ctx.globalAlpha = 1;
 
-    // Frost chunks on the path
-    ctx.fillStyle = deepCave ? "rgba(200,230,255,0.2)" : "rgba(255,255,255,0.4)";
-    for (let i = start; i <= end; i += 2) {
-      const x = i * tile + scroll + 12;
-      drawBox3(
-        {
-          x,
-          y: 0,
-          z: 8 + (i % 3) * 6,
-          w: 10,
-          h: 4,
-          d: 10,
-          color: deepCave ? "#9bb8d0" : "#d8f0ff"
-        },
-        0.85
-      );
-    }
+    // Lane edges
+    ctx.strokeStyle = deepCave ? "rgba(160,200,240,0.45)" : "rgba(220,245,255,0.65)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(nearL.x, nearL.y);
+    ctx.lineTo(farL.x, farL.y);
+    ctx.moveTo(nearR.x, nearR.y);
+    ctx.lineTo(farR.x, farR.y);
+    ctx.stroke();
   }
 
   function drawFlake(f) {
-    const p = iso(f.x, GROUND_Y - f.y, f.z || 20);
-    ctx.fillStyle = deepCave ? "rgba(180, 210, 240, 0.4)" : "rgba(255, 255, 255, 0.75)";
+    const p = project(f.x, f.y, f.z);
+    ctx.fillStyle = deepCave ? "rgba(180,210,240,0.45)" : "rgba(255,255,255,0.75)";
     ctx.beginPath();
-    ctx.arc(px(p.x), px(p.y), f.r, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, f.r * Math.max(0.6, p.s * 2.2), 0, Math.PI * 2);
     ctx.fill();
   }
 
   function drawChaseDragon() {
-    const bob = Math.sin(anim * 2.2) * 8;
-    const baseX = -40 + Math.min(22, score * 0.04);
-    const lift = 55 + bob;
-    const z = 22;
-    const body = deepCave ? "#2a1838" : "#3a2458";
-    const wing = deepCave ? "#1a1028" : "#2a1840";
-    const horn = deepCave ? "#6a8cb0" : "#9ec5e8";
-
-    // Body blocks
-    drawBox3({ x: baseX, y: lift, z, w: 90, h: 36, d: 34, color: body }, 0.75);
-    drawBox3({ x: baseX + 78, y: lift + 10, z: z + 4, w: 48, h: 26, d: 26, color: body }, 0.8);
-    drawBox3({ x: baseX + 118, y: lift + 14, z: z + 6, w: 28, h: 20, d: 20, color: shade(body, 1.1) }, 0.85);
-    // Horns
-    drawCrystal(baseX + 128, lift + 34, 10, 22, 10, horn);
-    drawCrystal(baseX + 138, lift + 32, 8, 18, 8, horn);
-    // Eye
-    const eye = iso(baseX + 136, lift + 26, z + 22);
-    ctx.fillStyle = "#ff5a5a";
+    // Looms just behind the camera / sides — scale pulses with chase
+    const bob = Math.sin(anim * 2.2) * 6;
+    const threat = Math.min(1, score / 500);
+    const z = 8;
+    const body = deepCave ? "#241430" : "#3a2458";
+    drawBoxAt(-110 - threat * 10, 40 + bob, z, 90, 50, 40, body, 0.7);
+    drawBoxAt(-70, 55 + bob, z + 10, 50, 34, 30, body, 0.75);
+    drawCrystalAt(-55, z + 20, 14, 28, deepCave ? "#6a8cb0" : "#9ec5e8");
+    const eye = project(-48, 70 + bob, z + 35);
+    ctx.fillStyle = "#ff5050";
     ctx.beginPath();
-    ctx.arc(eye.x, eye.y, 3.5, 0, Math.PI * 2);
+    ctx.arc(eye.x, eye.y, 4, 0, Math.PI * 2);
     ctx.fill();
-    // Wing flap
-    const flap = Math.sin(anim * 5) * 14;
-    drawBox3(
-      {
-        x: baseX + 20,
-        y: lift + 28 + flap * 0.3,
-        z: z - 8,
-        w: 50,
-        h: 8,
-        d: 48 + flap * 0.4,
-        color: wing
-      },
-      0.65
-    );
-    if (Math.sin(chaseBreath * 3) > 0.55) {
-      const breathOrigin = iso(baseX + 148, lift + 22, z + 18);
-      const breath = ctx.createLinearGradient(breathOrigin.x, breathOrigin.y, breathOrigin.x + 70, breathOrigin.y);
-      breath.addColorStop(0, "rgba(180, 230, 255, 0.55)");
-      breath.addColorStop(1, "rgba(180, 230, 255, 0)");
+
+    if (Math.sin(chaseBreath * 3) > 0.5) {
+      const o = project(-30, 60 + bob, z + 40);
+      const breath = ctx.createLinearGradient(o.x, o.y, o.x + 90, o.y - 10);
+      breath.addColorStop(0, "rgba(180,230,255,0.5)");
+      breath.addColorStop(1, "rgba(180,230,255,0)");
       ctx.fillStyle = breath;
       ctx.beginPath();
-      ctx.moveTo(breathOrigin.x, breathOrigin.y - 4);
-      ctx.quadraticCurveTo(breathOrigin.x + 36, breathOrigin.y - 12, breathOrigin.x + 68, breathOrigin.y);
-      ctx.quadraticCurveTo(breathOrigin.x + 36, breathOrigin.y + 12, breathOrigin.x, breathOrigin.y + 4);
+      ctx.moveTo(o.x, o.y);
+      ctx.quadraticCurveTo(o.x + 50, o.y - 18, o.x + 95, o.y - 4);
+      ctx.quadraticCurveTo(o.x + 50, o.y + 14, o.x, o.y + 8);
       ctx.fill();
     }
   }
@@ -619,78 +568,44 @@
   function drawRunner() {
     if (!dino) return;
     const x = dino.x;
-    const footY = GROUND_Y - dino.y - dino.h;
-    const h = dino.h;
-    const w = dino.w;
+    const y = dino.y;
+    const z = PLAYER_Z;
     const ducking = dino.ducking;
     const onGround = dino.onGround;
-    const leg = onGround ? Math.floor(anim * speed * 0.02) % 2 : 0;
-    const z = 16;
+    const leg = onGround ? Math.floor(anim * speed * 0.025) % 2 : 0;
     const body = deepCave ? "#c5d8ec" : "#e8f4ff";
     const accent = deepCave ? "#5b8fd4" : "#3d7ecc";
     const belly = deepCave ? "#8aa8c8" : "#b8d4f0";
-    const shadowA = Math.max(0.12, 0.35 - (dino.y < GROUND_Y - dino.h ? (GROUND_Y - dino.h - dino.y) * 0.002 : 0));
 
-    // Shadow on path
+    // Shadow
+    const sh = project(x, 0.5, z);
     ctx.save();
-    ctx.globalAlpha = shadowA;
-    drawPoly(
-      [
-        iso(x + 8, 0.5, z + 4),
-        iso(x + w - 4, 0.5, z + 4),
-        iso(x + w - 4, 0.5, z + 28),
-        iso(x + 8, 0.5, z + 28)
-      ],
-      "#0a1520"
-    );
+    ctx.globalAlpha = Math.max(0.12, 0.4 - y * 0.004);
+    ctx.fillStyle = "#061018";
+    ctx.beginPath();
+    ctx.ellipse(sh.x, sh.y, 28 * sh.s * 2.5, 10 * sh.s * 2.5, 0, 0, Math.PI * 2);
+    ctx.fill();
     ctx.restore();
 
     if (ducking) {
-      drawBox3({ x: x + 4, y: footY + 6, z, w: w * 0.85, h: h * 0.7, d: 34, color: accent }, 1);
-      drawBox3({ x: x + w * 0.55, y: footY + 10, z: z + 4, w: 28, h: h * 0.45, d: 26, color: body }, 1);
-      drawBox3({ x: x - 10, y: footY + 12, z: z + 8, w: 18, h: 10, d: 14, color: accent }, 1);
-      const eye = iso(x + w * 0.9, footY + h * 0.55, z + 28);
-      ctx.fillStyle = "#0a1520";
-      ctx.fillRect(eye.x, eye.y, 4, 4);
+      drawBoxAt(x, y + 4, z, 54, DUCK_H * 0.85, 36, accent);
+      drawBoxAt(x + 16, y + 8, z + 6, 28, 16, 24, body);
+      drawBoxAt(x - 22, y + 10, z + 8, 18, 10, 14, accent);
     } else {
-      // Legs
-      drawBox3(
-        { x: x + 16, y: footY, z: z + 6, w: 12, h: 16 + (leg ? 3 : 0), d: 14, color: accent },
-        1
-      );
-      drawBox3(
-        { x: x + 34, y: footY, z: z + 10, w: 12, h: 16 + (leg ? 0 : 3), d: 14, color: accent },
-        1
-      );
-      // Body
-      drawBox3({ x: x + 10, y: footY + 14, z, w: 36, h: 32, d: 30, color: accent }, 1);
-      drawBox3({ x: x + 16, y: footY + 18, z: z + 4, w: 24, h: 18, d: 22, color: belly }, 1);
-      // Head
-      drawBox3({ x: x + 38, y: footY + 36, z: z + 4, w: 26, h: 22, d: 24, color: body }, 1);
-      drawBox3({ x: x + 58, y: footY + 40, z: z + 8, w: 14, h: 12, d: 16, color: accent }, 1);
-      // Horn
-      drawCrystal(x + 44, footY + 56, 10, 16, 10, "#9ec5e8");
-      // Wing
-      const wing = Math.sin(anim * 10) * 6;
-      drawBox3(
-        {
-          x: x + 6,
-          y: footY + 28 + wing * 0.2,
-          z: z - 6,
-          w: 18,
-          h: 8,
-          d: 36 + wing * 0.3,
-          color: deepCave ? "#6a90c8" : "#5a96dc"
-        },
-        0.92
-      );
-      // Tail
-      drawBox3({ x: x - 8, y: footY + 22, z: z + 10, w: 22, h: 10, d: 12, color: accent }, 1);
-      // Eye
-      const eye = iso(x + 52, footY + 50, z + 28);
+      drawBoxAt(x - 10, y, z + 4, 12, 14 + (leg ? 3 : 0), 12, accent);
+      drawBoxAt(x + 10, y, z + 8, 12, 14 + (leg ? 0 : 3), 12, accent);
+      drawBoxAt(x, y + 12, z, 40, 34, 32, accent);
+      drawBoxAt(x, y + 16, z + 4, 26, 20, 24, belly);
+      drawBoxAt(x + 8, y + 38, z + 4, 28, 22, 26, body);
+      drawBoxAt(x + 22, y + 42, z + 10, 14, 12, 16, accent);
+      drawBoxAt(x + 4, y + 58, z + 8, 8, 14, 8, "#9ec5e8");
+      const wing = Math.sin(anim * 10) * 5;
+      drawBoxAt(x - 18, y + 28 + wing * 0.2, z - 4, 16, 8, 34, deepCave ? "#6a90c8" : "#5a96dc");
+      drawBoxAt(x - 24, y + 22, z + 10, 20, 10, 12, accent);
+      const eye = project(x + 14, y + 52, z + 28);
       ctx.fillStyle = "#0a1520";
       ctx.beginPath();
-      ctx.arc(eye.x, eye.y, 3, 0, Math.PI * 2);
+      ctx.arc(eye.x, eye.y, 3.2, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = "#fff";
       ctx.beginPath();
@@ -701,64 +616,33 @@
 
   function drawSpike(o) {
     const tip = deepCave ? "#8eb4d4" : "#d8f2ff";
-    const baseH = o.h;
-    const worldY = GROUND_Y - o.y - o.h;
-    void worldY;
-    drawCrystal(o.x, 0, o.w, baseH, 28, tip);
-    if (o.twin) drawCrystal(o.x + o.w + 8, 0, o.w, baseH - 6, 24, tip);
+    drawCrystalAt(o.x, o.z, o.w, o.h, tip);
+    if (o.twin) drawCrystalAt(o.x + o.w * 0.9, o.z + 8, o.w * 0.85, o.h - 8, tip);
   }
 
   function drawBat(o) {
     const flap = Math.sin(anim * 14) > 0;
-    const baseY = GROUND_Y - o.y - o.h;
-    const z = 20;
     const color = deepCave ? "#9bb8d4" : "#c5e0f5";
-    // Ice tether from ceiling
-    const top = iso(o.x + o.w * 0.5, GROUND_Y - 8, z + 10);
-    const mid = iso(o.x + o.w * 0.5, baseY + o.h, z + 10);
-    ctx.strokeStyle = deepCave ? "rgba(160,200,240,0.55)" : "rgba(210,235,255,0.7)";
-    ctx.lineWidth = 3;
+    // Tether to ceiling
+    const top = project(o.x, 140, o.z);
+    const mid = project(o.x, o.y + o.h, o.z);
+    ctx.strokeStyle = deepCave ? "rgba(160,200,240,0.5)" : "rgba(210,235,255,0.7)";
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.moveTo(top.x - 10, 4);
-    ctx.lineTo(mid.x - 6, mid.y);
-    ctx.moveTo(top.x + 10, 4);
-    ctx.lineTo(mid.x + 6, mid.y);
+    ctx.moveTo(top.x - 8, HORIZON + 4);
+    ctx.lineTo(mid.x - 4, mid.y);
+    ctx.moveTo(top.x + 8, HORIZON + 4);
+    ctx.lineTo(mid.x + 4, mid.y);
     ctx.stroke();
 
-    drawBox3(
-      {
-        x: o.x + 10,
-        y: baseY + 8,
-        z,
-        w: o.w - 20,
-        h: o.h - 12,
-        d: 28,
-        color
-      },
-      1
-    );
-    // Wings
-    const wingD = flap ? 40 : 22;
-    drawBox3(
-      { x: o.x - 8, y: baseY + 14, z: z + 4, w: 22, h: 8, d: wingD, color: shade(color, 0.85) },
-      0.9
-    );
-    drawBox3(
-      {
-        x: o.x + o.w - 14,
-        y: baseY + 14,
-        z: z + 4,
-        w: 22,
-        h: 8,
-        d: wingD,
-        color: shade(color, 0.85)
-      },
-      0.9
-    );
+    drawBoxAt(o.x, o.y, o.z, o.w * 0.55, o.h * 0.7, 28, color);
+    const wingW = flap ? 36 : 22;
+    drawBoxAt(o.x - 28, o.y + 10, o.z + 4, wingW, 8, 20, shade(color, 0.85));
+    drawBoxAt(o.x + 28, o.y + 10, o.z + 4, wingW, 8, 20, shade(color, 0.85));
 
-    if (dino && o.x < dino.x + 220 && o.x + o.w > dino.x - 20 && !dino.ducking) {
-      const label = iso(o.x + o.w * 0.5, baseY + o.h + 10, z);
-      ctx.fillStyle = "rgba(255, 220, 120, 0.9)";
+    if (dino && o.z < 280 && o.z > PLAYER_Z && !dino.ducking) {
+      const label = project(o.x, o.y + o.h + 16, o.z);
+      ctx.fillStyle = "rgba(255, 220, 120, 0.95)";
       ctx.font = "700 14px Outfit, sans-serif";
       ctx.textAlign = "center";
       ctx.fillText("↓ DUCK", label.x, label.y);
@@ -768,13 +652,15 @@
   function draw() {
     ctx.clearRect(0, 0, W, H);
     ctx.imageSmoothingEnabled = true;
-    ctx.shadowBlur = 0;
-    ctx.shadowColor = "transparent";
-    drawCaveBackdrop();
-    drawChaseDragon();
+    drawBackdrop();
+    drawRoad();
     flakes.forEach(drawFlake);
-    drawGround3D();
-    obstacles.forEach((o) => (o.type === "bat" ? drawBat(o) : drawSpike(o)));
+
+    // Painter's algorithm: far → near
+    const sorted = obstacles.slice().sort((a, b) => b.z - a.z);
+    sorted.forEach((o) => (o.type === "bat" ? drawBat(o) : drawSpike(o)));
+
+    drawChaseDragon();
     drawRunner();
 
     ctx.fillStyle = "#e8f4ff";
@@ -784,11 +670,10 @@
     ctx.shadowBlur = 6;
     ctx.fillText(String(Math.floor(score)).padStart(5, "0"), W - 24, 40);
     ctx.shadowBlur = 0;
-    ctx.shadowColor = "transparent";
     if (waitingStart && !dead) {
       ctx.textAlign = "center";
-      ctx.font = "700 30px Outfit, sans-serif";
-      ctx.fillText("Press Space / Tap to flee", W / 2, H * 0.38);
+      ctx.font = "700 28px Outfit, sans-serif";
+      ctx.fillText("Press Space / Tap to flee into the cave", W / 2, H * 0.48);
     }
   }
 
@@ -801,8 +686,7 @@
     if (running && !paused && !dead) update(dt);
     else if (!running && !dead) {
       anim += dt;
-      groundX -= 40 * dt;
-      if (groundX < -SCROLL_WRAP * 8) groundX = wrapMod(groundX, SCROLL_WRAP) - SCROLL_WRAP;
+      roadPhase += 35 * dt;
     }
     draw();
   }
@@ -896,6 +780,12 @@
       e.preventDefault();
       duckKeyHeld = true;
       syncDuck();
+    } else if (e.code === "ArrowLeft" || e.code === "KeyA") {
+      e.preventDefault();
+      if (dino && running && !paused && !dead) dino.x = Math.max(-PATH_HALF * 0.65, dino.x - 28);
+    } else if (e.code === "ArrowRight" || e.code === "KeyD") {
+      e.preventDefault();
+      if (dino && running && !paused && !dead) dino.x = Math.min(PATH_HALF * 0.65, dino.x + 28);
     } else if (e.code === "Escape") {
       pauseGame();
     }
@@ -906,6 +796,23 @@
       syncDuck();
     }
   });
+
+  // Touch: swipe left/right to strafe
+  let swipeX0 = null;
+  canvas?.addEventListener("pointerdown", (e) => {
+    swipeX0 = e.clientX;
+  }, true);
+  canvas?.addEventListener("pointerup", (e) => {
+    if (swipeX0 == null || !dino || !running || paused || dead) {
+      swipeX0 = null;
+      return;
+    }
+    const dx = e.clientX - swipeX0;
+    if (Math.abs(dx) > 40) {
+      dino.x = Math.max(-PATH_HALF * 0.65, Math.min(PATH_HALF * 0.65, dino.x + Math.sign(dx) * 36));
+    }
+    swipeX0 = null;
+  }, true);
 
   resetWorld();
   waitingStart = true;
