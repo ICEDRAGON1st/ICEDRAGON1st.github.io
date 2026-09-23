@@ -5,6 +5,9 @@
   const COLS = 5;
   const ROWS = 5;
   const CELLS = COLS * ROWS;
+  const OFFLINE_CLAIM_BONUS_MS = 90 * 1000;
+  const OFFLINE_CLAIM_BONUS = 0.25;
+  const OFFLINE_MAX_MS = 4 * 3600 * 1000;
 
   const COWS = [
     { tier: 1, name: "Calf", emoji: "🐮", color: "#d8f5a2", mps: 1 },
@@ -128,7 +131,8 @@
       autoOn: {},
       calvesBought: 0,
       bestTier: 0,
-      lastTick: Date.now()
+      lastTick: Date.now(),
+      pendingOffline: null
     };
   }
 
@@ -484,6 +488,8 @@
       next.calvesBought = Math.max(0, Math.floor(Number(raw.calvesBought) || 0));
       next.bestTier = Math.max(0, Math.floor(Number(raw.bestTier) || 0), getStoredBest());
       next.lastTick = Math.max(0, Number(raw.lastTick) || Date.now());
+      next.pendingOffline =
+        raw.pendingOffline && typeof raw.pendingOffline === "object" ? raw.pendingOffline : null;
       if (Array.isArray(raw.board)) {
         next.board = Array(CELLS)
           .fill(0)
@@ -639,18 +645,90 @@
 
   function offlineProgress() {
     const now = Date.now();
-    const elapsed = Math.min(4 * 3600 * 1000, Math.max(0, now - (state.lastTick || now)));
-    if (elapsed < 5000) {
+    const elapsed = Math.min(OFFLINE_MAX_MS, Math.max(0, now - (state.lastTick || now)));
+    if (elapsed < 8000) {
       state.lastTick = now;
       return;
     }
     const mps = herdMps();
-    if (mps > 0) {
-      const gained = mps * (elapsed / 1000) * offlineMult();
-      addMilk(gained);
-      setStatus(`While away your herd made ${formatNum(gained)} milk`, "ok");
+    if (mps <= 0) {
+      state.lastTick = now;
+      return;
     }
+    const gained = Math.floor(mps * (elapsed / 1000) * offlineMult());
+    if (gained > 0) addMilk(gained);
     state.lastTick = now;
+    if (gained > 0) {
+      state.pendingOffline = {
+        milk: gained,
+        hours: Math.max(0.01, elapsed / 3600000),
+        expiresAt: now + OFFLINE_CLAIM_BONUS_MS,
+        claimed: false
+      };
+      showOfflineClaim();
+    }
+  }
+
+  function offlineBonusReady() {
+    const p = state.pendingOffline;
+    if (!p || p.claimed) return false;
+    return Date.now() <= (Number(p.expiresAt) || 0);
+  }
+
+  function claimOfflineBonus() {
+    const p = state.pendingOffline;
+    if (!p || p.claimed) return 0;
+    const bonusReady = offlineBonusReady();
+    p.claimed = true;
+    let bonus = 0;
+    if (bonusReady && (Number(p.milk) || 0) > 0) {
+      bonus = Math.floor(Number(p.milk) * OFFLINE_CLAIM_BONUS);
+      if (bonus > 0) addMilk(bonus);
+    }
+    state.pendingOffline = null;
+    hideOfflineClaim();
+    if (bonus > 0) {
+      setStatus(
+        `Claim bonus +${formatNum(bonus)} milk (+${Math.round(OFFLINE_CLAIM_BONUS * 100)}%)`,
+        "ok"
+      );
+      window.HubSound?.play?.("win");
+    } else {
+      setStatus("Herd haul claimed", "ok");
+      window.HubSound?.play?.("click");
+    }
+    renderStats();
+    saveSoon();
+    return bonus;
+  }
+
+  function showOfflineClaim() {
+    const overlay = document.getElementById("offline-claim-overlay");
+    const body = document.getElementById("offline-claim-body");
+    const bonusEl = document.getElementById("offline-claim-bonus");
+    const p = state.pendingOffline;
+    if (!overlay || !p) return;
+    if (body) {
+      const milk = Number(p.milk) || 0;
+      body.textContent =
+        milk > 0
+          ? `While away (${Number(p.hours).toFixed(1)}h) your herd made ${formatNum(milk)} milk.`
+          : `While away (${Number(p.hours).toFixed(1)}h) your herd kept milking.`;
+    }
+    if (bonusEl) {
+      const pot = Math.floor((Number(p.milk) || 0) * OFFLINE_CLAIM_BONUS);
+      bonusEl.textContent =
+        pot > 0
+          ? `Claim within ${Math.round(OFFLINE_CLAIM_BONUS_MS / 1000)}s for +${formatNum(pot)} (+${Math.round(
+              OFFLINE_CLAIM_BONUS * 100
+            )}%)`
+          : "Tap claim to continue";
+    }
+    overlay.classList.remove("hidden");
+  }
+
+  function hideOfflineClaim() {
+    document.getElementById("offline-claim-overlay")?.classList.add("hidden");
   }
 
   function renderPasture() {
@@ -993,9 +1071,15 @@
     guideOverlay?.classList.add("hidden");
   });
 
+  document.getElementById("offline-claim-btn")?.addEventListener("click", () => claimOfflineBonus());
+  document.getElementById("offline-claim-overlay")?.addEventListener("click", (e) => {
+    if (e.target?.id === "offline-claim-overlay") claimOfflineBonus();
+  });
+
   // Boot
   state = loadState();
   offlineProgress();
+  if (state.pendingOffline && !state.pendingOffline.claimed) showOfflineClaim();
   render();
   maybeSubmitBest(true);
   setInterval(tick, TICK_MS);

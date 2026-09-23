@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260923ao">
+  <link rel="stylesheet" href="styles.css?v=20260923ap">
 </head>
 <body>
   <header class="top-bar">
@@ -88,6 +88,16 @@
     </div>
   </div>
 
+  <div id="offline-claim-overlay" class="overlay offline-claim-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="offline-claim-title">
+    <div class="overlay-card offline-claim-card">
+      <p class="eyebrow">Herd haul</p>
+      <h2 id="offline-claim-title">While you were away</h2>
+      <p id="offline-claim-body" class="offline-claim-body">Your herd kept milking.</p>
+      <p id="offline-claim-bonus" class="offline-claim-bonus"></p>
+      <button id="offline-claim-btn" type="button" class="btn">Claim</button>
+    </div>
+  </div>
+
   <div id="guide-overlay" class="overlay hidden">
     <div class="overlay-card guide-card">
       <p class="eyebrow">Evolution ladder</p>
@@ -110,6 +120,6 @@
   <script src="../hub-friends.js?v=20260923u"></script>
   <script src="../hub-chat.js?v=20260923u"></script>
 <script src="../hub-leaderboard.js?v=20260923u"></script>
-  <script src="script.js?v=20260923ao"></script>
+  <script src="script.js?v=20260923ap"></script>
 </body>
 </html>

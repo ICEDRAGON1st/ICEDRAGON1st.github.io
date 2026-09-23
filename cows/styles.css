@@ -526,6 +526,28 @@ body {
   cursor: not-allowed;
 }
 
+.offline-claim-overlay {
+  z-index: 80;
+}
+
+.offline-claim-card {
+  max-width: 22rem;
+  text-align: center;
+}
+
+.offline-claim-body {
+  color: var(--muted);
+  margin: 0.5rem 0 0.35rem;
+  line-height: 1.45;
+}
+
+.offline-claim-bonus {
+  color: var(--cream);
+  font-weight: 700;
+  margin: 0 0 1rem;
+  min-height: 1.2em;
+}
+
 .float-layer {
   position: fixed;
   inset: 0;
