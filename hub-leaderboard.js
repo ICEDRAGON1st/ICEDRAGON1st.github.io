@@ -66,6 +66,13 @@
 
   const GAME_IDS = Object.keys(GAME_META);
 
+  /** Owner accounts never earn Hub Points — others rank as if these slots were empty. */
+  const POINTS_EXCLUDED_KEYS = new Set([
+    "ice_dragon",
+    "ice_dragon phone",
+    "ice_dragon alt"
+  ]);
+
   let cache = { games: {} };
   let lastSync = 0;
   let submitQueue = Promise.resolve();
@@ -977,9 +984,14 @@
         }
         return (a.at || 0) - (b.at || 0);
       });
+
+    // Competitive points ignore owner accounts so #2 behind ICE_DRAGON still gets 10 pts
+    let competitiveRank = 0;
     return rows.map((entry, i) => {
       const rank = i + 1;
-      const points = pointsForRank(rank);
+      const excluded = isPointsExcluded(entry.name);
+      if (!excluded) competitiveRank += 1;
+      const points = excluded ? 0 : pointsForRank(competitiveRank);
       return {
         rank,
         name: entry.name,
@@ -988,10 +1000,15 @@
         lowerBetter,
         fishing: entry.fishing || null,
         points,
+        pointsExcluded: excluded,
         label: formatScore(gameId, entry.score, entry),
         isYou: me && nameKey(entry.name) === me
       };
     });
+  }
+
+  function isPointsExcluded(name) {
+    return POINTS_EXCLUDED_KEYS.has(nameKey(name));
   }
 
   /** Top 10 placement points: #1=10 … #10=1, else 0. Recalculates live when ranks change. */
@@ -1008,7 +1025,8 @@
       if (gameId === "hub-points") return;
       const board = getBoard(gameId);
       board.forEach((row) => {
-        const pts = pointsForRank(row.rank);
+        if (isPointsExcluded(row.name)) return;
+        const pts = Number(row.points) || 0;
         if (pts <= 0) return;
         const key = nameKey(row.name);
         if (!key) return;
