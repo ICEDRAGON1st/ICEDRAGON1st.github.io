@@ -163,6 +163,40 @@
       state[blockKey] = cur + added;
       return added;
     }
+
+    let chestKey = "";
+    if (
+      item === "chest-luck" ||
+      item === "luck-chest" ||
+      idLower === "__chest_luck__" ||
+      idLower === "luck_chest" ||
+      idLower === "luckchest"
+    ) {
+      chestKey = "luckChestCount";
+    } else if (
+      item === "chest-money" ||
+      item === "money-chest" ||
+      item === "coin-chest" ||
+      idLower === "__chest_money__" ||
+      idLower === "coin_chest" ||
+      idLower === "moneychest" ||
+      idLower === "coinchest"
+    ) {
+      chestKey = "moneyChestCount";
+    }
+    if (chestKey) {
+      const count = Math.min(50, Math.max(1, Number(gift.count) || 1));
+      const max = 100;
+      let added = 0;
+      const cur = Math.max(0, Math.floor(Number(state[chestKey]) || 0));
+      for (let i = 0; i < count; i += 1) {
+        if (cur + added >= max) break;
+        added += 1;
+      }
+      state[chestKey] = cur + added;
+      return added;
+    }
+
     if (!fishId) return 0;
     const count = Math.min(50, Math.max(1, Number(gift.count) || 1));
     const variant = normalizeVariant(gift.variant);
@@ -287,23 +321,46 @@
       id === "__luckyblock_zenith__" ||
       id === "luckyblock-zenith" ||
       id === "zenithluckyblock";
+    const isLuckChest =
+      id === "__chest_luck__" || id === "luck_chest" || id === "luckchest" || id === "chest-luck";
+    const isMoneyChest =
+      id === "__chest_money__" ||
+      id === "coin_chest" ||
+      id === "moneychest" ||
+      id === "coinchest" ||
+      id === "chest-money";
     const isBlock = isAstral || isAbsolute || isZenith;
+    const isChest = isLuckChest || isMoneyChest;
     const blockName = isZenith
       ? "Zenith Lucky Block"
       : isAstral
         ? "Astral Lucky Block"
         : "Absolute Lucky Block";
-    const body = isBlock
-      ? gained === 1
-        ? `A ${blockName} was added to your Fishing Idle stash.`
-        : `${gained} ${blockName}s were added to your Fishing Idle stash.`
-      : gained === 1
-        ? `A fish was added to your Fishing Idle cooler${sampleId ? ` (${sampleId})` : ""}.`
-        : `${gained} fish were added to your Fishing Idle cooler.`;
+    const chestName = isLuckChest ? "Luck Chest" : "Coin Chest";
+    let title = "Fishing gift";
+    let body;
+    if (isBlock) {
+      title = `${blockName} gift`;
+      body =
+        gained === 1
+          ? `A ${blockName} was added to your Fishing Idle stash.`
+          : `${gained} ${blockName}s were added to your Fishing Idle stash.`;
+    } else if (isChest) {
+      title = `${chestName} gift`;
+      body =
+        gained === 1
+          ? `A ${chestName} was added to your Fishing Idle stash.`
+          : `${gained} ${chestName}s were added to your Fishing Idle stash.`;
+    } else {
+      body =
+        gained === 1
+          ? `A fish was added to your Fishing Idle cooler${sampleId ? ` (${sampleId})` : ""}.`
+          : `${gained} fish were added to your Fishing Idle cooler.`;
+    }
     try {
       window.HubNotifications?.push?.({
         kind: "gift",
-        title: isBlock ? `${blockName} gift` : "Fishing gift",
+        title,
         body,
         href: "fishing/index.html"
       });
@@ -360,7 +417,11 @@
             ? "__luckyblock_astral__"
             : g.item === "luckyblock" || g.fishId === "__luckyblock__"
               ? "__luckyblock__"
-              : g.fishId || sampleId
+              : g.item === "chest-luck" || g.fishId === "__chest_luck__"
+                ? "__chest_luck__"
+                : g.item === "chest-money" || g.fishId === "__chest_money__"
+                  ? "__chest_money__"
+                  : g.fishId || sampleId
       );
       claimed.add(gid);
       toClaim.push(gid);

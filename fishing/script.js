@@ -335,6 +335,63 @@
     return null;
   }
 
+  const CHEST_GIFT_TYPES = {
+    money: {
+      kind: "money",
+      name: "Coin Chest",
+      giftId: "__chest_money__",
+      item: "chest-money"
+    },
+    luck: {
+      kind: "luck",
+      name: "Luck Chest",
+      giftId: "__chest_luck__",
+      item: "chest-luck"
+    }
+  };
+
+  function resolveChestGiftKind(raw) {
+    const s = String(raw || "")
+      .toLowerCase()
+      .replace(/[^a-z]/g, "");
+    if (!s) return null;
+    if (s === "luck" || s === "lucky" || s === "luckchest") return "luck";
+    if (s === "money" || s === "coin" || s === "coins" || s === "sell" || s === "coinchest" || s === "moneychest") {
+      return "money";
+    }
+    return null;
+  }
+
+  function chestGiftDef(kind) {
+    return CHEST_GIFT_TYPES[kind === "luck" ? "luck" : "money"] || CHEST_GIFT_TYPES.money;
+  }
+
+  function chestKindFromGift(g) {
+    const item = String(g?.item || "").toLowerCase();
+    const fishId = String(g?.fishId || "").toLowerCase();
+    if (
+      item === "chest-luck" ||
+      item === "luck-chest" ||
+      fishId === "__chest_luck__" ||
+      fishId === "luck_chest" ||
+      fishId === "luckchest"
+    ) {
+      return "luck";
+    }
+    if (
+      item === "chest-money" ||
+      item === "money-chest" ||
+      item === "coin-chest" ||
+      fishId === "__chest_money__" ||
+      fishId === "coin_chest" ||
+      fishId === "moneychest" ||
+      fishId === "coinchest"
+    ) {
+      return "money";
+    }
+    return null;
+  }
+
   const FISH = [
     // Common
     { id: "minnow", name: "Minnow", rarity: "common", value: 3 },
@@ -4639,6 +4696,8 @@ function aquariumRatePerSec() {
     "give astral luckyblock",
     "give absolute luckyblock",
     "give zenith luckyblock",
+    "give coin chest",
+    "give luck chest",
     "5x luck",
     "5x sell",
     "5x gold",
@@ -4647,6 +4706,7 @@ function aquariumRatePerSec() {
     "5x toxic",
     "5x lava",
     "5x neon",
+    "5x chest",
     "5x luckyblock",
     "storm",
     "calm",
@@ -4657,6 +4717,7 @@ function aquariumRatePerSec() {
     "clear toxic",
     "clear lava",
     "clear neon",
+    "clear chest",
     "clear luckyblock",
     "luck",
     "sell",
@@ -4665,6 +4726,7 @@ function aquariumRatePerSec() {
     "toxic",
     "lava",
     "neon",
+    "chest",
     "luckyblock",
     "global",
     "local"
@@ -4994,6 +5056,7 @@ function aquariumRatePerSec() {
       rawKind === "clear-mutation" || rawKind === "clear-mutations";
     const clearLuckyBlockOnly =
       rawKind === "clear-luckyblock" || rawKind === "clear-lb" || rawKind === "clear-block";
+    const clearChestOnly = rawKind === "clear-chest" || rawKind === "clear-chests";
     const clearWeatherOnly =
       rawKind === "clear-weather" || rawKind === "clear-wx" || rawKind === "clear-storm";
     const wantGlobal = scope === "global";
@@ -5048,6 +5111,7 @@ function aquariumRatePerSec() {
       clearLavaOnly ||
       clearNeonOnly ||
       clearLuckyBlockOnly ||
+      clearChestOnly ||
       clearWeatherOnly;
     if (
       !isClear &&
@@ -5061,7 +5125,7 @@ function aquariumRatePerSec() {
     ) {
       adminBusy = false;
       setCatchLine(
-        "Try: 5x luck · 5x toxic · 5x lava · 5x neon · storm · calm · sunny · 5x luckyblock · clear · clear toxic · clear mutation",
+        "Try: 5x luck · 5x toxic · 5x lava · 5x neon · storm · calm · sunny · 5x chest · 5x luckyblock · clear · clear toxic · clear mutation",
         "miss"
       );
       return false;
@@ -5081,23 +5145,25 @@ function aquariumRatePerSec() {
         ? "variant"
         : clearMutationOnly || clearToxicOnly || clearLavaOnly || clearNeonOnly
           ? "mutation"
-          : clearLuckyBlockOnly
-            ? "luckyblock"
-            : clearWeatherOnly
-              ? "weather"
-              : clearBoostOnly
-                ? "boost"
-                : eventKind === "variant"
-                  ? "variant"
-                  : eventKind === "mutation"
-                    ? "mutation"
-                    : eventKind === "chest"
-                      ? "chest"
-                      : eventKind === "luckyblock"
-                        ? "luckyblock"
-                        : eventKind === "weather"
-                          ? "weather"
-                          : "boost";
+          : clearChestOnly
+            ? "chest"
+            : clearLuckyBlockOnly
+              ? "luckyblock"
+              : clearWeatherOnly
+                ? "weather"
+                : clearBoostOnly
+                  ? "boost"
+                  : eventKind === "variant"
+                    ? "variant"
+                    : eventKind === "mutation"
+                      ? "mutation"
+                      : eventKind === "chest"
+                        ? "chest"
+                        : eventKind === "luckyblock"
+                          ? "luckyblock"
+                          : eventKind === "weather"
+                            ? "weather"
+                            : "boost";
 
     const channelPayload = {
       token: ADMIN_EVENT_TOKEN,
@@ -5136,6 +5202,7 @@ function aquariumRatePerSec() {
     else if (clearToxicOnly || clearLavaOnly || clearNeonOnly) {
       applyAdminLocally("mutation", { target: clearMutationTarget }, true);
     } else if (clearLuckyBlockOnly) applyAdminLocally("luckyblock", null, true);
+    else if (clearChestOnly) applyAdminLocally("chest", null, true);
     else if (clearWeatherOnly) applyAdminLocally("weather", null, true);
     else applyAdminLocally(channel, channelPayload, false);
 
@@ -5154,9 +5221,11 @@ function aquariumRatePerSec() {
           : mutationClearLabel ||
             (clearLuckyBlockOnly
               ? "lucky blocks"
-              : clearWeatherOnly
-                ? "weather"
-                : "luck/sell")
+              : clearChestOnly
+                ? "chests"
+                : clearWeatherOnly
+                  ? "weather"
+                  : "luck/sell")
       : eventKind === "variant"
         ? formatAdminVariantLabel(eventTarget)
         : eventKind === "mutation"
@@ -5578,7 +5647,9 @@ function aquariumRatePerSec() {
     const claimed = readClaimedGiftIds();
     let gained = 0;
     let blocks = 0;
+    let chests = 0;
     let blockLabel = "";
+    let chestLabel = "";
     let label = "";
     const toClaim = [];
 
@@ -5610,6 +5681,15 @@ function aquariumRatePerSec() {
         toClaim.push(gid);
         return;
       }
+      const chestKind = chestKindFromGift(g);
+      if (chestKind) {
+        const added = grantQuestChests(chestKind, count);
+        chests += added;
+        if (added) chestLabel = chestGiftDef(chestKind).name;
+        claimed.add(gid);
+        toClaim.push(gid);
+        return;
+      }
       const fish = fishById(g.fishId);
       if (!fish) return;
       const entryOpts = {
@@ -5627,11 +5707,16 @@ function aquariumRatePerSec() {
       toClaim.push(gid);
     });
 
-    if (!gained && !blocks) return;
+    if (!gained && !blocks && !chests) return;
     writeClaimedGiftIds(claimed);
     saveState();
     render(true);
-    if (blocks && !gained) {
+    if (chests && !gained && !blocks) {
+      setCatchLine(
+        chests === 1 ? `Gift received: ${chestLabel}` : `Gift received: ${chests}× ${chestLabel}`,
+        "treasure"
+      );
+    } else if (blocks && !gained && !chests) {
       setCatchLine(
         blocks === 1 ? `Gift received: ${blockLabel}` : `Gift received: ${blocks}× ${blockLabel}`,
         "treasure"
@@ -5641,6 +5726,8 @@ function aquariumRatePerSec() {
         gained === 1 ? `Gift received: ${label}` : `Gift received: ${gained}× ${label}`,
         "treasure"
       );
+    } else {
+      setCatchLine("Gift received", "treasure");
     }
     playSfx("win");
     toClaim.forEach((gid) => {
@@ -5799,6 +5886,9 @@ function aquariumRatePerSec() {
       if (/\blucky\s*-?\s*blocks?\b|\bluckyblock\b|\blb\b/.test(text)) {
         return { kind: "clear-luckyblock", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
       }
+      if (/\bchests?\b/.test(text)) {
+        return { kind: "clear-chest", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
+      }
       if (/\b(luck|sell|money|coin|boost)\b/.test(text)) {
         return { kind: "clear-boost", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
       }
@@ -5837,7 +5927,7 @@ function aquariumRatePerSec() {
 
     if (
       !usedExplicitMult &&
-      /^(sell|money|coin|luck|luckyblock|lucky\s*-?\s*blocks?|lb|silver|gold|diamond|rainbow|shiny|any|variant|storm|calm|sunny|weather)(\s+(silver|gold|diamond|rainbow|shiny|any|storm|calm|none|clear|sunny|skies|sky))*$/.test(
+      /^(sell|money|coin|luck|chest|chests|luckyblock|lucky\s*-?\s*blocks?|lb|silver|gold|diamond|rainbow|shiny|any|variant|storm|calm|sunny|weather)(\s+(silver|gold|diamond|rainbow|shiny|any|storm|calm|none|clear|sunny|skies|sky))*$/.test(
         text
       )
     ) {
@@ -5861,6 +5951,9 @@ function aquariumRatePerSec() {
     }
     if (/\blucky\s*-?\s*blocks?\b/.test(text) || /\bluckyblock\b/.test(text) || text === "lb") {
       return { kind: "luckyblock", minutes, mult, scope, target: "" };
+    }
+    if (/\bchests?\b/.test(text)) {
+      return { kind: "chest", minutes, mult, scope, target: "" };
     }
     if (/\bneon\b/.test(text)) {
       return { kind: "mutation", minutes, mult, scope, target: "neon" };
@@ -5917,6 +6010,135 @@ function aquariumRatePerSec() {
     }
 
     return { kind: "give-luckyblock", type, count, to };
+  }
+
+  function parseGiveChestCommand(raw) {
+    const original = String(raw || "").trim();
+    const head = original.match(
+      /^(give|gift)\s+(?:(money|coin|coins|sell|luck|lucky)\s+)?chests?(?:\s+(money|coin|coins|sell|luck|lucky))?\b/i
+    );
+    if (!head) return null;
+
+    const kind =
+      resolveChestGiftKind(head[2] || head[3] || "money") || "money";
+    let rest = original.slice(head[0].length).trim();
+    let to = "me";
+    const toMatch = rest.match(/\bto\s+@?(.+)$/i);
+    if (toMatch) {
+      to = toMatch[1].trim();
+      rest = rest.slice(0, toMatch.index).trim();
+    } else if (/\b(everyone|everybody|all players|all|global)\s*$/i.test(rest)) {
+      to = "everyone";
+      rest = rest.replace(/\b(everyone|everybody|all players|all|global)\s*$/i, "").trim();
+    } else if (/\b(me|self)\s*$/i.test(rest)) {
+      rest = rest.replace(/\b(me|self)\s*$/i, "").trim();
+      to = "me";
+    }
+
+    let count = 1;
+    const countMatch = rest.match(/(?:^|\s)(?:x\s*(\d{1,2})|(\d{1,2})\s*x)(?:\s|$)/i);
+    if (countMatch) {
+      count = Math.min(50, Math.max(1, Number(countMatch[1] || countMatch[2]) || 1));
+    }
+
+    return { kind: "give-chest", chestKind: kind, count, to };
+  }
+
+  function storeAdminChests(kind, count, opts = {}) {
+    const added = grantQuestChests(kind, count);
+    if (!added) {
+      if (!opts.silent) {
+        setCatchLine("Chest stash full", "miss");
+        playSfx("miss");
+      }
+      return 0;
+    }
+    renderTreasureStash();
+    saveState();
+    if (!opts.silent) playSfx("win");
+    return added;
+  }
+
+  async function runGiveChestCommand(cmd) {
+    if (!isFishingOwner()) {
+      setCatchLine("Admin only", "miss");
+      return;
+    }
+    const chestKind = cmd.chestKind === "luck" ? "luck" : "money";
+    const def = chestGiftDef(chestKind);
+    const count = Math.min(50, Math.max(1, Number(cmd.count) || 1));
+    let toRaw = String(cmd.to || "me").trim();
+    if (
+      (!toRaw || toRaw.toLowerCase() === "me" || toRaw.toLowerCase() === "self") &&
+      getAdminScope() === "global" &&
+      !cmd.forceSelf
+    ) {
+      toRaw = "everyone";
+    }
+    const toKey = toRaw.toLowerCase();
+    const isEveryone = isEveryoneGiftTarget(toKey);
+    const isSelf =
+      !isEveryone &&
+      (!toKey || toKey === "me" || toKey === "self" || toKey === playerNameLower());
+
+    if (isSelf) {
+      const added = storeAdminChests(chestKind, count);
+      if (!added) return;
+      setCatchLine(
+        added === 1 ? `Gave ${def.name} to you` : `Gave ${added}× ${def.name} to you`,
+        "treasure"
+      );
+      return;
+    }
+
+    if (isEveryone) {
+      setCatchLine(`Sending ${def.name} to everyone…`, "");
+      const ok = await queueFishGift({
+        toName: "*",
+        toPlayerId: "",
+        toDisplay: "everyone",
+        broadcast: true,
+        fishId: def.giftId,
+        item: def.item,
+        count
+      });
+      if (!ok) {
+        setCatchLine(`Couldn't queue ${def.name} — try again`, "miss");
+        playSfx("miss");
+        return;
+      }
+      setCatchLine(
+        count === 1
+          ? `Queued ${def.name} for everyone`
+          : `Queued ${count}× ${def.name} for everyone`,
+        "treasure"
+      );
+      playSfx("click");
+      pollFishGifts(true).catch(() => {});
+      return;
+    }
+
+    setCatchLine(`Sending ${def.name} to ${toRaw}…`, "");
+    const target = await lookupPlayerForGift(toRaw);
+    const ok = await queueFishGift({
+      toName: toKey,
+      toPlayerId: target?.playerId || "",
+      toDisplay: target?.name || toRaw,
+      fishId: def.giftId,
+      item: def.item,
+      count
+    });
+    if (!ok) {
+      setCatchLine(`Couldn't queue ${def.name} — try again`, "miss");
+      playSfx("miss");
+      return;
+    }
+    const who = target?.name || toRaw;
+    setCatchLine(
+      count === 1 ? `Queued ${def.name} for ${who}` : `Queued ${count}× ${def.name} for ${who}`,
+      "treasure"
+    );
+    playSfx("click");
   }
 
   async function runGiveLuckyBlockCommand(cmd) {
@@ -6013,6 +6235,11 @@ function aquariumRatePerSec() {
       await runGiveLuckyBlockCommand(blockGift);
       return;
     }
+    const chestGift = parseGiveChestCommand(raw);
+    if (chestGift) {
+      await runGiveChestCommand(chestGift);
+      return;
+    }
     const gift = parseGiveFishCommand(raw);
     if (gift) {
       if (gift.error) {
@@ -6026,7 +6253,7 @@ function aquariumRatePerSec() {
     const parsed = parseAdminCommand(raw);
     if (!parsed) {
       setCatchLine(
-        "Try: storm · calm · sunny · 5x luck · 5x luckyblock · clear weather · clear",
+        "Try: storm · calm · sunny · 5x luck · 5x chest · give coin chest · clear weather · clear",
         "miss"
       );
       return;
