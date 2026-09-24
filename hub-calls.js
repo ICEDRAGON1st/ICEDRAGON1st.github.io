@@ -47,6 +47,9 @@
   let seenSignals = new Set();
   let ringingRoomId = "";
   let writeQueue = Promise.resolve();
+  let audioCtx = null;
+  let speakRaf = 0;
+  const meters = new Map(); // peerId -> { analyser, source, data, speaking, lastSpeak }
 
   async function fetchDoc() {
     try {
@@ -123,10 +126,13 @@
   }
 
   function ensureCallUi() {
-    if (!document.getElementById("hub-call-styles")) {
-      const style = document.createElement("style");
+    let style = document.getElementById("hub-call-styles");
+    if (!style) {
+      style = document.createElement("style");
       style.id = "hub-call-styles";
-      style.textContent = `
+      document.head.appendChild(style);
+    }
+    style.textContent = `
       .hub-call-bar {
         position: fixed; left: 50%; bottom: 1rem; transform: translateX(-50%);
         z-index: 2400; width: min(22rem, calc(100vw - 1.25rem));
@@ -144,8 +150,30 @@
       .hub-call-peer {
         border-radius: 999px; padding: .2rem .55rem; font-size: .75rem;
         background: rgba(14,116,144,.35); border: 1px solid rgba(125,211,252,.35);
+        display: inline-flex; align-items: center; gap: .35rem;
+        transition: border-color .15s, background .15s, box-shadow .15s;
       }
       .hub-call-peer.is-sharing { border-color: #fbbf24; background: rgba(180,83,9,.4); }
+      .hub-call-peer.is-talking {
+        border-color: #4ade80;
+        background: rgba(22,163,74,.42);
+        box-shadow: 0 0 0 1px rgba(74,222,128,.45), 0 0 12px rgba(74,222,128,.35);
+      }
+      .hub-call-talk-bars {
+        display: none; align-items: flex-end; gap: 2px; height: .7rem;
+      }
+      .hub-call-peer.is-talking .hub-call-talk-bars { display: inline-flex; }
+      .hub-call-talk-bars i {
+        display: block; width: 2px; border-radius: 1px; background: #86efac;
+        animation: hub-call-bar-bounce 0.7s ease-in-out infinite;
+      }
+      .hub-call-talk-bars i:nth-child(1) { height: 35%; animation-delay: 0s; }
+      .hub-call-talk-bars i:nth-child(2) { height: 70%; animation-delay: .15s; }
+      .hub-call-talk-bars i:nth-child(3) { height: 45%; animation-delay: .28s; }
+      @keyframes hub-call-bar-bounce {
+        0%, 100% { transform: scaleY(0.45); }
+        50% { transform: scaleY(1); }
+      }
       .hub-call-videos {
         display: none; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
         gap: .4rem; max-height: 14rem; overflow: auto;
@@ -179,8 +207,6 @@
         background: rgba(8,145,178,.35) !important; color: #e0f2fe !important;
       }
     `;
-      document.head.appendChild(style);
-    }
     if (document.getElementById("hub-call-bar")) return;
     const bar = document.createElement("div");
     bar.id = "hub-call-bar";
@@ -269,20 +295,28 @@
     bar.hidden = false;
     bar.classList.remove("hidden");
     if (title) title.textContent = room?.label || "Voice call";
-    const livePeers = Object.values(room?.peers || {}).filter((p) => p && !p.left);
+    const livePeers = Object.entries(room?.peers || {}).filter(([, p]) => p && !p.left);
     const parts = [`${livePeers.length} in call`, muted ? "muted" : "live"];
     if (sharing) parts.push("sharing");
     if (meta) meta.textContent = parts.join(" · ");
     if (peersEl) {
       peersEl.innerHTML = livePeers
-        .map(
-          (p) =>
-            `<span class="hub-call-peer${p.sharing ? " is-sharing" : ""}">${escapeHtml(p.name || "Player")}${
-              p.sharing ? " · screen" : ""
-            }</span>`
-        )
+        .map(([id, p]) => {
+          const talking = isPeerTalking(id);
+          const cls = [
+            "hub-call-peer",
+            p.sharing ? "is-sharing" : "",
+            talking ? "is-talking" : ""
+          ]
+            .filter(Boolean)
+            .join(" ");
+          return `<span class="${cls}" data-peer-id="${escapeHtml(id)}"><span class="hub-call-talk-bars" aria-hidden="true"><i></i><i></i><i></i></span>${escapeHtml(
+            p.name || "Player"
+          )}${p.sharing ? " · screen" : ""}</span>`;
+        })
         .join("");
     }
+    ensureSpeakLoop();
     syncLocalPreview();
     actions.innerHTML = `
       <button type="button" class="hub-call-mute${muted ? " is-on" : ""}" data-hub-call-mute>${muted ? "Unmute" : "Mute"}</button>
@@ -297,6 +331,121 @@
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
+  }
+
+  function getAudioCtx() {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    if (!audioCtx) audioCtx = new Ctx();
+    if (audioCtx.state === "suspended") audioCtx.resume().catch(() => {});
+    return audioCtx;
+  }
+
+  function stopWatch(peerId) {
+    const m = meters.get(peerId);
+    if (!m) return;
+    try {
+      m.source.disconnect();
+    } catch {}
+    try {
+      m.analyser.disconnect();
+    } catch {}
+    meters.delete(peerId);
+  }
+
+  function stopAllMeters() {
+    [...meters.keys()].forEach(stopWatch);
+    if (speakRaf) {
+      cancelAnimationFrame(speakRaf);
+      speakRaf = 0;
+    }
+  }
+
+  function watchAudio(peerId, streamOrTrack) {
+    if (!peerId || !streamOrTrack) return;
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    stopWatch(peerId);
+    try {
+      const stream =
+        streamOrTrack instanceof MediaStream
+          ? streamOrTrack
+          : new MediaStream([streamOrTrack]);
+      if (!stream.getAudioTracks().length) return;
+      const source = ctx.createMediaStreamSource(stream);
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      analyser.smoothingTimeConstant = 0.35;
+      source.connect(analyser);
+      meters.set(peerId, {
+        analyser,
+        source,
+        data: new Uint8Array(analyser.fftSize),
+        speaking: false,
+        lastSpeak: 0
+      });
+    } catch (err) {
+      console.warn("[HubCalls] meter", err);
+    }
+  }
+
+  function isPeerTalking(peerId) {
+    const m = meters.get(peerId);
+    return !!(m && m.speaking);
+  }
+
+  function updateSpeakingUi() {
+    document.querySelectorAll(".hub-call-peer[data-peer-id]").forEach((el) => {
+      const id = el.getAttribute("data-peer-id");
+      el.classList.toggle("is-talking", isPeerTalking(id));
+    });
+  }
+
+  function sampleMeters() {
+    const me = playerId();
+    const localMuted =
+      !!active?.localStream &&
+      [...active.localStream.getAudioTracks()].every((t) => !t.enabled);
+    const now = Date.now();
+    meters.forEach((m, id) => {
+      m.analyser.getByteTimeDomainData(m.data);
+      let sum = 0;
+      for (let i = 0; i < m.data.length; i++) {
+        const v = (m.data[i] - 128) / 128;
+        sum += v * v;
+      }
+      const rms = Math.sqrt(sum / m.data.length);
+      const hot = rms > 0.045;
+      if (id === me && localMuted) {
+        m.speaking = false;
+        return;
+      }
+      if (hot) m.lastSpeak = now;
+      // Hold the glow briefly so short words still show
+      m.speaking = now - m.lastSpeak < 280;
+    });
+  }
+
+  function ensureSpeakLoop() {
+    if (!active) {
+      stopAllMeters();
+      return;
+    }
+    const me = playerId();
+    if (me && active.localStream && !meters.has(me)) {
+      watchAudio(me, active.localStream);
+    }
+    if (speakRaf) return;
+    const tick = () => {
+      speakRaf = requestAnimationFrame(tick);
+      if (!active) {
+        stopAllMeters();
+        return;
+      }
+      sampleMeters();
+      updateSpeakingUi();
+    };
+    tick();
   }
 
   async function getMic() {
@@ -334,6 +483,7 @@
     active.pcs.delete(peerId);
     document.getElementById(`hub-call-audio-${peerId}`)?.remove();
     document.getElementById(`hub-call-video-${peerId}`)?.remove();
+    stopWatch(peerId);
     syncLocalPreview();
   }
 
@@ -526,6 +676,8 @@
       audio.srcObject = stream;
     }
     if (!stream.getTrackById(track.id)) stream.addTrack(track);
+    watchAudio(peerId, stream);
+    ensureSpeakLoop();
     const kick = () => {
       audio.muted = false;
       audio.volume = 1;
@@ -538,6 +690,7 @@
   }
 
   function resumeAllRemoteAudio() {
+    getAudioCtx();
     document.querySelectorAll('audio[id^="hub-call-audio-"]').forEach((audio) => {
       audio.muted = false;
       audio.volume = 1;
@@ -866,6 +1019,7 @@
     }
     stopLocal();
     active = null;
+    stopAllMeters();
     document.getElementById("hub-call-videos")?.replaceChildren();
     if (roomId && me) {
       await mutateRooms((rooms) => {
