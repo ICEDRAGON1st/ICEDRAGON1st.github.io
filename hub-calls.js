@@ -1771,8 +1771,45 @@
     return room;
   }
 
+  function callLabelFor(kind, channelId) {
+    if (!channelId) return "Call";
+    const k = kind === "group" ? "group" : "dm";
+    if (active && active.kind === k && String(active.channelId) === String(channelId)) {
+      return "In call";
+    }
+    return channelCallRoom(k, channelId) ? "Join" : "Call";
+  }
+
+  async function startOrJoin(kind, channelId) {
+    const k = kind === "group" ? "group" : "dm";
+    const id = String(channelId || "");
+    if (!id) return { ok: false, error: "Missing channel" };
+    const inThis = active && active.roomId === roomKey(k, id);
+    if (inThis) return { ok: true };
+    try {
+      const room = channelCallRoom(k, id);
+      if (room) await joinCall(room.id);
+      else await startCall(k, id);
+      syncCallButtons();
+      return { ok: true };
+    } catch (err) {
+      console.warn("[HubCalls] startOrJoin", err);
+      return { ok: false, error: err?.message || "Call failed" };
+    }
+  }
+
+  function syncListCallButtons() {
+    document.querySelectorAll("[data-hub-call-kind][data-hub-call-id]").forEach((btn) => {
+      const kind = btn.getAttribute("data-hub-call-kind");
+      const id = btn.getAttribute("data-hub-call-id");
+      if (!kind || !id) return;
+      btn.textContent = callLabelFor(kind, id);
+    });
+  }
+
   function syncCallButtons() {
     wireCallButtons();
+    syncListCallButtons();
     const channel = window.HubChat?.getActiveChannel?.();
     const hubBtn = document.getElementById("hub-chat-call-btn");
     const friendsBtn = document.getElementById("friends-call-btn");
@@ -1872,16 +1909,21 @@
         return;
       }
       const startBtn = e.target.closest("#hub-chat-call-btn, #friends-call-btn");
-      if (!startBtn) return;
-      e.preventDefault();
-      const channel = window.HubChat?.getActiveChannel?.();
-      if (!channel || (channel.type !== "dm" && channel.type !== "group")) return;
-      const kind = channel.type === "group" ? "group" : "dm";
-      const room = channelCallRoom(kind, channel.id);
-      const inThis = active && active.roomId === roomKey(kind, channel.id);
-      if (inThis) return;
-      if (room) await joinCall(room.id);
-      else await startCall(kind, channel.id);
+      if (startBtn) {
+        e.preventDefault();
+        const channel = window.HubChat?.getActiveChannel?.();
+        if (!channel || (channel.type !== "dm" && channel.type !== "group")) return;
+        const kind = channel.type === "group" ? "group" : "dm";
+        await startOrJoin(kind, channel.id);
+        return;
+      }
+      const listCall = e.target.closest("[data-hub-call-kind]");
+      if (listCall) {
+        e.preventDefault();
+        const kind = listCall.getAttribute("data-hub-call-kind");
+        const id = listCall.getAttribute("data-hub-call-id") || "";
+        if (kind && id) await startOrJoin(kind, id);
+      }
     });
   }
 
@@ -1899,6 +1941,8 @@
   window.HubCalls = {
     startCall,
     joinCall,
+    startOrJoin,
+    callLabelFor,
     hangUp,
     acceptRing,
     declineRing,

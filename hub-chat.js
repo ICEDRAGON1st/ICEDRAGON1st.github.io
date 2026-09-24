@@ -747,14 +747,24 @@
         margin: 0.35rem 0 0.25rem; color: #9bb0c9; font-size: 0.72rem; font-weight: 700;
         letter-spacing: 0.06em; text-transform: uppercase;
       }
+      .hub-chat-friend-row {
+        display: flex; align-items: stretch; gap: 0.4rem; margin: 0 0 0.4rem;
+      }
       .hub-chat-friend {
-        display: block; width: 100%; text-align: left; margin: 0 0 0.4rem;
+        display: block; flex: 1; min-width: 0; text-align: left; margin: 0;
         padding: 0.45rem 0.55rem; border-radius: 10px; border: 1px solid transparent;
         background: rgba(255,255,255,0.05); color: inherit; font: inherit; cursor: pointer;
       }
       .hub-chat-friend:hover { border-color: rgba(255,255,255,0.14); }
       .hub-chat-friend-name { font-weight: 700; }
       .hub-chat-friend-meta, .hub-chat-meta { display: block; margin-top: 0.15rem; color: #9bb0c9; font-size: 0.75rem; }
+      .hub-chat-call-btn {
+        flex: 0 0 auto; align-self: center; appearance: none; border: 1px solid rgba(74,222,128,.45);
+        border-radius: 8px; background: rgba(22,163,74,.35); color: #bbf7d0;
+        font: inherit; font-weight: 700; font-size: 0.78rem; padding: 0.45rem 0.65rem; cursor: pointer;
+        white-space: nowrap;
+      }
+      .hub-chat-call-btn:hover { background: rgba(22,163,74,.5); border-color: rgba(74,222,128,.7); }
       .hub-chat-log { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.4rem; }
       .hub-chat-log li {
         max-width: 88%; padding: 0.4rem 0.55rem; border-radius: 10px; background: rgba(255,255,255,0.06);
@@ -966,13 +976,19 @@
       </div>`;
       if (groups.length) {
         html += groups
-          .map(
-            (g) =>
-              `<button type="button" class="hub-chat-friend" data-hub-chat-open="group" data-hub-chat-id="${escapeHtml(g.id)}">
+          .map((g) => {
+            const callLbl =
+              typeof HubCalls !== "undefined" && HubCalls.callLabelFor
+                ? HubCalls.callLabelFor("group", g.id)
+                : "Call";
+            return `<div class="hub-chat-friend-row">
+              <button type="button" class="hub-chat-friend" data-hub-chat-open="group" data-hub-chat-id="${escapeHtml(g.id)}">
                 <span class="hub-chat-friend-name">${escapeHtml(g.name)} ${badgeHtml(g.unread)}</span>
                 <span class="hub-chat-friend-meta">${g.memberCount} members · ${preview(getMessagesFor("group", g.id))}</span>
-              </button>`
-          )
+              </button>
+              <button type="button" class="hub-chat-call-btn" data-hub-call-kind="group" data-hub-call-id="${escapeHtml(g.id)}">${escapeHtml(callLbl)}</button>
+            </div>`;
+          })
           .join("");
       }
 
@@ -983,10 +999,17 @@
         html += friends
           .map((f) => {
             const unread = unreadCount("dm", f.playerId);
-            return `<button type="button" class="hub-chat-friend" data-hub-chat-open="dm" data-hub-chat-id="${escapeHtml(f.playerId)}">
-              <span class="hub-chat-friend-name">${escapeHtml(f.name)} ${badgeHtml(unread)}</span>
-              <span class="hub-chat-friend-meta">${preview(getMessagesFor("dm", f.playerId))}</span>
-            </button>`;
+            const callLbl =
+              typeof HubCalls !== "undefined" && HubCalls.callLabelFor
+                ? HubCalls.callLabelFor("dm", f.playerId)
+                : "Call";
+            return `<div class="hub-chat-friend-row">
+              <button type="button" class="hub-chat-friend" data-hub-chat-open="dm" data-hub-chat-id="${escapeHtml(f.playerId)}">
+                <span class="hub-chat-friend-name">${escapeHtml(f.name)} ${badgeHtml(unread)}</span>
+                <span class="hub-chat-friend-meta">${preview(getMessagesFor("dm", f.playerId))}</span>
+              </button>
+              <button type="button" class="hub-chat-call-btn" data-hub-call-kind="dm" data-hub-call-id="${escapeHtml(f.playerId)}">${escapeHtml(callLbl)}</button>
+            </div>`;
           })
           .join("");
       }
@@ -1066,6 +1089,17 @@
       renderList();
     });
     document.getElementById("hub-chat-body")?.addEventListener("click", async (e) => {
+      const callBtn = e.target.closest("[data-hub-call-kind]");
+      if (callBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const kind = callBtn.dataset.hubCallKind;
+        const id = callBtn.dataset.hubCallId || "";
+        if (kind && id && typeof HubCalls !== "undefined" && HubCalls.startOrJoin) {
+          await HubCalls.startOrJoin(kind, id);
+        }
+        return;
+      }
       const createBtn = e.target.closest("#hub-chat-create-group");
       if (createBtn) {
         e.preventDefault();

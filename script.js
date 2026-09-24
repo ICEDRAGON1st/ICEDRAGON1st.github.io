@@ -4308,7 +4308,11 @@ function renderFriendsPanel() {
             g.unread > 0
               ? `<span class="friends-chat-unread">${g.unread > 9 ? "9+" : g.unread}</span>`
               : "";
-          return `<li><span>${escapeHtml(g.name)} · ${g.memberCount} members</span><span class="friends-actions"><button type="button" class="hub-btn" data-group-chat="${escapeHtml(g.id)}">Chat${badge}</button></span></li>`;
+          const callLbl =
+            typeof HubCalls !== "undefined" && HubCalls.callLabelFor
+              ? HubCalls.callLabelFor("group", g.id)
+              : "Call";
+          return `<li><span>${escapeHtml(g.name)} · ${g.memberCount} members</span><span class="friends-actions"><button type="button" class="hub-btn" data-group-chat="${escapeHtml(g.id)}">Chat${badge}</button><button type="button" class="hub-btn hub-call-btn" data-hub-call-kind="group" data-hub-call-id="${escapeHtml(g.id)}">${escapeHtml(callLbl)}</button></span></li>`;
         })
         .join("")}</ul>`;
     }
@@ -4340,7 +4344,11 @@ function renderFriendsPanel() {
         unread > 0
           ? `<span class="friends-chat-unread" aria-label="${unread} unread">${unread > 9 ? "9+" : unread}</span>`
           : "";
-      return `<li><span><span class="friends-online-dot${isOn ? "" : " is-offline"}" title="${escapeHtml(seen)}"></span>${formatPlayerNameHtml(f.name)}<span class="friends-last-online">${escapeHtml(seen)}</span></span><span class="friends-actions"><button type="button" class="hub-btn" data-friend-chat="${escapeHtml(f.playerId)}">Chat${unreadBadge}</button><a class="hub-btn" href="tic-tac-toe/index.html?inviteFriend=${encodeURIComponent(f.playerId)}">TTT</a><a class="hub-btn" href="connect-four/index.html?inviteFriend=${encodeURIComponent(f.playerId)}">C4</a><button type="button" class="hub-btn" data-friend-remove="${escapeHtml(f.playerId)}">Remove</button></span></li>`;
+      const callLbl =
+        typeof HubCalls !== "undefined" && HubCalls.callLabelFor
+          ? HubCalls.callLabelFor("dm", f.playerId)
+          : "Call";
+      return `<li><span><span class="friends-online-dot${isOn ? "" : " is-offline"}" title="${escapeHtml(seen)}"></span>${formatPlayerNameHtml(f.name)}<span class="friends-last-online">${escapeHtml(seen)}</span></span><span class="friends-actions"><button type="button" class="hub-btn" data-friend-chat="${escapeHtml(f.playerId)}">Chat${unreadBadge}</button><button type="button" class="hub-btn hub-call-btn" data-hub-call-kind="dm" data-hub-call-id="${escapeHtml(f.playerId)}">${escapeHtml(callLbl)}</button><a class="hub-btn" href="tic-tac-toe/index.html?inviteFriend=${encodeURIComponent(f.playerId)}">TTT</a><a class="hub-btn" href="connect-four/index.html?inviteFriend=${encodeURIComponent(f.playerId)}">C4</a><button type="button" class="hub-btn" data-friend-remove="${escapeHtml(f.playerId)}">Remove</button></span></li>`;
     })
     .join("");
 
