@@ -21,12 +21,13 @@
   const HORIZON = H * 0.22;
   const NEAR_Y = H * 0.9;
   const PATH_HALF = 190;
-  const PLAYER_Z = 36;
+  const PLAYER_Z = 48;
   const GRAVITY = 2600;
   const JUMP_V = -920;
   const STAND_H = 72;
   const DUCK_H = 34;
-  const Y_BOOST = 1.55; // vertical screen presence
+  const Y_BOOST = 1.35; // vertical screen presence
+  const STRAFE_SPEED = 220;
 
   let best = Math.max(0, Math.floor(Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0));
   let running = false;
@@ -50,6 +51,7 @@
   let duckBtnHeld = false;
   let pointerGesture = null;
   let roadPhase = 0;
+  const keys = { left: false, right: false };
   const jumpBtn = document.getElementById("jump-btn");
   const duckBtn = document.getElementById("duck-btn");
 
@@ -256,6 +258,13 @@
     });
 
     if (dino) {
+      const steer = (keys.right ? 1 : 0) - (keys.left ? 1 : 0);
+      if (steer) {
+        dino.x = Math.max(
+          -PATH_HALF * 0.65,
+          Math.min(PATH_HALF * 0.65, dino.x + steer * STRAFE_SPEED * dt)
+        );
+      }
       dino.vy += GRAVITY * dt;
       dino.y += dino.vy * dt;
       if (dino.y <= 0) {
@@ -301,8 +310,18 @@
 
   /* ——— rendering ——— */
   function hexToRgb(hex) {
-    const h = String(hex || "").replace("#", "");
+    const s = String(hex || "").trim();
+    const rgb = s.match(/^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/i);
+    if (rgb) {
+      return {
+        r: Math.round(Number(rgb[1]) || 0),
+        g: Math.round(Number(rgb[2]) || 0),
+        b: Math.round(Number(rgb[3]) || 0)
+      };
+    }
+    const h = s.replace("#", "");
     const n = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h, 16);
+    if (!Number.isFinite(n)) return { r: 200, g: 220, b: 240 };
     return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
   }
 
@@ -315,8 +334,9 @@
   function project(x, y, z) {
     const zz = Math.max(14, z);
     const scale = CAM_D / (CAM_D + zz);
+    // t=0 at camera (near / bottom of screen), t→1 at horizon (far / top)
     const t = 1 - scale;
-    const groundY = HORIZON + (NEAR_Y - HORIZON) * Math.pow(t, 0.85);
+    const groundY = NEAR_Y + (HORIZON - NEAR_Y) * Math.pow(t, 0.85);
     return {
       x: W * 0.5 + x * scale,
       y: groundY - y * scale * Y_BOOST,
@@ -501,13 +521,13 @@
       shade(iceEdge, 0.9)
     );
 
-    // Front lip
+    // Front lip (near edge sits at bottom of screen)
     drawPoly(
       [
         nearL,
         nearR,
-        { x: nearR.x + 10, y: nearR.y + 26 },
-        { x: nearL.x - 10, y: nearL.y + 26 }
+        { x: nearR.x + 14, y: Math.min(H - 2, nearR.y + 28) },
+        { x: nearL.x - 14, y: Math.min(H - 2, nearL.y + 28) }
       ],
       shade(iceTop, 0.75)
     );
@@ -886,10 +906,10 @@
       syncDuck();
     } else if (e.code === "ArrowLeft" || e.code === "KeyA") {
       e.preventDefault();
-      if (dino && running && !paused && !dead) dino.x = Math.max(-PATH_HALF * 0.65, dino.x - 28);
+      keys.left = true;
     } else if (e.code === "ArrowRight" || e.code === "KeyD") {
       e.preventDefault();
-      if (dino && running && !paused && !dead) dino.x = Math.min(PATH_HALF * 0.65, dino.x + 28);
+      keys.right = true;
     } else if (e.code === "Escape") {
       pauseGame();
     }
@@ -898,6 +918,10 @@
     if (e.code === "ArrowDown" || e.code === "KeyS") {
       duckKeyHeld = false;
       syncDuck();
+    } else if (e.code === "ArrowLeft" || e.code === "KeyA") {
+      keys.left = false;
+    } else if (e.code === "ArrowRight" || e.code === "KeyD") {
+      keys.right = false;
     }
   });
 
