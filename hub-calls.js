@@ -5,6 +5,7 @@
  * window.HubCalls:
  *   startCall(kind, channelId) / joinCall(roomId) / hangUp()
  *   acceptRing(roomId) / declineRing(roomId)
+ *   startScreenShare() / stopScreenShare()
  *   getActive(), startPolling(), stopPolling()
  */
 (function () {
@@ -42,7 +43,7 @@
 
   let cache = { rooms: {} };
   let pollTimer = 0;
-  let active = null; // { roomId, kind, channelId, localStream, pcs: Map, pendingSignals: Set }
+  let active = null; // { roomId, kind, channelId, localStream, screenStream, pcs: Map }
   let seenSignals = new Set();
   let ringingRoomId = "";
   let writeQueue = Promise.resolve();
@@ -122,9 +123,10 @@
   }
 
   function ensureCallUi() {
-    if (document.getElementById("hub-call-bar")) return;
-    const style = document.createElement("style");
-    style.textContent = `
+    if (!document.getElementById("hub-call-styles")) {
+      const style = document.createElement("style");
+      style.id = "hub-call-styles";
+      style.textContent = `
       .hub-call-bar {
         position: fixed; left: 50%; bottom: 1rem; transform: translateX(-50%);
         z-index: 2400; width: min(22rem, calc(100vw - 1.25rem));
@@ -134,6 +136,7 @@
         color: #e2e8f0; font: 600 0.9rem/1.3 Outfit, system-ui, sans-serif;
         display: flex; flex-direction: column; gap: .55rem;
       }
+      .hub-call-bar.is-wide { width: min(36rem, calc(100vw - 1.25rem)); }
       .hub-call-bar.hidden, .hub-call-bar[hidden] { display: none !important; }
       .hub-call-bar-top { display: flex; justify-content: space-between; gap: .5rem; align-items: center; }
       .hub-call-bar-meta { font-size: .78rem; color: #94a3b8; }
@@ -142,6 +145,23 @@
         border-radius: 999px; padding: .2rem .55rem; font-size: .75rem;
         background: rgba(14,116,144,.35); border: 1px solid rgba(125,211,252,.35);
       }
+      .hub-call-peer.is-sharing { border-color: #fbbf24; background: rgba(180,83,9,.4); }
+      .hub-call-videos {
+        display: none; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+        gap: .4rem; max-height: 14rem; overflow: auto;
+      }
+      .hub-call-videos.has-video { display: grid; }
+      .hub-call-video-wrap {
+        position: relative; border-radius: .65rem; overflow: hidden;
+        background: #0f172a; border: 1px solid rgba(125,211,252,.3); aspect-ratio: 16/10;
+      }
+      .hub-call-video-wrap video {
+        width: 100%; height: 100%; object-fit: contain; display: block; background: #020617;
+      }
+      .hub-call-video-label {
+        position: absolute; left: .35rem; bottom: .3rem; font-size: .68rem;
+        background: rgba(2,6,23,.7); padding: .1rem .35rem; border-radius: .35rem;
+      }
       .hub-call-actions { display: flex; flex-wrap: wrap; gap: .35rem; }
       .hub-call-actions button {
         flex: 1; min-width: 4.5rem; border: 0; border-radius: .65rem; padding: .5rem .6rem;
@@ -149,6 +169,8 @@
       }
       .hub-call-mute { background: #334155; color: #f8fafc; }
       .hub-call-mute.is-on { background: #b45309; }
+      .hub-call-share { background: #0e7490; color: #ecfeff; }
+      .hub-call-share.is-on { background: #a16207; color: #fffbeb; }
       .hub-call-hang { background: #be123c; color: #fff; }
       .hub-call-accept { background: #15803d; color: #fff; }
       .hub-call-decline { background: #475569; color: #fff; }
@@ -157,7 +179,9 @@
         background: rgba(8,145,178,.35) !important; color: #e0f2fe !important;
       }
     `;
-    document.head.appendChild(style);
+      document.head.appendChild(style);
+    }
+    if (document.getElementById("hub-call-bar")) return;
     const bar = document.createElement("div");
     bar.id = "hub-call-bar";
     bar.className = "hub-call-bar hidden";
@@ -167,10 +191,37 @@
         <strong id="hub-call-title">Voice call</strong>
         <span id="hub-call-meta" class="hub-call-bar-meta"></span>
       </div>
+      <div id="hub-call-videos" class="hub-call-videos"></div>
       <div id="hub-call-peers" class="hub-call-peers"></div>
       <div id="hub-call-actions" class="hub-call-actions"></div>
     `;
     document.body.appendChild(bar);
+  }
+
+  function isSharing() {
+    return !!(active?.screenStream && active.screenStream.getVideoTracks().some((t) => t.readyState === "live"));
+  }
+
+  function syncLocalPreview() {
+    const videos = document.getElementById("hub-call-videos");
+    if (!videos) return;
+    let wrap = document.getElementById("hub-call-video-local");
+    if (isSharing() && active?.screenStream) {
+      if (!wrap) {
+        wrap = document.createElement("div");
+        wrap.id = "hub-call-video-local";
+        wrap.className = "hub-call-video-wrap";
+        wrap.innerHTML = `<video autoplay playsinline muted></video><span class="hub-call-video-label">You</span>`;
+        videos.prepend(wrap);
+      }
+      const vid = wrap.querySelector("video");
+      if (vid && vid.srcObject !== active.screenStream) vid.srcObject = active.screenStream;
+    } else if (wrap) {
+      wrap.remove();
+    }
+    const has = !!videos.querySelector(".hub-call-video-wrap");
+    videos.classList.toggle("has-video", has);
+    document.getElementById("hub-call-bar")?.classList.toggle("is-wide", has);
   }
 
   function renderCallBar() {
@@ -180,15 +231,20 @@
     const meta = document.getElementById("hub-call-meta");
     const peersEl = document.getElementById("hub-call-peers");
     const actions = document.getElementById("hub-call-actions");
+    const videos = document.getElementById("hub-call-videos");
     if (!bar || !actions) return;
 
     if (ringingRoomId && !active) {
       const room = cache.rooms?.[ringingRoomId];
       bar.hidden = false;
-      bar.classList.remove("hidden");
+      bar.classList.remove("hidden", "is-wide");
       if (title) title.textContent = "Incoming call";
       if (meta) meta.textContent = room?.label || "Friend";
       if (peersEl) peersEl.innerHTML = "";
+      if (videos) {
+        videos.innerHTML = "";
+        videos.classList.remove("has-video");
+      }
       actions.innerHTML = `
         <button type="button" class="hub-call-accept" data-hub-call-accept>Accept</button>
         <button type="button" class="hub-call-decline" data-hub-call-decline>Decline</button>
@@ -199,23 +255,38 @@
     if (!active) {
       bar.hidden = true;
       bar.classList.add("hidden");
+      bar.classList.remove("is-wide");
+      if (videos) {
+        videos.innerHTML = "";
+        videos.classList.remove("has-video");
+      }
       return;
     }
 
     const room = cache.rooms?.[active.roomId];
     const muted = !!(active.localStream && [...active.localStream.getAudioTracks()].every((t) => !t.enabled));
+    const sharing = isSharing();
     bar.hidden = false;
     bar.classList.remove("hidden");
     if (title) title.textContent = room?.label || "Voice call";
     const livePeers = Object.values(room?.peers || {}).filter((p) => p && !p.left);
-    if (meta) meta.textContent = `${livePeers.length} in call · ${muted ? "muted" : "live"}`;
+    const parts = [`${livePeers.length} in call`, muted ? "muted" : "live"];
+    if (sharing) parts.push("sharing");
+    if (meta) meta.textContent = parts.join(" · ");
     if (peersEl) {
       peersEl.innerHTML = livePeers
-        .map((p) => `<span class="hub-call-peer">${escapeHtml(p.name || "Player")}</span>`)
+        .map(
+          (p) =>
+            `<span class="hub-call-peer${p.sharing ? " is-sharing" : ""}">${escapeHtml(p.name || "Player")}${
+              p.sharing ? " · screen" : ""
+            }</span>`
+        )
         .join("");
     }
+    syncLocalPreview();
     actions.innerHTML = `
       <button type="button" class="hub-call-mute${muted ? " is-on" : ""}" data-hub-call-mute>${muted ? "Unmute" : "Mute"}</button>
+      <button type="button" class="hub-call-share${sharing ? " is-on" : ""}" data-hub-call-share>${sharing ? "Stop share" : "Share screen"}</button>
       <button type="button" class="hub-call-hang" data-hub-call-hang>Hang up</button>
     `;
   }
@@ -239,9 +310,14 @@
   }
 
   function stopLocal() {
-    if (!active?.localStream) return;
-    active.localStream.getTracks().forEach((t) => t.stop());
-    active.localStream = null;
+    if (active?.localStream) {
+      active.localStream.getTracks().forEach((t) => t.stop());
+      active.localStream = null;
+    }
+    if (active?.screenStream) {
+      active.screenStream.getTracks().forEach((t) => t.stop());
+      active.screenStream = null;
+    }
   }
 
   function closePc(peerId) {
@@ -252,8 +328,134 @@
       pc.close();
     } catch {}
     active.pcs.delete(peerId);
-    const audio = document.getElementById(`hub-call-audio-${peerId}`);
-    audio?.remove();
+    document.getElementById(`hub-call-audio-${peerId}`)?.remove();
+    document.getElementById(`hub-call-video-${peerId}`)?.remove();
+    syncLocalPreview();
+  }
+
+  function attachRemoteVideo(peerId, stream, track) {
+    const videos = document.getElementById("hub-call-videos");
+    if (!videos) return;
+    let wrap = document.getElementById(`hub-call-video-${peerId}`);
+    if (!wrap) {
+      const room = cache.rooms?.[active?.roomId];
+      const name = room?.peers?.[peerId]?.name || "Friend";
+      wrap = document.createElement("div");
+      wrap.id = `hub-call-video-${peerId}`;
+      wrap.className = "hub-call-video-wrap";
+      wrap.innerHTML = `<video autoplay playsinline></video><span class="hub-call-video-label">${escapeHtml(name)}</span>`;
+      videos.appendChild(wrap);
+    }
+    const vid = wrap.querySelector("video");
+    const media = stream || new MediaStream([track]);
+    if (vid && vid.srcObject !== media) vid.srcObject = media;
+    track?.addEventListener?.("ended", () => {
+      wrap?.remove();
+      syncLocalPreview();
+    });
+    syncLocalPreview();
+  }
+
+  async function renegotiatePeer(peerId) {
+    if (!active) return;
+    const pc = active.pcs.get(peerId);
+    if (!pc) return;
+    try {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      await pushSignal(peerId, "offer", pc.localDescription);
+    } catch (err) {
+      console.warn("[HubCalls] renegotiate", err);
+    }
+  }
+
+  async function renegotiateAll() {
+    if (!active?.pcs) return;
+    for (const peerId of [...active.pcs.keys()]) {
+      await renegotiatePeer(peerId);
+    }
+  }
+
+  async function setSharingFlag(on) {
+    const me = playerId();
+    if (!active || !me) return;
+    await mutateRooms((rooms) => {
+      const room = rooms[active.roomId];
+      if (!room?.peers?.[me]) return;
+      rooms[active.roomId] = {
+        ...room,
+        peers: {
+          ...room.peers,
+          [me]: { ...room.peers[me], sharing: !!on }
+        },
+        updatedAt: Date.now()
+      };
+    });
+  }
+
+  async function startScreenShare() {
+    if (!active) return { ok: false };
+    if (!navigator.mediaDevices?.getDisplayMedia) {
+      window.alert("Screen share isn't supported in this browser.");
+      return { ok: false };
+    }
+    if (isSharing()) return { ok: true };
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { frameRate: 15, displaySurface: "monitor" },
+        audio: false
+      });
+    } catch (err) {
+      if (err?.name !== "NotAllowedError") {
+        window.alert(err?.message || "Couldn't start screen share");
+      }
+      return { ok: false };
+    }
+    const track = stream.getVideoTracks()[0];
+    if (!track) {
+      stream.getTracks().forEach((t) => t.stop());
+      return { ok: false };
+    }
+    track.onended = () => {
+      stopScreenShare().catch(() => {});
+    };
+    active.screenStream = stream;
+
+    for (const [peerId, pc] of active.pcs) {
+      const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+      try {
+        if (videoSender) await videoSender.replaceTrack(track);
+        else pc.addTrack(track, stream);
+      } catch (err) {
+        console.warn("[HubCalls] add screen track", peerId, err);
+      }
+    }
+    await renegotiateAll();
+    await setSharingFlag(true);
+    renderCallBar();
+    return { ok: true };
+  }
+
+  async function stopScreenShare() {
+    if (!active) return;
+    const stream = active.screenStream;
+    active.screenStream = null;
+    if (stream) stream.getTracks().forEach((t) => t.stop());
+
+    for (const [, pc] of active.pcs || []) {
+      const videoSender = pc.getSenders().find((s) => s.track && s.track.kind === "video");
+      if (videoSender) {
+        try {
+          await videoSender.replaceTrack(null);
+        } catch {}
+      }
+    }
+    await renegotiateAll();
+    await setSharingFlag(false);
+    document.getElementById("hub-call-video-local")?.remove();
+    syncLocalPreview();
+    renderCallBar();
   }
 
   async function ensurePc(peerId) {
@@ -264,11 +466,20 @@
     if (active.localStream) {
       active.localStream.getTracks().forEach((track) => pc.addTrack(track, active.localStream));
     }
+    if (active.screenStream) {
+      active.screenStream.getTracks().forEach((track) => pc.addTrack(track, active.screenStream));
+    }
     pc.onicecandidate = (ev) => {
       if (!ev.candidate || !active) return;
       pushSignal(peerId, "ice", ev.candidate.toJSON());
     };
     pc.ontrack = (ev) => {
+      const track = ev.track;
+      if (!track) return;
+      if (track.kind === "video") {
+        attachRemoteVideo(peerId, ev.streams[0], track);
+        return;
+      }
       let audio = document.getElementById(`hub-call-audio-${peerId}`);
       if (!audio) {
         audio = document.createElement("audio");
@@ -278,7 +489,7 @@
         audio.style.display = "none";
         document.body.appendChild(audio);
       }
-      audio.srcObject = ev.streams[0] || new MediaStream([ev.track]);
+      audio.srcObject = ev.streams[0] || new MediaStream([track]);
     };
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === "failed" || pc.connectionState === "closed") closePc(peerId);
@@ -322,12 +533,23 @@
     if (!pc) return;
     try {
       if (sig.type === "offer") {
+        if (pc.signalingState === "have-local-offer") {
+          // Glare: lower id yields (rollback), higher id keeps its offer.
+          if (playerId() > from) return;
+          try {
+            await pc.setLocalDescription({ type: "rollback" });
+          } catch {
+            return;
+          }
+        }
         await pc.setRemoteDescription(sig.payload);
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         await pushSignal(from, "answer", pc.localDescription);
       } else if (sig.type === "answer") {
-        if (!pc.currentRemoteDescription) await pc.setRemoteDescription(sig.payload);
+        if (pc.signalingState === "have-local-offer" || !pc.currentRemoteDescription) {
+          await pc.setRemoteDescription(sig.payload);
+        }
       } else if (sig.type === "ice" && sig.payload) {
         try {
           await pc.addIceCandidate(sig.payload);
@@ -373,6 +595,7 @@
       kind: "",
       channelId: "",
       localStream: stream,
+      screenStream: null,
       pcs: new Map()
     };
     ringingRoomId = "";
@@ -443,6 +666,7 @@
       kind,
       channelId,
       localStream: stream,
+      screenStream: null,
       pcs: new Map()
     };
 
@@ -548,12 +772,13 @@
     }
     stopLocal();
     active = null;
+    document.getElementById("hub-call-videos")?.replaceChildren();
     if (roomId && me) {
       await mutateRooms((rooms) => {
         const room = rooms[roomId];
         if (!room) return;
         const peers = { ...(room.peers || {}) };
-        if (peers[me]) peers[me] = { ...peers[me], left: true, ringing: false };
+        if (peers[me]) peers[me] = { ...peers[me], left: true, ringing: false, sharing: false };
         rooms[roomId] = { ...room, peers, updatedAt: Date.now() };
       });
     }
@@ -686,6 +911,12 @@
         toggleMute();
         return;
       }
+      if (e.target.closest("[data-hub-call-share]")) {
+        e.preventDefault();
+        if (isSharing()) stopScreenShare();
+        else startScreenShare();
+        return;
+      }
       if (e.target.closest("[data-hub-call-accept]")) {
         e.preventDefault();
         acceptRing(ringingRoomId);
@@ -727,6 +958,8 @@
     hangUp,
     acceptRing,
     declineRing,
+    startScreenShare,
+    stopScreenShare,
     getActive,
     startPolling,
     stopPolling,
