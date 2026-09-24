@@ -65,6 +65,200 @@
   let audioCtx = null;
   let speakRaf = 0;
   const meters = new Map(); // peerId -> { analyser, source, data, speaking, lastSpeak }
+  let pipWin = null;
+  const POS_KEY = "hub-call-bar-pos-v1";
+
+  function callDoc() {
+    try {
+      if (pipWin && !pipWin.closed) return pipWin.document;
+    } catch {}
+    return document;
+  }
+
+  function callEl(id) {
+    return callDoc().getElementById(id) || document.getElementById(id);
+  }
+
+  function applyBarPos(bar) {
+    if (!bar || bar.classList.contains("is-popout")) return;
+    try {
+      const raw = sessionStorage.getItem(POS_KEY);
+      if (!raw) return;
+      const pos = JSON.parse(raw);
+      if (typeof pos.left !== "number" || typeof pos.top !== "number") return;
+      bar.style.left = pos.left + "px";
+      bar.style.top = pos.top + "px";
+      bar.style.right = "auto";
+      bar.style.bottom = "auto";
+      bar.style.transform = "none";
+      bar.classList.add("is-dragged");
+    } catch {}
+  }
+
+  function saveBarPos(bar) {
+    if (!bar || bar.classList.contains("is-popout")) return;
+    const rect = bar.getBoundingClientRect();
+    try {
+      sessionStorage.setItem(
+        POS_KEY,
+        JSON.stringify({ left: Math.round(rect.left), top: Math.round(rect.top) })
+      );
+    } catch {}
+  }
+
+  function wireBarDrag(bar) {
+    if (!bar || bar.dataset.dragReady === "1") return;
+    bar.dataset.dragReady = "1";
+    let dragging = null;
+    bar.addEventListener("pointerdown", (e) => {
+      if (bar.classList.contains("is-popout")) return;
+      if (e.target.closest("button, a, input, video")) return;
+      if (!e.target.closest(".hub-call-drag, .hub-call-bar-top")) return;
+      e.preventDefault();
+      const rect = bar.getBoundingClientRect();
+      dragging = { ox: e.clientX - rect.left, oy: e.clientY - rect.top };
+      bar.classList.add("is-dragging", "is-dragged");
+      bar.style.transform = "none";
+      bar.style.bottom = "auto";
+      bar.style.right = "auto";
+    });
+    window.addEventListener("pointermove", (e) => {
+      if (!dragging) return;
+      const w = bar.offsetWidth;
+      const h = bar.offsetHeight;
+      let left = e.clientX - dragging.ox;
+      let top = e.clientY - dragging.oy;
+      left = Math.max(8, Math.min(left, window.innerWidth - w - 8));
+      top = Math.max(8, Math.min(top, window.innerHeight - h - 8));
+      bar.style.left = left + "px";
+      bar.style.top = top + "px";
+    });
+    window.addEventListener("pointerup", () => {
+      if (!dragging) return;
+      dragging = null;
+      bar.classList.remove("is-dragging");
+      saveBarPos(bar);
+    });
+  }
+
+  function getUiState() {
+    if (!active) return { active: false };
+    const room = cache.rooms?.[active.roomId];
+    const muted = !!(
+      active.localStream && [...active.localStream.getAudioTracks()].every((t) => !t.enabled)
+    );
+    const sharing = isSharing();
+    const livePeers = Object.entries(room?.peers || {}).filter(([, p]) => p && !p.left);
+    const linked = [...(active.pcs?.values() || [])].filter(
+      (pc) => pc.connectionState === "connected" || pc.iceConnectionState === "connected"
+    ).length;
+    const parts = [livePeers.length + " in call", muted ? "muted" : "live"];
+    if (linked) parts.push(linked + " linked");
+    else if (livePeers.length > 1) parts.push("connecting…");
+    if (sharing) parts.push("sharing");
+    return {
+      active: true,
+      title: room?.label || "Voice call",
+      meta: parts.join(" · "),
+      muted,
+      sharing,
+      peers: livePeers.map(([, p]) => p.name || "Player")
+    };
+  }
+
+  async function toggleShare() {
+    if (isSharing()) await stopScreenShare();
+    else await startScreenShare();
+  }
+
+  async function popOutCall() {
+    if (!active && !ringingRoomId) return;
+    ensureCallUi();
+    const bar = document.getElementById("hub-call-bar") || callEl("hub-call-bar");
+    if (!bar) return;
+    try {
+      if (pipWin && !pipWin.closed) {
+        pipWin.focus?.();
+        return;
+      }
+    } catch {}
+
+    if (window.documentPictureInPicture && documentPictureInPicture.requestWindow) {
+      try {
+        pipWin = await documentPictureInPicture.requestWindow({ width: 400, height: 340 });
+        const style = pipWin.document.createElement("style");
+        const base = document.getElementById("hub-call-styles")
+          ? document.getElementById("hub-call-styles").textContent
+          : "";
+        style.textContent =
+          base +
+          "html,body{margin:0;padding:0;background:#0b1220;min-height:100%}" +
+          ".hub-call-bar,.hub-call-bar.is-popout{position:relative!important;left:0!important;top:0!important;" +
+          "right:auto!important;bottom:auto!important;transform:none!important;width:100%!important;" +
+          "max-width:none!important;min-height:100%;border-radius:0!important;box-shadow:none!important;box-sizing:border-box}";
+        pipWin.document.head.appendChild(style);
+        bar.classList.add("is-popout");
+        bar.classList.remove("is-dragged", "is-dragging");
+        bar.style.left = "";
+        bar.style.top = "";
+        bar.style.right = "";
+        bar.style.bottom = "";
+        bar.style.transform = "";
+        bar.style.width = "";
+        pipWin.document.body.appendChild(bar);
+        bindCallClicks(pipWin.document);
+        pipWin.addEventListener("pagehide", () => {
+          try {
+            document.body.appendChild(bar);
+          } catch {}
+          bar.classList.remove("is-popout");
+          applyBarPos(bar);
+          pipWin = null;
+          renderCallBar();
+        });
+        renderCallBar();
+        return;
+      } catch (err) {
+        console.warn("[HubCalls] PiP", err);
+      }
+    }
+
+    const popup = window.open("", "hub-call-popout", "popup=yes,width=380,height=300,noopener=no");
+    if (!popup) {
+      window.alert("Allow pop-ups to detach the call, or use Chrome/Edge for Pop out.");
+      return;
+    }
+    pipWin = popup;
+    popup.document.open();
+    popup.document.write(
+      "<!doctype html><html><head><title>Hub Call</title><style>" +
+        "body{margin:0;font:600 15px Outfit,system-ui,sans-serif;background:#0b1220;color:#e2e8f0;padding:1rem}" +
+        "h1{font-size:1rem;margin:0 0 .35rem}#meta{color:#94a3b8;font-size:.8rem;margin-bottom:.75rem}" +
+        "#peers{display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:.75rem;min-height:1.5rem}" +
+        ".p{border-radius:999px;padding:.2rem .55rem;font-size:.75rem;background:rgba(14,116,144,.35);border:1px solid rgba(125,211,252,.35)}" +
+        ".row{display:flex;flex-wrap:wrap;gap:.35rem}" +
+        "button{flex:1;border:0;border-radius:.65rem;padding:.55rem .6rem;font:inherit;font-weight:700;cursor:pointer;color:#fff;min-width:4.5rem}" +
+        ".m{background:#334155}.s{background:#0e7490}.h{background:#be123c}.x{background:#475569}" +
+        "</style></head><body>" +
+        '<h1 id="title">Voice call</h1><div id="meta"></div><div id="peers"></div><div class="row">' +
+        '<button class="m" id="mute">Mute</button><button class="s" id="share">Share</button>' +
+        '<button class="h" id="hang">Hang up</button><button class="x" id="dock">Dock</button></div>' +
+        "<script>(function(){var o=window.opener;function sync(){try{if(!o||o.closed||!o.HubCalls){document.getElementById('meta').textContent='Keep the hub tab open for audio.';return;}var st=o.HubCalls.getUiState&&o.HubCalls.getUiState();if(!st||!st.active){document.getElementById('title').textContent='No active call';return;}document.getElementById('title').textContent=st.title||'Voice call';document.getElementById('meta').textContent=st.meta||'';document.getElementById('peers').innerHTML=(st.peers||[]).map(function(n){return '<span class=\"p\">'+n+'</span>';}).join('');document.getElementById('mute').textContent=st.muted?'Unmute':'Mute';document.getElementById('share').textContent=st.sharing?'Stop share':'Share';}catch(e){}}document.getElementById('mute').onclick=function(){o.HubCalls.toggleMute&&o.HubCalls.toggleMute();};document.getElementById('share').onclick=function(){o.HubCalls.toggleShare&&o.HubCalls.toggleShare();};document.getElementById('hang').onclick=function(){o.HubCalls.hangUp&&o.HubCalls.hangUp();window.close();};document.getElementById('dock').onclick=function(){window.close();};setInterval(sync,500);sync();})();<\/script></body></html>"
+    );
+    popup.document.close();
+    bar.hidden = true;
+    bar.classList.add("hidden");
+    const watch = setInterval(() => {
+      if (!popup || popup.closed) {
+        clearInterval(watch);
+        pipWin = null;
+        bar.hidden = false;
+        bar.classList.remove("hidden");
+        applyBarPos(bar);
+        renderCallBar();
+      }
+    }, 500);
+  }
 
   async function fetchDoc() {
     try {
@@ -177,11 +371,23 @@
         box-shadow: 0 16px 40px rgba(0,0,0,.45); padding: .75rem .9rem;
         color: #e2e8f0; font: 600 0.9rem/1.3 Outfit, system-ui, sans-serif;
         display: flex; flex-direction: column; gap: .55rem;
+        touch-action: none;
       }
       .hub-call-bar.is-wide { width: min(36rem, calc(100vw - 1.25rem)); }
+      .hub-call-bar.is-dragged { transform: none; }
+      .hub-call-bar.is-dragging { opacity: .95; cursor: grabbing; }
       .hub-call-bar.hidden, .hub-call-bar[hidden] { display: none !important; }
-      .hub-call-bar-top { display: flex; justify-content: space-between; gap: .5rem; align-items: center; }
-      .hub-call-bar-meta { font-size: .78rem; color: #94a3b8; }
+      .hub-call-bar-top {
+        display: flex; justify-content: space-between; gap: .5rem; align-items: center;
+        cursor: grab; user-select: none;
+      }
+      .hub-call-drag { display: flex; align-items: center; gap: .4rem; min-width: 0; flex: 1; }
+      .hub-call-drag-grip {
+        flex: 0 0 auto; width: .55rem; height: 1rem; opacity: .55;
+        background: repeating-linear-gradient(to bottom, #94a3b8 0 2px, transparent 2px 4px);
+        border-radius: 1px;
+      }
+      .hub-call-bar-meta { font-size: .78rem; color: #94a3b8; flex: 0 0 auto; }
       .hub-call-peers { display: flex; flex-wrap: wrap; gap: .3rem; }
       .hub-call-peer {
         border-radius: 999px; padding: .2rem .55rem; font-size: .75rem;
@@ -236,6 +442,7 @@
       .hub-call-share { background: #0e7490; color: #ecfeff; }
       .hub-call-share.is-on { background: #a16207; color: #fffbeb; }
       .hub-call-hang { background: #be123c; color: #fff; }
+      .hub-call-pop { background: #1e3a5f; color: #e0f2fe; }
       .hub-call-accept { background: #15803d; color: #fff; }
       .hub-call-decline { background: #475569; color: #fff; }
       .hub-call-btn, #friends-call-btn, #hub-chat-call-btn {
@@ -250,7 +457,10 @@
     bar.hidden = true;
     bar.innerHTML = `
       <div class="hub-call-bar-top">
-        <strong id="hub-call-title">Voice call</strong>
+        <div class="hub-call-drag" title="Drag to move">
+          <span class="hub-call-drag-grip" aria-hidden="true"></span>
+          <strong id="hub-call-title">Voice call</strong>
+        </div>
         <span id="hub-call-meta" class="hub-call-bar-meta"></span>
       </div>
       <div id="hub-call-videos" class="hub-call-videos"></div>
@@ -258,6 +468,8 @@
       <div id="hub-call-actions" class="hub-call-actions"></div>
     `;
     document.body.appendChild(bar);
+    wireBarDrag(bar);
+    applyBarPos(bar);
   }
 
   function isSharing() {
@@ -265,7 +477,7 @@
   }
 
   function syncLocalPreview() {
-    const videos = document.getElementById("hub-call-videos");
+    const videos = callEl("hub-call-videos");
     if (!videos) return;
     let wrap = document.getElementById("hub-call-video-local");
     if (isSharing() && active?.screenStream) {
@@ -283,18 +495,19 @@
     }
     const has = !!videos.querySelector(".hub-call-video-wrap");
     videos.classList.toggle("has-video", has);
-    document.getElementById("hub-call-bar")?.classList.toggle("is-wide", has);
+    callEl("hub-call-bar")?.classList.toggle("is-wide", has);
   }
 
   function renderCallBar() {
     ensureCallUi();
-    const bar = document.getElementById("hub-call-bar");
-    const title = document.getElementById("hub-call-title");
-    const meta = document.getElementById("hub-call-meta");
-    const peersEl = document.getElementById("hub-call-peers");
-    const actions = document.getElementById("hub-call-actions");
-    const videos = document.getElementById("hub-call-videos");
+    const bar = callEl("hub-call-bar");
+    const title = callEl("hub-call-title");
+    const meta = callEl("hub-call-meta");
+    const peersEl = callEl("hub-call-peers");
+    const actions = callEl("hub-call-actions");
+    const videos = callEl("hub-call-videos");
     if (!bar || !actions) return;
+    if (!bar.classList.contains("is-popout")) applyBarPos(bar);
 
     if (ringingRoomId && !active) {
       const room = cache.rooms?.[ringingRoomId];
@@ -359,9 +572,13 @@
     }
     ensureSpeakLoop();
     syncLocalPreview();
+    const popped =
+      !!(window.documentPictureInPicture && documentPictureInPicture.window) ||
+      !!(pipWin && !pipWin.closed && pipWin.document && pipWin.document.getElementById("title"));
     actions.innerHTML = `
       <button type="button" class="hub-call-mute${muted ? " is-on" : ""}" data-hub-call-mute>${muted ? "Unmute" : "Mute"}</button>
       <button type="button" class="hub-call-share${sharing ? " is-on" : ""}" data-hub-call-share>${sharing ? "Stop share" : "Share screen"}</button>
+      <button type="button" class="hub-call-pop" data-hub-call-pop>${popped ? "Popped out" : "Pop out"}</button>
       <button type="button" class="hub-call-hang" data-hub-call-hang>Hang up</button>
     `;
   }
@@ -451,7 +668,7 @@
   }
 
   function updateSpeakingUi() {
-    document.querySelectorAll(".hub-call-peer[data-peer-id]").forEach((el) => {
+    callDoc().querySelectorAll(".hub-call-peer[data-peer-id]").forEach((el) => {
       const id = el.getAttribute("data-peer-id");
       el.classList.toggle("is-talking", isPeerTalking(id));
     });
@@ -562,7 +779,7 @@
   }
 
   function attachRemoteVideo(peerId, stream, track) {
-    const videos = document.getElementById("hub-call-videos");
+    const videos = callEl("hub-call-videos");
     if (!videos) return;
     let wrap = document.getElementById(`hub-call-video-${peerId}`);
     if (!wrap) {
@@ -1219,6 +1436,7 @@
     stopAllMeters();
     clearCallSession();
     document.getElementById("hub-call-videos")?.replaceChildren();
+    callEl("hub-call-videos")?.replaceChildren();
     if (roomId && me) {
       await mutateRooms((rooms) => {
         const room = rooms[roomId];
@@ -1346,7 +1564,13 @@
 
     if (wiredClicks) return;
     wiredClicks = true;
-    document.addEventListener("click", async (e) => {
+    bindCallClicks(document);
+  }
+
+  function bindCallClicks(root) {
+    if (!root || root.__hubCallClicks) return;
+    root.__hubCallClicks = true;
+    root.addEventListener("click", async (e) => {
       if (e.target.closest("#hub-call-bar, #hub-chat-call-btn, #friends-call-btn")) {
         resumeAllRemoteAudio();
       }
@@ -1362,8 +1586,12 @@
       }
       if (e.target.closest("[data-hub-call-share]")) {
         e.preventDefault();
-        if (isSharing()) stopScreenShare();
-        else startScreenShare();
+        toggleShare();
+        return;
+      }
+      if (e.target.closest("[data-hub-call-pop]")) {
+        e.preventDefault();
+        popOutCall();
         return;
       }
       if (e.target.closest("[data-hub-call-accept]")) {
@@ -1409,6 +1637,10 @@
     declineRing,
     startScreenShare,
     stopScreenShare,
+    toggleMute,
+    toggleShare,
+    popOutCall,
+    getUiState,
     getActive,
     startPolling,
     stopPolling,
