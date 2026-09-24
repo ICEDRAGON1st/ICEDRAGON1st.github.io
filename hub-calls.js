@@ -574,7 +574,7 @@
     syncLocalPreview();
     const popped =
       !!(window.documentPictureInPicture && documentPictureInPicture.window) ||
-      !!(pipWin && !pipWin.closed && pipWin.document && pipWin.document.getElementById("title"));
+      !!(pipWin && !pipWin.closed);
     actions.innerHTML = `
       <button type="button" class="hub-call-mute${muted ? " is-on" : ""}" data-hub-call-mute>${muted ? "Unmute" : "Mute"}</button>
       <button type="button" class="hub-call-share${sharing ? " is-on" : ""}" data-hub-call-share>${sharing ? "Stop share" : "Share screen"}</button>
