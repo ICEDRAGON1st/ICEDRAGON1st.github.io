@@ -113,6 +113,12 @@
   const ADMIN_EVENT_LOCAL_WEATHER_KEY = "fishing-admin-weather-v1";
   const ADMIN_EVENT_LOCAL_MUTATION_KEY = "fishing-admin-mutation-v1";
   const ADMIN_EVENT_PENDING_KEY = "fishing-admin-pending-v1";
+  const ADMIN_ANNOUNCE_DOC = "fishing-admin-announce";
+  const ADMIN_ANNOUNCE_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-admin-announce";
+  const ADMIN_ANNOUNCE_URL = "admin-announce.json";
+  const ADMIN_ANNOUNCE_SEEN_KEY = "fishing-admin-announce-seen-v1";
+  const ADMIN_ANNOUNCE_DEFAULT_MS = 5 * 60_000;
+  const ADMIN_ANNOUNCE_MAX_LEN = 180;
   const FISH_GIFTS_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-gifts";
   const FISH_GIFTS_DOC = "fishing-gifts";
   const FISH_GIFTS_TOKEN = "ice-fish-gift-9f3a";
@@ -4448,8 +4454,265 @@
     migrateLegacyAdminLocal();
     restorePendingAdminPush();
     pollAdminEvent(true);
+    pollAdminAnnounce(true);
     if (adminEventPollTimer) clearInterval(adminEventPollTimer);
-    adminEventPollTimer = setInterval(() => pollAdminEvent(false), ADMIN_EVENT_POLL_MS);
+    adminEventPollTimer = setInterval(() => {
+      pollAdminEvent(false);
+      pollAdminAnnounce(false);
+    }, ADMIN_EVENT_POLL_MS);
+  }
+
+  let adminAnnounceCache = null;
+  let adminAnnounceFetchedAt = 0;
+  let lastShownAnnounceId = "";
+  try {
+    lastShownAnnounceId = String(localStorage.getItem(ADMIN_ANNOUNCE_SEEN_KEY) || "");
+  } catch {
+    lastShownAnnounceId = "";
+  }
+
+  function sanitizeAnnounceText(raw) {
+    return String(raw || "")
+      .replace(/[<>&"'`]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, ADMIN_ANNOUNCE_MAX_LEN);
+  }
+
+  function parseAnnouncePayload(data) {
+    if (!data || typeof data !== "object") return null;
+    if (String(data.token || "") !== ADMIN_EVENT_TOKEN) return null;
+    const text = sanitizeAnnounceText(data.text);
+    const id = String(data.id || "");
+    const at = Math.floor(Number(data.at) || 0);
+    const until = Math.floor(Number(data.until) || 0);
+    if (!text || !id || !until) return null;
+    if (until <= Date.now()) return null;
+    return {
+      id,
+      text,
+      at: at || Date.now(),
+      until,
+      by: String(data.by || OWNER_NAME).slice(0, 24)
+    };
+  }
+
+  function readSeenAnnounceId() {
+    try {
+      return String(localStorage.getItem(ADMIN_ANNOUNCE_SEEN_KEY) || "");
+    } catch {
+      return "";
+    }
+  }
+
+  function writeSeenAnnounceId(id) {
+    lastShownAnnounceId = String(id || "");
+    try {
+      localStorage.setItem(ADMIN_ANNOUNCE_SEEN_KEY, lastShownAnnounceId);
+    } catch {}
+  }
+
+  function renderAdminAnnounceBanner() {
+    const banner = document.getElementById("admin-announce-banner");
+    const textEl = document.getElementById("admin-announce-text");
+    const timeEl = document.getElementById("admin-announce-time");
+    if (!banner) return;
+    const msg = adminAnnounceCache;
+    const live = msg && msg.until > Date.now();
+    if (!live) {
+      banner.hidden = true;
+      banner.classList.add("hidden");
+      banner.classList.remove("is-live");
+      return;
+    }
+    banner.hidden = false;
+    banner.classList.remove("hidden");
+    banner.classList.add("is-live");
+    if (textEl) textEl.textContent = msg.text;
+    if (timeEl) timeEl.textContent = formatTreasureClock(Math.max(0, msg.until - Date.now()));
+  }
+
+  function showAdminAnnounce(msg, { alert = true } = {}) {
+    if (!msg) {
+      adminAnnounceCache = null;
+      renderAdminAnnounceBanner();
+      return;
+    }
+    adminAnnounceCache = msg;
+    renderAdminAnnounceBanner();
+    const seen = readSeenAnnounceId();
+    if (alert && msg.id && msg.id !== seen) {
+      writeSeenAnnounceId(msg.id);
+      setCatchLine(`ADMIN · ${msg.text}`, "treasure");
+      playSfx("win");
+      burstConfetti();
+    }
+  }
+
+  async function fetchAdminAnnounceRemote() {
+    let best = null;
+    const api = fishingSb();
+    if (api) {
+      try {
+        const data = await api.getDoc(ADMIN_ANNOUNCE_DOC);
+        best = parseAnnouncePayload(data) || best;
+      } catch {
+        /* Mantle / file */
+      }
+    }
+    if (!adminEventRateLimited()) {
+      try {
+        const res = await fetch(`${ADMIN_ANNOUNCE_API}?t=${Date.now()}`, { cache: "no-store" });
+        if (res.status === 429) markAdminEventRateLimited();
+        else if (res.ok) {
+          clearAdminEventRateLimited();
+          const data = await res.json();
+          const parsed = parseAnnouncePayload(data);
+          if (parsed && (!best || parsed.at >= best.at)) best = parsed;
+        }
+      } catch {
+        /* file */
+      }
+    }
+    try {
+      const res = await fetch(`${ADMIN_ANNOUNCE_URL}?t=${Date.now()}`, { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        const parsed = parseAnnouncePayload(data);
+        if (parsed && (!best || parsed.at >= best.at)) best = parsed;
+      }
+    } catch {
+      /* ignore */
+    }
+    return best;
+  }
+
+  async function pollAdminAnnounce(force = false) {
+    const now = Date.now();
+    if (!force && now - adminAnnounceFetchedAt < ADMIN_EVENT_POLL_MS) {
+      renderAdminAnnounceBanner();
+      return;
+    }
+    adminAnnounceFetchedAt = now;
+    const remote = await fetchAdminAnnounceRemote();
+    if (!remote) {
+      if (adminAnnounceCache && adminAnnounceCache.until <= now) {
+        adminAnnounceCache = null;
+      }
+      renderAdminAnnounceBanner();
+      return;
+    }
+    showAdminAnnounce(remote, { alert: remote.id !== readSeenAnnounceId() });
+  }
+
+  async function pushAdminAnnounceRemote(payload) {
+    let ok = false;
+    const api = fishingSb();
+    if (api) {
+      try {
+        await api.upsertDoc(ADMIN_ANNOUNCE_DOC, payload);
+        ok = true;
+      } catch {
+        /* Mantle */
+      }
+    }
+    if (!adminEventRateLimited()) {
+      try {
+        const res = await fetch(ADMIN_ANNOUNCE_API, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        if (res.status === 429) markAdminEventRateLimited();
+        else if (res.ok) {
+          clearAdminEventRateLimited();
+          ok = true;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    return ok;
+  }
+
+  async function publishAdminAnnounce(text, minutes = ADMIN_DEFAULT_MINUTES) {
+    if (!isFishingOwner()) {
+      setCatchLine("Admin only", "miss");
+      return false;
+    }
+    const clean = sanitizeAnnounceText(text);
+    if (!clean) {
+      setCatchLine("Type a message to send", "miss");
+      return false;
+    }
+    const now = Date.now();
+    const mins = clampAdminMinutes(minutes || ADMIN_DEFAULT_MINUTES);
+    const payload = {
+      token: ADMIN_EVENT_TOKEN,
+      id: `a-${now.toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
+      text: clean,
+      at: now,
+      until: now + mins * 60_000,
+      by: OWNER_NAME,
+      note: "admin-announce"
+    };
+    showAdminAnnounce(payload, { alert: true });
+    writeSeenAnnounceId(payload.id);
+    setCatchLine(`Sending admin message…`, "");
+    const ok = await pushAdminAnnounceRemote(payload);
+    if (!ok) {
+      setCatchLine("Message shown here · sync failed — try again", "miss");
+      playSfx("miss");
+      return false;
+    }
+    setCatchLine(`Admin message live for ${mins}m`, "treasure");
+    playSfx("click");
+    return true;
+  }
+
+  async function clearAdminAnnounce() {
+    if (!isFishingOwner()) {
+      setCatchLine("Admin only", "miss");
+      return false;
+    }
+    const payload = {
+      token: ADMIN_EVENT_TOKEN,
+      id: "",
+      text: "",
+      at: Date.now(),
+      until: 0,
+      by: OWNER_NAME,
+      note: "admin-announce-clear"
+    };
+    adminAnnounceCache = null;
+    renderAdminAnnounceBanner();
+    const ok = await pushAdminAnnounceRemote(payload);
+    setCatchLine(ok ? "Admin message cleared" : "Cleared here · sync failed", ok ? "treasure" : "miss");
+    if (!ok) playSfx("miss");
+    return ok;
+  }
+
+  function parseAnnounceCommand(raw) {
+    const original = String(raw || "").trim();
+    if (!original) return null;
+    const lower = original.toLowerCase();
+    if (/^(clear|off|stop|end)\s+(say|announce|announcement|message|msg|broadcast)\b/.test(lower)) {
+      return { kind: "clear-announce" };
+    }
+    const head = original.match(/^(say|announce|announcement|message|msg|broadcast)\b[:\s-]*/i);
+    if (!head) return null;
+    let rest = original.slice(head[0].length).trim();
+    let minutes = ADMIN_DEFAULT_MINUTES;
+    const minsMatch = rest.match(/\b(\d{1,3})\s*(?:m|mins?|minutes?)\b/i);
+    if (minsMatch) {
+      minutes = clampAdminMinutes(minsMatch[1]);
+      rest = `${rest.slice(0, minsMatch.index)} ${rest.slice(minsMatch.index + minsMatch[0].length)}`
+        .replace(/\s+/g, " ")
+        .trim();
+    }
+    const text = sanitizeAnnounceText(rest);
+    if (!text) return { kind: "announce", error: "Try: say Double XP this weekend" };
+    return { kind: "announce", text, minutes };
   }
 
   function restorePendingAdminPush() {
@@ -4766,6 +5029,9 @@
   adminCmdHistory = loadAdminCmdHistory();
 
   const ADMIN_CMD_SUGGESTIONS = [
+    "say ",
+    "announce ",
+    "clear say",
     "give fish ",
     "give astral luckyblock",
     "give absolute luckyblock",
@@ -5971,6 +6237,9 @@
       if (/\bchests?\b/.test(text)) {
         return { kind: "clear-chest", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
       }
+      if (/\b(say|announce|announcement|message|msg|broadcast)\b/.test(text)) {
+        return { kind: "clear-announce", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
+      }
       if (/\b(luck|sell|money|coin|boost)\b/.test(text)) {
         return { kind: "clear-boost", minutes: 0, mult: ADMIN_DEFAULT_MULT, scope, target: "" };
       }
@@ -6351,6 +6620,20 @@
     }
     const trimmed = String(raw || "").trim();
     if (trimmed) pushAdminCmdHistory(trimmed);
+    const announce = parseAnnounceCommand(raw);
+    if (announce) {
+      if (announce.kind === "clear-announce") {
+        await clearAdminAnnounce();
+        return;
+      }
+      if (announce.error) {
+        setCatchLine(announce.error, "miss");
+        playSfx("miss");
+        return;
+      }
+      await publishAdminAnnounce(announce.text, announce.minutes);
+      return;
+    }
     const blockGift = parseGiveLuckyBlockCommand(raw);
     if (blockGift) {
       await runGiveLuckyBlockCommand(blockGift);
@@ -6374,9 +6657,13 @@
     const parsed = parseAdminCommand(raw);
     if (!parsed) {
       setCatchLine(
-        "Try: storm · calm · sunny · 5x luck · 5x chest · give coin chest · clear weather · clear",
+        "Try: say hi · storm · calm · 5x luck · 5x chest · give coin chest · clear weather · clear",
         "miss"
       );
+      return;
+    }
+    if (parsed.kind === "clear-announce") {
+      await clearAdminAnnounce();
       return;
     }
     if (parsed.scope === "local" || parsed.scope === "global") {
@@ -12900,6 +13187,7 @@
     renderCooler(coolerKey() !== before);
     renderAquarium();
     renderStats();
+    renderAdminAnnounceBanner();
     saveSoon();
   }
 
@@ -13907,6 +14195,17 @@
     if (input) input.value = "";
     hideAdminCmdSuggest();
     runAdminCommand(raw);
+  });
+  document.getElementById("admin-announce-form")?.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const input = document.getElementById("admin-announce-input");
+    const text = String(input?.value || "").trim();
+    if (!text) {
+      setCatchLine("Type a message to send", "miss");
+      return;
+    }
+    if (input) input.value = "";
+    runAdminCommand(`say ${text}`);
   });
   {
     const input = document.getElementById("admin-cmd-input");

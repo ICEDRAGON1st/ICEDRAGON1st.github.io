@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260924c">
+  <link rel="stylesheet" href="styles.css?v=20260924d">
 </head>
 <body data-spot="creek" data-hub-sound-btn="off">
   <div id="weather-fx" class="weather-fx" aria-hidden="true">
@@ -128,6 +128,12 @@
       </div>
       <div class="boat-zone">
         <div id="boat-timers" class="boat-timers empty" aria-live="polite"></div>
+      </div>
+
+      <div id="admin-announce-banner" class="admin-announce-banner hidden" role="status" aria-live="polite" hidden>
+        <span class="admin-announce-tag">Admin</span>
+        <strong id="admin-announce-text">—</strong>
+        <span id="admin-announce-time" class="admin-announce-time">—</span>
       </div>
 
       <div id="event-banner" class="event-banner event-idle" role="status" aria-live="polite">
@@ -683,6 +689,22 @@
       </div>
 
       <div class="admin-section">
+        <p class="admin-section-label">Message all players</p>
+        <form id="admin-announce-form" class="admin-announce-form">
+          <input
+            id="admin-announce-input"
+            type="text"
+            maxlength="180"
+            placeholder="say Double XP weekend starts now"
+            autocomplete="off"
+            spellcheck="true"
+          />
+          <button type="submit" class="btn">Send</button>
+        </form>
+        <p class="admin-section-hint">Also: <code>say …</code> · <code>announce …</code> · <code>clear say</code></p>
+      </div>
+
+      <div class="admin-section">
         <p class="admin-section-label">Boosts</p>
         <div class="admin-actions">
           <button type="button" class="btn btn-ghost" data-admin-cmd="sell">Sell</button>
@@ -849,6 +871,6 @@
   <script src="../hub-friends.js?v=20260923u"></script>
   <script src="../hub-chat.js?v=20260924f"></script>
   <script src="../hub-leaderboard.js?v=20260923u"></script>
-  <script src="script.js?v=20260924h"></script>
+  <script src="script.js?v=20260924i"></script>
 </body>
 </html>
