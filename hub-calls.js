@@ -12,26 +12,19 @@
   const DOC_ID = "hub-calls";
   const API = "https://mantledb.sh/v2/icedragon1st-mygames/hub-calls";
   const TOKEN = "ice-hub-call-9f3a";
-  const POLL_MS = 1500;
+  const POLL_MS = 1000;
   const MAX_PEERS = 6;
-  const SIGNAL_TTL_MS = 45_000;
+  const SIGNAL_TTL_MS = 90_000;
   const ROOM_TTL_MS = 2 * 60 * 60_000;
   const SESSION_KEY = "hub-call-session-v1";
   const SESSION_MAX_MS = 2 * 60 * 60_000;
+  // STUN only — free public TURN credentials are dead and delay ICE gathering.
   const ICE_SERVERS = [
     { urls: "stun:stun.l.google.com:19302" },
     { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun.cloudflare.com:3478" },
-    {
-      urls: [
-        "turn:openrelay.metered.ca:80",
-        "turn:openrelay.metered.ca:443",
-        "turn:openrelay.metered.ca:443?transport=tcp"
-      ],
-      username: "openrelayproject",
-      credential: "openrelayproject"
-    }
+    { urls: "stun:stun.cloudflare.com:3478" }
   ];
+  const OFFER_RETRY_MS = 8000;
 
   function sb() {
     return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
@@ -545,12 +538,14 @@
     bar.classList.remove("hidden");
     if (title) title.textContent = room?.label || "Voice call";
     const livePeers = Object.entries(room?.peers || {}).filter(([, p]) => p && !p.left);
+    const joinedPeers = livePeers.filter(([, p]) => Number(p.joinedAt) > 0);
     const linked = [...(active.pcs?.values() || [])].filter(
       (pc) => pc.connectionState === "connected" || pc.iceConnectionState === "connected"
     ).length;
-    const parts = [`${livePeers.length} in call`, muted ? "muted" : "live"];
+    const parts = [`${joinedPeers.length} in call`, muted ? "muted" : "live"];
     if (linked) parts.push(`${linked} linked`);
-    else if (livePeers.length > 1) parts.push("connecting…");
+    else if (joinedPeers.length > 1) parts.push("connecting…");
+    else if (livePeers.length > joinedPeers.length) parts.push("waiting…");
     if (sharing) parts.push("sharing");
     if (meta) meta.textContent = parts.join(" · ");
     if (peersEl) {
@@ -579,6 +574,7 @@
       <button type="button" class="hub-call-mute${muted ? " is-on" : ""}" data-hub-call-mute>${muted ? "Unmute" : "Mute"}</button>
       <button type="button" class="hub-call-share${sharing ? " is-on" : ""}" data-hub-call-share>${sharing ? "Stop share" : "Share screen"}</button>
       <button type="button" class="hub-call-pop" data-hub-call-pop>${popped ? "Popped out" : "Pop out"}</button>
+      <button type="button" class="hub-call-pop" data-hub-call-retry>Retry</button>
       <button type="button" class="hub-call-hang" data-hub-call-hang>Hang up</button>
     `;
   }
@@ -1000,7 +996,7 @@
     });
   }
 
-  function waitForIce(pc, ms = 4500) {
+  function waitForIce(pc, ms = 3000) {
     if (!pc || pc.iceGatheringState === "complete") return Promise.resolve();
     return new Promise((resolve) => {
       let done = false;
@@ -1014,7 +1010,15 @@
         if (pc.iceGatheringState === "complete") finish();
       };
       pc.addEventListener("icegatheringstatechange", onChange);
-      setTimeout(finish, ms);
+      // Also finish early once we have at least one non-host candidate or null candidate event.
+      const onCand = (ev) => {
+        if (!ev.candidate) finish();
+      };
+      pc.addEventListener("icecandidate", onCand);
+      setTimeout(() => {
+        pc.removeEventListener("icecandidate", onCand);
+        finish();
+      }, ms);
     });
   }
 
@@ -1073,10 +1077,6 @@
   async function handleSignal(sig) {
     if (!active || !sig || sig.to !== playerId()) return;
     if (seenSignals.has(sig.id)) return;
-    seenSignals.add(sig.id);
-    if (seenSignals.size > 400) {
-      seenSignals = new Set([...seenSignals].slice(-200));
-    }
     const from = String(sig.from || "");
     if (!from || from === playerId()) return;
     const pc = await ensurePc(from);
@@ -1084,10 +1084,21 @@
     try {
       if (sig.type === "offer") {
         if (pc.signalingState === "have-local-offer") {
-          if (playerId() > from) return;
+          if (playerId() > from) {
+            seenSignals.add(sig.id);
+            return;
+          }
           try {
             await pc.setLocalDescription({ type: "rollback" });
           } catch {
+            closePc(from);
+            const fresh = await ensurePc(from);
+            if (!fresh) return;
+            await fresh.setRemoteDescription(sig.payload);
+            await flushPendingIce(fresh);
+            const answer = await makeAnswer(fresh);
+            await pushSignal(from, "answer", answer);
+            seenSignals.add(sig.id);
             return;
           }
         }
@@ -1095,11 +1106,13 @@
         await flushPendingIce(pc);
         const answer = await makeAnswer(pc);
         await pushSignal(from, "answer", answer);
+        seenSignals.add(sig.id);
       } else if (sig.type === "answer") {
         if (pc.signalingState === "have-local-offer" || !pc.currentRemoteDescription) {
           await pc.setRemoteDescription(sig.payload);
           await flushPendingIce(pc);
         }
+        seenSignals.add(sig.id);
       } else if (sig.type === "ice" && sig.payload) {
         if (!pc.remoteDescription) {
           pc._hubPendingIce = pc._hubPendingIce || [];
@@ -1109,19 +1122,33 @@
             await pc.addIceCandidate(sig.payload);
           } catch {}
         }
+        seenSignals.add(sig.id);
       } else if (sig.type === "hangup") {
         closePc(from);
+        seenSignals.add(sig.id);
+      }
+      if (seenSignals.size > 400) {
+        seenSignals = new Set([...seenSignals].slice(-200));
       }
     } catch (err) {
       console.warn("[HubCalls] signal", err);
     }
   }
 
+  async function retryConnections() {
+    if (!active) return;
+    seenSignals = new Set();
+    [...(active.pcs?.keys() || [])].forEach((pid) => closePc(pid));
+    const room = cache.rooms?.[active.roomId];
+    if (room) await connectMesh(room);
+    renderCallBar();
+  }
+
   async function connectMesh(room) {
     if (!active || !room) return;
     const me = playerId();
     const peers = Object.entries(room.peers || {}).filter(
-      ([id, p]) => id !== me && p && !p.left
+      ([id, p]) => id !== me && peerJoined(p)
     );
     for (const [pid] of peers) {
       let pc = active.pcs.get(pid);
@@ -1129,36 +1156,45 @@
         closePc(pid);
         pc = null;
       }
+      if (
+        pc &&
+        pc.signalingState === "have-local-offer" &&
+        pc._hubOfferAt &&
+        Date.now() - pc._hubOfferAt > OFFER_RETRY_MS
+      ) {
+        closePc(pid);
+        pc = null;
+      }
       pc = await ensurePc(pid);
       if (!pc) continue;
 
-      // Already up or in progress — do not tear down.
       if (
         pc.connectionState === "connected" ||
-        pc.connectionState === "connecting" ||
-        pc.iceConnectionState === "checking" ||
         pc.iceConnectionState === "connected" ||
         pc.iceConnectionState === "completed"
       ) {
         continue;
       }
-      if (pc.signalingState === "have-local-offer" || pc.signalingState === "have-remote-offer") {
+      if (pc.connectionState === "connecting" || pc.iceConnectionState === "checking") {
         continue;
       }
+      if (pc.signalingState === "have-remote-offer") continue;
+      if (pc.signalingState === "have-local-offer") continue;
 
-      // Lower id offers once when idle.
       if (me > pid) continue;
       if (pc.remoteDescription && pc.localDescription) continue;
 
       try {
         const offer = await makeOffer(pc);
+        pc._hubOfferAt = Date.now();
         await pushSignal(pid, "offer", offer);
       } catch (err) {
         console.warn("[HubCalls] offer", err);
       }
     }
     const signals = Array.isArray(room.signals) ? room.signals : [];
-    for (const sig of signals) await handleSignal(sig);
+    const ordered = signals.slice().sort((a, b) => (Number(a.at) || 0) - (Number(b.at) || 0));
+    for (const sig of ordered) await handleSignal(sig);
   }
 
   async function enterRoom(roomId, { asRingAccept = false } = {}) {
@@ -1592,6 +1628,11 @@
       if (e.target.closest("[data-hub-call-pop]")) {
         e.preventDefault();
         popOutCall();
+        return;
+      }
+      if (e.target.closest("[data-hub-call-retry]")) {
+        e.preventDefault();
+        retryConnections();
         return;
       }
       if (e.target.closest("[data-hub-call-accept]")) {
