@@ -26,7 +26,8 @@
     fishingCommunity: "fishing-community",
     fishingGifts: "fishing-gifts",
     fishingMail: "fishing-player-mail",
-    fishingAquariums: "fishing-aquariums"
+    fishingAquariums: "fishing-aquariums",
+    calls: "hub-calls"
   };
 
   function headers(extra) {
