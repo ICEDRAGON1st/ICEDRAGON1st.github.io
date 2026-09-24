@@ -5277,6 +5277,16 @@
     };
   }
 
+  /** Gift qty: explicit Nx in the command, else Mult field (rounded, 1–50). */
+  function resolveAdminGiftCount(explicitCount) {
+    const n = Number(explicitCount);
+    if (Number.isFinite(n) && n > 0) {
+      return Math.min(50, Math.max(1, Math.round(n)));
+    }
+    const fromForm = Math.round(Number(readAdminFormDefaults().mult) || 1);
+    return Math.min(50, Math.max(1, fromForm));
+  }
+
   function applyAdminLocally(channel, payload, clear = false) {
     if (channel === "variant") {
       if (clear) {
@@ -5705,7 +5715,7 @@
       to = "me";
     }
 
-    let count = 1;
+    let count = null;
     const countMatch = rest.match(/(?:^|\s)(?:x\s*(\d{1,2})|(\d{1,2})\s*x)(?:\s|$)/i);
     if (countMatch) {
       count = Math.min(50, Math.max(1, Number(countMatch[1] || countMatch[2]) || 1));
@@ -6108,7 +6118,7 @@
       shiny: !!cmd.shiny,
       mutation: normalizeMutation(cmd.mutation)
     };
-    const count = Math.min(50, Math.max(1, Number(cmd.count) || 1));
+    const count = resolveAdminGiftCount(cmd.count);
     const label = formatFishName(fish, variants);
     let toRaw = String(cmd.to || "me").trim();
     // Global admin scope + no explicit target → everyone
@@ -6358,7 +6368,7 @@
       to = "me";
     }
 
-    let count = 1;
+    let count = null;
     const countMatch = rest.match(/(?:^|\s)(?:x\s*(\d{1,2})|(\d{1,2})\s*x)(?:\s|$)/i);
     if (countMatch) {
       count = Math.min(50, Math.max(1, Number(countMatch[1] || countMatch[2]) || 1));
@@ -6396,7 +6406,7 @@
       explicitTo = true;
     }
 
-    let count = Math.min(50, Math.max(1, Number(head[2]) || 1));
+    let count = head[2] ? Math.min(50, Math.max(1, Number(head[2]) || 1)) : null;
     const countMatch = rest.match(/(?:^|\s)(?:x\s*(\d{1,2})|(\d{1,2})\s*x)(?:\s|$)/i);
     if (countMatch) {
       count = Math.min(50, Math.max(1, Number(countMatch[1] || countMatch[2]) || 1));
@@ -6440,7 +6450,7 @@
     }
     const chestKind = cmd.chestKind === "luck" ? "luck" : "money";
     const def = chestGiftDef(chestKind);
-    const count = Math.min(50, Math.max(1, Number(cmd.count) || 1));
+    const count = resolveAdminGiftCount(cmd.count);
     let toRaw = String(cmd.to || "me").trim();
     if (
       (!toRaw || toRaw.toLowerCase() === "me" || toRaw.toLowerCase() === "self") &&
@@ -6542,7 +6552,7 @@
     }
     const type = resolveLuckyBlockType(cmd.type) || "absolute";
     const def = luckyBlockDef(type);
-    const count = Math.min(50, Math.max(1, Number(cmd.count) || 1));
+    const count = resolveAdminGiftCount(cmd.count);
     let toRaw = String(cmd.to || "me").trim();
     if (
       (!toRaw || toRaw.toLowerCase() === "me" || toRaw.toLowerCase() === "self") &&
