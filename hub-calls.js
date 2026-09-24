@@ -1128,6 +1128,14 @@
         updatedAt: Date.now()
       };
     });
+    // Keep local cache warm so parallel peer syncs see our writes immediately.
+    try {
+      if (cache.rooms?.[active.roomId]) {
+        const links = { ...(cache.rooms[active.roomId].links || {}) };
+        links[key] = { ...(links[key] || {}), ...patch };
+        cache.rooms[active.roomId].links = links;
+      }
+    } catch {}
   }
 
   async function pushSignal(to, type, payload) {
@@ -1193,6 +1201,8 @@
   async function syncPeerLink(peerId, room) {
     const me = playerId();
     if (!me || !peerId || peerId === me) return;
+    // Prefer freshest room snapshot (includes our own recent writes).
+    room = cache.rooms?.[active?.roomId] || room;
     const key = linkKey(me, peerId);
     const link = room.links?.[key];
     let pc = active.pcs.get(peerId);
@@ -1220,9 +1230,9 @@
       const offerAt = Number(link.offerAt) || 0;
       pc = pc || (await ensurePc(peerId));
       if (!pc) return;
-      if (pc._hubAnsweredOfferAt === offerAt && (pcLive(pc) || pc.signalingState === "stable")) {
-        return;
-      }
+      // Only skip if already live — "stable but not connected" must retry ICE.
+      if (pc._hubAnsweredOfferAt === offerAt && pcLive(pc)) return;
+      if (pc._hubAnsweredOfferAt === offerAt && pcBusy(pc)) return;
       try {
         if (pc.signalingState === "have-local-offer") {
           // Glare: keep offer if our id is higher, else yield
@@ -1236,6 +1246,12 @@
           }
         }
         if (pc.signalingState === "have-local-offer") return;
+        // Need a fresh PC if we already set a different remote description
+        if (pc.remoteDescription && pc._hubAnsweredOfferAt !== offerAt) {
+          closePc(peerId);
+          pc = await ensurePc(peerId);
+          if (!pc) return;
+        }
         await pc.setRemoteDescription(link.offer);
         await flushPendingIce(pc);
         const answer = await makeAnswer(pc);
@@ -1261,6 +1277,12 @@
       if (stale || !pc || (!pcLive(pc) && !pcBusy(pc) && pc.signalingState === "stable")) {
         await offerToPeer(peerId);
       }
+    } else if (
+      // Higher id: if no offer yet after a while, nudge by creating one (helps 3rd joiner)
+      (!link?.offer || (link.offerAt && Date.now() - Number(link.offerAt) > OFFER_RETRY_MS * 1.5 && !pcLive(pc))) &&
+      (!pc || pc.signalingState === "stable")
+    ) {
+      await offerToPeer(peerId);
     }
   }
 
