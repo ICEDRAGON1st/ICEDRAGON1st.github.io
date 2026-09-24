@@ -11343,6 +11343,12 @@
     if (item.kind === "speed") {
       state.equippedSpeed = id;
       setCatchLine(`Bought & equipped ${item.name}`);
+    } else if (item.kind === "aquarium") {
+      const slots = aquariumSwimMax();
+      setCatchLine(
+        `Bought ${item.name} · drip ${formatPctBonus(aquariumDripBonus())} · ${slots} swim slots`,
+        "treasure"
+      );
     }
     playSfx("click");
     checkAchievements();
