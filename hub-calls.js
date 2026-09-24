@@ -20,7 +20,17 @@
   const SESSION_MAX_MS = 2 * 60 * 60_000;
   const ICE_SERVERS = [
     { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" }
+    { urls: "stun:stun1.l.google.com:19302" },
+    { urls: "stun:stun.cloudflare.com:3478" },
+    {
+      urls: [
+        "turn:openrelay.metered.ca:80",
+        "turn:openrelay.metered.ca:443",
+        "turn:openrelay.metered.ca:443?transport=tcp"
+      ],
+      username: "openrelayproject",
+      credential: "openrelayproject"
+    }
   ];
 
   function sb() {
@@ -122,8 +132,29 @@
   async function mutateRooms(mutator) {
     return enqueueWrite(async () => {
       const doc = (await fetchDoc()) || { rooms: {} };
-      const rooms = { ...(doc.rooms || {}) };
+      const rooms = JSON.parse(JSON.stringify(doc.rooms || {}));
       mutator(rooms);
+      // Merge remote signals so concurrent offer/answer writes don't clobber each other.
+      try {
+        const latest = await fetchDoc();
+        if (latest?.rooms) {
+          Object.keys(rooms).forEach((id) => {
+            if (!rooms[id]) return;
+            const byId = new Map();
+            const remote = latest.rooms[id]?.signals;
+            const local = rooms[id].signals;
+            (Array.isArray(remote) ? remote : []).forEach((s) => {
+              if (s?.id) byId.set(s.id, s);
+            });
+            (Array.isArray(local) ? local : []).forEach((s) => {
+              if (s?.id) byId.set(s.id, s);
+            });
+            rooms[id].signals = [...byId.values()]
+              .sort((a, b) => (Number(a.at) || 0) - (Number(b.at) || 0))
+              .slice(-100);
+          });
+        }
+      } catch {}
       const ok = await postDoc(rooms);
       if (ok) cache.rooms = pruneRooms(rooms);
       return ok;
@@ -301,7 +332,12 @@
     bar.classList.remove("hidden");
     if (title) title.textContent = room?.label || "Voice call";
     const livePeers = Object.entries(room?.peers || {}).filter(([, p]) => p && !p.left);
+    const linked = [...(active.pcs?.values() || [])].filter(
+      (pc) => pc.connectionState === "connected" || pc.iceConnectionState === "connected"
+    ).length;
     const parts = [`${livePeers.length} in call`, muted ? "muted" : "live"];
+    if (linked) parts.push(`${linked} linked`);
+    else if (livePeers.length > 1) parts.push("connecting…");
     if (sharing) parts.push("sharing");
     if (meta) meta.textContent = parts.join(" · ");
     if (peersEl) {
@@ -355,6 +391,12 @@
     try {
       m.analyser.disconnect();
     } catch {}
+    try {
+      m.gain?.disconnect();
+    } catch {}
+    try {
+      m.stream?.getTracks?.().forEach((t) => t.stop());
+    } catch {}
     meters.delete(peerId);
   }
 
@@ -366,28 +408,38 @@
     }
   }
 
-  function watchAudio(peerId, streamOrTrack) {
+  function watchAudio(peerId, streamOrTrack, { play = false } = {}) {
     if (!peerId || !streamOrTrack) return;
     const ctx = getAudioCtx();
     if (!ctx) return;
     stopWatch(peerId);
     try {
-      const stream =
+      const srcStream =
         streamOrTrack instanceof MediaStream
           ? streamOrTrack
           : new MediaStream([streamOrTrack]);
-      if (!stream.getAudioTracks().length) return;
+      const tracks = srcStream.getAudioTracks();
+      if (!tracks.length) return;
+      // Always clone — never stop/own the live WebRTC receiver track.
+      const stream = new MediaStream(tracks.map((t) => t.clone()));
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 512;
       analyser.smoothingTimeConstant = 0.35;
+      const gain = ctx.createGain();
+      gain.gain.value = 1;
       source.connect(analyser);
+      analyser.connect(gain);
+      if (play) gain.connect(ctx.destination);
       meters.set(peerId, {
         analyser,
         source,
+        gain,
+        stream,
         data: new Uint8Array(analyser.fftSize),
         speaking: false,
-        lastSpeak: 0
+        lastSpeak: 0,
+        playing: !!play
       });
     } catch (err) {
       console.warn("[HubCalls] meter", err);
@@ -666,6 +718,10 @@
   }
 
   function attachRemoteAudio(peerId, track) {
+    if (!track) return;
+    track.enabled = true;
+    getAudioCtx();
+    // Primary playback: live track on an <audio> element (most reliable).
     let audio = document.getElementById(`hub-call-audio-${peerId}`);
     if (!audio) {
       audio = document.createElement("audio");
@@ -682,14 +738,9 @@
       audio.style.pointerEvents = "none";
       document.body.appendChild(audio);
     }
-    let stream = audio.srcObject;
-    if (!(stream instanceof MediaStream)) {
-      stream = new MediaStream();
-      audio.srcObject = stream;
-    }
-    if (!stream.getTrackById(track.id)) stream.addTrack(track);
-    watchAudio(peerId, stream);
-    ensureSpeakLoop();
+    audio.srcObject = new MediaStream([track]);
+    audio.muted = false;
+    audio.volume = 1;
     const kick = () => {
       audio.muted = false;
       audio.volume = 1;
@@ -699,10 +750,21 @@
     kick();
     track.onunmute = kick;
     audio.onloadedmetadata = kick;
+    // Meter + secondary Web Audio playback use clones — never the same stream as <audio>.
+    watchAudio(peerId, track, { play: true });
+    ensureSpeakLoop();
   }
 
   function resumeAllRemoteAudio() {
-    getAudioCtx();
+    const ctx = getAudioCtx();
+    if (ctx && ctx.state === "suspended") ctx.resume().catch(() => {});
+    meters.forEach((m) => {
+      if (m.playing && m.gain) {
+        try {
+          m.gain.connect(ctx.destination);
+        } catch {}
+      }
+    });
     document.querySelectorAll('audio[id^="hub-call-audio-"]').forEach((audio) => {
       audio.muted = false;
       audio.volume = 1;
@@ -711,7 +773,7 @@
     });
   }
 
-  function waitForIce(pc, ms = 2500) {
+  function waitForIce(pc, ms = 4500) {
     if (!pc || pc.iceGatheringState === "complete") return Promise.resolve();
     return new Promise((resolve) => {
       let done = false;
@@ -730,17 +792,22 @@
   }
 
   async function makeOffer(pc) {
-    const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+    const offer = await pc.createOffer({
+      offerToReceiveAudio: true,
+      offerToReceiveVideo: true
+    });
     await pc.setLocalDescription(offer);
     await waitForIce(pc);
-    return pc.localDescription;
+    const desc = pc.localDescription;
+    return { type: desc.type, sdp: desc.sdp };
   }
 
   async function makeAnswer(pc) {
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     await waitForIce(pc);
-    return pc.localDescription;
+    const desc = pc.localDescription;
+    return { type: desc.type, sdp: desc.sdp };
   }
 
   async function flushPendingIce(pc) {
@@ -831,26 +898,31 @@
     );
     for (const [pid] of peers) {
       let pc = active.pcs.get(pid);
-      if (
-        pc &&
-        (pc.connectionState === "failed" ||
-          pc.connectionState === "closed" ||
-          pc.connectionState === "disconnected")
-      ) {
+      if (pc && (pc.connectionState === "failed" || pc.connectionState === "closed")) {
         closePc(pid);
         pc = null;
       }
       pc = await ensurePc(pid);
       if (!pc) continue;
-      if (me > pid) continue;
-      if (pc.connectionState === "connected" || pc.connectionState === "connecting") continue;
-      if (pc.signalingState === "have-local-offer") continue;
-      // Stale SDP after a peer refreshed — reset and re-offer.
-      if (pc.localDescription || pc.remoteDescription) {
-        closePc(pid);
-        pc = await ensurePc(pid);
-        if (!pc || me > pid) continue;
+
+      // Already up or in progress — do not tear down.
+      if (
+        pc.connectionState === "connected" ||
+        pc.connectionState === "connecting" ||
+        pc.iceConnectionState === "checking" ||
+        pc.iceConnectionState === "connected" ||
+        pc.iceConnectionState === "completed"
+      ) {
+        continue;
       }
+      if (pc.signalingState === "have-local-offer" || pc.signalingState === "have-remote-offer") {
+        continue;
+      }
+
+      // Lower id offers once when idle.
+      if (me > pid) continue;
+      if (pc.remoteDescription && pc.localDescription) continue;
+
       try {
         const offer = await makeOffer(pc);
         await pushSignal(pid, "offer", offer);
