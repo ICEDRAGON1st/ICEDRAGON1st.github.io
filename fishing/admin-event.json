@@ -1,14 +1,12 @@
 {
-  "boost": {
-    "kind": "money",
-    "until": 1789487725563,
-    "startedAt": 1789487125563,
-    "mult": 5
-  },
+  "token": "ice-fish-evt-9f3a",
+  "boost": null,
   "variant": null,
   "mutation": null,
   "chest": null,
   "luckyblock": null,
   "weather": null,
+  "until": 0,
+  "kind": null,
   "note": "admin-abuse"
 }
