@@ -7014,10 +7014,12 @@
       .map(({ entry, index }) => {
         const fish = fishById(coolerEntryId(entry));
         if (!fish) return "";
-        const label = formatFishName(fish, normalizeCoolerEntry(entry) || entry);
-        return `<button type="button" class="mail-toggle" data-mail-fish="${index}" aria-pressed="false" title="Add to offer — gives ×1">${escapeHtml(
+        const norm = normalizeCoolerEntry(entry) || entry;
+        const label = formatFishName(fish, norm);
+        const val = formatNum(mailFishSellValue(norm));
+        return `<button type="button" class="mail-toggle" data-mail-fish="${index}" aria-pressed="false" title="Add to offer · sells for ${val}">${escapeHtml(
           label
-        )} · gives ×1</button>`;
+        )} · ${escapeHtml(val)}</button>`;
       })
       .join("");
 
