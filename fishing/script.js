@@ -28,6 +28,8 @@
   const TREASURE_LUCK_MULT = 1.5;
   const TREASURE_STASH_MAX = 25;
   const TREASURE_STASH_MAX_MASTER = 100;
+  /** Admin gifts may exceed the soft earn cap; persist/allow up to this hard ceiling. */
+  const TREASURE_STASH_HARD_MAX = 999;
   const EVENT_MS = 30 * 60 * 1000;
   const EVENT_ACTIVE_MS = 5 * 60 * 1000; // only first 5 minutes of each :00 / :30
   /** Scheduled :00 / :30 events roll one of these (same for all players per slot). */
@@ -6043,7 +6045,7 @@
       if (chestKind) {
         const added = storeAdminChests(chestKind, count, { silent: true });
         if (!added) {
-          // Stash full — leave gift unclaimed so it can land later
+          // Hard stash ceiling — leave gift unclaimed so it can land later
           return;
         }
         chests += added;
@@ -6420,10 +6422,10 @@
   }
 
   function storeAdminChests(kind, count, opts = {}) {
-    const added = grantQuestChests(kind, count);
+    const added = grantAdminChests(kind, count);
     if (!added) {
       if (!opts.silent) {
-        setCatchLine("Chest stash full", "miss");
+        setCatchLine("Chest stash at hard limit", "miss");
         playSfx("miss");
       }
       return 0;
@@ -6431,6 +6433,19 @@
     renderTreasureStash();
     saveState();
     if (!opts.silent) playSfx("win");
+    return added;
+  }
+
+  /** Admin / gift chests — may go past the soft earn cap (25/100). */
+  function grantAdminChests(kind, count) {
+    const key = chestCountKey(kind);
+    const n = Math.max(0, Math.floor(Number(count) || 0));
+    if (!n) return 0;
+    const cur = Math.max(0, Math.floor(Number(state[key]) || 0));
+    const room = Math.max(0, TREASURE_STASH_HARD_MAX - cur);
+    const added = Math.min(n, room);
+    if (!added) return 0;
+    state[key] = cur + added;
     return added;
   }
 
@@ -7983,13 +7998,13 @@
       next.moneyChestCount = Math.max(
         0,
         Math.min(
-          TREASURE_STASH_MAX_MASTER,
+          TREASURE_STASH_HARD_MAX,
           Math.floor(Number(raw.moneyChestCount) || legacyCount || 0)
         )
       );
       next.luckChestCount = Math.max(
         0,
-        Math.min(TREASURE_STASH_MAX_MASTER, Math.floor(Number(raw.luckChestCount) || 0))
+        Math.min(TREASURE_STASH_HARD_MAX, Math.floor(Number(raw.luckChestCount) || 0))
       );
       next.luckyBlockCount = Math.max(
         0,
@@ -9917,12 +9932,13 @@
     return playerHasMasterFisherTitle() ? TREASURE_STASH_MAX_MASTER : TREASURE_STASH_MAX;
   }
 
+  /** Soft earn cap only — admin overflow is kept (hard max still applies). */
   function clampTreasureStashCounts(save = false) {
-    const max = treasureStashMax();
+    const hard = TREASURE_STASH_HARD_MAX;
     const money = Math.max(0, Math.floor(Number(state.moneyChestCount) || 0));
     const luck = Math.max(0, Math.floor(Number(state.luckChestCount) || 0));
-    const nextMoney = Math.min(max, money);
-    const nextLuck = Math.min(max, luck);
+    const nextMoney = Math.min(hard, money);
+    const nextLuck = Math.min(hard, luck);
     if (nextMoney === money && nextLuck === luck) return false;
     state.moneyChestCount = nextMoney;
     state.luckChestCount = nextLuck;

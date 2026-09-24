@@ -186,7 +186,8 @@
     }
     if (chestKey) {
       const count = Math.min(50, Math.max(1, Number(gift.count) || 1));
-      const max = 100;
+      // Soft earn cap is 25/100 in-game; admin gifts may exceed up to this hard ceiling.
+      const max = 999;
       let added = 0;
       const cur = Math.max(0, Math.floor(Number(state[chestKey]) || 0));
       for (let i = 0; i < count; i += 1) {
