@@ -4050,7 +4050,7 @@
     } catch {}
     showVisitAquaBrowse();
     await refreshAquaShareCache(true);
-    publishAquariumShare(false).catch(() => {});
+    await publishAquariumShare(true).catch(() => {});
     renderVisitAquaBrowse();
   }
 
@@ -4085,9 +4085,11 @@
 
   function startAquariumSharing() {
     publishAquariumShare(true).catch(() => {});
+    setTimeout(() => publishAquariumShare(true).catch(() => {}), 2500);
+    setTimeout(() => publishAquariumShare(true).catch(() => {}), 8000);
     if (aquaShareTimer) clearInterval(aquaShareTimer);
     aquaShareTimer = setInterval(() => {
-      publishAquariumShare(false).catch(() => {});
+      publishAquariumShare(true).catch(() => {});
     }, AQUA_SHARE_POLL_MS);
   }
 
