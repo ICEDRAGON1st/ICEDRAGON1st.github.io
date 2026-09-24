@@ -117,6 +117,8 @@
   const ADMIN_ANNOUNCE_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-admin-announce";
   const ADMIN_ANNOUNCE_URL = "admin-announce.json";
   const ADMIN_ANNOUNCE_SEEN_KEY = "fishing-admin-announce-seen-v1";
+  /** Fast poll so popups land quickly for everyone (events stay on 15s). */
+  const ADMIN_ANNOUNCE_POLL_MS = 2_000;
   /** How long the popup stays on screen for each player. */
   const ADMIN_ANNOUNCE_POPUP_MS = 10_000;
   /** How long a message stays claimable for players who poll in late. */
@@ -3651,6 +3653,7 @@
   let adminMutationCache = emptyMutationMap();
   let adminEventFetchedAt = 0;
   let adminEventPollTimer = 0;
+  let adminAnnouncePollTimer = 0;
   let adminBusy = false;
   let adminRetryTimer = 0;
   let pendingAdminPush = null; // full { boost, variant, ... } bundle
@@ -4461,8 +4464,14 @@
     if (adminEventPollTimer) clearInterval(adminEventPollTimer);
     adminEventPollTimer = setInterval(() => {
       pollAdminEvent(false);
-      pollAdminAnnounce(false);
     }, ADMIN_EVENT_POLL_MS);
+    if (adminAnnouncePollTimer) clearInterval(adminAnnouncePollTimer);
+    adminAnnouncePollTimer = setInterval(() => {
+      pollAdminAnnounce(false);
+    }, ADMIN_ANNOUNCE_POLL_MS);
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") pollAdminAnnounce(true);
+    });
   }
 
   let adminAnnounceCache = null;
@@ -4563,25 +4572,25 @@
   }
 
   async function fetchAdminAnnounceRemote() {
-    let best = null;
+    // Supabase first — exit as soon as we have a live message (skip Mantle/file lag).
     const api = fishingSb();
     if (api) {
       try {
         const data = await api.getDoc(ADMIN_ANNOUNCE_DOC);
-        best = parseAnnouncePayload(data) || best;
+        const fromSb = parseAnnouncePayload(data);
+        if (fromSb) return fromSb;
       } catch {
-        /* Mantle / file */
+        /* fall through */
       }
     }
+    let best = null;
     if (!adminEventRateLimited()) {
       try {
         const res = await fetch(`${ADMIN_ANNOUNCE_API}?t=${Date.now()}`, { cache: "no-store" });
         if (res.status === 429) markAdminEventRateLimited();
         else if (res.ok) {
           clearAdminEventRateLimited();
-          const data = await res.json();
-          const parsed = parseAnnouncePayload(data);
-          if (parsed && (!best || parsed.at >= best.at)) best = parsed;
+          best = parseAnnouncePayload(await res.json()) || best;
         }
       } catch {
         /* file */
@@ -4590,8 +4599,7 @@
     try {
       const res = await fetch(`${ADMIN_ANNOUNCE_URL}?t=${Date.now()}`, { cache: "no-store" });
       if (res.ok) {
-        const data = await res.json();
-        const parsed = parseAnnouncePayload(data);
+        const parsed = parseAnnouncePayload(await res.json());
         if (parsed && (!best || parsed.at >= best.at)) best = parsed;
       }
     } catch {
@@ -4602,7 +4610,7 @@
 
   async function pollAdminAnnounce(force = false) {
     const now = Date.now();
-    if (!force && now - adminAnnounceFetchedAt < ADMIN_EVENT_POLL_MS) return;
+    if (!force && now - adminAnnounceFetchedAt < ADMIN_ANNOUNCE_POLL_MS) return;
     adminAnnounceFetchedAt = now;
     const remote = await fetchAdminAnnounceRemote();
     if (!remote) {
