@@ -16,7 +16,8 @@
   const MAX_PEERS = 6;
   const SIGNAL_TTL_MS = 45_000;
   const ROOM_TTL_MS = 2 * 60 * 60_000;
-  const ICE_SERVERS = [{ urls: "stun:stun.l.google.com:19302" }, { urls: "stun:stun1.l.google.com:19302" }];
+  const SESSION_KEY = "hub-call-session-v1";
+  const SESSION_MAX_MS = 2 * 60 * 60_000;
 
   function sb() {
     return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
@@ -648,7 +649,14 @@
       attachRemoteAudio(peerId, track);
     };
     pc.onconnectionstatechange = () => {
-      if (pc.connectionState === "failed" || pc.connectionState === "closed") closePc(peerId);
+      const state = pc.connectionState;
+      if (state === "failed" || state === "closed") closePc(peerId);
+      else if (state === "disconnected") {
+        setTimeout(() => {
+          const cur = active?.pcs?.get(peerId);
+          if (cur && cur.connectionState === "disconnected") closePc(peerId);
+        }, 3500);
+      }
     };
     return pc;
   }
@@ -818,10 +826,27 @@
       ([id, p]) => id !== me && p && !p.left
     );
     for (const [pid] of peers) {
-      const pc = await ensurePc(pid);
+      let pc = active.pcs.get(pid);
+      if (
+        pc &&
+        (pc.connectionState === "failed" ||
+          pc.connectionState === "closed" ||
+          pc.connectionState === "disconnected")
+      ) {
+        closePc(pid);
+        pc = null;
+      }
+      pc = await ensurePc(pid);
       if (!pc) continue;
       if (me > pid) continue;
-      if (pc.localDescription || pc.remoteDescription) continue;
+      if (pc.connectionState === "connected" || pc.connectionState === "connecting") continue;
+      if (pc.signalingState === "have-local-offer") continue;
+      // Stale SDP after a peer refreshed — reset and re-offer.
+      if (pc.localDescription || pc.remoteDescription) {
+        closePc(pid);
+        pc = await ensurePc(pid);
+        if (!pc || me > pid) continue;
+      }
       try {
         const offer = await makeOffer(pc);
         await pushSignal(pid, "offer", offer);
@@ -866,6 +891,7 @@
     });
     const room = cache.rooms?.[roomId];
     await connectMesh(room || {});
+    saveCallSession();
     renderCallBar();
     if (asRingAccept) {
       try {
@@ -967,6 +993,7 @@
     }
 
     await connectMesh(cache.rooms?.[id] || {});
+    saveCallSession();
     renderCallBar();
     syncCallButtons();
     return { ok: true, roomId: id };
@@ -1008,6 +1035,90 @@
     renderCallBar();
   }
 
+  function clearCallSession() {
+    try {
+      sessionStorage.removeItem(SESSION_KEY);
+    } catch {}
+  }
+
+  function saveCallSession() {
+    if (!active?.roomId) {
+      clearCallSession();
+      return;
+    }
+    try {
+      sessionStorage.setItem(
+        SESSION_KEY,
+        JSON.stringify({
+          roomId: active.roomId,
+          kind: active.kind || "",
+          channelId: active.channelId || "",
+          savedAt: Date.now()
+        })
+      );
+    } catch {}
+  }
+
+  function loadCallSession() {
+    try {
+      const raw = sessionStorage.getItem(SESSION_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (!data?.roomId) return null;
+      if (Date.now() - (Number(data.savedAt) || 0) > SESSION_MAX_MS) {
+        clearCallSession();
+        return null;
+      }
+      return data;
+    } catch {
+      return null;
+    }
+  }
+
+  async function waitForPlayerId(ms = 6000) {
+    const start = Date.now();
+    while (Date.now() - start < ms) {
+      if (playerId()) return playerId();
+      await new Promise((r) => setTimeout(r, 200));
+    }
+    return playerId();
+  }
+
+  async function resumeCallSession() {
+    if (active) return;
+    const saved = loadCallSession();
+    if (!saved?.roomId) return;
+    await waitForPlayerId();
+    if (!playerId()) return;
+    const doc = await fetchDoc();
+    if (doc) cache.rooms = pruneRooms(doc.rooms || {});
+    const room = cache.rooms?.[saved.roomId];
+    if (!room) {
+      clearCallSession();
+      return;
+    }
+    const live = Object.values(room.peers || {}).filter((p) => p && !p.left);
+    const mePeer = room.peers?.[playerId()];
+    // Room still alive if anyone is in it, or we were and just refreshed (may be left:false still).
+    if (!live.length && !mePeer) {
+      clearCallSession();
+      return;
+    }
+    try {
+      await enterRoom(saved.roomId);
+      syncCallButtons();
+    } catch (err) {
+      console.warn("[HubCalls] resume", err);
+      clearCallSession();
+      if (active) {
+        stopLocal();
+        active = null;
+        stopAllMeters();
+        renderCallBar();
+      }
+    }
+  }
+
   async function hangUp() {
     const me = playerId();
     const roomId = active?.roomId;
@@ -1020,6 +1131,7 @@
     stopLocal();
     active = null;
     stopAllMeters();
+    clearCallSession();
     document.getElementById("hub-call-videos")?.replaceChildren();
     if (roomId && me) {
       await mutateRooms((rooms) => {
@@ -1221,8 +1333,21 @@
     try {
       wireCallButtons();
       startPolling();
-      // Keep call buttons in sync when chat opens
       setInterval(syncCallButtons, 2000);
+      // Keep the call across game navigations / refresh — only Hang up leaves.
+      window.addEventListener("pagehide", () => {
+        if (active) saveCallSession();
+      });
+      document.addEventListener("visibilitychange", () => {
+        if (document.visibilityState === "visible" && active) {
+          saveCallSession();
+          resumeAllRemoteAudio();
+          getAudioCtx();
+        }
+      });
+      setTimeout(() => {
+        resumeCallSession().catch((err) => console.warn("[HubCalls] resume", err));
+      }, 600);
     } catch (err) {
       console.warn("[HubCalls] boot", err);
     }
