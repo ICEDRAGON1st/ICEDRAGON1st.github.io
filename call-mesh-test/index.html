@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Hub Calls 3-Peer Mesh Test</title>
+  <style>
+    body { font: 14px/1.4 system-ui; background: #0f172a; color: #e2e8f0; padding: 1rem; }
+    #log { white-space: pre-wrap; background: #020617; padding: 1rem; border-radius: 8px; max-height: 70vh; overflow: auto; }
+    .ok { color: #4ade80; } .bad { color: #f87171; } .info { color: #93c5fd; }
+  </style>
+</head>
+<body>
+  <h1>3-peer mesh call test</h1>
+  <p>Simulates A/B/C with the same pairwise-link protocol as hub-calls.js (local only, no Supabase).</p>
+  <div id="log"></div>
+  <script>
+    const logEl = document.getElementById("log");
+    const lines = [];
+    function log(msg, cls) {
+      lines.push(`<span class="${cls || "info"}">${msg}</span>`);
+      logEl.innerHTML = lines.join("\n");
+      console.log(msg);
+    }
+
+    const ICE = [{ urls: "stun:stun.l.google.com:19302" }];
+    const OFFER_RETRY_MS = 8000;
+
+    function linkKey(a, b) {
+      return [String(a), String(b)].sort().join(":");
+    }
+
+    function mergeLink(a, b) {
+      if (!a) return b || null;
+      if (!b) return a;
+      const offerAt = Math.max(Number(a.offerAt) || 0, Number(b.offerAt) || 0);
+      const newerOffer = (Number(b.offerAt) || 0) >= (Number(a.offerAt) || 0) ? b : a;
+      let answer = null;
+      let answerAt = 0;
+      [a, b].forEach((L) => {
+        if (L.answer && Number(L.answerFor || L.offerAt) === offerAt) {
+          if ((Number(L.answerAt) || 0) >= answerAt) {
+            answer = L.answer;
+            answerAt = Number(L.answerAt) || 0;
+          }
+        }
+      });
+      return {
+        offerFrom: newerOffer.offerFrom,
+        offer: newerOffer.offer,
+        offerAt,
+        answer,
+        answerAt: answer ? answerAt : 0,
+        answerFor: answer ? offerAt : 0
+      };
+    }
+
+    // Shared room doc (simulates Supabase)
+    const room = { peers: {}, links: {} };
+
+    function createPeer(id) {
+      const peer = {
+        id,
+        stream: null,
+        pcs: new Map(),
+        audioOk: new Set()
+      };
+      return peer;
+    }
+
+    async function getMic(peer) {
+      // Silent oscillator via WebAudio -> MediaStream (no permission needed)
+      const ctx = new AudioContext();
+      const osc = ctx.createOscillator();
+      const dest = ctx.createMediaStreamDestination();
+      osc.frequency.value = 220 + peer.id.charCodeAt(0);
+      osc.connect(dest);
+      osc.start();
+      peer.stream = dest.stream;
+      peer._ctx = ctx;
+      peer._osc = osc;
+    }
+
+    function ensurePc(peer, otherId) {
+      if (peer.pcs.has(otherId)) return peer.pcs.get(otherId);
+      const pc = new RTCPeerConnection({ iceServers: ICE });
+      peer.pcs.set(otherId, pc);
+      peer.stream.getAudioTracks().forEach((t) => pc.addTrack(t, peer.stream));
+      pc.ontrack = (ev) => {
+        if (ev.track?.kind === "audio") {
+          peer.audioOk.add(otherId);
+          log(`[${peer.id}] got audio from ${otherId}`, "ok");
+        }
+      };
+      return pc;
+    }
+
+    function waitForIce(pc, ms = 1800) {
+      if (pc.iceGatheringState === "complete") return Promise.resolve();
+      return new Promise((resolve) => {
+        let done = false;
+        const finish = () => {
+          if (done) return;
+          done = true;
+          resolve();
+        };
+        pc.addEventListener("icegatheringstatechange", () => {
+          if (pc.iceGatheringState === "complete") finish();
+        });
+        pc.addEventListener("icecandidate", (ev) => {
+          if (!ev.candidate) finish();
+        });
+        setTimeout(finish, ms);
+      });
+    }
+
+    async function makeOffer(pc) {
+      const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: false });
+      await pc.setLocalDescription(offer);
+      await waitForIce(pc);
+      return { type: pc.localDescription.type, sdp: pc.localDescription.sdp };
+    }
+
+    async function makeAnswer(pc) {
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      await waitForIce(pc);
+      return { type: pc.localDescription.type, sdp: pc.localDescription.sdp };
+    }
+
+    function pcLive(pc) {
+      return pc && (pc.connectionState === "connected" || pc.iceConnectionState === "connected" || pc.iceConnectionState === "completed");
+    }
+    function pcBusy(pc) {
+      return pc && (pc.connectionState === "connecting" || pc.iceConnectionState === "checking" || pc.signalingState === "have-remote-offer");
+    }
+
+    // Simulated write with merge (like mutateRooms)
+    const writeQ = { p: Promise.resolve() };
+    function writeLink(key, patch) {
+      writeQ.p = writeQ.p.then(async () => {
+        const cur = room.links[key] || {};
+        const next = { ...cur, ...patch };
+        // fake concurrent merge with existing
+        room.links[key] = mergeLink(room.links[key], next) || next;
+        await new Promise((r) => setTimeout(r, 5));
+      });
+      return writeQ.p;
+    }
+
+    async function offerToPeer(peer, otherId) {
+      const me = peer.id;
+      let pc = ensurePc(peer, otherId);
+      if (pcLive(pc) || pcBusy(pc)) return;
+      if (pc.signalingState === "have-local-offer" && pc._hubOfferAt && Date.now() - pc._hubOfferAt < OFFER_RETRY_MS) return;
+      if (pc.signalingState === "have-local-offer") {
+        pc.close();
+        peer.pcs.delete(otherId);
+        pc = ensurePc(peer, otherId);
+      }
+      const offer = await makeOffer(pc);
+      const at = Date.now();
+      pc._hubOfferAt = at;
+      await writeLink(linkKey(me, otherId), {
+        offerFrom: me,
+        offer,
+        offerAt: at,
+        answer: null,
+        answerAt: 0,
+        answerFor: 0
+      });
+      log(`[${me}] offered → ${otherId}`, "info");
+    }
+
+    async function syncPeerLink(peer, otherId) {
+      const me = peer.id;
+      const key = linkKey(me, otherId);
+      const link = room.links[key];
+      let pc = peer.pcs.get(otherId);
+      if (pc && (pc.connectionState === "failed" || pc.connectionState === "closed")) {
+        pc.close();
+        peer.pcs.delete(otherId);
+        pc = null;
+      }
+      if (pcLive(pc)) return;
+
+      if (link?.answer && link.offerFrom === me && pc && pc.signalingState === "have-local-offer") {
+        await pc.setRemoteDescription(link.answer);
+        log(`[${me}] applied answer from ${otherId}`, "ok");
+        return;
+      }
+
+      if (link?.offer && link.offerFrom === otherId) {
+        const offerAt = Number(link.offerAt) || 0;
+        pc = pc || ensurePc(peer, otherId);
+        if (pc._hubAnsweredOfferAt === offerAt && pcLive(pc)) return;
+        if (pc.signalingState === "have-local-offer") {
+          if (me > otherId) return;
+          try {
+            await pc.setLocalDescription({ type: "rollback" });
+          } catch {
+            pc.close();
+            peer.pcs.delete(otherId);
+            pc = ensurePc(peer, otherId);
+          }
+        }
+        if (pc.signalingState === "have-local-offer") return;
+        await pc.setRemoteDescription(link.offer);
+        const answer = await makeAnswer(pc);
+        pc._hubAnsweredOfferAt = offerAt;
+        await writeLink(key, { answer, answerAt: Date.now(), answerFor: offerAt });
+        log(`[${me}] answered ${otherId}`, "ok");
+        return;
+      }
+
+      if (me < otherId) {
+        const stale =
+          !link?.offer ||
+          link.offerFrom !== me ||
+          (link.offerAt && Date.now() - Number(link.offerAt) > OFFER_RETRY_MS && !link.answer);
+        if (stale || !pc || (!pcLive(pc) && !pcBusy(pc) && pc.signalingState === "stable")) {
+          await offerToPeer(peer, otherId);
+        }
+      }
+    }
+
+    async function tick(peers) {
+      await Promise.all(
+        peers.flatMap((p) =>
+          peers.filter((o) => o.id !== p.id).map((o) => syncPeerLink(p, o.id).catch((e) => log(String(e), "bad")))
+        )
+      );
+    }
+
+    async function run() {
+      try {
+        const A = createPeer("peerA");
+        const B = createPeer("peerB");
+        const C = createPeer("peerC");
+        const peers = [A, B, C];
+        for (const p of peers) {
+          await getMic(p);
+          room.peers[p.id] = { name: p.id, joinedAt: Date.now(), left: false };
+        }
+        log("Created 3 peers with local audio streams", "info");
+
+        // Simulate polls
+        for (let i = 0; i < 12; i++) {
+          await tick(peers);
+          await new Promise((r) => setTimeout(r, 400));
+          const linked = peers.map((p) => {
+            const n = [...p.pcs.values()].filter(pcLive).length;
+            return `${p.id}:${n}`;
+          });
+          log(`tick ${i + 1} linked ${linked.join(" ")} audio ${peers.map((p) => p.id + "=" + p.audioOk.size).join(" ")}`, "info");
+          if (peers.every((p) => p.audioOk.size === 2 && [...p.pcs.values()].filter(pcLive).length === 2)) {
+            log("PASS: all 3 peers fully meshed with audio", "ok");
+            window.__MESH_TEST__ = { ok: true, peers: peers.map((p) => ({ id: p.id, audio: p.audioOk.size, linked: [...p.pcs.values()].filter(pcLive).length })) };
+            return;
+          }
+        }
+        log("FAIL: did not fully mesh in time", "bad");
+        window.__MESH_TEST__ = {
+          ok: false,
+          peers: peers.map((p) => ({
+            id: p.id,
+            audio: [...p.audioOk],
+            states: [...p.pcs.entries()].map(([id, pc]) => ({ id, conn: pc.connectionState, ice: pc.iceConnectionState, sig: pc.signalingState }))
+          })),
+          links: room.links
+        };
+      } catch (err) {
+        log("ERROR " + err.stack, "bad");
+        window.__MESH_TEST__ = { ok: false, error: String(err) };
+      }
+    }
+    run();
+  </script>
+</body>
+</html>
