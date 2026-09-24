@@ -5127,6 +5127,10 @@ body.event-mutation .stage {
   align-items: center;
   gap: 0.5rem 0.75rem;
 }
+.visit-aqua-meta {
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
 .visit-base-tabs {
   margin: 0.15rem 0 0.35rem;
 }
