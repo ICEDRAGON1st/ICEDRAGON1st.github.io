@@ -3400,8 +3400,18 @@
     };
   }
 
-  function buildBaseSharePayload() {
+  function visitNum(v) {
+    if (typeof v === "string" && v.trim()) {
+      const n = Number(v);
+      return Number.isFinite(n) ? n : 0;
+    }
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+  }
+
+  function buildBaseSharePayload(slim = false) {
     const spot = currentSpot();
+    const coolerCap = slim ? 12 : AQUA_SHARE_COOLER_MAX;
     const coolerRows = state.cooler
       .map((raw) => {
         const entry = normalizeCoolerEntry(raw);
@@ -3419,33 +3429,45 @@
         if (a.saved !== b.saved) return a.saved ? -1 : 1;
         return b.val - a.val;
       })
-      .slice(0, AQUA_SHARE_COOLER_MAX);
+      .slice(0, coolerCap);
 
-    const found = caughtCount();
+    let found = 0;
+    try {
+      found = caughtCount();
+    } catch {
+      found = 0;
+    }
     const total = Math.max(1, FISH.length);
+    const coins = Math.max(0, Math.floor(visitNum(state.coins)));
+    const lifetime = Math.max(0, Math.floor(visitNum(state.lifetime)));
     return {
-      coins: Math.max(0, Math.floor(Number(state.coins) || 0)),
-      lifetime: Math.max(0, Math.floor(Number(state.lifetime) || 0)),
-      catches: Math.max(0, Math.floor(Number(state.catches) || 0)),
-      perfects: Math.max(0, Math.floor(Number(state.perfects) || 0)),
+      coins,
+      coinsText: String(coins),
+      lifetime,
+      lifetimeText: String(lifetime),
+      catches: Math.max(0, Math.floor(visitNum(state.catches))),
+      perfects: Math.max(0, Math.floor(visitNum(state.perfects))),
       spotId: String(state.spotId || "creek"),
       unlocked: SPOTS.filter((s) => state.unlocked?.[s.id]).map((s) => s.id),
-      boatLevel: typeof boatLevel === "function" ? boatLevel() : Math.floor(Number(state.boatLevel) || 0),
+      boatLevel:
+        typeof boatLevel === "function"
+          ? boatLevel()
+          : Math.max(0, Math.floor(visitNum(state.boatLevel))),
       aquariumLevel: aquariumLevel(),
-      echoLuckLevel: Math.max(0, Math.floor(Number(state.echoLuckLevel) || 0)),
+      echoLuckLevel: Math.max(0, Math.floor(visitNum(state.echoLuckLevel))),
       bookFound: found,
       bookTotal: total,
       bookPct: Math.floor((100 * found) / total),
       bestCatch: {
         id: String(state.bestCatchId || ""),
-        score: Math.max(0, Number(state.bestCatchScore) || 0),
+        score: Math.max(0, visitNum(state.bestCatchScore)),
         variant: normalizeVariant(state.bestCatchVariant),
         shiny: !!state.bestCatchShiny,
         mutation: normalizeMutation(state.bestCatchMutation)
       },
       stash: {
-        moneyChest: Math.max(0, Math.floor(Number(state.moneyChestCount) || 0)),
-        luckChest: Math.max(0, Math.floor(Number(state.luckChestCount) || 0)),
+        moneyChest: Math.max(0, Math.floor(visitNum(state.moneyChestCount))),
+        luckChest: Math.max(0, Math.floor(visitNum(state.luckChestCount))),
         astral: luckyBlockCount("astral"),
         absolute: luckyBlockCount("absolute"),
         zenith: luckyBlockCount("zenith")
@@ -3457,14 +3479,46 @@
       })),
       cooler: coolerRows.map((r) => serializeShareFishEntry(r.entry)),
       coolerTotal: state.cooler.length,
-      coolerMax: coolerMax()
+      coolerMax: Math.max(0, Math.floor(visitNum(coolerMax())))
     };
   }
 
-  function buildAquariumShareSnapshot() {
+  function buildAquariumShareSnapshot(slim = false) {
     const myId = mailMyId();
     const myName = mailMyName();
     if (!myId && !myName) return null;
+    let base = null;
+    try {
+      base = buildBaseSharePayload(slim);
+    } catch (err) {
+      console.warn("[aqua-share] base snapshot failed", err);
+      base = {
+        coins: Math.max(0, Math.floor(visitNum(state.coins))),
+        lifetime: Math.max(0, Math.floor(visitNum(state.lifetime))),
+        catches: Math.max(0, Math.floor(visitNum(state.catches))),
+        perfects: Math.max(0, Math.floor(visitNum(state.perfects))),
+        spotId: String(state.spotId || "creek"),
+        unlocked: [],
+        boatLevel: Math.max(0, Math.floor(visitNum(state.boatLevel))),
+        aquariumLevel: aquariumLevel(),
+        echoLuckLevel: Math.max(0, Math.floor(visitNum(state.echoLuckLevel))),
+        bookFound: 0,
+        bookTotal: FISH.length || 1,
+        bookPct: 0,
+        bestCatch: { id: "", score: 0, variant: "", shiny: false, mutation: "" },
+        stash: {
+          moneyChest: Math.max(0, Math.floor(visitNum(state.moneyChestCount))),
+          luckChest: Math.max(0, Math.floor(visitNum(state.luckChestCount))),
+          astral: 0,
+          absolute: 0,
+          zenith: 0
+        },
+        gear: [],
+        cooler: [],
+        coolerTotal: Array.isArray(state.cooler) ? state.cooler.length : 0,
+        coolerMax: 0
+      };
+    }
     const list = aquariumFishList();
     const fish = list.map(({ entry }) => serializeShareFishEntry(entry));
     return {
@@ -3473,7 +3527,7 @@
       updatedAt: Date.now(),
       level: aquariumLevel(),
       fish,
-      base: buildBaseSharePayload()
+      base
     };
   }
 
@@ -3536,7 +3590,7 @@
   }
 
   async function publishAquariumShare(force = false) {
-    const snap = buildAquariumShareSnapshot();
+    let snap = buildAquariumShareSnapshot(false);
     if (!snap) return;
     const b = snap.base || {};
     const key = [
@@ -3558,7 +3612,15 @@
     const id = snap.playerId || String(snap.name || "").toLowerCase();
     if (!id) return;
     tanks[id] = snap;
-    const ok = await postAquaShareDoc(tanks);
+    let ok = await postAquaShareDoc(tanks);
+    if (!ok) {
+      // Retry with a smaller payload if the full base is too large.
+      snap = buildAquariumShareSnapshot(true);
+      if (snap) {
+        tanks[id] = snap;
+        ok = await postAquaShareDoc(tanks);
+      }
+    }
     if (ok) {
       aquaShareLastKey = key;
       aquaShareCache.tanks = pruneAquaShareTanks(tanks);
@@ -3736,7 +3798,11 @@
   function renderVisitBaseOverview(tank) {
     const panel = document.getElementById("visit-base-overview");
     if (!panel) return;
-    const b = tank?.base || {};
+    const b = tank?.base;
+    if (!b || typeof b !== "object") {
+      panel.innerHTML = `<p class="mail-empty">Full base not synced yet. They need a hard refresh on Fishing (Visit publishes automatically).</p>`;
+      return;
+    }
     const spot = SPOTS.find((s) => s.id === b.spotId) || SPOTS[0];
     const unlocked = Array.isArray(b.unlocked) ? b.unlocked : [];
     const spotNames = unlocked
@@ -3746,31 +3812,33 @@
     if (b.bestCatch?.id) {
       const bf = fishById(b.bestCatch.id);
       if (bf) {
-        bestLabel = `${formatFishName(bf, b.bestCatch)} · ${formatNum(b.bestCatch.score || 0)}`;
+        bestLabel = `${formatFishName(bf, b.bestCatch)} · ${formatNum(visitNum(b.bestCatch.score))}`;
       }
     }
+    const coins = visitNum(b.coinsText || b.coins);
+    const lifetime = visitNum(b.lifetimeText || b.lifetime);
     panel.innerHTML = `<div class="visit-base-stats">
-      <div class="visit-stat"><span>Coins</span><strong>${formatNum(b.coins || 0)}</strong></div>
-      <div class="visit-stat"><span>Lifetime</span><strong>${formatNum(b.lifetime || 0)}</strong></div>
-      <div class="visit-stat"><span>Catches</span><strong>${formatNum(b.catches || 0)}</strong></div>
-      <div class="visit-stat"><span>Perfects</span><strong>${formatNum(b.perfects || 0)}</strong></div>
-      <div class="visit-stat"><span>Catch book</span><strong>${Math.max(0, Number(b.bookFound) || 0)} / ${Math.max(
+      <div class="visit-stat"><span>Coins</span><strong>${formatNum(coins)}</strong></div>
+      <div class="visit-stat"><span>Lifetime</span><strong>${formatNum(lifetime)}</strong></div>
+      <div class="visit-stat"><span>Catches</span><strong>${formatNum(visitNum(b.catches))}</strong></div>
+      <div class="visit-stat"><span>Perfects</span><strong>${formatNum(visitNum(b.perfects))}</strong></div>
+      <div class="visit-stat"><span>Catch book</span><strong>${Math.max(0, visitNum(b.bookFound))} / ${Math.max(
       0,
-      Number(b.bookTotal) || 0
-    )} (${Math.max(0, Number(b.bookPct) || 0)}%)</strong></div>
+      visitNum(b.bookTotal)
+    )} (${Math.max(0, visitNum(b.bookPct))}%)</strong></div>
       <div class="visit-stat"><span>Fishing at</span><strong>${escapeHtml(spot?.name || "Creek")}</strong></div>
-      <div class="visit-stat"><span>Boat</span><strong>Lv${Math.max(0, Number(b.boatLevel) || 0)}</strong></div>
+      <div class="visit-stat"><span>Boat</span><strong>Lv${Math.max(0, visitNum(b.boatLevel))}</strong></div>
       <div class="visit-stat"><span>Aquarium</span><strong>Lv${Math.max(
         0,
-        Number(b.aquariumLevel ?? tank?.level) || 0
+        visitNum(b.aquariumLevel ?? tank?.level)
       )}</strong></div>
       <div class="visit-stat"><span>Echo Charm</span><strong>Lv${Math.max(
         0,
-        Number(b.echoLuckLevel) || 0
+        visitNum(b.echoLuckLevel)
       )}</strong></div>
-      <div class="visit-stat"><span>Cooler</span><strong>${Math.max(0, Number(b.coolerTotal) || 0)} / ${Math.max(
+      <div class="visit-stat"><span>Cooler</span><strong>${Math.max(0, visitNum(b.coolerTotal))} / ${Math.max(
       0,
-      Number(b.coolerMax) || 0
+      visitNum(b.coolerMax)
     )}</strong></div>
       <div class="visit-stat visit-stat-wide"><span>Best catch</span><strong>${escapeHtml(bestLabel)}</strong></div>
       <div class="visit-stat visit-stat-wide"><span>Spots</span><strong>${escapeHtml(
@@ -3931,10 +3999,14 @@
     const b = tank?.base || {};
     if (ownerEl) ownerEl.textContent = `${tank?.name || "Player"}'s base`;
     if (metaEl) {
-      metaEl.textContent = `${formatNum(b.coins || 0)} coins · book ${Math.max(
-        0,
-        Number(b.bookPct) || 0
-      )}% · aqua Lv${Math.max(0, Number(b.aquariumLevel ?? tank?.level) || 0)}`;
+      if (!tank?.base) {
+        metaEl.textContent = "Aquarium only · full base not synced yet";
+      } else {
+        metaEl.textContent = `${formatNum(visitNum(b.coinsText || b.coins))} coins · book ${Math.max(
+          0,
+          visitNum(b.bookPct)
+        )}% · aqua Lv${Math.max(0, visitNum(b.aquariumLevel ?? tank?.level))}`;
+      }
     }
     renderVisitBaseOverview(tank);
     renderVisitBaseCooler(tank);
