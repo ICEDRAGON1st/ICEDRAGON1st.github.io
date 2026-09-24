@@ -1583,7 +1583,27 @@
     { id: "perfect52", name: "Pantheon Focus", desc: "+155000% sell on perfect reels", cost: 9.5e37, kind: "perfect", amount: 1550 },
     { id: "perfect53", name: "Astral Crown Pulse", desc: "+195000% sell on perfect reels", cost: 4.8e38, kind: "perfect", amount: 1950 },
     { id: "perfect54", name: "Eternal Gate Timing", desc: "+245000% sell on perfect reels", cost: 2.4e39, kind: "perfect", amount: 2450 },
-    { id: "perfect55", name: "True Omega Focus", desc: "+310000% sell on perfect reels", cost: 1.2e40, kind: "perfect", amount: 3100 }
+    { id: "perfect55", name: "True Omega Focus", desc: "+310000% sell on perfect reels", cost: 1.2e40, kind: "perfect", amount: 3100 },
+    { id: "aqua1", name: "Bubble Stone", desc: "+25% aquarium drip", cost: 350, kind: "aquarium", amount: 0.25 },
+    { id: "aqua2", name: "Coral Shelf", desc: "+40% aquarium drip · +2 tank fish", cost: 2200, kind: "aquarium", amount: 0.4, slots: 2 },
+    { id: "aqua3", name: "Filter Pump", desc: "+55% aquarium drip", cost: 14000, kind: "aquarium", amount: 0.55 },
+    { id: "aqua4", name: "Kelp Garden", desc: "+70% aquarium drip · +3 tank fish", cost: 85000, kind: "aquarium", amount: 0.7, slots: 3 },
+    { id: "aqua5", name: "Pearl Heater", desc: "+90% aquarium drip", cost: 450000, kind: "aquarium", amount: 0.9 },
+    { id: "aqua6", name: "Reef Canopy", desc: "+120% aquarium drip · +4 tank fish", cost: 2800000, kind: "aquarium", amount: 1.2, slots: 4 },
+    { id: "aqua7", name: "Tide Aerator", desc: "+160% aquarium drip", cost: 16000000, kind: "aquarium", amount: 1.6 },
+    { id: "aqua8", name: "Glass Dome", desc: "+220% aquarium drip · +5 tank fish", cost: 90000000, kind: "aquarium", amount: 2.2, slots: 5 },
+    { id: "aqua9", name: "Abyss Filter", desc: "+300% aquarium drip", cost: 400000000, kind: "aquarium", amount: 3 },
+    { id: "aqua10", name: "Prism Tank", desc: "+400% aquarium drip · +6 tank fish", cost: 1.8e9, kind: "aquarium", amount: 4, slots: 6 },
+    { id: "aqua11", name: "Nebula Bubbler", desc: "+550% aquarium drip", cost: 9e9, kind: "aquarium", amount: 5.5 },
+    { id: "aqua12", name: "Horizon Aquarium", desc: "+750% aquarium drip · +8 tank fish", cost: 5e10, kind: "aquarium", amount: 7.5, slots: 8 },
+    { id: "aqua13", name: "Chrono Circulator", desc: "+1000% aquarium drip", cost: 3e11, kind: "aquarium", amount: 10 },
+    { id: "aqua14", name: "Genesis Habitat", desc: "+1400% aquarium drip · +10 tank fish", cost: 2e12, kind: "aquarium", amount: 14, slots: 10 },
+    { id: "aqua15", name: "Singularity Tank", desc: "+2000% aquarium drip", cost: 1.5e13, kind: "aquarium", amount: 20 },
+    { id: "aqua16", name: "Absolute Exhibit", desc: "+3000% aquarium drip · +12 tank fish", cost: 1.2e14, kind: "aquarium", amount: 30, slots: 12 },
+    { id: "aqua17", name: "Omni Reef", desc: "+4500% aquarium drip", cost: 1e15, kind: "aquarium", amount: 45 },
+    { id: "aqua18", name: "Zenith Oceanarium", desc: "+6500% aquarium drip · +15 tank fish", cost: 8e15, kind: "aquarium", amount: 65, slots: 15 },
+    { id: "aqua19", name: "Mythos Vivaria", desc: "+10000% aquarium drip", cost: 6e16, kind: "aquarium", amount: 100 },
+    { id: "aqua20", name: "Omega Origin Tank", desc: "+15000% aquarium drip · +20 tank fish", cost: 5e17, kind: "aquarium", amount: 150, slots: 20 }
   ];
 
   /**
@@ -2032,6 +2052,11 @@
       id: "perfect",
       title: "Perfect pay",
       blurb: "Earn more when you sell fish caught on a perfect reel."
+    },
+    {
+      id: "aquarium",
+      title: "Aquarium",
+      blurb: "Boost coin drip from saved fish and show more swimmers in the tank."
     },
     {
       id: "boat",
@@ -3020,7 +3045,19 @@
     return false;
   }
 
-function aquariumRatePerSec() {
+  function aquariumDripBonus() {
+    return ownedGear("aquarium").reduce((s, g) => s + (Number(g.amount) || 0), 0);
+  }
+
+  function aquariumSwimBonus() {
+    return ownedGear("aquarium").reduce((s, g) => s + Math.max(0, Math.floor(Number(g.slots) || 0)), 0);
+  }
+
+  function aquariumSwimMax() {
+    return AQUARIUM_SWIM_MAX + aquariumSwimBonus();
+  }
+
+  function aquariumRatePerSec() {
     const spot = currentSpot();
     let rate = 0;
     state.cooler.forEach((raw) => {
@@ -3032,7 +3069,7 @@ function aquariumRatePerSec() {
       const val = fishValue(fish, spot, entry);
       rate += val * 0.00004 * (0.35 + rank * 0.08);
     });
-    return rate;
+    return rate * (1 + aquariumDripBonus());
   }
 
   function tickAquarium(force = false) {
@@ -3078,7 +3115,7 @@ function aquariumRatePerSec() {
       })
       .filter(Boolean)
       .sort((a, b) => b.val - a.val || (RARITY_RANK[b.fish.rarity] || 0) - (RARITY_RANK[a.fish.rarity] || 0))
-      .slice(0, AQUARIUM_SWIM_MAX);
+      .slice(0, aquariumSwimMax());
   }
 
   function aquariumKey() {
@@ -3204,14 +3241,20 @@ function aquariumRatePerSec() {
     const nextKey = `${aquariumKey()}|${aquariumExpanded ? 1 : 0}`;
 
     if (dripEl) {
+      const dripBonus = aquariumDripBonus();
+      const swimMax = aquariumSwimMax();
+      const bonusTip =
+        dripBonus > 0 || swimMax > AQUARIUM_SWIM_MAX
+          ? ` · tank ${formatPctBonus(dripBonus)} drip · ${swimMax} swim slots`
+          : "";
       dripEl.textContent =
         list.length === 0
           ? "Save fish in the cooler to stock the tank"
           : rate > 0
             ? `${list.length} swimming · ${formatNum(bank)} banked · ${formatNum(
                 Math.max(1, Math.floor(rate * 60))
-              )}/min`
-            : `${list.length} swimming · ${formatNum(bank)} banked`;
+              )}/min${bonusTip}`
+            : `${list.length} swimming · ${formatNum(bank)} banked${bonusTip}`;
     }
     if (tankClaim) tankClaim.disabled = bank <= 0;
     tank.classList.toggle("has-fish", list.length > 0);
@@ -11964,6 +12007,13 @@ function aquariumRatePerSec() {
     if (kind === "perfect") {
       return `Perfect pay ${formatPctBonus(sum)} → ${formatPctBonus(sum + amt)}`;
     }
+    if (kind === "aquarium") {
+      const slots = Math.max(0, Math.floor(Number(item.slots) || 0));
+      const beforeSlots = AQUARIUM_SWIM_MAX + aquariumSwimBonus();
+      const afterSlots = beforeSlots + slots;
+      const dripBit = `Drip ${formatPctBonus(sum)} → ${formatPctBonus(sum + amt)}`;
+      return slots > 0 ? `${dripBit} · swim ${beforeSlots} → ${afterSlots}` : dripBit;
+    }
     return "";
   }
 
@@ -11991,6 +12041,9 @@ function aquariumRatePerSec() {
     if (kind === "cooler") return `${n} owned · ${COOLER_BASE + sum} slots`;
     if (kind === "value") return `${n} owned · sell ${formatPctBonus(sum)}`;
     if (kind === "perfect") return `${n} owned · perfect ${formatPctBonus(sum)}`;
+    if (kind === "aquarium") {
+      return `${n} owned · drip ${formatPctBonus(sum)} · ${aquariumSwimMax()} swim slots`;
+    }
     if (kind === "multi") {
       return `${n} owned · 2nd ${Math.min(98, Math.round(sum * 100))}% / 98%`;
     }
