@@ -6954,6 +6954,119 @@
       .join("")}</ul>`;
   }
 
+  function composeCountKind(kind, extra = {}) {
+    return (mailCompose?.items || []).filter((it) => {
+      if (it.kind !== kind) return false;
+      if (kind === "chest" && extra.chestKind) return it.chestKind === extra.chestKind;
+      if (kind === "luckyblock" && extra.lbType) return it.lbType === extra.lbType;
+      return true;
+    }).length;
+  }
+
+  function findComposeIndex(kind, extra = {}) {
+    const items = mailCompose?.items || [];
+    for (let i = items.length - 1; i >= 0; i -= 1) {
+      const it = items[i];
+      if (it.kind !== kind) continue;
+      if (kind === "chest" && extra.chestKind && it.chestKind !== extra.chestKind) continue;
+      if (kind === "luckyblock" && extra.lbType && it.lbType !== extra.lbType) continue;
+      return i;
+    }
+    return -1;
+  }
+
+  function mailPickTogglesHtml() {
+    if (!mailCompose || (mailCompose.mode !== "gift" && mailCompose.mode !== "trade")) {
+      return "";
+    }
+    const selectedFish = (mailCompose.items || [])
+      .map((it, i) => ({ it, i }))
+      .filter((x) => x.it.kind === "fish");
+    const coolerFish = state.cooler
+      .map((entry, index) => ({ entry, index }))
+      .filter(({ entry }) => !isCoolerSaved(entry));
+
+    let fishBtns = selectedFish
+      .map(({ it, i }) => {
+        return `<button type="button" class="mail-toggle is-on" data-mail-remove="${i}" aria-pressed="true" title="Remove from offer">${escapeHtml(
+          mailItemLabel(it)
+        )}</button>`;
+      })
+      .join("");
+    fishBtns += coolerFish
+      .map(({ entry, index }) => {
+        const fish = fishById(coolerEntryId(entry));
+        if (!fish) return "";
+        const label = formatFishName(fish, normalizeCoolerEntry(entry) || entry);
+        return `<button type="button" class="mail-toggle" data-mail-fish="${index}" aria-pressed="false" title="Add to offer">${escapeHtml(
+          label
+        )}</button>`;
+      })
+      .join("");
+
+    const moneyHave = Math.max(0, Math.floor(Number(state.moneyChestCount) || 0));
+    const luckHave = Math.max(0, Math.floor(Number(state.luckChestCount) || 0));
+    const moneyOn = composeCountKind("chest", { chestKind: "money" });
+    const luckOn = composeCountKind("chest", { chestKind: "luck" });
+    const astralHave = luckyBlockCount("astral");
+    const absHave = luckyBlockCount("absolute");
+    const zenHave = luckyBlockCount("zenith");
+    const astralOn = composeCountKind("luckyblock", { lbType: "astral" });
+    const absOn = composeCountKind("luckyblock", { lbType: "absolute" });
+    const zenOn = composeCountKind("luckyblock", { lbType: "zenith" });
+
+    const stashBtns = [
+      `<button type="button" class="mail-toggle${moneyOn ? " is-on" : ""}" data-mail-toggle-chest="money" aria-pressed="${
+        moneyOn ? "true" : "false"
+      }" ${!moneyOn && moneyHave < 1 ? "disabled" : ""}>Coin chest${
+        moneyOn ? ` ×${moneyOn}` : ""
+      } · ${moneyHave}</button>`,
+      `<button type="button" class="mail-toggle${luckOn ? " is-on" : ""}" data-mail-toggle-chest="luck" aria-pressed="${
+        luckOn ? "true" : "false"
+      }" ${!luckOn && luckHave < 1 ? "disabled" : ""}>Luck chest${
+        luckOn ? ` ×${luckOn}` : ""
+      } · ${luckHave}</button>`,
+      `<button type="button" class="mail-toggle${astralOn ? " is-on" : ""}" data-mail-toggle-lb="astral" aria-pressed="${
+        astralOn ? "true" : "false"
+      }" ${!astralOn && astralHave < 1 ? "disabled" : ""}>Astral${
+        astralOn ? ` ×${astralOn}` : ""
+      } · ${astralHave}</button>`,
+      `<button type="button" class="mail-toggle${absOn ? " is-on" : ""}" data-mail-toggle-lb="absolute" aria-pressed="${
+        absOn ? "true" : "false"
+      }" ${!absOn && absHave < 1 ? "disabled" : ""}>Absolute${
+        absOn ? ` ×${absOn}` : ""
+      } · ${absHave}</button>`,
+      `<button type="button" class="mail-toggle${zenOn ? " is-on" : ""}" data-mail-toggle-lb="zenith" aria-pressed="${
+        zenOn ? "true" : "false"
+      }" ${!zenOn && zenHave < 1 ? "disabled" : ""}>Zenith${
+        zenOn ? ` ×${zenOn}` : ""
+      } · ${zenHave}</button>`
+    ].join("");
+
+    return `<p class="mail-section-label">Fish (toggle)</p>
+      <div class="mail-toggle-grid">${fishBtns || `<span class="mail-empty">No unsaved fish in cooler</span>`}</div>
+      <p class="mail-section-label">Stash (toggle)</p>
+      <div class="mail-toggle-grid mail-toggle-stash">${stashBtns}</div>`;
+  }
+
+  async function toggleComposeChest(chestKind) {
+    const idx = findComposeIndex("chest", { chestKind });
+    if (idx >= 0) {
+      await removeComposeItem(idx);
+      return;
+    }
+    await addComposeChest(chestKind, 1);
+  }
+
+  async function toggleComposeLuckyBlock(lbType) {
+    const idx = findComposeIndex("luckyblock", { lbType });
+    if (idx >= 0) {
+      await removeComposeItem(idx);
+      return;
+    }
+    await addComposeLuckyBlock(lbType, 1);
+  }
+
   function renderMailOverlay() {
     const body = document.getElementById("mail-body");
     if (!body) return;
@@ -7024,18 +7137,12 @@
       }
       const c = mailCompose;
       html += `<div class="mail-panel">
-        <p class="mail-hint">Friends only · tap cooler fish while this is open, or add stash items below. Max ${PLAYER_MAIL_MAX_ITEMS}.</p>
+        <p class="mail-hint">Friends only · toggle fish &amp; stash below. Max ${PLAYER_MAIL_MAX_ITEMS} items.</p>
         <p class="mail-section-label">Friend</p>
         ${friendOptionsHtml(c.friendId)}
-        <p class="mail-section-label">Your offer (${c.items.length}/${PLAYER_MAIL_MAX_ITEMS})</p>
+        <p class="mail-section-label">Selected (${c.items.length}/${PLAYER_MAIL_MAX_ITEMS})</p>
         ${mailItemsHtml(c.items, true)}
-        <div class="mail-add-row">
-          <button type="button" class="btn btn-ghost" data-mail-add-chest="money">+ Coin chest</button>
-          <button type="button" class="btn btn-ghost" data-mail-add-chest="luck">+ Luck chest</button>
-          <button type="button" class="btn btn-ghost" data-mail-add-lb="astral">+ Astral</button>
-          <button type="button" class="btn btn-ghost" data-mail-add-lb="absolute">+ Absolute</button>
-          <button type="button" class="btn btn-ghost" data-mail-add-lb="zenith">+ Zenith</button>
-        </div>
+        ${mailPickTogglesHtml()}
         <div class="mail-actions">
           <button type="button" class="btn" data-mail-send-gift>Send gift</button>
           <button type="button" class="btn btn-ghost" data-mail-cancel-compose>Cancel</button>
@@ -7045,7 +7152,7 @@
       const c = mailCompose?.mode === "trade" ? mailCompose : null;
       html += `<div class="mail-panel">`;
       if (!c?.tradeId) {
-        html += `<p class="mail-hint">Start a trade with a friend, then tap cooler fish or add stash items. Both must Accept.</p>
+        html += `<p class="mail-hint">Start a trade with a friend, then toggle items on. Both must Accept.</p>
         <p class="mail-section-label">Start with</p>
         ${friendOptionsHtml("")}
         <p class="mail-empty">${friends.length ? "Tap a friend to open a trade." : ""}</p>`;
@@ -7056,18 +7163,15 @@
         const theirs = t ? (side === "a" ? t.bItems : t.aItems) : [];
         const myAccept = t ? (side === "a" ? t.aAccept : t.bAccept) : false;
         const theirAccept = t ? (side === "a" ? t.bAccept : t.aAccept) : false;
+        if (Array.isArray(mine)) c.items = mine.slice();
         html += `<p class="mail-hint">Trading with <strong>${escapeHtml(
           c.friendName
-        )}</strong> · tap cooler fish to add</p>
+        )}</strong> · toggle items on/off</p>
         <div class="mail-trade-cols">
           <div class="mail-trade-col">
-            <p class="mail-section-label">You ${myAccept ? "· accepted" : ""}</p>
+            <p class="mail-section-label">You ${myAccept ? "· accepted" : ""} (${(mine || []).length}/${PLAYER_MAIL_MAX_ITEMS})</p>
             ${mailItemsHtml(mine || c.items, true)}
-            <div class="mail-add-row">
-              <button type="button" class="btn btn-ghost" data-mail-add-chest="money">+ Coin</button>
-              <button type="button" class="btn btn-ghost" data-mail-add-chest="luck">+ Luck</button>
-              <button type="button" class="btn btn-ghost" data-mail-add-lb="absolute">+ Block</button>
-            </div>
+            ${mailPickTogglesHtml()}
           </div>
           <div class="mail-trade-col">
             <p class="mail-section-label">Them ${theirAccept ? "· accepted" : ""}</p>
@@ -7089,7 +7193,6 @@
       html += `</div>`;
     }
     body.innerHTML = html;
-    renderCooler(true);
   }
 
   function openMailOverlay(tab) {
@@ -7112,7 +7215,6 @@
     } catch {}
     pollPlayerMail(true).then(() => renderMailOverlay());
     renderMailOverlay();
-    renderCooler(true);
   }
 
   function closeMailOverlay() {
@@ -13321,13 +13423,6 @@
           }" aria-label="${saved ? "Unsave" : "Save"} ${label}" aria-pressed="${saved}">${
             saved ? "★" : "☆"
           }</button>
-          ${
-            mailCompose && (mailCompose.mode === "gift" || mailCompose.mode === "trade")
-              ? `<button type="button" class="fish-chip-mail" data-mail-fish="${index}" title="Add to ${
-                  mailCompose.mode === "trade" ? "trade" : "gift"
-                }" aria-label="Add ${label} to ${mailCompose.mode}">✉</button>`
-              : ""
-          }
           <button type="button" class="fish-chip-sell" data-sell-index="${index}" title="${
             saved
               ? "Saved — unpin to sell"
@@ -15062,14 +15157,6 @@
       toggleSaveFish(saveBtn.dataset.saveIndex);
       return;
     }
-    const mailFish = e.target.closest("[data-mail-fish]");
-    if (mailFish && coolerList.contains(mailFish)) {
-      e.preventDefault();
-      e.stopPropagation();
-      addComposeItemFromCooler(mailFish.dataset.mailFish);
-      playSfx("click");
-      return;
-    }
     const sellChip = e.target.closest("[data-sell-index]");
     if (!sellChip || !coolerList.contains(sellChip) || sellChip.disabled) return;
     e.preventDefault();
@@ -15329,9 +15416,27 @@
       playSfx("click");
       return;
     }
+    const toggleChest = e.target.closest("[data-mail-toggle-chest]");
+    if (toggleChest) {
+      toggleComposeChest(toggleChest.dataset.mailToggleChest);
+      playSfx("click");
+      return;
+    }
     const addLb = e.target.closest("[data-mail-add-lb]");
     if (addLb) {
       addComposeLuckyBlock(addLb.dataset.mailAddLb, 1);
+      playSfx("click");
+      return;
+    }
+    const toggleLb = e.target.closest("[data-mail-toggle-lb]");
+    if (toggleLb) {
+      toggleComposeLuckyBlock(toggleLb.dataset.mailToggleLb);
+      playSfx("click");
+      return;
+    }
+    const mailFish = e.target.closest("[data-mail-fish]");
+    if (mailFish) {
+      addComposeItemFromCooler(mailFish.dataset.mailFish);
       playSfx("click");
       return;
     }
