@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260924b">
+  <link rel="stylesheet" href="styles.css?v=20260924c">
 </head>
 <body data-spot="creek" data-hub-sound-btn="off">
   <div id="weather-fx" class="weather-fx" aria-hidden="true">
@@ -381,7 +381,6 @@
           <button type="button" class="shop-cat-btn" data-shop-cat="multi">Second catch</button>
           <button type="button" class="shop-cat-btn" data-shop-cat="triple">Third catch</button>
           <button type="button" class="shop-cat-btn" data-shop-cat="perfect">Perfect pay</button>
-          <button type="button" class="shop-cat-btn" data-shop-cat="aquarium">Aquarium</button>
           <button type="button" class="shop-cat-btn" data-shop-cat="boat">Auto boat</button>
         </div>
         <div id="shop-list" class="shop-list" role="list"></div>
@@ -416,7 +415,7 @@
           </div>
           <button type="button" id="aquarium-tank-claim" class="btn btn-ghost aquarium-claim-btn" disabled>Claim</button>
         </div>
-        <p class="shop-intro">★ save a fish in the cooler to put it here — they swim and drip coins by rarity. Buy Aquarium gear in the shop for faster drip and a bigger tank.</p>
+        <p class="shop-intro">★ save a fish in the cooler to put it here — they swim and drip coins by rarity. Upgrade the tank below for faster drip and more swimmers (next tier only).</p>
         <div id="aquarium-tank" class="aquarium-tank" tabindex="0" role="button" aria-label="Aquarium tank · tap to enlarge" title="Tap tank to enlarge · tap a fish to inspect">
           <div class="aquarium-glass" aria-hidden="true"></div>
           <div class="aquarium-bubbles" aria-hidden="true">
@@ -428,6 +427,14 @@
           <span class="aquarium-expand-hint" aria-hidden="true">Tap to enlarge</span>
         </div>
         <button type="button" id="aquarium-expand-backdrop" class="aquarium-expand-backdrop hidden" hidden aria-label="Close enlarged aquarium"></button>
+        <div id="aquarium-upgrade" class="aquarium-upgrade" role="group" aria-label="Aquarium upgrade">
+          <div class="aquarium-upgrade-main">
+            <div id="aquarium-upgrade-name" class="aquarium-upgrade-name">Bubble Stone</div>
+            <p id="aquarium-upgrade-desc" class="aquarium-upgrade-desc">Unlock faster drip</p>
+            <div id="aquarium-upgrade-status" class="aquarium-upgrade-status">Not upgraded yet</div>
+          </div>
+          <button type="button" id="aquarium-upgrade-btn" class="buy-btn">—</button>
+        </div>
         <p id="aquarium-drip-label" class="aquarium-drip">No drip yet</p>
       </div>
     </section>

@@ -1583,28 +1583,37 @@
     { id: "perfect52", name: "Pantheon Focus", desc: "+155000% sell on perfect reels", cost: 9.5e37, kind: "perfect", amount: 1550 },
     { id: "perfect53", name: "Astral Crown Pulse", desc: "+195000% sell on perfect reels", cost: 4.8e38, kind: "perfect", amount: 1950 },
     { id: "perfect54", name: "Eternal Gate Timing", desc: "+245000% sell on perfect reels", cost: 2.4e39, kind: "perfect", amount: 2450 },
-    { id: "perfect55", name: "True Omega Focus", desc: "+310000% sell on perfect reels", cost: 1.2e40, kind: "perfect", amount: 3100 },
-    { id: "aqua1", name: "Bubble Stone", desc: "+25% aquarium drip", cost: 350, kind: "aquarium", amount: 0.25 },
-    { id: "aqua2", name: "Coral Shelf", desc: "+40% aquarium drip · +2 tank fish", cost: 2200, kind: "aquarium", amount: 0.4, slots: 2 },
-    { id: "aqua3", name: "Filter Pump", desc: "+55% aquarium drip", cost: 14000, kind: "aquarium", amount: 0.55 },
-    { id: "aqua4", name: "Kelp Garden", desc: "+70% aquarium drip · +3 tank fish", cost: 85000, kind: "aquarium", amount: 0.7, slots: 3 },
-    { id: "aqua5", name: "Pearl Heater", desc: "+90% aquarium drip", cost: 450000, kind: "aquarium", amount: 0.9 },
-    { id: "aqua6", name: "Reef Canopy", desc: "+120% aquarium drip · +4 tank fish", cost: 2800000, kind: "aquarium", amount: 1.2, slots: 4 },
-    { id: "aqua7", name: "Tide Aerator", desc: "+160% aquarium drip", cost: 16000000, kind: "aquarium", amount: 1.6 },
-    { id: "aqua8", name: "Glass Dome", desc: "+220% aquarium drip · +5 tank fish", cost: 90000000, kind: "aquarium", amount: 2.2, slots: 5 },
-    { id: "aqua9", name: "Abyss Filter", desc: "+300% aquarium drip", cost: 400000000, kind: "aquarium", amount: 3 },
-    { id: "aqua10", name: "Prism Tank", desc: "+400% aquarium drip · +6 tank fish", cost: 1.8e9, kind: "aquarium", amount: 4, slots: 6 },
-    { id: "aqua11", name: "Nebula Bubbler", desc: "+550% aquarium drip", cost: 9e9, kind: "aquarium", amount: 5.5 },
-    { id: "aqua12", name: "Horizon Aquarium", desc: "+750% aquarium drip · +8 tank fish", cost: 5e10, kind: "aquarium", amount: 7.5, slots: 8 },
-    { id: "aqua13", name: "Chrono Circulator", desc: "+1000% aquarium drip", cost: 3e11, kind: "aquarium", amount: 10 },
-    { id: "aqua14", name: "Genesis Habitat", desc: "+1400% aquarium drip · +10 tank fish", cost: 2e12, kind: "aquarium", amount: 14, slots: 10 },
-    { id: "aqua15", name: "Singularity Tank", desc: "+2000% aquarium drip", cost: 1.5e13, kind: "aquarium", amount: 20 },
-    { id: "aqua16", name: "Absolute Exhibit", desc: "+3000% aquarium drip · +12 tank fish", cost: 1.2e14, kind: "aquarium", amount: 30, slots: 12 },
-    { id: "aqua17", name: "Omni Reef", desc: "+4500% aquarium drip", cost: 1e15, kind: "aquarium", amount: 45 },
-    { id: "aqua18", name: "Zenith Oceanarium", desc: "+6500% aquarium drip · +15 tank fish", cost: 8e15, kind: "aquarium", amount: 65, slots: 15 },
-    { id: "aqua19", name: "Mythos Vivaria", desc: "+10000% aquarium drip", cost: 6e16, kind: "aquarium", amount: 100 },
-    { id: "aqua20", name: "Omega Origin Tank", desc: "+15000% aquarium drip · +20 tank fish", cost: 5e17, kind: "aquarium", amount: 150, slots: 20 }
+    { id: "perfect55", name: "True Omega Focus", desc: "+310000% sell on perfect reels", cost: 1.2e40, kind: "perfect", amount: 3100 }
   ];
+
+  /**
+   * Aquarium tank upgrades — one path, next-only, does not stack.
+   * Level 0 = base tank. Each level replaces the previous drip/slots bonus.
+   */
+  const AQUARIUM_TIERS = [
+    null,
+    { name: "Bubble Stone", cost: 350, amount: 0.25, slots: 0, desc: "+25% drip" },
+    { name: "Coral Shelf", cost: 2200, amount: 0.4, slots: 2, desc: "+40% drip · +2 swim" },
+    { name: "Filter Pump", cost: 14000, amount: 0.55, slots: 2, desc: "+55% drip · +2 swim" },
+    { name: "Kelp Garden", cost: 85000, amount: 0.7, slots: 3, desc: "+70% drip · +3 swim" },
+    { name: "Pearl Heater", cost: 450000, amount: 0.9, slots: 3, desc: "+90% drip · +3 swim" },
+    { name: "Reef Canopy", cost: 2800000, amount: 1.2, slots: 4, desc: "+120% drip · +4 swim" },
+    { name: "Tide Aerator", cost: 16000000, amount: 1.6, slots: 4, desc: "+160% drip · +4 swim" },
+    { name: "Glass Dome", cost: 90000000, amount: 2.2, slots: 5, desc: "+220% drip · +5 swim" },
+    { name: "Abyss Filter", cost: 400000000, amount: 3, slots: 5, desc: "+300% drip · +5 swim" },
+    { name: "Prism Tank", cost: 1.8e9, amount: 4, slots: 6, desc: "+400% drip · +6 swim" },
+    { name: "Nebula Bubbler", cost: 9e9, amount: 5.5, slots: 6, desc: "+550% drip · +6 swim" },
+    { name: "Horizon Aquarium", cost: 5e10, amount: 7.5, slots: 8, desc: "+750% drip · +8 swim" },
+    { name: "Chrono Circulator", cost: 3e11, amount: 10, slots: 8, desc: "+1000% drip · +8 swim" },
+    { name: "Genesis Habitat", cost: 2e12, amount: 14, slots: 10, desc: "+1400% drip · +10 swim" },
+    { name: "Singularity Tank", cost: 1.5e13, amount: 20, slots: 10, desc: "+2000% drip · +10 swim" },
+    { name: "Absolute Exhibit", cost: 1.2e14, amount: 30, slots: 12, desc: "+3000% drip · +12 swim" },
+    { name: "Omni Reef", cost: 1e15, amount: 45, slots: 12, desc: "+4500% drip · +12 swim" },
+    { name: "Zenith Oceanarium", cost: 8e15, amount: 65, slots: 15, desc: "+6500% drip · +15 swim" },
+    { name: "Mythos Vivaria", cost: 6e16, amount: 100, slots: 15, desc: "+10000% drip · +15 swim" },
+    { name: "Omega Origin Tank", cost: 5e17, amount: 150, slots: 20, desc: "+15000% drip · +20 swim" }
+  ];
+  const AQUARIUM_MAX_LEVEL = AQUARIUM_TIERS.length - 1;
 
   /**
    * One auto boat — hire + upgrade.
@@ -2054,11 +2063,6 @@
       blurb: "Earn more when you sell fish caught on a perfect reel."
     },
     {
-      id: "aquarium",
-      title: "Aquarium",
-      blurb: "Boost coin drip from saved fish and show more swimmers in the tank."
-    },
-    {
       id: "boat",
       title: "Auto boat",
       blurb: "One boat — upgrade for speed (min 7.5s) and multi-catch chances."
@@ -2096,6 +2100,7 @@
       bestCatchMutation: "",
       caught: {},
       boatLevel: 0,
+      aquariumLevel: 0,
       catches: 0,
       perfects: 0,
       lastTick: Date.now(),
@@ -3045,12 +3050,36 @@
     return false;
   }
 
+  function aquariumLevel() {
+    return Math.max(0, Math.min(AQUARIUM_MAX_LEVEL, Math.floor(Number(state.aquariumLevel) || 0)));
+  }
+
+  function getAquariumTier() {
+    const level = aquariumLevel();
+    if (level < 1) return null;
+    return { level, ...AQUARIUM_TIERS[level] };
+  }
+
+  function nextAquariumTier() {
+    const next = aquariumLevel() + 1;
+    if (next > AQUARIUM_MAX_LEVEL) return null;
+    return { level: next, ...AQUARIUM_TIERS[next] };
+  }
+
+  function migrateLegacyAquarium(ownedMap) {
+    let best = 0;
+    for (let i = 1; i <= AQUARIUM_MAX_LEVEL; i += 1) {
+      if (ownedMap?.[`aqua${i}`]) best = i;
+    }
+    return best;
+  }
+
   function aquariumDripBonus() {
-    return ownedGear("aquarium").reduce((s, g) => s + (Number(g.amount) || 0), 0);
+    return Number(getAquariumTier()?.amount) || 0;
   }
 
   function aquariumSwimBonus() {
-    return ownedGear("aquarium").reduce((s, g) => s + Math.max(0, Math.floor(Number(g.slots) || 0)), 0);
+    return Math.max(0, Math.floor(Number(getAquariumTier()?.slots) || 0));
   }
 
   function aquariumSwimMax() {
@@ -3260,6 +3289,7 @@
     tank.classList.toggle("has-fish", list.length > 0);
     tank.classList.toggle("is-expanded", aquariumExpanded);
     if (emptyEl) emptyEl.hidden = list.length > 0;
+    renderAquariumUpgrade();
 
     if (!force && nextKey === aquariumRenderKey) {
       startAquariumSwim();
@@ -7588,6 +7618,12 @@
       const savedBoat = Math.floor(Number(raw.boatLevel) || 0);
       const legacyBoat = migrateLegacyBoats(raw.owned);
       next.boatLevel = Math.max(0, Math.min(BOAT_MAX_LEVEL, Math.max(savedBoat, legacyBoat)));
+      const savedAqua = Math.floor(Number(raw.aquariumLevel) || 0);
+      const legacyAqua = migrateLegacyAquarium(raw.owned);
+      next.aquariumLevel = Math.max(
+        0,
+        Math.min(AQUARIUM_MAX_LEVEL, Math.max(savedAqua, legacyAqua))
+      );
       next.cooler = Array.isArray(raw.cooler)
         ? raw.cooler
             .map(normalizeCoolerEntry)
@@ -11326,6 +11362,65 @@
     saveSoon();
   }
 
+  function renderAquariumUpgrade() {
+    const row = document.getElementById("aquarium-upgrade");
+    const nameEl = document.getElementById("aquarium-upgrade-name");
+    const descEl = document.getElementById("aquarium-upgrade-desc");
+    const statusEl = document.getElementById("aquarium-upgrade-status");
+    const btn = document.getElementById("aquarium-upgrade-btn");
+    if (!row || !btn) return;
+    const current = getAquariumTier();
+    const next = nextAquariumTier();
+    if (!next) {
+      const curName = current?.name || "Base tank";
+      if (nameEl) nameEl.textContent = curName;
+      if (descEl) {
+        descEl.textContent = current
+          ? `${current.desc} · Lv${current.level}/${AQUARIUM_MAX_LEVEL}`
+          : "Maxed";
+      }
+      if (statusEl) statusEl.textContent = `Maxed · Lv${AQUARIUM_MAX_LEVEL}`;
+      btn.disabled = true;
+      btn.textContent = "MAX";
+      row.classList.add("is-maxed");
+      return;
+    }
+    row.classList.remove("is-maxed");
+    if (nameEl) nameEl.textContent = next.name;
+    if (descEl) {
+      descEl.textContent = current
+        ? `Lv${current.level} ${current.name} → Lv${next.level} ${next.name} · ${next.desc}`
+        : `Unlock ${next.name} · ${next.desc}`;
+    }
+    if (statusEl) {
+      statusEl.textContent = current
+        ? `Owned · Lv${current.level}/${AQUARIUM_MAX_LEVEL}`
+        : "Not upgraded yet";
+    }
+    btn.disabled = state.coins < next.cost;
+    btn.textContent = formatNum(next.cost);
+  }
+
+  function buyAquariumUpgrade() {
+    const next = nextAquariumTier();
+    if (!next || state.coins < next.cost) return;
+    ensureSession();
+    state.coins -= next.cost;
+    state.aquariumLevel = next.level;
+    playSfx("click");
+    burstConfetti();
+    setCatchLine(
+      next.level === 1
+        ? `Installed ${next.name} · ${next.desc}`
+        : `Upgraded aquarium to ${next.name} · ${next.desc}`,
+      "treasure"
+    );
+    checkAchievements();
+    aquariumRenderKey = "";
+    render();
+    saveSoon();
+  }
+
   function buyGear(id) {
     if (id === "boat") {
       buyBoatUpgrade();
@@ -11343,12 +11438,6 @@
     if (item.kind === "speed") {
       state.equippedSpeed = id;
       setCatchLine(`Bought & equipped ${item.name}`);
-    } else if (item.kind === "aquarium") {
-      const slots = aquariumSwimMax();
-      setCatchLine(
-        `Bought ${item.name} · drip ${formatPctBonus(aquariumDripBonus())} · ${slots} swim slots`,
-        "treasure"
-      );
     }
     playSfx("click");
     checkAchievements();
@@ -12013,13 +12102,6 @@
     if (kind === "perfect") {
       return `Perfect pay ${formatPctBonus(sum)} → ${formatPctBonus(sum + amt)}`;
     }
-    if (kind === "aquarium") {
-      const slots = Math.max(0, Math.floor(Number(item.slots) || 0));
-      const beforeSlots = AQUARIUM_SWIM_MAX + aquariumSwimBonus();
-      const afterSlots = beforeSlots + slots;
-      const dripBit = `Drip ${formatPctBonus(sum)} → ${formatPctBonus(sum + amt)}`;
-      return slots > 0 ? `${dripBit} · swim ${beforeSlots} → ${afterSlots}` : dripBit;
-    }
     return "";
   }
 
@@ -12047,9 +12129,6 @@
     if (kind === "cooler") return `${n} owned · ${COOLER_BASE + sum} slots`;
     if (kind === "value") return `${n} owned · sell ${formatPctBonus(sum)}`;
     if (kind === "perfect") return `${n} owned · perfect ${formatPctBonus(sum)}`;
-    if (kind === "aquarium") {
-      return `${n} owned · drip ${formatPctBonus(sum)} · ${aquariumSwimMax()} swim slots`;
-    }
     if (kind === "multi") {
       return `${n} owned · 2nd ${Math.min(98, Math.round(sum * 100))}% / 98%`;
     }
@@ -13531,6 +13610,9 @@
       render(false);
       saveSoon();
     }
+  });
+  document.getElementById("aquarium-upgrade-btn")?.addEventListener("click", () => {
+    buyAquariumUpgrade();
   });
   document.getElementById("aquarium-swimmers")?.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-aqua-index]");

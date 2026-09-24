@@ -9310,6 +9310,47 @@ body[data-spot="omegaorigin"] {
   font-size: 0.8rem;
   color: var(--muted);
 }
+.aquarium-upgrade {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.65rem 0 0.35rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(56, 189, 248, 0.28);
+  background: linear-gradient(160deg, rgba(8, 47, 73, 0.45), rgba(15, 23, 42, 0.35));
+}
+.aquarium-upgrade-main {
+  flex: 1;
+  min-width: 0;
+}
+.aquarium-upgrade-name {
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: #e0f2fe;
+}
+.aquarium-upgrade-desc {
+  margin: 0.15rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--muted);
+}
+.aquarium-upgrade-status {
+  margin-top: 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #7dd3fc;
+}
+.aquarium-upgrade .buy-btn {
+  flex-shrink: 0;
+}
+.aquarium-upgrade.is-maxed {
+  border-color: rgba(148, 163, 184, 0.28);
+  background: rgba(15, 23, 42, 0.35);
+}
+.aquarium-upgrade.is-maxed .aquarium-upgrade-status {
+  color: var(--muted);
+}
 @media (prefers-reduced-motion: reduce) {
   .aquarium-bubbles span,
   .aqua-fish-glyph .fish-glyph .tail {
