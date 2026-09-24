@@ -6196,21 +6196,22 @@
     if (item.kind === "fish") {
       const fish = fishById(item.fishId);
       if (!fish) return item.fishId || "Fish";
-      return formatFishName(fish, {
+      const name = formatFishName(fish, {
         variant: item.variant,
         shiny: item.shiny,
         mutation: item.mutation
       });
+      return `${name} · gives ×1`;
     }
     if (item.kind === "chest") {
       const n = Math.max(1, Number(item.count) || 1);
       const name = item.chestKind === "luck" ? "Luck Chest" : "Coin Chest";
-      return n === 1 ? name : `${n}× ${name}`;
+      return `${name} · gives ×${n}`;
     }
     if (item.kind === "luckyblock") {
       const n = Math.max(1, Number(item.count) || 1);
       const name = luckyBlockDef(item.lbType).name;
-      return n === 1 ? name : `${n}× ${name}`;
+      return `${name} · gives ×${n}`;
     }
     return "Item";
   }
