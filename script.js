@@ -4328,7 +4328,8 @@ function renderFriendsPanel() {
           ? HubPlays.formatLastOnline(f.playerId, {
               onlineLabel: "Online",
               prefix: "Last online",
-              empty: "Offline"
+              empty: "Offline",
+              name: f.name || ""
             })
           : isOn
             ? "Online"
