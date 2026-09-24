@@ -117,7 +117,10 @@
   const ADMIN_ANNOUNCE_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-admin-announce";
   const ADMIN_ANNOUNCE_URL = "admin-announce.json";
   const ADMIN_ANNOUNCE_SEEN_KEY = "fishing-admin-announce-seen-v1";
-  const ADMIN_ANNOUNCE_DEFAULT_MS = 5 * 60_000;
+  /** How long the popup stays on screen for each player. */
+  const ADMIN_ANNOUNCE_POPUP_MS = 10_000;
+  /** How long a message stays claimable for players who poll in late. */
+  const ADMIN_ANNOUNCE_CLAIM_MS = 2 * 60_000;
   const ADMIN_ANNOUNCE_MAX_LEN = 180;
   const FISH_GIFTS_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-gifts";
   const FISH_GIFTS_DOC = "fishing-gifts";
@@ -4464,6 +4467,7 @@
 
   let adminAnnounceCache = null;
   let adminAnnounceFetchedAt = 0;
+  let adminAnnounceHideTimer = 0;
   let lastShownAnnounceId = "";
   try {
     lastShownAnnounceId = String(localStorage.getItem(ADMIN_ANNOUNCE_SEEN_KEY) || "");
@@ -4512,41 +4516,50 @@
     } catch {}
   }
 
-  function renderAdminAnnounceBanner() {
-    const banner = document.getElementById("admin-announce-banner");
-    const textEl = document.getElementById("admin-announce-text");
-    const timeEl = document.getElementById("admin-announce-time");
-    if (!banner) return;
-    const msg = adminAnnounceCache;
-    const live = msg && msg.until > Date.now();
-    if (!live) {
-      banner.hidden = true;
-      banner.classList.add("hidden");
-      banner.classList.remove("is-live");
-      return;
+  function hideAdminAnnouncePopup() {
+    if (adminAnnounceHideTimer) {
+      clearTimeout(adminAnnounceHideTimer);
+      adminAnnounceHideTimer = 0;
     }
-    banner.hidden = false;
-    banner.classList.remove("hidden");
-    banner.classList.add("is-live");
-    if (textEl) textEl.textContent = msg.text;
-    if (timeEl) timeEl.textContent = formatTreasureClock(Math.max(0, msg.until - Date.now()));
+    const popup = document.getElementById("admin-announce-popup");
+    if (!popup) return;
+    popup.hidden = true;
+    popup.classList.add("hidden");
+    popup.classList.remove("is-show");
+  }
+
+  function showAdminAnnouncePopup(text) {
+    const popup = document.getElementById("admin-announce-popup");
+    const textEl = document.getElementById("admin-announce-text");
+    if (!popup || !textEl) return;
+    textEl.textContent = String(text || "");
+    popup.hidden = false;
+    popup.classList.remove("hidden");
+    // retrigger enter animation
+    popup.classList.remove("is-show");
+    void popup.offsetWidth;
+    popup.classList.add("is-show");
+    if (adminAnnounceHideTimer) clearTimeout(adminAnnounceHideTimer);
+    adminAnnounceHideTimer = setTimeout(() => {
+      adminAnnounceHideTimer = 0;
+      hideAdminAnnouncePopup();
+    }, ADMIN_ANNOUNCE_POPUP_MS);
   }
 
   function showAdminAnnounce(msg, { alert = true } = {}) {
     if (!msg) {
       adminAnnounceCache = null;
-      renderAdminAnnounceBanner();
+      hideAdminAnnouncePopup();
       return;
     }
     adminAnnounceCache = msg;
-    renderAdminAnnounceBanner();
+    if (!alert) return;
     const seen = readSeenAnnounceId();
-    if (alert && msg.id && msg.id !== seen) {
-      writeSeenAnnounceId(msg.id);
-      setCatchLine(`ADMIN · ${msg.text}`, "treasure");
-      playSfx("win");
-      burstConfetti();
-    }
+    if (msg.id && msg.id === seen) return;
+    writeSeenAnnounceId(msg.id);
+    showAdminAnnouncePopup(msg.text);
+    setCatchLine(`ADMIN · ${msg.text}`, "treasure");
+    playSfx("win");
   }
 
   async function fetchAdminAnnounceRemote() {
@@ -4589,17 +4602,11 @@
 
   async function pollAdminAnnounce(force = false) {
     const now = Date.now();
-    if (!force && now - adminAnnounceFetchedAt < ADMIN_EVENT_POLL_MS) {
-      renderAdminAnnounceBanner();
-      return;
-    }
+    if (!force && now - adminAnnounceFetchedAt < ADMIN_EVENT_POLL_MS) return;
     adminAnnounceFetchedAt = now;
     const remote = await fetchAdminAnnounceRemote();
     if (!remote) {
-      if (adminAnnounceCache && adminAnnounceCache.until <= now) {
-        adminAnnounceCache = null;
-      }
-      renderAdminAnnounceBanner();
+      if (adminAnnounceCache && adminAnnounceCache.until <= now) adminAnnounceCache = null;
       return;
     }
     showAdminAnnounce(remote, { alert: remote.id !== readSeenAnnounceId() });
@@ -4635,7 +4642,7 @@
     return ok;
   }
 
-  async function publishAdminAnnounce(text, minutes = ADMIN_DEFAULT_MINUTES) {
+  async function publishAdminAnnounce(text) {
     if (!isFishingOwner()) {
       setCatchLine("Admin only", "miss");
       return false;
@@ -4646,26 +4653,24 @@
       return false;
     }
     const now = Date.now();
-    const mins = clampAdminMinutes(minutes || ADMIN_DEFAULT_MINUTES);
     const payload = {
       token: ADMIN_EVENT_TOKEN,
       id: `a-${now.toString(36)}-${Math.random().toString(36).slice(2, 7)}`,
       text: clean,
       at: now,
-      until: now + mins * 60_000,
+      until: now + ADMIN_ANNOUNCE_CLAIM_MS,
       by: OWNER_NAME,
       note: "admin-announce"
     };
     showAdminAnnounce(payload, { alert: true });
-    writeSeenAnnounceId(payload.id);
     setCatchLine(`Sending admin message…`, "");
     const ok = await pushAdminAnnounceRemote(payload);
     if (!ok) {
-      setCatchLine("Message shown here · sync failed — try again", "miss");
+      setCatchLine("Popup shown here · sync failed — try again", "miss");
       playSfx("miss");
       return false;
     }
-    setCatchLine(`Admin message live for ${mins}m`, "treasure");
+    setCatchLine("Admin message sent", "treasure");
     playSfx("click");
     return true;
   }
@@ -4685,7 +4690,7 @@
       note: "admin-announce-clear"
     };
     adminAnnounceCache = null;
-    renderAdminAnnounceBanner();
+    hideAdminAnnouncePopup();
     const ok = await pushAdminAnnounceRemote(payload);
     setCatchLine(ok ? "Admin message cleared" : "Cleared here · sync failed", ok ? "treasure" : "miss");
     if (!ok) playSfx("miss");
@@ -4701,18 +4706,9 @@
     }
     const head = original.match(/^(say|announce|announcement|message|msg|broadcast)\b[:\s-]*/i);
     if (!head) return null;
-    let rest = original.slice(head[0].length).trim();
-    let minutes = ADMIN_DEFAULT_MINUTES;
-    const minsMatch = rest.match(/\b(\d{1,3})\s*(?:m|mins?|minutes?)\b/i);
-    if (minsMatch) {
-      minutes = clampAdminMinutes(minsMatch[1]);
-      rest = `${rest.slice(0, minsMatch.index)} ${rest.slice(minsMatch.index + minsMatch[0].length)}`
-        .replace(/\s+/g, " ")
-        .trim();
-    }
-    const text = sanitizeAnnounceText(rest);
+    const text = sanitizeAnnounceText(original.slice(head[0].length));
     if (!text) return { kind: "announce", error: "Try: say Double XP this weekend" };
-    return { kind: "announce", text, minutes };
+    return { kind: "announce", text };
   }
 
   function restorePendingAdminPush() {
@@ -6631,7 +6627,7 @@
         playSfx("miss");
         return;
       }
-      await publishAdminAnnounce(announce.text, announce.minutes);
+      await publishAdminAnnounce(announce.text);
       return;
     }
     const blockGift = parseGiveLuckyBlockCommand(raw);
@@ -13187,7 +13183,6 @@
     renderCooler(coolerKey() !== before);
     renderAquarium();
     renderStats();
-    renderAdminAnnounceBanner();
     saveSoon();
   }
 

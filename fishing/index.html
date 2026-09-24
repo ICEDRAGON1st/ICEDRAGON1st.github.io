@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260924d">
+  <link rel="stylesheet" href="styles.css?v=20260924e">
 </head>
 <body data-spot="creek" data-hub-sound-btn="off">
   <div id="weather-fx" class="weather-fx" aria-hidden="true">
@@ -128,12 +128,6 @@
       </div>
       <div class="boat-zone">
         <div id="boat-timers" class="boat-timers empty" aria-live="polite"></div>
-      </div>
-
-      <div id="admin-announce-banner" class="admin-announce-banner hidden" role="status" aria-live="polite" hidden>
-        <span class="admin-announce-tag">Admin</span>
-        <strong id="admin-announce-text">—</strong>
-        <span id="admin-announce-time" class="admin-announce-time">—</span>
       </div>
 
       <div id="event-banner" class="event-banner event-idle" role="status" aria-live="polite">
@@ -448,6 +442,11 @@
 
   <div id="float-layer" class="float-layer" aria-hidden="true"></div>
 
+  <div id="admin-announce-popup" class="admin-announce-popup hidden" role="status" aria-live="assertive" hidden>
+    <span class="admin-announce-tag">Admin</span>
+    <strong id="admin-announce-text">—</strong>
+  </div>
+
   <div id="book-overlay" class="overlay book-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="book-title">
     <div class="overlay-card guide-card">
       <div class="guide-head">
@@ -701,7 +700,7 @@
           />
           <button type="submit" class="btn">Send</button>
         </form>
-        <p class="admin-section-hint">Also: <code>say …</code> · <code>announce …</code> · <code>clear say</code></p>
+        <p class="admin-section-hint">Pops up for ~10s for everyone · <code>say …</code> · <code>clear say</code></p>
       </div>
 
       <div class="admin-section">
