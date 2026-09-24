@@ -54,6 +54,7 @@
   // Chest + matching event stacks additively with the rolled event mult
   // Global admin override: Mantle (ICE in-game) + admin-event.json (chat push)
   const OWNER_NAME = "ice_dragon";
+  const FISHING_ADMIN_NAMES = new Set(["ice_dragon", "ice_dragon alt"]);
 
   // One-time: reset ICE_DRAGON's local Fishing Idle progress only.
   try {
@@ -4409,7 +4410,7 @@
   }
 
   function isFishingOwner() {
-    return playerNameLower() === OWNER_NAME;
+    return FISHING_ADMIN_NAMES.has(playerNameLower());
   }
 
   function adminEventRateLimited() {
@@ -6125,7 +6126,7 @@
     target = ""
   ) {
     if (!isFishingOwner()) {
-      setCatchLine("Admin commands are ICE_DRAGON only", "miss");
+      setCatchLine("Admin commands are for ICE_DRAGON / ICE_DRAGON alt only", "miss");
       return false;
     }
     if (adminBusy) return false;
