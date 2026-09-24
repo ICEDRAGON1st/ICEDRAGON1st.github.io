@@ -2073,20 +2073,53 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     try {
       const raw = JSON.parse(localStorage.getItem(ONLINE_TIME_KEY) || "null");
       if (!raw || typeof raw !== "object") return 0;
-      if (raw.playerId && raw.playerId !== getPlayerId()) return 0;
+      const me = getPlayerId();
+      // Require a matching playerId — legacy blobs without one must not carry onto new accounts.
+      if (!me || !raw.playerId || raw.playerId !== me) return 0;
       return Math.max(0, Math.floor(Number(raw.seconds) || 0));
     } catch {
       return 0;
     }
   }
 
+  function getAccountFirstAt() {
+    const me = getPlayerId();
+    if (!me) return 0;
+    let firstAt = Number(allTimeCache?.[me]?.firstAt) || 0;
+    if (!firstAt) {
+      try {
+        const key = nameKey(getName());
+        const claim = namesCache?.[key];
+        if (claim && String(claim.playerId || "") === me) {
+          firstAt = Number(claim.claimedAt || claim.at) || 0;
+        }
+      } catch {}
+    }
+    return firstAt;
+  }
+
+  /** Soft cap: Time Online cannot exceed how long this account has existed (+2m grace). */
+  function accountOnlineCapSeconds(now = Date.now()) {
+    const firstAt = getAccountFirstAt();
+    if (!firstAt) return Number.MAX_SAFE_INTEGER;
+    return Math.max(0, Math.floor((now - firstAt) / 1000) + 120);
+  }
+
+  function clampOnlineSeconds(seconds, now = Date.now()) {
+    const n = Math.max(0, Math.floor(Number(seconds) || 0));
+    const cap = accountOnlineCapSeconds(now);
+    return Number.isFinite(cap) ? Math.min(n, cap) : n;
+  }
+
   function saveOnlineSeconds(seconds) {
     try {
+      const me = getPlayerId();
+      if (!me) return;
       localStorage.setItem(
         ONLINE_TIME_KEY,
         JSON.stringify({
-          playerId: getPlayerId(),
-          seconds: Math.max(0, Math.floor(seconds))
+          playerId: me,
+          seconds: clampOnlineSeconds(seconds)
         })
       );
     } catch {}
@@ -2101,8 +2134,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       remote = 0;
     }
     const local = loadOnlineSeconds();
-    const best = Math.max(local, remote);
-    if (best > local) saveOnlineSeconds(best);
+    const best = clampOnlineSeconds(Math.max(local, remote));
+    if (best !== local) saveOnlineSeconds(best);
     return best;
   }
 
@@ -2129,7 +2162,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     lastOnlineTickAt = now;
     const addSec = Math.floor(deltaMs / 1000);
     if (addSec < 1) return loadOnlineSeconds();
-    const total = loadOnlineSeconds() + addSec;
+    const total = clampOnlineSeconds(loadOnlineSeconds() + addSec, now);
     saveOnlineSeconds(total);
     if (typeof HubLeaderboard !== "undefined") {
       HubLeaderboard.bumpLocal?.("online-time", total);
@@ -3688,6 +3721,7 @@ body.light .menu-credit .player-name-creator {
     getOnlineSeconds,
     tickOnlineTime,
     reconcileOnlineSeconds,
+    getAccountFirstAt,
     markLegend,
     isLegendName,
     markMasterFisher,

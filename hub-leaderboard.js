@@ -549,16 +549,30 @@
       at: Number(entry.at) || 0,
       playerId: String(entry.playerId || ""),
       lowerBetter: typeof entry.lowerBetter === "boolean" ? entry.lowerBetter : !!fallbackLower,
-      fishing
+      fishing,
+      ...(Number(entry.bornAt) > 0 ? { bornAt: Number(entry.bornAt) } : {})
     };
   }
 
   function pickBetterEntry(a, b, lowerBetter) {
     if (!a) return b;
     if (!b) return a;
-    if (isBetter(b.score, a.score, lowerBetter)) return b;
-    if (isBetter(a.score, b.score, lowerBetter)) return a;
-    return (b.at || 0) >= (a.at || 0) ? b : a;
+    let picked;
+    if (isBetter(b.score, a.score, lowerBetter)) picked = b;
+    else if (isBetter(a.score, b.score, lowerBetter)) picked = a;
+    else picked = (b.at || 0) >= (a.at || 0) ? b : a;
+    const births = [Number(a.bornAt) || 0, Number(b.bornAt) || 0].filter((n) => n > 0);
+    if (births.length) return { ...picked, bornAt: Math.min(...births) };
+    return picked;
+  }
+
+  function clampOnlineTimeEntry(entry, now = Date.now()) {
+    if (!entry) return entry;
+    const bornAt = Number(entry.bornAt) || 0;
+    if (!bornAt) return entry;
+    const cap = Math.max(0, Math.floor((now - bornAt) / 1000) + 180);
+    if (Number(entry.score) <= cap) return entry;
+    return { ...entry, score: cap };
   }
 
   /** One row per playerId (and orphan name keys without an id). */
@@ -672,7 +686,16 @@
         }
         merged[key] = pickBetterEntry(le, re, lowerBetter);
       });
-      games[gameId] = trimBoard(merged, lowerBetter);
+      let board = trimBoard(merged, lowerBetter);
+      if (gameId === "online-time") {
+        const now = Date.now();
+        const clamped = {};
+        Object.entries(board).forEach(([k, entry]) => {
+          clamped[k] = clampOnlineTimeEntry(entry, now);
+        });
+        board = clamped;
+      }
+      games[gameId] = board;
     });
     const resets = { ...((a && a.resets) || {}), ...((b && b.resets) || {}) };
     return applyResets({ games, resets });
@@ -1090,7 +1113,20 @@
       const games = { ...(cache.games || {}) };
       const board = { ...(games[gameId] || {}) };
       const prev = normalizeEntry(board[key], lowerBetter);
-      if (prev && !isBetter(n, prev.score, lowerBetter)) {
+      let scoreVal = n;
+      let bornAt = Number(prev?.bornAt) || 0;
+      if (gameId === "online-time") {
+        if (!bornAt && typeof HubPlays?.getAccountFirstAt === "function") {
+          bornAt = Number(HubPlays.getAccountFirstAt()) || 0;
+        }
+        if (!bornAt && prev) {
+          bornAt = Date.now() - Math.max(Number(prev.score) || 0, scoreVal) * 1000;
+        }
+        if (!bornAt) bornAt = Date.now();
+        const cap = Math.max(0, Math.floor((Date.now() - bornAt) / 1000) + 180);
+        scoreVal = Math.min(scoreVal, cap);
+      }
+      if (prev && !isBetter(scoreVal, prev.score, lowerBetter)) {
         return false;
       }
       const me = getPlayerId();
@@ -1103,10 +1139,11 @@
       }
       board[key] = {
         name,
-        score: n,
+        score: scoreVal,
         at: Date.now(),
         playerId: me,
         lowerBetter,
+        ...(bornAt && gameId === "online-time" ? { bornAt } : {}),
         ...(fishingMeta ? { fishing: fishingMeta } : {})
       };
       games[gameId] = trimBoard(board, lowerBetter);
@@ -1143,7 +1180,20 @@
     const games = { ...(cache.games || {}) };
     const board = { ...(games[gameId] || {}) };
     const prev = normalizeEntry(board[key], lowerBetter);
-    if (prev && !isBetter(n, prev.score, lowerBetter)) return false;
+    let scoreVal = n;
+    let bornAt = Number(prev?.bornAt) || 0;
+    if (gameId === "online-time") {
+      if (!bornAt && typeof HubPlays?.getAccountFirstAt === "function") {
+        bornAt = Number(HubPlays.getAccountFirstAt()) || 0;
+      }
+      if (!bornAt && prev) {
+        bornAt = Date.now() - Math.max(Number(prev.score) || 0, scoreVal) * 1000;
+      }
+      if (!bornAt) bornAt = Date.now();
+      const cap = Math.max(0, Math.floor((Date.now() - bornAt) / 1000) + 180);
+      scoreVal = Math.min(scoreVal, cap);
+    }
+    if (prev && !isBetter(scoreVal, prev.score, lowerBetter)) return false;
     const me = getPlayerId();
     if (me) {
       Object.keys(board).forEach((k) => {
@@ -1153,10 +1203,11 @@
     }
     board[key] = {
       name,
-      score: n,
+      score: scoreVal,
       at: Date.now(),
       playerId: me,
-      lowerBetter
+      lowerBetter,
+      ...(bornAt && gameId === "online-time" ? { bornAt } : {})
     };
     games[gameId] = trimBoard(board, lowerBetter);
     saveLocal({
