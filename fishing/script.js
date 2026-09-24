@@ -988,10 +988,100 @@
       valueMult: 8000,
       rarity: 55,
       blurb: "Edge of everything · final horizon endgame"
+    },
+    {
+      id: "auroraabyss",
+      name: "Aurora Abyss",
+      cost: 1.8e36,
+      wait: [0.026, 0.12],
+      valueMult: 9800,
+      rarity: 56,
+      blurb: "Northern glow · aurora hauls shimmer"
+    },
+    {
+      id: "fractalreef",
+      name: "Fractal Reef",
+      cost: 9e36,
+      wait: [0.025, 0.115],
+      valueMult: 12000,
+      rarity: 57,
+      blurb: "Self-similar coral · fractal odds bloom"
+    },
+    {
+      id: "dominionbay",
+      name: "Dominion Bay",
+      cost: 4.5e37,
+      wait: [0.024, 0.11],
+      valueMult: 14500,
+      rarity: 58,
+      blurb: "Ruled inlet · dominion catches command"
+    },
+    {
+      id: "spectralmere",
+      name: "Spectral Mere",
+      cost: 2.2e38,
+      wait: [0.022, 0.105],
+      valueMult: 17500,
+      rarity: 59,
+      blurb: "Ghost shallows · spectral fish whisper"
+    },
+    {
+      id: "titanreach",
+      name: "Titan Reach",
+      cost: 1.1e39,
+      wait: [0.021, 0.1],
+      valueMult: 21000,
+      rarity: 60,
+      blurb: "Colossal shelf · titan hauls shake the dock"
+    },
+    {
+      id: "dreamshoals",
+      name: "Dream Shoals",
+      cost: 5.5e39,
+      wait: [0.02, 0.095],
+      valueMult: 25500,
+      rarity: 61,
+      blurb: "Sleeping flats · dream rarities drift"
+    },
+    {
+      id: "pantheonfalls",
+      name: "Pantheon Falls",
+      cost: 2.8e40,
+      wait: [0.018, 0.09],
+      valueMult: 31000,
+      rarity: 62,
+      blurb: "God-carved cascade · pantheon pressure"
+    },
+    {
+      id: "astralcrown",
+      name: "Astral Crown",
+      cost: 1.4e41,
+      wait: [0.017, 0.085],
+      valueMult: 38000,
+      rarity: 63,
+      blurb: "Star-diadem waters · crowned astrals rise"
+    },
+    {
+      id: "eternalgate",
+      name: "Eternal Gate",
+      cost: 7e41,
+      wait: [0.016, 0.08],
+      valueMult: 46000,
+      rarity: 64,
+      blurb: "Doorway tides · eternity waits beyond"
+    },
+    {
+      id: "omegaorigin",
+      name: "Omega Origin",
+      cost: 3.5e42,
+      wait: [0.015, 0.075],
+      valueMult: 56000,
+      rarity: 65,
+      blurb: "Where omega began · peak endgame shelf"
     }
   ];
 
-  const MAX_SPOT_RARITY = 55;
+  const MAX_SPOT_RARITY = 65;
 
   const GEAR = [
     { id: "rod1", name: "Willow Rod", desc: "+0.05s bite window", cost: 40, kind: "window", amount: 0.05 },
@@ -1042,6 +1132,11 @@
     { id: "rod46", name: "Mirage Rod", desc: "+0.9s bite window", cost: 2e28, kind: "window", amount: 0.9 },
     { id: "rod47", name: "Empyrean Rod", desc: "+0.94s bite window", cost: 1e29, kind: "window", amount: 0.94 },
     { id: "rod48", name: "Horizon Rod", desc: "+0.98s bite window", cost: 5e29, kind: "window", amount: 0.98 },
+    { id: "rod49", name: "Aurora Rod", desc: "+1.02s bite window", cost: 2.5e30, kind: "window", amount: 1.02 },
+    { id: "rod50", name: "Fractal Rod", desc: "+1.06s bite window", cost: 1.2e31, kind: "window", amount: 1.06 },
+    { id: "rod51", name: "Dominion Rod", desc: "+1.1s bite window", cost: 6e31, kind: "window", amount: 1.1 },
+    { id: "rod52", name: "Spectral Rod", desc: "+1.15s bite window", cost: 3e32, kind: "window", amount: 1.15 },
+    { id: "rod53", name: "Omega Origin Rod", desc: "+1.2s bite window", cost: 1.5e33, kind: "window", amount: 1.2 },
     { id: "bait10", name: "Echo Chum", desc: "Faster bites (−6% wait)", cost: 30, kind: "speed", amount: 0.06 },
     { id: "bait11", name: "Zenith Bait", desc: "Faster bites (−7% wait)", cost: 40, kind: "speed", amount: 0.07 },
     { id: "bait8", name: "Void Roe", desc: "Faster bites (−8% wait)", cost: 50, kind: "speed", amount: 0.08 },
@@ -1082,6 +1177,11 @@
     { id: "bait38", name: "Mirage Roe", desc: "Faster bites (−98% wait)", cost: 7.5e27, kind: "speed", amount: 0.98 },
     { id: "bait39", name: "Empyrean Flies", desc: "Faster bites (−98.3% wait)", cost: 3.8e28, kind: "speed", amount: 0.983 },
     { id: "bait40", name: "Horizon Bait", desc: "Faster bites (−98.5% wait)", cost: 1.9e29, kind: "speed", amount: 0.985 },
+    { id: "bait41", name: "Aurora Bait", desc: "Faster bites (−98.7% wait)", cost: 9.5e29, kind: "speed", amount: 0.987 },
+    { id: "bait42", name: "Fractal Chum", desc: "Faster bites (−98.9% wait)", cost: 4.8e30, kind: "speed", amount: 0.989 },
+    { id: "bait43", name: "Dominion Roe", desc: "Faster bites (−99% wait)", cost: 2.4e31, kind: "speed", amount: 0.99 },
+    { id: "bait44", name: "Spectral Flies", desc: "Faster bites (−99.1% wait)", cost: 1.2e32, kind: "speed", amount: 0.991 },
+    { id: "bait45", name: "Omega Origin Bait", desc: "Faster bites (−99.2% wait)", cost: 6e32, kind: "speed", amount: 0.992 },
     { id: "luck1", name: "Lucky Hook", desc: "+48 luck · better chest finds", cost: 120, kind: "luck", amount: 48 },
     { id: "luck2", name: "Tide Charm", desc: "+72 luck · better chest finds", cost: 700, kind: "luck", amount: 72 },
     { id: "luck3", name: "Pearl Lure", desc: "+96 luck · better chest finds", cost: 4000, kind: "luck", amount: 96 },
@@ -1129,6 +1229,11 @@
     { id: "luck45", name: "Mirage Hook", desc: "+580000 luck · better chest finds", cost: 5.5e28, kind: "luck", amount: 580000 },
     { id: "luck46", name: "Empyrean Coin", desc: "+750000 luck · better chest finds", cost: 2.8e29, kind: "luck", amount: 750000 },
     { id: "luck47", name: "Horizon Oracle", desc: "+950000 luck · better chest finds", cost: 1.4e30, kind: "luck", amount: 950000 },
+    { id: "luck48", name: "Aurora Charm", desc: "+1200000 luck · better chest finds", cost: 7e30, kind: "luck", amount: 1200000 },
+    { id: "luck49", name: "Fractal Hook", desc: "+1500000 luck · better chest finds", cost: 3.5e31, kind: "luck", amount: 1500000 },
+    { id: "luck50", name: "Dominion Coin", desc: "+1900000 luck · better chest finds", cost: 1.8e32, kind: "luck", amount: 1900000 },
+    { id: "luck51", name: "Spectral Oracle", desc: "+2400000 luck · better chest finds", cost: 9e32, kind: "luck", amount: 2400000 },
+    { id: "luck52", name: "Omega Origin Charm", desc: "+3000000 luck · better chest finds", cost: 4.5e33, kind: "luck", amount: 3000000 },
     { id: "cooler1", name: "Ice Pack", desc: "+4 cooler slots", cost: 200, kind: "cooler", amount: 4 },
     { id: "cooler2", name: "Big Cooler", desc: "+6 cooler slots", cost: 1500, kind: "cooler", amount: 6 },
     { id: "cooler3", name: "Dock Freezer", desc: "+10 cooler slots", cost: 12000, kind: "cooler", amount: 10 },
@@ -1174,6 +1279,11 @@
     { id: "cooler43", name: "Mirage Hold", desc: "+24000 cooler slots", cost: 9.5e27, kind: "cooler", amount: 24000 },
     { id: "cooler44", name: "Empyrean Cage", desc: "+30000 cooler slots", cost: 4.8e28, kind: "cooler", amount: 30000 },
     { id: "cooler45", name: "Horizon Locker", desc: "+38000 cooler slots", cost: 2.4e29, kind: "cooler", amount: 38000 },
+    { id: "cooler46", name: "Aurora Hold", desc: "+48000 cooler slots", cost: 1.2e30, kind: "cooler", amount: 48000 },
+    { id: "cooler47", name: "Fractal Vault", desc: "+60000 cooler slots", cost: 6e30, kind: "cooler", amount: 60000 },
+    { id: "cooler48", name: "Dominion Cage", desc: "+75000 cooler slots", cost: 3e31, kind: "cooler", amount: 75000 },
+    { id: "cooler49", name: "Spectral Locker", desc: "+95000 cooler slots", cost: 1.5e32, kind: "cooler", amount: 95000 },
+    { id: "cooler50", name: "Omega Origin Hold", desc: "+120000 cooler slots", cost: 7.5e32, kind: "cooler", amount: 120000 },
     { id: "sell1", name: "Merchant Scale", desc: "+5% sell value", cost: 500, kind: "value", amount: 0.05 },
     { id: "sell2", name: "Harbor Broker", desc: "+8% sell value", cost: 5000, kind: "value", amount: 0.08 },
     { id: "sell3", name: "Gold Ledger", desc: "+12% sell value", cost: 50000, kind: "value", amount: 0.12 },
@@ -1218,6 +1328,11 @@
     { id: "sell42", name: "Mirage Exchange", desc: "+15500% sell value", cost: 7.5e28, kind: "value", amount: 155 },
     { id: "sell43", name: "Empyrean Floor", desc: "+19500% sell value", cost: 3.8e29, kind: "value", amount: 195 },
     { id: "sell44", name: "Horizon Pit", desc: "+25000% sell value", cost: 1.9e30, kind: "value", amount: 250 },
+    { id: "sell45", name: "Aurora Market", desc: "+31000% sell value", cost: 9.5e30, kind: "value", amount: 310 },
+    { id: "sell46", name: "Fractal Exchange", desc: "+39000% sell value", cost: 4.8e31, kind: "value", amount: 390 },
+    { id: "sell47", name: "Dominion Floor", desc: "+49000% sell value", cost: 2.4e32, kind: "value", amount: 490 },
+    { id: "sell48", name: "Spectral Pit", desc: "+62000% sell value", cost: 1.2e33, kind: "value", amount: 620 },
+    { id: "sell49", name: "Omega Origin Market", desc: "+78000% sell value", cost: 6e33, kind: "value", amount: 780 },
     { id: "net1", name: "Hand Net", desc: "6% chance for a second fish", cost: 2500, kind: "multi", amount: 0.06 },
     { id: "net2", name: "Drag Net", desc: "10% chance for a second fish", cost: 28000, kind: "multi", amount: 0.1 },
     { id: "net3", name: "Trawl Mesh", desc: "14% chance for a second fish", cost: 220000, kind: "multi", amount: 0.14 },
@@ -1259,6 +1374,11 @@
     { id: "net39", name: "Mirage Mesh", desc: "99.7% chance for a second fish", cost: 1.8e28, kind: "multi", amount: 0.997 },
     { id: "net40", name: "Empyrean Snare", desc: "99.8% chance for a second fish", cost: 9e28, kind: "multi", amount: 0.998 },
     { id: "net41", name: "Horizon Net", desc: "99.85% chance for a second fish", cost: 4.5e29, kind: "multi", amount: 0.9985 },
+    { id: "net42", name: "Aurora Snare", desc: "99.88% chance for a second fish", cost: 2.2e30, kind: "multi", amount: 0.9988 },
+    { id: "net43", name: "Fractal Mesh", desc: "99.9% chance for a second fish", cost: 1.1e31, kind: "multi", amount: 0.999 },
+    { id: "net44", name: "Dominion Net", desc: "99.92% chance for a second fish", cost: 5.5e31, kind: "multi", amount: 0.9992 },
+    { id: "net45", name: "Spectral Snare", desc: "99.94% chance for a second fish", cost: 2.8e32, kind: "multi", amount: 0.9994 },
+    { id: "net46", name: "Omega Origin Net", desc: "99.95% chance for a second fish", cost: 1.4e33, kind: "multi", amount: 0.9995 },
     { id: "triple1", name: "Twin Hook", desc: "4% chance for a third fish (needs 2nd catch)", cost: 15000, kind: "triple", amount: 0.04 },
     { id: "triple2", name: "Trident Line", desc: "7% chance for a third fish (needs 2nd catch)", cost: 120000, kind: "triple", amount: 0.07 },
     { id: "triple3", name: "Triple Snare", desc: "10% chance for a third fish (needs 2nd catch)", cost: 900000, kind: "triple", amount: 0.1 },
@@ -1297,6 +1417,11 @@
     { id: "triple36", name: "Mirage Trident", desc: "99% chance for a third fish (needs 2nd catch)", cost: 2.4e28, kind: "triple", amount: 0.99 },
     { id: "triple37", name: "Empyrean Triad", desc: "99.2% chance for a third fish (needs 2nd catch)", cost: 1.2e29, kind: "triple", amount: 0.992 },
     { id: "triple38", name: "Horizon Trident", desc: "99.4% chance for a third fish (needs 2nd catch)", cost: 6e29, kind: "triple", amount: 0.994 },
+    { id: "triple39", name: "Aurora Triad", desc: "99.5% chance for a third fish (needs 2nd catch)", cost: 3e30, kind: "triple", amount: 0.995 },
+    { id: "triple40", name: "Fractal Trident", desc: "99.6% chance for a third fish (needs 2nd catch)", cost: 1.5e31, kind: "triple", amount: 0.996 },
+    { id: "triple41", name: "Dominion Triad", desc: "99.7% chance for a third fish (needs 2nd catch)", cost: 7.5e31, kind: "triple", amount: 0.997 },
+    { id: "triple42", name: "Spectral Trident", desc: "99.8% chance for a third fish (needs 2nd catch)", cost: 3.8e32, kind: "triple", amount: 0.998 },
+    { id: "triple43", name: "Omega Origin Triad", desc: "99.85% chance for a third fish (needs 2nd catch)", cost: 1.9e33, kind: "triple", amount: 0.9985 },
     { id: "perfect1", name: "Steady Hands", desc: "+10% sell on perfect reels", cost: 1500, kind: "perfect", amount: 0.1 },
     { id: "perfect2", name: "Keen Eye", desc: "+15% sell on perfect reels", cost: 18000, kind: "perfect", amount: 0.15 },
     { id: "perfect3", name: "Timing Belt", desc: "+20% sell on perfect reels", cost: 150000, kind: "perfect", amount: 0.2 },
@@ -1336,7 +1461,12 @@
     { id: "perfect37", name: "Veil Timing", desc: "+5000% sell on perfect reels", cost: 3e27, kind: "perfect", amount: 50 },
     { id: "perfect38", name: "Mirage Focus", desc: "+6200% sell on perfect reels", cost: 1.5e28, kind: "perfect", amount: 62 },
     { id: "perfect39", name: "Empyrean Pulse", desc: "+7800% sell on perfect reels", cost: 7.5e28, kind: "perfect", amount: 78 },
-    { id: "perfect40", name: "Horizon Focus", desc: "+10000% sell on perfect reels", cost: 3.8e29, kind: "perfect", amount: 100 }
+    { id: "perfect40", name: "Horizon Focus", desc: "+10000% sell on perfect reels", cost: 3.8e29, kind: "perfect", amount: 100 },
+    { id: "perfect41", name: "Aurora Timing", desc: "+12500% sell on perfect reels", cost: 1.9e30, kind: "perfect", amount: 125 },
+    { id: "perfect42", name: "Fractal Focus", desc: "+15500% sell on perfect reels", cost: 9.5e30, kind: "perfect", amount: 155 },
+    { id: "perfect43", name: "Dominion Pulse", desc: "+19500% sell on perfect reels", cost: 4.8e31, kind: "perfect", amount: 195 },
+    { id: "perfect44", name: "Spectral Focus", desc: "+24500% sell on perfect reels", cost: 2.4e32, kind: "perfect", amount: 245 },
+    { id: "perfect45", name: "Omega Origin Timing", desc: "+31000% sell on perfect reels", cost: 1.2e33, kind: "perfect", amount: 310 }
   ];
 
   /**
@@ -1548,6 +1678,28 @@
         [0.18, 2]
       ],
       multiHint: "18% for 2 · 15% for 3 · 12% for 4 · 10% for 5 · 8.5% for 6 · 7% for 7 · 5.5% for 8 · 4.5% for 9 · 3.5% for 10 · 2.5% for 11 · 1.8% for 12 · 1.2% for 13 · 0.8% for 14"
+    },
+    {
+      name: "Omega Origin Fleet",
+      interval: 7.5,
+      cost: 2.5e33,
+      multi: [
+        [0.006, 15],
+        [0.01, 14],
+        [0.014, 13],
+        [0.02, 12],
+        [0.028, 11],
+        [0.038, 10],
+        [0.048, 9],
+        [0.06, 8],
+        [0.075, 7],
+        [0.09, 6],
+        [0.11, 5],
+        [0.13, 4],
+        [0.16, 3],
+        [0.2, 2]
+      ],
+      multiHint: "20% for 2 · 16% for 3 · 13% for 4 · 11% for 5 · 9% for 6 · 7.5% for 7 · 6% for 8 · 4.8% for 9 · 3.8% for 10 · 2.8% for 11 · 2% for 12 · 1.4% for 13 · 1% for 14 · 0.6% for 15"
     }
   ];
   const BOAT_MAX_LEVEL = BOAT_TIERS.length - 1;
