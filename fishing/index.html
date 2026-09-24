@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260924g">
+  <link rel="stylesheet" href="styles.css?v=20260924h">
 </head>
 <body data-spot="creek" data-hub-sound-btn="off">
   <div id="weather-fx" class="weather-fx" aria-hidden="true">
@@ -33,6 +33,7 @@
     <div class="top-stats">
       <button id="admin-btn" type="button" class="guide-btn admin-btn hidden" hidden>Admin</button>
       <button id="mail-btn" type="button" class="guide-btn mail-btn" title="Gift & trade">Mail</button>
+      <button id="visit-aqua-btn" type="button" class="guide-btn" title="Visit aquariums">Visit</button>
       <button id="shiny-machine-btn" type="button" class="guide-btn">Shiny machine</button>
       <button id="book-btn" type="button" class="guide-btn">Catch book</button>
       <button id="guide-btn" type="button" class="guide-btn">Fish guide</button>
@@ -414,7 +415,10 @@
             <p class="collection-hud-kicker">Tank</p>
             <h2>Aquarium</h2>
           </div>
-          <button type="button" id="aquarium-tank-claim" class="btn btn-ghost aquarium-claim-btn" disabled>Claim</button>
+          <div class="aquarium-head-actions">
+            <button type="button" id="aquarium-visit-btn" class="btn btn-ghost aquarium-claim-btn">Visit</button>
+            <button type="button" id="aquarium-tank-claim" class="btn btn-ghost aquarium-claim-btn" disabled>Claim</button>
+          </div>
         </div>
         <p class="shop-intro">★ save a fish in the cooler to put it here — they swim and drip coins by rarity. Upgrade the tank below for faster drip and more swimmers (next tier only).</p>
         <div id="aquarium-tank" class="aquarium-tank" tabindex="0" role="button" aria-label="Aquarium tank · tap to enlarge" title="Tap tank to enlarge · tap a fish to inspect">
@@ -657,6 +661,39 @@
     </div>
   </div>
 
+  <div id="visit-aqua-overlay" class="overlay visit-aqua-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="visit-aqua-title">
+    <div class="overlay-card visit-aqua-card">
+      <div class="guide-head">
+        <div>
+          <p class="eyebrow">Others</p>
+          <h2 id="visit-aqua-title">Visit aquariums</h2>
+        </div>
+        <button id="visit-aqua-close" type="button" class="btn btn-ghost guide-close">Close</button>
+      </div>
+      <div id="visit-aqua-browse" class="visit-aqua-browse">
+        <p class="mail-hint">Pick a friend or any published tank. Yours syncs when you save fish to the aquarium.</p>
+        <p class="mail-section-label">Friends</p>
+        <div id="visit-aqua-friends" class="mail-friend-list"></div>
+        <p class="mail-section-label">Recent tanks</p>
+        <div id="visit-aqua-recent" class="visit-aqua-recent"></div>
+      </div>
+      <div id="visit-aqua-view" class="visit-aqua-view hidden" hidden>
+        <div class="visit-aqua-view-head">
+          <button type="button" id="visit-aqua-back" class="btn btn-ghost">← Back</button>
+          <strong id="visit-aqua-owner">—</strong>
+          <span id="visit-aqua-meta" class="visit-aqua-meta"></span>
+        </div>
+        <div id="visit-aqua-tank" class="aquarium-tank visit-aqua-tank has-fish" aria-label="Guest aquarium">
+          <div class="aquarium-glass" aria-hidden="true"></div>
+          <div class="aquarium-bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+          <div id="visit-aqua-swimmers" class="aquarium-swimmers"></div>
+          <p id="visit-aqua-empty" class="aquarium-empty" hidden>Empty tank</p>
+        </div>
+        <ul id="visit-aqua-roster" class="visit-aqua-roster" aria-label="Fish in this tank"></ul>
+      </div>
+    </div>
+  </div>
+
   <div id="mail-overlay" class="overlay mail-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="mail-title">
     <div class="overlay-card mail-card-panel">
       <div class="guide-head">
@@ -878,12 +915,12 @@
   <script src="../hub-achievements.js?v=20260919f"></script>
   <script src="../hub-sound.js?v=20260921u"></script>
   <script src="../hub-confetti.js"></script>
-  <script src="../hub-supabase.js?v=20260924h"></script>
+  <script src="../hub-supabase.js?v=20260924i"></script>
   <script src="../hub-account-bag.js?v=20260924h"></script>
   <script src="../hub-plays.js?v=20260924h"></script>
   <script src="../hub-friends.js?v=20260923u"></script>
   <script src="../hub-chat.js?v=20260924f"></script>
   <script src="../hub-leaderboard.js?v=20260923u"></script>
-  <script src="script.js?v=20260924r"></script>
+  <script src="script.js?v=20260924s"></script>
 </body>
 </html>

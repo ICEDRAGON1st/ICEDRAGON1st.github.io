@@ -25,7 +25,8 @@
     fishingAdmin: "fishing-admin-events",
     fishingCommunity: "fishing-community",
     fishingGifts: "fishing-gifts",
-    fishingMail: "fishing-player-mail"
+    fishingMail: "fishing-player-mail",
+    fishingAquariums: "fishing-aquariums"
   };
 
   function headers(extra) {

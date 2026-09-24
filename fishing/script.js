@@ -140,6 +140,13 @@
   const PLAYER_MAIL_GIFT_TTL_MS = 7 * 24 * 60 * 60_000;
   const PLAYER_MAIL_TRADE_TTL_MS = 24 * 60 * 60_000;
 
+  const AQUA_SHARE_DOC = "fishing-aquariums";
+  const AQUA_SHARE_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-aquariums";
+  const AQUA_SHARE_TOKEN = "ice-fish-aqua-9f3a";
+  const AQUA_SHARE_POLL_MS = 20_000;
+  const AQUA_SHARE_MAX_TANKS = 120;
+  const AQUA_SHARE_TTL_MS = 14 * 24 * 60 * 60_000;
+
   function fishingSb() {
     return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
   }
@@ -3365,6 +3372,406 @@
       return fish;
     });
     startAquariumSwim();
+    publishAquariumShare(false).catch(() => {});
+  }
+
+  /* ========== Visit others' aquariums ========== */
+  let aquaShareCache = { tanks: {} };
+  let aquaShareFetchedAt = 0;
+  let aquaShareLastKey = "";
+  let aquaShareTimer = 0;
+  let visitAquaSwimState = [];
+  let visitAquaRaf = 0;
+  let visitAquaLastTs = 0;
+  let visitAquaCurrent = null;
+  let visitAquaDisplayFish = [];
+
+  function buildAquariumShareSnapshot() {
+    const myId = mailMyId();
+    const myName = mailMyName();
+    if (!myId && !myName) return null;
+    const list = aquariumFishList();
+    const fish = list.map(({ entry, fish }) => ({
+      id: fish.id,
+      variant: normalizeVariant(entry.variant),
+      shiny: !!entry.shiny,
+      mutation: normalizeMutation(entry.mutation),
+      perfect: !!entry.perfect
+    }));
+    return {
+      playerId: myId,
+      name: myName || "Player",
+      updatedAt: Date.now(),
+      level: aquariumLevel(),
+      fish
+    };
+  }
+
+  async function fetchAquaShareDoc() {
+    const api = fishingSb();
+    try {
+      let data = null;
+      if (api) data = await api.getPrefer(AQUA_SHARE_DOC, AQUA_SHARE_API);
+      else {
+        const res = await fetch(`${AQUA_SHARE_API}?t=${Date.now()}`, { cache: "no-store" });
+        if (res.status === 404) return { token: AQUA_SHARE_TOKEN, tanks: {} };
+        if (!res.ok) return null;
+        data = await res.json();
+      }
+      if (!data || typeof data !== "object") return { token: AQUA_SHARE_TOKEN, tanks: {} };
+      return {
+        token: data.token || AQUA_SHARE_TOKEN,
+        tanks: data.tanks && typeof data.tanks === "object" ? data.tanks : {}
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  function pruneAquaShareTanks(tanks) {
+    const now = Date.now();
+    const entries = Object.entries(tanks || {}).filter(([, t]) => {
+      if (!t || typeof t !== "object") return false;
+      const at = Number(t.updatedAt) || 0;
+      return now - at < AQUA_SHARE_TTL_MS;
+    });
+    entries.sort((a, b) => (Number(b[1].updatedAt) || 0) - (Number(a[1].updatedAt) || 0));
+    const next = {};
+    entries.slice(0, AQUA_SHARE_MAX_TANKS).forEach(([id, t]) => {
+      next[id] = t;
+    });
+    return next;
+  }
+
+  async function postAquaShareDoc(tanks) {
+    const payload = {
+      token: AQUA_SHARE_TOKEN,
+      tanks: pruneAquaShareTanks(tanks)
+    };
+    const api = fishingSb();
+    try {
+      if (api) {
+        await api.pushPrefer(AQUA_SHARE_DOC, payload, AQUA_SHARE_API);
+        return true;
+      }
+      const res = await fetch(AQUA_SHARE_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  async function publishAquariumShare(force = false) {
+    const snap = buildAquariumShareSnapshot();
+    if (!snap) return;
+    const key = `${snap.playerId}|${snap.level}|${snap.fish
+      .map((f) => `${f.id}:${f.variant}:${f.shiny ? 1 : 0}:${f.mutation || ""}`)
+      .join(",")}`;
+    if (!force && key === aquaShareLastKey) return;
+    const remote = (await fetchAquaShareDoc()) || { tanks: {} };
+    const tanks = { ...(remote.tanks || {}) };
+    const id = snap.playerId || String(snap.name || "").toLowerCase();
+    if (!id) return;
+    tanks[id] = snap;
+    const ok = await postAquaShareDoc(tanks);
+    if (ok) {
+      aquaShareLastKey = key;
+      aquaShareCache.tanks = pruneAquaShareTanks(tanks);
+    }
+  }
+
+  async function refreshAquaShareCache(force = false) {
+    const now = Date.now();
+    if (!force && now - aquaShareFetchedAt < AQUA_SHARE_POLL_MS) return aquaShareCache;
+    aquaShareFetchedAt = now;
+    const doc = await fetchAquaShareDoc();
+    if (doc) aquaShareCache = { tanks: pruneAquaShareTanks(doc.tanks || {}) };
+    return aquaShareCache;
+  }
+
+  function stopVisitAquaSwim() {
+    if (visitAquaRaf) {
+      cancelAnimationFrame(visitAquaRaf);
+      visitAquaRaf = 0;
+    }
+    visitAquaLastTs = 0;
+    visitAquaSwimState = [];
+  }
+
+  function stepVisitAquaSwim(ts) {
+    visitAquaRaf = 0;
+    const swimmers = document.getElementById("visit-aqua-swimmers");
+    if (!swimmers || !visitAquaSwimState.length) {
+      visitAquaLastTs = 0;
+      return;
+    }
+    if (!visitAquaLastTs) visitAquaLastTs = ts;
+    const dt = Math.min(0.05, Math.max(0.001, (ts - visitAquaLastTs) / 1000));
+    visitAquaLastTs = ts;
+    const laneW = swimmers.clientWidth;
+    const laneH = swimmers.clientHeight;
+    if (laneW < 8 || laneH < 8) {
+      visitAquaRaf = requestAnimationFrame(stepVisitAquaSwim);
+      return;
+    }
+    visitAquaSwimState.forEach((fish) => {
+      fish.x += fish.vx * dt;
+      fish.y += fish.vy * dt;
+      const maxX = Math.max(0, laneW - fish.w);
+      const maxY = Math.max(0, laneH - fish.h);
+      if (fish.x <= 0) {
+        fish.x = 0;
+        fish.vx = Math.abs(fish.vx);
+      } else if (fish.x >= maxX) {
+        fish.x = maxX;
+        fish.vx = -Math.abs(fish.vx);
+      }
+      if (fish.y <= 0) {
+        fish.y = 0;
+        fish.vy = Math.abs(fish.vy);
+      } else if (fish.y >= maxY) {
+        fish.y = maxY;
+        fish.vy = -Math.abs(fish.vy);
+      }
+      applyAquaFishPose(fish);
+    });
+    visitAquaRaf = requestAnimationFrame(stepVisitAquaSwim);
+  }
+
+  function startVisitAquaSwim() {
+    if (visitAquaRaf) return;
+    if (!visitAquaSwimState.length) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches) {
+      visitAquaSwimState.forEach((fish) => applyAquaFishPose(fish));
+      return;
+    }
+    visitAquaLastTs = 0;
+    visitAquaRaf = requestAnimationFrame(stepVisitAquaSwim);
+  }
+
+  function renderVisitAquaBrowse() {
+    const friendsEl = document.getElementById("visit-aqua-friends");
+    const recentEl = document.getElementById("visit-aqua-recent");
+    if (!friendsEl || !recentEl) return;
+    const tanks = aquaShareCache.tanks || {};
+    const friends = window.HubFriends?.getFriends?.() || [];
+    const myId = mailMyId();
+
+    if (!friends.length) {
+      friendsEl.innerHTML = `<p class="mail-empty">No friends yet — add some on the hub.</p>`;
+    } else {
+      friendsEl.innerHTML = friends
+        .map((f) => {
+          const id = String(f.playerId || f.id || "");
+          const name = String(f.name || "Friend");
+          const tank = tanks[id];
+          const n = Array.isArray(tank?.fish) ? tank.fish.length : 0;
+          const tip = tank ? `${n} fish` : "No tank published yet";
+          return `<button type="button" class="mail-friend-btn" data-visit-aqua="${escapeHtml(
+            id
+          )}" data-visit-aqua-name="${escapeHtml(name)}" title="${escapeHtml(tip)}">${escapeHtml(
+            name
+          )}${tank ? ` · ${n}` : ""}</button>`;
+        })
+        .join("");
+    }
+
+    const recent = Object.values(tanks)
+      .filter((t) => t && t.playerId !== myId)
+      .sort((a, b) => (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0))
+      .slice(0, 24);
+    if (!recent.length) {
+      recentEl.innerHTML = `<p class="mail-empty">No published tanks yet. Save fish in your aquarium to share.</p>`;
+    } else {
+      recentEl.innerHTML = recent
+        .map((t) => {
+          const id = String(t.playerId || "");
+          const name = String(t.name || "Player");
+          const n = Array.isArray(t.fish) ? t.fish.length : 0;
+          return `<button type="button" class="visit-aqua-recent-btn" data-visit-aqua="${escapeHtml(
+            id
+          )}" data-visit-aqua-name="${escapeHtml(name)}"><strong>${escapeHtml(
+            name
+          )}</strong><span>${n} fish · Lv${Math.max(0, Number(t.level) || 0)}</span></button>`;
+        })
+        .join("");
+    }
+  }
+
+  function renderVisitAquaTank(tank) {
+    const swimmers = document.getElementById("visit-aqua-swimmers");
+    const emptyEl = document.getElementById("visit-aqua-empty");
+    const roster = document.getElementById("visit-aqua-roster");
+    const ownerEl = document.getElementById("visit-aqua-owner");
+    const metaEl = document.getElementById("visit-aqua-meta");
+    const tankEl = document.getElementById("visit-aqua-tank");
+    if (!swimmers) return;
+    stopVisitAquaSwim();
+    visitAquaCurrent = tank;
+    const fishList = (Array.isArray(tank?.fish) ? tank.fish : [])
+      .map((raw) => {
+        const fish = fishById(raw.id);
+        if (!fish || isTreasureItem(fish)) return null;
+        const entry = {
+          variant: normalizeVariant(raw.variant),
+          shiny: !!raw.shiny,
+          mutation: normalizeMutation(raw.mutation),
+          perfect: !!raw.perfect
+        };
+        return {
+          fish,
+          entry,
+          val: fishValue(fish, currentSpot(), entry)
+        };
+      })
+      .filter(Boolean)
+      .sort(
+        (a, b) =>
+          b.val - a.val || (RARITY_RANK[b.fish.rarity] || 0) - (RARITY_RANK[a.fish.rarity] || 0)
+      );
+    visitAquaDisplayFish = fishList;
+
+    if (ownerEl) ownerEl.textContent = `${tank?.name || "Player"}'s aquarium`;
+    if (metaEl) {
+      metaEl.textContent = `${fishList.length} fish · tank Lv${Math.max(0, Number(tank?.level) || 0)}`;
+    }
+    tankEl?.classList.toggle("has-fish", fishList.length > 0);
+    if (emptyEl) emptyEl.hidden = fishList.length > 0;
+
+    swimmers.innerHTML = fishList
+      .map(({ fish, entry }, i) => {
+        const label = formatFishName(fish, entry);
+        const fishW = (48 + Math.min(18, (RARITY_RANK[fish.rarity] || 1) * 0.7)).toFixed(0);
+        return `<button type="button" class="aqua-fish ${fish.rarity} ${variantClassList(
+          entry
+        )}" data-visit-inspect="${i}" style="width:${fishW}px;height:${(Number(fishW) * 0.5).toFixed(
+          0
+        )}px" title="${escapeHtml(label)} · ${formatNum(fishList[i].val)}" aria-label="Inspect ${escapeHtml(
+          label
+        )}">
+          <span class="aqua-fish-glyph" aria-hidden="true">${fishGlyphHtml(fish, entry)}</span>
+        </button>`;
+      })
+      .join("");
+
+    if (roster) {
+      roster.innerHTML = fishList.length
+        ? fishList
+            .map(({ fish, entry, val }, i) => {
+              const label = formatFishName(fish, entry);
+              return `<li class="visit-aqua-roster-item">
+                <button type="button" class="visit-aqua-roster-btn ${fish.rarity}" data-visit-inspect="${i}">
+                  <span class="visit-aqua-roster-glyph" aria-hidden="true">${fishGlyphHtml(fish, entry)}</span>
+                  <span class="visit-aqua-roster-meta">
+                    <strong>${escapeHtml(label)}</strong>
+                    <span>${escapeHtml(fish.rarity)} · ${formatNum(val)}</span>
+                  </span>
+                </button>
+              </li>`;
+            })
+            .join("")
+        : `<li class="mail-empty">No fish in this tank</li>`;
+    }
+
+    const laneW = Math.max(1, swimmers.clientWidth);
+    const laneH = Math.max(1, swimmers.clientHeight);
+    visitAquaSwimState = [...swimmers.querySelectorAll(".aqua-fish")].map((el, i) => {
+      const w = el.offsetWidth || 48;
+      const h = el.offsetHeight || 24;
+      const maxX = Math.max(0, laneW - w);
+      const maxY = Math.max(0, laneH - h);
+      const speed = 30 + (i % 5) * 7;
+      const dir = i % 2 === 0 ? 1 : -1;
+      const fish = {
+        el,
+        x: Math.min(maxX, Math.max(0, (maxX * ((i * 37) % 100)) / 100)),
+        y: Math.min(maxY, Math.max(0, (maxY * ((i * 53 + 17) % 100)) / 100)),
+        vx: dir * speed,
+        vy: (i % 2 === 0 ? 1 : -1) * (2.5 + (i % 3) * 1.2),
+        w,
+        h
+      };
+      applyAquaFishPose(fish);
+      return fish;
+    });
+    startVisitAquaSwim();
+  }
+
+  function showVisitAquaBrowse() {
+    document.getElementById("visit-aqua-browse")?.classList.remove("hidden");
+    const view = document.getElementById("visit-aqua-view");
+    if (view) {
+      view.hidden = true;
+      view.classList.add("hidden");
+    }
+    stopVisitAquaSwim();
+    visitAquaCurrent = null;
+    renderVisitAquaBrowse();
+  }
+
+  function showVisitAquaView(tank) {
+    document.getElementById("visit-aqua-browse")?.classList.add("hidden");
+    const view = document.getElementById("visit-aqua-view");
+    if (view) {
+      view.hidden = false;
+      view.classList.remove("hidden");
+    }
+    requestAnimationFrame(() => renderVisitAquaTank(tank));
+  }
+
+  async function openVisitAquariumPicker() {
+    const overlay = document.getElementById("visit-aqua-overlay");
+    if (!overlay) return;
+    overlay.classList.remove("hidden");
+    try {
+      window.HubFriends?.sync?.();
+      window.HubFriends?.startPolling?.();
+    } catch {}
+    showVisitAquaBrowse();
+    await refreshAquaShareCache(true);
+    publishAquariumShare(false).catch(() => {});
+    renderVisitAquaBrowse();
+  }
+
+  function closeVisitAquariumPicker() {
+    document.getElementById("visit-aqua-overlay")?.classList.add("hidden");
+    stopVisitAquaSwim();
+    visitAquaCurrent = null;
+  }
+
+  async function visitAquariumById(playerId, fallbackName = "") {
+    await refreshAquaShareCache(true);
+    const tanks = aquaShareCache.tanks || {};
+    let tank = tanks[playerId];
+    if (!tank) {
+      tank = Object.values(tanks).find(
+        (t) =>
+          String(t?.name || "").toLowerCase() === String(fallbackName || "").toLowerCase()
+      );
+    }
+    if (!tank) {
+      setCatchLine(
+        fallbackName
+          ? `${fallbackName} hasn't published a tank yet`
+          : "No tank found — they need to save aquarium fish first",
+        "miss"
+      );
+      playSfx("miss");
+      return;
+    }
+    showVisitAquaView(tank);
+  }
+
+  function startAquariumSharing() {
+    publishAquariumShare(true).catch(() => {});
+    if (aquaShareTimer) clearInterval(aquaShareTimer);
+    aquaShareTimer = setInterval(() => {
+      publishAquariumShare(false).catch(() => {});
+    }, AQUA_SHARE_POLL_MS);
   }
 
   function normalizeSearchQuery(q) {
@@ -15378,6 +15785,38 @@
     openMailOverlay();
     playSfx("click");
   });
+  document.getElementById("visit-aqua-btn")?.addEventListener("click", () => {
+    openVisitAquariumPicker();
+    playSfx("click");
+  });
+  document.getElementById("aquarium-visit-btn")?.addEventListener("click", () => {
+    openVisitAquariumPicker();
+    playSfx("click");
+  });
+  document.getElementById("visit-aqua-close")?.addEventListener("click", () => closeVisitAquariumPicker());
+  document.getElementById("visit-aqua-back")?.addEventListener("click", () => {
+    showVisitAquaBrowse();
+    playSfx("click");
+  });
+  document.getElementById("visit-aqua-overlay")?.addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) closeVisitAquariumPicker();
+  });
+  document.getElementById("visit-aqua-overlay")?.addEventListener("click", (e) => {
+    const pick = e.target.closest("[data-visit-aqua]");
+    if (pick) {
+      visitAquariumById(pick.dataset.visitAqua, pick.dataset.visitAquaName || "");
+      playSfx("click");
+      return;
+    }
+    const inspect = e.target.closest("[data-visit-inspect]");
+    if (inspect && visitAquaDisplayFish.length) {
+      const i = Math.floor(Number(inspect.dataset.visitInspect));
+      const row = visitAquaDisplayFish[i];
+      if (!row?.fish) return;
+      openBookInspect(row.fish.id, row.entry);
+      playSfx("click");
+    }
+  });
   document.getElementById("mail-close")?.addEventListener("click", () => closeMailOverlay());
   document.getElementById("mail-overlay")?.addEventListener("click", (e) => {
     if (e.target === e.currentTarget) closeMailOverlay();
@@ -15847,6 +16286,7 @@
   startAdminEventPolling();
   startFishGiftPolling();
   startPlayerMailPolling();
+  startAquariumSharing();
   syncCommunity(true).catch(() => {});
   setInterval(() => {
     syncCommunity(false).catch(() => {});
