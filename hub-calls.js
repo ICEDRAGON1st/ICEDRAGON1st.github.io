@@ -285,9 +285,15 @@
       const live = Object.values(peers).filter((p) => p && !p.left);
       if (!live.length && now - at > 60_000) return;
       const signals = Array.isArray(room.signals)
-        ? room.signals.filter((s) => now - (Number(s?.at) || 0) < SIGNAL_TTL_MS).slice(-80)
+        ? room.signals.filter((s) => now - (Number(s?.at) || 0) < SIGNAL_TTL_MS).slice(-40)
         : [];
-      next[id] = { ...room, peers, signals };
+      const links = room.links && typeof room.links === "object" ? { ...room.links } : {};
+      Object.keys(links).forEach((k) => {
+        const L = links[k];
+        const lat = Math.max(Number(L?.offerAt) || 0, Number(L?.answerAt) || 0);
+        if (now - lat > SIGNAL_TTL_MS) delete links[k];
+      });
+      next[id] = { ...room, peers, signals, links };
     });
     return next;
   }
@@ -316,12 +322,36 @@
     return writeQueue;
   }
 
+  function mergeLink(a, b) {
+    if (!a) return b || null;
+    if (!b) return a;
+    const offerAt = Math.max(Number(a.offerAt) || 0, Number(b.offerAt) || 0);
+    const newerOffer = (Number(b.offerAt) || 0) >= (Number(a.offerAt) || 0) ? b : a;
+    let answer = null;
+    let answerAt = 0;
+    [a, b].forEach((L) => {
+      if (L.answer && Number(L.answerFor || L.offerAt) === offerAt) {
+        if ((Number(L.answerAt) || 0) >= answerAt) {
+          answer = L.answer;
+          answerAt = Number(L.answerAt) || 0;
+        }
+      }
+    });
+    return {
+      offerFrom: newerOffer.offerFrom,
+      offer: newerOffer.offer,
+      offerAt,
+      answer,
+      answerAt: answer ? answerAt : 0,
+      answerFor: answer ? offerAt : 0
+    };
+  }
+
   async function mutateRooms(mutator) {
     return enqueueWrite(async () => {
       const doc = (await fetchDoc()) || { rooms: {} };
       const rooms = JSON.parse(JSON.stringify(doc.rooms || {}));
       mutator(rooms);
-      // Merge remote signals so concurrent offer/answer writes don't clobber each other.
       try {
         const latest = await fetchDoc();
         if (latest?.rooms) {
@@ -338,7 +368,17 @@
             });
             rooms[id].signals = [...byId.values()]
               .sort((a, b) => (Number(a.at) || 0) - (Number(b.at) || 0))
-              .slice(-100);
+              .slice(-40);
+
+            const rLinks = latest.rooms[id]?.links || {};
+            const lLinks = rooms[id].links || {};
+            const keys = new Set([...Object.keys(rLinks), ...Object.keys(lLinks)]);
+            const merged = {};
+            keys.forEach((k) => {
+              const m = mergeLink(rLinks[k], lLinks[k]);
+              if (m) merged[k] = m;
+            });
+            rooms[id].links = merged;
           });
         }
       } catch {}
@@ -805,11 +845,8 @@
 
   async function renegotiatePeer(peerId) {
     if (!active) return;
-    const pc = active.pcs.get(peerId);
-    if (!pc) return;
     try {
-      const offer = await makeOffer(pc);
-      await pushSignal(peerId, "offer", offer);
+      await offerToPeer(peerId);
     } catch (err) {
       console.warn("[HubCalls] renegotiate", err);
     }
@@ -996,7 +1033,7 @@
     });
   }
 
-  function waitForIce(pc, ms = 3000) {
+  function waitForIce(pc, ms = 1800) {
     if (!pc || pc.iceGatheringState === "complete") return Promise.resolve();
     return new Promise((resolve) => {
       let done = false;
@@ -1051,7 +1088,50 @@
     }
   }
 
+  function linkKey(a, b) {
+    return [String(a), String(b)].sort().join(":");
+  }
+
+  function peerJoined(p) {
+    return !!(p && !p.left && Number(p.joinedAt) > 0);
+  }
+
+  function pcLive(pc) {
+    if (!pc) return false;
+    return (
+      pc.connectionState === "connected" ||
+      pc.iceConnectionState === "connected" ||
+      pc.iceConnectionState === "completed"
+    );
+  }
+
+  function pcBusy(pc) {
+    if (!pc) return false;
+    return (
+      pc.connectionState === "connecting" ||
+      pc.iceConnectionState === "checking" ||
+      pc.signalingState === "have-remote-offer"
+    );
+  }
+
+  async function writeLink(key, patch) {
+    if (!active) return;
+    await mutateRooms((rooms) => {
+      const room = rooms[active.roomId];
+      if (!room) return;
+      const links = { ...(room.links || {}) };
+      const cur = links[key] || {};
+      links[key] = { ...cur, ...patch };
+      rooms[active.roomId] = {
+        ...room,
+        links,
+        updatedAt: Date.now()
+      };
+    });
+  }
+
   async function pushSignal(to, type, payload) {
+    // Legacy path kept for hangup pings; mesh media uses pairwise links.
     if (!active) return;
     const from = playerId();
     await mutateRooms((rooms) => {
@@ -1068,137 +1148,158 @@
       });
       rooms[active.roomId] = {
         ...room,
-        signals: signals.slice(-80),
+        signals: signals.slice(-40),
         updatedAt: Date.now()
       };
     });
   }
 
-  async function handleSignal(sig) {
-    if (!active || !sig || sig.to !== playerId()) return;
-    if (seenSignals.has(sig.id)) return;
-    const from = String(sig.from || "");
-    if (!from || from === playerId()) return;
-    const pc = await ensurePc(from);
-    if (!pc) return;
+  async function offerToPeer(peerId) {
+    const me = playerId();
+    const pc = await ensurePc(peerId);
+    if (!pc || !me) return;
+    if (pcLive(pc) || pcBusy(pc)) return;
     try {
-      if (sig.type === "offer") {
+      // Reset if stuck mid-negotiation
+      if (pc.signalingState !== "stable" && pc.signalingState !== "have-local-offer") {
+        closePc(peerId);
+      }
+      let conn = active.pcs.get(peerId) || (await ensurePc(peerId));
+      if (!conn) return;
+      if (conn.signalingState === "have-local-offer" && conn._hubOfferAt && Date.now() - conn._hubOfferAt < OFFER_RETRY_MS) {
+        return;
+      }
+      if (conn.signalingState === "have-local-offer") {
+        closePc(peerId);
+        conn = await ensurePc(peerId);
+        if (!conn) return;
+      }
+      const offer = await makeOffer(conn);
+      const at = Date.now();
+      conn._hubOfferAt = at;
+      await writeLink(linkKey(me, peerId), {
+        offerFrom: me,
+        offer,
+        offerAt: at,
+        answer: null,
+        answerAt: 0,
+        answerFor: 0
+      });
+    } catch (err) {
+      console.warn("[HubCalls] offerToPeer", err);
+    }
+  }
+
+  async function syncPeerLink(peerId, room) {
+    const me = playerId();
+    if (!me || !peerId || peerId === me) return;
+    const key = linkKey(me, peerId);
+    const link = room.links?.[key];
+    let pc = active.pcs.get(peerId);
+
+    if (pc && (pc.connectionState === "failed" || pc.connectionState === "closed")) {
+      closePc(peerId);
+      pc = null;
+    }
+    if (pcLive(pc)) return;
+
+    // Apply their answer to our offer
+    if (link?.answer && link.offerFrom === me && pc && pc.signalingState === "have-local-offer") {
+      try {
+        await pc.setRemoteDescription(link.answer);
+        await flushPendingIce(pc);
+      } catch (err) {
+        console.warn("[HubCalls] apply answer", err);
+        closePc(peerId);
+      }
+      return;
+    }
+
+    // Answer their offer (either side may offer — e.g. screen-share renegotiation)
+    if (link?.offer && link.offerFrom === peerId) {
+      const offerAt = Number(link.offerAt) || 0;
+      pc = pc || (await ensurePc(peerId));
+      if (!pc) return;
+      if (pc._hubAnsweredOfferAt === offerAt && (pcLive(pc) || pc.signalingState === "stable")) {
+        return;
+      }
+      try {
         if (pc.signalingState === "have-local-offer") {
-          if (playerId() > from) {
-            seenSignals.add(sig.id);
-            return;
-          }
+          // Glare: keep offer if our id is higher, else yield
+          if (me > peerId) return;
           try {
             await pc.setLocalDescription({ type: "rollback" });
           } catch {
-            closePc(from);
-            const fresh = await ensurePc(from);
-            if (!fresh) return;
-            await fresh.setRemoteDescription(sig.payload);
-            await flushPendingIce(fresh);
-            const answer = await makeAnswer(fresh);
-            await pushSignal(from, "answer", answer);
-            seenSignals.add(sig.id);
-            return;
+            closePc(peerId);
+            pc = await ensurePc(peerId);
+            if (!pc) return;
           }
         }
-        await pc.setRemoteDescription(sig.payload);
+        if (pc.signalingState === "have-local-offer") return;
+        await pc.setRemoteDescription(link.offer);
         await flushPendingIce(pc);
         const answer = await makeAnswer(pc);
-        await pushSignal(from, "answer", answer);
-        seenSignals.add(sig.id);
-      } else if (sig.type === "answer") {
-        if (pc.signalingState === "have-local-offer" || !pc.currentRemoteDescription) {
-          await pc.setRemoteDescription(sig.payload);
-          await flushPendingIce(pc);
-        }
-        seenSignals.add(sig.id);
-      } else if (sig.type === "ice" && sig.payload) {
-        if (!pc.remoteDescription) {
-          pc._hubPendingIce = pc._hubPendingIce || [];
-          pc._hubPendingIce.push(sig.payload);
-        } else {
-          try {
-            await pc.addIceCandidate(sig.payload);
-          } catch {}
-        }
-        seenSignals.add(sig.id);
-      } else if (sig.type === "hangup") {
-        closePc(from);
-        seenSignals.add(sig.id);
+        pc._hubAnsweredOfferAt = offerAt;
+        await writeLink(key, {
+          answer,
+          answerAt: Date.now(),
+          answerFor: offerAt
+        });
+      } catch (err) {
+        console.warn("[HubCalls] answer", err);
+        closePc(peerId);
       }
-      if (seenSignals.size > 400) {
-        seenSignals = new Set([...seenSignals].slice(-200));
-      }
-    } catch (err) {
-      console.warn("[HubCalls] signal", err);
+      return;
     }
+
+    // Initial offer: lower id starts the link
+    if (me < peerId) {
+      const stale =
+        !link?.offer ||
+        link.offerFrom !== me ||
+        (link.offerAt && Date.now() - Number(link.offerAt) > OFFER_RETRY_MS && !link.answer);
+      if (stale || !pc || (!pcLive(pc) && !pcBusy(pc) && pc.signalingState === "stable")) {
+        await offerToPeer(peerId);
+      }
+    }
+  }
+
+  async function syncPeerLinkSafe(peerId, room) {
+    try {
+      await syncPeerLink(peerId, room);
+    } catch (err) {
+      console.warn("[HubCalls] syncPeer", peerId, err);
+    }
+  }
+
+  async function connectMesh(room) {
+    if (!active || !room) return;
+    const me = playerId();
+    const peers = Object.entries(room.peers || {})
+      .filter(([id, p]) => id !== me && peerJoined(p))
+      .map(([id]) => id);
+    // Parallel pairwise sync — critical for 3+ person calls
+    await Promise.all(peers.map((pid) => syncPeerLinkSafe(pid, room)));
   }
 
   async function retryConnections() {
     if (!active) return;
     seenSignals = new Set();
     [...(active.pcs?.keys() || [])].forEach((pid) => closePc(pid));
+    // Clear our link offers so we renegotiate fresh
+    const me = playerId();
+    await mutateRooms((rooms) => {
+      const room = rooms[active.roomId];
+      if (!room?.links) return;
+      const links = { ...room.links };
+      Object.keys(links).forEach((k) => {
+        if (k.split(":").includes(me)) delete links[k];
+      });
+      rooms[active.roomId] = { ...room, links, updatedAt: Date.now() };
+    });
     const room = cache.rooms?.[active.roomId];
     if (room) await connectMesh(room);
     renderCallBar();
-  }
-
-  function peerJoined(p) {
-    return !!(p && !p.left && Number(p.joinedAt) > 0);
-  }
-
-  async function connectMesh(room) {
-    if (!active || !room) return;
-    const me = playerId();
-    const peers = Object.entries(room.peers || {}).filter(
-      ([id, p]) => id !== me && peerJoined(p)
-    );
-    for (const [pid] of peers) {
-      let pc = active.pcs.get(pid);
-      if (pc && (pc.connectionState === "failed" || pc.connectionState === "closed")) {
-        closePc(pid);
-        pc = null;
-      }
-      if (
-        pc &&
-        pc.signalingState === "have-local-offer" &&
-        pc._hubOfferAt &&
-        Date.now() - pc._hubOfferAt > OFFER_RETRY_MS
-      ) {
-        closePc(pid);
-        pc = null;
-      }
-      pc = await ensurePc(pid);
-      if (!pc) continue;
-
-      if (
-        pc.connectionState === "connected" ||
-        pc.iceConnectionState === "connected" ||
-        pc.iceConnectionState === "completed"
-      ) {
-        continue;
-      }
-      if (pc.connectionState === "connecting" || pc.iceConnectionState === "checking") {
-        continue;
-      }
-      if (pc.signalingState === "have-remote-offer") continue;
-      if (pc.signalingState === "have-local-offer") continue;
-
-      if (me > pid) continue;
-      if (pc.remoteDescription && pc.localDescription) continue;
-
-      try {
-        const offer = await makeOffer(pc);
-        pc._hubOfferAt = Date.now();
-        await pushSignal(pid, "offer", offer);
-      } catch (err) {
-        console.warn("[HubCalls] offer", err);
-      }
-    }
-    const signals = Array.isArray(room.signals) ? room.signals : [];
-    const ordered = signals.slice().sort((a, b) => (Number(a.at) || 0) - (Number(b.at) || 0));
-    for (const sig of ordered) await handleSignal(sig);
   }
 
   async function enterRoom(roomId, { asRingAccept = false } = {}) {
@@ -1321,7 +1422,8 @@
         createdAt: existing?.createdAt || Date.now(),
         updatedAt: Date.now(),
         peers,
-        signals: Array.isArray(existing?.signals) ? existing.signals : []
+        signals: Array.isArray(existing?.signals) ? existing.signals : [],
+        links: existing?.links && typeof existing.links === "object" ? existing.links : {}
       };
     }).catch((err) => {
       console.warn(err);
@@ -1504,40 +1606,47 @@
       : null;
   }
 
+  let pollBusy = false;
   async function poll() {
-    const doc = await fetchDoc();
-    if (doc) cache.rooms = pruneRooms(doc.rooms || {});
-    const me = playerId();
-    if (!me) {
-      renderCallBar();
-      syncCallButtons();
-      return;
-    }
+    if (pollBusy) return;
+    pollBusy = true;
+    try {
+      const doc = await fetchDoc();
+      if (doc) cache.rooms = pruneRooms(doc.rooms || {});
+      const me = playerId();
+      if (!me) {
+        renderCallBar();
+        syncCallButtons();
+        return;
+      }
 
-    // Incoming ring?
-    if (!active) {
-      const ring = Object.values(cache.rooms).find((room) => {
-        const p = room?.peers?.[me];
-        return p && p.ringing && !p.left && !p.joinedAt;
-      });
-      ringingRoomId = ring?.id || "";
-    }
+      // Incoming ring?
+      if (!active) {
+        const ring = Object.values(cache.rooms).find((room) => {
+          const p = room?.peers?.[me];
+          return p && p.ringing && !p.left && !p.joinedAt;
+        });
+        ringingRoomId = ring?.id || "";
+      }
 
-    if (active) {
-      const room = cache.rooms?.[active.roomId];
-      if (!room) {
-        await hangUp();
-      } else {
-        const mePeer = room.peers?.[me];
-        if (mePeer?.left) {
+      if (active) {
+        const room = cache.rooms?.[active.roomId];
+        if (!room) {
           await hangUp();
         } else {
-          await connectMesh(room);
+          const mePeer = room.peers?.[me];
+          if (mePeer?.left) {
+            await hangUp();
+          } else {
+            await connectMesh(room);
+          }
         }
       }
+      renderCallBar();
+      syncCallButtons();
+    } finally {
+      pollBusy = false;
     }
-    renderCallBar();
-    syncCallButtons();
   }
 
   function channelCallRoom(kind, channelId) {
