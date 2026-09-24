@@ -889,6 +889,59 @@
       });
     });
 
+    // EchoTest Time Online: always clamp to account age (created 2026-09-24 17:32 UTC).
+    // Inflated local caches kept re-pushing ~26h after the one-off fix.
+    {
+      const ECHO_KEY = "echotest";
+      const ECHO_PID = "p-mtsw3m2i-hqps64";
+      const ECHO_BORN = 1790271178230;
+      const now = Date.now();
+      const ageSec = Math.max(0, Math.floor((now - ECHO_BORN) / 1000));
+      const board = { ...(games["online-time"] || {}) };
+      Object.keys(board).forEach((key) => {
+        const entry = board[key];
+        if (!entry) return;
+        const isEcho =
+          key === ECHO_KEY ||
+          nameKey(entry.name || key) === ECHO_KEY ||
+          String(entry.playerId || "") === ECHO_PID;
+        if (!isEcho) {
+          board[key] = clampOnlineTimeEntry(normalizeEntry(entry, false) || entry, now);
+          return;
+        }
+        const score = Math.min(Math.max(0, Math.floor(Number(entry.score) || 0)), ageSec);
+        board[key] = {
+          name: "EchoTest",
+          score,
+          at: now,
+          playerId: ECHO_PID,
+          lowerBetter: false,
+          bornAt: ECHO_BORN
+        };
+      });
+      if (board[ECHO_KEY] || Object.values(board).some((e) => e?.playerId === ECHO_PID)) {
+        // keep clamped row; if somehow missing name key, ensure canonical key
+        const existing =
+          board[ECHO_KEY] ||
+          Object.values(board).find((e) => e?.playerId === ECHO_PID);
+        if (existing) {
+          Object.keys(board).forEach((key) => {
+            if (key === ECHO_KEY) return;
+            if (board[key]?.playerId === ECHO_PID) delete board[key];
+          });
+          board[ECHO_KEY] = {
+            name: "EchoTest",
+            score: Math.min(Math.max(0, Math.floor(Number(existing.score) || 0)), ageSec),
+            at: now,
+            playerId: ECHO_PID,
+            lowerBetter: false,
+            bornAt: ECHO_BORN
+          };
+        }
+      }
+      games["online-time"] = board;
+    }
+
     return { games, resets };
   }
 
@@ -998,9 +1051,29 @@
     const lowerBetter = meta(gameId).lowerBetter;
     const board = ((cache.games || {})[gameId]) || ((loadLocal().games || {})[gameId]) || {};
     const me = nameKey(getPlayerName());
+    const ECHO_PID = "p-mtsw3m2i-hqps64";
+    const ECHO_BORN = 1790271178230;
+    const now = Date.now();
+    const echoAge = Math.max(0, Math.floor((now - ECHO_BORN) / 1000));
     const rows = Object.values(board)
       .map((entry) => normalizeEntry(entry, lowerBetter))
       .filter(Boolean)
+      .map((entry) => {
+        if (gameId !== "online-time") return entry;
+        if (
+          nameKey(entry.name) === "echotest" ||
+          String(entry.playerId || "") === ECHO_PID
+        ) {
+          return {
+            ...entry,
+            name: "EchoTest",
+            playerId: ECHO_PID,
+            bornAt: ECHO_BORN,
+            score: Math.min(Number(entry.score) || 0, echoAge)
+          };
+        }
+        return clampOnlineTimeEntry(entry, now);
+      })
       .sort((a, b) => {
         if (a.score !== b.score) {
           return lowerBetter ? a.score - b.score : b.score - a.score;
