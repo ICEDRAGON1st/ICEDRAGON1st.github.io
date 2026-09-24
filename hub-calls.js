@@ -303,10 +303,14 @@
     if (!navigator.mediaDevices?.getUserMedia) {
       throw new Error("Voice calls need a modern browser");
     }
-    return navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: true, noiseSuppression: true },
-      video: false
-    });
+    try {
+      return await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        video: false
+      });
+    } catch {
+      return navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    }
   }
 
   function stopLocal() {
@@ -361,9 +365,8 @@
     const pc = active.pcs.get(peerId);
     if (!pc) return;
     try {
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
-      await pushSignal(peerId, "offer", pc.localDescription);
+      const offer = await makeOffer(pc);
+      await pushSignal(peerId, "offer", offer);
     } catch (err) {
       console.warn("[HubCalls] renegotiate", err);
     }
@@ -461,40 +464,122 @@
   async function ensurePc(peerId) {
     if (!active) return null;
     if (active.pcs.has(peerId)) return active.pcs.get(peerId);
-    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS });
+    const pc = new RTCPeerConnection({
+      iceServers: ICE_SERVERS,
+      iceCandidatePoolSize: 4
+    });
+    pc._hubPendingIce = [];
     active.pcs.set(peerId, pc);
     if (active.localStream) {
-      active.localStream.getTracks().forEach((track) => pc.addTrack(track, active.localStream));
+      active.localStream.getAudioTracks().forEach((track) => {
+        track.enabled = true;
+        pc.addTrack(track, active.localStream);
+      });
     }
     if (active.screenStream) {
       active.screenStream.getTracks().forEach((track) => pc.addTrack(track, active.screenStream));
     }
-    pc.onicecandidate = (ev) => {
-      if (!ev.candidate || !active) return;
-      pushSignal(peerId, "ice", ev.candidate.toJSON());
-    };
+    // Prefer complete SDP over trickle — poll signaling drops most ICE candidates.
+    pc.onicecandidate = () => {};
     pc.ontrack = (ev) => {
       const track = ev.track;
       if (!track) return;
+      track.enabled = true;
       if (track.kind === "video") {
         attachRemoteVideo(peerId, ev.streams[0], track);
         return;
       }
-      let audio = document.getElementById(`hub-call-audio-${peerId}`);
-      if (!audio) {
-        audio = document.createElement("audio");
-        audio.id = `hub-call-audio-${peerId}`;
-        audio.autoplay = true;
-        audio.playsInline = true;
-        audio.style.display = "none";
-        document.body.appendChild(audio);
-      }
-      audio.srcObject = ev.streams[0] || new MediaStream([track]);
+      attachRemoteAudio(peerId, track);
     };
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === "failed" || pc.connectionState === "closed") closePc(peerId);
     };
     return pc;
+  }
+
+  function attachRemoteAudio(peerId, track) {
+    let audio = document.getElementById(`hub-call-audio-${peerId}`);
+    if (!audio) {
+      audio = document.createElement("audio");
+      audio.id = `hub-call-audio-${peerId}`;
+      audio.autoplay = true;
+      audio.controls = false;
+      audio.muted = false;
+      audio.volume = 1;
+      audio.setAttribute("playsinline", "");
+      audio.style.position = "fixed";
+      audio.style.width = "1px";
+      audio.style.height = "1px";
+      audio.style.opacity = "0";
+      audio.style.pointerEvents = "none";
+      document.body.appendChild(audio);
+    }
+    let stream = audio.srcObject;
+    if (!(stream instanceof MediaStream)) {
+      stream = new MediaStream();
+      audio.srcObject = stream;
+    }
+    if (!stream.getTrackById(track.id)) stream.addTrack(track);
+    const kick = () => {
+      audio.muted = false;
+      audio.volume = 1;
+      const p = audio.play();
+      if (p && p.catch) p.catch(() => {});
+    };
+    kick();
+    track.onunmute = kick;
+    audio.onloadedmetadata = kick;
+  }
+
+  function resumeAllRemoteAudio() {
+    document.querySelectorAll('audio[id^="hub-call-audio-"]').forEach((audio) => {
+      audio.muted = false;
+      audio.volume = 1;
+      const p = audio.play();
+      if (p && p.catch) p.catch(() => {});
+    });
+  }
+
+  function waitForIce(pc, ms = 2500) {
+    if (!pc || pc.iceGatheringState === "complete") return Promise.resolve();
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        pc.removeEventListener("icegatheringstatechange", onChange);
+        resolve();
+      };
+      const onChange = () => {
+        if (pc.iceGatheringState === "complete") finish();
+      };
+      pc.addEventListener("icegatheringstatechange", onChange);
+      setTimeout(finish, ms);
+    });
+  }
+
+  async function makeOffer(pc) {
+    const offer = await pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true });
+    await pc.setLocalDescription(offer);
+    await waitForIce(pc);
+    return pc.localDescription;
+  }
+
+  async function makeAnswer(pc) {
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    await waitForIce(pc);
+    return pc.localDescription;
+  }
+
+  async function flushPendingIce(pc) {
+    const pending = pc._hubPendingIce || [];
+    pc._hubPendingIce = [];
+    for (const c of pending) {
+      try {
+        await pc.addIceCandidate(c);
+      } catch {}
+    }
   }
 
   async function pushSignal(to, type, payload) {
@@ -534,7 +619,6 @@
     try {
       if (sig.type === "offer") {
         if (pc.signalingState === "have-local-offer") {
-          // Glare: lower id yields (rollback), higher id keeps its offer.
           if (playerId() > from) return;
           try {
             await pc.setLocalDescription({ type: "rollback" });
@@ -543,17 +627,23 @@
           }
         }
         await pc.setRemoteDescription(sig.payload);
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        await pushSignal(from, "answer", pc.localDescription);
+        await flushPendingIce(pc);
+        const answer = await makeAnswer(pc);
+        await pushSignal(from, "answer", answer);
       } else if (sig.type === "answer") {
         if (pc.signalingState === "have-local-offer" || !pc.currentRemoteDescription) {
           await pc.setRemoteDescription(sig.payload);
+          await flushPendingIce(pc);
         }
       } else if (sig.type === "ice" && sig.payload) {
-        try {
-          await pc.addIceCandidate(sig.payload);
-        } catch {}
+        if (!pc.remoteDescription) {
+          pc._hubPendingIce = pc._hubPendingIce || [];
+          pc._hubPendingIce.push(sig.payload);
+        } else {
+          try {
+            await pc.addIceCandidate(sig.payload);
+          } catch {}
+        }
       } else if (sig.type === "hangup") {
         closePc(from);
       }
@@ -571,13 +661,11 @@
     for (const [pid] of peers) {
       const pc = await ensurePc(pid);
       if (!pc) continue;
-      // Higher id politely waits; lower id offers.
       if (me > pid) continue;
       if (pc.localDescription || pc.remoteDescription) continue;
       try {
-        const offer = await pc.createOffer();
-        await pc.setLocalDescription(offer);
-        await pushSignal(pid, "offer", pc.localDescription);
+        const offer = await makeOffer(pc);
+        await pushSignal(pid, "offer", offer);
       } catch (err) {
         console.warn("[HubCalls] offer", err);
       }
@@ -901,6 +989,9 @@
     if (wiredClicks) return;
     wiredClicks = true;
     document.addEventListener("click", async (e) => {
+      if (e.target.closest("#hub-call-bar, #hub-chat-call-btn, #friends-call-btn")) {
+        resumeAllRemoteAudio();
+      }
       if (e.target.closest("[data-hub-call-hang]")) {
         e.preventDefault();
         hangUp();
