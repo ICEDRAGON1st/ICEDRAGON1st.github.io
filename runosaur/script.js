@@ -557,26 +557,29 @@
     ctx.fill();
   }
 
-  /** Big chase dragon — screen-space so it never sits on the path */
+  /** Big chase dragon — screen-space, tucked in the left margin (not on the path) */
   function drawChaseDragon() {
-    const bob = Math.sin(anim * 2.4) * 10;
+    const bob = Math.sin(anim * 2.4) * 8;
     const threat = Math.min(1, score / 450);
-    const baseX = 8 + threat * 28;
-    const baseY = H - 150 + bob;
+    // Keep it in the letterbox margin so it never covers the runner.
+    const baseX = -70 + threat * 36;
+    const baseY = H - 130 + bob;
     const body = deepCave ? "#2a1838" : "#3d2460";
     const wing = deepCave ? "#1a1028" : "#2a1848";
+    const alpha = 0.55 + threat * 0.4;
 
     ctx.save();
+    ctx.globalAlpha = alpha;
     // Shadow blob
-    ctx.globalAlpha = 0.35;
+    ctx.globalAlpha = alpha * 0.35;
     ctx.fillStyle = "#000";
     ctx.beginPath();
-    ctx.ellipse(baseX + 90, H - 40, 100, 18, 0, 0, Math.PI * 2);
+    ctx.ellipse(baseX + 90, H - 36, 88, 14, 0, 0, Math.PI * 2);
     ctx.fill();
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha = alpha;
 
     // Extruded body (screen-space isometric)
-    const skew = 18;
+    const skew = 16;
     function box(sx, sy, sw, sh, sd, col) {
       const fl = { x: sx, y: sy + sh };
       const fr = { x: sx + sw, y: sy + sh };
@@ -592,45 +595,45 @@
       drawPoly([ft, ftr, btr, bt], shade(col, 1.12), "rgba(255,255,255,0.25)");
     }
 
-    box(baseX, baseY + 30, 120, 55, 28, body);
-    box(baseX + 95, baseY + 18, 70, 42, 24, body);
-    box(baseX + 150, baseY + 10, 44, 34, 20, shade(body, 1.1));
+    box(baseX, baseY + 30, 100, 48, 24, body);
+    box(baseX + 82, baseY + 18, 58, 36, 20, body);
+    box(baseX + 128, baseY + 10, 38, 30, 18, shade(body, 1.1));
     // Horns
     ctx.fillStyle = deepCave ? "#8eb4d4" : "#c5e8ff";
     ctx.beginPath();
-    ctx.moveTo(baseX + 168, baseY + 12);
-    ctx.lineTo(baseX + 160, baseY - 18);
-    ctx.lineTo(baseX + 178, baseY + 10);
+    ctx.moveTo(baseX + 142, baseY + 12);
+    ctx.lineTo(baseX + 134, baseY - 14);
+    ctx.lineTo(baseX + 152, baseY + 10);
     ctx.fill();
     ctx.beginPath();
-    ctx.moveTo(baseX + 182, baseY + 14);
-    ctx.lineTo(baseX + 190, baseY - 10);
-    ctx.lineTo(baseX + 192, baseY + 16);
+    ctx.moveTo(baseX + 154, baseY + 14);
+    ctx.lineTo(baseX + 162, baseY - 8);
+    ctx.lineTo(baseX + 164, baseY + 16);
     ctx.fill();
     // Eye
     ctx.fillStyle = "#ff3b3b";
     ctx.beginPath();
-    ctx.arc(baseX + 178, baseY + 26, 5, 0, Math.PI * 2);
+    ctx.arc(baseX + 150, baseY + 24, 4.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = "#fff";
     ctx.beginPath();
-    ctx.arc(baseX + 176, baseY + 24, 1.5, 0, Math.PI * 2);
+    ctx.arc(baseX + 148, baseY + 22, 1.4, 0, Math.PI * 2);
     ctx.fill();
     // Wing flap
-    const flap = Math.sin(anim * 5) * 16;
-    box(baseX + 30, baseY - 10 + flap * 0.3, 70, 14, 50 + flap, wing);
+    const flap = Math.sin(anim * 5) * 12;
+    box(baseX + 24, baseY - 6 + flap * 0.3, 58, 12, 42 + flap, wing);
 
     if (Math.sin(chaseBreath * 3) > 0.45) {
-      const ox = baseX + 195;
-      const oy = baseY + 28;
-      const breath = ctx.createLinearGradient(ox, oy, ox + 110, oy - 8);
-      breath.addColorStop(0, "rgba(180,230,255,0.65)");
+      const ox = baseX + 168;
+      const oy = baseY + 26;
+      const breath = ctx.createLinearGradient(ox, oy, ox + 90, oy - 8);
+      breath.addColorStop(0, "rgba(180,230,255,0.55)");
       breath.addColorStop(1, "rgba(180,230,255,0)");
       ctx.fillStyle = breath;
       ctx.beginPath();
-      ctx.moveTo(ox, oy - 6);
-      ctx.quadraticCurveTo(ox + 55, oy - 22, ox + 110, oy - 4);
-      ctx.quadraticCurveTo(ox + 55, oy + 18, ox, oy + 8);
+      ctx.moveTo(ox, oy - 5);
+      ctx.quadraticCurveTo(ox + 45, oy - 18, ox + 90, oy - 3);
+      ctx.quadraticCurveTo(ox + 45, oy + 14, ox, oy + 7);
       ctx.fill();
     }
     ctx.restore();
@@ -644,58 +647,76 @@
     const ducking = dino.ducking;
     const onGround = dino.onGround;
     const leg = onGround ? Math.floor(anim * speed * 0.028) % 2 : 0;
-    const body = deepCave ? "#d8ecff" : "#f4fbff";
-    const accent = deepCave ? "#5a9aef" : "#3a8aef";
-    const belly = deepCave ? "#a8c8e8" : "#c0dff8";
-    const wingC = deepCave ? "#7ab0ff" : "#68b0ff";
+    // High-contrast ice dino — pale fills washed out against the path before.
+    const body = deepCave ? "#e8f4ff" : "#ffffff";
+    const accent = deepCave ? "#3d7fd4" : "#1e6ad4";
+    const belly = deepCave ? "#9ec4ef" : "#7eb6f0";
+    const wingC = deepCave ? "#5a9aef" : "#4a9cff";
+    const crest = deepCave ? "#fff6c8" : "#ffe566";
 
     const sh = project(x, 0.8, z + 6);
     ctx.save();
-    ctx.globalAlpha = Math.max(0.18, 0.5 - y * 0.0035);
+    ctx.globalAlpha = Math.max(0.22, 0.55 - y * 0.0035);
     ctx.fillStyle = "#041018";
     ctx.beginPath();
-    ctx.ellipse(sh.x, sh.groundY + 2, 58 * sh.s, 18 * sh.s, 0, 0, Math.PI * 2);
+    ctx.ellipse(sh.x, sh.groundY + 2, 64 * sh.s, 20 * sh.s, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
-    // Large rear-view block dino so it reads clearly into the cave
+    // Slight outline pass so the runner never dissolves into the ice path
+    function outlinedBox(bx, by, bz, bw, bh, bd, col) {
+      drawBoxAt(bx, by, bz, bw + 6, bh + 4, bd + 4, "#0a1a30", 0.55);
+      drawBoxAt(bx, by, bz, bw, bh, bd, col);
+    }
+
     if (ducking) {
-      drawBoxAt(x, y + 2, z, 96, 40, 58, accent);
-      drawBoxAt(x + 18, y + 10, z + 10, 50, 24, 42, body);
-      drawBoxAt(x - 38, y + 12, z + 14, 32, 14, 24, accent);
-    } else {
-      drawBoxAt(x - 20, y, z + 8, 24, 28 + (leg ? 6 : 0), 24, accent);
-      drawBoxAt(x + 20, y, z + 14, 24, 28 + (leg ? 0 : 6), 24, accent);
-      drawBoxAt(x, y + 24, z, 76, 56, 58, accent);
-      drawBoxAt(x, y + 30, z + 8, 50, 34, 44, belly);
-      drawBoxAt(x + 4, y + 72, z + 6, 56, 44, 48, body);
-      drawBoxAt(x + 26, y + 82, z + 18, 28, 22, 30, accent);
-      drawBoxAt(x - 6, y + 108, z + 14, 16, 24, 16, "#d0f0ff");
-      drawBoxAt(x + 16, y + 112, z + 18, 14, 20, 14, "#d0f0ff");
-      const wing = Math.sin(anim * 11) * 8;
-      drawBoxAt(x - 36, y + 44 + wing * 0.25, z - 8, 30, 12, 62, wingC);
-      drawBoxAt(x - 44, y + 38, z + 16, 36, 16, 22, accent);
-      const eyeL = project(x - 8, y + 94, z + 48);
-      const eyeR = project(x + 20, y + 94, z + 50);
+      outlinedBox(x, y + 2, z, 100, 36, 62, accent);
+      outlinedBox(x + 16, y + 8, z + 12, 54, 26, 46, body);
+      outlinedBox(x - 36, y + 10, z + 16, 36, 16, 28, accent);
+      outlinedBox(x + 28, y + 14, z + 22, 24, 18, 28, crest);
+      const eye = project(x + 22, y + 22, z + 52);
       ctx.fillStyle = "#0a1520";
       ctx.beginPath();
-      ctx.arc(eyeL.x, eyeL.y, 5.5, 0, Math.PI * 2);
-      ctx.arc(eyeR.x, eyeR.y, 5.5, 0, Math.PI * 2);
+      ctx.arc(eye.x, eye.y, 5, 0, Math.PI * 2);
       ctx.fill();
       ctx.fillStyle = "#fff";
       ctx.beginPath();
-      ctx.arc(eyeL.x - 1.5, eyeL.y - 1.5, 1.7, 0, Math.PI * 2);
-      ctx.arc(eyeR.x - 1.5, eyeR.y - 1.5, 1.7, 0, Math.PI * 2);
+      ctx.arc(eye.x - 1.2, eye.y - 1.2, 1.6, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      outlinedBox(x - 22, y, z + 8, 26, 30 + (leg ? 6 : 0), 26, accent);
+      outlinedBox(x + 22, y, z + 14, 26, 30 + (leg ? 0 : 6), 26, accent);
+      outlinedBox(x, y + 26, z, 82, 58, 62, accent);
+      outlinedBox(x, y + 32, z + 8, 54, 36, 46, belly);
+      outlinedBox(x + 4, y + 74, z + 6, 60, 46, 50, body);
+      outlinedBox(x + 28, y + 84, z + 18, 30, 24, 32, accent);
+      // Crest / horns — warm so they read as “head”, not path sparks
+      outlinedBox(x - 8, y + 112, z + 14, 18, 26, 16, crest);
+      outlinedBox(x + 18, y + 116, z + 18, 16, 22, 14, crest);
+      const wing = Math.sin(anim * 11) * 8;
+      outlinedBox(x - 38, y + 46 + wing * 0.25, z - 8, 34, 14, 66, wingC);
+      outlinedBox(x - 46, y + 40, z + 16, 38, 18, 24, accent);
+      const eyeL = project(x - 8, y + 96, z + 50);
+      const eyeR = project(x + 22, y + 96, z + 52);
+      ctx.fillStyle = "#0a1520";
+      ctx.beginPath();
+      ctx.arc(eyeL.x, eyeL.y, 6, 0, Math.PI * 2);
+      ctx.arc(eyeR.x, eyeR.y, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#fff";
+      ctx.beginPath();
+      ctx.arc(eyeL.x - 1.5, eyeL.y - 1.5, 1.8, 0, Math.PI * 2);
+      ctx.arc(eyeR.x - 1.5, eyeR.y - 1.5, 1.8, 0, Math.PI * 2);
       ctx.fill();
     }
 
-    const rim = project(x, y + (ducking ? 26 : 60), z + 8);
+    const rim = project(x, y + (ducking ? 22 : 58), z + 8);
     ctx.save();
-    ctx.globalAlpha = 0.25;
+    ctx.globalAlpha = 0.2;
     ctx.strokeStyle = "#ffffff";
     ctx.lineWidth = 3;
     ctx.beginPath();
-    ctx.arc(rim.x, rim.y, (ducking ? 42 : 58) * rim.s * 1.45, 0, Math.PI * 2);
+    ctx.arc(rim.x, rim.y, (ducking ? 44 : 62) * rim.s * 1.45, 0, Math.PI * 2);
     ctx.stroke();
     ctx.restore();
   }
@@ -743,8 +764,8 @@
     const sorted = obstacles.slice().sort((a, b) => b.z - a.z);
     sorted.forEach((o) => (o.type === "bat" ? drawBat(o) : drawSpike(o)));
 
-    drawRunner();
     drawChaseDragon();
+    drawRunner();
 
     ctx.fillStyle = "#e8f4ff";
     ctx.font = "700 26px Outfit, sans-serif";
