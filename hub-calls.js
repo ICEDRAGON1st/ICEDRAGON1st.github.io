@@ -351,8 +351,14 @@
       videos.appendChild(wrap);
     }
     const vid = wrap.querySelector("video");
-    const media = stream || new MediaStream([track]);
-    if (vid && vid.srcObject !== media) vid.srcObject = media;
+    // Video-only stream so browser autoplay isn't blocked by remote audio on the same element.
+    const media = new MediaStream([track]);
+    if (vid) {
+      vid.muted = true;
+      vid.srcObject = media;
+      const p = vid.play();
+      if (p && p.catch) p.catch(() => {});
+    }
     track?.addEventListener?.("ended", () => {
       wrap?.remove();
       syncLocalPreview();
