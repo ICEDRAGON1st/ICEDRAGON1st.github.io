@@ -21,7 +21,7 @@
   const HORIZON = H * 0.22;
   const NEAR_Y = H * 0.9;
   const PATH_HALF = 190;
-  const PLAYER_Z = 48;
+  const PLAYER_Z = 22;
   const GRAVITY = 2600;
   const JUMP_V = -920;
   const STAND_H = 72;
@@ -666,7 +666,7 @@
     const lift = dino.y * foot.s * Y_BOOST;
     const sx = foot.x;
     const sy = foot.groundY - lift;
-    const sc = Math.max(0.55, foot.s * 1.35);
+    const sc = Math.max(0.7, foot.s * 1.55);
     const ducking = dino.ducking;
     const onGround = dino.onGround;
     const leg = onGround ? Math.floor(anim * speed * 0.028) % 2 : 0;
