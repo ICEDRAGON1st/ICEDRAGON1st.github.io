@@ -75,6 +75,50 @@
       .slice(0, MAX_TEXT);
   }
 
+  /** Strong swears + racial slur variants. Client-side; reject on send + censor on show. */
+  const PROFANITY_PATTERN =
+    String.raw`\b(?:shit(?:s|ty|ting)?|fuck(?:s|ed|ing|er|ers)?|bitch(?:es|y|ing)?|nigg(?:a|as|er|ers|ah)?)\b`;
+
+  function profanityRe(flags = "gi") {
+    return new RegExp(PROFANITY_PATTERN, flags);
+  }
+
+  function normalizeForProfanityCheck(raw) {
+    return String(raw || "")
+      .toLowerCase()
+      .replace(/0/g, "o")
+      .replace(/1/g, "i")
+      .replace(/3/g, "e")
+      .replace(/4/g, "a")
+      .replace(/5/g, "s")
+      .replace(/7/g, "t")
+      .replace(/\$/g, "s")
+      .replace(/@/g, "a")
+      .replace(/!/g, "i")
+      .replace(/[^a-z]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function containsProfanity(raw) {
+    const cleaned = normalizeForProfanityCheck(raw);
+    if (!cleaned) return false;
+    const re = profanityRe("i");
+    if (re.test(cleaned)) return true;
+    // Catch "f u c k" / "s.h.i.t" after stripping separators
+    const compact = cleaned.replace(/\s+/g, "");
+    return compact !== cleaned && re.test(compact);
+  }
+
+  function censorProfanity(raw) {
+    const text = String(raw || "");
+    if (!text) return "";
+    return text.replace(profanityRe("gi"), (match) => {
+      if (match.length <= 1) return "*";
+      return match[0] + "*".repeat(match.length - 1);
+    });
+  }
+
   function sanitizeGroupName(raw) {
     return String(raw || "")
       .replace(/[<>&"'`]/g, "")
@@ -153,7 +197,7 @@
     if (!msg || typeof msg !== "object") return null;
     const id = String(msg.id || "");
     const from = String(msg.from || "");
-    const text = sanitizeText(msg.text);
+    const text = censorProfanity(sanitizeText(msg.text));
     const at = Number(msg.at) || 0;
     if (!id || !from || !text || !at) return null;
     return {
@@ -500,6 +544,9 @@
     const text = sanitizeText(rawText);
     if (!me || !myName) return { ok: false, error: "Set a username first" };
     if (!text) return { ok: false, error: "Type a message" };
+    if (containsProfanity(text)) {
+      return { ok: false, error: "Keep it clean — that word isn't allowed" };
+    }
     if (type === "dm") {
       if (!isFriend(id)) return { ok: false, error: "You can only DM friends" };
     } else if (type === "group") {
