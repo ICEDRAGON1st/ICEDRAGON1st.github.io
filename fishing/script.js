@@ -6999,9 +6999,9 @@
         const fish = fishById(coolerEntryId(entry));
         if (!fish) return "";
         const label = formatFishName(fish, normalizeCoolerEntry(entry) || entry);
-        return `<button type="button" class="mail-toggle" data-mail-fish="${index}" aria-pressed="false" title="Add to offer">${escapeHtml(
+        return `<button type="button" class="mail-toggle" data-mail-fish="${index}" aria-pressed="false" title="Add to offer — gives ×1">${escapeHtml(
           label
-        )}</button>`;
+        )} · gives ×1</button>`;
       })
       .join("");
 
@@ -7016,32 +7016,37 @@
     const absOn = composeCountKind("luckyblock", { lbType: "absolute" });
     const zenOn = composeCountKind("luckyblock", { lbType: "zenith" });
 
+    function stashToggleLabel(name, giving, owned) {
+      if (giving > 0) return `${name} · gives ×${giving} · ${owned} left`;
+      return `${name} · ${owned} owned`;
+    }
+
     const stashBtns = [
       `<button type="button" class="mail-toggle${moneyOn ? " is-on" : ""}" data-mail-toggle-chest="money" aria-pressed="${
         moneyOn ? "true" : "false"
-      }" ${!moneyOn && moneyHave < 1 ? "disabled" : ""}>Coin chest${
-        moneyOn ? ` ×${moneyOn}` : ""
-      } · ${moneyHave}</button>`,
+      }" ${!moneyOn && moneyHave < 1 ? "disabled" : ""}>${escapeHtml(
+        stashToggleLabel("Coin chest", moneyOn, moneyHave)
+      )}</button>`,
       `<button type="button" class="mail-toggle${luckOn ? " is-on" : ""}" data-mail-toggle-chest="luck" aria-pressed="${
         luckOn ? "true" : "false"
-      }" ${!luckOn && luckHave < 1 ? "disabled" : ""}>Luck chest${
-        luckOn ? ` ×${luckOn}` : ""
-      } · ${luckHave}</button>`,
+      }" ${!luckOn && luckHave < 1 ? "disabled" : ""}>${escapeHtml(
+        stashToggleLabel("Luck chest", luckOn, luckHave)
+      )}</button>`,
       `<button type="button" class="mail-toggle${astralOn ? " is-on" : ""}" data-mail-toggle-lb="astral" aria-pressed="${
         astralOn ? "true" : "false"
-      }" ${!astralOn && astralHave < 1 ? "disabled" : ""}>Astral${
-        astralOn ? ` ×${astralOn}` : ""
-      } · ${astralHave}</button>`,
+      }" ${!astralOn && astralHave < 1 ? "disabled" : ""}>${escapeHtml(
+        stashToggleLabel("Astral", astralOn, astralHave)
+      )}</button>`,
       `<button type="button" class="mail-toggle${absOn ? " is-on" : ""}" data-mail-toggle-lb="absolute" aria-pressed="${
         absOn ? "true" : "false"
-      }" ${!absOn && absHave < 1 ? "disabled" : ""}>Absolute${
-        absOn ? ` ×${absOn}` : ""
-      } · ${absHave}</button>`,
+      }" ${!absOn && absHave < 1 ? "disabled" : ""}>${escapeHtml(
+        stashToggleLabel("Absolute", absOn, absHave)
+      )}</button>`,
       `<button type="button" class="mail-toggle${zenOn ? " is-on" : ""}" data-mail-toggle-lb="zenith" aria-pressed="${
         zenOn ? "true" : "false"
-      }" ${!zenOn && zenHave < 1 ? "disabled" : ""}>Zenith${
-        zenOn ? ` ×${zenOn}` : ""
-      } · ${zenHave}</button>`
+      }" ${!zenOn && zenHave < 1 ? "disabled" : ""}>${escapeHtml(
+        stashToggleLabel("Zenith", zenOn, zenHave)
+      )}</button>`
     ].join("");
 
     return `<p class="mail-section-label">Fish (toggle)</p>
