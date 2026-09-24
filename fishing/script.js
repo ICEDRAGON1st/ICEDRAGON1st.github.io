@@ -1589,29 +1589,30 @@
   /**
    * Aquarium tank upgrades — one path, next-only, does not stack.
    * Level 0 = base tank. Each level replaces the previous drip/slots bonus.
+   * Tuned as a mild passive (not a main money path).
    */
   const AQUARIUM_TIERS = [
     null,
-    { name: "Bubble Stone", cost: 350, amount: 0.25, slots: 0, desc: "+25% drip" },
-    { name: "Coral Shelf", cost: 2200, amount: 0.4, slots: 2, desc: "+40% drip · +2 swim" },
-    { name: "Filter Pump", cost: 14000, amount: 0.55, slots: 2, desc: "+55% drip · +2 swim" },
-    { name: "Kelp Garden", cost: 85000, amount: 0.7, slots: 3, desc: "+70% drip · +3 swim" },
-    { name: "Pearl Heater", cost: 450000, amount: 0.9, slots: 3, desc: "+90% drip · +3 swim" },
-    { name: "Reef Canopy", cost: 2800000, amount: 1.2, slots: 4, desc: "+120% drip · +4 swim" },
-    { name: "Tide Aerator", cost: 16000000, amount: 1.6, slots: 4, desc: "+160% drip · +4 swim" },
-    { name: "Glass Dome", cost: 90000000, amount: 2.2, slots: 5, desc: "+220% drip · +5 swim" },
-    { name: "Abyss Filter", cost: 400000000, amount: 3, slots: 5, desc: "+300% drip · +5 swim" },
-    { name: "Prism Tank", cost: 1.8e9, amount: 4, slots: 6, desc: "+400% drip · +6 swim" },
-    { name: "Nebula Bubbler", cost: 9e9, amount: 5.5, slots: 6, desc: "+550% drip · +6 swim" },
-    { name: "Horizon Aquarium", cost: 5e10, amount: 7.5, slots: 8, desc: "+750% drip · +8 swim" },
-    { name: "Chrono Circulator", cost: 3e11, amount: 10, slots: 8, desc: "+1000% drip · +8 swim" },
-    { name: "Genesis Habitat", cost: 2e12, amount: 14, slots: 10, desc: "+1400% drip · +10 swim" },
-    { name: "Singularity Tank", cost: 1.5e13, amount: 20, slots: 10, desc: "+2000% drip · +10 swim" },
-    { name: "Absolute Exhibit", cost: 1.2e14, amount: 30, slots: 12, desc: "+3000% drip · +12 swim" },
-    { name: "Omni Reef", cost: 1e15, amount: 45, slots: 12, desc: "+4500% drip · +12 swim" },
-    { name: "Zenith Oceanarium", cost: 8e15, amount: 65, slots: 15, desc: "+6500% drip · +15 swim" },
-    { name: "Mythos Vivaria", cost: 6e16, amount: 100, slots: 15, desc: "+10000% drip · +15 swim" },
-    { name: "Omega Origin Tank", cost: 5e17, amount: 150, slots: 20, desc: "+15000% drip · +20 swim" }
+    { name: "Bubble Stone", cost: 2500, amount: 0.1, slots: 0, desc: "+10% drip" },
+    { name: "Coral Shelf", cost: 18000, amount: 0.15, slots: 1, desc: "+15% drip · +1 swim" },
+    { name: "Filter Pump", cost: 95000, amount: 0.2, slots: 1, desc: "+20% drip · +1 swim" },
+    { name: "Kelp Garden", cost: 550000, amount: 0.28, slots: 2, desc: "+28% drip · +2 swim" },
+    { name: "Pearl Heater", cost: 3.2e6, amount: 0.35, slots: 2, desc: "+35% drip · +2 swim" },
+    { name: "Reef Canopy", cost: 2e7, amount: 0.45, slots: 2, desc: "+45% drip · +2 swim" },
+    { name: "Tide Aerator", cost: 1.2e8, amount: 0.55, slots: 3, desc: "+55% drip · +3 swim" },
+    { name: "Glass Dome", cost: 7.5e8, amount: 0.7, slots: 3, desc: "+70% drip · +3 swim" },
+    { name: "Abyss Filter", cost: 5e9, amount: 0.85, slots: 3, desc: "+85% drip · +3 swim" },
+    { name: "Prism Tank", cost: 3.5e10, amount: 1, slots: 4, desc: "+100% drip · +4 swim" },
+    { name: "Nebula Bubbler", cost: 2.5e11, amount: 1.2, slots: 4, desc: "+120% drip · +4 swim" },
+    { name: "Horizon Aquarium", cost: 1.8e12, amount: 1.4, slots: 4, desc: "+140% drip · +4 swim" },
+    { name: "Chrono Circulator", cost: 1.3e13, amount: 1.65, slots: 5, desc: "+165% drip · +5 swim" },
+    { name: "Genesis Habitat", cost: 9e13, amount: 1.9, slots: 5, desc: "+190% drip · +5 swim" },
+    { name: "Singularity Tank", cost: 6.5e14, amount: 2.2, slots: 5, desc: "+220% drip · +5 swim" },
+    { name: "Absolute Exhibit", cost: 5e15, amount: 2.5, slots: 6, desc: "+250% drip · +6 swim" },
+    { name: "Omni Reef", cost: 4e16, amount: 2.8, slots: 6, desc: "+280% drip · +6 swim" },
+    { name: "Zenith Oceanarium", cost: 3.2e17, amount: 3.2, slots: 7, desc: "+320% drip · +7 swim" },
+    { name: "Mythos Vivaria", cost: 2.5e18, amount: 3.6, slots: 7, desc: "+360% drip · +7 swim" },
+    { name: "Omega Origin Tank", cost: 2e19, amount: 4, slots: 8, desc: "+400% drip · +8 swim" }
   ];
   const AQUARIUM_MAX_LEVEL = AQUARIUM_TIERS.length - 1;
 
