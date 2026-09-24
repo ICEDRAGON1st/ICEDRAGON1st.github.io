@@ -24,7 +24,8 @@
     matches: "online-matches",
     fishingAdmin: "fishing-admin-events",
     fishingCommunity: "fishing-community",
-    fishingGifts: "fishing-gifts"
+    fishingGifts: "fishing-gifts",
+    fishingMail: "fishing-player-mail"
   };
 
   function headers(extra) {

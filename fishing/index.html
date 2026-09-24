@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260924e">
+  <link rel="stylesheet" href="styles.css?v=20260924f">
 </head>
 <body data-spot="creek" data-hub-sound-btn="off">
   <div id="weather-fx" class="weather-fx" aria-hidden="true">
@@ -32,6 +32,7 @@
     <h1>Fishing Idle</h1>
     <div class="top-stats">
       <button id="admin-btn" type="button" class="guide-btn admin-btn hidden" hidden>Admin</button>
+      <button id="mail-btn" type="button" class="guide-btn mail-btn" title="Gift & trade">Mail</button>
       <button id="shiny-machine-btn" type="button" class="guide-btn">Shiny machine</button>
       <button id="book-btn" type="button" class="guide-btn">Catch book</button>
       <button id="guide-btn" type="button" class="guide-btn">Fish guide</button>
@@ -656,6 +657,19 @@
     </div>
   </div>
 
+  <div id="mail-overlay" class="overlay mail-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="mail-title">
+    <div class="overlay-card mail-card-panel">
+      <div class="guide-head">
+        <div>
+          <p class="eyebrow">Friends</p>
+          <h2 id="mail-title">Gift &amp; trade</h2>
+        </div>
+        <button id="mail-close" type="button" class="btn btn-ghost guide-close">Close</button>
+      </div>
+      <div id="mail-body" class="mail-body"></div>
+    </div>
+  </div>
+
   <div id="admin-overlay" class="overlay admin-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="admin-title">
     <div class="overlay-card admin-card">
       <div class="guide-head">
@@ -864,12 +878,12 @@
   <script src="../hub-achievements.js?v=20260919f"></script>
   <script src="../hub-sound.js?v=20260921u"></script>
   <script src="../hub-confetti.js"></script>
-  <script src="../hub-supabase.js?v=20260923v"></script>
-  <script src="../hub-account-bag.js?v=20260923ag"></script>
-  <script src="../hub-plays.js?v=20260923ae"></script>
+  <script src="../hub-supabase.js?v=20260924h"></script>
+  <script src="../hub-account-bag.js?v=20260924h"></script>
+  <script src="../hub-plays.js?v=20260924h"></script>
   <script src="../hub-friends.js?v=20260923u"></script>
   <script src="../hub-chat.js?v=20260924f"></script>
   <script src="../hub-leaderboard.js?v=20260923u"></script>
-  <script src="script.js?v=20260924n"></script>
+  <script src="script.js?v=20260924o"></script>
 </body>
 </html>

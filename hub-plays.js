@@ -3743,10 +3743,13 @@ body.light .menu-credit .player-name-creator {
         }
       }
       if (!base) return;
-      const el = document.createElement("script");
-      el.src = `${base}hub-fishing-gifts.js?v=${window.WORDLE_BUILD || "20260917bt"}`;
-      el.async = true;
-      document.head.appendChild(el);
+      const v = window.WORDLE_BUILD || "20260917bt";
+      ["hub-fishing-gifts.js", "hub-fishing-mail.js"].forEach((file) => {
+        const el = document.createElement("script");
+        el.src = `${base}${file}?v=${v}`;
+        el.async = true;
+        document.head.appendChild(el);
+      });
     } catch {}
   })();
 })();

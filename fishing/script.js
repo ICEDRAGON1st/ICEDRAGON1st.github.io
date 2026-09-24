@@ -130,6 +130,16 @@
   const FISH_GIFTS_DOC = "fishing-gifts";
   const FISH_GIFTS_TOKEN = "ice-fish-gift-9f3a";
 
+  const PLAYER_MAIL_DOC = "fishing-player-mail";
+  const PLAYER_MAIL_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-player-mail";
+  const PLAYER_MAIL_TOKEN = "ice-fish-mail-9f3a";
+  const PLAYER_MAIL_CLAIMED_KEY = "fishing-player-mail-claimed-v1";
+  const PLAYER_MAIL_POLL_MS = 5_000;
+  const PLAYER_MAIL_MAX_ITEMS = 8;
+  const PLAYER_MAIL_GIFT_COOLDOWN_MS = 30_000;
+  const PLAYER_MAIL_GIFT_TTL_MS = 7 * 24 * 60 * 60_000;
+  const PLAYER_MAIL_TRADE_TTL_MS = 24 * 60 * 60_000;
+
   function fishingSb() {
     return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
   }
@@ -6103,6 +6113,1019 @@
     pollFishGifts(true);
     if (fishGiftPollTimer) clearInterval(fishGiftPollTimer);
     fishGiftPollTimer = setInterval(() => pollFishGifts(false), FISH_GIFTS_POLL_MS);
+  }
+
+  /* ========== PLAYER MAIL: gifts + trades (friends) ========== */
+  let playerMailPollTimer = 0;
+  let playerMailFetchedAt = 0;
+  let playerMailCache = { gifts: {}, trades: {} };
+  let lastPlayerGiftAt = 0;
+  let mailCompose = null; // { mode:'gift'|'trade', friendId, friendName, items:[], tradeId }
+  let mailTab = "inbox";
+
+  function readPlayerMailClaimed() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(PLAYER_MAIL_CLAIMED_KEY) || "[]");
+      return new Set(Array.isArray(raw) ? raw.map(String) : []);
+    } catch {
+      return new Set();
+    }
+  }
+
+  function writePlayerMailClaimed(set) {
+    try {
+      localStorage.setItem(PLAYER_MAIL_CLAIMED_KEY, JSON.stringify([...set].slice(-300)));
+    } catch {}
+  }
+
+  function mailMyId() {
+    return String(window.HubPlays?.getPlayerId?.() || "");
+  }
+
+  function mailMyName() {
+    return String(window.HubPlays?.getName?.() || localStorage.getItem("hub-player-name") || "").trim();
+  }
+
+  function isMailFriend(playerId, name) {
+    try {
+      if (playerId && window.HubFriends?.isFriend?.(playerId)) return true;
+      const friends = window.HubFriends?.getFriends?.() || [];
+      const key = String(name || "").trim().toLowerCase();
+      return friends.some((f) => {
+        const fid = String(f.playerId || f.id || "");
+        const fname = String(f.name || "").trim().toLowerCase();
+        if (playerId && fid && fid === playerId) return true;
+        if (key && fname === key) return true;
+        return false;
+      });
+    } catch {
+      return false;
+    }
+  }
+
+  function serializeMailFish(entry) {
+    const n = normalizeCoolerEntry(entry) || {};
+    return {
+      kind: "fish",
+      fishId: String(n.id || coolerEntryId(entry) || ""),
+      variant: normalizeVariant(n.variant),
+      shiny: !!n.shiny,
+      mutation: normalizeMutation(n.mutation),
+      perfect: !!n.perfect
+    };
+  }
+
+  function serializeMailChest(chestKind, count = 1) {
+    return {
+      kind: "chest",
+      chestKind: chestKind === "luck" ? "luck" : "money",
+      count: Math.min(50, Math.max(1, Math.floor(Number(count) || 1)))
+    };
+  }
+
+  function serializeMailLuckyBlock(lbType, count = 1) {
+    return {
+      kind: "luckyblock",
+      lbType: resolveLuckyBlockType(lbType) || "absolute",
+      count: Math.min(50, Math.max(1, Math.floor(Number(count) || 1)))
+    };
+  }
+
+  function mailItemLabel(item) {
+    if (!item) return "Item";
+    if (item.kind === "fish") {
+      const fish = fishById(item.fishId);
+      if (!fish) return item.fishId || "Fish";
+      return formatFishName(fish, {
+        variant: item.variant,
+        shiny: item.shiny,
+        mutation: item.mutation
+      });
+    }
+    if (item.kind === "chest") {
+      const n = Math.max(1, Number(item.count) || 1);
+      const name = item.chestKind === "luck" ? "Luck Chest" : "Coin Chest";
+      return n === 1 ? name : `${n}× ${name}`;
+    }
+    if (item.kind === "luckyblock") {
+      const n = Math.max(1, Number(item.count) || 1);
+      const name = luckyBlockDef(item.lbType).name;
+      return n === 1 ? name : `${n}× ${name}`;
+    }
+    return "Item";
+  }
+
+  function takeMailItemsFromInventory(items) {
+    const taken = [];
+    const backup = {
+      cooler: state.cooler.slice(),
+      moneyChestCount: state.moneyChestCount,
+      luckChestCount: state.luckChestCount,
+      luckyBlockCount: state.luckyBlockCount,
+      astralLuckyBlockCount: state.astralLuckyBlockCount,
+      zenithLuckyBlockCount: state.zenithLuckyBlockCount
+    };
+    for (const item of items) {
+      if (item.kind === "fish") {
+        const idx = Number(item._coolerIndex);
+        if (!Number.isFinite(idx) || idx < 0 || idx >= state.cooler.length) {
+          restoreMailInventoryBackup(backup);
+          return null;
+        }
+        const entry = state.cooler[idx];
+        taken.push(serializeMailFish(entry));
+        state.cooler.splice(idx, 1);
+        // adjust later indices in remaining items
+        items.forEach((it) => {
+          if (it.kind === "fish" && Number(it._coolerIndex) > idx) it._coolerIndex -= 1;
+        });
+      } else if (item.kind === "chest") {
+        const key = item.chestKind === "luck" ? "luckChestCount" : "moneyChestCount";
+        const need = Math.max(1, Math.floor(Number(item.count) || 1));
+        const have = Math.max(0, Math.floor(Number(state[key]) || 0));
+        if (have < need) {
+          restoreMailInventoryBackup(backup);
+          return null;
+        }
+        state[key] = have - need;
+        taken.push(serializeMailChest(item.chestKind, need));
+      } else if (item.kind === "luckyblock") {
+        const def = luckyBlockDef(item.lbType);
+        const need = Math.max(1, Math.floor(Number(item.count) || 1));
+        const have = luckyBlockCount(def.id);
+        if (have < need) {
+          restoreMailInventoryBackup(backup);
+          return null;
+        }
+        state[def.stateKey] = have - need;
+        taken.push(serializeMailLuckyBlock(def.id, need));
+      }
+    }
+    return taken;
+  }
+
+  function restoreMailInventoryBackup(backup) {
+    if (!backup) return;
+    state.cooler = backup.cooler.slice();
+    state.moneyChestCount = backup.moneyChestCount;
+    state.luckChestCount = backup.luckChestCount;
+    state.luckyBlockCount = backup.luckyBlockCount;
+    state.astralLuckyBlockCount = backup.astralLuckyBlockCount;
+    state.zenithLuckyBlockCount = backup.zenithLuckyBlockCount;
+  }
+
+  function grantMailItemsLocal(items, opts = {}) {
+    const softChests = opts.softChests !== false;
+    let added = 0;
+    const leftover = [];
+    (items || []).forEach((item) => {
+      if (!item) return;
+      if (item.kind === "fish") {
+        if (state.cooler.length >= coolerMax()) {
+          leftover.push(item);
+          return;
+        }
+        const fish = fishById(item.fishId);
+        if (!fish) return;
+        grantFishToLocal(fish, {
+          variants: {
+            variant: normalizeVariant(item.variant),
+            shiny: !!item.shiny,
+            mutation: normalizeMutation(item.mutation)
+          },
+          perfect: !!item.perfect
+        });
+        added += 1;
+        return;
+      }
+      if (item.kind === "chest") {
+        const kind = item.chestKind === "luck" ? "luck" : "money";
+        const need = Math.max(1, Math.floor(Number(item.count) || 1));
+        if (softChests) {
+          const n = grantQuestChests(kind, need);
+          added += n;
+          if (n < need) leftover.push(serializeMailChest(kind, need - n));
+        } else {
+          const n = grantAdminChests(kind, need);
+          added += n;
+          if (n < need) leftover.push(serializeMailChest(kind, need - n));
+        }
+        return;
+      }
+      if (item.kind === "luckyblock") {
+        const need = Math.max(1, Math.floor(Number(item.count) || 1));
+        const n = storeLuckyBlock(item.lbType, need, { silent: true });
+        added += n;
+        if (n < need) leftover.push(serializeMailLuckyBlock(item.lbType, need - n));
+      }
+    });
+    return { added, leftover };
+  }
+
+  function prunePlayerMailDoc(doc) {
+    const now = Date.now();
+    const gifts = { ...(doc.gifts || {}) };
+    const trades = { ...(doc.trades || {}) };
+    Object.entries(gifts).forEach(([id, g]) => {
+      const at = Number(g?.at) || 0;
+      if (g?.claimed && now - at > 3 * 24 * 60_000) delete gifts[id];
+      else if (!g?.claimed && now - at > PLAYER_MAIL_GIFT_TTL_MS) delete gifts[id];
+    });
+    Object.entries(trades).forEach(([id, t]) => {
+      const at = Number(t?.updatedAt || t?.at) || 0;
+      if (t?.status === "done" || t?.status === "cancelled") {
+        if (now - at > 2 * 24 * 60_000) delete trades[id];
+      } else if (now - at > PLAYER_MAIL_TRADE_TTL_MS) {
+        trades[id] = {
+          ...t,
+          status: "cancelled",
+          updatedAt: now,
+          note: "expired"
+        };
+      }
+    });
+    return { gifts, trades };
+  }
+
+  async function fetchPlayerMailDoc() {
+    const api = fishingSb();
+    try {
+      let data = null;
+      if (api) {
+        data = await api.getPrefer(PLAYER_MAIL_DOC, PLAYER_MAIL_API);
+      } else {
+        const res = await fetch(`${PLAYER_MAIL_API}?t=${Date.now()}`, { cache: "no-store" });
+        if (res.status === 404) return { token: PLAYER_MAIL_TOKEN, gifts: {}, trades: {} };
+        if (!res.ok) return null;
+        data = await res.json();
+      }
+      if (!data || typeof data !== "object") {
+        return { token: PLAYER_MAIL_TOKEN, gifts: {}, trades: {} };
+      }
+      return {
+        token: data.token || PLAYER_MAIL_TOKEN,
+        gifts: data.gifts && typeof data.gifts === "object" ? data.gifts : {},
+        trades: data.trades && typeof data.trades === "object" ? data.trades : {}
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  async function postPlayerMailDoc(doc) {
+    const pruned = prunePlayerMailDoc(doc);
+    const payload = {
+      token: PLAYER_MAIL_TOKEN,
+      gifts: pruned.gifts,
+      trades: pruned.trades
+    };
+    const api = fishingSb();
+    try {
+      if (api) {
+        await api.pushPrefer(PLAYER_MAIL_DOC, payload, PLAYER_MAIL_API);
+        return true;
+      }
+      const res = await fetch(PLAYER_MAIL_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  function ensureMailCompose(mode) {
+    if (!mailCompose || mailCompose.mode !== mode) {
+      mailCompose = {
+        mode,
+        friendId: "",
+        friendName: "",
+        items: [],
+        tradeId: ""
+      };
+    }
+    return mailCompose;
+  }
+
+  function cancelMailCompose(restore = true) {
+    if (restore && mailCompose?.items?.length) {
+      grantMailItemsLocal(mailCompose.items, { softChests: false });
+      render(true);
+      saveState();
+    }
+    mailCompose = null;
+    renderMailOverlay();
+  }
+
+  function mailComposeAddItem(item) {
+    const c = mailCompose;
+    if (!c) return false;
+    if (c.items.length >= PLAYER_MAIL_MAX_ITEMS) {
+      setCatchLine(`Max ${PLAYER_MAIL_MAX_ITEMS} items`, "miss");
+      playSfx("miss");
+      return false;
+    }
+    c.items.push(item);
+    if (c.mode === "gift" || c.mode === "trade") {
+      // items already taken from inventory by caller for fish/chest/lb
+    }
+    renderMailOverlay();
+    return true;
+  }
+
+  async function sendPlayerGift() {
+    const c = mailCompose;
+    if (!c || c.mode !== "gift") return;
+    if (!c.friendId && !c.friendName) {
+      setCatchLine("Pick a friend first", "miss");
+      playSfx("miss");
+      return;
+    }
+    if (!isMailFriend(c.friendId, c.friendName)) {
+      setCatchLine("Friends only — add them first", "miss");
+      playSfx("miss");
+      return;
+    }
+    if (!c.items.length) {
+      setCatchLine("Add fish, chests, or lucky blocks", "miss");
+      playSfx("miss");
+      return;
+    }
+    const now = Date.now();
+    if (now - lastPlayerGiftAt < PLAYER_MAIL_GIFT_COOLDOWN_MS) {
+      setCatchLine("Gift cooldown — wait a bit", "miss");
+      playSfx("miss");
+      return;
+    }
+    const myId = mailMyId();
+    const myName = mailMyName();
+    if (!myId && !myName) {
+      setCatchLine("Set a hub name first", "miss");
+      playSfx("miss");
+      return;
+    }
+    const items = c.items.map((it) => {
+      const copy = { ...it };
+      delete copy._coolerIndex;
+      return copy;
+    });
+    setCatchLine("Sending gift…", "");
+    const remote = (await fetchPlayerMailDoc()) || { gifts: {}, trades: {} };
+    const id = `pg-${now.toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+    const gifts = { ...(remote.gifts || {}) };
+    gifts[id] = {
+      id,
+      fromId: myId,
+      fromName: myName,
+      toPlayerId: c.friendId,
+      toName: String(c.friendName || "").toLowerCase(),
+      toDisplay: c.friendName,
+      items,
+      at: now,
+      claimed: false
+    };
+    const ok = await postPlayerMailDoc({ gifts, trades: remote.trades || {} });
+    if (!ok) {
+      grantMailItemsLocal(items, { softChests: false });
+      setCatchLine("Gift failed — items returned", "miss");
+      playSfx("miss");
+      render(true);
+      saveState();
+      return;
+    }
+    lastPlayerGiftAt = now;
+    mailCompose = null;
+    setCatchLine(`Gift sent to ${c.friendName}`, "treasure");
+    playSfx("win");
+    renderMailOverlay();
+    render(true);
+    saveState();
+  }
+
+  async function claimPlayerGift(giftId) {
+    const remote = (await fetchPlayerMailDoc()) || { gifts: {}, trades: {} };
+    const g = remote.gifts?.[giftId];
+    if (!g || g.claimed) return;
+    const myId = mailMyId();
+    const me = playerNameLower();
+    const forMe =
+      (g.toPlayerId && myId && g.toPlayerId === myId) ||
+      (g.toName && me && String(g.toName).toLowerCase() === me);
+    if (!forMe) return;
+    const claimed = readPlayerMailClaimed();
+    if (claimed.has(giftId)) return;
+    const { added, leftover } = grantMailItemsLocal(g.items || [], { softChests: true });
+    if (!added && leftover.length) {
+      setCatchLine("No room — free cooler/stash space", "miss");
+      playSfx("miss");
+      return;
+    }
+    claimed.add(giftId);
+    writePlayerMailClaimed(claimed);
+    const gifts = { ...(remote.gifts || {}) };
+    if (leftover.length) {
+      gifts[giftId] = { ...g, items: leftover, claimed: false };
+      claimed.delete(giftId);
+      writePlayerMailClaimed(claimed);
+    } else {
+      gifts[giftId] = {
+        ...g,
+        claimed: true,
+        claimedBy: myId || me,
+        claimedAt: Date.now()
+      };
+    }
+    await postPlayerMailDoc({ gifts, trades: remote.trades || {} });
+    setCatchLine(
+      leftover.length
+        ? `Claimed part of gift from ${g.fromName || "friend"} · rest waiting`
+        : `Gift from ${g.fromName || "friend"} claimed`,
+      "treasure"
+    );
+    playSfx("win");
+    render(true);
+    saveState();
+    renderMailOverlay();
+  }
+
+  async function openTradeWithFriend(friendId, friendName) {
+    if (!isMailFriend(friendId, friendName)) {
+      setCatchLine("Friends only", "miss");
+      playSfx("miss");
+      return;
+    }
+    const myId = mailMyId();
+    const myName = mailMyName();
+    if (!myId) {
+      setCatchLine("Need a hub player id — refresh hub once", "miss");
+      playSfx("miss");
+      return;
+    }
+    const remote = (await fetchPlayerMailDoc()) || { gifts: {}, trades: {} };
+    const openMine = Object.values(remote.trades || {}).find(
+      (t) =>
+        t &&
+        t.status === "open" &&
+        (t.aId === myId || t.bId === myId)
+    );
+    if (openMine) {
+      setCatchLine("Finish or cancel your open trade first", "miss");
+      playSfx("miss");
+      mailCompose = {
+        mode: "trade",
+        friendId: openMine.aId === myId ? openMine.bId : openMine.aId,
+        friendName: openMine.aId === myId ? openMine.bName : openMine.aName,
+        items: [],
+        tradeId: openMine.id
+      };
+      mailTab = "trade";
+      renderMailOverlay();
+      return;
+    }
+    const now = Date.now();
+    const id = `tr-${now.toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+    const trades = { ...(remote.trades || {}) };
+    trades[id] = {
+      id,
+      aId: myId,
+      aName: myName,
+      bId: friendId,
+      bName: friendName,
+      aItems: [],
+      bItems: [],
+      aAccept: false,
+      bAccept: false,
+      status: "open",
+      at: now,
+      updatedAt: now,
+      appliedBy: {},
+      restoredBy: {}
+    };
+    const ok = await postPlayerMailDoc({ gifts: remote.gifts || {}, trades });
+    if (!ok) {
+      setCatchLine("Couldn't start trade", "miss");
+      playSfx("miss");
+      return;
+    }
+    mailCompose = {
+      mode: "trade",
+      friendId,
+      friendName,
+      items: [],
+      tradeId: id
+    };
+    mailTab = "trade";
+    setCatchLine(`Trade opened with ${friendName}`, "treasure");
+    playSfx("click");
+    playerMailCache.trades = trades;
+    renderMailOverlay();
+  }
+
+  function myTradeSide(trade) {
+    const myId = mailMyId();
+    if (!trade || !myId) return null;
+    if (trade.aId === myId) return "a";
+    if (trade.bId === myId) return "b";
+    return null;
+  }
+
+  async function syncTradeOfferItems(tradeId, items) {
+    const remote = (await fetchPlayerMailDoc()) || { gifts: {}, trades: {} };
+    const t = remote.trades?.[tradeId];
+    if (!t || t.status !== "open") return false;
+    const side = myTradeSide(t);
+    if (!side) return false;
+    const trades = { ...(remote.trades || {}) };
+    const next = {
+      ...t,
+      aAccept: false,
+      bAccept: false,
+      updatedAt: Date.now()
+    };
+    if (side === "a") next.aItems = items;
+    else next.bItems = items;
+    trades[tradeId] = next;
+    const ok = await postPlayerMailDoc({ gifts: remote.gifts || {}, trades });
+    if (ok) playerMailCache.trades = trades;
+    return ok;
+  }
+
+  async function addComposeItemFromCooler(index) {
+    if (!mailCompose || (mailCompose.mode !== "gift" && mailCompose.mode !== "trade")) {
+      return false;
+    }
+    const i = Math.floor(Number(index));
+    if (!Number.isFinite(i) || i < 0 || i >= state.cooler.length) return false;
+    if (mailCompose.items.length >= PLAYER_MAIL_MAX_ITEMS) {
+      setCatchLine(`Max ${PLAYER_MAIL_MAX_ITEMS} items`, "miss");
+      return false;
+    }
+    const entry = state.cooler[i];
+    if (isCoolerSaved(entry)) {
+      setCatchLine("Unpin saved fish before gifting", "miss");
+      playSfx("miss");
+      return false;
+    }
+    const item = serializeMailFish(entry);
+    state.cooler.splice(i, 1);
+    mailCompose.items.push(item);
+    render(true);
+    saveSoon();
+    if (mailCompose.mode === "trade" && mailCompose.tradeId) {
+      const ok = await syncTradeOfferItems(mailCompose.tradeId, mailCompose.items);
+      if (!ok) {
+        state.cooler.splice(i, 0, entry);
+        mailCompose.items.pop();
+        setCatchLine("Trade sync failed", "miss");
+        render(true);
+        return false;
+      }
+    }
+    renderMailOverlay();
+    return true;
+  }
+
+  async function addComposeChest(chestKind, count = 1) {
+    if (!mailCompose || (mailCompose.mode !== "gift" && mailCompose.mode !== "trade")) return false;
+    if (mailCompose.items.length >= PLAYER_MAIL_MAX_ITEMS) {
+      setCatchLine(`Max ${PLAYER_MAIL_MAX_ITEMS} items`, "miss");
+      return false;
+    }
+    const key = chestKind === "luck" ? "luckChestCount" : "moneyChestCount";
+    const need = Math.max(1, Math.floor(Number(count) || 1));
+    const have = Math.max(0, Math.floor(Number(state[key]) || 0));
+    if (have < need) {
+      setCatchLine("Not enough chests", "miss");
+      playSfx("miss");
+      return false;
+    }
+    state[key] = have - need;
+    mailCompose.items.push(serializeMailChest(chestKind, need));
+    renderTreasureStash();
+    saveSoon();
+    if (mailCompose.mode === "trade" && mailCompose.tradeId) {
+      const ok = await syncTradeOfferItems(mailCompose.tradeId, mailCompose.items);
+      if (!ok) {
+        state[key] = have;
+        mailCompose.items.pop();
+        setCatchLine("Trade sync failed", "miss");
+        renderTreasureStash();
+        return false;
+      }
+    }
+    renderMailOverlay();
+    return true;
+  }
+
+  async function addComposeLuckyBlock(lbType, count = 1) {
+    if (!mailCompose || (mailCompose.mode !== "gift" && mailCompose.mode !== "trade")) return false;
+    if (mailCompose.items.length >= PLAYER_MAIL_MAX_ITEMS) {
+      setCatchLine(`Max ${PLAYER_MAIL_MAX_ITEMS} items`, "miss");
+      return false;
+    }
+    const def = luckyBlockDef(lbType);
+    const need = Math.max(1, Math.floor(Number(count) || 1));
+    const have = luckyBlockCount(def.id);
+    if (have < need) {
+      setCatchLine("Not enough lucky blocks", "miss");
+      playSfx("miss");
+      return false;
+    }
+    state[def.stateKey] = have - need;
+    mailCompose.items.push(serializeMailLuckyBlock(def.id, need));
+    renderTreasureStash();
+    saveSoon();
+    if (mailCompose.mode === "trade" && mailCompose.tradeId) {
+      const ok = await syncTradeOfferItems(mailCompose.tradeId, mailCompose.items);
+      if (!ok) {
+        state[def.stateKey] = have;
+        mailCompose.items.pop();
+        setCatchLine("Trade sync failed", "miss");
+        renderTreasureStash();
+        return false;
+      }
+    }
+    renderMailOverlay();
+    return true;
+  }
+
+  async function removeComposeItem(index) {
+    if (!mailCompose) return;
+    const i = Math.floor(Number(index));
+    if (i < 0 || i >= mailCompose.items.length) return;
+    const [item] = mailCompose.items.splice(i, 1);
+    grantMailItemsLocal([item], { softChests: false });
+    render(true);
+    saveSoon();
+    if (mailCompose.mode === "trade" && mailCompose.tradeId) {
+      await syncTradeOfferItems(mailCompose.tradeId, mailCompose.items);
+    }
+    renderMailOverlay();
+  }
+
+  async function setTradeAccept(tradeId, accept) {
+    const remote = (await fetchPlayerMailDoc()) || { gifts: {}, trades: {} };
+    const t = remote.trades?.[tradeId];
+    if (!t || t.status !== "open") return;
+    const side = myTradeSide(t);
+    if (!side) return;
+    const trades = { ...(remote.trades || {}) };
+    const next = { ...t, updatedAt: Date.now() };
+    if (side === "a") next.aAccept = !!accept;
+    else next.bAccept = !!accept;
+    if (next.aAccept && next.bAccept) {
+      next.status = "done";
+    }
+    trades[tradeId] = next;
+    const ok = await postPlayerMailDoc({ gifts: remote.gifts || {}, trades });
+    if (!ok) {
+      setCatchLine("Couldn't update trade", "miss");
+      return;
+    }
+    playerMailCache.trades = trades;
+    if (next.status === "done") {
+      await applyCompletedTrade(next);
+    } else {
+      setCatchLine(accept ? "Accepted — waiting on them" : "Accept cleared", "");
+      playSfx("click");
+    }
+    renderMailOverlay();
+  }
+
+  async function cancelTrade(tradeId) {
+    const remote = (await fetchPlayerMailDoc()) || { gifts: {}, trades: {} };
+    const t = remote.trades?.[tradeId];
+    if (!t || t.status !== "open") return;
+    const side = myTradeSide(t);
+    if (!side) return;
+    const trades = { ...(remote.trades || {}) };
+    trades[tradeId] = {
+      ...t,
+      status: "cancelled",
+      updatedAt: Date.now(),
+      aAccept: false,
+      bAccept: false
+    };
+    const ok = await postPlayerMailDoc({ gifts: remote.gifts || {}, trades });
+    if (!ok) {
+      setCatchLine("Couldn't cancel trade", "miss");
+      return;
+    }
+    playerMailCache.trades = trades;
+    await restoreCancelledTrade(trades[tradeId]);
+    if (mailCompose?.tradeId === tradeId) mailCompose = null;
+    setCatchLine("Trade cancelled — items returned", "treasure");
+    playSfx("click");
+    renderMailOverlay();
+  }
+
+  async function restoreCancelledTrade(trade) {
+    if (!trade) return;
+    const myId = mailMyId();
+    if (!myId) return;
+    const restored = trade.restoredBy && typeof trade.restoredBy === "object" ? { ...trade.restoredBy } : {};
+    if (restored[myId]) return;
+    const side = myTradeSide(trade);
+    if (!side) return;
+    const mine = side === "a" ? trade.aItems : trade.bItems;
+    grantMailItemsLocal(mine || [], { softChests: false });
+    restored[myId] = Date.now();
+    const remote = (await fetchPlayerMailDoc()) || { gifts: {}, trades: {} };
+    const trades = { ...(remote.trades || {}) };
+    if (trades[trade.id]) {
+      trades[trade.id] = { ...trades[trade.id], restoredBy: restored };
+      await postPlayerMailDoc({ gifts: remote.gifts || {}, trades });
+      playerMailCache.trades = trades;
+    }
+    render(true);
+    saveState();
+  }
+
+  async function applyCompletedTrade(trade) {
+    if (!trade || trade.status !== "done") return;
+    const myId = mailMyId();
+    if (!myId) return;
+    const applied = trade.appliedBy && typeof trade.appliedBy === "object" ? { ...trade.appliedBy } : {};
+    if (applied[myId]) return;
+    const side = myTradeSide(trade);
+    if (!side) return;
+    const theirs = side === "a" ? trade.bItems : trade.aItems;
+    const { added } = grantMailItemsLocal(theirs || [], { softChests: true });
+    applied[myId] = Date.now();
+    const remote = (await fetchPlayerMailDoc()) || { gifts: {}, trades: {} };
+    const trades = { ...(remote.trades || {}) };
+    if (trades[trade.id]) {
+      trades[trade.id] = { ...trades[trade.id], appliedBy: applied };
+      await postPlayerMailDoc({ gifts: remote.gifts || {}, trades });
+      playerMailCache.trades = trades;
+    }
+    if (mailCompose?.tradeId === trade.id) mailCompose = null;
+    setCatchLine(
+      added ? `Trade complete · got ${added} item${added === 1 ? "" : "s"}` : "Trade complete",
+      "treasure"
+    );
+    playSfx("win");
+    burstConfetti();
+    render(true);
+    saveState();
+  }
+
+  async function pollPlayerMail(force = false) {
+    const now = Date.now();
+    if (!force && now - playerMailFetchedAt < PLAYER_MAIL_POLL_MS) return;
+    playerMailFetchedAt = now;
+    const doc = await fetchPlayerMailDoc();
+    if (!doc) return;
+    playerMailCache = { gifts: doc.gifts || {}, trades: doc.trades || {} };
+    const myId = mailMyId();
+    const me = playerNameLower();
+    const claimed = readPlayerMailClaimed();
+
+    // Auto-notify new gifts (don't auto-claim fish if cooler full — manual claim in inbox)
+    let newGifts = 0;
+    Object.values(playerMailCache.gifts).forEach((g) => {
+      if (!g || g.claimed) return;
+      const gid = String(g.id || "");
+      if (!gid || claimed.has(gid)) return;
+      const forMe =
+        (g.toPlayerId && myId && g.toPlayerId === myId) ||
+        (g.toName && me && String(g.toName).toLowerCase() === me);
+      if (forMe) newGifts += 1;
+    });
+
+    // Handle trades: expired→cancelled restore, done→apply
+    for (const t of Object.values(playerMailCache.trades)) {
+      if (!t || !myTradeSide(t)) continue;
+      if (t.status === "cancelled") await restoreCancelledTrade(t);
+      if (t.status === "done") await applyCompletedTrade(t);
+      // Expire open trades locally via prune on next write; also soft-expire here
+      if (
+        t.status === "open" &&
+        now - (Number(t.updatedAt || t.at) || 0) > PLAYER_MAIL_TRADE_TTL_MS
+      ) {
+        await cancelTrade(t.id);
+      }
+    }
+
+    updateMailBadge(newGifts);
+    const overlay = document.getElementById("mail-overlay");
+    if (overlay && !overlay.classList.contains("hidden")) renderMailOverlay();
+  }
+
+  function updateMailBadge(count) {
+    const btn = document.getElementById("mail-btn");
+    if (!btn) return;
+    const n = Math.max(0, Math.floor(Number(count) || 0));
+    btn.dataset.badge = n > 0 ? String(n) : "";
+    btn.classList.toggle("has-mail", n > 0);
+    btn.title = n > 0 ? `Mail (${n} gift${n === 1 ? "" : "s"})` : "Gift & trade";
+  }
+
+  function friendOptionsHtml(selectedId) {
+    const friends = window.HubFriends?.getFriends?.() || [];
+    if (!friends.length) {
+      return `<p class="mail-empty">No friends yet — add some on the hub Friends panel.</p>`;
+    }
+    return `<div class="mail-friend-list">${friends
+      .map((f) => {
+        const id = String(f.playerId || f.id || "");
+        const name = String(f.name || "Friend");
+        const sel = id && id === selectedId ? " is-active" : "";
+        return `<button type="button" class="mail-friend-btn${sel}" data-mail-friend="${escapeHtml(
+          id
+        )}" data-mail-friend-name="${escapeHtml(name)}">${escapeHtml(name)}</button>`;
+      })
+      .join("")}</div>`;
+  }
+
+  function mailItemsHtml(items, removable) {
+    if (!items?.length) return `<p class="mail-empty">No items yet</p>`;
+    return `<ul class="mail-item-list">${items
+      .map(
+        (it, i) =>
+          `<li class="mail-item">${escapeHtml(mailItemLabel(it))}${
+            removable
+              ? ` <button type="button" class="btn btn-ghost mail-item-remove" data-mail-remove="${i}">✕</button>`
+              : ""
+          }</li>`
+      )
+      .join("")}</ul>`;
+  }
+
+  function renderMailOverlay() {
+    const body = document.getElementById("mail-body");
+    if (!body) return;
+    const friends = window.HubFriends?.getFriends?.() || [];
+    const myId = mailMyId();
+    const me = playerNameLower();
+    const claimed = readPlayerMailClaimed();
+
+    const inboxGifts = Object.values(playerMailCache.gifts || {}).filter((g) => {
+      if (!g || g.claimed) return false;
+      const gid = String(g.id || "");
+      if (!gid || claimed.has(gid)) return false;
+      return (
+        (g.toPlayerId && myId && g.toPlayerId === myId) ||
+        (g.toName && me && String(g.toName).toLowerCase() === me)
+      );
+    });
+    const myTrades = Object.values(playerMailCache.trades || {}).filter(
+      (t) => t && myTradeSide(t) && (t.status === "open" || t.status === "done")
+    );
+
+    let html = `<div class="mail-tabs" role="tablist">
+      <button type="button" class="mail-tab${mailTab === "inbox" ? " is-active" : ""}" data-mail-tab="inbox">Inbox${
+        inboxGifts.length ? ` (${inboxGifts.length})` : ""
+      }</button>
+      <button type="button" class="mail-tab${mailTab === "gift" ? " is-active" : ""}" data-mail-tab="gift">Send gift</button>
+      <button type="button" class="mail-tab${mailTab === "trade" ? " is-active" : ""}" data-mail-tab="trade">Trade</button>
+    </div>`;
+
+    if (mailTab === "inbox") {
+      html += `<div class="mail-panel">`;
+      if (!inboxGifts.length && !myTrades.filter((t) => t.status === "open").length) {
+        html += `<p class="mail-empty">No gifts waiting. Friends can send you fish, chests, or lucky blocks.</p>`;
+      }
+      inboxGifts.forEach((g) => {
+        html += `<div class="mail-card">
+          <div class="mail-card-head"><strong>Gift from ${escapeHtml(
+            g.fromName || "friend"
+          )}</strong></div>
+          ${mailItemsHtml(g.items || [], false)}
+          <button type="button" class="btn" data-mail-claim="${escapeHtml(g.id)}">Claim</button>
+        </div>`;
+      });
+      myTrades
+        .filter((t) => t.status === "open")
+        .forEach((t) => {
+          const side = myTradeSide(t);
+          const other = side === "a" ? t.bName : t.aName;
+          html += `<div class="mail-card">
+            <div class="mail-card-head"><strong>Open trade with ${escapeHtml(
+              other || "friend"
+            )}</strong></div>
+            <button type="button" class="btn btn-ghost" data-mail-open-trade="${escapeHtml(
+              t.id
+            )}">Open</button>
+          </div>`;
+        });
+      html += `</div>`;
+    } else if (mailTab === "gift") {
+      if (!mailCompose || mailCompose.mode !== "gift") {
+        mailCompose = {
+          mode: "gift",
+          friendId: "",
+          friendName: "",
+          items: [],
+          tradeId: ""
+        };
+      }
+      const c = mailCompose;
+      html += `<div class="mail-panel">
+        <p class="mail-hint">Friends only · tap cooler fish while this is open, or add stash items below. Max ${PLAYER_MAIL_MAX_ITEMS}.</p>
+        <p class="mail-section-label">Friend</p>
+        ${friendOptionsHtml(c.friendId)}
+        <p class="mail-section-label">Your offer (${c.items.length}/${PLAYER_MAIL_MAX_ITEMS})</p>
+        ${mailItemsHtml(c.items, true)}
+        <div class="mail-add-row">
+          <button type="button" class="btn btn-ghost" data-mail-add-chest="money">+ Coin chest</button>
+          <button type="button" class="btn btn-ghost" data-mail-add-chest="luck">+ Luck chest</button>
+          <button type="button" class="btn btn-ghost" data-mail-add-lb="astral">+ Astral</button>
+          <button type="button" class="btn btn-ghost" data-mail-add-lb="absolute">+ Absolute</button>
+          <button type="button" class="btn btn-ghost" data-mail-add-lb="zenith">+ Zenith</button>
+        </div>
+        <div class="mail-actions">
+          <button type="button" class="btn" data-mail-send-gift>Send gift</button>
+          <button type="button" class="btn btn-ghost" data-mail-cancel-compose>Cancel</button>
+        </div>
+      </div>`;
+    } else {
+      const c = mailCompose?.mode === "trade" ? mailCompose : null;
+      html += `<div class="mail-panel">`;
+      if (!c?.tradeId) {
+        html += `<p class="mail-hint">Start a trade with a friend, then tap cooler fish or add stash items. Both must Accept.</p>
+        <p class="mail-section-label">Start with</p>
+        ${friendOptionsHtml("")}
+        <p class="mail-empty">${friends.length ? "Tap a friend to open a trade." : ""}</p>`;
+      } else {
+        const t = playerMailCache.trades?.[c.tradeId];
+        const side = t ? myTradeSide(t) : "a";
+        const mine = t ? (side === "a" ? t.aItems : t.bItems) : c.items;
+        const theirs = t ? (side === "a" ? t.bItems : t.aItems) : [];
+        const myAccept = t ? (side === "a" ? t.aAccept : t.bAccept) : false;
+        const theirAccept = t ? (side === "a" ? t.bAccept : t.aAccept) : false;
+        html += `<p class="mail-hint">Trading with <strong>${escapeHtml(
+          c.friendName
+        )}</strong> · tap cooler fish to add</p>
+        <div class="mail-trade-cols">
+          <div class="mail-trade-col">
+            <p class="mail-section-label">You ${myAccept ? "· accepted" : ""}</p>
+            ${mailItemsHtml(mine || c.items, true)}
+            <div class="mail-add-row">
+              <button type="button" class="btn btn-ghost" data-mail-add-chest="money">+ Coin</button>
+              <button type="button" class="btn btn-ghost" data-mail-add-chest="luck">+ Luck</button>
+              <button type="button" class="btn btn-ghost" data-mail-add-lb="absolute">+ Block</button>
+            </div>
+          </div>
+          <div class="mail-trade-col">
+            <p class="mail-section-label">Them ${theirAccept ? "· accepted" : ""}</p>
+            ${mailItemsHtml(theirs, false)}
+          </div>
+        </div>
+        <div class="mail-actions">
+          <button type="button" class="btn" data-mail-accept="${escapeHtml(c.tradeId)}" ${
+            myAccept ? "disabled" : ""
+          }>Accept</button>
+          <button type="button" class="btn btn-ghost" data-mail-unaccept="${escapeHtml(
+            c.tradeId
+          )}" ${myAccept ? "" : "disabled"}>Un-accept</button>
+          <button type="button" class="btn btn-ghost" data-mail-cancel-trade="${escapeHtml(
+            c.tradeId
+          )}">Cancel trade</button>
+        </div>`;
+      }
+      html += `</div>`;
+    }
+    body.innerHTML = html;
+    renderCooler(true);
+  }
+
+  function openMailOverlay(tab) {
+    if (tab) mailTab = tab;
+    if (mailTab === "gift" && (!mailCompose || mailCompose.mode !== "gift")) {
+      mailCompose = {
+        mode: "gift",
+        friendId: "",
+        friendName: "",
+        items: [],
+        tradeId: ""
+      };
+    }
+    const overlay = document.getElementById("mail-overlay");
+    if (!overlay) return;
+    overlay.classList.remove("hidden");
+    try {
+      window.HubFriends?.sync?.();
+      window.HubFriends?.startPolling?.();
+    } catch {}
+    pollPlayerMail(true).then(() => renderMailOverlay());
+    renderMailOverlay();
+    renderCooler(true);
+  }
+
+  function closeMailOverlay() {
+    document.getElementById("mail-overlay")?.classList.add("hidden");
+  }
+
+  function startPlayerMailPolling() {
+    pollPlayerMail(true);
+    if (playerMailPollTimer) clearInterval(playerMailPollTimer);
+    playerMailPollTimer = setInterval(() => pollPlayerMail(false), PLAYER_MAIL_POLL_MS);
+    try {
+      window.HubFriends?.startPolling?.();
+    } catch {}
   }
 
   async function runGiveFishCommand(cmd) {
@@ -12298,6 +13321,13 @@
           }" aria-label="${saved ? "Unsave" : "Save"} ${label}" aria-pressed="${saved}">${
             saved ? "★" : "☆"
           }</button>
+          ${
+            mailCompose && (mailCompose.mode === "gift" || mailCompose.mode === "trade")
+              ? `<button type="button" class="fish-chip-mail" data-mail-fish="${index}" title="Add to ${
+                  mailCompose.mode === "trade" ? "trade" : "gift"
+                }" aria-label="Add ${label} to ${mailCompose.mode}">✉</button>`
+              : ""
+          }
           <button type="button" class="fish-chip-sell" data-sell-index="${index}" title="${
             saved
               ? "Saved — unpin to sell"
@@ -14032,6 +15062,14 @@
       toggleSaveFish(saveBtn.dataset.saveIndex);
       return;
     }
+    const mailFish = e.target.closest("[data-mail-fish]");
+    if (mailFish && coolerList.contains(mailFish)) {
+      e.preventDefault();
+      e.stopPropagation();
+      addComposeItemFromCooler(mailFish.dataset.mailFish);
+      playSfx("click");
+      return;
+    }
     const sellChip = e.target.closest("[data-sell-index]");
     if (!sellChip || !coolerList.contains(sellChip) || sellChip.disabled) return;
     e.preventDefault();
@@ -14225,6 +15263,103 @@
     hideAdminCmdSuggest();
     runAdminCommand(raw);
   });
+  document.getElementById("mail-btn")?.addEventListener("click", () => {
+    openMailOverlay();
+    playSfx("click");
+  });
+  document.getElementById("mail-close")?.addEventListener("click", () => closeMailOverlay());
+  document.getElementById("mail-overlay")?.addEventListener("click", (e) => {
+    if (e.target === e.currentTarget) closeMailOverlay();
+  });
+  document.getElementById("mail-body")?.addEventListener("click", (e) => {
+    const tab = e.target.closest("[data-mail-tab]");
+    if (tab) {
+      mailTab = tab.dataset.mailTab || "inbox";
+      if (mailTab === "gift") ensureMailCompose("gift");
+      renderMailOverlay();
+      playSfx("click");
+      return;
+    }
+    const friend = e.target.closest("[data-mail-friend]");
+    if (friend) {
+      const id = friend.dataset.mailFriend || "";
+      const name = friend.dataset.mailFriendName || "";
+      if (mailTab === "trade" && !(mailCompose?.mode === "trade" && mailCompose.tradeId)) {
+        openTradeWithFriend(id, name);
+        return;
+      }
+      ensureMailCompose(mailTab === "trade" ? "trade" : "gift");
+      mailCompose.friendId = id;
+      mailCompose.friendName = name;
+      renderMailOverlay();
+      playSfx("click");
+      return;
+    }
+    const claim = e.target.closest("[data-mail-claim]");
+    if (claim) {
+      claimPlayerGift(claim.dataset.mailClaim);
+      return;
+    }
+    const openTr = e.target.closest("[data-mail-open-trade]");
+    if (openTr) {
+      const tid = openTr.dataset.mailOpenTrade;
+      const t = playerMailCache.trades?.[tid];
+      if (t) {
+        const side = myTradeSide(t);
+        mailCompose = {
+          mode: "trade",
+          friendId: side === "a" ? t.bId : t.aId,
+          friendName: side === "a" ? t.bName : t.aName,
+          items: side === "a" ? [...(t.aItems || [])] : [...(t.bItems || [])],
+          tradeId: tid
+        };
+        mailTab = "trade";
+        renderMailOverlay();
+      }
+      return;
+    }
+    const rem = e.target.closest("[data-mail-remove]");
+    if (rem) {
+      removeComposeItem(rem.dataset.mailRemove);
+      return;
+    }
+    const addChest = e.target.closest("[data-mail-add-chest]");
+    if (addChest) {
+      addComposeChest(addChest.dataset.mailAddChest, 1);
+      playSfx("click");
+      return;
+    }
+    const addLb = e.target.closest("[data-mail-add-lb]");
+    if (addLb) {
+      addComposeLuckyBlock(addLb.dataset.mailAddLb, 1);
+      playSfx("click");
+      return;
+    }
+    if (e.target.closest("[data-mail-send-gift]")) {
+      sendPlayerGift();
+      return;
+    }
+    if (e.target.closest("[data-mail-cancel-compose]")) {
+      cancelMailCompose(true);
+      playSfx("click");
+      return;
+    }
+    const acc = e.target.closest("[data-mail-accept]");
+    if (acc) {
+      setTradeAccept(acc.dataset.mailAccept, true);
+      return;
+    }
+    const unacc = e.target.closest("[data-mail-unaccept]");
+    if (unacc) {
+      setTradeAccept(unacc.dataset.mailUnaccept, false);
+      return;
+    }
+    const can = e.target.closest("[data-mail-cancel-trade]");
+    if (can) {
+      cancelTrade(can.dataset.mailCancelTrade);
+    }
+  });
+
   document.getElementById("admin-announce-form")?.addEventListener("submit", (e) => {
     e.preventDefault();
     const input = document.getElementById("admin-announce-input");
@@ -14582,6 +15717,7 @@
   clampTreasureStashCounts(true);
   startAdminEventPolling();
   startFishGiftPolling();
+  startPlayerMailPolling();
   syncCommunity(true).catch(() => {});
   setInterval(() => {
     syncCommunity(false).catch(() => {});

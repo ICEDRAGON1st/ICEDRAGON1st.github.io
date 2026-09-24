@@ -38,5 +38,6 @@ insert into public.hub_docs (id, data) values
   ('online-matches', '{"rooms":{}}'::jsonb),
   ('fishing-admin-events', '{}'::jsonb),
   ('fishing-community', '{}'::jsonb),
-  ('fishing-gifts', '{"token":"ice-fish-gift-9f3a","gifts":{}}'::jsonb)
+  ('fishing-gifts', '{"token":"ice-fish-gift-9f3a","gifts":{}}'::jsonb),
+  ('fishing-player-mail', '{"token":"ice-fish-mail-9f3a","gifts":{},"trades":{}}'::jsonb)
 on conflict (id) do nothing;

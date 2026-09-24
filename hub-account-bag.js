@@ -40,6 +40,7 @@
     "fishing-prefs-v1",
     "fishing-chest-boost-v1",
     "fishing-gifts-claimed-v1",
+    "fishing-player-mail-claimed-v1",
     // Other game saves / highs
     "wordle-game",
     "wordle-stats",
