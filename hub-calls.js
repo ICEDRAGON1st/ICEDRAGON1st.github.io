@@ -18,6 +18,10 @@
   const ROOM_TTL_MS = 2 * 60 * 60_000;
   const SESSION_KEY = "hub-call-session-v1";
   const SESSION_MAX_MS = 2 * 60 * 60_000;
+  const ICE_SERVERS = [
+    { urls: "stun:stun.l.google.com:19302" },
+    { urls: "stun:stun1.l.google.com:19302" }
+  ];
 
   function sb() {
     return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
