@@ -421,25 +421,24 @@
       const tracks = srcStream.getAudioTracks();
       if (!tracks.length) return;
       // Always clone — never stop/own the live WebRTC receiver track.
+      // Meter only (play is unused): connecting remote audio to AudioContext
+      // while also using <audio> caused robotic/flanged double-playback.
       const stream = new MediaStream(tracks.map((t) => t.clone()));
       const source = ctx.createMediaStreamSource(stream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 512;
       analyser.smoothingTimeConstant = 0.35;
-      const gain = ctx.createGain();
-      gain.gain.value = 1;
       source.connect(analyser);
-      analyser.connect(gain);
-      if (play) gain.connect(ctx.destination);
+      // Do NOT connect to ctx.destination — that would play a second copy.
       meters.set(peerId, {
         analyser,
         source,
-        gain,
+        gain: null,
         stream,
         data: new Uint8Array(analyser.fftSize),
         speaking: false,
         lastSpeak: 0,
-        playing: !!play
+        playing: false
       });
     } catch (err) {
       console.warn("[HubCalls] meter", err);
@@ -509,13 +508,31 @@
     if (!navigator.mediaDevices?.getUserMedia) {
       throw new Error("Voice calls need a modern browser");
     }
+    const prefer = {
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+        // Prefer voice-optimized processing when the browser supports it.
+        voiceIsolation: true
+      },
+      video: false
+    };
     try {
-      return await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-        video: false
-      });
+      return await navigator.mediaDevices.getUserMedia(prefer);
     } catch {
-      return navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      try {
+        return await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true
+          },
+          video: false
+        });
+      } catch {
+        return navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      }
     }
   }
 
@@ -720,8 +737,7 @@
   function attachRemoteAudio(peerId, track) {
     if (!track) return;
     track.enabled = true;
-    getAudioCtx();
-    // Primary playback: live track on an <audio> element (most reliable).
+    // Single playback path only — dual play (audio + Web Audio) sounded robotic.
     let audio = document.getElementById(`hub-call-audio-${peerId}`);
     if (!audio) {
       audio = document.createElement("audio");
@@ -738,6 +754,7 @@
       audio.style.pointerEvents = "none";
       document.body.appendChild(audio);
     }
+    // Replace stream cleanly (avoid stacking tracks).
     audio.srcObject = new MediaStream([track]);
     audio.muted = false;
     audio.volume = 1;
@@ -750,21 +767,14 @@
     kick();
     track.onunmute = kick;
     audio.onloadedmetadata = kick;
-    // Meter + secondary Web Audio playback use clones — never the same stream as <audio>.
-    watchAudio(peerId, track, { play: true });
+    // Speaking meter uses a separate clone; never plays.
+    watchAudio(peerId, track, { play: false });
     ensureSpeakLoop();
   }
 
   function resumeAllRemoteAudio() {
     const ctx = getAudioCtx();
     if (ctx && ctx.state === "suspended") ctx.resume().catch(() => {});
-    meters.forEach((m) => {
-      if (m.playing && m.gain) {
-        try {
-          m.gain.connect(ctx.destination);
-        } catch {}
-      }
-    });
     document.querySelectorAll('audio[id^="hub-call-audio-"]').forEach((audio) => {
       audio.muted = false;
       audio.volume = 1;
