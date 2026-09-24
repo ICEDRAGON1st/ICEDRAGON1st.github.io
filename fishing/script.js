@@ -2216,12 +2216,12 @@
     return ownedGear("luck").reduce((s, g) => s + g.amount, 0);
   }
 
-  /** Echo Charm: +0.0000001 luck (×2 each buy), cost ×3 each buy. Caps at 1B luck. */
+  /** Echo Charm: +0.0000001 luck (×2 each buy), cost ×3 each buy. Caps at 100M luck. */
   const ECHO_LUCK_ID = "luckEcho";
   const ECHO_LUCK_BASE = 0.0000001;
   const ECHO_LUCK_BASE_COST = 1;
   const ECHO_LUCK_COST_MULT = 3;
-  const ECHO_LUCK_BONUS_CAP = 1e9; // 1B max from Echo Charm
+  const ECHO_LUCK_BONUS_CAP = 1e8; // 100M max from Echo Charm
   const ECHO_LUCK_MAX_LEVEL = Math.max(
     1,
     Math.ceil(1 + Math.log2(ECHO_LUCK_BONUS_CAP / ECHO_LUCK_BASE))
