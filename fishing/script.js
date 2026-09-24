@@ -5577,6 +5577,10 @@ function aquariumRatePerSec() {
       if (g?.claimed && now - at > 3 * 24 * 60 * 60 * 1000) delete gifts[gid];
       else if (!g?.claimed && now - at > 14 * 24 * 60 * 60 * 1000) delete gifts[gid];
     });
+    const claimedBy =
+      payload.claimedBy && typeof payload.claimedBy === "object" && !Array.isArray(payload.claimedBy)
+        ? { ...payload.claimedBy }
+        : {};
     gifts[id] = {
       id,
       toName: String(payload.toName || "").toLowerCase(),
@@ -5593,7 +5597,7 @@ function aquariumRatePerSec() {
       at: now,
       broadcast: !!payload.broadcast,
       claimed: false,
-      claimedBy: {}
+      claimedBy
     };
     return postFishGiftsDoc({ gifts });
   }
@@ -5683,9 +5687,13 @@ function aquariumRatePerSec() {
       }
       const chestKind = chestKindFromGift(g);
       if (chestKind) {
-        const added = grantQuestChests(chestKind, count);
+        const added = storeAdminChests(chestKind, count, { silent: true });
+        if (!added) {
+          // Stash full — leave gift unclaimed so it can land later
+          return;
+        }
         chests += added;
-        if (added) chestLabel = chestGiftDef(chestKind).name;
+        chestLabel = chestGiftDef(chestKind).name;
         claimed.add(gid);
         toClaim.push(gid);
         return;
@@ -6014,34 +6022,44 @@ function aquariumRatePerSec() {
 
   function parseGiveChestCommand(raw) {
     const original = String(raw || "").trim();
+    // give [Nx] (coin|luck) chest(s) [Nx] [to …]
+    // also: give chest / give chests / give moneychest
     const head = original.match(
-      /^(give|gift)\s+(?:(money|coin|coins|sell|luck|lucky)\s+)?chests?(?:\s+(money|coin|coins|sell|luck|lucky))?\b/i
+      /^(give|gift)\s+(?:(\d{1,2})\s*x\s+)?(?:(money|coin|coins|sell|luck|lucky)\s+)?chests?(?:\s+(money|coin|coins|sell|luck|lucky))?\b/i
     );
     if (!head) return null;
 
     const kind =
-      resolveChestGiftKind(head[2] || head[3] || "money") || "money";
+      resolveChestGiftKind(head[3] || head[4] || "money") || "money";
     let rest = original.slice(head[0].length).trim();
     let to = "me";
+    let explicitTo = false;
     const toMatch = rest.match(/\bto\s+@?(.+)$/i);
     if (toMatch) {
       to = toMatch[1].trim();
       rest = rest.slice(0, toMatch.index).trim();
+      explicitTo = true;
     } else if (/\b(everyone|everybody|all players|all|global)\s*$/i.test(rest)) {
       to = "everyone";
       rest = rest.replace(/\b(everyone|everybody|all players|all|global)\s*$/i, "").trim();
+      explicitTo = true;
     } else if (/\b(me|self)\s*$/i.test(rest)) {
       rest = rest.replace(/\b(me|self)\s*$/i, "").trim();
       to = "me";
+      explicitTo = true;
     }
 
-    let count = 1;
+    let count = Math.min(50, Math.max(1, Number(head[2]) || 1));
     const countMatch = rest.match(/(?:^|\s)(?:x\s*(\d{1,2})|(\d{1,2})\s*x)(?:\s|$)/i);
     if (countMatch) {
       count = Math.min(50, Math.max(1, Number(countMatch[1] || countMatch[2]) || 1));
     }
 
-    return { kind: "give-chest", chestKind: kind, count, to };
+    const toKey = String(to || "me").toLowerCase();
+    const forceSelf =
+      explicitTo && (toKey === "me" || toKey === "self" || toKey === playerNameLower());
+
+    return { kind: "give-chest", chestKind: kind, count, to, forceSelf };
   }
 
   function storeAdminChests(kind, count, opts = {}) {
@@ -6057,6 +6075,15 @@ function aquariumRatePerSec() {
     saveState();
     if (!opts.silent) playSfx("win");
     return added;
+  }
+
+  function giftSelfClaimedBy() {
+    const by = {};
+    const me = playerNameLower();
+    const myId = String(window.HubPlays?.getPlayerId?.() || "");
+    if (myId) by[myId] = true;
+    if (me) by[me] = true;
+    return by;
   }
 
   async function runGiveChestCommand(cmd) {
@@ -6092,6 +6119,8 @@ function aquariumRatePerSec() {
     }
 
     if (isEveryone) {
+      // Grant locally right away — don't wait on gift poll (that path was unreliable).
+      const selfAdded = storeAdminChests(chestKind, count, { silent: true });
       setCatchLine(`Sending ${def.name} to everyone…`, "");
       const ok = await queueFishGift({
         toName: "*",
@@ -6100,21 +6129,39 @@ function aquariumRatePerSec() {
         broadcast: true,
         fishId: def.giftId,
         item: def.item,
-        count
+        count,
+        claimedBy: giftSelfClaimedBy()
       });
       if (!ok) {
+        if (selfAdded) {
+          setCatchLine(
+            selfAdded === 1
+              ? `Gave ${def.name} to you · everyone sync failed`
+              : `Gave ${selfAdded}× ${def.name} to you · everyone sync failed`,
+            "treasure"
+          );
+          return;
+        }
         setCatchLine(`Couldn't queue ${def.name} — try again`, "miss");
         playSfx("miss");
         return;
       }
-      setCatchLine(
-        count === 1
-          ? `Queued ${def.name} for everyone`
-          : `Queued ${count}× ${def.name} for everyone`,
-        "treasure"
-      );
+      if (selfAdded) {
+        setCatchLine(
+          selfAdded === 1
+            ? `Gave ${def.name} to you + queued for everyone`
+            : `Gave ${selfAdded}× ${def.name} to you + queued for everyone`,
+          "treasure"
+        );
+      } else {
+        setCatchLine(
+          count === 1
+            ? `Queued ${def.name} for everyone (your stash is full)`
+            : `Queued ${count}× ${def.name} for everyone (your stash is full)`,
+          "treasure"
+        );
+      }
       playSfx("click");
-      pollFishGifts(true).catch(() => {});
       return;
     }
 
