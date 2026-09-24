@@ -146,6 +146,7 @@
   const AQUA_SHARE_POLL_MS = 20_000;
   const AQUA_SHARE_MAX_TANKS = 120;
   const AQUA_SHARE_TTL_MS = 14 * 24 * 60 * 60_000;
+  const AQUA_SHARE_COOLER_MAX = 50;
 
   function fishingSb() {
     return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
@@ -3385,25 +3386,94 @@
   let visitAquaLastTs = 0;
   let visitAquaCurrent = null;
   let visitAquaDisplayFish = [];
+  let visitBaseTab = "overview";
+
+  function serializeShareFishEntry(entry) {
+    const n = normalizeCoolerEntry(entry) || entry || {};
+    return {
+      id: String(n.id || coolerEntryId(entry) || ""),
+      variant: normalizeVariant(n.variant),
+      shiny: !!n.shiny,
+      mutation: normalizeMutation(n.mutation),
+      perfect: !!n.perfect,
+      saved: !!n.saved
+    };
+  }
+
+  function buildBaseSharePayload() {
+    const spot = currentSpot();
+    const coolerRows = state.cooler
+      .map((raw) => {
+        const entry = normalizeCoolerEntry(raw);
+        if (!entry) return null;
+        const fish = fishById(entry.id);
+        if (!fish || isTreasureItem(fish)) return null;
+        return {
+          entry,
+          val: fishValue(fish, spot, entry),
+          saved: !!entry.saved
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => {
+        if (a.saved !== b.saved) return a.saved ? -1 : 1;
+        return b.val - a.val;
+      })
+      .slice(0, AQUA_SHARE_COOLER_MAX);
+
+    const found = caughtCount();
+    const total = Math.max(1, FISH.length);
+    return {
+      coins: Math.max(0, Math.floor(Number(state.coins) || 0)),
+      lifetime: Math.max(0, Math.floor(Number(state.lifetime) || 0)),
+      catches: Math.max(0, Math.floor(Number(state.catches) || 0)),
+      perfects: Math.max(0, Math.floor(Number(state.perfects) || 0)),
+      spotId: String(state.spotId || "creek"),
+      unlocked: SPOTS.filter((s) => state.unlocked?.[s.id]).map((s) => s.id),
+      boatLevel: typeof boatLevel === "function" ? boatLevel() : Math.floor(Number(state.boatLevel) || 0),
+      aquariumLevel: aquariumLevel(),
+      echoLuckLevel: Math.max(0, Math.floor(Number(state.echoLuckLevel) || 0)),
+      bookFound: found,
+      bookTotal: total,
+      bookPct: Math.floor((100 * found) / total),
+      bestCatch: {
+        id: String(state.bestCatchId || ""),
+        score: Math.max(0, Number(state.bestCatchScore) || 0),
+        variant: normalizeVariant(state.bestCatchVariant),
+        shiny: !!state.bestCatchShiny,
+        mutation: normalizeMutation(state.bestCatchMutation)
+      },
+      stash: {
+        moneyChest: Math.max(0, Math.floor(Number(state.moneyChestCount) || 0)),
+        luckChest: Math.max(0, Math.floor(Number(state.luckChestCount) || 0)),
+        astral: luckyBlockCount("astral"),
+        absolute: luckyBlockCount("absolute"),
+        zenith: luckyBlockCount("zenith")
+      },
+      gear: GEAR.filter((g) => state.owned?.[g.id]).map((g) => ({
+        id: g.id,
+        name: g.name,
+        kind: g.kind
+      })),
+      cooler: coolerRows.map((r) => serializeShareFishEntry(r.entry)),
+      coolerTotal: state.cooler.length,
+      coolerMax: coolerMax()
+    };
+  }
 
   function buildAquariumShareSnapshot() {
     const myId = mailMyId();
     const myName = mailMyName();
     if (!myId && !myName) return null;
     const list = aquariumFishList();
-    const fish = list.map(({ entry, fish }) => ({
-      id: fish.id,
-      variant: normalizeVariant(entry.variant),
-      shiny: !!entry.shiny,
-      mutation: normalizeMutation(entry.mutation),
-      perfect: !!entry.perfect
-    }));
+    const fish = list.map(({ entry }) => serializeShareFishEntry(entry));
     return {
       playerId: myId,
       name: myName || "Player",
       updatedAt: Date.now(),
       level: aquariumLevel(),
-      fish
+      fish,
+      base: buildBaseSharePayload()
     };
   }
 
@@ -3468,9 +3538,20 @@
   async function publishAquariumShare(force = false) {
     const snap = buildAquariumShareSnapshot();
     if (!snap) return;
-    const key = `${snap.playerId}|${snap.level}|${snap.fish
-      .map((f) => `${f.id}:${f.variant}:${f.shiny ? 1 : 0}:${f.mutation || ""}`)
-      .join(",")}`;
+    const b = snap.base || {};
+    const key = [
+      snap.playerId,
+      snap.level,
+      b.coins,
+      b.boatLevel,
+      b.coolerTotal,
+      b.stash?.moneyChest,
+      b.stash?.luckChest,
+      b.gear?.length,
+      snap.fish
+        .map((f) => `${f.id}:${f.variant}:${f.shiny ? 1 : 0}:${f.mutation || ""}`)
+        .join(",")
+    ].join("|");
     if (!force && key === aquaShareLastKey) return;
     const remote = (await fetchAquaShareDoc()) || { tanks: {} };
     const tanks = { ...(remote.tanks || {}) };
@@ -3570,12 +3651,14 @@
           const name = String(f.name || "Friend");
           const tank = tanks[id];
           const n = Array.isArray(tank?.fish) ? tank.fish.length : 0;
-          const tip = tank ? `${n} fish` : "No tank published yet";
+          const tip = tank
+            ? `${formatNum(tank.base?.coins || 0)} coins · ${n} aquarium`
+            : "No base published yet";
           return `<button type="button" class="mail-friend-btn" data-visit-aqua="${escapeHtml(
             id
           )}" data-visit-aqua-name="${escapeHtml(name)}" title="${escapeHtml(tip)}">${escapeHtml(
             name
-          )}${tank ? ` · ${n}` : ""}</button>`;
+          )}${tank ? ` · ${formatNum(tank.base?.coins || 0)}` : ""}</button>`;
         })
         .join("");
     }
@@ -3585,34 +3668,29 @@
       .sort((a, b) => (Number(b.updatedAt) || 0) - (Number(a.updatedAt) || 0))
       .slice(0, 24);
     if (!recent.length) {
-      recentEl.innerHTML = `<p class="mail-empty">No published tanks yet. Save fish in your aquarium to share.</p>`;
+      recentEl.innerHTML = `<p class="mail-empty">No published bases yet. Play with a hub name so yours syncs.</p>`;
     } else {
       recentEl.innerHTML = recent
         .map((t) => {
           const id = String(t.playerId || "");
           const name = String(t.name || "Player");
           const n = Array.isArray(t.fish) ? t.fish.length : 0;
+          const coins = formatNum(t.base?.coins || 0);
           return `<button type="button" class="visit-aqua-recent-btn" data-visit-aqua="${escapeHtml(
             id
           )}" data-visit-aqua-name="${escapeHtml(name)}"><strong>${escapeHtml(
             name
-          )}</strong><span>${n} fish · Lv${Math.max(0, Number(t.level) || 0)}</span></button>`;
+          )}</strong><span>${coins} · ${n} aqua · book ${Math.max(
+            0,
+            Number(t.base?.bookPct) || 0
+          )}%</span></button>`;
         })
         .join("");
     }
   }
 
-  function renderVisitAquaTank(tank) {
-    const swimmers = document.getElementById("visit-aqua-swimmers");
-    const emptyEl = document.getElementById("visit-aqua-empty");
-    const roster = document.getElementById("visit-aqua-roster");
-    const ownerEl = document.getElementById("visit-aqua-owner");
-    const metaEl = document.getElementById("visit-aqua-meta");
-    const tankEl = document.getElementById("visit-aqua-tank");
-    if (!swimmers) return;
-    stopVisitAquaSwim();
-    visitAquaCurrent = tank;
-    const fishList = (Array.isArray(tank?.fish) ? tank.fish : [])
+  function visitShareFishRows(rawList) {
+    return (Array.isArray(rawList) ? rawList : [])
       .map((raw) => {
         const fish = fishById(raw.id);
         if (!fish || isTreasureItem(fish)) return null;
@@ -3620,7 +3698,8 @@
           variant: normalizeVariant(raw.variant),
           shiny: !!raw.shiny,
           mutation: normalizeMutation(raw.mutation),
-          perfect: !!raw.perfect
+          perfect: !!raw.perfect,
+          saved: !!raw.saved
         };
         return {
           fish,
@@ -3633,31 +3712,176 @@
         (a, b) =>
           b.val - a.val || (RARITY_RANK[b.fish.rarity] || 0) - (RARITY_RANK[a.fish.rarity] || 0)
       );
-    visitAquaDisplayFish = fishList;
+  }
 
-    if (ownerEl) ownerEl.textContent = `${tank?.name || "Player"}'s aquarium`;
-    if (metaEl) {
-      metaEl.textContent = `${fishList.length} fish · tank Lv${Math.max(0, Number(tank?.level) || 0)}`;
+  function visitFishRosterHtml(rows, emptyText) {
+    if (!rows.length) return `<p class="mail-empty">${escapeHtml(emptyText)}</p>`;
+    return `<ul class="visit-aqua-roster">${rows
+      .map(({ fish, entry, val }, i) => {
+        const label = formatFishName(fish, entry);
+        const saved = entry.saved ? " · ★" : "";
+        return `<li class="visit-aqua-roster-item">
+          <button type="button" class="visit-aqua-roster-btn ${fish.rarity}" data-visit-inspect="${i}">
+            <span class="visit-aqua-roster-glyph" aria-hidden="true">${fishGlyphHtml(fish, entry)}</span>
+            <span class="visit-aqua-roster-meta">
+              <strong>${escapeHtml(label)}${saved}</strong>
+              <span>${escapeHtml(fish.rarity)} · ${formatNum(val)}</span>
+            </span>
+          </button>
+        </li>`;
+      })
+      .join("")}</ul>`;
+  }
+
+  function renderVisitBaseOverview(tank) {
+    const panel = document.getElementById("visit-base-overview");
+    if (!panel) return;
+    const b = tank?.base || {};
+    const spot = SPOTS.find((s) => s.id === b.spotId) || SPOTS[0];
+    const unlocked = Array.isArray(b.unlocked) ? b.unlocked : [];
+    const spotNames = unlocked
+      .map((id) => SPOTS.find((s) => s.id === id)?.name || id)
+      .join(", ");
+    let bestLabel = "—";
+    if (b.bestCatch?.id) {
+      const bf = fishById(b.bestCatch.id);
+      if (bf) {
+        bestLabel = `${formatFishName(bf, b.bestCatch)} · ${formatNum(b.bestCatch.score || 0)}`;
+      }
     }
+    panel.innerHTML = `<div class="visit-base-stats">
+      <div class="visit-stat"><span>Coins</span><strong>${formatNum(b.coins || 0)}</strong></div>
+      <div class="visit-stat"><span>Lifetime</span><strong>${formatNum(b.lifetime || 0)}</strong></div>
+      <div class="visit-stat"><span>Catches</span><strong>${formatNum(b.catches || 0)}</strong></div>
+      <div class="visit-stat"><span>Perfects</span><strong>${formatNum(b.perfects || 0)}</strong></div>
+      <div class="visit-stat"><span>Catch book</span><strong>${Math.max(0, Number(b.bookFound) || 0)} / ${Math.max(
+      0,
+      Number(b.bookTotal) || 0
+    )} (${Math.max(0, Number(b.bookPct) || 0)}%)</strong></div>
+      <div class="visit-stat"><span>Fishing at</span><strong>${escapeHtml(spot?.name || "Creek")}</strong></div>
+      <div class="visit-stat"><span>Boat</span><strong>Lv${Math.max(0, Number(b.boatLevel) || 0)}</strong></div>
+      <div class="visit-stat"><span>Aquarium</span><strong>Lv${Math.max(
+        0,
+        Number(b.aquariumLevel ?? tank?.level) || 0
+      )}</strong></div>
+      <div class="visit-stat"><span>Echo Charm</span><strong>Lv${Math.max(
+        0,
+        Number(b.echoLuckLevel) || 0
+      )}</strong></div>
+      <div class="visit-stat"><span>Cooler</span><strong>${Math.max(0, Number(b.coolerTotal) || 0)} / ${Math.max(
+      0,
+      Number(b.coolerMax) || 0
+    )}</strong></div>
+      <div class="visit-stat visit-stat-wide"><span>Best catch</span><strong>${escapeHtml(bestLabel)}</strong></div>
+      <div class="visit-stat visit-stat-wide"><span>Spots</span><strong>${escapeHtml(
+        spotNames || "Creek"
+      )}</strong></div>
+    </div>`;
+  }
+
+  function renderVisitBaseCooler(tank) {
+    const panel = document.getElementById("visit-base-cooler");
+    if (!panel) return;
+    const b = tank?.base || {};
+    const rows = visitShareFishRows(b.cooler);
+    visitAquaDisplayFish = rows;
+    const shown = rows.length;
+    const total = Math.max(shown, Number(b.coolerTotal) || 0);
+    panel.innerHTML = `<p class="mail-hint">Showing top ${shown} of ${total} cooler fish (saved first).</p>${visitFishRosterHtml(
+      rows,
+      "Cooler empty"
+    )}`;
+  }
+
+  function renderVisitBaseStash(tank) {
+    const panel = document.getElementById("visit-base-stash");
+    if (!panel) return;
+    const s = tank?.base?.stash || {};
+    panel.innerHTML = `<div class="visit-base-stats">
+      <div class="visit-stat"><span>Coin chests</span><strong>${formatNum(s.moneyChest || 0)}</strong></div>
+      <div class="visit-stat"><span>Luck chests</span><strong>${formatNum(s.luckChest || 0)}</strong></div>
+      <div class="visit-stat"><span>Astral LB</span><strong>${formatNum(s.astral || 0)}</strong></div>
+      <div class="visit-stat"><span>Absolute LB</span><strong>${formatNum(s.absolute || 0)}</strong></div>
+      <div class="visit-stat"><span>Zenith LB</span><strong>${formatNum(s.zenith || 0)}</strong></div>
+    </div>`;
+  }
+
+  function renderVisitBaseGear(tank) {
+    const panel = document.getElementById("visit-base-gear");
+    if (!panel) return;
+    const gear = Array.isArray(tank?.base?.gear) ? tank.base.gear : [];
+    if (!gear.length) {
+      panel.innerHTML = `<p class="mail-empty">No gear owned</p>`;
+      return;
+    }
+    const byKind = {};
+    gear.forEach((g) => {
+      const k = g.kind || "other";
+      if (!byKind[k]) byKind[k] = [];
+      byKind[k].push(g);
+    });
+    panel.innerHTML = Object.entries(byKind)
+      .map(([kind, list]) => {
+        return `<div class="visit-gear-group">
+          <p class="mail-section-label">${escapeHtml(kind)}</p>
+          <div class="visit-gear-list">${list
+            .map((g) => `<span class="visit-gear-chip">${escapeHtml(g.name || g.id)}</span>`)
+            .join("")}</div>
+        </div>`;
+      })
+      .join("");
+  }
+
+  function setVisitBaseTab(tab) {
+    visitBaseTab = tab || "overview";
+    const ids = ["overview", "aquarium", "cooler", "stash", "gear"];
+    ids.forEach((id) => {
+      const el = document.getElementById(`visit-base-${id}`);
+      if (!el) return;
+      const on = visitBaseTab === id;
+      el.hidden = !on;
+      el.classList.toggle("hidden", !on);
+    });
+    document.querySelectorAll("[data-visit-base-tab]").forEach((btn) => {
+      btn.classList.toggle("is-active", btn.dataset.visitBaseTab === visitBaseTab);
+    });
+    if (visitBaseTab === "aquarium") {
+      requestAnimationFrame(() => {
+        if (visitAquaCurrent) renderVisitAquaTankOnly(visitAquaCurrent);
+      });
+    } else {
+      stopVisitAquaSwim();
+    }
+    if (visitBaseTab === "cooler" && visitAquaCurrent) renderVisitBaseCooler(visitAquaCurrent);
+    if (visitBaseTab === "overview" && visitAquaCurrent) renderVisitBaseOverview(visitAquaCurrent);
+    if (visitBaseTab === "stash" && visitAquaCurrent) renderVisitBaseStash(visitAquaCurrent);
+    if (visitBaseTab === "gear" && visitAquaCurrent) renderVisitBaseGear(visitAquaCurrent);
+  }
+
+  function renderVisitAquaTankOnly(tank) {
+    const swimmers = document.getElementById("visit-aqua-swimmers");
+    const emptyEl = document.getElementById("visit-aqua-empty");
+    const roster = document.getElementById("visit-aqua-roster");
+    const tankEl = document.getElementById("visit-aqua-tank");
+    if (!swimmers) return;
+    stopVisitAquaSwim();
+    const fishList = visitShareFishRows(tank?.fish);
+    visitAquaDisplayFish = fishList;
     tankEl?.classList.toggle("has-fish", fishList.length > 0);
     if (emptyEl) emptyEl.hidden = fishList.length > 0;
-
     swimmers.innerHTML = fishList
-      .map(({ fish, entry }, i) => {
+      .map(({ fish, entry, val }, i) => {
         const label = formatFishName(fish, entry);
         const fishW = (48 + Math.min(18, (RARITY_RANK[fish.rarity] || 1) * 0.7)).toFixed(0);
         return `<button type="button" class="aqua-fish ${fish.rarity} ${variantClassList(
           entry
         )}" data-visit-inspect="${i}" style="width:${fishW}px;height:${(Number(fishW) * 0.5).toFixed(
           0
-        )}px" title="${escapeHtml(label)} · ${formatNum(fishList[i].val)}" aria-label="Inspect ${escapeHtml(
-          label
-        )}">
+        )}px" title="${escapeHtml(label)} · ${formatNum(val)}" aria-label="Inspect ${escapeHtml(label)}">
           <span class="aqua-fish-glyph" aria-hidden="true">${fishGlyphHtml(fish, entry)}</span>
         </button>`;
       })
       .join("");
-
     if (roster) {
       roster.innerHTML = fishList.length
         ? fishList
@@ -3676,7 +3900,6 @@
             .join("")
         : `<li class="mail-empty">No fish in this tank</li>`;
     }
-
     const laneW = Math.max(1, swimmers.clientWidth);
     const laneH = Math.max(1, swimmers.clientHeight);
     visitAquaSwimState = [...swimmers.querySelectorAll(".aqua-fish")].map((el, i) => {
@@ -3701,6 +3924,26 @@
     startVisitAquaSwim();
   }
 
+  function renderVisitAquaTank(tank) {
+    const ownerEl = document.getElementById("visit-aqua-owner");
+    const metaEl = document.getElementById("visit-aqua-meta");
+    visitAquaCurrent = tank;
+    const b = tank?.base || {};
+    if (ownerEl) ownerEl.textContent = `${tank?.name || "Player"}'s base`;
+    if (metaEl) {
+      metaEl.textContent = `${formatNum(b.coins || 0)} coins · book ${Math.max(
+        0,
+        Number(b.bookPct) || 0
+      )}% · aqua Lv${Math.max(0, Number(b.aquariumLevel ?? tank?.level) || 0)}`;
+    }
+    renderVisitBaseOverview(tank);
+    renderVisitBaseCooler(tank);
+    renderVisitBaseStash(tank);
+    renderVisitBaseGear(tank);
+    setVisitBaseTab(visitBaseTab || "overview");
+    if (visitBaseTab === "aquarium") renderVisitAquaTankOnly(tank);
+  }
+
   function showVisitAquaBrowse() {
     document.getElementById("visit-aqua-browse")?.classList.remove("hidden");
     const view = document.getElementById("visit-aqua-view");
@@ -3710,6 +3953,7 @@
     }
     stopVisitAquaSwim();
     visitAquaCurrent = null;
+    visitAquaDisplayFish = [];
     renderVisitAquaBrowse();
   }
 
@@ -3720,6 +3964,7 @@
       view.hidden = false;
       view.classList.remove("hidden");
     }
+    visitBaseTab = "overview";
     requestAnimationFrame(() => renderVisitAquaTank(tank));
   }
 
@@ -3756,8 +4001,8 @@
     if (!tank) {
       setCatchLine(
         fallbackName
-          ? `${fallbackName} hasn't published a tank yet`
-          : "No tank found — they need to save aquarium fish first",
+          ? `${fallbackName} hasn't published a base yet`
+          : "No base found — they need to play with a hub name so it publishes",
         "miss"
       );
       playSfx("miss");
@@ -15805,6 +16050,12 @@
     const pick = e.target.closest("[data-visit-aqua]");
     if (pick) {
       visitAquariumById(pick.dataset.visitAqua, pick.dataset.visitAquaName || "");
+      playSfx("click");
+      return;
+    }
+    const tab = e.target.closest("[data-visit-base-tab]");
+    if (tab) {
+      setVisitBaseTab(tab.dataset.visitBaseTab);
       playSfx("click");
       return;
     }

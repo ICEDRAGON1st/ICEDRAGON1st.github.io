@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260924h">
+  <link rel="stylesheet" href="styles.css?v=20260924i">
 </head>
 <body data-spot="creek" data-hub-sound-btn="off">
   <div id="weather-fx" class="weather-fx" aria-hidden="true">
@@ -33,7 +33,7 @@
     <div class="top-stats">
       <button id="admin-btn" type="button" class="guide-btn admin-btn hidden" hidden>Admin</button>
       <button id="mail-btn" type="button" class="guide-btn mail-btn" title="Gift & trade">Mail</button>
-      <button id="visit-aqua-btn" type="button" class="guide-btn" title="Visit aquariums">Visit</button>
+      <button id="visit-aqua-btn" type="button" class="guide-btn" title="Visit bases">Visit</button>
       <button id="shiny-machine-btn" type="button" class="guide-btn">Shiny machine</button>
       <button id="book-btn" type="button" class="guide-btn">Catch book</button>
       <button id="guide-btn" type="button" class="guide-btn">Fish guide</button>
@@ -666,15 +666,15 @@
       <div class="guide-head">
         <div>
           <p class="eyebrow">Others</p>
-          <h2 id="visit-aqua-title">Visit aquariums</h2>
+          <h2 id="visit-aqua-title">Visit bases</h2>
         </div>
         <button id="visit-aqua-close" type="button" class="btn btn-ghost guide-close">Close</button>
       </div>
       <div id="visit-aqua-browse" class="visit-aqua-browse">
-        <p class="mail-hint">Pick a friend or any published tank. Yours syncs when you save fish to the aquarium.</p>
+        <p class="mail-hint">Browse someone’s whole base — stats, aquarium, cooler, stash, and gear. Yours syncs while you play.</p>
         <p class="mail-section-label">Friends</p>
         <div id="visit-aqua-friends" class="mail-friend-list"></div>
-        <p class="mail-section-label">Recent tanks</p>
+        <p class="mail-section-label">Recent bases</p>
         <div id="visit-aqua-recent" class="visit-aqua-recent"></div>
       </div>
       <div id="visit-aqua-view" class="visit-aqua-view hidden" hidden>
@@ -683,13 +683,26 @@
           <strong id="visit-aqua-owner">—</strong>
           <span id="visit-aqua-meta" class="visit-aqua-meta"></span>
         </div>
-        <div id="visit-aqua-tank" class="aquarium-tank visit-aqua-tank has-fish" aria-label="Guest aquarium">
-          <div class="aquarium-glass" aria-hidden="true"></div>
-          <div class="aquarium-bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
-          <div id="visit-aqua-swimmers" class="aquarium-swimmers"></div>
-          <p id="visit-aqua-empty" class="aquarium-empty" hidden>Empty tank</p>
+        <div class="mail-tabs visit-base-tabs" role="tablist">
+          <button type="button" class="mail-tab is-active" data-visit-base-tab="overview">Overview</button>
+          <button type="button" class="mail-tab" data-visit-base-tab="aquarium">Aquarium</button>
+          <button type="button" class="mail-tab" data-visit-base-tab="cooler">Cooler</button>
+          <button type="button" class="mail-tab" data-visit-base-tab="stash">Stash</button>
+          <button type="button" class="mail-tab" data-visit-base-tab="gear">Gear</button>
         </div>
-        <ul id="visit-aqua-roster" class="visit-aqua-roster" aria-label="Fish in this tank"></ul>
+        <div id="visit-base-overview" class="visit-base-panel"></div>
+        <div id="visit-base-aquarium" class="visit-base-panel hidden" hidden>
+          <div id="visit-aqua-tank" class="aquarium-tank visit-aqua-tank has-fish" aria-label="Guest aquarium">
+            <div class="aquarium-glass" aria-hidden="true"></div>
+            <div class="aquarium-bubbles" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span></div>
+            <div id="visit-aqua-swimmers" class="aquarium-swimmers"></div>
+            <p id="visit-aqua-empty" class="aquarium-empty" hidden>Empty tank</p>
+          </div>
+          <ul id="visit-aqua-roster" class="visit-aqua-roster" aria-label="Fish in this tank"></ul>
+        </div>
+        <div id="visit-base-cooler" class="visit-base-panel hidden" hidden></div>
+        <div id="visit-base-stash" class="visit-base-panel hidden" hidden></div>
+        <div id="visit-base-gear" class="visit-base-panel hidden" hidden></div>
       </div>
     </div>
   </div>
@@ -921,6 +934,6 @@
   <script src="../hub-friends.js?v=20260923u"></script>
   <script src="../hub-chat.js?v=20260924f"></script>
   <script src="../hub-leaderboard.js?v=20260923u"></script>
-  <script src="script.js?v=20260924s"></script>
+  <script src="script.js?v=20260924t"></script>
 </body>
 </html>
