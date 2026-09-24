@@ -1144,6 +1144,10 @@
     renderCallBar();
   }
 
+  function peerJoined(p) {
+    return !!(p && !p.left && Number(p.joinedAt) > 0);
+  }
+
   async function connectMesh(room) {
     if (!active || !room) return;
     const me = playerId();
