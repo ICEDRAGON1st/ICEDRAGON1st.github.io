@@ -6191,6 +6191,22 @@
     };
   }
 
+  function mailFishSellValue(entryOrItem) {
+    const fishId = entryOrItem?.fishId || coolerEntryId(entryOrItem) || entryOrItem?.id;
+    const fish = fishById(fishId);
+    if (!fish) return 0;
+    const entry =
+      entryOrItem?.kind === "fish"
+        ? {
+            variant: entryOrItem.variant,
+            shiny: entryOrItem.shiny,
+            mutation: entryOrItem.mutation,
+            perfect: entryOrItem.perfect
+          }
+        : normalizeCoolerEntry(entryOrItem) || entryOrItem;
+    return fishValue(fish, currentSpot(), entry);
+  }
+
   function mailItemLabel(item) {
     if (!item) return "Item";
     if (item.kind === "fish") {
@@ -6201,7 +6217,7 @@
         shiny: item.shiny,
         mutation: item.mutation
       });
-      return `${name} · gives ×1`;
+      return `${name} · ${formatNum(mailFishSellValue(item))}`;
     }
     if (item.kind === "chest") {
       const n = Math.max(1, Number(item.count) || 1);
