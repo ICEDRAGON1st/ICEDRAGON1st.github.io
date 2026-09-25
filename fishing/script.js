@@ -11203,6 +11203,7 @@
       const fish = bestFish;
       const entry = bestCatchEntry();
       HubLeaderboard.submit("fishing", best, {
+        force: true,
         fishing: fish
           ? {
               id: fish.id,

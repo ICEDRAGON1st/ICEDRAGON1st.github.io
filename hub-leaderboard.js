@@ -349,6 +349,37 @@
     return FISHING_MUTATIONS.includes(m) ? m : "";
   }
 
+  function fishingMetaRicher(next, prev) {
+    if (!next || typeof next !== "object") return false;
+    if (!prev || typeof prev !== "object") return true;
+    const nTier =
+      (next.shiny ? 5 : 0) +
+      (fishingNormalizeMutation(next.mutation) ? 10 : 0) +
+      (fishingNormalizeVariant(next.variant)
+        ? fishingNormalizeVariant(next.variant) === "rainbow"
+          ? 4
+          : fishingNormalizeVariant(next.variant) === "diamond"
+            ? 3
+            : fishingNormalizeVariant(next.variant) === "gold"
+              ? 2
+              : 1
+        : 0);
+    const pTier =
+      (prev.shiny ? 5 : 0) +
+      (fishingNormalizeMutation(prev.mutation) ? 10 : 0) +
+      (fishingNormalizeVariant(prev.variant)
+        ? fishingNormalizeVariant(prev.variant) === "rainbow"
+          ? 4
+          : fishingNormalizeVariant(prev.variant) === "diamond"
+            ? 3
+            : fishingNormalizeVariant(prev.variant) === "gold"
+              ? 2
+              : 1
+        : 0);
+    if (nTier !== pTier) return nTier > pTier;
+    return false;
+  }
+
   function fishingVariantTier(entry) {
     const v = fishingNormalizeVariant(entry?.variant);
     const primary = v === "silver" ? 1 : v === "gold" ? 2 : v === "diamond" ? 3 : v === "rainbow" ? 4 : 0;
@@ -1316,8 +1347,16 @@
         const cap = Math.max(0, Math.floor((Date.now() - bornAt) / 1000) + 180);
         scoreVal = Math.min(scoreVal, cap);
       }
-      if (prev && !isBetter(scoreVal, prev.score, lowerBetter)) {
-        return false;
+      // Broken pre-v4 Apex packs (~1e30) must not block safe resubmits.
+      if (gameId === "fishing" && prev && Number(prev.score) > 1e15) {
+        delete board[key];
+      } else if (prev && !isBetter(scoreVal, prev.score, lowerBetter)) {
+        const richer =
+          gameId === "fishing" &&
+          fishingMeta &&
+          fishingMetaRicher(fishingMeta, prev.fishing) &&
+          scoreVal >= Number(prev.score || 0);
+        if (!richer && !opts.force) return false;
       }
       const me = getPlayerId();
       // Drop old aliases for this same browser so renames don't leave duplicates.
