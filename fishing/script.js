@@ -2848,6 +2848,8 @@
   let communitySyncInFlight = false;
   const OFFLINE_CLAIM_BONUS_MS = 90 * 1000;
   const OFFLINE_CLAIM_BONUS = 0.25;
+  /** Boat + aquarium offline progress hard cap. */
+  const OFFLINE_MAX_MS = 6 * 3600 * 1000;
   const SPOT_MASTERY_PER = 40;
   const SPOT_MASTERY_MAX = 25;
   const WEATHER_MS = 5 * 60 * 1000;
@@ -3475,7 +3477,7 @@
     const last = Math.max(0, Number(state.aquariumLastTick) || now);
     let elapsed = Math.max(0, now - last);
     if (!force && elapsed < 1000) return 0;
-    elapsed = Math.min(elapsed, 6 * 3600 * 1000);
+    elapsed = Math.min(elapsed, OFFLINE_MAX_MS);
     const gained = aquariumRatePerSec() * (elapsed / 1000);
     state.aquariumLastTick = now;
     if (gained > 0) {
@@ -15281,7 +15283,7 @@
 
   function applyOffline() {
     const now = Date.now();
-    const elapsed = Math.min(6 * 3600 * 1000, Math.max(0, now - (state.lastTick || now)));
+    const elapsed = Math.min(OFFLINE_MAX_MS, Math.max(0, now - (state.lastTick || now)));
     tickAquarium(true);
     if (elapsed < 8000) {
       state.lastTick = now;
@@ -15298,8 +15300,10 @@
     let fishCaught = 0;
     const spot = currentSpot();
     list.forEach((boat) => {
-      const cycles = Math.floor(elapsed / 1000 / boat.amount);
-      for (let i = 0; i < Math.min(cycles, 400); i += 1) {
+      const intervalSec = Math.max(0.5, Number(boat.amount) || 15);
+      // elapsed is already capped at OFFLINE_MAX_MS — run every boat cycle in that window
+      const cycles = Math.floor(elapsed / 1000 / intervalSec);
+      for (let i = 0; i < cycles; i += 1) {
         const lbType = rollLuckyBlockDrop();
         if (lbType) {
           if (storeLuckyBlock(lbType, 1, { silent: true })) blocksFound += 1;
@@ -15393,7 +15397,12 @@
     if (p.blocks > 0) bits.push(p.blocks === 1 ? "1 Lucky Block" : `${p.blocks} Lucky Blocks`);
     if (p.fish > 0) bits.push(p.fish === 1 ? "1 fish" : `${p.fish} fish`);
     if (body) {
-      body.textContent = `While away (${Number(p.hours).toFixed(1)}h) your boat ${
+      const hrs = Number(p.hours) || 0;
+      const awayLabel =
+        hrs >= OFFLINE_MAX_MS / 3600000 - 0.05
+          ? `${hrs.toFixed(1)}h · max ${OFFLINE_MAX_MS / 3600000}h`
+          : `${hrs.toFixed(1)}h`;
+      body.textContent = `While away (${awayLabel}) your boat ${
         bits.length ? bits.join(" · ") : "kept casting"
       }.`;
     }
