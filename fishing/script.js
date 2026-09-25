@@ -57,6 +57,8 @@
   // Global admin override: Mantle (ICE in-game) + admin-event.json (chat push)
   const OWNER_NAME = "ice_dragon";
   const FISHING_ADMIN_NAMES = new Set(["ice_dragon", "ice_dragon alt"]);
+  /** Local-only admin: events on their device + self gifts. No global, no gifts to others. */
+  const FISHING_LIMITED_ADMIN_NAMES = new Set(["hjalte"]);
 
   // One-time: reset ICE_DRAGON's local Fishing Idle progress only.
   try {
@@ -4542,6 +4544,23 @@
     return FISHING_ADMIN_NAMES.has(playerNameLower());
   }
 
+  function isFishingLimitedAdmin() {
+    return FISHING_LIMITED_ADMIN_NAMES.has(playerNameLower());
+  }
+
+  /** Full owner or local-only limited admin (Hjalte). */
+  function isFishingAdmin() {
+    return isFishingOwner() || isFishingLimitedAdmin();
+  }
+
+  function canAdminGlobal() {
+    return isFishingOwner();
+  }
+
+  function canAdminGiftOthers() {
+    return isFishingOwner();
+  }
+
   function adminEventRateLimited() {
     try {
       const until = Number(localStorage.getItem(ADMIN_EVENT_RATE_KEY) || 0);
@@ -5745,18 +5764,25 @@
   }
 
   function syncAdminPanel() {
-    const owner = isFishingOwner();
+    const admin = isFishingAdmin();
+    const full = canAdminGlobal();
     syncAdminSpeedFx();
     if (adminBtn) {
-      adminBtn.classList.toggle("hidden", !owner);
-      adminBtn.hidden = !owner;
+      adminBtn.classList.toggle("hidden", !admin);
+      adminBtn.hidden = !admin;
     }
-    if (adminOverlay && !owner) {
+    if (adminOverlay && !admin) {
       adminOverlay.classList.add("hidden");
     }
+    document.querySelectorAll("[data-admin-scope='global']").forEach((btn) => {
+      btn.hidden = !full;
+      btn.classList.toggle("hidden", !full);
+      if (!full) btn.classList.remove("is-active");
+    });
+    if (!full && getAdminScope() === "global") setAdminScope("local");
     syncAdminScopeButtons();
     const status = document.getElementById("admin-status");
-    if (!status || !owner) return;
+    if (!status || !admin) return;
     const boost = adminBoostEventLive();
     const variant = adminVariantEventLive();
     const mutationBits = formatLiveMutationBits();
@@ -5822,6 +5848,7 @@
   }
 
   function getAdminScope() {
+    if (!canAdminGlobal()) return "local";
     try {
       const saved = String(localStorage.getItem(ADMIN_SCOPE_KEY) || "").toLowerCase();
       if (saved === "global" || saved === "local") return saved;
@@ -5830,6 +5857,13 @@
   }
 
   function setAdminScope(scope) {
+    if (!canAdminGlobal()) {
+      try {
+        localStorage.setItem(ADMIN_SCOPE_KEY, "local");
+      } catch {}
+      syncAdminScopeButtons();
+      return "local";
+    }
     const next = scope === "global" ? "global" : "local";
     try {
       localStorage.setItem(ADMIN_SCOPE_KEY, next);
@@ -5846,7 +5880,7 @@
   }
 
   function openAdmin() {
-    if (!isFishingOwner()) return;
+    if (!isFishingAdmin()) return;
     syncAdminPanel();
     syncAdminHistoryButtons();
     adminOverlay?.classList.remove("hidden");
@@ -6331,8 +6365,8 @@
     scope = getAdminScope(),
     target = ""
   ) {
-    if (!isFishingOwner()) {
-      setCatchLine("Admin commands are for ICE_DRAGON / ICE_DRAGON alt only", "miss");
+    if (!isFishingAdmin()) {
+      setCatchLine("Admin commands are for ICE_DRAGON / approved testers only", "miss");
       return false;
     }
     if (adminBusy) return false;
@@ -6363,7 +6397,7 @@
       rawKind === "clear-cast" ||
       rawKind === "clear-cooldown" ||
       rawKind === "clear-wait";
-    const wantGlobal = scope === "global";
+    const wantGlobal = canAdminGlobal() && scope === "global";
 
     let eventKind = rawKind;
     let eventTarget = normalizeAdminVariantTarget(
@@ -8380,7 +8414,7 @@
   }
 
   async function runGiveFishCommand(cmd) {
-    if (!isFishingOwner()) {
+    if (!isFishingAdmin()) {
       setCatchLine("Admin only", "miss");
       return;
     }
@@ -8401,11 +8435,28 @@
     if (isExclusiveFish(fish) && (!toRaw || toRaw.toLowerCase() === "me" || toRaw.toLowerCase() === "self")) {
       cmd.forceSelf = true;
     }
+    // Limited admin: self gifts only.
+    if (!canAdminGiftOthers()) {
+      cmd.forceSelf = true;
+      const toKeyCheck = toRaw.toLowerCase();
+      if (
+        toKeyCheck &&
+        toKeyCheck !== "me" &&
+        toKeyCheck !== "self" &&
+        toKeyCheck !== playerNameLower()
+      ) {
+        setCatchLine("Local admin only — can't gift other players or everyone", "miss");
+        playSfx("miss");
+        return;
+      }
+      toRaw = "me";
+    }
     // Global admin scope + no explicit target → everyone
     if (
       (!toRaw || toRaw.toLowerCase() === "me" || toRaw.toLowerCase() === "self") &&
       getAdminScope() === "global" &&
-      !cmd.forceSelf
+      !cmd.forceSelf &&
+      canAdminGiftOthers()
     ) {
       toRaw = "everyone";
     }
@@ -8765,7 +8816,7 @@
   }
 
   async function runGiveChestCommand(cmd) {
-    if (!isFishingOwner()) {
+    if (!isFishingAdmin()) {
       setCatchLine("Admin only", "miss");
       return;
     }
@@ -8773,10 +8824,26 @@
     const def = chestGiftDef(chestKind);
     const count = resolveAdminGiftCount(cmd.count);
     let toRaw = String(cmd.to || "me").trim();
+    if (!canAdminGiftOthers()) {
+      cmd.forceSelf = true;
+      const toKeyCheck = toRaw.toLowerCase();
+      if (
+        toKeyCheck &&
+        toKeyCheck !== "me" &&
+        toKeyCheck !== "self" &&
+        toKeyCheck !== playerNameLower()
+      ) {
+        setCatchLine("Local admin only — can't gift other players or everyone", "miss");
+        playSfx("miss");
+        return;
+      }
+      toRaw = "me";
+    }
     if (
       (!toRaw || toRaw.toLowerCase() === "me" || toRaw.toLowerCase() === "self") &&
       getAdminScope() === "global" &&
-      !cmd.forceSelf
+      !cmd.forceSelf &&
+      canAdminGiftOthers()
     ) {
       toRaw = "everyone";
     }
@@ -8867,7 +8934,7 @@
   }
 
   async function runGiveLuckyBlockCommand(cmd) {
-    if (!isFishingOwner()) {
+    if (!isFishingAdmin()) {
       setCatchLine("Admin only", "miss");
       return;
     }
@@ -8875,10 +8942,26 @@
     const def = luckyBlockDef(type);
     const count = resolveAdminGiftCount(cmd.count);
     let toRaw = String(cmd.to || "me").trim();
+    if (!canAdminGiftOthers()) {
+      cmd.forceSelf = true;
+      const toKeyCheck = toRaw.toLowerCase();
+      if (
+        toKeyCheck &&
+        toKeyCheck !== "me" &&
+        toKeyCheck !== "self" &&
+        toKeyCheck !== playerNameLower()
+      ) {
+        setCatchLine("Local admin only — can't gift other players or everyone", "miss");
+        playSfx("miss");
+        return;
+      }
+      toRaw = "me";
+    }
     if (
       (!toRaw || toRaw.toLowerCase() === "me" || toRaw.toLowerCase() === "self") &&
       getAdminScope() === "global" &&
-      !cmd.forceSelf
+      !cmd.forceSelf &&
+      canAdminGiftOthers()
     ) {
       toRaw = "everyone";
     }
@@ -8949,7 +9032,7 @@
   }
 
   async function runAdminCommand(raw) {
-    if (!isFishingOwner()) {
+    if (!isFishingAdmin()) {
       setCatchLine("Admin only", "miss");
       return;
     }
@@ -8959,6 +9042,11 @@
       /^(?:delete|remove|drop)\s+(?:fish\s+)?(?:soul\s*twins?|soultwins?|the\s*twin)\b(?:\s*(?:x\s*)?(\d{1,2}))?\s*$/i
     );
     if (deleteTwin) {
+      if (!isFishingOwner()) {
+        setCatchLine("Owner only", "miss");
+        playSfx("miss");
+        return;
+      }
       const n = Math.max(1, Math.min(50, Number(deleteTwin[1]) || 1));
       await burnPendingSoulTwinGifts();
       const removed = removeSoulTwinsFromCooler(n);
@@ -8976,6 +9064,11 @@
     }
     const announce = parseAnnounceCommand(raw);
     if (announce) {
+      if (!canAdminGlobal()) {
+        setCatchLine("Local admin only — can't send global announce", "miss");
+        playSfx("miss");
+        return;
+      }
       if (announce.kind === "clear-announce") {
         await clearAdminAnnounce();
         return;
@@ -9011,14 +9104,26 @@
     const parsed = parseAdminCommand(raw);
     if (!parsed) {
       setCatchLine(
-        "Try: say hi · storm · calm · 5x luck · 5x chest · give coin chest · clear weather · clear",
+        canAdminGlobal()
+          ? "Try: say hi · storm · calm · 5x luck · 5x chest · give coin chest · clear weather · clear"
+          : "Try: storm · calm · 5x luck · 2x speed · give fish trout · clear weather · clear",
         "miss"
       );
       return;
     }
     if (parsed.kind === "clear-announce") {
+      if (!canAdminGlobal()) {
+        setCatchLine("Local admin only — can't clear global announce", "miss");
+        playSfx("miss");
+        return;
+      }
       await clearAdminAnnounce();
       return;
+    }
+    if (parsed.scope === "global" && !canAdminGlobal()) {
+      setCatchLine("Local admin only — events stay on your device", "miss");
+      playSfx("miss");
+      parsed.scope = "local";
     }
     if (parsed.scope === "local" || parsed.scope === "global") {
       setAdminScope(parsed.scope);
@@ -9027,7 +9132,7 @@
       parsed.kind,
       parsed.minutes,
       parsed.mult,
-      parsed.scope,
+      canAdminGlobal() ? parsed.scope : "local",
       parsed.target || ""
     );
   }
