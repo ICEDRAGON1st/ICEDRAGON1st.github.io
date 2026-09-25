@@ -1716,7 +1716,70 @@
     { id: "quad17", name: "Crown Quad", desc: "84% chance for a 4th fish (needs 3rd)", cost: 5e18, kind: "quad", amount: 0.84 },
     { id: "quad18", name: "Apex Quad Ultima", desc: "88% chance for a 4th fish (needs 3rd)", cost: 3.5e19, kind: "quad", amount: 0.88 },
     { id: "quad19", name: "Celestial Quad", desc: "91% chance for a 4th fish (needs 3rd)", cost: 2.5e20, kind: "quad", amount: 0.91 },
-    { id: "quad20", name: "Ultimate Quad", desc: "94% chance for a 4th fish (needs 3rd)", cost: 1.8e21, kind: "quad", amount: 0.94 }
+    { id: "quad20", name: "Ultimate Quad", desc: "94% chance for a 4th fish (needs 3rd)", cost: 1.8e21, kind: "quad", amount: 0.94 },
+    // Chest finds — raise Coin/Luck chest odds
+    { id: "chest1", name: "Beach Comb", desc: "+25% chest find odds", cost: 1200, kind: "chest", amount: 0.25 },
+    { id: "chest2", name: "Tide Scoop", desc: "+40% chest find odds", cost: 9000, kind: "chest", amount: 0.4 },
+    { id: "chest3", name: "Wreck Magnet", desc: "+55% chest find odds", cost: 55000, kind: "chest", amount: 0.55 },
+    { id: "chest4", name: "Salvage Hook", desc: "+75% chest find odds", cost: 350000, kind: "chest", amount: 0.75 },
+    { id: "chest5", name: "Treasure Sense", desc: "+100% chest find odds", cost: 2.2e6, kind: "chest", amount: 1 },
+    { id: "chest6", name: "Gold Diviner", desc: "+130% chest find odds", cost: 1.5e7, kind: "chest", amount: 1.3 },
+    { id: "chest7", name: "Relic Radar", desc: "+170% chest find odds", cost: 1e8, kind: "chest", amount: 1.7 },
+    { id: "chest8", name: "Cache Compass", desc: "+220% chest find odds", cost: 7e8, kind: "chest", amount: 2.2 },
+    { id: "chest9", name: "Vault Sniffer", desc: "+280% chest find odds", cost: 5e9, kind: "chest", amount: 2.8 },
+    { id: "chest10", name: "Hoard Finder", desc: "+350% chest find odds", cost: 3.5e10, kind: "chest", amount: 3.5 },
+    { id: "chest11", name: "Chrono Cache", desc: "+450% chest find odds", cost: 2.5e11, kind: "chest", amount: 4.5 },
+    { id: "chest12", name: "Genesis Looter", desc: "+550% chest find odds", cost: 1.8e12, kind: "chest", amount: 5.5 },
+    { id: "chest13", name: "Infinity Salvage", desc: "+700% chest find odds", cost: 1.2e13, kind: "chest", amount: 7 },
+    { id: "chest14", name: "Absolute Magnet", desc: "+900% chest find odds", cost: 9e13, kind: "chest", amount: 9 },
+    { id: "chest15", name: "Omni Diviner", desc: "+1100% chest find odds", cost: 6e14, kind: "chest", amount: 11 },
+    { id: "chest16", name: "Nexus Radar", desc: "+1400% chest find odds", cost: 4e15, kind: "chest", amount: 14 },
+    { id: "chest17", name: "Crown Cache", desc: "+1800% chest find odds", cost: 3e16, kind: "chest", amount: 18 },
+    { id: "chest18", name: "Apex Salvage", desc: "+2300% chest find odds", cost: 2e17, kind: "chest", amount: 23 },
+    { id: "chest19", name: "Celestial Finder", desc: "+3000% chest find odds", cost: 1.5e18, kind: "chest", amount: 30 },
+    { id: "chest20", name: "Ultimate Hoard", desc: "+4000% chest find odds", cost: 1e19, kind: "chest", amount: 40 },
+    // Combo hold — longer perfect-combo timer
+    { id: "combo1", name: "Rhythm Band", desc: "+5s combo hold", cost: 2500, kind: "combo", amount: 5 },
+    { id: "combo2", name: "Pulse Bracelet", desc: "+8s combo hold", cost: 18000, kind: "combo", amount: 8 },
+    { id: "combo3", name: "Beat Keeper", desc: "+12s combo hold", cost: 120000, kind: "combo", amount: 12 },
+    { id: "combo4", name: "Flow Charm", desc: "+16s combo hold", cost: 800000, kind: "combo", amount: 16 },
+    { id: "combo5", name: "Tempo Lens", desc: "+22s combo hold", cost: 5e6, kind: "combo", amount: 22 },
+    { id: "combo6", name: "Cadence Hook", desc: "+28s combo hold", cost: 3.5e7, kind: "combo", amount: 28 },
+    { id: "combo7", name: "Sync Bell", desc: "+35s combo hold", cost: 2.2e8, kind: "combo", amount: 35 },
+    { id: "combo8", name: "Metronome Lure", desc: "+45s combo hold", cost: 1.5e9, kind: "combo", amount: 45 },
+    { id: "combo9", name: "Zenith Rhythm", desc: "+55s combo hold", cost: 1e10, kind: "combo", amount: 55 },
+    { id: "combo10", name: "Chrono Beat", desc: "+70s combo hold", cost: 7e10, kind: "combo", amount: 70 },
+    { id: "combo11", name: "Genesis Tempo", desc: "+90s combo hold", cost: 5e11, kind: "combo", amount: 90 },
+    { id: "combo12", name: "Infinity Flow", desc: "+110s combo hold", cost: 3.5e12, kind: "combo", amount: 110 },
+    { id: "combo13", name: "Absolute Cadence", desc: "+140s combo hold", cost: 2.5e13, kind: "combo", amount: 140 },
+    { id: "combo14", name: "Omni Metronome", desc: "+170s combo hold", cost: 1.8e14, kind: "combo", amount: 170 },
+    { id: "combo15", name: "Nexus Sync", desc: "+210s combo hold", cost: 1.2e15, kind: "combo", amount: 210 },
+    { id: "combo16", name: "Crown Rhythm", desc: "+260s combo hold", cost: 8e15, kind: "combo", amount: 260 },
+    { id: "combo17", name: "Apex Tempo", desc: "+320s combo hold", cost: 6e16, kind: "combo", amount: 320 },
+    { id: "combo18", name: "Celestial Beat", desc: "+400s combo hold", cost: 4e17, kind: "combo", amount: 400 },
+    { id: "combo19", name: "Primordial Flow", desc: "+500s combo hold", cost: 3e18, kind: "combo", amount: 500 },
+    { id: "combo20", name: "Ultimate Cadence", desc: "+650s combo hold", cost: 2e19, kind: "combo", amount: 650 },
+    // Fifth catch — needs a fourth fish on the same cast
+    { id: "penta1", name: "Penta Hook", desc: "4% chance for a 5th fish (needs 4th)", cost: 250000, kind: "penta", amount: 0.04 },
+    { id: "penta2", name: "Penta Line", desc: "7% chance for a 5th fish (needs 4th)", cost: 2e6, kind: "penta", amount: 0.07 },
+    { id: "penta3", name: "Penta Snare", desc: "10% chance for a 5th fish (needs 4th)", cost: 1.5e7, kind: "penta", amount: 0.1 },
+    { id: "penta4", name: "Cascade Penta", desc: "14% chance for a 5th fish (needs 4th)", cost: 1.2e8, kind: "penta", amount: 0.14 },
+    { id: "penta5", name: "Void Penta", desc: "18% chance for a 5th fish (needs 4th)", cost: 9e8, kind: "penta", amount: 0.18 },
+    { id: "penta6", name: "Apex Penta", desc: "22% chance for a 5th fish (needs 4th)", cost: 7e9, kind: "penta", amount: 0.22 },
+    { id: "penta7", name: "Zenith Penta", desc: "28% chance for a 5th fish (needs 4th)", cost: 5e10, kind: "penta", amount: 0.28 },
+    { id: "penta8", name: "Rift Penta", desc: "34% chance for a 5th fish (needs 4th)", cost: 3.5e11, kind: "penta", amount: 0.34 },
+    { id: "penta9", name: "Prism Penta", desc: "40% chance for a 5th fish (needs 4th)", cost: 2.5e12, kind: "penta", amount: 0.4 },
+    { id: "penta10", name: "Chrono Penta", desc: "46% chance for a 5th fish (needs 4th)", cost: 1.8e13, kind: "penta", amount: 0.46 },
+    { id: "penta11", name: "Genesis Penta", desc: "52% chance for a 5th fish (needs 4th)", cost: 1.2e14, kind: "penta", amount: 0.52 },
+    { id: "penta12", name: "Infinity Penta", desc: "58% chance for a 5th fish (needs 4th)", cost: 9e14, kind: "penta", amount: 0.58 },
+    { id: "penta13", name: "Absolute Penta", desc: "64% chance for a 5th fish (needs 4th)", cost: 6e15, kind: "penta", amount: 0.64 },
+    { id: "penta14", name: "Omni Penta", desc: "70% chance for a 5th fish (needs 4th)", cost: 4e16, kind: "penta", amount: 0.7 },
+    { id: "penta15", name: "Nexus Penta", desc: "75% chance for a 5th fish (needs 4th)", cost: 3e17, kind: "penta", amount: 0.75 },
+    { id: "penta16", name: "Crown Penta", desc: "80% chance for a 5th fish (needs 4th)", cost: 2e18, kind: "penta", amount: 0.8 },
+    { id: "penta17", name: "Apex Penta Ultima", desc: "85% chance for a 5th fish (needs 4th)", cost: 1.5e19, kind: "penta", amount: 0.85 },
+    { id: "penta18", name: "Celestial Penta", desc: "89% chance for a 5th fish (needs 4th)", cost: 1e20, kind: "penta", amount: 0.89 },
+    { id: "penta19", name: "Primordial Penta", desc: "92% chance for a 5th fish (needs 4th)", cost: 7e20, kind: "penta", amount: 0.92 },
+    { id: "penta20", name: "Ultimate Penta", desc: "95% chance for a 5th fish (needs 4th)", cost: 5e21, kind: "penta", amount: 0.95 }
   ];
 
   /**
@@ -2207,6 +2270,21 @@
       id: "quad",
       title: "Fourth catch",
       blurb: "If a third fish lands, chance for a fourth on the same cast."
+    },
+    {
+      id: "penta",
+      title: "Fifth catch",
+      blurb: "If a fourth fish lands, chance for a fifth on the same cast."
+    },
+    {
+      id: "chest",
+      title: "Chest finds",
+      blurb: "Raise odds of finding Coin and Luck chests on a reel."
+    },
+    {
+      id: "combo",
+      title: "Combo hold",
+      blurb: "Keep your perfect-reel combo alive longer between casts."
     },
     {
       id: "boat",
@@ -2792,11 +2870,17 @@
   function notePerfectCombo(perfect) {
     if (perfect) {
       state.combo = Math.min(99, (state.combo || 0) + 1);
-      state.comboBoostUntil = Date.now() + 45_000;
+      state.comboBoostUntil = Date.now() + comboHoldMs();
     } else {
       state.combo = 0;
       state.comboBoostUntil = 0;
     }
+  }
+
+  /** Base 45s + combo gear seconds (capped). */
+  function comboHoldMs() {
+    const extraSec = ownedGear("combo").reduce((s, g) => s + (Number(g.amount) || 0), 0);
+    return 45_000 + Math.min(900_000, Math.max(0, extraSec) * 1000);
   }
 
   function communityWeekKey(now = Date.now()) {
@@ -9600,7 +9684,7 @@
     return Math.random() < 0.5 ? "astral" : "absolute";
   }
 
-  /** Combined chance to find any chest; then 50/50 Coin vs Luck. Luck gear raises this. */
+  /** Combined chance to find any chest; then 50/50 Coin vs Luck. Luck + chest gear raise this. */
   function treasureAnyChance(spot, forBoat = false) {
     const t = Math.max(0, Math.min(MAX_SPOT_RARITY, Number(spot?.rarity) || 0)) / MAX_SPOT_RARITY;
     // Base: ~0.10% creek → ~0.28% omega
@@ -9610,11 +9694,12 @@
     // Soft scale so upgrades clearly raise odds (guide updates live)
     // luck 8 → ×1.08 · luck 30 → ×1.30 · luck 100 → ×2.00 · hard cap ×4
     const luckMult = 1 + Math.min(3, luck * 0.01);
-    let p = base * luckMult;
+    const chestGear = 1 + chestFindBonus();
+    let p = base * luckMult * chestGear;
     if (forBoat) p *= 0.35;
     const chestMult = eventChestMult();
     p *= chestMult;
-    const cap = Math.min(0.45, 0.06 * Math.max(1, chestMult));
+    const cap = Math.min(0.55, 0.06 * Math.max(1, chestMult) * Math.min(3, chestGear));
     return Math.min(cap, p);
   }
 
@@ -10329,9 +10414,18 @@
     return Math.min(0.9, ownedGear("quad").reduce((s, g) => s + (Number(g.amount) || 0), 0));
   }
 
+  function pentaCatchChance() {
+    return Math.min(0.9, ownedGear("penta").reduce((s, g) => s + (Number(g.amount) || 0), 0));
+  }
+
   /** Relative boost to shiny + primary variant odds (stacks, soft-capped). */
   function looksBonus() {
     return Math.min(40, ownedGear("looks").reduce((s, g) => s + (Number(g.amount) || 0), 0));
+  }
+
+  /** Relative boost to chest find odds (stacks, soft-capped). */
+  function chestFindBonus() {
+    return Math.min(50, ownedGear("chest").reduce((s, g) => s + (Number(g.amount) || 0), 0));
   }
 
   function boats() {
@@ -14013,6 +14107,8 @@
     let thirdEntry = null;
     let fourthFish = null;
     let fourthEntry = null;
+    let fifthFish = null;
+    let fifthEntry = null;
     if (entry && Math.random() < multiCatchChance()) {
       bonusFish = rollFish(spot, false);
       state.catches += 1;
@@ -14033,6 +14129,13 @@
       fourthEntry = addToCooler(fourthFish);
       if (!fourthEntry) fourthFish = null;
       else noteQuestProgress("catch", 1, { rarity: fourthFish.rarity, forBoat: false });
+    }
+    if (entry && bonusFish && thirdFish && fourthFish && Math.random() < pentaCatchChance()) {
+      fifthFish = rollFish(spot, false);
+      state.catches += 1;
+      fifthEntry = addToCooler(fifthFish);
+      if (!fifthEntry) fifthFish = null;
+      else noteQuestProgress("catch", 1, { rarity: fifthFish.rarity, forBoat: false });
     }
     setPhase("result");
     if (entry) {
@@ -14061,6 +14164,14 @@
           entry: fourthEntry
         });
       }
+      if (fifthFish && fifthEntry) {
+        haul.push({
+          fish: fifthFish,
+          val: fishValue(fifthFish, spot, fifthEntry),
+          perfect: false,
+          entry: fifthEntry
+        });
+      }
       const showcase = pickBestCatchFish(haul) || fish;
       const showcaseEntry =
         haul.find((h) => h.fish === showcase)?.entry || entry;
@@ -14068,9 +14179,15 @@
       showCatchSilhouette(showcase, showcaseEntry);
       showCatchCard(haul);
       const tip = perfect ? "Perfect reel! " : "";
-      const extras = [bonusFish, thirdFish, fourthFish].filter(Boolean).map((f) => {
+      const extras = [bonusFish, thirdFish, fourthFish, fifthFish].filter(Boolean).map((f) => {
         const e =
-          f === bonusFish ? bonusEntry : f === thirdFish ? thirdEntry : fourthEntry;
+          f === bonusFish
+            ? bonusEntry
+            : f === thirdFish
+              ? thirdEntry
+              : f === fourthFish
+                ? fourthEntry
+                : fifthEntry;
         return formatFishName(f, e);
       });
       const bonusTip = extras.length ? ` + ${extras.join(" + ")}` : "";
@@ -14083,7 +14200,8 @@
           isShowcaseRarity(fish.rarity) ||
           (bonusFish && isShowcaseRarity(bonusFish.rarity)) ||
           (thirdFish && isShowcaseRarity(thirdFish.rarity)) ||
-          (fourthFish && isShowcaseRarity(fourthFish.rarity))
+          (fourthFish && isShowcaseRarity(fourthFish.rarity)) ||
+          (fifthFish && isShowcaseRarity(fifthFish.rarity))
           ? "win"
           : "click"
       );
@@ -14091,12 +14209,13 @@
         isShowcaseRarity(fish.rarity) ||
         (bonusFish && isShowcaseRarity(bonusFish.rarity)) ||
         (thirdFish && isShowcaseRarity(thirdFish.rarity)) ||
-        (fourthFish && isShowcaseRarity(fourthFish.rarity))
+        (fourthFish && isShowcaseRarity(fourthFish.rarity)) ||
+        (fifthFish && isShowcaseRarity(fifthFish.rarity))
       ) {
         burstConfetti();
       }
       const rect = castBtn.getBoundingClientRect();
-      const extrasN = [bonusFish, thirdFish, fourthFish].filter(Boolean).length;
+      const extrasN = [bonusFish, thirdFish, fourthFish, fifthFish].filter(Boolean).length;
       spawnFloat(
         evt?.clientX ?? rect.left + rect.width / 2,
         evt?.clientY ?? rect.top + 20,
@@ -15277,11 +15396,29 @@
       if (after <= before + 1e-9) return "Fourth-catch at 90% cap";
       return `4th catch ${(before * 100).toFixed(0)}% → ${(after * 100).toFixed(0)}%`;
     }
+    if (kind === "penta") {
+      const before = Math.min(0.9, sum);
+      const after = Math.min(0.9, sum + amt);
+      if (after <= before + 1e-9) return "Fifth-catch at 90% cap";
+      return `5th catch ${(before * 100).toFixed(0)}% → ${(after * 100).toFixed(0)}%`;
+    }
     if (kind === "looks") {
       const before = Math.min(40, sum);
       const after = Math.min(40, sum + amt);
       if (after <= before + 1e-9) return "Looks boost at cap";
       return `Looks +${(before * 100).toFixed(0)}% → +${(after * 100).toFixed(0)}%`;
+    }
+    if (kind === "chest") {
+      const before = Math.min(50, sum);
+      const after = Math.min(50, sum + amt);
+      if (after <= before + 1e-9) return "Chest find boost at cap";
+      return `Chests +${(before * 100).toFixed(0)}% → +${(after * 100).toFixed(0)}%`;
+    }
+    if (kind === "combo") {
+      const before = Math.min(900, sum);
+      const after = Math.min(900, sum + amt);
+      if (after <= before + 1e-9) return "Combo hold at cap";
+      return `Combo ${45 + before}s → ${45 + after}s`;
     }
     if (kind === "luck") {
       return `Luck ${formatNum(sum)} → ${formatNum(sum + amt)}`;
@@ -15331,8 +15468,17 @@
     if (kind === "quad") {
       return `${n} owned · 4th ${Math.min(90, Math.round(sum * 100))}% / 90%`;
     }
+    if (kind === "penta") {
+      return `${n} owned · 5th ${Math.min(90, Math.round(sum * 100))}% / 90%`;
+    }
     if (kind === "looks") {
       return `${n} owned · looks +${Math.min(4000, Math.round(sum * 100))}%`;
+    }
+    if (kind === "chest") {
+      return `${n} owned · chests +${Math.min(5000, Math.round(sum * 100))}%`;
+    }
+    if (kind === "combo") {
+      return `${n} owned · combo ${45 + Math.min(900, Math.round(sum))}s`;
     }
     return `${n} owned`;
   }
@@ -15923,7 +16069,10 @@
     if (multiLabelEl) multiLabelEl.textContent = formatPctBonus(multiCatchChance(), false);
     if (tripleLabelEl) tripleLabelEl.textContent = formatPctBonus(tripleCatchChance(), false);
     if (quadLabelEl) quadLabelEl.textContent = formatPctBonus(quadCatchChance(), false);
+    if (pentaLabelEl) pentaLabelEl.textContent = formatPctBonus(pentaCatchChance(), false);
     if (looksLabelEl) looksLabelEl.textContent = formatPctBonus(looksBonus());
+    if (chestLabelEl) chestLabelEl.textContent = formatPctBonus(chestFindBonus());
+    if (comboHoldLabelEl) comboHoldLabelEl.textContent = `${Math.round(comboHoldMs() / 1000)}s`;
     if (perfectLabelEl) perfectLabelEl.textContent = formatPctBonus(perfectBonus());
     if (coolerStatLabelEl) coolerStatLabelEl.textContent = String(coolerMax());
     renderFeatureChips();
