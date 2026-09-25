@@ -2260,16 +2260,6 @@
       blurb: "Tridents — if a second fish lands, chance for a third on the same cast."
     },
     {
-      id: "perfect",
-      title: "Perfect pay",
-      blurb: "Earn more when you sell fish caught on a perfect reel."
-    },
-    {
-      id: "looks",
-      title: "Looks",
-      blurb: "Boost shiny and silver/gold/diamond/rainbow odds on every catch."
-    },
-    {
       id: "quad",
       title: "Fourth catch",
       blurb: "If a third fish lands, chance for a fourth on the same cast."
@@ -2278,6 +2268,16 @@
       id: "penta",
       title: "Fifth catch",
       blurb: "If a fourth fish lands, chance for a fifth on the same cast."
+    },
+    {
+      id: "perfect",
+      title: "Perfect pay",
+      blurb: "Earn more when you sell fish caught on a perfect reel."
+    },
+    {
+      id: "looks",
+      title: "Looks",
+      blurb: "Boost shiny and silver/gold/diamond/rainbow odds on every catch."
     },
     {
       id: "chest",
