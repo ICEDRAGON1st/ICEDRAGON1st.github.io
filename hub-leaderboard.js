@@ -401,17 +401,27 @@
     if (!fish) return 0;
     const rank = Math.max(0, Math.min(99, FISHING_RARITY_RANK[fish.rarity] || 1));
     const tier = Math.max(0, Math.min(99, fishingVariantTier(entry)));
-    const value = Math.max(0, Number(fish.value) || 0);
-    const valuePart = value > 0 ? Math.min(999_999_999, Math.floor(Math.log10(value + 1) * 1_000_000)) : 0;
-    return rank * 1e11 + tier * 1e9 + valuePart;
+    const base = Math.max(0, Number(fish.value) || 0);
+    const v = fishingNormalizeVariant(entry?.variant);
+    const primary =
+      v === "silver" ? 1.5 : v === "gold" ? 2 : v === "diamond" ? 2.5 : v === "rainbow" ? 3 : 1;
+    const shiny = entry?.shiny ? 3 : 1;
+    const mut = fishingNormalizeMutation(entry?.mutation);
+    const mutMult = mut === "neon" ? 6 : mut === "lava" ? 5 : mut === "toxic" ? 4 : 1;
+    const look = Math.max(1, Math.floor(base * primary * shiny * mutMult));
+    const lookPart =
+      look > 0 ? Math.min(999_999_999, Math.floor(Math.log10(look + 1) * 1_000_000)) : 0;
+    // rarity → look value → tier (matches Fishing Idle catchScore)
+    return rank * 1e12 + lookPart * 100 + tier;
   }
 
   function fishingLegacyCatchScore(fish) {
     if (!fish) return 0;
     const rank = Math.max(0, Math.min(99, FISHING_RARITY_RANK[fish.rarity] || 1));
     const value = Math.max(0, Number(fish.value) || 0);
-    const valuePart = value > 0 ? Math.min(999_999_999, Math.floor(Math.log10(value + 1) * 1_000_000)) : 0;
-    return rank * 1e11 + valuePart;
+    const valuePart =
+      value > 0 ? Math.min(999_999_999, Math.floor(Math.log10(value + 1) * 1_000_000)) : 0;
+    return rank * 1e12 + valuePart * 100;
   }
 
   function fishingVariantTitle(entry) {
@@ -905,18 +915,25 @@
       if (at <= fishingFullCut) delete fishingBoard[key];
     });
 
-    // Precision-safe catch scores: never full-wipe again — only drop broken ~1e30 packs.
-    const fishingSafeScoreKey = "fishing:catch-score-safe-v6";
+    // Score order fix (rarity → look value → tier): one-time clear, then no more full wipes.
+    const fishingSafeScoreKey = "fishing:catch-score-safe-v7";
     if (!resets[fishingSafeScoreKey]) {
       resets[fishingSafeScoreKey] = Date.now();
+      Object.keys(fishingBoard).forEach((key) => {
+        delete fishingBoard[key];
+      });
     }
-    // Keep v5 stamped so older tabs don't re-clear the whole board.
+    // Keep older stamps so outdated wipe tabs don't re-clear forever.
+    if (!resets["fishing:catch-score-safe-v6"]) {
+      resets["fishing:catch-score-safe-v6"] = resets[fishingSafeScoreKey];
+    }
     if (!resets["fishing:catch-score-safe-v5"]) {
       resets["fishing:catch-score-safe-v5"] = resets[fishingSafeScoreKey];
     }
     Object.keys(fishingBoard).forEach((key) => {
       const score = Number(fishingBoard[key]?.score) || 0;
-      if (score > 1e15) delete fishingBoard[key];
+      // New scores sit under ~1e14; drop leftovers from older packs.
+      if (score > 1e14) delete fishingBoard[key];
     });
     // Drop old Abyss King floor seeds so they can't reappear after this wipe.
     delete resets["fishing:ice_dragon-abyss-king-v1"];

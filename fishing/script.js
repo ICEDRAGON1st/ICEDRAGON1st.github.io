@@ -20,7 +20,7 @@
   /** One-time: remove a single duplicate Soul Twin from ICE_DRAGON's cooler. */
   const ICE_SOUL_TWIN_TRIM_ID = "fishing-ice-dragon-soultwin-trim-v2";
   /** One-time: migrate off precision-broken catch scores (Apex+ values). */
-  const CATCH_SCORE_V2_ID = "fishing-catch-score-safe-v4";
+  const CATCH_SCORE_V2_ID = "fishing-catch-score-safe-v7";
   const ICE_LOCAL_WIPE_ID = "hub-fishing-ice-dragon-wipe-v1";
   const ICE_COINS_GRANT_AMOUNT = 1_000_000;
   const ICE_MONEY_CHEST_GRANT = 20;
@@ -10812,9 +10812,9 @@
   }
 
   /**
-   * Best-catch rank key. Rarity → look tier → value.
-   * Old formula `(rank*100+tier)*1e5+value` collapsed for Apex-scale values (~1e30),
-   * so Shiny/Neon could never beat a plain Apex.
+   * Best-catch rank key: rarity → look value (base×variants) → look tier.
+   * Tier must NOT outrank a much more valuable fish in the same rarity
+   * (e.g. Shiny Neon Apex beats Silver Shiny Neon Summitfin).
    */
   function catchScore(fish, entry) {
     if (!fish) return 0;
@@ -10823,16 +10823,18 @@
       0,
       Math.min(99, isExclusiveFish(fish) ? 0 : variantTier(entry))
     );
-    const value = isExclusiveFish(fish)
+    const look = isExclusiveFish(fish)
       ? Math.max(0, Number(entry?.lockedValue) || 2)
-      : Math.max(0, Number(fish.value) || 0);
-    return rank * 1e11 + tier * 1e9 + valueScorePart(value);
+      : exclusiveCandidateLookValue(fish, entry) ||
+        Math.max(0, Number(fish.value) || 0);
+    // rank*1e12 always beats lower rarities; lookPart*100 beats tier within rarity.
+    return rank * 1e12 + valueScorePart(look) * 100 + tier;
   }
 
   function legacyCatchScore(fish) {
     if (!fish) return 0;
     const rank = Math.max(0, Math.min(99, RARITY_RANK[fish.rarity] || 1));
-    return rank * 1e11 + valueScorePart(fish.value);
+    return rank * 1e12 + valueScorePart(fish.value) * 100;
   }
 
   function catchBetterThan(fishA, entryA, fishB, entryB) {
