@@ -1671,7 +1671,52 @@
     { id: "perfect52", name: "Pantheon Focus", desc: "+155000% sell on perfect reels", cost: 9.5e37, kind: "perfect", amount: 1550 },
     { id: "perfect53", name: "Astral Crown Pulse", desc: "+195000% sell on perfect reels", cost: 4.8e38, kind: "perfect", amount: 1950 },
     { id: "perfect54", name: "Eternal Gate Timing", desc: "+245000% sell on perfect reels", cost: 2.4e39, kind: "perfect", amount: 2450 },
-    { id: "perfect55", name: "True Omega Focus", desc: "+310000% sell on perfect reels", cost: 1.2e40, kind: "perfect", amount: 3100 }
+    { id: "perfect55", name: "True Omega Focus", desc: "+310000% sell on perfect reels", cost: 1.2e40, kind: "perfect", amount: 3100 },
+    // Looks — boost shiny + silver/gold/diamond/rainbow odds (stacks)
+    { id: "looks1", name: "Gleam Hook", desc: "+20% shiny & variant odds", cost: 800, kind: "looks", amount: 0.2 },
+    { id: "looks2", name: "Polish Lure", desc: "+30% shiny & variant odds", cost: 5000, kind: "looks", amount: 0.3 },
+    { id: "looks3", name: "Shine Charm", desc: "+40% shiny & variant odds", cost: 28000, kind: "looks", amount: 0.4 },
+    { id: "looks4", name: "Sparkle Bell", desc: "+50% shiny & variant odds", cost: 150000, kind: "looks", amount: 0.5 },
+    { id: "looks5", name: "Prism Polish", desc: "+65% shiny & variant odds", cost: 900000, kind: "looks", amount: 0.65 },
+    { id: "looks6", name: "Aurora Gleam", desc: "+80% shiny & variant odds", cost: 6e6, kind: "looks", amount: 0.8 },
+    { id: "looks7", name: "Neon Sheen", desc: "+100% shiny & variant odds", cost: 4e7, kind: "looks", amount: 1 },
+    { id: "looks8", name: "Mirage Shine", desc: "+120% shiny & variant odds", cost: 2.5e8, kind: "looks", amount: 1.2 },
+    { id: "looks9", name: "Zenith Polish", desc: "+150% shiny & variant odds", cost: 1.5e9, kind: "looks", amount: 1.5 },
+    { id: "looks10", name: "Galaxy Gleam", desc: "+180% shiny & variant odds", cost: 1e10, kind: "looks", amount: 1.8 },
+    { id: "looks11", name: "Chrono Sheen", desc: "+220% shiny & variant odds", cost: 7e10, kind: "looks", amount: 2.2 },
+    { id: "looks12", name: "Genesis Polish", desc: "+270% shiny & variant odds", cost: 5e11, kind: "looks", amount: 2.7 },
+    { id: "looks13", name: "Singularity Shine", desc: "+320% shiny & variant odds", cost: 3.5e12, kind: "looks", amount: 3.2 },
+    { id: "looks14", name: "Absolute Gleam", desc: "+380% shiny & variant odds", cost: 2.5e13, kind: "looks", amount: 3.8 },
+    { id: "looks15", name: "Omni Polish", desc: "+450% shiny & variant odds", cost: 1.8e14, kind: "looks", amount: 4.5 },
+    { id: "looks16", name: "Transcend Sheen", desc: "+550% shiny & variant odds", cost: 1.2e15, kind: "looks", amount: 5.5 },
+    { id: "looks17", name: "Voidborn Gleam", desc: "+650% shiny & variant odds", cost: 8e15, kind: "looks", amount: 6.5 },
+    { id: "looks18", name: "Crown Polish", desc: "+800% shiny & variant odds", cost: 6e16, kind: "looks", amount: 8 },
+    { id: "looks19", name: "Apex Sheen", desc: "+1000% shiny & variant odds", cost: 4e17, kind: "looks", amount: 10 },
+    { id: "looks20", name: "Celestial Gleam", desc: "+1200% shiny & variant odds", cost: 3e18, kind: "looks", amount: 12 },
+    { id: "looks21", name: "Sovereign Shine", desc: "+1500% shiny & variant odds", cost: 2e19, kind: "looks", amount: 15 },
+    { id: "looks22", name: "Primordial Polish", desc: "+1800% shiny & variant odds", cost: 1.5e20, kind: "looks", amount: 18 },
+    { id: "looks23", name: "Ultimate Gleam", desc: "+2200% shiny & variant odds", cost: 1e21, kind: "looks", amount: 22 },
+    // Fourth catch — needs a third fish on the same cast
+    { id: "quad1", name: "Quad Hook", desc: "5% chance for a 4th fish (needs 3rd)", cost: 80000, kind: "quad", amount: 0.05 },
+    { id: "quad2", name: "Quad Line", desc: "8% chance for a 4th fish (needs 3rd)", cost: 600000, kind: "quad", amount: 0.08 },
+    { id: "quad3", name: "Quad Snare", desc: "11% chance for a 4th fish (needs 3rd)", cost: 5e6, kind: "quad", amount: 0.11 },
+    { id: "quad4", name: "Cascade Quad", desc: "14% chance for a 4th fish (needs 3rd)", cost: 4e7, kind: "quad", amount: 0.14 },
+    { id: "quad5", name: "Void Quad", desc: "18% chance for a 4th fish (needs 3rd)", cost: 3e8, kind: "quad", amount: 0.18 },
+    { id: "quad6", name: "Apex Quad", desc: "22% chance for a 4th fish (needs 3rd)", cost: 2e9, kind: "quad", amount: 0.22 },
+    { id: "quad7", name: "Zenith Quad", desc: "28% chance for a 4th fish (needs 3rd)", cost: 1.5e10, kind: "quad", amount: 0.28 },
+    { id: "quad8", name: "Rift Quad", desc: "34% chance for a 4th fish (needs 3rd)", cost: 1e11, kind: "quad", amount: 0.34 },
+    { id: "quad9", name: "Prism Quad", desc: "40% chance for a 4th fish (needs 3rd)", cost: 8e11, kind: "quad", amount: 0.4 },
+    { id: "quad10", name: "Chrono Quad", desc: "46% chance for a 4th fish (needs 3rd)", cost: 6e12, kind: "quad", amount: 0.46 },
+    { id: "quad11", name: "Genesis Quad", desc: "52% chance for a 4th fish (needs 3rd)", cost: 4e13, kind: "quad", amount: 0.52 },
+    { id: "quad12", name: "Infinity Quad", desc: "58% chance for a 4th fish (needs 3rd)", cost: 3e14, kind: "quad", amount: 0.58 },
+    { id: "quad13", name: "Absolute Quad", desc: "64% chance for a 4th fish (needs 3rd)", cost: 2e15, kind: "quad", amount: 0.64 },
+    { id: "quad14", name: "Omni Quad", desc: "70% chance for a 4th fish (needs 3rd)", cost: 1.5e16, kind: "quad", amount: 0.7 },
+    { id: "quad15", name: "Nexus Quad", desc: "75% chance for a 4th fish (needs 3rd)", cost: 1e17, kind: "quad", amount: 0.75 },
+    { id: "quad16", name: "Voidborn Quad", desc: "80% chance for a 4th fish (needs 3rd)", cost: 7e17, kind: "quad", amount: 0.8 },
+    { id: "quad17", name: "Crown Quad", desc: "84% chance for a 4th fish (needs 3rd)", cost: 5e18, kind: "quad", amount: 0.84 },
+    { id: "quad18", name: "Apex Quad Ultima", desc: "88% chance for a 4th fish (needs 3rd)", cost: 3.5e19, kind: "quad", amount: 0.88 },
+    { id: "quad19", name: "Celestial Quad", desc: "91% chance for a 4th fish (needs 3rd)", cost: 2.5e20, kind: "quad", amount: 0.91 },
+    { id: "quad20", name: "Ultimate Quad", desc: "94% chance for a 4th fish (needs 3rd)", cost: 1.8e21, kind: "quad", amount: 0.94 }
   ];
 
   /**
@@ -2005,6 +2050,8 @@
   const LB_SPIN_MS = 4200;
   const multiLabelEl = document.getElementById("multi-label");
   const tripleLabelEl = document.getElementById("triple-label");
+  const quadLabelEl = document.getElementById("quad-label");
+  const looksLabelEl = document.getElementById("looks-label");
   const perfectLabelEl = document.getElementById("perfect-label");
   const coolerStatLabelEl = document.getElementById("cooler-stat-label");
   const boatsLabelEl = document.getElementById("boats-label");
@@ -2150,6 +2197,16 @@
       id: "perfect",
       title: "Perfect pay",
       blurb: "Earn more when you sell fish caught on a perfect reel."
+    },
+    {
+      id: "looks",
+      title: "Looks",
+      blurb: "Boost shiny and silver/gold/diamond/rainbow odds on every catch."
+    },
+    {
+      id: "quad",
+      title: "Fourth catch",
+      blurb: "If a third fish lands, chance for a fourth on the same cast."
     },
     {
       id: "boat",
@@ -10268,6 +10325,15 @@
     return Math.min(0.9, ownedGear("triple").reduce((s, g) => s + g.amount, 0));
   }
 
+  function quadCatchChance() {
+    return Math.min(0.9, ownedGear("quad").reduce((s, g) => s + (Number(g.amount) || 0), 0));
+  }
+
+  /** Relative boost to shiny + primary variant odds (stacks, soft-capped). */
+  function looksBonus() {
+    return Math.min(40, ownedGear("looks").reduce((s, g) => s + (Number(g.amount) || 0), 0));
+  }
+
   function boats() {
     const boat = getBoat();
     return boat ? [boat] : [];
@@ -10610,9 +10676,17 @@
   /** Primary (silver/gold/diamond/rainbow) is exclusive; shiny can stack as a second tag. */
   function variantRollChances(spot = currentSpot(), forBoat = false) {
     const luck = effectiveLuckBonus(spot);
-    // Rarer rolls: low base chance, slow luck scale, hard caps
-    let primary = Math.min(0.1, (forBoat ? 0.008 : 0.014) + luck * 0.000035);
-    let shiny = Math.min(0.04, (forBoat ? 0.0035 : 0.0065) + luck * 0.00002);
+    const look = 1 + looksBonus();
+    const lookCap = Math.min(0.28, looksBonus() * 0.006);
+    // Rarer rolls: low base chance, slow luck scale, hard caps (looks gear lifts both)
+    let primary = Math.min(
+      0.1 + lookCap,
+      ((forBoat ? 0.008 : 0.014) + luck * 0.000035) * look
+    );
+    let shiny = Math.min(
+      0.04 + lookCap * 0.55,
+      ((forBoat ? 0.0035 : 0.0065) + luck * 0.00002) * look
+    );
     const mult = variantEventMult();
     const spec = variantEventSpec();
     if (mult > 1 && (spec.primary || spec.shiny)) {
@@ -13740,6 +13814,10 @@
 
   function catchTone(rarity) {
     if (rarity === "exclusive") return "exclusive";
+    if (rarity === "ultimate") return "ultimate";
+    if (rarity === "primordial") return "primordial";
+    if (rarity === "celestial") return "celestial";
+    if (rarity === "sovereign") return "sovereign";
     if (rarity === "apex") return "apex";
     if (rarity === "dusk") return "dusk";
     if (rarity === "radiant") return "radiant";
@@ -13933,6 +14011,8 @@
     let bonusEntry = null;
     let thirdFish = null;
     let thirdEntry = null;
+    let fourthFish = null;
+    let fourthEntry = null;
     if (entry && Math.random() < multiCatchChance()) {
       bonusFish = rollFish(spot, false);
       state.catches += 1;
@@ -13946,6 +14026,13 @@
       thirdEntry = addToCooler(thirdFish);
       if (!thirdEntry) thirdFish = null;
       else noteQuestProgress("catch", 1, { rarity: thirdFish.rarity, forBoat: false });
+    }
+    if (entry && bonusFish && thirdFish && Math.random() < quadCatchChance()) {
+      fourthFish = rollFish(spot, false);
+      state.catches += 1;
+      fourthEntry = addToCooler(fourthFish);
+      if (!fourthEntry) fourthFish = null;
+      else noteQuestProgress("catch", 1, { rarity: fourthFish.rarity, forBoat: false });
     }
     setPhase("result");
     if (entry) {
@@ -13966,6 +14053,14 @@
           entry: thirdEntry
         });
       }
+      if (fourthFish && fourthEntry) {
+        haul.push({
+          fish: fourthFish,
+          val: fishValue(fourthFish, spot, fourthEntry),
+          perfect: false,
+          entry: fourthEntry
+        });
+      }
       const showcase = pickBestCatchFish(haul) || fish;
       const showcaseEntry =
         haul.find((h) => h.fish === showcase)?.entry || entry;
@@ -13973,8 +14068,9 @@
       showCatchSilhouette(showcase, showcaseEntry);
       showCatchCard(haul);
       const tip = perfect ? "Perfect reel! " : "";
-      const extras = [bonusFish, thirdFish].filter(Boolean).map((f, i) => {
-        const e = i === 0 ? bonusEntry : thirdEntry;
+      const extras = [bonusFish, thirdFish, fourthFish].filter(Boolean).map((f) => {
+        const e =
+          f === bonusFish ? bonusEntry : f === thirdFish ? thirdEntry : fourthEntry;
         return formatFishName(f, e);
       });
       const bonusTip = extras.length ? ` + ${extras.join(" + ")}` : "";
@@ -13986,19 +14082,21 @@
         perfect ||
           isShowcaseRarity(fish.rarity) ||
           (bonusFish && isShowcaseRarity(bonusFish.rarity)) ||
-          (thirdFish && isShowcaseRarity(thirdFish.rarity))
+          (thirdFish && isShowcaseRarity(thirdFish.rarity)) ||
+          (fourthFish && isShowcaseRarity(fourthFish.rarity))
           ? "win"
           : "click"
       );
       if (
         isShowcaseRarity(fish.rarity) ||
         (bonusFish && isShowcaseRarity(bonusFish.rarity)) ||
-        (thirdFish && isShowcaseRarity(thirdFish.rarity))
+        (thirdFish && isShowcaseRarity(thirdFish.rarity)) ||
+        (fourthFish && isShowcaseRarity(fourthFish.rarity))
       ) {
         burstConfetti();
       }
       const rect = castBtn.getBoundingClientRect();
-      const extrasN = [bonusFish, thirdFish].filter(Boolean).length;
+      const extrasN = [bonusFish, thirdFish, fourthFish].filter(Boolean).length;
       spawnFloat(
         evt?.clientX ?? rect.left + rect.width / 2,
         evt?.clientY ?? rect.top + 20,
@@ -15173,6 +15271,18 @@
       if (after <= before + 1e-9) return "Third-catch at 90% cap";
       return `3rd catch ${(before * 100).toFixed(0)}% → ${(after * 100).toFixed(0)}%`;
     }
+    if (kind === "quad") {
+      const before = Math.min(0.9, sum);
+      const after = Math.min(0.9, sum + amt);
+      if (after <= before + 1e-9) return "Fourth-catch at 90% cap";
+      return `4th catch ${(before * 100).toFixed(0)}% → ${(after * 100).toFixed(0)}%`;
+    }
+    if (kind === "looks") {
+      const before = Math.min(40, sum);
+      const after = Math.min(40, sum + amt);
+      if (after <= before + 1e-9) return "Looks boost at cap";
+      return `Looks +${(before * 100).toFixed(0)}% → +${(after * 100).toFixed(0)}%`;
+    }
     if (kind === "luck") {
       return `Luck ${formatNum(sum)} → ${formatNum(sum + amt)}`;
     }
@@ -15217,6 +15327,12 @@
     }
     if (kind === "triple") {
       return `${n} owned · 3rd ${Math.min(90, Math.round(sum * 100))}% / 90%`;
+    }
+    if (kind === "quad") {
+      return `${n} owned · 4th ${Math.min(90, Math.round(sum * 100))}% / 90%`;
+    }
+    if (kind === "looks") {
+      return `${n} owned · looks +${Math.min(4000, Math.round(sum * 100))}%`;
     }
     return `${n} owned`;
   }
@@ -15806,6 +15922,8 @@
     }
     if (multiLabelEl) multiLabelEl.textContent = formatPctBonus(multiCatchChance(), false);
     if (tripleLabelEl) tripleLabelEl.textContent = formatPctBonus(tripleCatchChance(), false);
+    if (quadLabelEl) quadLabelEl.textContent = formatPctBonus(quadCatchChance(), false);
+    if (looksLabelEl) looksLabelEl.textContent = formatPctBonus(looksBonus());
     if (perfectLabelEl) perfectLabelEl.textContent = formatPctBonus(perfectBonus());
     if (coolerStatLabelEl) coolerStatLabelEl.textContent = String(coolerMax());
     renderFeatureChips();
