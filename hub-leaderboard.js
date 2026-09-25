@@ -424,6 +424,46 @@
     return rank * 1e12 + valuePart * 100;
   }
 
+  function fishLookupName(raw) {
+    return String(raw || "")
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "");
+  }
+
+  /** Prefer live score from fish meta so stale packs can't put Paradox over Apex. */
+  function fishingEffectiveScore(entry) {
+    const f = entry?.fishing;
+    if (f && typeof f === "object") {
+      const id = String(f.id || "");
+      const rarity = String(f.rarity || "").toLowerCase();
+      if (id === "soultwin" || rarity === "exclusive") return 0;
+      let fish = FISHING_CATCH_FISH.find((x) => x.id === id);
+      if (!fish) {
+        const want = fishLookupName(f.name);
+        fish = FISHING_CATCH_FISH.find((x) => fishLookupName(x.name) === want);
+      }
+      if (!fish && rarity) {
+        fish = {
+          id: id || "unknown",
+          name: String(f.name || id || "Fish"),
+          rarity,
+          value: Number(f.value) || 0
+        };
+      }
+      if (fish) {
+        const scored = fishingCatchScore(fish, {
+          variant: f.variant,
+          shiny: f.shiny,
+          mutation: f.mutation
+        });
+        if (scored > 0) return scored;
+      }
+    }
+    const score = Number(entry?.score) || 0;
+    if (score > 1e14) return 0;
+    return score;
+  }
+
   function fishingVariantTitle(entry) {
     const bits = [];
     const v = fishingNormalizeVariant(entry?.variant);
@@ -915,25 +955,30 @@
       if (at <= fishingFullCut) delete fishingBoard[key];
     });
 
-    // Score order fix (rarity → look value → tier): one-time clear, then no more full wipes.
-    const fishingSafeScoreKey = "fishing:catch-score-safe-v7";
+    // Score order fix: one-time clear + always repair scores from fish meta.
+    const fishingSafeScoreKey = "fishing:catch-score-safe-v8";
     if (!resets[fishingSafeScoreKey]) {
       resets[fishingSafeScoreKey] = Date.now();
       Object.keys(fishingBoard).forEach((key) => {
         delete fishingBoard[key];
       });
     }
-    // Keep older stamps so outdated wipe tabs don't re-clear forever.
-    if (!resets["fishing:catch-score-safe-v6"]) {
-      resets["fishing:catch-score-safe-v6"] = resets[fishingSafeScoreKey];
-    }
-    if (!resets["fishing:catch-score-safe-v5"]) {
-      resets["fishing:catch-score-safe-v5"] = resets[fishingSafeScoreKey];
-    }
+    ["v7", "v6", "v5"].forEach((ver) => {
+      const k = `fishing:catch-score-safe-${ver}`;
+      if (!resets[k]) resets[k] = resets[fishingSafeScoreKey];
+    });
     Object.keys(fishingBoard).forEach((key) => {
-      const score = Number(fishingBoard[key]?.score) || 0;
-      // New scores sit under ~1e14; drop leftovers from older packs.
-      if (score > 1e14) delete fishingBoard[key];
+      const entry = fishingBoard[key];
+      if (!entry) return;
+      const fixed = fishingEffectiveScore(entry);
+      if (fixed <= 0) {
+        delete fishingBoard[key];
+        return;
+      }
+      // Rewrite stored score so sync/merge can't resurrect bad packs.
+      if (Number(entry.score) !== fixed) {
+        fishingBoard[key] = { ...entry, score: fixed };
+      }
     });
     // Drop old Abyss King floor seeds so they can't reappear after this wipe.
     delete resets["fishing:ice_dragon-abyss-king-v1"];
@@ -1218,7 +1263,12 @@
       .map((entry) => normalizeEntry(entry, lowerBetter))
       .filter(Boolean)
       .map((entry) => {
-        if (gameId !== "online-time") return entry;
+        if (gameId !== "online-time") {
+          if (gameId === "fishing") {
+            return { ...entry, score: fishingEffectiveScore(entry) };
+          }
+          return entry;
+        }
         if (
           nameKey(entry.name) === "echotest" ||
           String(entry.playerId || "") === ECHO_PID
