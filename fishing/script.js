@@ -209,7 +209,8 @@
     "aether",
     "radiant",
     "dusk",
-    "apex"
+    "apex",
+    "exclusive"
   ];
 
   const RARITY_RANK = {
@@ -239,7 +240,8 @@
     aether: 24,
     radiant: 25,
     dusk: 26,
-    apex: 27
+    apex: 27,
+    exclusive: 28
   };
 
   const RARITY_WEIGHT = {
@@ -269,8 +271,13 @@
     aether: 0.01,
     radiant: 0.0072,
     dusk: 0.0052,
-    apex: 0.0036
+    apex: 0.0036,
+    exclusive: 0
   };
+
+  /** Soul Twin: 1/10M, luck-immune, 2× your best fish value, aquarium-bound. */
+  const SOUL_TWIN_ID = "soultwin";
+  const SOUL_TWIN_CHANCE = 1 / 10_000_000;
 
   /** Admin Lucky Blocks: Astral / Absolute / Zenith (zenith = transcendent–zenith). */
   const LUCKY_BLOCK_TYPES = {
@@ -571,7 +578,17 @@
     { id: "summitfin", name: "Summitfin", rarity: "apex", value: 5e29 },
     { id: "pinnacleray", name: "Pinnacle Ray", rarity: "apex", value: 1.2e30 },
     { id: "crestkoi", name: "Crest Koi", rarity: "apex", value: 3e30 },
-    { id: "theapex", name: "The Apex", rarity: "apex", value: 8e30 }
+    { id: "theapex", name: "The Apex", rarity: "apex", value: 8e30 },
+    // Exclusive — never in weighted pool; rolled separately at 1/10M (luck ignored)
+    {
+      id: "soultwin",
+      name: "Soul Twin",
+      rarity: "exclusive",
+      value: 1,
+      exclusive: true,
+      unsellable: true,
+      untradeable: true
+    }
   ];
 
   const SPOTS = [
@@ -3242,12 +3259,23 @@
       const entry = normalizeCoolerEntry(raw);
       if (!entry) return raw;
       const fish = fishById(entry.id);
+      const exclusive = isExclusiveFish(fish);
       const eligible = !!fish && !isTreasureItem(fish);
-      const want = eligible && bestIdx.has(index);
-      if (want === !!entry.saved) return entry;
+      const want = exclusive || (eligible && bestIdx.has(index));
+      if (want === !!entry.saved && (!exclusive || entry.saved)) {
+        return exclusive ? { ...entry, saved: true, unsellable: true, untradeable: true } : entry;
+      }
       if (want) {
         savedN += 1;
-        return { ...entry, saved: true };
+        return {
+          ...entry,
+          saved: true,
+          unsellable: exclusive || !!entry.unsellable,
+          untradeable: exclusive || !!entry.untradeable
+        };
+      }
+      if (exclusive) {
+        return { ...entry, saved: true, unsellable: true, untradeable: true };
       }
       freedN += 1;
       return { ...entry, saved: false };
@@ -7614,6 +7642,12 @@
       playSfx("miss");
       return false;
     }
+    const fish = fishById(coolerEntryId(entry));
+    if (isUntradeableFish(fish, entry) || isExclusiveFish(fish)) {
+      setCatchLine(`${formatFishName(fish, entry)} can't be traded or gifted`, "miss");
+      playSfx("miss");
+      return false;
+    }
     const item = serializeMailFish(entry);
     state.cooler.splice(i, 1);
     mailCompose.items.push(item);
@@ -10317,6 +10351,12 @@
 
   /** Catch book display value: base coins × active look (variant / shiny / mutation). */
   function bookLookValue(fish, entry) {
+    if (isExclusiveFish(fish)) {
+      return Math.max(
+        1,
+        Math.floor(Number(entry?.lockedValue) || exclusiveMirrorBaseValue())
+      );
+    }
     const base = Math.max(0, Number(fish?.value) || 0);
     const mult = entry ? variantValueMult(entry) : 1;
     return Math.max(1, Math.floor(base * mult));
@@ -10351,21 +10391,38 @@
   function normalizeCoolerEntry(entry) {
     if (typeof entry === "string") {
       const id = String(entry);
-      return fishById(id)
-        ? { id, saved: false, perfect: false, variant: "", shiny: false, mutation: "" }
-        : null;
+      const fish = fishById(id);
+      if (!fish) return null;
+      const exclusive = isExclusiveFish(fish);
+      return {
+        id,
+        saved: exclusive,
+        perfect: false,
+        variant: "",
+        shiny: false,
+        mutation: "",
+        unsellable: exclusive,
+        untradeable: exclusive,
+        lockedValue: exclusive ? exclusiveMirrorBaseValue() : undefined
+      };
     }
     if (entry && typeof entry === "object") {
       const id = String(entry.id || "");
-      if (!fishById(id)) return null;
+      const fish = fishById(id);
+      if (!fish) return null;
       const variants = normalizeVariants(entry);
+      const exclusive = isExclusiveFish(fish);
+      const locked = Math.max(0, Math.floor(Number(entry.lockedValue) || 0));
       return {
         id,
-        saved: !!entry.saved,
+        saved: exclusive ? true : !!entry.saved,
         perfect: !!entry.perfect,
-        variant: variants.variant,
-        shiny: variants.shiny,
-        mutation: variants.mutation
+        variant: exclusive ? "" : variants.variant,
+        shiny: exclusive ? false : variants.shiny,
+        mutation: exclusive ? "" : variants.mutation,
+        unsellable: exclusive || !!entry.unsellable,
+        untradeable: exclusive || !!entry.untradeable,
+        lockedValue: exclusive ? locked || exclusiveMirrorBaseValue() : locked || undefined
       };
     }
     return null;
@@ -10407,8 +10464,11 @@
   function catchScore(fish, entry) {
     if (!fish) return 0;
     const rank = RARITY_RANK[fish.rarity] || 1;
-    const tier = variantTier(entry);
-    return (rank * 100 + tier) * 100000 + Math.max(0, Math.floor(Number(fish.value) || 0));
+    const tier = isExclusiveFish(fish) ? 0 : variantTier(entry);
+    const value = isExclusiveFish(fish)
+      ? Math.max(0, Math.floor(Number(entry?.lockedValue) || exclusiveMirrorBaseValue()))
+      : Math.max(0, Math.floor(Number(fish.value) || 0));
+    return (rank * 100 + tier) * 100000 + value;
   }
 
   function legacyCatchScore(fish) {
@@ -10952,7 +11012,8 @@
     summitfin: "blade",
     pinnacleray: "kite",
     crestkoi: "koi",
-    theapex: "omega"
+    theapex: "omega",
+    soultwin: "leviathan"
   };
 
   const FISH_TINT = {
@@ -11048,6 +11109,7 @@
     peakfin: "#fcd34d",
     crownray: "#fbbf24",
     apexkoi: "#f59e0b",
+    soultwin: "#e879f9",
     spirefin: "#fde68a",
     solsticeray: "#fef3c7",
     thezenith: "#fffbeb",
@@ -11878,7 +11940,8 @@
       aether: "#7dd3fc",
       radiant: "#fde68a",
       dusk: "#fb923c",
-      apex: "#f472b6"
+      apex: "#f472b6",
+      exclusive: "#f0abfc"
     };
     return map[rarity] || "#a8e6df";
   }
@@ -12911,6 +12974,7 @@
   }
 
   function fishWeight(fish, spot, forBoat = false) {
+    if (isExclusiveFish(fish)) return 0;
     const luck = baseLuck(spot);
     const boostMult = treasureLuckMult();
     let w = (RARITY_WEIGHT[fish.rarity] || 10) * rarityFactor(fish.rarity, spot.rarity);
@@ -12958,8 +13022,62 @@
     return Math.min(1e300, Math.max(1e-15, w));
   }
 
+  function isExclusiveFish(fishOrId) {
+    if (!fishOrId) return false;
+    if (typeof fishOrId === "string") {
+      return fishOrId === SOUL_TWIN_ID || !!fishById(fishOrId)?.exclusive;
+    }
+    return !!(fishOrId.exclusive || fishOrId.rarity === "exclusive" || fishOrId.id === SOUL_TWIN_ID);
+  }
+
+  function isUnsellableFish(fish, entry) {
+    return isExclusiveFish(fish) || !!fish?.unsellable || !!entry?.unsellable;
+  }
+
+  function isUntradeableFish(fish, entry) {
+    return isExclusiveFish(fish) || !!fish?.untradeable || !!entry?.untradeable;
+  }
+
+  /** 2× the catalog value of your personal best (never mirrors another Soul Twin). */
+  function exclusiveMirrorBaseValue() {
+    let best = fishById(state.bestCatchId);
+    if (!best || isExclusiveFish(best)) {
+      best = fishFromCatchScore(Math.floor(Number(state.bestCatchScore) || 0));
+    }
+    if (!best || isExclusiveFish(best)) {
+      let hi = null;
+      (state.cooler || []).forEach((raw) => {
+        const id = typeof raw === "string" ? raw : raw?.id;
+        const f = fishById(id);
+        if (!f || isExclusiveFish(f)) return;
+        if (!hi || f.value > hi.value) hi = f;
+      });
+      best = hi;
+    }
+    if (!best || isExclusiveFish(best)) {
+      const found = Object.keys(state.book || {});
+      let hi = null;
+      found.forEach((id) => {
+        const f = fishById(id);
+        if (!f || isExclusiveFish(f)) return;
+        if (!hi || f.value > hi.value) hi = f;
+      });
+      best = hi;
+    }
+    const v = Math.max(1, Math.floor(Number(best?.value) || 1));
+    return Math.max(2, v * 2);
+  }
+
+  function tryRollExclusiveFish(forBoat = false) {
+    if (forBoat) return null;
+    if (!(Math.random() < SOUL_TWIN_CHANCE)) return null;
+    return fishById(SOUL_TWIN_ID);
+  }
+
   function rollFish(spot, forBoat = false) {
-    const pool = FISH;
+    const exclusive = tryRollExclusiveFish(forBoat);
+    if (exclusive) return exclusive;
+    const pool = FISH.filter((f) => !isExclusiveFish(f));
     const weights = pool.map((f) => fishWeight(f, spot, forBoat));
     const total = weights.reduce((a, b) => a + b, 0);
     let r = Math.random() * total;
@@ -12971,20 +13089,30 @@
   }
 
   function chancePct(fish, spot) {
-    const total = FISH.reduce((s, f) => s + fishWeight(f, spot, false), 0);
+    if (isExclusiveFish(fish)) return (100 * SOUL_TWIN_CHANCE);
+    const pool = FISH.filter((f) => !isExclusiveFish(f));
+    const total = pool.reduce((s, f) => s + fishWeight(f, spot, false), 0);
     const w = fishWeight(fish, spot, false);
     return total > 0 ? (100 * w) / total : 0;
   }
 
   function fishValue(fish, spot, perfectOrEntry) {
-    const base = Math.max(1, Math.floor(fish.value * (spot?.valueMult || 1)));
+    const entry =
+      perfectOrEntry && typeof perfectOrEntry === "object" ? perfectOrEntry : null;
+    const exclusiveBase =
+      isExclusiveFish(fish) && Number(entry?.lockedValue) > 0
+        ? Math.floor(Number(entry.lockedValue))
+        : isExclusiveFish(fish)
+          ? exclusiveMirrorBaseValue()
+          : 0;
+    const base = Math.max(
+      1,
+      Math.floor((exclusiveBase || fish.value) * (spot?.valueMult || 1))
+    );
     const perfect =
       perfectOrEntry === true ||
-      (perfectOrEntry && typeof perfectOrEntry === "object" && !!perfectOrEntry.perfect);
-    const variantMult =
-      perfectOrEntry && typeof perfectOrEntry === "object"
-        ? variantValueMult(perfectOrEntry)
-        : 1;
+      (entry && !!entry.perfect);
+    const variantMult = entry && !isExclusiveFish(fish) ? variantValueMult(entry) : 1;
     const mult =
       (1 +
         sellBonus() +
@@ -13006,7 +13134,8 @@
 
   /** Auto-sell by rarity — mutations skipped unless Mutation auto-sell is on. */
   function shouldAutoSellFish(fish, entry) {
-    if (!fish || !shouldAutoSell(fish.rarity)) return false;
+    if (!fish || isUnsellableFish(fish, entry) || isExclusiveFish(fish)) return false;
+    if (!shouldAutoSell(fish.rarity)) return false;
     if (normalizeMutation(entry?.mutation) && !autoSellMutationsOn()) return false;
     return true;
   }
@@ -13029,17 +13158,24 @@
   /** @returns {object|null} cooler entry (even if auto-sold), or null if cooler full */
   function addToCooler(fish, opts = {}) {
     if (!fish) return null;
-    const variants = normalizeVariants(opts.variants || rollFishVariants(currentSpot(), !!opts.forBoat));
+    const exclusive = isExclusiveFish(fish);
+    const variants = exclusive
+      ? { variant: "", shiny: false, mutation: "" }
+      : normalizeVariants(opts.variants || rollFishVariants(currentSpot(), !!opts.forBoat));
+    const lockedValue = exclusive ? exclusiveMirrorBaseValue() : 0;
     const entry = {
       id: fish.id,
-      saved: false,
+      saved: exclusive ? true : false,
       perfect: !!opts.perfect,
       variant: variants.variant,
       shiny: variants.shiny,
-      mutation: variants.mutation
+      mutation: variants.mutation,
+      unsellable: exclusive,
+      untradeable: exclusive,
+      lockedValue: lockedValue || undefined
     };
     noteCatch(fish, entry);
-    if (opts.forceSell || shouldAutoSellFish(fish, entry)) {
+    if (!exclusive && (opts.forceSell || shouldAutoSellFish(fish, entry))) {
       const val = fishValue(fish, currentSpot(), entry);
       addCoins(val);
       noteQuestProgress("sell", 1, { rarity: fish.rarity });
@@ -13053,7 +13189,12 @@
     }
     if (state.cooler.length >= coolerMax()) {
       if (!opts.silent) {
-        setCatchLine("Cooler full — sell or auto-sell this rarity", "miss");
+        setCatchLine(
+          exclusive
+            ? "Cooler full — free a slot for Soul Twin!"
+            : "Cooler full — sell or auto-sell this rarity",
+          "miss"
+        );
       }
       playSfx("miss");
       return null;
@@ -13090,6 +13231,7 @@
       "radiant",
       "dusk",
       "apex",
+      "exclusive",
       "treasure"
     );
     if (cls) catchLineEl.classList.add(cls);
@@ -13100,6 +13242,7 @@
   }
 
   function catchTone(rarity) {
+    if (rarity === "exclusive") return "exclusive";
     if (rarity === "apex") return "apex";
     if (rarity === "dusk") return "dusk";
     if (rarity === "radiant") return "radiant";
@@ -13400,6 +13543,11 @@
       playSfx("miss");
       return;
     }
+    if (isUnsellableFish(fish, entry)) {
+      setCatchLine(`${formatFishName(fish, entry)} can't be sold`, "miss");
+      playSfx("miss");
+      return;
+    }
     const val = fishValue(fish, currentSpot(), entry);
     state.cooler.splice(i, 1);
     addCoins(val);
@@ -13419,8 +13567,16 @@
     ensureSession();
     const entry = state.cooler[i];
     if (!entry || !fishById(coolerEntryId(entry))) return;
-    entry.saved = !entry.saved;
     const fish = fishById(entry.id);
+    if (isExclusiveFish(fish) || isUnsellableFish(fish, entry)) {
+      entry.saved = true;
+      setCatchLine(`${formatFishName(fish, entry)} stays in the Aquarium`, "exclusive");
+      playSfx("click");
+      render(false);
+      saveSoon();
+      return;
+    }
+    entry.saved = !entry.saved;
     const label = formatFishName(fish, entry);
     setCatchLine(
       entry.saved
@@ -13444,6 +13600,10 @@
         return;
       }
       const fish = fishById(coolerEntryId(entry));
+      if (isUnsellableFish(fish, entry) || isExclusiveFish(fish)) {
+        kept.push({ ...normalizeCoolerEntry(entry), saved: true, unsellable: true });
+        return;
+      }
       if (fish) {
         total += fishValue(fish, spot, entry);
         noteQuestProgress("sell", 1, { rarity: fish.rarity });
@@ -13473,7 +13633,7 @@
         const entry = normalizeCoolerEntry(state.cooler[i]);
         if (!entry || entry.shiny) return null;
         const fish = fishById(entry.id);
-        if (!fish || isTreasureItem(fish)) return null;
+        if (!fish || isTreasureItem(fish) || isExclusiveFish(fish)) return null;
         return { index: i, entry, fish };
       })
       .filter(Boolean);
@@ -13724,7 +13884,7 @@
         const entry = normalizeCoolerEntry(raw);
         if (!entry || entry.shiny) return "";
         const fish = fishById(entry.id);
-        if (!fish || isTreasureItem(fish)) return "";
+        if (!fish || isTreasureItem(fish) || isExclusiveFish(fish)) return "";
         const on = selectedSet.has(index);
         // Only show fish that fit: same species once a slot is filled; when full, only selected.
         if (requiredId && entry.id !== requiredId) return "";
@@ -14365,6 +14525,8 @@
     coolerList.innerHTML = rows
       .map(({ index, entry, fish, val }) => {
         const saved = !!entry.saved;
+        const exclusive = isExclusiveFish(fish);
+        const unsellable = isUnsellableFish(fish, entry);
         const label = formatFishName(fish, entry);
         const vTitle = formatVariantTitle(entry);
         const perfectMark = entry.perfect ? " · perfect" : "";
@@ -14376,21 +14538,28 @@
         } catch {
           glyph = "";
         }
+        const sellTitle = exclusive || unsellable
+          ? "Soul Twin — unsellable · aquarium bound"
+          : saved
+            ? "Saved — unpin to sell"
+            : `Sell for ${formatNum(val)}${perfectMark}${multTip}${vTitle ? ` · ${vTitle}` : ""}`;
         return `<div class="fish-chip ${fish.rarity}${saved ? " is-saved" : ""}${
-          entry.perfect ? " is-perfect" : ""
-        } ${variantClassList(entry)}" data-cooler-index="${index}">
+          exclusive ? " is-exclusive" : ""
+        }${entry.perfect ? " is-perfect" : ""} ${variantClassList(entry)}" data-cooler-index="${index}">
           <span class="fish-chip-glyph" aria-hidden="true">${glyph}</span>
           <button type="button" class="fish-chip-save" data-save-index="${index}" title="${
-            saved ? "Unsave — remove from Aquarium" : "Save fish (Aquarium · won't sell)"
-          }" aria-label="${saved ? "Unsave" : "Save"} ${label}" aria-pressed="${saved}">${
-            saved ? "★" : "☆"
-          }</button>
-          <button type="button" class="fish-chip-sell" data-sell-index="${index}" title="${
-            saved
-              ? "Saved — unpin to sell"
-              : `Sell for ${formatNum(val)}${perfectMark}${multTip}${vTitle ? ` · ${vTitle}` : ""}`
-          }" ${saved ? "disabled" : ""}>
-            <span class="fish-chip-name">${label}</span>
+            exclusive
+              ? "Always in Aquarium"
+              : saved
+                ? "Unsave — remove from Aquarium"
+                : "Save fish (Aquarium · won't sell)"
+          }" aria-label="${saved ? "Unsave" : "Save"} ${label}" aria-pressed="${saved}" ${
+            exclusive ? "disabled" : ""
+          }>${saved ? "★" : "☆"}</button>
+          <button type="button" class="fish-chip-sell" data-sell-index="${index}" title="${sellTitle}" ${
+            saved || unsellable || exclusive ? "disabled" : ""
+          }>
+            <span class="fish-chip-name">${label}${exclusive ? " · bound" : ""}</span>
             <span class="fish-chip-price">${formatNum(val)}</span>
           </button>
         </div>`;
