@@ -293,7 +293,7 @@
     exclusive: 0
   };
 
-  /** Soul Twin: 1/10M, luck-immune, 2× your best fish value, aquarium-bound. */
+  /** Soul Twin: exactly 1 in 10,000,000 per cast (luck-immune, not on boat/bonus fish). */
   const SOUL_TWIN_ID = "soultwin";
   const SOUL_TWIN_CHANCE = 1 / 10_000_000;
 
@@ -13643,9 +13643,12 @@
     return fishById(SOUL_TWIN_ID);
   }
 
-  function rollFish(spot, forBoat = false) {
-    const exclusive = tryRollExclusiveFish(forBoat);
-    if (exclusive) return exclusive;
+  function rollFish(spot, forBoat = false, opts = {}) {
+    // Only the first fish of a cast can be Soul Twin — keeps odds at true 1/10M per cast.
+    if (!opts.skipExclusive) {
+      const exclusive = tryRollExclusiveFish(forBoat);
+      if (exclusive) return exclusive;
+    }
     const pool = FISH.filter((f) => !isExclusiveFish(f));
     const weights = pool.map((f) => fishWeight(f, spot, forBoat));
     const total = weights.reduce((a, b) => a + b, 0);
@@ -13658,7 +13661,7 @@
   }
 
   function chancePct(fish, spot) {
-    if (isExclusiveFish(fish)) return (100 * SOUL_TWIN_CHANCE);
+    if (isExclusiveFish(fish)) return 100 * SOUL_TWIN_CHANCE; // 1 in 10,000,000
     const pool = FISH.filter((f) => !isExclusiveFish(f));
     const total = pool.reduce((s, f) => s + fishWeight(f, spot, false), 0);
     const w = fishWeight(fish, spot, false);
@@ -14014,21 +14017,21 @@
     let fourthFish = null;
     let fourthEntry = null;
     if (entry && Math.random() < multiCatchChance()) {
-      bonusFish = rollFish(spot, false);
+      bonusFish = rollFish(spot, false, { skipExclusive: true });
       state.catches += 1;
       bonusEntry = addToCooler(bonusFish);
       if (!bonusEntry) bonusFish = null;
       else noteQuestProgress("catch", 1, { rarity: bonusFish.rarity, forBoat: false });
     }
     if (entry && bonusFish && Math.random() < tripleCatchChance()) {
-      thirdFish = rollFish(spot, false);
+      thirdFish = rollFish(spot, false, { skipExclusive: true });
       state.catches += 1;
       thirdEntry = addToCooler(thirdFish);
       if (!thirdEntry) thirdFish = null;
       else noteQuestProgress("catch", 1, { rarity: thirdFish.rarity, forBoat: false });
     }
     if (entry && bonusFish && thirdFish && Math.random() < quadCatchChance()) {
-      fourthFish = rollFish(spot, false);
+      fourthFish = rollFish(spot, false, { skipExclusive: true });
       state.catches += 1;
       fourthEntry = addToCooler(fourthFish);
       if (!fourthEntry) fourthFish = null;
