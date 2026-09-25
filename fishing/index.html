@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260925i">
+  <link rel="stylesheet" href="styles.css?v=20260925j">
 </head>
 <body data-spot="creek" data-hub-sound-btn="off">
   <div id="weather-fx" class="weather-fx" aria-hidden="true">
@@ -37,6 +37,7 @@
       <button id="shiny-machine-btn" type="button" class="guide-btn">Shiny machine</button>
       <button id="book-btn" type="button" class="guide-btn">Catch book</button>
       <button id="guide-btn" type="button" class="guide-btn">Fish guide</button>
+      <button id="suffix-btn" type="button" class="guide-btn" title="What K, M, TDc mean">Numbers</button>
       <span id="hud-spot">Creek</span>
       · Cooler <strong id="hud-cooler">0</strong>
       · Best catch <strong id="hud-best">—</strong>
@@ -534,6 +535,38 @@
     </div>
   </div>
 
+  <div id="suffix-overlay" class="overlay guide-overlay suffix-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="suffix-title">
+    <div class="overlay-card guide-card suffix-card">
+      <div class="guide-head">
+        <div>
+          <p class="eyebrow">Coin readout</p>
+          <h2 id="suffix-title">Number suffixes</h2>
+        </div>
+        <button id="suffix-close" type="button" class="btn btn-ghost guide-close">Close</button>
+      </div>
+      <div class="guide-intro">
+        <p class="guide-blurb">
+          Big coin amounts shorten with a letter suffix. Each step is <strong>×1,000</strong>
+          (so <strong>1M</strong> = 1,000K = one million). Example: <strong>2.5 TDc</strong> means
+          2.5 × tredecillion.
+        </p>
+      </div>
+      <div class="guide-table-wrap suffix-table-wrap">
+        <table class="guide-table suffix-table">
+          <thead>
+            <tr>
+              <th>Suffix</th>
+              <th>Stands for</th>
+              <th>Value</th>
+              <th>Example</th>
+            </tr>
+          </thead>
+          <tbody id="suffix-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <div id="guide-overlay" class="overlay guide-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="guide-title">
     <div class="overlay-card guide-card">
       <div class="guide-head">
@@ -893,6 +926,7 @@
         <button id="menu-shiny-machine-btn" type="button" class="btn btn-ghost">Shiny machine</button>
         <button id="menu-book-btn" type="button" class="btn btn-ghost">Catch book</button>
         <button id="menu-guide-btn" type="button" class="btn btn-ghost">Fish guide</button>
+        <button id="menu-suffix-btn" type="button" class="btn btn-ghost">Number suffixes</button>
         <button id="games-btn" type="button" class="btn btn-ghost">Games</button>
       </div>
     </div>
@@ -967,6 +1001,6 @@
   <script src="../hub-chat.js?v=20260925a"></script>
   <script src="../hub-calls.js?v=20260925a"></script>
   <script src="../hub-leaderboard.js?v=20260925k"></script>
-  <script src="script.js?v=20260925ab"></script>
+  <script src="script.js?v=20260925ac"></script>
 </body>
 </html>

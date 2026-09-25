@@ -1121,6 +1121,47 @@ body.no-lightning-flash .wx-flash {
   padding: 0.5rem;
 }
 
+.suffix-overlay {
+  z-index: 46;
+}
+
+.suffix-card {
+  width: min(560px, calc(100vw - 1.5rem));
+}
+
+.suffix-table-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.suffix-table {
+  font-size: 0.82rem;
+}
+
+.suffix-table th,
+.suffix-table td {
+  padding: 0.4rem 0.55rem;
+  white-space: nowrap;
+}
+
+.suffix-table td:nth-child(2) {
+  white-space: normal;
+}
+
+.suffix-code {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: #7dd3fc;
+}
+
+.suffix-power,
+.suffix-example {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+
 .guide-card {
   width: min(680px, calc(100vw - 1.5rem));
   text-align: left;

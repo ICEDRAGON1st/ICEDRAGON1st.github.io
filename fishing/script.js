@@ -2251,11 +2251,14 @@
   const menuBtn = document.getElementById("menu-btn");
   const guideBtn = document.getElementById("guide-btn");
   const bookBtn = document.getElementById("book-btn");
+  const suffixBtn = document.getElementById("suffix-btn");
   const shinyMachineBtn = document.getElementById("shiny-machine-btn");
   const menuGuideBtn = document.getElementById("menu-guide-btn");
   const menuBookBtn = document.getElementById("menu-book-btn");
+  const menuSuffixBtn = document.getElementById("menu-suffix-btn");
   const menuShinyMachineBtn = document.getElementById("menu-shiny-machine-btn");
   const guideOverlay = document.getElementById("guide-overlay");
+  const suffixOverlay = document.getElementById("suffix-overlay");
   const bookOverlay = document.getElementById("book-overlay");
   const shinyMachineOverlay = document.getElementById("shiny-machine-overlay");
   const shinyMachineCloseBtn = document.getElementById("shiny-machine-close");
@@ -2282,6 +2285,7 @@
   const adminBtn = document.getElementById("admin-btn");
   const adminClose = document.getElementById("admin-close");
   const guideClose = document.getElementById("guide-close");
+  const suffixClose = document.getElementById("suffix-close");
   const bookClose = document.getElementById("book-close");
   const guideBody = document.getElementById("guide-body");
   const guideVariantsBody = document.getElementById("guide-variants-body");
@@ -11572,6 +11576,99 @@
     "C"
   ];
 
+  /** Full names for each formatNum suffix (same order as SUFFIXES). */
+  const SUFFIX_NAMES = [
+    "ones (no suffix)",
+    "Thousand",
+    "Million",
+    "Billion",
+    "Trillion",
+    "Quadrillion",
+    "Quintillion",
+    "Sextillion",
+    "Septillion",
+    "Octillion",
+    "Nonillion",
+    "Decillion",
+    "Undecillion",
+    "Duodecillion",
+    "Tredecillion",
+    "Quattuordecillion",
+    "Quindecillion",
+    "Sexdecillion",
+    "Septendecillion",
+    "Octodecillion",
+    "Novemdecillion",
+    "Vigintillion",
+    "Unvigintillion",
+    "Duovigintillion",
+    "Trevigintillion",
+    "Quattuorvigintillion",
+    "Quinvigintillion",
+    "Sexvigintillion",
+    "Septenvigintillion",
+    "Octovigintillion",
+    "Novemvigintillion",
+    "Trigintillion",
+    "Untrigintillion",
+    "Duotrigintillion",
+    "Tretrigintillion",
+    "Quattuortrigintillion",
+    "Quintrigintillion",
+    "Sextrigintillion",
+    "Septentrigintillion",
+    "Octotrigintillion",
+    "Novemtrigintillion",
+    "Quadragintillion",
+    "Quinquagintillion",
+    "Sexagintillion",
+    "Septuagintillion",
+    "Octogintillion",
+    "Nonagintillion",
+    "Centillion (game)"
+  ];
+
+  let suffixGuideBuilt = false;
+
+  function formatSuffixPower(tier) {
+    const exp = tier * 3;
+    if (exp <= 0) return "1";
+    if (exp <= 6) return `1${"0".repeat(exp)}`;
+    return `10^${exp}`;
+  }
+
+  function renderSuffixGuide() {
+    const body = document.getElementById("suffix-body");
+    if (!body || suffixGuideBuilt) return;
+    body.innerHTML = SUFFIXES.map((suf, i) => {
+      const label = suf || "—";
+      const name = SUFFIX_NAMES[i] || "—";
+      const power = formatSuffixPower(i);
+      const example = i === 0 ? "842" : `1.25${suf}`;
+      return `<tr>
+        <td><strong class="suffix-code">${escapeHtml(label)}</strong></td>
+        <td>${escapeHtml(name)}</td>
+        <td class="suffix-power">${escapeHtml(power)}</td>
+        <td class="suffix-example">${escapeHtml(example)}</td>
+      </tr>`;
+    }).join("");
+    suffixGuideBuilt = true;
+  }
+
+  function openSuffixGuide() {
+    renderSuffixGuide();
+    const el = document.getElementById("suffix-overlay");
+    el?.classList.remove("hidden");
+    lockPageScroll();
+    const card = el?.querySelector(".suffix-card");
+    if (card) card.scrollTop = 0;
+  }
+
+  function closeSuffixGuide() {
+    document.getElementById("suffix-overlay")?.classList.add("hidden");
+    unlockPageScroll();
+  }
+
   const FISH_SHAPE = {
     minnow: "slender",
     perch: "perch",
@@ -17576,6 +17673,7 @@
     });
   }
   guideBtn?.addEventListener("click", openGuide);
+  suffixBtn?.addEventListener("click", openSuffixGuide);
   bookBtn?.addEventListener("click", openBook);
   collectionHudEl?.addEventListener("click", openBook);
   collectionHudEl?.addEventListener("keydown", (e) => {
@@ -17616,6 +17714,10 @@
     closeMenu();
     openGuide();
   });
+  menuSuffixBtn?.addEventListener("click", () => {
+    closeMenu();
+    openSuffixGuide();
+  });
   menuBookBtn?.addEventListener("click", () => {
     closeMenu();
     openBook();
@@ -17625,9 +17727,13 @@
     openShinyMachine();
   });
   guideClose?.addEventListener("click", closeGuide);
+  suffixClose?.addEventListener("click", closeSuffixGuide);
   bookClose?.addEventListener("click", closeBook);
   guideOverlay?.addEventListener("click", (e) => {
     if (e.target === guideOverlay) closeGuide();
+  });
+  suffixOverlay?.addEventListener("click", (e) => {
+    if (e.target === suffixOverlay) closeSuffixGuide();
   });
   bookOverlay?.addEventListener("click", (e) => {
     if (e.target === bookOverlay) closeBook();
@@ -17710,6 +17816,11 @@
     if (guideOverlay && !guideOverlay.classList.contains("hidden")) {
       e.preventDefault();
       closeGuide();
+      return;
+    }
+    if (suffixOverlay && !suffixOverlay.classList.contains("hidden")) {
+      e.preventDefault();
+      closeSuffixGuide();
       return;
     }
     if (overlay && !overlay.classList.contains("hidden")) {
