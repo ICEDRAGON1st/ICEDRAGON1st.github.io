@@ -368,15 +368,19 @@
 
   function fishingCatchScore(fish, entry) {
     if (!fish) return 0;
-    const rank = FISHING_RARITY_RANK[fish.rarity] || 1;
-    const tier = fishingVariantTier(entry);
-    return (rank * 100 + tier) * 100000 + Math.max(0, Math.floor(Number(fish.value) || 0));
+    const rank = Math.max(0, Math.min(99, FISHING_RARITY_RANK[fish.rarity] || 1));
+    const tier = Math.max(0, Math.min(99, fishingVariantTier(entry)));
+    const value = Math.max(0, Number(fish.value) || 0);
+    const valuePart = value > 0 ? Math.min(999_999_999, Math.floor(Math.log10(value + 1) * 1_000_000)) : 0;
+    return rank * 1e11 + tier * 1e9 + valuePart;
   }
 
   function fishingLegacyCatchScore(fish) {
     if (!fish) return 0;
-    const rank = FISHING_RARITY_RANK[fish.rarity] || 1;
-    return rank * 100000 + Math.max(0, Math.floor(Number(fish.value) || 0));
+    const rank = Math.max(0, Math.min(99, FISHING_RARITY_RANK[fish.rarity] || 1));
+    const value = Math.max(0, Number(fish.value) || 0);
+    const valuePart = value > 0 ? Math.min(999_999_999, Math.floor(Math.log10(value + 1) * 1_000_000)) : 0;
+    return rank * 1e11 + valuePart;
   }
 
   function fishingVariantTitle(entry) {
@@ -868,6 +872,18 @@
     Object.keys(fishingBoard).forEach((key) => {
       const at = Number(fishingBoard[key]?.at) || 0;
       if (at <= fishingFullCut) delete fishingBoard[key];
+    });
+
+    // Precision-safe catch scores (Apex+ values); wipe old collapsed scores.
+    const fishingSafeScoreKey = "fishing:catch-score-safe-v3";
+    const FISHING_SAFE_SCORE_AT = Date.UTC(2026, 8, 25, 13, 40, 0); // 2026-09-25 13:40 UTC
+    if (!resets[fishingSafeScoreKey] || Number(resets[fishingSafeScoreKey]) > FISHING_SAFE_SCORE_AT) {
+      resets[fishingSafeScoreKey] = FISHING_SAFE_SCORE_AT;
+    }
+    const fishingSafeCut = Number(resets[fishingSafeScoreKey]) || FISHING_SAFE_SCORE_AT;
+    Object.keys(fishingBoard).forEach((key) => {
+      const at = Number(fishingBoard[key]?.at) || 0;
+      if (at <= fishingSafeCut) delete fishingBoard[key];
     });
     // Drop old Abyss King floor seeds so they can't reappear after this wipe.
     delete resets["fishing:ice_dragon-abyss-king-v1"];

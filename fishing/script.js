@@ -19,6 +19,8 @@
   const ICE_CHESTS_GRANT_ID = "fishing-ice-dragon-chests-20-23-v1";
   /** One-time: remove a single duplicate Soul Twin from ICE_DRAGON's cooler. */
   const ICE_SOUL_TWIN_TRIM_ID = "fishing-ice-dragon-soultwin-trim-v2";
+  /** One-time: migrate off precision-broken catch scores (Apex+ values). */
+  const CATCH_SCORE_V2_ID = "fishing-catch-score-safe-v3";
   const ICE_LOCAL_WIPE_ID = "hub-fishing-ice-dragon-wipe-v1";
   const ICE_COINS_GRANT_AMOUNT = 1_000_000;
   const ICE_MONEY_CHEST_GRANT = 20;
@@ -10804,20 +10806,41 @@
     return Math.max(0, Math.floor(Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0));
   }
 
+  /** log10(value) packed so huge fish values stay inside Number precision. */
+  function valueScorePart(value) {
+    const v = Math.max(0, Number(value) || 0);
+    if (!(v > 0)) return 0;
+    return Math.min(999_999_999, Math.floor(Math.log10(v + 1) * 1_000_000));
+  }
+
+  /**
+   * Best-catch rank key. Rarity → look tier → value.
+   * Old formula `(rank*100+tier)*1e5+value` collapsed for Apex-scale values (~1e30),
+   * so Shiny/Neon could never beat a plain Apex.
+   */
   function catchScore(fish, entry) {
     if (!fish) return 0;
-    const rank = RARITY_RANK[fish.rarity] || 1;
-    const tier = isExclusiveFish(fish) ? 0 : variantTier(entry);
+    const rank = Math.max(0, Math.min(99, RARITY_RANK[fish.rarity] || 1));
+    const tier = Math.max(
+      0,
+      Math.min(99, isExclusiveFish(fish) ? 0 : variantTier(entry))
+    );
     const value = isExclusiveFish(fish)
-      ? Math.max(0, Math.floor(Number(entry?.lockedValue) || 2))
-      : Math.max(0, Math.floor(Number(fish.value) || 0));
-    return (rank * 100 + tier) * 100000 + value;
+      ? Math.max(0, Number(entry?.lockedValue) || 2)
+      : Math.max(0, Number(fish.value) || 0);
+    return rank * 1e11 + tier * 1e9 + valueScorePart(value);
   }
 
   function legacyCatchScore(fish) {
     if (!fish) return 0;
-    const rank = RARITY_RANK[fish.rarity] || 1;
-    return rank * 100000 + Math.max(0, Math.floor(Number(fish.value) || 0));
+    const rank = Math.max(0, Math.min(99, RARITY_RANK[fish.rarity] || 1));
+    return rank * 1e11 + valueScorePart(fish.value);
+  }
+
+  function catchBetterThan(fishA, entryA, fishB, entryB) {
+    if (!fishA) return false;
+    if (!fishB) return true;
+    return catchScore(fishA, entryA) > catchScore(fishB, entryB);
   }
 
   function variantTier(entry) {
@@ -17289,45 +17312,38 @@
     return true;
   }
 
-  /** If cooler has a stronger non-exclusive catch than stored best, promote it. */
+  /** Rebuild best catch from cooler + stored meta using precision-safe scores. */
   function refreshBestCatchFromCooler() {
-    let bestFish = fishById(state.bestCatchId);
-    let bestEntry = bestCatchEntry();
-    let bestScore = bestFish && !isExclusiveFish(bestFish) ? catchScore(bestFish, bestEntry) : 0;
-    let changed = false;
-    (state.cooler || []).forEach((raw) => {
-      const entry = normalizeCoolerEntry(raw);
-      if (!entry) return;
-      const fish = fishById(entry.id);
+    let bestFish = null;
+    let bestEntry = { variant: "", shiny: false, mutation: "" };
+    let bestScore = 0;
+    const consider = (fish, entry) => {
       if (!fish || isExclusiveFish(fish) || isTreasureItem(fish)) return;
-      const score = catchScore(fish, entry);
+      const look = {
+        variant: normalizeVariant(entry?.variant),
+        shiny: !!entry?.shiny,
+        mutation: normalizeMutation(entry?.mutation)
+      };
+      const score = catchScore(fish, look);
       if (score > bestScore) {
         bestScore = score;
         bestFish = fish;
-        bestEntry = {
-          variant: normalizeVariant(entry.variant),
-          shiny: !!entry.shiny,
-          mutation: normalizeMutation(entry.mutation)
-        };
-        changed = true;
+        bestEntry = look;
       }
+    };
+    consider(fishById(state.bestCatchId), bestCatchEntry());
+    (state.cooler || []).forEach((raw) => {
+      const entry = normalizeCoolerEntry(raw);
+      if (!entry) return;
+      consider(fishById(entry.id), entry);
     });
-    if (!bestFish || !changed) {
-      // Still rewrite state if best exists but meta was missing looks while score matches cooler.
-      if (!bestFish) return false;
-      const curScore = Math.floor(Number(state.bestCatchScore) || 0);
-      if (
-        bestScore > curScore ||
-        (bestScore === curScore &&
-          (normalizeVariant(state.bestCatchVariant) !== bestEntry.variant ||
-            !!state.bestCatchShiny !== !!bestEntry.shiny ||
-            normalizeMutation(state.bestCatchMutation) !== bestEntry.mutation))
-      ) {
-        changed = true;
-      } else {
-        return false;
-      }
-    }
+    if (!bestFish) return false;
+    const changed =
+      bestFish.id !== state.bestCatchId ||
+      bestScore !== Math.floor(Number(state.bestCatchScore) || 0) ||
+      normalizeVariant(state.bestCatchVariant) !== bestEntry.variant ||
+      !!state.bestCatchShiny !== !!bestEntry.shiny ||
+      normalizeMutation(state.bestCatchMutation) !== bestEntry.mutation;
     state.bestCatchScore = bestScore;
     state.bestCatchId = bestFish.id;
     state.bestCatchVariant = bestEntry.variant;
@@ -17337,8 +17353,9 @@
       localStorage.setItem(HIGH_SCORE_KEY, String(bestScore));
       persistBestCatchMeta(bestFish, bestEntry);
     } catch {}
-    maybeSubmitBest(true);
-    return true;
+    if (changed) maybeSubmitBest(true);
+    else maybeSubmitBest(true);
+    return changed;
   }
 
   /** If best catch was an exclusive fish, roll back to the best non-exclusive catch. */
@@ -17408,18 +17425,29 @@
       const rarity = String(boardFishing.rarity || "").toLowerCase();
       if (id === "soultwin" || rarity === "exclusive") boardScore = 0;
     }
+    // Ignore pre-v3 collapsed Apex scores (~1e30+) that wipe looks.
+    if (boardScore > 1e15) boardScore = 0;
     const boardFish = fishFromCatchScore(boardScore);
     if (isExclusiveFish(boardFish)) boardScore = 0;
     const stored = getStoredBest();
-    const best = Math.max(state.bestCatchScore || 0, stored, boardScore);
+    const storedSafe = stored > 1e15 ? 0 : stored;
+    const best = Math.max(state.bestCatchScore || 0, storedSafe, boardScore);
 
     if (best > (state.bestCatchScore || 0) || (best > 0 && !state.bestCatchId)) {
-      applyBestCatchScore(best, state.bestCatchId);
+      applyBestCatchScore(best, state.bestCatchId || boardFishing?.id, boardFishing);
       renderStats();
     }
   }
 
   state = loadState();
+  // Drop broken Infinity-scale packed scores so Shiny/Neon can outrank plain Apex.
+  try {
+    if (localStorage.getItem(CATCH_SCORE_V2_ID) !== "done") {
+      localStorage.removeItem(HIGH_SCORE_KEY);
+      state.bestCatchScore = 0;
+      localStorage.setItem(CATCH_SCORE_V2_ID, "done");
+    }
+  } catch {}
   if (scrubExclusiveBestCatch()) {
     try {
       saveState();
@@ -17427,6 +17455,12 @@
   }
   if (refreshBestCatchFromCooler()) {
     try {
+      saveState();
+    } catch {}
+  } else {
+    // Still rewrite score with safe formula + resubmit looks.
+    try {
+      refreshBestCatchFromCooler();
       saveState();
     } catch {}
   }
