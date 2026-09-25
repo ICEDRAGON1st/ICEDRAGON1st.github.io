@@ -3051,7 +3051,7 @@ body.light .menu-credit .player-name-creator {
     }
 
     const menus = document.querySelectorAll(
-      "#menu-modal .modal-content, .overlay-card, #games-screen .games-screen-inner"
+      "#menu-modal .modal-content, #overlay > .overlay-card, #games-screen .games-screen-inner"
     );
     menus.forEach((box) => {
       if (box.querySelector(".menu-credit")) return;
