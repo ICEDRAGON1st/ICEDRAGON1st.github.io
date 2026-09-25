@@ -10736,10 +10736,9 @@
     return null;
   }
 
-  /** Ensure exclusive cooler rows lock 2× your best non-exclusive catch (with variants). */
+  /** Ensure exclusive cooler rows keep a stable lockedValue (fixes lag + missing value). */
   function ensureExclusiveCoolerValues() {
     let changed = false;
-    const mirror = exclusiveMirrorBaseValue();
     state.cooler = (state.cooler || []).map((raw) => {
       const entry = normalizeCoolerEntry(raw);
       if (!entry) return raw;
@@ -10752,14 +10751,17 @@
         untradeable: true,
         variant: "",
         shiny: false,
-        mutation: "",
-        lockedValue: mirror
+        mutation: ""
       };
+      if (!(Number(next.lockedValue) > 0)) {
+        next.lockedValue = exclusiveMirrorBaseValue();
+        changed = true;
+      }
       if (
         !raw ||
         typeof raw !== "object" ||
         raw.saved !== next.saved ||
-        Number(raw.lockedValue) !== Number(next.lockedValue) ||
+        raw.lockedValue !== next.lockedValue ||
         raw.unsellable !== next.unsellable
       ) {
         changed = true;
@@ -10894,6 +10896,11 @@
     } catch {}
     persistBestCatchMeta(fish, entry);
     maybeSubmitBest(true);
+    if (ensureExclusiveCoolerValues()) {
+      try {
+        saveState();
+      } catch {}
+    }
   }
 
   const BOOK_FILTERS = [
@@ -11180,7 +11187,8 @@
               rarity: fish.rarity,
               value: fish.value,
               variant: entry.variant,
-              shiny: entry.shiny
+              shiny: entry.shiny,
+              mutation: entry.mutation
             }
           : null
       }).catch?.(() => {});
@@ -13383,75 +13391,48 @@
     return isExclusiveFish(fish) || !!fish?.untradeable || !!entry?.untradeable;
   }
 
-  let _exclusiveMirrorCache = { at: 0, value: 2, stamp: "" };
+  let _exclusiveMirrorCache = { at: 0, value: 2, bestId: "", bestScore: 0 };
 
-  /** Raw look value for mirror math — never uses exclusive lockedValue (avoids recursion). */
-  function exclusiveCandidateLookValue(fish, entry) {
-    if (!fish || isExclusiveFish(fish) || isTreasureItem(fish)) return 0;
-    const base = Math.max(1, Math.floor(Number(fish.value) || 1));
-    const mult = entry ? variantValueMult(entry) : 1;
-    return Math.max(1, Math.floor(base * mult));
-  }
-
-  /** 2× your best non-exclusive catch value (base × variant/shiny/mutation). */
+  /** 2× the catalog value of your personal best (never mirrors another Soul Twin). */
   function exclusiveMirrorBaseValue() {
-    const stamp = [
-      String(state.bestCatchId || ""),
-      Math.floor(Number(state.bestCatchScore) || 0),
-      normalizeVariant(state.bestCatchVariant),
-      state.bestCatchShiny ? 1 : 0,
-      normalizeMutation(state.bestCatchMutation),
-      (state.cooler || []).length
-    ].join("|");
+    const bestId = String(state.bestCatchId || "");
+    const bestScore = Math.floor(Number(state.bestCatchScore) || 0);
     const now = Date.now();
     if (
       _exclusiveMirrorCache.value > 0 &&
-      _exclusiveMirrorCache.stamp === stamp &&
-      now - _exclusiveMirrorCache.at < 2000
+      _exclusiveMirrorCache.bestId === bestId &&
+      _exclusiveMirrorCache.bestScore === bestScore &&
+      now - _exclusiveMirrorCache.at < 5000
     ) {
       return _exclusiveMirrorCache.value;
     }
-
-    let bestLook = 0;
-    const consider = (fish, entry) => {
-      const look = exclusiveCandidateLookValue(fish, entry);
-      if (look > bestLook) bestLook = look;
-    };
-
-    const bestFish = fishById(state.bestCatchId);
-    if (bestFish && !isExclusiveFish(bestFish)) {
-      consider(bestFish, bestCatchEntry());
+    let best = fishById(bestId);
+    if (!best || isExclusiveFish(best)) {
+      best = fishFromCatchScore(bestScore);
     }
-
-    (state.cooler || []).forEach((raw) => {
-      const entry = normalizeCoolerEntry(raw);
-      if (!entry) return;
-      consider(fishById(entry.id), entry);
-    });
-
-    Object.keys(state.caught || {}).forEach((id) => {
-      const fish = fishById(id);
-      if (!fish || isExclusiveFish(fish)) return;
-      const rec = state.caught[id];
-      consider(fish, { variant: "", shiny: false, mutation: "" });
-      if (rec && typeof rec === "object") {
-        VARIANT_PRIMARY.forEach((v) => {
-          if (rec[v]) consider(fish, { variant: v, shiny: false, mutation: "" });
-          if (rec[v] && rec.shiny) consider(fish, { variant: v, shiny: true, mutation: "" });
-        });
-        if (rec.shiny) consider(fish, { variant: "", shiny: true, mutation: "" });
-        MUTATIONS.forEach((m) => {
-          if (!rec[m]) return;
-          consider(fish, { variant: "", shiny: !!rec.shiny, mutation: m });
-          VARIANT_PRIMARY.forEach((v) => {
-            if (rec[v]) consider(fish, { variant: v, shiny: !!rec.shiny, mutation: m });
-          });
-        });
-      }
-    });
-
-    const out = Math.max(2, bestLook * 2);
-    _exclusiveMirrorCache = { at: now, value: out, stamp };
+    if (!best || isExclusiveFish(best)) {
+      let hi = null;
+      (state.cooler || []).forEach((raw) => {
+        const id = typeof raw === "string" ? raw : raw?.id;
+        const f = fishById(id);
+        if (!f || isExclusiveFish(f)) return;
+        if (!hi || f.value > hi.value) hi = f;
+      });
+      best = hi;
+    }
+    if (!best || isExclusiveFish(best)) {
+      const found = Object.keys(state.caught || state.book || {});
+      let hi = null;
+      found.forEach((id) => {
+        const f = fishById(id);
+        if (!f || isExclusiveFish(f)) return;
+        if (!hi || f.value > hi.value) hi = f;
+      });
+      best = hi;
+    }
+    const v = Math.max(1, Math.floor(Number(best?.value) || 1));
+    const out = Math.max(2, v * 2);
+    _exclusiveMirrorCache = { at: now, value: out, bestId, bestScore };
     return out;
   }
 
@@ -17234,7 +17215,7 @@
     const n = Math.floor(Number(score) || 0);
     if (n <= 0) return null;
     for (const fish of FISH) {
-      for (let tier = 0; tier <= 9; tier += 1) {
+      for (let tier = 0; tier <= 19; tier += 1) {
         if (catchScore(fish, entryFromVariantTier(tier)) === n) return fish;
       }
       if (legacyCatchScore(fish) === n) return fish;
@@ -17242,7 +17223,7 @@
     let best = null;
     let bestScore = -1;
     for (const fish of FISH) {
-      for (let tier = 0; tier <= 9; tier += 1) {
+      for (let tier = 0; tier <= 19; tier += 1) {
         const s = catchScore(fish, entryFromVariantTier(tier));
         if (s <= n && s > bestScore) {
           best = fish;
@@ -17260,15 +17241,15 @@
 
   function entryFromCatchScore(score) {
     const n = Math.floor(Number(score) || 0);
-    if (n <= 0) return { variant: "", shiny: false };
+    if (n <= 0) return { variant: "", shiny: false, mutation: "" };
     for (const fish of FISH) {
-      for (let tier = 0; tier <= 9; tier += 1) {
+      for (let tier = 0; tier <= 19; tier += 1) {
         if (catchScore(fish, entryFromVariantTier(tier)) === n) {
           return entryFromVariantTier(tier);
         }
       }
     }
-    return { variant: "", shiny: false };
+    return { variant: "", shiny: false, mutation: "" };
   }
 
   function applyBestCatchScore(score, fishId, meta = null) {
@@ -17292,17 +17273,71 @@
     const decoded = entryFromCatchScore(n);
     const entry = {
       variant: normalizeVariant(meta?.variant) || decoded.variant,
-      shiny: !!(meta?.shiny || decoded.shiny)
+      shiny: !!(meta?.shiny || decoded.shiny),
+      mutation: normalizeMutation(meta?.mutation) || decoded.mutation
     };
     if (n >= (state.bestCatchScore || 0)) {
       state.bestCatchVariant = entry.variant;
       state.bestCatchShiny = entry.shiny;
+      state.bestCatchMutation = entry.mutation;
     }
     try {
       localStorage.setItem(HIGH_SCORE_KEY, String(state.bestCatchScore));
       const bestFish = fishById(state.bestCatchId);
       if (bestFish && !isExclusiveFish(bestFish)) persistBestCatchMeta(bestFish, bestCatchEntry());
     } catch {}
+    return true;
+  }
+
+  /** If cooler has a stronger non-exclusive catch than stored best, promote it. */
+  function refreshBestCatchFromCooler() {
+    let bestFish = fishById(state.bestCatchId);
+    let bestEntry = bestCatchEntry();
+    let bestScore = bestFish && !isExclusiveFish(bestFish) ? catchScore(bestFish, bestEntry) : 0;
+    let changed = false;
+    (state.cooler || []).forEach((raw) => {
+      const entry = normalizeCoolerEntry(raw);
+      if (!entry) return;
+      const fish = fishById(entry.id);
+      if (!fish || isExclusiveFish(fish) || isTreasureItem(fish)) return;
+      const score = catchScore(fish, entry);
+      if (score > bestScore) {
+        bestScore = score;
+        bestFish = fish;
+        bestEntry = {
+          variant: normalizeVariant(entry.variant),
+          shiny: !!entry.shiny,
+          mutation: normalizeMutation(entry.mutation)
+        };
+        changed = true;
+      }
+    });
+    if (!bestFish || !changed) {
+      // Still rewrite state if best exists but meta was missing looks while score matches cooler.
+      if (!bestFish) return false;
+      const curScore = Math.floor(Number(state.bestCatchScore) || 0);
+      if (
+        bestScore > curScore ||
+        (bestScore === curScore &&
+          (normalizeVariant(state.bestCatchVariant) !== bestEntry.variant ||
+            !!state.bestCatchShiny !== !!bestEntry.shiny ||
+            normalizeMutation(state.bestCatchMutation) !== bestEntry.mutation))
+      ) {
+        changed = true;
+      } else {
+        return false;
+      }
+    }
+    state.bestCatchScore = bestScore;
+    state.bestCatchId = bestFish.id;
+    state.bestCatchVariant = bestEntry.variant;
+    state.bestCatchShiny = !!bestEntry.shiny;
+    state.bestCatchMutation = bestEntry.mutation;
+    try {
+      localStorage.setItem(HIGH_SCORE_KEY, String(bestScore));
+      persistBestCatchMeta(bestFish, bestEntry);
+    } catch {}
+    maybeSubmitBest(true);
     return true;
   }
 
@@ -17386,6 +17421,11 @@
 
   state = loadState();
   if (scrubExclusiveBestCatch()) {
+    try {
+      saveState();
+    } catch {}
+  }
+  if (refreshBestCatchFromCooler()) {
     try {
       saveState();
     } catch {}

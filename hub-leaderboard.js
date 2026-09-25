@@ -260,7 +260,49 @@
     { id: "absolutefin", name: "Absolute Fin", rarity: "absolute", value: 1500000000000000 },
     { id: "finalabs", name: "Final Absolute", rarity: "absolute", value: 4000000000000000 },
     { id: "trueabs", name: "True Absolute", rarity: "absolute", value: 7000000000000000 },
-    { id: "theabsolute", name: "The Absolute", rarity: "absolute", value: 10000000000000000 }
+    { id: "theabsolute", name: "The Absolute", rarity: "absolute", value: 10000000000000000 },
+    { id: "ascendray", name: "Ascend Ray", rarity: "transcendent", value: 2.5e16 },
+    { id: "overfin", name: "Overfin", rarity: "transcendent", value: 6e16 },
+    { id: "beyondkoi", name: "Beyond Koi", rarity: "transcendent", value: 1.2e17 },
+    { id: "transcendfin", name: "Transcendfin", rarity: "transcendent", value: 2.5e17 },
+    { id: "crossfin", name: "Crossfin", rarity: "nexus", value: 5e17 },
+    { id: "linkshark", name: "Link Shark", rarity: "nexus", value: 1.2e18 },
+    { id: "hubray", name: "Hub Ray", rarity: "nexus", value: 3e18 },
+    { id: "nexuskarp", name: "Nexus Karp", rarity: "nexus", value: 7e18 },
+    { id: "nullray", name: "Null Ray", rarity: "voidborn", value: 1.5e19 },
+    { id: "hollowfin", name: "Hollowfin", rarity: "voidborn", value: 4e19 },
+    { id: "abyssnull", name: "Abyss Null", rarity: "voidborn", value: 9e19 },
+    { id: "thevoidborn", name: "The Voidborn", rarity: "voidborn", value: 2e20 },
+    { id: "peakfin", name: "Peakfin", rarity: "zenith", value: 5e20 },
+    { id: "crownray", name: "Crown Ray", rarity: "zenith", value: 1.2e21 },
+    { id: "apexkoi", name: "Apex Koi", rarity: "zenith", value: 3e21 },
+    { id: "spirefin", name: "Spirefin", rarity: "zenith", value: 4.8e21 },
+    { id: "solsticeray", name: "Solstice Ray", rarity: "zenith", value: 6.2e21 },
+    { id: "thezenith", name: "The Zenith", rarity: "zenith", value: 8e21 },
+    { id: "diademfin", name: "Diadem Fin", rarity: "crown", value: 1.5e22 },
+    { id: "royalkoi", name: "Royal Koi", rarity: "crown", value: 4e22 },
+    { id: "coronet", name: "Coronet Ray", rarity: "crown", value: 9e22 },
+    { id: "thecrown", name: "The Crown", rarity: "crown", value: 2e23 },
+    { id: "dawnorigin", name: "Dawn Origin", rarity: "origin", value: 5e23 },
+    { id: "sourcefin", name: "Sourcefin", rarity: "origin", value: 1.2e24 },
+    { id: "firsttide", name: "First Tide", rarity: "origin", value: 3e24 },
+    { id: "theorigin", name: "The Origin", rarity: "origin", value: 7e24 },
+    { id: "skyfin", name: "Skyfin", rarity: "aether", value: 1.5e25 },
+    { id: "aetherray", name: "Aether Ray", rarity: "aether", value: 4e25 },
+    { id: "cloudmarlin", name: "Cloud Marlin", rarity: "aether", value: 9e25 },
+    { id: "theaether", name: "The Aether", rarity: "aether", value: 2e26 },
+    { id: "gleamray", name: "Gleam Ray", rarity: "radiant", value: 5e26 },
+    { id: "sunfin", name: "Sunfin", rarity: "radiant", value: 1.2e27 },
+    { id: "blazeel", name: "Blaze Eel", rarity: "radiant", value: 3e27 },
+    { id: "theradiant", name: "The Radiant", rarity: "radiant", value: 7e27 },
+    { id: "duskfin", name: "Duskfin", rarity: "dusk", value: 1.5e28 },
+    { id: "twilightshark", name: "Twilight Shark", rarity: "dusk", value: 4e28 },
+    { id: "umbrakoi", name: "Umbra Koi", rarity: "dusk", value: 9e28 },
+    { id: "thedusk", name: "The Dusk", rarity: "dusk", value: 2e29 },
+    { id: "summitfin", name: "Summitfin", rarity: "apex", value: 5e29 },
+    { id: "pinnacleray", name: "Pinnacle Ray", rarity: "apex", value: 1.2e30 },
+    { id: "crestkoi", name: "Crest Koi", rarity: "apex", value: 3e30 },
+    { id: "theapex", name: "The Apex", rarity: "apex", value: 8e30 }
   ];
 
   const FISHING_RARITY_RANK = {
@@ -280,7 +322,17 @@
     genesis: 14,
     paradox: 15,
     infinity: 16,
-    absolute: 17
+    absolute: 17,
+    transcendent: 18,
+    nexus: 19,
+    voidborn: 20,
+    zenith: 21,
+    crown: 22,
+    origin: 23,
+    aether: 24,
+    radiant: 25,
+    dusk: 26,
+    apex: 27
   };
 
   const FISHING_VARIANT_PRIMARY = ["silver", "gold", "diamond", "rainbow"];
@@ -290,19 +342,28 @@
     return FISHING_VARIANT_PRIMARY.includes(v) ? v : "";
   }
 
+  const FISHING_MUTATIONS = ["toxic", "lava", "neon"];
+
+  function fishingNormalizeMutation(raw) {
+    const m = String(raw || "").toLowerCase();
+    return FISHING_MUTATIONS.includes(m) ? m : "";
+  }
+
   function fishingVariantTier(entry) {
     const v = fishingNormalizeVariant(entry?.variant);
     const primary = v === "silver" ? 1 : v === "gold" ? 2 : v === "diamond" ? 3 : v === "rainbow" ? 4 : 0;
-    return primary + (entry?.shiny ? 5 : 0);
+    return primary + (entry?.shiny ? 5 : 0) + (fishingNormalizeMutation(entry?.mutation) ? 10 : 0);
   }
 
   function fishingEntryFromTier(tier) {
-    const t = Math.max(0, Math.min(9, Math.floor(Number(tier) || 0)));
-    const shiny = t >= 5;
-    const primary = shiny ? t - 5 : t;
+    const t = Math.max(0, Math.min(19, Math.floor(Number(tier) || 0)));
+    const mutation = t >= 10 ? "toxic" : "";
+    const base = mutation ? t - 10 : t;
+    const shiny = base >= 5;
+    const primary = shiny ? base - 5 : base;
     const variant =
       primary === 1 ? "silver" : primary === 2 ? "gold" : primary === 3 ? "diamond" : primary === 4 ? "rainbow" : "";
-    return { variant, shiny };
+    return { variant, shiny, mutation };
   }
 
   function fishingCatchScore(fish, entry) {
@@ -323,6 +384,8 @@
     const v = fishingNormalizeVariant(entry?.variant);
     if (v) bits.push(v.charAt(0).toUpperCase() + v.slice(1));
     if (entry?.shiny) bits.push("Shiny");
+    const m = fishingNormalizeMutation(entry?.mutation);
+    if (m) bits.push(m.charAt(0).toUpperCase() + m.slice(1));
     return bits.join(" ");
   }
 
@@ -337,16 +400,18 @@
     const n = Math.floor(Number(score) || 0);
     if (n <= 0) return null;
     for (const fish of FISHING_CATCH_FISH) {
-      for (let tier = 0; tier <= 9; tier += 1) {
+      for (let tier = 0; tier <= 19; tier += 1) {
         const entry = fishingEntryFromTier(tier);
         if (fishingCatchScore(fish, entry) === n) return { fish, entry };
       }
-      if (fishingLegacyCatchScore(fish) === n) return { fish, entry: { variant: "", shiny: false } };
+      if (fishingLegacyCatchScore(fish) === n) {
+        return { fish, entry: { variant: "", shiny: false, mutation: "" } };
+      }
     }
     let best = null;
     let bestScore = -1;
     for (const fish of FISHING_CATCH_FISH) {
-      for (let tier = 0; tier <= 9; tier += 1) {
+      for (let tier = 0; tier <= 19; tier += 1) {
         const entry = fishingEntryFromTier(tier);
         const s = fishingCatchScore(fish, entry);
         if (s <= n && s > bestScore) {
@@ -356,7 +421,7 @@
       }
       const legacy = fishingLegacyCatchScore(fish);
       if (legacy <= n && legacy > bestScore) {
-        best = { fish, entry: { variant: "", shiny: false } };
+        best = { fish, entry: { variant: "", shiny: false, mutation: "" } };
         bestScore = legacy;
       }
     }
@@ -378,7 +443,8 @@
       if (fish) {
         return formatFishingCatchLabel(fish, {
           variant: fishingNormalizeVariant(entryMeta.variant),
-          shiny: !!entryMeta.shiny
+          shiny: !!entryMeta.shiny,
+          mutation: fishingNormalizeMutation(entryMeta.mutation)
         });
       }
     }
@@ -545,7 +611,8 @@
             rarity: String(entry.fishing.rarity || ""),
             value: Number(entry.fishing.value) || 0,
             variant: fishingNormalizeVariant(entry.fishing.variant),
-            shiny: !!entry.fishing.shiny
+            shiny: !!entry.fishing.shiny,
+            mutation: fishingNormalizeMutation(entry.fishing.mutation)
           }
         : null;
     return {
@@ -1147,7 +1214,7 @@
       if (gameId === "hub-points") return;
       const board = getBoard(gameId);
       board.forEach((row) => {
-        if (isPointsExcluded(row.name)) return;
+        if (isPointsExcluded(row.name, gameId)) return;
         const pts = Number(row.points) || 0;
         if (pts <= 0) return;
         const key = nameKey(row.name);
@@ -1202,7 +1269,8 @@
             rarity: String(opts.fishing.rarity || ""),
             value: Number(opts.fishing.value) || 0,
             variant: fishingNormalizeVariant(opts.fishing.variant),
-            shiny: !!opts.fishing.shiny
+            shiny: !!opts.fishing.shiny,
+            mutation: fishingNormalizeMutation(opts.fishing.mutation)
           }
         : null;
     if (gameId === "fishing" && fishingMeta) {
