@@ -127,7 +127,7 @@ Only if Supabase + JSON isn’t enough:
 
 `POST https://mantledb.sh/v2/icedragon1st-mygames/fishing-admin-events` with `token: "ice-fish-evt-9f3a"` and the same bundle (`boost` + `variant` + `mutation` + `chest` + `luckyblock` + `speed` + `weather`).
 
-Defaults: **2×** for **5 minutes** (weather has no mult). Clamp mult **1–1000**, minutes 1–180.
+Defaults: **2×** for **5 minutes** (weather has no mult). Clamp mult **1–1000**, minutes 1–1440 (24h).
 
 In-game commands: `5x luck`, `2x speed`, `5x shiny + gold`, `5x toxic`, `5x lava`, `5x neon`, `5x luckyblock`, `storm`, `calm`, `sunny`, `clear`, `clear luck`, `clear variant`, `clear toxic`, `clear lava`, `clear neon`, `clear mutation`, `clear luckyblock`, `clear speed`, `clear weather`.
 
