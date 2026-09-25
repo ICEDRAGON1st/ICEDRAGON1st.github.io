@@ -6324,6 +6324,11 @@
     const clearChestOnly = rawKind === "clear-chest" || rawKind === "clear-chests";
     const clearWeatherOnly =
       rawKind === "clear-weather" || rawKind === "clear-wx" || rawKind === "clear-storm";
+    const clearSpeedOnly =
+      rawKind === "clear-speed" ||
+      rawKind === "clear-cast" ||
+      rawKind === "clear-cooldown" ||
+      rawKind === "clear-wait";
     const wantGlobal = scope === "global";
 
     let eventKind = rawKind;
@@ -6352,12 +6357,24 @@
       eventTarget = "";
     }
     if (
+      eventKind === "speed" ||
+      eventKind === "cast" ||
+      eventKind === "cooldown" ||
+      eventKind === "wait" ||
+      eventKind === "faster"
+    ) {
+      eventKind = "speed";
+      eventTarget = "";
+      mutationTarget = "";
+    }
+    if (
       eventKind !== "luck" &&
       eventKind !== "money" &&
       eventKind !== "variant" &&
       eventKind !== "mutation" &&
       eventKind !== "chest" &&
       eventKind !== "luckyblock" &&
+      eventKind !== "speed" &&
       eventKind !== "weather" &&
       isVariantTargetSpec(eventKind)
     ) {
@@ -6377,7 +6394,8 @@
       clearNeonOnly ||
       clearLuckyBlockOnly ||
       clearChestOnly ||
-      clearWeatherOnly;
+      clearWeatherOnly ||
+      clearSpeedOnly;
     if (
       !isClear &&
       eventKind !== "luck" &&
@@ -6386,11 +6404,12 @@
       eventKind !== "mutation" &&
       eventKind !== "chest" &&
       eventKind !== "luckyblock" &&
+      eventKind !== "speed" &&
       eventKind !== "weather"
     ) {
       adminBusy = false;
       setCatchLine(
-        "Try: 5x luck · 5x toxic · 5x lava · 5x neon · storm · calm · sunny · 5x chest · 5x luckyblock · clear · clear toxic · clear mutation",
+        "Try: 5x luck · 2x speed · 5x toxic · storm · 5x chest · 5x luckyblock · clear · clear speed",
         "miss"
       );
       return false;
@@ -6416,19 +6435,23 @@
               ? "luckyblock"
               : clearWeatherOnly
                 ? "weather"
-                : clearBoostOnly
-                  ? "boost"
-                  : eventKind === "variant"
-                    ? "variant"
-                    : eventKind === "mutation"
-                      ? "mutation"
-                      : eventKind === "chest"
-                        ? "chest"
-                        : eventKind === "luckyblock"
-                          ? "luckyblock"
-                          : eventKind === "weather"
-                            ? "weather"
-                            : "boost";
+                : clearSpeedOnly
+                  ? "speed"
+                  : clearBoostOnly
+                    ? "boost"
+                    : eventKind === "variant"
+                      ? "variant"
+                      : eventKind === "mutation"
+                        ? "mutation"
+                        : eventKind === "chest"
+                          ? "chest"
+                          : eventKind === "luckyblock"
+                            ? "luckyblock"
+                            : eventKind === "weather"
+                              ? "weather"
+                              : eventKind === "speed"
+                                ? "speed"
+                                : "boost";
 
     const channelPayload = {
       token: ADMIN_EVENT_TOKEN,
@@ -6443,7 +6466,9 @@
                 ? "luckyblock"
                 : eventKind === "weather"
                   ? "weather"
-                  : eventKind,
+                  : eventKind === "speed"
+                    ? "speed"
+                    : eventKind,
       target:
         eventKind === "variant"
           ? eventTarget
@@ -6469,6 +6494,7 @@
     } else if (clearLuckyBlockOnly) applyAdminLocally("luckyblock", null, true);
     else if (clearChestOnly) applyAdminLocally("chest", null, true);
     else if (clearWeatherOnly) applyAdminLocally("weather", null, true);
+    else if (clearSpeedOnly) applyAdminLocally("speed", null, true);
     else applyAdminLocally(channel, channelPayload, false);
 
     const weatherLabel =
@@ -6490,7 +6516,9 @@
                 ? "chests"
                 : clearWeatherOnly
                   ? "weather"
-                  : "luck/sell")
+                  : clearSpeedOnly
+                    ? "cast speed"
+                    : "luck/sell")
       : eventKind === "variant"
         ? formatAdminVariantLabel(eventTarget)
         : eventKind === "mutation"
@@ -6501,9 +6529,11 @@
               ? "chests"
               : eventKind === "weather"
                 ? weatherLabel
-                : eventKind === "luck"
-                  ? "luck"
-                  : "sell";
+                : eventKind === "speed"
+                  ? "cast speed"
+                  : eventKind === "luck"
+                    ? "luck"
+                    : "sell";
 
     const chanceNote =
       !isClear && eventKind === "luckyblock"
