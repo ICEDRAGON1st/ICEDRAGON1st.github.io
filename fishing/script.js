@@ -18,7 +18,7 @@
   const ICE_BEST_GRANT_ID = "fishing-ice-dragon-primefin-shiny-v1";
   const ICE_CHESTS_GRANT_ID = "fishing-ice-dragon-chests-20-23-v1";
   /** One-time: remove a single duplicate Soul Twin from ICE_DRAGON's cooler. */
-  const ICE_SOUL_TWIN_TRIM_ID = "fishing-ice-dragon-soultwin-trim-v1";
+  const ICE_SOUL_TWIN_TRIM_ID = "fishing-ice-dragon-soultwin-trim-v2";
   const ICE_LOCAL_WIPE_ID = "hub-fishing-ice-dragon-wipe-v1";
   const ICE_COINS_GRANT_AMOUNT = 1_000_000;
   const ICE_MONEY_CHEST_GRANT = 20;
@@ -5966,6 +5966,7 @@
     "give soultwin",
     "give fish soultwin",
     "give me soul twin",
+    "delete soultwin",
     "give astral luckyblock",
     "give absolute luckyblock",
     "give zenith luckyblock",
@@ -6869,6 +6870,79 @@
     noteCatch(fish, entry);
     state.cooler.push(entry);
     return entry;
+  }
+
+  function coolerEntryIsSoulTwin(raw) {
+    const id = typeof raw === "string" ? raw : raw?.id;
+    return String(id || "") === SOUL_TWIN_ID || String(id || "") === "soultwin";
+  }
+
+  /** Remove up to `count` Soul Twin rows from the cooler. Returns how many removed. */
+  function removeSoulTwinsFromCooler(count = 1) {
+    const want = Math.max(1, Math.min(50, Math.floor(Number(count) || 1)));
+    let removed = 0;
+    const next = [];
+    (state.cooler || []).forEach((raw) => {
+      if (removed < want && coolerEntryIsSoulTwin(raw)) {
+        removed += 1;
+        return;
+      }
+      next.push(raw);
+    });
+    if (removed) {
+      state.cooler = next;
+      saveState();
+      render(true);
+      try {
+        publishAquariumShare(true).catch(() => {});
+      } catch {}
+    }
+    return removed;
+  }
+
+  /** Ignore pending Soul Twin gifts so poll can't re-add after a trim. */
+  async function burnPendingSoulTwinGifts() {
+    try {
+      const doc = await fetchFishGiftsDoc();
+      if (!doc) return 0;
+      const me = playerNameLower();
+      const myId = String(window.HubPlays?.getPlayerId?.() || "");
+      const claimed = readClaimedGiftIds();
+      const toMark = [];
+      Object.values(doc.gifts || {}).forEach((g) => {
+        if (!g || typeof g !== "object") return;
+        if (String(g.fishId || "") !== SOUL_TWIN_ID && String(g.fishId || "") !== "soultwin") {
+          return;
+        }
+        const gid = String(g.id || "");
+        if (!gid || claimed.has(gid)) return;
+        const broadcast = isBroadcastGift(g);
+        if (broadcast) {
+          const by =
+            g.claimedBy && typeof g.claimedBy === "object" && !Array.isArray(g.claimedBy)
+              ? g.claimedBy
+              : {};
+          if ((myId && by[myId]) || (me && by[me])) return;
+        } else if (g.claimed) {
+          return;
+        }
+        const toName = String(g.toName || "").toLowerCase();
+        const toId = String(g.toPlayerId || "");
+        const forMe =
+          broadcast || (toName && toName === me) || (toId && myId && toId === myId);
+        if (!forMe) return;
+        claimed.add(gid);
+        toMark.push(gid);
+      });
+      if (!toMark.length) return 0;
+      writeClaimedGiftIds(claimed);
+      toMark.forEach((gid) => {
+        markFishGiftClaimed(gid).catch(() => {});
+      });
+      return toMark.length;
+    } catch {
+      return 0;
+    }
   }
 
   function readClaimedGiftIds() {
@@ -8881,6 +8955,25 @@
     }
     const trimmed = String(raw || "").trim();
     if (trimmed) pushAdminCmdHistory(trimmed);
+    const deleteTwin = trimmed.match(
+      /^(?:delete|remove|drop)\s+(?:fish\s+)?(?:soul\s*twins?|soultwins?|the\s*twin)\b(?:\s*(?:x\s*)?(\d{1,2}))?\s*$/i
+    );
+    if (deleteTwin) {
+      const n = Math.max(1, Math.min(50, Number(deleteTwin[1]) || 1));
+      await burnPendingSoulTwinGifts();
+      const removed = removeSoulTwinsFromCooler(n);
+      if (!removed) {
+        setCatchLine("No Soul Twin in cooler", "miss");
+        playSfx("miss");
+        return;
+      }
+      setCatchLine(
+        removed === 1 ? "Deleted 1 Soul Twin" : `Deleted ${removed} Soul Twins`,
+        "treasure"
+      );
+      playSfx("click");
+      return;
+    }
     const announce = parseAnnounceCommand(raw);
     if (announce) {
       if (announce.kind === "clear-announce") {
@@ -17145,20 +17238,40 @@
       localStorage.setItem(ICE_CHESTS_GRANT_ID, "done");
       saveState();
     }
-    if (name === "ice_dragon" && localStorage.getItem(ICE_SOUL_TWIN_TRIM_ID) !== "done") {
-      const cooler = Array.isArray(state.cooler) ? state.cooler : [];
-      const twinIdx = cooler.findIndex((raw) => {
-        const id = typeof raw === "string" ? raw : raw?.id;
-        return id === SOUL_TWIN_ID || id === "soultwin";
-      });
-      if (twinIdx >= 0) {
-        cooler.splice(twinIdx, 1);
-        state.cooler = cooler;
-        saveState();
-      }
-      localStorage.setItem(ICE_SOUL_TWIN_TRIM_ID, "done");
-    }
   } catch {}
+
+  /** Deferred so gift poll can't immediately re-add a trimmed Soul Twin. */
+  function scheduleIceSoulTwinTrim() {
+    let attempts = 0;
+    const tryTrim = async () => {
+      try {
+        const name = String(
+          window.HubPlays?.getName?.() || localStorage.getItem("hub-player-name") || ""
+        )
+          .trim()
+          .toLowerCase();
+        if (name !== "ice_dragon") return;
+        if (localStorage.getItem(ICE_SOUL_TWIN_TRIM_ID) === "done") return;
+        attempts += 1;
+        await burnPendingSoulTwinGifts();
+        const removed = removeSoulTwinsFromCooler(1);
+        if (removed) {
+          localStorage.setItem(ICE_SOUL_TWIN_TRIM_ID, "done");
+          setCatchLine("Removed 1 Soul Twin", "treasure");
+          return;
+        }
+        // Only stamp done after retries if nothing left to delete.
+        if (attempts >= 2) localStorage.setItem(ICE_SOUL_TWIN_TRIM_ID, "done");
+      } catch {}
+    };
+    setTimeout(() => {
+      tryTrim().catch(() => {});
+    }, 2500);
+    setTimeout(() => {
+      tryTrim().catch(() => {});
+    }, 6000);
+  }
+  scheduleIceSoulTwinTrim();
   applyOffline();
   if (state.pendingOffline && !state.pendingOffline.claimed) showOfflineClaim();
   setPhase("ready");
