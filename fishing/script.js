@@ -3180,6 +3180,78 @@
       .slice(0, aquariumSwimMax());
   }
 
+  /** Rank every cooler fish the tank can use (saved or not). */
+  function aquariumEligibleCoolerRows() {
+    const spot = currentSpot();
+    return state.cooler
+      .map((raw, index) => {
+        const entry = normalizeCoolerEntry(raw);
+        if (!entry) return null;
+        const fish = fishById(entry.id);
+        if (!fish || isTreasureItem(fish)) return null;
+        return { index, entry, fish, val: fishValue(fish, spot, entry) };
+      })
+      .filter(Boolean)
+      .sort(
+        (a, b) =>
+          b.val - a.val || (RARITY_RANK[b.fish.rarity] || 0) - (RARITY_RANK[a.fish.rarity] || 0)
+      );
+  }
+
+  /**
+   * ★ the highest-value cooler fish up to swim slots; unpin weaker saved fish
+   * so the tank shows the best lineup and those fish can be sold again.
+   */
+  function equipBestAquariumFish() {
+    ensureSession();
+    const max = aquariumSwimMax();
+    const ranked = aquariumEligibleCoolerRows();
+    if (!ranked.length) {
+      setCatchLine("No fish in the cooler to equip", "miss");
+      playSfx("miss");
+      return;
+    }
+    const bestIdx = new Set(ranked.slice(0, max).map((r) => r.index));
+    let savedN = 0;
+    let freedN = 0;
+    state.cooler = state.cooler.map((raw, index) => {
+      const entry = normalizeCoolerEntry(raw);
+      if (!entry) return raw;
+      const fish = fishById(entry.id);
+      const eligible = !!fish && !isTreasureItem(fish);
+      const want = eligible && bestIdx.has(index);
+      if (want === !!entry.saved) return entry;
+      if (want) {
+        savedN += 1;
+        return { ...entry, saved: true };
+      }
+      freedN += 1;
+      return { ...entry, saved: false };
+    });
+    const equipped = Math.min(max, ranked.length);
+    aquariumRenderKey = "";
+    coolerRenderKey = "";
+    if (savedN === 0 && freedN === 0) {
+      setCatchLine(
+        `Aquarium already has your best ${equipped} fish`,
+        catchTone(ranked[0]?.fish?.rarity)
+      );
+      playSfx("click");
+      render(false);
+      return;
+    }
+    const bits = [];
+    if (savedN) bits.push(`★ ${savedN} best`);
+    if (freedN) bits.push(`unpinned ${freedN}`);
+    setCatchLine(
+      `Equipped best for Aquarium · ${bits.join(" · ")} · ${equipped}/${max} swim`,
+      catchTone(ranked[0]?.fish?.rarity)
+    );
+    playSfx("win");
+    render(false);
+    saveSoon();
+  }
+
   function aquariumKey() {
     return aquariumFishList()
       .map(
@@ -3319,6 +3391,8 @@
             : `${list.length} swimming · ${formatNum(bank)} banked${bonusTip}`;
     }
     if (tankClaim) tankClaim.disabled = bank <= 0;
+    const equipBestBtn = document.getElementById("aquarium-equip-best-btn");
+    if (equipBestBtn) equipBestBtn.disabled = state.cooler.length === 0;
     tank.classList.toggle("has-fish", list.length > 0);
     tank.classList.toggle("is-expanded", aquariumExpanded);
     if (emptyEl) emptyEl.hidden = list.length > 0;
@@ -15786,6 +15860,9 @@
     state.bookSearch = normalizeSearchQuery(e.target.value);
     renderBook();
     saveSoon();
+  });
+  document.getElementById("aquarium-equip-best-btn")?.addEventListener("click", () => {
+    equipBestAquariumFish();
   });
   document.getElementById("aquarium-claim-btn")?.addEventListener("click", () => {
     const n = claimAquariumBank();
