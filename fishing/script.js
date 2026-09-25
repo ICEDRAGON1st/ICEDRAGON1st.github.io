@@ -10777,6 +10777,8 @@
     if (!fish || isTreasureItem(fish)) return;
     const changed = markCaught(fish, entry);
     if (changed) checkAchievements();
+    // Exclusive fish never set personal best / leaderboard score.
+    if (isExclusiveFish(fish)) return;
     const score = catchScore(fish, entry);
     if (score <= (state.bestCatchScore || 0)) return;
     state.bestCatchScore = score;
@@ -11051,6 +11053,8 @@
   }
 
   function maybeSubmitBest(force = false) {
+    const bestFish = fishById(state.bestCatchId);
+    if (isExclusiveFish(bestFish)) return;
     const best = Math.floor(state.bestCatchScore || 0);
     if (best <= 0) return;
     const stored = getStoredBest();
@@ -11063,7 +11067,7 @@
     if (!force && now - lastSubmitAt < 4000) return;
     if (window.HubLeaderboard) {
       lastSubmitAt = now;
-      const fish = fishById(state.bestCatchId);
+      const fish = bestFish;
       const entry = bestCatchEntry();
       HubLeaderboard.submit("fishing", best, {
         fishing: fish
@@ -17142,6 +17146,7 @@
     if (n <= 0) return false;
     if (n < (state.bestCatchScore || 0)) return false;
     const fish = fishById(fishId) || fishFromCatchScore(n);
+    if (isExclusiveFish(fish) || isExclusiveFish(fishId)) return false;
     if (!fish && n <= (state.bestCatchScore || 0)) return false;
     state.bestCatchScore = Math.max(state.bestCatchScore || 0, n);
     if (fish) {
@@ -17149,7 +17154,7 @@
       markCaught(fish);
     } else if (!state.bestCatchId) {
       const match = fishFromCatchScore(state.bestCatchScore);
-      if (match) {
+      if (match && !isExclusiveFish(match)) {
         state.bestCatchId = match.id;
         markCaught(match);
       }
@@ -17166,18 +17171,80 @@
     try {
       localStorage.setItem(HIGH_SCORE_KEY, String(state.bestCatchScore));
       const bestFish = fishById(state.bestCatchId);
-      if (bestFish) persistBestCatchMeta(bestFish, bestCatchEntry());
+      if (bestFish && !isExclusiveFish(bestFish)) persistBestCatchMeta(bestFish, bestCatchEntry());
+    } catch {}
+    return true;
+  }
+
+  /** If best catch was an exclusive fish, roll back to the best non-exclusive catch. */
+  function scrubExclusiveBestCatch() {
+    const cur = fishById(state.bestCatchId);
+    const fromScore = fishFromCatchScore(Math.floor(Number(state.bestCatchScore) || 0));
+    if (!isExclusiveFish(cur) && !isExclusiveFish(fromScore)) return false;
+    let best = null;
+    let bestEntry = null;
+    let bestScore = 0;
+    const consider = (fish, entry) => {
+      if (!fish || isExclusiveFish(fish) || isTreasureItem(fish)) return;
+      const score = catchScore(fish, entry || {});
+      if (score > bestScore) {
+        bestScore = score;
+        best = fish;
+        bestEntry = entry || { variant: "", shiny: false, mutation: "" };
+      }
+    };
+    (state.cooler || []).forEach((raw) => {
+      const entry = normalizeCoolerEntry(raw);
+      if (!entry) return;
+      consider(fishById(entry.id), entry);
+    });
+    Object.keys(state.caught || {}).forEach((id) => {
+      const fish = fishById(id);
+      if (!fish || isExclusiveFish(fish)) return;
+      const rec = state.caught[id];
+      consider(fish, { variant: "", shiny: false, mutation: "" });
+      if (rec && typeof rec === "object") {
+        VARIANT_PRIMARY.forEach((v) => {
+          if (rec[v]) consider(fish, { variant: v, shiny: false, mutation: "" });
+          if (rec[v] && rec.shiny) consider(fish, { variant: v, shiny: true, mutation: "" });
+        });
+        if (rec.shiny) consider(fish, { variant: "", shiny: true, mutation: "" });
+        MUTATIONS.forEach((m) => {
+          if (rec[m]) consider(fish, { variant: "", shiny: !!rec.shiny, mutation: m });
+        });
+      }
+    });
+    state.bestCatchScore = bestScore;
+    state.bestCatchId = best ? best.id : "";
+    state.bestCatchVariant = normalizeVariant(bestEntry?.variant);
+    state.bestCatchShiny = !!bestEntry?.shiny;
+    state.bestCatchMutation = normalizeMutation(bestEntry?.mutation);
+    try {
+      localStorage.setItem(HIGH_SCORE_KEY, String(bestScore));
+      if (best) persistBestCatchMeta(best, bestEntry);
+      else localStorage.removeItem(BEST_CATCH_META_KEY);
     } catch {}
     return true;
   }
 
   function syncBestCatchFromLeaderboard() {
     let boardScore = 0;
+    let boardFishing = null;
     try {
       if (window.HubLeaderboard?.getMyScore) {
         boardScore = Math.floor(Number(HubLeaderboard.getMyScore("fishing")) || 0);
       }
+      if (window.HubLeaderboard?.getMyEntry) {
+        boardFishing = HubLeaderboard.getMyEntry("fishing")?.fishing || null;
+      }
     } catch {}
+    if (boardFishing) {
+      const id = String(boardFishing.id || "").toLowerCase();
+      const rarity = String(boardFishing.rarity || "").toLowerCase();
+      if (id === "soultwin" || rarity === "exclusive") boardScore = 0;
+    }
+    const boardFish = fishFromCatchScore(boardScore);
+    if (isExclusiveFish(boardFish)) boardScore = 0;
     const stored = getStoredBest();
     const best = Math.max(state.bestCatchScore || 0, stored, boardScore);
 
@@ -17188,6 +17255,11 @@
   }
 
   state = loadState();
+  if (scrubExclusiveBestCatch()) {
+    try {
+      saveState();
+    } catch {}
+  }
   if (ensureExclusiveCoolerValues()) {
     try {
       saveState();

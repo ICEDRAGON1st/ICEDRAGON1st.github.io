@@ -855,6 +855,24 @@
     });
     games.fishing = iceFishingBoard;
 
+    // Strip exclusive / Soul Twin entries — they are not leaderboard-eligible.
+    const fishingExclusiveStripKey = "fishing:strip-exclusive-v1";
+    if (!resets[fishingExclusiveStripKey]) {
+      resets[fishingExclusiveStripKey] = Date.now();
+    }
+    const fishingNoExclusive = { ...(games.fishing || {}) };
+    Object.keys(fishingNoExclusive).forEach((key) => {
+      const entry = fishingNoExclusive[key];
+      const f = entry?.fishing;
+      if (!f || typeof f !== "object") return;
+      const id = String(f.id || "").toLowerCase();
+      const rarity = String(f.rarity || "").toLowerCase();
+      if (id === "soultwin" || rarity === "exclusive" || !!f.exclusive) {
+        delete fishingNoExclusive[key];
+      }
+    });
+    games.fishing = fishingNoExclusive;
+
     // Full Ramp Rush leaderboard reset (this game only).
     const rampFullResetKey = "ramp:full-reset-20260914al";
     const RAMP_FULL_RESET_AT = Date.UTC(2026, 8, 14, 19, 45, 0); // 2026-09-14 19:45 UTC
@@ -1179,6 +1197,11 @@
             shiny: !!opts.fishing.shiny
           }
         : null;
+    if (gameId === "fishing" && fishingMeta) {
+      const id = fishingMeta.id.toLowerCase();
+      const rarity = fishingMeta.rarity.toLowerCase();
+      if (id === "soultwin" || rarity === "exclusive") return false;
+    }
 
     const run = async () => {
       await sync(true);
@@ -1304,7 +1327,34 @@
         (meName && nameKey(entry.name) === meName) ||
         (meId && entry.playerId && entry.playerId === meId);
       if (!mine) return;
+      if (gameId === "fishing") {
+        const f = entry.fishing;
+        if (f && typeof f === "object") {
+          const id = String(f.id || "").toLowerCase();
+          const rarity = String(f.rarity || "").toLowerCase();
+          if (id === "soultwin" || rarity === "exclusive") return;
+        }
+      }
       best = Math.max(best, Number(entry.score) || 0);
+    });
+    return best;
+  }
+
+  function getMyEntry(gameId) {
+    if (!GAME_META[gameId]) return null;
+    const lowerBetter = meta(gameId).lowerBetter;
+    const board = ((cache.games || {})[gameId]) || {};
+    const meName = nameKey(getPlayerName());
+    const meId = getPlayerId();
+    let best = null;
+    Object.values(board).forEach((raw) => {
+      const entry = normalizeEntry(raw, lowerBetter);
+      if (!entry) return;
+      const mine =
+        (meName && nameKey(entry.name) === meName) ||
+        (meId && entry.playerId && entry.playerId === meId);
+      if (!mine) return;
+      if (!best || isBetter(entry.score, best.score, lowerBetter)) best = entry;
     });
     return best;
   }
@@ -1319,6 +1369,7 @@
     sync,
     getBoard,
     getMyScore,
+    getMyEntry,
     getHubPointsBoard,
     pointsForRank,
     clearPlayer,
