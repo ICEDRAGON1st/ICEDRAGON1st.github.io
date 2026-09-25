@@ -3427,14 +3427,17 @@ function renderFeedbackInbox() {
       const gameLabel = item.game
         ? HUB_GAMES.find((g) => g.id === item.game)?.name || item.game
         : "General";
-      return `<li class="feedback-item${isNew ? " is-new" : ""}">
-        <div class="feedback-item-top">
-          <span class="feedback-item-type">${escapeFeedbackHtml(item.type)}</span>
-          <span>${escapeFeedbackHtml(item.fromName)}</span>
-          <span>${escapeFeedbackHtml(gameLabel)}</span>
-          <span>${escapeFeedbackHtml(formatFeedbackTime(item.at))}</span>
+      return `<li class="feedback-item${isNew ? " is-new" : ""}" data-feedback-id="${escapeFeedbackHtml(item.id)}">
+        <div class="feedback-item-body">
+          <div class="feedback-item-top">
+            <span class="feedback-item-type">${escapeFeedbackHtml(item.type)}</span>
+            <span>${escapeFeedbackHtml(item.fromName)}</span>
+            <span>${escapeFeedbackHtml(gameLabel)}</span>
+            <span>${escapeFeedbackHtml(formatFeedbackTime(item.at))}</span>
+          </div>
+          <p class="feedback-item-text">${escapeFeedbackHtml(item.text)}</p>
         </div>
-        <p class="feedback-item-text">${escapeFeedbackHtml(item.text)}</p>
+        <button type="button" class="feedback-delete-btn" data-feedback-delete="${escapeFeedbackHtml(item.id)}" title="Delete" aria-label="Delete feedback">Delete</button>
       </li>`;
     })
     .join("");
@@ -3512,10 +3515,29 @@ feedbackRefreshBtn?.addEventListener("click", async () => {
   try {
     await HubFeedback.sync(true);
     renderFeedbackInbox();
-    setFeedbackStatus("Inbox updated", "is-ok");
+    setFeedbackStatus("Up to date", "is-ok");
   } catch {
     setFeedbackStatus("Could not refresh", "is-err");
   }
+});
+
+feedbackList?.addEventListener("click", async (e) => {
+  const btn = e.target?.closest?.("[data-feedback-delete]");
+  if (!btn) return;
+  e.preventDefault();
+  if (typeof HubFeedback === "undefined" || !HubFeedback.isOwner?.()) return;
+  const id = btn.getAttribute("data-feedback-delete") || "";
+  if (!id) return;
+  btn.disabled = true;
+  setFeedbackStatus("Deleting…");
+  const result = await HubFeedback.remove?.(id);
+  if (!result?.ok) {
+    btn.disabled = false;
+    setFeedbackStatus(result?.error || "Could not delete", "is-err");
+    return;
+  }
+  renderFeedbackInbox();
+  setFeedbackStatus(result.warning || "Deleted", result.warning ? "" : "is-ok");
   updateFeedbackButtonLabel(true);
 });
 

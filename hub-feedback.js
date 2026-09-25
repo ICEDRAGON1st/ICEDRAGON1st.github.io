@@ -5,6 +5,7 @@
  *   submit({ text, type, game }) → Promise<{ ok, error?, warning?, queued? }>
  *   sync(force?) → Promise
  *   list() → newest-first items
+ *   remove(id) → Promise<{ ok, error? }> (ICE_DRAGON only)
  *   isOwner() → true for ICE_DRAGON
  *   unreadCount() / markAllRead()
  */
@@ -17,8 +18,10 @@
   const READ_KEY = "hub-feedback-read-at-v1";
   const LAST_SEND_KEY = "hub-feedback-last-send-v1";
   const PENDING_KEY = "hub-feedback-pending-v1";
+  const DELETED_KEY = "hub-feedback-deleted-v1";
   const RATE_KEY = "mantle-rate-limit-until-v1";
   const MAX_ITEMS = 120;
+  const MAX_DELETED = 200;
   const MAX_TEXT = 400;
   const SEND_COOLDOWN_MS = 20000;
   const RATE_LIMIT_BACKOFF_MS = 20 * 60_000;
@@ -129,6 +132,26 @@
     savePendingIds(loadPendingIds().filter((id) => !drop.has(id)));
   }
 
+  function loadDeletedIds() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(DELETED_KEY));
+      return Array.isArray(raw) ? raw.map(String).filter(Boolean) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function saveDeletedIds(ids) {
+    try {
+      localStorage.setItem(DELETED_KEY, JSON.stringify((ids || []).slice(0, MAX_DELETED)));
+    } catch {}
+  }
+
+  function markDeleted(id) {
+    const next = [...new Set([String(id), ...loadDeletedIds()])].slice(0, MAX_DELETED);
+    saveDeletedIds(next);
+  }
+
   function getReadAt() {
     return Math.max(0, Number(localStorage.getItem(READ_KEY)) || 0);
   }
@@ -157,10 +180,11 @@
   }
 
   function mergeItems(a, b) {
+    const deleted = new Set(loadDeletedIds());
     const map = {};
     [...(a || []), ...(b || [])].forEach((raw) => {
       const item = normalizeItem(raw);
-      if (!item) return;
+      if (!item || deleted.has(item.id)) return;
       const prev = map[item.id];
       if (!prev || item.at >= prev.at) map[item.id] = item;
     });
@@ -376,6 +400,51 @@
     return { ok: true };
   }
 
+  async function remove(id) {
+    if (!isOwner()) return { ok: false, error: "Only ICE can delete feedback" };
+    const target = String(id || "");
+    if (!target) return { ok: false, error: "Missing message" };
+
+    markDeleted(target);
+    clearPending([target]);
+    cache = { items: mergeItems(cache.items, loadLocal().items) };
+    saveLocal(cache);
+
+    let failed = false;
+    writeQueue = writeQueue
+      .then(async () => {
+        let remote = { items: [] };
+        try {
+          remote = await fetchRemote();
+        } catch (err) {
+          if (err?.code === 429) {
+            failed = true;
+            return;
+          }
+        }
+        const items = mergeItems(remote.items, cache.items).filter((item) => item.id !== target);
+        cache = { items };
+        saveLocal(cache);
+        try {
+          await pushRemote(items);
+        } catch {
+          failed = true;
+        }
+      })
+      .catch(() => {
+        failed = true;
+      });
+
+    await writeQueue;
+    if (failed) {
+      return {
+        ok: true,
+        warning: "Removed here. Server sync failed — it may reappear until sync works."
+      };
+    }
+    return { ok: true };
+  }
+
   cache = loadLocal();
   // Soft sync on load — skip only if Mantle is cooling down and Supabase is unavailable
   if (!isRateLimited() || sb()) {
@@ -386,6 +455,7 @@
     submit,
     sync,
     list,
+    remove,
     isOwner,
     unreadCount,
     markAllRead,
