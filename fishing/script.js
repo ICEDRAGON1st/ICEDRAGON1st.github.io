@@ -216,6 +216,10 @@
     "radiant",
     "dusk",
     "apex",
+    "sovereign",
+    "celestial",
+    "primordial",
+    "ultimate",
     "exclusive"
   ];
 
@@ -247,7 +251,11 @@
     radiant: 25,
     dusk: 26,
     apex: 27,
-    exclusive: 28
+    sovereign: 28,
+    celestial: 29,
+    primordial: 30,
+    ultimate: 31,
+    exclusive: 32
   };
 
   const RARITY_WEIGHT = {
@@ -278,6 +286,10 @@
     radiant: 0.0072,
     dusk: 0.0052,
     apex: 0.0036,
+    sovereign: 0.0026,
+    celestial: 0.0019,
+    primordial: 0.00135,
+    ultimate: 0.00095,
     exclusive: 0
   };
 
@@ -585,6 +597,26 @@
     { id: "pinnacleray", name: "Pinnacle Ray", rarity: "apex", value: 1.2e30 },
     { id: "crestkoi", name: "Crest Koi", rarity: "apex", value: 3e30 },
     { id: "theapex", name: "The Apex", rarity: "apex", value: 8e30 },
+    // Sovereign
+    { id: "thronefin", name: "Thronefin", rarity: "sovereign", value: 2e31 },
+    { id: "regalray", name: "Regal Ray", rarity: "sovereign", value: 5e31 },
+    { id: "dominionkoi", name: "Dominion Koi", rarity: "sovereign", value: 1.2e32 },
+    { id: "thesovereign", name: "The Sovereign", rarity: "sovereign", value: 3e32 },
+    // Celestial
+    { id: "starvault", name: "Star Vault", rarity: "celestial", value: 7e32 },
+    { id: "heavenray", name: "Heaven Ray", rarity: "celestial", value: 1.8e33 },
+    { id: "orbitfin", name: "Orbitfin", rarity: "celestial", value: 4.5e33 },
+    { id: "thecelestial", name: "The Celestial", rarity: "celestial", value: 1.1e34 },
+    // Primordial
+    { id: "ancientfin", name: "Ancient Fin", rarity: "primordial", value: 2.8e34 },
+    { id: "rootide", name: "Root Tide", rarity: "primordial", value: 7e34 },
+    { id: "primalkoi", name: "Primal Koi", rarity: "primordial", value: 1.8e35 },
+    { id: "theprimordial", name: "The Primordial", rarity: "primordial", value: 4.5e35 },
+    // Ultimate
+    { id: "finalfin", name: "Final Fin", rarity: "ultimate", value: 1.1e36 },
+    { id: "omniray", name: "Omni Ray", rarity: "ultimate", value: 2.8e36 },
+    { id: "lasttide", name: "Last Tide", rarity: "ultimate", value: 7e36 },
+    { id: "theultimate", name: "The Ultimate", rarity: "ultimate", value: 1.8e37 },
     // Exclusive — never in weighted pool; rolled separately at 1/10M (luck ignored)
     {
       id: "soultwin",
@@ -11390,6 +11422,22 @@
     pinnacleray: "kite",
     crestkoi: "koi",
     theapex: "omega",
+    thronefin: "angelfish",
+    regalray: "kite",
+    dominionkoi: "koi",
+    thesovereign: "omega",
+    starvault: "butterfly",
+    heavenray: "ray",
+    orbitfin: "tuna",
+    thecelestial: "angelfish",
+    ancientfin: "longnose",
+    rootide: "leviathan",
+    primalkoi: "koi",
+    theprimordial: "ghost",
+    finalfin: "blade",
+    omniray: "kite",
+    lasttide: "mahi",
+    theultimate: "omega",
     soultwin: "leviathan"
   };
 
@@ -11513,7 +11561,23 @@
     summitfin: "#f472b6",
     pinnacleray: "#ec4899",
     crestkoi: "#db2777",
-    theapex: "#fce7f3"
+    theapex: "#fce7f3",
+    thronefin: "#eab308",
+    regalray: "#ca8a04",
+    dominionkoi: "#a16207",
+    thesovereign: "#fef9c3",
+    starvault: "#a5b4fc",
+    heavenray: "#818cf8",
+    orbitfin: "#6366f1",
+    thecelestial: "#e0e7ff",
+    ancientfin: "#86efac",
+    rootide: "#4ade80",
+    primalkoi: "#22c55e",
+    theprimordial: "#dcfce7",
+    finalfin: "#fef08a",
+    omniray: "#fde047",
+    lasttide: "#facc15",
+    theultimate: "#fefce8"
   };
 
   function fishEye(cx, cy, r = 2.2) {
@@ -12318,6 +12382,10 @@
       radiant: "#fde68a",
       dusk: "#fb923c",
       apex: "#f472b6",
+      sovereign: "#eab308",
+      celestial: "#818cf8",
+      primordial: "#4ade80",
+      ultimate: "#fde047",
       exclusive: "#f0abfc"
     };
     return map[rarity] || "#a8e6df";

@@ -302,7 +302,23 @@
     { id: "summitfin", name: "Summitfin", rarity: "apex", value: 5e29 },
     { id: "pinnacleray", name: "Pinnacle Ray", rarity: "apex", value: 1.2e30 },
     { id: "crestkoi", name: "Crest Koi", rarity: "apex", value: 3e30 },
-    { id: "theapex", name: "The Apex", rarity: "apex", value: 8e30 }
+    { id: "theapex", name: "The Apex", rarity: "apex", value: 8e30 },
+    { id: "thronefin", name: "Thronefin", rarity: "sovereign", value: 2e31 },
+    { id: "regalray", name: "Regal Ray", rarity: "sovereign", value: 5e31 },
+    { id: "dominionkoi", name: "Dominion Koi", rarity: "sovereign", value: 1.2e32 },
+    { id: "thesovereign", name: "The Sovereign", rarity: "sovereign", value: 3e32 },
+    { id: "starvault", name: "Star Vault", rarity: "celestial", value: 7e32 },
+    { id: "heavenray", name: "Heaven Ray", rarity: "celestial", value: 1.8e33 },
+    { id: "orbitfin", name: "Orbitfin", rarity: "celestial", value: 4.5e33 },
+    { id: "thecelestial", name: "The Celestial", rarity: "celestial", value: 1.1e34 },
+    { id: "ancientfin", name: "Ancient Fin", rarity: "primordial", value: 2.8e34 },
+    { id: "rootide", name: "Root Tide", rarity: "primordial", value: 7e34 },
+    { id: "primalkoi", name: "Primal Koi", rarity: "primordial", value: 1.8e35 },
+    { id: "theprimordial", name: "The Primordial", rarity: "primordial", value: 4.5e35 },
+    { id: "finalfin", name: "Final Fin", rarity: "ultimate", value: 1.1e36 },
+    { id: "omniray", name: "Omni Ray", rarity: "ultimate", value: 2.8e36 },
+    { id: "lasttide", name: "Last Tide", rarity: "ultimate", value: 7e36 },
+    { id: "theultimate", name: "The Ultimate", rarity: "ultimate", value: 1.8e37 }
   ];
 
   const FISHING_RARITY_RANK = {
@@ -332,7 +348,11 @@
     aether: 24,
     radiant: 25,
     dusk: 26,
-    apex: 27
+    apex: 27,
+    sovereign: 28,
+    celestial: 29,
+    primordial: 30,
+    ultimate: 31
   };
 
   const FISHING_VARIANT_PRIMARY = ["silver", "gold", "diamond", "rainbow"];
