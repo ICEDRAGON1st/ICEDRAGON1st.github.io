@@ -2452,6 +2452,8 @@
       collectionRainbowTold: false,
       collectionLbEventTold: false,
       collectionLbAlwaysTold: false,
+      /** One-time Soul Twin grant for finishing the catch book. */
+      collectionSoulTwinGranted: false,
       quests: { dailyKey: "", weeklyKey: "", daily: [], weekly: [] },
       echoLuckLevel: 0,
       echoLuckReset: ECHO_LUCK_RESET_ID,
@@ -2649,20 +2651,28 @@
       {
         pct: COLLECTION_LB_ALWAYS_PCT,
         label: "100%",
-        title: "Lucky Blocks anytime",
-        hint: "no event needed"
+        title: "Soul Twin",
+        hint: "exclusive fish · Lucky Blocks anytime"
       }
     ];
   }
 
+  function catchBookEligibleFish() {
+    return FISH.filter((f) => !isExclusiveFish(f));
+  }
+
   function catchBookDiscoveryCount() {
-    // Always overall base discoveries — ignore shiny/mutation book filters.
-    return caughtCount("any", false, "");
+    // Overall base discoveries — ignore shiny/mutation filters; exclusives are rewards, not requirements.
+    return catchBookEligibleFish().reduce(
+      (n, f) => n + (hasCaught(f.id, "any", false, "") ? 1 : 0),
+      0
+    );
   }
 
   function catchBookDiscoveryRatio() {
-    if (!FISH.length) return 0;
-    return catchBookDiscoveryCount() / FISH.length;
+    const total = catchBookEligibleFish().length;
+    if (!total) return 0;
+    return catchBookDiscoveryCount() / total;
   }
 
   function hasCollectionLuckBonus() {
@@ -10753,6 +10763,7 @@
       next.collectionRainbowTold = !!raw.collectionRainbowTold;
       next.collectionLbEventTold = !!raw.collectionLbEventTold;
       next.collectionLbAlwaysTold = !!raw.collectionLbAlwaysTold;
+      next.collectionSoulTwinGranted = !!raw.collectionSoulTwinGranted;
       next.quests = normalizeQuestsState(raw.quests);
       if (raw.echoLuckReset !== ECHO_LUCK_RESET_ID) {
         next.echoLuckLevel = 0;
@@ -13615,7 +13626,7 @@
     if (boatLevel() >= 3) HubAchievements.unlock("fishing_fps_100");
     if (state.unlocked.deep) HubAchievements.unlock("fishing_voyage_1");
     if (state.unlocked.void) HubAchievements.unlock("fishing_voyage_1");
-    if (FISH.length > 0 && caughtCount("any", false, "") >= Math.ceil(FISH.length * COLLECTION_MASTER_PCT)) {
+    if (FISH.length > 0 && catchBookDiscoveryCount() >= Math.ceil(catchBookEligibleFish().length * COLLECTION_MASTER_PCT)) {
       const newly = HubAchievements.unlock("fishing_all");
       window.HubPlays?.markMasterFisher?.().catch?.(() => {});
       if (newly) {
@@ -13661,6 +13672,42 @@
         setCatchLine("100% catch book — Lucky Blocks can drop anytime", "perfect");
       }, 1700);
     }
+    tryGrantCollectionSoulTwin();
+  }
+
+  function playerOwnsSoulTwin() {
+    if (hasCaught(SOUL_TWIN_ID, "any", false, "")) return true;
+    return (state.cooler || []).some((e) => e && isExclusiveFish(e.id || e));
+  }
+
+  /** Finish the catch book → one Soul Twin (exclusive). Retries if cooler is full. */
+  function tryGrantCollectionSoulTwin() {
+    if (state.collectionSoulTwinGranted) return false;
+    if (!hasCollectionLbAlwaysBonus()) return false;
+    const fish = fishById(SOUL_TWIN_ID);
+    if (!fish) return false;
+
+    if (playerOwnsSoulTwin()) {
+      state.collectionSoulTwinGranted = true;
+      saveSoon();
+      return false;
+    }
+
+    const entry = grantFishToLocal(fish, { silent: true });
+    if (!entry) {
+      setTimeout(() => {
+        setCatchLine("100% catch book — free a cooler slot for your Soul Twin!", "miss");
+      }, 1800);
+      return false;
+    }
+
+    state.collectionSoulTwinGranted = true;
+    saveSoon();
+    setTimeout(() => {
+      setCatchLine("100% catch book — Soul Twin added to your cooler!", "perfect");
+      render();
+    }, 1900);
+    return true;
   }
 
   function ensureSession() {
@@ -16766,11 +16813,13 @@
   }
 
   function renderCollectionHud() {
-    const total = FISH.length;
+    const total = catchBookEligibleFish().length;
     const found = catchBookDiscoveryCount();
     const ratio = catchBookDiscoveryRatio();
     const pct = total > 0 ? Math.floor(ratio * 100) : 0;
-    const key = `${found}/${total}/${pct}/${playerHasMasterFisherTitle() ? 1 : 0}`;
+    const key = `${found}/${total}/${pct}/${playerHasMasterFisherTitle() ? 1 : 0}/${
+      state.collectionSoulTwinGranted ? 1 : 0
+    }`;
     if (key === lastCollectionHudKey) return;
     lastCollectionHudKey = key;
     if (collectionHudPctEl) collectionHudPctEl.textContent = `${pct}%`;
@@ -16786,11 +16835,11 @@
         const on =
           ratio >= tier.pct || (tier.pct === COLLECTION_MASTER_PCT && playerHasMasterFisherTitle());
         const isNext = !on && next && next.pct === tier.pct;
-        const state = on ? "On" : isNext ? "Next" : "Locked";
+        const stateLabel = on ? "On" : isNext ? "Next" : "Locked";
         return `<div class="collection-tier${on ? " is-on" : ""}${isNext ? " is-next" : ""}">
           <span class="collection-tier-pct">${tier.label}</span>
           <span class="collection-tier-name">${tier.title}</span>
-          <span class="collection-tier-state">${state}</span>
+          <span class="collection-tier-state">${stateLabel}</span>
           <span class="collection-tier-hint">${tier.hint}</span>
         </div>`;
       })
@@ -16815,7 +16864,7 @@
       if (hasCollectionLbEventBonus()) {
         tiers.push(`${formatMult(COLLECTION_LB_EVENT_MULT)}× LB events`);
       }
-      if (hasCollectionLbAlwaysBonus()) tiers.push("LB anytime");
+      if (hasCollectionLbAlwaysBonus()) tiers.push("Soul Twin · LB anytime");
       if (tiers.length) {
         bookActiveBonusesEl.hidden = false;
         bookActiveBonusesEl.textContent = tiers.join(" · ");
