@@ -10738,9 +10738,10 @@
     return null;
   }
 
-  /** Ensure exclusive cooler rows keep a stable lockedValue (fixes lag + missing value). */
+  /** Ensure exclusive cooler rows lock 2× your best non-exclusive look value. */
   function ensureExclusiveCoolerValues() {
     let changed = false;
+    const mirror = exclusiveMirrorBaseValue();
     state.cooler = (state.cooler || []).map((raw) => {
       const entry = normalizeCoolerEntry(raw);
       if (!entry) return raw;
@@ -10753,17 +10754,14 @@
         untradeable: true,
         variant: "",
         shiny: false,
-        mutation: ""
+        mutation: "",
+        lockedValue: mirror
       };
-      if (!(Number(next.lockedValue) > 0)) {
-        next.lockedValue = exclusiveMirrorBaseValue();
-        changed = true;
-      }
       if (
         !raw ||
         typeof raw !== "object" ||
         raw.saved !== next.saved ||
-        raw.lockedValue !== next.lockedValue ||
+        Number(raw.lockedValue) !== Number(next.lockedValue) ||
         raw.unsellable !== next.unsellable
       ) {
         changed = true;
@@ -13415,48 +13413,75 @@
     return isExclusiveFish(fish) || !!fish?.untradeable || !!entry?.untradeable;
   }
 
-  let _exclusiveMirrorCache = { at: 0, value: 2, bestId: "", bestScore: 0 };
+  let _exclusiveMirrorCache = { at: 0, value: 2, stamp: "" };
 
-  /** 2× the catalog value of your personal best (never mirrors another Soul Twin). */
+  /** Raw look value (base × variant/shiny/mutation) — never uses exclusive lockedValue. */
+  function exclusiveCandidateLookValue(fish, entry) {
+    if (!fish || isExclusiveFish(fish) || isTreasureItem(fish)) return 0;
+    const base = Math.max(1, Math.floor(Number(fish.value) || 1));
+    const mult = entry ? variantValueMult(entry) : 1;
+    return Math.max(1, Math.floor(base * mult));
+  }
+
+  /** 2× your best non-exclusive catch look (variants included). Used everywhere Soul Twin is valued. */
   function exclusiveMirrorBaseValue() {
-    const bestId = String(state.bestCatchId || "");
-    const bestScore = Math.floor(Number(state.bestCatchScore) || 0);
+    const stamp = [
+      String(state.bestCatchId || ""),
+      Math.floor(Number(state.bestCatchScore) || 0),
+      normalizeVariant(state.bestCatchVariant),
+      state.bestCatchShiny ? 1 : 0,
+      normalizeMutation(state.bestCatchMutation),
+      (state.cooler || []).length
+    ].join("|");
     const now = Date.now();
     if (
       _exclusiveMirrorCache.value > 0 &&
-      _exclusiveMirrorCache.bestId === bestId &&
-      _exclusiveMirrorCache.bestScore === bestScore &&
-      now - _exclusiveMirrorCache.at < 5000
+      _exclusiveMirrorCache.stamp === stamp &&
+      now - _exclusiveMirrorCache.at < 1500
     ) {
       return _exclusiveMirrorCache.value;
     }
-    let best = fishById(bestId);
-    if (!best || isExclusiveFish(best)) {
-      best = fishFromCatchScore(bestScore);
+
+    let bestLook = 0;
+    const consider = (fish, entry) => {
+      const look = exclusiveCandidateLookValue(fish, entry);
+      if (look > bestLook) bestLook = look;
+    };
+
+    const bestFish = fishById(state.bestCatchId);
+    if (bestFish && !isExclusiveFish(bestFish)) {
+      consider(bestFish, bestCatchEntry());
     }
-    if (!best || isExclusiveFish(best)) {
-      let hi = null;
-      (state.cooler || []).forEach((raw) => {
-        const id = typeof raw === "string" ? raw : raw?.id;
-        const f = fishById(id);
-        if (!f || isExclusiveFish(f)) return;
-        if (!hi || f.value > hi.value) hi = f;
-      });
-      best = hi;
-    }
-    if (!best || isExclusiveFish(best)) {
-      const found = Object.keys(state.caught || state.book || {});
-      let hi = null;
-      found.forEach((id) => {
-        const f = fishById(id);
-        if (!f || isExclusiveFish(f)) return;
-        if (!hi || f.value > hi.value) hi = f;
-      });
-      best = hi;
-    }
-    const v = Math.max(1, Math.floor(Number(best?.value) || 1));
-    const out = Math.max(2, v * 2);
-    _exclusiveMirrorCache = { at: now, value: out, bestId, bestScore };
+
+    (state.cooler || []).forEach((raw) => {
+      const entry = normalizeCoolerEntry(raw);
+      if (!entry) return;
+      consider(fishById(entry.id), entry);
+    });
+
+    Object.keys(state.caught || {}).forEach((id) => {
+      const fish = fishById(id);
+      if (!fish || isExclusiveFish(fish)) return;
+      const rec = state.caught[id];
+      consider(fish, { variant: "", shiny: false, mutation: "" });
+      if (rec && typeof rec === "object") {
+        VARIANT_PRIMARY.forEach((v) => {
+          if (rec[v]) consider(fish, { variant: v, shiny: false, mutation: "" });
+          if (rec[v] && rec.shiny) consider(fish, { variant: v, shiny: true, mutation: "" });
+        });
+        if (rec.shiny) consider(fish, { variant: "", shiny: true, mutation: "" });
+        MUTATIONS.forEach((m) => {
+          if (!rec[m]) return;
+          consider(fish, { variant: "", shiny: !!rec.shiny, mutation: m });
+          VARIANT_PRIMARY.forEach((v) => {
+            if (rec[v]) consider(fish, { variant: v, shiny: !!rec.shiny, mutation: m });
+          });
+        });
+      }
+    });
+
+    const out = Math.max(2, bestLook * 2);
+    _exclusiveMirrorCache = { at: now, value: out, stamp };
     return out;
   }
 
@@ -14857,6 +14882,18 @@
   }
 
   function renderCooler(force = false) {
+    if (
+      (state.cooler || []).some((raw) => {
+        const id = typeof raw === "string" ? raw : raw?.id;
+        return isExclusiveFish(id);
+      })
+    ) {
+      if (ensureExclusiveCoolerValues()) {
+        try {
+          saveState();
+        } catch {}
+      }
+    }
     if (coolerCountEl) coolerCountEl.textContent = String(state.cooler.length);
     if (coolerMaxEl) coolerMaxEl.textContent = String(coolerMax());
     if (hudCoolerEl) hudCoolerEl.textContent = `${state.cooler.length}/${coolerMax()}`;
