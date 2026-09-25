@@ -352,24 +352,67 @@
   function mergePeer(a, b) {
     if (!a) return b || null;
     if (!b) return a;
-    const aLive = !a.left && Number(a.joinedAt) > 0;
-    const bLive = !b.left && Number(b.joinedAt) > 0;
+    const aJoined = Number(a.joinedAt) || 0;
+    const bJoined = Number(b.joinedAt) || 0;
+    // Older clients may hang up with left:true but no leftAt — treat leave as at least that join.
+    const aLeftAt = Number(a.leftAt) || (a.left ? aJoined || 1 : 0);
+    const bLeftAt = Number(b.leftAt) || (b.left ? bJoined || 1 : 0);
+    const leftAt = Math.max(aLeftAt, bLeftAt);
+
+    // Explicit hang-up / leave wins over a stale "still live" copy, unless they
+    // rejoined afterward (joinedAt newer than leftAt).
+    if (a.left && aLeftAt >= bJoined) {
+      return {
+        ...b,
+        ...a,
+        left: true,
+        ringing: false,
+        sharing: false,
+        leftAt: Math.max(aLeftAt, bLeftAt)
+      };
+    }
+    if (b.left && bLeftAt >= aJoined) {
+      return {
+        ...a,
+        ...b,
+        left: true,
+        ringing: false,
+        sharing: false,
+        leftAt: Math.max(aLeftAt, bLeftAt)
+      };
+    }
+    if (leftAt > 0 && leftAt >= Math.max(aJoined, bJoined)) {
+      const newerLeft = bLeftAt >= aLeftAt ? b : a;
+      const other = newerLeft === b ? a : b;
+      return {
+        ...other,
+        ...newerLeft,
+        left: true,
+        ringing: false,
+        sharing: false,
+        leftAt
+      };
+    }
+
+    const aLive = !a.left && aJoined > 0;
+    const bLive = !b.left && bJoined > 0;
     // Never let a stale write wipe a live joiner.
-    if (aLive && !bLive) return { ...b, ...a, left: false, ringing: false };
-    if (bLive && !aLive) return { ...a, ...b, left: false, ringing: false };
+    if (aLive && !bLive) return { ...b, ...a, left: false, ringing: false, leftAt: 0 };
+    if (bLive && !aLive) return { ...a, ...b, left: false, ringing: false, leftAt: 0 };
     if (aLive && bLive) {
-      const newer = Number(b.joinedAt) >= Number(a.joinedAt) ? b : a;
+      const newer = bJoined >= aJoined ? b : a;
       const older = newer === b ? a : b;
       return {
         ...older,
         ...newer,
         left: false,
         ringing: false,
+        leftAt: 0,
         sharing: !!(a.sharing || b.sharing),
         name: newer.name || older.name
       };
     }
-    const newer = Number(b.joinedAt || 0) >= Number(a.joinedAt || 0) ? b : a;
+    const newer = bJoined >= aJoined ? b : a;
     const older = newer === b ? a : b;
     return { ...older, ...newer };
   }
@@ -1380,6 +1423,11 @@
       .filter(([id, p]) => id !== me && peerJoined(p))
       .map(([id]) => id)
       .sort();
+    const live = new Set(peers);
+    // Drop links to people who hung up so they vanish from the call UI.
+    [...(active.pcs?.keys() || [])].forEach((pid) => {
+      if (!live.has(pid)) closePc(pid);
+    });
     // Parallel pairwise sync — each peer has its own lock so polls can keep
     // applying answers on other links while one ICE gather is in flight.
     await Promise.all(peers.map((pid) => syncPeerLinkSafe(pid, room)));
@@ -1426,6 +1474,7 @@
         name: playerName(),
         joinedAt: Date.now(),
         left: false,
+        leftAt: 0,
         ringing: false
       };
       rooms[roomId] = {
@@ -1498,6 +1547,7 @@
         name: playerName(),
         joinedAt: Date.now(),
         left: false,
+        leftAt: 0,
         ringing: false
       };
       if (kind === "dm") {
@@ -1507,6 +1557,7 @@
             name: label.replace(/^Call · /, "") || "Friend",
             joinedAt: 0,
             left: false,
+            leftAt: 0,
             ringing: true
           };
         }
@@ -1576,7 +1627,15 @@
         const room = rooms[id];
         if (!room) return;
         const peers = { ...(room.peers || {}) };
-        if (peers[me]) peers[me] = { ...peers[me], ringing: false, left: true };
+        if (peers[me]) {
+          peers[me] = {
+            ...peers[me],
+            ringing: false,
+            left: true,
+            leftAt: Date.now(),
+            sharing: false
+          };
+        }
         rooms[id] = { ...room, peers, updatedAt: Date.now() };
       });
     }
@@ -1670,27 +1729,54 @@
   async function hangUp() {
     const me = playerId();
     const roomId = active?.roomId;
-    if (active?.pcs) {
-      [...active.pcs.keys()].forEach((pid) => {
-        pushSignal(pid, "hangup", {}).catch(() => {});
-        closePc(pid);
+    const peerIds = active?.pcs ? [...active.pcs.keys()] : [];
+    const leftAt = Date.now();
+
+    // Publish leave first so other clients drop us from the live peer list.
+    if (roomId && me) {
+      try {
+        if (cache.rooms?.[roomId]) {
+          const peers = { ...(cache.rooms[roomId].peers || {}) };
+          peers[me] = {
+            ...(peers[me] || { name: playerName(), joinedAt: 0 }),
+            left: true,
+            leftAt,
+            ringing: false,
+            sharing: false
+          };
+          cache.rooms[roomId] = {
+            ...cache.rooms[roomId],
+            peers,
+            updatedAt: leftAt
+          };
+        }
+      } catch {}
+      await mutateRooms((rooms) => {
+        const room = rooms[roomId];
+        if (!room) return;
+        const peers = { ...(room.peers || {}) };
+        peers[me] = {
+          ...(peers[me] || { name: playerName(), joinedAt: 0 }),
+          left: true,
+          leftAt,
+          ringing: false,
+          sharing: false
+        };
+        rooms[roomId] = { ...room, peers, updatedAt: leftAt };
       });
     }
+
+    peerIds.forEach((pid) => {
+      try {
+        closePc(pid);
+      } catch {}
+    });
     stopLocal();
     active = null;
     stopAllMeters();
     clearCallSession();
     document.getElementById("hub-call-videos")?.replaceChildren();
     callEl("hub-call-videos")?.replaceChildren();
-    if (roomId && me) {
-      await mutateRooms((rooms) => {
-        const room = rooms[roomId];
-        if (!room) return;
-        const peers = { ...(room.peers || {}) };
-        if (peers[me]) peers[me] = { ...peers[me], left: true, ringing: false, sharing: false };
-        rooms[roomId] = { ...room, peers, updatedAt: Date.now() };
-      });
-    }
     renderCallBar();
     syncCallButtons();
   }
