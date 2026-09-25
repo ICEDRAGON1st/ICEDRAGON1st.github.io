@@ -17,6 +17,8 @@
   const ICE_COINS_GRANT_ID = "fishing-ice-dragon-coins-1m-v1";
   const ICE_BEST_GRANT_ID = "fishing-ice-dragon-primefin-shiny-v1";
   const ICE_CHESTS_GRANT_ID = "fishing-ice-dragon-chests-20-23-v1";
+  /** One-time: remove a single duplicate Soul Twin from ICE_DRAGON's cooler. */
+  const ICE_SOUL_TWIN_TRIM_ID = "fishing-ice-dragon-soultwin-trim-v1";
   const ICE_LOCAL_WIPE_ID = "hub-fishing-ice-dragon-wipe-v1";
   const ICE_COINS_GRANT_AMOUNT = 1_000_000;
   const ICE_MONEY_CHEST_GRANT = 20;
@@ -17142,6 +17144,19 @@
       );
       localStorage.setItem(ICE_CHESTS_GRANT_ID, "done");
       saveState();
+    }
+    if (name === "ice_dragon" && localStorage.getItem(ICE_SOUL_TWIN_TRIM_ID) !== "done") {
+      const cooler = Array.isArray(state.cooler) ? state.cooler : [];
+      const twinIdx = cooler.findIndex((raw) => {
+        const id = typeof raw === "string" ? raw : raw?.id;
+        return id === SOUL_TWIN_ID || id === "soultwin";
+      });
+      if (twinIdx >= 0) {
+        cooler.splice(twinIdx, 1);
+        state.cooler = cooler;
+        saveState();
+      }
+      localStorage.setItem(ICE_SOUL_TWIN_TRIM_ID, "done");
     }
   } catch {}
   applyOffline();
