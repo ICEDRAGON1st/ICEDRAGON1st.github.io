@@ -1292,6 +1292,14 @@
     { id: "rod61", name: "Astral Crown Rod", desc: "+1.6s bite window", cost: 6e38, kind: "window", amount: 1.6 },
     { id: "rod62", name: "Eternal Gate Rod", desc: "+1.65s bite window", cost: 3e39, kind: "window", amount: 1.65 },
     { id: "rod63", name: "True Omega Rod", desc: "+1.7s bite window", cost: 1.5e40, kind: "window", amount: 1.7 },
+    { id: "rod64", name: "Sovereign Rod Ultima", desc: "+1.75s bite window", cost: 7.5e40, kind: "window", amount: 1.75 },
+    { id: "rod65", name: "Celestial Reach Rod", desc: "+1.8s bite window", cost: 3.8e41, kind: "window", amount: 1.8 },
+    { id: "rod66", name: "Primordial Spire Rod", desc: "+1.85s bite window", cost: 1.9e42, kind: "window", amount: 1.85 },
+    { id: "rod67", name: "Mythos Gate Rod", desc: "+1.9s bite window", cost: 9.5e42, kind: "window", amount: 1.9 },
+    { id: "rod68", name: "Continuum Rod", desc: "+1.95s bite window", cost: 4.8e43, kind: "window", amount: 1.95 },
+    { id: "rod69", name: "Beyond Apex Rod", desc: "+2s bite window", cost: 2.4e44, kind: "window", amount: 2 },
+    { id: "rod70", name: "Final Horizon Rod", desc: "+2.05s bite window", cost: 1.2e45, kind: "window", amount: 2.05 },
+    { id: "rod71", name: "True Ultimate Rod", desc: "+2.1s bite window", cost: 6e45, kind: "window", amount: 2.1 },
     { id: "bait10", name: "Echo Chum", desc: "Faster bites (−6% wait)", cost: 30, kind: "speed", amount: 0.06 },
     { id: "bait11", name: "Zenith Bait", desc: "Faster bites (−7% wait)", cost: 40, kind: "speed", amount: 0.07 },
     { id: "bait8", name: "Void Roe", desc: "Faster bites (−8% wait)", cost: 50, kind: "speed", amount: 0.08 },
@@ -1347,6 +1355,14 @@
     { id: "bait53", name: "Astral Crown Flies", desc: "Faster bites (−99.6% wait)", cost: 2.4e38, kind: "speed", amount: 0.996 },
     { id: "bait54", name: "Eternal Gate Bait", desc: "Faster bites (−99.65% wait)", cost: 1.2e39, kind: "speed", amount: 0.9965 },
     { id: "bait55", name: "True Omega Bait", desc: "Faster bites (−99.7% wait)", cost: 6e39, kind: "speed", amount: 0.997 },
+    { id: "bait56", name: "Sovereign Bait", desc: "Faster bites (−99.75% wait)", cost: 3e40, kind: "speed", amount: 0.9975 },
+    { id: "bait57", name: "Celestial Chum", desc: "Faster bites (−99.8% wait)", cost: 1.5e41, kind: "speed", amount: 0.998 },
+    { id: "bait58", name: "Primordial Roe", desc: "Faster bites (−99.85% wait)", cost: 7.5e41, kind: "speed", amount: 0.9985 },
+    { id: "bait59", name: "Mythos Flies", desc: "Faster bites (−99.88% wait)", cost: 3.8e42, kind: "speed", amount: 0.9988 },
+    { id: "bait60", name: "Continuum Bait", desc: "Faster bites (−99.9% wait)", cost: 1.9e43, kind: "speed", amount: 0.999 },
+    { id: "bait61", name: "Beyond Apex Chum", desc: "Faster bites (−99.92% wait)", cost: 9.5e43, kind: "speed", amount: 0.9992 },
+    { id: "bait62", name: "Final Horizon Roe", desc: "Faster bites (−99.94% wait)", cost: 4.8e44, kind: "speed", amount: 0.9994 },
+    { id: "bait63", name: "True Ultimate Bait", desc: "Faster bites (−99.95% wait)", cost: 2.4e45, kind: "speed", amount: 0.9995 },
     { id: "luck1", name: "Lucky Hook", desc: "+48 luck · better chest finds", cost: 120, kind: "luck", amount: 48 },
     { id: "luck2", name: "Tide Charm", desc: "+72 luck · better chest finds", cost: 700, kind: "luck", amount: 72 },
     { id: "luck3", name: "Pearl Lure", desc: "+96 luck · better chest finds", cost: 4000, kind: "luck", amount: 96 },
@@ -1409,6 +1425,14 @@
     { id: "luck60", name: "Astral Crown Charm", desc: "+19000000 luck · better chest finds", cost: 1.8e39, kind: "luck", amount: 19000000 },
     { id: "luck61", name: "Eternal Gate Hook", desc: "+24000000 luck · better chest finds", cost: 9e39, kind: "luck", amount: 24000000 },
     { id: "luck62", name: "True Omega Oracle", desc: "+30000000 luck · better chest finds", cost: 4.5e40, kind: "luck", amount: 30000000 },
+    { id: "luck63", name: "Sovereign Oracle", desc: "+38000000 luck · better chest finds", cost: 2.2e41, kind: "luck", amount: 38000000 },
+    { id: "luck64", name: "Celestial Charm", desc: "+48000000 luck · better chest finds", cost: 1.1e42, kind: "luck", amount: 48000000 },
+    { id: "luck65", name: "Primordial Hook", desc: "+60000000 luck · better chest finds", cost: 5.5e42, kind: "luck", amount: 60000000 },
+    { id: "luck66", name: "Mythos Coin", desc: "+75000000 luck · better chest finds", cost: 2.8e43, kind: "luck", amount: 75000000 },
+    { id: "luck67", name: "Continuum Lure", desc: "+95000000 luck · better chest finds", cost: 1.4e44, kind: "luck", amount: 95000000 },
+    { id: "luck68", name: "Beyond Apex Charm", desc: "+120000000 luck · better chest finds", cost: 7e44, kind: "luck", amount: 120000000 },
+    { id: "luck69", name: "Final Horizon Hook", desc: "+150000000 luck · better chest finds", cost: 3.5e45, kind: "luck", amount: 150000000 },
+    { id: "luck70", name: "True Ultimate Oracle", desc: "+190000000 luck · better chest finds", cost: 1.8e46, kind: "luck", amount: 190000000 },
     { id: "cooler1", name: "Ice Pack", desc: "+4 cooler slots", cost: 200, kind: "cooler", amount: 4 },
     { id: "cooler2", name: "Big Cooler", desc: "+6 cooler slots", cost: 1500, kind: "cooler", amount: 6 },
     { id: "cooler3", name: "Dock Freezer", desc: "+10 cooler slots", cost: 12000, kind: "cooler", amount: 10 },
@@ -1469,6 +1493,14 @@
     { id: "cooler58", name: "Astral Crown Locker", desc: "+750000 cooler slots", cost: 3e38, kind: "cooler", amount: 750000 },
     { id: "cooler59", name: "Eternal Gate Vault", desc: "+950000 cooler slots", cost: 1.5e39, kind: "cooler", amount: 950000 },
     { id: "cooler60", name: "True Omega Hold", desc: "+1200000 cooler slots", cost: 7.5e39, kind: "cooler", amount: 1200000 },
+    { id: "cooler61", name: "Sovereign Hold", desc: "+1500000 cooler slots", cost: 3.8e40, kind: "cooler", amount: 1500000 },
+    { id: "cooler62", name: "Celestial Vault", desc: "+1900000 cooler slots", cost: 1.9e41, kind: "cooler", amount: 1900000 },
+    { id: "cooler63", name: "Primordial Cage", desc: "+2400000 cooler slots", cost: 9.5e41, kind: "cooler", amount: 2400000 },
+    { id: "cooler64", name: "Mythos Locker", desc: "+3000000 cooler slots", cost: 4.8e42, kind: "cooler", amount: 3000000 },
+    { id: "cooler65", name: "Continuum Hold", desc: "+3800000 cooler slots", cost: 2.4e43, kind: "cooler", amount: 3800000 },
+    { id: "cooler66", name: "Beyond Apex Vault", desc: "+4800000 cooler slots", cost: 1.2e44, kind: "cooler", amount: 4800000 },
+    { id: "cooler67", name: "Final Horizon Cage", desc: "+6000000 cooler slots", cost: 6e44, kind: "cooler", amount: 6000000 },
+    { id: "cooler68", name: "True Ultimate Hold", desc: "+7500000 cooler slots", cost: 3e45, kind: "cooler", amount: 7500000 },
     { id: "sell1", name: "Merchant Scale", desc: "+5% sell value", cost: 500, kind: "value", amount: 0.05 },
     { id: "sell2", name: "Harbor Broker", desc: "+8% sell value", cost: 5000, kind: "value", amount: 0.08 },
     { id: "sell3", name: "Gold Ledger", desc: "+12% sell value", cost: 50000, kind: "value", amount: 0.12 },
@@ -1528,6 +1560,14 @@
     { id: "sell57", name: "Astral Crown Market", desc: "+490000% sell value", cost: 2.4e39, kind: "value", amount: 4900 },
     { id: "sell58", name: "Eternal Gate Exchange", desc: "+620000% sell value", cost: 1.2e40, kind: "value", amount: 6200 },
     { id: "sell59", name: "True Omega Floor", desc: "+780000% sell value", cost: 6e40, kind: "value", amount: 7800 },
+    { id: "sell60", name: "Sovereign Market", desc: "+980000% sell value", cost: 3e41, kind: "value", amount: 9800 },
+    { id: "sell61", name: "Celestial Exchange", desc: "+1250000% sell value", cost: 1.5e42, kind: "value", amount: 12500 },
+    { id: "sell62", name: "Primordial Floor", desc: "+1550000% sell value", cost: 7.5e42, kind: "value", amount: 15500 },
+    { id: "sell63", name: "Mythos Pit", desc: "+1950000% sell value", cost: 3.8e43, kind: "value", amount: 19500 },
+    { id: "sell64", name: "Continuum Market", desc: "+2450000% sell value", cost: 1.9e44, kind: "value", amount: 24500 },
+    { id: "sell65", name: "Beyond Apex Exchange", desc: "+3100000% sell value", cost: 9.5e44, kind: "value", amount: 31000 },
+    { id: "sell66", name: "Final Horizon Floor", desc: "+3900000% sell value", cost: 4.8e45, kind: "value", amount: 39000 },
+    { id: "sell67", name: "True Ultimate Market", desc: "+4900000% sell value", cost: 2.4e46, kind: "value", amount: 49000 },
     { id: "net1", name: "Hand Net", desc: "6% chance for a second fish", cost: 2500, kind: "multi", amount: 0.06 },
     { id: "net2", name: "Drag Net", desc: "10% chance for a second fish", cost: 28000, kind: "multi", amount: 0.1 },
     { id: "net3", name: "Trawl Mesh", desc: "14% chance for a second fish", cost: 220000, kind: "multi", amount: 0.14 },
@@ -1574,6 +1614,14 @@
     { id: "net44", name: "Dominion Net", desc: "99.92% chance for a second fish", cost: 5.5e31, kind: "multi", amount: 0.9992 },
     { id: "net45", name: "Spectral Snare", desc: "99.94% chance for a second fish", cost: 2.8e32, kind: "multi", amount: 0.9994 },
     { id: "net46", name: "Omega Origin Net", desc: "99.95% chance for a second fish", cost: 1.4e33, kind: "multi", amount: 0.9995 },
+    { id: "net47", name: "Sovereign Net", desc: "99.96% chance for a second fish", cost: 7e33, kind: "multi", amount: 0.9996 },
+    { id: "net48", name: "Celestial Snare", desc: "99.97% chance for a second fish", cost: 3.5e34, kind: "multi", amount: 0.9997 },
+    { id: "net49", name: "Primordial Mesh", desc: "99.98% chance for a second fish", cost: 1.8e35, kind: "multi", amount: 0.9998 },
+    { id: "net50", name: "Mythos Net", desc: "99.985% chance for a second fish", cost: 9e35, kind: "multi", amount: 0.99985 },
+    { id: "net51", name: "Continuum Snare", desc: "99.99% chance for a second fish", cost: 4.5e36, kind: "multi", amount: 0.9999 },
+    { id: "net52", name: "Beyond Apex Net", desc: "99.992% chance for a second fish", cost: 2.2e37, kind: "multi", amount: 0.99992 },
+    { id: "net53", name: "Final Horizon Mesh", desc: "99.994% chance for a second fish", cost: 1.1e38, kind: "multi", amount: 0.99994 },
+    { id: "net54", name: "True Ultimate Net", desc: "99.995% chance for a second fish", cost: 5.5e38, kind: "multi", amount: 0.99995 },
     { id: "triple1", name: "Twin Hook", desc: "4% chance for a third fish (needs 2nd catch)", cost: 15000, kind: "triple", amount: 0.04 },
     { id: "triple2", name: "Trident Line", desc: "7% chance for a third fish (needs 2nd catch)", cost: 120000, kind: "triple", amount: 0.07 },
     { id: "triple3", name: "Triple Snare", desc: "10% chance for a third fish (needs 2nd catch)", cost: 900000, kind: "triple", amount: 0.1 },
@@ -1617,6 +1665,14 @@
     { id: "triple41", name: "Dominion Triad", desc: "99.7% chance for a third fish (needs 2nd catch)", cost: 7.5e31, kind: "triple", amount: 0.997 },
     { id: "triple42", name: "Spectral Trident", desc: "99.8% chance for a third fish (needs 2nd catch)", cost: 3.8e32, kind: "triple", amount: 0.998 },
     { id: "triple43", name: "Omega Origin Triad", desc: "99.85% chance for a third fish (needs 2nd catch)", cost: 1.9e33, kind: "triple", amount: 0.9985 },
+    { id: "triple44", name: "Sovereign Triad", desc: "99.88% chance for a third fish (needs 2nd catch)", cost: 9.5e33, kind: "triple", amount: 0.9988 },
+    { id: "triple45", name: "Celestial Trident", desc: "99.9% chance for a third fish (needs 2nd catch)", cost: 4.8e34, kind: "triple", amount: 0.999 },
+    { id: "triple46", name: "Primordial Triad", desc: "99.92% chance for a third fish (needs 2nd catch)", cost: 2.4e35, kind: "triple", amount: 0.9992 },
+    { id: "triple47", name: "Mythos Trident", desc: "99.94% chance for a third fish (needs 2nd catch)", cost: 1.2e36, kind: "triple", amount: 0.9994 },
+    { id: "triple48", name: "Continuum Triad", desc: "99.95% chance for a third fish (needs 2nd catch)", cost: 6e36, kind: "triple", amount: 0.9995 },
+    { id: "triple49", name: "Beyond Apex Trident", desc: "99.96% chance for a third fish (needs 2nd catch)", cost: 3e37, kind: "triple", amount: 0.9996 },
+    { id: "triple50", name: "Final Horizon Triad", desc: "99.97% chance for a third fish (needs 2nd catch)", cost: 1.5e38, kind: "triple", amount: 0.9997 },
+    { id: "triple51", name: "True Ultimate Trident", desc: "99.98% chance for a third fish (needs 2nd catch)", cost: 7.5e38, kind: "triple", amount: 0.9998 },
     { id: "perfect1", name: "Steady Hands", desc: "+10% sell on perfect reels", cost: 1500, kind: "perfect", amount: 0.1 },
     { id: "perfect2", name: "Keen Eye", desc: "+15% sell on perfect reels", cost: 18000, kind: "perfect", amount: 0.15 },
     { id: "perfect3", name: "Timing Belt", desc: "+20% sell on perfect reels", cost: 150000, kind: "perfect", amount: 0.2 },
@@ -1672,6 +1728,14 @@
     { id: "perfect53", name: "Astral Crown Pulse", desc: "+195000% sell on perfect reels", cost: 4.8e38, kind: "perfect", amount: 1950 },
     { id: "perfect54", name: "Eternal Gate Timing", desc: "+245000% sell on perfect reels", cost: 2.4e39, kind: "perfect", amount: 2450 },
     { id: "perfect55", name: "True Omega Focus", desc: "+310000% sell on perfect reels", cost: 1.2e40, kind: "perfect", amount: 3100 },
+    { id: "perfect56", name: "Sovereign Focus", desc: "+390000% sell on perfect reels", cost: 6e40, kind: "perfect", amount: 3900 },
+    { id: "perfect57", name: "Celestial Timing", desc: "+490000% sell on perfect reels", cost: 3e41, kind: "perfect", amount: 4900 },
+    { id: "perfect58", name: "Primordial Pulse", desc: "+620000% sell on perfect reels", cost: 1.5e42, kind: "perfect", amount: 6200 },
+    { id: "perfect59", name: "Mythos Focus", desc: "+780000% sell on perfect reels", cost: 7.5e42, kind: "perfect", amount: 7800 },
+    { id: "perfect60", name: "Continuum Timing", desc: "+980000% sell on perfect reels", cost: 3.8e43, kind: "perfect", amount: 9800 },
+    { id: "perfect61", name: "Beyond Apex Focus", desc: "+1250000% sell on perfect reels", cost: 1.9e44, kind: "perfect", amount: 12500 },
+    { id: "perfect62", name: "Final Horizon Pulse", desc: "+1550000% sell on perfect reels", cost: 9.5e44, kind: "perfect", amount: 15500 },
+    { id: "perfect63", name: "True Ultimate Focus", desc: "+1950000% sell on perfect reels", cost: 4.8e45, kind: "perfect", amount: 19500 },
     // Looks — boost shiny + silver/gold/diamond/rainbow odds (stacks)
     { id: "looks1", name: "Gleam Hook", desc: "+20% shiny & variant odds", cost: 800, kind: "looks", amount: 0.2 },
     { id: "looks2", name: "Polish Lure", desc: "+30% shiny & variant odds", cost: 5000, kind: "looks", amount: 0.3 },
@@ -1696,6 +1760,13 @@
     { id: "looks21", name: "Sovereign Shine", desc: "+1500% shiny & variant odds", cost: 2e19, kind: "looks", amount: 15 },
     { id: "looks22", name: "Primordial Polish", desc: "+1800% shiny & variant odds", cost: 1.5e20, kind: "looks", amount: 18 },
     { id: "looks23", name: "Ultimate Gleam", desc: "+2200% shiny & variant odds", cost: 1e21, kind: "looks", amount: 22 },
+    { id: "looks24", name: "Mythos Gleam", desc: "+2700% shiny & variant odds", cost: 7e21, kind: "looks", amount: 27 },
+    { id: "looks25", name: "Continuum Polish", desc: "+3300% shiny & variant odds", cost: 5e22, kind: "looks", amount: 33 },
+    { id: "looks26", name: "Beyond Apex Sheen", desc: "+4000% shiny & variant odds", cost: 3.5e23, kind: "looks", amount: 40 },
+    { id: "looks27", name: "Final Horizon Gleam", desc: "+5000% shiny & variant odds", cost: 2.5e24, kind: "looks", amount: 50 },
+    { id: "looks28", name: "True Ultimate Shine", desc: "+6200% shiny & variant odds", cost: 1.8e25, kind: "looks", amount: 62 },
+    { id: "looks29", name: "Empyrean Polish", desc: "+7800% shiny & variant odds", cost: 1.2e26, kind: "looks", amount: 78 },
+    { id: "looks30", name: "Absolute Gleam Ultima", desc: "+10000% shiny & variant odds", cost: 8e26, kind: "looks", amount: 100 },
     // Fourth catch — needs a third fish on the same cast
     { id: "quad1", name: "Quad Hook", desc: "5% chance for a 4th fish (needs 3rd)", cost: 80000, kind: "quad", amount: 0.05 },
     { id: "quad2", name: "Quad Line", desc: "8% chance for a 4th fish (needs 3rd)", cost: 600000, kind: "quad", amount: 0.08 },
@@ -1717,6 +1788,13 @@
     { id: "quad18", name: "Apex Quad Ultima", desc: "88% chance for a 4th fish (needs 3rd)", cost: 3.5e19, kind: "quad", amount: 0.88 },
     { id: "quad19", name: "Celestial Quad", desc: "91% chance for a 4th fish (needs 3rd)", cost: 2.5e20, kind: "quad", amount: 0.91 },
     { id: "quad20", name: "Ultimate Quad", desc: "94% chance for a 4th fish (needs 3rd)", cost: 1.8e21, kind: "quad", amount: 0.94 },
+    { id: "quad21", name: "Mythos Quad", desc: "95% chance for a 4th fish (needs 3rd)", cost: 1.2e22, kind: "quad", amount: 0.95 },
+    { id: "quad22", name: "Continuum Quad", desc: "96% chance for a 4th fish (needs 3rd)", cost: 8e22, kind: "quad", amount: 0.96 },
+    { id: "quad23", name: "Beyond Apex Quad", desc: "96.5% chance for a 4th fish (needs 3rd)", cost: 5e23, kind: "quad", amount: 0.965 },
+    { id: "quad24", name: "Final Horizon Quad", desc: "97% chance for a 4th fish (needs 3rd)", cost: 3.5e24, kind: "quad", amount: 0.97 },
+    { id: "quad25", name: "True Ultimate Quad", desc: "97.5% chance for a 4th fish (needs 3rd)", cost: 2.2e25, kind: "quad", amount: 0.975 },
+    { id: "quad26", name: "Empyrean Quad", desc: "98% chance for a 4th fish (needs 3rd)", cost: 1.5e26, kind: "quad", amount: 0.98 },
+    { id: "quad27", name: "Absolute Quad Ultima", desc: "98.5% chance for a 4th fish (needs 3rd)", cost: 1e27, kind: "quad", amount: 0.985 },
     // Chest finds — raise Coin/Luck chest odds
     { id: "chest1", name: "Beach Comb", desc: "+25% chest find odds", cost: 1200, kind: "chest", amount: 0.25 },
     { id: "chest2", name: "Tide Scoop", desc: "+40% chest find odds", cost: 9000, kind: "chest", amount: 0.4 },
@@ -1738,6 +1816,13 @@
     { id: "chest18", name: "Apex Salvage", desc: "+2300% chest find odds", cost: 2e17, kind: "chest", amount: 23 },
     { id: "chest19", name: "Celestial Finder", desc: "+3000% chest find odds", cost: 1.5e18, kind: "chest", amount: 30 },
     { id: "chest20", name: "Ultimate Hoard", desc: "+4000% chest find odds", cost: 1e19, kind: "chest", amount: 40 },
+    { id: "chest21", name: "Mythos Finder", desc: "+5000% chest find odds", cost: 7e19, kind: "chest", amount: 50 },
+    { id: "chest22", name: "Continuum Salvage", desc: "+6200% chest find odds", cost: 5e20, kind: "chest", amount: 62 },
+    { id: "chest23", name: "Beyond Apex Cache", desc: "+7800% chest find odds", cost: 3.5e21, kind: "chest", amount: 78 },
+    { id: "chest24", name: "Final Horizon Hoard", desc: "+10000% chest find odds", cost: 2.5e22, kind: "chest", amount: 100 },
+    { id: "chest25", name: "True Ultimate Diviner", desc: "+12500% chest find odds", cost: 1.8e23, kind: "chest", amount: 125 },
+    { id: "chest26", name: "Empyrean Magnet", desc: "+15500% chest find odds", cost: 1.2e24, kind: "chest", amount: 155 },
+    { id: "chest27", name: "Absolute Finder Ultima", desc: "+19500% chest find odds", cost: 8e24, kind: "chest", amount: 195 },
     // Combo hold — longer perfect-combo timer
     { id: "combo1", name: "Rhythm Band", desc: "+5s combo hold", cost: 2500, kind: "combo", amount: 5 },
     { id: "combo2", name: "Pulse Bracelet", desc: "+8s combo hold", cost: 18000, kind: "combo", amount: 8 },
@@ -1759,6 +1844,13 @@
     { id: "combo18", name: "Celestial Beat", desc: "+400s combo hold", cost: 4e17, kind: "combo", amount: 400 },
     { id: "combo19", name: "Primordial Flow", desc: "+500s combo hold", cost: 3e18, kind: "combo", amount: 500 },
     { id: "combo20", name: "Ultimate Cadence", desc: "+650s combo hold", cost: 2e19, kind: "combo", amount: 650 },
+    { id: "combo21", name: "Mythos Cadence", desc: "+800s combo hold", cost: 1.5e20, kind: "combo", amount: 800 },
+    { id: "combo22", name: "Continuum Rhythm", desc: "+1000s combo hold", cost: 1e21, kind: "combo", amount: 1000 },
+    { id: "combo23", name: "Beyond Apex Tempo", desc: "+1250s combo hold", cost: 7e21, kind: "combo", amount: 1250 },
+    { id: "combo24", name: "Final Horizon Beat", desc: "+1550s combo hold", cost: 5e22, kind: "combo", amount: 1550 },
+    { id: "combo25", name: "True Ultimate Flow", desc: "+1950s combo hold", cost: 3.5e23, kind: "combo", amount: 1950 },
+    { id: "combo26", name: "Empyrean Metronome", desc: "+2450s combo hold", cost: 2.5e24, kind: "combo", amount: 2450 },
+    { id: "combo27", name: "Absolute Cadence Ultima", desc: "+3100s combo hold", cost: 1.8e25, kind: "combo", amount: 3100 },
     // Fifth catch — needs a fourth fish on the same cast
     { id: "penta1", name: "Penta Hook", desc: "4% chance for a 5th fish (needs 4th)", cost: 250000, kind: "penta", amount: 0.04 },
     { id: "penta2", name: "Penta Line", desc: "7% chance for a 5th fish (needs 4th)", cost: 2e6, kind: "penta", amount: 0.07 },
@@ -1779,7 +1871,14 @@
     { id: "penta17", name: "Apex Penta Ultima", desc: "85% chance for a 5th fish (needs 4th)", cost: 1.5e19, kind: "penta", amount: 0.85 },
     { id: "penta18", name: "Celestial Penta", desc: "89% chance for a 5th fish (needs 4th)", cost: 1e20, kind: "penta", amount: 0.89 },
     { id: "penta19", name: "Primordial Penta", desc: "92% chance for a 5th fish (needs 4th)", cost: 7e20, kind: "penta", amount: 0.92 },
-    { id: "penta20", name: "Ultimate Penta", desc: "95% chance for a 5th fish (needs 4th)", cost: 5e21, kind: "penta", amount: 0.95 }
+    { id: "penta20", name: "Ultimate Penta", desc: "95% chance for a 5th fish (needs 4th)", cost: 5e21, kind: "penta", amount: 0.95 },
+    { id: "penta21", name: "Mythos Penta", desc: "96% chance for a 5th fish (needs 4th)", cost: 3.5e22, kind: "penta", amount: 0.96 },
+    { id: "penta22", name: "Continuum Penta", desc: "96.5% chance for a 5th fish (needs 4th)", cost: 2.5e23, kind: "penta", amount: 0.965 },
+    { id: "penta23", name: "Beyond Apex Penta", desc: "97% chance for a 5th fish (needs 4th)", cost: 1.8e24, kind: "penta", amount: 0.97 },
+    { id: "penta24", name: "Final Horizon Penta", desc: "97.5% chance for a 5th fish (needs 4th)", cost: 1.2e25, kind: "penta", amount: 0.975 },
+    { id: "penta25", name: "True Ultimate Penta", desc: "98% chance for a 5th fish (needs 4th)", cost: 8e25, kind: "penta", amount: 0.98 },
+    { id: "penta26", name: "Empyrean Penta", desc: "98.5% chance for a 5th fish (needs 4th)", cost: 5.5e26, kind: "penta", amount: 0.985 },
+    { id: "penta27", name: "Absolute Penta Ultima", desc: "99% chance for a 5th fish (needs 4th)", cost: 4e27, kind: "penta", amount: 0.99 }
   ];
 
   /**
@@ -2421,12 +2520,12 @@
 
   function biteWindow() {
     const bonus = ownedGear("window").reduce((s, g) => s + g.amount, 0);
-    return Math.min(4.0, 0.45 + bonus);
+    return Math.min(5.5, 0.45 + bonus);
   }
 
   function waitScale() {
     const cut = equippedSpeedGear()?.amount || 0;
-    return Math.max(0.1, 1 - cut);
+    return Math.max(0.002, 1 - cut);
   }
 
   function luckBonus() {
@@ -2883,7 +2982,7 @@
   /** Base 45s + combo gear seconds (capped). */
   function comboHoldMs() {
     const extraSec = ownedGear("combo").reduce((s, g) => s + (Number(g.amount) || 0), 0);
-    return 45_000 + Math.min(900_000, Math.max(0, extraSec) * 1000);
+    return 45_000 + Math.min(2_500_000, Math.max(0, extraSec) * 1000);
   }
 
   function communityWeekKey(now = Date.now()) {
@@ -10404,31 +10503,31 @@
 
   function multiCatchChance() {
     return Math.min(
-      0.98,
+      0.9995,
       ownedGear("multi").reduce((s, g) => s + g.amount, 0) + comboMultiBonus()
     );
   }
 
   function tripleCatchChance() {
-    return Math.min(0.9, ownedGear("triple").reduce((s, g) => s + g.amount, 0));
+    return Math.min(0.99, ownedGear("triple").reduce((s, g) => s + g.amount, 0));
   }
 
   function quadCatchChance() {
-    return Math.min(0.9, ownedGear("quad").reduce((s, g) => s + (Number(g.amount) || 0), 0));
+    return Math.min(0.99, ownedGear("quad").reduce((s, g) => s + (Number(g.amount) || 0), 0));
   }
 
   function pentaCatchChance() {
-    return Math.min(0.9, ownedGear("penta").reduce((s, g) => s + (Number(g.amount) || 0), 0));
+    return Math.min(0.99, ownedGear("penta").reduce((s, g) => s + (Number(g.amount) || 0), 0));
   }
 
   /** Relative boost to shiny + primary variant odds (stacks, soft-capped). */
   function looksBonus() {
-    return Math.min(40, ownedGear("looks").reduce((s, g) => s + (Number(g.amount) || 0), 0));
+    return Math.min(120, ownedGear("looks").reduce((s, g) => s + (Number(g.amount) || 0), 0));
   }
 
   /** Relative boost to chest find odds (stacks, soft-capped). */
   function chestFindBonus() {
-    return Math.min(50, ownedGear("chest").reduce((s, g) => s + (Number(g.amount) || 0), 0));
+    return Math.min(150, ownedGear("chest").reduce((s, g) => s + (Number(g.amount) || 0), 0));
   }
 
   function boats() {
@@ -15369,57 +15468,57 @@
       if (amt <= cur + 1e-9) {
         return "Weaker than equipped bait — skip";
       }
-      const beforeWait = Math.round((1 - cur) * 100);
-      const afterWait = Math.round(Math.max(0.1, 1 - amt) * 100);
+      const beforeWait = Math.round((1 - cur) * 1000) / 10;
+      const afterWait = Math.round(Math.max(0.002, 1 - amt) * 1000) / 10;
       if (beforeWait === afterWait) return "At wait cap — little/no gain";
       return `Wait ${beforeWait}% → ${afterWait}% of base`;
     }
     const sum = shopSmartOwnedSum(kind);
     if (kind === "window") {
-      const before = Math.min(4, 0.45 + sum);
-      const after = Math.min(4, 0.45 + sum + amt);
-      if (after <= before + 1e-9) return "Bite window at 4.0s cap";
+      const before = Math.min(5.5, 0.45 + sum);
+      const after = Math.min(5.5, 0.45 + sum + amt);
+      if (after <= before + 1e-9) return "Bite window at 5.5s cap";
       return `Window ${before.toFixed(2)}s → ${after.toFixed(2)}s`;
     }
     if (kind === "multi") {
-      const before = Math.min(0.98, sum);
-      const after = Math.min(0.98, sum + amt);
-      if (after <= before + 1e-9) return "Second-catch at 98% cap";
-      return `2nd catch ${(before * 100).toFixed(0)}% → ${(after * 100).toFixed(0)}%`;
+      const before = Math.min(0.9995, sum);
+      const after = Math.min(0.9995, sum + amt);
+      if (after <= before + 1e-9) return "Second-catch at 99.95% cap";
+      return `2nd catch ${(before * 100).toFixed(2)}% → ${(after * 100).toFixed(2)}%`;
     }
     if (kind === "triple") {
-      const before = Math.min(0.9, sum);
-      const after = Math.min(0.9, sum + amt);
-      if (after <= before + 1e-9) return "Third-catch at 90% cap";
-      return `3rd catch ${(before * 100).toFixed(0)}% → ${(after * 100).toFixed(0)}%`;
+      const before = Math.min(0.99, sum);
+      const after = Math.min(0.99, sum + amt);
+      if (after <= before + 1e-9) return "Third-catch at 99% cap";
+      return `3rd catch ${(before * 100).toFixed(1)}% → ${(after * 100).toFixed(1)}%`;
     }
     if (kind === "quad") {
-      const before = Math.min(0.9, sum);
-      const after = Math.min(0.9, sum + amt);
-      if (after <= before + 1e-9) return "Fourth-catch at 90% cap";
-      return `4th catch ${(before * 100).toFixed(0)}% → ${(after * 100).toFixed(0)}%`;
+      const before = Math.min(0.99, sum);
+      const after = Math.min(0.99, sum + amt);
+      if (after <= before + 1e-9) return "Fourth-catch at 99% cap";
+      return `4th catch ${(before * 100).toFixed(1)}% → ${(after * 100).toFixed(1)}%`;
     }
     if (kind === "penta") {
-      const before = Math.min(0.9, sum);
-      const after = Math.min(0.9, sum + amt);
-      if (after <= before + 1e-9) return "Fifth-catch at 90% cap";
-      return `5th catch ${(before * 100).toFixed(0)}% → ${(after * 100).toFixed(0)}%`;
+      const before = Math.min(0.99, sum);
+      const after = Math.min(0.99, sum + amt);
+      if (after <= before + 1e-9) return "Fifth-catch at 99% cap";
+      return `5th catch ${(before * 100).toFixed(1)}% → ${(after * 100).toFixed(1)}%`;
     }
     if (kind === "looks") {
-      const before = Math.min(40, sum);
-      const after = Math.min(40, sum + amt);
+      const before = Math.min(120, sum);
+      const after = Math.min(120, sum + amt);
       if (after <= before + 1e-9) return "Looks boost at cap";
       return `Looks +${(before * 100).toFixed(0)}% → +${(after * 100).toFixed(0)}%`;
     }
     if (kind === "chest") {
-      const before = Math.min(50, sum);
-      const after = Math.min(50, sum + amt);
+      const before = Math.min(150, sum);
+      const after = Math.min(150, sum + amt);
       if (after <= before + 1e-9) return "Chest find boost at cap";
       return `Chests +${(before * 100).toFixed(0)}% → +${(after * 100).toFixed(0)}%`;
     }
     if (kind === "combo") {
-      const before = Math.min(900, sum);
-      const after = Math.min(900, sum + amt);
+      const before = Math.min(2500, sum);
+      const after = Math.min(2500, sum + amt);
       if (after <= before + 1e-9) return "Combo hold at cap";
       return `Combo ${45 + before}s → ${45 + after}s`;
     }
@@ -15456,32 +15555,32 @@
     }
     if (!n) return "None owned yet";
     if (kind === "window") {
-      const w = Math.min(4, 0.45 + sum);
-      return `${n} owned · window ${w.toFixed(2)}s / 4.0s`;
+      const w = Math.min(5.5, 0.45 + sum);
+      return `${n} owned · window ${w.toFixed(2)}s / 5.5s`;
     }
     if (kind === "cooler") return `${n} owned · ${COOLER_BASE + sum} slots`;
     if (kind === "value") return `${n} owned · sell ${formatPctBonus(sum)}`;
     if (kind === "perfect") return `${n} owned · perfect ${formatPctBonus(sum)}`;
     if (kind === "multi") {
-      return `${n} owned · 2nd ${Math.min(98, Math.round(sum * 100))}% / 98%`;
+      return `${n} owned · 2nd ${Math.min(99.95, Math.round(sum * 10000) / 100)}% / 99.95%`;
     }
     if (kind === "triple") {
-      return `${n} owned · 3rd ${Math.min(90, Math.round(sum * 100))}% / 90%`;
+      return `${n} owned · 3rd ${Math.min(99, Math.round(sum * 1000) / 10)}% / 99%`;
     }
     if (kind === "quad") {
-      return `${n} owned · 4th ${Math.min(90, Math.round(sum * 100))}% / 90%`;
+      return `${n} owned · 4th ${Math.min(99, Math.round(sum * 1000) / 10)}% / 99%`;
     }
     if (kind === "penta") {
-      return `${n} owned · 5th ${Math.min(90, Math.round(sum * 100))}% / 90%`;
+      return `${n} owned · 5th ${Math.min(99, Math.round(sum * 1000) / 10)}% / 99%`;
     }
     if (kind === "looks") {
-      return `${n} owned · looks +${Math.min(4000, Math.round(sum * 100))}%`;
+      return `${n} owned · looks +${Math.min(12000, Math.round(sum * 100))}%`;
     }
     if (kind === "chest") {
-      return `${n} owned · chests +${Math.min(5000, Math.round(sum * 100))}%`;
+      return `${n} owned · chests +${Math.min(15000, Math.round(sum * 100))}%`;
     }
     if (kind === "combo") {
-      return `${n} owned · combo ${45 + Math.min(900, Math.round(sum))}s`;
+      return `${n} owned · combo ${45 + Math.min(2500, Math.round(sum))}s`;
     }
     return `${n} owned`;
   }
