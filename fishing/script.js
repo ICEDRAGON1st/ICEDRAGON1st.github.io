@@ -2114,7 +2114,10 @@
   const multiLabelEl = document.getElementById("multi-label");
   const tripleLabelEl = document.getElementById("triple-label");
   const quadLabelEl = document.getElementById("quad-label");
+  const pentaLabelEl = document.getElementById("penta-label");
   const looksLabelEl = document.getElementById("looks-label");
+  const chestLabelEl = document.getElementById("chest-label");
+  const comboHoldLabelEl = document.getElementById("combo-hold-label");
   const perfectLabelEl = document.getElementById("perfect-label");
   const coolerStatLabelEl = document.getElementById("cooler-stat-label");
   const boatsLabelEl = document.getElementById("boats-label");
