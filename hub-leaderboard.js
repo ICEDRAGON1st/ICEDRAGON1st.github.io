@@ -905,23 +905,23 @@
       if (at <= fishingFullCut) delete fishingBoard[key];
     });
 
-    // Precision-safe catch scores: one-time clear, then only scrub broken ~1e30 packs.
-    const fishingSafeScoreKey = "fishing:catch-score-safe-v5";
+    // Precision-safe catch scores: never full-wipe again — only drop broken ~1e30 packs.
+    const fishingSafeScoreKey = "fishing:catch-score-safe-v6";
     if (!resets[fishingSafeScoreKey]) {
       resets[fishingSafeScoreKey] = Date.now();
-      Object.keys(fishingBoard).forEach((key) => {
-        delete fishingBoard[key];
-      });
-    } else {
-      Object.keys(fishingBoard).forEach((key) => {
-        const score = Number(fishingBoard[key]?.score) || 0;
-        if (score > 1e15) delete fishingBoard[key];
-      });
     }
+    // Keep v5 stamped so older tabs don't re-clear the whole board.
+    if (!resets["fishing:catch-score-safe-v5"]) {
+      resets["fishing:catch-score-safe-v5"] = resets[fishingSafeScoreKey];
+    }
+    Object.keys(fishingBoard).forEach((key) => {
+      const score = Number(fishingBoard[key]?.score) || 0;
+      if (score > 1e15) delete fishingBoard[key];
+    });
     // Drop old Abyss King floor seeds so they can't reappear after this wipe.
     delete resets["fishing:ice_dragon-abyss-king-v1"];
     delete resets["fishing:ice_dragon-abyss-king-v2"];
-    // Stop the v4 future-cut wipe from deleting every new score until tonight.
+    // Remove the future-cut wipe that deleted every new score until 23:59 UTC.
     delete resets["fishing:catch-score-safe-v4"];
     delete resets["fishing:catch-score-safe-v3"];
 
@@ -1336,7 +1336,7 @@
       const key = nameKey(name);
       const games = { ...(cache.games || {}) };
       const board = { ...(games[gameId] || {}) };
-      const prev = normalizeEntry(board[key], lowerBetter);
+      let prev = normalizeEntry(board[key], lowerBetter);
       let scoreVal = n;
       let bornAt = Number(prev?.bornAt) || 0;
       if (gameId === "online-time") {
@@ -1353,13 +1353,15 @@
       // Broken pre-v4 Apex packs (~1e30) must not block safe resubmits.
       if (gameId === "fishing" && prev && Number(prev.score) > 1e15) {
         delete board[key];
-      } else if (prev && !isBetter(scoreVal, prev.score, lowerBetter)) {
+        prev = null;
+      }
+      if (prev && !opts.force && !isBetter(scoreVal, prev.score, lowerBetter)) {
         const richer =
           gameId === "fishing" &&
           fishingMeta &&
           fishingMetaRicher(fishingMeta, prev.fishing) &&
           scoreVal >= Number(prev.score || 0);
-        if (!richer && !opts.force) return false;
+        if (!richer) return false;
       }
       const me = getPlayerId();
       // Drop old aliases for this same browser so renames don't leave duplicates.
@@ -1383,11 +1385,13 @@
         games,
         resets: { ...(cache.resets || {}) }
       });
+      cache = next;
       saveLocal(next);
       try {
         const remote = await fetchRemote();
         // Prefer freshest local (includes Time Online ticks during the fetch).
         const merged = mergeBoards(loadLocal(), remote);
+        cache = merged;
         saveLocal(merged);
         await pushRemote(merged);
       } catch {
