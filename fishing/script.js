@@ -13393,6 +13393,10 @@
     if (rarity === "radiant") return 0.00065 + t * 0.062;
     if (rarity === "dusk") return 0.0005 + t * 0.056;
     if (rarity === "apex") return 0.00038 + t * 0.05;
+    if (rarity === "sovereign") return 0.00028 + t * 0.045;
+    if (rarity === "celestial") return 0.00021 + t * 0.04;
+    if (rarity === "primordial") return 0.00015 + t * 0.036;
+    if (rarity === "ultimate") return 0.00011 + t * 0.032;
     return 1;
   }
 
@@ -13449,6 +13453,10 @@
     if (fish.rarity === "radiant") w *= (0.08 + t * 0.28) * (forBoat ? 0.08 : 1);
     if (fish.rarity === "dusk") w *= (0.07 + t * 0.26) * (forBoat ? 0.07 : 1);
     if (fish.rarity === "apex") w *= (0.06 + t * 0.24) * (forBoat ? 0.06 : 1);
+    if (fish.rarity === "sovereign") w *= (0.05 + t * 0.22) * (forBoat ? 0.05 : 1);
+    if (fish.rarity === "celestial") w *= (0.042 + t * 0.2) * (forBoat ? 0.042 : 1);
+    if (fish.rarity === "primordial") w *= (0.035 + t * 0.18) * (forBoat ? 0.035 : 1);
+    if (fish.rarity === "ultimate") w *= (0.028 + t * 0.16) * (forBoat ? 0.028 : 1);
     w *= valueRarityScale(fish);
     w *= luckWeightMult(fish.rarity, luck);
     // Weather / tide: storm & high tide lift high tiers; fog / calm lean common
@@ -13716,6 +13724,10 @@
       "radiant",
       "dusk",
       "apex",
+      "sovereign",
+      "celestial",
+      "primordial",
+      "ultimate",
       "exclusive",
       "treasure"
     );
