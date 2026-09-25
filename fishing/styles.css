@@ -2659,7 +2659,7 @@ body[data-spot="mythforge"] .water-mist {
 }
 
 .cast-btn.phase-result.is-catch .catch-sil {
-  animation: fish-breach 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  animation: fish-breach var(--catch-sil-dur, 0.7s) cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
 }
 
 .cast-btn.phase-result.is-catch.rarity-legendary .catch-sil,
