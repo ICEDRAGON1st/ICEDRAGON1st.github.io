@@ -20,7 +20,7 @@
   /** One-time: remove a single duplicate Soul Twin from ICE_DRAGON's cooler. */
   const ICE_SOUL_TWIN_TRIM_ID = "fishing-ice-dragon-soultwin-trim-v2";
   /** One-time: migrate off precision-broken catch scores (Apex+ values). */
-  const CATCH_SCORE_V2_ID = "fishing-catch-score-safe-v3";
+  const CATCH_SCORE_V2_ID = "fishing-catch-score-safe-v4";
   const ICE_LOCAL_WIPE_ID = "hub-fishing-ice-dragon-wipe-v1";
   const ICE_COINS_GRANT_AMOUNT = 1_000_000;
   const ICE_MONEY_CHEST_GRANT = 20;

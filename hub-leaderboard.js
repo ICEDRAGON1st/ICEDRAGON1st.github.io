@@ -875,15 +875,17 @@
     });
 
     // Precision-safe catch scores (Apex+ values); wipe old collapsed scores.
-    const fishingSafeScoreKey = "fishing:catch-score-safe-v3";
-    const FISHING_SAFE_SCORE_AT = Date.UTC(2026, 8, 25, 13, 40, 0); // 2026-09-25 13:40 UTC
+    const fishingSafeScoreKey = "fishing:catch-score-safe-v4";
+    const FISHING_SAFE_SCORE_AT = Date.UTC(2026, 8, 25, 23, 59, 0); // 2026-09-25 23:59 UTC
     if (!resets[fishingSafeScoreKey] || Number(resets[fishingSafeScoreKey]) > FISHING_SAFE_SCORE_AT) {
       resets[fishingSafeScoreKey] = FISHING_SAFE_SCORE_AT;
     }
     const fishingSafeCut = Number(resets[fishingSafeScoreKey]) || FISHING_SAFE_SCORE_AT;
     Object.keys(fishingBoard).forEach((key) => {
       const at = Number(fishingBoard[key]?.at) || 0;
-      if (at <= fishingSafeCut) delete fishingBoard[key];
+      const score = Number(fishingBoard[key]?.score) || 0;
+      // Drop pre-cut rows and any still-broken Infinity-scale Apex packs.
+      if (at <= fishingSafeCut || score > 1e15) delete fishingBoard[key];
     });
     // Drop old Abyss King floor seeds so they can't reappear after this wipe.
     delete resets["fishing:ice_dragon-abyss-king-v1"];
