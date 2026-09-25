@@ -73,6 +73,11 @@
     "ice_dragon alt"
   ]);
 
+  /** Per-game Hub Points exclusions (name still appears on that board, earns 0 pts from it). */
+  const POINTS_EXCLUDED_BY_GAME = {
+    fishing: new Set(["hjalte"])
+  };
+
   let cache = { games: {} };
   let lastSync = 0;
   let submitQueue = Promise.resolve();
@@ -1099,11 +1104,11 @@
         return (a.at || 0) - (b.at || 0);
       });
 
-    // Competitive points ignore owner accounts so #2 behind ICE_DRAGON still gets 10 pts
+    // Competitive points ignore owner / per-game excluded accounts
     let competitiveRank = 0;
     return rows.map((entry, i) => {
       const rank = i + 1;
-      const excluded = isPointsExcluded(entry.name);
+      const excluded = isPointsExcluded(entry.name, gameId);
       if (!excluded) competitiveRank += 1;
       const points = excluded ? 0 : pointsForRank(competitiveRank);
       return {
@@ -1121,8 +1126,11 @@
     });
   }
 
-  function isPointsExcluded(name) {
-    return POINTS_EXCLUDED_KEYS.has(nameKey(name));
+  function isPointsExcluded(name, gameId = "") {
+    const key = nameKey(name);
+    if (POINTS_EXCLUDED_KEYS.has(key)) return true;
+    const gameSet = POINTS_EXCLUDED_BY_GAME[gameId];
+    return !!(gameSet && gameSet.has(key));
   }
 
   /** Top 10 placement points: #1=10 … #10=1, else 0. Recalculates live when ranks change. */
