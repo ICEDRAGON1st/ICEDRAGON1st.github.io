@@ -5961,6 +5961,9 @@
     "announce ",
     "clear say",
     "give fish ",
+    "give soultwin",
+    "give fish soultwin",
+    "give me soul twin",
     "give astral luckyblock",
     "give absolute luckyblock",
     "give zenith luckyblock",
@@ -6649,6 +6652,10 @@
   function resolveFishQuery(query) {
     const key = fishLookupKey(query);
     if (!key) return { fish: null, matches: [] };
+    if (key === "soultwin" || key === "soultwins" || key === "twin" || key === "thetwin") {
+      const twin = fishById(SOUL_TWIN_ID);
+      if (twin) return { fish: twin, matches: [twin] };
+    }
     const exactId = FISH.find((f) => f.id === key || fishLookupKey(f.id) === key);
     if (exactId) return { fish: exactId, matches: [exactId] };
     const exactName = FISH.find((f) => fishLookupKey(f.name) === key);
@@ -6662,6 +6669,33 @@
 
   function parseGiveFishCommand(raw) {
     const original = String(raw || "").trim();
+    // Short exclusive grant: "give soultwin" / "give me soul twin"
+    const twinGive = original.match(
+      /^(give|gift)\s+(?:(?:me|self)\s+)?(?:fish\s+)?(soul\s*twins?|soultwins?|the\s*twin)\b(.*)$/i
+    );
+    if (twinGive && !/^(give|gift)\s+fish\b/i.test(original)) {
+      const rest = String(twinGive[3] || "").trim();
+      let to = /^(?:me|self)\b/i.test(original.slice(twinGive[1].length)) ? "me" : "me";
+      const toMatch = rest.match(/\bto\s+@?(.+)$/i);
+      if (toMatch) to = toMatch[1].trim();
+      else if (/\b(everyone|everybody|all players|all|global)\b/i.test(rest)) to = "everyone";
+      let count = null;
+      const countMatch = rest.match(/(?:^|\s)(?:x\s*(\d{1,2})|(\d{1,2})\s*x)(?:\s|$)/i);
+      if (countMatch) {
+        count = Math.min(50, Math.max(1, Number(countMatch[1] || countMatch[2]) || 1));
+      }
+      return {
+        kind: "give-fish",
+        fishId: SOUL_TWIN_ID,
+        variant: "",
+        shiny: false,
+        mutation: "",
+        perfect: false,
+        count,
+        to,
+        forceSelf: to === "me" || to === "self"
+      };
+    }
     if (!/^(give|gift)\s+fish\b/i.test(original)) return null;
 
     let rest = original.replace(/^(give|gift)\s+fish\s+/i, "").trim();
@@ -6734,12 +6768,15 @@
     return {
       kind: "give-fish",
       fishId: resolved.fish.id,
-      variant,
-      shiny,
-      mutation,
+      variant: isExclusiveFish(resolved.fish) ? "" : variant,
+      shiny: isExclusiveFish(resolved.fish) ? false : shiny,
+      mutation: isExclusiveFish(resolved.fish) ? "" : mutation,
       perfect,
       count,
-      to
+      to,
+      forceSelf:
+        isExclusiveFish(resolved.fish) &&
+        (!to || to === "me" || to === "self")
     };
   }
 
@@ -6773,16 +6810,59 @@
     );
   }
 
+  /** Free cooler slots for an exclusive grant (drops cheapest unsaved non-exclusive). */
+  function makeCoolerRoomForExclusive(need = 1) {
+    const want = Math.max(1, Math.floor(Number(need) || 1));
+    while (state.cooler.length + want > coolerMax()) {
+      let victim = -1;
+      let victimVal = Infinity;
+      state.cooler.forEach((raw, i) => {
+        const entry = normalizeCoolerEntry(raw);
+        if (!entry || entry.saved || isExclusiveFish(entry.id)) return;
+        const fish = fishById(entry.id);
+        if (!fish) return;
+        const val = Math.max(0, Math.floor(Number(fish.value) || 0));
+        if (val < victimVal) {
+          victimVal = val;
+          victim = i;
+        }
+      });
+      if (victim < 0) break;
+      state.cooler.splice(victim, 1);
+    }
+    return state.cooler.length < coolerMax();
+  }
+
   function grantFishToLocal(fish, opts = {}) {
     if (!fish) return null;
-    const variants = normalizeVariants(opts.variants || {});
+    const exclusive = isExclusiveFish(fish);
+    if (exclusive) {
+      if (state.cooler.length >= coolerMax() && !makeCoolerRoomForExclusive(1)) {
+        if (!opts.silent) {
+          setCatchLine("Cooler full — free a slot for Soul Twin!", "miss");
+        }
+        return null;
+      }
+    }
+    const variants = exclusive
+      ? { variant: "", shiny: false, mutation: "" }
+      : normalizeVariants(opts.variants || {});
+    const lockedValue = exclusive
+      ? Math.max(
+          2,
+          Math.floor(Number(opts.lockedValue) || exclusiveMirrorBaseValue())
+        )
+      : 0;
     const entry = {
       id: fish.id,
-      saved: !!opts.saved,
+      saved: exclusive ? true : !!opts.saved,
       perfect: !!opts.perfect,
       variant: variants.variant,
       shiny: variants.shiny,
-      mutation: variants.mutation
+      mutation: variants.mutation,
+      unsellable: exclusive,
+      untradeable: exclusive,
+      lockedValue: lockedValue || undefined
     };
     noteCatch(fish, entry);
     state.cooler.push(entry);
@@ -7029,16 +7109,22 @@
           shiny: !!g.shiny,
           mutation: normalizeMutation(g.mutation)
         },
-        perfect: !!g.perfect
+        perfect: !!g.perfect,
+        silent: true
       };
-      for (let i = 0; i < count; i += 1) grantFishToLocal(fish, entryOpts);
-      gained += count;
-      label = formatFishName(fish, entryOpts.variants);
+      let added = 0;
+      for (let i = 0; i < count; i += 1) {
+        if (grantFishToLocal(fish, entryOpts)) added += 1;
+      }
+      if (!added) return;
+      gained += added;
+      label = formatFishName(fish, isExclusiveFish(fish) ? {} : entryOpts.variants);
       claimed.add(gid);
       toClaim.push(gid);
     });
 
     if (!gained && !blocks && !chests) return;
+    if (gained) ensureExclusiveCoolerValues();
     writeClaimedGiftIds(claimed);
     saveState();
     render(true);
@@ -8233,8 +8319,12 @@
       mutation: normalizeMutation(cmd.mutation)
     };
     const count = resolveAdminGiftCount(cmd.count);
-    const label = formatFishName(fish, variants);
+    const label = formatFishName(fish, isExclusiveFish(fish) ? {} : variants);
     let toRaw = String(cmd.to || "me").trim();
+    // Exclusive Soul Twin defaults to you — avoid accidental global spam.
+    if (isExclusiveFish(fish) && (!toRaw || toRaw.toLowerCase() === "me" || toRaw.toLowerCase() === "self")) {
+      cmd.forceSelf = true;
+    }
     // Global admin scope + no explicit target → everyone
     if (
       (!toRaw || toRaw.toLowerCase() === "me" || toRaw.toLowerCase() === "self") &&
@@ -8250,13 +8340,32 @@
       (!toKey || toKey === "me" || toKey === "self" || toKey === playerNameLower());
 
     if (isSelf) {
+      let gained = 0;
       for (let i = 0; i < count; i += 1) {
-        grantFishToLocal(fish, { variants, perfect: !!cmd.perfect });
+        const entry = grantFishToLocal(fish, { variants, perfect: !!cmd.perfect });
+        if (entry) gained += 1;
       }
+      if (!gained) {
+        setCatchLine(
+          isExclusiveFish(fish)
+            ? "Couldn't add Soul Twin — free a cooler slot (sell unsaved fish)"
+            : "Cooler full — sell fish first",
+          "miss"
+        );
+        playSfx("miss");
+        return;
+      }
+      ensureExclusiveCoolerValues();
       saveState();
       render(true);
+      const locked = Math.floor(Number(
+        state.cooler.find((e) => e?.id === fish.id)?.lockedValue
+      ) || exclusiveMirrorBaseValue());
+      const shown = isExclusiveFish(fish)
+        ? `${label} (${formatNum(locked)} locked)`
+        : label;
       setCatchLine(
-        count === 1 ? `Gave ${label} to you` : `Gave ${count}× ${label} to you`,
+        gained === 1 ? `Gave ${shown} to you` : `Gave ${gained}× ${shown} to you`,
         catchTone(fish.rarity)
       );
       playSfx("win");
@@ -10352,10 +10461,8 @@
   /** Catch book display value: base coins × active look (variant / shiny / mutation). */
   function bookLookValue(fish, entry) {
     if (isExclusiveFish(fish)) {
-      return Math.max(
-        1,
-        Math.floor(Number(entry?.lockedValue) || exclusiveMirrorBaseValue())
-      );
+      // Prefer lockedValue only — never recompute mirror on every paint (lag).
+      return Math.max(1, Math.floor(Number(entry?.lockedValue) || 2));
     }
     const base = Math.max(0, Number(fish?.value) || 0);
     const mult = entry ? variantValueMult(entry) : 1;
@@ -10403,7 +10510,8 @@
         mutation: "",
         unsellable: exclusive,
         untradeable: exclusive,
-        lockedValue: exclusive ? exclusiveMirrorBaseValue() : undefined
+        // Don't recompute mirror value here — that lagged every render.
+        lockedValue: exclusive ? 0 : undefined
       };
     }
     if (entry && typeof entry === "object") {
@@ -10422,10 +10530,45 @@
         mutation: exclusive ? "" : variants.mutation,
         unsellable: exclusive || !!entry.unsellable,
         untradeable: exclusive || !!entry.untradeable,
-        lockedValue: exclusive ? locked || exclusiveMirrorBaseValue() : locked || undefined
+        lockedValue: exclusive ? locked : locked || undefined
       };
     }
     return null;
+  }
+
+  /** Ensure exclusive cooler rows keep a stable lockedValue (fixes lag + missing value). */
+  function ensureExclusiveCoolerValues() {
+    let changed = false;
+    state.cooler = (state.cooler || []).map((raw) => {
+      const entry = normalizeCoolerEntry(raw);
+      if (!entry) return raw;
+      const fish = fishById(entry.id);
+      if (!isExclusiveFish(fish)) return entry;
+      const next = {
+        ...entry,
+        saved: true,
+        unsellable: true,
+        untradeable: true,
+        variant: "",
+        shiny: false,
+        mutation: ""
+      };
+      if (!(Number(next.lockedValue) > 0)) {
+        next.lockedValue = exclusiveMirrorBaseValue();
+        changed = true;
+      }
+      if (
+        !raw ||
+        typeof raw !== "object" ||
+        raw.saved !== next.saved ||
+        raw.lockedValue !== next.lockedValue ||
+        raw.unsellable !== next.unsellable
+      ) {
+        changed = true;
+      }
+      return next;
+    });
+    return changed;
   }
 
   function coolerEntryId(entry) {
@@ -10466,7 +10609,7 @@
     const rank = RARITY_RANK[fish.rarity] || 1;
     const tier = isExclusiveFish(fish) ? 0 : variantTier(entry);
     const value = isExclusiveFish(fish)
-      ? Math.max(0, Math.floor(Number(entry?.lockedValue) || exclusiveMirrorBaseValue()))
+      ? Math.max(0, Math.floor(Number(entry?.lockedValue) || 2))
       : Math.max(0, Math.floor(Number(fish.value) || 0));
     return (rank * 100 + tier) * 100000 + value;
   }
@@ -13038,11 +13181,24 @@
     return isExclusiveFish(fish) || !!fish?.untradeable || !!entry?.untradeable;
   }
 
+  let _exclusiveMirrorCache = { at: 0, value: 2, bestId: "", bestScore: 0 };
+
   /** 2× the catalog value of your personal best (never mirrors another Soul Twin). */
   function exclusiveMirrorBaseValue() {
-    let best = fishById(state.bestCatchId);
+    const bestId = String(state.bestCatchId || "");
+    const bestScore = Math.floor(Number(state.bestCatchScore) || 0);
+    const now = Date.now();
+    if (
+      _exclusiveMirrorCache.value > 0 &&
+      _exclusiveMirrorCache.bestId === bestId &&
+      _exclusiveMirrorCache.bestScore === bestScore &&
+      now - _exclusiveMirrorCache.at < 5000
+    ) {
+      return _exclusiveMirrorCache.value;
+    }
+    let best = fishById(bestId);
     if (!best || isExclusiveFish(best)) {
-      best = fishFromCatchScore(Math.floor(Number(state.bestCatchScore) || 0));
+      best = fishFromCatchScore(bestScore);
     }
     if (!best || isExclusiveFish(best)) {
       let hi = null;
@@ -13055,7 +13211,7 @@
       best = hi;
     }
     if (!best || isExclusiveFish(best)) {
-      const found = Object.keys(state.book || {});
+      const found = Object.keys(state.caught || state.book || {});
       let hi = null;
       found.forEach((id) => {
         const f = fishById(id);
@@ -13065,7 +13221,9 @@
       best = hi;
     }
     const v = Math.max(1, Math.floor(Number(best?.value) || 1));
-    return Math.max(2, v * 2);
+    const out = Math.max(2, v * 2);
+    _exclusiveMirrorCache = { at: now, value: out, bestId, bestScore };
+    return out;
   }
 
   function tryRollExclusiveFish(forBoat = false) {
@@ -13099,12 +13257,10 @@
   function fishValue(fish, spot, perfectOrEntry) {
     const entry =
       perfectOrEntry && typeof perfectOrEntry === "object" ? perfectOrEntry : null;
-    const exclusiveBase =
-      isExclusiveFish(fish) && Number(entry?.lockedValue) > 0
-        ? Math.floor(Number(entry.lockedValue))
-        : isExclusiveFish(fish)
-          ? exclusiveMirrorBaseValue()
-          : 0;
+    // Hot path: never call exclusiveMirrorBaseValue during render — use lockedValue.
+    const exclusiveBase = isExclusiveFish(fish)
+      ? Math.max(1, Math.floor(Number(entry?.lockedValue) || 2))
+      : 0;
     const base = Math.max(
       1,
       Math.floor((exclusiveBase || fish.value) * (spot?.valueMult || 1))
@@ -16937,6 +17093,11 @@
   }
 
   state = loadState();
+  if (ensureExclusiveCoolerValues()) {
+    try {
+      saveState();
+    } catch {}
+  }
   try {
     const name = String(
       window.HubPlays?.getName?.() || localStorage.getItem("hub-player-name") || ""
