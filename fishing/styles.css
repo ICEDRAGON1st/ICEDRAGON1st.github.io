@@ -572,6 +572,97 @@ body.no-lightning-flash .wx-flash {
   align-self: flex-end;
 }
 
+.admin-audit-section {
+  border-top: 1px solid rgba(120, 160, 190, 0.18);
+  padding-top: 0.55rem;
+  margin-top: 0.15rem;
+}
+
+.admin-audit-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.admin-audit-head .admin-section-label {
+  margin: 0;
+}
+
+.admin-audit-refresh {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  padding: 0.28rem 0.55rem;
+}
+
+.admin-audit-list {
+  list-style: none;
+  margin: 0.35rem 0 0;
+  padding: 0.4rem 0.45rem;
+  max-height: 11.5rem;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  border: 1px solid rgba(120, 160, 190, 0.16);
+  border-radius: 8px;
+  background: rgba(6, 18, 28, 0.45);
+}
+
+.admin-audit-empty {
+  margin: 0;
+  padding: 0.45rem 0.2rem;
+  font-size: 0.78rem;
+  color: rgba(180, 210, 230, 0.55);
+}
+
+.admin-audit-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-areas:
+    "when who"
+    "cmd cmd"
+    "note note";
+  gap: 0.1rem 0.45rem;
+  padding: 0.35rem 0.3rem;
+  border-radius: 6px;
+  background: rgba(20, 40, 55, 0.35);
+}
+
+.admin-audit-when {
+  grid-area: when;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: rgba(240, 193, 75, 0.85);
+  white-space: nowrap;
+}
+
+.admin-audit-who {
+  grid-area: who;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: rgba(180, 210, 230, 0.7);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.admin-audit-cmd {
+  grid-area: cmd;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: rgba(230, 245, 255, 0.92);
+  word-break: break-word;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.admin-audit-note {
+  grid-area: note;
+  font-size: 0.65rem;
+  color: rgba(180, 210, 230, 0.55);
+}
+
 .admin-cmd-hist-btn {
   min-width: 2.1rem;
   padding: 0.5rem 0.45rem !important;

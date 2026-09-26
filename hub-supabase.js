@@ -23,6 +23,7 @@
     feedback: "player-feedback",
     matches: "online-matches",
     fishingAdmin: "fishing-admin-events",
+    fishingAdminAudit: "fishing-admin-audit",
     fishingCommunity: "fishing-community",
     fishingGifts: "fishing-gifts",
     fishingMail: "fishing-player-mail",

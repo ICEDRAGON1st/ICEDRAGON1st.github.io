@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260926i": [
+    "Fishing Idle: ICE-only Hjalte admin log (what he ran and when)"
+  ],
   "20260926h": [
     "Fishing Idle: smart shop Faster bites shows the best bait you can buy (skip the ladder)"
   ],

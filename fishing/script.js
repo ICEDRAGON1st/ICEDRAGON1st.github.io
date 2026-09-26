@@ -127,6 +127,9 @@
   const ADMIN_ANNOUNCE_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-admin-announce";
   const ADMIN_ANNOUNCE_URL = "admin-announce.json";
   const ADMIN_ANNOUNCE_SEEN_KEY = "fishing-admin-announce-seen-v1";
+  /** ICE-only log of limited-admin (Hjalte) commands */
+  const ADMIN_AUDIT_DOC = "fishing-admin-audit";
+  const ADMIN_AUDIT_MAX = 200;
   /** Fast poll so popups land quickly for everyone (events stay on 15s). */
   const ADMIN_ANNOUNCE_POLL_MS = 2_000;
   /** How long the popup stays on screen for each player. */
@@ -5017,6 +5020,134 @@
     return isFishingOwner();
   }
 
+  function playerDisplayName() {
+    try {
+      return String(
+        window.HubPlays?.getName?.() || localStorage.getItem("hub-player-name") || ""
+      ).trim();
+    } catch {
+      return "";
+    }
+  }
+
+  function formatAdminAuditWhen(at) {
+    const t = Number(at) || 0;
+    if (!t) return "—";
+    const d = new Date(t);
+    if (!Number.isFinite(d.getTime())) return "—";
+    const now = Date.now();
+    const ago = now - t;
+    if (ago >= 0 && ago < 60_000) return "just now";
+    if (ago >= 0 && ago < 60 * 60_000) return `${Math.max(1, Math.round(ago / 60_000))}m ago`;
+    if (ago >= 0 && ago < 24 * 60 * 60_000) {
+      return `${Math.max(1, Math.round(ago / (60 * 60_000)))}h ago`;
+    }
+    try {
+      return d.toLocaleString(undefined, {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      });
+    } catch {
+      return d.toISOString();
+    }
+  }
+
+  /** Fire-and-forget: only limited admin (Hjalte) writes; ICE reads in Admin. */
+  function logLimitedAdminAction(cmd, note = "") {
+    if (!isFishingLimitedAdmin()) return;
+    const text = String(cmd || "").trim().slice(0, 200);
+    if (!text) return;
+    appendAdminAuditLog({
+      cmd: text,
+      note: String(note || "").trim().slice(0, 160)
+    }).catch(() => {});
+  }
+
+  async function appendAdminAuditLog({ cmd, note }) {
+    const api = fishingSb();
+    if (!api?.getDoc || !api?.upsertDoc) return;
+    const entry = {
+      id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+      at: Date.now(),
+      by: playerDisplayName() || "Hjalte",
+      cmd: String(cmd || "").trim().slice(0, 200),
+      note: String(note || "").trim().slice(0, 160)
+    };
+    try {
+      const data = (await api.getDoc(ADMIN_AUDIT_DOC)) || {};
+      const entries = Array.isArray(data.entries) ? data.entries.slice() : [];
+      entries.push(entry);
+      while (entries.length > ADMIN_AUDIT_MAX) entries.shift();
+      await api.upsertDoc(ADMIN_AUDIT_DOC, {
+        entries,
+        updatedAt: Date.now()
+      });
+    } catch (err) {
+      console.warn("[admin-audit] write failed", err);
+    }
+  }
+
+  async function fetchAdminAuditEntries() {
+    const api = fishingSb();
+    if (!api?.getDoc) return [];
+    try {
+      const data = await api.getDoc(ADMIN_AUDIT_DOC);
+      const entries = Array.isArray(data?.entries) ? data.entries : [];
+      return entries
+        .filter((e) => e && typeof e === "object")
+        .slice(-ADMIN_AUDIT_MAX)
+        .reverse();
+    } catch {
+      return [];
+    }
+  }
+
+  function syncAdminAuditSection() {
+    const section = document.getElementById("admin-audit-section");
+    if (!section) return;
+    const show = isFishingOwner();
+    section.hidden = !show;
+    section.classList.toggle("hidden", !show);
+  }
+
+  async function refreshAdminAuditList() {
+    if (!isFishingOwner()) return;
+    const list = document.getElementById("admin-audit-list");
+    const status = document.getElementById("admin-audit-status");
+    if (!list) return;
+    if (status) status.textContent = "Loading…";
+    const entries = await fetchAdminAuditEntries();
+    if (!isFishingOwner()) return;
+    if (!entries.length) {
+      list.innerHTML = `<li class="admin-audit-empty">No limited-admin commands logged yet</li>`;
+      if (status) status.textContent = "Empty";
+      return;
+    }
+    list.innerHTML = entries
+      .map((e) => {
+        const when = formatAdminAuditWhen(e.at);
+        const who = String(e.by || "Hjalte").replace(/[<>&]/g, "");
+        const cmd = String(e.cmd || "—")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+        const note = String(e.note || "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;");
+        return `<li class="admin-audit-item">
+          <span class="admin-audit-when">${when}</span>
+          <span class="admin-audit-who">${who}</span>
+          <code class="admin-audit-cmd">${cmd}</code>
+          ${note ? `<span class="admin-audit-note">${note}</span>` : ""}
+        </li>`;
+      })
+      .join("");
+    if (status) status.textContent = `${entries.length} logged`;
+  }
+
   function adminEventRateLimited() {
     try {
       const until = Number(localStorage.getItem(ADMIN_EVENT_RATE_KEY) || 0);
@@ -6223,6 +6354,7 @@
     const admin = isFishingAdmin();
     const full = canAdminGlobal();
     syncAdminSpeedFx();
+    syncAdminAuditSection();
     if (adminBtn) {
       adminBtn.classList.toggle("hidden", !admin);
       adminBtn.hidden = !admin;
@@ -6230,6 +6362,14 @@
     if (adminOverlay && !admin) {
       adminOverlay.classList.add("hidden");
     }
+    const eyebrow = adminOverlay?.querySelector?.(".eyebrow");
+    if (eyebrow) {
+      eyebrow.textContent = full ? "ICE_DRAGON · owner" : "Local admin · Hjalte";
+    }
+    document.querySelectorAll("[data-admin-owner-only]").forEach((el) => {
+      el.hidden = !full;
+      el.classList.toggle("hidden", !full);
+    });
     document.querySelectorAll("[data-admin-scope='global']").forEach((btn) => {
       btn.hidden = !full;
       btn.classList.toggle("hidden", !full);
@@ -6341,6 +6481,7 @@
     syncAdminHistoryButtons();
     adminOverlay?.classList.remove("hidden");
     lockPageScroll();
+    if (isFishingOwner()) refreshAdminAuditList();
     document.getElementById("admin-cmd-input")?.focus?.();
   }
 
@@ -7009,7 +7150,7 @@
       mult: eventKind === "weather" ? 1 : eventMult,
       scope: wantGlobal ? "global" : "local",
       note: wantGlobal ? "in-game-admin-global" : "in-game-admin-local",
-      by: OWNER_NAME
+      by: playerDisplayName() || OWNER_NAME
     };
 
     if (clearAll) applyAdminLocally("all", null, true);
@@ -8955,6 +9096,10 @@
         catchTone(fish.rarity)
       );
       playSfx("win");
+      logLimitedAdminAction(
+        `give fish ${fish.id}${variants.shiny ? " shiny" : ""}${variants.mutation ? " " + variants.mutation : ""}${variants.variant && variants.variant !== "normal" ? " " + variants.variant : ""}${count > 1 ? " x" + count : ""}`,
+        "self gift"
+      );
       return;
     }
 
@@ -9325,6 +9470,10 @@
         added === 1 ? `Gave ${def.name} to you` : `Gave ${added}× ${def.name} to you`,
         "treasure"
       );
+      logLimitedAdminAction(
+        `give ${chestKind === "luck" ? "luck" : "coin"} chest${count > 1 ? " x" + count : ""}`,
+        "self gift"
+      );
       return;
     }
 
@@ -9442,6 +9591,10 @@
       setCatchLine(
         added === 1 ? `Gave ${def.name} to you` : `Gave ${added}× ${def.name} to you`,
         "treasure"
+      );
+      logLimitedAdminAction(
+        `give ${type} luckyblock${count > 1 ? " x" + count : ""}`,
+        "self gift"
       );
       return;
     }
@@ -9593,13 +9746,14 @@
     if (parsed.scope === "local" || parsed.scope === "global") {
       setAdminScope(parsed.scope);
     }
-    await publishAdminEvent(
+    const ok = await publishAdminEvent(
       parsed.kind,
       parsed.minutes,
       parsed.mult,
       canAdminGlobal() ? parsed.scope : "local",
       parsed.target || ""
     );
+    if (ok) logLimitedAdminAction(trimmed, "event");
   }
 
   function scheduledEventWindowStart(now = Date.now()) {
@@ -17735,6 +17889,9 @@
   });
   adminBtn?.addEventListener("click", openAdmin);
   adminClose?.addEventListener("click", closeAdmin);
+  document.getElementById("admin-audit-refresh")?.addEventListener("click", () => {
+    refreshAdminAuditList();
+  });
   adminOverlay?.addEventListener("click", (e) => {
     const scopeBtn = e.target.closest("[data-admin-scope]");
     if (scopeBtn && adminOverlay.contains(scopeBtn)) {

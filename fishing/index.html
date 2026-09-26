@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260926h">
+  <link rel="stylesheet" href="styles.css?v=20260926i">
 </head>
 <body data-spot="creek" data-hub-sound-btn="off">
   <div id="weather-fx" class="weather-fx" aria-hidden="true">
@@ -814,7 +814,7 @@
         </label>
       </div>
 
-      <div class="admin-section">
+      <div class="admin-section" data-admin-owner-only>
         <p class="admin-section-label">Message all players</p>
         <form id="admin-announce-form" class="admin-announce-form">
           <input
@@ -828,6 +828,15 @@
           <button type="submit" class="btn">Send</button>
         </form>
         <p class="admin-section-hint">Pops up for ~10s for everyone · <code>say …</code> · <code>clear say</code></p>
+      </div>
+
+      <div id="admin-audit-section" class="admin-section admin-audit-section hidden" hidden data-admin-owner-only>
+        <div class="admin-audit-head">
+          <p class="admin-section-label">Hjalte admin log <span id="admin-audit-status" class="admin-section-hint">—</span></p>
+          <button type="button" id="admin-audit-refresh" class="btn btn-ghost admin-audit-refresh">Refresh</button>
+        </div>
+        <p class="admin-section-hint">Only you see this · what he ran and when (local events + self gifts)</p>
+        <ul id="admin-audit-list" class="admin-audit-list" aria-live="polite"></ul>
       </div>
 
       <div class="admin-section">
@@ -1001,13 +1010,13 @@
   <script src="../hub-achievements.js?v=20260919f"></script>
   <script src="../hub-sound.js?v=20260921u"></script>
   <script src="../hub-confetti.js"></script>
-  <script src="../hub-supabase.js?v=20260924i"></script>
+  <script src="../hub-supabase.js?v=20260926i"></script>
   <script src="../hub-account-bag.js?v=20260924h"></script>
   <script src="../hub-plays.js?v=20260925b"></script>
   <script src="../hub-friends.js?v=20260923u"></script>
   <script src="../hub-chat.js?v=20260925a"></script>
   <script src="../hub-calls.js?v=20260925a"></script>
   <script src="../hub-leaderboard.js?v=20260925k"></script>
-  <script src="script.js?v=20260926h"></script>
+  <script src="script.js?v=20260926i"></script>
 </body>
 </html>
