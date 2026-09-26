@@ -14490,9 +14490,11 @@
     return !!state.autoSellMutations;
   }
 
-  /** Auto-sell by rarity — mutations skipped unless Mutation auto-sell is on. */
+  /** Auto-sell by rarity — mutations skipped unless Mutation auto-sell is on. Easter eggs never auto-sell. */
   function shouldAutoSellFish(fish, entry) {
-    if (!fish || isUnsellableFish(fish, entry) || isExclusiveFish(fish)) return false;
+    if (!fish || isUnsellableFish(fish, entry) || isExclusiveFish(fish) || isEggOnlyFish(fish)) {
+      return false;
+    }
     if (!shouldAutoSell(fish.rarity)) return false;
     if (normalizeMutation(entry?.mutation) && !autoSellMutationsOn()) return false;
     return true;
@@ -17317,16 +17319,19 @@
     const kindP = treasureKindChance(spot, false);
     const weights = FISH.map((f) => fishWeight(f, spot, false));
     const total = weights.reduce((a, b) => a + b, 0);
-    const rows = FISH.map((fish, i) => ({
-      fish,
-      pct: isEggOnlyFish(fish)
-        ? 0
-        : isExclusiveFish(fish)
-          ? 100 * exclusiveRollChance(fish)
-          : total > 0
-            ? (100 * weights[i]) / total
-            : 0
-    })).sort(
+    const rows = FISH.filter((fish) => !isEggOnlyFish(fish))
+      .map((fish) => {
+        const i = FISH.indexOf(fish);
+        return {
+          fish,
+          pct: isExclusiveFish(fish)
+            ? 100 * exclusiveRollChance(fish)
+            : total > 0
+              ? (100 * weights[i]) / total
+              : 0
+        };
+      })
+      .sort(
       (a, b) =>
         rarityOrder(a.fish.rarity) - rarityOrder(b.fish.rarity) ||
         a.fish.value - b.fish.value
@@ -17358,23 +17363,16 @@
       rows
         .map(({ fish, pct }) => {
           const here = fishValue(fish, spot);
-          const chance = isEggOnlyFish(fish)
-            ? "easter egg"
-            : formatChance(pct);
+          const chance = formatChance(pct);
           const exclusiveNote = isExclusiveFish(fish) ? " · luck ignored" : "";
-          const eggNote = isEggOnlyFish(fish) ? " · not from normal casts" : "";
           return `<tr class="at-spot">
           <td class="guide-fish-name">${fish.name}</td>
           <td class="guide-rarity ${fish.rarity}">${formatRarityName(fish.rarity)}</td>
           <td>${formatNum(fish.value)}</td>
           <td class="guide-here">${formatNum(here)}</td>
-          <td class="guide-spots" title="${
-            isEggOnlyFish(fish)
-              ? "Secret — not a normal catch"
-              : pct.toFixed(12) + "%" + exclusiveNote
-          }">${chance}${
+          <td class="guide-spots" title="${pct.toFixed(12)}%${exclusiveNote}">${chance}${
             isExclusiveFish(fish) ? " · no luck" : ""
-          }${eggNote}</td>
+          }</td>
         </tr>`;
         })
         .join("");
@@ -17485,6 +17483,8 @@
     const bookQ = normalizeSearchQuery(state.bookSearch);
     const showEntry = bookShowEntry();
     FISH.forEach((fish) => {
+      // Keep egg fish secret until caught — no empty “easter egg” book teaser
+      if (isEggOnlyFish(fish) && !hasCaught(fish.id)) return;
       if (!byRarity[fish.rarity]) byRarity[fish.rarity] = [];
       if (bookQ && !fishMatchesSearch(fish, null, bookQ)) return;
       byRarity[fish.rarity].push(fish);
