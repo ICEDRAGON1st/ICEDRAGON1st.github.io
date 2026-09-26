@@ -2405,18 +2405,30 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     return out;
   }
 
-  function applyPresenceLastSeen(allTimeMap, presence) {
-    const out = { ...(allTimeMap || {}) };
-    Object.entries(presence || {}).forEach(([id, p]) => {
-      if (!out[id] || !p) return;
-      const at = Number(p.at) || 0;
-      if (!at) return;
-      out[id] = {
-        ...out[id],
-        lastAt: Math.max(Number(out[id].lastAt) || 0, Number(out[id].firstAt) || 0, at)
+  /** Merge rosters but keep remote lastAt so repairs beat polluted local caches. */
+  function mergeAllTimePreferRemoteLast(remote, local) {
+    const merged = mergeAllTime(remote || {}, local || {});
+    Object.entries(remote || {}).forEach(([id, p]) => {
+      if (!merged[id] || !p) return;
+      const remoteFirst = Number(p.firstAt) || 0;
+      const remoteLast = Math.max(Number(p.lastAt) || 0, remoteFirst);
+      const localFirst = Number(merged[id].firstAt) || remoteFirst;
+      merged[id] = {
+        ...merged[id],
+        firstAt:
+          Math.min(localFirst || remoteFirst, remoteFirst || localFirst) ||
+          remoteFirst ||
+          localFirst,
+        lastAt: remoteLast || Number(merged[id].lastAt) || remoteFirst || localFirst,
+        name: preferPlayerName(p.name, merged[id].name)
       };
     });
-    return out;
+    return merged;
+  }
+
+  /** @deprecated Presence must never rewrite persisted lastAt. */
+  function applyPresenceLastSeen(allTimeMap) {
+    return allTimeMap || {};
   }
 
   function trimAllTime(map) {

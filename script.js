@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260926b": [
+    "Players: last online uses real play/chat activity — not tab heartbeats"
+  ],
   "20260917bd": [
     "My Games: no more Guessword flash on load"
   ],
