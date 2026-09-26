@@ -129,6 +129,6 @@ Only if Supabase + JSON isn’t enough:
 
 Defaults: **2×** for **5 minutes** (weather has no mult). Clamp mult **1–1000**, minutes 1–1440 (24h).
 
-In-game commands: `5x luck`, `2x speed`, `5x shiny + gold`, `5x toxic`, `5x lava`, `5x neon`, `5x luckyblock`, `storm`, `calm`, `sunny`, `clear`, `clear luck`, `clear variant`, `clear toxic`, `clear lava`, `clear neon`, `clear mutation`, `clear luckyblock`, `clear speed`, `clear weather`.
+In-game commands: `5x luck`, `10x luck 6h`, `2x speed`, `5x shiny + gold`, `5x toxic`, `5x lava`, `5x neon`, `5x luckyblock`, `storm`, `calm`, `sunny`, `clear`, `clear luck`, `clear variant`, `clear toxic`, `clear lava`, `clear neon`, `clear mutation`, `clear luckyblock`, `clear speed`, `clear weather`. Duration: `30m` / `6h` / `24h` (or bare minutes).
 
 ICE_DRAGON in-game **Admin** applies instantly on their device and syncs via Supabase (Mantle best-effort). Chat abuse via Supabase + JSON is the reliable way to hit **all** players.

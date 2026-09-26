@@ -6300,7 +6300,10 @@
     "give coin chest",
     "give luck chest",
     "5x luck",
+    "10x luck 6h",
+    "10x luck 24h",
     "5x sell",
+    "5x sell 3h",
     "5x gold",
     "5x shiny",
     "5x shiny + gold",
@@ -8924,15 +8927,21 @@
     }
 
     let minutes = defaults.minutes;
-    const minsMatch = text.match(/\b(\d{1,3})\s*(?:m|mins?|minutes?)\b/);
-    if (minsMatch) {
-      minutes = clampAdminMinutes(minsMatch[1]);
-      text = text.replace(minsMatch[0], " ").replace(/\s+/g, " ").trim();
+    const hoursMatch = text.match(/\b(\d{1,3}(?:\.\d+)?)\s*(?:h|hrs?|hours?)\b/);
+    if (hoursMatch) {
+      minutes = clampAdminMinutes(Number(hoursMatch[1]) * 60);
+      text = text.replace(hoursMatch[0], " ").replace(/\s+/g, " ").trim();
     } else {
-      const bare = text.match(/\b(\d{1,3})$/);
-      if (bare) {
-        minutes = clampAdminMinutes(bare[1]);
-        text = text.replace(bare[0], " ").replace(/\s+/g, " ").trim();
+      const minsMatch = text.match(/\b(\d{1,4})\s*(?:m|mins?|minutes?)\b/);
+      if (minsMatch) {
+        minutes = clampAdminMinutes(minsMatch[1]);
+        text = text.replace(minsMatch[0], " ").replace(/\s+/g, " ").trim();
+      } else {
+        const bare = text.match(/\b(\d{1,4})$/);
+        if (bare) {
+          minutes = clampAdminMinutes(bare[1]);
+          text = text.replace(bare[0], " ").replace(/\s+/g, " ").trim();
+        }
       }
     }
 
