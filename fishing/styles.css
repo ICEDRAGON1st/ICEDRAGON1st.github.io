@@ -156,6 +156,8 @@ body.modal-open {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   text-align: center;
+  cursor: default;
+  user-select: none;
 }
 
 .menu-btn {

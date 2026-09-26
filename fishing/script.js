@@ -645,6 +645,14 @@
       exclusive: true,
       unsellable: true,
       untradeable: true
+    },
+    // Easter egg — only from the title click secret (not in normal rolls)
+    {
+      id: "oldboot",
+      name: "Old Boot",
+      rarity: "common",
+      value: 7,
+      eggOnly: true
     }
   ];
 
@@ -2453,6 +2461,10 @@
   let shinyMachineSlots = [];
   let shinyMachineBusy = false;
   const adminOverlay = document.getElementById("admin-overlay");
+  /** Easter egg: click title 7× → next fish catch is Old Boot */
+  let eggBootPending = false;
+  let eggTitleClicks = 0;
+  let eggTitleClickTimer = 0;
   const settingsOverlay = document.getElementById("settings-overlay");
   const settingsBtn = document.getElementById("settings-btn");
   const settingsClose = document.getElementById("settings-close");
@@ -2840,7 +2852,7 @@
   }
 
   function catchBookEligibleFish() {
-    return FISH.filter((f) => !isExclusiveFish(f));
+    return FISH.filter((f) => !isExclusiveFish(f) && !isEggOnlyFish(f));
   }
 
   function catchBookDiscoveryCount() {
@@ -12186,7 +12198,8 @@
     lasttide: "mahi",
     theultimate: "omega",
     soultwin: "leviathan",
-    mysteryfin: "ghost"
+    mysteryfin: "ghost",
+    oldboot: "carp"
   };
 
   const FISH_TINT = {
@@ -12284,6 +12297,7 @@
     apexkoi: "#f59e0b",
     soultwin: "#e879f9",
     mysteryfin: "#a3e635",
+    oldboot: "#8b6914",
     spirefin: "#fde68a",
     solsticeray: "#fef3c7",
     thezenith: "#fffbeb",
@@ -14209,7 +14223,7 @@
   }
 
   function fishWeight(fish, spot, forBoat = false) {
-    if (isExclusiveFish(fish)) return 0;
+    if (isExclusiveFish(fish) || isEggOnlyFish(fish)) return 0;
     const luck = baseLuck(spot);
     const boostMult = treasureLuckMult();
     let w = (RARITY_WEIGHT[fish.rarity] || 10) * rarityFactor(fish.rarity, spot.rarity);
@@ -14308,6 +14322,12 @@
     return !!(fishOrId.id === MYSTERY_FISH_ID || fishOrId.rarity === "mystery");
   }
 
+  function isEggOnlyFish(fishOrId) {
+    if (!fishOrId) return false;
+    if (typeof fishOrId === "string") return !!fishById(fishOrId)?.eggOnly;
+    return !!fishOrId.eggOnly;
+  }
+
   /** Best non-exclusive catch look (variants included). */
   function bestNonExclusiveLookValue() {
     const stamp = [
@@ -14400,7 +14420,7 @@
   function rollFish(spot, forBoat = false) {
     const exclusive = tryRollExclusiveFish(forBoat);
     if (exclusive) return exclusive;
-    const pool = FISH.filter((f) => !isExclusiveFish(f));
+    const pool = FISH.filter((f) => !isExclusiveFish(f) && !isEggOnlyFish(f));
     const weights = pool.map((f) => fishWeight(f, spot, forBoat));
     const total = weights.reduce((a, b) => a + b, 0);
     let r = Math.random() * total;
@@ -14412,8 +14432,9 @@
   }
 
   function chancePct(fish, spot) {
+    if (isEggOnlyFish(fish)) return 0;
     if (isExclusiveFish(fish)) return 100 * exclusiveRollChance(fish);
-    const pool = FISH.filter((f) => !isExclusiveFish(f));
+    const pool = FISH.filter((f) => !isExclusiveFish(f) && !isEggOnlyFish(f));
     const total = pool.reduce((s, f) => s + fishWeight(f, spot, false), 0);
     const w = fishWeight(fish, spot, false);
     return total > 0 ? (100 * w) / total : 0;
@@ -14753,7 +14774,14 @@
       return;
     }
 
-    const fish = rollFish(spot, false);
+    let fish = rollFish(spot, false);
+    if (eggBootPending) {
+      const boot = fishById("oldboot");
+      if (boot) {
+        fish = boot;
+        eggBootPending = false;
+      }
+    }
     state.catches += 1;
     if (perfect) {
       state.perfects += 1;
@@ -17272,11 +17300,13 @@
     const total = weights.reduce((a, b) => a + b, 0);
     const rows = FISH.map((fish, i) => ({
       fish,
-      pct: isExclusiveFish(fish)
-        ? 100 * exclusiveRollChance(fish)
-        : total > 0
-          ? (100 * weights[i]) / total
-          : 0
+      pct: isEggOnlyFish(fish)
+        ? 0
+        : isExclusiveFish(fish)
+          ? 100 * exclusiveRollChance(fish)
+          : total > 0
+            ? (100 * weights[i]) / total
+            : 0
     })).sort(
       (a, b) =>
         rarityOrder(a.fish.rarity) - rarityOrder(b.fish.rarity) ||
@@ -17309,16 +17339,23 @@
       rows
         .map(({ fish, pct }) => {
           const here = fishValue(fish, spot);
-          const chance = formatChance(pct);
+          const chance = isEggOnlyFish(fish)
+            ? "easter egg"
+            : formatChance(pct);
           const exclusiveNote = isExclusiveFish(fish) ? " · luck ignored" : "";
+          const eggNote = isEggOnlyFish(fish) ? " · not from normal casts" : "";
           return `<tr class="at-spot">
           <td class="guide-fish-name">${fish.name}</td>
           <td class="guide-rarity ${fish.rarity}">${formatRarityName(fish.rarity)}</td>
           <td>${formatNum(fish.value)}</td>
           <td class="guide-here">${formatNum(here)}</td>
-          <td class="guide-spots" title="${pct.toFixed(12)}%${exclusiveNote}">${chance}${
+          <td class="guide-spots" title="${
+            isEggOnlyFish(fish)
+              ? "Secret — not a normal catch"
+              : pct.toFixed(12) + "%" + exclusiveNote
+          }">${chance}${
             isExclusiveFish(fish) ? " · no luck" : ""
-          }</td>
+          }${eggNote}</td>
         </tr>`;
         })
         .join("");
@@ -17980,6 +18017,24 @@
     setChestsEnabled(!!settingsChestsEnabled.checked);
   });
   adminBtn?.addEventListener("click", openAdmin);
+  document.querySelector("header.top-bar h1")?.addEventListener("click", () => {
+    if (eggTitleClickTimer) clearTimeout(eggTitleClickTimer);
+    eggTitleClicks += 1;
+    eggTitleClickTimer = setTimeout(() => {
+      eggTitleClicks = 0;
+      eggTitleClickTimer = 0;
+    }, 2800);
+    if (eggTitleClicks < 7) return;
+    eggTitleClicks = 0;
+    if (eggTitleClickTimer) {
+      clearTimeout(eggTitleClickTimer);
+      eggTitleClickTimer = 0;
+    }
+    eggBootPending = true;
+    setCatchLine("Something muddy tugged the line…", "treasure");
+    playSfx("click");
+    flashCastSplash?.();
+  });
   adminClose?.addEventListener("click", closeAdmin);
   document.getElementById("admin-audit-refresh")?.addEventListener("click", () => {
     refreshAdminAuditList();
