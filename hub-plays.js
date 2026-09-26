@@ -68,7 +68,8 @@
   const MAX_ALLTIME = 5000;
   const MAX_ONLINE_CREDIT_MS = 90_000; // don't dump hours after AFK reopen
   const LAST_AT_WRITE_GAP_MS = 5 * 60_000; // don't rewrite all-time every heartbeat
-  const ALLTIME_LOCAL_KEY = "hub-alltime-cache-v1";
+  // v3: drop heartbeat-polluted lastAt caches that kept rewriting remote.
+  const ALLTIME_LOCAL_KEY = "hub-alltime-cache-v3";
   const RATE_LIMIT_BACKOFF_MS = 15 * 60_000;
   const RATE_KEY = "mantle-rate-limit-until-v1";
   // One-time: remove unused nickname "dragon" from roster + name registry.
@@ -271,7 +272,10 @@
         };
       });
       const purged = purgeAllTimePlayers(normalized);
-      allTimeCache = purgeAllTimePlayers(mergeAllTime(allTimeCache, purged.players)).players;
+      // Trust remote lastAt — never let a polluted local cache win here.
+      allTimeCache = purgeAllTimePlayers(
+        mergeAllTimePreferRemoteLast(purged.players, allTimeCache)
+      ).players;
       saveAllTimeLocal(allTimeCache);
       if (purged.changed) await pushAllTimeRemote(purged.players);
       const allClean = !Object.entries(purged.players).some(([id, p]) =>
@@ -2309,11 +2313,32 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   async function pushAllTimeRemote(players) {
+    const cleaned = {};
+    const stampCounts = new Map();
+    Object.entries(players || {}).forEach(([id, p]) => {
+      if (!p) return;
+      const lastAt = Number(p.lastAt) || 0;
+      if (lastAt) stampCounts.set(lastAt, (stampCounts.get(lastAt) || 0) + 1);
+      cleaned[id] = p;
+    });
+    const mass = new Set();
+    stampCounts.forEach((n, t) => {
+      if (n >= 5) mass.add(t);
+    });
+    if (mass.size) {
+      Object.keys(cleaned).forEach((id) => {
+        const p = cleaned[id];
+        const lastAt = Number(p.lastAt) || 0;
+        if (!mass.has(lastAt)) return;
+        const firstAt = Number(p.firstAt) || lastAt;
+        cleaned[id] = { ...p, lastAt: firstAt };
+      });
+    }
     await pushDoc(
       "players-alltime",
       {
-        players,
-        total: Object.keys(players).length
+        players: cleaned,
+        total: Object.keys(cleaned).length
       },
       ALLTIME_API
     );
@@ -2322,6 +2347,11 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   function rememberAllTime(players) {
     allTimeCache = players || {};
     saveAllTimeLocal(allTimeCache);
+    try {
+      document.dispatchEvent(new CustomEvent("hub-plays-alltime"));
+    } catch {
+      /* ignore */
+    }
   }
 
   /** Stamp real last-seen (game play) — not hub tab heartbeats. */
@@ -2347,7 +2377,11 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     if (isRateLimited() && !sb()) return;
     try {
       const remote = await fetchAllTimeRemote();
-      const merged = mergeAllTime(remote, { [me]: nextRow });
+      const merged = clampLastAtForWrite(
+        remote,
+        mergeAllTime(remote, { [me]: nextRow }),
+        me
+      );
       await pushAllTimeRemote(merged);
       rememberAllTime(merged);
     } catch {
@@ -2426,6 +2460,45 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     return merged;
   }
 
+  /**
+   * Clients may only raise their own lastAt. Everyone else's lastAt stays at
+   * whatever remote already has (stops heartbeat-polluted locals from mass-stamping).
+   */
+  function clampLastAtForWrite(remote, next, myId) {
+    const out = {};
+    const me = String(myId || "");
+    Object.entries(next || {}).forEach(([id, p]) => {
+      if (!p) return;
+      const r = remote?.[id];
+      const firstAt =
+        Math.min(
+          Number(r?.firstAt) || Infinity,
+          Number(p.firstAt) || Infinity
+        ) === Infinity
+          ? Number(p.firstAt) || Number(r?.firstAt) || Date.now()
+          : Math.min(Number(r?.firstAt) || Date.now(), Number(p.firstAt) || Date.now());
+      let lastAt;
+      if (id === me) {
+        lastAt = Math.max(
+          Number(r?.lastAt) || 0,
+          Number(p.lastAt) || 0,
+          firstAt
+        );
+      } else if (r) {
+        lastAt = Math.max(Number(r.lastAt) || 0, Number(r.firstAt) || 0) || firstAt;
+      } else {
+        // Brand-new id from this client — use discovery time, not "now" spam.
+        lastAt = Math.max(Number(p.lastAt) || 0, firstAt) || firstAt;
+      }
+      out[id] = {
+        firstAt,
+        lastAt,
+        name: preferPlayerName(p.name, r?.name)
+      };
+    });
+    return out;
+  }
+
   /** @deprecated Presence must never rewrite persisted lastAt. */
   function applyPresenceLastSeen(allTimeMap) {
     return allTimeMap || {};
@@ -2495,9 +2568,10 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     ).players;
   }
 
-  function allTimeNeedsWrite(remote, next) {
+  function allTimeNeedsWrite(remote, next, myId) {
     const remoteKeys = Object.keys(remote || {});
     const nextKeys = Object.keys(next || {});
+    const me = String(myId || "");
     // Never shrink the shared roster from a partial client view
     if (nextKeys.length < remoteKeys.length) return false;
     if (nextKeys.length !== remoteKeys.length) return true;
@@ -2509,9 +2583,12 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       const remoteFirst = Number(remote[id].firstAt) || 0;
       const nextFirst = Number(next[id].firstAt) || 0;
       if (nextFirst && remoteFirst && nextFirst < remoteFirst) return true;
-      const remoteLast = Number(remote[id].lastAt) || 0;
-      const nextLast = Number(next[id].lastAt) || 0;
-      if (nextLast - remoteLast >= LAST_AT_WRITE_GAP_MS) return true;
+      // Only your own lastAt bumps may trigger a write — foreign bumps are clamped away.
+      if (id === me) {
+        const remoteLast = Number(remote[id].lastAt) || 0;
+        const nextLast = Number(next[id].lastAt) || 0;
+        if (nextLast - remoteLast >= LAST_AT_WRITE_GAP_MS) return true;
+      }
     }
     return false;
   }
@@ -2555,12 +2632,28 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     return Math.max(Number(row.lastAt) || 0, Number(row.firstAt) || 0);
   }
 
+  /** Detect heartbeat mass-stamps (many ids sharing one lastAt) and fall back to firstAt. */
+  function massStampedLastAts(map) {
+    const counts = new Map();
+    Object.values(map || {}).forEach((p) => {
+      const t = Number(p?.lastAt) || 0;
+      if (!t) return;
+      counts.set(t, (counts.get(t) || 0) + 1);
+    });
+    const bad = new Set();
+    counts.forEach((n, t) => {
+      if (n >= 5) bad.add(t);
+    });
+    return bad;
+  }
+
   function getAllTimePlayers() {
     const enriched = buildAllTimeMap(
       allTimeCache,
       cache.plays || loadLocal().plays || [],
       namesCache
     );
+    const fakeLast = massStampedLastAts(allTimeCache);
     const now = Date.now();
     const byName = new Map();
     Object.entries(enriched).forEach(([playerId, p]) => {
@@ -2575,7 +2668,11 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       const presence = findPresence(playerId, name);
       const presenceAt = presence ? presence.at : 0;
       const online = !!(presenceAt && now - presenceAt < ONLINE_TTL_MS);
-      const storedLast = persistedLastAt(playerId);
+      let storedLast = persistedLastAt(playerId);
+      const rawLast = Number(allTimeCache[playerId]?.lastAt) || 0;
+      if (fakeLast.has(rawLast)) {
+        storedLast = firstAt || storedLast;
+      }
       // Online → live presence. Offline → persisted real lastAt only (not a
       // lingering presence ping — those used to fake "5m ago" for idle tabs).
       const lastAt = online ? presenceAt : Math.max(storedLast, firstAt);
@@ -2702,28 +2799,36 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
               }
             }
           : {};
-      const next = buildAllTimeMap(remote, plays, namesCache, meEntry);
+      let next = clampLastAtForWrite(
+        remote,
+        buildAllTimeMap(remote, plays, namesCache, meEntry),
+        me
+      );
 
-      if (!allTimeNeedsWrite(remote, next)) {
-        rememberAllTime(mergeAllTime(remote, next));
+      if (!allTimeNeedsWrite(remote, next, me)) {
+        rememberAllTime(mergeAllTimePreferRemoteLast(remote, next));
         return getAllTimeCount();
       }
 
       try {
         await pushAllTimeRemote(next);
       } catch {
-        rememberAllTime(mergeAllTime(allTimeCache, next));
+        rememberAllTime(mergeAllTimePreferRemoteLast(remote, next));
         return getAllTimeCount();
       }
 
       let confirmed = next;
       try {
         const fetched = await fetchAllTimeRemote();
-        confirmed = buildAllTimeMap(
-          mergeAllTime(fetched, next),
-          plays,
-          namesCache,
-          meEntry
+        confirmed = clampLastAtForWrite(
+          fetched,
+          buildAllTimeMap(
+            mergeAllTimePreferRemoteLast(fetched, next),
+            plays,
+            namesCache,
+            meEntry
+          ),
+          me
         );
         // Only rewrite if we didn't shrink
         if (Object.keys(confirmed).length >= Object.keys(fetched || {}).length) {
@@ -2743,6 +2848,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   function startPresence() {
     if (presenceTimer) return;
     heartbeat().catch(() => {});
+    // Pull repaired all-time lastAt immediately (don't wait 10 min).
+    registerAllTime().catch(() => {});
     presenceTimer = setInterval(() => {
       heartbeat().catch(() => {});
     }, HEARTBEAT_MS);

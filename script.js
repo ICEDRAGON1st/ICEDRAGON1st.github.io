@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260926c": [
+    "Players: fix last-online stuck on “just now” (clear bad cache, stop mass-stamps)"
+  ],
   "20260926b": [
     "Players: last online uses real play/chat activity — not tab heartbeats"
   ],
@@ -4140,6 +4143,13 @@ function startOnlineCountPolling() {
 window.addEventListener("hub-plays-profile", () => {
   try {
     paintPlayersPanelLists();
+  } catch {}
+});
+
+window.addEventListener("hub-plays-alltime", () => {
+  try {
+    if (playersRosterMode) renderPlayersRoster(playersRosterMode);
+    updateOnlineCountDisplay(HubPlays.getOnlineCount(), HubPlays.getAllTimeCount());
   } catch {}
 });
 
