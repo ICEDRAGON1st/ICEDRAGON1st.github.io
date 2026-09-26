@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260926q": [
+    "My Games: secret easter eggs across Runosaur, Snake, Block Merge, Clicker, Hangman, Quiz, Tic Tac Toe, Space, Bounce Break, Guac"
+  ],
   "20260926p": [
     "Fishing Idle: Old Boot base sell value is 1B"
   ],
@@ -5128,6 +5131,21 @@ function bootAfterUsername() {
 
   showGamesScreen();
   window.dismissHubBootLoader?.();
+  try {
+    const flair = window.HubEggs?.consumePendingHubFlair?.();
+    if (flair) {
+      const labels = {
+        clutch: "Clutch flair ready — equip it in Titles",
+        lefty: "Lefty badge ready — equip it in Titles",
+        silly_hat: "Silly hat ready — equip it in Titles",
+        centerless: "Centerless title ready — equip it in Titles",
+        zen_farmer: "Zen Farmer title ready — equip it in Titles",
+        pacifist: "Pacifist title ready — equip it in Titles"
+      };
+      window.HubEggs?.toast?.(labels[flair] || `Unlocked: ${flair}`);
+      renderTitlePicker?.();
+    }
+  } catch {}
   if (showWhatsNew()) {
     whatsNewOkBtn?.addEventListener("click", () => {
       hideWhatsNew();

@@ -26,6 +26,8 @@ let score = 0;
 let highScore = loadHighScore();
 let lives = 3;
 let bricks = [];
+let eggBrokenColors = [];
+let secretLevelArmed = false;
 let particles = [];
 let waitingToServe = true;
 let pointerActive = false;
@@ -83,15 +85,19 @@ function clearKeys() {
   keys.right = false;
 }
 
-function buildBricks() {
+function buildBricks(secret = false) {
   bricks = [];
-  const rows = 6;
-  const cols = 12;
+  eggBrokenColors = [];
+  const rows = secret ? 8 : 6;
+  const cols = secret ? 14 : 12;
   const gap = 6;
   const top = 70;
   const side = 28;
   const bw = (W - side * 2 - gap * (cols - 1)) / cols;
   const bh = 22;
+  const palette = secret
+    ? ["#f0abfc", "#67e8f9", "#a3e635", "#fbbf24", "#fb7185", "#818cf8", "#f97316", "#e2e8f0"]
+    : BRICK_COLORS;
 
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
@@ -100,8 +106,8 @@ function buildBricks() {
         y: top + row * (bh + gap),
         w: bw,
         h: bh,
-        color: BRICK_COLORS[row % BRICK_COLORS.length],
-        points: (rows - row) * 10,
+        color: palette[row % palette.length],
+        points: (rows - row) * (secret ? 15 : 10),
         alive: true
       });
     }
@@ -314,10 +320,28 @@ function update(dt) {
 
       brick.alive = false;
       score += brick.points;
+      eggBrokenColors.push(brick.color);
       maybeUpdateHighScore();
       updateHud();
       spawnBurst(brick.x + brick.w / 2, brick.y + brick.h / 2, brick.color);
       window.HubSound?.play("hit");
+
+      if (!secretLevelArmed) {
+        const only = [...new Set(eggBrokenColors)];
+        const same = bricks.filter((b) => b.color === brick.color);
+        if (
+          only.length === 1 &&
+          same.length >= 5 &&
+          same.every((b) => !b.alive)
+        ) {
+          secretLevelArmed = true;
+          window.HubEggs?.unlock?.("breakout_secret_level");
+          window.HubEggs?.toast?.("Secret rainbow level!");
+          buildBricks(true);
+          resetBall();
+          break;
+        }
+      }
 
       const overlapLeft = ball.x + ball.r - brick.x;
       const overlapRight = brick.x + brick.w - (ball.x - ball.r);

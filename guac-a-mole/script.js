@@ -19,6 +19,8 @@
 
   let best = Math.max(0, Math.floor(Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0));
   let score = 0;
+  let leftyOnly = true;
+  let leftyHits = 0;
   let combo = 0;
   let timeLeft = ROUND_SECS;
   let running = false;
@@ -126,6 +128,11 @@
     if (!running || paused || !hole.up) return;
     ensureSession();
     const rotten = hole.rotten;
+    const rect = hole.el.getBoundingClientRect();
+    const boardRect = board.getBoundingClientRect();
+    const midX = boardRect.left + boardRect.width / 2;
+    if (rect.left + rect.width / 2 >= midX) leftyOnly = false;
+    else leftyHits += 1;
     hole.el.classList.add("hit");
     hole.up = false;
     hole.hideAt = 0;
@@ -181,8 +188,16 @@
     maybeSubmit(true);
     updateHud();
     if (score >= 40) window.HubConfetti?.burst?.();
+    if (leftyOnly && leftyHits >= 8) {
+      window.HubEggs?.unlock?.("guac_lefty");
+      window.HubEggs?.setPendingHubFlair?.("lefty");
+      window.HubEggs?.toast?.("Lefty badge unlocked!");
+      if (overlayText) {
+        overlayText.textContent = `Lefty round! You mashed ${score} points. Best ${best}.`;
+      }
+    }
     if (overlayTitle) overlayTitle.textContent = "Guac's done";
-    if (overlayText) {
+    if (overlayText && !(leftyOnly && leftyHits >= 8)) {
       overlayText.textContent = `You mashed ${score} points of avocado. Best ${best}.`;
     }
     resumeBtn?.classList.add("hidden");
@@ -202,6 +217,8 @@
   function startRound() {
     ensureSession();
     score = 0;
+    leftyOnly = true;
+    leftyHits = 0;
     combo = 0;
     timeLeft = ROUND_SECS;
     running = true;

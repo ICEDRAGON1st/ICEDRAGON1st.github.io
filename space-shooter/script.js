@@ -221,6 +221,8 @@ let stars = [];
 let particles = [];
 let powerups = [];
 let dualShotTimer = 0;
+let shotsFired = 0;
+let pacifistDone = false;
 
 function resetStars() {
   stars = Array.from({ length: 60 }, () => ({
@@ -245,6 +247,8 @@ function resetGame() {
   particles = [];
   powerups = [];
   dualShotTimer = 0;
+  shotsFired = 0;
+  pacifistDone = false;
   player.x = W / 2;
   player.y = H - 70;
   player.cooldown = 0;
@@ -462,6 +466,7 @@ function shootPlayer() {
   if (player.cooldown > 0) return;
   const c = cfg();
   player.cooldown = c.fireCooldown;
+  shotsFired += 1;
   const y = player.y - player.h / 2;
   const vy = c.bulletSpeed;
   if (dualShotTimer > 0) {
@@ -533,6 +538,20 @@ function updatePointer(event) {
 
 function update(dt) {
   gameTime += dt;
+  if (!pacifistDone && shotsFired === 0 && gameTime >= 30) {
+    pacifistDone = true;
+    running = false;
+    window.HubEggs?.unlock?.("space_pacifist");
+    window.HubEggs?.setPendingHubFlair?.("pacifist");
+    window.HubEggs?.toast?.("Pacifist ending");
+    window.HubConfetti?.burst?.();
+    showMenu(
+      "gameover",
+      "Pacifist ending",
+      "You survived 30 seconds without firing. Peace among the stars."
+    );
+    return;
+  }
   const difficulty = getDifficulty();
 
   if (invuln > 0) invuln -= dt;

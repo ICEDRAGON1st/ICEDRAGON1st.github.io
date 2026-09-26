@@ -33,6 +33,14 @@ const TILE_COLORS = {
 
 let grid = [];
 let score = 0;
+let glitchBoard = false;
+
+function maybeArmMergeGlitch() {
+  if (score === 404 || score === 111) {
+    window.HubEggs?.flagSession?.("merge_glitch", true);
+    window.HubEggs?.toast?.("Glitch armed for next run…");
+  }
+}
 let best = loadBest();
 let playing = false;
 let menuMode = "start";
@@ -199,6 +207,7 @@ function slideLineTracked(line) {
       const value = items[i].value * 2;
       out[write] = value;
       score += value;
+      maybeArmMergeGlitch();
       mergedIndices.push(write);
       travels.push({
         from: items[i].from,
@@ -362,6 +371,14 @@ async function move(direction) {
 function newGame() {
   if (window.HubStreak) HubStreak.recordPlay();
   if (window.HubPlays) HubPlays.record("2048");
+  glitchBoard = !!window.HubEggs?.getSession?.("merge_glitch");
+  if (glitchBoard) {
+    window.HubEggs?.clearSession?.("merge_glitch");
+    window.HubEggs?.toast?.("Glitch board active");
+    document.body.classList.add("egg-glitch");
+  } else {
+    document.body.classList.remove("egg-glitch");
+  }
   grid = emptyGrid();
   score = 0;
   won = false;

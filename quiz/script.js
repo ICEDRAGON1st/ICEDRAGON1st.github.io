@@ -104,6 +104,8 @@ let difficultyMode = loadSavedDifficulty();
 let deck = [];
 let index = 0;
 let score = 0;
+let clutchHits = 0;
+let clutchEligible = false;
 let locked = false;
 let menuMode = "start";
 let playing = false;
@@ -381,6 +383,8 @@ function startQuiz() {
   deck = pickDeck();
   index = 0;
   score = 0;
+  clutchHits = 0;
+  clutchEligible = cfg().timer > 0;
   locked = false;
   playing = true;
   menuMode = "playing";
@@ -438,10 +442,12 @@ function pickAnswer(choiceIndex, btn) {
     if (menuMode !== "playing") return;
     if (choiceIndex === item.answer) {
       score += 1;
+      if (clutchEligible && cfg().timer > 0 && timeLeft <= 1) clutchHits += 1;
       updateLiveScore();
       btn.classList.add("correct");
       window.HubSound?.play("match");
     } else {
+      clutchEligible = false;
       btn.classList.add("wrong");
       correctBtn.classList.add("correct");
       window.HubSound?.play("error");
@@ -484,8 +490,15 @@ function finishQuiz() {
       if (w2 >= 10) HubAchievements.unlock("quiz_win_10");
     }
   }
-  if (score === total) title = "Perfect!";
-  else if (score >= Math.ceil(total * 0.7)) title = "Great run!";
+  if (score === total) {
+    title = "Perfect!";
+    if (clutchEligible && clutchHits === total && cfg().timer > 0) {
+      window.HubEggs?.unlock?.("clutch_flair");
+      window.HubEggs?.setPendingHubFlair?.("clutch");
+      window.HubEggs?.toast?.("Clutch! Flair unlocked for the hub");
+      title = "Clutch perfect!";
+    }
+  } else if (score >= Math.ceil(total * 0.7)) title = "Great run!";
   else if (score >= Math.ceil(total * 0.4)) title = "Nice try!";
 
   window.HubSound?.play(score === total ? "win" : score === 0 ? "lose" : "hint");

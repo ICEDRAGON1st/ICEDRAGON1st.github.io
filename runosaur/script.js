@@ -48,8 +48,36 @@
   let duckBtnHeld = false;
   let pointerGesture = null;
   let scrollX = 0;
+  let altSkin = false;
+  try {
+    altSkin = !!window.HubEggs?.has?.("runosaur_alt_skin");
+  } catch {}
+  const eggKeysHeld = { left: false, right: false };
+  let eggHoldTimer = 0;
   const jumpBtn = document.getElementById("jump-btn");
   const duckBtn = document.getElementById("duck-btn");
+
+  function tickAltSkinHold() {
+    if (altSkin || window.HubEggs?.has?.("runosaur_alt_skin")) {
+      altSkin = true;
+      return;
+    }
+    if (!(eggKeysHeld.left && eggKeysHeld.right)) {
+      if (eggHoldTimer) {
+        clearTimeout(eggHoldTimer);
+        eggHoldTimer = 0;
+      }
+      return;
+    }
+    if (eggHoldTimer) return;
+    eggHoldTimer = setTimeout(() => {
+      eggHoldTimer = 0;
+      if (!(eggKeysHeld.left && eggKeysHeld.right)) return;
+      altSkin = true;
+      window.HubEggs?.unlock?.("runosaur_alt_skin");
+      window.HubEggs?.toast?.("Alt skin unlocked!");
+    }, 3000);
+  }
 
   function duckHeld() {
     return duckKeyHeld || duckBtnHeld || !!pointerGesture?.ducked;
@@ -629,10 +657,10 @@
     const ducking = dino.ducking;
     const onGround = dino.onGround;
     const run = onGround ? Math.sin(anim * speed * 0.045) : 0;
-    const body = deepCave ? "#e8f4ff" : "#ffffff";
-    const accent = deepCave ? "#3d7fd4" : "#1e6ad4";
-    const belly = deepCave ? "#9ec4ef" : "#7eb6f0";
-    const crest = deepCave ? "#fff6c8" : "#ffe566";
+    const body = altSkin ? (deepCave ? "#f5d0fe" : "#f0abfc") : deepCave ? "#e8f4ff" : "#ffffff";
+    const accent = altSkin ? (deepCave ? "#a21caf" : "#c026d3") : deepCave ? "#3d7fd4" : "#1e6ad4";
+    const belly = altSkin ? (deepCave ? "#e879f9" : "#e9d5ff") : deepCave ? "#9ec4ef" : "#7eb6f0";
+    const crest = altSkin ? (deepCave ? "#67e8f9" : "#22d3ee") : deepCave ? "#fff6c8" : "#ffe566";
 
     ctx.save();
     ctx.globalAlpha = Math.max(0.18, 0.42 - dino.y * 0.003);
@@ -925,6 +953,13 @@
   );
 
   window.addEventListener("keydown", (e) => {
+    if (e.code === "ArrowLeft" || e.code === "KeyA") {
+      eggKeysHeld.left = true;
+      tickAltSkinHold();
+    } else if (e.code === "ArrowRight" || e.code === "KeyD") {
+      eggKeysHeld.right = true;
+      tickAltSkinHold();
+    }
     if (e.code === "Space" || e.code === "ArrowUp" || e.code === "KeyW" || e.key === " ") {
       e.preventDefault();
       duckKeyHeld = false;
@@ -939,6 +974,13 @@
     }
   });
   window.addEventListener("keyup", (e) => {
+    if (e.code === "ArrowLeft" || e.code === "KeyA") {
+      eggKeysHeld.left = false;
+      tickAltSkinHold();
+    } else if (e.code === "ArrowRight" || e.code === "KeyD") {
+      eggKeysHeld.right = false;
+      tickAltSkinHold();
+    }
     if (e.code === "ArrowDown" || e.code === "KeyS") {
       duckKeyHeld = false;
       syncDuck();

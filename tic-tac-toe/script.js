@@ -44,6 +44,9 @@ let difficulty = "easy";
 let running = false;
 let menuMode = "start";
 let winLine = null;
+let usedCorner = false;
+const CORNER_CELLS = new Set([0, 2, 6, 8]);
+const DRAW_STREAK_KEY = "hub-ttt-draw-streak-v1";
 let thinking = false;
 let onlineUnsub = null;
 let onlineSearching = false;
@@ -169,11 +172,24 @@ function endGame(result) {
     if (mode === "cpu") {
       if (result.winner === X) {
         recordCpuResult("wins");
+        try {
+          localStorage.setItem(DRAW_STREAK_KEY, "0");
+        } catch {}
         if (window.HubAchievements) {
           HubAchievements.unlock("tictactoe_win");
           if (difficulty === "hard") HubAchievements.unlock("tictactoe_hard");
         }
-      } else recordCpuResult("losses");
+        if (!usedCorner) {
+          window.HubEggs?.unlock?.("centerless_champion");
+          window.HubEggs?.setPendingHubFlair?.("centerless");
+          window.HubEggs?.toast?.("Centerless champion!");
+        }
+      } else {
+        recordCpuResult("losses");
+        try {
+          localStorage.setItem(DRAW_STREAK_KEY, "0");
+        } catch {}
+      }
     }
     showMenu("over", `${PLAYER[result.winner].label} Wins!`, `${PLAYER[result.winner].label} got three in a row.`);
     window.HubSound?.play("win");
@@ -181,7 +197,22 @@ function endGame(result) {
   }
 
   messageEl.textContent = "It's a draw!";
-  if (mode === "cpu") recordCpuResult("draws");
+  if (mode === "cpu") {
+    recordCpuResult("draws");
+    let streak = 0;
+    try {
+      streak = Math.max(0, Math.floor(Number(localStorage.getItem(DRAW_STREAK_KEY) || 0)));
+    } catch {}
+    streak += 1;
+    try {
+      localStorage.setItem(DRAW_STREAK_KEY, String(streak));
+    } catch {}
+    if (streak >= 3) {
+      window.HubEggs?.unlock?.("silly_hat");
+      window.HubEggs?.setPendingHubFlair?.("silly_hat");
+      window.HubEggs?.toast?.("Silly hat unlocked!");
+    }
+  }
   window.HubSound?.play("draw");
   showMenu("over", "Draw", "No more moves — it's a tie.");
 }
@@ -190,6 +221,7 @@ function applyMove(index, player) {
   if (board[index] !== EMPTY) return false;
 
   board[index] = player;
+  if (player === X && CORNER_CELLS.has(index)) usedCorner = true;
   window.HubSound?.play("place");
   const result = getWinner(board);
   if (result) {
@@ -406,6 +438,7 @@ function startGame() {
   board = Array(9).fill(EMPTY);
   current = X;
   winLine = null;
+  usedCorner = false;
   thinking = false;
   messageEl.textContent = "";
 

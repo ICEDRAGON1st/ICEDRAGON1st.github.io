@@ -3246,7 +3246,13 @@ body.light .menu-credit .player-name-creator {
     cheesy: { id: "cheesy", label: "CHEESY LIL GUY", className: "player-title-cheesy" },
     hub1: { id: "hub1", label: "#1", className: "player-title-hub1" },
     hub2: { id: "hub2", label: "#2", className: "player-title-hub2" },
-    hub3: { id: "hub3", label: "#3", className: "player-title-hub3" }
+    hub3: { id: "hub3", label: "#3", className: "player-title-hub3" },
+    clutch: { id: "clutch", label: "CLUTCH", className: "player-title-clutch" },
+    lefty: { id: "lefty", label: "LEFTY", className: "player-title-lefty" },
+    silly_hat: { id: "silly_hat", label: "SILLY HAT", className: "player-title-silly-hat" },
+    centerless: { id: "centerless", label: "CENTERLESS", className: "player-title-centerless" },
+    zen_farmer: { id: "zen_farmer", label: "ZEN FARMER", className: "player-title-zen-farmer" },
+    pacifist: { id: "pacifist", label: "PACIFIST", className: "player-title-pacifist" }
   };
 
   const TITLE_COLORS = {
@@ -3258,7 +3264,13 @@ body.light .menu-credit .player-name-creator {
     cheesy: "#f0b429",
     hub1: "#fbbf24",
     hub2: "#94a3b8",
-    hub3: "#d97706"
+    hub3: "#d97706",
+    clutch: "#f97316",
+    lefty: "#22c55e",
+    silly_hat: "#e879f9",
+    centerless: "#38bdf8",
+    zen_farmer: "#a3e635",
+    pacifist: "#94a3b8"
   };
 
   const HUB_POINTS_TITLE_IDS = ["hub1", "hub2", "hub3"];
@@ -3393,6 +3405,23 @@ body.light .menu-credit .player-name-creator {
     );
   }
 
+  const EGG_TITLE_MAP = [
+    ["clutch_flair", "clutch"],
+    ["guac_lefty", "lefty"],
+    ["silly_hat", "silly_hat"],
+    ["centerless_champion", "centerless"],
+    ["zen_farmer", "zen_farmer"],
+    ["space_pacifist", "pacifist"]
+  ];
+
+  function appendEggTitleIds(ids) {
+    EGG_TITLE_MAP.forEach(([eggId, titleId]) => {
+      try {
+        if (window.HubEggs?.has?.(eggId) && !ids.includes(titleId)) ids.push(titleId);
+      } catch {}
+    });
+  }
+
   function getAvailableTitleIds(name = getName()) {
     const ids = [];
     const key = nameKey(name);
@@ -3409,6 +3438,7 @@ body.light .menu-credit .player-name-creator {
     // Owner can equip Hub Points podium titles even though they don't earn points.
     if (key === "ice_dragon") {
       ids.push("hub1", "hub2", "hub3");
+      appendEggTitleIds(ids);
       return ids;
     }
     const hubTitle = getHubPointsTitleId(name);
@@ -3418,6 +3448,7 @@ body.light .menu-credit .player-name-creator {
       typeof HubAchievements !== "undefined" &&
       HubAchievements.hasAllUnlocked?.();
     if (isLegendName(name) || selfLegend) ids.push("legend");
+    appendEggTitleIds(ids);
     return ids;
   }
 

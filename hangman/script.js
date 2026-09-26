@@ -105,6 +105,8 @@ let wordPool = [];
 let secret = "";
 let guessed = new Set();
 let wrong = 0;
+let wrongLetterSeq = [];
+let hiHostSaid = false;
 let playing = false;
 let menuMode = "start";
 let stats = loadStats();
@@ -434,6 +436,8 @@ function startGame() {
   secret = randomWord();
   guessed = new Set();
   wrong = 0;
+  wrongLetterSeq = [];
+  hiHostSaid = false;
   playing = true;
   menuMode = "playing";
   overlay.classList.add("hidden");
@@ -510,13 +514,20 @@ function guessLetter(letter) {
     if ([...secret].every((c) => guessed.has(c))) endGame(true);
   } else {
     wrong += 1;
+    wrongLetterSeq.push(ch);
     if (btn) {
       btn.disabled = true;
       btn.classList.add("wrong");
     }
     updateGallows();
     missesEl.textContent = String(Math.max(0, maxWrong() - wrong));
-    setStatus("Not in the word");
+    if (!hiHostSaid && /H.*I/i.test(wrongLetterSeq.join(""))) {
+      hiHostSaid = true;
+      setStatus("Host: hi back 🙂");
+      window.HubEggs?.toast?.("Host: hi back 🙂");
+    } else {
+      setStatus("Not in the word");
+    }
     if (wrong >= maxWrong()) endGame(false);
   }
 }

@@ -37,6 +37,14 @@ let menuMode = "start";
 let tickTimer = 0;
 let tickInterval = 0.22;
 let touchStart = null;
+let glitchBoard = false;
+
+function maybeArmSnakeGlitch() {
+  if (score === 404 || score === 111) {
+    window.HubEggs?.flagSession?.("snake_glitch", true);
+    window.HubEggs?.toast?.("Glitch armed for next run…");
+  }
+}
 
 function loadHighScore() {
   try {
@@ -148,6 +156,14 @@ function resumeGame() {
 function startGame() {
   if (window.HubStreak) HubStreak.recordPlay();
   if (window.HubPlays) HubPlays.record("snake");
+  glitchBoard = !!window.HubEggs?.getSession?.("snake_glitch");
+  if (glitchBoard) {
+    window.HubEggs?.clearSession?.("snake_glitch");
+    window.HubEggs?.toast?.("Glitch board active");
+    document.body.classList.add("egg-glitch");
+  } else {
+    document.body.classList.remove("egg-glitch");
+  }
   resetGame();
   overlay.classList.add("hidden");
   menuMode = "playing";
@@ -211,6 +227,7 @@ function step() {
   const foodIndex = foods.findIndex((f) => f.x === next.x && f.y === next.y);
   if (foodIndex >= 0) {
     score += 10;
+    maybeArmSnakeGlitch();
     window.HubSound?.play("eat");
     if (score > highScore) {
       highScore = score;
@@ -235,24 +252,31 @@ function drawCell(x, y, color, inset = 2) {
 }
 
 function draw() {
-  ctx.fillStyle = "#07140f";
+  ctx.fillStyle = glitchBoard ? "#1a0520" : "#07140f";
   ctx.fillRect(0, 0, W, H);
 
   for (let y = 0; y < GRID; y++) {
     for (let x = 0; x < GRID; x++) {
       if ((x + y) % 2 === 0) {
-        ctx.fillStyle = "#0c1a13";
-        ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
+        ctx.fillStyle = glitchBoard ? "#2a0a38" : "#0c1a13";
+        const ox = glitchBoard ? ((x * 3 + y) % 5) - 2 : 0;
+        const oy = glitchBoard ? ((y * 5 + x) % 5) - 2 : 0;
+        ctx.fillRect(x * CELL + ox, y * CELL + oy, CELL, CELL);
       }
     }
   }
 
   for (const food of foods) {
-    drawCell(food.x, food.y, "#ff6b6b", 3);
+    drawCell(food.x, food.y, glitchBoard ? "#67e8f9" : "#ff6b6b", 3);
   }
 
   snake.forEach((seg, i) => {
-    drawCell(seg.x, seg.y, i === 0 ? "#7cf0a8" : "#3ddc84", i === 0 ? 1 : 2);
+    drawCell(
+      seg.x,
+      seg.y,
+      glitchBoard ? (i === 0 ? "#f0abfc" : "#c026d3") : i === 0 ? "#7cf0a8" : "#3ddc84",
+      i === 0 ? 1 : 2
+    );
   });
 }
 

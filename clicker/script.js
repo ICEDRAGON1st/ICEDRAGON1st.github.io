@@ -802,6 +802,31 @@
   gamesBtn?.addEventListener("click", goToGames);
   rebirthBtn?.addEventListener("click", doRebirth);
 
+  let lastInteractAt = Date.now();
+  let zenGranted = false;
+  function noteInteract() {
+    lastInteractAt = Date.now();
+  }
+  ["pointerdown", "keydown", "touchstart", "click"].forEach((ev) => {
+    window.addEventListener(ev, noteInteract, { passive: true });
+  });
+  setInterval(() => {
+    if (zenGranted || !document.hasFocus()) return;
+    if (Date.now() - lastInteractAt < 120_000) return;
+    if (window.HubEggs?.has?.("zen_farmer")) {
+      zenGranted = true;
+      return;
+    }
+    zenGranted = true;
+    window.HubEggs?.unlock?.("zen_farmer");
+    window.HubEggs?.setPendingHubFlair?.("zen_farmer");
+    state.crystals += 500;
+    state.lifetime += 500;
+    saveState();
+    render();
+    window.HubEggs?.toast?.("Zen farmer — +500 crystals for sitting still");
+  }, 5000);
+
   state = loadState();
   render();
   setInterval(tick, TICK_MS);
