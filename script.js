@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260926k": [
+    "Fishing Idle: boats can catch Soul Twin and ??? (same luck-immune odds)"
+  ],
   "20260926j": [
     "Fishing Idle: ??? rarity fish (1 in 999M, luck ignored, exclusive rules)"
   ],

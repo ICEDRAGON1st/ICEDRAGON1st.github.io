@@ -299,10 +299,10 @@
     mystery: 0
   };
 
-  /** Soul Twin: 1 in 10,000,000 per fish roll (luck-immune; not on boat). */
+  /** Soul Twin: 1 in 10,000,000 per fish roll (luck-immune; cast + boat). */
   const SOUL_TWIN_ID = "soultwin";
   const SOUL_TWIN_CHANCE = 1 / 10_000_000;
-  /** ??? rarity: 1 in 999,000,000 per fish roll (luck-immune; exclusive-like; not on boat). */
+  /** ??? rarity: 1 in 999,000,000 per fish roll (luck-immune; exclusive-like; cast + boat). */
   const MYSTERY_FISH_ID = "mysteryfin";
   const MYSTERY_CHANCE = 1 / 999_000_000;
 
@@ -14363,8 +14363,8 @@
   }
 
   function tryRollExclusiveFish(forBoat = false) {
-    if (forBoat) return null;
-    // Flat luck-immune rolls — rarer ??? first, then Soul Twin
+    void forBoat;
+    // Flat luck-immune rolls on casts and boats — rarer ??? first, then Soul Twin
     if (Math.random() < MYSTERY_CHANCE) return fishById(MYSTERY_FISH_ID);
     if (Math.random() < SOUL_TWIN_CHANCE) return fishById(SOUL_TWIN_ID);
     return null;
