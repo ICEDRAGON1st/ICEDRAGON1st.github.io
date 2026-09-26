@@ -223,7 +223,8 @@
     "celestial",
     "primordial",
     "ultimate",
-    "exclusive"
+    "exclusive",
+    "mystery"
   ];
 
   const RARITY_RANK = {
@@ -258,7 +259,8 @@
     celestial: 29,
     primordial: 30,
     ultimate: 31,
-    exclusive: 32
+    exclusive: 32,
+    mystery: 33
   };
 
   const RARITY_WEIGHT = {
@@ -293,12 +295,16 @@
     celestial: 0.0019,
     primordial: 0.00135,
     ultimate: 0.00095,
-    exclusive: 0
+    exclusive: 0,
+    mystery: 0
   };
 
   /** Soul Twin: 1 in 10,000,000 per fish roll (luck-immune; not on boat). */
   const SOUL_TWIN_ID = "soultwin";
   const SOUL_TWIN_CHANCE = 1 / 10_000_000;
+  /** ??? rarity: 1 in 999,000,000 per fish roll (luck-immune; exclusive-like; not on boat). */
+  const MYSTERY_FISH_ID = "mysteryfin";
+  const MYSTERY_CHANCE = 1 / 999_000_000;
 
   /** Admin Lucky Blocks: Astral / Absolute / Zenith (zenith = transcendent–zenith). */
   const LUCKY_BLOCK_TYPES = {
@@ -620,11 +626,21 @@
     { id: "omniray", name: "Omni Ray", rarity: "ultimate", value: 2.8e36 },
     { id: "lasttide", name: "Last Tide", rarity: "ultimate", value: 7e36 },
     { id: "theultimate", name: "The Ultimate", rarity: "ultimate", value: 1.8e37 },
-    // Exclusive — never in weighted pool; rolled separately at 1/10M (luck ignored)
+    // Exclusive — never in weighted pool; rolled separately (luck ignored)
     {
       id: "soultwin",
       name: "Soul Twin",
       rarity: "exclusive",
+      value: 1,
+      exclusive: true,
+      unsellable: true,
+      untradeable: true
+    },
+    // ??? — 1 in 999M, luck ignored, exclusive rules
+    {
+      id: "mysteryfin",
+      name: "???",
+      rarity: "mystery",
       value: 1,
       exclusive: true,
       unsellable: true,
@@ -4377,7 +4393,7 @@
             <span class="visit-aqua-roster-glyph" aria-hidden="true">${fishGlyphHtml(fish, entry)}</span>
             <span class="visit-aqua-roster-meta">
               <strong>${escapeHtml(label)}${saved}</strong>
-              <span>${escapeHtml(fish.rarity)} · ${formatNum(val)}</span>
+              <span>${escapeHtml(formatRarityName(fish.rarity))} · ${formatNum(val)}</span>
             </span>
           </button>
         </li>`;
@@ -4550,7 +4566,7 @@
                   <span class="visit-aqua-roster-glyph" aria-hidden="true">${fishGlyphHtml(fish, entry)}</span>
                   <span class="visit-aqua-roster-meta">
                     <strong>${escapeHtml(label)}</strong>
-                    <span>${escapeHtml(fish.rarity)} · ${formatNum(val)}</span>
+                    <span>${escapeHtml(formatRarityName(fish.rarity))} · ${formatNum(val)}</span>
                   </span>
                 </button>
               </li>`;
@@ -4699,7 +4715,15 @@
     const rarity = String(fish.rarity || "").toLowerCase();
     const id = String(fish.id || "").toLowerCase();
     const variant = String(entry?.variant || "").toLowerCase();
-    const bits = [label, rarity, id, variant, fish.name?.toLowerCase() || ""];
+    const bits = [
+      label,
+      rarity,
+      formatRarityName(fish.rarity).toLowerCase(),
+      id,
+      variant,
+      fish.name?.toLowerCase() || ""
+    ];
+    if (rarity === "mystery" || id === MYSTERY_FISH_ID) bits.push("???", "mystery", "unknown");
     if (entry?.shiny) bits.push("shiny");
     if (entry?.mutation) bits.push(String(entry.mutation).toLowerCase(), "mutation");
     if (entry?.perfect) bits.push("perfect");
@@ -7287,11 +7311,26 @@
   }
 
   function resolveFishQuery(query) {
+    const raw = String(query || "").trim().toLowerCase();
+    if (/^\?+$/.test(raw) || raw === "???") {
+      const mystery = fishById(MYSTERY_FISH_ID);
+      if (mystery) return { fish: mystery, matches: [mystery] };
+    }
     const key = fishLookupKey(query);
     if (!key) return { fish: null, matches: [] };
     if (key === "soultwin" || key === "soultwins" || key === "twin" || key === "thetwin") {
       const twin = fishById(SOUL_TWIN_ID);
       if (twin) return { fish: twin, matches: [twin] };
+    }
+    if (
+      key === "mysteryfin" ||
+      key === "mystery" ||
+      key === "unknown" ||
+      key === "qqq" ||
+      key === "question"
+    ) {
+      const mystery = fishById(MYSTERY_FISH_ID);
+      if (mystery) return { fish: mystery, matches: [mystery] };
     }
     const exactId = FISH.find((f) => f.id === key || fishLookupKey(f.id) === key);
     if (exactId) return { fish: exactId, matches: [exactId] };
@@ -11527,7 +11566,7 @@
         : bestCatchEntry();
     const title = formatVariantTitle(entry);
     const label = title ? `${title} ${fish.name}` : fish.name;
-    return `${fish.rarity} · ${label}`;
+    return `${formatRarityName(fish.rarity)} · ${label}`;
   }
 
   function persistBestCatchMeta(fish, entry) {
@@ -12146,7 +12185,8 @@
     omniray: "kite",
     lasttide: "mahi",
     theultimate: "omega",
-    soultwin: "leviathan"
+    soultwin: "leviathan",
+    mysteryfin: "ghost"
   };
 
   const FISH_TINT = {
@@ -12243,6 +12283,7 @@
     crownray: "#fbbf24",
     apexkoi: "#f59e0b",
     soultwin: "#e879f9",
+    mysteryfin: "#a3e635",
     spirefin: "#fde68a",
     solsticeray: "#fef3c7",
     thezenith: "#fffbeb",
@@ -13094,7 +13135,8 @@
       celestial: "#818cf8",
       primordial: "#4ade80",
       ultimate: "#fde047",
-      exclusive: "#f0abfc"
+      exclusive: "#f0abfc",
+      mystery: "#a3e635"
     };
     return map[rarity] || "#a8e6df";
   }
@@ -14007,7 +14049,7 @@
 
   function playerOwnsSoulTwin() {
     if (hasCaught(SOUL_TWIN_ID, "any", false, "")) return true;
-    return (state.cooler || []).some((e) => e && isExclusiveFish(e.id || e));
+    return (state.cooler || []).some((e) => e && String(e.id || "") === SOUL_TWIN_ID);
   }
 
   /** Finish the catch book → one Soul Twin (exclusive). Retries if cooler is full. */
@@ -14222,9 +14264,22 @@
   function isExclusiveFish(fishOrId) {
     if (!fishOrId) return false;
     if (typeof fishOrId === "string") {
-      return fishOrId === SOUL_TWIN_ID || !!fishById(fishOrId)?.exclusive;
+      const f = fishById(fishOrId);
+      return (
+        fishOrId === SOUL_TWIN_ID ||
+        fishOrId === MYSTERY_FISH_ID ||
+        !!f?.exclusive ||
+        f?.rarity === "exclusive" ||
+        f?.rarity === "mystery"
+      );
     }
-    return !!(fishOrId.exclusive || fishOrId.rarity === "exclusive" || fishOrId.id === SOUL_TWIN_ID);
+    return !!(
+      fishOrId.exclusive ||
+      fishOrId.rarity === "exclusive" ||
+      fishOrId.rarity === "mystery" ||
+      fishOrId.id === SOUL_TWIN_ID ||
+      fishOrId.id === MYSTERY_FISH_ID
+    );
   }
 
   function isUnsellableFish(fish, entry) {
@@ -14309,8 +14364,22 @@
 
   function tryRollExclusiveFish(forBoat = false) {
     if (forBoat) return null;
-    if (!(Math.random() < SOUL_TWIN_CHANCE)) return null;
-    return fishById(SOUL_TWIN_ID);
+    // Flat luck-immune rolls — rarer ??? first, then Soul Twin
+    if (Math.random() < MYSTERY_CHANCE) return fishById(MYSTERY_FISH_ID);
+    if (Math.random() < SOUL_TWIN_CHANCE) return fishById(SOUL_TWIN_ID);
+    return null;
+  }
+
+  function exclusiveRollChance(fish) {
+    if (!fish) return 0;
+    if (fish.id === MYSTERY_FISH_ID || fish.rarity === "mystery") return MYSTERY_CHANCE;
+    if (isExclusiveFish(fish)) return SOUL_TWIN_CHANCE;
+    return 0;
+  }
+
+  function formatRarityName(rarity) {
+    if (rarity === "mystery") return "???";
+    return String(rarity || "");
   }
 
   function rollFish(spot, forBoat = false) {
@@ -14328,7 +14397,7 @@
   }
 
   function chancePct(fish, spot) {
-    if (isExclusiveFish(fish)) return 100 * SOUL_TWIN_CHANCE; // 1 in 10,000,000
+    if (isExclusiveFish(fish)) return 100 * exclusiveRollChance(fish);
     const pool = FISH.filter((f) => !isExclusiveFish(f));
     const total = pool.reduce((s, f) => s + fishWeight(f, spot, false), 0);
     const w = fishWeight(fish, spot, false);
@@ -14483,6 +14552,7 @@
   }
 
   function catchTone(rarity) {
+    if (rarity === "mystery") return "mystery";
     if (rarity === "exclusive") return "exclusive";
     if (rarity === "ultimate") return "ultimate";
     if (rarity === "primordial") return "primordial";
@@ -14768,7 +14838,7 @@
       });
       const bonusTip = extras.length ? ` + ${extras.join(" + ")}` : "";
       setCatchLine(
-        `${tip}Caught ${formatFishName(fish, entry)} (${fish.rarity})${bonusTip}`,
+        `${tip}Caught ${formatFishName(fish, entry)} (${formatRarityName(fish.rarity)})${bonusTip}`,
         catchTone(showcase.rarity)
       );
       playSfx(
@@ -17187,7 +17257,11 @@
     const total = weights.reduce((a, b) => a + b, 0);
     const rows = FISH.map((fish, i) => ({
       fish,
-      pct: total > 0 ? (100 * weights[i]) / total : 0
+      pct: isExclusiveFish(fish)
+        ? 100 * exclusiveRollChance(fish)
+        : total > 0
+          ? (100 * weights[i]) / total
+          : 0
     })).sort(
       (a, b) =>
         rarityOrder(a.fish.rarity) - rarityOrder(b.fish.rarity) ||
@@ -17221,12 +17295,15 @@
         .map(({ fish, pct }) => {
           const here = fishValue(fish, spot);
           const chance = formatChance(pct);
+          const exclusiveNote = isExclusiveFish(fish) ? " · luck ignored" : "";
           return `<tr class="at-spot">
           <td class="guide-fish-name">${fish.name}</td>
-          <td class="guide-rarity ${fish.rarity}">${fish.rarity}</td>
+          <td class="guide-rarity ${fish.rarity}">${formatRarityName(fish.rarity)}</td>
           <td>${formatNum(fish.value)}</td>
           <td class="guide-here">${formatNum(here)}</td>
-          <td class="guide-spots" title="${pct.toFixed(8)}%">${chance}</td>
+          <td class="guide-spots" title="${pct.toFixed(12)}%${exclusiveNote}">${chance}${
+            isExclusiveFish(fish) ? " · no luck" : ""
+          }</td>
         </tr>`;
         })
         .join("");
@@ -17353,10 +17430,10 @@
             const lookVal = bookLookValue(fish, showEntry);
             return `<button type="button" class="book-card is-caught rarity-${fish.rarity}${
               showEntry ? ` ${variantClassList(showEntry)}` : ""
-            }" data-book-inspect="${fish.id}" title="${label} · ${fish.rarity} · ${formatNum(lookVal)} coins · tap to inspect">
+            }" data-book-inspect="${fish.id}" title="${label} · ${formatRarityName(fish.rarity)} · ${formatNum(lookVal)} coins · tap to inspect">
               <span class="book-card-glyph" aria-hidden="true">${fishGlyphHtml(fish, showEntry)}</span>
               <span class="book-card-name">${label}</span>
-              <span class="book-card-meta">${fish.rarity} · ${formatNum(lookVal)}</span>
+              <span class="book-card-meta">${formatRarityName(fish.rarity)} · ${formatNum(lookVal)}</span>
             </button>`;
           }
           return `<button type="button" class="book-card is-unknown rarity-${fish.rarity}" data-book-inspect="${fish.id}" title="Not caught yet · ${bookFilterLabel()} · tap to inspect">
@@ -17364,12 +17441,12 @@
                 fish
               )}</span>
               <span class="book-card-name">???</span>
-              <span class="book-card-meta">${fish.rarity}</span>
+              <span class="book-card-meta">${formatRarityName(fish.rarity)}</span>
             </button>`;
         })
         .join("");
       return `<section class="book-section">
-        <h3 class="book-section-title rarity-${rarity}">${rarity} <span>${got}/${list.length}</span></h3>
+        <h3 class="book-section-title rarity-${rarity}">${formatRarityName(rarity)} <span>${got}/${list.length}</span></h3>
         <div class="book-grid">${cards}</div>
       </section>`;
     }).join("");
@@ -17502,13 +17579,13 @@
                 ? ` · ${mut}`
                 : "";
       if (!known) {
-        bookInspectMetaEl.textContent = `${fish.rarity} · not caught yet`;
+        bookInspectMetaEl.textContent = `${formatRarityName(fish.rarity)} · not caught yet`;
       } else if (fromAquarium) {
-        bookInspectMetaEl.textContent = `${fish.rarity} · sell ${formatNum(
+        bookInspectMetaEl.textContent = `${formatRarityName(fish.rarity)} · sell ${formatNum(
           fishValue(fish, currentSpot(), entryOverride || showEntry)
         )}${mutNote}`;
       } else {
-        bookInspectMetaEl.textContent = `${fish.rarity} · ${formatNum(
+        bookInspectMetaEl.textContent = `${formatRarityName(fish.rarity)} · ${formatNum(
           bookLookValue(fish, showEntry)
         )} coins${mutNote}`;
       }
@@ -18498,7 +18575,9 @@
     if (boardFishing) {
       const id = String(boardFishing.id || "").toLowerCase();
       const rarity = String(boardFishing.rarity || "").toLowerCase();
-      if (id === "soultwin" || rarity === "exclusive") boardScore = 0;
+      if (id === "soultwin" || id === "mysteryfin" || rarity === "exclusive" || rarity === "mystery") {
+        boardScore = 0;
+      }
     }
     // Ignore pre-v3 collapsed Apex scores (~1e30+) that wipe looks.
     if (boardScore > 1e15) boardScore = 0;

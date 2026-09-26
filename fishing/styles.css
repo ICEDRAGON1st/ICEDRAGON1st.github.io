@@ -60,6 +60,7 @@ canvas,
   --primordial: #4ade80;
   --ultimate: #fde047;
   --exclusive: #f0abfc;
+  --mystery: #a3e635;
   /* Spot water look (overridden per body[data-spot]) */
   --spot-accent: #2ec4b6;
   --spot-page-a: #1a4a5c;
@@ -1530,6 +1531,12 @@ body.no-lightning-flash .wx-flash {
 .guide-rarity.ultimate {
   color: var(--ultimate);
 }
+.guide-rarity.exclusive {
+  color: var(--exclusive);
+}
+.guide-rarity.mystery {
+  color: var(--mystery);
+}
 
 .guide-spots {
   font-variant-numeric: tabular-nums;
@@ -2839,6 +2846,7 @@ body[data-spot="mythforge"] .water-mist {
 .cast-btn.phase-result.is-catch.rarity-primordial .catch-sil,
 .cast-btn.phase-result.is-catch.rarity-ultimate .catch-sil,
 .cast-btn.phase-result.is-catch.rarity-exclusive .catch-sil,
+.cast-btn.phase-result.is-catch.rarity-mystery .catch-sil,
 .cast-btn.phase-result.is-catch.rarity-treasure .catch-sil {
   filter: drop-shadow(0 0 10px rgba(240, 193, 75, 0.55));
 }
@@ -4197,6 +4205,11 @@ body.event-mutation .stage {
 .catch-line.exclusive {
   color: var(--exclusive);
   text-shadow: 0 0 22px rgba(240, 171, 252, 0.7);
+}
+
+.catch-line.mystery {
+  color: var(--mystery);
+  text-shadow: 0 0 22px rgba(163, 230, 53, 0.75);
 }
 
 .catch-line.treasure {
@@ -6108,6 +6121,10 @@ body.treasure-boost .cast-btn {
 .fish-chip.exclusive {
   color: var(--exclusive);
   box-shadow: inset 0 0 0 1px rgba(240, 171, 252, 0.45);
+}
+.fish-chip.mystery {
+  color: var(--mystery);
+  box-shadow: inset 0 0 0 1px rgba(163, 230, 53, 0.5);
 }
 
 .sell-btn {
