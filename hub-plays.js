@@ -102,7 +102,7 @@
     crossy: "Cross Walk",
     fishing: "Fishing Idle",
     cows: "Cow Merge",
-    dino: "Runosaur 3D",
+    dino: "Runosaur",
     ramp: "Ramp Rush",
     guac: "Guac-A-Mole",
     bubble: "Bubble Pop Relay",

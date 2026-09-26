@@ -5,11 +5,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-  <title>Runosaur 3D</title>
+  <title>Runosaur</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260923t">
+  <link rel="stylesheet" href="styles.css?v=20260926d">
 </head>
 <body>
   <header class="hud">
@@ -21,19 +21,19 @@
   </header>
 
   <main class="shell">
-    <canvas id="game" width="1280" height="480" aria-label="Runosaur 3D ice cave chase"></canvas>
+    <canvas id="game" width="1280" height="480" aria-label="Runosaur ice cave chase"></canvas>
     <div class="touch-controls" aria-label="Touch controls">
       <button type="button" id="duck-btn" class="touch-btn touch-duck">Duck</button>
       <button type="button" id="jump-btn" class="touch-btn touch-jump">Jump</button>
     </div>
-    <p class="hint">Jump: <kbd>Space</kbd> / <kbd>W</kbd>. Duck: hold <kbd>S</kbd> / <kbd>↓</kbd>. Strafe: <kbd>A</kbd> / <kbd>D</kbd> or swipe sideways. Stay ahead of the dragon.</p>
+    <p class="hint">Jump: <kbd>Space</kbd> / <kbd>W</kbd>. Duck: hold <kbd>S</kbd> / <kbd>↓</kbd>. Stay ahead of the dragon.</p>
   </main>
 
   <div id="overlay" class="overlay">
     <div class="overlay-card">
-      <p class="eyebrow">3D ice cave chase</p>
-      <h1 id="overlay-title">Runosaur 3D</h1>
-      <p id="overlay-text" class="lead">Run into the cave. Jump crystals, duck bats, strafe with A/D. Stay ahead of the dragon.</p>
+      <p class="eyebrow">Ice cave chase</p>
+      <h1 id="overlay-title">Runosaur</h1>
+      <p id="overlay-text" class="lead">Run through the cave. Jump crystals, duck bats. Stay ahead of the dragon.</p>
       <p class="score-line">Best: <strong id="overlay-best">0</strong></p>
       <div class="overlay-actions">
         <button id="start-btn" type="button" class="btn">Play</button>
@@ -54,6 +54,6 @@
   <script src="../hub-chat.js?v=20260925a"></script>
   <script src="../hub-calls.js?v=20260925a"></script>
 <script src="../hub-leaderboard.js?v=20260925a"></script>
-  <script src="script.js?v=20260925e"></script>
+  <script src="script.js?v=20260926d"></script>
 </body>
 </html>
