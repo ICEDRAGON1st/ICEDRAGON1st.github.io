@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260926n": [
+    "Fishing Idle: Old Boot looks like a boot, easter egg rarity, own auto-sell toggle"
+  ],
   "20260926m": [
     "Fishing Idle: secret Old Boot easter egg (find it…)"
   ],

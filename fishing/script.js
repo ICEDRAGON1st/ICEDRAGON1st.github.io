@@ -224,7 +224,8 @@
     "primordial",
     "ultimate",
     "exclusive",
-    "mystery"
+    "mystery",
+    "easteregg"
   ];
 
   const RARITY_RANK = {
@@ -260,7 +261,8 @@
     primordial: 30,
     ultimate: 31,
     exclusive: 32,
-    mystery: 33
+    mystery: 33,
+    easteregg: 34
   };
 
   const RARITY_WEIGHT = {
@@ -296,7 +298,8 @@
     primordial: 0.00135,
     ultimate: 0.00095,
     exclusive: 0,
-    mystery: 0
+    mystery: 0,
+    easteregg: 0
   };
 
   /** Soul Twin: 1 in 10,000,000 per fish roll (luck-immune; cast + boat). */
@@ -650,7 +653,7 @@
     {
       id: "oldboot",
       name: "Old Boot",
-      rarity: "common",
+      rarity: "easteregg",
       value: 7,
       eggOnly: true
     }
@@ -12199,7 +12202,7 @@
     theultimate: "omega",
     soultwin: "leviathan",
     mysteryfin: "ghost",
-    oldboot: "carp"
+    oldboot: "boot"
   };
 
   const FISH_TINT = {
@@ -12297,7 +12300,7 @@
     apexkoi: "#f59e0b",
     soultwin: "#e879f9",
     mysteryfin: "#a3e635",
-    oldboot: "#8b6914",
+    oldboot: "#7a5c2e",
     spirefin: "#fde68a",
     solsticeray: "#fef3c7",
     thezenith: "#fffbeb",
@@ -12935,6 +12938,17 @@
           <path class="spot" d="M30 16 a5 5 0 1 0 0.1 0" fill="none"/>
           <path class="gill" d="M46 10 C48 15 48 20 46 24" fill="none"/>
           ${fishEye(50, 12, 2.3)}`;
+      case "boot":
+        return `
+          <path class="body shade" d="M10 27 L50 27 L52 29.5 L8 29.5 Z"/>
+          <path class="fin" d="M9 27 L9 22.5 L17 22.5 L17 27 Z"/>
+          <path class="body" d="M12 27 L12 15.5 Q12 9.5 20 8.5 L27 8.5 Q31.5 8.5 33 13.5 L34.5 21.5 L48 21.5 Q54 21.5 54 27 Z"/>
+          <path class="belly" d="M14 15.5 L14 7.5 Q14 3.5 21.5 3 L27.5 3 Q31.5 3 31.5 8 L30 15.5 Z"/>
+          <path class="gill" d="M22 6.5 L28 6.5" fill="none" stroke-width="1.2" opacity="0.55"/>
+          <ellipse cx="42" cy="24" rx="5" ry="2.2" fill="currentColor" opacity="0.22"/>
+          <path class="stripe" d="M36 18 L50 18" stroke-width="1.4" opacity="0.35"/>
+          <circle cx="18" cy="19" r="1.1" fill="currentColor" opacity="0.35"/>
+          <circle cx="24" cy="22" r="0.9" fill="currentColor" opacity="0.28"/>`;
       default:
         return `
           <path class="fin belly-fin" d="M26 22 C30 28 38 28 42 22 C36 26 30 26 26 22 Z"/>
@@ -13150,7 +13164,8 @@
       primordial: "#4ade80",
       ultimate: "#fde047",
       exclusive: "#f0abfc",
-      mystery: "#a3e635"
+      mystery: "#a3e635",
+      easteregg: "#c4a574"
     };
     return map[rarity] || "#a8e6df";
   }
@@ -14414,6 +14429,7 @@
 
   function formatRarityName(rarity) {
     if (rarity === "mystery") return "???";
+    if (rarity === "easteregg") return "easter egg";
     return String(rarity || "");
   }
 
@@ -14578,6 +14594,8 @@
       "primordial",
       "ultimate",
       "exclusive",
+      "mystery",
+      "easteregg",
       "treasure"
     );
     if (cls) catchLineEl.classList.add(cls);
@@ -14588,6 +14606,7 @@
   }
 
   function catchTone(rarity) {
+    if (rarity === "easteregg") return "easteregg";
     if (rarity === "mystery") return "mystery";
     if (rarity === "exclusive") return "exclusive";
     if (rarity === "ultimate") return "ultimate";
