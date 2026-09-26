@@ -493,54 +493,121 @@
     ctx.fill();
   }
 
+  function drawEllipse(x, y, rx, ry, color) {
+    ctx.fillStyle = color;
+    ctx.beginPath();
+    ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  function drawWing(cx, cy, span, thick, flap, color, flip) {
+    const dir = flip ? -1 : 1;
+    const tipX = cx + dir * span;
+    const tipY = cy - 8 + flap;
+    const midX = cx + dir * span * 0.55;
+    const midY = cy + thick * 0.35 + flap * 0.4;
+    drawPoly(
+      [
+        { x: cx, y: cy },
+        { x: midX, y: midY + thick },
+        { x: tipX, y: tipY + 6 },
+        { x: midX, y: tipY - thick * 0.2 },
+        { x: cx + dir * 8, y: cy - thick * 0.4 }
+      ],
+      shade(color, 0.75)
+    );
+    drawPoly(
+      [
+        { x: cx, y: cy },
+        { x: midX, y: tipY - thick * 0.2 },
+        { x: tipX, y: tipY + 6 },
+        { x: midX - dir * 6, y: tipY + 2 },
+        { x: cx + dir * 4, y: cy - 2 }
+      ],
+      shade(color, 1.15),
+      "rgba(255,255,255,0.25)"
+    );
+    ctx.strokeStyle = shade(color, 1.25);
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.quadraticCurveTo(midX, tipY - 4, tipX, tipY + 6);
+    ctx.stroke();
+  }
+
   function drawChaseDragon() {
     const bob = Math.sin(anim * 2.4) * 6;
     const threat = Math.min(1, score / 450);
-    const baseX = -20 + threat * 28;
-    const baseY = GROUND_Y - 110 + bob;
+    const baseX = 8 + threat * 24;
+    const baseY = GROUND_Y - 88 + bob;
     const body = deepCave ? "#2a1838" : "#3d2460";
-    const wing = deepCave ? "#1a1028" : "#2a1848";
-    const alpha = 0.55 + threat * 0.4;
+    const wing = deepCave ? "#4a2a6a" : "#5a3a88";
+    const belly = deepCave ? "#4a3060" : "#6a4898";
+    const alpha = 0.6 + threat * 0.35;
+    const flap = Math.sin(anim * 5) * 14;
 
     ctx.save();
-    ctx.globalAlpha = alpha * 0.35;
-    ctx.fillStyle = "#000";
-    ctx.beginPath();
-    ctx.ellipse(baseX + 90, GROUND_Y + 8, 88, 12, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.globalAlpha = alpha * 0.3;
+    drawEllipse(baseX + 70, GROUND_Y + 6, 78, 11, "#000");
     ctx.globalAlpha = alpha;
 
-    drawShadeBox(baseX, baseY + 36, 96, 44, body, 12);
-    drawShadeBox(baseX + 78, baseY + 22, 54, 34, body, 10);
-    drawShadeBox(baseX + 120, baseY + 14, 36, 28, shade(body, 1.08), 8);
+    // Far wing (behind body)
+    drawWing(baseX + 52, baseY + 18, 70, 22, -flap, wing, false);
 
+    // Tail
+    drawPoly(
+      [
+        { x: baseX - 8, y: baseY + 42 },
+        { x: baseX + 28, y: baseY + 50 },
+        { x: baseX + 24, y: baseY + 62 },
+        { x: baseX - 36, y: baseY + 58 },
+        { x: baseX - 48, y: baseY + 44 }
+      ],
+      shade(body, 0.85)
+    );
+    drawPoly(
+      [
+        { x: baseX - 48, y: baseY + 44 },
+        { x: baseX - 62, y: baseY + 28 },
+        { x: baseX - 36, y: baseY + 40 }
+      ],
+      shade(body, 1.05)
+    );
+
+    // Body
+    drawShadeBox(baseX + 18, baseY + 28, 88, 40, body, 11);
+    drawShadeBox(baseX + 28, baseY + 40, 64, 22, belly, 7);
+
+    // Neck + head
+    drawShadeBox(baseX + 92, baseY + 14, 36, 28, body, 9);
+    drawShadeBox(baseX + 118, baseY + 6, 40, 32, shade(body, 1.06), 9);
+    drawShadeBox(baseX + 148, baseY + 16, 22, 14, shade(body, 0.9), 5);
+
+    // Horns
     ctx.fillStyle = deepCave ? "#8eb4d4" : "#c5e8ff";
     ctx.beginPath();
-    ctx.moveTo(baseX + 132, baseY + 16);
-    ctx.lineTo(baseX + 126, baseY - 10);
-    ctx.lineTo(baseX + 142, baseY + 14);
+    ctx.moveTo(baseX + 128, baseY + 8);
+    ctx.lineTo(baseX + 122, baseY - 16);
+    ctx.lineTo(baseX + 138, baseY + 6);
     ctx.fill();
     ctx.beginPath();
-    ctx.moveTo(baseX + 144, baseY + 18);
-    ctx.lineTo(baseX + 152, baseY - 4);
-    ctx.lineTo(baseX + 154, baseY + 20);
+    ctx.moveTo(baseX + 142, baseY + 10);
+    ctx.lineTo(baseX + 150, baseY - 10);
+    ctx.lineTo(baseX + 152, baseY + 12);
     ctx.fill();
 
-    ctx.fillStyle = "#ff3b3b";
-    ctx.beginPath();
-    ctx.arc(baseX + 142, baseY + 28, 4.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = "#fff";
-    ctx.beginPath();
-    ctx.arc(baseX + 140.5, baseY + 26.5, 1.4, 0, Math.PI * 2);
-    ctx.fill();
+    drawEllipse(baseX + 140, baseY + 20, 5, 5, "#ff3b3b");
+    drawEllipse(baseX + 138.5, baseY + 18.5, 1.6, 1.6, "#fff");
 
-    const flap = Math.sin(anim * 5) * 10;
-    drawShadeBox(baseX + 22, baseY + 4 + flap * 0.25, 56, 12, wing, 18 + flap * 0.3);
+    // Near wing (in front) — opposite side
+    drawWing(baseX + 48, baseY + 22, 78, 24, flap, wing, true);
+
+    drawShadeBox(baseX + 36, baseY + 62, 14, 22, shade(body, 0.8), 5);
+    drawShadeBox(baseX + 78, baseY + 62, 14, 22, shade(body, 0.8), 5);
 
     if (Math.sin(chaseBreath * 3) > 0.45) {
-      const ox = baseX + 158;
-      const oy = baseY + 30;
+      const ox = baseX + 168;
+      const oy = baseY + 24;
       const breath = ctx.createLinearGradient(ox, oy, ox + 80, oy - 6);
       breath.addColorStop(0, "rgba(180,230,255,0.55)");
       breath.addColorStop(1, "rgba(180,230,255,0)");
@@ -561,62 +628,89 @@
     const sy = GROUND_Y - lift;
     const ducking = dino.ducking;
     const onGround = dino.onGround;
-    const leg = onGround ? Math.floor(anim * speed * 0.028) % 2 : 0;
+    const run = onGround ? Math.sin(anim * speed * 0.045) : 0;
     const body = deepCave ? "#e8f4ff" : "#ffffff";
     const accent = deepCave ? "#3d7fd4" : "#1e6ad4";
     const belly = deepCave ? "#9ec4ef" : "#7eb6f0";
-    const wingC = deepCave ? "#5a9aef" : "#4a9cff";
     const crest = deepCave ? "#fff6c8" : "#ffe566";
 
-    // Ground shadow
     ctx.save();
-    ctx.globalAlpha = Math.max(0.2, 0.45 - dino.y * 0.003);
-    ctx.fillStyle = "#041018";
-    ctx.beginPath();
-    ctx.ellipse(sx + 6, GROUND_Y + 4, 42, 10, 0, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.globalAlpha = Math.max(0.18, 0.42 - dino.y * 0.003);
+    drawEllipse(sx + 4, GROUND_Y + 4, 38, 9, "#041018");
     ctx.restore();
 
     if (ducking) {
-      const baseY = sy - 38;
-      drawShadeBox(sx - 48, baseY + 6, 96, 32, accent, 10);
-      drawShadeBox(sx - 14, baseY + 10, 52, 24, body, 8);
-      drawShadeBox(sx - 54, baseY + 12, 28, 14, accent, 6);
-      drawShadeBox(sx + 20, baseY + 4, 24, 16, crest, 6);
-      ctx.fillStyle = "#0a1520";
-      ctx.beginPath();
-      ctx.arc(sx + 26, baseY + 16, 4.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#fff";
-      ctx.beginPath();
-      ctx.arc(sx + 25, baseY + 15, 1.5, 0, Math.PI * 2);
-      ctx.fill();
-    } else {
-      const baseY = sy - 108;
-      const legH = 28 + (leg ? 6 : 0);
-      const legH2 = 28 + (leg ? 0 : 6);
-      drawShadeBox(sx - 30, sy - legH, 22, legH, accent, 7);
-      drawShadeBox(sx + 6, sy - legH2, 22, legH2, accent, 7);
-      drawShadeBox(sx - 36, baseY + 48, 72, 48, accent, 11);
-      drawShadeBox(sx - 24, baseY + 54, 48, 30, belly, 8);
-      drawShadeBox(sx - 26, baseY + 16, 54, 40, body, 10);
-      drawShadeBox(sx + 8, baseY + 26, 26, 20, accent, 7);
-      drawShadeBox(sx - 18, baseY - 2, 14, 22, crest, 5);
-      drawShadeBox(sx + 4, baseY, 12, 18, crest, 5);
-      const wing = Math.sin(anim * 11) * 5;
-      drawShadeBox(sx - 58, baseY + 44 + wing, 28, 12, wingC, 14);
-      drawShadeBox(sx - 62, baseY + 38, 30, 14, accent, 6);
-      ctx.fillStyle = "#0a1520";
-      ctx.beginPath();
-      ctx.arc(sx - 6, baseY + 34, 5, 0, Math.PI * 2);
-      ctx.arc(sx + 16, baseY + 34, 5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#fff";
-      ctx.beginPath();
-      ctx.arc(sx - 7, baseY + 32.5, 1.6, 0, Math.PI * 2);
-      ctx.arc(sx + 15, baseY + 32.5, 1.6, 0, Math.PI * 2);
-      ctx.fill();
+      drawShadeBox(sx - 44, sy - 34, 78, 28, accent, 9);
+      drawShadeBox(sx - 28, sy - 28, 52, 18, belly, 6);
+      drawShadeBox(sx + 20, sy - 40, 34, 28, body, 8);
+      drawShadeBox(sx + 46, sy - 30, 18, 12, shade(accent, 0.95), 4);
+      drawPoly(
+        [
+          { x: sx + 28, y: sy - 40 },
+          { x: sx + 34, y: sy - 58 },
+          { x: sx + 44, y: sy - 40 }
+        ],
+        crest
+      );
+      drawEllipse(sx + 42, sy - 28, 4.2, 4.2, "#0a1520");
+      drawEllipse(sx + 41, sy - 29, 1.4, 1.4, "#fff");
+      drawShadeBox(sx + 8, sy - 22, 14, 8, accent, 3);
+      return;
     }
+
+    // Classic side-view dino facing right
+    const legSwing = run * 10;
+    drawShadeBox(sx - 8, sy - 36 + legSwing * 0.3, 16, 36 - legSwing * 0.3, shade(accent, 0.85), 6);
+    drawShadeBox(sx - 6, sy - 8 + Math.max(0, legSwing), 20, 8, shade(accent, 0.75), 4);
+    drawShadeBox(sx + 14, sy - 36 - legSwing * 0.3, 16, 36 + legSwing * 0.3, accent, 6);
+    drawShadeBox(sx + 16, sy - 8 - Math.min(0, legSwing), 20, 8, shade(accent, 0.9), 4);
+
+    drawPoly(
+      [
+        { x: sx - 18, y: sy - 48 },
+        { x: sx - 52, y: sy - 58 + run * 4 },
+        { x: sx - 64, y: sy - 44 + run * 3 },
+        { x: sx - 28, y: sy - 36 }
+      ],
+      shade(accent, 0.9)
+    );
+    drawPoly(
+      [
+        { x: sx - 52, y: sy - 58 + run * 4 },
+        { x: sx - 72, y: sy - 52 + run * 5 },
+        { x: sx - 64, y: sy - 44 + run * 3 }
+      ],
+      shade(body, 0.95)
+    );
+
+    drawShadeBox(sx - 16, sy - 78, 58, 46, accent, 10);
+    drawShadeBox(sx - 6, sy - 68, 42, 28, belly, 7);
+    drawShadeBox(sx + 28, sy - 62, 12, 20, shade(accent, 0.95), 4);
+    drawShadeBox(sx + 34, sy - 46, 10, 8, shade(accent, 0.85), 3);
+
+    drawShadeBox(sx + 28, sy - 96, 22, 28, body, 7);
+    drawShadeBox(sx + 40, sy - 108, 36, 30, body, 8);
+    drawShadeBox(sx + 68, sy - 98, 16, 12, shade(accent, 0.95), 4);
+
+    drawPoly(
+      [
+        { x: sx + 46, y: sy - 108 },
+        { x: sx + 50, y: sy - 128 },
+        { x: sx + 60, y: sy - 108 }
+      ],
+      crest
+    );
+    drawPoly(
+      [
+        { x: sx + 58, y: sy - 108 },
+        { x: sx + 64, y: sy - 124 },
+        { x: sx + 72, y: sy - 108 }
+      ],
+      shade(crest, 0.92)
+    );
+
+    drawEllipse(sx + 58, sy - 96, 5, 5.5, "#0a1520");
+    drawEllipse(sx + 56.5, sy - 97.5, 1.7, 1.7, "#fff");
   }
 
   function drawCrystal(x, groundY, w, h, color) {
