@@ -1956,7 +1956,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     local.counts[id] = (Number(local.counts[id]) || 0) + 1;
     saveLocal(local);
     sync().catch(() => {});
-    registerAllTime().catch(() => {});
+    touchAllTimeLastSeen(entry.at).catch(() => {});
     return entry;
   }
 
@@ -2324,6 +2324,37 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     saveAllTimeLocal(allTimeCache);
   }
 
+  /** Stamp real last-seen (game play) — not hub tab heartbeats. */
+  async function touchAllTimeLastSeen(at = Date.now()) {
+    if (!hasRequiredName()) return;
+    const me = getPlayerId();
+    const myName = getName();
+    if (!me || !myName || isPlaceholderName(myName)) return;
+    const when = Math.max(0, Number(at) || Date.now());
+    const prev = allTimeCache[me] || {};
+    const nextRow = {
+      firstAt: Number(prev.firstAt) || when,
+      lastAt: Math.max(Number(prev.lastAt) || 0, when),
+      name: preferPlayerName(prev.name, myName)
+    };
+    if (
+      Number(prev.lastAt) === nextRow.lastAt &&
+      preferPlayerName(prev.name, "") === preferPlayerName(nextRow.name, "")
+    ) {
+      return;
+    }
+    rememberAllTime({ ...allTimeCache, [me]: nextRow });
+    if (isRateLimited() && !sb()) return;
+    try {
+      const remote = await fetchAllTimeRemote();
+      const merged = mergeAllTime(remote, { [me]: nextRow });
+      await pushAllTimeRemote(merged);
+      rememberAllTime(merged);
+    } catch {
+      /* local already updated */
+    }
+  }
+
   function isPlaceholderName(name) {
     const n = sanitizeName(name || "").toLowerCase();
     return !n || n === "guest" || n.startsWith("guest-") || n === "player";
@@ -2533,10 +2564,9 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       const presenceAt = presence ? presence.at : 0;
       const online = !!(presenceAt && now - presenceAt < ONLINE_TTL_MS);
       const storedLast = persistedLastAt(playerId);
-      // Online → presence time. Offline → stored lastAt, or presence if they left recently.
-      const lastAt = online
-        ? presenceAt
-        : Math.max(storedLast, firstAt, presenceAt && now - presenceAt < PRESENCE_KEEP_MS ? presenceAt : 0);
+      // Online → live presence. Offline → persisted real lastAt only (not a
+      // lingering presence ping — those used to fake "5m ago" for idle tabs).
+      const lastAt = online ? presenceAt : Math.max(storedLast, firstAt);
       const row = {
         playerId,
         name,
@@ -2579,10 +2609,12 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   function getLastSeen(playerId, name = "") {
     const id = String(playerId || "");
     if (!id && !name) return 0;
-    const presence = findPresence(id, name);
-    const presenceAt = presence ? presence.at : 0;
-    const allAt = persistedLastAt(id);
-    return Math.max(presenceAt, allAt);
+    if (isPresentOnline(id, Date.now(), name)) {
+      const presence = findPresence(id, name);
+      return presence ? presence.at : Date.now();
+    }
+    // Offline: persisted lastAt only (play/register), not presence heartbeats.
+    return Math.max(persistedLastAt(id), 0);
   }
 
   function formatLastOnline(playerIdOrAt, opts = {}) {
@@ -2621,8 +2653,9 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
         return getAllTimeCount();
       }
 
-      // Keep any larger local cache if remote came back tiny (partial/corrupt)
-      remote = mergeAllTime(loadAllTimeLocal(), remote);
+      // Keep any larger local roster if remote came back tiny (partial/corrupt),
+      // but trust remote lastAt so heartbeat pollution / repairs stick.
+      remote = mergeAllTimePreferRemoteLast(remote, loadAllTimeLocal());
 
       let plays = cache.plays || loadLocal().plays || [];
       try {
@@ -2640,12 +2673,19 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 
       const now = Date.now();
       const myName = getName();
+      // Do NOT stamp lastAt: now on heartbeat/register — that made everyone look
+      // "last online just now" while only having the hub tab open. Preserve the
+      // stored lastAt; first-time players get now once.
       const meEntry =
-        myName && !isPlaceholderName(myName)
+        me && myName && !isPlaceholderName(myName)
           ? {
               [me]: {
                 firstAt: Number(remote[me]?.firstAt) || now,
-                lastAt: now,
+                lastAt:
+                  Math.max(
+                    Number(remote[me]?.lastAt) || 0,
+                    Number(remote[me]?.firstAt) || 0
+                  ) || now,
                 name: myName
               }
             }
