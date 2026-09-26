@@ -59,6 +59,7 @@
     garden: { label: "Garden Snap", lowerBetter: false, unit: "score" },
     blockblast: { label: "Block Sweep", lowerBetter: false, unit: "score" },
     lemmings: { label: "Dudes", lowerBetter: false, unit: "score" },
+    paper: { label: "Paper Claim", lowerBetter: false, unit: "score" },
     mine: { label: "Mine Depth", lowerBetter: false, unit: "depth" },
     "mine-ore": { label: "Mine Best Ore", lowerBetter: false, unit: "ore" },
     "online-time": { label: "Time Online", lowerBetter: false, unit: "playtime" }

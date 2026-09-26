@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en" data-boot-title="Paper Claim" data-boot-sub="Loading arena…">
+<head>
+  <script src="../hub-game-boot.js?v=20260924a"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paper Claim</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20260926r">
+</head>
+<body>
+  <div class="hud">
+    <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
+    <div class="hud-stats">
+      <span>Area: <strong id="score">0%</strong></span>
+      <span>Best: <strong id="high-score">0%</strong></span>
+      <span id="hud-mode">vs NPC</span>
+    </div>
+  </div>
+
+  <main class="shell">
+    <canvas id="game" width="720" height="720" aria-label="Paper Claim arena"></canvas>
+    <div id="leaderboard" class="live-board" aria-live="polite"></div>
+    <p class="hint">WASD / arrows to steer. Leave your color, loop back, claim land. Cut trails to KO rivals.</p>
+  </main>
+
+  <div id="overlay" class="overlay">
+    <div class="overlay-card">
+      <h1 id="overlay-title">Paper Claim</h1>
+      <p id="overlay-text">Paint the map like paper.io — claim territory, cut enemy trails, and survive.</p>
+      <div id="mode-picker" class="picker" role="group" aria-label="Game mode">
+        <button type="button" class="pick-btn active" data-mode="npc">vs NPC</button>
+        <button type="button" class="pick-btn" data-mode="online">Online</button>
+      </div>
+      <div id="npc-panel" class="mode-panel">
+        <div class="picker" role="group" aria-label="Bot count">
+          <button type="button" class="pick-btn active" data-bots="4">4 bots</button>
+          <button type="button" class="pick-btn" data-bots="6">6 bots</button>
+          <button type="button" class="pick-btn" data-bots="8">8 bots</button>
+        </div>
+      </div>
+      <div id="online-panel" class="mode-panel hidden">
+        <button id="online-quick-btn" type="button" class="btn">Quick Play</button>
+        <p id="online-status" class="online-status">Match with others, or host a room code.</p>
+        <div class="online-row">
+          <button id="online-create-btn" type="button" class="btn btn-secondary">Create room</button>
+          <input id="online-join-input" type="text" maxlength="6" placeholder="Code" autocomplete="off" spellcheck="false">
+          <button id="online-join-btn" type="button" class="btn btn-secondary">Join</button>
+        </div>
+        <p id="online-code" class="online-code hidden"></p>
+        <button id="online-cancel-btn" type="button" class="btn btn-secondary hidden">Leave lobby</button>
+      </div>
+      <p id="overlay-best" class="overlay-best">Best claim: <strong>0%</strong></p>
+      <div class="overlay-actions">
+        <button id="resume-btn" type="button" class="btn btn-secondary hidden">Resume</button>
+        <button id="start-btn" type="button" class="btn">Play</button>
+        <button id="games-btn" type="button" class="btn btn-secondary">Games</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../hub-streak.js"></script>
+  <script src="../hub-achievements.js"></script>
+  <script src="../hub-sound.js"></script>
+  <script src="../hub-confetti.js"></script>
+  <script src="../hub-supabase.js?v=20260923u"></script>
+  <script src="../hub-account-bag.js?v=20260923ag"></script>
+  <script src="../hub-plays.js?v=20260925a"></script>
+  <script src="../hub-eggs.js?v=20260926q"></script>
+  <script src="../hub-friends.js?v=20260923u"></script>
+  <script src="../hub-chat.js?v=20260925a"></script>
+  <script src="../hub-calls.js?v=20260925a"></script>
+  <script src="../hub-leaderboard.js?v=20260925a"></script>
+  <script src="script.js?v=20260926r"></script>
+</body>
+</html>

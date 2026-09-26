@@ -110,7 +110,8 @@
     garden: "Garden Snap",
     mine: "Mine Depth",
     blockblast: "Block Sweep",
-    lemmings: "Dudes"
+    lemmings: "Dudes",
+    paper: "Paper Claim"
   };
 
   let syncing = false;

@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260926r": [
+    "New game: Paper Claim — paper.io-style territory battles vs NPCs or online rooms"
+  ],
   "20260926q": [
     "My Games: secret easter eggs across Runosaur, Snake, Block Merge, Clicker, Hangman, Quiz, Tic Tac Toe, Space, Bounce Break, Guac"
   ],
@@ -1252,7 +1255,8 @@ const HUB_GAMES = [
   { id: "garden", name: "Garden Snap", path: "garden-snap/index.html" },
   { id: "mine", name: "Mine Depth", path: "mine/index.html" },
   { id: "blockblast", name: "Block Sweep", path: "block-sweep/index.html" },
-  { id: "lemmings", name: "Dudes", path: "dudes/index.html" }
+  { id: "lemmings", name: "Dudes", path: "dudes/index.html" },
+  { id: "paper", name: "Paper Claim", path: "paper-io/index.html" }
 ];
 
 /** Leaderboard tabs = hub points + hub-only boards first, then games (Mine Depth splits into depth + ore). */
