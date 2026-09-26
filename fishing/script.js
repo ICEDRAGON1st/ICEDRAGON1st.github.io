@@ -2498,7 +2498,7 @@
     {
       id: "speed",
       title: "Faster bites",
-      blurb: "Bait that shortens wait time — own many, but equip only one at a time."
+      blurb: "Only the equipped bait counts — smart shop shows the best one you can buy (skip weak baits)."
     },
     {
       id: "luck",
@@ -15945,6 +15945,8 @@
   }
 
   function shopSmartCategoryRows(kind, gearRow) {
+    if (kind === "speed") return shopSmartSpeedRows(gearRow);
+
     const items = GEAR.filter((g) => g.kind === kind);
     const owned = items.filter((g) => state.owned[g.id]);
     const unowned = items.filter((g) => !state.owned[g.id]);
@@ -15996,6 +15998,74 @@
 
     return html;
   }
+
+  /**
+   * Faster bites only use the equipped bait — skip the ladder.
+   * Smart shop shows the strongest bait you can afford (better than equipped).
+   */
+  function shopSmartSpeedRows(gearRow) {
+    const items = GEAR.filter((g) => g.kind === "speed");
+    const owned = items
+      .filter((g) => state.owned[g.id])
+      .sort((a, b) => b.amount - a.amount || a.cost - b.cost);
+    const eqAmt = equippedSpeedGear()?.amount || 0;
+    const upgrades = items
+      .filter((g) => !state.owned[g.id] && g.amount > eqAmt + 1e-9)
+      .sort((a, b) => b.amount - a.amount || a.cost - b.cost);
+    const affordable = upgrades.filter((g) => state.coins >= g.cost);
+    const bestBuy = affordable[0] || null;
+    const saveTarget =
+      !bestBuy && upgrades.length
+        ? [...upgrades].sort((a, b) => a.cost - b.cost || b.amount - a.amount)[0]
+        : null;
+    const featured = bestBuy || saveTarget;
+    const later = featured
+      ? upgrades.filter((g) => g.id !== featured.id)
+      : upgrades;
+    const showMore = shopSmartIsOpen("speed", "more");
+    const showOwned = shopSmartIsOpen("speed", "owned");
+
+    let html = `<div class="shop-smart-summary">${shopSmartSummary("speed")}</div>`;
+
+    if (!upgrades.length) {
+      html += `<div class="shop-smart-maxed">Best bait equipped — no stronger bait left</div>`;
+    } else if (featured) {
+      const tip = bestBuy
+        ? `Best bait you can buy now · ${shopSmartDeltaExtra(featured)}`
+        : `Save for this · ${shopSmartDeltaExtra(featured)}`;
+      html += gearRow(featured, {
+        next: true,
+        extra: tip
+      });
+    }
+
+    if (later.length) {
+      if (showMore) {
+        later.forEach((item) => {
+          html += gearRow(item, { extra: shopSmartDeltaExtra(item) });
+        });
+        html += `<button type="button" class="shop-smart-toggle" data-shop-smart="speed" data-shop-smart-part="more">Hide ${later.length} other baits</button>`;
+      } else {
+        html += `<button type="button" class="shop-smart-toggle" data-shop-smart="speed" data-shop-smart-part="more">Show ${later.length} other baits</button>`;
+      }
+    }
+
+    if (owned.length) {
+      if (showOwned) {
+        owned.forEach((item) => {
+          const muted =
+            state.equippedSpeed !== item.id &&
+            item.amount < (equippedSpeedGear()?.amount || 0);
+          html += gearRow(item, { muted });
+        });
+        html += `<button type="button" class="shop-smart-toggle" data-shop-smart="speed" data-shop-smart-part="owned">Hide ${owned.length} owned</button>`;
+      } else {
+        html += `<button type="button" class="shop-smart-toggle" data-shop-smart="speed" data-shop-smart-part="owned">Show ${owned.length} owned</button>`;
+      }
+    }
+
+    return html;
+  }
   /* ========== END SMART GEAR SHOP helpers ========== */
 
   function renderShop() {
@@ -16007,7 +16077,9 @@
       const equipped = exclusive && state.equippedSpeed === item.id;
       let status = owned ? "Owned" : "Not owned";
       if (exclusive && owned) status = equipped ? "Equipped" : "Owned · tap Equip";
-      if (opts.next) status = "Next upgrade";
+      if (opts.next) {
+        status = exclusive ? "Best buy" : "Next upgrade";
+      }
       let action;
       if (!owned) {
         action = `<button type="button" class="buy-btn" data-buy="${item.id}" ${

@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260926h": [
+    "Fishing Idle: smart shop Faster bites shows the best bait you can buy (skip the ladder)"
+  ],
   "20260926g": [
     "Fishing Idle: 10 new endgame spots + more upgrades across every gear line"
   ],
