@@ -2282,6 +2282,7 @@
   const settingsLightningFlash = document.getElementById("settings-lightning-flash");
   const settingsSfxEnabled = document.getElementById("settings-sfx-enabled");
   const settingsConfettiEnabled = document.getElementById("settings-confetti-enabled");
+  const settingsChestsEnabled = document.getElementById("settings-chests-enabled");
   const adminBtn = document.getElementById("admin-btn");
   const adminClose = document.getElementById("admin-close");
   const guideClose = document.getElementById("guide-close");
@@ -9813,6 +9814,7 @@
 
   /** Combined chance to find any chest; then 50/50 Coin vs Luck. Luck + chest gear raise this. */
   function treasureAnyChance(spot, forBoat = false) {
+    if (!chestsEnabled()) return 0;
     const t = Math.max(0, Math.min(MAX_SPOT_RARITY, Number(spot?.rarity) || 0)) / MAX_SPOT_RARITY;
     // Base: ~0.10% creek → ~0.28% omega
     const base = 0.001 + t * 0.0018;
@@ -9835,6 +9837,7 @@
   }
 
   function rollTreasure(spot, forBoat = false, chanceScale = 1) {
+    if (!chestsEnabled()) return null;
     const scale = Math.max(0, Number(chanceScale) || 0);
     if (Math.random() >= treasureAnyChance(spot, forBoat) * scale) return null;
     return Math.random() < 0.5 ? TREASURE_MONEY : TREASURE_LUCK;
@@ -16536,10 +16539,11 @@
       return {
         lightningFlash: raw.lightningFlash !== false,
         sfx: raw.sfx !== false,
-        confetti: raw.confetti !== false
+        confetti: raw.confetti !== false,
+        chests: raw.chests !== false
       };
     } catch {
-      return { lightningFlash: true, sfx: true, confetti: true };
+      return { lightningFlash: true, sfx: true, confetti: true, chests: true };
     }
   }
 
@@ -16566,6 +16570,15 @@
 
   function setConfettiEnabled(on) {
     fishingPrefs.confetti = !!on;
+    saveFishingPrefs();
+  }
+
+  function chestsEnabled() {
+    return fishingPrefs.chests !== false;
+  }
+
+  function setChestsEnabled(on) {
+    fishingPrefs.chests = !!on;
     saveFishingPrefs();
   }
 
@@ -16614,6 +16627,7 @@
     if (settingsSfxEnabled) settingsSfxEnabled.checked = sfxEnabled();
     if (settingsConfettiEnabled) settingsConfettiEnabled.checked = confettiEnabled();
     if (settingsLightningFlash) settingsLightningFlash.checked = lightningFlashEnabled();
+    if (settingsChestsEnabled) settingsChestsEnabled.checked = chestsEnabled();
   }
 
   function openSettings() {
@@ -17481,6 +17495,9 @@
   });
   settingsConfettiEnabled?.addEventListener("change", () => {
     setConfettiEnabled(!!settingsConfettiEnabled.checked);
+  });
+  settingsChestsEnabled?.addEventListener("change", () => {
+    setChestsEnabled(!!settingsChestsEnabled.checked);
   });
   adminBtn?.addEventListener("click", openAdmin);
   adminClose?.addEventListener("click", closeAdmin);
