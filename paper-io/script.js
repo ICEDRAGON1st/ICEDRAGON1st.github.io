@@ -1,7 +1,7 @@
 (function () {
   const HIGH_KEY = "paper-io-best-pct";
   const SIZE = 72;
-  const TICK_MS = 72;
+  const TICK_MS = 145;
   const START_SIZE = 3;
   const MAX_PLAYERS = 8;
   const NET_POLL_MS = 140;
@@ -11,14 +11,14 @@
   const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
   const COLORS = [
-    { fill: "#3ec6ff", soft: "rgba(62,198,255,0.45)", name: "Cyan" },
-    { fill: "#ff6b5a", soft: "rgba(255,107,90,0.45)", name: "Coral" },
-    { fill: "#7dff9a", soft: "rgba(125,255,154,0.45)", name: "Mint" },
-    { fill: "#ffd166", soft: "rgba(255,209,102,0.45)", name: "Gold" },
-    { fill: "#c792ff", soft: "rgba(199,146,255,0.45)", name: "Violet" },
-    { fill: "#ff9ecd", soft: "rgba(255,158,205,0.45)", name: "Pink" },
-    { fill: "#5eead4", soft: "rgba(94,234,212,0.45)", name: "Teal" },
-    { fill: "#fda4af", soft: "rgba(253,164,175,0.45)", name: "Rose" }
+    { fill: "#3ec6ff", soft: "rgba(62,198,255,0.55)", name: "Cyan" },
+    { fill: "#ff6b5a", soft: "rgba(255,107,90,0.55)", name: "Coral" },
+    { fill: "#7dff9a", soft: "rgba(125,255,154,0.55)", name: "Mint" },
+    { fill: "#ffd166", soft: "rgba(255,209,102,0.55)", name: "Gold" },
+    { fill: "#c792ff", soft: "rgba(199,146,255,0.55)", name: "Violet" },
+    { fill: "#ff9ecd", soft: "rgba(255,158,205,0.55)", name: "Pink" },
+    { fill: "#5eead4", soft: "rgba(94,234,212,0.55)", name: "Teal" },
+    { fill: "#fda4af", soft: "rgba(253,164,175,0.55)", name: "Rose" }
   ];
 
   const DIRS = {
@@ -30,7 +30,11 @@
   const OPP = { up: "down", down: "up", left: "right", right: "left" };
 
   const canvas = document.getElementById("game");
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { alpha: false });
+  const landLayer = document.createElement("canvas");
+  const landCtx = landLayer.getContext("2d");
+  let landDirty = true;
+  let moveAlpha = 1;
   const scoreEl = document.getElementById("score");
   const highEl = document.getElementById("high-score");
   const hudMode = document.getElementById("hud-mode");
@@ -154,6 +158,11 @@
 
   function clearGrid() {
     grid.fill(0);
+    landDirty = true;
+  }
+
+  function markLandDirty() {
+    landDirty = true;
   }
 
   function claimRect(pid, cx, cy, half) {
@@ -162,6 +171,7 @@
         if (inBounds(x, y)) grid[idx(x, y)] = pid;
       }
     }
+    markLandDirty();
   }
 
   function findSpawn(avoid) {
@@ -192,6 +202,8 @@
       color,
       x: spot.x,
       y: spot.y,
+      prevX: spot.x,
+      prevY: spot.y,
       dir,
       nextDir: dir,
       alive: true,
@@ -299,12 +311,14 @@
     for (let i = 0; i < grid.length; i++) {
       if (!visited[i] && grid[i] !== hid) grid[i] = hid;
     }
+    markLandDirty();
   }
 
   function clearPlayerCells(p) {
     const hid = idHash(p.id);
     for (let i = 0; i < grid.length; i++) if (grid[i] === hid) grid[i] = 0;
     p.trail = [];
+    markLandDirty();
   }
 
   function kill(p, reason) {
@@ -340,12 +354,26 @@
     const spot = findSpawn(players.filter((o) => o.alive && o !== p));
     p.x = spot.x;
     p.y = spot.y;
+    p.prevX = spot.x;
+    p.prevY = spot.y;
     p.alive = true;
     p.trail = [];
     const dirs = Object.keys(DIRS);
     p.dir = dirs[(Math.random() * dirs.length) | 0];
     p.nextDir = p.dir;
     claimRect(idHash(p.id), spot.x, spot.y, (START_SIZE / 2) | 0);
+  }
+
+  function lerp(a, b, t) {
+    return a + (b - a) * t;
+  }
+
+  function playerDrawPos(p) {
+    const t = Math.max(0, Math.min(1, moveAlpha));
+    return {
+      x: lerp(p.prevX, p.x, t),
+      y: lerp(p.prevY, p.y, t)
+    };
   }
 
   function botDecide(p, now) {
@@ -417,6 +445,8 @@
 
   function stepPlayer(p) {
     if (!p.alive) return;
+    p.prevX = p.x;
+    p.prevY = p.y;
     p.dir = p.nextDir;
     const d = DIRS[p.dir];
     const nx = p.x + d.x;
@@ -503,22 +533,19 @@
     }
   }
 
-  function draw() {
+  function paintLandLayer(cell) {
     const w = canvas.width;
     const h = canvas.height;
-    const cell = w / SIZE;
-    ctx.fillStyle = "#071018";
-    ctx.fillRect(0, 0, w, h);
-
-    // soft checker
-    ctx.fillStyle = "rgba(255,255,255,0.03)";
-    for (let y = 0; y < SIZE; y++) {
-      for (let x = 0; x < SIZE; x++) {
-        if ((x + y) & 1) ctx.fillRect(x * cell, y * cell, cell, cell);
-      }
+    if (landLayer.width !== w || landLayer.height !== h) {
+      landLayer.width = w;
+      landLayer.height = h;
+      landDirty = true;
     }
-
-    // territory
+    if (!landDirty) return;
+    landDirty = false;
+    landCtx.clearRect(0, 0, w, h);
+    landCtx.save();
+    // Soft overlapping discs read as organic blobs instead of tiles
     for (let y = 0; y < SIZE; y++) {
       for (let x = 0; x < SIZE; x++) {
         const owner = grid[idx(x, y)];
@@ -526,44 +553,111 @@
         const pid = idFromHash(owner);
         const pl = players.find((p) => p.id === pid);
         const color = COLORS[(pl ? pl.color : owner - 1) % COLORS.length];
-        ctx.fillStyle = color.soft;
-        ctx.fillRect(x * cell, y * cell, cell + 0.5, cell + 0.5);
+        landCtx.fillStyle = color.soft;
+        landCtx.beginPath();
+        landCtx.arc((x + 0.5) * cell, (y + 0.5) * cell, cell * 0.78, 0, Math.PI * 2);
+        landCtx.fill();
       }
     }
+    landCtx.restore();
+  }
 
-    // trails
+  function draw() {
+    const w = canvas.width;
+    const h = canvas.height;
+    const cell = w / SIZE;
+
+    // Soft arena wash
+    const bg = ctx.createRadialGradient(w * 0.5, h * 0.45, w * 0.1, w * 0.5, h * 0.5, w * 0.72);
+    bg.addColorStop(0, "#0d1c2e");
+    bg.addColorStop(1, "#060d16");
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, w, h);
+
+    // faint drift lines
+    ctx.strokeStyle = "rgba(255,255,255,0.03)";
+    ctx.lineWidth = 1;
+    for (let i = 1; i < 8; i++) {
+      const y = (h * i) / 8;
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+    }
+
+    paintLandLayer(cell);
+    ctx.save();
+    if (typeof ctx.filter === "string") {
+      ctx.filter = "blur(1.6px)";
+      ctx.drawImage(landLayer, 0, 0);
+      ctx.filter = "none";
+      ctx.globalAlpha = 0.55;
+      ctx.drawImage(landLayer, 0, 0);
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.drawImage(landLayer, 0, 0);
+    }
+    ctx.restore();
+
+    // Smooth trails
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
     for (const p of players) {
       if (!p.alive || !p.trail.length) continue;
       const c = COLORS[p.color % COLORS.length];
-      ctx.fillStyle = c.fill;
-      for (let i = 0; i < p.trail.length; i += 2) {
-        const x = p.trail[i];
-        const y = p.trail[i + 1];
-        ctx.globalAlpha = 0.85;
-        ctx.fillRect(x * cell + cell * 0.15, y * cell + cell * 0.15, cell * 0.7, cell * 0.7);
+      const pos = playerDrawPos(p);
+      ctx.strokeStyle = c.fill;
+      ctx.globalAlpha = 0.9;
+      ctx.lineWidth = Math.max(3, cell * 0.52);
+      ctx.shadowColor = c.fill;
+      ctx.shadowBlur = cell * 0.55;
+      ctx.beginPath();
+      ctx.moveTo((p.trail[0] + 0.5) * cell, (p.trail[1] + 0.5) * cell);
+      for (let i = 2; i < p.trail.length; i += 2) {
+        ctx.lineTo((p.trail[i] + 0.5) * cell, (p.trail[i + 1] + 0.5) * cell);
       }
+      ctx.lineTo((pos.x + 0.5) * cell, (pos.y + 0.5) * cell);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
       ctx.globalAlpha = 1;
     }
 
-    // players
+    // Players
     for (const p of players) {
       if (!p.alive) continue;
       const c = COLORS[p.color % COLORS.length];
-      const cx = (p.x + 0.5) * cell;
-      const cy = (p.y + 0.5) * cell;
+      const pos = playerDrawPos(p);
+      const cx = (pos.x + 0.5) * cell;
+      const cy = (pos.y + 0.5) * cell;
+      const r = cell * 0.55;
+
+      ctx.shadowColor = c.fill;
+      ctx.shadowBlur = cell * 1.1;
       ctx.fillStyle = c.fill;
       ctx.beginPath();
-      ctx.arc(cx, cy, cell * 0.42, 0, Math.PI * 2);
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.fill();
+      ctx.shadowBlur = 0;
+
+      // soft highlight
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.beginPath();
+      ctx.arc(cx - r * 0.25, cy - r * 0.28, r * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+
       if (p.id === localId) {
-        ctx.strokeStyle = "#fff";
-        ctx.lineWidth = 2;
+        ctx.strokeStyle = "rgba(255,255,255,0.95)";
+        ctx.lineWidth = 2.5;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r + 1.5, 0, Math.PI * 2);
         ctx.stroke();
       }
-      ctx.fillStyle = "rgba(0,0,0,0.55)";
-      ctx.font = `bold ${Math.max(10, cell * 0.9)}px Outfit,sans-serif`;
+
+      ctx.fillStyle = "rgba(6,12,20,0.7)";
+      ctx.font = `bold ${Math.max(11, cell * 0.95)}px Outfit,sans-serif`;
       ctx.textAlign = "center";
-      ctx.fillText(p.name.slice(0, 10), cx, cy - cell * 0.7);
+      ctx.textBaseline = "bottom";
+      ctx.fillText(p.name.slice(0, 10), cx, cy - r - 4);
     }
 
     if (performance.now() < deathUntil) {
@@ -572,7 +666,8 @@
       ctx.fillStyle = "#ffb4ab";
       ctx.font = "bold 28px Outfit,sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText(deathNote, w / 2, h * 0.52);
+      ctx.textBaseline = "middle";
+      ctx.fillText(deathNote, w / 2, h * 0.5);
     }
   }
 
@@ -617,14 +712,13 @@
     }
     if (!lastFrame) lastFrame = ts;
     let acc = ts - lastFrame;
-    // Cap catch-up
-    if (acc > 250) acc = 250;
+    if (acc > 400) acc = 400;
     while (acc >= TICK_MS) {
-      // Online guests don't simulate — host does
       if (mode !== "online" || isHost) tick(performance.now());
       acc -= TICK_MS;
       lastFrame = ts - acc;
     }
+    moveAlpha = Math.max(0, Math.min(1, acc / TICK_MS));
     draw();
     updateHud();
   }
@@ -713,6 +807,7 @@
       for (let k = 0; k < n && i < out.length; k++) out[i++] = v;
     }
     grid = out;
+    markLandDirty();
   }
 
   function snapshotPlayers() {
@@ -742,21 +837,30 @@
       }
     }
     if (Array.isArray(snap.players)) {
-      players = snap.players.map((raw) => ({
-        id: raw.id,
-        name: raw.name,
-        color: raw.color | 0,
-        x: raw.x | 0,
-        y: raw.y | 0,
-        dir: raw.dir || "right",
-        nextDir: raw.nextDir || raw.dir || "right",
-        alive: !!raw.alive,
-        human: !!raw.human,
-        trail: Array.isArray(raw.trail) ? raw.trail.slice() : [],
-        respawnAt: raw.respawnAt ? performance.now() + Math.max(0, raw.respawnAt - Date.now()) : 0,
-        botThink: 0,
-        botTarget: raw.dir || "right"
-      }));
+      const prevById = new Map(players.map((p) => [p.id, p]));
+      players = snap.players.map((raw) => {
+        const old = prevById.get(raw.id);
+        const x = raw.x | 0;
+        const y = raw.y | 0;
+        return {
+          id: raw.id,
+          name: raw.name,
+          color: raw.color | 0,
+          x,
+          y,
+          prevX: old && old.x === x && old.y === y ? old.prevX : old ? old.x : x,
+          prevY: old && old.x === x && old.y === y ? old.prevY : old ? old.y : y,
+          dir: raw.dir || "right",
+          nextDir: raw.nextDir || raw.dir || "right",
+          alive: !!raw.alive,
+          human: !!raw.human,
+          trail: Array.isArray(raw.trail) ? raw.trail.slice() : [],
+          respawnAt: raw.respawnAt ? performance.now() + Math.max(0, raw.respawnAt - Date.now()) : 0,
+          botThink: 0,
+          botTarget: raw.dir || "right"
+        };
+      });
+      moveAlpha = 1;
     }
   }
 
