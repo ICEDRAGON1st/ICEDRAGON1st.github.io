@@ -300,17 +300,53 @@
     markLandDirty();
   }
 
-  function kill(p, reason) {
+  /** Steal victim's territory (+ unused trail paint) into the killer's color. */
+  function transferTerritory(killer, victim) {
+    if (!killer || !victim || killer === victim) {
+      clearPlayerCells(victim);
+      return;
+    }
+    const from = idHash(victim.id);
+    const to = idHash(killer.id);
+    for (let i = 0; i < grid.length; i++) {
+      if (grid[i] === from) grid[i] = to;
+    }
+    // Convert open trail into claimed land for the killer
+    if (victim.trail.length) {
+      let px = victim.trail[0].x;
+      let py = victim.trail[0].y;
+      for (let i = 1; i < victim.trail.length; i++) {
+        paintStroke(to, px, py, victim.trail[i].x, victim.trail[i].y, TRAIL_W * 0.9);
+        px = victim.trail[i].x;
+        py = victim.trail[i].y;
+      }
+      paintStroke(to, px, py, victim.x, victim.y, TRAIL_W * 0.9);
+    }
+    victim.trail = [];
+    markLandDirty();
+  }
+
+  function kill(p, reason, killer) {
     if (!p.alive) return;
     p.alive = false;
-    p.trail = [];
     p.outside = false;
-    clearPlayerCells(p);
+    if (killer && killer !== p && killer.alive) {
+      transferTerritory(killer, p);
+    } else {
+      clearPlayerCells(p);
+    }
     // NPCs can come back; humans are game-over
     if (!p.human) {
       p.respawnAt = performance.now() + 2200;
     } else {
       p.respawnAt = 0;
+    }
+    if (killer && killer.id === localId && killer !== p) {
+      window.HubSound?.play?.("score");
+      const pct = pctFor(killer);
+      maybeSubmit(pct);
+      checkAchievements(pct);
+      if (pct >= 15) window.HubConfetti?.burst?.();
     }
     if (p.id === localId) {
       window.HubSound?.play?.("hit");
