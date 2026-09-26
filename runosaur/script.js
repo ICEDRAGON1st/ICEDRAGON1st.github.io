@@ -20,9 +20,10 @@
   const GROUND_Y = H * 0.78;
   const PLAYER_X = W * 0.22;
   const GRAVITY = 2600;
-  const JUMP_V = -920;
+  const JUMP_V = 920; // positive = up (y is height above ground)
   const STAND_H = 72;
   const DUCK_H = 34;
+  const MAX_JUMP_Y = 220;
 
   let best = Math.max(0, Math.floor(Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0));
   let running = false;
@@ -258,8 +259,13 @@
     });
 
     if (dino) {
-      dino.vy += GRAVITY * dt;
+      // y = height above ground; gravity pulls vy down
+      dino.vy -= GRAVITY * dt;
       dino.y += dino.vy * dt;
+      if (dino.y > MAX_JUMP_Y) {
+        dino.y = MAX_JUMP_Y;
+        if (dino.vy > 0) dino.vy = 0;
+      }
       if (dino.y <= 0) {
         dino.y = 0;
         dino.vy = 0;
