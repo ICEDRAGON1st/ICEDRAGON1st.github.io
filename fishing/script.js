@@ -654,7 +654,7 @@
       id: "oldboot",
       name: "Old Boot",
       rarity: "easteregg",
-      value: 7,
+      value: 1_000_000_000,
       eggOnly: true
     }
   ];

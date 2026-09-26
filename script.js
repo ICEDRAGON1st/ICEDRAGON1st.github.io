@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260926p": [
+    "Fishing Idle: Old Boot base sell value is 1B"
+  ],
   "20260926o": [
     "Fishing Idle: Old Boot stays secret (no guide row, no auto-sell)"
   ],
