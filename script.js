@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260926m": [
+    "Fishing Idle: secret Old Boot easter egg (find it…)"
+  ],
   "20260926l": [
     "Fishing Idle: ??? locks at 5× your best fish (Soul Twin stays 2×)"
   ],
