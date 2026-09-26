@@ -1,13 +1,16 @@
 (function () {
   const HIGH_KEY = "paper-io-best-pct";
   const WORLD = 220;
-  const SPEED = 26;
-  const PLAYER_R = 1.65;
-  const TRAIL_W = 1.35;
-  const START_R = 4.2;
-  const TRAIL_STEP = 0.55;
-  const TRAIL_SAFE = 4;
-  const MAX_TRAIL = 420;
+  const SPEED = 24;
+  const TURN_RATE = 4.2; // rad/s — smooth steering, not instant snap
+  const PLAYER_R = 1.55;
+  const TRAIL_W = 1.2;
+  const START_R = 6.5;
+  const TRAIL_STEP = 0.5;
+  const TRAIL_IMMUNE_DIST = 18; // can't hit your own recent trail (paper.io)
+  const MIN_TRAIL_FOR_SUICIDE = 22;
+  const SPAWN_GRACE_MS = 2500;
+  const MAX_TRAIL = 500;
   const MAX_PLAYERS = 8;
   const NET_POLL_MS = 120;
   const DOC_PREFIX = "paper-io-room-";
@@ -209,12 +212,13 @@
   }
 
   function findSpawn(avoid) {
+    const margin = START_R + 18;
     for (let tries = 0; tries < 90; tries++) {
-      const x = START_R + 6 + Math.random() * (WORLD - START_R * 2 - 12);
-      const y = START_R + 6 + Math.random() * (WORLD - START_R * 2 - 12);
+      const x = margin + Math.random() * (WORLD - margin * 2);
+      const y = margin + Math.random() * (WORLD - margin * 2);
       let ok = true;
       for (const p of avoid) {
-        if (Math.hypot(p.x - x, p.y - y) < 18) {
+        if (Math.hypot(p.x - x, p.y - y) < 22) {
           ok = false;
           break;
         }
@@ -234,12 +238,14 @@
       x: spot.x,
       y: spot.y,
       angle: ang,
+      wantAngle: ang,
       alive: true,
       human,
       trail: /** @type {{x:number,y:number}[]} */ ([]),
       distAcc: 0,
       outside: false,
       respawnAt: 0,
+      spawnAt: performance.now(),
       botThink: 0,
       botAngle: ang
     };
@@ -371,11 +377,39 @@
     return Math.hypot(px - cx, py - cy);
   }
 
-  function trailHit(p, ox, oy, ignoreTail) {
-    const hitR = PLAYER_R + TRAIL_W * 0.55;
+  function trailHit(p, ox, oy, ignoreRecent) {
+    const hitR = PLAYER_R * 0.85 + TRAIL_W * 0.35;
     const trail = p.trail;
-    const limit = ignoreTail ? Math.max(0, trail.length - TRAIL_SAFE) : trail.length;
-    for (let i = 1; i < limit; i++) {
+    if (trail.length < 3) return false;
+
+    let start = 1;
+    if (ignoreRecent) {
+      let dist = 0;
+      let cut = trail.length;
+      for (let i = trail.length - 1; i > 0; i--) {
+        dist += Math.hypot(trail[i].x - trail[i - 1].x, trail[i].y - trail[i - 1].y);
+        if (dist >= TRAIL_IMMUNE_DIST) {
+          cut = i;
+          break;
+        }
+        cut = i;
+      }
+      // Also skip if overall trail is still short
+      let total = 0;
+      for (let i = 1; i < trail.length; i++) {
+        total += Math.hypot(trail[i].x - trail[i - 1].x, trail[i].y - trail[i - 1].y);
+      }
+      if (total < MIN_TRAIL_FOR_SUICIDE) return false;
+      // only test segments before the immune tail
+      for (let i = 1; i < cut; i++) {
+        const a = trail[i - 1];
+        const b = trail[i];
+        if (distToSeg(ox, oy, a.x, a.y, b.x, b.y) <= hitR) return true;
+      }
+      return false;
+    }
+
+    for (let i = start; i < trail.length; i++) {
       const a = trail[i - 1];
       const b = trail[i];
       if (distToSeg(ox, oy, a.x, a.y, b.x, b.y) <= hitR) return true;
@@ -392,6 +426,8 @@
     p.outside = false;
     p.distAcc = 0;
     p.angle = Math.random() * Math.PI * 2;
+    p.wantAngle = p.angle;
+    p.spawnAt = performance.now();
     paintDisk(idHash(p.id), spot.x, spot.y, START_R);
   }
 
@@ -407,21 +443,35 @@
     return Math.atan2(dy / len, dx / len);
   }
 
+  function shortestAngleDiff(from, to) {
+    let d = to - from;
+    while (d > Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    return d;
+  }
+
+  function applyTurn(p, dt) {
+    const diff = shortestAngleDiff(p.angle, p.wantAngle);
+    const maxStep = TURN_RATE * dt;
+    if (Math.abs(diff) <= maxStep) p.angle = p.wantAngle;
+    else p.angle += Math.sign(diff) * maxStep;
+  }
+
   function setLocalSteer(p) {
     if (p.id !== localId) return;
     const keyAng = steerFromKeys();
     if (keyAng != null) {
-      p.angle = keyAng;
+      p.wantAngle = keyAng;
       pointerAim = false;
     } else if (pointerAim) {
-      p.angle = Math.atan2(aimY - p.y, aimX - p.x);
+      p.wantAngle = Math.atan2(aimY - p.y, aimX - p.x);
     }
-    pendingAngle = p.angle;
+    pendingAngle = p.wantAngle;
   }
 
   function botDecide(p, now) {
     if (now < p.botThink) {
-      p.angle = p.botAngle;
+      p.wantAngle = p.botAngle;
       return;
     }
     p.botThink = now + 220 + Math.random() * 480;
@@ -432,7 +482,7 @@
       const tip = other.trail[other.trail.length - 1];
       if (Math.hypot(tip.x - p.x, tip.y - p.y) < 28) {
         p.botAngle = Math.atan2(tip.y - p.y, tip.x - p.x);
-        p.angle = p.botAngle;
+        p.wantAngle = p.botAngle;
         return;
       }
     }
@@ -440,7 +490,7 @@
     const home = isOwnLand(p, p.x, p.y);
     if (home) {
       // Venture out in a sweeping curve
-      p.botAngle += (Math.random() - 0.5) * 1.2;
+      p.botAngle += (Math.random() - 0.5) * 0.9;
     } else {
       // Seek nearest own land
       let best = null;
@@ -458,19 +508,20 @@
       }
       if (best) p.botAngle = Math.atan2(best.y - p.y, best.x - p.x);
       else p.botAngle += (Math.random() - 0.5) * 0.8;
-      if (p.trail.length > 90) {
-        /* keep going home */
-      }
     }
 
     // Soft edge avoidance (still die if you actually hit)
-    const margin = 10;
+    const margin = 14;
     if (p.x < margin) p.botAngle = 0;
     if (p.x > WORLD - margin) p.botAngle = Math.PI;
     if (p.y < margin) p.botAngle = Math.PI / 2;
     if (p.y > WORLD - margin) p.botAngle = -Math.PI / 2;
 
-    p.angle = p.botAngle;
+    p.wantAngle = p.botAngle;
+  }
+
+  function inSpawnGrace(p) {
+    return performance.now() - (p.spawnAt || 0) < SPAWN_GRACE_MS;
   }
 
   function stepPlayer(p, dt) {
@@ -478,35 +529,49 @@
 
     if (p.human) {
       if (mode === "online" && p.id !== localId) {
-        // angle set from net inputs
+        // angle set from net inputs → wantAngle
       } else {
         setLocalSteer(p);
       }
+      applyTurn(p, dt);
     } else {
       botDecide(p, performance.now());
+      applyTurn(p, dt);
     }
 
     const nx = p.x + Math.cos(p.angle) * SPEED * dt;
     const ny = p.y + Math.sin(p.angle) * SPEED * dt;
+    const grace = inSpawnGrace(p);
 
-    // Paper.io: touching the map edge kills you
-    if (nx < PLAYER_R || ny < PLAYER_R || nx > WORLD - PLAYER_R || ny > WORLD - PLAYER_R) {
+    // Soft bounce near edges during grace; hard KO after
+    const edge = PLAYER_R + 0.4;
+    if (nx < edge || ny < edge || nx > WORLD - edge || ny > WORLD - edge) {
+      if (grace) {
+        // Push inward and turn away
+        p.x = clamp(p.x, edge + 1, WORLD - edge - 1);
+        p.y = clamp(p.y, edge + 1, WORLD - edge - 1);
+        p.wantAngle = Math.atan2(WORLD / 2 - p.y, WORLD / 2 - p.x);
+        return;
+      }
       kill(p, "Hit the edge");
       return;
     }
 
-    // Own trail suicide (ignore recent tip)
-    if (p.outside && trailHit(p, nx, ny, true)) {
+    // Own trail suicide (long immunity on the tip)
+    if (!grace && p.outside && trailHit(p, nx, ny, true)) {
       kill(p, "Hit your trail");
       return;
     }
 
     // Cut enemy trails
-    for (const other of players) {
-      if (other === p || !other.alive || !other.outside) continue;
-      if (trailHit(other, nx, ny, false)) {
-        kill(other, `${p.name} cut their trail`);
-        if (p.id === localId) window.HubSound?.play?.("score");
+    if (!grace) {
+      for (const other of players) {
+        if (other === p || !other.alive || !other.outside) continue;
+        if (inSpawnGrace(other)) continue;
+        if (trailHit(other, nx, ny, false)) {
+          kill(other, `${p.name} cut their trail`);
+          if (p.id === localId) window.HubSound?.play?.("score");
+        }
       }
     }
 
@@ -518,22 +583,19 @@
     p.x = nx;
     p.y = ny;
 
-    if (!wasHome || p.outside) {
+    // Only leave a trail once you actually leave your land
+    if (wasHome && !nowHome) {
       p.outside = true;
+      p.trail = [{ x: ox, y: oy }, { x: nx, y: ny }];
+      p.distAcc = 0;
+    } else if (p.outside && !nowHome) {
       p.distAcc += Math.hypot(nx - ox, ny - oy);
       while (p.distAcc >= TRAIL_STEP) {
         p.distAcc -= TRAIL_STEP;
         p.trail.push({ x: p.x, y: p.y });
         if (p.trail.length > MAX_TRAIL) p.trail.shift();
       }
-    } else if (!nowHome) {
-      p.outside = true;
-      p.trail.push({ x: ox, y: oy });
-      p.trail.push({ x: nx, y: ny });
-      p.distAcc = 0;
-    }
-
-    if (p.outside && nowHome && p.trail.length >= 2) {
+    } else if (p.outside && nowHome && p.trail.length >= 2) {
       capture(p);
       if (p.id === localId) {
         window.HubSound?.play?.("score");
@@ -542,6 +604,9 @@
         checkAchievements(pct);
         if (pct >= 20) window.HubConfetti?.burst?.();
       }
+    } else if (wasHome && nowHome) {
+      p.outside = false;
+      p.trail = [];
     }
   }
 
@@ -566,7 +631,7 @@
         const b = players[j];
         if (!b.alive) continue;
         if (Math.hypot(a.x - b.x, a.y - b.y) < PLAYER_R * 1.7) {
-          if (a.outside && b.outside) {
+          if (a.outside && b.outside && !inSpawnGrace(a) && !inSpawnGrace(b)) {
             kill(a, "Head-on");
             kill(b, "Head-on");
           }
@@ -777,6 +842,8 @@
     localId = opts.localId || playerId();
     const humans = opts.humans || [{ id: localId, name: playerName() }];
     const bots = opts.bots ?? botCount;
+    pointerAim = false;
+    keys.up = keys.down = keys.left = keys.right = false;
     resetArena(humans, bots);
     running = true;
     paused = false;
@@ -892,6 +959,7 @@
         x: Number(raw.x) || 0,
         y: Number(raw.y) || 0,
         angle: Number(raw.angle) || 0,
+        wantAngle: Number(raw.angle) || 0,
         alive: !!raw.alive,
         human: !!raw.human,
         outside: !!raw.outside,
@@ -920,7 +988,9 @@
     for (const p of players) {
       if (!p.human || p.id === localId) continue;
       const ang = inputs[p.id];
-      if (typeof ang === "number" && Number.isFinite(ang)) p.angle = ang;
+      if (typeof ang === "number" && Number.isFinite(ang)) {
+        p.wantAngle = ang;
+      }
     }
     await sbPut(roomDocId(roomCode), {
       ...doc,
@@ -1191,6 +1261,7 @@
   });
 
   function aimFromEvent(e) {
+    if (!running || paused) return;
     const pt = e.touches ? e.touches[0] : e;
     if (!pt) return;
     const w = screenToWorld(pt.clientX, pt.clientY);
@@ -1200,15 +1271,16 @@
   }
 
   canvas.addEventListener("pointerdown", (e) => {
+    if (!running || paused) return;
     canvas.setPointerCapture?.(e.pointerId);
     aimFromEvent(e);
   });
   canvas.addEventListener("pointermove", (e) => {
-    if (e.buttons || e.pointerType === "touch") aimFromEvent(e);
-    else if (pointerAim) aimFromEvent(e);
+    if (!running || paused) return;
+    if (e.buttons || e.pointerType === "touch" || pointerAim) aimFromEvent(e);
   });
   canvas.addEventListener("mousemove", (e) => {
-    // Paper.io-style: mouse always aims while over the arena
+    if (!running || paused) return;
     if (!keys.up && !keys.down && !keys.left && !keys.right) {
       aimFromEvent(e);
     }
