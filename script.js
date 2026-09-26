@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260926l": [
+    "Fishing Idle: ??? locks at 5× your best fish (Soul Twin stays 2×)"
+  ],
   "20260926k": [
     "Fishing Idle: boats can catch Soul Twin and ??? (same luck-immune odds)"
   ],

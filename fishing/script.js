@@ -7526,7 +7526,7 @@
     const lockedValue = exclusive
       ? Math.max(
           2,
-          Math.floor(Number(opts.lockedValue) || exclusiveMirrorBaseValue())
+          Math.floor(Number(opts.lockedValue) || exclusiveMirrorBaseValue(fish))
         )
       : 0;
     const entry = {
@@ -9126,7 +9126,7 @@
       render(true);
       const locked = Math.floor(Number(
         state.cooler.find((e) => e?.id === fish.id)?.lockedValue
-      ) || exclusiveMirrorBaseValue());
+      ) || exclusiveMirrorBaseValue(fish));
       const shown = isExclusiveFish(fish)
         ? `${label} (${formatNum(locked)} locked)`
         : label;
@@ -11424,15 +11424,15 @@
     return null;
   }
 
-  /** Ensure exclusive cooler rows lock 2× your best non-exclusive look value. */
+  /** Ensure exclusive cooler rows lock 2× / ??? 5× your best non-exclusive look value. */
   function ensureExclusiveCoolerValues() {
     let changed = false;
-    const mirror = exclusiveMirrorBaseValue();
     state.cooler = (state.cooler || []).map((raw) => {
       const entry = normalizeCoolerEntry(raw);
       if (!entry) return raw;
       const fish = fishById(entry.id);
       if (!isExclusiveFish(fish)) return entry;
+      const mirror = exclusiveMirrorBaseValue(fish);
       const next = {
         ...entry,
         saved: true,
@@ -14290,7 +14290,7 @@
     return isExclusiveFish(fish) || !!fish?.untradeable || !!entry?.untradeable;
   }
 
-  let _exclusiveMirrorCache = { at: 0, value: 2, stamp: "" };
+  let _exclusiveMirrorCache = { at: 0, bestLook: 0, stamp: "" };
 
   /** Raw look value (base × variant/shiny/mutation) — never uses exclusive lockedValue. */
   function exclusiveCandidateLookValue(fish, entry) {
@@ -14300,8 +14300,16 @@
     return Math.max(1, Math.floor(base * mult));
   }
 
-  /** 2× your best non-exclusive catch look (variants included). Used everywhere Soul Twin is valued. */
-  function exclusiveMirrorBaseValue() {
+  function isMysteryFish(fishOrId) {
+    if (!fishOrId) return false;
+    if (typeof fishOrId === "string") {
+      return fishOrId === MYSTERY_FISH_ID || fishById(fishOrId)?.rarity === "mystery";
+    }
+    return !!(fishOrId.id === MYSTERY_FISH_ID || fishOrId.rarity === "mystery");
+  }
+
+  /** Best non-exclusive catch look (variants included). */
+  function bestNonExclusiveLookValue() {
     const stamp = [
       String(state.bestCatchId || ""),
       Math.floor(Number(state.bestCatchScore) || 0),
@@ -14312,11 +14320,11 @@
     ].join("|");
     const now = Date.now();
     if (
-      _exclusiveMirrorCache.value > 0 &&
+      _exclusiveMirrorCache.bestLook > 0 &&
       _exclusiveMirrorCache.stamp === stamp &&
       now - _exclusiveMirrorCache.at < 1500
     ) {
-      return _exclusiveMirrorCache.value;
+      return _exclusiveMirrorCache.bestLook;
     }
 
     let bestLook = 0;
@@ -14357,9 +14365,16 @@
       }
     });
 
-    const out = Math.max(2, bestLook * 2);
-    _exclusiveMirrorCache = { at: now, value: out, stamp };
+    const out = Math.max(1, bestLook);
+    _exclusiveMirrorCache = { at: now, bestLook: out, stamp };
     return out;
+  }
+
+  /** Soul Twin = 2× best look; ??? = 5× best look. */
+  function exclusiveMirrorBaseValue(fishOrId) {
+    const best = bestNonExclusiveLookValue();
+    const mult = isMysteryFish(fishOrId) ? 5 : 2;
+    return Math.max(2, best * mult);
   }
 
   function tryRollExclusiveFish(forBoat = false) {
@@ -14468,7 +14483,7 @@
     const variants = exclusive
       ? { variant: "", shiny: false, mutation: "" }
       : normalizeVariants(opts.variants || rollFishVariants(currentSpot(), !!opts.forBoat));
-    const lockedValue = exclusive ? exclusiveMirrorBaseValue() : 0;
+    const lockedValue = exclusive ? exclusiveMirrorBaseValue(fish) : 0;
     const entry = {
       id: fish.id,
       saved: exclusive ? true : false,
