@@ -306,11 +306,36 @@
     p.trail = [];
     p.outside = false;
     clearPlayerCells(p);
-    p.respawnAt = performance.now() + (p.human ? 1800 : 2400);
+    // NPCs can come back; humans are game-over
+    if (!p.human) {
+      p.respawnAt = performance.now() + 2200;
+    } else {
+      p.respawnAt = 0;
+    }
     if (p.id === localId) {
       window.HubSound?.play?.("hit");
       showDeathFlash(reason);
+      gameOver(reason);
     }
+  }
+
+  function gameOver(reason) {
+    if (!running) return;
+    running = false;
+    paused = false;
+    pointerAim = false;
+    const me = localPlayer();
+    const pct = me ? pctFor(me) : 0;
+    maybeSubmit(pct);
+    checkAchievements(pct);
+    resumeBtn.classList.add("hidden");
+    overlayTitle.textContent = "Game Over";
+    overlayText.textContent = `${reason || "You were eliminated"}. Area claimed: ${pct}%. Hit Play to try again.`;
+    startBtn.textContent = "Play again";
+    overlay.classList.remove("hidden");
+    cancelAnimationFrame(animId);
+    draw();
+    updateHud();
   }
 
   function capture(p) {
@@ -539,22 +564,22 @@
       applyTurn(p, dt);
     }
 
-    const nx = p.x + Math.cos(p.angle) * SPEED * dt;
-    const ny = p.y + Math.sin(p.angle) * SPEED * dt;
+    const nxRaw = p.x + Math.cos(p.angle) * SPEED * dt;
+    const nyRaw = p.y + Math.sin(p.angle) * SPEED * dt;
     const grace = inSpawnGrace(p);
 
-    // Soft bounce near edges during grace; hard KO after
-    const edge = PLAYER_R + 0.4;
-    if (nx < edge || ny < edge || nx > WORLD - edge || ny > WORLD - edge) {
-      if (grace) {
-        // Push inward and turn away
-        p.x = clamp(p.x, edge + 1, WORLD - edge - 1);
-        p.y = clamp(p.y, edge + 1, WORLD - edge - 1);
-        p.wantAngle = Math.atan2(WORLD / 2 - p.y, WORLD / 2 - p.x);
-        return;
-      }
-      kill(p, "Hit the edge");
-      return;
+    // Walls are solid — slide along them, never KO
+    const edge = PLAYER_R + 0.35;
+    let nx = clamp(nxRaw, edge, WORLD - edge);
+    let ny = clamp(nyRaw, edge, WORLD - edge);
+    if (nx !== nxRaw) {
+      // bounce horizontal component
+      p.angle = Math.atan2(Math.sin(p.angle), -Math.cos(p.angle));
+      p.wantAngle = p.angle;
+    }
+    if (ny !== nyRaw) {
+      p.angle = Math.atan2(-Math.sin(p.angle), Math.cos(p.angle));
+      p.wantAngle = p.angle;
     }
 
     // Own trail suicide (long immunity on the tip)
@@ -614,7 +639,8 @@
     const now = performance.now();
     for (const p of players) {
       if (!p.alive) {
-        if (p.respawnAt && now >= p.respawnAt) {
+        // Only NPCs respawn; humans stay out until Play again
+        if (!p.human && p.respawnAt && now >= p.respawnAt) {
           p.respawnAt = 0;
           respawn(p);
         }
@@ -694,8 +720,8 @@
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
 
-    // Edge danger band
-    ctx.strokeStyle = "rgba(255,107,90,0.35)";
+    // Soft border (walls don't kill)
+    ctx.strokeStyle = "rgba(62,198,255,0.28)";
     ctx.lineWidth = Math.max(2, scale * 1.2);
     ctx.strokeRect(scale * 0.8, scale * 0.8, w - scale * 1.6, h - scale * 1.6);
 
@@ -850,6 +876,7 @@
     lastFrame = 0;
     overlay.classList.add("hidden");
     resumeBtn.classList.add("hidden");
+    startBtn.textContent = mode === "online" && isHost ? "Start match" : "Play";
     if (hudMode) {
       hudMode.textContent =
         mode === "online" ? (isHost ? `Online host · ${roomCode}` : `Online · ${roomCode}`) : `vs ${bots} NPC`;
@@ -869,7 +896,7 @@
       resumeBtn.classList.add("hidden");
       overlayTitle.textContent = "Paper Claim";
       overlayText.textContent =
-        "Free-move like paper.io — diagonals, mouse aim, claim loops. Touching the map edge KO's you.";
+        "Free-move like paper.io — diagonals, mouse aim, claim loops. Walls bounce you; get cut and it’s game over.";
     }
     overlay.classList.remove("hidden");
   }
