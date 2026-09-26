@@ -1,40 +1,36 @@
 (function () {
   const HIGH_KEY = "paper-io-best-pct";
-  const SIZE = 72;
-  const TICK_MS = 145;
-  const START_SIZE = 3;
+  const WORLD = 220;
+  const SPEED = 26;
+  const PLAYER_R = 1.65;
+  const TRAIL_W = 1.35;
+  const START_R = 4.2;
+  const TRAIL_STEP = 0.55;
+  const TRAIL_SAFE = 4;
+  const MAX_TRAIL = 420;
   const MAX_PLAYERS = 8;
-  const NET_POLL_MS = 140;
-  const NET_PUSH_MS = 160;
+  const NET_POLL_MS = 120;
   const DOC_PREFIX = "paper-io-room-";
   const LOBBY_DOC = "paper-io-lobbies";
   const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
   const COLORS = [
-    { fill: "#3ec6ff", soft: "rgba(62,198,255,0.55)", name: "Cyan" },
-    { fill: "#ff6b5a", soft: "rgba(255,107,90,0.55)", name: "Coral" },
-    { fill: "#7dff9a", soft: "rgba(125,255,154,0.55)", name: "Mint" },
-    { fill: "#ffd166", soft: "rgba(255,209,102,0.55)", name: "Gold" },
-    { fill: "#c792ff", soft: "rgba(199,146,255,0.55)", name: "Violet" },
-    { fill: "#ff9ecd", soft: "rgba(255,158,205,0.55)", name: "Pink" },
-    { fill: "#5eead4", soft: "rgba(94,234,212,0.55)", name: "Teal" },
-    { fill: "#fda4af", soft: "rgba(253,164,175,0.55)", name: "Rose" }
+    { fill: "#3ec6ff", soft: "rgba(62,198,255,0.58)", name: "Cyan" },
+    { fill: "#ff6b5a", soft: "rgba(255,107,90,0.58)", name: "Coral" },
+    { fill: "#7dff9a", soft: "rgba(125,255,154,0.58)", name: "Mint" },
+    { fill: "#ffd166", soft: "rgba(255,209,102,0.58)", name: "Gold" },
+    { fill: "#c792ff", soft: "rgba(199,146,255,0.58)", name: "Violet" },
+    { fill: "#ff9ecd", soft: "rgba(255,158,205,0.58)", name: "Pink" },
+    { fill: "#5eead4", soft: "rgba(94,234,212,0.58)", name: "Teal" },
+    { fill: "#fda4af", soft: "rgba(253,164,175,0.58)", name: "Rose" }
   ];
-
-  const DIRS = {
-    up: { x: 0, y: -1 },
-    down: { x: 0, y: 1 },
-    left: { x: -1, y: 0 },
-    right: { x: 1, y: 0 }
-  };
-  const OPP = { up: "down", down: "up", left: "right", right: "left" };
 
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d", { alpha: false });
   const landLayer = document.createElement("canvas");
   const landCtx = landLayer.getContext("2d");
   let landDirty = true;
-  let moveAlpha = 1;
+
   const scoreEl = document.getElementById("score");
   const highEl = document.getElementById("high-score");
   const hudMode = document.getElementById("hud-mode");
@@ -65,40 +61,60 @@
   let paused = false;
   let sessionStarted = false;
   let lastSubmitAt = 0;
-  let tickTimer = 0;
   let animId = 0;
   let lastFrame = 0;
 
+  /** Ownership bitmap — same resolution as world for simple mapping */
   /** @type {Int16Array} */
-  let grid = new Int16Array(SIZE * SIZE);
-  /** @type {Player[]} */
+  let grid = new Int16Array(WORLD * WORLD);
+  /** @type {any[]} */
   let players = [];
   let localId = "";
   let nextBotId = 1;
 
-  // Online
+  const keys = { up: false, down: false, left: false, right: false };
+  let pointerAim = false;
+  let aimX = WORLD / 2;
+  let aimY = WORLD / 2;
+  let pendingAngle = 0;
+
   let roomCode = "";
   let isHost = false;
   let netPollTimer = 0;
-  let netPushTimer = 0;
   let netBusy = false;
-  let pendingDir = "";
   let lobbyAwaiting = false;
+  let lobbyWatch = 0;
 
-  /**
-   * @typedef {{
-   *  id: string, name: string, color: number, x: number, y: number,
-   *  dir: string, nextDir: string, alive: boolean, human: boolean,
-   *  trail: number[], respawnAt: number, botThink: number, botTarget: string
-   * }} Player
-   */
+  let deathNote = "";
+  let deathUntil = 0;
+
+  const idMap = new Map();
+  let idSeq = 1;
 
   function idx(x, y) {
-    return y * SIZE + x;
+    return y * WORLD + x;
   }
 
-  function inBounds(x, y) {
-    return x >= 0 && y >= 0 && x < SIZE && y < SIZE;
+  function clamp(v, a, b) {
+    return Math.max(a, Math.min(b, v));
+  }
+
+  function cellAt(x, y) {
+    const cx = clamp(x | 0, 0, WORLD - 1);
+    const cy = clamp(y | 0, 0, WORLD - 1);
+    return grid[idx(cx, cy)];
+  }
+
+  function idHash(id) {
+    if (idMap.has(id)) return idMap.get(id);
+    const n = idSeq++;
+    idMap.set(id, n);
+    return n;
+  }
+
+  function idFromHash(n) {
+    for (const [k, v] of idMap) if (v === n) return k;
+    return "";
   }
 
   function playerName() {
@@ -136,7 +152,7 @@
 
   function maybeSubmit(pct) {
     if (pct > bestPct) {
-      bestPct = pct;
+      bestPct = Math.floor(pct);
       try {
         localStorage.setItem(HIGH_KEY, String(bestPct));
       } catch {}
@@ -156,79 +172,79 @@
     if (pct >= 30) HubAchievements.unlock("paper_claim_30");
   }
 
-  function clearGrid() {
-    grid.fill(0);
-    landDirty = true;
-  }
-
   function markLandDirty() {
     landDirty = true;
   }
 
-  function claimRect(pid, cx, cy, half) {
-    for (let y = cy - half; y <= cy + half; y++) {
-      for (let x = cx - half; x <= cx + half; x++) {
-        if (inBounds(x, y)) grid[idx(x, y)] = pid;
+  function clearGrid() {
+    grid.fill(0);
+    markLandDirty();
+  }
+
+  function paintDisk(hid, cx, cy, r) {
+    const r2 = r * r;
+    const x0 = Math.max(0, Math.floor(cx - r));
+    const x1 = Math.min(WORLD - 1, Math.ceil(cx + r));
+    const y0 = Math.max(0, Math.floor(cy - r));
+    const y1 = Math.min(WORLD - 1, Math.ceil(cy + r));
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        const dx = x + 0.5 - cx;
+        const dy = y + 0.5 - cy;
+        if (dx * dx + dy * dy <= r2) grid[idx(x, y)] = hid;
       }
     }
     markLandDirty();
   }
 
+  function paintStroke(hid, x0, y0, x1, y1, half) {
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const len = Math.hypot(dx, dy) || 1;
+    const steps = Math.ceil(len / 0.45);
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      paintDisk(hid, x0 + dx * t, y0 + dy * t, half);
+    }
+  }
+
   function findSpawn(avoid) {
-    for (let tries = 0; tries < 80; tries++) {
-      const half = (START_SIZE / 2) | 0;
-      const x = half + 2 + ((Math.random() * (SIZE - START_SIZE - 4)) | 0);
-      const y = half + 2 + ((Math.random() * (SIZE - START_SIZE - 4)) | 0);
+    for (let tries = 0; tries < 90; tries++) {
+      const x = START_R + 6 + Math.random() * (WORLD - START_R * 2 - 12);
+      const y = START_R + 6 + Math.random() * (WORLD - START_R * 2 - 12);
       let ok = true;
       for (const p of avoid) {
-        if (Math.hypot(p.x - x, p.y - y) < 10) {
+        if (Math.hypot(p.x - x, p.y - y) < 18) {
           ok = false;
           break;
         }
       }
       if (ok) return { x, y };
     }
-    return { x: (SIZE / 2) | 0, y: (SIZE / 2) | 0 };
+    return { x: WORLD / 2, y: WORLD / 2 };
   }
 
   function makePlayer(id, name, color, human) {
     const spot = findSpawn(players);
-    const dirs = Object.keys(DIRS);
-    const dir = dirs[(Math.random() * dirs.length) | 0];
-    /** @type {Player} */
+    const ang = Math.random() * Math.PI * 2;
     const p = {
       id,
       name,
       color,
       x: spot.x,
       y: spot.y,
-      prevX: spot.x,
-      prevY: spot.y,
-      dir,
-      nextDir: dir,
+      angle: ang,
       alive: true,
       human,
-      trail: [],
+      trail: /** @type {{x:number,y:number}[]} */ ([]),
+      distAcc: 0,
+      outside: false,
       respawnAt: 0,
       botThink: 0,
-      botTarget: dir
+      botAngle: ang
     };
-    claimRect(idHash(id), spot.x, spot.y, (START_SIZE / 2) | 0);
+    paintDisk(idHash(id), spot.x, spot.y, START_R);
     return p;
-  }
-
-  /** Stable small positive id for grid cells (1..) */
-  const idMap = new Map();
-  let idSeq = 1;
-  function idHash(id) {
-    if (idMap.has(id)) return idMap.get(id);
-    const n = idSeq++;
-    idMap.set(id, n);
-    return n;
-  }
-  function idFromHash(n) {
-    for (const [k, v] of idMap) if (v === n) return k;
-    return "";
   }
 
   function resetArena(humans, bots) {
@@ -262,56 +278,13 @@
     return Math.round((1000 * territoryCount(idHash(p.id))) / grid.length) / 10;
   }
 
-  function setDir(p, dir) {
-    if (!DIRS[dir]) return;
-    if (OPP[dir] === p.dir && p.trail.length) return;
-    p.nextDir = dir;
-  }
-
   function isOwnLand(p, x, y) {
-    return grid[idx(x, y)] === idHash(p.id);
+    return cellAt(x, y) === idHash(p.id);
   }
 
-  function capture(p) {
-    const hid = idHash(p.id);
-    for (let i = 0; i < p.trail.length; i += 2) {
-      const x = p.trail[i];
-      const y = p.trail[i + 1];
-      if (inBounds(x, y)) grid[idx(x, y)] = hid;
-    }
-    p.trail = [];
-
-    const visited = new Uint8Array(SIZE * SIZE);
-    const qx = [];
-    const qy = [];
-    function push(x, y) {
-      if (!inBounds(x, y)) return;
-      const i = idx(x, y);
-      if (visited[i] || grid[i] === hid) return;
-      visited[i] = 1;
-      qx.push(x);
-      qy.push(y);
-    }
-    for (let x = 0; x < SIZE; x++) {
-      push(x, 0);
-      push(x, SIZE - 1);
-    }
-    for (let y = 0; y < SIZE; y++) {
-      push(0, y);
-      push(SIZE - 1, y);
-    }
-    for (let qi = 0; qi < qx.length; qi++) {
-      const x = qx[qi];
-      const y = qy[qi];
-      push(x + 1, y);
-      push(x - 1, y);
-      push(x, y + 1);
-      push(x, y - 1);
-    }
-    for (let i = 0; i < grid.length; i++) {
-      if (!visited[i] && grid[i] !== hid) grid[i] = hid;
-    }
-    markLandDirty();
+  function showDeathFlash(reason) {
+    deathNote = reason || "KO";
+    deathUntil = performance.now() + 1400;
   }
 
   function clearPlayerCells(p) {
@@ -325,91 +298,156 @@
     if (!p.alive) return;
     p.alive = false;
     p.trail = [];
+    p.outside = false;
     clearPlayerCells(p);
-    p.respawnAt = performance.now() + (p.human ? 1800 : 2200);
+    p.respawnAt = performance.now() + (p.human ? 1800 : 2400);
     if (p.id === localId) {
       window.HubSound?.play?.("hit");
       showDeathFlash(reason);
     }
   }
 
-  let deathNote = "";
-  let deathUntil = 0;
-  function showDeathFlash(reason) {
-    deathNote = reason || "KO";
-    deathUntil = performance.now() + 1400;
+  function capture(p) {
+    const hid = idHash(p.id);
+    if (p.trail.length) {
+      let px = p.trail[0].x;
+      let py = p.trail[0].y;
+      for (let i = 1; i < p.trail.length; i++) {
+        paintStroke(hid, px, py, p.trail[i].x, p.trail[i].y, TRAIL_W * 0.85);
+        px = p.trail[i].x;
+        py = p.trail[i].y;
+      }
+      paintStroke(hid, px, py, p.x, p.y, TRAIL_W * 0.85);
+    }
+    p.trail = [];
+    p.outside = false;
+
+    const visited = new Uint8Array(WORLD * WORLD);
+    const qx = new Int16Array(WORLD * WORLD);
+    const qy = new Int16Array(WORLD * WORLD);
+    let qh = 0;
+    let qt = 0;
+    function push(x, y) {
+      if (x < 0 || y < 0 || x >= WORLD || y >= WORLD) return;
+      const i = idx(x, y);
+      if (visited[i] || grid[i] === hid) return;
+      visited[i] = 1;
+      qx[qt] = x;
+      qy[qt] = y;
+      qt++;
+    }
+    for (let x = 0; x < WORLD; x++) {
+      push(x, 0);
+      push(x, WORLD - 1);
+    }
+    for (let y = 0; y < WORLD; y++) {
+      push(0, y);
+      push(WORLD - 1, y);
+    }
+    while (qh < qt) {
+      const x = qx[qh];
+      const y = qy[qh++];
+      push(x + 1, y);
+      push(x - 1, y);
+      push(x, y + 1);
+      push(x, y - 1);
+    }
+    for (let i = 0; i < grid.length; i++) {
+      if (!visited[i] && grid[i] !== hid) grid[i] = hid;
+    }
+    markLandDirty();
   }
 
-  function trailOwnerAt(x, y) {
-    for (const p of players) {
-      if (!p.alive || !p.trail.length) continue;
-      for (let i = 0; i < p.trail.length; i += 2) {
-        if (p.trail[i] === x && p.trail[i + 1] === y) return p;
-      }
+  function distToSeg(px, py, ax, ay, bx, by) {
+    const abx = bx - ax;
+    const aby = by - ay;
+    const apx = px - ax;
+    const apy = py - ay;
+    const ab2 = abx * abx + aby * aby || 1;
+    let t = (apx * abx + apy * aby) / ab2;
+    t = clamp(t, 0, 1);
+    const cx = ax + abx * t;
+    const cy = ay + aby * t;
+    return Math.hypot(px - cx, py - cy);
+  }
+
+  function trailHit(p, ox, oy, ignoreTail) {
+    const hitR = PLAYER_R + TRAIL_W * 0.55;
+    const trail = p.trail;
+    const limit = ignoreTail ? Math.max(0, trail.length - TRAIL_SAFE) : trail.length;
+    for (let i = 1; i < limit; i++) {
+      const a = trail[i - 1];
+      const b = trail[i];
+      if (distToSeg(ox, oy, a.x, a.y, b.x, b.y) <= hitR) return true;
     }
-    return null;
+    return false;
   }
 
   function respawn(p) {
     const spot = findSpawn(players.filter((o) => o.alive && o !== p));
     p.x = spot.x;
     p.y = spot.y;
-    p.prevX = spot.x;
-    p.prevY = spot.y;
     p.alive = true;
     p.trail = [];
-    const dirs = Object.keys(DIRS);
-    p.dir = dirs[(Math.random() * dirs.length) | 0];
-    p.nextDir = p.dir;
-    claimRect(idHash(p.id), spot.x, spot.y, (START_SIZE / 2) | 0);
+    p.outside = false;
+    p.distAcc = 0;
+    p.angle = Math.random() * Math.PI * 2;
+    paintDisk(idHash(p.id), spot.x, spot.y, START_R);
   }
 
-  function lerp(a, b, t) {
-    return a + (b - a) * t;
+  function steerFromKeys() {
+    let dx = 0;
+    let dy = 0;
+    if (keys.left) dx -= 1;
+    if (keys.right) dx += 1;
+    if (keys.up) dy -= 1;
+    if (keys.down) dy += 1;
+    if (!dx && !dy) return null;
+    const len = Math.hypot(dx, dy) || 1;
+    return Math.atan2(dy / len, dx / len);
   }
 
-  function playerDrawPos(p) {
-    const t = Math.max(0, Math.min(1, moveAlpha));
-    return {
-      x: lerp(p.prevX, p.x, t),
-      y: lerp(p.prevY, p.y, t)
-    };
+  function setLocalSteer(p) {
+    if (p.id !== localId) return;
+    const keyAng = steerFromKeys();
+    if (keyAng != null) {
+      p.angle = keyAng;
+      pointerAim = false;
+    } else if (pointerAim) {
+      p.angle = Math.atan2(aimY - p.y, aimX - p.x);
+    }
+    pendingAngle = p.angle;
   }
 
   function botDecide(p, now) {
-    if (now < p.botThink) return;
-    p.botThink = now + 180 + Math.random() * 420;
-    const onLand = isOwnLand(p, p.x, p.y);
-    const options = Object.keys(DIRS).filter((d) => d !== OPP[p.dir]);
+    if (now < p.botThink) {
+      p.angle = p.botAngle;
+      return;
+    }
+    p.botThink = now + 220 + Math.random() * 480;
 
-    // Prefer cutting nearby enemy trails
+    // Hunt nearby enemy trails
     for (const other of players) {
-      if (other === p || !other.alive || other.trail.length < 4) continue;
-      const tx = other.trail[other.trail.length - 2];
-      const ty = other.trail[other.trail.length - 1];
-      if (Math.hypot(tx - p.x, ty - p.y) < 14) {
-        if (Math.abs(tx - p.x) > Math.abs(ty - p.y)) {
-          p.botTarget = tx > p.x ? "right" : "left";
-        } else {
-          p.botTarget = ty > p.y ? "down" : "up";
-        }
-        setDir(p, p.botTarget);
+      if (other === p || !other.alive || other.trail.length < 3) continue;
+      const tip = other.trail[other.trail.length - 1];
+      if (Math.hypot(tip.x - p.x, tip.y - p.y) < 28) {
+        p.botAngle = Math.atan2(tip.y - p.y, tip.x - p.x);
+        p.angle = p.botAngle;
         return;
       }
     }
 
-    if (onLand) {
-      // Venture out sometimes
-      if (Math.random() < 0.55) {
-        p.botTarget = options[(Math.random() * options.length) | 0];
-      }
+    const home = isOwnLand(p, p.x, p.y);
+    if (home) {
+      // Venture out in a sweeping curve
+      p.botAngle += (Math.random() - 0.5) * 1.2;
     } else {
-      // Seek own land or close loop
+      // Seek nearest own land
       let best = null;
       let bestD = 1e9;
       const hid = idHash(p.id);
-      for (let y = 0; y < SIZE; y += 2) {
-        for (let x = 0; x < SIZE; x += 2) {
+      for (let y = 2; y < WORLD; y += 4) {
+        for (let x = 2; x < WORLD; x += 4) {
           if (grid[idx(x, y)] !== hid) continue;
           const d = Math.hypot(x - p.x, y - p.y);
           if (d < bestD) {
@@ -418,78 +456,84 @@
           }
         }
       }
-      if (best) {
-        if (Math.abs(best.x - p.x) > Math.abs(best.y - p.y)) {
-          p.botTarget = best.x > p.x ? "right" : "left";
-        } else {
-          p.botTarget = best.y > p.y ? "down" : "up";
-        }
-      } else if (Math.random() < 0.3) {
-        p.botTarget = options[(Math.random() * options.length) | 0];
-      }
-      // Don't wander too far
-      if (p.trail.length > 40 && Math.random() < 0.5) {
-        /* keep seeking home */
+      if (best) p.botAngle = Math.atan2(best.y - p.y, best.x - p.x);
+      else p.botAngle += (Math.random() - 0.5) * 0.8;
+      if (p.trail.length > 90) {
+        /* keep going home */
       }
     }
 
-    // Edge avoidance
-    const look = DIRS[p.botTarget] || DIRS[p.dir];
-    const nx = p.x + look.x;
-    const ny = p.y + look.y;
-    if (!inBounds(nx, ny) || nx < 1 || ny < 1 || nx > SIZE - 2 || ny > SIZE - 2) {
-      p.botTarget = options[(Math.random() * options.length) | 0];
-    }
-    setDir(p, p.botTarget || p.dir);
+    // Soft edge avoidance (still die if you actually hit)
+    const margin = 10;
+    if (p.x < margin) p.botAngle = 0;
+    if (p.x > WORLD - margin) p.botAngle = Math.PI;
+    if (p.y < margin) p.botAngle = Math.PI / 2;
+    if (p.y > WORLD - margin) p.botAngle = -Math.PI / 2;
+
+    p.angle = p.botAngle;
   }
 
-  function stepPlayer(p) {
+  function stepPlayer(p, dt) {
     if (!p.alive) return;
-    p.prevX = p.x;
-    p.prevY = p.y;
-    p.dir = p.nextDir;
-    const d = DIRS[p.dir];
-    const nx = p.x + d.x;
-    const ny = p.y + d.y;
 
-    if (!inBounds(nx, ny)) {
+    if (p.human) {
+      if (mode === "online" && p.id !== localId) {
+        // angle set from net inputs
+      } else {
+        setLocalSteer(p);
+      }
+    } else {
+      botDecide(p, performance.now());
+    }
+
+    const nx = p.x + Math.cos(p.angle) * SPEED * dt;
+    const ny = p.y + Math.sin(p.angle) * SPEED * dt;
+
+    // Paper.io: touching the map edge kills you
+    if (nx < PLAYER_R || ny < PLAYER_R || nx > WORLD - PLAYER_R || ny > WORLD - PLAYER_R) {
       kill(p, "Hit the edge");
       return;
     }
 
-    // Own trail collision (skip last cell we just left)
-    for (let i = 0; i < p.trail.length - 2; i += 2) {
-      if (p.trail[i] === nx && p.trail[i + 1] === ny) {
-        kill(p, "Hit your trail");
-        return;
-      }
+    // Own trail suicide (ignore recent tip)
+    if (p.outside && trailHit(p, nx, ny, true)) {
+      kill(p, "Hit your trail");
+      return;
     }
 
-    const victim = trailOwnerAt(nx, ny);
-    if (victim && victim !== p) {
-      kill(victim, `${p.name} cut their trail`);
-      if (p.id === localId) window.HubSound?.play?.("score");
+    // Cut enemy trails
+    for (const other of players) {
+      if (other === p || !other.alive || !other.outside) continue;
+      if (trailHit(other, nx, ny, false)) {
+        kill(other, `${p.name} cut their trail`);
+        if (p.id === localId) window.HubSound?.play?.("score");
+      }
     }
 
     const wasHome = isOwnLand(p, p.x, p.y);
     const nowHome = isOwnLand(p, nx, ny);
 
-    if (!wasHome || !nowHome) {
-      // leaving or outside: drop trail on previous cell if outside after move prep
-    }
-
-    if (!wasHome) {
-      // already outside — trail grows from previous position
-      p.trail.push(p.x, p.y);
-    } else if (!nowHome) {
-      // just left home
-      p.trail.push(p.x, p.y);
-    }
-
+    const ox = p.x;
+    const oy = p.y;
     p.x = nx;
     p.y = ny;
 
-    if (!wasHome && nowHome && p.trail.length) {
+    if (!wasHome || p.outside) {
+      p.outside = true;
+      p.distAcc += Math.hypot(nx - ox, ny - oy);
+      while (p.distAcc >= TRAIL_STEP) {
+        p.distAcc -= TRAIL_STEP;
+        p.trail.push({ x: p.x, y: p.y });
+        if (p.trail.length > MAX_TRAIL) p.trail.shift();
+      }
+    } else if (!nowHome) {
+      p.outside = true;
+      p.trail.push({ x: ox, y: oy });
+      p.trail.push({ x: nx, y: ny });
+      p.distAcc = 0;
+    }
+
+    if (p.outside && nowHome && p.trail.length >= 2) {
       capture(p);
       if (p.id === localId) {
         window.HubSound?.play?.("score");
@@ -501,7 +545,8 @@
     }
   }
 
-  function tick(now) {
+  function tick(dt) {
+    const now = performance.now();
     for (const p of players) {
       if (!p.alive) {
         if (p.respawnAt && now >= p.respawnAt) {
@@ -510,21 +555,18 @@
         }
         continue;
       }
-      if (!p.human) botDecide(p, now);
-      stepPlayer(p);
+      stepPlayer(p, dt);
     }
 
-    // Head-on: same cell, both alive outside
+    // Body bump while both exposed
     for (let i = 0; i < players.length; i++) {
       const a = players[i];
       if (!a.alive) continue;
       for (let j = i + 1; j < players.length; j++) {
         const b = players[j];
         if (!b.alive) continue;
-        if (a.x === b.x && a.y === b.y) {
-          const aOut = !isOwnLand(a, a.x, a.y) || a.trail.length;
-          const bOut = !isOwnLand(b, b.x, b.y) || b.trail.length;
-          if (aOut && bOut) {
+        if (Math.hypot(a.x - b.x, a.y - b.y) < PLAYER_R * 1.7) {
+          if (a.outside && b.outside) {
             kill(a, "Head-on");
             kill(b, "Head-on");
           }
@@ -533,7 +575,22 @@
     }
   }
 
-  function paintLandLayer(cell) {
+  function worldToScreen(x, y) {
+    return {
+      x: (x / WORLD) * canvas.width,
+      y: (y / WORLD) * canvas.height
+    };
+  }
+
+  function screenToWorld(sx, sy) {
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: ((sx - rect.left) / rect.width) * WORLD,
+      y: ((sy - rect.top) / rect.height) * WORLD
+    };
+  }
+
+  function paintLandLayer() {
     const w = canvas.width;
     const h = canvas.height;
     if (landLayer.width !== w || landLayer.height !== h) {
@@ -544,10 +601,10 @@
     if (!landDirty) return;
     landDirty = false;
     landCtx.clearRect(0, 0, w, h);
-    landCtx.save();
-    // Soft overlapping discs read as organic blobs instead of tiles
-    for (let y = 0; y < SIZE; y++) {
-      for (let x = 0; x < SIZE; x++) {
+    const sx = w / WORLD;
+    const sy = h / WORLD;
+    for (let y = 0; y < WORLD; y++) {
+      for (let x = 0; x < WORLD; x++) {
         const owner = grid[idx(x, y)];
         if (!owner) continue;
         const pid = idFromHash(owner);
@@ -555,43 +612,35 @@
         const color = COLORS[(pl ? pl.color : owner - 1) % COLORS.length];
         landCtx.fillStyle = color.soft;
         landCtx.beginPath();
-        landCtx.arc((x + 0.5) * cell, (y + 0.5) * cell, cell * 0.78, 0, Math.PI * 2);
+        landCtx.arc((x + 0.5) * sx, (y + 0.5) * sy, Math.max(sx, sy) * 0.82, 0, Math.PI * 2);
         landCtx.fill();
       }
     }
-    landCtx.restore();
   }
 
   function draw() {
     const w = canvas.width;
     const h = canvas.height;
-    const cell = w / SIZE;
+    const scale = w / WORLD;
 
-    // Soft arena wash
-    const bg = ctx.createRadialGradient(w * 0.5, h * 0.45, w * 0.1, w * 0.5, h * 0.5, w * 0.72);
-    bg.addColorStop(0, "#0d1c2e");
+    const bg = ctx.createRadialGradient(w * 0.5, h * 0.45, w * 0.08, w * 0.5, h * 0.5, w * 0.75);
+    bg.addColorStop(0, "#102338");
     bg.addColorStop(1, "#060d16");
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
 
-    // faint drift lines
-    ctx.strokeStyle = "rgba(255,255,255,0.03)";
-    ctx.lineWidth = 1;
-    for (let i = 1; i < 8; i++) {
-      const y = (h * i) / 8;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(w, y);
-      ctx.stroke();
-    }
+    // Edge danger band
+    ctx.strokeStyle = "rgba(255,107,90,0.35)";
+    ctx.lineWidth = Math.max(2, scale * 1.2);
+    ctx.strokeRect(scale * 0.8, scale * 0.8, w - scale * 1.6, h - scale * 1.6);
 
-    paintLandLayer(cell);
+    paintLandLayer();
     ctx.save();
     if (typeof ctx.filter === "string") {
-      ctx.filter = "blur(1.6px)";
+      ctx.filter = "blur(2px)";
       ctx.drawImage(landLayer, 0, 0);
       ctx.filter = "none";
-      ctx.globalAlpha = 0.55;
+      ctx.globalAlpha = 0.5;
       ctx.drawImage(landLayer, 0, 0);
       ctx.globalAlpha = 1;
     } else {
@@ -599,65 +648,70 @@
     }
     ctx.restore();
 
-    // Smooth trails
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     for (const p of players) {
-      if (!p.alive || !p.trail.length) continue;
+      if (!p.alive || p.trail.length < 1) continue;
       const c = COLORS[p.color % COLORS.length];
-      const pos = playerDrawPos(p);
       ctx.strokeStyle = c.fill;
-      ctx.globalAlpha = 0.9;
-      ctx.lineWidth = Math.max(3, cell * 0.52);
+      ctx.globalAlpha = 0.92;
+      ctx.lineWidth = Math.max(3, TRAIL_W * scale * 1.15);
       ctx.shadowColor = c.fill;
-      ctx.shadowBlur = cell * 0.55;
+      ctx.shadowBlur = scale * 1.4;
       ctx.beginPath();
-      ctx.moveTo((p.trail[0] + 0.5) * cell, (p.trail[1] + 0.5) * cell);
-      for (let i = 2; i < p.trail.length; i += 2) {
-        ctx.lineTo((p.trail[i] + 0.5) * cell, (p.trail[i + 1] + 0.5) * cell);
+      const s0 = worldToScreen(p.trail[0].x, p.trail[0].y);
+      ctx.moveTo(s0.x, s0.y);
+      for (let i = 1; i < p.trail.length; i++) {
+        const s = worldToScreen(p.trail[i].x, p.trail[i].y);
+        ctx.lineTo(s.x, s.y);
       }
-      ctx.lineTo((pos.x + 0.5) * cell, (pos.y + 0.5) * cell);
+      const tip = worldToScreen(p.x, p.y);
+      ctx.lineTo(tip.x, tip.y);
       ctx.stroke();
       ctx.shadowBlur = 0;
       ctx.globalAlpha = 1;
     }
 
-    // Players
     for (const p of players) {
       if (!p.alive) continue;
       const c = COLORS[p.color % COLORS.length];
-      const pos = playerDrawPos(p);
-      const cx = (pos.x + 0.5) * cell;
-      const cy = (pos.y + 0.5) * cell;
-      const r = cell * 0.55;
+      const s = worldToScreen(p.x, p.y);
+      const r = PLAYER_R * scale * 1.15;
 
       ctx.shadowColor = c.fill;
-      ctx.shadowBlur = cell * 1.1;
+      ctx.shadowBlur = r * 1.8;
       ctx.fillStyle = c.fill;
       ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      // soft highlight
       ctx.fillStyle = "rgba(255,255,255,0.35)";
       ctx.beginPath();
-      ctx.arc(cx - r * 0.25, cy - r * 0.28, r * 0.35, 0, Math.PI * 2);
+      ctx.arc(s.x - r * 0.28, s.y - r * 0.28, r * 0.32, 0, Math.PI * 2);
       ctx.fill();
+
+      // nose showing direction
+      ctx.strokeStyle = "rgba(255,255,255,0.7)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y);
+      ctx.lineTo(s.x + Math.cos(p.angle) * r * 1.35, s.y + Math.sin(p.angle) * r * 1.35);
+      ctx.stroke();
 
       if (p.id === localId) {
         ctx.strokeStyle = "rgba(255,255,255,0.95)";
         ctx.lineWidth = 2.5;
         ctx.beginPath();
-        ctx.arc(cx, cy, r + 1.5, 0, Math.PI * 2);
+        ctx.arc(s.x, s.y, r + 2, 0, Math.PI * 2);
         ctx.stroke();
       }
 
-      ctx.fillStyle = "rgba(6,12,20,0.7)";
-      ctx.font = `bold ${Math.max(11, cell * 0.95)}px Outfit,sans-serif`;
+      ctx.fillStyle = "rgba(6,12,20,0.72)";
+      ctx.font = `bold ${Math.max(11, scale * 1.7)}px Outfit,sans-serif`;
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
-      ctx.fillText(p.name.slice(0, 10), cx, cy - r - 4);
+      ctx.fillText(p.name.slice(0, 10), s.x, s.y - r - 4);
     }
 
     if (performance.now() < deathUntil) {
@@ -671,12 +725,19 @@
     }
   }
 
+  function escapeHtml(s) {
+    return String(s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
   function updateHud() {
     const me = localPlayer();
     const pct = me ? pctFor(me) : 0;
     if (scoreEl) scoreEl.textContent = `${pct}%`;
     maybeSubmit(pct);
-
     if (liveBoard) {
       const ranked = players
         .map((p) => ({ p, pct: pctFor(p) }))
@@ -695,14 +756,6 @@
     }
   }
 
-  function escapeHtml(s) {
-    return String(s)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;");
-  }
-
   function loop(ts) {
     if (!running) return;
     animId = requestAnimationFrame(loop);
@@ -711,14 +764,10 @@
       return;
     }
     if (!lastFrame) lastFrame = ts;
-    let acc = ts - lastFrame;
-    if (acc > 400) acc = 400;
-    while (acc >= TICK_MS) {
-      if (mode !== "online" || isHost) tick(performance.now());
-      acc -= TICK_MS;
-      lastFrame = ts - acc;
-    }
-    moveAlpha = Math.max(0, Math.min(1, acc / TICK_MS));
+    let dt = (ts - lastFrame) / 1000;
+    lastFrame = ts;
+    if (dt > 0.05) dt = 0.05;
+    if (mode !== "online" || isHost) tick(dt);
     draw();
     updateHud();
   }
@@ -753,7 +802,7 @@
       resumeBtn.classList.add("hidden");
       overlayTitle.textContent = "Paper Claim";
       overlayText.textContent =
-        "Paint the map like paper.io — claim territory, cut enemy trails, and survive.";
+        "Free-move like paper.io — diagonals, mouse aim, claim loops. Touching the map edge KO's you.";
     }
     overlay.classList.remove("hidden");
   }
@@ -767,7 +816,7 @@
     onlinePanel.classList.toggle("hidden", mode !== "online");
   }
 
-  // —— Networking (host-authoritative via Supabase hub_docs) ——
+  // —— Networking ——
   async function sbGet(id) {
     if (!window.HubSupabase?.getDoc) return null;
     try {
@@ -783,7 +832,6 @@
   }
 
   function encodeGrid() {
-    // RLE: "hash:count,hash:count,..."
     const parts = [];
     let i = 0;
     while (i < grid.length) {
@@ -798,7 +846,7 @@
 
   function decodeGrid(rle) {
     if (!rle) return;
-    const out = new Int16Array(SIZE * SIZE);
+    const out = new Int16Array(WORLD * WORLD);
     let i = 0;
     for (const part of String(rle).split(",")) {
       const [vs, ns] = part.split(":");
@@ -815,13 +863,13 @@
       id: p.id,
       name: p.name,
       color: p.color,
-      x: p.x,
-      y: p.y,
-      dir: p.dir,
-      nextDir: p.nextDir,
+      x: +p.x.toFixed(2),
+      y: +p.y.toFixed(2),
+      angle: +p.angle.toFixed(3),
       alive: p.alive,
       human: p.human,
-      trail: p.trail.slice(-120),
+      outside: p.outside,
+      trail: p.trail.slice(-160).map((t) => [+t.x.toFixed(2), +t.y.toFixed(2)]),
       respawnAt: p.respawnAt ? Date.now() + (p.respawnAt - performance.now()) : 0
     }));
   }
@@ -837,30 +885,24 @@
       }
     }
     if (Array.isArray(snap.players)) {
-      const prevById = new Map(players.map((p) => [p.id, p]));
-      players = snap.players.map((raw) => {
-        const old = prevById.get(raw.id);
-        const x = raw.x | 0;
-        const y = raw.y | 0;
-        return {
-          id: raw.id,
-          name: raw.name,
-          color: raw.color | 0,
-          x,
-          y,
-          prevX: old && old.x === x && old.y === y ? old.prevX : old ? old.x : x,
-          prevY: old && old.x === x && old.y === y ? old.prevY : old ? old.y : y,
-          dir: raw.dir || "right",
-          nextDir: raw.nextDir || raw.dir || "right",
-          alive: !!raw.alive,
-          human: !!raw.human,
-          trail: Array.isArray(raw.trail) ? raw.trail.slice() : [],
-          respawnAt: raw.respawnAt ? performance.now() + Math.max(0, raw.respawnAt - Date.now()) : 0,
-          botThink: 0,
-          botTarget: raw.dir || "right"
-        };
-      });
-      moveAlpha = 1;
+      players = snap.players.map((raw) => ({
+        id: raw.id,
+        name: raw.name,
+        color: raw.color | 0,
+        x: Number(raw.x) || 0,
+        y: Number(raw.y) || 0,
+        angle: Number(raw.angle) || 0,
+        alive: !!raw.alive,
+        human: !!raw.human,
+        outside: !!raw.outside,
+        trail: Array.isArray(raw.trail)
+          ? raw.trail.map((t) => (Array.isArray(t) ? { x: t[0], y: t[1] } : t))
+          : [],
+        distAcc: 0,
+        respawnAt: raw.respawnAt ? performance.now() + Math.max(0, raw.respawnAt - Date.now()) : 0,
+        botThink: 0,
+        botAngle: Number(raw.angle) || 0
+      }));
     }
   }
 
@@ -874,12 +916,11 @@
     for (const [k, v] of idMap) idMapObj[k] = v;
     const doc = await sbGet(roomDocId(roomCode));
     if (!doc) return;
-    // Merge guest inputs
     const inputs = doc.inputs || {};
     for (const p of players) {
       if (!p.human || p.id === localId) continue;
-      const d = inputs[p.id];
-      if (d && DIRS[d]) setDir(p, d);
+      const ang = inputs[p.id];
+      if (typeof ang === "number" && Number.isFinite(ang)) p.angle = ang;
     }
     await sbPut(roomDocId(roomCode), {
       ...doc,
@@ -892,7 +933,7 @@
         players: snapshotPlayers(),
         t: Date.now()
       },
-      inputs: { ...(doc.inputs || {}), [localId]: pendingDir || localPlayer()?.nextDir }
+      inputs: { ...(doc.inputs || {}), [localId]: pendingAngle }
     });
   }
 
@@ -903,13 +944,9 @@
     await sbPut(roomDocId(roomCode), {
       ...doc,
       updatedAt: Date.now(),
-      inputs: { ...(doc.inputs || {}), [localId]: pendingDir || localPlayer()?.nextDir || "right" }
+      inputs: { ...(doc.inputs || {}), [localId]: pendingAngle }
     });
-    if (doc.snap) {
-      applySnapshot(doc.snap);
-      const me = localPlayer();
-      if (me && pendingDir) setDir(me, pendingDir);
-    }
+    if (doc.snap) applySnapshot(doc.snap);
   }
 
   async function netTick() {
@@ -927,9 +964,7 @@
 
   function stopNet() {
     clearInterval(netPollTimer);
-    clearInterval(netPushTimer);
     netPollTimer = 0;
-    netPushTimer = 0;
   }
 
   function startNet() {
@@ -958,19 +993,16 @@
       inputs: {},
       snap: null
     });
-    // Register in lobby list for quick play
     try {
       const lobbies = (await sbGet(LOBBY_DOC)) || { rooms: {} };
       lobbies.rooms = lobbies.rooms || {};
       lobbies.rooms[roomCode] = { code: roomCode, hostId: me, status: "waiting", updatedAt: Date.now() };
-      // prune old
       const now = Date.now();
       for (const [k, r] of Object.entries(lobbies.rooms)) {
         if (!r || now - (r.updatedAt || 0) > 10 * 60 * 1000) delete lobbies.rooms[k];
       }
       await sbPut(LOBBY_DOC, lobbies);
     } catch {}
-
     onlineCode.classList.remove("hidden");
     onlineCode.textContent = `Room ${roomCode} — waiting for players…`;
     onlineCancelBtn.classList.remove("hidden");
@@ -1004,11 +1036,7 @@
       return;
     }
     seats[me] = { name, color: seatCount % COLORS.length, joinedAt: Date.now() };
-    await sbPut(roomDocId(want), {
-      ...doc,
-      seats,
-      updatedAt: Date.now()
-    });
+    await sbPut(roomDocId(want), { ...doc, seats, updatedAt: Date.now() });
     roomCode = want;
     localId = me;
     isHost = doc.hostId === me;
@@ -1016,14 +1044,11 @@
     onlineCode.classList.remove("hidden");
     onlineCode.textContent = isHost ? `Room ${roomCode}` : `Joined ${roomCode}`;
     onlineCancelBtn.classList.remove("hidden");
-    onlineStatus.textContent = isHost
-      ? "You are host. Press Play to start."
-      : "Waiting for host to start…";
+    onlineStatus.textContent = isHost ? "You are host. Press Play to start." : "Waiting for host to start…";
     startBtn.textContent = isHost ? "Start match" : "Waiting…";
     if (!isHost) watchLobbyStart();
   }
 
-  let lobbyWatch = 0;
   function watchLobbyStart() {
     clearInterval(lobbyWatch);
     lobbyWatch = setInterval(async () => {
@@ -1072,11 +1097,7 @@
         const lobbies = (await sbGet(LOBBY_DOC)) || { rooms: {} };
         if (lobbies.rooms) delete lobbies.rooms[roomCode];
         await sbPut(LOBBY_DOC, lobbies);
-        await sbPut(roomDocId(roomCode), {
-          code: roomCode,
-          status: "closed",
-          updatedAt: Date.now()
-        });
+        await sbPut(roomDocId(roomCode), { code: roomCode, status: "closed", updatedAt: Date.now() });
       } catch {}
     }
     roomCode = "";
@@ -1103,19 +1124,13 @@
       return;
     }
     const seats = doc.seats || {};
-    const humans = Object.entries(seats).map(([id, s], i) => ({
+    const humans = Object.entries(seats).map(([id, s]) => ({
       id,
-      name: s.name || "Player",
-      color: i
+      name: s.name || "Player"
     }));
-    // Ensure host color assignment sticks
-    humans.forEach((h, i) => {
-      /* color via index in resetArena */
-    });
     const bots = Math.max(0, Math.min(6, MAX_PLAYERS - humans.length));
     localId = playerId();
     startNpc({ localId, humans, bots });
-    // fix colors from seats
     for (const p of players) {
       const seat = seats[p.id];
       if (seat && seat.color != null) p.color = seat.color % COLORS.length;
@@ -1164,46 +1179,41 @@
   };
 
   window.addEventListener("keydown", (e) => {
-    const dir = keyMap[e.key];
-    if (!dir) return;
+    const k = keyMap[e.key];
+    if (!k) return;
     e.preventDefault();
-    const me = localPlayer();
-    if (!me || !running || paused) return;
-    setDir(me, dir);
-    pendingDir = dir;
+    keys[k] = true;
+  });
+  window.addEventListener("keyup", (e) => {
+    const k = keyMap[e.key];
+    if (!k) return;
+    keys[k] = false;
   });
 
-  // Touch swipe
-  let touchX = 0;
-  let touchY = 0;
-  canvas.addEventListener(
-    "touchstart",
-    (e) => {
-      const t = e.changedTouches[0];
-      touchX = t.clientX;
-      touchY = t.clientY;
-    },
-    { passive: true }
-  );
-  canvas.addEventListener(
-    "touchend",
-    (e) => {
-      const t = e.changedTouches[0];
-      const dx = t.clientX - touchX;
-      const dy = t.clientY - touchY;
-      if (Math.hypot(dx, dy) < 24) return;
-      let dir;
-      if (Math.abs(dx) > Math.abs(dy)) dir = dx > 0 ? "right" : "left";
-      else dir = dy > 0 ? "down" : "up";
-      const me = localPlayer();
-      if (!me || !running || paused) return;
-      setDir(me, dir);
-      pendingDir = dir;
-    },
-    { passive: true }
-  );
+  function aimFromEvent(e) {
+    const pt = e.touches ? e.touches[0] : e;
+    if (!pt) return;
+    const w = screenToWorld(pt.clientX, pt.clientY);
+    aimX = w.x;
+    aimY = w.y;
+    pointerAim = true;
+  }
 
-  // UI
+  canvas.addEventListener("pointerdown", (e) => {
+    canvas.setPointerCapture?.(e.pointerId);
+    aimFromEvent(e);
+  });
+  canvas.addEventListener("pointermove", (e) => {
+    if (e.buttons || e.pointerType === "touch") aimFromEvent(e);
+    else if (pointerAim) aimFromEvent(e);
+  });
+  canvas.addEventListener("mousemove", (e) => {
+    // Paper.io-style: mouse always aims while over the arena
+    if (!keys.up && !keys.down && !keys.left && !keys.right) {
+      aimFromEvent(e);
+    }
+  });
+
   modePicker?.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-mode]");
     if (!btn) return;
@@ -1257,7 +1267,4 @@
   updateBestHud();
   setMode("npc");
   draw();
-  // Empty preview grid
-  ctx.fillStyle = "#071018";
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
 })();
