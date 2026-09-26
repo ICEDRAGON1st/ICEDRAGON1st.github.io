@@ -300,38 +300,48 @@
     markLandDirty();
   }
 
+  let stealNote = "";
+  let stealUntil = 0;
+
   /** Steal victim's territory (+ unused trail paint) into the killer's color. */
   function transferTerritory(killer, victim) {
     if (!killer || !victim || killer === victim) {
       clearPlayerCells(victim);
-      return;
+      return 0;
     }
     const from = idHash(victim.id);
     const to = idHash(killer.id);
+    let stolen = 0;
     for (let i = 0; i < grid.length; i++) {
-      if (grid[i] === from) grid[i] = to;
+      if (grid[i] === from) {
+        grid[i] = to;
+        stolen++;
+      }
     }
     // Convert open trail into claimed land for the killer
     if (victim.trail.length) {
       let px = victim.trail[0].x;
       let py = victim.trail[0].y;
       for (let i = 1; i < victim.trail.length; i++) {
-        paintStroke(to, px, py, victim.trail[i].x, victim.trail[i].y, TRAIL_W * 0.9);
+        paintStroke(to, px, py, victim.trail[i].x, victim.trail[i].y, TRAIL_W * 1.1);
         px = victim.trail[i].x;
         py = victim.trail[i].y;
       }
-      paintStroke(to, px, py, victim.x, victim.y, TRAIL_W * 0.9);
+      paintStroke(to, px, py, victim.x, victim.y, TRAIL_W * 1.1);
     }
     victim.trail = [];
-    markLandDirty();
+    landDirty = true;
+    return stolen;
   }
 
   function kill(p, reason, killer) {
     if (!p.alive) return;
+    const beforePct = killer && killer.alive ? pctFor(killer) : 0;
     p.alive = false;
     p.outside = false;
+    let stolen = 0;
     if (killer && killer !== p && killer.alive) {
-      transferTerritory(killer, p);
+      stolen = transferTerritory(killer, p);
     } else {
       clearPlayerCells(p);
     }
@@ -344,9 +354,12 @@
     if (killer && killer.id === localId && killer !== p) {
       window.HubSound?.play?.("score");
       const pct = pctFor(killer);
+      const gained = Math.max(0, Math.round((pct - beforePct) * 10) / 10);
+      stealNote = stolen > 0 ? `Took ${p.name}'s land! +${gained}%` : `Eliminated ${p.name}`;
+      stealUntil = performance.now() + 2200;
       maybeSubmit(pct);
       checkAchievements(pct);
-      if (pct >= 15) window.HubConfetti?.burst?.();
+      window.HubConfetti?.burst?.();
     }
     if (p.id === localId) {
       window.HubSound?.play?.("hit");
@@ -439,11 +452,30 @@
   }
 
   function trailHit(p, ox, oy, ignoreRecent) {
-    const hitR = PLAYER_R * 0.85 + TRAIL_W * 0.35;
+    const hitR = ignoreRecent
+      ? PLAYER_R * 0.8 + TRAIL_W * 0.3
+      : PLAYER_R * 1.35 + TRAIL_W * 0.85; // easier to cut rivals
     const trail = p.trail;
-    if (trail.length < 3) return false;
 
-    let start = 1;
+    function hitSeg(ax, ay, bx, by) {
+      return distToSeg(ox, oy, ax, ay, bx, by) <= hitR;
+    }
+
+    // Always test the live tip (last sample → current body)
+    if (trail.length >= 1) {
+      const tip = trail[trail.length - 1];
+      const tipDist = Math.hypot(p.x - tip.x, p.y - tip.y);
+      if (!ignoreRecent || tipDist > TRAIL_IMMUNE_DIST * 0.35) {
+        if (hitSeg(tip.x, tip.y, p.x, p.y)) {
+          if (!ignoreRecent) return true;
+          // self: only if tip segment is long enough to count as "old"
+          if (tipDist > TRAIL_IMMUNE_DIST * 0.5) return true;
+        }
+      }
+    }
+
+    if (trail.length < 2) return false;
+
     if (ignoreRecent) {
       let dist = 0;
       let cut = trail.length;
@@ -455,25 +487,19 @@
         }
         cut = i;
       }
-      // Also skip if overall trail is still short
       let total = 0;
       for (let i = 1; i < trail.length; i++) {
         total += Math.hypot(trail[i].x - trail[i - 1].x, trail[i].y - trail[i - 1].y);
       }
       if (total < MIN_TRAIL_FOR_SUICIDE) return false;
-      // only test segments before the immune tail
       for (let i = 1; i < cut; i++) {
-        const a = trail[i - 1];
-        const b = trail[i];
-        if (distToSeg(ox, oy, a.x, a.y, b.x, b.y) <= hitR) return true;
+        if (hitSeg(trail[i - 1].x, trail[i - 1].y, trail[i].x, trail[i].y)) return true;
       }
       return false;
     }
 
-    for (let i = start; i < trail.length; i++) {
-      const a = trail[i - 1];
-      const b = trail[i];
-      if (distToSeg(ox, oy, a.x, a.y, b.x, b.y) <= hitR) return true;
+    for (let i = 1; i < trail.length; i++) {
+      if (hitSeg(trail[i - 1].x, trail[i - 1].y, trail[i].x, trail[i].y)) return true;
     }
     return false;
   }
@@ -624,14 +650,15 @@
       return;
     }
 
-    // Cut enemy trails
+    // Cut enemy trails OR bump them while they're exposed
     if (!grace) {
       for (const other of players) {
-        if (other === p || !other.alive || !other.outside) continue;
+        if (other === p || !other.alive) continue;
         if (inSpawnGrace(other)) continue;
-        if (trailHit(other, nx, ny, false)) {
-          kill(other, `${p.name} cut their trail`);
-          if (p.id === localId) window.HubSound?.play?.("score");
+        if (!other.outside) continue;
+        const bodyHit = Math.hypot(nx - other.x, ny - other.y) < PLAYER_R * 2.1;
+        if (bodyHit || trailHit(other, nx, ny, false)) {
+          kill(other, `${p.name} eliminated ${other.name}`, p);
         }
       }
     }
@@ -839,6 +866,16 @@
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
       ctx.fillText(p.name.slice(0, 10), s.x, s.y - r - 4);
+    }
+
+    if (performance.now() < stealUntil) {
+      ctx.fillStyle = "rgba(0,0,0,0.4)";
+      ctx.fillRect(0, h * 0.12, w, h * 0.12);
+      ctx.fillStyle = "#7dff9a";
+      ctx.font = "bold 26px Outfit,sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(stealNote, w / 2, h * 0.18);
     }
 
     if (performance.now() < deathUntil) {
