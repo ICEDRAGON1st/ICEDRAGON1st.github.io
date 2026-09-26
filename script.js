@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260926g": [
+    "Fishing Idle: 10 new endgame spots + more upgrades across every gear line"
+  ],
   "20260926d": [
     "Runosaur: side-view 2D chase with shaded 3D-looking art (no more tunnel cam)"
   ],
