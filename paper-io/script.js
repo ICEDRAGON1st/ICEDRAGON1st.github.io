@@ -3,6 +3,7 @@
   const WORLD = 220;
   const VIEW_SPAN_MIN = 72; // slightly wider than tight paper.io zoom
   const VIEW_SPAN_MAX = 140;
+  const LAND_PX = 8; // hi-res land texture so zoom stays smooth
   const SPEED = 24;
   const TURN_RATE = 4.2; // rad/s — smooth steering, not instant snap
   const PLAYER_R = 1.55;
@@ -20,14 +21,14 @@
   const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
   const COLORS = [
-    { fill: "#3ec6ff", soft: "rgba(62,198,255,0.58)", name: "Cyan" },
-    { fill: "#ff6b5a", soft: "rgba(255,107,90,0.58)", name: "Coral" },
-    { fill: "#7dff9a", soft: "rgba(125,255,154,0.58)", name: "Mint" },
-    { fill: "#ffd166", soft: "rgba(255,209,102,0.58)", name: "Gold" },
-    { fill: "#c792ff", soft: "rgba(199,146,255,0.58)", name: "Violet" },
-    { fill: "#ff9ecd", soft: "rgba(255,158,205,0.58)", name: "Pink" },
-    { fill: "#5eead4", soft: "rgba(94,234,212,0.58)", name: "Teal" },
-    { fill: "#fda4af", soft: "rgba(253,164,175,0.58)", name: "Rose" }
+    { fill: "#3ec6ff", soft: "rgba(62,198,255,0.78)", name: "Cyan" },
+    { fill: "#ff6b5a", soft: "rgba(255,107,90,0.78)", name: "Coral" },
+    { fill: "#7dff9a", soft: "rgba(125,255,154,0.78)", name: "Mint" },
+    { fill: "#ffd166", soft: "rgba(255,209,102,0.78)", name: "Gold" },
+    { fill: "#c792ff", soft: "rgba(199,146,255,0.78)", name: "Violet" },
+    { fill: "#ff9ecd", soft: "rgba(255,158,205,0.78)", name: "Pink" },
+    { fill: "#5eead4", soft: "rgba(94,234,212,0.78)", name: "Teal" },
+    { fill: "#fda4af", soft: "rgba(253,164,175,0.78)", name: "Rose" }
   ];
 
   const canvas = document.getElementById("game");
@@ -832,14 +833,18 @@
   }
 
   function paintLandLayer() {
-    if (landLayer.width !== WORLD || landLayer.height !== WORLD) {
-      landLayer.width = WORLD;
-      landLayer.height = WORLD;
+    const W = WORLD * LAND_PX;
+    if (landLayer.width !== W || landLayer.height !== W) {
+      landLayer.width = W;
+      landLayer.height = W;
       landDirty = true;
     }
     if (!landDirty) return;
     landDirty = false;
-    landCtx.clearRect(0, 0, WORLD, WORLD);
+    landCtx.clearRect(0, 0, W, W);
+    landCtx.imageSmoothingEnabled = true;
+    // Soft overlapping disks at hi-res merge into smooth blobs when zoomed
+    const rad = LAND_PX * 0.78;
     for (let y = 0; y < WORLD; y++) {
       for (let x = 0; x < WORLD; x++) {
         const owner = grid[idx(x, y)];
@@ -849,7 +854,7 @@
         const color = COLORS[(pl ? pl.color : owner - 1) % COLORS.length];
         landCtx.fillStyle = color.soft;
         landCtx.beginPath();
-        landCtx.arc(x + 0.5, y + 0.5, 0.82, 0, Math.PI * 2);
+        landCtx.arc((x + 0.5) * LAND_PX, (y + 0.5) * LAND_PX, rad, 0, Math.PI * 2);
         landCtx.fill();
       }
     }
@@ -1002,15 +1007,20 @@
     ctx.stroke();
 
     paintLandLayer();
+    ctx.imageSmoothingEnabled = true;
+    try {
+      ctx.imageSmoothingQuality = "high";
+    } catch {}
+    // Light screen-space soften so cell edges don't read as pixels when zoomed
     if (typeof ctx.filter === "string") {
-      ctx.filter = "blur(0.35px)";
-      ctx.drawImage(landLayer, 0, 0, WORLD, WORLD);
+      ctx.filter = `blur(${(0.22 * scale).toFixed(2)}px)`;
+      ctx.drawImage(landLayer, 0, 0, landLayer.width, landLayer.height, 0, 0, WORLD, WORLD);
       ctx.filter = "none";
-      ctx.globalAlpha = 0.55;
-      ctx.drawImage(landLayer, 0, 0, WORLD, WORLD);
+      ctx.globalAlpha = 0.65;
+      ctx.drawImage(landLayer, 0, 0, landLayer.width, landLayer.height, 0, 0, WORLD, WORLD);
       ctx.globalAlpha = 1;
     } else {
-      ctx.drawImage(landLayer, 0, 0, WORLD, WORLD);
+      ctx.drawImage(landLayer, 0, 0, landLayer.width, landLayer.height, 0, 0, WORLD, WORLD);
     }
 
     ctx.lineCap = "round";
