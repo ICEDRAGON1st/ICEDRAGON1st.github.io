@@ -1050,7 +1050,7 @@ header h1 {
 }
 
 .games-screen.hub-flip {
-  transform: rotate(180deg);
+  transform: rotate(180deg) !important;
 }
 
 .games-title-wrap,

@@ -2710,19 +2710,36 @@ function hideGamesScreen() {
 
 /** Easter egg: tap/click "My Games" title 7× → flip hub for 5s. */
 (function bindHubFlipEgg() {
-  const title = document.getElementById("games-title");
-  const wrap = document.querySelector(".games-title-wrap");
-  const target = wrap || title;
-  if (!target || !gamesScreen) return;
+  if (!gamesScreen) return;
 
   let clicks = 0;
   let clickReset = 0;
   let flipTimer = 0;
 
-  target.addEventListener(
+  function isTitleHit(el) {
+    if (!el || !el.closest) return false;
+    return !!(el.closest("#games-title") || el.closest(".games-title-wrap"));
+  }
+
+  function setFlipped(on) {
+    gamesScreen.classList.toggle("hub-flip", on);
+    // Inline too — survives a stale styles.css cache
+    if (on) {
+      gamesScreen.style.transform = "rotate(180deg)";
+      gamesScreen.style.transformOrigin = "center center";
+      gamesScreen.style.transition = "transform 0.55s cubic-bezier(0.4, 0.05, 0.2, 1)";
+    } else {
+      gamesScreen.style.transform = "";
+      gamesScreen.style.transformOrigin = "";
+      gamesScreen.style.transition = "";
+    }
+  }
+
+  gamesScreen.addEventListener(
     "pointerdown",
     (e) => {
       if (e.button != null && e.button !== 0) return;
+      if (!isTitleHit(e.target)) return;
       e.preventDefault();
       e.stopPropagation();
       try {
@@ -2735,20 +2752,18 @@ function hideGamesScreen() {
       clearTimeout(clickReset);
       clickReset = setTimeout(() => {
         clicks = 0;
-      }, 6000);
+      }, 8000);
 
       if (clicks < 7) return;
 
       clicks = 0;
       clearTimeout(clickReset);
-      gamesScreen.classList.add("hub-flip");
+      setFlipped(true);
       window.HubSound?.play?.("score");
       clearTimeout(flipTimer);
-      flipTimer = setTimeout(() => {
-        gamesScreen.classList.remove("hub-flip");
-      }, 5000);
+      flipTimer = setTimeout(() => setFlipped(false), 5000);
     },
-    { passive: false }
+    true
   );
 })();
 
