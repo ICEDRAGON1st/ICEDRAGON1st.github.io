@@ -34,7 +34,10 @@
   const ctx = canvas.getContext("2d", { alpha: false });
   const landLayer = document.createElement("canvas");
   const landCtx = landLayer.getContext("2d");
+  const miniLayer = document.createElement("canvas");
+  const miniCtx = miniLayer.getContext("2d", { alpha: false });
   let landDirty = true;
+  let miniDirty = true;
 
   const scoreEl = document.getElementById("score");
   const highEl = document.getElementById("high-score");
@@ -182,6 +185,7 @@
 
   function markLandDirty() {
     landDirty = true;
+    miniDirty = true;
   }
 
   function clearGrid() {
@@ -380,7 +384,7 @@
       paintStroke(to, px, py, victim.x, victim.y, TRAIL_W * 1.1);
     }
     victim.trail = [];
-    landDirty = true;
+    markLandDirty();
     return stolen;
   }
 
@@ -851,6 +855,131 @@
     }
   }
 
+  function paintMiniLayer() {
+    if (miniLayer.width !== WORLD || miniLayer.height !== WORLD) {
+      miniLayer.width = WORLD;
+      miniLayer.height = WORLD;
+      miniDirty = true;
+    }
+    if (!miniDirty) return;
+    miniDirty = false;
+    miniCtx.fillStyle = "#0c1a2a";
+    miniCtx.fillRect(0, 0, WORLD, WORLD);
+    for (let y = 0; y < WORLD; y++) {
+      for (let x = 0; x < WORLD; x++) {
+        const owner = grid[idx(x, y)];
+        if (!owner) continue;
+        const pid = idFromHash(owner);
+        const pl = players.find((p) => p.id === pid);
+        const color = COLORS[(pl ? pl.color : owner - 1) % COLORS.length];
+        miniCtx.fillStyle = color.fill;
+        miniCtx.fillRect(x, y, 1, 1);
+      }
+    }
+  }
+
+  function drawMinimap(w, h) {
+    const size = Math.round(Math.min(w, h) * 0.2);
+    const pad = Math.round(Math.min(w, h) * 0.022);
+    const x0 = w - size - pad;
+    const y0 = h - size - pad;
+    const inset = 4;
+    const mapX = x0 + inset;
+    const mapY = y0 + inset;
+    const mapS = size - inset * 2;
+    const cell = mapS / WORLD;
+
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1;
+    ctx.shadowBlur = 0;
+    ctx.lineCap = "butt";
+    ctx.lineJoin = "miter";
+
+    // Panel chrome
+    ctx.fillStyle = "rgba(6, 12, 20, 0.88)";
+    ctx.strokeStyle = "rgba(62, 198, 255, 0.5)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    const r = 10;
+    ctx.moveTo(x0 + r, y0);
+    ctx.arcTo(x0 + size, y0, x0 + size, y0 + size, r);
+    ctx.arcTo(x0 + size, y0 + size, x0, y0 + size, r);
+    ctx.arcTo(x0, y0 + size, x0, y0, r);
+    ctx.arcTo(x0, y0, x0 + size, y0, r);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    // Clip map contents so nothing bleeds past the frame
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(mapX, mapY, mapS, mapS);
+    ctx.clip();
+
+    paintMiniLayer();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(miniLayer, 0, 0, WORLD, WORLD, mapX, mapY, mapS, mapS);
+
+    // Trails — subsample so long trails don't flicker/overdraw
+    for (const p of players) {
+      if (!p.alive || p.trail.length < 2) continue;
+      const c = COLORS[p.color % COLORS.length];
+      const step = Math.max(1, Math.floor(p.trail.length / 80));
+      ctx.strokeStyle = c.fill;
+      ctx.globalAlpha = 0.85;
+      ctx.lineWidth = Math.max(1.25, cell * 1.4);
+      ctx.lineCap = "round";
+      ctx.lineJoin = "round";
+      ctx.beginPath();
+      ctx.moveTo(mapX + p.trail[0].x * cell, mapY + p.trail[0].y * cell);
+      for (let i = step; i < p.trail.length; i += step) {
+        ctx.lineTo(mapX + p.trail[i].x * cell, mapY + p.trail[i].y * cell);
+      }
+      ctx.lineTo(mapX + p.x * cell, mapY + p.y * cell);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    // Camera viewport (clamped inside map)
+    const half = viewSpan / 2;
+    let vx = mapX + (camX - half) * cell;
+    let vy = mapY + (camY - half) * cell;
+    let vs = viewSpan * cell;
+    vx = clamp(vx, mapX, mapX + mapS - 1);
+    vy = clamp(vy, mapY, mapY + mapS - 1);
+    vs = Math.min(vs, mapX + mapS - vx, mapY + mapS - vy);
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(vx + 0.5, vy + 0.5, Math.max(2, vs - 1), Math.max(2, vs - 1));
+
+    // Players
+    for (const p of players) {
+      if (!p.alive) continue;
+      const c = COLORS[p.color % COLORS.length];
+      const px = mapX + p.x * cell;
+      const py = mapY + p.y * cell;
+      const isMe = p.id === localId;
+      const pr = isMe ? 3.2 : 2.2;
+      ctx.fillStyle = c.fill;
+      ctx.beginPath();
+      ctx.arc(px, py, pr, 0, Math.PI * 2);
+      ctx.fill();
+      if (isMe) {
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    }
+
+    ctx.restore(); // end clip
+
+    ctx.strokeStyle = "rgba(62, 198, 255, 0.4)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(mapX + 0.5, mapY + 0.5, mapS - 1, mapS - 1);
+    ctx.restore();
+  }
+
   function draw() {
     const w = canvas.width;
     const h = canvas.height;
@@ -980,94 +1109,6 @@
       ctx.textBaseline = "middle";
       ctx.fillText(deathNote, w / 2, h * 0.5);
     }
-  }
-
-  function drawMinimap(w, h) {
-    const size = Math.round(Math.min(w, h) * 0.2);
-    const pad = Math.round(Math.min(w, h) * 0.022);
-    const x0 = w - size - pad;
-    const y0 = h - size - pad;
-    const inset = 3;
-
-    ctx.save();
-    // Panel
-    ctx.fillStyle = "rgba(6, 12, 20, 0.78)";
-    ctx.strokeStyle = "rgba(62, 198, 255, 0.45)";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    const r = 10;
-    ctx.moveTo(x0 + r, y0);
-    ctx.arcTo(x0 + size, y0, x0 + size, y0 + size, r);
-    ctx.arcTo(x0 + size, y0 + size, x0, y0 + size, r);
-    ctx.arcTo(x0, y0 + size, x0, y0, r);
-    ctx.arcTo(x0, y0, x0 + size, y0, r);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-
-    const mapX = x0 + inset;
-    const mapY = y0 + inset;
-    const mapS = size - inset * 2;
-    const cell = mapS / WORLD;
-
-    ctx.fillStyle = "rgba(16, 35, 56, 0.95)";
-    ctx.fillRect(mapX, mapY, mapS, mapS);
-
-    // Territory overview (reuse land layer)
-    paintLandLayer();
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(landLayer, 0, 0, WORLD, WORLD, mapX, mapY, mapS, mapS);
-    ctx.imageSmoothingEnabled = true;
-
-    // Trails (thin)
-    for (const p of players) {
-      if (!p.alive || p.trail.length < 2) continue;
-      const c = COLORS[p.color % COLORS.length];
-      ctx.strokeStyle = c.fill;
-      ctx.globalAlpha = 0.75;
-      ctx.lineWidth = Math.max(1, cell * 1.2);
-      ctx.beginPath();
-      ctx.moveTo(mapX + p.trail[0].x * cell, mapY + p.trail[0].y * cell);
-      for (let i = 1; i < p.trail.length; i++) {
-        ctx.lineTo(mapX + p.trail[i].x * cell, mapY + p.trail[i].y * cell);
-      }
-      ctx.lineTo(mapX + p.x * cell, mapY + p.y * cell);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-    }
-
-    // Camera viewport
-    const half = viewSpan / 2;
-    const vx = mapX + (camX - half) * cell;
-    const vy = mapY + (camY - half) * cell;
-    const vs = viewSpan * cell;
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(vx, vy, vs, vs);
-
-    // Players
-    for (const p of players) {
-      if (!p.alive) continue;
-      const c = COLORS[p.color % COLORS.length];
-      const px = mapX + p.x * cell;
-      const py = mapY + p.y * cell;
-      const isMe = p.id === localId;
-      const pr = isMe ? Math.max(2.5, cell * 2.2) : Math.max(1.8, cell * 1.6);
-      ctx.fillStyle = c.fill;
-      ctx.beginPath();
-      ctx.arc(px, py, pr, 0, Math.PI * 2);
-      ctx.fill();
-      if (isMe) {
-        ctx.strokeStyle = "#fff";
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-      }
-    }
-
-    ctx.strokeStyle = "rgba(62, 198, 255, 0.35)";
-    ctx.lineWidth = 1;
-    ctx.strokeRect(mapX + 0.5, mapY + 0.5, mapS - 1, mapS - 1);
-    ctx.restore();
   }
 
   function escapeHtml(s) {
