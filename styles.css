@@ -2415,6 +2415,104 @@ header h1 {
   font-size: 0.8rem;
 }
 
+.players-roster-item,
+.players-play-item {
+  cursor: pointer;
+  border-radius: 0.45rem;
+  padding: 0.2rem 0.35rem;
+  margin: 0 -0.35rem;
+  transition: background 0.15s ease;
+}
+
+.players-roster-item:hover,
+.players-play-item:hover,
+.players-roster-item:focus-visible,
+.players-play-item:focus-visible {
+  background: color-mix(in srgb, var(--tile-border) 55%, transparent);
+  outline: none;
+}
+
+.friends-profile-btn {
+  appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.friends-profile-btn:hover,
+.friends-profile-btn:focus-visible {
+  text-decoration: underline;
+  outline: none;
+}
+
+.player-profile-modal-content {
+  max-width: 26rem;
+  width: min(100%, 26rem);
+}
+
+.player-profile-body {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0.35rem 0 1rem;
+}
+
+.player-profile-head {
+  font-size: 1.15rem;
+  line-height: 1.35;
+}
+
+.player-profile-status {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+
+.player-profile-meta,
+.player-profile-empty,
+.player-profile-top {
+  margin: 0;
+  color: var(--subtitle);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.player-profile-section h4 {
+  margin: 0 0 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--subtitle);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.player-profile-plays {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+  max-height: 11rem;
+  overflow: auto;
+}
+
+.player-profile-plays li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.9rem;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid var(--tile-border);
+}
+
+.player-profile-plays li:last-child {
+  border-bottom: none;
+}
+
 .player-name-creator {
   color: #1c7ed6;
   font-weight: 800;

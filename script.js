@@ -2776,6 +2776,9 @@ function applyHubTheme(themeId) {
 function showGamesScreen() {
   hideMenu();
   document.documentElement.classList.remove("playing-guessword", "boot-guessword");
+  try {
+    HubPlays?.setActiveGame?.("hub");
+  } catch {}
   gamesMessageEl.classList.remove("visible");
   gamesMessageEl.textContent = "";
   if (highScoresPanel) highScoresPanel.classList.add("hidden");
@@ -3914,6 +3917,14 @@ document.getElementById("friend-add-input")?.addEventListener("keydown", (e) => 
 });
 
 document.getElementById("friends-panel")?.addEventListener("click", async (e) => {
+  const profileBtn = e.target.closest("[data-profile-id], [data-profile-name]");
+  if (profileBtn?.classList?.contains("friends-profile-btn")) {
+    openPlayerProfile(
+      profileBtn.getAttribute("data-profile-id") ||
+        profileBtn.getAttribute("data-profile-name")
+    );
+    return;
+  }
   if (typeof HubFriends === "undefined") return;
   const accept = e.target.closest("[data-friend-accept]");
   const decline = e.target.closest("[data-friend-decline]");
@@ -4318,20 +4329,111 @@ function renderPlayersRoster(mode) {
       .map((p) => {
         let when = "";
         if (mode === "online") {
-          when = "online now";
+          when =
+            p.gameName && p.game && p.game !== "hub"
+              ? `playing ${p.gameName}`
+              : "online · hub";
         } else if (p.online) {
-          when = "online now";
+          when =
+            p.gameName && p.game && p.game !== "hub"
+              ? `playing ${p.gameName}`
+              : "online now";
         } else if (p.lastAt) {
           when = `last online ${HubPlays.formatWhen(p.lastAt)}`;
         } else if (p.firstAt) {
           when = `joined ${HubPlays.formatWhen(p.firstAt)}`;
         }
-        return `<li><span>${formatPlayerNameHtml(p.name)}</span><span class="players-when">${escapeHtml(when)}</span></li>`;
+        return `<li class="players-roster-item" role="button" tabindex="0" data-profile-id="${escapeHtml(p.playerId || "")}" data-profile-name="${escapeHtml(p.name)}"><span>${formatPlayerNameHtml(p.name)}</span><span class="players-when">${escapeHtml(when)}</span></li>`;
       })
       .join("");
   }
   roster.classList.remove("hidden");
 }
+
+function closePlayerProfileModal() {
+  const modal = document.getElementById("player-profile-modal");
+  modal?.classList.add("hidden");
+}
+
+function openPlayerProfile(playerIdOrName) {
+  const modal = document.getElementById("player-profile-modal");
+  const titleEl = document.getElementById("player-profile-title");
+  const body = document.getElementById("player-profile-body");
+  if (!modal || !body || typeof HubPlays === "undefined" || !HubPlays.getPlayerProfile) {
+    return;
+  }
+  const profile = HubPlays.getPlayerProfile(playerIdOrName);
+  if (!profile) return;
+
+  if (titleEl) {
+    titleEl.textContent = profile.isYou ? "Your profile" : "Player profile";
+  }
+
+  const statusLine = profile.online
+    ? profile.game && profile.game !== "hub"
+      ? `Online · playing ${escapeHtml(profile.gameName)}`
+      : "Online · browsing the hub"
+    : profile.lastAt
+      ? `Offline · last online ${escapeHtml(HubPlays.formatWhen(profile.lastAt))}`
+      : "Offline";
+
+  const joinedLine = profile.firstAt
+    ? `Joined ${escapeHtml(HubPlays.formatWhen(profile.firstAt))}`
+    : "Join date unknown";
+
+  const recentHtml = profile.recentPlays?.length
+    ? `<ul class="player-profile-plays">${profile.recentPlays
+        .slice(0, 8)
+        .map(
+          (p) =>
+            `<li><span>${escapeHtml(p.gameName || p.game)}</span><span class="players-when">${escapeHtml(HubPlays.formatWhen(p.at))}</span></li>`
+        )
+        .join("")}</ul>`
+    : `<p class="player-profile-empty">No recent games logged.</p>`;
+
+  const topHtml = profile.topGames?.length
+    ? `<p class="player-profile-top">${profile.topGames
+        .map((g) => `${escapeHtml(g.gameName)} (${g.count})`)
+        .join(" · ")}</p>`
+    : "";
+
+  body.innerHTML = `
+    <div class="player-profile-head">${formatPlayerNameHtml(profile.name)}</div>
+    <p class="player-profile-status">${statusLine}</p>
+    <p class="player-profile-meta">${joinedLine}</p>
+    ${topHtml ? `<div class="player-profile-section"><h4>Most played (recent)</h4>${topHtml}</div>` : ""}
+    <div class="player-profile-section"><h4>Recent games</h4>${recentHtml}</div>
+  `;
+  modal.classList.remove("hidden");
+}
+
+document.getElementById("player-profile-close")?.addEventListener("click", closePlayerProfileModal);
+document.getElementById("player-profile-modal")?.addEventListener("click", (e) => {
+  if (e.target?.id === "player-profile-modal") closePlayerProfileModal();
+});
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  const modal = document.getElementById("player-profile-modal");
+  if (modal && !modal.classList.contains("hidden")) closePlayerProfileModal();
+});
+
+document.getElementById("players-roster-list")?.addEventListener("click", (e) => {
+  const row = e.target.closest("[data-profile-id], [data-profile-name]");
+  if (!row) return;
+  openPlayerProfile(row.getAttribute("data-profile-id") || row.getAttribute("data-profile-name"));
+});
+document.getElementById("players-roster-list")?.addEventListener("keydown", (e) => {
+  if (e.key !== "Enter" && e.key !== " ") return;
+  const row = e.target.closest("[data-profile-id], [data-profile-name]");
+  if (!row) return;
+  e.preventDefault();
+  openPlayerProfile(row.getAttribute("data-profile-id") || row.getAttribute("data-profile-name"));
+});
+document.getElementById("players-list")?.addEventListener("click", (e) => {
+  const row = e.target.closest("[data-profile-id], [data-profile-name]");
+  if (!row) return;
+  openPlayerProfile(row.getAttribute("data-profile-id") || row.getAttribute("data-profile-name"));
+});
 
 async function refreshOnlineCount() {
   if (typeof HubPlays === "undefined") return;
@@ -4399,7 +4501,7 @@ function paintPlayersPanelLists() {
     .slice(0, 25)
     .map(
       (p) =>
-        `<li><span class="players-who">${formatPlayerNameHtml(p.name)} played ${escapeHtml(p.gameName || p.game)}</span><span class="players-when">${HubPlays.formatWhen(p.at)}</span></li>`
+        `<li class="players-play-item" role="button" tabindex="0" data-profile-id="${escapeHtml(p.playerId || "")}" data-profile-name="${escapeHtml(p.name)}"><span class="players-who">${formatPlayerNameHtml(p.name)} played ${escapeHtml(p.gameName || p.game)}</span><span class="players-when">${HubPlays.formatWhen(p.at)}</span></li>`
     )
     .join("");
 }
@@ -4599,7 +4701,7 @@ function renderFriendsPanel() {
         typeof HubCalls !== "undefined" && HubCalls.callLabelFor
           ? HubCalls.callLabelFor("dm", f.playerId)
           : "Call";
-      return `<li><span><span class="friends-online-dot${isOn ? "" : " is-offline"}" title="${escapeHtml(seen)}"></span>${formatPlayerNameHtml(f.name)}<span class="friends-last-online">${escapeHtml(seen)}</span></span><span class="friends-actions"><button type="button" class="hub-btn" data-friend-chat="${escapeHtml(f.playerId)}">Chat${unreadBadge}</button><button type="button" class="hub-btn hub-call-btn" data-hub-call-kind="dm" data-hub-call-id="${escapeHtml(f.playerId)}">${escapeHtml(callLbl)}</button><a class="hub-btn" href="tic-tac-toe/index.html?inviteFriend=${encodeURIComponent(f.playerId)}">TTT</a><a class="hub-btn" href="connect-four/index.html?inviteFriend=${encodeURIComponent(f.playerId)}">C4</a><button type="button" class="hub-btn" data-friend-remove="${escapeHtml(f.playerId)}">Remove</button></span></li>`;
+      return `<li><span><span class="friends-online-dot${isOn ? "" : " is-offline"}" title="${escapeHtml(seen)}"></span><button type="button" class="friends-profile-btn" data-profile-id="${escapeHtml(f.playerId)}" data-profile-name="${escapeHtml(f.name)}">${formatPlayerNameHtml(f.name)}</button><span class="friends-last-online">${escapeHtml(seen)}</span></span><span class="friends-actions"><button type="button" class="hub-btn" data-friend-chat="${escapeHtml(f.playerId)}">Chat${unreadBadge}</button><button type="button" class="hub-btn hub-call-btn" data-hub-call-kind="dm" data-hub-call-id="${escapeHtml(f.playerId)}">${escapeHtml(callLbl)}</button><a class="hub-btn" href="tic-tac-toe/index.html?inviteFriend=${encodeURIComponent(f.playerId)}">TTT</a><a class="hub-btn" href="connect-four/index.html?inviteFriend=${encodeURIComponent(f.playerId)}">C4</a><button type="button" class="hub-btn" data-friend-remove="${escapeHtml(f.playerId)}">Remove</button></span></li>`;
     })
     .join("");
 

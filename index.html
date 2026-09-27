@@ -92,7 +92,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260927f">
+  <link rel="stylesheet" href="styles.css?v=20260927h">
 </head>
 <body data-guess-colors="ice">
   <div id="hub-boot-loader" aria-live="polite" aria-busy="true">
@@ -224,6 +224,16 @@
       <ul id="whats-new-list" class="whats-new-list"></ul>
       <div class="modal-actions">
         <button id="whats-new-ok" type="button" class="modal-btn">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="player-profile-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="player-profile-title">
+    <div class="modal-content player-profile-modal-content">
+      <h2 id="player-profile-title">Player</h2>
+      <div id="player-profile-body" class="player-profile-body"></div>
+      <div class="modal-actions">
+        <button id="player-profile-close" type="button" class="modal-btn">Close</button>
       </div>
     </div>
   </div>
@@ -380,7 +390,7 @@
           <button type="button" id="players-online" class="players-online players-stat-btn" aria-expanded="false" aria-controls="players-roster">0 online</button>
           <button type="button" id="players-alltime" class="players-alltime players-stat-btn" aria-expanded="false" aria-controls="players-roster">· 0 all-time</button>
         </h3>
-        <p class="players-intro">Tap online or all-time to see the name list. Nicknames are unique.</p>
+        <p class="players-intro">Tap online or all-time to see the name list. Tap a name for their profile — last joined, what they're playing, and recent games. Nicknames are unique.</p>
         <div id="players-roster" class="players-roster hidden">
           <h4 id="players-roster-title" class="players-roster-title"></h4>
           <ul id="players-roster-list" class="players-roster-list"></ul>
@@ -721,7 +731,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260927f";
+    window.WORDLE_BUILD = "20260927h";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-supabase.js", "hub-account-bag.js", "hub-eggs.js", "hub-plays.js", "hub-fishing-gifts.js", "hub-fishing-mail.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-calls.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js",
       "words.js",

@@ -111,8 +111,49 @@
     mine: "Mine Depth",
     blockblast: "Block Sweep",
     lemmings: "Dudes",
-    paper: "Paper Claim"
+    paper: "Paper Claim",
+    hub: "Hub"
   };
+
+  /** Folder segment → HubPlays game id (path detection for presence). */
+  const PATH_TO_GAME = {
+    "space-shooter": "space",
+    "memory-match": "memory",
+    "wing-hop": "flappy",
+    "flappy-bird": "flappy",
+    "tic-tac-toe": "tictactoe",
+    "pixel-drop": "pixletris",
+    pixletris: "pixletris",
+    runosaur: "dino",
+    dino: "dino",
+    "ramp-rush": "ramp",
+    "block-sweep": "blockblast",
+    "block-blast": "blockblast",
+    "paper-io": "paper",
+    stacker: "stacker",
+    "cross-walk": "crossy",
+    crossy: "crossy",
+    "guac-a-mole": "guac",
+    "bubble-pop": "bubble",
+    "cafe-queue": "cafe",
+    "garden-snap": "garden",
+    dudes: "lemmings",
+    lemmings: "lemmings",
+    fishing: "fishing",
+    quiz: "quiz",
+    breakout: "breakout",
+    hangman: "hangman",
+    "2048": "2048",
+    snake: "snake",
+    "connect-four": "connect-four",
+    math: "math",
+    sudoku: "sudoku",
+    clicker: "clicker",
+    cows: "cows",
+    mine: "mine"
+  };
+
+  const ACTIVE_GAME_KEY = "hub-active-game-v1";
 
   let syncing = false;
   let lastSync = 0;
@@ -1036,6 +1077,56 @@
     return GAME_NAMES[id] || id;
   }
 
+  function detectGameFromPath() {
+    try {
+      const path = String(location.pathname || "").replace(/\\/g, "/").toLowerCase();
+      const segs = path.split("/").filter(Boolean);
+      for (let i = segs.length - 1; i >= 0; i -= 1) {
+        let seg = segs[i];
+        if (!seg || seg === "index.html" || /\.html?$/i.test(seg)) continue;
+        if (PATH_TO_GAME[seg]) return PATH_TO_GAME[seg];
+        if (GAME_NAMES[seg] && seg !== "hub") return seg;
+      }
+    } catch {}
+    return "hub";
+  }
+
+  function setActiveGame(gameId) {
+    const id = String(gameId || "").trim() || "hub";
+    try {
+      sessionStorage.setItem(ACTIVE_GAME_KEY, id);
+    } catch {}
+  }
+
+  function getActiveGame() {
+    const fromPath = detectGameFromPath();
+    if (fromPath && fromPath !== "hub") {
+      setActiveGame(fromPath);
+      return fromPath;
+    }
+    try {
+      const stored = sessionStorage.getItem(ACTIVE_GAME_KEY);
+      // Hub-hosted Guessword sets this via record(); keep until cleared.
+      if (stored && stored !== "hub" && GAME_NAMES[stored]) return stored;
+    } catch {}
+    return "hub";
+  }
+
+  function presenceSelfPayload(now = Date.now()) {
+    return {
+      at: now,
+      name: getName(),
+      game: getActiveGame() || "hub"
+    };
+  }
+
+  function sanitizePresenceGame(game) {
+    const id = String(game || "").trim();
+    if (!id) return "";
+    if (id === "hub") return "hub";
+    return GAME_NAMES[id] ? id : id.slice(0, 32);
+  }
+
   async function fetchJson(url) {
     if (isRateLimited()) throw new Error("rate limited");
     const res = await fetch(url, { cache: "no-store" });
@@ -1947,6 +2038,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       return null;
     }
     const id = String(gameId || "unknown");
+    setActiveGame(id);
     const name = getName();
     const entry = {
       id: makeId(),
@@ -1960,6 +2052,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     local.plays = [entry, ...local.plays].slice(0, MAX_PLAYS);
     local.counts[id] = (Number(local.counts[id]) || 0) + 1;
     saveLocal(local);
+    markSelfOnlineLocal(entry.at);
     sync().catch(() => {});
     touchAllTimeLastSeen(entry.at).catch(() => {});
     return entry;
@@ -2002,7 +2095,11 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       if (!id || !p || typeof p !== "object") return;
       const at = Number(p.at) || 0;
       if (!at) return;
-      out[id] = { at, name: sanitizeName(p.name || "") || "Guest" };
+      out[id] = {
+        at,
+        name: sanitizeName(p.name || "") || "Guest",
+        game: sanitizePresenceGame(p.game)
+      };
     });
     return out;
   }
@@ -2065,11 +2162,16 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     const now = Date.now();
     return Object.entries(enrichPresenceNames(presenceCache))
       .filter(([, p]) => p && now - (p.at || 0) < ONLINE_TTL_MS)
-      .map(([playerId, p]) => ({
-        playerId,
-        name: sanitizeName(p.name || "") || "Guest",
-        at: Number(p.at) || 0
-      }))
+      .map(([playerId, p]) => {
+        const game = sanitizePresenceGame(p.game);
+        return {
+          playerId,
+          name: sanitizeName(p.name || "") || "Guest",
+          at: Number(p.at) || 0,
+          game,
+          gameName: game && game !== "hub" ? gameLabel(game) : game === "hub" ? "Hub" : ""
+        };
+      })
       .filter((p) => !isPlaceholderName(p.name))
       .sort((a, b) => (b.at || 0) - (a.at || 0));
   }
@@ -2217,7 +2319,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     presenceCache = enrichPresenceNames(
       prunePresence(
         mergePresence(presenceCache, {
-          [me]: { at: now, name: getName() }
+          [me]: presenceSelfPayload(now)
         }),
         now
       )
@@ -2257,7 +2359,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       if (hasRequiredName()) {
         next = prunePresence(
           mergePresence(next, {
-            [me]: { at: now, name: getName() }
+            [me]: presenceSelfPayload(now)
           }),
           now
         );
@@ -2608,7 +2710,12 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     const id = String(playerId || "");
     const byId = id ? presenceCache[id] : null;
     if (byId && Number(byId.at) > 0) {
-      return { at: Number(byId.at) || 0, name: byId.name || "", playerId: id };
+      return {
+        at: Number(byId.at) || 0,
+        name: byId.name || "",
+        playerId: id,
+        game: sanitizePresenceGame(byId.game)
+      };
     }
     const key = nameKey(name || "");
     if (!key) return null;
@@ -2617,7 +2724,14 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       if (!p || nameKey(p.name || "") !== key) return;
       const at = Number(p.at) || 0;
       if (!at) return;
-      if (!best || at > best.at) best = { at, name: p.name || "", playerId: pid };
+      if (!best || at > best.at) {
+        best = {
+          at,
+          name: p.name || "",
+          playerId: pid,
+          game: sanitizePresenceGame(p.game)
+        };
+      }
     });
     return best;
   }
@@ -2677,12 +2791,15 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       // Online → live presence. Offline → persisted real lastAt only (not a
       // lingering presence ping — those used to fake "5m ago" for idle tabs).
       const lastAt = online ? presenceAt : Math.max(storedLast, firstAt);
+      const game = online ? sanitizePresenceGame(presence?.game) : "";
       const row = {
         playerId,
         name,
         firstAt,
         lastAt,
-        online
+        online,
+        game,
+        gameName: game && game !== "hub" ? gameLabel(game) : game === "hub" ? "Hub" : ""
       };
       const key = nameKey(name);
       const prev = byName.get(key);
@@ -2707,13 +2824,119 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
         ...keep,
         firstAt: Math.min(keep.firstAt || 0, drop.firstAt || keep.firstAt || 0) || keep.firstAt,
         lastAt: Math.max(keep.lastAt || 0, drop.lastAt || 0),
-        online: !!(keep.online || drop.online)
+        online: !!(keep.online || drop.online),
+        game: keep.online ? keep.game : drop.online ? drop.game : keep.game || drop.game || "",
+        gameName: keep.online
+          ? keep.gameName
+          : drop.online
+            ? drop.gameName
+            : keep.gameName || drop.gameName || ""
       });
     });
     return [...byName.values()].sort((a, b) => {
       if (a.online !== b.online) return a.online ? -1 : 1;
       return (b.lastAt || 0) - (a.lastAt || 0);
     });
+  }
+
+  /**
+   * Public profile snapshot for a player id or display name.
+   */
+  function getPlayerProfile(playerIdOrName) {
+    const raw = String(playerIdOrName || "").trim();
+    if (!raw) return null;
+
+    let playerId = "";
+    let name = "";
+
+    if (presenceCache[raw] || allTimeCache[raw] || /^p-/i.test(raw)) {
+      playerId = raw;
+      name =
+        sanitizeName(presenceCache[raw]?.name || allTimeCache[raw]?.name || "") ||
+        "";
+    }
+
+    if (!name) {
+      const asName = sanitizeName(raw);
+      if (asName && !/^p-/i.test(raw)) {
+        name = asName;
+        const claim = namesCache[nameKey(asName)];
+        if (claim?.playerId) playerId = claim.playerId;
+      }
+    }
+
+    if (!playerId && name) {
+      const hit = getAllTimePlayers().find((p) => nameKey(p.name) === nameKey(name));
+      if (hit) playerId = hit.playerId;
+    }
+
+    if (!name && playerId) {
+      const hit = getAllTimePlayers().find((p) => p.playerId === playerId);
+      if (hit) name = hit.name;
+    }
+
+    if (!name) name = sanitizeName(raw) || "Guest";
+    if (isPlaceholderName(name)) return null;
+
+    const now = Date.now();
+    const presence = findPresence(playerId, name);
+    const presenceAt = presence ? Number(presence.at) || 0 : 0;
+    const online = !!(presenceAt && now - presenceAt < ONLINE_TTL_MS);
+    const game = online ? sanitizePresenceGame(presence?.game) : "";
+
+    let firstAt = Number(allTimeCache[playerId]?.firstAt) || 0;
+    let storedLast = persistedLastAt(playerId);
+    if (!firstAt || !storedLast) {
+      const roster = getAllTimePlayers().find(
+        (p) =>
+          (playerId && p.playerId === playerId) || nameKey(p.name) === nameKey(name)
+      );
+      if (roster) {
+        firstAt = firstAt || Number(roster.firstAt) || 0;
+        storedLast = Math.max(storedLast, Number(roster.lastAt) || 0);
+      }
+    }
+    const lastAt = online ? presenceAt : Math.max(storedLast, firstAt);
+
+    const plays = (cache.plays || loadLocal().plays || [])
+      .filter((p) => {
+        if (!p) return false;
+        if (playerId && p.playerId === playerId) return true;
+        return nameKey(p.name || "") === nameKey(name);
+      })
+      .slice(0, 12);
+
+    const gameCounts = {};
+    plays.forEach((p) => {
+      const gid = String(p.game || "");
+      if (!gid) return;
+      gameCounts[gid] = (gameCounts[gid] || 0) + 1;
+    });
+    const topGames = Object.entries(gameCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([id, n]) => ({ game: id, gameName: gameLabel(id), count: n }));
+
+    const titleBadge = getActiveTitleBadge(name);
+
+    return {
+      playerId: playerId || "",
+      name,
+      online,
+      game,
+      gameName:
+        game && game !== "hub" ? gameLabel(game) : game === "hub" ? "Hub" : "",
+      firstAt,
+      lastAt,
+      titleBadge: titleBadge || null,
+      recentPlays: plays.map((p) => ({
+        game: p.game,
+        gameName: p.gameName || gameLabel(p.game),
+        at: Number(p.at) || 0
+      })),
+      topGames,
+      isYou: !!(playerId && playerId === getPlayerId())
+    };
   }
 
   function getLastSeen(playerId, name = "") {
@@ -3905,6 +4128,9 @@ body.light .menu-credit .player-name-creator {
     getOnlinePlayers,
     getAllTimeCount,
     getAllTimePlayers,
+    getPlayerProfile,
+    getActiveGame,
+    setActiveGame,
     getLastSeen,
     formatLastOnline,
     registerAllTime,
