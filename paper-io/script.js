@@ -475,6 +475,10 @@
 
   function capture(p) {
     const hid = idHash(p.id);
+    const wasMine = new Uint8Array(grid.length);
+    for (let i = 0; i < grid.length; i++) {
+      if (grid[i] === hid) wasMine[i] = 1;
+    }
     if (p.trail.length) {
       let px = p.trail[0].x;
       let py = p.trail[0].y;
@@ -523,10 +527,13 @@
     }
     markLandDirty();
 
-    // Anyone trapped inside the new claim dies (paper.io enclose)
+    // Kill rivals trapped in newly claimed cells (enemy/empty land you just took)
     for (const other of players) {
-      if (!other.alive || other === p) continue;
-      if (cellAt(other.x, other.y) === hid) {
+      if (!other.alive || other === p || other.id === p.id) continue;
+      const cx = clamp(other.x | 0, 0, WORLD - 1);
+      const cy = clamp(other.y | 0, 0, WORLD - 1);
+      const i = idx(cx, cy);
+      if (grid[i] === hid && !wasMine[i]) {
         kill(other, `${p.name} enclosed ${other.name}`, p);
       }
     }
@@ -746,10 +753,9 @@
       p.wantAngle = p.angle;
     }
 
-    // Own trail never kills — only rivals can cut your line
-
-    // Cut enemy trails OR bump them while they're exposed
-    if (!grace) {
+    // Cut / bump only when BOTH are exposed — safe on your own land
+    // must not kill (or be killed by) invaders taking territory.
+    if (!grace && p.outside) {
       for (const other of players) {
         if (other === p || !other.alive) continue;
         if (inSpawnGrace(other)) continue;
