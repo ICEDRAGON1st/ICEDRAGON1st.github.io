@@ -530,6 +530,8 @@
     // Kill rivals trapped in newly claimed cells (enemy/empty land you just took)
     for (const other of players) {
       if (!other.alive || other === p || other.id === p.id) continue;
+      // Never kill the capturer (guards against duplicate player rows)
+      if (p.id === localId && other.id === localId) continue;
       const cx = clamp(other.x | 0, 0, WORLD - 1);
       const cy = clamp(other.y | 0, 0, WORLD - 1);
       const i = idx(cx, cy);
@@ -537,6 +539,39 @@
         kill(other, `${p.name} enclosed ${other.name}`, p);
       }
     }
+
+    // Snip rival trails that ran through the land you just stole
+    for (const other of players) {
+      if (!other.alive || other === p || !other.trail.length) continue;
+      other.trail = other.trail.filter((pt) => {
+        const i = idx(clamp(pt.x | 0, 0, WORLD - 1), clamp(pt.y | 0, 0, WORLD - 1));
+        return !(grid[i] === hid && !wasMine[i]);
+      });
+      if (other.trail.length < 2) {
+        other.trail = [];
+        if (isOwnLand(other, other.x, other.y)) other.outside = false;
+      }
+    }
+  }
+
+  function pointInTrailLoop(trail, x, y, headX, headY) {
+    if (!trail || trail.length < 3) return false;
+    // Ray-cast against open trail + current head (the loop being drawn)
+    let inside = false;
+    let x0 = headX;
+    let y0 = headY;
+    for (let i = 0; i <= trail.length; i++) {
+      const pt = i < trail.length ? trail[i] : { x: headX, y: headY };
+      const x1 = pt.x;
+      const y1 = pt.y;
+      const cross =
+        y0 > y !== y1 > y &&
+        x < ((x1 - x0) * (y - y0)) / (y1 - y0 || 1e-9) + x0;
+      if (cross) inside = !inside;
+      x0 = x1;
+      y0 = y1;
+    }
+    return inside;
   }
 
   function distToSeg(px, py, ax, ay, bx, by) {
@@ -755,15 +790,24 @@
 
     // Cut / bump only when BOTH are exposed — safe on your own land
     // must not kill (or be killed by) invaders taking territory.
+    // Also: anyone INSIDE your open trail loop can't cut that trail
+    // (they're about to be enclosed — this was killing stealers).
     if (!grace && p.outside) {
       for (const other of players) {
         if (other === p || !other.alive) continue;
         if (inSpawnGrace(other)) continue;
         if (!other.outside) continue;
         const bodyHit = Math.hypot(nx - other.x, ny - other.y) < PLAYER_R * 2.1;
-        if (bodyHit || trailHit(other, nx, ny, false)) {
-          kill(other, `${p.name} eliminated ${other.name}`, p);
+        const hitTrail = trailHit(other, nx, ny, false);
+        if (!bodyHit && !hitTrail) continue;
+        // We're inside their open claim loop → don't cut them from the inside
+        if (
+          other.trail.length >= 3 &&
+          pointInTrailLoop(other.trail, p.x, p.y, other.x, other.y)
+        ) {
+          continue;
         }
+        kill(other, `${p.name} eliminated ${other.name}`, p);
       }
     }
 
