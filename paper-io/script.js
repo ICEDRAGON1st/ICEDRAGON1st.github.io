@@ -1,8 +1,8 @@
 (function () {
   const HIGH_KEY = "paper-io-best-pct";
   const WORLD = 220;
-  const VIEW_SPAN_MIN = 52; // zoomed-in when small (paper.io feel)
-  const VIEW_SPAN_MAX = 120;
+  const VIEW_SPAN_MIN = 72; // slightly wider than tight paper.io zoom
+  const VIEW_SPAN_MAX = 140;
   const SPEED = 24;
   const TURN_RATE = 4.2; // rad/s — smooth steering, not instant snap
   const PLAYER_R = 1.55;
