@@ -17,7 +17,6 @@
   const TRAIL_IMMUNE_DIST = 18; // can't hit your own recent trail (paper.io)
   const MIN_TRAIL_FOR_SUICIDE = 22;
   const SPAWN_GRACE_MS = 2500;
-  const MAX_TRAIL = 500;
   const MAX_PLAYERS = 8;
   const NET_POLL_MS = 120;
   const DOC_PREFIX = "paper-io-room-";
@@ -860,7 +859,7 @@
       stepPlayer(p, dt);
     }
 
-    // Body bump while both exposed
+    // Body bump while both exposed (not if one is inside the other's open loop)
     for (let i = 0; i < players.length; i++) {
       const a = players[i];
       if (!a.alive) continue;
@@ -869,6 +868,11 @@
         if (!b.alive) continue;
         if (Math.hypot(a.x - b.x, a.y - b.y) < PLAYER_R * 1.7) {
           if (a.outside && b.outside && !inSpawnGrace(a) && !inSpawnGrace(b)) {
+            const aInB =
+              b.trail.length >= 3 && pointInTrailLoop(b.trail, a.x, a.y, b.x, b.y);
+            const bInA =
+              a.trail.length >= 3 && pointInTrailLoop(a.trail, b.x, b.y, a.x, a.y);
+            if (aInB || bInA) continue;
             kill(a, "Head-on");
             kill(b, "Head-on");
           }
