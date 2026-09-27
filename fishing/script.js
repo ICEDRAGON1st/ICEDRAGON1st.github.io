@@ -18484,6 +18484,23 @@
     { passive: false }
   );
   window.addEventListener("keydown", (e) => {
+    if (e.code === "Space" || e.key === " ") {
+      const tag = (e.target && e.target.tagName) || "";
+      if (
+        /^(INPUT|TEXTAREA|SELECT|BUTTON)$/i.test(tag) ||
+        e.target?.isContentEditable
+      ) {
+        return;
+      }
+      // Don't steal Space while a modal/chat field is the focus path
+      if (e.target?.closest?.("input, textarea, select, [contenteditable='true']")) {
+        return;
+      }
+      e.preventDefault();
+      if (e.repeat) return;
+      reelIn();
+      return;
+    }
     if (e.code !== "Escape") return;
     if (luckyBlockOverlay && !luckyBlockOverlay.classList.contains("hidden")) {
       e.preventDefault();
