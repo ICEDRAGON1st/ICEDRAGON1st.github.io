@@ -1,8 +1,8 @@
 (function () {
   const HIGH_KEY = "paper-io-best-pct";
-  const WORLD = 220;
+  const WORLD = 360;
   const VIEW_SPAN_MIN = 72; // slightly wider than tight paper.io zoom
-  const VIEW_SPAN_MAX = 140;
+  const VIEW_SPAN_MAX = 160;
   const LAND_PX = 8; // hi-res land texture so zoom stays smooth
   const SPEED = 24;
   const TURN_RATE = 10.5; // rad/s — sharp cuts, not huge arcs
