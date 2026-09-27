@@ -1045,18 +1045,26 @@ header h1 {
   color: var(--text);
   overflow-y: auto;
   animation: fadeIn 0.2s ease;
-}
-
-html.hub-flip {
   transition: transform 0.55s cubic-bezier(0.4, 0.05, 0.2, 1);
-  transform: rotate(180deg);
   transform-origin: center center;
-  overflow: hidden;
 }
 
-.games-header h2#games-title {
+.games-screen.hub-flip {
+  transform: rotate(180deg);
+}
+
+.games-title-wrap,
+.games-header h2#games-title,
+#games-title {
   cursor: pointer;
   user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+#games-title::selection {
+  background: transparent;
+  color: inherit;
 }
 
 .games-screen.hidden {

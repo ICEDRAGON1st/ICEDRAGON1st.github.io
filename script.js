@@ -2702,37 +2702,54 @@ function showGamesScreen() {
 
 function hideGamesScreen() {
   stopStreakCountdown();
+  gamesScreen?.classList.remove("hub-flip");
   document.documentElement.classList.remove("hub-flip");
   gamesScreen.classList.add("hidden");
   document.documentElement.classList.add("playing-guessword");
 }
 
-/** Easter egg: click "My Games" title 7× → flip whole hub for 5s. */
+/** Easter egg: tap/click "My Games" title 7× → flip hub for 5s. */
 (function bindHubFlipEgg() {
   const title = document.getElementById("games-title");
-  if (!title) return;
+  const wrap = document.querySelector(".games-title-wrap");
+  const target = wrap || title;
+  if (!target || !gamesScreen) return;
+
   let clicks = 0;
   let clickReset = 0;
   let flipTimer = 0;
-  title.addEventListener("click", (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (document.documentElement.classList.contains("hub-flip")) return;
-    clicks += 1;
-    clearTimeout(clickReset);
-    clickReset = setTimeout(() => {
+
+  target.addEventListener(
+    "pointerdown",
+    (e) => {
+      if (e.button != null && e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        window.getSelection?.()?.removeAllRanges?.();
+      } catch {}
+
+      if (gamesScreen.classList.contains("hub-flip")) return;
+
+      clicks += 1;
+      clearTimeout(clickReset);
+      clickReset = setTimeout(() => {
+        clicks = 0;
+      }, 6000);
+
+      if (clicks < 7) return;
+
       clicks = 0;
-    }, 2800);
-    if (clicks < 7) return;
-    clicks = 0;
-    clearTimeout(clickReset);
-    document.documentElement.classList.add("hub-flip");
-    window.HubSound?.play?.("score");
-    clearTimeout(flipTimer);
-    flipTimer = setTimeout(() => {
-      document.documentElement.classList.remove("hub-flip");
-    }, 5000);
-  });
+      clearTimeout(clickReset);
+      gamesScreen.classList.add("hub-flip");
+      window.HubSound?.play?.("score");
+      clearTimeout(flipTimer);
+      flipTimer = setTimeout(() => {
+        gamesScreen.classList.remove("hub-flip");
+      }, 5000);
+    },
+    { passive: false }
+  );
 })();
 
 function backFromGames() {
