@@ -1589,6 +1589,26 @@
     if (!running || paused) return;
     const pt = e.touches ? e.touches[0] : e;
     if (!pt) return;
+    const me = localPlayer();
+    if (!me || !me.alive) {
+      const w = screenToWorld(pt.clientX, pt.clientY);
+      aimX = w.x;
+      aimY = w.y;
+      pointerAim = true;
+      return;
+    }
+    const rect = canvas.getBoundingClientRect();
+    const sx = ((pt.clientX - rect.left) / rect.width) * canvas.width;
+    const sy = ((pt.clientY - rect.top) / rect.height) * canvas.height;
+    const ps = worldToScreen(me.x, me.y);
+    const dx = sx - ps.x;
+    const dy = sy - ps.y;
+    const dist = Math.hypot(dx, dy);
+    // Keep last aim while cursor sits on you / your nearby land under the blob
+    if (dist < AIM_DEADZONE_PX) return;
+    const len = dist || 1;
+    aimDirX = dx / len;
+    aimDirY = dy / len;
     const w = screenToWorld(pt.clientX, pt.clientY);
     aimX = w.x;
     aimY = w.y;
