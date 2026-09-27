@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260927a": [
+    "Hub: click the My Games title to flip the hub upside down for 5 seconds"
+  ],
   "20260926r": [
     "New game: Paper Claim — paper.io-style territory battles vs NPCs or online rooms"
   ],
@@ -2702,9 +2705,29 @@ function showGamesScreen() {
 
 function hideGamesScreen() {
   stopStreakCountdown();
+  gamesScreen.classList.remove("hub-flip");
   gamesScreen.classList.add("hidden");
   document.documentElement.classList.add("playing-guessword");
 }
+
+/** Easter egg: click "My Games" title → flip hub upside-down for 5s. */
+(function bindHubFlipEgg() {
+  const title = document.getElementById("games-title");
+  if (!title || !gamesScreen) return;
+  let flipTimer = 0;
+  title.title = "…";
+  title.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    gamesScreen.classList.add("hub-flip");
+    showGamesMessage("🙃", 1200);
+    window.HubSound?.play?.("score");
+    clearTimeout(flipTimer);
+    flipTimer = setTimeout(() => {
+      gamesScreen.classList.remove("hub-flip");
+    }, 5000);
+  });
+})();
 
 function backFromGames() {
   hideGamesScreen();
