@@ -941,18 +941,6 @@
       ctx.globalAlpha = 1;
     }
 
-    // Camera viewport (clamped inside map)
-    const half = viewSpan / 2;
-    let vx = mapX + (camX - half) * cell;
-    let vy = mapY + (camY - half) * cell;
-    let vs = viewSpan * cell;
-    vx = clamp(vx, mapX, mapX + mapS - 1);
-    vy = clamp(vy, mapY, mapY + mapS - 1);
-    vs = Math.min(vs, mapX + mapS - vx, mapY + mapS - vy);
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
-    ctx.lineWidth = 1.5;
-    ctx.strokeRect(vx + 0.5, vy + 0.5, Math.max(2, vs - 1), Math.max(2, vs - 1));
-
     // Players
     for (const p of players) {
       if (!p.alive) continue;
