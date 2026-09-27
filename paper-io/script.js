@@ -13,9 +13,11 @@
   const SPAWN_MIN_DIST = 72; // keep players/NPCs well apart on spawn
   const SPAWN_MIN_DIST_RELAXED = 48;
   const SPAWN_CLEAR_R = START_R + 5;
-  const TRAIL_STEP = 0.5;
+  const TRAIL_STEP = 0.85; // slightly longer steps = fewer points, still continuous
   const TRAIL_IMMUNE_DIST = 18; // can't hit your own recent trail (paper.io)
   const MIN_TRAIL_FOR_SUICIDE = 22;
+  const TRAIL_SOFT_CAP = 640; // compact older points above this (trail stays connected)
+  const TRAIL_KEEP_TAIL = 140; // recent tip stays dense for fair cutting
   const SPAWN_GRACE_MS = 2500;
   const MAX_PLAYERS = 8;
   const NET_POLL_MS = 120;
@@ -553,9 +555,39 @@
     }
   }
 
+  function compactTrail(trail) {
+    if (!trail || trail.length <= TRAIL_SOFT_CAP) return trail;
+    const head = trail[0];
+    const tailStart = Math.max(1, trail.length - TRAIL_KEEP_TAIL);
+    const budget = Math.max(8, TRAIL_SOFT_CAP - TRAIL_KEEP_TAIL - 1);
+    const midLen = Math.max(0, tailStart - 1);
+    const stride = Math.max(1, Math.ceil(midLen / budget));
+    const out = [head];
+    for (let i = 1; i < tailStart; i += stride) {
+      out.push(trail[i]);
+    }
+    // Keep the joint into the dense tip so the path stays sealed to home
+    const joint = trail[tailStart - 1];
+    if (joint && out[out.length - 1] !== joint) out.push(joint);
+    for (let i = tailStart; i < trail.length; i++) out.push(trail[i]);
+    return out;
+  }
+
+  function maybeCompactTrail(p) {
+    if (p.trail.length > TRAIL_SOFT_CAP) {
+      p.trail = compactTrail(p.trail);
+    }
+  }
+
+  function trailDrawStride(len) {
+    if (len <= 400) return 1;
+    if (len <= 900) return 2;
+    return Math.max(3, Math.floor(len / 400));
+  }
+
   function pointInTrailLoop(trail, x, y, headX, headY) {
     if (!trail || trail.length < 3) return false;
-    // Ray-cast against open trail + current head (the loop being drawn)
+    // Ray-cast against open trail + current head
     let inside = false;
     let x0 = headX;
     let y0 = headY;
@@ -593,6 +625,12 @@
     const trail = p.trail;
 
     function hitSeg(ax, ay, bx, by) {
+      // Cheap AABB reject before exact segment distance
+      const minX = (ax < bx ? ax : bx) - hitR;
+      const maxX = (ax > bx ? ax : bx) + hitR;
+      const minY = (ay < by ? ay : by) - hitR;
+      const maxY = (ay > by ? ay : by) + hitR;
+      if (ox < minX || ox > maxX || oy < minY || oy > maxY) return false;
       return distToSeg(ox, oy, ax, ay, bx, by) <= hitR;
     }
 
@@ -603,7 +641,6 @@
       if (!ignoreRecent || tipDist > TRAIL_IMMUNE_DIST * 0.35) {
         if (hitSeg(tip.x, tip.y, p.x, p.y)) {
           if (!ignoreRecent) return true;
-          // self: only if tip segment is long enough to count as "old"
           if (tipDist > TRAIL_IMMUNE_DIST * 0.5) return true;
         }
       }
@@ -633,8 +670,16 @@
       return false;
     }
 
-    for (let i = 1; i < trail.length; i++) {
+    // Recent tip: every segment. Older path: strided (still continuous enough to cut)
+    const denseFrom = Math.max(1, trail.length - 160);
+    for (let i = denseFrom; i < trail.length; i++) {
       if (hitSeg(trail[i - 1].x, trail[i - 1].y, trail[i].x, trail[i].y)) return true;
+    }
+    const stride = trail.length > 500 ? 3 : trail.length > 250 ? 2 : 1;
+    for (let i = stride; i < denseFrom; i += stride) {
+      const a = trail[i - stride];
+      const b = trail[i];
+      if (hitSeg(a.x, a.y, b.x, b.y)) return true;
     }
     return false;
   }
@@ -828,8 +873,8 @@
       while (p.distAcc >= TRAIL_STEP) {
         p.distAcc -= TRAIL_STEP;
         p.trail.push({ x: p.x, y: p.y });
-        if (p.trail.length > MAX_TRAIL) p.trail.shift();
       }
+      maybeCompactTrail(p);
     } else if (p.outside && nowHome && p.trail.length >= 2) {
       capture(p);
       if (p.id === localId) {
@@ -1120,16 +1165,24 @@
     for (const p of players) {
       if (!p.alive || p.trail.length < 1) continue;
       const c = COLORS[p.color % COLORS.length];
+      const stride = trailDrawStride(p.trail.length);
       ctx.strokeStyle = c.fill;
       ctx.globalAlpha = 0.92;
       ctx.lineWidth = TRAIL_W * 1.15;
-      ctx.shadowColor = c.fill;
-      ctx.shadowBlur = 1.4;
+      // Shadows on huge trails crush FPS — only glow short ones
+      if (p.trail.length < 220) {
+        ctx.shadowColor = c.fill;
+        ctx.shadowBlur = 1.4;
+      } else {
+        ctx.shadowBlur = 0;
+      }
       ctx.beginPath();
       ctx.moveTo(p.trail[0].x, p.trail[0].y);
-      for (let i = 1; i < p.trail.length; i++) {
+      for (let i = stride; i < p.trail.length; i += stride) {
         ctx.lineTo(p.trail[i].x, p.trail[i].y);
       }
+      const last = p.trail[p.trail.length - 1];
+      if (last) ctx.lineTo(last.x, last.y);
       ctx.lineTo(p.x, p.y);
       ctx.stroke();
       ctx.shadowBlur = 0;
