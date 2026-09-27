@@ -746,11 +746,7 @@
       p.wantAngle = p.angle;
     }
 
-    // Own trail suicide (long immunity on the tip)
-    if (!grace && p.outside && trailHit(p, nx, ny, true)) {
-      kill(p, "Hit your trail");
-      return;
-    }
+    // Own trail never kills — only rivals can cut your line
 
     // Cut enemy trails OR bump them while they're exposed
     if (!grace) {
