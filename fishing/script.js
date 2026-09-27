@@ -661,7 +661,7 @@
       id: "tincan",
       name: "Tin Can",
       rarity: "easteregg",
-      value: 1_000_000_000,
+      value: 1_000_000_000_000,
       eggOnly: true
     }
   ];
