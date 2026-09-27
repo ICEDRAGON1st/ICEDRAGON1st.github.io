@@ -749,48 +749,100 @@
       p.wantAngle = p.botAngle;
       return;
     }
-    p.botThink = now + 220 + Math.random() * 480;
+    // Think often, with jitter so packs don't sync
+    p.botThink = now + 120 + Math.random() * 380;
 
-    // Hunt nearby enemy trails
-    for (const other of players) {
-      if (other === p || !other.alive || other.trail.length < 3) continue;
-      const tip = other.trail[other.trail.length - 1];
-      if (Math.hypot(tip.x - p.x, tip.y - p.y) < 28) {
-        p.botAngle = Math.atan2(tip.y - p.y, tip.x - p.x);
+    if (!p.botMode) p.botMode = "raid";
+    if (!p.botRaidUntil) p.botRaidUntil = 0;
+
+    const home = isOwnLand(p, p.x, p.y);
+    const trailLen = p.trail.length;
+    const origin = trailLen ? p.trail[0] : null;
+    const outDist = origin ? Math.hypot(p.x - origin.x, p.y - origin.y) : 0;
+
+    // Sometimes chase a nearby exposed rival tip
+    if (Math.random() < 0.4) {
+      let hunt = null;
+      let huntD = 36 + Math.random() * 28;
+      for (const other of players) {
+        if (other === p || !other.alive || !other.outside || other.trail.length < 3) {
+          continue;
+        }
+        const tip = other.trail[other.trail.length - 1];
+        const d = Math.hypot(tip.x - p.x, tip.y - p.y);
+        if (d < huntD) {
+          huntD = d;
+          hunt = tip;
+        }
+      }
+      if (hunt) {
+        p.botMode = "raid";
+        p.botRaidUntil = Math.max(p.botRaidUntil, now + 900 + Math.random() * 1600);
+        p.botAngle = Math.atan2(hunt.y - p.y, hunt.x - p.x) + (Math.random() - 0.5) * 0.35;
         p.wantAngle = p.botAngle;
         return;
       }
     }
 
-    const home = isOwnLand(p, p.x, p.y);
     if (home) {
-      // Venture out in a sweeping curve
-      p.botAngle += (Math.random() - 0.5) * 0.9;
+      // Push out of base — commit to a longer raid
+      p.botMode = "raid";
+      p.botRaidUntil = now + 2800 + Math.random() * 7000; // ~3–10s out
+      p.botAngle = Math.random() * Math.PI * 2;
+      // Prefer leaving toward open map, not staying in base
+      p.botAngle += (Math.random() - 0.5) * 0.5;
+    } else if (
+      p.botMode === "raid" &&
+      now < p.botRaidUntil &&
+      trailLen < 520 &&
+      outDist < 110 + Math.random() * 50
+    ) {
+      // Stay out exploring — wiggly / sudden new headings
+      if (Math.random() < 0.22) {
+        p.botAngle = Math.random() * Math.PI * 2;
+      } else {
+        p.botAngle += (Math.random() - 0.5) * 1.6;
+      }
+      // Rare mid-raid spiral cut to make tasty loops
+      if (Math.random() < 0.08) {
+        p.botAngle += (Math.random() < 0.5 ? 1 : -1) * (0.8 + Math.random() * 1.2);
+      }
     } else {
-      // Seek nearest own land
+      // Head home, but not in a perfect laser line
+      p.botMode = "return";
       let best = null;
       let bestD = 1e9;
       const hid = idHash(p.id);
-      for (let y = 2; y < WORLD; y += 4) {
-        for (let x = 2; x < WORLD; x += 4) {
+      const step = 5 + ((idHash(p.id) * 3) % 4);
+      for (let y = 2; y < WORLD; y += step) {
+        for (let x = 2; x < WORLD; x += step) {
           if (grid[idx(x, y)] !== hid) continue;
-          const d = Math.hypot(x - p.x, y - p.y);
+          const d = Math.hypot(x + 0.5 - p.x, y + 0.5 - p.y);
           if (d < bestD) {
             bestD = d;
-            best = { x, y };
+            best = { x: x + 0.5, y: y + 0.5 };
           }
         }
       }
-      if (best) p.botAngle = Math.atan2(best.y - p.y, best.x - p.x);
-      else p.botAngle += (Math.random() - 0.5) * 0.8;
+      if (best) {
+        p.botAngle =
+          Math.atan2(best.y - p.y, best.x - p.x) + (Math.random() - 0.5) * 0.75;
+      } else {
+        p.botAngle += (Math.random() - 0.5) * 1.1;
+      }
+      // After a successful return, plan another raid soon
+      if (home) {
+        p.botMode = "raid";
+        p.botRaidUntil = now + 2000 + Math.random() * 5000;
+      }
     }
 
-    // Soft edge avoidance (still die if you actually hit)
-    const margin = 14;
-    if (p.x < margin) p.botAngle = 0;
-    if (p.x > WORLD - margin) p.botAngle = Math.PI;
-    if (p.y < margin) p.botAngle = Math.PI / 2;
-    if (p.y > WORLD - margin) p.botAngle = -Math.PI / 2;
+    // Soft edge avoidance
+    const margin = 16;
+    if (p.x < margin) p.botAngle = 0.15 + Math.random() * 0.4;
+    if (p.x > WORLD - margin) p.botAngle = Math.PI - (0.15 + Math.random() * 0.4);
+    if (p.y < margin) p.botAngle = Math.PI / 2 + (Math.random() - 0.5) * 0.5;
+    if (p.y > WORLD - margin) p.botAngle = -Math.PI / 2 + (Math.random() - 0.5) * 0.5;
 
     p.wantAngle = p.botAngle;
   }
