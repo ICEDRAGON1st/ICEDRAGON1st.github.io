@@ -495,6 +495,14 @@
       if (!visited[i] && grid[i] !== hid) grid[i] = hid;
     }
     markLandDirty();
+
+    // Anyone trapped inside the new claim dies (paper.io enclose)
+    for (const other of players) {
+      if (!other.alive || other === p) continue;
+      if (cellAt(other.x, other.y) === hid) {
+        kill(other, `${p.name} enclosed ${other.name}`, p);
+      }
+    }
   }
 
   function distToSeg(px, py, ax, ay, bx, by) {
