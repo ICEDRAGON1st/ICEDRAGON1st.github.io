@@ -10,6 +10,9 @@
   const PLAYER_R = 1.55;
   const TRAIL_W = 1.2;
   const START_R = 6.5;
+  const SPAWN_MIN_DIST = 72; // keep players/NPCs well apart on spawn
+  const SPAWN_MIN_DIST_RELAXED = 48;
+  const SPAWN_CLEAR_R = START_R + 5;
   const TRAIL_STEP = 0.5;
   const TRAIL_IMMUNE_DIST = 18; // can't hit your own recent trail (paper.io)
   const MIN_TRAIL_FOR_SUICIDE = 22;
@@ -242,43 +245,67 @@
     return true;
   }
 
-  function findSpawn(avoid) {
-    const margin = START_R + 18;
-    const minDist = START_R * 2 + 10;
-    for (let tries = 0; tries < 200; tries++) {
+  function spawnTooClose(x, y, avoid, minDist) {
+    for (const p of avoid) {
+      if (!p || !p.alive) continue;
+      if (Math.hypot(p.x - x, p.y - y) < minDist) return true;
+    }
+    return false;
+  }
+
+  function findSpawn(avoid, minDist = SPAWN_MIN_DIST) {
+    const margin = Math.max(SPAWN_CLEAR_R + 12, START_R + 18);
+    for (let tries = 0; tries < 400; tries++) {
       const x = margin + Math.random() * (WORLD - margin * 2);
       const y = margin + Math.random() * (WORLD - margin * 2);
-      if (!spawnAreaClear(x, y, START_R)) continue;
-      let ok = true;
-      for (const p of avoid) {
-        if (!p || !p.alive) continue;
-        if (Math.hypot(p.x - x, p.y - y) < minDist) {
-          ok = false;
-          break;
-        }
-      }
-      if (ok) return { x, y };
+      if (!spawnAreaClear(x, y, SPAWN_CLEAR_R)) continue;
+      if (spawnTooClose(x, y, avoid, minDist)) continue;
+      return { x, y };
     }
-    // Fallback: scan for any empty pocket
-    for (let y = margin; y < WORLD - margin; y += 4) {
-      for (let x = margin; x < WORLD - margin; x += 4) {
-        if (!spawnAreaClear(x, y, START_R)) continue;
-        let ok = true;
-        for (const p of avoid) {
-          if (!p || !p.alive) continue;
-          if (Math.hypot(p.x - x, p.y - y) < minDist) {
-            ok = false;
-            break;
-          }
-        }
-        if (ok) return { x, y };
+    // Fallback: scan for any empty pocket far enough from others
+    for (let y = margin; y < WORLD - margin; y += 5) {
+      for (let x = margin; x < WORLD - margin; x += 5) {
+        if (!spawnAreaClear(x, y, SPAWN_CLEAR_R)) continue;
+        if (spawnTooClose(x, y, avoid, minDist)) continue;
+        return { x, y };
       }
     }
     return null;
   }
 
+  /** Last resort: farthest clear spot from every living player. */
+  function findFarthestSpawn(avoid) {
+    const margin = Math.max(SPAWN_CLEAR_R + 12, START_R + 18);
+    let best = null;
+    let bestScore = -1;
+    for (let tries = 0; tries < 500; tries++) {
+      const x = margin + Math.random() * (WORLD - margin * 2);
+      const y = margin + Math.random() * (WORLD - margin * 2);
+      if (!spawnAreaClear(x, y, SPAWN_CLEAR_R)) continue;
+      let nearest = Infinity;
+      for (const p of avoid) {
+        if (!p || !p.alive) continue;
+        nearest = Math.min(nearest, Math.hypot(p.x - x, p.y - y));
+      }
+      if (!Number.isFinite(nearest)) nearest = WORLD;
+      if (nearest > bestScore) {
+        bestScore = nearest;
+        best = { x, y };
+      }
+    }
+    return best;
+  }
+
+  function pickSpawn(avoid) {
+    return (
+      findSpawn(avoid, SPAWN_MIN_DIST) ||
+      findSpawn(avoid, SPAWN_MIN_DIST_RELAXED) ||
+      findFarthestSpawn(avoid)
+    );
+  }
+
   function makePlayer(id, name, color, human) {
-    const spot = findSpawn(players) || { x: WORLD / 2, y: WORLD / 2 };
+    const spot = pickSpawn(players) || { x: WORLD / 2, y: WORLD / 2 };
     const ang = Math.random() * Math.PI * 2;
     const p = {
       id,
@@ -572,7 +599,7 @@
   }
 
   function respawn(p) {
-    const spot = findSpawn(players.filter((o) => o.alive && o !== p));
+    const spot = pickSpawn(players.filter((o) => o.alive && o !== p));
     if (!spot) {
       // Map too full — try again shortly instead of landing in someone's land
       p.respawnAt = performance.now() + 1200;
