@@ -5,7 +5,8 @@
   const VIEW_SPAN_MAX = 140;
   const LAND_PX = 8; // hi-res land texture so zoom stays smooth
   const SPEED = 24;
-  const TURN_RATE = 4.2; // rad/s — smooth steering, not instant snap
+  const TURN_RATE = 10.5; // rad/s — sharp cuts, not huge arcs
+  const TURN_RATE_HARD = 16; // extra snap for big direction changes
   const PLAYER_R = 1.55;
   const TRAIL_W = 1.2;
   const START_R = 6.5;
@@ -602,7 +603,9 @@
 
   function applyTurn(p, dt) {
     const diff = shortestAngleDiff(p.angle, p.wantAngle);
-    const maxStep = TURN_RATE * dt;
+    // Big redirects (side / reverse) turn faster so you can cut short
+    const rate = Math.abs(diff) > 1.1 ? TURN_RATE_HARD : TURN_RATE;
+    const maxStep = rate * dt;
     if (Math.abs(diff) <= maxStep) p.angle = p.wantAngle;
     else p.angle += Math.sign(diff) * maxStep;
   }
