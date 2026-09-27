@@ -211,25 +211,60 @@
     }
   }
 
+  function spawnAreaClear(cx, cy, r) {
+    const r2 = (r + 0.75) * (r + 0.75);
+    const x0 = Math.max(0, Math.floor(cx - r - 1));
+    const x1 = Math.min(WORLD - 1, Math.ceil(cx + r + 1));
+    const y0 = Math.max(0, Math.floor(cy - r - 1));
+    const y1 = Math.min(WORLD - 1, Math.ceil(cy + r + 1));
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
+        const dx = x + 0.5 - cx;
+        const dy = y + 0.5 - cy;
+        if (dx * dx + dy * dy > r2) continue;
+        if (grid[idx(x, y)] !== 0) return false;
+      }
+    }
+    return true;
+  }
+
   function findSpawn(avoid) {
     const margin = START_R + 18;
-    for (let tries = 0; tries < 90; tries++) {
+    const minDist = START_R * 2 + 10;
+    for (let tries = 0; tries < 200; tries++) {
       const x = margin + Math.random() * (WORLD - margin * 2);
       const y = margin + Math.random() * (WORLD - margin * 2);
+      if (!spawnAreaClear(x, y, START_R)) continue;
       let ok = true;
       for (const p of avoid) {
-        if (Math.hypot(p.x - x, p.y - y) < 22) {
+        if (!p || !p.alive) continue;
+        if (Math.hypot(p.x - x, p.y - y) < minDist) {
           ok = false;
           break;
         }
       }
       if (ok) return { x, y };
     }
-    return { x: WORLD / 2, y: WORLD / 2 };
+    // Fallback: scan for any empty pocket
+    for (let y = margin; y < WORLD - margin; y += 4) {
+      for (let x = margin; x < WORLD - margin; x += 4) {
+        if (!spawnAreaClear(x, y, START_R)) continue;
+        let ok = true;
+        for (const p of avoid) {
+          if (!p || !p.alive) continue;
+          if (Math.hypot(p.x - x, p.y - y) < minDist) {
+            ok = false;
+            break;
+          }
+        }
+        if (ok) return { x, y };
+      }
+    }
+    return null;
   }
 
   function makePlayer(id, name, color, human) {
-    const spot = findSpawn(players);
+    const spot = findSpawn(players) || { x: WORLD / 2, y: WORLD / 2 };
     const ang = Math.random() * Math.PI * 2;
     const p = {
       id,
@@ -506,6 +541,11 @@
 
   function respawn(p) {
     const spot = findSpawn(players.filter((o) => o.alive && o !== p));
+    if (!spot) {
+      // Map too full — try again shortly instead of landing in someone's land
+      p.respawnAt = performance.now() + 1200;
+      return;
+    }
     p.x = spot.x;
     p.y = spot.y;
     p.alive = true;
