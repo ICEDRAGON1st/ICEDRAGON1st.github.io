@@ -77,7 +77,7 @@
 
   /** Strong swears + racial slur variants. Client-side; reject on send + censor on show. */
   const PROFANITY_PATTERN =
-    String.raw`\b(?:shit(?:s|ty|ting)?|fuck(?:s|ed|ing|er|ers)?|bitch(?:es|y|ing)?|nigg(?:a|as|er|ers|ah)?)\b`;
+    String.raw`\b(?:shit(?:s|ty|ting)?|fuck(?:s|ed|ing|er|ers)?|bitch(?:es|y|ing)?|nigg(?:a|as|er|ers|ah)?|iseldur)\b`;
 
   function profanityRe(flags = "gi") {
     return new RegExp(PROFANITY_PATTERN, flags);
