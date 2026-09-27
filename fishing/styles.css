@@ -150,15 +150,16 @@ body.modal-open {
   border-bottom: 1px solid var(--border);
 }
 
-.top-bar h1 {
+  .top-bar h1 {
   margin: 0;
   font-size: clamp(1rem, 2.6vw, 1.35rem);
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   text-align: center;
-  cursor: default;
+  cursor: pointer;
   user-select: none;
+  -webkit-user-select: none;
 }
 
 .menu-btn {

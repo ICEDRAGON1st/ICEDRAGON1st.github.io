@@ -12958,6 +12958,17 @@
           <path class="stripe" d="M36 18 L50 18" stroke-width="1.4" opacity="0.35"/>
           <circle cx="18" cy="19" r="1.1" fill="currentColor" opacity="0.35"/>
           <circle cx="24" cy="22" r="0.9" fill="currentColor" opacity="0.28"/>`;
+      case "can":
+        return `
+          <path class="body shade" d="M18 8.5 L46 8.5 L48 10 L48 26 L46 27.5 L18 27.5 L16 26 L16 10 Z"/>
+          <path class="body" d="M19 9 L45 9 L46.5 10.5 L46.5 25.5 L45 27 L19 27 L17.5 25.5 L17.5 10.5 Z"/>
+          <path class="belly" d="M20 11 L44 11 L44 14 L20 14 Z" opacity="0.45"/>
+          <path class="stripe" d="M20 17 L44 17" stroke-width="1.5" opacity="0.4"/>
+          <path class="stripe" d="M20 21 L44 21" stroke-width="1.5" opacity="0.35"/>
+          <ellipse cx="32" cy="9" rx="13" ry="2.2" fill="currentColor" opacity="0.35"/>
+          <path class="gill" d="M24 12.5 Q32 10.5 40 12.5" fill="none" stroke-width="1.1" opacity="0.5"/>
+          <circle cx="26" cy="24" r="1" fill="currentColor" opacity="0.3"/>
+          <circle cx="38" cy="23.5" r="0.85" fill="currentColor" opacity="0.25"/>`;
       default:
         return `
           <path class="fin belly-fin" d="M26 22 C30 28 38 28 42 22 C36 26 30 26 26 22 Z"/>
@@ -14818,12 +14829,10 @@
     }
 
     let fish = rollFish(spot, false);
-    if (eggBootPending) {
-      const boot = fishById("oldboot");
-      if (boot) {
-        fish = boot;
-        eggBootPending = false;
-      }
+    if (eggPendingId) {
+      const egg = fishById(eggPendingId);
+      if (egg) fish = egg;
+      eggPendingId = "";
     }
     state.catches += 1;
     if (perfect) {
@@ -18058,24 +18067,59 @@
     setChestsEnabled(!!settingsChestsEnabled.checked);
   });
   adminBtn?.addEventListener("click", openAdmin);
-  document.querySelector("header.top-bar h1")?.addEventListener("click", () => {
-    if (eggTitleClickTimer) clearTimeout(eggTitleClickTimer);
-    eggTitleClicks += 1;
-    eggTitleClickTimer = setTimeout(() => {
-      eggTitleClicks = 0;
-      eggTitleClickTimer = 0;
-    }, 2800);
-    if (eggTitleClicks < 7) return;
-    eggTitleClicks = 0;
-    if (eggTitleClickTimer) {
-      clearTimeout(eggTitleClickTimer);
-      eggTitleClickTimer = 0;
+  (function bindFishingTitleEggs() {
+    const titles = [
+      document.querySelector("header.top-bar h1"),
+      document.getElementById("overlay-title")
+    ].filter(Boolean);
+
+    function armEgg(id, line) {
+      eggPendingId = id;
+      setCatchLine(line, "treasure");
+      try {
+        playSfx(id === "tincan" ? "score" : "click");
+      } catch {}
+      try {
+        flashCastSplash?.();
+      } catch {}
     }
-    eggBootPending = true;
-    setCatchLine("Something muddy tugged the line…", "treasure");
-    playSfx("click");
-    flashCastSplash?.();
-  });
+
+    function onTitleTap(e) {
+      if (e.button != null && e.button !== 0) return;
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        window.getSelection?.()?.removeAllRanges?.();
+      } catch {}
+
+      if (eggTitleClickTimer) clearTimeout(eggTitleClickTimer);
+      eggTitleClicks += 1;
+
+      // 20× spam → Tin Can right away (never leave Old Boot armed)
+      if (eggTitleClicks >= 20) {
+        eggTitleClicks = 0;
+        eggTitleClickTimer = 0;
+        armEgg("tincan", "Something metallic rattled under the pier…");
+        return;
+      }
+
+      // Old Boot only after you stop clicking (so a 20-spam doesn't lock Boot first)
+      eggTitleClickTimer = setTimeout(() => {
+        const n = eggTitleClicks;
+        eggTitleClicks = 0;
+        eggTitleClickTimer = 0;
+        if (n >= 20) {
+          armEgg("tincan", "Something metallic rattled under the pier…");
+        } else if (n >= 7) {
+          armEgg("oldboot", "Something muddy tugged the line…");
+        }
+      }, 1500);
+    }
+
+    titles.forEach((el) => {
+      el.addEventListener("pointerdown", onTitleTap, { passive: false });
+    });
+  })();
   adminClose?.addEventListener("click", closeAdmin);
   document.getElementById("admin-audit-refresh")?.addEventListener("click", () => {
     refreshAdminAuditList();
