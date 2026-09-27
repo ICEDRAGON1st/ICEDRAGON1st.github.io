@@ -11606,8 +11606,8 @@
     if (!fish || isTreasureItem(fish)) return;
     const changed = markCaught(fish, entry);
     if (changed) checkAchievements();
-    // Exclusive fish never set personal best / leaderboard score.
-    if (isExclusiveFish(fish)) return;
+    // Exclusive / easter-egg fish never set personal best / leaderboard score.
+    if (!canSetBestCatch(fish)) return;
     const score = catchScore(fish, entry);
     if (score <= (state.bestCatchScore || 0)) return;
     state.bestCatchScore = score;
@@ -11888,7 +11888,7 @@
 
   function maybeSubmitBest(force = false) {
     const bestFish = fishById(state.bestCatchId);
-    if (isExclusiveFish(bestFish)) return;
+    if (!canSetBestCatch(bestFish) && bestFish) return;
     const best = Math.floor(state.bestCatchScore || 0);
     if (best <= 0) return;
     const stored = getStoredBest();
@@ -14343,6 +14343,18 @@
     return !!fishOrId.eggOnly;
   }
 
+  function isEasterEggFish(fishOrId) {
+    if (!fishOrId) return false;
+    const fish = typeof fishOrId === "string" ? fishById(fishOrId) : fishOrId;
+    if (!fish) return false;
+    return fish.rarity === "easteregg" || !!fish.eggOnly;
+  }
+
+  /** Personal best / leaderboard catch — excludes exclusives, treasure, and easter eggs. */
+  function canSetBestCatch(fish) {
+    return !!(fish && !isExclusiveFish(fish) && !isTreasureItem(fish) && !isEasterEggFish(fish));
+  }
+
   /** Best non-exclusive catch look (variants included). */
   function bestNonExclusiveLookValue() {
     const stamp = [
@@ -14364,12 +14376,13 @@
 
     let bestLook = 0;
     const consider = (fish, entry) => {
+      if (!canSetBestCatch(fish)) return;
       const look = exclusiveCandidateLookValue(fish, entry);
       if (look > bestLook) bestLook = look;
     };
 
     const bestFish = fishById(state.bestCatchId);
-    if (bestFish && !isExclusiveFish(bestFish)) {
+    if (bestFish && canSetBestCatch(bestFish)) {
       consider(bestFish, bestCatchEntry());
     }
 
@@ -14381,7 +14394,7 @@
 
     Object.keys(state.caught || {}).forEach((id) => {
       const fish = fishById(id);
-      if (!fish || isExclusiveFish(fish)) return;
+      if (!canSetBestCatch(fish)) return;
       const rec = state.caught[id];
       consider(fish, { variant: "", shiny: false, mutation: "" });
       if (rec && typeof rec === "object") {
@@ -18548,7 +18561,7 @@
     try {
       localStorage.setItem(HIGH_SCORE_KEY, String(state.bestCatchScore));
       const bestFish = fishById(state.bestCatchId);
-      if (bestFish && !isExclusiveFish(bestFish)) persistBestCatchMeta(bestFish, bestCatchEntry());
+      if (canSetBestCatch(bestFish)) persistBestCatchMeta(bestFish, bestCatchEntry());
     } catch {}
     return true;
   }
@@ -18559,7 +18572,7 @@
     let bestEntry = { variant: "", shiny: false, mutation: "" };
     let bestScore = 0;
     const consider = (fish, entry) => {
-      if (!fish || isExclusiveFish(fish) || isTreasureItem(fish)) return;
+      if (!canSetBestCatch(fish)) return;
       const look = {
         variant: normalizeVariant(entry?.variant),
         shiny: !!entry?.shiny,
@@ -18599,16 +18612,21 @@
     return changed;
   }
 
-  /** If best catch was an exclusive fish, roll back to the best non-exclusive catch. */
+  /** If best catch was exclusive or easter-egg, roll back to a normal best catch. */
   function scrubExclusiveBestCatch() {
     const cur = fishById(state.bestCatchId);
     const fromScore = fishFromCatchScore(Math.floor(Number(state.bestCatchScore) || 0));
-    if (!isExclusiveFish(cur) && !isExclusiveFish(fromScore)) return false;
+    const needsScrub =
+      isExclusiveFish(cur) ||
+      isEasterEggFish(cur) ||
+      isExclusiveFish(fromScore) ||
+      isEasterEggFish(fromScore);
+    if (!needsScrub) return false;
     let best = null;
     let bestEntry = null;
     let bestScore = 0;
     const consider = (fish, entry) => {
-      if (!fish || isExclusiveFish(fish) || isTreasureItem(fish)) return;
+      if (!canSetBestCatch(fish)) return;
       const score = catchScore(fish, entry || {});
       if (score > bestScore) {
         bestScore = score;
@@ -18623,7 +18641,7 @@
     });
     Object.keys(state.caught || {}).forEach((id) => {
       const fish = fishById(id);
-      if (!fish || isExclusiveFish(fish)) return;
+      if (!canSetBestCatch(fish)) return;
       const rec = state.caught[id];
       consider(fish, { variant: "", shiny: false, mutation: "" });
       if (rec && typeof rec === "object") {
@@ -18664,14 +18682,14 @@
     if (boardFishing) {
       const id = String(boardFishing.id || "").toLowerCase();
       const rarity = String(boardFishing.rarity || "").toLowerCase();
-      if (id === "soultwin" || id === "mysteryfin" || rarity === "exclusive" || rarity === "mystery") {
+      if (id === "soultwin" || id === "mysteryfin" || rarity === "exclusive" || rarity === "mystery" || rarity === "easteregg") {
         boardScore = 0;
       }
     }
     // Ignore pre-v3 collapsed Apex scores (~1e30+) that wipe looks.
     if (boardScore > 1e15) boardScore = 0;
     const boardFish = fishFromCatchScore(boardScore);
-    if (isExclusiveFish(boardFish)) boardScore = 0;
+    if (!canSetBestCatch(boardFish) && boardFish) boardScore = 0;
     const stored = getStoredBest();
     const storedSafe = stored > 1e15 ? 0 : stored;
     const best = Math.max(state.bestCatchScore || 0, storedSafe, boardScore);
