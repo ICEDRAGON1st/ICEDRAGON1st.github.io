@@ -85,7 +85,10 @@
   let pointerAim = false;
   let aimX = WORLD / 2;
   let aimY = WORLD / 2;
+  let aimDirX = 1;
+  let aimDirY = 0;
   let pendingAngle = 0;
+  const AIM_DEADZONE_PX = 36; // ignore mouse when it's on/near your blob
   let camX = WORLD / 2;
   let camY = WORLD / 2;
   let viewSpan = VIEW_SPAN_MIN;
@@ -611,7 +614,8 @@
       p.wantAngle = keyAng;
       pointerAim = false;
     } else if (pointerAim) {
-      p.wantAngle = Math.atan2(aimY - p.y, aimX - p.x);
+      // Screen-relative aim — stable with camera follow; deadzone avoids spin
+      p.wantAngle = Math.atan2(aimDirY, aimDirX);
     }
     pendingAngle = p.wantAngle;
   }
