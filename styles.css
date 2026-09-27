@@ -1459,11 +1459,63 @@ header h1 {
   font-size: 0.9rem;
 }
 
+.hub-search-wrap {
+  display: block;
+  margin: 0 0 0.75rem;
+}
+
+.games-search-wrap {
+  margin: 0 0 1rem;
+}
+
+.hub-search-input {
+  width: 100%;
+  box-sizing: border-box;
+  appearance: none;
+  border: 1px solid var(--tile-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--modal-bg) 88%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 0.55rem 1rem;
+  outline: none;
+}
+
+.hub-search-input::placeholder {
+  color: var(--subtitle);
+  font-weight: 500;
+}
+
+.hub-search-input:focus {
+  border-color: var(--correct);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--correct) 35%, transparent);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 .leaderboard-game-picker {
   display: flex;
   flex-wrap: wrap;
   gap: 0.4rem;
   margin: 0 0 0.85rem;
+}
+
+.leaderboard-game-btn.hub-search-hidden,
+.game-card.hub-search-hidden,
+.leaderboard-list > li.hub-search-hidden {
+  display: none !important;
 }
 
 .leaderboard-game-btn {

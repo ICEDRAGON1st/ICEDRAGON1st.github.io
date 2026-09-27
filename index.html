@@ -92,7 +92,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260927e">
+  <link rel="stylesheet" href="styles.css?v=20260927f">
 </head>
 <body data-guess-colors="ice">
   <div id="hub-boot-loader" aria-live="polite" aria-busy="true">
@@ -267,6 +267,11 @@
         <button id="share-moment-btn" type="button" class="hub-btn">Share moment</button>
       </div>
 
+      <label class="hub-search-wrap games-search-wrap" for="games-search">
+        <span class="visually-hidden">Search games</span>
+        <input id="games-search" class="hub-search-input" type="search" placeholder="Search games…" autocomplete="off" spellcheck="false">
+      </label>
+
       <div id="hub-settings-panel" class="hub-settings-panel high-scores-panel hidden">
         <h3>Settings</h3>
         <p class="hub-settings-intro">Pick a look for the My Games hub. Saved on this device.</p>
@@ -323,7 +328,12 @@
       <div id="leaderboards-panel" class="leaderboards-panel high-scores-panel hidden">
         <h3>Leaderboards</h3>
         <p class="leaderboards-intro">Global rankings by username. <strong>Hub Points</strong>: #1=10 pts … #10=1 pt on each board (below #10=0). Top 3 on Hub Points unlock <strong>#1 / #2 / #3</strong> titles. Owner accounts don’t earn points.</p>
+        <label class="hub-search-wrap" for="leaderboard-search">
+          <span class="visually-hidden">Search leaderboards</span>
+          <input id="leaderboard-search" class="hub-search-input" type="search" placeholder="Search boards or players…" autocomplete="off" spellcheck="false">
+        </label>
         <div id="leaderboard-game-picker" class="leaderboard-game-picker" role="group" aria-label="Choose a game"></div>
+        <p id="leaderboard-search-empty" class="leaderboard-empty hidden">No boards match that search.</p>
         <ol id="leaderboard-list" class="leaderboard-list"></ol>
         <p id="leaderboard-empty" class="leaderboard-empty hidden">No scores yet — play to claim #1.</p>
       </div>
@@ -711,7 +721,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260927e";
+    window.WORDLE_BUILD = "20260927f";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-supabase.js", "hub-account-bag.js", "hub-eggs.js", "hub-plays.js", "hub-fishing-gifts.js", "hub-fishing-mail.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-calls.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js",
       "words.js",

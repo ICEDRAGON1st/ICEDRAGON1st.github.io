@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260927f": [
+    "Hub: search boxes for games and leaderboard boards/players"
+  ],
   "20260926r": [
     "New game: Paper Claim — paper.io-style territory battles vs NPCs or online rooms"
   ],
@@ -1313,6 +1316,9 @@ const highScoresPanel = document.getElementById("high-scores-panel");
 const highScoresList = document.getElementById("high-scores-list");
 const leaderboardsPanel = document.getElementById("leaderboards-panel");
 const leaderboardGamePicker = document.getElementById("leaderboard-game-picker");
+const leaderboardSearchInput = document.getElementById("leaderboard-search");
+const leaderboardSearchEmpty = document.getElementById("leaderboard-search-empty");
+const gamesSearchInput = document.getElementById("games-search");
 const leaderboardList = document.getElementById("leaderboard-list");
 const leaderboardEmpty = document.getElementById("leaderboard-empty");
 const updatesPanel = document.getElementById("updates-panel");
@@ -2378,6 +2384,99 @@ function renderHighScoresList() {
     .join("");
 }
 
+function normalizeSearch(q) {
+  return String(q || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+}
+
+function matchesSearch(haystack, query) {
+  if (!query) return true;
+  return String(haystack || "")
+    .toLowerCase()
+    .includes(query);
+}
+
+function filterGamesGrid() {
+  if (!gamesGrid) return;
+  const q = normalizeSearch(gamesSearchInput?.value);
+  let shown = 0;
+  gamesGrid.querySelectorAll(".game-card[data-game]").forEach((card) => {
+    const name = card.querySelector(".game-card-name")?.textContent || "";
+    const desc = card.querySelector(".game-card-desc")?.textContent || "";
+    const id = card.dataset.game || "";
+    const ok = matchesSearch(`${name} ${desc} ${id}`, q);
+    card.classList.toggle("hub-search-hidden", !ok);
+    if (ok) shown += 1;
+  });
+  let empty = gamesGrid.querySelector(".games-search-empty");
+  if (!q) {
+    empty?.remove();
+    return;
+  }
+  if (!empty) {
+    empty = document.createElement("p");
+    empty.className = "games-search-empty leaderboard-empty";
+    gamesGrid.appendChild(empty);
+  }
+  empty.textContent = shown ? "" : "No games match that search.";
+  empty.classList.toggle("hidden", shown > 0);
+}
+
+function filterLeaderboardPickerAndList() {
+  if (!leaderboardGamePicker) return;
+  const q = normalizeSearch(leaderboardSearchInput?.value);
+  const buttons = [...leaderboardGamePicker.querySelectorAll(".leaderboard-game-btn")];
+  let visibleBtns = 0;
+  let activeVisible = false;
+
+  buttons.forEach((btn) => {
+    const name = btn.textContent || "";
+    const id = btn.dataset.game || "";
+    const ok = matchesSearch(`${name} ${id}`, q);
+    btn.classList.toggle("hub-search-hidden", !ok);
+    if (ok) {
+      visibleBtns += 1;
+      if (btn.classList.contains("active")) activeVisible = true;
+    }
+  });
+
+  if (leaderboardSearchEmpty) {
+    leaderboardSearchEmpty.classList.toggle("hidden", !q || visibleBtns > 0);
+  }
+
+  // If the selected board is filtered out, jump to the first visible one
+  if (q && visibleBtns && !activeVisible) {
+    const first = buttons.find((b) => !b.classList.contains("hub-search-hidden"));
+    if (first?.dataset.game) {
+      selectedLeaderboardGame = first.dataset.game;
+      buttons.forEach((b) => b.classList.toggle("active", b.dataset.game === selectedLeaderboardGame));
+      renderLeaderboardList();
+    }
+  }
+
+  // Also filter visible player rows by name when searching
+  if (leaderboardList) {
+    const rows = [...leaderboardList.querySelectorAll("li")];
+    rows.forEach((li) => {
+      if (!q) {
+        li.classList.remove("hub-search-hidden");
+        return;
+      }
+      // Prefer player-name match; if query matches the active board name, show all rows
+      const activeName =
+        LEADERBOARD_GAMES.find((g) => g.id === selectedLeaderboardGame)?.name || "";
+      if (matchesSearch(activeName, q) || matchesSearch(selectedLeaderboardGame, q)) {
+        li.classList.remove("hub-search-hidden");
+        return;
+      }
+      const text = li.textContent || "";
+      li.classList.toggle("hub-search-hidden", !matchesSearch(text, q));
+    });
+  }
+}
+
 function renderLeaderboardPicker() {
   if (!leaderboardGamePicker) return;
   leaderboardGamePicker.innerHTML = LEADERBOARD_GAMES.map(
@@ -2386,6 +2485,7 @@ function renderLeaderboardPicker() {
         game.id === selectedLeaderboardGame ? " active" : ""
       }" data-game="${game.id}">${escapeHtml(game.name)}</button>`
   ).join("");
+  filterLeaderboardPickerAndList();
 }
 
 function renderLeaderboardList() {
@@ -2432,6 +2532,7 @@ function renderLeaderboardList() {
       </li>`;
     })
     .join("");
+  filterLeaderboardPickerAndList();
 }
 
 async function refreshLeaderboardsPanel(opts = {}) {
@@ -2599,6 +2700,7 @@ function refreshGamesHub() {
   renderContinueButton();
   renderCardScoresAndFavorites();
   sortGamesGrid();
+  filterGamesGrid();
   renderHighScoresList();
   renderDailyStreak();
 }
@@ -2702,7 +2804,12 @@ function showGamesScreen() {
 
 function hideGamesScreen() {
   stopStreakCountdown();
-  gamesScreen?.classList.remove("hub-flip");
+  if (gamesScreen) {
+    gamesScreen.classList.remove("hub-flip");
+    gamesScreen.style.transform = "";
+    gamesScreen.style.transformOrigin = "";
+    gamesScreen.style.transition = "";
+  }
   document.documentElement.classList.remove("hub-flip");
   gamesScreen.classList.add("hidden");
   document.documentElement.classList.add("playing-guessword");
@@ -3430,6 +3537,14 @@ leaderboardGamePicker?.addEventListener("click", (e) => {
   selectedLeaderboardGame = btn.dataset.game;
   renderLeaderboardPicker();
   renderLeaderboardList();
+});
+
+leaderboardSearchInput?.addEventListener("input", () => {
+  filterLeaderboardPickerAndList();
+});
+
+gamesSearchInput?.addEventListener("input", () => {
+  filterGamesGrid();
 });
 
 toggleAchievementsBtn?.addEventListener("click", () => {
