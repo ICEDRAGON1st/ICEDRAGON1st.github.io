@@ -649,10 +649,17 @@
       unsellable: true,
       untradeable: true
     },
-    // Easter egg — only from the title click secret (not in normal rolls)
+    // Easter eggs — title-click secrets only (not in normal rolls)
     {
       id: "oldboot",
       name: "Old Boot",
+      rarity: "easteregg",
+      value: 1_000_000_000,
+      eggOnly: true
+    },
+    {
+      id: "tincan",
+      name: "Tin Can",
       rarity: "easteregg",
       value: 1_000_000_000,
       eggOnly: true
@@ -2464,8 +2471,8 @@
   let shinyMachineSlots = [];
   let shinyMachineBusy = false;
   const adminOverlay = document.getElementById("admin-overlay");
-  /** Easter egg: click title 7× → next fish catch is Old Boot */
-  let eggBootPending = false;
+  /** Easter eggs: 7× title → Old Boot; 20× spam → Tin Can (replaces Boot). */
+  let eggPendingId = "";
   let eggTitleClicks = 0;
   let eggTitleClickTimer = 0;
   const settingsOverlay = document.getElementById("settings-overlay");
@@ -12202,7 +12209,8 @@
     theultimate: "omega",
     soultwin: "leviathan",
     mysteryfin: "ghost",
-    oldboot: "boot"
+    oldboot: "boot",
+    tincan: "can"
   };
 
   const FISH_TINT = {
@@ -12301,6 +12309,7 @@
     soultwin: "#e879f9",
     mysteryfin: "#a3e635",
     oldboot: "#7a5c2e",
+    tincan: "#9aa4ad",
     spirefin: "#fde68a",
     solsticeray: "#fef3c7",
     thezenith: "#fffbeb",
