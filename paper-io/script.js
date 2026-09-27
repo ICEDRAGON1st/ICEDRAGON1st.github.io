@@ -1,6 +1,8 @@
 (function () {
   const HIGH_KEY = "paper-io-best-pct";
   const WORLD = 220;
+  const VIEW_SPAN_MIN = 52; // zoomed-in when small (paper.io feel)
+  const VIEW_SPAN_MAX = 120;
   const SPEED = 24;
   const TURN_RATE = 4.2; // rad/s — smooth steering, not instant snap
   const PLAYER_R = 1.55;
@@ -80,6 +82,9 @@
   let aimX = WORLD / 2;
   let aimY = WORLD / 2;
   let pendingAngle = 0;
+  let camX = WORLD / 2;
+  let camY = WORLD / 2;
+  let viewSpan = VIEW_SPAN_MIN;
 
   let roomCode = "";
   let isHost = false;
@@ -302,6 +307,16 @@
       const color = (humans.length + i) % COLORS.length;
       players.push(makePlayer(`bot-${nextBotId++}`, `NPC ${i + 1}`, color, false));
     }
+    viewSpan = VIEW_SPAN_MIN;
+    const me = localPlayer();
+    if (me) {
+      camX = me.x;
+      camY = me.y;
+    } else {
+      camX = WORLD / 2;
+      camY = WORLD / 2;
+    }
+    updateCamera(1);
   }
 
   function localPlayer() {
@@ -770,33 +785,57 @@
   }
 
   function worldToScreen(x, y) {
+    const s = Math.min(canvas.width, canvas.height) / viewSpan;
     return {
-      x: (x / WORLD) * canvas.width,
-      y: (y / WORLD) * canvas.height
+      x: (x - camX) * s + canvas.width / 2,
+      y: (y - camY) * s + canvas.height / 2
     };
   }
 
   function screenToWorld(sx, sy) {
     const rect = canvas.getBoundingClientRect();
+    const s = Math.min(canvas.width, canvas.height) / viewSpan;
+    const cx = ((sx - rect.left) / rect.width) * canvas.width;
+    const cy = ((sy - rect.top) / rect.height) * canvas.height;
     return {
-      x: ((sx - rect.left) / rect.width) * WORLD,
-      y: ((sy - rect.top) / rect.height) * WORLD
+      x: (cx - canvas.width / 2) / s + camX,
+      y: (cy - canvas.height / 2) / s + camY
     };
   }
 
+  function updateCamera(dt) {
+    const me = typeof localPlayer === "function" ? localPlayer() : null;
+    if (me) {
+      const pct = Math.max(0, pctFor(me)) / 100;
+      const targetSpan = clamp(
+        VIEW_SPAN_MIN + pct * (VIEW_SPAN_MAX - VIEW_SPAN_MIN) * 1.15,
+        VIEW_SPAN_MIN,
+        VIEW_SPAN_MAX
+      );
+      const k = 1 - Math.exp(-Math.max(0.001, dt || 0.016) * 9);
+      viewSpan += (targetSpan - viewSpan) * k;
+      camX += (me.x - camX) * k;
+      camY += (me.y - camY) * k;
+    }
+    if (viewSpan >= WORLD) {
+      camX = WORLD / 2;
+      camY = WORLD / 2;
+    } else {
+      const half = viewSpan / 2;
+      camX = clamp(camX, half, WORLD - half);
+      camY = clamp(camY, half, WORLD - half);
+    }
+  }
+
   function paintLandLayer() {
-    const w = canvas.width;
-    const h = canvas.height;
-    if (landLayer.width !== w || landLayer.height !== h) {
-      landLayer.width = w;
-      landLayer.height = h;
+    if (landLayer.width !== WORLD || landLayer.height !== WORLD) {
+      landLayer.width = WORLD;
+      landLayer.height = WORLD;
       landDirty = true;
     }
     if (!landDirty) return;
     landDirty = false;
-    landCtx.clearRect(0, 0, w, h);
-    const sx = w / WORLD;
-    const sy = h / WORLD;
+    landCtx.clearRect(0, 0, WORLD, WORLD);
     for (let y = 0; y < WORLD; y++) {
       for (let x = 0; x < WORLD; x++) {
         const owner = grid[idx(x, y)];
@@ -806,7 +845,7 @@
         const color = COLORS[(pl ? pl.color : owner - 1) % COLORS.length];
         landCtx.fillStyle = color.soft;
         landCtx.beginPath();
-        landCtx.arc((x + 0.5) * sx, (y + 0.5) * sy, Math.max(sx, sy) * 0.82, 0, Math.PI * 2);
+        landCtx.arc(x + 0.5, y + 0.5, 0.82, 0, Math.PI * 2);
         landCtx.fill();
       }
     }
@@ -815,7 +854,7 @@
   function draw() {
     const w = canvas.width;
     const h = canvas.height;
-    const scale = w / WORLD;
+    const scale = Math.min(w, h) / viewSpan;
 
     const bg = ctx.createRadialGradient(w * 0.5, h * 0.45, w * 0.08, w * 0.5, h * 0.5, w * 0.75);
     bg.addColorStop(0, "#102338");
@@ -823,24 +862,39 @@
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
 
-    // Soft border (walls don't kill)
-    ctx.strokeStyle = "rgba(62,198,255,0.28)";
-    ctx.lineWidth = Math.max(2, scale * 1.2);
-    ctx.strokeRect(scale * 0.8, scale * 0.8, w - scale * 1.6, h - scale * 1.6);
+    ctx.save();
+    ctx.translate(w / 2, h / 2);
+    ctx.scale(scale, scale);
+    ctx.translate(-camX, -camY);
+
+    // Soft border (walls don't kill) — world units
+    ctx.strokeStyle = "rgba(62,198,255,0.35)";
+    ctx.lineWidth = 1.1;
+    ctx.strokeRect(0.5, 0.5, WORLD - 1, WORLD - 1);
+
+    // Faint grid so zoomed view keeps depth
+    ctx.strokeStyle = "rgba(62,198,255,0.06)";
+    ctx.lineWidth = 0.08;
+    ctx.beginPath();
+    for (let g = 0; g <= WORLD; g += 10) {
+      ctx.moveTo(g, 0);
+      ctx.lineTo(g, WORLD);
+      ctx.moveTo(0, g);
+      ctx.lineTo(WORLD, g);
+    }
+    ctx.stroke();
 
     paintLandLayer();
-    ctx.save();
     if (typeof ctx.filter === "string") {
-      ctx.filter = "blur(2px)";
-      ctx.drawImage(landLayer, 0, 0);
+      ctx.filter = "blur(0.35px)";
+      ctx.drawImage(landLayer, 0, 0, WORLD, WORLD);
       ctx.filter = "none";
-      ctx.globalAlpha = 0.5;
-      ctx.drawImage(landLayer, 0, 0);
+      ctx.globalAlpha = 0.55;
+      ctx.drawImage(landLayer, 0, 0, WORLD, WORLD);
       ctx.globalAlpha = 1;
     } else {
-      ctx.drawImage(landLayer, 0, 0);
+      ctx.drawImage(landLayer, 0, 0, WORLD, WORLD);
     }
-    ctx.restore();
 
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
@@ -849,18 +903,15 @@
       const c = COLORS[p.color % COLORS.length];
       ctx.strokeStyle = c.fill;
       ctx.globalAlpha = 0.92;
-      ctx.lineWidth = Math.max(3, TRAIL_W * scale * 1.15);
+      ctx.lineWidth = TRAIL_W * 1.15;
       ctx.shadowColor = c.fill;
-      ctx.shadowBlur = scale * 1.4;
+      ctx.shadowBlur = 1.4;
       ctx.beginPath();
-      const s0 = worldToScreen(p.trail[0].x, p.trail[0].y);
-      ctx.moveTo(s0.x, s0.y);
+      ctx.moveTo(p.trail[0].x, p.trail[0].y);
       for (let i = 1; i < p.trail.length; i++) {
-        const s = worldToScreen(p.trail[i].x, p.trail[i].y);
-        ctx.lineTo(s.x, s.y);
+        ctx.lineTo(p.trail[i].x, p.trail[i].y);
       }
-      const tip = worldToScreen(p.x, p.y);
-      ctx.lineTo(tip.x, tip.y);
+      ctx.lineTo(p.x, p.y);
       ctx.stroke();
       ctx.shadowBlur = 0;
       ctx.globalAlpha = 1;
@@ -869,44 +920,44 @@
     for (const p of players) {
       if (!p.alive) continue;
       const c = COLORS[p.color % COLORS.length];
-      const s = worldToScreen(p.x, p.y);
-      const r = PLAYER_R * scale * 1.15;
+      const r = PLAYER_R * 1.15;
 
       ctx.shadowColor = c.fill;
       ctx.shadowBlur = r * 1.8;
       ctx.fillStyle = c.fill;
       ctx.beginPath();
-      ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
+      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
       ctx.fill();
       ctx.shadowBlur = 0;
 
       ctx.fillStyle = "rgba(255,255,255,0.35)";
       ctx.beginPath();
-      ctx.arc(s.x - r * 0.28, s.y - r * 0.28, r * 0.32, 0, Math.PI * 2);
+      ctx.arc(p.x - r * 0.28, p.y - r * 0.28, r * 0.32, 0, Math.PI * 2);
       ctx.fill();
 
-      // nose showing direction
       ctx.strokeStyle = "rgba(255,255,255,0.7)";
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 0.22;
       ctx.beginPath();
-      ctx.moveTo(s.x, s.y);
-      ctx.lineTo(s.x + Math.cos(p.angle) * r * 1.35, s.y + Math.sin(p.angle) * r * 1.35);
+      ctx.moveTo(p.x, p.y);
+      ctx.lineTo(p.x + Math.cos(p.angle) * r * 1.35, p.y + Math.sin(p.angle) * r * 1.35);
       ctx.stroke();
 
       if (p.id === localId) {
         ctx.strokeStyle = "rgba(255,255,255,0.95)";
-        ctx.lineWidth = 2.5;
+        ctx.lineWidth = 0.28;
         ctx.beginPath();
-        ctx.arc(s.x, s.y, r + 2, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, r + 0.35, 0, Math.PI * 2);
         ctx.stroke();
       }
 
       ctx.fillStyle = "rgba(6,12,20,0.72)";
-      ctx.font = `bold ${Math.max(11, scale * 1.7)}px Outfit,sans-serif`;
+      ctx.font = "bold 1.85px Outfit,sans-serif";
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
-      ctx.fillText(p.name.slice(0, 10), s.x, s.y - r - 4);
+      ctx.fillText(p.name.slice(0, 10), p.x, p.y - r - 0.45);
     }
+
+    ctx.restore();
 
     if (performance.now() < stealUntil) {
       ctx.fillStyle = "rgba(0,0,0,0.4)";
@@ -972,6 +1023,7 @@
     lastFrame = ts;
     if (dt > 0.05) dt = 0.05;
     if (mode !== "online" || isHost) tick(dt);
+    updateCamera(dt);
     draw();
     updateHud();
   }
