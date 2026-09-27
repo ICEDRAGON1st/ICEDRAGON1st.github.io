@@ -959,6 +959,8 @@
 
     ctx.restore();
 
+    drawMinimap(w, h);
+
     if (performance.now() < stealUntil) {
       ctx.fillStyle = "rgba(0,0,0,0.4)";
       ctx.fillRect(0, h * 0.12, w, h * 0.12);
@@ -978,6 +980,94 @@
       ctx.textBaseline = "middle";
       ctx.fillText(deathNote, w / 2, h * 0.5);
     }
+  }
+
+  function drawMinimap(w, h) {
+    const size = Math.round(Math.min(w, h) * 0.2);
+    const pad = Math.round(Math.min(w, h) * 0.022);
+    const x0 = w - size - pad;
+    const y0 = h - size - pad;
+    const inset = 3;
+
+    ctx.save();
+    // Panel
+    ctx.fillStyle = "rgba(6, 12, 20, 0.78)";
+    ctx.strokeStyle = "rgba(62, 198, 255, 0.45)";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    const r = 10;
+    ctx.moveTo(x0 + r, y0);
+    ctx.arcTo(x0 + size, y0, x0 + size, y0 + size, r);
+    ctx.arcTo(x0 + size, y0 + size, x0, y0 + size, r);
+    ctx.arcTo(x0, y0 + size, x0, y0, r);
+    ctx.arcTo(x0, y0, x0 + size, y0, r);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+
+    const mapX = x0 + inset;
+    const mapY = y0 + inset;
+    const mapS = size - inset * 2;
+    const cell = mapS / WORLD;
+
+    ctx.fillStyle = "rgba(16, 35, 56, 0.95)";
+    ctx.fillRect(mapX, mapY, mapS, mapS);
+
+    // Territory overview (reuse land layer)
+    paintLandLayer();
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(landLayer, 0, 0, WORLD, WORLD, mapX, mapY, mapS, mapS);
+    ctx.imageSmoothingEnabled = true;
+
+    // Trails (thin)
+    for (const p of players) {
+      if (!p.alive || p.trail.length < 2) continue;
+      const c = COLORS[p.color % COLORS.length];
+      ctx.strokeStyle = c.fill;
+      ctx.globalAlpha = 0.75;
+      ctx.lineWidth = Math.max(1, cell * 1.2);
+      ctx.beginPath();
+      ctx.moveTo(mapX + p.trail[0].x * cell, mapY + p.trail[0].y * cell);
+      for (let i = 1; i < p.trail.length; i++) {
+        ctx.lineTo(mapX + p.trail[i].x * cell, mapY + p.trail[i].y * cell);
+      }
+      ctx.lineTo(mapX + p.x * cell, mapY + p.y * cell);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+    }
+
+    // Camera viewport
+    const half = viewSpan / 2;
+    const vx = mapX + (camX - half) * cell;
+    const vy = mapY + (camY - half) * cell;
+    const vs = viewSpan * cell;
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
+    ctx.lineWidth = 1.5;
+    ctx.strokeRect(vx, vy, vs, vs);
+
+    // Players
+    for (const p of players) {
+      if (!p.alive) continue;
+      const c = COLORS[p.color % COLORS.length];
+      const px = mapX + p.x * cell;
+      const py = mapY + p.y * cell;
+      const isMe = p.id === localId;
+      const pr = isMe ? Math.max(2.5, cell * 2.2) : Math.max(1.8, cell * 1.6);
+      ctx.fillStyle = c.fill;
+      ctx.beginPath();
+      ctx.arc(px, py, pr, 0, Math.PI * 2);
+      ctx.fill();
+      if (isMe) {
+        ctx.strokeStyle = "#fff";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+    }
+
+    ctx.strokeStyle = "rgba(62, 198, 255, 0.35)";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(mapX + 0.5, mapY + 0.5, mapS - 1, mapS - 1);
+    ctx.restore();
   }
 
   function escapeHtml(s) {
