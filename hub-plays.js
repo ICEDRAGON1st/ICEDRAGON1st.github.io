@@ -4210,7 +4210,7 @@ body.light .menu-credit .player-name-creator {
       if (window.HubOnlineOverlay) return;
       const scripts = document.getElementsByTagName("script");
       let base = "";
-      let v = window.WORDLE_BUILD || "20260927j";
+      let v = window.WORDLE_BUILD || "20260927k";
       for (let i = 0; i < scripts.length; i += 1) {
         const src = scripts[i].src || "";
         if (/hub-plays\.js/i.test(src)) {

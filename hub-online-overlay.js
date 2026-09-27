@@ -32,8 +32,8 @@
     const style = document.createElement("style");
     style.id = "hub-online-overlay-style";
     style.textContent = `
-#hub-online-overlay{position:fixed;inset:0;z-index:${Z};display:flex;align-items:center;justify-content:center;
-padding:1rem;background:rgba(4,10,18,0.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+#hub-online-overlay{position:fixed;inset:0;z-index:${Z};display:flex;align-items:flex-start;justify-content:center;
+padding:4.5rem 1rem 1rem;background:rgba(4,10,18,0.35);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);
 font-family:Outfit,Segoe UI,system-ui,sans-serif;color:#e8f4ff;pointer-events:none;opacity:0;
 transition:opacity .12s ease}
 #hub-online-overlay.is-open{opacity:1}
