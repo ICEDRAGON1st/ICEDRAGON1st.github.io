@@ -850,6 +850,10 @@ header h1 {
   z-index: 1250;
 }
 
+#player-profile-modal {
+  z-index: 1300;
+}
+
 .whats-new-list {
   margin: 0 0 1.5rem;
   padding: 0 0 0 1.2rem;

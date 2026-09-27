@@ -4359,11 +4359,30 @@ function openPlayerProfile(playerIdOrName) {
   const modal = document.getElementById("player-profile-modal");
   const titleEl = document.getElementById("player-profile-title");
   const body = document.getElementById("player-profile-body");
-  if (!modal || !body || typeof HubPlays === "undefined" || !HubPlays.getPlayerProfile) {
-    return;
+  if (!modal || !body) return;
+
+  let profile = null;
+  try {
+    if (typeof HubPlays !== "undefined" && HubPlays.getPlayerProfile) {
+      profile = HubPlays.getPlayerProfile(playerIdOrName);
+    }
+  } catch {}
+
+  if (!profile) {
+    const fallbackName = String(playerIdOrName || "").trim() || "Player";
+    profile = {
+      playerId: "",
+      name: fallbackName,
+      online: false,
+      game: "",
+      gameName: "",
+      firstAt: 0,
+      lastAt: 0,
+      recentPlays: [],
+      topGames: [],
+      isYou: false
+    };
   }
-  const profile = HubPlays.getPlayerProfile(playerIdOrName);
-  if (!profile) return;
 
   if (titleEl) {
     titleEl.textContent = profile.isYou ? "Your profile" : "Player profile";
