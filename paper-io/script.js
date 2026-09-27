@@ -832,26 +832,39 @@
       p.wantAngle = p.angle;
     }
 
-    // Cut / bump only when BOTH are exposed — safe on your own land
-    // must not kill (or be killed by) invaders taking territory.
-    // Also: anyone INSIDE your open trail loop can't cut that trail
-    // (they're about to be enclosed — this was killing stealers).
-    if (!grace && p.outside) {
+    // Combat:
+    // - Open field: both exposed (with inside-loop cut protection)
+    // - Home defense: kill anyone currently on your land
+    if (!grace) {
+      const myHid = idHash(p.id);
+      const meHome = isOwnLand(p, p.x, p.y) || isOwnLand(p, nx, ny);
       for (const other of players) {
         if (other === p || !other.alive) continue;
         if (inSpawnGrace(other)) continue;
-        if (!other.outside) continue;
-        const bodyHit = Math.hypot(nx - other.x, ny - other.y) < PLAYER_R * 2.1;
-        const hitTrail = trailHit(other, nx, ny, false);
-        if (!bodyHit && !hitTrail) continue;
-        // We're inside their open claim loop → don't cut them from the inside
-        if (
-          other.trail.length >= 3 &&
-          pointInTrailLoop(other.trail, p.x, p.y, other.x, other.y)
-        ) {
-          continue;
+
+        const otherOnMyLand = cellAt(other.x, other.y) === myHid;
+        let canKill = false;
+        if (otherOnMyLand && meHome) {
+          // Defend your territory — bump/cut invaders on your land
+          canKill = true;
+        } else if (p.outside && other.outside) {
+          // Open-field fight; don't cut someone from inside their open loop
+          if (
+            other.trail.length >= 3 &&
+            pointInTrailLoop(other.trail, p.x, p.y, other.x, other.y)
+          ) {
+            canKill = false;
+          } else {
+            canKill = true;
+          }
         }
-        kill(other, `${p.name} eliminated ${other.name}`, p);
+        if (!canKill) continue;
+
+        const bodyHit = Math.hypot(nx - other.x, ny - other.y) < PLAYER_R * 2.1;
+        const hitTrail = other.outside && trailHit(other, nx, ny, false);
+        if (bodyHit || hitTrail) {
+          kill(other, `${p.name} eliminated ${other.name}`, p);
+        }
       }
     }
 
@@ -904,23 +917,38 @@
       stepPlayer(p, dt);
     }
 
-    // Body bump while both exposed (not if one is inside the other's open loop)
+    // Body bump: mutual when both exposed, or defender cleans invaders on their land
     for (let i = 0; i < players.length; i++) {
       const a = players[i];
       if (!a.alive) continue;
       for (let j = i + 1; j < players.length; j++) {
         const b = players[j];
         if (!b.alive) continue;
-        if (Math.hypot(a.x - b.x, a.y - b.y) < PLAYER_R * 1.7) {
-          if (a.outside && b.outside && !inSpawnGrace(a) && !inSpawnGrace(b)) {
-            const aInB =
-              b.trail.length >= 3 && pointInTrailLoop(b.trail, a.x, a.y, b.x, b.y);
-            const bInA =
-              a.trail.length >= 3 && pointInTrailLoop(a.trail, b.x, b.y, a.x, a.y);
-            if (aInB || bInA) continue;
-            kill(a, "Head-on");
-            kill(b, "Head-on");
-          }
+        if (Math.hypot(a.x - b.x, a.y - b.y) >= PLAYER_R * 1.7) continue;
+        if (inSpawnGrace(a) || inSpawnGrace(b)) continue;
+
+        const aHome = isOwnLand(a, a.x, a.y);
+        const bHome = isOwnLand(b, b.x, b.y);
+        const bOnA = cellAt(b.x, b.y) === idHash(a.id);
+        const aOnB = cellAt(a.x, a.y) === idHash(b.id);
+
+        if (aHome && bOnA) {
+          kill(b, `${a.name} eliminated ${b.name}`, a);
+          continue;
+        }
+        if (bHome && aOnB) {
+          kill(a, `${b.name} eliminated ${a.name}`, b);
+          continue;
+        }
+
+        if (a.outside && b.outside) {
+          const aInB =
+            b.trail.length >= 3 && pointInTrailLoop(b.trail, a.x, a.y, b.x, b.y);
+          const bInA =
+            a.trail.length >= 3 && pointInTrailLoop(a.trail, b.x, b.y, a.x, a.y);
+          if (aInB || bInA) continue;
+          kill(a, "Head-on");
+          kill(b, "Head-on");
         }
       }
     }
