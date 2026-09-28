@@ -11197,7 +11197,7 @@
       next.autoSellMutations = !!raw.autoSellMutations;
       next.catches = Math.max(0, Math.floor(Number(raw.catches) || 0));
       next.perfects = Math.max(0, Math.floor(Number(raw.perfects) || 0));
-      next.bestCatchScore = Math.max(0, Math.floor(Number(raw.bestCatchScore) || 0));
+      next.bestCatchScore = sanitizeCatchScore(raw.bestCatchScore);
       next.bestCatchId = typeof raw.bestCatchId === "string" ? raw.bestCatchId : "";
       next.bestCatchVariant = normalizeVariant(raw.bestCatchVariant);
       next.bestCatchShiny = !!raw.bestCatchShiny;
@@ -11790,7 +11790,7 @@
   }
 
   function getStoredBest() {
-    return Math.max(0, Math.floor(Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0));
+    return sanitizeCatchScore(localStorage.getItem(HIGH_SCORE_KEY));
   }
 
   /** log10(value) packed so huge fish values stay inside Number precision. */
@@ -11867,9 +11867,15 @@
       typeof fishOrScore === "object" && fishOrScore && ("variant" in fishOrScore || "shiny" in fishOrScore)
         ? fishOrScore
         : bestCatchEntry();
-    const title = formatVariantTitle(entry);
-    const label = title ? `${title} ${fish.name}` : fish.name;
-    return `${formatRarityName(fish.rarity)} · ${label}`;
+    const fishLabel = formatFishName(fish, entry);
+    const rarity = formatRarityName(fish.rarity);
+    if (!rarity) return fishLabel;
+    // Avoid "Zenith · Shiny The Zenith"
+    const rarityKey = String(fish.rarity || "").toLowerCase();
+    if (rarityKey && String(fish.name || "").toLowerCase().includes(rarityKey)) {
+      return fishLabel;
+    }
+    return `${rarity} · ${fishLabel}`;
   }
 
   function persistBestCatchMeta(fish, entry) {
@@ -14743,8 +14749,21 @@
 
   function formatRarityName(rarity) {
     if (rarity === "mystery") return "???";
-    if (rarity === "easteregg") return "easter egg";
-    return String(rarity || "");
+    if (rarity === "easteregg") return "Easter egg";
+    const s = String(rarity || "").trim();
+    if (!s) return "";
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  /** Catch scores are rank×1e12 + packed look. Raw fish values are huge and must not win. */
+  function isPlausibleCatchScore(n) {
+    const v = Math.floor(Number(n) || 0);
+    return v > 0 && v < 1e15;
+  }
+
+  function sanitizeCatchScore(n) {
+    const v = Math.floor(Number(n) || 0);
+    return isPlausibleCatchScore(v) ? v : 0;
   }
 
   function rollFish(spot, forBoat = false) {
@@ -18885,13 +18904,13 @@
   }
 
   function applyBestCatchScore(score, fishId, meta = null) {
-    const n = Math.floor(Number(score) || 0);
+    const n = sanitizeCatchScore(score);
     if (n <= 0) return false;
-    if (n < (state.bestCatchScore || 0)) return false;
+    if (n < sanitizeCatchScore(state.bestCatchScore)) return false;
     const fish = fishById(fishId) || fishFromCatchScore(n);
     if (isExclusiveFish(fish) || isExclusiveFish(fishId)) return false;
-    if (!fish && n <= (state.bestCatchScore || 0)) return false;
-    state.bestCatchScore = Math.max(state.bestCatchScore || 0, n);
+    if (!fish && n <= sanitizeCatchScore(state.bestCatchScore)) return false;
+    state.bestCatchScore = Math.max(sanitizeCatchScore(state.bestCatchScore), n);
     if (fish) {
       state.bestCatchId = fish.id;
       markCaught(fish);
@@ -19041,15 +19060,18 @@
         boardScore = 0;
       }
     }
-    // Ignore pre-v3 collapsed Apex scores (~1e30+) that wipe looks.
-    if (boardScore > 1e15) boardScore = 0;
+    // Ignore pre-v3 collapsed Apex / raw fish-value scores that wipe looks.
+    boardScore = sanitizeCatchScore(boardScore);
     const boardFish = fishFromCatchScore(boardScore);
     if (!canSetBestCatch(boardFish) && boardFish) boardScore = 0;
-    const stored = getStoredBest();
-    const storedSafe = stored > 1e15 ? 0 : stored;
-    const best = Math.max(state.bestCatchScore || 0, storedSafe, boardScore);
+    const storedSafe = getStoredBest();
+    const cur = sanitizeCatchScore(state.bestCatchScore);
+    if (cur !== Math.floor(Number(state.bestCatchScore) || 0)) {
+      state.bestCatchScore = cur;
+    }
+    const best = Math.max(cur, storedSafe, boardScore);
 
-    if (best > (state.bestCatchScore || 0) || (best > 0 && !state.bestCatchId)) {
+    if (best > cur || (best > 0 && !state.bestCatchId)) {
       applyBestCatchScore(best, state.bestCatchId || boardFishing?.id, boardFishing);
       renderStats();
     }

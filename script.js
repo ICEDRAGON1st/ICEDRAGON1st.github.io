@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928l": [
+    "Fishing Idle: fix Best catch label (no more zenith · Shiny The Zenith) and rebuild best from real cooler scores"
+  ],
   "20260928k": [
     "Fishing Idle: admin give fish/chests/lucky blocks to everyone only hits players online right now"
   ],
