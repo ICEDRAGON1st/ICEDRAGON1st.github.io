@@ -17145,9 +17145,9 @@
     }
   }
 
-  function saveSoon() {
+  function saveSoon(force) {
     const now = Date.now();
-    if (now - lastSaveAt < 700) return;
+    if (!force && now - lastSaveAt < 700) return;
     lastSaveAt = now;
     saveState();
   }
