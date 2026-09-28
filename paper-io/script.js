@@ -8,6 +8,7 @@
   const TURN_RATE = 10.5; // rad/s — sharp cuts, not huge arcs
   const TURN_RATE_HARD = 16; // extra snap for big direction changes
   const PLAYER_R = 1.55;
+  const HEAD_SEP = PLAYER_R * 2.08; // solid head disks — bump, don't pass through
   const TRAIL_W = 1.2;
   const START_R = 6.5;
   const SPAWN_MIN_DIST = 72; // keep players/NPCs well apart on spawn
@@ -872,7 +873,21 @@
       p.wantAngle = p.angle;
     }
 
-    // Trail cuts kill; head bumps do nothing. Can cut from your own land too.
+    // Solid heads: can't walk through another player/NPC (no kill)
+    for (const other of players) {
+      if (other === p || !other.alive) continue;
+      const dx = nx - other.x;
+      const dy = ny - other.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist >= HEAD_SEP || dist < 1e-8) continue;
+      const push = HEAD_SEP / dist;
+      nx = other.x + dx * push;
+      ny = other.y + dy * push;
+      nx = clamp(nx, edge, WORLD - edge);
+      ny = clamp(ny, edge, WORLD - edge);
+    }
+
+    // Trail cuts kill; head bumps only block (above). Can cut from your own land too.
     for (const other of players) {
       if (other === p || !other.alive) continue;
       if (!other.outside || other.trail.length < 1) continue;
@@ -916,6 +931,38 @@
     }
   }
 
+  function resolveHeadCollisions() {
+    const edge = PLAYER_R + 0.35;
+    // A couple passes so multi-NPC piles separate cleanly
+    for (let pass = 0; pass < 3; pass++) {
+      for (let i = 0; i < players.length; i++) {
+        const a = players[i];
+        if (!a.alive) continue;
+        for (let j = i + 1; j < players.length; j++) {
+          const b = players[j];
+          if (!b.alive) continue;
+          let dx = b.x - a.x;
+          let dy = b.y - a.y;
+          let dist = Math.hypot(dx, dy);
+          if (dist >= HEAD_SEP) continue;
+          if (dist < 1e-6) {
+            const ang = (i * 1.7 + j) % (Math.PI * 2);
+            dx = Math.cos(ang);
+            dy = Math.sin(ang);
+            dist = 1e-6;
+          }
+          const overlap = (HEAD_SEP - dist) * 0.5;
+          const nx = dx / dist;
+          const ny = dy / dist;
+          a.x = clamp(a.x - nx * overlap, edge, WORLD - edge);
+          a.y = clamp(a.y - ny * overlap, edge, WORLD - edge);
+          b.x = clamp(b.x + nx * overlap, edge, WORLD - edge);
+          b.y = clamp(b.y + ny * overlap, edge, WORLD - edge);
+        }
+      }
+    }
+  }
+
   function tick(dt) {
     const now = performance.now();
     for (const p of players) {
@@ -930,8 +977,8 @@
       stepPlayer(p, dt);
     }
 
-    // Heads pass through each other — no body / head-on kills.
-    // (Trail cuts in stepPlayer remain the only open-field KO.)
+    // Keep heads solid after all moves (still no head-on kills)
+    resolveHeadCollisions();
   }
 
   function worldToScreen(x, y) {
