@@ -206,11 +206,15 @@
   allTimeCache = loadAllTimeLocal();
 
   function sanitizeName(raw) {
-    return String(raw || "")
+    let s = String(raw ?? "")
       .replace(/[<>&"'`]/g, "")
       .replace(/\s+/g, " ")
       .trim()
       .slice(0, 16);
+    // Guard against String(undefined) / JSON null leaks landing in localStorage
+    const lower = s.toLowerCase();
+    if (!s || lower === "undefined" || lower === "null" || lower === "nan") return "";
+    return s;
   }
 
   function nameKey(name) {
@@ -1387,20 +1391,27 @@
           sessionName = stored;
           return stored;
         }
+        // Scrub poisoned "undefined" / "null" leftovers from shared school PCs
+        const raw = localStorage.getItem(NAME_KEY);
+        if (raw != null && !sanitizeName(raw)) {
+          localStorage.removeItem(NAME_KEY);
+          sessionName = "";
+        }
       }
     } catch {}
     return sanitizeName(sessionName || "");
   }
 
   function storeLocalName(name) {
-    sessionName = name || "";
+    const clean = sanitizeName(name);
+    sessionName = clean;
     try {
       if (!canUseLocalStorage()) return;
-      if (name) localStorage.setItem(NAME_KEY, name);
+      if (clean) localStorage.setItem(NAME_KEY, clean);
       else localStorage.removeItem(NAME_KEY);
     } catch {}
     try {
-      rememberCurrentAccount({ name: name || "" });
+      rememberCurrentAccount({ name: clean });
     } catch {}
   }
 
@@ -1974,6 +1985,7 @@
     if (!name) return false;
     if (/^guest-/i.test(name)) return false;
     if (name.toLowerCase() === "player") return false;
+    if (name.toLowerCase() === "undefined" || name.toLowerCase() === "null") return false;
     return true;
   }
 
@@ -2267,7 +2279,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
             const code = formatPlayerCode(a.code);
             const norm = normalizePlayerCode(code);
             const activeNow = norm && norm === active;
-            const label = a.name || "Unnamed";
+            const label = sanitizeName(a.name) || "Unnamed";
             const lock = a.hasPassword || accountHasPassword(a.playerId) ? " · password" : "";
             return `<li data-code="${code}">
               <span><strong>${label}${activeNow ? " · active" : ""}${lock}</strong><br>${code}</span>
@@ -2400,7 +2412,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
               const code = formatPlayerCode(a.code);
               const norm = normalizePlayerCode(code);
               const activeNow = norm && norm === active;
-              const label = a.name || "Unnamed";
+              const label = sanitizeName(a.name) || "Unnamed";
               const lock = a.hasPassword || accountHasPassword(a.playerId) ? " · password" : "";
               return `<li data-code="${code}">
                 <span><strong>${label}${activeNow ? " · active" : ""}${lock}</strong><br>${code}</span>
@@ -2889,7 +2901,16 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 
   function isPlaceholderName(name) {
     const n = sanitizeName(name || "").toLowerCase();
-    return !n || n === "guest" || n.startsWith("guest-") || n === "player";
+    return (
+      !n ||
+      n === "guest" ||
+      n.startsWith("guest-") ||
+      n === "player" ||
+      n === "undefined" ||
+      n === "null" ||
+      n === "nan" ||
+      n === "unnamed"
+    );
   }
 
   function preferPlayerName(a, b) {

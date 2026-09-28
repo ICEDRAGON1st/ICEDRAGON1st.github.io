@@ -510,11 +510,32 @@
     Object.entries(bag.kv).forEach(([key, value]) => {
       if (!isBagKey(key)) return;
       try {
-        if (value == null) {
+        if (value == null || value === "") {
           if (opts.replace) localStorage.removeItem(key);
           return;
         }
-        localStorage.setItem(key, String(value));
+        let out = String(value);
+        // Never persist String(undefined) / String(null) as a username
+        if (key === "hub-player-name") {
+          const clean =
+            typeof window.HubPlays?.sanitizeName === "function"
+              ? window.HubPlays.sanitizeName(out)
+              : out;
+          const lower = String(clean || "").trim().toLowerCase();
+          if (
+            !clean ||
+            lower === "undefined" ||
+            lower === "null" ||
+            lower === "nan" ||
+            out === "undefined" ||
+            out === "null"
+          ) {
+            localStorage.removeItem(key);
+            return;
+          }
+          out = clean;
+        }
+        localStorage.setItem(key, out);
       } catch {}
     });
     if (bagId) setBagOwner(bagId);
