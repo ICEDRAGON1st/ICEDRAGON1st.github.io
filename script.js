@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928q": [
+    "Paper Claim: head-on collisions kill again (players + NPCs no longer overlap forever)"
+  ],
   "20260928p": [
     "Fishing Idle: fix stuck Play menu (broken combo HUD syntax)"
   ],
