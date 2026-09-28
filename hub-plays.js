@@ -532,6 +532,15 @@
     return String(raw || "").trim();
   }
 
+  /** True only for obvious codes like ABCD-EFGH — not normal passwords. */
+  function looksLikePlayerCode(raw) {
+    const s = String(raw || "").trim();
+    if (!s || /^MG1:/i.test(s)) return false;
+    return /^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}-?[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}$/i.test(
+      s
+    );
+  }
+
   async function hashPassword(rawPassword) {
     const pw = normalizePasswordInput(rawPassword);
     const payload = `ice-hub-pw-v1:${pw}`;
@@ -1050,15 +1059,13 @@
   async function restoreWithPlayerCode(rawCode) {
     const raw = String(rawCode || "").trim();
     let transfer = parseAccountTransferKey(raw);
-    let norm = transfer?.code || normalizePlayerCode(raw);
+    let norm = "";
+    let viaPassword = false;
 
-    // Custom password login → same account (playerId + bag), never a new blank save
-    if (!transfer && norm.length !== 8) {
+    const adoptPasswordHit = async () => {
       const pwHit = await resolvePasswordLogin(raw);
-      if (!pwHit.ok) {
-        if (normalizePasswordInput(raw).length >= 4) return pwHit;
-        return { ok: false, error: "Enter your 8-character player code (like ABCD-EFGH) or your password" };
-      }
+      if (!pwHit.ok) return pwHit;
+      viaPassword = true;
       if (pwHit.code && pwHit.playerId) {
         transfer = {
           code: pwHit.code,
@@ -1066,21 +1073,49 @@
           name: pwHit.name || ""
         };
         norm = pwHit.code;
-      } else if (pwHit.playerId) {
-        // Password known but code missing — switch by playerId via synthetic transfer
-        const vaultHit = loadAccountVault().find((a) => a.playerId === pwHit.playerId);
-        const codeNorm = normalizePlayerCode(vaultHit?.code || "");
-        if (codeNorm.length === 8) {
-          transfer = { code: codeNorm, playerId: pwHit.playerId, name: pwHit.name || vaultHit?.name || "" };
-          norm = codeNorm;
-        } else {
-          return { ok: false, error: "Password found but account code is missing — use Copy transfer from the original device" };
-        }
+        return { ok: true };
       }
+      if (pwHit.playerId) {
+        const vaultHit = loadAccountVault().find((a) => a.playerId === pwHit.playerId);
+        const codeNorm = normalizePlayerCode(vaultHit?.code || pwHit.code || "");
+        if (codeNorm.length === 8) {
+          transfer = {
+            code: codeNorm,
+            playerId: pwHit.playerId,
+            name: pwHit.name || vaultHit?.name || ""
+          };
+          norm = codeNorm;
+          return { ok: true };
+        }
+        return {
+          ok: false,
+          error:
+            "Password found but account code is missing — use Copy transfer from the original device"
+        };
+      }
+      return { ok: false, error: "Wrong password or code" };
+    };
+
+    // Prefer password when the input is not clearly a player code / transfer key
+    if (!transfer && !looksLikePlayerCode(raw)) {
+      const pwResult = await adoptPasswordHit();
+      if (!pwResult.ok) {
+        if (normalizePasswordInput(raw).length >= 4) return pwResult;
+        return {
+          ok: false,
+          error: "Enter your 8-character player code (like ABCD-EFGH) or your password"
+        };
+      }
+    } else if (!transfer) {
+      norm = normalizePlayerCode(raw);
     }
 
+    if (transfer?.code) norm = transfer.code;
     if (norm.length !== 8) {
-      return { ok: false, error: "Enter your 8-character player code (like ABCD-EFGH) or your password" };
+      return {
+        ok: false,
+        error: "Enter your 8-character player code (like ABCD-EFGH) or your password"
+      };
     }
 
     const localHit = loadAccountVault().find((a) => normalizePlayerCode(a.code) === norm);
@@ -1116,12 +1151,35 @@
       };
     } else if (remote?.[norm]?.playerId) {
       entry = remote[norm];
+    } else if (!viaPassword) {
+      // Code-shaped input missed — try as password (e.g. "password" → PASSWORD)
+      const pwResult = await adoptPasswordHit();
+      if (pwResult.ok && transfer?.playerId) {
+        entry = {
+          playerId: transfer.playerId,
+          name: transfer.name || "",
+          at: Date.now()
+        };
+        norm = transfer.code || norm;
+      } else if (remote != null) {
+        return {
+          ok: false,
+          error:
+            "Code not found. Open the account on the original device and copy its player code / transfer key, or use your password."
+        };
+      } else {
+        entry = {
+          playerId: playerIdForOfflineCode(norm),
+          name: "",
+          at: Date.now()
+        };
+        adopted = true;
+      }
     } else if (remote != null) {
-      // Codes server responded but this code isn't registered — don't invent a new ID
-      // (that used to clone names like ICE_DRAGON PHONE onto p-c-…).
       return {
         ok: false,
-        error: "Code not found. Open the account on the original device and copy its player code / transfer key."
+        error:
+          "Code not found. Open the account on the original device and copy its player code / transfer key."
       };
     } else {
       // Server unreachable: still allow login on this device with a stable offline id

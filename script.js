@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928h": [
+    "My Games: password login works even when the password looks like a player code"
+  ],
   "20260928g": [
     "Fishing Idle: light autosave every second without lag (skips unchanged / heavy sync)"
   ],
