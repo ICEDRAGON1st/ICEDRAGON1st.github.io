@@ -2827,23 +2827,17 @@
   /** Flat luck from gear + spot is tripled into the live luck stat. */
   const LUCK_STAT_MULT = 3;
   /** Catch-book discovery rewards (All discoveries, not variant filters). */
-  const COLLECTION_MASTER_PCT = 0.7;
   const COLLECTION_LUCK_PCT = 0.75;
   const COLLECTION_LUCK_MULT = 1.5;
   const COLLECTION_RAINBOW_PCT = 0.8;
   const COLLECTION_RAINBOW_MULT = 2;
+  const COLLECTION_MASTER_PCT = 0.9;
   const COLLECTION_LB_EVENT_PCT = 0.9;
   const COLLECTION_LB_EVENT_MULT = 1.25;
   const COLLECTION_LB_ALWAYS_PCT = 1;
 
   function collectionTiers() {
     return [
-      {
-        pct: COLLECTION_MASTER_PCT,
-        label: "70%",
-        title: "MASTER FISHER",
-        hint: "100 Coin/Luck chest stash"
-      },
       {
         pct: COLLECTION_LUCK_PCT,
         label: "75%",
@@ -2857,10 +2851,10 @@
         hint: "rainbow variant chance"
       },
       {
-        pct: COLLECTION_LB_EVENT_PCT,
+        pct: COLLECTION_MASTER_PCT,
         label: "90%",
-        title: `${formatMult(COLLECTION_LB_EVENT_MULT)}× Lucky Blocks`,
-        hint: "during Lucky Block events"
+        title: "MASTER FISHER",
+        hint: "100 Coin/Luck chest stash · 1.25× Lucky Blocks during events"
       },
       {
         pct: COLLECTION_LB_ALWAYS_PCT,
@@ -13618,17 +13612,21 @@
   }
 
   function playerHasMasterFisherTitle() {
+    return catchBookDiscoveryRatio() >= COLLECTION_MASTER_PCT;
+  }
+
+  /** Grant or revoke hub title + achievement to match 90% catch-book rule. */
+  function syncMasterFisherUnlock() {
+    const ready = playerHasMasterFisherTitle();
     try {
-      const name = String(
-        window.HubPlays?.getName?.() || localStorage.getItem("hub-player-name") || ""
-      ).trim();
-      if (!name) return false;
-      if (window.HubPlays?.isMasterFisherName?.(name)) return true;
-      const titles = window.HubPlays?.getAvailableTitleIds?.(name) || [];
-      if (titles.includes("master_fisher")) return true;
-      if (window.HubAchievements?.isUnlocked?.("fishing_all")) return true;
+      if (ready) {
+        window.HubAchievements?.unlock?.("fishing_all");
+        window.HubPlays?.markMasterFisher?.().catch?.(() => {});
+      } else {
+        window.HubAchievements?.lock?.("fishing_all");
+        window.HubPlays?.clearMasterFisher?.().catch?.(() => {});
+      }
     } catch {}
-    return false;
   }
 
   /** Coin/luck chest stash: 25 default, 100 with MASTER FISHER. */
@@ -14357,14 +14355,17 @@
     if (boatLevel() >= 3) HubAchievements.unlock("fishing_fps_100");
     if (state.unlocked.deep) HubAchievements.unlock("fishing_voyage_1");
     if (state.unlocked.void) HubAchievements.unlock("fishing_voyage_1");
-    if (FISH.length > 0 && catchBookDiscoveryCount() >= Math.ceil(catchBookEligibleFish().length * COLLECTION_MASTER_PCT)) {
+    if (FISH.length > 0 && catchBookDiscoveryRatio() >= COLLECTION_MASTER_PCT) {
       const newly = HubAchievements.unlock("fishing_all");
       window.HubPlays?.markMasterFisher?.().catch?.(() => {});
       if (newly) {
         setTimeout(() => {
-          setCatchLine("70% catch book — title unlocked: MASTER FISHER", "perfect");
+          setCatchLine("90% catch book — title unlocked: MASTER FISHER", "perfect");
         }, 900);
       }
+    } else if (FISH.length > 0) {
+      // Under 90%: strip legacy MASTER FISHER title / achievement
+      syncMasterFisherUnlock();
     }
     if (hasCollectionLuckBonus() && !state.collectionLuckTold) {
       state.collectionLuckTold = true;
@@ -17768,8 +17769,7 @@
     const next = tiers.find((t) => ratio < t.pct);
     collectionHudTiersEl.innerHTML = tiers
       .map((tier) => {
-        const on =
-          ratio >= tier.pct || (tier.pct === COLLECTION_MASTER_PCT && playerHasMasterFisherTitle());
+        const on = ratio >= tier.pct;
         const isNext = !on && next && next.pct === tier.pct;
         const stateLabel = on ? "On" : isNext ? "Next" : "Locked";
         return `<div class="collection-tier${on ? " is-on" : ""}${isNext ? " is-next" : ""}">
@@ -19428,6 +19428,7 @@
   document.getElementById("hub-sound-btn")?.remove();
   render();
   checkAchievements();
+  syncMasterFisherUnlock();
   clampTreasureStashCounts(true);
   startAdminEventPolling();
   startFishGiftPolling();

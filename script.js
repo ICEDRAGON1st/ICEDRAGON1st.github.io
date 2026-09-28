@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928y": [
+    "Fishing Idle: MASTER FISHER moves to 90% catch book — under 90% loses the title"
+  ],
   "20260928x": [
     "Paper Claim: walls and heads block/slide with no bounce"
   ],
@@ -5278,7 +5281,7 @@ function renderTitlePicker() {
       const selected = !locked && (active === opt.id || (opt.id === "none" && active === "none"));
       const hint = locked
         ? opt.id === "master_fisher"
-          ? "Discover 70% of fish in Fishing Idle"
+          ? "Discover 90% of fish in Fishing Idle"
           : "Unlock all achievements"
         : opt.label;
       return `<button type="button" class="title-pick-btn ${escapeHtml(opt.className)}${
@@ -5332,7 +5335,7 @@ function renderColorPicker() {
       const isAnimated = !!(opt.animated || extra?.animated);
       const hint = locked
         ? opt.id === "master_fisher"
-          ? "MASTER FISHER teal — discover 70% of fish in Fishing Idle"
+          ? "MASTER FISHER teal — discover 90% of fish in Fishing Idle"
           : "LEGEND yellow — unlock all achievements"
         : canPick
           ? isAnimated
@@ -5377,7 +5380,7 @@ document.getElementById("title-picker-buttons")?.addEventListener("click", async
       id === "legend"
         ? "LEGEND (yellow) unlocks when you complete all achievements"
         : id === "master_fisher"
-          ? "MASTER FISHER unlocks at 70% of the Fishing Idle catch book"
+          ? "MASTER FISHER unlocks at 90% of the Fishing Idle catch book"
           : id === "og"
           ? "OG (green) is a reserved title"
           : id === "tester"
@@ -5419,7 +5422,7 @@ document.getElementById("color-picker-buttons")?.addEventListener("click", async
       id === "legend"
         ? "Yellow unlocks with LEGEND (all achievements)"
         : id === "master_fisher"
-          ? "Teal unlocks with MASTER FISHER (70% catch book)"
+          ? "Teal unlocks with MASTER FISHER (90% catch book)"
           : id === "og"
           ? "Green unlocks with the OG title"
           : id === "owner"

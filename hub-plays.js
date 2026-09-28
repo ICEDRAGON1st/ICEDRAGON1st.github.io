@@ -3994,7 +3994,7 @@ body.light .menu-credit .player-name-creator {
     if (CHEESY_NAME_KEYS.has(key)) ids.push("cheesy");
     const selfMaster =
       key === nameKey(getName()) && (isMasterFisherName(name) || selfHasMasterFisher());
-    if (key === "ice_dragon" || isMasterFisherName(name) || selfMaster) {
+    if (isMasterFisherName(name) || selfMaster) {
       ids.push("master_fisher");
     }
     // Owner can equip Hub Points podium titles even though they don't earn points.
@@ -4334,36 +4334,35 @@ body.light .menu-credit .player-name-creator {
     return ok;
   }
 
-  /** One-time: give ICE_DRAGON MASTER FISHER title + teal color permanently. */
-  const ICE_MASTER_FISHER_GRANT_ID = "hub-ice-master-fisher-grant-v1";
-
-  async function ensureIceMasterFisherGrant() {
-    try {
-      if (nameKey(getName()) !== "ice_dragon") return;
-      if (localStorage.getItem(ICE_MASTER_FISHER_GRANT_ID) === "done") {
-        // Still keep the permanent unlock path warm if profile lost the flag.
-        if (!isMasterFisherName("ice_dragon")) {
-          await patchMyClaim((existing) => ({
-            ...existing,
-            masterFisher: true,
-            masterFisherAt: existing.masterFisherAt || Date.now()
-          }));
-        }
-        return;
+  /** Revoke MASTER FISHER when catch-book % drops below the unlock threshold. */
+  async function clearMasterFisher() {
+    const ok = await patchMyClaim((existing) => {
+      if (!existing?.masterFisher && existing?.activeTitle !== "master_fisher") {
+        return null;
       }
-      await patchMyClaim((existing) => ({
-        ...existing,
-        masterFisher: true,
-        masterFisherAt: existing.masterFisherAt || Date.now(),
-        activeTitle: "master_fisher",
-        accentTitle: "master_fisher",
-        accentColor: TITLE_COLORS.master_fisher
-      }));
-      localStorage.setItem(ICE_MASTER_FISHER_GRANT_ID, "done");
+      const next = { ...existing, masterFisher: false };
+      delete next.masterFisherAt;
+      if (next.activeTitle === "master_fisher") next.activeTitle = "none";
+      if (next.accentTitle === "master_fisher") {
+        next.accentTitle = "";
+        if (String(next.accentColor || "").toLowerCase() === String(TITLE_COLORS.master_fisher).toLowerCase()) {
+          next.accentColor = "";
+        }
+      }
+      return next;
+    });
+    if (ok) {
       try {
         window.dispatchEvent(new CustomEvent("hub-plays-profile"));
       } catch {}
-    } catch {}
+      refreshCreatorCredits();
+    }
+    return ok;
+  }
+
+  /** MASTER FISHER is catch-book gated (90%) — no permanent ICE auto-grant. */
+  async function ensureIceMasterFisherGrant() {
+    /* no-op: title is synced from Fishing Idle collection % */
   }
 
   async function setActiveTitle(titleId) {
@@ -4484,6 +4483,7 @@ body.light .menu-credit .player-name-creator {
     markLegend,
     isLegendName,
     markMasterFisher,
+    clearMasterFisher,
     isMasterFisherName,
     getAvailableTitleIds,
     getTitleShowcase,
