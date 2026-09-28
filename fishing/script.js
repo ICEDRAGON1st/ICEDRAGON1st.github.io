@@ -10013,7 +10013,7 @@
       canAdminGlobal() ? parsed.scope : "local",
       parsed.target || ""
     );
-    if (ok) logLimitedAdminAction(trimmed, "event");
+    if (ok) logLimitedAdminAction(trimmed, adminAuditCategory(trimmed).label);
   }
 
   function scheduledEventWindowStart(now = Date.now()) {
