@@ -2232,9 +2232,33 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       listEl.addEventListener("click", async (e) => {
         const sw = e.target.closest("[data-switch]");
         if (!sw) return;
+        const code = sw.getAttribute("data-switch") || "";
+        const norm = normalizePlayerCode(code);
+        const saved = getSavedAccounts().find((a) => normalizePlayerCode(a.code) === norm);
+        if (saved?.hasPassword || accountHasPassword(saved?.playerId)) {
+          const typed = window.prompt(
+            `This account has a password.\n\nEnter the password for "${saved?.name || "Unnamed"}":`
+          );
+          if (typed == null) {
+            setGateStatus(status, "Switch cancelled", false);
+            return;
+          }
+          setGateStatus(status, "Checking password…", false);
+          try {
+            const ok = await verifyAccountPassword(typed, saved.playerId);
+            if (!ok) {
+              setGateStatus(status, "Wrong password", false);
+              return;
+            }
+            finishAccountSwitch(await restoreWithPlayerCode(typed));
+          } catch (err) {
+            setGateStatus(status, err?.message || "Couldn't switch", false);
+          }
+          return;
+        }
         setGateStatus(status, "Switching…", false);
         try {
-          finishAccountSwitch(await restoreWithPlayerCode(sw.getAttribute("data-switch") || ""));
+          finishAccountSwitch(await restoreWithPlayerCode(code));
         } catch (err) {
           setGateStatus(status, err?.message || "Couldn't switch", false);
         }
@@ -2262,8 +2286,9 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
               const norm = normalizePlayerCode(code);
               const activeNow = norm && norm === active;
               const label = a.name || "Unnamed";
+              const lock = a.hasPassword || accountHasPassword(a.playerId) ? " · password" : "";
               return `<li data-code="${code}">
-                <span><strong>${label}${activeNow ? " · active" : ""}</strong><br>${code}</span>
+                <span><strong>${label}${activeNow ? " · active" : ""}${lock}</strong><br>${code}</span>
                 ${
                   activeNow
                     ? ""
