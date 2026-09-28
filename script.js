@@ -4932,6 +4932,7 @@ function accountListHtml(accounts, activeCode) {
         </span>
       </li>`;
     })
+    .filter(Boolean)
     .join("");
 }
 
