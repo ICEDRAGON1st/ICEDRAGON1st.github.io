@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928c": [
+    "My Games: shows clearly when your account has a login password set"
+  ],
   "20260928b": [
     "My Games: set your own login password on your current account — Fishing and all progress stay; password or player code both work"
   ],
