@@ -18,12 +18,15 @@
   const PLAYS_PATH = "plays-log";
   const NAMES_PATH = "name-registry";
   const CODES_PATH = "player-codes";
+  const PASSWORDS_PATH = "player-passwords";
   const RESERVATIONS_PATH = "name-reservations";
   const PRESENCE_PATH = "presence";
   const ALLTIME_PATH = "players-alltime";
+  const LOCAL_PASSWORDS_KEY = "hub-passwords-local-v1";
   const PLAYS_API = `https://mantledb.sh/v2/${NS}/${PLAYS_PATH}`;
   const NAMES_API = `https://mantledb.sh/v2/${NS}/${NAMES_PATH}`;
   const CODES_API = `https://mantledb.sh/v2/${NS}/${CODES_PATH}`;
+  const PASSWORDS_API = `https://mantledb.sh/v2/${NS}/${PASSWORDS_PATH}`;
   const RESERVATIONS_API = `https://mantledb.sh/v2/${NS}/${RESERVATIONS_PATH}`;
   const PRESENCE_API = `https://mantledb.sh/v2/${NS}/${PRESENCE_PATH}`;
   const ALLTIME_API = `https://mantledb.sh/v2/${NS}/${ALLTIME_PATH}`;
@@ -525,6 +528,222 @@
     };
   }
 
+  function normalizePasswordInput(raw) {
+    return String(raw || "").trim();
+  }
+
+  async function hashPassword(rawPassword) {
+    const pw = normalizePasswordInput(rawPassword);
+    const payload = `ice-hub-pw-v1:${pw}`;
+    try {
+      if (globalThis.crypto?.subtle && typeof TextEncoder !== "undefined") {
+        const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(payload));
+        return Array.from(new Uint8Array(buf))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+      }
+    } catch {}
+    return `f:${hashToCodeParts(payload, "pw1")}${hashToCodeParts(payload, "pw2")}`;
+  }
+
+  function loadLocalPasswords() {
+    try {
+      if (!canUseLocalStorage()) return {};
+      const raw = JSON.parse(localStorage.getItem(LOCAL_PASSWORDS_KEY) || "{}");
+      if (!raw || typeof raw !== "object") return {};
+      const out = {};
+      Object.entries(raw).forEach(([hash, v]) => {
+        if (!hash || !v || typeof v !== "object" || !v.playerId) return;
+        out[String(hash)] = {
+          playerId: String(v.playerId),
+          code: normalizePlayerCode(v.code || ""),
+          name: sanitizeName(v.name || ""),
+          at: Number(v.at) || 0
+        };
+      });
+      return out;
+    } catch {
+      return {};
+    }
+  }
+
+  function saveLocalPasswords(map) {
+    try {
+      if (!canUseLocalStorage()) return;
+      localStorage.setItem(LOCAL_PASSWORDS_KEY, JSON.stringify(map || {}));
+    } catch {}
+  }
+
+  async function fetchPasswordsRemote() {
+    const data = await fetchDoc(PASSWORDS_PATH, PASSWORDS_API);
+    if (!data || typeof data !== "object") return {};
+    const passwords = data.passwords && typeof data.passwords === "object" ? data.passwords : data;
+    const out = {};
+    Object.entries(passwords).forEach(([hash, v]) => {
+      if (!hash || !v || typeof v !== "object" || !v.playerId) return;
+      out[String(hash)] = {
+        playerId: String(v.playerId),
+        code: normalizePlayerCode(v.code || ""),
+        name: sanitizeName(v.name || ""),
+        at: Number(v.at) || 0
+      };
+    });
+    return out;
+  }
+
+  async function pushPasswordsRemote(passwords) {
+    await pushDoc(PASSWORDS_PATH, { passwords }, PASSWORDS_API);
+  }
+
+  function markVaultHasPassword(playerId, hasPassword) {
+    const id = String(playerId || "");
+    if (!id) return;
+    const list = loadAccountVault().map((a) =>
+      a.playerId === id ? { ...a, hasPassword: !!hasPassword } : a
+    );
+    saveAccountVault(list);
+  }
+
+  function accountHasPassword(playerId) {
+    const id = String(playerId || getPlayerId() || "");
+    if (!id) return false;
+    const vaultHit = loadAccountVault().find((a) => a.playerId === id);
+    if (vaultHit?.hasPassword) return true;
+    return Object.values(loadLocalPasswords()).some((e) => e.playerId === id);
+  }
+
+  async function resolvePasswordLogin(rawPassword) {
+    const pw = normalizePasswordInput(rawPassword);
+    if (pw.length < 4) {
+      return { ok: false, error: "Password must be at least 4 characters" };
+    }
+    const hash = await hashPassword(pw);
+    let entry = loadLocalPasswords()[hash] || null;
+    if (!entry?.playerId) {
+      try {
+        const remote = await fetchPasswordsRemote();
+        entry = remote[hash] || null;
+        if (entry?.playerId) {
+          const local = loadLocalPasswords();
+          local[hash] = entry;
+          saveLocalPasswords(local);
+        }
+      } catch {
+        entry = null;
+      }
+    }
+    if (!entry?.playerId) {
+      return { ok: false, error: "Wrong password or code" };
+    }
+    const code =
+      normalizePlayerCode(entry.code).length === 8
+        ? normalizePlayerCode(entry.code)
+        : normalizePlayerCode(getPlayerCode());
+    return {
+      ok: true,
+      playerId: entry.playerId,
+      code: code.length === 8 ? code : "",
+      name: entry.name || "",
+      viaPassword: true
+    };
+  }
+
+  async function verifyAccountPassword(rawPassword, expectedPlayerId) {
+    const hit = await resolvePasswordLogin(rawPassword);
+    if (!hit.ok) return false;
+    return hit.playerId === String(expectedPlayerId || "");
+  }
+
+  /**
+   * Set/change a custom login password on the CURRENT account.
+   * Never changes playerId or clears progress — Fishing, scores, friends stay.
+   */
+  async function setAccountPassword(rawPassword, confirmPassword) {
+    const pw = normalizePasswordInput(rawPassword);
+    const confirm = normalizePasswordInput(confirmPassword ?? rawPassword);
+    if (pw.length < 4) return { ok: false, error: "Password must be at least 4 characters" };
+    if (pw.length > 48) return { ok: false, error: "Password is too long (max 48)" };
+    if (pw !== confirm) return { ok: false, error: "Passwords don't match" };
+    const me = getPlayerId();
+    const code = normalizePlayerCode(getPlayerCode());
+    if (!me || code.length !== 8) {
+      return { ok: false, error: "Finish setting up your account first" };
+    }
+    // Don't let password collide with looking like someone else's login path awkwardly —
+    // codes still take priority in restore when input is exactly 8 code chars.
+    const hash = await hashPassword(pw);
+    let remote = {};
+    try {
+      remote = await fetchPasswordsRemote();
+    } catch {
+      remote = {};
+    }
+    const taken = remote[hash];
+    if (taken?.playerId && taken.playerId !== me) {
+      return { ok: false, error: "That password is already used — pick another" };
+    }
+    const local = loadLocalPasswords();
+    const localTaken = local[hash];
+    if (localTaken?.playerId && localTaken.playerId !== me) {
+      return { ok: false, error: "That password is already used — pick another" };
+    }
+
+    // Drop previous passwords for this player (change password)
+    Object.keys(remote).forEach((h) => {
+      if (remote[h]?.playerId === me) delete remote[h];
+    });
+    Object.keys(local).forEach((h) => {
+      if (local[h]?.playerId === me) delete local[h];
+    });
+
+    const entry = {
+      playerId: me,
+      code,
+      name: sanitizeName(getName() || ""),
+      at: Date.now()
+    };
+    remote[hash] = entry;
+    local[hash] = entry;
+    saveLocalPasswords(local);
+    markVaultHasPassword(me, true);
+    rememberCurrentAccount({ hasPassword: true });
+
+    try {
+      await pushPasswordsRemote(remote);
+    } catch (err) {
+      // Local password still works on this device; remote sync can retry later
+      console.warn("[HubPlays] password sync failed", err);
+      return {
+        ok: true,
+        localOnly: true,
+        keptProgress: true,
+        error: null,
+        message: "Password saved on this device (cloud sync later)"
+      };
+    }
+    return { ok: true, keptProgress: true, message: "Password set — same account, all progress kept" };
+  }
+
+  async function clearAccountPassword() {
+    const me = getPlayerId();
+    if (!me) return { ok: false, error: "No account" };
+    const local = loadLocalPasswords();
+    Object.keys(local).forEach((h) => {
+      if (local[h]?.playerId === me) delete local[h];
+    });
+    saveLocalPasswords(local);
+    markVaultHasPassword(me, false);
+    rememberCurrentAccount({ hasPassword: false });
+    try {
+      const remote = await fetchPasswordsRemote();
+      Object.keys(remote).forEach((h) => {
+        if (remote[h]?.playerId === me) delete remote[h];
+      });
+      await pushPasswordsRemote(remote);
+    } catch {}
+    return { ok: true, keptProgress: true, message: "Password cleared — use your player code to log in" };
+  }
+
   function loadAccountVault() {
     try {
       if (!canUseLocalStorage()) return [];
@@ -535,7 +754,8 @@
           code: formatPlayerCode(a?.code || ""),
           playerId: String(a?.playerId || ""),
           name: sanitizeName(a?.name || ""),
-          savedAt: Number(a?.savedAt) || 0
+          savedAt: Number(a?.savedAt) || 0,
+          hasPassword: !!a?.hasPassword
         }))
         .filter((a) => normalizePlayerCode(a.code).length === 8 && a.playerId)
         .slice(0, MAX_SAVED_ACCOUNTS);
@@ -560,12 +780,16 @@
     if (!playerId) return getSavedAccounts();
     const name = sanitizeName(extra.name != null ? extra.name : getName() || "");
     rememberLocalCode(norm, playerId, name);
+    const prev = loadAccountVault().find((a) => normalizePlayerCode(a.code) === norm);
+    const hasPassword =
+      extra.hasPassword != null ? !!extra.hasPassword : !!(prev?.hasPassword || accountHasPassword(playerId));
     const list = loadAccountVault().filter((a) => normalizePlayerCode(a.code) !== norm);
     list.unshift({
       code: formatPlayerCode(norm),
       playerId,
       name,
-      savedAt: Date.now()
+      savedAt: Date.now(),
+      hasPassword
     });
     saveAccountVault(list);
     return list;
@@ -824,10 +1048,39 @@
   }
 
   async function restoreWithPlayerCode(rawCode) {
-    const transfer = parseAccountTransferKey(rawCode);
-    const norm = transfer?.code || normalizePlayerCode(rawCode);
+    const raw = String(rawCode || "").trim();
+    let transfer = parseAccountTransferKey(raw);
+    let norm = transfer?.code || normalizePlayerCode(raw);
+
+    // Custom password login → same account (playerId + bag), never a new blank save
+    if (!transfer && norm.length !== 8) {
+      const pwHit = await resolvePasswordLogin(raw);
+      if (!pwHit.ok) {
+        if (normalizePasswordInput(raw).length >= 4) return pwHit;
+        return { ok: false, error: "Enter your 8-character player code (like ABCD-EFGH) or your password" };
+      }
+      if (pwHit.code && pwHit.playerId) {
+        transfer = {
+          code: pwHit.code,
+          playerId: pwHit.playerId,
+          name: pwHit.name || ""
+        };
+        norm = pwHit.code;
+      } else if (pwHit.playerId) {
+        // Password known but code missing — switch by playerId via synthetic transfer
+        const vaultHit = loadAccountVault().find((a) => a.playerId === pwHit.playerId);
+        const codeNorm = normalizePlayerCode(vaultHit?.code || "");
+        if (codeNorm.length === 8) {
+          transfer = { code: codeNorm, playerId: pwHit.playerId, name: pwHit.name || vaultHit?.name || "" };
+          norm = codeNorm;
+        } else {
+          return { ok: false, error: "Password found but account code is missing — use Copy transfer from the original device" };
+        }
+      }
+    }
+
     if (norm.length !== 8) {
-      return { ok: false, error: "Enter your 8-character player code (like ABCD-EFGH)" };
+      return { ok: false, error: "Enter your 8-character player code (like ABCD-EFGH) or your password" };
     }
 
     const localHit = loadAccountVault().find((a) => normalizePlayerCode(a.code) === norm);
@@ -957,7 +1210,8 @@
     rememberCurrentAccount({
       code: norm,
       playerId: entry.playerId,
-      name: restoredName || getName() || ""
+      name: restoredName || getName() || "",
+      hasPassword: accountHasPassword(entry.playerId)
     });
 
     // Best-effort remote register so the code works on other devices later
@@ -1854,7 +2108,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
           <div class="username-gate-accounts">
             <p class="username-gate-accounts-label">Already have an account?</p>
             <div class="username-gate-code-row">
-              <input id="username-gate-code-input" type="text" maxlength="12" placeholder="Code (ABCD-EFGH)" autocomplete="off" spellcheck="false">
+              <input id="username-gate-code-input" type="text" maxlength="160" placeholder="Code, transfer, or password" autocomplete="off" spellcheck="false">
               <button id="username-gate-login" type="button">Log in</button>
             </div>
             <button id="username-gate-new" type="button">Create new account</button>
@@ -1900,8 +2154,9 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
             const norm = normalizePlayerCode(code);
             const activeNow = norm && norm === active;
             const label = a.name || "Unnamed";
+            const lock = a.hasPassword || accountHasPassword(a.playerId) ? " · password" : "";
             return `<li data-code="${code}">
-              <span><strong>${label}${activeNow ? " · active" : ""}</strong><br>${code}</span>
+              <span><strong>${label}${activeNow ? " · active" : ""}${lock}</strong><br>${code}</span>
               ${
                 activeNow
                   ? ""
@@ -4117,6 +4372,10 @@ body.light .menu-credit .player-name-creator {
     ensurePlayerCodeRegistered,
     restoreWithPlayerCode,
     createNewAccount,
+    setAccountPassword,
+    clearAccountPassword,
+    accountHasPassword,
+    verifyAccountPassword,
     getSavedAccounts,
     rememberCurrentAccount,
     removeSavedAccount,

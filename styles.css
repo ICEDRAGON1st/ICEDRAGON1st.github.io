@@ -2250,6 +2250,20 @@ header h1 {
   letter-spacing: 0.04em;
 }
 
+.player-password-box {
+  margin: 0.35rem 0 0.75rem;
+  padding-top: 0.35rem;
+  border-top: 1px dashed color-mix(in srgb, var(--tile-border) 80%, transparent);
+}
+
+.player-password-box .hub-settings-label {
+  margin-top: 0.45rem;
+}
+
+.player-password-row input[type="password"] {
+  letter-spacing: 0.12em;
+}
+
 .player-accounts-box {
   margin: 0.35rem 0 0.25rem;
 }

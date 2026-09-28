@@ -45,6 +45,12 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928b": [
+    "My Games: set your own login password on your current account — Fishing and all progress stay; password or player code both work"
+  ],
+  "20260928a": [
+    "Fishing Idle: shared / school PCs no longer wipe another player's progress when switching accounts"
+  ],
   "20260927f": [
     "Hub: search boxes for games and leaderboard boards/players"
   ],
@@ -4781,9 +4787,10 @@ function accountListHtml(accounts, activeCode) {
       const norm = HubPlays.normalizePlayerCode?.(code) || "";
       const active = norm && norm === activeCode;
       const label = a.name || "Unnamed";
+      const lock = a.hasPassword ? " · password" : "";
       return `<li class="${active ? "is-active" : ""}" data-account-code="${escapeHtml(code)}">
         <span class="player-accounts-meta">
-          <strong>${escapeHtml(label)}${active ? " · active" : ""}</strong>
+          <strong>${escapeHtml(label)}${active ? " · active" : ""}${lock}</strong>
           <span>${escapeHtml(code)}</span>
         </span>
         <span class="player-accounts-actions">
@@ -4914,6 +4921,55 @@ document.getElementById("player-code-new-btn")?.addEventListener("click", async 
   await createAccountFlow(setPlayerCodeStatus);
 });
 
+document.getElementById("player-password-set-btn")?.addEventListener("click", async () => {
+  if (typeof HubPlays === "undefined") return;
+  const pw = document.getElementById("player-password-input")?.value || "";
+  const confirm = document.getElementById("player-password-confirm")?.value || "";
+  setPlayerCodeStatus("Saving password…", false);
+  let result;
+  try {
+    result = await HubPlays.setAccountPassword?.(pw, confirm);
+  } catch (err) {
+    setPlayerCodeStatus(err?.message || "Couldn't set password", true);
+    return;
+  }
+  if (!result?.ok) {
+    setPlayerCodeStatus(result?.error || "Couldn't set password", true);
+    return;
+  }
+  const pwIn = document.getElementById("player-password-input");
+  const pwConfirm = document.getElementById("player-password-confirm");
+  if (pwIn) pwIn.value = "";
+  if (pwConfirm) pwConfirm.value = "";
+  setPlayerCodeStatus(result.message || "Password set — all progress kept", false);
+  renderSavedAccounts();
+});
+
+document.getElementById("player-password-clear-btn")?.addEventListener("click", async () => {
+  if (typeof HubPlays === "undefined") return;
+  if (!HubPlays.accountHasPassword?.()) {
+    setPlayerCodeStatus("No password set on this account", false);
+    return;
+  }
+  const ok = window.confirm(
+    "Clear your login password?\n\nYour account and all progress stay. You'll log in with your player code again."
+  );
+  if (!ok) return;
+  let result;
+  try {
+    result = await HubPlays.clearAccountPassword?.();
+  } catch (err) {
+    setPlayerCodeStatus(err?.message || "Couldn't clear password", true);
+    return;
+  }
+  if (!result?.ok) {
+    setPlayerCodeStatus(result?.error || "Couldn't clear password", true);
+    return;
+  }
+  setPlayerCodeStatus(result.message || "Password cleared", false);
+  renderSavedAccounts();
+});
+
 document.getElementById("gate-code-login-btn")?.addEventListener("click", async () => {
   const input = document.getElementById("gate-code-input");
   await loginWithPlayerCode(input?.value || "", setGateCodeStatus);
@@ -4928,7 +4984,30 @@ function onAccountListClick(e) {
   const forgetBtn = e.target.closest("[data-account-forget]");
   if (switchBtn) {
     const statusFn = e.currentTarget?.id === "gate-accounts-list" ? setGateCodeStatus : setPlayerCodeStatus;
-    loginWithPlayerCode(switchBtn.getAttribute("data-account-switch") || "", statusFn);
+    const code = switchBtn.getAttribute("data-account-switch") || "";
+    const norm = HubPlays?.normalizePlayerCode?.(code);
+    const saved = (HubPlays?.getSavedAccounts?.() || []).find(
+      (a) => HubPlays?.normalizePlayerCode?.(a.code) === norm
+    );
+    if (saved?.hasPassword || (saved?.playerId && HubPlays?.accountHasPassword?.(saved.playerId))) {
+      const typed = window.prompt(
+        `This account has a password.\n\nEnter the password for "${saved.name || "Unnamed"}":`
+      );
+      if (typed == null) {
+        statusFn("Switch cancelled", false);
+        return;
+      }
+      (async () => {
+        const ok = await HubPlays.verifyAccountPassword?.(typed, saved.playerId);
+        if (!ok) {
+          statusFn("Wrong password", true);
+          return;
+        }
+        await loginWithPlayerCode(typed, statusFn);
+      })();
+      return;
+    }
+    loginWithPlayerCode(code, statusFn);
     return;
   }
   if (forgetBtn) {
