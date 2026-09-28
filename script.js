@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928i": [
+    "Fishing Idle: auto-restore wiped coolers from cloud; block empty saves from erasing a full cooler"
+  ],
   "20260928h": [
     "My Games: password login works even when the password looks like a player code"
   ],

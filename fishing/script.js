@@ -11627,6 +11627,36 @@
         }
       }
 
+      // Never overwrite a rich cooler with an accidental empty wipe (unless coins/lifetime rose from selling)
+      if (!force) {
+        try {
+          const existing = readFishingSaveRaw();
+          if (existing && typeof existing === "object") {
+            const exCool = Array.isArray(existing.cooler) ? existing.cooler.length : 0;
+            const stCool = Array.isArray(state.cooler) ? state.cooler.length : 0;
+            if (exCool >= 20 && stCool < Math.max(5, Math.floor(exCool * 0.15))) {
+              const lifeGain = (Number(state.lifetime) || 0) - (Number(existing.lifetime) || 0);
+              const coinGain = (Number(state.coins) || 0) - (Number(existing.coins) || 0);
+              if (lifeGain <= 0 && coinGain <= 0) {
+                state.cooler = existing.cooler.slice();
+                if (existing.caught && typeof existing.caught === "object") {
+                  state.caught = existing.caught;
+                }
+                if ((Number(existing.coins) || 0) > (Number(state.coins) || 0)) {
+                  state.coins = existing.coins;
+                }
+                if ((Number(existing.lifetime) || 0) > (Number(state.lifetime) || 0)) {
+                  state.lifetime = existing.lifetime;
+                }
+                if ((Number(existing.catches) || 0) > (Number(state.catches) || 0)) {
+                  state.catches = existing.catches;
+                }
+              }
+            }
+          }
+        } catch {}
+      }
+
       state.lastTick = Date.now();
       const me = fishingOwnerId();
       const myName = fishingOwnerName();
@@ -18953,6 +18983,68 @@
   }
 
   state = loadState();
+
+  /** If local cooler was wiped, pull cloud/vault and restore the richer save. */
+  async function recoverFishingIfWiped() {
+    try {
+      const me = fishingOwnerId();
+      if (!me) return;
+      const localCool = Array.isArray(state.cooler) ? state.cooler.length : 0;
+      const localLife = Number(state.lifetime) || 0;
+      // Only auto-recover obvious wipes / empty coolers on a progressed account
+      if (localCool >= 20) return;
+      if (localLife <= 0 && localCool > 0) return;
+
+      let best = null;
+      let bestCool = localCool;
+      const consider = (raw) => {
+        if (!raw || typeof raw !== "object") return;
+        const n = Array.isArray(raw.cooler) ? raw.cooler.length : 0;
+        if (n > bestCool) {
+          best = raw;
+          bestCool = n;
+        }
+      };
+
+      try {
+        const vault = JSON.parse(localStorage.getItem("hub-account-bags-v1") || "{}") || {};
+        const mine = vault[me]?.kv?.["fishing-save-v3"];
+        if (mine) consider(JSON.parse(mine));
+      } catch {}
+      consider(readFishingSaveRaw());
+
+      if (window.HubAccountBag?.pullAndApply) {
+        try {
+          await HubAccountBag.pullAndApply(me);
+        } catch {}
+        consider(readFishingSaveRaw());
+      }
+
+      if (!best || bestCool <= localCool) return;
+      const next = loadState();
+      if ((Array.isArray(next.cooler) ? next.cooler.length : 0) >= bestCool) {
+        state = next;
+      } else {
+        // Apply best raw through localStorage then reload
+        try {
+          const payload = JSON.stringify(best);
+          localStorage.setItem(SAVE_KEY, payload);
+          localStorage.setItem(SAVE_BACKUP_KEY, payload);
+        } catch {}
+        state = loadState();
+      }
+      try {
+        render?.();
+      } catch {}
+      try {
+        saveState({ force: true });
+      } catch {}
+      try {
+        setCatchLine?.(`Restored cooler (${bestCool} fish) from cloud backup`, "treasure");
+      } catch {}
+    } catch {}
+  }
+
   // Soft bag sync: only adopt remote/bag if it's at least as progressed — never wipe the live session
   document.addEventListener("hub-account-bag-applied", (ev) => {
     try {
@@ -19147,6 +19239,13 @@
       .catch(() => {});
   }
   setInterval(tick, TICK_MS);
+  // Restore wiped cooler from cloud/vault if needed
+  setTimeout(() => {
+    recoverFishingIfWiped().catch(() => {});
+  }, 900);
+  setTimeout(() => {
+    recoverFishingIfWiped().catch(() => {});
+  }, 3500);
   // Light autosave every second — no-op when unchanged; skips heavy hub vault sync
   setInterval(() => {
     try {

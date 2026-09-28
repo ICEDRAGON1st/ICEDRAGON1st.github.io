@@ -249,21 +249,37 @@
     Object.keys(out.unlocked).forEach((k) => {
       out.unlocked[k] = !!(a.unlocked?.[k] || b.unlocked?.[k] || k === "creek");
     });
-    // Cooler: newer save wins so sells / unfavorites stick (never revive fish from an older longer cooler)
+    // Cooler: newer save wins for normal sells, but never accept a catastrophic wipe
     const coolA = Array.isArray(a.cooler) ? a.cooler : [];
     const coolB = Array.isArray(b.cooler) ? b.cooler : [];
     const tickA = Number(a.lastTick) || 0;
     const tickB = Number(b.lastTick) || 0;
     out.lastTick = Math.max(tickA, tickB);
+
+    const coolerWipe = (rich, thin, richSave, thinSave) => {
+      if (rich.length < 20) return false;
+      if (thin.length >= Math.max(5, Math.floor(rich.length * 0.15))) return false;
+      const lifeGain = (Number(thinSave.lifetime) || 0) - (Number(richSave.lifetime) || 0);
+      const coinGain = (Number(thinSave.coins) || 0) - (Number(richSave.coins) || 0);
+      // Real mass-sell raises coins/lifetime; a wipe does not
+      return lifeGain <= 0 && coinGain <= 0;
+    };
+
     if (tickA !== tickB) {
-      out.cooler = tickA > tickB ? coolA : coolB;
+      const aNewer = tickA > tickB;
+      const coolNew = aNewer ? coolA : coolB;
+      const coolOld = aNewer ? coolB : coolA;
+      const saveNew = aNewer ? a : b;
+      const saveOld = aNewer ? b : a;
+      out.cooler = coolerWipe(coolOld, coolNew, saveOld, saveNew) ? coolOld : coolNew;
     } else if (coolA.length !== coolB.length) {
       const coinsA = Number(a.coins) || 0;
       const coinsB = Number(b.coins) || 0;
       const lifeA = Number(a.lifetime) || 0;
       const lifeB = Number(b.lifetime) || 0;
-      // Same timestamp: shorter cooler + more money ≈ a sell that should stick
-      if (coolB.length < coolA.length && (coinsB > coinsA || lifeB > lifeA)) out.cooler = coolB;
+      if (coolerWipe(coolA, coolB, a, b)) out.cooler = coolA;
+      else if (coolerWipe(coolB, coolA, b, a)) out.cooler = coolB;
+      else if (coolB.length < coolA.length && (coinsB > coinsA || lifeB > lifeA)) out.cooler = coolB;
       else if (coolA.length < coolB.length && (coinsA > coinsB || lifeA > lifeB)) out.cooler = coolA;
       else out.cooler = primary.cooler || [];
     } else {
