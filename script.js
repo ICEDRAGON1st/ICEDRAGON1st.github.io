@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928z": [
+    "Fishing Idle: fix sells getting undone by cloud cooler restore"
+  ],
   "20260928y": [
     "Fishing Idle: MASTER FISHER moves to 90% catch book — under 90% loses the title"
   ],

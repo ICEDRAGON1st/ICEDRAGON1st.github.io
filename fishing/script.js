@@ -11728,6 +11728,14 @@
               const lifeGain = (Number(state.lifetime) || 0) - (Number(existing.lifetime) || 0);
               const coinGain = (Number(state.coins) || 0) - (Number(existing.coins) || 0);
               if (lifeGain <= 0 && coinGain <= 0) {
+                // Still treat equal wealth + fewer fish as a sell (don't restore)
+                const lifeOk =
+                  (Number(state.lifetime) || 0) >= (Number(existing.lifetime) || 0);
+                const coinOk =
+                  (Number(state.coins) || 0) >= (Number(existing.coins) || 0);
+                if (lifeOk && coinOk && stCool < exCool) {
+                  // intentional sell — keep thinner cooler
+                } else {
                 state.cooler = existing.cooler.slice();
                 if (existing.caught && typeof existing.caught === "object") {
                   state.caught = existing.caught;
@@ -11740,6 +11748,7 @@
                 }
                 if ((Number(existing.catches) || 0) > (Number(state.catches) || 0)) {
                   state.catches = existing.catches;
+                }
                 }
               }
             }
@@ -15311,7 +15320,7 @@
     if (!fish) {
       state.cooler.splice(i, 1);
       render(false);
-      saveSoon();
+      saveState({ force: true });
       return;
     }
     if (isCoolerSaved(entry)) {
@@ -15337,7 +15346,10 @@
     );
     playSfx("click");
     render(false);
-    saveSoon(true);
+    saveState({ force: true });
+    try {
+      window.HubAccountBag?.snapshot?.(fishingOwnerId());
+    } catch {}
   }
 
   function toggleSaveFish(index) {
@@ -15352,7 +15364,7 @@
       setCatchLine(`${formatFishName(fish, entry)} stays in the Aquarium`, "exclusive");
       playSfx("click");
       render(false);
-      saveSoon(true);
+      saveState({ force: true });
       return;
     }
     entry.saved = !entry.saved;
@@ -15364,7 +15376,7 @@
     );
     playSfx("click");
     render(false);
-    saveSoon(true);
+    saveState({ force: true });
   }
 
   function sellCooler() {
@@ -15397,7 +15409,10 @@
     );
     playSfx("win");
     render(false);
-    saveSoon(true);
+    saveState({ force: true });
+    try {
+      window.HubAccountBag?.snapshot?.(fishingOwnerId());
+    } catch {}
   }
 
   /* ========== Shiny Machine ========== */
@@ -16245,6 +16260,7 @@
   let coolerRenderKey = "";
 
   function coolerKey() {
+    // Omit combo — it changed every tick and rebuilt the cooler DOM mid-click (broke Sell).
     return `${state.spotId}|${state.coolerSort}|${state.coolerFilter}|${normalizeSearchQuery(
       state.coolerSearch
     )}|${state.cooler
@@ -16252,7 +16268,7 @@
         const n = normalizeCoolerEntry(e) || {};
         return `${n.id || coolerEntryId(e)}${n.saved ? "*" : ""}${n.perfect ? "!" : ""}:${n.variant || ""}:${n.shiny ? 1 : 0}:${n.mutation || ""}`;
       })
-      .join(",")}|${coolerMax()}|${sellBonus().toFixed(3)}|${perfectBonus().toFixed(3)}|${spotMasteryLevel()}|${comboActive() ? state.combo : 0}`;
+      .join(",")}|${coolerMax()}|${sellBonus().toFixed(3)}|${perfectBonus().toFixed(3)}|${spotMasteryLevel()}`;
   }
 
   function renderCooler(force = false) {
@@ -19121,6 +19137,7 @@
       if (!me) return;
       const localCool = Array.isArray(state.cooler) ? state.cooler.length : 0;
       const localLife = Number(state.lifetime) || 0;
+      const localCoins = Number(state.coins) || 0;
       const missingUltimate = !(state.cooler || []).some((e) => e && e.id === "theultimate");
       // Auto-recover obvious wipes, or ICE missing The Ultimate after the wipe bug
       if (localCool >= 20 && !missingUltimate) return;
@@ -19132,6 +19149,15 @@
         if (!raw || typeof raw !== "object") return;
         const n = Array.isArray(raw.cooler) ? raw.cooler.length : 0;
         const hasUlt = (raw.cooler || []).some((e) => e && e.id === "theultimate");
+        const rawLife = Number(raw.lifetime) || 0;
+        const rawCoins = Number(raw.coins) || 0;
+        // Never undo a real sell: local has fewer fish but more wealth
+        if (
+          n > localCool &&
+          (localCoins > rawCoins + 1 || localLife > rawLife + 1)
+        ) {
+          return;
+        }
         if (n > bestCool || (missingUltimate && hasUlt && n >= bestCool)) {
           best = raw;
           bestCool = n;
@@ -19270,7 +19296,11 @@
         const nextTick = Number(next.lastTick) || 0;
         const curCool = Array.isArray(state.cooler) ? state.cooler.length : 0;
         const nextCool = Array.isArray(next.cooler) ? next.cooler.length : 0;
+        // Keep live session when it's clearly a sell (fewer fish, more coins/lifetime)
+        const soldAway =
+          curCool < nextCool && (curCoins > nextCoins || curLife > nextLife);
         const keepLive =
+          soldAway ||
           (nextLife + nextCatch + nextCoins === 0 && curLife + curCatch + curCoins > 0) ||
           curLife > nextLife ||
           curCatch > nextCatch ||

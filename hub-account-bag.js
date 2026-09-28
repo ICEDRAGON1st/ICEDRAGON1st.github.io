@@ -262,7 +262,16 @@
       const lifeGain = (Number(thinSave.lifetime) || 0) - (Number(richSave.lifetime) || 0);
       const coinGain = (Number(thinSave.coins) || 0) - (Number(richSave.coins) || 0);
       // Real mass-sell raises coins/lifetime; a wipe does not
-      return lifeGain <= 0 && coinGain <= 0;
+      if (lifeGain > 0 || coinGain > 0) return false;
+      // Also treat equal-or-higher wealth with fewer fish as a sell (float / sync races)
+      if (
+        (Number(thinSave.coins) || 0) >= (Number(richSave.coins) || 0) &&
+        (Number(thinSave.lifetime) || 0) >= (Number(richSave.lifetime) || 0) &&
+        thin.length < rich.length
+      ) {
+        return false;
+      }
+      return true;
     };
 
     if (tickA !== tickB) {
