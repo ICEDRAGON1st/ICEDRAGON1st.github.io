@@ -5171,7 +5171,7 @@
 
   /** Pull mult / minutes / what from a cmd string (for old logs without structured fields). */
   function parseAdminAuditStats(cmd, entry = null) {
-    const t = String(cmd || "")
+    const t = String(cmd || entry?.detail || "")
       .toLowerCase()
       .replace(/×/g, "x")
       .replace(/\s+/g, " ")
@@ -5185,6 +5185,8 @@
         ? Number(entry.minutes)
         : null;
     let what = String(entry?.kind || entry?.target || "").toLowerCase();
+    if (what === "money") what = "sell";
+    if (what === "mutation") what = String(entry?.target || "mutation").toLowerCase();
 
     if (mult == null) {
       const multM = t.match(/(\d+(?:\.\d+)?)\s*x\b/);
@@ -5197,7 +5199,7 @@
       else if (m) minutes = Number(m[1]);
     }
 
-    if (!what || what === "event") {
+    if (!what || what === "event" || what === "boosts" || what === "boost") {
       if (/\bluck\b/.test(t)) what = "luck";
       else if (/\b(sell|money|coin)\b/.test(t)) what = "sell";
       else if (/\bspeed\b|\bcast\b|\bcooldown\b/.test(t)) what = "speed";
@@ -5221,15 +5223,25 @@
       }
     }
 
+    // Bare button cmds ("luck", "neon") used form defaults — show usual 2× / 5m
+    const bareBoost =
+      /^(luck|sell|money|coin|speed|chest|chests|luckyblock|lb|toxic|lava|neon|gold|shiny|silver|diamond|rainbow|shiny\s*\+?\s*gold)$/.test(
+        t
+      );
+    if (bareBoost) {
+      if (mult == null) mult = ADMIN_DEFAULT_MULT;
+      if (minutes == null) minutes = ADMIN_DEFAULT_MINUTES;
+    }
+
     // Clears don't need mult
-    if (/^clear\b/.test(t)) {
+    if (/^clear\b/.test(t) || String(entry?.kind || "").startsWith("clear")) {
       mult = null;
       minutes = null;
       if (!what.startsWith("clear")) what = what ? `clear ${what}` : "clear";
     }
 
     // Weather has no mult
-    if (what === "storm" || what === "calm" || what === "weather") {
+    if (what === "storm" || what === "calm" || what === "weather" || what === "sunny") {
       mult = null;
     }
 
@@ -5279,6 +5291,37 @@
   const ADMIN_AUDIT_FILTER_ALL = "all";
   let adminAuditFilter = ADMIN_AUDIT_FILTER_ALL;
   let adminAuditCache = [];
+
+  function renderAdminAuditSummary(entries) {
+    const el = document.getElementById("admin-audit-summary");
+    if (!el) return;
+    const tallies = new Map();
+    entries.forEach((e) => {
+      const s = parseAdminAuditStats(e.cmd, e);
+      if (!s.what || /^clear/.test(s.what)) return;
+      if (s.mult == null || s.mult <= 0) return;
+      const key = s.what;
+      const cur = tallies.get(key) || { what: key, count: 0, maxMult: 0, lastMult: 0 };
+      cur.count += 1;
+      cur.maxMult = Math.max(cur.maxMult, s.mult);
+      cur.lastMult = s.mult;
+      tallies.set(key, cur);
+    });
+    const rows = [...tallies.values()].sort((a, b) => b.count - a.count || a.what.localeCompare(b.what));
+    if (!rows.length) {
+      el.hidden = true;
+      el.innerHTML = "";
+      return;
+    }
+    el.hidden = false;
+    el.innerHTML = `<div class="admin-audit-summary-title">Boost amounts in log</div>
+      <div class="admin-audit-summary-chips">${rows
+        .map(
+          (r) =>
+            `<span class="admin-audit-summary-chip"><strong>${formatMult(r.lastMult)}×</strong> ${r.what} <em>×${r.count}</em></span>`
+        )
+        .join("")}</div>`;
+  }
 
   function renderAdminAuditFilters(entries) {
     const wrap = document.getElementById("admin-audit-filters");
@@ -5339,7 +5382,6 @@
 
     list.innerHTML = ordered
       .map(({ cat, items }) => {
-        // Peek latest boost-like detail for the section header
         const latestDetail = formatAdminAuditDetail(items[0]);
         const head = `<li class="admin-audit-cat" data-cat="${cat.id}">
           <span class="admin-audit-cat-label">${cat.label}</span>
@@ -5352,15 +5394,20 @@
           .map((e) => {
             const when = formatAdminAuditWhen(e.at);
             const who = String(e.by || "Hjalte").replace(/[<>&]/g, "");
-            const cmd = String(e.cmd || "—")
-              .replace(/&/g, "&amp;")
-              .replace(/</g, "&lt;")
-              .replace(/>/g, "&gt;");
-            const detail = formatAdminAuditDetail(e)
-              .replace(/&/g, "&amp;")
-              .replace(/</g, "&lt;")
-              .replace(/>/g, "&gt;");
             const stats = parseAdminAuditStats(e.cmd, e);
+            const detailRaw = formatAdminAuditDetail(e) || String(e.cmd || "—");
+            const detail = detailRaw
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;");
+            const rawCmd = String(e.raw || e.cmd || "")
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;");
+            const showRaw =
+              rawCmd &&
+              rawCmd.toLowerCase() !== detailRaw.toLowerCase() &&
+              !detailRaw.toLowerCase().includes(String(e.cmd || "").toLowerCase());
             const multBadge =
               stats.mult != null && stats.mult > 0
                 ? `<span class="admin-audit-mult">${formatMult(stats.mult)}×</span>`
@@ -5368,15 +5415,18 @@
             const durBadge = formatAdminAuditMinutes(stats.minutes)
               ? `<span class="admin-audit-dur">${formatAdminAuditMinutes(stats.minutes)}</span>`
               : "";
+            const whatBadge = stats.what
+              ? `<span class="admin-audit-what">${String(stats.what)
+                  .replace(/&/g, "&amp;")
+                  .replace(/</g, "&lt;")
+                  .replace(/>/g, "&gt;")}</span>`
+              : "";
             return `<li class="admin-audit-item" data-cat="${cat.id}">
               <span class="admin-audit-when">${when}</span>
               <span class="admin-audit-who">${who}</span>
-              <code class="admin-audit-cmd">${cmd}</code>
-              <span class="admin-audit-detail">${multBadge}${durBadge}${
-                detail
-                  ? `<span class="admin-audit-detail-text">${detail}</span>`
-                  : `<span class="admin-audit-detail-text">${cat.label}</span>`
-              }</span>
+              <div class="admin-audit-stats">${multBadge}${whatBadge}${durBadge}</div>
+              <code class="admin-audit-cmd">${detail}</code>
+              ${showRaw ? `<span class="admin-audit-raw">${rawCmd}</span>` : ""}
             </li>`;
           })
           .join("");
@@ -5390,28 +5440,46 @@
     if (!isFishingLimitedAdmin()) return;
     const text = String(cmd || "").trim().slice(0, 200);
     if (!text) return;
-    const cat = adminAuditCategory(text, note);
     const ex = extra && typeof extra === "object" ? extra : {};
+    const cat = adminAuditCategory(text, note || ex.kind || "");
+    const detail =
+      String(ex.detail || "").trim() ||
+      formatAdminAuditDetail({ cmd: text, note, ...ex }) ||
+      text;
     appendAdminAuditLog({
-      cmd: text,
+      // Primary visible line = amounts (2× luck · 5m)
+      cmd: detail.slice(0, 200),
+      raw: text,
       note: String(note || cat.label || "").trim().slice(0, 160),
       category: cat.id,
       mult: ex.mult,
       minutes: ex.minutes,
       kind: ex.kind,
       target: ex.target,
-      detail: ex.detail || formatAdminAuditDetail({ cmd: text, note, ...ex })
+      detail
     }).catch(() => {});
   }
 
-  async function appendAdminAuditLog({ cmd, note, category, mult, minutes, kind, target, detail }) {
+  async function appendAdminAuditLog(payload) {
     const api = fishingSb();
     if (!api?.getDoc || !api?.upsertDoc) return;
+    const {
+      cmd,
+      raw,
+      note,
+      category,
+      mult,
+      minutes,
+      kind,
+      target,
+      detail
+    } = payload || {};
     const entry = {
       id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
       at: Date.now(),
       by: playerDisplayName() || "Hjalte",
       cmd: String(cmd || "").trim().slice(0, 200),
+      raw: String(raw || "").trim().slice(0, 200),
       note: String(note || "").trim().slice(0, 160),
       category: String(category || "").trim().slice(0, 32),
       detail: String(detail || "").trim().slice(0, 180)
@@ -5466,6 +5534,7 @@
     const entries = await fetchAdminAuditEntries();
     if (!isFishingOwner()) return;
     adminAuditCache = entries;
+    renderAdminAuditSummary(entries);
     renderAdminAuditFilters(entries);
     renderAdminAuditEntries(entries);
     if (status) {

@@ -694,15 +694,59 @@ body.no-lightning-flash .wx-flash {
   color: rgba(180, 210, 230, 0.55);
 }
 
+.admin-audit-summary {
+  margin: 0.4rem 0 0.2rem;
+  padding: 0.45rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid rgba(125, 255, 154, 0.22);
+  background: rgba(20, 55, 35, 0.35);
+}
+
+.admin-audit-summary-title {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(125, 255, 154, 0.9);
+  margin-bottom: 0.3rem;
+}
+
+.admin-audit-summary-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.admin-audit-summary-chip {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: rgba(230, 245, 255, 0.9);
+  background: rgba(8, 28, 18, 0.55);
+  border: 1px solid rgba(125, 255, 154, 0.25);
+  border-radius: 999px;
+  padding: 0.18rem 0.5rem;
+}
+
+.admin-audit-summary-chip strong {
+  color: #7dff9a;
+}
+
+.admin-audit-summary-chip em {
+  font-style: normal;
+  opacity: 0.65;
+  font-weight: 600;
+}
+
 .admin-audit-item {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   grid-template-areas:
     "when who"
+    "stats stats"
     "cmd cmd"
-    "detail detail";
-  gap: 0.1rem 0.45rem;
-  padding: 0.35rem 0.3rem;
+    "raw raw";
+  gap: 0.15rem 0.45rem;
+  padding: 0.4rem 0.35rem;
   border-radius: 6px;
   background: rgba(20, 40, 55, 0.35);
 }
@@ -725,52 +769,58 @@ body.no-lightning-flash .wx-flash {
   white-space: nowrap;
 }
 
-.admin-audit-cmd {
-  grid-area: cmd;
+.admin-audit-stats {
+  grid-area: stats;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.admin-audit-mult {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #7dff9a;
+  background: rgba(40, 120, 70, 0.35);
+  border: 1px solid rgba(125, 255, 154, 0.4);
+  border-radius: 999px;
+  padding: 0.12rem 0.55rem;
+}
+
+.admin-audit-what {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #e8f7ff;
+  background: rgba(40, 90, 130, 0.4);
+  border: 1px solid rgba(100, 190, 255, 0.35);
+  border-radius: 999px;
+  padding: 0.12rem 0.5rem;
+  text-transform: lowercase;
+}
+
+.admin-audit-dur {
   font-size: 0.78rem;
   font-weight: 700;
-  color: rgba(230, 245, 255, 0.92);
+  color: #ffd166;
+  background: rgba(120, 90, 30, 0.35);
+  border: 1px solid rgba(255, 209, 102, 0.35);
+  border-radius: 999px;
+  padding: 0.12rem 0.5rem;
+}
+
+.admin-audit-cmd {
+  grid-area: cmd;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: rgba(230, 245, 255, 0.95);
   word-break: break-word;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
-.admin-audit-detail {
-  grid-area: detail;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.25rem 0.35rem;
-  font-size: 0.68rem;
-  color: rgba(180, 210, 230, 0.7);
-}
-
-.admin-audit-mult {
-  font-weight: 800;
-  color: #7dff9a;
-  background: rgba(40, 120, 70, 0.28);
-  border: 1px solid rgba(125, 255, 154, 0.28);
-  border-radius: 999px;
-  padding: 0.05rem 0.4rem;
-}
-
-.admin-audit-dur {
-  font-weight: 700;
-  color: #ffd166;
-  background: rgba(120, 90, 30, 0.28);
-  border: 1px solid rgba(255, 209, 102, 0.28);
-  border-radius: 999px;
-  padding: 0.05rem 0.4rem;
-}
-
-.admin-audit-detail-text {
-  font-weight: 600;
-  color: rgba(190, 220, 240, 0.78);
-}
-
-.admin-audit-note {
-  grid-area: note;
-  font-size: 0.65rem;
-  color: rgba(180, 210, 230, 0.55);
+.admin-audit-raw {
+  grid-area: raw;
+  font-size: 0.62rem;
+  color: rgba(180, 210, 230, 0.45);
 }
 
 .admin-cmd-hist-btn {

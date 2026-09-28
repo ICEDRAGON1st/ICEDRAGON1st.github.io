@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928ac": [
+    "Fishing Idle: Hjalte log shows clear ×mult / type / duration badges plus a boost summary"
+  ],
   "20260928ab": [
     "Fishing Idle: Hjalte admin log shows ×mult, duration, and boost type"
   ],
