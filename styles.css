@@ -2260,6 +2260,26 @@ header h1 {
   margin-top: 0.45rem;
 }
 
+.player-password-state {
+  display: inline-flex;
+  align-items: center;
+  margin: 0.35rem 0 0.45rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 999px;
+  border: 1px solid var(--tile-border);
+  background: color-mix(in srgb, var(--bg) 70%, transparent);
+  color: var(--subtitle);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.player-password-state.has-password {
+  border-color: color-mix(in srgb, var(--correct) 55%, var(--tile-border));
+  background: color-mix(in srgb, var(--correct) 18%, var(--bg));
+  color: var(--correct);
+}
+
 .player-password-row input[type="password"] {
   letter-spacing: 0.12em;
 }

@@ -4774,7 +4774,16 @@ function refreshPlayerCodeUI() {
   if (el && typeof HubPlays !== "undefined") {
     el.textContent = HubPlays.getPlayerCode?.() || "————";
   }
+  refreshPasswordStateUI();
   renderSavedAccounts();
+}
+
+function refreshPasswordStateUI() {
+  const el = document.getElementById("player-password-state");
+  if (!el || typeof HubPlays === "undefined") return;
+  const has = !!HubPlays.accountHasPassword?.();
+  el.textContent = has ? "You have a password on this account" : "No password set";
+  el.classList.toggle("has-password", has);
 }
 
 function accountListHtml(accounts, activeCode) {
@@ -4942,6 +4951,7 @@ document.getElementById("player-password-set-btn")?.addEventListener("click", as
   if (pwIn) pwIn.value = "";
   if (pwConfirm) pwConfirm.value = "";
   setPlayerCodeStatus(result.message || "Password set — all progress kept", false);
+  refreshPasswordStateUI();
   renderSavedAccounts();
 });
 
@@ -4967,6 +4977,7 @@ document.getElementById("player-password-clear-btn")?.addEventListener("click", 
     return;
   }
   setPlayerCodeStatus(result.message || "Password cleared", false);
+  refreshPasswordStateUI();
   renderSavedAccounts();
 });
 

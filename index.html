@@ -412,6 +412,7 @@
           </div>
           <div class="player-password-box">
             <p class="hub-settings-label">Login password (optional)</p>
+            <p id="player-password-state" class="player-password-state" aria-live="polite">No password set</p>
             <p class="player-code-hint">Pick your own password for this account. Everything stays — Fishing, scores, friends. You can still log in with your player code.</p>
             <div class="player-code-restore-row player-password-row">
               <input id="player-password-input" type="password" maxlength="48" placeholder="New password" autocomplete="new-password" spellcheck="false">
@@ -741,7 +742,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260928b";
+    window.WORDLE_BUILD = "20260928c";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-supabase.js", "hub-account-bag.js", "hub-eggs.js", "hub-plays.js", "hub-online-overlay.js", "hub-fishing-gifts.js", "hub-fishing-mail.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-calls.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js",
       "words.js",
