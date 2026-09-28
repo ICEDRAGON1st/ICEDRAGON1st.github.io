@@ -1,5 +1,6 @@
 (function () {
   const SAVE_KEY = "fishing-save-v3";
+  const SAVE_BACKUP_KEY = "fishing-save-v3-backup";
   const HIGH_SCORE_KEY = "fishing-best-catch-v2";
   const BEST_CATCH_META_KEY = "fishing-best-catch-meta-v2";
   const CHEST_BOOST_SAVE_KEY = "fishing-chest-boost-v1";
@@ -11046,9 +11047,42 @@
     } catch {}
   }
 
+  function fishingSaveRichness(raw) {
+    if (!raw || typeof raw !== "object") return 0;
+    const cool = Array.isArray(raw.cooler) ? raw.cooler.length : 0;
+    return (
+      (Number(raw.lifetime) || 0) * 1000 +
+      (Number(raw.coins) || 0) +
+      (Number(raw.catches) || 0) * 25 +
+      cool * 10 +
+      (Number(raw.lastTick) || 0) * 1e-9
+    );
+  }
+
+  function readFishingSaveRaw() {
+    let main = null;
+    let backup = null;
+    try {
+      main = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+    } catch {
+      main = null;
+    }
+    try {
+      backup = JSON.parse(localStorage.getItem(SAVE_BACKUP_KEY) || "null");
+    } catch {
+      backup = null;
+    }
+    const mainScore = fishingSaveRichness(main);
+    const backupScore = fishingSaveRichness(backup);
+    if (backupScore > mainScore) return backup;
+    if (main && typeof main === "object") return main;
+    if (backup && typeof backup === "object") return backup;
+    return null;
+  }
+
   function loadState() {
     try {
-      let raw = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+      let raw = readFishingSaveRaw();
       const me = fishingOwnerId();
       const foreignId = raw && typeof raw === "object" ? String(raw.ownerPlayerId || "").trim() : "";
       // Shared computer: active save belongs to someone else → stash it, load ours
@@ -11588,7 +11622,12 @@
           stashForeignFishingSave(existing);
         }
       } catch {}
-      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+      const payload = JSON.stringify(state);
+      localStorage.setItem(SAVE_KEY, payload);
+      try {
+        localStorage.setItem(SAVE_BACKUP_KEY, payload);
+      } catch {}
+      lastSaveAt = Date.now();
       persistChestBoostBackup();
       const best = Math.max(getStoredBest(), Math.floor(state.bestCatchScore || 0));
       localStorage.setItem(HIGH_SCORE_KEY, String(best));
@@ -19057,8 +19096,13 @@
       .catch(() => {});
   }
   setInterval(tick, TICK_MS);
+  // Force-save every second so refresh can't drop progress
   setInterval(() => {
-    saveState();
+    try {
+      saveState();
+    } catch {}
+  }, 1000);
+  setInterval(() => {
     maybeSubmitBest(true);
   }, 15000);
   window.addEventListener("beforeunload", () => {

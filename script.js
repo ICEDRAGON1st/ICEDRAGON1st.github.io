@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928f": [
+    "Fishing Idle: autosaves every second + backup save so refresh keeps your progress"
+  ],
   "20260928e": [
     "Fishing Idle: fix progress not saving on refresh (cloud sync was wiping the local save)"
   ],
