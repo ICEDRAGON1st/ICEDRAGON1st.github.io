@@ -587,26 +587,6 @@
     return Math.max(3, Math.floor(len / 400));
   }
 
-  function pointInTrailLoop(trail, x, y, headX, headY) {
-    if (!trail || trail.length < 3) return false;
-    // Ray-cast against open trail + current head
-    let inside = false;
-    let x0 = headX;
-    let y0 = headY;
-    for (let i = 0; i <= trail.length; i++) {
-      const pt = i < trail.length ? trail[i] : { x: headX, y: headY };
-      const x1 = pt.x;
-      const y1 = pt.y;
-      const cross =
-        y0 > y !== y1 > y &&
-        x < ((x1 - x0) * (y - y0)) / (y1 - y0 || 1e-9) + x0;
-      if (cross) inside = !inside;
-      x0 = x1;
-      y0 = y1;
-    }
-    return inside;
-  }
-
   function distToSeg(px, py, ax, ay, bx, by) {
     const abx = bx - ax;
     const aby = by - ay;
@@ -886,9 +866,8 @@
       p.wantAngle = p.angle;
     }
 
-    // Combat:
-    // - Open field: both exposed (with inside-loop cut protection)
-    // - Home defense: kill anyone currently on your land
+    // Combat (per-step): trail cuts + home defense.
+    // Head-vs-head is resolved after all moves so both die fairly.
     if (!grace) {
       const myHid = idHash(p.id);
       const meHome = isOwnLand(p, p.x, p.y) || isOwnLand(p, nx, ny);
@@ -897,26 +876,17 @@
         if (inSpawnGrace(other)) continue;
 
         const otherOnMyLand = cellAt(other.x, other.y) === myHid;
-        let canKill = false;
         if (otherOnMyLand && meHome) {
-          // Defend your territory — bump/cut invaders on your land
-          canKill = true;
-        } else if (p.outside && other.outside) {
-          // Open-field fight; don't cut someone from inside their open loop
-          if (
-            other.trail.length >= 3 &&
-            pointInTrailLoop(other.trail, p.x, p.y, other.x, other.y)
-          ) {
-            canKill = false;
-          } else {
-            canKill = true;
+          const bodyHit = Math.hypot(nx - other.x, ny - other.y) < PLAYER_R * 2.35;
+          const hitTrail = other.outside && trailHit(other, nx, ny, false);
+          if (bodyHit || hitTrail) {
+            kill(other, `${p.name} eliminated ${other.name}`, p);
           }
+          continue;
         }
-        if (!canKill) continue;
 
-        const bodyHit = Math.hypot(nx - other.x, ny - other.y) < PLAYER_R * 2.1;
-        const hitTrail = other.outside && trailHit(other, nx, ny, false);
-        if (bodyHit || hitTrail) {
+        // Open field: cutting a rival trail kills them (body bumps → tick)
+        if (p.outside && other.outside && trailHit(other, nx, ny, false)) {
           kill(other, `${p.name} eliminated ${other.name}`, p);
         }
       }
@@ -971,14 +941,15 @@
       stepPlayer(p, dt);
     }
 
-    // Body bump: mutual when both exposed, or defender cleans invaders on their land
+    // Body bump after all moves: home defense, or mutual head-on when both exposed
+    const HEAD_HIT_R = PLAYER_R * 2.45;
     for (let i = 0; i < players.length; i++) {
       const a = players[i];
       if (!a.alive) continue;
       for (let j = i + 1; j < players.length; j++) {
         const b = players[j];
         if (!b.alive) continue;
-        if (Math.hypot(a.x - b.x, a.y - b.y) >= PLAYER_R * 1.7) continue;
+        if (Math.hypot(a.x - b.x, a.y - b.y) >= HEAD_HIT_R) continue;
         if (inSpawnGrace(a) || inSpawnGrace(b)) continue;
 
         const aHome = isOwnLand(a, a.x, a.y);
@@ -995,12 +966,9 @@
           continue;
         }
 
+        // Both out of base: head collision kills both (paper.io).
+        // Do not skip via trail-loop tests — those false-positived and let heads overlap forever.
         if (a.outside && b.outside) {
-          const aInB =
-            b.trail.length >= 3 && pointInTrailLoop(b.trail, a.x, a.y, b.x, b.y);
-          const bInA =
-            a.trail.length >= 3 && pointInTrailLoop(a.trail, b.x, b.y, a.x, a.y);
-          if (aInB || bInA) continue;
           kill(a, "Head-on");
           kill(b, "Head-on");
         }
