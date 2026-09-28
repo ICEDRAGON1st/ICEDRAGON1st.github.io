@@ -866,27 +866,12 @@
       p.wantAngle = p.angle;
     }
 
-    // Combat (per-step): trail cuts + home defense.
-    // Head-vs-head is resolved after all moves so both die fairly.
-    if (!grace) {
-      const myHid = idHash(p.id);
-      const meHome = isOwnLand(p, p.x, p.y) || isOwnLand(p, nx, ny);
+    // Combat: only trail cuts kill. Heads can overlap freely (no body KO).
+    if (!grace && p.outside) {
       for (const other of players) {
         if (other === p || !other.alive) continue;
         if (inSpawnGrace(other)) continue;
-
-        const otherOnMyLand = cellAt(other.x, other.y) === myHid;
-        if (otherOnMyLand && meHome) {
-          const bodyHit = Math.hypot(nx - other.x, ny - other.y) < PLAYER_R * 2.35;
-          const hitTrail = other.outside && trailHit(other, nx, ny, false);
-          if (bodyHit || hitTrail) {
-            kill(other, `${p.name} eliminated ${other.name}`, p);
-          }
-          continue;
-        }
-
-        // Open field: cutting a rival trail kills them (body bumps → tick)
-        if (p.outside && other.outside && trailHit(other, nx, ny, false)) {
+        if (other.outside && trailHit(other, nx, ny, false)) {
           kill(other, `${p.name} eliminated ${other.name}`, p);
         }
       }
@@ -941,39 +926,8 @@
       stepPlayer(p, dt);
     }
 
-    // Body bump after all moves: home defense, or mutual head-on when both exposed
-    const HEAD_HIT_R = PLAYER_R * 2.45;
-    for (let i = 0; i < players.length; i++) {
-      const a = players[i];
-      if (!a.alive) continue;
-      for (let j = i + 1; j < players.length; j++) {
-        const b = players[j];
-        if (!b.alive) continue;
-        if (Math.hypot(a.x - b.x, a.y - b.y) >= HEAD_HIT_R) continue;
-        if (inSpawnGrace(a) || inSpawnGrace(b)) continue;
-
-        const aHome = isOwnLand(a, a.x, a.y);
-        const bHome = isOwnLand(b, b.x, b.y);
-        const bOnA = cellAt(b.x, b.y) === idHash(a.id);
-        const aOnB = cellAt(a.x, a.y) === idHash(b.id);
-
-        if (aHome && bOnA) {
-          kill(b, `${a.name} eliminated ${b.name}`, a);
-          continue;
-        }
-        if (bHome && aOnB) {
-          kill(a, `${b.name} eliminated ${a.name}`, b);
-          continue;
-        }
-
-        // Both out of base: head collision kills both (paper.io).
-        // Do not skip via trail-loop tests — those false-positived and let heads overlap forever.
-        if (a.outside && b.outside) {
-          kill(a, "Head-on");
-          kill(b, "Head-on");
-        }
-      }
-    }
+    // Heads pass through each other — no body / head-on kills.
+    // (Trail cuts in stepPlayer remain the only open-field KO.)
   }
 
   function worldToScreen(x, y) {

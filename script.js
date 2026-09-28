@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928r": [
+    "Paper Claim: heads no longer kill on collision — only cutting trails eliminates"
+  ],
   "20260928q": [
     "Paper Claim: head-on collisions kill again (players + NPCs no longer overlap forever)"
   ],
