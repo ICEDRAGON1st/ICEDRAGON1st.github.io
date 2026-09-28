@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928ad": [
+    "Fishing Idle: stop faking 2× on old Hjalte logs — show real form mult going forward"
+  ],
   "20260928ac": [
     "Fishing Idle: Hjalte log shows clear ×mult / type / duration badges plus a boost summary"
   ],

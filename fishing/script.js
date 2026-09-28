@@ -5223,16 +5223,6 @@
       }
     }
 
-    // Bare button cmds ("luck", "neon") used form defaults — show usual 2× / 5m
-    const bareBoost =
-      /^(luck|sell|money|coin|speed|chest|chests|luckyblock|lb|toxic|lava|neon|gold|shiny|silver|diamond|rainbow|shiny\s*\+?\s*gold)$/.test(
-        t
-      );
-    if (bareBoost) {
-      if (mult == null) mult = ADMIN_DEFAULT_MULT;
-      if (minutes == null) minutes = ADMIN_DEFAULT_MINUTES;
-    }
-
     // Clears don't need mult
     if (/^clear\b/.test(t) || String(entry?.kind || "").startsWith("clear")) {
       mult = null;
@@ -5408,10 +5398,18 @@
               rawCmd &&
               rawCmd.toLowerCase() !== detailRaw.toLowerCase() &&
               !detailRaw.toLowerCase().includes(String(e.cmd || "").toLowerCase());
+            const needsMult =
+              cat.id === "boost" ||
+              cat.id === "variant" ||
+              cat.id === "mutation" ||
+              cat.id === "luckyblock" ||
+              cat.id === "chest";
             const multBadge =
               stats.mult != null && stats.mult > 0
                 ? `<span class="admin-audit-mult">${formatMult(stats.mult)}×</span>`
-                : "";
+                : needsMult
+                  ? `<span class="admin-audit-mult is-unknown" title="Amount wasn't saved on this older log entry">?×</span>`
+                  : "";
             const durBadge = formatAdminAuditMinutes(stats.minutes)
               ? `<span class="admin-audit-dur">${formatAdminAuditMinutes(stats.minutes)}</span>`
               : "";
@@ -5438,18 +5436,26 @@
   /** Fire-and-forget: only limited admin (Hjalte) writes; ICE reads in Admin. */
   function logLimitedAdminAction(cmd, note = "", extra = null) {
     if (!isFishingLimitedAdmin()) return;
-    const text = String(cmd || "").trim().slice(0, 200);
-    if (!text) return;
     const ex = extra && typeof extra === "object" ? extra : {};
-    const cat = adminAuditCategory(text, note || ex.kind || "");
+    const raw = String(ex.raw || cmd || "").trim().slice(0, 200);
+    const text = String(cmd || "").trim().slice(0, 200);
+    if (!text && !raw) return;
+    const cat = adminAuditCategory(raw || text, note || ex.kind || "");
     const detail =
       String(ex.detail || "").trim() ||
-      formatAdminAuditDetail({ cmd: text, note, ...ex }) ||
-      text;
+      formatAdminAuditDetail({
+        cmd: text || raw,
+        note,
+        mult: ex.mult,
+        minutes: ex.minutes,
+        kind: ex.kind,
+        target: ex.target
+      }) ||
+      text ||
+      raw;
     appendAdminAuditLog({
-      // Primary visible line = amounts (2× luck · 5m)
       cmd: detail.slice(0, 200),
-      raw: text,
+      raw: raw || text,
       note: String(note || cat.label || "").trim().slice(0, 160),
       category: cat.id,
       mult: ex.mult,
@@ -10235,12 +10241,15 @@
     );
     if (ok) {
       const detail = buildAdminEventAuditDetail(parsed);
-      logLimitedAdminAction(trimmed, adminAuditCategory(trimmed).label, {
+      // Always log the resolved amount (form Mult/Mins), not bare "luck"
+      const labeled = detail || trimmed;
+      logLimitedAdminAction(labeled, adminAuditCategory(trimmed).label, {
         mult: parsed.mult,
         minutes: parsed.minutes,
         kind: parsed.kind,
         target: parsed.target || "",
-        detail
+        detail: labeled,
+        raw: trimmed
       });
     }
   }

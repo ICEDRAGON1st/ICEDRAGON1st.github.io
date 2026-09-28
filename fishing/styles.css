@@ -777,14 +777,10 @@ body.no-lightning-flash .wx-flash {
   gap: 0.3rem;
 }
 
-.admin-audit-mult {
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: #7dff9a;
-  background: rgba(40, 120, 70, 0.35);
-  border: 1px solid rgba(125, 255, 154, 0.4);
-  border-radius: 999px;
-  padding: 0.12rem 0.55rem;
+.admin-audit-mult.is-unknown {
+  color: rgba(200, 210, 220, 0.7);
+  background: rgba(60, 70, 80, 0.35);
+  border-color: rgba(160, 170, 180, 0.3);
 }
 
 .admin-audit-what {
