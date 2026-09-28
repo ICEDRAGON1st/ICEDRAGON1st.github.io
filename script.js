@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928o": [
+    "Fishing Idle: perfect combo has no cap — keep stacking forever"
+  ],
   "20260928n": [
     "Fishing Idle: perfect combo can go past ×99 (up to ×9999) and keeps scaling luck/sell"
   ],

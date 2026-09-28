@@ -3176,8 +3176,7 @@
     castBtn?.classList.toggle("admin-speed", m > 1 + 1e-9);
   }
 
-  const COMBO_MAX = 9999;
-  /** Full luck/multi per combo stack up to this; past it scales softer. */
+  /** No hard cap — combo keeps climbing while you land perfects. */
   const COMBO_BONUS_FULL = 99;
 
   function comboHoldInfinite() {
@@ -3202,7 +3201,7 @@
 
   function comboStackCount(now = Date.now()) {
     if (!comboActive(now)) return 0;
-    return Math.min(COMBO_MAX, Math.max(0, Math.floor(Number(state.combo) || 0)));
+    return Math.max(0, Math.floor(Number(state.combo) || 0));
   }
 
   function comboLuckBonus(now = Date.now()) {
@@ -3221,7 +3220,7 @@
 
   function notePerfectCombo(perfect) {
     if (perfect) {
-      state.combo = Math.min(COMBO_MAX, (state.combo || 0) + 1);
+      state.combo = Math.max(0, Math.floor(Number(state.combo) || 0)) + 1;
       state.comboBoostUntil = comboHoldInfinite()
         ? Number.MAX_SAFE_INTEGER
         : Date.now() + comboHoldMs();
