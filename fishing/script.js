@@ -2073,6 +2073,7 @@
     { id: "combo33", name: "Beyond Apex Metronome", desc: "+12500s combo hold", cost: 1.8e30, kind: "combo", amount: 12500 },
     { id: "combo34", name: "Final Mere Cadence", desc: "+15500s combo hold", cost: 1.2e31, kind: "combo", amount: 15500 },
     { id: "combo35", name: "Ultimate Dock Rhythm", desc: "+19500s combo hold", cost: 8e31, kind: "combo", amount: 19500 },
+    { id: "combo36", name: "Eternal Cadence", desc: "Infinite combo hold — never times out", cost: 2.5e20, kind: "combo", amount: 0, infinite: true },
     { id: "penta28", name: "Sovereign Penta", desc: "99.2% chance for a 5th fish (needs 4th)", cost: 2.8e28, kind: "penta", amount: 0.992 },
     { id: "penta29", name: "Celestial Penta", desc: "99.4% chance for a 5th fish (needs 4th)", cost: 2e29, kind: "penta", amount: 0.994 },
     { id: "penta30", name: "Primordial Penta Ultima", desc: "99.5% chance for a 5th fish (needs 4th)", cost: 1.4e30, kind: "penta", amount: 0.995 },
@@ -3175,12 +3176,19 @@
     castBtn?.classList.toggle("admin-speed", m > 1 + 1e-9);
   }
 
+  function comboHoldInfinite() {
+    return ownedGear("combo").some((g) => !!g.infinite);
+  }
+
   function comboActive(now = Date.now()) {
+    if ((state.combo || 0) <= 0) return false;
+    if (comboHoldInfinite()) return true;
     clearExpiredCombo(now);
     return (state.combo || 0) > 0 && (state.comboBoostUntil || 0) > now;
   }
 
   function clearExpiredCombo(now = Date.now()) {
+    if (comboHoldInfinite()) return;
     if ((state.combo || 0) > 0 && (state.comboBoostUntil || 0) <= now) {
       state.combo = 0;
       state.comboBoostUntil = 0;
@@ -3201,17 +3209,20 @@
   function notePerfectCombo(perfect) {
     if (perfect) {
       state.combo = Math.min(99, (state.combo || 0) + 1);
-      state.comboBoostUntil = Date.now() + comboHoldMs();
+      state.comboBoostUntil = comboHoldInfinite()
+        ? Number.MAX_SAFE_INTEGER
+        : Date.now() + comboHoldMs();
     } else {
       state.combo = 0;
       state.comboBoostUntil = 0;
     }
   }
 
-  /** Base 45s + combo gear seconds (capped). */
+  /** Base 45s + combo gear seconds, or infinite with Eternal Cadence. */
   function comboHoldMs() {
+    if (comboHoldInfinite()) return Infinity;
     const extraSec = ownedGear("combo").reduce((s, g) => s + (Number(g.amount) || 0), 0);
-    return 45_000 + Math.min(2_500_000, Math.max(0, extraSec) * 1000);
+    return 45_000 + Math.min(20_000_000, Math.max(0, extraSec) * 1000);
   }
 
   function communityWeekKey(now = Date.now()) {
@@ -16463,9 +16474,13 @@
       return `Chests +${(before * 100).toFixed(0)}% → +${(after * 100).toFixed(0)}%`;
     }
     if (kind === "combo") {
-      const before = Math.min(2500, sum);
-      const after = Math.min(2500, sum + amt);
-      if (after <= before + 1e-9) return "Combo hold at cap";
+      if (item?.infinite) {
+        return comboHoldInfinite() ? "Combo hold already infinite" : "Combo hold → ∞";
+      }
+      if (comboHoldInfinite()) return "Combo hold already infinite";
+      const before = Math.min(20000, sum);
+      const after = Math.min(20000, sum + amt);
+      if (after <= before + 1e-9) return "Combo hold at cap — buy Eternal Cadence for ∞";
       return `Combo ${45 + before}s → ${45 + after}s`;
     }
     if (kind === "luck") {
@@ -16526,7 +16541,8 @@
       return `${n} owned · chests +${Math.min(15000, Math.round(sum * 100))}%`;
     }
     if (kind === "combo") {
-      return `${n} owned · combo ${45 + Math.min(2500, Math.round(sum))}s`;
+      if (comboHoldInfinite()) return `${n} owned · combo ∞`;
+      return `${n} owned · combo ${45 + Math.min(20000, Math.round(sum))}s`;
     }
     return `${n} owned`;
   }
@@ -16947,7 +16963,9 @@
     const comboOn = comboActive(now);
     if (comboLabel) {
       comboLabel.textContent = comboOn
-        ? `×${state.combo} · ${formatTreasureClock(Math.max(0, state.comboBoostUntil - now))}`
+      comboLabel.textContent = comboHoldInfinite()
+        ? `×${state.combo} · ∞`
+        : `×${state.combo} · ${formatTreasureClock(Math.max(0, state.comboBoostUntil - now))}`;
         : "—";
     }
     comboChip?.classList.toggle("is-live", comboOn);
@@ -17192,7 +17210,9 @@
     if (pentaLabelEl) pentaLabelEl.textContent = formatPctBonus(pentaCatchChance(), false);
     if (looksLabelEl) looksLabelEl.textContent = formatPctBonus(looksBonus());
     if (chestLabelEl) chestLabelEl.textContent = formatPctBonus(chestFindBonus());
-    if (comboHoldLabelEl) comboHoldLabelEl.textContent = `${Math.round(comboHoldMs() / 1000)}s`;
+    if (comboHoldLabelEl) {
+      comboHoldLabelEl.textContent = comboHoldInfinite() ? "∞" : `${Math.round(comboHoldMs() / 1000)}s`;
+    }
     if (perfectLabelEl) perfectLabelEl.textContent = formatPctBonus(perfectBonus());
     if (coolerStatLabelEl) coolerStatLabelEl.textContent = String(coolerMax());
     renderFeatureChips();
