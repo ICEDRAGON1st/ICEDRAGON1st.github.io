@@ -2521,6 +2521,10 @@
   let state = defaultState();
   let sessionStarted = false;
   let lastSaveAt = 0;
+  let lastSavedPayload = "";
+  let lastBackupAt = 0;
+  let lastBagSnapAt = 0;
+  let saveDirty = true;
   let lastSubmitAt = 0;
   let phase = "ready"; // ready | waiting | bite | result
   let waitTimer = null;
@@ -11606,37 +11610,80 @@
     return state.cooler.filter((e) => !isCoolerSaved(e)).length;
   }
 
-  function saveState() {
+  function saveState(opts = {}) {
+    const light = !!opts.light;
+    const force = !!opts.force;
     try {
-      snapshotChestBoosts();
+      if (!force && light && !saveDirty && lastSavedPayload) return;
+
+      if (!light) snapshotChestBoosts();
+
+      // Probe without bumping lastTick so idle light saves can no-op cheaply
+      if (!force && light && lastSavedPayload) {
+        const probe = JSON.stringify(state);
+        if (probe === lastSavedPayload) {
+          saveDirty = false;
+          return;
+        }
+      }
+
       state.lastTick = Date.now();
       const me = fishingOwnerId();
       const myName = fishingOwnerName();
       if (me) state.ownerPlayerId = me;
       if (myName) state.ownerName = myName;
-      // Shared PC guard: never overwrite another account's richer active save
-      try {
-        const existing = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
-        const existingOwner = existing && typeof existing === "object" ? String(existing.ownerPlayerId || "") : "";
-        if (existingOwner && me && existingOwner !== me) {
-          stashForeignFishingSave(existing);
-        }
-      } catch {}
+
+      // Shared PC guard (full saves only — light path skips the extra localStorage read)
+      if (!light) {
+        try {
+          const existing = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+          const existingOwner =
+            existing && typeof existing === "object" ? String(existing.ownerPlayerId || "") : "";
+          if (existingOwner && me && existingOwner !== me) {
+            stashForeignFishingSave(existing);
+          }
+        } catch {}
+      }
+
       const payload = JSON.stringify(state);
+      if (!force && payload === lastSavedPayload) {
+        saveDirty = false;
+        return;
+      }
+
       localStorage.setItem(SAVE_KEY, payload);
-      try {
-        localStorage.setItem(SAVE_BACKUP_KEY, payload);
-      } catch {}
+      lastSavedPayload = payload;
+      saveDirty = false;
       lastSaveAt = Date.now();
-      persistChestBoostBackup();
-      const best = Math.max(getStoredBest(), Math.floor(state.bestCatchScore || 0));
-      localStorage.setItem(HIGH_SCORE_KEY, String(best));
-      const fish = fishById(state.bestCatchId);
-      if (fish) persistBestCatchMeta(fish, bestCatchEntry());
-      try {
-        window.HubAccountBag?.snapshot?.(me);
-      } catch {}
+
+      const now = lastSaveAt;
+      // Backup + hub vault are the heavy/extra writes — throttle them
+      if (!light || force || now - lastBackupAt >= 5000) {
+        try {
+          localStorage.setItem(SAVE_BACKUP_KEY, payload);
+        } catch {}
+        lastBackupAt = now;
+      }
+
+      if (!light) {
+        persistChestBoostBackup();
+        const best = Math.max(getStoredBest(), Math.floor(state.bestCatchScore || 0));
+        localStorage.setItem(HIGH_SCORE_KEY, String(best));
+        const fish = fishById(state.bestCatchId);
+        if (fish) persistBestCatchMeta(fish, bestCatchEntry());
+      }
+
+      if (!light || force || now - lastBagSnapAt >= 20000) {
+        try {
+          window.HubAccountBag?.snapshot?.(me);
+          lastBagSnapAt = now;
+        } catch {}
+      }
     } catch {}
+  }
+
+  function markSaveDirty() {
+    saveDirty = true;
   }
 
   function getStoredBest() {
@@ -17186,9 +17233,13 @@
 
   function saveSoon(force) {
     const now = Date.now();
-    if (!force && now - lastSaveAt < 700) return;
+    if (!force && now - lastSaveAt < 700) {
+      markSaveDirty();
+      return;
+    }
     lastSaveAt = now;
-    saveState();
+    markSaveDirty();
+    saveState(force ? { force: true } : undefined);
   }
 
   function tick() {
@@ -17200,7 +17251,7 @@
     renderCooler(coolerKey() !== before);
     renderAquarium();
     renderStats();
-    saveSoon();
+    // Autosave runs on a light 1s timer — don't dirty every 100ms tick
   }
 
   function openMenu() {
@@ -19096,27 +19147,27 @@
       .catch(() => {});
   }
   setInterval(tick, TICK_MS);
-  // Force-save every second so refresh can't drop progress
+  // Light autosave every second — no-op when unchanged; skips heavy hub vault sync
   setInterval(() => {
     try {
-      saveState();
+      saveState({ light: true });
     } catch {}
   }, 1000);
   setInterval(() => {
     maybeSubmitBest(true);
   }, 15000);
   window.addEventListener("beforeunload", () => {
-    saveState();
+    saveState({ force: true });
     maybeSubmitBest(true);
     window.HubSound?.stopAmbient?.();
   });
   window.addEventListener("pagehide", () => {
-    saveState();
+    saveState({ force: true });
     window.HubSound?.stopAmbient?.();
   });
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") {
-      saveState();
+      saveState({ force: true });
       lastWeatherSoundId = "";
       window.HubSound?.stopAmbient?.();
     } else {

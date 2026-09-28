@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928g": [
+    "Fishing Idle: light autosave every second without lag (skips unchanged / heavy sync)"
+  ],
   "20260928f": [
     "Fishing Idle: autosaves every second + backup save so refresh keeps your progress"
   ],
