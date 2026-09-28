@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928j": [
+    "Fishing Idle: restored ICE_DRAGON The Ultimate, Omni Ray, Soul Twin, and The Absolute to the cooler"
+  ],
   "20260928i": [
     "Fishing Idle: auto-restore wiped coolers from cloud; block empty saves from erasing a full cooler"
   ],

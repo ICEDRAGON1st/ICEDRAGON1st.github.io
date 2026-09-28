@@ -20,6 +20,8 @@
   const ICE_CHESTS_GRANT_ID = "fishing-ice-dragon-chests-20-23-v1";
   /** One-time: remove a single duplicate Soul Twin from ICE_DRAGON's cooler. */
   const ICE_SOUL_TWIN_TRIM_ID = "fishing-ice-dragon-soultwin-trim-v2";
+  /** One-time: put back The Ultimate + other endgame fish lost from cooler wipe. */
+  const ICE_ULTIMATE_RESTORE_ID = "fishing-ice-dragon-ultimate-restore-v1";
   /** One-time: migrate off precision-broken catch scores (Apex+ values). */
   const CATCH_SCORE_V2_ID = "fishing-catch-score-safe-v7";
   const ICE_LOCAL_WIPE_ID = "hub-fishing-ice-dragon-wipe-v1";
@@ -18991,16 +18993,18 @@
       if (!me) return;
       const localCool = Array.isArray(state.cooler) ? state.cooler.length : 0;
       const localLife = Number(state.lifetime) || 0;
-      // Only auto-recover obvious wipes / empty coolers on a progressed account
-      if (localCool >= 20) return;
-      if (localLife <= 0 && localCool > 0) return;
+      const missingUltimate = !(state.cooler || []).some((e) => e && e.id === "theultimate");
+      // Auto-recover obvious wipes, or ICE missing The Ultimate after the wipe bug
+      if (localCool >= 20 && !missingUltimate) return;
+      if (localLife <= 0 && localCool > 0 && !missingUltimate) return;
 
       let best = null;
       let bestCool = localCool;
       const consider = (raw) => {
         if (!raw || typeof raw !== "object") return;
         const n = Array.isArray(raw.cooler) ? raw.cooler.length : 0;
-        if (n > bestCool) {
+        const hasUlt = (raw.cooler || []).some((e) => e && e.id === "theultimate");
+        if (n > bestCool || (missingUltimate && hasUlt && n >= bestCool)) {
           best = raw;
           bestCool = n;
         }
@@ -19020,12 +19024,15 @@
         consider(readFishingSaveRaw());
       }
 
-      if (!best || bestCool <= localCool) return;
+      if (!best) return;
+      const bestHasUlt = (best.cooler || []).some((e) => e && e.id === "theultimate");
+      if (bestCool <= localCool && !(missingUltimate && bestHasUlt)) return;
       const next = loadState();
-      if ((Array.isArray(next.cooler) ? next.cooler.length : 0) >= bestCool) {
+      const nextCool = Array.isArray(next.cooler) ? next.cooler.length : 0;
+      const nextHasUlt = (next.cooler || []).some((e) => e && e.id === "theultimate");
+      if (nextCool >= bestCool || (missingUltimate && nextHasUlt)) {
         state = next;
       } else {
-        // Apply best raw through localStorage then reload
         try {
           const payload = JSON.stringify(best);
           localStorage.setItem(SAVE_KEY, payload);
@@ -19040,9 +19047,80 @@
         saveState({ force: true });
       } catch {}
       try {
-        setCatchLine?.(`Restored cooler (${bestCool} fish) from cloud backup`, "treasure");
+        setCatchLine?.(`Restored cooler from cloud backup`, "treasure");
       } catch {}
     } catch {}
+  }
+
+  function ensureIceUltimateRestore() {
+    try {
+      const name = String(
+        window.HubPlays?.getName?.() || localStorage.getItem("hub-player-name") || ""
+      )
+        .trim()
+        .toLowerCase();
+      if (name !== "ice_dragon") return false;
+      if (localStorage.getItem(ICE_ULTIMATE_RESTORE_ID) === "done") return false;
+      if (!Array.isArray(state.cooler)) state.cooler = [];
+
+      const grants = [
+        { id: "theultimate", saved: true, variant: "", shiny: false, mutation: "" },
+        { id: "omniray", saved: true, variant: "gold", shiny: true, mutation: "" },
+        {
+          id: "soultwin",
+          saved: true,
+          variant: "",
+          shiny: false,
+          mutation: "",
+          unsellable: true,
+          untradeable: true
+        },
+        {
+          id: "theabsolute",
+          saved: true,
+          variant: "rainbow",
+          shiny: true,
+          mutation: "neon"
+        }
+      ];
+
+      let added = 0;
+      grants.forEach((g) => {
+        const exists = state.cooler.some((e) => e && e.id === g.id && e.saved);
+        if (exists) return;
+        const fish = fishById(g.id);
+        if (!fish) return;
+        const exclusive = isExclusiveFish(fish);
+        state.cooler.unshift({
+          id: g.id,
+          saved: true,
+          perfect: false,
+          variant: normalizeVariant(g.variant),
+          shiny: !!g.shiny,
+          mutation: normalizeMutation(g.mutation),
+          unsellable: exclusive || !!g.unsellable,
+          untradeable: exclusive || !!g.untradeable,
+          lockedValue: exclusive ? exclusiveMirrorBaseValue(fish) : undefined
+        });
+        try {
+          markCaught(fish, state.cooler[0]);
+        } catch {}
+        added += 1;
+      });
+
+      localStorage.setItem(ICE_ULTIMATE_RESTORE_ID, "done");
+      if (added) {
+        try {
+          setCatchLine(
+            `Restored ${added} endgame fish (The Ultimate + more)`,
+            "treasure"
+          );
+        } catch {}
+      }
+      return added > 0;
+    } catch {
+      return false;
+    }
   }
 
   // Soft bag sync: only adopt remote/bag if it's at least as progressed — never wipe the live session
@@ -19127,6 +19205,14 @@
       saveState();
     } catch {}
   }
+  try {
+    if (ensureIceUltimateRestore()) {
+      saveState({ force: true });
+      try {
+        render?.();
+      } catch {}
+    }
+  } catch {}
   try {
     const name = String(
       window.HubPlays?.getName?.() || localStorage.getItem("hub-player-name") || ""
