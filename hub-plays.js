@@ -835,6 +835,7 @@
     const prevId = getPlayerId();
     if (window.HubAccountBag?.syncUp) {
       try {
+        if (prevId && window.HubAccountBag.setBagOwner) HubAccountBag.setBagOwner(prevId);
         await HubAccountBag.syncUp(prevId);
       } catch {}
     }
@@ -849,9 +850,17 @@
         HubAccountBag.clearBagKeys();
       } catch {}
     }
+    try {
+      window.HubAccountBag?.setBagOwner?.(id);
+    } catch {}
     const code = formatPlayerCode(randomCodeParts());
     storePlayerCode(code);
     rememberCurrentAccount({ code, playerId: id, name: "" });
+    try {
+      document.dispatchEvent(
+        new CustomEvent("hub-player-changed", { detail: { playerId: id, name: "" } })
+      );
+    } catch {}
     // Don't block account creation on MantleDB — register in background
     ensurePlayerCodeRegistered().catch(() => {});
     if (window.HubAccountBag?.syncUp) {
@@ -1213,15 +1222,21 @@
     const prevId = me;
 
     // Full bag swap: upload leaving account, clear live keys, load incoming (replace)
+    // Abort the whole switch if bag isolation fails — never flip playerId onto leftover keys
     if (window.HubAccountBag?.prepareSwitch && prevId && prevId !== entry.playerId) {
       try {
         await HubAccountBag.prepareSwitch(prevId, entry.playerId);
       } catch (err) {
         console.warn("[HubPlays] account bag prepareSwitch failed", err);
+        return {
+          ok: false,
+          error: "Couldn't switch account data on this computer. Try again."
+        };
       }
     } else {
       if (window.HubAccountBag?.syncUp && prevId && prevId !== entry.playerId) {
         try {
+          if (window.HubAccountBag.setBagOwner) HubAccountBag.setBagOwner(prevId);
           await HubAccountBag.syncUp(prevId);
         } catch (err) {
           console.warn("[HubPlays] account bag syncUp failed", err);
@@ -1231,6 +1246,20 @@
         try {
           HubAccountBag.clearBagKeys();
         } catch {}
+      }
+      if (window.HubAccountBag?.pullAndApply && entry.playerId) {
+        try {
+          await HubAccountBag.pullAndApply(entry.playerId, {
+            skipLiveSnapshot: true,
+            replace: true
+          });
+        } catch (err) {
+          console.warn("[HubPlays] account bag pull failed", err);
+          return {
+            ok: false,
+            error: "Couldn't load that account's data on this computer. Try again."
+          };
+        }
       }
     }
 
@@ -1251,25 +1280,20 @@
     } catch {}
     sessionPlayerId = entry.playerId;
     storePlayerCode(norm);
+    try {
+      window.HubAccountBag?.setBagOwner?.(entry.playerId);
+    } catch {}
 
-    // If prepareSwitch wasn't used, still force-load the incoming bag
-    if (!window.HubAccountBag?.prepareSwitch && window.HubAccountBag?.pullAndApply) {
+    // Same-id refresh, or belt-and-suspenders replace if prepareSwitch path didn't write
+    if (window.HubAccountBag?.pullAndApply) {
       try {
         await HubAccountBag.pullAndApply(entry.playerId, {
           skipLiveSnapshot: true,
           replace: true
         });
       } catch (err) {
-        console.warn("[HubPlays] account bag pull failed", err);
+        console.warn("[HubPlays] account bag refresh failed", err);
       }
-    } else if (window.HubAccountBag?.prepareSwitch && prevId === entry.playerId) {
-      // Same id edge case — refresh bag
-      try {
-        await HubAccountBag.pullAndApply(entry.playerId, {
-          skipLiveSnapshot: true,
-          replace: true
-        });
-      } catch {}
     }
 
     // Registry name wins when present; bag may already have set it

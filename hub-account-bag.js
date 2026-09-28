@@ -13,10 +13,12 @@
 (function () {
   const VAULT_KEY = "hub-account-bags-v1";
   const DOC_PREFIX = "account-bag:";
+  /** Which account currently owns the live localStorage bag keys on this device. */
+  const BAG_OWNER_KEY = "hub-account-bag-active-id";
 
-  /** Keys that belong to a player identity (not shared device chrome). */
+  /** Exact keys that belong to a player identity (not shared device chrome). */
   const BAG_KEYS = [
-    // Hub identity / progress
+    // Hub identity / progress / game cards
     "hub-achievements-v1",
     "hub-achievements-pending",
     "hub-player-name",
@@ -33,16 +35,20 @@
     "hub-favorites",
     "hub-last-game",
     "hub-played-games",
+    "hub-eggs-v1",
+    "hub-eggs-pending-flair-v1",
     // Fishing
     "fishing-save-v3",
+    "fishing-save-v3-backup",
     "fishing-best-catch-v2",
+    "fishing-best-catch-v1",
     "fishing-best-catch-meta-v1",
     "fishing-best-catch-meta-v2",
     "fishing-prefs-v1",
     "fishing-chest-boost-v1",
     "fishing-gifts-claimed-v1",
     "fishing-player-mail-claimed-v1",
-    // Other game saves / highs
+    // Other game saves / highs (names must match what games + hub cards actually use)
     "wordle-game",
     "wordle-stats",
     "clicker-save-v3",
@@ -52,6 +58,8 @@
     "mine-depth-best-ore-v1",
     "mine-depth-best-ore-id-v1",
     "mine-depth-lifetime-coins",
+    "mine-best-ore-v1",
+    "mine-best-ore-id-v1",
     "cows-save-v1",
     "cows-best-tier-v1",
     "hangman-stats",
@@ -76,12 +84,59 @@
     "cafe-queue-high-score",
     "garden-snap-high-score",
     "lemmings-high-score",
+    "paper-io-best-pct",
+    "2048-best-score",
     "2048-high-score",
-    "quiz-high-score",
-    "sudoku-best",
+    "memory-match-best",
     "memory-best",
+    "sudoku-best-times",
+    "sudoku-best",
+    "space-shooter-high-score",
+    "space-shooter-high-score-easy",
+    "space-shooter-high-score-medium",
+    "space-shooter-high-score-hard",
+    "quizmaster-high-score",
+    "quizmaster-high-score-easy",
+    "quizmaster-high-score-medium",
+    "quizmaster-high-score-hard",
+    "quiz-high-score",
+    "math-sprint-high-score-easy",
+    "math-sprint-high-score-medium",
+    "math-sprint-high-score-hard",
     "math-high-score"
   ];
+
+  /** Prefixes for per-mode / per-lang keys (e.g. hangman-stats-en-easy). */
+  const BAG_KEY_PREFIXES = [
+    "hangman-stats-",
+    "space-shooter-high-score-",
+    "quizmaster-high-score-",
+    "math-sprint-high-score-",
+    "wordle-game-"
+  ];
+
+  function isBagKey(key) {
+    const k = String(key || "");
+    if (!k) return false;
+    if (BAG_KEYS.includes(k)) return true;
+    return BAG_KEY_PREFIXES.some((p) => k.startsWith(p));
+  }
+
+  function getBagOwner() {
+    try {
+      return String(localStorage.getItem(BAG_OWNER_KEY) || "").trim();
+    } catch {
+      return "";
+    }
+  }
+
+  function setBagOwner(playerId) {
+    try {
+      const id = String(playerId || "").trim();
+      if (id) localStorage.setItem(BAG_OWNER_KEY, id);
+      else localStorage.removeItem(BAG_OWNER_KEY);
+    } catch {}
+  }
 
   function sb() {
     return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
@@ -115,17 +170,37 @@
 
   function readBagKeys() {
     const kv = {};
-    BAG_KEYS.forEach((key) => {
-      try {
-        const v = localStorage.getItem(key);
-        if (v != null) kv[key] = v;
-      } catch {}
-    });
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (!isBagKey(key)) continue;
+        try {
+          const v = localStorage.getItem(key);
+          if (v != null) kv[key] = v;
+        } catch {}
+      }
+    } catch {
+      BAG_KEYS.forEach((key) => {
+        try {
+          const v = localStorage.getItem(key);
+          if (v != null) kv[key] = v;
+        } catch {}
+      });
+    }
     return kv;
   }
 
   function clearBagKeys() {
-    BAG_KEYS.forEach((key) => {
+    const toRemove = [];
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (isBagKey(key)) toRemove.push(key);
+      }
+    } catch {
+      BAG_KEYS.forEach((key) => toRemove.push(key));
+    }
+    toRemove.forEach((key) => {
       try {
         localStorage.removeItem(key);
       } catch {}
@@ -429,10 +504,11 @@
 
   function apply(bag, opts = {}) {
     if (!bag || !bag.kv || typeof bag.kv !== "object") return;
-    // replace: full account switch. soft (default): only write keys present — never wipe fishing mid-session
+    const bagId = String(bag.playerId || playerIdNow() || "").trim();
+    // replace: full account switch — wipe every account key first so leftovers can't blend
     if (opts.replace) clearBagKeys();
     Object.entries(bag.kv).forEach(([key, value]) => {
-      if (!BAG_KEYS.includes(key)) return;
+      if (!isBagKey(key)) return;
       try {
         if (value == null) {
           if (opts.replace) localStorage.removeItem(key);
@@ -441,11 +517,12 @@
         localStorage.setItem(key, String(value));
       } catch {}
     });
+    if (bagId) setBagOwner(bagId);
     try {
       document.dispatchEvent(
         new CustomEvent("hub-account-bag-applied", {
           detail: {
-            playerId: bag.playerId || playerIdNow(),
+            playerId: bagId || playerIdNow(),
             theme: bag.kv["hub-look-theme"] || null,
             replace: !!opts.replace
           }
@@ -457,14 +534,22 @@
   async function syncUp(playerId) {
     const id = playerIdNow(playerId);
     if (!id) return false;
+    // Never upload live keys under the wrong account on a shared PC
+    const liveOwner = getBagOwner();
+    if (liveOwner && liveOwner !== id) {
+      console.warn("[HubAccountBag] syncUp skipped — live bag belongs to", liveOwner, "not", id);
+      return false;
+    }
     const localBag = snapshot(id);
     if (!localBag) return false;
+    setBagOwner(id);
     const api = sb();
     if (!api) return true;
     try {
       const remoteBag = await pullRemote(id);
       const merged = mergeBags(localBag, remoteBag) || localBag;
       merged.updatedAt = Date.now();
+      merged.playerId = id;
       const vault = loadVault();
       vault[id] = merged;
       saveVault(vault);
@@ -504,6 +589,19 @@
   async function pullAndApply(playerId, opts = {}) {
     const id = String(playerId || "");
     if (!id) return null;
+    // Soft sync must never write another account's bag onto the live device
+    if (!opts.replace) {
+      const me = playerIdNow();
+      if (me && me !== id) {
+        console.warn("[HubAccountBag] soft pull skipped — bag", id, "≠ active", me);
+        return null;
+      }
+      const liveOwner = getBagOwner();
+      if (liveOwner && me && liveOwner !== me) {
+        // Live leftovers from a previous account — hard-replace with ours
+        opts = { ...opts, replace: true, skipLiveSnapshot: true };
+      }
+    }
     let localBag = null;
     if (opts.replace) {
       // Account switch: only this player's vault + remote — never snapshot the previous account's live keys
@@ -526,6 +624,7 @@
     if (!merged) {
       if (opts.replace) {
         clearBagKeys();
+        setBagOwner(id);
       }
       return localBag;
     }
@@ -534,6 +633,7 @@
     vault[id] = merged;
     saveVault(vault);
     apply(merged, { replace: !!opts.replace });
+    setBagOwner(id);
     const api = sb();
     if (api) {
       try {
@@ -554,15 +654,37 @@
     const from = String(fromId || "");
     const to = String(toId || "");
     if (from && from !== to) {
+      // Mark live keys as belonging to `from` so syncUp is allowed
+      setBagOwner(from);
       await syncUp(from);
     }
     if (to) {
       // Full replace for the incoming account — don't snapshot the cleared leaving keys onto `to`
       clearBagKeys();
+      setBagOwner("");
       await pullAndApply(to, { skipLiveSnapshot: true, replace: true });
+      setBagOwner(to);
     } else {
       clearBagKeys();
+      setBagOwner("");
     }
+  }
+
+  /** If hub-player-id and live bag owner disagree, wipe + restore the active account. */
+  async function enforceLiveBagOwner() {
+    const id = playerIdNow();
+    if (!id) return false;
+    const liveOwner = getBagOwner();
+    if (!liveOwner) {
+      setBagOwner(id);
+      return false;
+    }
+    if (liveOwner === id) return false;
+    console.warn("[HubAccountBag] isolating live bag — was", liveOwner, "now", id);
+    clearBagKeys();
+    await pullAndApply(id, { skipLiveSnapshot: true, replace: true });
+    setBagOwner(id);
+    return true;
   }
 
   // Soft sync current account while playing (so phone/PC stay close)
@@ -574,10 +696,17 @@
     };
     const pullTick = () => {
       const id = playerIdNow();
-      if (!id || !window.HubSupabase?.ready) return;
-      pullAndApply(id).catch(() => {});
+      if (!id) return;
+      enforceLiveBagOwner()
+        .then(() => {
+          if (!window.HubSupabase?.ready) return;
+          return pullAndApply(id);
+        })
+        .catch(() => {});
     };
-    // Pull first so phone look/settings land, then periodic upload
+    setTimeout(() => {
+      enforceLiveBagOwner().catch(() => {});
+    }, 200);
     setTimeout(pullTick, 1200);
     setTimeout(tick, 8000);
     setInterval(tick, 3 * 60_000);
@@ -588,7 +717,8 @@
     });
     window.addEventListener("pagehide", () => {
       try {
-        snapshot(playerIdNow());
+        const id = playerIdNow();
+        if (id && (!getBagOwner() || getBagOwner() === id)) snapshot(id);
       } catch {}
     });
     document.addEventListener("hub-look-changed", (e) => {
@@ -606,29 +736,45 @@
       if (!t || !t.closest) return;
       if (t.closest(".fav-btn")) setTimeout(tick, 120);
     });
+    document.addEventListener("hub-player-changed", () => {
+      const id = playerIdNow();
+      if (id) setBagOwner(id);
+      pullTick();
+    });
   }
 
   // Migrate: first visit after update, stash current keys under active player.
-  // Only create a vault entry if missing — do NOT bump updatedAt on every load
-  // (that made local "classic" clobber a real hub look from the other device).
+  // If this device has never stamped a bag owner, prefer vault/remote over possibly
+  // blended school-PC leftovers when a vault already exists for this account.
   try {
     const id = playerIdNow();
-    if (id && !loadVault()[id]) {
-      snapshot(id);
-    } else if (id) {
-      const vault = loadVault();
-      const bag = vault[id];
-      if (bag && bag.kv && typeof bag.kv === "object") {
+    if (id) {
+      const liveOwner = getBagOwner();
+      const vaultBag = loadVault()[id];
+      const vaultHasData =
+        vaultBag &&
+        vaultBag.kv &&
+        typeof vaultBag.kv === "object" &&
+        Object.keys(vaultBag.kv).length > 0;
+      if (!liveOwner && vaultHasData) {
+        // Hard adopt this account's bag so game cards / favorites aren't shared leftovers
+        pullAndApply(id, { skipLiveSnapshot: true, replace: true }).catch(() => {
+          setBagOwner(id);
+        });
+      } else if (!liveOwner) {
+        snapshot(id);
+        setBagOwner(id);
+      } else if (liveOwner === id && !vaultHasData) {
+        snapshot(id);
+      } else if (liveOwner === id && vaultHasData) {
+        const vault = loadVault();
+        const bag = vault[id];
         let filled = false;
-        BAG_KEYS.forEach((key) => {
-          if (bag.kv[key] != null) return;
-          try {
-            const v = localStorage.getItem(key);
-            if (v != null) {
-              bag.kv[key] = v;
-              filled = true;
-            }
-          } catch {}
+        const live = readBagKeys();
+        Object.entries(live).forEach(([key, v]) => {
+          if (bag.kv[key] != null || v == null) return;
+          bag.kv[key] = v;
+          filled = true;
         });
         if (filled) {
           vault[id] = bag;
@@ -646,12 +792,18 @@
 
   window.HubAccountBag = {
     BAG_KEYS,
+    BAG_KEY_PREFIXES,
+    isBagKey,
     snapshot,
     apply,
     clearBagKeys,
     syncUp,
     pullAndApply,
     prepareSwitch,
-    mergeBags
+    enforceLiveBagOwner,
+    getBagOwner,
+    setBagOwner,
+    mergeBags,
+    loadVault
   };
 })();

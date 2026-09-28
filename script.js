@@ -3892,9 +3892,24 @@ hubThemePicker?.addEventListener("click", (e) => {
 
 document.addEventListener("hub-account-bag-applied", () => {
   applyHubTheme();
+  try {
+    refreshGamesHub();
+  } catch {}
+});
+document.addEventListener("hub-player-changed", () => {
+  applyHubTheme();
+  try {
+    refreshGamesHub();
+  } catch {}
+  try {
+    window.HubAccountBag?.enforceLiveBagOwner?.()?.catch?.(() => {});
+  } catch {}
 });
 document.addEventListener("hub-username-ready", () => {
   applyHubTheme();
+  try {
+    refreshGamesHub();
+  } catch {}
 });
 
 function refreshNotificationPermStatus() {
