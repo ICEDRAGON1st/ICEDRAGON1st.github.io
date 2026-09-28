@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928s": [
+    "Paper Claim: head bumps do nothing; only touching a trail kills"
+  ],
   "20260928r": [
     "Paper Claim: heads no longer kill on collision — only cutting trails eliminates"
   ],
