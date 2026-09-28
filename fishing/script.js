@@ -5157,6 +5157,125 @@
     return { id: "other", label: "Other", order: 8 };
   }
 
+  function formatAdminAuditMinutes(mins) {
+    const m = Number(mins);
+    if (!Number.isFinite(m) || m <= 0) return "";
+    if (m >= 60 && Math.abs(m % 60) < 1e-9) return `${Math.round(m / 60)}h`;
+    if (m >= 60) {
+      const h = Math.floor(m / 60);
+      const rem = Math.round(m % 60);
+      return rem ? `${h}h ${rem}m` : `${h}h`;
+    }
+    return `${Math.round(m * 10) / 10}m`;
+  }
+
+  /** Pull mult / minutes / what from a cmd string (for old logs without structured fields). */
+  function parseAdminAuditStats(cmd, entry = null) {
+    const t = String(cmd || "")
+      .toLowerCase()
+      .replace(/×/g, "x")
+      .replace(/\s+/g, " ")
+      .trim();
+    let mult =
+      entry && Number.isFinite(Number(entry.mult)) && Number(entry.mult) > 0
+        ? Number(entry.mult)
+        : null;
+    let minutes =
+      entry && Number.isFinite(Number(entry.minutes)) && Number(entry.minutes) > 0
+        ? Number(entry.minutes)
+        : null;
+    let what = String(entry?.kind || entry?.target || "").toLowerCase();
+
+    if (mult == null) {
+      const multM = t.match(/(\d+(?:\.\d+)?)\s*x\b/);
+      if (multM) mult = Number(multM[1]);
+    }
+    if (minutes == null) {
+      const h = t.match(/\b(\d+(?:\.\d+)?)\s*(?:h|hrs?|hours?)\b/);
+      const m = t.match(/\b(\d+(?:\.\d+)?)\s*(?:m|mins?|minutes?)\b/);
+      if (h) minutes = Number(h[1]) * 60;
+      else if (m) minutes = Number(m[1]);
+    }
+
+    if (!what || what === "event") {
+      if (/\bluck\b/.test(t)) what = "luck";
+      else if (/\b(sell|money|coin)\b/.test(t)) what = "sell";
+      else if (/\bspeed\b|\bcast\b|\bcooldown\b/.test(t)) what = "speed";
+      else if (/\bchest/.test(t)) what = "chest";
+      else if (/\blucky/.test(t) || /\bluckyblock\b|\blb\b/.test(t)) what = "luckyblock";
+      else if (/\btoxic\b/.test(t)) what = "toxic";
+      else if (/\blava\b/.test(t)) what = "lava";
+      else if (/\bneon\b/.test(t)) what = "neon";
+      else if (/\bstorm\b/.test(t)) what = "storm";
+      else if (/\bcalm\b/.test(t)) what = "calm";
+      else if (/\bsunn|\bclear\b|\bskies\b/.test(t)) what = "weather";
+      else if (/\bgold\b/.test(t) && /\bshiny\b/.test(t)) what = "shiny+gold";
+      else if (/\bshiny\b/.test(t)) what = "shiny";
+      else if (/\bgold\b/.test(t)) what = "gold";
+      else if (/\bsilver\b/.test(t)) what = "silver";
+      else if (/\bdiamond\b/.test(t)) what = "diamond";
+      else if (/\brainbow\b/.test(t)) what = "rainbow";
+      else if (/^give\b/.test(t)) {
+        const g = t.replace(/^give\s+/, "");
+        what = g.slice(0, 48);
+      }
+    }
+
+    // Clears don't need mult
+    if (/^clear\b/.test(t)) {
+      mult = null;
+      minutes = null;
+      if (!what.startsWith("clear")) what = what ? `clear ${what}` : "clear";
+    }
+
+    // Weather has no mult
+    if (what === "storm" || what === "calm" || what === "weather") {
+      mult = null;
+    }
+
+    return { mult, minutes, what };
+  }
+
+  function formatAdminAuditDetail(entry) {
+    if (entry?.detail) return String(entry.detail);
+    const stats = parseAdminAuditStats(entry?.cmd, entry);
+    const parts = [];
+    if (stats.mult != null && stats.mult > 0) {
+      parts.push(`${formatMult(stats.mult)}×`);
+    }
+    if (stats.what) parts.push(stats.what);
+    const dur = formatAdminAuditMinutes(stats.minutes);
+    if (dur) parts.push(dur);
+    if (entry?.scope === "local" || /\blocal\b/i.test(String(entry?.cmd || ""))) {
+      /* local is default for Hjalte — skip clutter */
+    }
+    return parts.join(" · ");
+  }
+
+  function buildAdminEventAuditDetail(parsed) {
+    if (!parsed) return "";
+    const kind = String(parsed.kind || "").toLowerCase();
+    const target = String(parsed.target || "").toLowerCase();
+    const isClear = kind.startsWith("clear");
+    const parts = [];
+    if (!isClear && Number(parsed.mult) > 0 && kind !== "weather" && !kind.startsWith("weather")) {
+      parts.push(`${formatMult(clampAdminMult(parsed.mult))}×`);
+    }
+    let label = kind;
+    if (kind === "money") label = "sell";
+    if (kind === "mutation") label = target || "mutation";
+    if (kind === "variant") label = target || "variant";
+    if (kind === "weather") label = target || "weather";
+    if (isClear) {
+      label = kind.replace(/^clear-?/, "clear ") || "clear";
+    }
+    parts.push(label.trim());
+    if (!isClear && Number(parsed.minutes) > 0) {
+      parts.push(formatAdminAuditMinutes(parsed.minutes));
+    }
+    return parts.filter(Boolean).join(" · ");
+  }
+
   const ADMIN_AUDIT_FILTER_ALL = "all";
   let adminAuditFilter = ADMIN_AUDIT_FILTER_ALL;
   let adminAuditCache = [];
@@ -5220,8 +5339,13 @@
 
     list.innerHTML = ordered
       .map(({ cat, items }) => {
+        // Peek latest boost-like detail for the section header
+        const latestDetail = formatAdminAuditDetail(items[0]);
         const head = `<li class="admin-audit-cat" data-cat="${cat.id}">
           <span class="admin-audit-cat-label">${cat.label}</span>
+          <span class="admin-audit-cat-meta">${
+            latestDetail ? `latest ${latestDetail}` : ""
+          }</span>
           <span class="admin-audit-cat-count">${items.length}</span>
         </li>`;
         const rows = items
@@ -5232,11 +5356,27 @@
               .replace(/&/g, "&amp;")
               .replace(/</g, "&lt;")
               .replace(/>/g, "&gt;");
+            const detail = formatAdminAuditDetail(e)
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;");
+            const stats = parseAdminAuditStats(e.cmd, e);
+            const multBadge =
+              stats.mult != null && stats.mult > 0
+                ? `<span class="admin-audit-mult">${formatMult(stats.mult)}×</span>`
+                : "";
+            const durBadge = formatAdminAuditMinutes(stats.minutes)
+              ? `<span class="admin-audit-dur">${formatAdminAuditMinutes(stats.minutes)}</span>`
+              : "";
             return `<li class="admin-audit-item" data-cat="${cat.id}">
               <span class="admin-audit-when">${when}</span>
               <span class="admin-audit-who">${who}</span>
               <code class="admin-audit-cmd">${cmd}</code>
-              <span class="admin-audit-note">${cat.label}</span>
+              <span class="admin-audit-detail">${multBadge}${durBadge}${
+                detail
+                  ? `<span class="admin-audit-detail-text">${detail}</span>`
+                  : `<span class="admin-audit-detail-text">${cat.label}</span>`
+              }</span>
             </li>`;
           })
           .join("");
@@ -5246,19 +5386,25 @@
   }
 
   /** Fire-and-forget: only limited admin (Hjalte) writes; ICE reads in Admin. */
-  function logLimitedAdminAction(cmd, note = "") {
+  function logLimitedAdminAction(cmd, note = "", extra = null) {
     if (!isFishingLimitedAdmin()) return;
     const text = String(cmd || "").trim().slice(0, 200);
     if (!text) return;
     const cat = adminAuditCategory(text, note);
+    const ex = extra && typeof extra === "object" ? extra : {};
     appendAdminAuditLog({
       cmd: text,
       note: String(note || cat.label || "").trim().slice(0, 160),
-      category: cat.id
+      category: cat.id,
+      mult: ex.mult,
+      minutes: ex.minutes,
+      kind: ex.kind,
+      target: ex.target,
+      detail: ex.detail || formatAdminAuditDetail({ cmd: text, note, ...ex })
     }).catch(() => {});
   }
 
-  async function appendAdminAuditLog({ cmd, note, category }) {
+  async function appendAdminAuditLog({ cmd, note, category, mult, minutes, kind, target, detail }) {
     const api = fishingSb();
     if (!api?.getDoc || !api?.upsertDoc) return;
     const entry = {
@@ -5267,8 +5413,13 @@
       by: playerDisplayName() || "Hjalte",
       cmd: String(cmd || "").trim().slice(0, 200),
       note: String(note || "").trim().slice(0, 160),
-      category: String(category || "").trim().slice(0, 32)
+      category: String(category || "").trim().slice(0, 32),
+      detail: String(detail || "").trim().slice(0, 180)
     };
+    if (Number.isFinite(Number(mult)) && Number(mult) > 0) entry.mult = Number(mult);
+    if (Number.isFinite(Number(minutes)) && Number(minutes) > 0) entry.minutes = Number(minutes);
+    if (kind) entry.kind = String(kind).slice(0, 40);
+    if (target) entry.target = String(target).slice(0, 40);
     try {
       const data = (await api.getDoc(ADMIN_AUDIT_DOC)) || {};
       const entries = Array.isArray(data.entries) ? data.entries.slice() : [];
@@ -10013,7 +10164,16 @@
       canAdminGlobal() ? parsed.scope : "local",
       parsed.target || ""
     );
-    if (ok) logLimitedAdminAction(trimmed, adminAuditCategory(trimmed).label);
+    if (ok) {
+      const detail = buildAdminEventAuditDetail(parsed);
+      logLimitedAdminAction(trimmed, adminAuditCategory(trimmed).label, {
+        mult: parsed.mult,
+        minutes: parsed.minutes,
+        kind: parsed.kind,
+        target: parsed.target || "",
+        detail
+      });
+    }
   }
 
   function scheduledEventWindowStart(now = Date.now()) {

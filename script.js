@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928ab": [
+    "Fishing Idle: Hjalte admin log shows ×mult, duration, and boost type"
+  ],
   "20260928aa": [
     "Fishing Idle: Hjalte admin log grouped by category (weather, boosts, gifts…)"
   ],
