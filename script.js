@@ -4874,17 +4874,16 @@ function setGateCodeStatus(msg, isError) {
 function refreshPlayerCodeUI() {
   const el = document.getElementById("player-code-value");
   if (el && typeof HubPlays !== "undefined") {
-    let code = HubPlays.getPlayerCode?.() || "";
-    // Extra guard: never show the UNDE-FNED bug on the hub cards
-    const poison =
-      typeof HubPlays.isPoisonPlayerCode === "function"
-        ? HubPlays.isPoisonPlayerCode(code)
-        : /^unde-?fned$/i.test(String(code || "").replace(/\s/g, ""));
-    if (poison) {
+    let code = String(HubPlays.getPlayerCode?.() || "").trim();
+    if (
+      !code ||
+      (typeof HubPlays.isPoisonPlayerCode === "function" && HubPlays.isPoisonPlayerCode(code)) ||
+      /^unde-?fned$/i.test(code.replace(/\s/g, ""))
+    ) {
       try {
         localStorage.removeItem("hub-player-code");
       } catch {}
-      code = HubPlays.getPlayerCode?.() || "";
+      code = String(HubPlays.getPlayerCode?.() || "").trim();
     }
     el.textContent = code || "————";
   }

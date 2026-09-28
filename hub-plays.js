@@ -411,23 +411,25 @@
   /**
    * JS `undefined` used to be String()'d into a "code". Alphabet has no I,
    * so "UNDEFINED" → "UNDEFNED" → displayed as UNDE-FNED.
+   * Empty is NOT poison — that just means "no code yet".
    */
   function isPoisonPlayerCode(raw) {
     const asStr = String(raw ?? "")
       .trim()
       .toLowerCase()
       .replace(/-/g, "");
-    if (!asStr) return true;
+    if (!asStr) return false;
     if (asStr === "undefined" || asStr === "null" || asStr === "nan") return true;
+    if (asStr === "undefned" || asStr === "undefine") return true;
     const norm = normalizePlayerCode(raw);
-    if (!norm) return true;
+    if (!norm) return false;
     if (norm === normalizePlayerCode("undefined")) return true;
-    if (norm === normalizePlayerCode("null")) return true;
-    if (norm === normalizePlayerCode("nan")) return true;
+    if (norm.length === 8 && norm === "UNDEFNED") return true;
     return false;
   }
 
   function formatPlayerCode(norm) {
+    if (norm == null || norm === "") return "";
     if (isPoisonPlayerCode(norm)) return "";
     const n = normalizePlayerCode(norm);
     if (n.length !== 8) return n;
@@ -476,6 +478,7 @@
   }
 
   function storePlayerCode(code) {
+    if (code == null || code === "") return "";
     if (isPoisonPlayerCode(code)) return "";
     const formatted = formatPlayerCode(code);
     if (normalizePlayerCode(formatted).length !== 8) return "";
@@ -485,6 +488,32 @@
       }
     } catch {}
     return formatted;
+  }
+
+  function ensureFreshPlayerCode() {
+    const stored = readStoredPlayerCode();
+    if (normalizePlayerCode(stored).length === 8 && !isPoisonPlayerCode(stored)) {
+      return stored;
+    }
+    try {
+      if (canUseLocalStorage()) localStorage.removeItem(PLAYER_CODE_KEY);
+    } catch {}
+    const me = getPlayerId();
+    let raw = hashToCodeParts(me || `p-${Date.now().toString(36)}`);
+    if (isPoisonPlayerCode(raw) || normalizePlayerCode(raw).length !== 8) {
+      raw = randomCodeParts();
+    }
+    // Avoid the one poison collision forever
+    let guard = 0;
+    while (isPoisonPlayerCode(raw) && guard < 8) {
+      raw = randomCodeParts();
+      guard += 1;
+    }
+    return storePlayerCode(raw) || formatPlayerCode(raw);
+  }
+
+  function getPlayerCode() {
+    return ensureFreshPlayerCode();
   }
 
   function loadLocalCodes() {
@@ -1055,13 +1084,10 @@
 
   async function ensurePlayerCodeRegistered() {
     const me = getPlayerId();
-    let formatted = readStoredPlayerCode();
+    let formatted = ensureFreshPlayerCode();
     let norm = normalizePlayerCode(formatted);
-    if (norm.length !== 8 || isPoisonPlayerCode(formatted) || isPoisonPlayerCode(norm)) {
-      try {
-        if (canUseLocalStorage()) localStorage.removeItem(PLAYER_CODE_KEY);
-      } catch {}
-      norm = hashToCodeParts(me);
+    if (norm.length !== 8) {
+      norm = randomCodeParts();
       formatted = storePlayerCode(norm);
     }
 
@@ -1104,26 +1130,9 @@
       // Offline / rate-limited: keep local code
     }
 
-    const out = formatPlayerCode(norm);
-    if (!out || isPoisonPlayerCode(out)) {
-      const regenerated = storePlayerCode(hashToCodeParts(me));
-      rememberCurrentAccount({ code: regenerated, playerId: me, name: getName() || "" });
-      return regenerated;
-    }
+    const out = formatPlayerCode(norm) || ensureFreshPlayerCode();
     rememberCurrentAccount({ code: out, playerId: me, name: getName() || "" });
     return out;
-  }
-
-  function getPlayerCode() {
-    const stored = readStoredPlayerCode();
-    if (normalizePlayerCode(stored).length === 8 && !isPoisonPlayerCode(stored)) {
-      return stored;
-    }
-    try {
-      if (canUseLocalStorage()) localStorage.removeItem(PLAYER_CODE_KEY);
-    } catch {}
-    const generated = formatPlayerCode(hashToCodeParts(getPlayerId()));
-    return storePlayerCode(generated) || generated;
   }
 
   async function restoreWithPlayerCode(rawCode) {
