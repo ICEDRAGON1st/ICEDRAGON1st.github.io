@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928t": [
+    "Paper Claim: trail cuts register properly; head bumps still do nothing"
+  ],
   "20260928s": [
     "Paper Claim: head bumps do nothing; only touching a trail kills"
   ],
