@@ -8,7 +8,9 @@
   const TURN_RATE = 10.5; // rad/s — sharp cuts, not huge arcs
   const TURN_RATE_HARD = 16; // extra snap for big direction changes
   const PLAYER_R = 1.55;
-  const HEAD_SEP = PLAYER_R * 2.08; // solid head disks — bump, don't pass through
+  /** Match drawn head size (arc uses PLAYER_R * 1.15). */
+  const HEAD_DRAW_R = PLAYER_R * 1.15;
+  const HEAD_SEP = HEAD_DRAW_R * 2; // solid disks — bump, don't pass through
   const TRAIL_W = 1.2;
   const START_R = 6.5;
   const SPAWN_MIN_DIST = 72; // keep players/NPCs well apart on spawn
@@ -873,24 +875,19 @@
       p.wantAngle = p.angle;
     }
 
-    // Solid heads: can't walk through another player/NPC (no kill)
-    for (const other of players) {
-      if (other === p || !other.alive) continue;
-      const dx = nx - other.x;
-      const dy = ny - other.y;
-      const dist = Math.hypot(dx, dy);
-      if (dist >= HEAD_SEP || dist < 1e-8) continue;
-      const push = HEAD_SEP / dist;
-      nx = other.x + dx * push;
-      ny = other.y + dy * push;
-      nx = clamp(nx, edge, WORLD - edge);
-      ny = clamp(ny, edge, WORLD - edge);
+    // Solid heads: block / slide, never tunnel through, never KO
+    {
+      const moved = separateFromHeads(p, nx, ny, edge);
+      nx = moved.x;
+      ny = moved.y;
     }
 
     // Trail cuts kill; head bumps only block (above). Can cut from your own land too.
     for (const other of players) {
       if (other === p || !other.alive) continue;
       if (!other.outside || other.trail.length < 1) continue;
+      // Don't count a cut while glued to their head
+      if (Math.hypot(nx - other.x, ny - other.y) < HEAD_SEP * 0.98) continue;
       if (trailHit(other, nx, ny, false)) {
         kill(other, `${p.name} eliminated ${other.name}`, p);
       }
@@ -931,10 +928,59 @@
     }
   }
 
+  /**
+   * Keep proposed (nx,ny) outside every other head.
+   * Uses the side you came from so you can't teleport through.
+   */
+  function separateFromHeads(p, nx, ny, edge) {
+    for (let iter = 0; iter < 5; iter++) {
+      let hit = false;
+      for (const other of players) {
+        if (other === p || !other.alive) continue;
+        let dx = nx - other.x;
+        let dy = ny - other.y;
+        let dist = Math.hypot(dx, dy);
+        if (dist >= HEAD_SEP) continue;
+        hit = true;
+
+        const ox = p.x - other.x;
+        const oy = p.y - other.y;
+        const odist = Math.hypot(ox, oy);
+
+        // Stay on the approach side (prevents tunneling to the far side)
+        if (odist > 1e-5 && (dist < 1e-5 || ox * dx + oy * dy < 0)) {
+          dx = ox;
+          dy = oy;
+          dist = odist;
+        }
+        if (dist < 1e-5) {
+          dx = Math.cos(p.angle + Math.PI);
+          dy = Math.sin(p.angle + Math.PI);
+          dist = 1;
+        }
+
+        const inv = HEAD_SEP / dist;
+        nx = other.x + dx * inv;
+        ny = other.y + dy * inv;
+        nx = clamp(nx, edge, WORLD - edge);
+        ny = clamp(ny, edge, WORLD - edge);
+
+        // Soft bounce: deflect heading away from the other head
+        const away = Math.atan2(ny - other.y, nx - other.x);
+        const diff = shortestAngleDiff(p.angle, away);
+        if (Math.abs(diff) > 0.35) {
+          p.angle += Math.sign(diff) * Math.min(Math.abs(diff), 0.55);
+          p.wantAngle = p.angle;
+        }
+      }
+      if (!hit) break;
+    }
+    return { x: nx, y: ny };
+  }
+
   function resolveHeadCollisions() {
     const edge = PLAYER_R + 0.35;
-    // A couple passes so multi-NPC piles separate cleanly
-    for (let pass = 0; pass < 3; pass++) {
+    for (let pass = 0; pass < 4; pass++) {
       for (let i = 0; i < players.length; i++) {
         const a = players[i];
         if (!a.alive) continue;
@@ -946,12 +992,12 @@
           let dist = Math.hypot(dx, dy);
           if (dist >= HEAD_SEP) continue;
           if (dist < 1e-6) {
-            const ang = (i * 1.7 + j) % (Math.PI * 2);
+            const ang = a.angle + Math.PI * 0.5;
             dx = Math.cos(ang);
             dy = Math.sin(ang);
             dist = 1e-6;
           }
-          const overlap = (HEAD_SEP - dist) * 0.5;
+          const overlap = (HEAD_SEP - dist) * 0.5 + 0.02;
           const nx = dx / dist;
           const ny = dy / dist;
           a.x = clamp(a.x - nx * overlap, edge, WORLD - edge);
@@ -965,6 +1011,8 @@
 
   function tick(dt) {
     const now = performance.now();
+    // Cap huge frames so collision can't be skipped by a long stall
+    const stepDt = Math.min(0.05, Math.max(0, dt || 0.016));
     for (const p of players) {
       if (!p.alive) {
         // Only NPCs respawn; humans stay out until Play again
@@ -974,10 +1022,9 @@
         }
         continue;
       }
-      stepPlayer(p, dt);
+      stepPlayer(p, stepDt);
     }
 
-    // Keep heads solid after all moves (still no head-on kills)
     resolveHeadCollisions();
   }
 
@@ -1256,7 +1303,7 @@
     for (const p of players) {
       if (!p.alive) continue;
       const c = COLORS[p.color % COLORS.length];
-      const r = PLAYER_R * 1.15;
+      const r = HEAD_DRAW_R;
 
       ctx.shadowColor = c.fill;
       ctx.shadowBlur = r * 1.8;

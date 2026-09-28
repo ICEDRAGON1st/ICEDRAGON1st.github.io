@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928w": [
+    "Paper Claim: fix head collision so bumps actually block instead of tunneling through"
+  ],
   "20260928v": [
     "Paper Claim: heads are solid and bump (still no kill); trails still cut"
   ],
