@@ -37,6 +37,7 @@
     "fishing-save-v3",
     "fishing-best-catch-v2",
     "fishing-best-catch-meta-v1",
+    "fishing-best-catch-meta-v2",
     "fishing-prefs-v1",
     "fishing-chest-boost-v1",
     "fishing-gifts-claimed-v1",
@@ -157,6 +158,121 @@
     return out;
   }
 
+  function parseJsonSafe(raw, fallback) {
+    try {
+      if (raw == null || raw === "") return fallback;
+      const v = typeof raw === "string" ? JSON.parse(raw) : raw;
+      return v == null ? fallback : v;
+    } catch {
+      return fallback;
+    }
+  }
+
+  /** Rough richness score so a fresh/empty school-PC save can't wipe a real one. */
+  function fishingSaveScore(raw) {
+    const s = parseJsonSafe(raw, null);
+    if (!s || typeof s !== "object") return 0;
+    const caughtN = s.caught && typeof s.caught === "object" ? Object.keys(s.caught).length : 0;
+    const ownedN = s.owned && typeof s.owned === "object" ? Object.keys(s.owned).filter((k) => s.owned[k]).length : 0;
+    return (
+      Math.max(0, Number(s.lifetime) || 0) * 1e3 +
+      Math.max(0, Number(s.coins) || 0) +
+      Math.max(0, Number(s.catches) || 0) * 25 +
+      caughtN * 2e3 +
+      ownedN * 500 +
+      Math.max(0, Number(s.boatLevel) || 0) * 8e3 +
+      Math.max(0, Number(s.aquariumLevel) || 0) * 4e3 +
+      Math.max(0, Number(s.bestCatchScore) || 0) * 0.01
+    );
+  }
+
+  function mergeCaughtMaps(a, b) {
+    const out = { ...(a && typeof a === "object" ? a : {}) };
+    Object.entries(b && typeof b === "object" ? b : {}).forEach(([id, rec]) => {
+      if (!rec) return;
+      if (!out[id]) {
+        out[id] = rec;
+        return;
+      }
+      if (rec === true) {
+        out[id] = out[id] === true ? true : out[id];
+        return;
+      }
+      if (out[id] === true) {
+        out[id] = rec;
+        return;
+      }
+      if (typeof out[id] === "object" && typeof rec === "object") {
+        const merged = { ...out[id], ...rec };
+        if (out[id].looks || rec.looks) {
+          merged.looks = { ...(out[id].looks || {}), ...(rec.looks || {}) };
+        }
+        ["any", "base", "silver", "gold", "diamond", "rainbow", "shiny", "toxic", "lava", "neon"].forEach(
+          (k) => {
+            if (out[id][k] || rec[k]) merged[k] = true;
+          }
+        );
+        out[id] = merged;
+      }
+    });
+    return out;
+  }
+
+  function mergeFishingSaveStrings(aStr, bStr) {
+    const a = parseJsonSafe(aStr, null);
+    const b = parseJsonSafe(bStr, null);
+    if (!a && !b) return null;
+    if (!a) return typeof bStr === "string" ? bStr : JSON.stringify(b);
+    if (!b) return typeof aStr === "string" ? aStr : JSON.stringify(a);
+    const scoreA = fishingSaveScore(a);
+    const scoreB = fishingSaveScore(b);
+    // Nearly empty side never wins wholesale
+    if (scoreA <= 0 && scoreB > 0) return typeof bStr === "string" ? bStr : JSON.stringify(b);
+    if (scoreB <= 0 && scoreA > 0) return typeof aStr === "string" ? aStr : JSON.stringify(a);
+
+    const primary = scoreB > scoreA ? b : a;
+    const secondary = scoreB > scoreA ? a : b;
+    const out = { ...secondary, ...primary };
+    out.coins = Math.max(Number(a.coins) || 0, Number(b.coins) || 0);
+    out.lifetime = Math.max(Number(a.lifetime) || 0, Number(b.lifetime) || 0);
+    out.catches = Math.max(Number(a.catches) || 0, Number(b.catches) || 0);
+    out.perfects = Math.max(Number(a.perfects) || 0, Number(b.perfects) || 0);
+    out.boatLevel = Math.max(Number(a.boatLevel) || 0, Number(b.boatLevel) || 0);
+    out.aquariumLevel = Math.max(Number(a.aquariumLevel) || 0, Number(b.aquariumLevel) || 0);
+    out.bestCatchScore = Math.max(Number(a.bestCatchScore) || 0, Number(b.bestCatchScore) || 0);
+    out.caught = mergeCaughtMaps(a.caught, b.caught);
+    out.owned = { ...(a.owned || {}), ...(b.owned || {}) };
+    Object.keys(out.owned).forEach((k) => {
+      out.owned[k] = !!(a.owned?.[k] || b.owned?.[k]);
+    });
+    out.unlocked = { ...(a.unlocked || {}), ...(b.unlocked || {}) };
+    Object.keys(out.unlocked).forEach((k) => {
+      out.unlocked[k] = !!(a.unlocked?.[k] || b.unlocked?.[k] || k === "creek");
+    });
+    // Keep the richer cooler if lengths differ a lot; else prefer primary
+    const coolA = Array.isArray(a.cooler) ? a.cooler : [];
+    const coolB = Array.isArray(b.cooler) ? b.cooler : [];
+    out.cooler = coolB.length > coolA.length ? coolB : coolA.length > coolB.length ? coolA : primary.cooler || [];
+    if ((Number(a.bestCatchScore) || 0) >= (Number(b.bestCatchScore) || 0)) {
+      out.bestCatchId = a.bestCatchId || b.bestCatchId || "";
+      out.bestCatchVariant = a.bestCatchVariant || b.bestCatchVariant || "";
+      out.bestCatchShiny = !!(a.bestCatchShiny || b.bestCatchShiny);
+      out.bestCatchMutation = a.bestCatchMutation || b.bestCatchMutation || "";
+    } else {
+      out.bestCatchId = b.bestCatchId || a.bestCatchId || "";
+      out.bestCatchVariant = b.bestCatchVariant || a.bestCatchVariant || "";
+      out.bestCatchShiny = !!(b.bestCatchShiny || a.bestCatchShiny);
+      out.bestCatchMutation = b.bestCatchMutation || a.bestCatchMutation || "";
+    }
+    out.ownerPlayerId = primary.ownerPlayerId || secondary.ownerPlayerId || "";
+    out.ownerName = primary.ownerName || secondary.ownerName || "";
+    return JSON.stringify(out);
+  }
+
+  function mergeNumericString(a, b) {
+    return String(Math.max(Number(a) || 0, Number(b) || 0));
+  }
+
   function mergeBags(localBag, remoteBag) {
     if (!localBag && !remoteBag) return null;
     if (!localBag) return remoteBag;
@@ -179,6 +295,21 @@
       const pb = JSON.parse(remoteKv["hub-achievements-pending"] || "[]");
       const set = new Set([...(Array.isArray(pa) ? pa : []), ...(Array.isArray(pb) ? pb : [])]);
       kv["hub-achievements-pending"] = JSON.stringify([...set].slice(-80));
+    } catch {}
+
+    // Fishing: never let a fresher empty/weak save wipe a real one (shared school PCs)
+    try {
+      const mergedFish = mergeFishingSaveStrings(
+        localKv["fishing-save-v3"],
+        remoteKv["fishing-save-v3"]
+      );
+      if (mergedFish) kv["fishing-save-v3"] = mergedFish;
+    } catch {}
+    try {
+      kv["fishing-best-catch-v2"] = mergeNumericString(
+        localKv["fishing-best-catch-v2"],
+        remoteKv["fishing-best-catch-v2"]
+      );
     } catch {}
 
     // Hub look: prefer whichever side last explicitly set a look
@@ -230,11 +361,24 @@
   async function syncUp(playerId) {
     const id = playerIdNow(playerId);
     if (!id) return false;
-    const bag = snapshot(id);
+    const localBag = snapshot(id);
+    if (!localBag) return false;
     const api = sb();
-    if (!api || !bag) return !!bag;
+    if (!api) return true;
     try {
-      await api.upsertDoc(DOC_PREFIX + id, bag);
+      const remoteBag = await pullRemote(id);
+      const merged = mergeBags(localBag, remoteBag) || localBag;
+      merged.updatedAt = Date.now();
+      const vault = loadVault();
+      vault[id] = merged;
+      saveVault(vault);
+      // Keep active fishing keys as the merged fishing save when present
+      if (merged.kv && merged.kv["fishing-save-v3"] != null) {
+        try {
+          localStorage.setItem("fishing-save-v3", String(merged.kv["fishing-save-v3"]));
+        } catch {}
+      }
+      await api.upsertDoc(DOC_PREFIX + id, merged);
       return true;
     } catch (err) {
       console.warn("[HubAccountBag] syncUp failed", err);

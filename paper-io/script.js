@@ -324,7 +324,9 @@
       respawnAt: 0,
       spawnAt: performance.now(),
       botThink: 0,
-      botAngle: ang
+      botAngle: ang,
+      botMode: "raid",
+      botRaidUntil: 0
     };
     paintDisk(idHash(id), spot.x, spot.y, START_R);
     return p;

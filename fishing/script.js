@@ -2661,6 +2661,8 @@
       quests: { dailyKey: "", weeklyKey: "", daily: [], weekly: [] },
       echoLuckLevel: 0,
       echoLuckReset: ECHO_LUCK_RESET_ID,
+      ownerPlayerId: "",
+      ownerName: "",
       /** Active luck dial — null means follow max. */
       luckDial: null,
       luckDialFollowMax: true,
@@ -10989,9 +10991,82 @@
     return 1;
   }
 
+  function fishingOwnerId() {
+    try {
+      return String(
+        window.HubPlays?.getPlayerId?.() || localStorage.getItem("hub-player-id") || ""
+      );
+    } catch {
+      return "";
+    }
+  }
+
+  function fishingOwnerName() {
+    try {
+      return String(
+        window.HubPlays?.getName?.() || localStorage.getItem("hub-player-name") || ""
+      ).trim();
+    } catch {
+      return "";
+    }
+  }
+
+  /** Keep another player's save on a shared school PC instead of wiping it. */
+  function stashForeignFishingSave(raw) {
+    try {
+      if (!raw || typeof raw !== "object") return;
+      const ownerId = String(raw.ownerPlayerId || "").trim();
+      if (!ownerId || !window.HubAccountBag) return;
+      const vaultKey = "hub-account-bags-v1";
+      const vault = JSON.parse(localStorage.getItem(vaultKey) || "{}") || {};
+      if (!vault[ownerId] || typeof vault[ownerId] !== "object") {
+        vault[ownerId] = { playerId: ownerId, updatedAt: Date.now(), kv: {} };
+      }
+      const bag = vault[ownerId];
+      if (!bag.kv || typeof bag.kv !== "object") bag.kv = {};
+      const existing = bag.kv["fishing-save-v3"];
+      let merged = JSON.stringify(raw);
+      try {
+        if (existing && window.HubAccountBag.mergeBags) {
+          merged =
+            window.HubAccountBag.mergeBags(
+              { playerId: ownerId, updatedAt: Date.now(), kv: { "fishing-save-v3": existing } },
+              {
+                playerId: ownerId,
+                updatedAt: Date.now(),
+                kv: { "fishing-save-v3": JSON.stringify(raw) }
+              }
+            )?.kv?.["fishing-save-v3"] || merged;
+        }
+      } catch {}
+      bag.kv["fishing-save-v3"] = merged;
+      bag.updatedAt = Date.now();
+      vault[ownerId] = bag;
+      localStorage.setItem(vaultKey, JSON.stringify(vault));
+    } catch {}
+  }
+
   function loadState() {
     try {
-      const raw = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+      let raw = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+      const me = fishingOwnerId();
+      const foreignId = raw && typeof raw === "object" ? String(raw.ownerPlayerId || "").trim() : "";
+      // Shared computer: active save belongs to someone else → stash it, load ours
+      if (foreignId && me && foreignId !== me) {
+        stashForeignFishingSave(raw);
+        raw = null;
+        try {
+          const vault = JSON.parse(localStorage.getItem("hub-account-bags-v1") || "{}") || {};
+          const mine = vault[me]?.kv?.["fishing-save-v3"];
+          if (mine) raw = JSON.parse(mine);
+        } catch {}
+      } else if ((!raw || typeof raw !== "object") && me) {
+        try {
+          const vault = JSON.parse(localStorage.getItem("hub-account-bags-v1") || "{}") || {};
+          const mine = vault[me]?.kv?.["fishing-save-v3"];
+          if (mine) raw = JSON.parse(mine);
+        } catch {}
+      }
       if (!raw || typeof raw !== "object") return defaultState();
       const next = defaultState();
       next.coins = Math.max(0, Number(raw.coins) || 0);
@@ -11204,6 +11279,8 @@
       next.communityPendingAdds = Math.max(0, Math.floor(Number(raw.communityPendingAdds) || 0));
       next.communityLbClaimedKey = String(raw.communityLbClaimedKey || "");
       next.communityLbClaimedWave = Math.max(0, Math.floor(Number(raw.communityLbClaimedWave) || 0));
+      next.ownerPlayerId = String(raw.ownerPlayerId || fishingOwnerId() || "");
+      next.ownerName = String(raw.ownerName || fishingOwnerName() || "");
       return next;
     } catch {
       return defaultState();
@@ -11499,12 +11576,27 @@
     try {
       snapshotChestBoosts();
       state.lastTick = Date.now();
+      const me = fishingOwnerId();
+      const myName = fishingOwnerName();
+      if (me) state.ownerPlayerId = me;
+      if (myName) state.ownerName = myName;
+      // Shared PC guard: never overwrite another account's richer active save
+      try {
+        const existing = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
+        const existingOwner = existing && typeof existing === "object" ? String(existing.ownerPlayerId || "") : "";
+        if (existingOwner && me && existingOwner !== me) {
+          stashForeignFishingSave(existing);
+        }
+      } catch {}
       localStorage.setItem(SAVE_KEY, JSON.stringify(state));
       persistChestBoostBackup();
       const best = Math.max(getStoredBest(), Math.floor(state.bestCatchScore || 0));
       localStorage.setItem(HIGH_SCORE_KEY, String(best));
       const fish = fishById(state.bestCatchId);
       if (fish) persistBestCatchMeta(fish, bestCatchEntry());
+      try {
+        window.HubAccountBag?.snapshot?.(me);
+      } catch {}
     } catch {}
   }
 
@@ -18771,6 +18863,22 @@
   }
 
   state = loadState();
+  // Shared school PC / account switch: if bag reloads mid-session, take the safer save
+  document.addEventListener("hub-account-bag-applied", () => {
+    try {
+      const next = loadState();
+      if (!next) return;
+      const me = fishingOwnerId();
+      if (next.ownerPlayerId && me && next.ownerPlayerId !== me) return;
+      state = next;
+      try {
+        render?.();
+      } catch {}
+      try {
+        saveState();
+      } catch {}
+    } catch {}
+  });
   // Drop broken Infinity-scale packed scores so Shiny/Neon can outrank plain Apex.
   try {
     if (localStorage.getItem(CATCH_SCORE_V2_ID) !== "done") {
