@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928e": [
+    "Fishing Idle: fix progress not saving on refresh (cloud sync was wiping the local save)"
+  ],
   "20260928d": [
     "Fishing Idle: sold fish stay sold after refresh (cloud sync no longer brings them back)"
   ],

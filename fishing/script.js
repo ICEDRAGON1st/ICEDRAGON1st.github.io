@@ -18863,13 +18863,38 @@
   }
 
   state = loadState();
-  // Shared school PC / account switch: if bag reloads mid-session, take the safer save
-  document.addEventListener("hub-account-bag-applied", () => {
+  // Soft bag sync: only adopt remote/bag if it's at least as progressed — never wipe the live session
+  document.addEventListener("hub-account-bag-applied", (ev) => {
     try {
       const next = loadState();
       if (!next) return;
       const me = fishingOwnerId();
       if (next.ownerPlayerId && me && next.ownerPlayerId !== me) return;
+      const replace = !!ev?.detail?.replace;
+      if (!replace && state) {
+        const curLife = Number(state.lifetime) || 0;
+        const nextLife = Number(next.lifetime) || 0;
+        const curCatch = Number(state.catches) || 0;
+        const nextCatch = Number(next.catches) || 0;
+        const curCoins = Number(state.coins) || 0;
+        const nextCoins = Number(next.coins) || 0;
+        const curTick = Number(state.lastTick) || 0;
+        const nextTick = Number(next.lastTick) || 0;
+        const curCool = Array.isArray(state.cooler) ? state.cooler.length : 0;
+        const nextCool = Array.isArray(next.cooler) ? next.cooler.length : 0;
+        const keepLive =
+          (nextLife + nextCatch + nextCoins === 0 && curLife + curCatch + curCoins > 0) ||
+          curLife > nextLife ||
+          curCatch > nextCatch ||
+          (curTick > nextTick && (curLife >= nextLife || curCatch >= nextCatch || curCoins >= nextCoins)) ||
+          (curCool < nextCool && curCoins >= nextCoins && curTick >= nextTick);
+        if (keepLive) {
+          try {
+            saveState();
+          } catch {}
+          return;
+        }
+      }
       state = next;
       try {
         render?.();
@@ -18878,6 +18903,18 @@
         saveState();
       } catch {}
     } catch {}
+  });
+  window.addEventListener("pagehide", () => {
+    try {
+      saveState();
+    } catch {}
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      try {
+        saveState();
+      } catch {}
+    }
   });
   // Drop broken Infinity-scale packed scores so Shiny/Neon can outrank plain Apex.
   try {

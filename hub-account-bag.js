@@ -355,20 +355,28 @@
     };
   }
 
-  function apply(bag) {
-    clearBagKeys();
+  function apply(bag, opts = {}) {
     if (!bag || !bag.kv || typeof bag.kv !== "object") return;
+    // replace: full account switch. soft (default): only write keys present — never wipe fishing mid-session
+    if (opts.replace) clearBagKeys();
     Object.entries(bag.kv).forEach(([key, value]) => {
       if (!BAG_KEYS.includes(key)) return;
       try {
-        if (value == null) localStorage.removeItem(key);
-        else localStorage.setItem(key, String(value));
+        if (value == null) {
+          if (opts.replace) localStorage.removeItem(key);
+          return;
+        }
+        localStorage.setItem(key, String(value));
       } catch {}
     });
     try {
       document.dispatchEvent(
         new CustomEvent("hub-account-bag-applied", {
-          detail: { playerId: bag.playerId || playerIdNow(), theme: bag.kv["hub-look-theme"] || null }
+          detail: {
+            playerId: bag.playerId || playerIdNow(),
+            theme: bag.kv["hub-look-theme"] || null,
+            replace: !!opts.replace
+          }
         })
       );
     } catch {}
@@ -389,7 +397,7 @@
       vault[id] = merged;
       saveVault(vault);
       // Keep active fishing keys as the merged fishing save when present
-      if (merged.kv && merged.kv["fishing-save-v3"] != null) {
+      if (merged.kv && merged.kv["fishing-save-v3"] != null && merged.kv["fishing-save-v3"] !== "") {
         try {
           localStorage.setItem("fishing-save-v3", String(merged.kv["fishing-save-v3"]));
         } catch {}
@@ -421,29 +429,37 @@
     }
   }
 
-  async function pullAndApply(playerId) {
+  async function pullAndApply(playerId, opts = {}) {
     const id = String(playerId || "");
     if (!id) return null;
-    const localBag = loadVault()[id] || null;
-    const remoteBag = await pullRemote(id);
-    const merged = mergeBags(localBag, remoteBag);
-    if (merged) {
-      const vault = loadVault();
-      vault[id] = merged;
-      saveVault(vault);
-      apply(merged);
-      // Push merged union back so both devices keep achievements
-      const api = sb();
-      if (api) {
-        try {
-          merged.updatedAt = Date.now();
-          await api.upsertDoc(DOC_PREFIX + id, merged);
-          vault[id] = merged;
-          saveVault(vault);
-        } catch {}
+    // Always capture live localStorage first so a soft sync can't drop unsaved fishing progress
+    let localBag = null;
+    if (!opts.skipLiveSnapshot) {
+      try {
+        localBag = snapshot(id);
+      } catch {
+        localBag = null;
       }
-    } else {
-      clearBagKeys();
+    }
+    if (!localBag) localBag = loadVault()[id] || null;
+    const remoteBag = await pullRemote(id);
+    const merged = mergeBags(localBag, remoteBag) || localBag || remoteBag;
+    if (!merged) {
+      // Never wipe local keys just because remote is empty/unreachable
+      return localBag;
+    }
+    const vault = loadVault();
+    vault[id] = merged;
+    saveVault(vault);
+    apply(merged, { replace: !!opts.replace });
+    const api = sb();
+    if (api) {
+      try {
+        merged.updatedAt = Date.now();
+        await api.upsertDoc(DOC_PREFIX + id, merged);
+        vault[id] = merged;
+        saveVault(vault);
+      } catch {}
     }
     return merged;
   }
@@ -459,7 +475,9 @@
       await syncUp(from);
     }
     if (to) {
-      await pullAndApply(to);
+      // Full replace for the incoming account — don't snapshot the cleared leaving keys onto `to`
+      clearBagKeys();
+      await pullAndApply(to, { skipLiveSnapshot: true, replace: true });
     } else {
       clearBagKeys();
     }
