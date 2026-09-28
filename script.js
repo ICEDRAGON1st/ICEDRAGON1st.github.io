@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928p": [
+    "Fishing Idle: fix stuck Play menu (broken combo HUD syntax)"
+  ],
   "20260928o": [
     "Fishing Idle: perfect combo has no cap — keep stacking forever"
   ],

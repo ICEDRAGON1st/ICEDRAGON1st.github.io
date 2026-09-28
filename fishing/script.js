@@ -16978,9 +16978,9 @@
     const comboOn = comboActive(now);
     if (comboLabel) {
       comboLabel.textContent = comboOn
-      comboLabel.textContent = comboHoldInfinite()
-        ? `×${state.combo} · ∞`
-        : `×${state.combo} · ${formatTreasureClock(Math.max(0, state.comboBoostUntil - now))}`;
+        ? comboHoldInfinite()
+          ? `×${state.combo} · ∞`
+          : `×${state.combo} · ${formatTreasureClock(Math.max(0, state.comboBoostUntil - now))}`
         : "—";
     }
     comboChip?.classList.toggle("is-live", comboOn);
