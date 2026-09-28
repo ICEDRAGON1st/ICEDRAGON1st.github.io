@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928m": [
+    "Fishing Idle: Eternal Cadence shop upgrade — infinite combo hold (shows ×N · ∞)"
+  ],
   "20260928l": [
     "Fishing Idle: fix Best catch label (no more zenith · Shiny The Zenith) and rebuild best from real cooler scores"
   ],

@@ -15769,6 +15769,9 @@
     if (item.kind === "speed") {
       state.equippedSpeed = id;
       setCatchLine(`Bought & equipped ${item.name}`);
+    } else if (item.kind === "combo" && item.infinite) {
+      if ((state.combo || 0) > 0) state.comboBoostUntil = Number.MAX_SAFE_INTEGER;
+      setCatchLine("Eternal Cadence — combo hold is infinite");
     }
     playSfx("click");
     checkAchievements();
