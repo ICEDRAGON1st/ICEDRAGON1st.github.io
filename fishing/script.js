@@ -5126,18 +5126,139 @@
     }
   }
 
+  /** Infer a category for Hjalte's admin audit row (works for old "event" notes too). */
+  function adminAuditCategory(cmd, note) {
+    const t = String(cmd || "").toLowerCase().replace(/\s+/g, " ").trim();
+    const n = String(note || "").toLowerCase();
+    if (n.includes("gift") || /^give\b/.test(t)) {
+      return { id: "gift", label: "Gifts", order: 1 };
+    }
+    if (
+      /^(storm|calm|sunny|clear(?:\s+(?:weather|skies))?|none)\b/.test(t) ||
+      /\bweather\b/.test(t)
+    ) {
+      return { id: "weather", label: "Weather", order: 2 };
+    }
+    if (/^clear\b/.test(t)) {
+      return { id: "clear", label: "Clears", order: 3 };
+    }
+    if (/\b(toxic|lava|neon)\b/.test(t)) {
+      return { id: "mutation", label: "Mutations", order: 4 };
+    }
+    if (/\blucky\s*blocks?\b|\bluckyblock\b/.test(t)) {
+      return { id: "luckyblock", label: "Lucky blocks", order: 5 };
+    }
+    if (/\b(shiny|gold|silver|diamond|rainbow|variant)\b/.test(t)) {
+      return { id: "variant", label: "Variants", order: 6 };
+    }
+    if (/\b(luck|sell|money|speed|chest)\b/.test(t)) {
+      return { id: "boost", label: "Boosts", order: 7 };
+    }
+    return { id: "other", label: "Other", order: 8 };
+  }
+
+  const ADMIN_AUDIT_FILTER_ALL = "all";
+  let adminAuditFilter = ADMIN_AUDIT_FILTER_ALL;
+  let adminAuditCache = [];
+
+  function renderAdminAuditFilters(entries) {
+    const wrap = document.getElementById("admin-audit-filters");
+    if (!wrap) return;
+    const counts = new Map();
+    entries.forEach((e) => {
+      const cat = adminAuditCategory(e.cmd, e.note);
+      counts.set(cat.id, (counts.get(cat.id) || 0) + 1);
+    });
+    const cats = [
+      { id: ADMIN_AUDIT_FILTER_ALL, label: "All", order: 0 },
+      ...[...counts.entries()]
+        .map(([id, count]) => {
+          const sample = adminAuditCategory(
+            entries.find((e) => adminAuditCategory(e.cmd, e.note).id === id)?.cmd,
+            entries.find((e) => adminAuditCategory(e.cmd, e.note).id === id)?.note
+          );
+          return { id, label: sample.label, order: sample.order, count };
+        })
+        .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label))
+    ];
+    if (adminAuditFilter !== ADMIN_AUDIT_FILTER_ALL && !counts.has(adminAuditFilter)) {
+      adminAuditFilter = ADMIN_AUDIT_FILTER_ALL;
+    }
+    wrap.innerHTML = cats
+      .map((c) => {
+        const n = c.id === ADMIN_AUDIT_FILTER_ALL ? entries.length : c.count || 0;
+        const on = adminAuditFilter === c.id ? " is-on" : "";
+        return `<button type="button" class="admin-audit-filter${on}" data-audit-filter="${c.id}">${c.label} <span>${n}</span></button>`;
+      })
+      .join("");
+  }
+
+  function renderAdminAuditEntries(entries) {
+    const list = document.getElementById("admin-audit-list");
+    if (!list) return;
+    const filtered =
+      adminAuditFilter === ADMIN_AUDIT_FILTER_ALL
+        ? entries
+        : entries.filter((e) => adminAuditCategory(e.cmd, e.note).id === adminAuditFilter);
+    if (!filtered.length) {
+      list.innerHTML = `<li class="admin-audit-empty">${
+        entries.length ? "Nothing in this category" : "No limited-admin commands logged yet"
+      }</li>`;
+      return;
+    }
+
+    // Group by category (keep newest-first within each group)
+    const groups = new Map();
+    filtered.forEach((e) => {
+      const cat = adminAuditCategory(e.cmd, e.note);
+      if (!groups.has(cat.id)) groups.set(cat.id, { cat, items: [] });
+      groups.get(cat.id).items.push(e);
+    });
+    const ordered = [...groups.values()].sort(
+      (a, b) => a.cat.order - b.cat.order || a.cat.label.localeCompare(b.cat.label)
+    );
+
+    list.innerHTML = ordered
+      .map(({ cat, items }) => {
+        const head = `<li class="admin-audit-cat" data-cat="${cat.id}">
+          <span class="admin-audit-cat-label">${cat.label}</span>
+          <span class="admin-audit-cat-count">${items.length}</span>
+        </li>`;
+        const rows = items
+          .map((e) => {
+            const when = formatAdminAuditWhen(e.at);
+            const who = String(e.by || "Hjalte").replace(/[<>&]/g, "");
+            const cmd = String(e.cmd || "—")
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;");
+            return `<li class="admin-audit-item" data-cat="${cat.id}">
+              <span class="admin-audit-when">${when}</span>
+              <span class="admin-audit-who">${who}</span>
+              <code class="admin-audit-cmd">${cmd}</code>
+              <span class="admin-audit-note">${cat.label}</span>
+            </li>`;
+          })
+          .join("");
+        return head + rows;
+      })
+      .join("");
+  }
+
   /** Fire-and-forget: only limited admin (Hjalte) writes; ICE reads in Admin. */
   function logLimitedAdminAction(cmd, note = "") {
     if (!isFishingLimitedAdmin()) return;
     const text = String(cmd || "").trim().slice(0, 200);
     if (!text) return;
+    const cat = adminAuditCategory(text, note);
     appendAdminAuditLog({
       cmd: text,
-      note: String(note || "").trim().slice(0, 160)
+      note: String(note || cat.label || "").trim().slice(0, 160),
+      category: cat.id
     }).catch(() => {});
   }
 
-  async function appendAdminAuditLog({ cmd, note }) {
+  async function appendAdminAuditLog({ cmd, note, category }) {
     const api = fishingSb();
     if (!api?.getDoc || !api?.upsertDoc) return;
     const entry = {
@@ -5145,7 +5266,8 @@
       at: Date.now(),
       by: playerDisplayName() || "Hjalte",
       cmd: String(cmd || "").trim().slice(0, 200),
-      note: String(note || "").trim().slice(0, 160)
+      note: String(note || "").trim().slice(0, 160),
+      category: String(category || "").trim().slice(0, 32)
     };
     try {
       const data = (await api.getDoc(ADMIN_AUDIT_DOC)) || {};
@@ -5192,32 +5314,12 @@
     if (status) status.textContent = "Loading…";
     const entries = await fetchAdminAuditEntries();
     if (!isFishingOwner()) return;
-    if (!entries.length) {
-      list.innerHTML = `<li class="admin-audit-empty">No limited-admin commands logged yet</li>`;
-      if (status) status.textContent = "Empty";
-      return;
+    adminAuditCache = entries;
+    renderAdminAuditFilters(entries);
+    renderAdminAuditEntries(entries);
+    if (status) {
+      status.textContent = entries.length ? `${entries.length} logged` : "Empty";
     }
-    list.innerHTML = entries
-      .map((e) => {
-        const when = formatAdminAuditWhen(e.at);
-        const who = String(e.by || "Hjalte").replace(/[<>&]/g, "");
-        const cmd = String(e.cmd || "—")
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;");
-        const note = String(e.note || "")
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;");
-        return `<li class="admin-audit-item">
-          <span class="admin-audit-when">${when}</span>
-          <span class="admin-audit-who">${who}</span>
-          <code class="admin-audit-cmd">${cmd}</code>
-          ${note ? `<span class="admin-audit-note">${note}</span>` : ""}
-        </li>`;
-      })
-      .join("");
-    if (status) status.textContent = `${entries.length} logged`;
   }
 
   function adminEventRateLimited() {
@@ -18478,6 +18580,13 @@
   adminClose?.addEventListener("click", closeAdmin);
   document.getElementById("admin-audit-refresh")?.addEventListener("click", () => {
     refreshAdminAuditList();
+  });
+  document.getElementById("admin-audit-filters")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-audit-filter]");
+    if (!btn) return;
+    adminAuditFilter = String(btn.dataset.auditFilter || ADMIN_AUDIT_FILTER_ALL);
+    renderAdminAuditFilters(adminAuditCache);
+    renderAdminAuditEntries(adminAuditCache);
   });
   adminOverlay?.addEventListener("click", (e) => {
     const scopeBtn = e.target.closest("[data-admin-scope]");

@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928aa": [
+    "Fishing Idle: Hjalte admin log grouped by category (weather, boosts, gifts…)"
+  ],
   "20260928z": [
     "Fishing Idle: fix sells getting undone by cloud cooler restore"
   ],
