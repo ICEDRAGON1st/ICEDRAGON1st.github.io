@@ -18,7 +18,6 @@
   const MIN_TRAIL_FOR_SUICIDE = 22;
   const TRAIL_SOFT_CAP = 640; // compact older points above this (trail stays connected)
   const TRAIL_KEEP_TAIL = 140; // recent tip stays dense for fair cutting
-  const SPAWN_GRACE_MS = 2500;
   const MAX_PLAYERS = 8;
   const NET_POLL_MS = 120;
   const DOC_PREFIX = "paper-io-room-";
@@ -322,7 +321,6 @@
       distAcc: 0,
       outside: false,
       respawnAt: 0,
-      spawnAt: performance.now(),
       botThink: 0,
       botAngle: ang,
       botMode: "raid",
@@ -843,10 +841,6 @@
     p.wantAngle = p.botAngle;
   }
 
-  function inSpawnGrace(p) {
-    return performance.now() - (p.spawnAt || 0) < SPAWN_GRACE_MS;
-  }
-
   function stepPlayer(p, dt) {
     if (!p.alive) return;
 
@@ -864,7 +858,6 @@
 
     const nxRaw = p.x + Math.cos(p.angle) * SPEED * dt;
     const nyRaw = p.y + Math.sin(p.angle) * SPEED * dt;
-    const grace = inSpawnGrace(p);
 
     // Walls are solid — slide along them, never KO
     const edge = PLAYER_R + 0.35;
@@ -881,14 +874,11 @@
     }
 
     // Trail cuts kill; head bumps do nothing. Can cut from your own land too.
-    if (!grace) {
-      for (const other of players) {
-        if (other === p || !other.alive) continue;
-        if (inSpawnGrace(other)) continue;
-        if (!other.outside || other.trail.length < 1) continue;
-        if (trailHit(other, nx, ny, false)) {
-          kill(other, `${p.name} eliminated ${other.name}`, p);
-        }
+    for (const other of players) {
+      if (other === p || !other.alive) continue;
+      if (!other.outside || other.trail.length < 1) continue;
+      if (trailHit(other, nx, ny, false)) {
+        kill(other, `${p.name} eliminated ${other.name}`, p);
       }
     }
 

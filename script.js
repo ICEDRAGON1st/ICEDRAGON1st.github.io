@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928u": [
+    "Paper Claim: removed spawn protection"
+  ],
   "20260928t": [
     "Paper Claim: trail cuts register properly; head bumps still do nothing"
   ],
