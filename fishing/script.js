@@ -3176,6 +3176,10 @@
     castBtn?.classList.toggle("admin-speed", m > 1 + 1e-9);
   }
 
+  const COMBO_MAX = 9999;
+  /** Full luck/multi per combo stack up to this; past it scales softer. */
+  const COMBO_BONUS_FULL = 99;
+
   function comboHoldInfinite() {
     return ownedGear("combo").some((g) => !!g.infinite);
   }
@@ -3196,19 +3200,28 @@
     }
   }
 
-  function comboLuckBonus(now = Date.now()) {
+  function comboStackCount(now = Date.now()) {
     if (!comboActive(now)) return 0;
-    return Math.min(12, state.combo) * 18;
+    return Math.min(COMBO_MAX, Math.max(0, Math.floor(Number(state.combo) || 0)));
+  }
+
+  function comboLuckBonus(now = Date.now()) {
+    const c = comboStackCount(now);
+    if (c <= 0) return 0;
+    if (c <= COMBO_BONUS_FULL) return c * 18;
+    return COMBO_BONUS_FULL * 18 + (c - COMBO_BONUS_FULL) * 2;
   }
 
   function comboMultiBonus(now = Date.now()) {
-    if (!comboActive(now)) return 0;
-    return Math.min(12, state.combo) * 0.015;
+    const c = comboStackCount(now);
+    if (c <= 0) return 0;
+    if (c <= COMBO_BONUS_FULL) return c * 0.015;
+    return COMBO_BONUS_FULL * 0.015 + (c - COMBO_BONUS_FULL) * 0.002;
   }
 
   function notePerfectCombo(perfect) {
     if (perfect) {
-      state.combo = Math.min(99, (state.combo || 0) + 1);
+      state.combo = Math.min(COMBO_MAX, (state.combo || 0) + 1);
       state.comboBoostUntil = comboHoldInfinite()
         ? Number.MAX_SAFE_INTEGER
         : Date.now() + comboHoldMs();

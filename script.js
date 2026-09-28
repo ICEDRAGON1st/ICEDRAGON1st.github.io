@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928n": [
+    "Fishing Idle: perfect combo can go past ×99 (up to ×9999) and keeps scaling luck/sell"
+  ],
   "20260928m": [
     "Fishing Idle: Eternal Cadence shop upgrade — infinite combo hold (shows ×N · ∞)"
   ],
