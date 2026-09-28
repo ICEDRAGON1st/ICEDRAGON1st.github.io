@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928d": [
+    "Fishing Idle: sold fish stay sold after refresh (cloud sync no longer brings them back)"
+  ],
   "20260928c": [
     "My Games: shows clearly when your account has a login password set"
   ],

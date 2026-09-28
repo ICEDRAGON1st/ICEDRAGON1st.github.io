@@ -249,10 +249,26 @@
     Object.keys(out.unlocked).forEach((k) => {
       out.unlocked[k] = !!(a.unlocked?.[k] || b.unlocked?.[k] || k === "creek");
     });
-    // Keep the richer cooler if lengths differ a lot; else prefer primary
+    // Cooler: newer save wins so sells / unfavorites stick (never revive fish from an older longer cooler)
     const coolA = Array.isArray(a.cooler) ? a.cooler : [];
     const coolB = Array.isArray(b.cooler) ? b.cooler : [];
-    out.cooler = coolB.length > coolA.length ? coolB : coolA.length > coolB.length ? coolA : primary.cooler || [];
+    const tickA = Number(a.lastTick) || 0;
+    const tickB = Number(b.lastTick) || 0;
+    out.lastTick = Math.max(tickA, tickB);
+    if (tickA !== tickB) {
+      out.cooler = tickA > tickB ? coolA : coolB;
+    } else if (coolA.length !== coolB.length) {
+      const coinsA = Number(a.coins) || 0;
+      const coinsB = Number(b.coins) || 0;
+      const lifeA = Number(a.lifetime) || 0;
+      const lifeB = Number(b.lifetime) || 0;
+      // Same timestamp: shorter cooler + more money ≈ a sell that should stick
+      if (coolB.length < coolA.length && (coinsB > coinsA || lifeB > lifeA)) out.cooler = coolB;
+      else if (coolA.length < coolB.length && (coinsA > coinsB || lifeA > lifeB)) out.cooler = coolA;
+      else out.cooler = primary.cooler || [];
+    } else {
+      out.cooler = primary.cooler || coolA;
+    }
     if ((Number(a.bestCatchScore) || 0) >= (Number(b.bestCatchScore) || 0)) {
       out.bestCatchId = a.bestCatchId || b.bestCatchId || "";
       out.bestCatchVariant = a.bestCatchVariant || b.bestCatchVariant || "";

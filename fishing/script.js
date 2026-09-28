@@ -15105,7 +15105,7 @@
     );
     playSfx("click");
     render(false);
-    saveSoon();
+    saveSoon(true);
   }
 
   function toggleSaveFish(index) {
@@ -15120,7 +15120,7 @@
       setCatchLine(`${formatFishName(fish, entry)} stays in the Aquarium`, "exclusive");
       playSfx("click");
       render(false);
-      saveSoon();
+      saveSoon(true);
       return;
     }
     entry.saved = !entry.saved;
@@ -15132,7 +15132,7 @@
     );
     playSfx("click");
     render(false);
-    saveSoon();
+    saveSoon(true);
   }
 
   function sellCooler() {
@@ -15165,7 +15165,7 @@
     );
     playSfx("win");
     render(false);
-    saveSoon();
+    saveSoon(true);
   }
 
   /* ========== Shiny Machine ========== */
