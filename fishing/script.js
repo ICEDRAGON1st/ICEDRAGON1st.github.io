@@ -11395,7 +11395,7 @@
         next.weatherId = "none";
       }
       next.weatherUntil = Math.max(0, Number(raw.weatherUntil) || 0);
-      next.combo = Math.max(0, Math.min(99, Math.floor(Number(raw.combo) || 0)));
+      next.combo = Math.max(0, Math.min(COMBO_MAX, Math.floor(Number(raw.combo) || 0)));
       next.comboBoostUntil = Math.max(0, Number(raw.comboBoostUntil) || 0);
       next.aquariumBank = Math.max(0, Number(raw.aquariumBank) || 0);
       next.aquariumLastTick = Math.max(0, Number(raw.aquariumLastTick) || Date.now());
