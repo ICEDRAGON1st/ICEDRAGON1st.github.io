@@ -603,11 +603,15 @@
   function trailHit(p, ox, oy, ignoreRecent) {
     const hitR = ignoreRecent
       ? PLAYER_R * 0.8 + TRAIL_W * 0.3
-      : PLAYER_R * 1.35 + TRAIL_W * 0.85; // easier to cut rivals
+      : PLAYER_R * 1.05 + TRAIL_W * 0.7;
     const trail = p.trail;
+    // Touching their head must never count as a trail cut
+    const headSafe = PLAYER_R * 2.2;
+    if (!ignoreRecent && Math.hypot(ox - p.x, oy - p.y) <= headSafe) {
+      return false;
+    }
 
     function hitSeg(ax, ay, bx, by) {
-      // Cheap AABB reject before exact segment distance
       const minX = (ax < bx ? ax : bx) - hitR;
       const maxX = (ax > bx ? ax : bx) + hitR;
       const minY = (ay < by ? ay : by) - hitR;
@@ -616,14 +620,23 @@
       return distToSeg(ox, oy, ax, ay, bx, by) <= hitR;
     }
 
-    // Always test the live tip (last sample → current body)
+    // Tip → head: stop short of the body so head bumps aren't trail hits
     if (trail.length >= 1) {
       const tip = trail[trail.length - 1];
-      const tipDist = Math.hypot(p.x - tip.x, p.y - tip.y);
-      if (!ignoreRecent || tipDist > TRAIL_IMMUNE_DIST * 0.35) {
-        if (hitSeg(tip.x, tip.y, p.x, p.y)) {
-          if (!ignoreRecent) return true;
-          if (tipDist > TRAIL_IMMUNE_DIST * 0.5) return true;
+      const dx = p.x - tip.x;
+      const dy = p.y - tip.y;
+      const len = Math.hypot(dx, dy);
+      const stop = headSafe * 0.55;
+      if (len > stop + 0.2) {
+        const t = 1 - stop / len;
+        const ex = tip.x + dx * t;
+        const ey = tip.y + dy * t;
+        const tipDist = len;
+        if (!ignoreRecent || tipDist > TRAIL_IMMUNE_DIST * 0.35) {
+          if (hitSeg(tip.x, tip.y, ex, ey)) {
+            if (!ignoreRecent) return true;
+            if (tipDist > TRAIL_IMMUNE_DIST * 0.5) return true;
+          }
         }
       }
     }
@@ -652,10 +665,21 @@
       return false;
     }
 
-    // Recent tip: every segment. Older path: strided (still continuous enough to cut)
+    // Skip segments still glued to the head (recent tip near body)
     const denseFrom = Math.max(1, trail.length - 160);
     for (let i = denseFrom; i < trail.length; i++) {
-      if (hitSeg(trail[i - 1].x, trail[i - 1].y, trail[i].x, trail[i].y)) return true;
+      const ax = trail[i - 1].x;
+      const ay = trail[i - 1].y;
+      const bx = trail[i].x;
+      const by = trail[i].y;
+      // Ignore ribbon still inside the head disk
+      if (
+        Math.hypot(ax - p.x, ay - p.y) < headSafe * 0.55 &&
+        Math.hypot(bx - p.x, by - p.y) < headSafe * 0.55
+      ) {
+        continue;
+      }
+      if (hitSeg(ax, ay, bx, by)) return true;
     }
     const stride = trail.length > 500 ? 3 : trail.length > 250 ? 2 : 1;
     for (let i = stride; i < denseFrom; i += stride) {
@@ -866,12 +890,15 @@
       p.wantAngle = p.angle;
     }
 
-    // Combat: only trail cuts kill. Heads can overlap freely (no body KO).
+    // Combat: trail cuts only. Head bumps do nothing (trailHit ignores head disk).
     if (!grace && p.outside) {
       for (const other of players) {
         if (other === p || !other.alive) continue;
         if (inSpawnGrace(other)) continue;
-        if (other.outside && trailHit(other, nx, ny, false)) {
+        if (!other.outside) continue;
+        // Extra guard: overlapping heads never eliminates
+        if (Math.hypot(nx - other.x, ny - other.y) <= PLAYER_R * 2.2) continue;
+        if (trailHit(other, nx, ny, false)) {
           kill(other, `${p.name} eliminated ${other.name}`, p);
         }
       }
