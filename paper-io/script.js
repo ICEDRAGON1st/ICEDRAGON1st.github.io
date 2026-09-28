@@ -600,14 +600,21 @@
     return Math.hypot(px - cx, py - cy);
   }
 
+  /**
+   * True if (ox,oy) cuts p's open trail. Head bumps never count —
+   * only the ribbon behind the body.
+   */
   function trailHit(p, ox, oy, ignoreRecent) {
-    const hitR = ignoreRecent
-      ? PLAYER_R * 0.8 + TRAIL_W * 0.3
-      : PLAYER_R * 1.05 + TRAIL_W * 0.7;
     const trail = p.trail;
-    // Touching their head must never count as a trail cut
-    const headSafe = PLAYER_R * 2.2;
-    if (!ignoreRecent && Math.hypot(ox - p.x, oy - p.y) <= headSafe) {
+    if (!trail || trail.length < 1) return false;
+
+    // Attacker disk vs trail half-width (matches drawn ribbon)
+    const hitR = ignoreRecent
+      ? PLAYER_R * 0.75 + TRAIL_W * 0.45
+      : PLAYER_R * 0.95 + TRAIL_W * 0.65;
+
+    // Overlapping heads = bump, not a cut
+    if (!ignoreRecent && Math.hypot(ox - p.x, oy - p.y) < PLAYER_R * 2.05) {
       return false;
     }
 
@@ -620,34 +627,29 @@
       return distToSeg(ox, oy, ax, ay, bx, by) <= hitR;
     }
 
-    // Tip → head: stop short of the body so head bumps aren't trail hits
-    if (trail.length >= 1) {
-      const tip = trail[trail.length - 1];
+    // Build killable polyline: trail points, then tip stopped at the head's edge
+    const pts = trail.slice();
+    if (pts.length >= 1) {
+      const tip = pts[pts.length - 1];
       const dx = p.x - tip.x;
       const dy = p.y - tip.y;
       const len = Math.hypot(dx, dy);
-      const stop = headSafe * 0.55;
-      if (len > stop + 0.2) {
-        const t = 1 - stop / len;
-        const ex = tip.x + dx * t;
-        const ey = tip.y + dy * t;
-        const tipDist = len;
-        if (!ignoreRecent || tipDist > TRAIL_IMMUNE_DIST * 0.35) {
-          if (hitSeg(tip.x, tip.y, ex, ey)) {
-            if (!ignoreRecent) return true;
-            if (tipDist > TRAIL_IMMUNE_DIST * 0.5) return true;
-          }
-        }
+      const gap = PLAYER_R * 1.05;
+      if (len > gap + 0.05) {
+        pts.push({
+          x: tip.x + (dx / len) * (len - gap),
+          y: tip.y + (dy / len) * (len - gap)
+        });
       }
     }
 
-    if (trail.length < 2) return false;
+    if (pts.length < 2) return false;
 
     if (ignoreRecent) {
       let dist = 0;
-      let cut = trail.length;
-      for (let i = trail.length - 1; i > 0; i--) {
-        dist += Math.hypot(trail[i].x - trail[i - 1].x, trail[i].y - trail[i - 1].y);
+      let cut = pts.length;
+      for (let i = pts.length - 1; i > 0; i--) {
+        dist += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
         if (dist >= TRAIL_IMMUNE_DIST) {
           cut = i;
           break;
@@ -655,36 +657,24 @@
         cut = i;
       }
       let total = 0;
-      for (let i = 1; i < trail.length; i++) {
-        total += Math.hypot(trail[i].x - trail[i - 1].x, trail[i].y - trail[i - 1].y);
+      for (let i = 1; i < pts.length; i++) {
+        total += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
       }
       if (total < MIN_TRAIL_FOR_SUICIDE) return false;
       for (let i = 1; i < cut; i++) {
-        if (hitSeg(trail[i - 1].x, trail[i - 1].y, trail[i].x, trail[i].y)) return true;
+        if (hitSeg(pts[i - 1].x, pts[i - 1].y, pts[i].x, pts[i].y)) return true;
       }
       return false;
     }
 
-    // Skip segments still glued to the head (recent tip near body)
-    const denseFrom = Math.max(1, trail.length - 160);
-    for (let i = denseFrom; i < trail.length; i++) {
-      const ax = trail[i - 1].x;
-      const ay = trail[i - 1].y;
-      const bx = trail[i].x;
-      const by = trail[i].y;
-      // Ignore ribbon still inside the head disk
-      if (
-        Math.hypot(ax - p.x, ay - p.y) < headSafe * 0.55 &&
-        Math.hypot(bx - p.x, by - p.y) < headSafe * 0.55
-      ) {
-        continue;
-      }
-      if (hitSeg(ax, ay, bx, by)) return true;
+    const denseFrom = Math.max(1, pts.length - 180);
+    for (let i = denseFrom; i < pts.length; i++) {
+      if (hitSeg(pts[i - 1].x, pts[i - 1].y, pts[i].x, pts[i].y)) return true;
     }
-    const stride = trail.length > 500 ? 3 : trail.length > 250 ? 2 : 1;
+    const stride = pts.length > 500 ? 3 : pts.length > 250 ? 2 : 1;
     for (let i = stride; i < denseFrom; i += stride) {
-      const a = trail[i - stride];
-      const b = trail[i];
+      const a = pts[i - stride];
+      const b = pts[i];
       if (hitSeg(a.x, a.y, b.x, b.y)) return true;
     }
     return false;
@@ -890,14 +880,12 @@
       p.wantAngle = p.angle;
     }
 
-    // Combat: trail cuts only. Head bumps do nothing (trailHit ignores head disk).
-    if (!grace && p.outside) {
+    // Trail cuts kill; head bumps do nothing. Can cut from your own land too.
+    if (!grace) {
       for (const other of players) {
         if (other === p || !other.alive) continue;
         if (inSpawnGrace(other)) continue;
-        if (!other.outside) continue;
-        // Extra guard: overlapping heads never eliminates
-        if (Math.hypot(nx - other.x, ny - other.y) <= PLAYER_R * 2.2) continue;
+        if (!other.outside || other.trail.length < 1) continue;
         if (trailHit(other, nx, ny, false)) {
           kill(other, `${p.name} eliminated ${other.name}`, p);
         }
@@ -1214,7 +1202,16 @@
       }
       const last = p.trail[p.trail.length - 1];
       if (last) ctx.lineTo(last.x, last.y);
-      ctx.lineTo(p.x, p.y);
+      // Stop at the head rim so the killable trail matches what you see
+      {
+        const dx = p.x - (last ? last.x : p.x);
+        const dy = p.y - (last ? last.y : p.y);
+        const len = Math.hypot(dx, dy) || 1;
+        const gap = PLAYER_R * 1.05;
+        if (len > gap) {
+          ctx.lineTo(p.x - (dx / len) * gap, p.y - (dy / len) * gap);
+        }
+      }
       ctx.stroke();
       ctx.shadowBlur = 0;
       ctx.globalAlpha = 1;
