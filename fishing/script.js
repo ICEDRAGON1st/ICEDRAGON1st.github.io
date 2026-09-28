@@ -19744,6 +19744,16 @@
     let code = "";
     try {
       code = String(window.HubPlays?.getPlayerCode?.() || "").trim();
+      if (
+        window.HubPlays?.isPoisonPlayerCode?.(code) ||
+        /^unde-?fned$/i.test(code.replace(/\s/g, ""))
+      ) {
+        try {
+          localStorage.removeItem("hub-player-code");
+        } catch {}
+        code = String(window.HubPlays?.getPlayerCode?.() || "").trim();
+      }
+      if (/^unde-?fned$/i.test(code.replace(/\s/g, ""))) code = "";
     } catch {}
     el.textContent = code ? `${name} · ${code}` : name;
     el.title = "Active account on this device — switch from the hub if this isn't you";

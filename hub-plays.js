@@ -1057,18 +1057,26 @@
     const me = getPlayerId();
     let formatted = readStoredPlayerCode();
     let norm = normalizePlayerCode(formatted);
-    if (norm.length !== 8) {
+    if (norm.length !== 8 || isPoisonPlayerCode(formatted) || isPoisonPlayerCode(norm)) {
+      try {
+        if (canUseLocalStorage()) localStorage.removeItem(PLAYER_CODE_KEY);
+      } catch {}
       norm = hashToCodeParts(me);
       formatted = storePlayerCode(norm);
     }
 
     try {
       let remote = await fetchCodesRemote();
+      // Never keep the UNDE-FNED poison code in the shared registry
+      Object.keys(remote).forEach((k) => {
+        if (isPoisonPlayerCode(k)) delete remote[k];
+      });
       let entry = remote[norm];
       if (entry && entry.playerId !== me) {
         // Rare collision — pick a free code
         for (let i = 0; i < 6; i += 1) {
           const next = i === 0 ? hashToCodeParts(me, "alt") : randomCodeParts();
+          if (isPoisonPlayerCode(next)) continue;
           if (!remote[next] || remote[next].playerId === me) {
             norm = next;
             formatted = storePlayerCode(next);
@@ -1097,6 +1105,11 @@
     }
 
     const out = formatPlayerCode(norm);
+    if (!out || isPoisonPlayerCode(out)) {
+      const regenerated = storePlayerCode(hashToCodeParts(me));
+      rememberCurrentAccount({ code: regenerated, playerId: me, name: getName() || "" });
+      return regenerated;
+    }
     rememberCurrentAccount({ code: out, playerId: me, name: getName() || "" });
     return out;
   }
@@ -4577,6 +4590,7 @@ body.light .menu-credit .player-name-creator {
     gameLabel,
     formatWhen,
     sanitizeName,
+    isPoisonPlayerCode,
     getPlayerId,
     getPlayerCode,
     ensurePlayerCodeRegistered,

@@ -4874,7 +4874,19 @@ function setGateCodeStatus(msg, isError) {
 function refreshPlayerCodeUI() {
   const el = document.getElementById("player-code-value");
   if (el && typeof HubPlays !== "undefined") {
-    el.textContent = HubPlays.getPlayerCode?.() || "————";
+    let code = HubPlays.getPlayerCode?.() || "";
+    // Extra guard: never show the UNDE-FNED bug on the hub cards
+    const poison =
+      typeof HubPlays.isPoisonPlayerCode === "function"
+        ? HubPlays.isPoisonPlayerCode(code)
+        : /^unde-?fned$/i.test(String(code || "").replace(/\s/g, ""));
+    if (poison) {
+      try {
+        localStorage.removeItem("hub-player-code");
+      } catch {}
+      code = HubPlays.getPlayerCode?.() || "";
+    }
+    el.textContent = code || "————";
   }
   refreshPasswordStateUI();
   renderSavedAccounts();
@@ -4896,8 +4908,14 @@ function accountListHtml(accounts, activeCode) {
     .map((a) => {
       const code = HubPlays.formatPlayerCode?.(a.code) || a.code;
       const norm = HubPlays.normalizePlayerCode?.(code) || "";
+      if (
+        (typeof HubPlays.isPoisonPlayerCode === "function" && HubPlays.isPoisonPlayerCode(code)) ||
+        /^unde-?fned$/i.test(String(code || "").replace(/\s/g, ""))
+      ) {
+        return "";
+      }
       const active = norm && norm === activeCode;
-      const label = a.name || "Unnamed";
+      const label = HubPlays.sanitizeName?.(a.name) || a.name || "Unnamed";
       const lock = a.hasPassword ? " · password" : "";
       return `<li class="${active ? "is-active" : ""}" data-account-code="${escapeHtml(code)}">
         <span class="player-accounts-meta">
