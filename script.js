@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928ae": [
+    "My Games: fix switching accounts — full bag swap + password switch uses the account code"
+  ],
   "20260928ad": [
     "Fishing Idle: stop faking 2× on old Hjalte logs — show real form mult going forward"
   ],
@@ -5098,7 +5101,8 @@ function onAccountListClick(e) {
           statusFn("Wrong password", true);
           return;
         }
-        await loginWithPlayerCode(typed, statusFn);
+        // Switch with the saved player code — password already verified
+        await loginWithPlayerCode(code, statusFn);
       })();
       return;
     }

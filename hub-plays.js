@@ -647,11 +647,11 @@
     const code =
       normalizePlayerCode(entry.code).length === 8
         ? normalizePlayerCode(entry.code)
-        : normalizePlayerCode(getPlayerCode());
+        : "";
     return {
       ok: true,
       playerId: entry.playerId,
-      code: code.length === 8 ? code : "",
+      code,
       name: entry.name || "",
       viaPassword: true
     };
@@ -1212,12 +1212,25 @@
     rememberCurrentAccount();
     const prevId = me;
 
-    // Save leaving account's achievements / settings / saves (local + Supabase)
-    if (window.HubAccountBag?.syncUp && prevId && prevId !== entry.playerId) {
+    // Full bag swap: upload leaving account, clear live keys, load incoming (replace)
+    if (window.HubAccountBag?.prepareSwitch && prevId && prevId !== entry.playerId) {
       try {
-        await HubAccountBag.syncUp(prevId);
+        await HubAccountBag.prepareSwitch(prevId, entry.playerId);
       } catch (err) {
-        console.warn("[HubPlays] account bag syncUp failed", err);
+        console.warn("[HubPlays] account bag prepareSwitch failed", err);
+      }
+    } else {
+      if (window.HubAccountBag?.syncUp && prevId && prevId !== entry.playerId) {
+        try {
+          await HubAccountBag.syncUp(prevId);
+        } catch (err) {
+          console.warn("[HubPlays] account bag syncUp failed", err);
+        }
+      }
+      if (window.HubAccountBag?.clearBagKeys) {
+        try {
+          HubAccountBag.clearBagKeys();
+        } catch {}
       }
     }
 
@@ -1239,13 +1252,24 @@
     sessionPlayerId = entry.playerId;
     storePlayerCode(norm);
 
-    // Load this account's bag (achievements, name lock, fishing, highs…)
-    if (window.HubAccountBag?.pullAndApply) {
+    // If prepareSwitch wasn't used, still force-load the incoming bag
+    if (!window.HubAccountBag?.prepareSwitch && window.HubAccountBag?.pullAndApply) {
       try {
-        await HubAccountBag.pullAndApply(entry.playerId);
+        await HubAccountBag.pullAndApply(entry.playerId, {
+          skipLiveSnapshot: true,
+          replace: true
+        });
       } catch (err) {
         console.warn("[HubPlays] account bag pull failed", err);
       }
+    } else if (window.HubAccountBag?.prepareSwitch && prevId === entry.playerId) {
+      // Same id edge case — refresh bag
+      try {
+        await HubAccountBag.pullAndApply(entry.playerId, {
+          skipLiveSnapshot: true,
+          replace: true
+        });
+      } catch {}
     }
 
     // Registry name wins when present; bag may already have set it
@@ -2308,7 +2332,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
               setGateStatus(status, "Wrong password", false);
               return;
             }
-            finishAccountSwitch(await restoreWithPlayerCode(typed));
+            // Use the account code after verify — never re-login with the password string
+            finishAccountSwitch(await restoreWithPlayerCode(code));
           } catch (err) {
             setGateStatus(status, err?.message || "Couldn't switch", false);
           }
