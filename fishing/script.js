@@ -12057,11 +12057,32 @@
         }
       }
 
+      const me = fishingOwnerId();
+      const myName = fishingOwnerName();
+      const liveOwner = String(state.ownerPlayerId || "").trim();
+      // School PC: never re-stamp another account's live cooler as ours
+      if (liveOwner && me && liveOwner !== me) {
+        stashForeignFishingSave(state);
+        try {
+          localStorage.removeItem(SAVE_KEY);
+          localStorage.removeItem(SAVE_BACKUP_KEY);
+        } catch {}
+        state = loadState();
+        lastSavedPayload = "";
+      }
+
       // Never overwrite a rich cooler with an accidental empty wipe (unless coins/lifetime rose from selling)
       if (!force) {
         try {
           const existing = readFishingSaveRaw();
-          if (existing && typeof existing === "object") {
+          const existingOwner =
+            existing && typeof existing === "object" ? String(existing.ownerPlayerId || "").trim() : "";
+          // Only use wipe-guard against this account's own save — never pull a classmate's cooler
+          if (
+            existing &&
+            typeof existing === "object" &&
+            (!existingOwner || !me || existingOwner === me)
+          ) {
             const exCool = Array.isArray(existing.cooler) ? existing.cooler.length : 0;
             const stCool = Array.isArray(state.cooler) ? state.cooler.length : 0;
             if (exCool >= 20 && stCool < Math.max(5, Math.floor(exCool * 0.15))) {
@@ -12092,27 +12113,15 @@
                 }
               }
             }
+          } else if (existingOwner && me && existingOwner !== me) {
+            stashForeignFishingSave(existing);
           }
         } catch {}
       }
 
       state.lastTick = Date.now();
-      const me = fishingOwnerId();
-      const myName = fishingOwnerName();
       if (me) state.ownerPlayerId = me;
       if (myName) state.ownerName = myName;
-
-      // Shared PC guard (full saves only — light path skips the extra localStorage read)
-      if (!light) {
-        try {
-          const existing = JSON.parse(localStorage.getItem(SAVE_KEY) || "null");
-          const existingOwner =
-            existing && typeof existing === "object" ? String(existing.ownerPlayerId || "") : "";
-          if (existingOwner && me && existingOwner !== me) {
-            stashForeignFishingSave(existing);
-          }
-        } catch {}
-      }
 
       const payload = JSON.stringify(state);
       if (!force && payload === lastSavedPayload) {
@@ -19476,6 +19485,8 @@
   }
 
   state = loadState();
+  enforceFishingAccountIsolation();
+  syncAccountHud();
 
   /** If local cooler was wiped, pull cloud/vault and restore the richer save. */
   async function recoverFishingIfWiped() {
@@ -19494,6 +19505,8 @@
       let bestCool = localCool;
       const consider = (raw) => {
         if (!raw || typeof raw !== "object") return;
+        const owner = String(raw.ownerPlayerId || "").trim();
+        if (owner && owner !== me) return;
         const n = Array.isArray(raw.cooler) ? raw.cooler.length : 0;
         const hasUlt = (raw.cooler || []).some((e) => e && e.id === "theultimate");
         const rawLife = Number(raw.lifetime) || 0;
@@ -19624,14 +19637,33 @@
     }
   }
 
-  // Soft bag sync: only adopt remote/bag if it's at least as progressed — never wipe the live session
+  // Account bag updates: full replace on switch; soft sync never keeps another account's session
   document.addEventListener("hub-account-bag-applied", (ev) => {
     try {
+      const me = fishingOwnerId();
+      const bagId = String(ev?.detail?.playerId || "").trim();
+      const replace = !!ev?.detail?.replace;
       const next = loadState();
       if (!next) return;
-      const me = fishingOwnerId();
+
+      // Switching accounts (or live session still tagged as someone else): always adopt loaded save
+      if (
+        replace ||
+        (bagId && me && bagId === me && String(state?.ownerPlayerId || "").trim() !== me)
+      ) {
+        state = next;
+        if (me) state.ownerPlayerId = me;
+        try {
+          render?.();
+        } catch {}
+        try {
+          saveState({ force: true });
+        } catch {}
+        syncAccountHud?.();
+        return;
+      }
+
       if (next.ownerPlayerId && me && next.ownerPlayerId !== me) return;
-      const replace = !!ev?.detail?.replace;
       if (!replace && state) {
         const curLife = Number(state.lifetime) || 0;
         const nextLife = Number(next.lifetime) || 0;
@@ -19643,7 +19675,6 @@
         const nextTick = Number(next.lastTick) || 0;
         const curCool = Array.isArray(state.cooler) ? state.cooler.length : 0;
         const nextCool = Array.isArray(next.cooler) ? next.cooler.length : 0;
-        // Keep live session when it's clearly a sell (fewer fish, more coins/lifetime)
         const soldAway =
           curCool < nextCool && (curCoins > nextCoins || curLife > nextLife);
         const keepLive =
@@ -19667,8 +19698,56 @@
       try {
         saveState();
       } catch {}
+      syncAccountHud?.();
     } catch {}
   });
+
+  /** If live fishing data belongs to another hub account, stash it and load ours. */
+  function enforceFishingAccountIsolation() {
+    try {
+      const me = fishingOwnerId();
+      if (!me || !state) return false;
+      const owner = String(state.ownerPlayerId || "").trim();
+      if (!owner || owner === me) {
+        if (!owner && me) state.ownerPlayerId = me;
+        syncAccountHud();
+        return false;
+      }
+      // Live session is someone else's save — put it back in their vault and load ours
+      stashForeignFishingSave(state);
+      try {
+        localStorage.removeItem(SAVE_KEY);
+        localStorage.removeItem(SAVE_BACKUP_KEY);
+      } catch {}
+      state = loadState();
+      state.ownerPlayerId = me;
+      try {
+        render?.();
+      } catch {}
+      try {
+        saveState({ force: true });
+      } catch {}
+      try {
+        setCatchLine?.(`Switched to your account save (school PC isolation)`, "treasure");
+      } catch {}
+      syncAccountHud();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function syncAccountHud() {
+    const el = document.getElementById("hud-account");
+    if (!el) return;
+    const name = fishingOwnerName() || "No name";
+    let code = "";
+    try {
+      code = String(window.HubPlays?.getPlayerCode?.() || "").trim();
+    } catch {}
+    el.textContent = code ? `${name} · ${code}` : name;
+    el.title = "Active account on this device — switch from the hub if this isn't you";
+  }
   window.addEventListener("pagehide", () => {
     try {
       saveState();
@@ -19862,7 +19941,15 @@
       lastWeatherSoundId = "";
       window.HubSound?.stopAmbient?.();
     } else {
+      enforceFishingAccountIsolation();
       applyWeatherFx();
     }
+  });
+  window.addEventListener("focus", () => {
+    enforceFishingAccountIsolation();
+  });
+  document.addEventListener("hub-player-changed", () => {
+    enforceFishingAccountIsolation();
+    syncAccountHud();
   });
 })();

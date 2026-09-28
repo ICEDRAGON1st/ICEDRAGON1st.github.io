@@ -1296,6 +1296,14 @@
       hasPassword: accountHasPassword(entry.playerId)
     });
 
+    try {
+      document.dispatchEvent(
+        new CustomEvent("hub-player-changed", {
+          detail: { playerId: entry.playerId, name: restoredName || getName() || "" }
+        })
+      );
+    } catch {}
+
     // Best-effort remote register so the code works on other devices later
     ensurePlayerCodeRegistered().catch(() => {});
     if (window.HubAccountBag?.syncUp) {

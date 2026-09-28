@@ -203,6 +203,15 @@ body.modal-open {
   gap: 0.45rem 0.55rem;
 }
 
+.hud-account {
+  color: var(--foam);
+  font-weight: 700;
+  max-width: 14rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .guide-btn {
   font: inherit;
   font-weight: 700;

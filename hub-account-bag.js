@@ -135,12 +135,45 @@
   function snapshot(playerId) {
     const id = playerIdNow(playerId);
     if (!id) return null;
+    const kv = readBagKeys();
+    // School PC: don't put someone else's fishing save into this account's vault
+    try {
+      const fishRaw = kv["fishing-save-v3"];
+      if (fishRaw) {
+        const parsed = parseJsonSafe(fishRaw, null);
+        const owner = parsed && typeof parsed === "object" ? String(parsed.ownerPlayerId || "").trim() : "";
+        if (owner && owner !== id) {
+          const vaultEarly = loadVault();
+          if (!vaultEarly[owner] || typeof vaultEarly[owner] !== "object") {
+            vaultEarly[owner] = { playerId: owner, updatedAt: Date.now(), kv: {} };
+          }
+          if (!vaultEarly[owner].kv || typeof vaultEarly[owner].kv !== "object") {
+            vaultEarly[owner].kv = {};
+          }
+          const existing = vaultEarly[owner].kv["fishing-save-v3"];
+          vaultEarly[owner].kv["fishing-save-v3"] =
+            mergeFishingSaveStrings(existing, fishRaw) || fishRaw;
+          vaultEarly[owner].updatedAt = Date.now();
+          saveVault(vaultEarly);
+          const mine = loadVault()[id]?.kv?.["fishing-save-v3"];
+          if (mine) kv["fishing-save-v3"] = mine;
+          else delete kv["fishing-save-v3"];
+        }
+      }
+    } catch {}
     const bag = {
       playerId: id,
       updatedAt: Date.now(),
-      kv: readBagKeys()
+      kv
     };
     const vault = loadVault();
+    // Preserve this account's prior fishing if live keys had none (after foreign strip)
+    try {
+      const prev = vault[id]?.kv?.["fishing-save-v3"];
+      if (prev && bag.kv["fishing-save-v3"] == null) {
+        bag.kv["fishing-save-v3"] = prev;
+      }
+    } catch {}
     vault[id] = bag;
     saveVault(vault);
     return bag;
@@ -224,6 +257,20 @@
     if (!a && !b) return null;
     if (!a) return typeof bStr === "string" ? bStr : JSON.stringify(b);
     if (!b) return typeof aStr === "string" ? aStr : JSON.stringify(a);
+    // Never blend two different players' saves (school shared PCs)
+    const ownerA = String(a.ownerPlayerId || "").trim();
+    const ownerB = String(b.ownerPlayerId || "").trim();
+    if (ownerA && ownerB && ownerA !== ownerB) {
+      const scoreA = fishingSaveScore(a);
+      const scoreB = fishingSaveScore(b);
+      return scoreB > scoreA
+        ? typeof bStr === "string"
+          ? bStr
+          : JSON.stringify(b)
+        : typeof aStr === "string"
+          ? aStr
+          : JSON.stringify(a);
+    }
     const scoreA = fishingSaveScore(a);
     const scoreB = fishingSaveScore(b);
     // Nearly empty side never wins wholesale
@@ -457,22 +504,32 @@
   async function pullAndApply(playerId, opts = {}) {
     const id = String(playerId || "");
     if (!id) return null;
-    // Always capture live localStorage first so a soft sync can't drop unsaved fishing progress
     let localBag = null;
-    if (!opts.skipLiveSnapshot) {
+    if (opts.replace) {
+      // Account switch: only this player's vault + remote — never snapshot the previous account's live keys
+      localBag = loadVault()[id] || null;
+    } else if (!opts.skipLiveSnapshot) {
+      // Soft mid-session sync: capture live localStorage for THIS player
       try {
         localBag = snapshot(id);
       } catch {
         localBag = null;
       }
+      if (!localBag) localBag = loadVault()[id] || null;
+    } else {
+      localBag = loadVault()[id] || null;
     }
-    if (!localBag) localBag = loadVault()[id] || null;
     const remoteBag = await pullRemote(id);
-    const merged = mergeBags(localBag, remoteBag) || localBag || remoteBag;
+    const merged = opts.replace
+      ? mergeBags(localBag, remoteBag) || remoteBag || localBag
+      : mergeBags(localBag, remoteBag) || localBag || remoteBag;
     if (!merged) {
-      // Never wipe local keys just because remote is empty/unreachable
+      if (opts.replace) {
+        clearBagKeys();
+      }
       return localBag;
     }
+    merged.playerId = id;
     const vault = loadVault();
     vault[id] = merged;
     saveVault(vault);
