@@ -693,7 +693,6 @@
     p.distAcc = 0;
     p.angle = Math.random() * Math.PI * 2;
     p.wantAngle = p.angle;
-    p.spawnAt = performance.now();
     paintDisk(idHash(p.id), spot.x, spot.y, START_R);
   }
 
