@@ -7517,6 +7517,58 @@
     );
   }
 
+  /** Snapshot who is online right now — broadcast gifts only land for these players. */
+  async function snapshotOnlineGiftRecipients() {
+    try {
+      await window.HubPlays?.heartbeat?.();
+    } catch {}
+    const online = window.HubPlays?.getOnlinePlayers?.() || [];
+    const ids = [];
+    const names = [];
+    const seen = new Set();
+    const add = (id, name) => {
+      const pid = String(id || "").trim();
+      const nm = String(name || "")
+        .trim()
+        .toLowerCase();
+      if (pid) {
+        const key = `id:${pid}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          ids.push(pid);
+        }
+      }
+      if (nm && nm !== "guest" && !nm.startsWith("guest-")) {
+        const key = `name:${nm}`;
+        if (!seen.has(key)) {
+          seen.add(key);
+          names.push(nm);
+        }
+      }
+    };
+    online.forEach((p) => add(p?.playerId, p?.name));
+    try {
+      add(window.HubPlays?.getPlayerId?.(), playerNameLower());
+    } catch {}
+    return {
+      onlineOnly: true,
+      onlineIds: ids,
+      onlineNames: names,
+      onlineCount: Math.max(ids.length, names.length, 1)
+    };
+  }
+
+  function isAllowedOnlineGiftRecipient(g, myId, me) {
+    if (!g || !g.onlineOnly) return true; // legacy open broadcasts
+    const ids = Array.isArray(g.onlineIds) ? g.onlineIds.map(String) : [];
+    const names = Array.isArray(g.onlineNames)
+      ? g.onlineNames.map((n) => String(n || "").toLowerCase())
+      : [];
+    if (myId && ids.includes(String(myId))) return true;
+    if (me && names.includes(String(me).toLowerCase())) return true;
+    return false;
+  }
+
   /** Free cooler slots for an exclusive grant (drops cheapest unsaved non-exclusive). */
   function makeCoolerRoomForExclusive(need = 1) {
     const want = Math.max(1, Math.floor(Number(need) || 1));
@@ -7779,6 +7831,11 @@
       count: Math.min(50, Math.max(1, Number(payload.count) || 1)),
       at: now,
       broadcast: !!payload.broadcast,
+      onlineOnly: !!payload.onlineOnly,
+      onlineIds: Array.isArray(payload.onlineIds) ? payload.onlineIds.map(String).slice(0, 200) : [],
+      onlineNames: Array.isArray(payload.onlineNames)
+        ? payload.onlineNames.map((n) => String(n || "").toLowerCase()).slice(0, 200)
+        : [],
       claimed: false,
       claimedBy
     };
@@ -7852,6 +7909,11 @@
             ? g.claimedBy
             : {};
         if ((myId && by[myId]) || (me && by[me])) return;
+        // Online-only admin abuse: skip if this player was offline when it was sent
+        if (!isAllowedOnlineGiftRecipient(g, myId, me)) {
+          claimed.add(gid);
+          return;
+        }
       }
       const toName = String(g.toName || "").toLowerCase();
       const toId = String(g.toPlayerId || "");
@@ -9174,18 +9236,23 @@
     }
 
     if (isEveryone) {
-      setCatchLine(`Sending ${label} to everyone…`, "");
+      const onlineSnap = await snapshotOnlineGiftRecipients();
+      setCatchLine(
+        `Sending ${label} to ${onlineSnap.onlineCount} online…`,
+        ""
+      );
       const ok = await queueFishGift({
         toName: "*",
         toPlayerId: "",
-        toDisplay: "everyone",
+        toDisplay: `online (${onlineSnap.onlineCount})`,
         broadcast: true,
         fishId: fish.id,
         variant: variants.variant,
         shiny: variants.shiny,
         mutation: variants.mutation,
         perfect: !!cmd.perfect,
-        count
+        count,
+        ...onlineSnap
       });
       if (!ok) {
         setCatchLine("Couldn't queue fish gift — try again", "miss");
@@ -9194,8 +9261,8 @@
       }
       setCatchLine(
         count === 1
-          ? `Queued ${label} for everyone`
-          : `Queued ${count}× ${label} for everyone`,
+          ? `Queued ${label} for ${onlineSnap.onlineCount} online`
+          : `Queued ${count}× ${label} for ${onlineSnap.onlineCount} online`,
         catchTone(fish.rarity)
       );
       playSfx("click");
@@ -9548,25 +9615,27 @@
     }
 
     if (isEveryone) {
+      const onlineSnap = await snapshotOnlineGiftRecipients();
       // Grant locally right away — don't wait on gift poll (that path was unreliable).
       const selfAdded = storeAdminChests(chestKind, count, { silent: true });
-      setCatchLine(`Sending ${def.name} to everyone…`, "");
+      setCatchLine(`Sending ${def.name} to ${onlineSnap.onlineCount} online…`, "");
       const ok = await queueFishGift({
         toName: "*",
         toPlayerId: "",
-        toDisplay: "everyone",
+        toDisplay: `online (${onlineSnap.onlineCount})`,
         broadcast: true,
         fishId: def.giftId,
         item: def.item,
         count,
-        claimedBy: giftSelfClaimedBy()
+        claimedBy: giftSelfClaimedBy(),
+        ...onlineSnap
       });
       if (!ok) {
         if (selfAdded) {
           setCatchLine(
             selfAdded === 1
-              ? `Gave ${def.name} to you · everyone sync failed`
-              : `Gave ${selfAdded}× ${def.name} to you · everyone sync failed`,
+              ? `Gave ${def.name} to you · online sync failed`
+              : `Gave ${selfAdded}× ${def.name} to you · online sync failed`,
             "treasure"
           );
           return;
@@ -9578,15 +9647,15 @@
       if (selfAdded) {
         setCatchLine(
           selfAdded === 1
-            ? `Gave ${def.name} to you + queued for everyone`
-            : `Gave ${selfAdded}× ${def.name} to you + queued for everyone`,
+            ? `Gave ${def.name} to you + queued for ${onlineSnap.onlineCount} online`
+            : `Gave ${selfAdded}× ${def.name} to you + queued for ${onlineSnap.onlineCount} online`,
           "treasure"
         );
       } else {
         setCatchLine(
           count === 1
-            ? `Queued ${def.name} for everyone (your stash is full)`
-            : `Queued ${count}× ${def.name} for everyone (your stash is full)`,
+            ? `Queued ${def.name} for ${onlineSnap.onlineCount} online (your stash is full)`
+            : `Queued ${count}× ${def.name} for ${onlineSnap.onlineCount} online (your stash is full)`,
           "treasure"
         );
       }
@@ -9670,15 +9739,17 @@
     }
 
     if (isEveryone) {
-      setCatchLine(`Sending ${def.name} to everyone…`, "");
+      const onlineSnap = await snapshotOnlineGiftRecipients();
+      setCatchLine(`Sending ${def.name} to ${onlineSnap.onlineCount} online…`, "");
       const ok = await queueFishGift({
         toName: "*",
         toPlayerId: "",
-        toDisplay: "everyone",
+        toDisplay: `online (${onlineSnap.onlineCount})`,
         broadcast: true,
         fishId: def.giftId,
         item: def.item,
-        count
+        count,
+        ...onlineSnap
       });
       if (!ok) {
         setCatchLine(`Couldn't queue ${def.name} — try again`, "miss");
@@ -9687,8 +9758,8 @@
       }
       setCatchLine(
         count === 1
-          ? `Queued ${def.name} for everyone`
-          : `Queued ${count}× ${def.name} for everyone`,
+          ? `Queued ${def.name} for ${onlineSnap.onlineCount} online`
+          : `Queued ${count}× ${def.name} for ${onlineSnap.onlineCount} online`,
         "treasure"
       );
       playSfx("click");

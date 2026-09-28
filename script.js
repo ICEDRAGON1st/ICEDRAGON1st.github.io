@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928k": [
+    "Fishing Idle: admin give fish/chests/lucky blocks to everyone only hits players online right now"
+  ],
   "20260928j": [
     "Fishing Idle: restored ICE_DRAGON The Ultimate, Omni Ray, Soul Twin, and The Absolute to the cooler"
   ],

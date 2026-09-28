@@ -273,6 +273,17 @@
     );
   }
 
+  function isAllowedOnlineGiftRecipient(g, myId, me) {
+    if (!g || !g.onlineOnly) return true;
+    const ids = Array.isArray(g.onlineIds) ? g.onlineIds.map(String) : [];
+    const names = Array.isArray(g.onlineNames)
+      ? g.onlineNames.map((n) => String(n || "").toLowerCase())
+      : [];
+    if (myId && ids.includes(String(myId))) return true;
+    if (me && names.includes(String(me).toLowerCase())) return true;
+    return false;
+  }
+
   async function markClaimedRemote(giftId) {
     const doc = (await fetchDoc()) || { gifts: {} };
     const gifts = { ...(doc.gifts || {}) };
@@ -402,6 +413,10 @@
             ? g.claimedBy
             : {};
         if ((myId && by[myId]) || (me && by[me])) return;
+        if (!isAllowedOnlineGiftRecipient(g, myId, me)) {
+          claimed.add(gid);
+          return;
+        }
       }
       const toName = String(g.toName || "").toLowerCase();
       const toId = String(g.toPlayerId || "");
