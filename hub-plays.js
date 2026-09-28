@@ -402,13 +402,33 @@
   }
 
   function normalizePlayerCode(raw) {
-    return String(raw || "")
+    return String(raw ?? "")
       .toUpperCase()
       .replace(/[^23456789ABCDEFGHJKLMNPQRSTUVWXYZ]/g, "")
       .slice(0, 8);
   }
 
+  /**
+   * JS `undefined` used to be String()'d into a "code". Alphabet has no I,
+   * so "UNDEFINED" → "UNDEFNED" → displayed as UNDE-FNED.
+   */
+  function isPoisonPlayerCode(raw) {
+    const asStr = String(raw ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/-/g, "");
+    if (!asStr) return true;
+    if (asStr === "undefined" || asStr === "null" || asStr === "nan") return true;
+    const norm = normalizePlayerCode(raw);
+    if (!norm) return true;
+    if (norm === normalizePlayerCode("undefined")) return true;
+    if (norm === normalizePlayerCode("null")) return true;
+    if (norm === normalizePlayerCode("nan")) return true;
+    return false;
+  }
+
   function formatPlayerCode(norm) {
+    if (isPoisonPlayerCode(norm)) return "";
     const n = normalizePlayerCode(norm);
     if (n.length !== 8) return n;
     return `${n.slice(0, 4)}-${n.slice(4)}`;
@@ -444,14 +464,21 @@
   function readStoredPlayerCode() {
     try {
       if (!canUseLocalStorage()) return "";
-      return formatPlayerCode(localStorage.getItem(PLAYER_CODE_KEY) || "");
+      const raw = localStorage.getItem(PLAYER_CODE_KEY) || "";
+      if (isPoisonPlayerCode(raw)) {
+        localStorage.removeItem(PLAYER_CODE_KEY);
+        return "";
+      }
+      return formatPlayerCode(raw);
     } catch {
       return "";
     }
   }
 
   function storePlayerCode(code) {
+    if (isPoisonPlayerCode(code)) return "";
     const formatted = formatPlayerCode(code);
+    if (normalizePlayerCode(formatted).length !== 8) return "";
     try {
       if (canUseLocalStorage() && formatted) {
         localStorage.setItem(PLAYER_CODE_KEY, formatted);
@@ -468,7 +495,7 @@
       const out = {};
       Object.entries(raw).forEach(([k, v]) => {
         const key = normalizePlayerCode(k);
-        if (key.length !== 8 || !v || typeof v !== "object") return;
+        if (key.length !== 8 || isPoisonPlayerCode(key) || !v || typeof v !== "object") return;
         const playerId = String(v.playerId || "");
         if (!playerId) return;
         out[key] = {
@@ -486,7 +513,7 @@
   function rememberLocalCode(code, playerId, name = "") {
     const norm = normalizePlayerCode(code);
     const id = String(playerId || "");
-    if (norm.length !== 8 || !id) return;
+    if (norm.length !== 8 || !id || isPoisonPlayerCode(norm)) return;
     try {
       if (!canUseLocalStorage()) return;
       const map = loadLocalCodes();
@@ -762,7 +789,7 @@
       if (!canUseLocalStorage()) return [];
       const raw = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || "[]");
       if (!Array.isArray(raw)) return [];
-      return raw
+      const cleaned = raw
         .map((a) => ({
           code: formatPlayerCode(a?.code || ""),
           playerId: String(a?.playerId || ""),
@@ -770,8 +797,16 @@
           savedAt: Number(a?.savedAt) || 0,
           hasPassword: !!a?.hasPassword
         }))
-        .filter((a) => normalizePlayerCode(a.code).length === 8 && a.playerId)
+        .filter(
+          (a) =>
+            normalizePlayerCode(a.code).length === 8 &&
+            a.playerId &&
+            !isPoisonPlayerCode(a.code)
+        )
         .slice(0, MAX_SAVED_ACCOUNTS);
+      // Persist scrub if we dropped UNDE-FNED / poison entries
+      if (cleaned.length !== raw.length) saveAccountVault(cleaned);
+      return cleaned;
     } catch {
       return [];
     }
@@ -786,9 +821,13 @@
 
   /** Remember this device's known accounts so you can switch by code later. */
   function rememberCurrentAccount(extra = {}) {
-    const code = formatPlayerCode(extra.code || readStoredPlayerCode() || getPlayerCode());
+    let code = formatPlayerCode(extra.code || readStoredPlayerCode() || getPlayerCode());
+    if (isPoisonPlayerCode(code) || normalizePlayerCode(code).length !== 8) {
+      code = formatPlayerCode(hashToCodeParts(String(extra.playerId || getPlayerId() || "")));
+      if (normalizePlayerCode(code).length === 8) storePlayerCode(code);
+    }
     const norm = normalizePlayerCode(code);
-    if (norm.length !== 8) return getSavedAccounts();
+    if (norm.length !== 8 || isPoisonPlayerCode(norm)) return getSavedAccounts();
     const playerId = String(extra.playerId || getPlayerId() || "");
     if (!playerId) return getSavedAccounts();
     const name = sanitizeName(extra.name != null ? extra.name : getName() || "");
@@ -1064,13 +1103,24 @@
 
   function getPlayerCode() {
     const stored = readStoredPlayerCode();
-    if (normalizePlayerCode(stored).length === 8) return stored;
+    if (normalizePlayerCode(stored).length === 8 && !isPoisonPlayerCode(stored)) {
+      return stored;
+    }
+    try {
+      if (canUseLocalStorage()) localStorage.removeItem(PLAYER_CODE_KEY);
+    } catch {}
     const generated = formatPlayerCode(hashToCodeParts(getPlayerId()));
     return storePlayerCode(generated) || generated;
   }
 
   async function restoreWithPlayerCode(rawCode) {
     const raw = String(rawCode || "").trim();
+    if (isPoisonPlayerCode(raw) && !raw.includes(":")) {
+      return {
+        ok: false,
+        error: "That code isn't valid (UNDE-FNED was a bug). Use your real player code from another device, or create a new account."
+      };
+    }
     let transfer = parseAccountTransferKey(raw);
     let norm = "";
     let viaPassword = false;
