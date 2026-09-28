@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260928x": [
+    "Paper Claim: walls and heads block/slide with no bounce"
+  ],
   "20260928w": [
     "Paper Claim: fix head collision so bumps actually block instead of tunneling through"
   ],

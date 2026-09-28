@@ -861,19 +861,10 @@
     const nxRaw = p.x + Math.cos(p.angle) * SPEED * dt;
     const nyRaw = p.y + Math.sin(p.angle) * SPEED * dt;
 
-    // Walls are solid — slide along them, never KO
+    // Walls are solid — slide along them (no bounce), never KO
     const edge = PLAYER_R + 0.35;
     let nx = clamp(nxRaw, edge, WORLD - edge);
     let ny = clamp(nyRaw, edge, WORLD - edge);
-    if (nx !== nxRaw) {
-      // bounce horizontal component
-      p.angle = Math.atan2(Math.sin(p.angle), -Math.cos(p.angle));
-      p.wantAngle = p.angle;
-    }
-    if (ny !== nyRaw) {
-      p.angle = Math.atan2(-Math.sin(p.angle), Math.cos(p.angle));
-      p.wantAngle = p.angle;
-    }
 
     // Solid heads: block / slide, never tunnel through, never KO
     {
@@ -930,7 +921,7 @@
 
   /**
    * Keep proposed (nx,ny) outside every other head.
-   * Uses the side you came from so you can't teleport through.
+   * Block + slide only — no heading bounce.
    */
   function separateFromHeads(p, nx, ny, edge) {
     for (let iter = 0; iter < 5; iter++) {
@@ -959,19 +950,32 @@
           dist = 1;
         }
 
-        const inv = HEAD_SEP / dist;
-        nx = other.x + dx * inv;
-        ny = other.y + dy * inv;
-        nx = clamp(nx, edge, WORLD - edge);
-        ny = clamp(ny, edge, WORLD - edge);
-
-        // Soft bounce: deflect heading away from the other head
-        const away = Math.atan2(ny - other.y, nx - other.x);
-        const diff = shortestAngleDiff(p.angle, away);
-        if (Math.abs(diff) > 0.35) {
-          p.angle += Math.sign(diff) * Math.min(Math.abs(diff), 0.55);
-          p.wantAngle = p.angle;
+        const nxN = dx / dist;
+        const nyN = dy / dist;
+        // Snap to surface, then keep only the tangential part of this step
+        let sx = other.x + nxN * HEAD_SEP;
+        let sy = other.y + nyN * HEAD_SEP;
+        const mx = nx - p.x;
+        const my = ny - p.y;
+        const into = mx * nxN + my * nyN;
+        if (into < 0) {
+          // Moving into the other head — cancel inward component (slide)
+          sx = p.x + mx - nxN * into;
+          sy = p.y + my - nyN * into;
+          // Re-enforce surface if still overlapping
+          const dx2 = sx - other.x;
+          const dy2 = sy - other.y;
+          const d2 = Math.hypot(dx2, dy2);
+          if (d2 < HEAD_SEP && d2 > 1e-5) {
+            sx = other.x + (dx2 / d2) * HEAD_SEP;
+            sy = other.y + (dy2 / d2) * HEAD_SEP;
+          } else if (d2 <= 1e-5) {
+            sx = other.x + nxN * HEAD_SEP;
+            sy = other.y + nyN * HEAD_SEP;
+          }
         }
+        nx = clamp(sx, edge, WORLD - edge);
+        ny = clamp(sy, edge, WORLD - edge);
       }
       if (!hit) break;
     }
@@ -997,7 +1001,7 @@
             dy = Math.sin(ang);
             dist = 1e-6;
           }
-          const overlap = (HEAD_SEP - dist) * 0.5 + 0.02;
+          const overlap = (HEAD_SEP - dist) * 0.5;
           const nx = dx / dist;
           const ny = dy / dist;
           a.x = clamp(a.x - nx * overlap, edge, WORLD - edge);
@@ -1446,7 +1450,7 @@
       resumeBtn.classList.add("hidden");
       overlayTitle.textContent = "Paper Claim";
       overlayText.textContent =
-        "Free-move like paper.io — diagonals, mouse aim, claim loops. Walls bounce you; get cut and it’s game over.";
+        "Free-move like paper.io — diagonals, mouse aim, claim loops. Walls and heads block you; get cut and it’s game over.";
     }
     overlay.classList.remove("hidden");
   }
