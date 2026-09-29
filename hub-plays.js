@@ -2138,6 +2138,18 @@
   margin-top: 0.45rem;
   background: #2b3544;
 }
+#username-gate-modal #username-gate-discord {
+  margin-top: 0.45rem;
+  width: 100%;
+  border: 0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  background: #5865f2;
+  color: #fff;
+}
 #username-gate-modal button:disabled {
   opacity: 0.65;
   cursor: wait;
@@ -2310,6 +2322,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
               <button id="username-gate-login" type="button">Log in</button>
             </div>
             <button id="username-gate-new" type="button">Create new account</button>
+            <button id="username-gate-discord" type="button" class="hub-btn-discord">Log in with Discord</button>
             <ul id="username-gate-accounts-list" class="username-gate-accounts-list"></ul>
           </div>
         </div>`;
@@ -2320,6 +2333,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       const codeInput = modal.querySelector("#username-gate-code-input");
       const loginBtn = modal.querySelector("#username-gate-login");
       const newBtn = modal.querySelector("#username-gate-new");
+      const discordBtn = modal.querySelector("#username-gate-discord");
       const listEl = modal.querySelector("#username-gate-accounts-list");
 
       const stopKeys = (el) => {
@@ -2334,6 +2348,14 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       btn.addEventListener("click", () => submitUsernameGate(input, status, btn));
       input.addEventListener("keydown", (e) => {
         if (e.key === "Enter") submitUsernameGate(input, status, btn);
+      });
+      discordBtn?.addEventListener("click", () => {
+        if (window.HubDiscord?.loginWithDiscord) {
+          setGateStatus(status, "Opening Discord…", false);
+          HubDiscord.loginWithDiscord();
+          return;
+        }
+        window.open("https://discord.gg/6NHYfPwAwg", "_blank", "noopener,noreferrer");
       });
 
       const renderGateVault = () => {

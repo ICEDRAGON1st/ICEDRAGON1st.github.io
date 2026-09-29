@@ -6599,6 +6599,9 @@
     }
     setCatchLine("Admin message sent", "treasure");
     playSfx("click");
+    try {
+      window.HubDiscord?.announceEvent?.("Fishing admin message", clean);
+    } catch {}
     return true;
   }
 
@@ -7649,6 +7652,15 @@
               : `GLOBAL ADMIN · ${formatMult(eventMult)}× ${label} live for ${mins}m (all players)`,
           "treasure"
         );
+        try {
+          if (!isClear) {
+            const detail =
+              eventKind === "weather"
+                ? `${label} for ${mins}m`
+                : `${formatMult(eventMult)}× ${label} for ${mins}m`;
+            window.HubDiscord?.announceEvent?.("Fishing admin abuse", detail);
+          }
+        } catch {}
         return true;
       }
       if (result.rateLimited) {

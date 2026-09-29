@@ -121,6 +121,14 @@ Clear only one mutation (keep others):
 
 3. Commit + push immediately (no build bump needed for json-only).
 
+4. **Discord announce** (if `SITE_CONFIG.discord.webhookUrl` is set in `site-config.js`): also POST to that webhook:
+
+```
+POST <webhookUrl>
+Content-Type: application/json
+{ "username": "My Games Hub", "content": "**Fishing admin abuse**\\n<short summary e.g. 2× luck for 5m>\\nhttps://discord.gg/6NHYfPwAwg", "allowed_mentions": { "parse": [] } }
+```
+
 ## Optional: Mantle POST
 
 Only if Supabase + JSON isn’t enough:

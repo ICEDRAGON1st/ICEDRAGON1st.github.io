@@ -5594,6 +5594,48 @@ function checkPendingAchievements() {
 }
 
 shareMomentBtn?.addEventListener("click", () => shareMoment());
+
+document.getElementById("discord-invite-btn")?.addEventListener("click", (e) => {
+  if (typeof HubDiscord !== "undefined" && HubDiscord.openInvite) {
+    e.preventDefault();
+    HubDiscord.openInvite();
+  }
+});
+
+function startDiscordLogin() {
+  if (typeof HubDiscord === "undefined" || !HubDiscord.loginWithDiscord) {
+    showGamesMessage("Discord login isn't loaded yet", 2200);
+    window.open("https://discord.gg/6NHYfPwAwg", "_blank", "noopener,noreferrer");
+    return;
+  }
+  showGamesMessage("Opening Discord…", 1600);
+  const result = HubDiscord.loginWithDiscord();
+  if (result && result.error) showGamesMessage(result.error, 3200);
+}
+
+document.getElementById("gate-discord-login-btn")?.addEventListener("click", () => startDiscordLogin());
+document.getElementById("player-discord-login-btn")?.addEventListener("click", () => startDiscordLogin());
+
+document.addEventListener("hub-discord-auth", (ev) => {
+  const result = ev?.detail;
+  if (!result) return;
+  if (result.ok) {
+    const name = result.name || "Discord";
+    showGamesMessage(`Signed in with Discord as ${name}`, 2800);
+    try {
+      hidePlayerNameModal?.();
+    } catch {}
+    try {
+      refreshPlayerCodeUI?.();
+    } catch {}
+    return;
+  }
+  showGamesMessage(result.error || "Discord login failed", 4200);
+  // Still offer the server while login is being set up
+  try {
+    HubDiscord?.openInvite?.();
+  } catch {}
+});
 document.querySelectorAll(".game-card[data-game]").forEach((card) => {
   card.addEventListener("click", (event) => {
     if (event.target.closest(".fav-btn")) return;

@@ -217,6 +217,7 @@
           <button id="gate-code-login-btn" type="button" class="hub-btn">Log in</button>
         </div>
         <button id="gate-new-account-btn" type="button" class="hub-btn gate-new-account-btn">Create new account</button>
+        <button id="gate-discord-login-btn" type="button" class="hub-btn hub-btn-discord">Log in with Discord</button>
         <ul id="gate-accounts-list" class="player-accounts-list gate-accounts-list"></ul>
         <p id="gate-code-status" class="player-name-status hidden" aria-live="polite"></p>
       </div>
@@ -281,6 +282,7 @@
         <button id="toggle-updates-btn" type="button" class="hub-btn">Updates</button>
         <button id="toggle-feedback-btn" type="button" class="hub-btn">Feedback</button>
         <button id="share-moment-btn" type="button" class="hub-btn">Share game</button>
+        <a id="discord-invite-btn" class="hub-btn hub-btn-discord" href="https://discord.gg/6NHYfPwAwg" target="_blank" rel="noopener noreferrer">Discord</a>
       </div>
 
       <div id="hub-settings-panel" class="hub-settings-panel high-scores-panel hidden">
@@ -431,6 +433,7 @@
             <input id="player-code-restore-input" type="text" maxlength="160" placeholder="Code, transfer key, or password" autocomplete="off" spellcheck="false">
             <button id="player-code-restore-btn" type="button" class="hub-btn">Log in</button>
             <button id="player-code-new-btn" type="button" class="hub-btn">New account</button>
+            <button id="player-discord-login-btn" type="button" class="hub-btn hub-btn-discord">Discord login</button>
           </div>
           <div class="player-accounts-box">
             <p class="hub-settings-label">Saved accounts on this device</p>
@@ -748,9 +751,9 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260929b";
+    window.WORDLE_BUILD = "20260929c";
     const scripts = [
-      "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-supabase.js", "hub-account-bag.js", "hub-eggs.js", "hub-plays.js", "hub-online-overlay.js", "hub-fishing-gifts.js", "hub-fishing-mail.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-calls.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js",
+      "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-supabase.js", "hub-account-bag.js", "hub-eggs.js", "hub-plays.js", "hub-online-overlay.js", "hub-fishing-gifts.js", "hub-fishing-mail.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-calls.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js", "hub-discord.js",
       "words.js",
       "dictionary.js",
       "words-4.js",

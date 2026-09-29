@@ -1406,6 +1406,23 @@ header h1 {
   margin-left: auto;
 }
 
+.hub-btn-discord {
+  background: #5865f2;
+  border-color: #5865f2;
+  color: #fff;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hub-btn-discord:hover {
+  border-color: #7983f5;
+  background: #4752c4;
+  color: #fff;
+  filter: none;
+}
+
 .hub-btn.hidden,
 .high-scores-panel.hidden,
 .leaderboards-panel.hidden {
