@@ -267,12 +267,23 @@
     return announce(msg, { username: "My Games Hub" });
   }
 
+  /** Fishing admin "say" / talk — posts your message to the Discord channel. */
+  function announceAdminTalk(text, opts = {}) {
+    const clean = String(text || "").trim().slice(0, 1800);
+    if (!clean) return Promise.resolve({ ok: false, reason: "empty" });
+    const by = String(opts.by || "ICE_DRAGON").trim() || "ICE_DRAGON";
+    const home = gameHomeUrl().replace(/\/$/, "");
+    const msg = `**Admin talk · ${by}**\n${clean}\n${home}/fishing/`;
+    return announce(msg, { username: "My Games Admin" });
+  }
+
   window.HubDiscord = {
     openInvite,
     loginWithDiscord,
     handleRedirectIfPresent,
     announce,
     announceEvent,
+    announceAdminTalk,
     getLink: readLink,
     displayName,
     getInvite: () => cfg().invite,

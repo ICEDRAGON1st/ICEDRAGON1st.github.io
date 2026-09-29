@@ -6600,7 +6600,12 @@
     setCatchLine("Admin message sent", "treasure");
     playSfx("click");
     try {
-      window.HubDiscord?.announceEvent?.("Fishing admin message", clean);
+      const disc = await window.HubDiscord?.announceAdminTalk?.(clean, { by: OWNER_NAME });
+      if (disc && disc.ok === false && disc.reason === "no-webhook") {
+        /* webhook not set — ignore */
+      } else if (disc && disc.ok === false) {
+        setCatchLine("Sent in-game · Discord post failed", "miss");
+      }
     } catch {}
     return true;
   }
