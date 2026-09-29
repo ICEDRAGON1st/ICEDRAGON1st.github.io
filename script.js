@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260929g": [
+    "Discord #updates: hub/site changelog posts when a new build goes live (opt-in role)"
+  ],
   "20260928ae": [
     "My Games: fix switching accounts — full bag swap + password switch uses the account code"
   ],
@@ -1939,6 +1942,9 @@ function showWhatsNew() {
     whatsNewList.innerHTML = notes.map((note) => `<li>${note}</li>`).join("");
   }
   whatsNewModal?.classList.remove("hidden");
+  try {
+    window.HubDiscord?.maybeAnnounceHubBuild?.(build, notes)?.catch?.(() => {});
+  } catch {}
   return true;
 }
 

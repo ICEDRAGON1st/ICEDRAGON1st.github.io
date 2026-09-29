@@ -25,6 +25,7 @@
     return {
       invite: String(d.invite || DEFAULT_INVITE).trim() || DEFAULT_INVITE,
       webhookUrl: String(d.webhookUrl || "").trim(),
+      webhookUpdatesUrl: String(d.webhookUpdatesUrl || d.updatesWebhookUrl || "").trim(),
       loginEnabled: d.loginEnabled !== false
     };
   }
@@ -218,9 +219,9 @@
     }
   }
 
-  async function announce(content, opts = {}) {
-    const webhook = cfg().webhookUrl;
-    if (!webhook) return { ok: false, reason: "no-webhook" };
+  async function postToWebhook(webhook, content, opts = {}) {
+    const url = String(webhook || "").trim();
+    if (!url) return { ok: false, reason: "no-webhook" };
     const text = String(content || "").trim().slice(0, 1900);
     if (!text) return { ok: false, reason: "empty" };
     const body = {
@@ -230,7 +231,7 @@
     };
     if (opts.avatarUrl) body.avatar_url = String(opts.avatarUrl);
     try {
-      const res = await fetch(webhook, {
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body)
@@ -242,6 +243,10 @@
     } catch (err) {
       return { ok: false, reason: err?.message || "network" };
     }
+  }
+
+  async function announce(content, opts = {}) {
+    return postToWebhook(cfg().webhookUrl, content, opts);
   }
 
   function gameHomeUrl() {
@@ -277,6 +282,98 @@
     return announce(msg, { username: "My Games Admin" });
   }
 
+  function formatSiteUpdateMessage(build, notes) {
+    const id = String(build || "").trim();
+    const lines = Array.isArray(notes) ? notes.map((n) => String(n || "").trim()).filter(Boolean) : [];
+    const home = gameHomeUrl();
+    const bullets = lines
+      .slice(0, 12)
+      .map((n) => `• ${n}`)
+      .join("\n");
+    return `**My Games update${id ? ` · \`${id}\`` : ""}**\n${bullets || "• Site update"}\n${home}`;
+  }
+
+  async function announceSiteUpdate(build, notes) {
+    const webhook = cfg().webhookUpdatesUrl;
+    if (!webhook) return { ok: false, reason: "no-webhook" };
+    return postToWebhook(webhook, formatSiteUpdateMessage(build, notes), {
+      username: "My Games Updates"
+    });
+  }
+
+  async function readUpdateAnnounceDoc() {
+    try {
+      const url = `${SUPABASE_URL}/rest/v1/hub_docs?id=eq.hub-discord-site-updates&select=data`;
+      const res = await fetch(url, {
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          Accept: "application/json"
+        },
+        cache: "no-store"
+      });
+      if (!res.ok) return null;
+      const rows = await res.json();
+      return rows?.[0]?.data && typeof rows[0].data === "object" ? rows[0].data : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function writeUpdateAnnounceDoc(data) {
+    try {
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/hub_docs`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        body: JSON.stringify({
+          id: "hub-discord-site-updates",
+          data,
+          updated_at: new Date().toISOString()
+        })
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Post hub changelog to #updates once per build (shared claim via Supabase).
+   */
+  async function maybeAnnounceHubBuild(build, notes) {
+    const id = String(build || "").trim();
+    const list = Array.isArray(notes) ? notes.filter(Boolean) : [];
+    if (!id || !list.length) return { ok: false, reason: "empty" };
+    if (!cfg().webhookUpdatesUrl) return { ok: false, reason: "no-webhook" };
+
+    const existing = await readUpdateAnnounceDoc();
+    const last = String(existing?.lastBuild || "");
+    if (last && last.localeCompare(id) >= 0) {
+      return { ok: false, reason: "already" };
+    }
+
+    const claimed = await writeUpdateAnnounceDoc({
+      lastBuild: id,
+      at: Date.now(),
+      notes: list.slice(0, 12)
+    });
+    if (!claimed) return { ok: false, reason: "claim-failed" };
+
+    // Re-read to reduce double-posts if two tabs raced
+    const again = await readUpdateAnnounceDoc();
+    if (again?.lastBuild && again.lastBuild !== id && String(again.lastBuild).localeCompare(id) > 0) {
+      return { ok: false, reason: "lost-race" };
+    }
+
+    return announceSiteUpdate(id, list);
+  }
+
   window.HubDiscord = {
     openInvite,
     loginWithDiscord,
@@ -284,10 +381,13 @@
     announce,
     announceEvent,
     announceAdminTalk,
+    announceSiteUpdate,
+    maybeAnnounceHubBuild,
     getLink: readLink,
     displayName,
     getInvite: () => cfg().invite,
-    hasWebhook: () => !!cfg().webhookUrl
+    hasWebhook: () => !!cfg().webhookUrl,
+    hasUpdatesWebhook: () => !!cfg().webhookUpdatesUrl
   };
 
   // Finish OAuth return as early as possible

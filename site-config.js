@@ -8,6 +8,8 @@ window.SITE_CONFIG = {
     // Channel webhook for admin abuse / announcements
     webhookUrl:
       "https://discord.com/api/webhooks/1554593207927709728/aP4OsrIQcBF_qeZ301F9y09GraridUsCaoCQyIR8gmSVqO4PUCekT2D8rnqPcx-g1kcv",
+    // #updates channel — hub/site changelog posts
+    webhookUpdatesUrl: "",
     // Login uses Supabase Auth → Discord provider (enable in Supabase dashboard).
     loginEnabled: true
   }
