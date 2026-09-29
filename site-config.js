@@ -5,9 +5,9 @@ window.SITE_CONFIG = {
   domain: "mygames.com",
   discord: {
     invite: "https://discord.gg/6NHYfPwAwg",
-    // Paste a channel webhook URL to post admin abuse / announcements to Discord.
-    // Discord → channel settings → Integrations → Webhooks → New Webhook → Copy URL
-    webhookUrl: "",
+    // Channel webhook for admin abuse / announcements
+    webhookUrl:
+      "https://discord.com/api/webhooks/1554573770210021449/Xt9PhHRMRx4-auszRNHIeDVlM1sqmDVryvmK4umg-2qyDAUy-M5IJamq1GFuNCwTu7rO",
     // Login uses Supabase Auth → Discord provider (enable in Supabase dashboard).
     loginEnabled: true
   }
