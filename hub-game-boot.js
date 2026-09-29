@@ -22,6 +22,27 @@
     html.getAttribute("data-boot-sub") ||
     "Loading game…";
 
+  // Same My Games icon on every hub game tab
+  try {
+    var bootSrc = (script && script.src) || "";
+    var iconBase = bootSrc ? bootSrc.replace(/[^/]+$/, "") : "../";
+    if (!document.querySelector('link[rel="icon"][data-hub-icon]')) {
+      var fav = document.createElement("link");
+      fav.rel = "icon";
+      fav.type = "image/png";
+      fav.href = iconBase + "icon.png";
+      fav.setAttribute("data-hub-icon", "1");
+      (document.head || html).appendChild(fav);
+    }
+    if (!document.querySelector('link[rel="apple-touch-icon"][data-hub-icon]')) {
+      var apple = document.createElement("link");
+      apple.rel = "apple-touch-icon";
+      apple.href = iconBase + "apple-touch-icon.png";
+      apple.setAttribute("data-hub-icon", "1");
+      (document.head || html).appendChild(apple);
+    }
+  } catch (e) {}
+
   var css = document.createElement("style");
   css.id = "hub-game-boot-style";
   css.textContent =

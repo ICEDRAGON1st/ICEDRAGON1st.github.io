@@ -1,0 +1,22 @@
+{
+  "name": "My Games",
+  "short_name": "My Games",
+  "description": "Play My Games",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0c1224",
+  "theme_color": "#5b4dff",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}

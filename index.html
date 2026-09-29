@@ -7,6 +7,12 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>My Games</title>
+  <link rel="icon" href="icon.png" type="image/png" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <link rel="manifest" href="site.webmanifest">
+  <meta name="theme-color" content="#5b4dff">
+  <meta property="og:title" content="My Games">
+  <meta property="og:image" content="icon.png">
   <script>
     // First paint: My Games hub, not Guessword (unless #wordle deep link).
     (function () {
@@ -742,7 +748,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260929a";
+    window.WORDLE_BUILD = "20260929b";
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-supabase.js", "hub-account-bag.js", "hub-eggs.js", "hub-plays.js", "hub-online-overlay.js", "hub-fishing-gifts.js", "hub-fishing-mail.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-calls.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js",
       "words.js",
