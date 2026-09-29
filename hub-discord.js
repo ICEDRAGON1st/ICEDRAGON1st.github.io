@@ -244,10 +244,26 @@
     }
   }
 
+  function gameHomeUrl() {
+    try {
+      if (typeof location !== "undefined" && /^https?:$/i.test(location.protocol) && location.origin) {
+        const host = String(location.hostname || "");
+        if (host && host !== "localhost" && host !== "127.0.0.1") {
+          return `${location.origin}/`;
+        }
+      }
+    } catch {}
+    const domain = String((window.SITE_CONFIG && SITE_CONFIG.domain) || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
+    if (domain) return `https://${domain}/`;
+    return "https://icedragon1st.github.io/";
+  }
+
   function announceEvent(title, detail) {
     const head = String(title || "My Games").trim();
     const body = String(detail || "").trim();
-    const msg = body ? `**${head}**\n${body}\n${cfg().invite}` : `**${head}**\n${cfg().invite}`;
+    const home = gameHomeUrl().replace(/\/$/, "");
+    const playUrl = /fishing/i.test(head) ? `${home}/fishing/` : `${home}/`;
+    const msg = body ? `**${head}**\n${body}\n${playUrl}` : `**${head}**\n${playUrl}`;
     return announce(msg, { username: "My Games Hub" });
   }
 

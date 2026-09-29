@@ -126,7 +126,7 @@ Clear only one mutation (keep others):
 ```
 POST <webhookUrl>
 Content-Type: application/json
-{ "username": "My Games Hub", "content": "**Fishing admin abuse**\\n<short summary e.g. 2× luck for 5m>\\nhttps://discord.gg/6NHYfPwAwg", "allowed_mentions": { "parse": [] } }
+{ "username": "My Games Hub", "content": "**Fishing admin abuse**\\n<short summary e.g. 2× luck for 5m>\\nhttps://icedragon1st.github.io/fishing/", "allowed_mentions": { "parse": [] } }
 ```
 
 ## Optional: Mantle POST
