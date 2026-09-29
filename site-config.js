@@ -7,7 +7,7 @@ window.SITE_CONFIG = {
     invite: "https://discord.gg/6NHYfPwAwg",
     // Channel webhook for admin abuse / announcements
     webhookUrl:
-      "https://discord.com/api/webhooks/1554573770210021449/Xt9PhHRMRx4-auszRNHIeDVlM1sqmDVryvmK4umg-2qyDAUy-M5IJamq1GFuNCwTu7rO",
+      "https://discord.com/api/webhooks/1554593207927709728/aP4OsrIQcBF_qeZ301F9y09GraridUsCaoCQyIR8gmSVqO4PUCekT2D8rnqPcx-g1kcv",
     // Login uses Supabase Auth → Discord provider (enable in Supabase dashboard).
     loginEnabled: true
   }
