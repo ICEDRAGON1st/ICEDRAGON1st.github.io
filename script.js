@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260929h": [
+    "Discord #updates channel connected for hub/site changelog posts"
+  ],
   "20260929g": [
     "Discord #updates: hub/site changelog posts when a new build goes live (opt-in role)"
   ],
