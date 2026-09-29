@@ -2705,18 +2705,16 @@ function buildShareMomentText() {
 
 async function shareMoment() {
   const cfg = window.SITE_CONFIG || { name: "My Games" };
-  const text = buildShareMomentText();
   const url = window.location.origin + "/#games";
   const payload = {
-    title: cfg.name,
-    text,
+    title: cfg.name || "My Games",
     url
   };
 
   try {
     if (navigator.share) {
       await navigator.share(payload);
-      showGamesMessage("Shared! 🚀", 1800);
+      showGamesMessage("Shared!", 1800);
       return;
     }
   } catch {
@@ -2724,8 +2722,8 @@ async function shareMoment() {
   }
 
   try {
-    await navigator.clipboard.writeText(text);
-    showGamesMessage("Share text copied. Paste it anywhere!", 2600);
+    await navigator.clipboard.writeText(url);
+    showGamesMessage("Link copied!", 2200);
   } catch {
     showGamesMessage("Sharing not available on this browser yet.", 2600);
   }
