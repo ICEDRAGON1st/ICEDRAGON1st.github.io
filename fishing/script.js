@@ -2866,7 +2866,10 @@
   }
 
   function catchBookEligibleFish() {
-    return FISH.filter((f) => !isExclusiveFish(f) && !isEggOnlyFish(f));
+    // Exclusives / ??? / easter eggs are bonuses — not required for catch-book %
+    return FISH.filter(
+      (f) => !isExclusiveFish(f) && !isEasterEggFish(f) && !isEggOnlyFish(f)
+    );
   }
 
   function catchBookDiscoveryCount() {
@@ -4087,11 +4090,11 @@
 
     let found = 0;
     try {
-      found = caughtCount();
+      found = catchBookDiscoveryCount();
     } catch {
       found = 0;
     }
-    const total = Math.max(1, FISH.length);
+    const total = Math.max(1, catchBookEligibleFish().length);
     const coins = Math.max(0, Math.floor(visitNum(state.coins)));
     const lifetime = Math.max(0, Math.floor(visitNum(state.lifetime)));
     return {
@@ -4157,7 +4160,7 @@
         aquariumLevel: aquariumLevel(),
         echoLuckLevel: Math.max(0, Math.floor(visitNum(state.echoLuckLevel))),
         bookFound: 0,
-        bookTotal: FISH.length || 1,
+        bookTotal: catchBookEligibleFish().length || 1,
         bookPct: 0,
         bestCatch: { id: "", score: 0, variant: "", shiny: false, mutation: "" },
         stash: {
@@ -12556,7 +12559,7 @@
     shinyOn = bookShinyOn,
     mutationOn = bookMutation
   ) {
-    return FISH.reduce(
+    return catchBookEligibleFish().reduce(
       (n, f) => n + (hasCaught(f.id, filter, shinyOn, mutationOn) ? 1 : 0),
       0
     );
@@ -14750,7 +14753,7 @@
     if (boatLevel() >= 3) HubAchievements.unlock("fishing_fps_100");
     if (state.unlocked.deep) HubAchievements.unlock("fishing_voyage_1");
     if (state.unlocked.void) HubAchievements.unlock("fishing_voyage_1");
-    if (FISH.length > 0 && catchBookDiscoveryRatio() >= COLLECTION_MASTER_PCT) {
+    if (catchBookEligibleFish().length > 0 && catchBookDiscoveryRatio() >= COLLECTION_MASTER_PCT) {
       const newly = HubAchievements.unlock("fishing_all");
       window.HubPlays?.markMasterFisher?.().catch?.(() => {});
       if (newly) {
@@ -14758,7 +14761,7 @@
           setCatchLine("90% catch book — title unlocked: MASTER FISHER", "perfect");
         }, 900);
       }
-    } else if (FISH.length > 0) {
+    } else if (catchBookEligibleFish().length > 0) {
       // Under 90%: strip legacy MASTER FISHER title / achievement
       syncMasterFisherUnlock();
     }
@@ -18186,7 +18189,7 @@
 
   function renderBook() {
     renderCollectionHud();
-    const total = FISH.length;
+    const total = catchBookEligibleFish().length;
     const found = caughtCount();
     const pct = total > 0 ? Math.floor((found / total) * 100) : 0;
     if (bookProgressEl) {
