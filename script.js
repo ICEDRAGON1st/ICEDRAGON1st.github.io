@@ -2466,6 +2466,32 @@ function decorateGameCardThumbs() {
   });
 }
 
+function renderMostPopularBadge() {
+  if (!gamesGrid) return;
+  const allowed = HUB_GAMES.map((g) => g.id);
+  let popularId = "";
+  try {
+    popularId = String(window.HubPlays?.getMostPopularGameId?.(allowed) || "");
+  } catch {
+    popularId = "";
+  }
+  gamesGrid.querySelectorAll(".game-card[data-game]").forEach((card) => {
+    const isPopular = !!popularId && card.dataset.game === popularId;
+    card.classList.toggle("is-most-popular", isPopular);
+    let badge = card.querySelector(".game-card-popular");
+    if (isPopular) {
+      if (!badge) {
+        badge = document.createElement("span");
+        badge.className = "game-card-popular";
+        badge.textContent = "Most popular";
+        card.appendChild(badge);
+      }
+    } else if (badge) {
+      badge.remove();
+    }
+  });
+}
+
 function renderCardScoresAndFavorites() {
   const favorites = new Set(loadFavorites());
   document.querySelectorAll(".game-card[data-game]").forEach((card) => {
@@ -2902,6 +2928,7 @@ function stopStreakCountdown() {
 
 function refreshGamesHub() {
   decorateGameCardThumbs();
+  renderMostPopularBadge();
   renderContinueButton();
   renderCardScoresAndFavorites();
   sortGamesGrid();
@@ -3098,6 +3125,9 @@ function selectGame(gameId) {
   setLastGameId(gameId);
   recordHubDailyPlay();
   if (window.HubPlays) HubPlays.record(gameId);
+  try {
+    renderMostPopularBadge();
+  } catch {}
   // Track all-rounder achievement
   if (window.HubAchievements) {
     try {

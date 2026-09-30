@@ -14,6 +14,8 @@
   const LOCAL_KEY = "hub-plays-local-v1";
   const PROFILE_STYLE_KEY = "hub-profile-style-v1";
   const ONLINE_TIME_KEY = "hub-online-time-v1";
+  const POPULARITY_LOCAL_KEY = "hub-game-popularity-v1";
+  const POPULARITY_DOC = "hub-game-popularity-v1";
   const NS = "icedragon1st-mygames";
   const PLAYS_PATH = "plays-log";
   const NAMES_PATH = "name-registry";
@@ -30,6 +32,7 @@
   const RESERVATIONS_API = `https://mantledb.sh/v2/${NS}/${RESERVATIONS_PATH}`;
   const PRESENCE_API = `https://mantledb.sh/v2/${NS}/${PRESENCE_PATH}`;
   const ALLTIME_API = `https://mantledb.sh/v2/${NS}/${ALLTIME_PATH}`;
+  const POPULARITY_API = `https://mantledb.sh/v2/${NS}/hub-game-popularity`;
 
   function sb() {
     return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
@@ -161,6 +164,9 @@
   let syncing = false;
   let lastSync = 0;
   let cache = { plays: [], counts: {} };
+  let popularityCache = {};
+  let popularityPending = {};
+  let popularityBusy = false;
   let namesCache = {};
   let presenceCache = {};
   let allTimeCache = {};
@@ -169,6 +175,120 @@
   let allTimeBusy = false;
   let rateLimitedUntil = 0;
   let lastAllTimeRegisterAt = 0;
+
+  function loadPopularityLocal() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(POPULARITY_LOCAL_KEY) || "null");
+      if (raw && raw.games && typeof raw.games === "object") return { ...raw.games };
+      if (raw && typeof raw === "object" && !raw.pending) return { ...raw };
+    } catch {}
+    return {};
+  }
+
+  function loadPopularityPending() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(POPULARITY_LOCAL_KEY) || "null");
+      if (raw && raw.pending && typeof raw.pending === "object") return { ...raw.pending };
+    } catch {}
+    return {};
+  }
+
+  function savePopularityLocal() {
+    try {
+      localStorage.setItem(
+        POPULARITY_LOCAL_KEY,
+        JSON.stringify({
+          games: popularityCache || {},
+          pending: popularityPending || {},
+          at: Date.now()
+        })
+      );
+    } catch {}
+  }
+
+  function bumpPopularityLocal(gameId) {
+    const id = String(gameId || "").trim();
+    if (!id) return;
+    popularityCache[id] = (Number(popularityCache[id]) || 0) + 1;
+    popularityPending[id] = (Number(popularityPending[id]) || 0) + 1;
+    savePopularityLocal();
+  }
+
+  async function syncPopularity(force = false) {
+    if (popularityBusy) return popularityCache;
+    popularityBusy = true;
+    try {
+      let remote = {};
+      try {
+        const data = await fetchDoc(POPULARITY_DOC, POPULARITY_API);
+        if (data && data.games && typeof data.games === "object") remote = data.games;
+        else if (data && typeof data === "object") {
+          const flat = {};
+          Object.entries(data).forEach(([k, v]) => {
+            if (k === "games" || k === "pending" || k === "at" || k === "updated_at") return;
+            if (Number.isFinite(Number(v))) flat[k] = Number(v) || 0;
+          });
+          if (Object.keys(flat).length) remote = flat;
+        }
+      } catch {}
+
+      const merged = { ...remote };
+      Object.entries(popularityCache || {}).forEach(([k, v]) => {
+        merged[k] = Math.max(Number(merged[k]) || 0, Number(v) || 0);
+      });
+
+      const pending = { ...(popularityPending || {}) };
+      Object.entries(pending).forEach(([k, v]) => {
+        const n = Number(v) || 0;
+        if (n <= 0) return;
+        merged[k] = (Number(merged[k]) || 0) + n;
+      });
+
+      popularityCache = merged;
+      const hasPending = Object.values(pending).some((v) => (Number(v) || 0) > 0);
+      if (hasPending || force) {
+        try {
+          await pushDoc(POPULARITY_DOC, { games: merged, updated_at: Date.now() }, POPULARITY_API);
+          popularityPending = {};
+        } catch {}
+      }
+      savePopularityLocal();
+      return popularityCache;
+    } finally {
+      popularityBusy = false;
+    }
+  }
+
+  function getPopularityCounts() {
+    return { ...(popularityCache || {}) };
+  }
+
+  function getMostPopularGameId(allowedIds) {
+    const allow = Array.isArray(allowedIds) && allowedIds.length ? new Set(allowedIds) : null;
+    let bestId = "";
+    let best = 0;
+    Object.entries(popularityCache || {}).forEach(([id, raw]) => {
+      if (allow && !allow.has(id)) return;
+      const n = Number(raw) || 0;
+      if (n > best) {
+        best = n;
+        bestId = id;
+      }
+    });
+    if (!bestId) {
+      const localCounts =
+        (cache.counts && Object.keys(cache.counts).length ? cache.counts : null) || {};
+      Object.entries(localCounts).forEach(([id, raw]) => {
+        if (allow && !allow.has(id)) return;
+        const n = Number(raw) || 0;
+        if (n > best) {
+          best = n;
+          bestId = id;
+        }
+      });
+    }
+    return best > 0 ? bestId : "";
+  }
 
   function loadAllTimeLocal() {
     try {
@@ -204,6 +324,8 @@
   }
 
   allTimeCache = loadAllTimeLocal();
+  popularityCache = loadPopularityLocal();
+  popularityPending = loadPopularityPending();
 
   function sanitizeName(raw) {
     let s = String(raw ?? "")
@@ -1813,6 +1935,7 @@
       } catch {}
       lastSync = Date.now();
       cache = merged;
+      syncPopularity().catch(() => {});
       return merged;
     } finally {
       syncing = false;
@@ -2563,8 +2686,10 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     local.plays = [entry, ...local.plays].slice(0, MAX_PLAYS);
     local.counts[id] = (Number(local.counts[id]) || 0) + 1;
     saveLocal(local);
+    bumpPopularityLocal(id);
     markSelfOnlineLocal(entry.at);
     sync().catch(() => {});
+    syncPopularity().catch(() => {});
     touchAllTimeLastSeen(entry.at).catch(() => {});
     return entry;
   }
@@ -4707,6 +4832,9 @@ body.light .menu-credit .player-name-creator {
     record,
     sync,
     getStatus,
+    getPopularityCounts,
+    getMostPopularGameId,
+    syncPopularity,
     gameLabel,
     formatWhen,
     sanitizeName,

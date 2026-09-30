@@ -1723,6 +1723,31 @@ header h1 {
   transform: scale(1.05);
 }
 
+.game-card-popular {
+  position: absolute;
+  top: 0.85rem;
+  left: 0;
+  z-index: 2;
+  padding: 0.28rem 0.65rem 0.28rem 0.55rem;
+  border-radius: 0 999px 999px 0;
+  background: linear-gradient(135deg, #f59f00 0%, #f08c00 55%, #e67700 100%);
+  color: #1a1208;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1.2;
+  box-shadow: 0 4px 12px rgba(240, 140, 0, 0.35);
+  pointer-events: none;
+}
+
+.game-card.is-most-popular {
+  border-color: color-mix(in srgb, #f59f00 70%, var(--card-border, var(--tile-border)));
+  box-shadow:
+    0 8px 22px color-mix(in srgb, #f59f00 22%, transparent),
+    0 0 0 1px color-mix(in srgb, #f59f00 35%, transparent);
+}
+
 .game-card.is-favorite {
   border-color: #c9b458;
   box-shadow: 0 8px 22px rgba(201, 180, 88, 0.18);
