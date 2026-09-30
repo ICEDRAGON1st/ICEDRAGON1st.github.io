@@ -2718,20 +2718,56 @@ function buildShareMomentText() {
   return lines.join("\n");
 }
 
+function buildHubInviteShareUrl() {
+  try {
+    const fromApi = window.HubReferrals?.getInviteUrl?.();
+    if (fromApi && String(fromApi).includes("ref=")) return String(fromApi);
+  } catch {}
+  try {
+    const raw = window.HubPlays?.getPlayerCode?.() || "";
+    const formatted =
+      (typeof window.HubPlays?.formatPlayerCode === "function" && HubPlays.formatPlayerCode(raw)) ||
+      String(raw || "").trim().toUpperCase();
+    const norm = String(formatted || "").replace(/[^23456789ABCDEFGHJKLMNPQRSTUVWXYZ]/gi, "");
+    const origin = window.location.origin || "https://icedragon1st.github.io";
+    if (norm.length === 8) {
+      const dashed = `${norm.slice(0, 4)}-${norm.slice(4)}`;
+      return `${origin}/?ref=${encodeURIComponent(dashed)}#games`;
+    }
+  } catch {}
+  return `${window.location.origin || "https://icedragon1st.github.io"}/#games`;
+}
+
 async function shareMoment() {
   const cfg = window.SITE_CONFIG || { name: "My Games" };
-  const url =
-    (typeof window.HubReferrals?.getInviteUrl === "function" && HubReferrals.getInviteUrl()) ||
-    window.location.origin + "/#games";
+  const url = buildHubInviteShareUrl();
+  const isInvite = url.includes("ref=");
+  const status =
+    (typeof window.HubReferrals?.getStatus === "function" && HubReferrals.getStatus()) || null;
+  const progress =
+    status && !status.unlocked
+      ? ` · ${Math.min(status.count || 0, status.need || 3)}/${status.need || 3} toward INVITER`
+      : status?.unlocked
+        ? " · INVITER unlocked"
+        : "";
   const payload = {
     title: cfg.name || "My Games",
+    text: isInvite
+      ? `Play on ${cfg.name || "My Games"} — join with my invite:`
+      : `Play on ${cfg.name || "My Games"}:`,
     url
   };
 
   try {
     if (navigator.share) {
       await navigator.share(payload);
-      showGamesMessage("Shared!", 1800);
+      showGamesMessage(
+        isInvite ? `Invite shared!${progress}` : "Shared!",
+        2200
+      );
+      try {
+        refreshInviteProgressUI?.();
+      } catch {}
       return;
     }
   } catch {
@@ -2740,7 +2776,13 @@ async function shareMoment() {
 
   try {
     await navigator.clipboard.writeText(url);
-    showGamesMessage("Invite link copied!", 2200);
+    showGamesMessage(
+      isInvite ? `Invite link copied!${progress}` : "Link copied!",
+      2400
+    );
+    try {
+      refreshInviteProgressUI?.();
+    } catch {}
   } catch {
     showGamesMessage("Sharing not available on this browser yet.", 2600);
   }

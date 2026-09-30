@@ -156,8 +156,9 @@
       typeof location !== "undefined" && location.origin
         ? location.origin
         : "https://icedragon1st.github.io";
-    if (code.length !== 8) return `${origin}/`;
-    return `${origin}/?ref=${encodeURIComponent(formatCode(code))}`;
+    // Land on the hub games view; ?ref= is what credits INVITER.
+    if (code.length !== 8) return `${origin}/#games`;
+    return `${origin}/?ref=${encodeURIComponent(formatCode(code))}#games`;
   }
 
   function emptyDoc() {
