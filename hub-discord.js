@@ -27,6 +27,7 @@
       webhookUrl: String(d.webhookUrl || "").trim(),
       webhookUpdatesUrl: String(d.webhookUpdatesUrl || d.updatesWebhookUrl || "").trim(),
       updatesRoleId: String(d.updatesRoleId || d.updatesRole || "").replace(/\D/g, ""),
+      adminAbuseRoleId: String(d.adminAbuseRoleId || d.adminAbuseRole || "").replace(/\D/g, ""),
       loginEnabled: d.loginEnabled !== false
     };
   }
@@ -274,8 +275,15 @@
     const body = String(detail || "").trim();
     const home = gameHomeUrl().replace(/\/$/, "");
     const playUrl = /fishing/i.test(head) ? `${home}/fishing/` : `${home}/`;
-    const msg = body ? `**${head}**\n${body}\n${playUrl}` : `**${head}**\n${playUrl}`;
-    return announce(msg, { username: "My Games Hub" });
+    const roleId = /admin abuse/i.test(head) ? cfg().adminAbuseRoleId : "";
+    const ping = roleId ? `<@&${roleId}> ` : "";
+    const msg = body
+      ? `${ping}**${head}**\n${body}\n${playUrl}`
+      : `${ping}**${head}**\n${playUrl}`;
+    return announce(msg, {
+      username: "My Games Hub",
+      roleIds: roleId ? [roleId] : []
+    });
   }
 
   /** Fishing admin "say" / talk — posts your message to the Discord channel. */

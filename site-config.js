@@ -13,6 +13,8 @@ window.SITE_CONFIG = {
       "https://discord.com/api/webhooks/1554596814492270754/tic5Tif91GLtNyui1YJzw-4yPte8nR2rsq3ZK4jRAMPWvUnCyVL67KTYqC2gCRATDeNJ",
     // Opt-in "Updates" role — pinged on each hub changelog post
     updatesRoleId: "1554586826914930768",
+    // Opt-in "Admin Abuse" role — pinged on fishing admin abuse posts
+    adminAbuseRoleId: "1554586756584837260",
     // Login uses Supabase Auth → Discord provider (enable in Supabase dashboard).
     loginEnabled: true
   }
