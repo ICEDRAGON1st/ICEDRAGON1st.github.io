@@ -1,10 +1,10 @@
 (function () {
   const STORAGE_KEY = "hub-daily-streak";
   const STREAK_WINDOW_MS = 48 * 60 * 60 * 1000;
-  /** One-time streak values for specific players (achievements stay separate). */
+  /** One-time streak restores for specific players (achievements stay separate). */
   const NAME_STREAK_SET = {
     hjalte: { streak: 2, version: "set-2-v1" },
-    ice_dragon: { streak: 28, version: "set-28-v1" }
+    ice_dragon: { streak: 28, version: "set-28-v3" }
   };
 
   function todayLocal() {
@@ -68,6 +68,9 @@
         celebrate: !!data.celebrate
       })
     );
+    try {
+      window.HubAccountBag?.snapshot?.();
+    } catch {}
   }
 
   function effectiveStreak(data) {
@@ -75,17 +78,54 @@
     return data.streak;
   }
 
-  function applyNameStreakSet() {
+  function grantFlag(key, grant) {
+    return `hub-streak-name-set-${key}-${grant.version}`;
+  }
+
+  /**
+   * Restore a named player's streak. Survives account-bag soft sync wiping the value:
+   * if storage looks wiped/broken after a grant, re-apply; if it expired for real after
+   * a successful restore, leave it alone.
+   */
+  function applyNameStreakSet(opts = {}) {
     const key = currentNameKey();
     const grant = NAME_STREAK_SET[key];
-    if (!grant) return;
-    const flag = `hub-streak-name-set-${key}-${grant.version}`;
+    if (!grant) return false;
+    const flag = grantFlag(key, grant);
+    let marked = false;
     try {
-      if (localStorage.getItem(flag)) return;
+      marked = localStorage.getItem(flag) === "1";
     } catch {
-      return;
+      marked = false;
     }
+
     const data = load();
+    const streak = Number(data.streak) || 0;
+    const within = isWithinStreakWindow(data.lastPlayedAt);
+    const healthy = streak >= grant.streak && within;
+
+    if (healthy) {
+      try {
+        localStorage.setItem(flag, "1");
+      } catch {}
+      return false;
+    }
+
+    // Legitimate post-restore life: they have an active streak below the grant
+    if (marked && !opts.force && within && streak >= 1 && streak < grant.streak) {
+      return false;
+    }
+
+    // Legitimate expiry after a successful restore (still holds the old count, window gone)
+    if (
+      marked &&
+      !opts.force &&
+      !within &&
+      streak >= grant.streak
+    ) {
+      return false;
+    }
+
     data.streak = grant.streak;
     data.lastDate = todayLocal();
     data.lastPlayedAt = Date.now();
@@ -94,6 +134,14 @@
     try {
       localStorage.setItem(flag, "1");
     } catch {}
+    try {
+      document.dispatchEvent(
+        new CustomEvent("hub-streak-restored", {
+          detail: { name: key, streak: grant.streak }
+        })
+      );
+    } catch {}
+    return true;
   }
 
   function recordPlay() {
@@ -105,10 +153,12 @@
     if (data.lastDate === today && isWithinStreakWindow(data.lastPlayedAt)) {
       data.lastPlayedAt = now;
       save(data);
+      applyNameStreakSet();
+      const finalOk = load();
       return {
-        streak: data.streak,
+        streak: finalOk.streak,
         extended: false,
-        best: data.best,
+        best: finalOk.best,
         playedToday: true
       };
     }
@@ -127,6 +177,7 @@
     data.best = Math.max(data.best, data.streak);
     if (extended) data.celebrate = true;
     save(data);
+    // If a name-grant should still win (e.g. wiped to 1 by bag), put it back
     applyNameStreakSet();
 
     const finalData = load();
@@ -146,9 +197,10 @@
       best: data.best,
       playedToday: data.lastDate === todayLocal(),
       celebrate: data.celebrate,
-      hoursLeft: data.lastPlayedAt && isWithinStreakWindow(data.lastPlayedAt)
-        ? Math.max(0, (STREAK_WINDOW_MS - (Date.now() - data.lastPlayedAt)) / (60 * 60 * 1000))
-        : 0
+      hoursLeft:
+        data.lastPlayedAt && isWithinStreakWindow(data.lastPlayedAt)
+          ? Math.max(0, (STREAK_WINDOW_MS - (Date.now() - data.lastPlayedAt)) / (60 * 60 * 1000))
+          : 0
     };
   }
 
@@ -159,13 +211,42 @@
     save(data);
   }
 
+  function refreshFromHub() {
+    const changed = applyNameStreakSet({ force: false });
+    try {
+      if (changed) document.dispatchEvent(new CustomEvent("hub-streak-changed"));
+    } catch {}
+    return getStatus();
+  }
+
   window.HubStreak = {
     recordPlay,
     getStatus,
     clearCelebration,
+    refreshFromHub,
+    applyNameStreakSet,
     effectiveStreak: () => {
       applyNameStreakSet();
       return effectiveStreak(load());
     }
   };
+
+  function onHubIdentityReady() {
+    refreshFromHub();
+    try {
+      if (typeof window.renderDailyStreak === "function") window.renderDailyStreak();
+    } catch {}
+  }
+
+  document.addEventListener("hub-username-ready", onHubIdentityReady);
+  document.addEventListener("hub-player-changed", onHubIdentityReady);
+  document.addEventListener("hub-account-bag-applied", () => {
+    // Bag soft-sync often restores a stale/zero streak after a grant — re-check
+    setTimeout(onHubIdentityReady, 0);
+    setTimeout(onHubIdentityReady, 400);
+    setTimeout(onHubIdentityReady, 1500);
+  });
+  setTimeout(onHubIdentityReady, 300);
+  setTimeout(onHubIdentityReady, 1200);
+  setTimeout(onHubIdentityReady, 3000);
 })();

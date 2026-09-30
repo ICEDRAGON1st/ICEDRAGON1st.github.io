@@ -2784,6 +2784,18 @@ function renderDailyStreak() {
     HubStreak.clearCelebration();
   }
 }
+window.renderDailyStreak = renderDailyStreak;
+document.addEventListener("hub-streak-restored", () => {
+  try {
+    renderDailyStreak();
+    showGamesMessage("🔥 Streak restored to 28", 2800);
+  } catch {}
+});
+document.addEventListener("hub-streak-changed", () => {
+  try {
+    renderDailyStreak();
+  } catch {}
+});
 
 function startStreakCountdown() {
   if (streakTimerInterval) return;
