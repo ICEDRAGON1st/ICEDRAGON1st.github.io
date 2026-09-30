@@ -5102,6 +5102,15 @@
     }
   }
 
+  /** Name shown on admin talk popups / Discord (preserves player casing). */
+  function adminTalkDisplayName() {
+    const raw = playerDisplayName().slice(0, 24);
+    if (raw) return raw;
+    if (isFishingOwner()) return "ICE_DRAGON";
+    if (isFishingLimitedAdmin()) return "Hjalte";
+    return "Admin";
+  }
+
   function formatAdminAuditWhen(at) {
     const t = Number(at) || 0;
     if (!t) return "—";
@@ -6456,10 +6465,14 @@
     popup.classList.remove("is-show");
   }
 
-  function showAdminAnnouncePopup(text) {
+  function showAdminAnnouncePopup(text, by) {
     const popup = document.getElementById("admin-announce-popup");
     const textEl = document.getElementById("admin-announce-text");
+    const tagEl =
+      document.getElementById("admin-announce-tag") ||
+      popup?.querySelector?.(".admin-announce-tag");
     if (!popup || !textEl) return;
+    if (tagEl) tagEl.textContent = String(by || "Admin").trim() || "Admin";
     textEl.textContent = String(text || "");
     popup.hidden = false;
     popup.classList.remove("hidden");
@@ -6485,8 +6498,9 @@
     const seen = readSeenAnnounceId();
     if (msg.id && msg.id === seen) return;
     writeSeenAnnounceId(msg.id);
-    showAdminAnnouncePopup(msg.text);
-    setCatchLine(`ADMIN · ${msg.text}`, "treasure");
+    const by = String(msg.by || "Admin").trim() || "Admin";
+    showAdminAnnouncePopup(msg.text, by);
+    setCatchLine(`${by} · ${msg.text}`, "treasure");
     playSfx("win");
   }
 
@@ -6570,7 +6584,7 @@
   }
 
   async function publishAdminAnnounce(text) {
-    if (!isFishingOwner()) {
+    if (!isFishingAdmin()) {
       setCatchLine("Admin only", "miss");
       return false;
     }
@@ -6579,6 +6593,7 @@
       setCatchLine("Type a message to send", "miss");
       return false;
     }
+    const by = adminTalkDisplayName();
     const now = Date.now();
     const payload = {
       token: ADMIN_EVENT_TOKEN,
@@ -6586,7 +6601,7 @@
       text: clean,
       at: now,
       until: now + ADMIN_ANNOUNCE_CLAIM_MS,
-      by: OWNER_NAME,
+      by,
       note: "admin-announce"
     };
     showAdminAnnounce(payload, { alert: true });
@@ -6599,8 +6614,13 @@
     }
     setCatchLine("Admin message sent", "treasure");
     playSfx("click");
+    logLimitedAdminAction(`say ${clean}`, "Announce", {
+      kind: "announce",
+      detail: `say · ${clean}`,
+      raw: `say ${clean}`
+    });
     try {
-      const disc = await window.HubDiscord?.announceAdminTalk?.(clean, { by: OWNER_NAME });
+      const disc = await window.HubDiscord?.announceAdminTalk?.(clean, { by });
       if (disc && disc.ok === false && disc.reason === "no-webhook") {
         /* webhook not set — ignore */
       } else if (disc && disc.ok === false) {
@@ -6611,7 +6631,7 @@
   }
 
   async function clearAdminAnnounce() {
-    if (!isFishingOwner()) {
+    if (!isFishingAdmin()) {
       setCatchLine("Admin only", "miss");
       return false;
     }
@@ -6621,7 +6641,7 @@
       text: "",
       at: Date.now(),
       until: 0,
-      by: OWNER_NAME,
+      by: adminTalkDisplayName(),
       note: "admin-announce-clear"
     };
     adminAnnounceCache = null;
@@ -9517,6 +9537,16 @@
       setCatchLine("Unknown fish", "miss");
       return;
     }
+    // Hjalte / limited admin: no exclusive, ???, or easter-egg grants
+    if (
+      isFishingLimitedAdmin() &&
+      !isFishingOwner() &&
+      (isExclusiveFish(fish) || isEasterEggFish(fish))
+    ) {
+      setCatchLine("You can't give exclusive, ???, or easter egg fish", "miss");
+      playSfx("miss");
+      return;
+    }
     const variants = {
       variant: normalizeVariant(cmd.variant),
       shiny: !!cmd.shiny,
@@ -10185,11 +10215,6 @@
     }
     const announce = parseAnnounceCommand(raw);
     if (announce) {
-      if (!canAdminGlobal()) {
-        setCatchLine("Local admin only — can't send global announce", "miss");
-        playSfx("miss");
-        return;
-      }
       if (announce.kind === "clear-announce") {
         await clearAdminAnnounce();
         return;
@@ -10227,17 +10252,12 @@
       setCatchLine(
         canAdminGlobal()
           ? "Try: say hi · storm · calm · 5x luck · 5x chest · give coin chest · clear weather · clear"
-          : "Try: storm · calm · 5x luck · 2x speed · give fish trout · clear weather · clear",
+          : "Try: say hi · storm · calm · 5x luck · 2x speed · give fish trout · clear weather · clear",
         "miss"
       );
       return;
     }
     if (parsed.kind === "clear-announce") {
-      if (!canAdminGlobal()) {
-        setCatchLine("Local admin only — can't clear global announce", "miss");
-        playSfx("miss");
-        return;
-      }
       await clearAdminAnnounce();
       return;
     }

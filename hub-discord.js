@@ -292,7 +292,7 @@
     if (!clean) return Promise.resolve({ ok: false, reason: "empty" });
     const by = String(opts.by || "ICE_DRAGON").trim() || "ICE_DRAGON";
     const home = gameHomeUrl().replace(/\/$/, "");
-    const msg = `**Admin talk · ${by}**\n${clean}\n${home}/fishing/`;
+    const msg = `**${by}**\n${clean}\n${home}/fishing/`;
     return announce(msg, { username: "My Games Admin" });
   }
 
