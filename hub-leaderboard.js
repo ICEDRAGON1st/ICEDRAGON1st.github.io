@@ -62,7 +62,9 @@
     paper: { label: "Paper Claim", lowerBetter: false, unit: "score" },
     mine: { label: "Mine Depth", lowerBetter: false, unit: "depth" },
     "mine-ore": { label: "Mine Best Ore", lowerBetter: false, unit: "ore" },
-    "online-time": { label: "Time Online", lowerBetter: false, unit: "playtime" }
+    "online-time": { label: "Time Online", lowerBetter: false, unit: "playtime" },
+    "day-streak": { label: "Day Streak", lowerBetter: false, unit: "days" },
+    invites: { label: "Most Invites", lowerBetter: false, unit: "invites" }
   };
 
   const GAME_IDS = Object.keys(GAME_META);
@@ -611,6 +613,14 @@
     if (!Number.isFinite(n) || n <= 0) return "—";
     if (m.unit === "time") return formatSeconds(n);
     if (m.unit === "playtime") return formatPlaytime(n);
+    if (m.unit === "days") {
+      const d = Math.floor(n);
+      return `${d} day${d === 1 ? "" : "s"}`;
+    }
+    if (m.unit === "invites") {
+      const c = Math.floor(n);
+      return `${c} invite${c === 1 ? "" : "s"}`;
+    }
     if (m.unit === "wins") return `${Math.floor(n)} win${Math.floor(n) === 1 ? "" : "s"}`;
     if (m.unit === "streak") return `Streak ${Math.floor(n)}`;
     if (m.unit === "catch" || gameId === "fishing") {
@@ -1170,6 +1180,118 @@
     return { games, resets };
   }
 
+  function resolvePlayerName(playerId, games) {
+    const id = String(playerId || "");
+    if (!id) return "";
+    try {
+      const names = window.HubPlays?.getStatus?.()?.names || {};
+      for (const claim of Object.values(names)) {
+        if (claim && claim.playerId === id && claim.name) {
+          return sanitizeName(claim.name);
+        }
+      }
+    } catch {}
+    try {
+      const all = window.HubPlays?.getAllTimePlayers?.() || [];
+      const hit = all.find((p) => p && p.playerId === id && p.name);
+      if (hit) return sanitizeName(hit.name);
+    } catch {}
+    try {
+      const online = window.HubPlays?.getOnlinePlayers?.() || [];
+      const hit = online.find((p) => p && p.playerId === id && p.name);
+      if (hit) return sanitizeName(hit.name);
+    } catch {}
+    const invitesBoard = (games && games.invites) || {};
+    for (const entry of Object.values(invitesBoard)) {
+      if (entry && entry.playerId === id && entry.name) {
+        return sanitizeName(entry.name);
+      }
+    }
+    return "";
+  }
+
+  /** Rebuild Most Invites from hub-referrals-v1 (source of truth). */
+  async function hydrateInvitesBoard(data) {
+    const games = { ...(data.games || {}) };
+    const resets = data.resets && typeof data.resets === "object" ? data.resets : {};
+    if (!supabaseReady()) return { games, resets };
+    let byInviter = {};
+    try {
+      const doc = await HubSupabase.getDoc("hub-referrals-v1");
+      if (doc && doc.byInviter && typeof doc.byInviter === "object") {
+        byInviter = doc.byInviter;
+      }
+    } catch {
+      return { games, resets };
+    }
+    // Warm name map from name-registry when local HubPlays cache is thin.
+    try {
+      const reg = await HubSupabase.getDoc("name-registry");
+      const names =
+        reg && reg.names && typeof reg.names === "object"
+          ? reg.names
+          : reg && typeof reg === "object"
+            ? reg
+            : {};
+      Object.values(names).forEach((claim) => {
+        if (!claim || typeof claim !== "object") return;
+        if (claim.playerId && claim.name) {
+          // stash on games for resolvePlayerName via synthetic invites board peek
+          const pid = String(claim.playerId);
+          const nm = sanitizeName(claim.name);
+          if (!nm) return;
+          const key = `__namehint:${pid}`;
+          if (!games.__nameHints) games.__nameHints = {};
+          games.__nameHints[pid] = nm;
+        }
+      });
+    } catch {}
+    const board = { ...(games.invites || {}) };
+    let changed = false;
+    Object.entries(byInviter).forEach(([inviterId, row]) => {
+      const invitees =
+        row && row.invitees && typeof row.invitees === "object" ? row.invitees : {};
+      const count = Object.keys(invitees).length;
+      if (count <= 0) return;
+      let name = resolvePlayerName(inviterId, games);
+      if (!name && games.__nameHints && games.__nameHints[inviterId]) {
+        name = sanitizeName(games.__nameHints[inviterId]);
+      }
+      if (!name) return;
+      const key = nameKey(name);
+      const prev = normalizeEntry(board[key], false);
+      const score = Math.max(count, Number(prev?.score) || 0);
+      const next = {
+        name,
+        score,
+        at: Math.max(Number(prev?.at) || 0, Date.now()),
+        playerId: String(inviterId),
+        lowerBetter: false
+      };
+      if (
+        !prev ||
+        prev.score !== next.score ||
+        prev.playerId !== next.playerId ||
+        nameKey(prev.name) !== key
+      ) {
+        changed = true;
+      }
+      Object.keys(board).forEach((k) => {
+        if (k === key) return;
+        if (board[k]?.playerId === inviterId) {
+          delete board[k];
+          changed = true;
+        }
+      });
+      board[key] = next;
+    });
+    delete games.__nameHints;
+    if (changed || !games.invites) {
+      games.invites = trimBoard(board, false);
+    }
+    return { games, resets };
+  }
+
   async function clearPlayer(gameId, playerName) {
     const key = nameKey(playerName);
     if (!gameId || !key) return false;
@@ -1254,7 +1376,10 @@
       }
       // Re-read AFTER the network wait so live Time Online bumps aren't wiped.
       const local = loadLocal();
-      const merged = mergeBoards(local, remote);
+      let merged = mergeBoards(local, remote);
+      try {
+        merged = await hydrateInvitesBoard(merged);
+      } catch {}
       saveLocal(merged);
       try {
         await pushRemote(merged);
@@ -1604,6 +1729,7 @@
     rebindPlayerName,
     formatScore,
     bumpLocal,
+    hydrateInvitesBoard,
     GAME_IDS,
     GAME_META
   };

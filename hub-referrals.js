@@ -252,6 +252,11 @@
         await window.HubPlays?.markInviter?.(count);
       } catch {}
     }
+    try {
+      if (count > 0) {
+        await window.HubLeaderboard?.submit?.("invites", count);
+      }
+    } catch {}
     return getStatus();
   }
 
@@ -377,6 +382,10 @@
     if (inviterId === myPlayerId()) {
       await unlockSelfIfNeeded(count);
     }
+
+    try {
+      await window.HubLeaderboard?.sync?.(true);
+    } catch {}
 
     try {
       document.dispatchEvent(

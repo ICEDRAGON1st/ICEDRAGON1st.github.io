@@ -1371,6 +1371,8 @@ const HUB_GAMES = [
 const LEADERBOARD_GAMES = [
   { id: "hub-points", name: "Hub Points" },
   { id: "online-time", name: "Time Online" },
+  { id: "day-streak", name: "Day Streak" },
+  { id: "invites", name: "Most Invites" },
   ...HUB_GAMES.flatMap((game) =>
     game.id === "mine"
       ? [
@@ -2613,7 +2615,11 @@ function renderLeaderboardList() {
         ? "No hub points yet — place top 10 on any board to earn them."
         : selectedLeaderboardGame === "online-time"
           ? "No time logged yet — stay on the site with a username to claim #1."
-          : "No scores yet — play to claim #1.";
+          : selectedLeaderboardGame === "day-streak"
+            ? "No day streaks yet — play any game to start your streak."
+            : selectedLeaderboardGame === "invites"
+              ? "No invites yet — share your invite link to climb this board."
+              : "No scores yet — play to claim #1.";
     leaderboardEmpty.classList.remove("hidden");
     return;
   }
@@ -2797,7 +2803,22 @@ function recordHubDailyPlay() {
     if (result.streak >= 14) HubAchievements.unlock("streak_14");
     if (result.streak >= 30) HubAchievements.unlock("streak_30");
   }
+  try {
+    const best = Math.max(Number(result?.best) || 0, Number(result?.streak) || 0);
+    if (best > 0 && typeof HubLeaderboard !== "undefined") {
+      HubLeaderboard.submit("day-streak", best).catch(() => {});
+    }
+  } catch {}
   return result;
+}
+
+function submitDayStreakToLeaderboard() {
+  try {
+    if (typeof HubStreak === "undefined" || typeof HubLeaderboard === "undefined") return;
+    const status = HubStreak.getStatus?.() || {};
+    const best = Math.max(Number(status.best) || 0, Number(status.streak) || 0);
+    if (best > 0) HubLeaderboard.submit("day-streak", best).catch(() => {});
+  } catch {}
 }
 
 function renderDailyStreak() {
@@ -3964,6 +3985,9 @@ document.addEventListener("hub-account-bag-applied", () => {
   try {
     refreshGamesHub();
   } catch {}
+  try {
+    submitDayStreakToLeaderboard();
+  } catch {}
 });
 document.addEventListener("hub-player-changed", () => {
   applyHubTheme();
@@ -3978,6 +4002,9 @@ document.addEventListener("hub-username-ready", () => {
   applyHubTheme();
   try {
     refreshGamesHub();
+  } catch {}
+  try {
+    submitDayStreakToLeaderboard();
   } catch {}
 });
 
