@@ -45,6 +45,12 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260930v": [
+    "Fishing Idle: catch book % ignores exclusive, ???, and easter egg fish (still catchable as bonuses)",
+    "Fishing Idle: Hjalte can’t give exclusive / ??? / easter egg fish",
+    "Fishing Idle: admin talk shows the speaker’s name (ICE_DRAGON or Hjalte) in-game and on Discord",
+    "Discord: Admin Abuse role gets pinged when fishing admin abuse posts"
+  ],
   "20260930r": [
     "My Games: game cards show your leaderboard personal best when it’s higher than (or missing from) local"
   ],
@@ -1962,13 +1968,15 @@ function showWhatsNew() {
     (e) => e.id.localeCompare(seen) > 0 && e.id.localeCompare(build) <= 0
   );
   if (!unseenEntries.length) {
-    markBuildSeen();
+    // Only mark seen when this build itself has no notes — otherwise keep trying
+    // until CHANGELOG catches up (empty mid-builds were swallowing What's new).
+    if (!CHANGELOG[build]?.length) markBuildSeen();
     return false;
   }
 
   const notes = unseenEntries.flatMap((e) => e.notes);
   if (!notes.length) {
-    markBuildSeen();
+    if (!CHANGELOG[build]?.length) markBuildSeen();
     return false;
   }
 
@@ -1977,11 +1985,17 @@ function showWhatsNew() {
     whatsNewList.innerHTML = notes.map((note) => `<li>${note}</li>`).join("");
   }
   whatsNewModal?.classList.remove("hidden");
-  try {
-    const announceNotes = CHANGELOG[build]?.length ? CHANGELOG[build] : notes;
-    window.HubDiscord?.maybeAnnounceHubBuild?.(build, announceNotes)?.catch?.(() => {});
-  } catch {}
   return true;
+}
+
+/** Discord #updates — always try for the current build's notes (not tied to the modal). */
+function announceHubBuildOnBoot() {
+  const build = window.WORDLE_BUILD || "";
+  const notes = CHANGELOG[build];
+  if (!build || !notes?.length) return;
+  try {
+    window.HubDiscord?.maybeAnnounceHubBuild?.(build, notes)?.catch?.(() => {});
+  } catch {}
 }
 
 function hideWhatsNew() {
@@ -6011,6 +6025,7 @@ showMessage(`Loaded · ${sixCount} six-letter words`);
 
 function bootAfterUsername() {
   // Land on My Games first so What's new never sits on the Guessword board.
+  announceHubBuildOnBoot();
   if (location.hash === "#wordle") {
     document.documentElement.classList.add("playing-guessword");
     gamesScreen?.classList.add("hidden");
