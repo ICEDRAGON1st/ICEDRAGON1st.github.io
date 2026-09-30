@@ -7,11 +7,11 @@
     </linearGradient>
   </defs>
   <rect width="320" height="180" fill="url(#g)"/>
-  <rect x="40" y="125" width="240" height="18" rx="4" fill="#495057"/>
-    <circle cx="100" cy="95" r="14" fill="#ffd8a8"/><rect x="92" y="108" width="16" height="22" rx="3" fill="#4dabf7"/>
-    <circle cx="160" cy="88" r="14" fill="#ffd8a8"/><rect x="152" y="101" width="16" height="28" rx="3" fill="#69db7c"/>
-    <circle cx="220" cy="95" r="14" fill="#ffd8a8"/><rect x="212" y="108" width="16" height="22" rx="3" fill="#ff8787"/>
-    <rect x="94" y="82" width="12" height="6" rx="2" fill="#1c7ed6"/>
-    <rect x="154" y="75" width="12" height="6" rx="2" fill="#2f9e44"/>
-    <rect x="214" y="82" width="12" height="6" rx="2" fill="#e03131"/>
+  <rect x="30" y="130" width="260" height="20" rx="4" fill="#495057"/>
+    <circle cx="90" cy="95" r="16" fill="#ffd8a8"/><rect x="80" y="110" width="20" height="24" rx="4" fill="#4dabf7"/>
+    <circle cx="160" cy="88" r="16" fill="#ffd8a8"/><rect x="150" y="103" width="20" height="30" rx="4" fill="#69db7c"/>
+    <circle cx="230" cy="95" r="16" fill="#ffd8a8"/><rect x="220" y="110" width="20" height="24" rx="4" fill="#ff8787"/>
+    <rect x="78" y="58" width="24" height="18" rx="4" fill="#FAB005"/><text x="90" y="71" text-anchor="middle" font-size="11" fill="#212529" font-family="Segoe UI,sans-serif">DIG</text>
+    <rect x="148" y="48" width="28" height="18" rx="4" fill="#15AABF"/><text x="162" y="61" text-anchor="middle" font-size="10" fill="#fff" font-family="Segoe UI,sans-serif">BUILD</text>
+    <rect x="218" y="58" width="28" height="18" rx="4" fill="#FA5252"/><text x="232" y="71" text-anchor="middle" font-size="10" fill="#fff" font-family="Segoe UI,sans-serif">BLOCK</text>
 </svg>

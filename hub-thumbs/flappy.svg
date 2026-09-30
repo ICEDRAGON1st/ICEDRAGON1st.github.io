@@ -2,19 +2,23 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" role="img" aria-hidden="true">
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#1c3d5a"/>
-      <stop offset="100%" stop-color="#0b7285"/>
+      <stop offset="0%" stop-color="#0c1624"/>
+      <stop offset="100%" stop-color="#1e4a7a"/>
     </linearGradient>
   </defs>
   <rect width="320" height="180" fill="url(#g)"/>
-  <rect x="48" y="0" width="44" height="68" fill="#868e96"/><rect x="42" y="60" width="56" height="14" fill="#adb5bd"/>
-    <rect x="48" y="118" width="44" height="62" fill="#868e96"/><rect x="42" y="118" width="56" height="14" fill="#adb5bd"/>
-    <rect x="228" y="0" width="44" height="52" fill="#868e96"/><rect x="222" y="44" width="56" height="14" fill="#adb5bd"/>
-    <rect x="228" y="108" width="44" height="72" fill="#868e96"/><rect x="222" y="108" width="56" height="14" fill="#adb5bd"/>
-    <ellipse cx="155" cy="92" rx="26" ry="14" fill="#74c0fc"/>
-    <path d="M128 88 Q118 70 138 78 Q148 68 158 82 Z" fill="#4dabf7"/>
-    <path d="M170 86 Q200 72 188 98 Q178 94 170 96 Z" fill="#4dabf7"/>
-    <circle cx="168" cy="88" r="3.5" fill="#0b2a4a"/>
-    <path d="M178 92 L198 88 L178 98 Z" fill="#ff922b"/>
-    <circle cx="70" cy="40" r="2" fill="#fff" opacity="0.7"/><circle cx="260" cy="70" r="1.5" fill="#fff" opacity="0.6"/>
+  <circle cx="260" cy="42" r="22" fill="#e7f5ff" opacity="0.35"/>
+    <circle cx="50" cy="40" r="2" fill="#fff"/><circle cx="90" cy="70" r="1.5" fill="#fff"/>
+    <circle cx="200" cy="30" r="1.5" fill="#fff"/><circle cx="300" cy="90" r="2" fill="#fff"/>
+    <path d="M0 150 L40 120 L70 150 L110 100 L150 150 L200 115 L250 150 L290 125 L320 150 L320 180 L0 180 Z" fill="#152238"/>
+    <path d="M20 150 V70 H55 V150 Z" fill="#2a4566"/>
+    <path d="M20 70 L37 48 L55 70 Z" fill="#3b5bdb"/>
+    <path d="M250 150 V55 H295 V150 Z" fill="#2a4566"/>
+    <path d="M250 55 L272 30 L295 55 Z" fill="#3b5bdb"/>
+    <path d="M95 110 C110 70, 150 55, 190 75 C210 85, 230 80, 245 70 C220 95, 210 115, 185 125 C150 140, 115 135, 95 110 Z" fill="#74c0fc"/>
+    <path d="M120 95 C135 75, 160 78, 175 95" fill="#a5d8ff"/>
+    <path d="M210 78 C230 55, 255 60, 245 85" fill="#4dabf7"/>
+    <circle cx="205" cy="88" r="4" fill="#0c1624"/>
+    <path d="M220 92 L250 85 L222 102 Z" fill="#fbbf24"/>
+    <path d="M140 120 L130 145 L150 130 Z" fill="#fbbf24" opacity="0.8"/>
 </svg>

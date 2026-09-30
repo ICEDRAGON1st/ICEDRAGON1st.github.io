@@ -2,15 +2,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" role="img" aria-hidden="true">
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#2b2118"/>
-      <stop offset="100%" stop-color="#e67700"/>
+      <stop offset="0%" stop-color="#0b2a4a"/>
+      <stop offset="100%" stop-color="#1c7ed6"/>
     </linearGradient>
   </defs>
   <rect width="320" height="180" fill="url(#g)"/>
-  <line x1="80" y1="150" x2="180" y2="150" stroke="#f8f9fa" stroke-width="6"/>
-    <line x1="110" y1="150" x2="110" y2="35" stroke="#f8f9fa" stroke-width="6"/>
-    <line x1="110" y1="35" x2="190" y2="35" stroke="#f8f9fa" stroke-width="6"/>
-    <line x1="190" y1="35" x2="190" y2="55" stroke="#f8f9fa" stroke-width="5"/>
-    <circle cx="190" cy="72" r="16" fill="none" stroke="#ffd8a8" stroke-width="5"/>
-    <line x1="190" y1="88" x2="190" y2="125" stroke="#ffd8a8" stroke-width="5"/>
+  <line x1="80" y1="150" x2="180" y2="150" stroke="#a5d8ff" stroke-width="6"/>
+    <line x1="110" y1="150" x2="110" y2="35" stroke="#a5d8ff" stroke-width="6"/>
+    <line x1="110" y1="35" x2="190" y2="35" stroke="#a5d8ff" stroke-width="6"/>
+    <line x1="190" y1="35" x2="190" y2="55" stroke="#74c0fc" stroke-width="5"/>
+    <circle cx="190" cy="72" r="16" fill="none" stroke="#e7f5ff" stroke-width="5"/>
+    <line x1="190" y1="88" x2="190" y2="125" stroke="#e7f5ff" stroke-width="5"/>
+    <text x="240" y="100" font-size="28" fill="#fff" opacity="0.35" font-family="Segoe UI,sans-serif">_ _ _</text>
 </svg>

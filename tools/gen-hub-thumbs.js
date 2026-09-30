@@ -1,5 +1,7 @@
 /**
  * One-shot: write hub-thumbs/*.svg game card art.
+ * Art should match OUR branded games — avoid classic clone silhouettes
+ * (Flappy pipes+bird, Chrome dino, Wordle green/yellow grid, etc.).
  * Run: node tools/gen-hub-thumbs.js
  */
 const fs = require("fs");
@@ -23,35 +25,34 @@ function svg(w, h, body, bg) {
 }
 
 const arts = {
+  // Guessword — melting ice letter tiles (not Wordle green/yellow)
   wordle: svg(
     320,
     180,
-    `<g transform="translate(70,42)">
+    `<g transform="translate(55,48)">
       ${[0, 1, 2, 3, 4]
         .map(
           (i) =>
-            `<rect x="${i * 36}" y="0" width="30" height="30" rx="5" fill="${
-              i === 2 ? "#2f9e44" : i === 1 || i === 3 ? "#f1c40f" : "#868e96"
-            }" opacity="0.95"/>`
+            `<rect x="${i * 42}" y="0" width="36" height="36" rx="8" fill="#e7f5ff" opacity="0.92" stroke="#74c0fc" stroke-width="2"/>
+             <path d="M${i * 42 + 6} 34 Q${i * 42 + 18} 44 ${i * 42 + 30} 34" fill="#4dabf7" opacity="0.55"/>`
         )
         .join("")}
       ${[0, 1, 2, 3, 4]
         .map(
           (i) =>
-            `<rect x="${i * 36}" y="40" width="30" height="30" rx="5" fill="${
-              i % 2 ? "#2f9e44" : "#868e96"
-            }" opacity="0.9"/>`
+            `<rect x="${i * 42}" y="52" width="36" height="36" rx="8" fill="${
+              i === 2 ? "#a5d8ff" : "#d0ebff"
+            }" opacity="0.9" stroke="#1c7ed6" stroke-width="2"/>`
         )
         .join("")}
-      ${[0, 1, 2, 3, 4]
-        .map(
-          (i) =>
-            `<rect x="${i * 36}" y="80" width="30" height="30" rx="5" fill="#4dabf7" opacity="0.85"/>`
-        )
-        .join("")}
-    </g>`,
-    ["#0b2a4a", "#1c7ed6"]
+      <text x="18" y="26" text-anchor="middle" font-size="16" font-weight="800" fill="#0b2a4a" font-family="Segoe UI,sans-serif">I</text>
+      <text x="102" y="26" text-anchor="middle" font-size="16" font-weight="800" fill="#0b2a4a" font-family="Segoe UI,sans-serif">C</text>
+      <text x="144" y="26" text-anchor="middle" font-size="16" font-weight="800" fill="#0b2a4a" font-family="Segoe UI,sans-serif">E</text>
+    </g>
+    <circle cx="280" cy="40" r="18" fill="#fff" opacity="0.25"/>`,
+    ["#0b2a4a", "#1864ab"]
   ),
+
   space: svg(
     320,
     180,
@@ -64,6 +65,7 @@ const arts = {
     <circle cx="260" cy="120" r="18" fill="#ff6b6b" opacity="0.85"/>`,
     ["#0b1026", "#5f3dc4"]
   ),
+
   quiz: svg(
     320,
     180,
@@ -73,63 +75,76 @@ const arts = {
     <circle cx="250" cy="130" r="8" fill="#69db7c" opacity="0.9"/>`,
     ["#5c2d91", "#ae3ec9"]
   ),
+
+  // Bounce Break — neon orb + shattered crystal bricks (not classic brick rows)
   breakout: svg(
     320,
     180,
-    `${[0, 1, 2, 3, 4, 5]
-      .map((r) =>
-        [0, 1, 2, 3, 4, 5, 6]
-          .map(
-            (c) =>
-              `<rect x="${28 + c * 38}" y="${22 + r * 16}" width="34" height="12" rx="2" fill="${
-                ["#ff6b6b", "#fcc419", "#51cf66", "#339af0", "#cc5de8", "#ff922b"][r]
-              }" opacity="0.95"/>`
-          )
-          .join("")
+    `${[
+      [40, 30, "#74c0fc"],
+      [95, 22, "#a5d8ff"],
+      [150, 34, "#4dabf7"],
+      [210, 26, "#91a7ff"],
+      [265, 36, "#748ffc"],
+      [55, 70, "#9775fa"],
+      [120, 62, "#b197fc"],
+      [185, 74, "#da77f2"],
+      [250, 66, "#e599f7"]
+    ]
+      .map(
+        ([x, y, c]) =>
+          `<polygon points="${x},${y} ${x + 28},${y + 6} ${x + 22},${y + 28} ${x - 4},${y + 22}" fill="${c}" opacity="0.92"/>`
       )
       .join("")}
-    <rect x="130" y="150" width="60" height="10" rx="4" fill="#e9ecef"/>
-    <circle cx="175" cy="130" r="7" fill="#fff"/>`,
-    ["#1a1b1e", "#364fc7"]
+    <circle cx="160" cy="130" r="12" fill="#fff"/>
+    <circle cx="160" cy="130" r="6" fill="#ff922b"/>
+    <rect x="120" y="158" width="80" height="10" rx="5" fill="#e7f5ff" opacity="0.9"/>`,
+    ["#0b1026", "#364fc7"]
   ),
+
+  // Hangman — frosty gallows + ice figure
   hangman: svg(
     320,
     180,
-    `<line x1="80" y1="150" x2="180" y2="150" stroke="#f8f9fa" stroke-width="6"/>
-    <line x1="110" y1="150" x2="110" y2="35" stroke="#f8f9fa" stroke-width="6"/>
-    <line x1="110" y1="35" x2="190" y2="35" stroke="#f8f9fa" stroke-width="6"/>
-    <line x1="190" y1="35" x2="190" y2="55" stroke="#f8f9fa" stroke-width="5"/>
-    <circle cx="190" cy="72" r="16" fill="none" stroke="#ffd8a8" stroke-width="5"/>
-    <line x1="190" y1="88" x2="190" y2="125" stroke="#ffd8a8" stroke-width="5"/>`,
-    ["#2b2118", "#e67700"]
+    `<line x1="80" y1="150" x2="180" y2="150" stroke="#a5d8ff" stroke-width="6"/>
+    <line x1="110" y1="150" x2="110" y2="35" stroke="#a5d8ff" stroke-width="6"/>
+    <line x1="110" y1="35" x2="190" y2="35" stroke="#a5d8ff" stroke-width="6"/>
+    <line x1="190" y1="35" x2="190" y2="55" stroke="#74c0fc" stroke-width="5"/>
+    <circle cx="190" cy="72" r="16" fill="none" stroke="#e7f5ff" stroke-width="5"/>
+    <line x1="190" y1="88" x2="190" y2="125" stroke="#e7f5ff" stroke-width="5"/>
+    <text x="240" y="100" font-size="28" fill="#fff" opacity="0.35" font-family="Segoe UI,sans-serif">_ _ _</text>`,
+    ["#0b2a4a", "#1c7ed6"]
   ),
+
+  // Block Merge — ice crystal tiles merging (no "2048" branding)
   "2048": svg(
     320,
     180,
-    `<rect x="55" y="35" width="64" height="64" rx="10" fill="#edc948"/>
-    <text x="87" y="78" text-anchor="middle" font-size="26" font-weight="800" fill="#5c3b00" font-family="Segoe UI,sans-serif">8</text>
-    <rect x="131" y="35" width="64" height="64" rx="10" fill="#f59563"/>
-    <text x="163" y="78" text-anchor="middle" font-size="24" font-weight="800" fill="#fff" font-family="Segoe UI,sans-serif">16</text>
-    <rect x="207" y="35" width="64" height="64" rx="10" fill="#f2b179"/>
-    <text x="239" y="78" text-anchor="middle" font-size="22" font-weight="800" fill="#fff" font-family="Segoe UI,sans-serif">32</text>
-    <rect x="93" y="110" width="64" height="48" rx="10" fill="#edc22e"/>
-    <rect x="169" y="110" width="64" height="48" rx="10" fill="#f67c5f"/>
-    <path d="M125 134 L145 134" stroke="#5c3b00" stroke-width="4" stroke-linecap="round"/>
-    <path d="M201 134 L221 134 M211 124 L211 144" stroke="#fff" stroke-width="4" stroke-linecap="round"/>`,
-    ["#bbada0", "#8f7a66"]
+    `<rect x="48" y="40" width="70" height="70" rx="14" fill="#a5d8ff"/>
+    <rect x="125" y="40" width="70" height="70" rx="14" fill="#74c0fc"/>
+    <rect x="202" y="40" width="70" height="70" rx="14" fill="#4dabf7"/>
+    <path d="M95 75 L125 75" stroke="#e7f5ff" stroke-width="5" stroke-linecap="round"/>
+    <path d="M172 75 L202 75" stroke="#e7f5ff" stroke-width="5" stroke-linecap="round"/>
+    <rect x="125" y="120" width="70" height="40" rx="12" fill="#228be6"/>
+    <circle cx="160" cy="140" r="10" fill="#e7f5ff" opacity="0.85"/>
+    <text x="83" y="85" text-anchor="middle" font-size="22" font-weight="800" fill="#0b2a4a" font-family="Segoe UI,sans-serif">◆</text>
+    <text x="160" y="85" text-anchor="middle" font-size="22" font-weight="800" fill="#0b2a4a" font-family="Segoe UI,sans-serif">◆◆</text>`,
+    ["#0b2a4a", "#3b5bdb"]
   ),
+
+  // Snake — neon ribbon (not classic green squares)
   snake: svg(
     320,
     180,
-    `<rect x="40" y="80" width="28" height="28" rx="6" fill="#51cf66"/>
-    <rect x="72" y="80" width="28" height="28" rx="6" fill="#40c057"/>
-    <rect x="104" y="80" width="28" height="28" rx="6" fill="#37b24d"/>
-    <rect x="136" y="80" width="28" height="28" rx="6" fill="#2f9e44"/>
-    <rect x="136" y="48" width="28" height="28" rx="6" fill="#2b8a3e"/>
-    <circle cx="150" cy="55" r="3" fill="#fff"/><circle cx="158" cy="55" r="3" fill="#fff"/>
-    <circle cx="230" cy="100" r="12" fill="#ff6b6b"/>`,
-    ["#0b3d1e", "#087f5b"]
+    `<path d="M40 120 C80 40, 120 160, 160 70 S240 40, 280 110" fill="none" stroke="#20c997" stroke-width="18" stroke-linecap="round"/>
+    <path d="M40 120 C80 40, 120 160, 160 70 S240 40, 280 110" fill="none" stroke="#96f2d7" stroke-width="8" stroke-linecap="round"/>
+    <circle cx="280" cy="110" r="14" fill="#12b886"/>
+    <circle cx="286" cy="106" r="3" fill="#fff"/>
+    <circle cx="70" cy="50" r="10" fill="#ff6b6b"/>
+    <circle cx="70" cy="50" r="4" fill="#fff" opacity="0.5"/>`,
+    ["#0b1026", "#087f5b"]
   ),
+
   memory: svg(
     320,
     180,
@@ -141,34 +156,26 @@ const arts = {
     <circle cx="240" cy="80" r="10" fill="#fff" opacity="0.25"/>`,
     ["#1b2a4a", "#3b5bdb"]
   ),
+
+  // Drop Four — icy lattice + glowing chips
   "connect-four": svg(
     320,
     180,
-    `<rect x="55" y="25" width="210" height="135" rx="12" fill="#1c7ed6"/>
+    `<rect x="55" y="25" width="210" height="135" rx="16" fill="#152238" stroke="#4dabf7" stroke-width="3"/>
     ${[0, 1, 2, 3, 4, 5]
       .map((r) =>
         [0, 1, 2, 3, 4, 5, 6]
           .map((c) => {
-            const filled =
-              (r > 3 && c === 3) ||
-              (r === 5 && c >= 1 && c <= 3) ||
-              (r === 5 && c === 5) ||
-              (r === 4 && c === 5);
-            const color =
-              (r > 3 && c === 3) || (r === 5 && c >= 1 && c <= 3)
-                ? "#fa5252"
-                : (r === 5 && c === 5) || (r === 4 && c === 5)
-                  ? "#ffd43b"
-                  : "#0b2a4a";
-            return `<circle cx="${80 + c * 28}" cy="${48 + r * 20}" r="8" fill="${
-              filled ? color : "#0b2a4a"
-            }"/>`;
+            const lit = (r === 5 && c >= 2 && c <= 4) || (r === 4 && c === 3) || (r === 3 && c === 3);
+            const color = lit ? (c === 5 || c === 1 ? "#ffd43b" : "#74c0fc") : "#0b2a4a";
+            return `<circle cx="${80 + c * 28}" cy="${48 + r * 20}" r="8" fill="${color}" stroke="#1c7ed6" stroke-width="1"/>`;
           })
           .join("")
       )
       .join("")}`,
-    ["#0b2a4a", "#1864ab"]
+    ["#0c1624", "#1c7ed6"]
   ),
+
   math: svg(
     320,
     180,
@@ -178,6 +185,7 @@ const arts = {
     <rect x="100" y="120" width="120" height="8" rx="4" fill="#fff" opacity="0.35"/>`,
     ["#0b3d2e", "#2b8a3e"]
   ),
+
   sudoku: svg(
     320,
     180,
@@ -205,60 +213,74 @@ const arts = {
     </g>`,
     ["#343a40", "#868e96"]
   ),
+
+  // Wing Hop — night sky, big ice dragon, castle silhouette (NOT pipe+bird layout)
   flappy: svg(
     320,
     180,
-    // Wing Hop: ice dragon + stone towers (not Flappy Bird pipes/bird)
-    `<rect x="48" y="0" width="44" height="68" fill="#868e96"/><rect x="42" y="60" width="56" height="14" fill="#adb5bd"/>
-    <rect x="48" y="118" width="44" height="62" fill="#868e96"/><rect x="42" y="118" width="56" height="14" fill="#adb5bd"/>
-    <rect x="228" y="0" width="44" height="52" fill="#868e96"/><rect x="222" y="44" width="56" height="14" fill="#adb5bd"/>
-    <rect x="228" y="108" width="44" height="72" fill="#868e96"/><rect x="222" y="108" width="56" height="14" fill="#adb5bd"/>
-    <ellipse cx="155" cy="92" rx="26" ry="14" fill="#74c0fc"/>
-    <path d="M128 88 Q118 70 138 78 Q148 68 158 82 Z" fill="#4dabf7"/>
-    <path d="M170 86 Q200 72 188 98 Q178 94 170 96 Z" fill="#4dabf7"/>
-    <circle cx="168" cy="88" r="3.5" fill="#0b2a4a"/>
-    <path d="M178 92 L198 88 L178 98 Z" fill="#ff922b"/>
-    <circle cx="70" cy="40" r="2" fill="#fff" opacity="0.7"/><circle cx="260" cy="70" r="1.5" fill="#fff" opacity="0.6"/>`,
-    ["#1c3d5a", "#0b7285"]
+    `<circle cx="260" cy="42" r="22" fill="#e7f5ff" opacity="0.35"/>
+    <circle cx="50" cy="40" r="2" fill="#fff"/><circle cx="90" cy="70" r="1.5" fill="#fff"/>
+    <circle cx="200" cy="30" r="1.5" fill="#fff"/><circle cx="300" cy="90" r="2" fill="#fff"/>
+    <path d="M0 150 L40 120 L70 150 L110 100 L150 150 L200 115 L250 150 L290 125 L320 150 L320 180 L0 180 Z" fill="#152238"/>
+    <path d="M20 150 V70 H55 V150 Z" fill="#2a4566"/>
+    <path d="M20 70 L37 48 L55 70 Z" fill="#3b5bdb"/>
+    <path d="M250 150 V55 H295 V150 Z" fill="#2a4566"/>
+    <path d="M250 55 L272 30 L295 55 Z" fill="#3b5bdb"/>
+    <path d="M95 110 C110 70, 150 55, 190 75 C210 85, 230 80, 245 70 C220 95, 210 115, 185 125 C150 140, 115 135, 95 110 Z" fill="#74c0fc"/>
+    <path d="M120 95 C135 75, 160 78, 175 95" fill="#a5d8ff"/>
+    <path d="M210 78 C230 55, 255 60, 245 85" fill="#4dabf7"/>
+    <circle cx="205" cy="88" r="4" fill="#0c1624"/>
+    <path d="M220 92 L250 85 L222 102 Z" fill="#fbbf24"/>
+    <path d="M140 120 L130 145 L150 130 Z" fill="#fbbf24" opacity="0.8"/>`,
+    ["#0c1624", "#1e4a7a"]
   ),
+
   tictactoe: svg(
     320,
     180,
-    `<g stroke="#fff" stroke-width="6" stroke-linecap="round">
+    `<g stroke="#a5d8ff" stroke-width="6" stroke-linecap="round">
       <line x1="130" y1="30" x2="130" y2="150"/><line x1="190" y1="30" x2="190" y2="150"/>
       <line x1="80" y1="70" x2="240" y2="70"/><line x1="80" y1="110" x2="240" y2="110"/>
-      <line x1="95" y1="40" x2="115" y2="60" stroke="#ff6b6b"/><line x1="115" y1="40" x2="95" y2="60" stroke="#ff6b6b"/>
-      <circle cx="160" cy="90" r="14" fill="none" stroke="#74c0fc"/>
-      <line x1="205" y1="120" x2="225" y2="140" stroke="#ff6b6b"/><line x1="225" y1="120" x2="205" y2="140" stroke="#ff6b6b"/>
+      <line x1="95" y1="40" x2="115" y2="60" stroke="#74c0fc"/><line x1="115" y1="40" x2="95" y2="60" stroke="#74c0fc"/>
+      <circle cx="160" cy="90" r="14" fill="none" stroke="#fbbf24"/>
+      <line x1="205" y1="120" x2="225" y2="140" stroke="#74c0fc"/><line x1="225" y1="120" x2="205" y2="140" stroke="#74c0fc"/>
     </g>`,
-    ["#1a1b1e", "#495057"]
+    ["#0c1624", "#2a4566"]
   ),
+
+  // Pixel Drop — neon tetromino rain / glow board (not classic Tetris playfield)
   pixletris: svg(
     320,
     180,
-    `${[
-      [4, 5, "#cc5de8"],
-      [5, 5, "#cc5de8"],
-      [6, 5, "#cc5de8"],
-      [5, 4, "#cc5de8"],
-      [2, 7, "#339af0"],
-      [3, 7, "#339af0"],
-      [4, 7, "#339af0"],
-      [7, 7, "#51cf66"],
-      [8, 7, "#51cf66"],
-      [2, 8, "#339af0"],
-      [3, 8, "#339af0"],
-      [6, 8, "#ff922b"],
-      [7, 8, "#ff922b"],
-      [8, 8, "#ff922b"]
+    `<rect x="100" y="20" width="120" height="140" rx="10" fill="#0b1026" stroke="#7048e8" stroke-width="3"/>
+    ${[
+      [110, 35, "#cc5de8"],
+      [135, 35, "#cc5de8"],
+      [160, 35, "#22b8cf"],
+      [185, 35, "#22b8cf"],
+      [135, 58, "#cc5de8"],
+      [160, 58, "#51cf66"],
+      [110, 81, "#ff922b"],
+      [135, 81, "#ff922b"],
+      [160, 81, "#51cf66"],
+      [185, 81, "#339af0"],
+      [160, 104, "#51cf66"],
+      [185, 104, "#339af0"],
+      [110, 127, "#fa5252"],
+      [135, 127, "#fa5252"],
+      [160, 127, "#fa5252"],
+      [185, 127, "#339af0"]
     ]
       .map(
         ([x, y, c]) =>
-          `<rect x="${40 + x * 24}" y="${10 + y * 16}" width="22" height="14" rx="2" fill="${c}"/>`
+          `<rect x="${x}" y="${y}" width="20" height="18" rx="3" fill="${c}" opacity="0.95"/>`
       )
-      .join("")}`,
-    ["#0b1026", "#212529"]
+      .join("")}
+    <circle cx="60" cy="50" r="6" fill="#cc5de8" opacity="0.7"/>
+    <circle cx="270" cy="90" r="8" fill="#22b8cf" opacity="0.7"/>`,
+    ["#12091f", "#5f3dc4"]
   ),
+
   clicker: svg(
     320,
     180,
@@ -266,27 +288,37 @@ const arts = {
     <circle cx="160" cy="105" r="18" fill="#fff" opacity="0.35"/>`,
     ["#0b2a4a", "#7048e8"]
   ),
+
+  // Tower Stack 3D — perspective slabs
   stacker: svg(
     320,
     180,
-    `<rect x="110" y="130" width="100" height="28" rx="4" fill="#ff922b"/>
-    <rect x="118" y="98" width="84" height="28" rx="4" fill="#fcc419"/>
-    <rect x="128" y="66" width="64" height="28" rx="4" fill="#51cf66"/>
-    <rect x="140" y="30" width="80" height="28" rx="4" fill="#339af0" opacity="0.95"/>`,
-    ["#1a1b1e", "#343a40"]
+    `<polygon points="110,150 210,150 230,165 90,165" fill="#ff922b"/>
+    <polygon points="120,120 200,120 210,150 110,150" fill="#fcc419"/>
+    <polygon points="130,90 190,90 200,120 120,120" fill="#51cf66"/>
+    <polygon points="145,55 205,45 190,90 130,90" fill="#339af0"/>
+    <polygon points="145,55 165,40 225,30 205,45" fill="#74c0fc" opacity="0.9"/>`,
+    ["#0b1026", "#343a40"]
   ),
+
+  // Cross Walk — lava / ice / carts (not Crossy Road chicken+road)
   crossy: svg(
     320,
     180,
-    `<rect x="0" y="70" width="320" height="40" fill="#495057"/>
-    <rect x="20" y="88" width="40" height="6" fill="#ffd43b"/><rect x="90" y="88" width="40" height="6" fill="#ffd43b"/>
-    <rect x="160" y="88" width="40" height="6" fill="#ffd43b"/><rect x="230" y="88" width="40" height="6" fill="#ffd43b"/>
-    <rect x="200" y="55" width="50" height="28" rx="4" fill="#fa5252"/>
-    <circle cx="210" cy="85" r="6" fill="#212529"/><circle cx="240" cy="85" r="6" fill="#212529"/>
-    <circle cx="100" cy="140" r="14" fill="#69db7c"/>
-    <circle cx="100" cy="128" r="8" fill="#69db7c"/>`,
-    ["#2b8a3e", "#087f5b"]
+    `<rect x="0" y="0" width="320" height="55" fill="#1c7ed6" opacity="0.35"/>
+    <rect x="0" y="55" width="320" height="50" fill="#e03131"/>
+    <path d="M0 70 Q40 55 80 70 T160 70 T240 70 T320 70 L320 95 L0 95 Z" fill="#fa5252"/>
+    <rect x="0" y="105" width="320" height="40" fill="#a5d8ff"/>
+    <rect x="30" y="112" width="50" height="18" rx="4" fill="#e7f5ff"/>
+    <rect x="120" y="118" width="60" height="16" rx="4" fill="#e7f5ff"/>
+    <rect x="0" y="145" width="320" height="35" fill="#495057"/>
+    <rect x="200" y="148" width="55" height="24" rx="4" fill="#ffd43b"/>
+    <circle cx="210" cy="172" r="5" fill="#212529"/><circle cx="245" cy="172" r="5" fill="#212529"/>
+    <circle cx="90" cy="130" r="12" fill="#20c997"/>
+    <circle cx="90" cy="120" r="8" fill="#12b886"/>`,
+    ["#2b2118", "#862e2e"]
   ),
+
   fishing: svg(
     320,
     180,
@@ -299,33 +331,39 @@ const arts = {
     <circle cx="80" cy="30" r="5" fill="#adb5bd"/>`,
     ["#0b2a4a", "#0c8599"]
   ),
+
+  // Cow Merge — evolving merge orbs (Suika-like mechanic, our cows)
   cows: svg(
     320,
     180,
-    `<ellipse cx="160" cy="115" rx="55" ry="35" fill="#f8f9fa"/>
-    <circle cx="130" cy="100" r="12" fill="#212529"/><circle cx="175" cy="95" r="10" fill="#212529"/>
-    <circle cx="120" cy="80" r="28" fill="#f8f9fa"/>
-    <circle cx="108" cy="75" r="4" fill="#212529"/><circle cx="125" cy="75" r="4" fill="#212529"/>
-    <ellipse cx="114" cy="88" rx="10" ry="7" fill="#ffc9c9"/>
-    <rect x="95" y="55" width="10" height="18" rx="3" fill="#f8f9fa"/><rect x="128" y="52" width="10" height="18" rx="3" fill="#f8f9fa"/>`,
-    ["#2b8a3e", "#82c91e"]
+    `<circle cx="90" cy="120" r="28" fill="#f8f9fa" stroke="#212529" stroke-width="2"/>
+    <circle cx="82" cy="112" r="3" fill="#212529"/><circle cx="98" cy="112" r="3" fill="#212529"/>
+    <circle cx="160" cy="100" r="40" fill="#e9ecef" stroke="#212529" stroke-width="2"/>
+    <circle cx="148" cy="90" r="4" fill="#212529"/><circle cx="170" cy="90" r="4" fill="#212529"/>
+    <ellipse cx="159" cy="105" rx="10" ry="7" fill="#ffc9c9"/>
+    <circle cx="245" cy="70" r="48" fill="#fff" stroke="#212529" stroke-width="2"/>
+    <circle cx="230" cy="58" r="5" fill="#212529"/><circle cx="258" cy="58" r="5" fill="#212529"/>
+    <path d="M118 120 L130 110" stroke="#ffd43b" stroke-width="4" stroke-linecap="round"/>
+    <path d="M200 85 L212 75" stroke="#ffd43b" stroke-width="4" stroke-linecap="round"/>`,
+    ["#2b8a3e", "#d8f5a2"]
   ),
+
+  // Runosaur — 3D cave tunnel + crystal raptor (not Chrome dino side-scroller)
   dino: svg(
     320,
     180,
-    // Runosaur: cave crystals + glowing runner (not Chrome dino)
-    `<path d="M0 150 L50 120 L100 145 L160 110 L220 140 L280 115 L320 135 L320 180 L0 180 Z" fill="#2b2118"/>
-    <path d="M0 0 L320 0 L320 70 Q240 95 160 70 Q80 50 0 75 Z" fill="#1a1b1e" opacity="0.85"/>
-    <polygon points="90,150 100,90 110,150" fill="#74c0fc" opacity="0.75"/>
-    <polygon points="240,145 252,75 264,145" fill="#cc5de8" opacity="0.7"/>
-    <ellipse cx="160" cy="118" rx="28" ry="16" fill="#20c997"/>
-    <circle cx="185" cy="108" r="12" fill="#12b886"/>
-    <circle cx="190" cy="105" r="2.5" fill="#e7f5ff"/>
-    <path d="M140 118 Q130 100 145 108" fill="#38d9a9"/>
-    <rect x="148" y="128" width="8" height="18" rx="2" fill="#099268"/>
-    <rect x="168" y="128" width="8" height="18" rx="2" fill="#099268"/>`,
-    ["#0b1026", "#343a40"]
+    `<polygon points="160,20 300,160 20,160" fill="#1a1b1e"/>
+    <polygon points="160,40 260,150 60,150" fill="#2b2118"/>
+    <polygon points="160,55 220,140 100,140" fill="#343a40"/>
+    <rect x="148" y="100" width="24" height="40" rx="4" fill="#20c997"/>
+    <ellipse cx="160" cy="95" rx="22" ry="14" fill="#12b886"/>
+    <polygon points="175,90 205,78 178,102" fill="#38d9a9"/>
+    <circle cx="172" cy="90" r="3" fill="#e7f5ff"/>
+    <polygon points="70,150 85,95 95,150" fill="#74c0fc" opacity="0.7"/>
+    <polygon points="230,150 245,85 258,150" fill="#cc5de8" opacity="0.7"/>`,
+    ["#0b1026", "#212529"]
   ),
+
   ramp: svg(
     320,
     180,
@@ -335,6 +373,7 @@ const arts = {
     <circle cx="150" cy="70" r="14" fill="#ff922b"/>`,
     ["#0b1026", "#364fc7"]
   ),
+
   guac: svg(
     320,
     180,
@@ -343,18 +382,25 @@ const arts = {
     <ellipse cx="160" cy="100" rx="10" ry="8" fill="#5c3b00"/>
     <path d="M145 58 Q160 40 175 58" fill="none" stroke="#2b8a3e" stroke-width="6"/>
     <circle cx="70" cy="130" r="18" fill="#a9e34b" opacity="0.8"/>
-    <circle cx="250" cy="55" r="14" fill="#94d82d" opacity="0.7"/>`,
+    <circle cx="250" cy="55" r="14" fill="#94d82d" opacity="0.7"/>
+    <rect x="250" y="20" width="8" height="40" rx="2" fill="#868e96"/>
+    <circle cx="254" cy="20" r="10" fill="#fab005"/>`,
     ["#2b2118", "#5c3b00"]
   ),
+
+  // Bubble Pop Relay — clusters + rising tide line
   bubble: svg(
     320,
     180,
-    `<circle cx="90" cy="110" r="28" fill="#339af0"/><circle cx="140" cy="90" r="28" fill="#ff6b6b"/>
-    <circle cx="190" cy="110" r="28" fill="#339af0"/><circle cx="115" cy="60" r="24" fill="#ffd43b"/>
-    <circle cx="165" cy="55" r="24" fill="#cc5de8"/><circle cx="240" cy="80" r="22" fill="#51cf66"/>
-    <circle cx="80" cy="70" r="8" fill="#fff" opacity="0.35"/>`,
-    ["#0b2a4a", "#1c7ed6"]
+    `<circle cx="90" cy="70" r="24" fill="#339af0"/><circle cx="130" cy="55" r="24" fill="#ff6b6b"/>
+    <circle cx="170" cy="70" r="24" fill="#339af0"/><circle cx="110" cy="100" r="22" fill="#ffd43b"/>
+    <circle cx="150" cy="95" r="22" fill="#cc5de8"/><circle cx="210" cy="60" r="20" fill="#51cf66"/>
+    <path d="M0 145 Q80 130 160 150 T320 140 L320 180 L0 180 Z" fill="#1c7ed6" opacity="0.85"/>
+    <path d="M0 155 Q100 145 200 158 T320 150 L320 180 L0 180 Z" fill="#1864ab"/>
+    <text x="250" y="40" font-size="14" fill="#e7f5ff" opacity="0.7" font-family="Segoe UI,sans-serif">tide ↑</text>`,
+    ["#0b2a4a", "#0c8599"]
   ),
+
   cafe: svg(
     320,
     180,
@@ -365,6 +411,7 @@ const arts = {
     <path d="M135 50 Q150 30 165 50" fill="none" stroke="#adb5bd" stroke-width="4" opacity="0.8"/>`,
     ["#5c3b00", "#d9480f"]
   ),
+
   garden: svg(
     320,
     180,
@@ -376,6 +423,7 @@ const arts = {
     <rect x="196" y="115" width="6" height="20" fill="#2f9e44"/><rect x="226" y="128" width="6" height="15" fill="#2f9e44"/>`,
     ["#d8f5a2", "#82c91e"]
   ),
+
   mine: svg(
     320,
     180,
@@ -386,56 +434,67 @@ const arts = {
     <circle cx="258" cy="38" r="10" fill="#868e96"/>`,
     ["#1a1b1e", "#5c4b37"]
   ),
+
+  // Block Sweep — clearing a full row/column glow (not Block Blast logo style)
   blockblast: svg(
     320,
     180,
     `${[
-      [1, 1, "#339af0"],
-      [2, 1, "#339af0"],
-      [3, 1, "#339af0"],
-      [1, 2, "#339af0"],
-      [3, 2, "#339af0"],
-      [1, 3, "#339af0"],
-      [2, 3, "#339af0"],
-      [3, 3, "#339af0"],
-      [5, 2, "#ff6b6b"],
-      [6, 2, "#ff6b6b"],
-      [5, 3, "#ff6b6b"],
-      [6, 3, "#ff6b6b"],
-      [6, 4, "#ff6b6b"],
-      [2, 5, "#51cf66"],
-      [3, 5, "#51cf66"],
-      [4, 5, "#51cf66"]
+      [50, 40],
+      [85, 40],
+      [120, 40],
+      [155, 40],
+      [190, 40],
+      [225, 40],
+      [50, 75],
+      [85, 75],
+      [120, 75],
+      [190, 75],
+      [225, 75],
+      [50, 110],
+      [85, 110],
+      [120, 110],
+      [155, 110],
+      [190, 110],
+      [225, 110]
     ]
       .map(
-        ([x, y, c]) =>
-          `<rect x="${40 + x * 30}" y="${20 + y * 26}" width="26" height="22" rx="3" fill="${c}"/>`
+        ([x, y], i) =>
+          `<rect x="${x}" y="${y}" width="28" height="28" rx="5" fill="${
+            y === 75 && x === 155 ? "transparent" : i % 3 === 0 ? "#4dabf7" : i % 3 === 1 ? "#9775fa" : "#20c997"
+          }" opacity="0.9"/>`
       )
-      .join("")}`,
+      .join("")}
+    <rect x="155" y="40" width="28" height="98" rx="6" fill="#ffd43b" opacity="0.55"/>
+    <rect x="50" y="75" width="203" height="28" rx="6" fill="#ffd43b" opacity="0.35"/>`,
     ["#0b1026", "#1c7ed6"]
   ),
+
+  // Dudes — crew with skill badges (dig / build / block)
   lemmings: svg(
     320,
     180,
-    // Dudes: generic crew (no green-hair lemming look)
-    `<rect x="40" y="125" width="240" height="18" rx="4" fill="#495057"/>
-    <circle cx="100" cy="95" r="14" fill="#ffd8a8"/><rect x="92" y="108" width="16" height="22" rx="3" fill="#4dabf7"/>
-    <circle cx="160" cy="88" r="14" fill="#ffd8a8"/><rect x="152" y="101" width="16" height="28" rx="3" fill="#69db7c"/>
-    <circle cx="220" cy="95" r="14" fill="#ffd8a8"/><rect x="212" y="108" width="16" height="22" rx="3" fill="#ff8787"/>
-    <rect x="94" y="82" width="12" height="6" rx="2" fill="#1c7ed6"/>
-    <rect x="154" y="75" width="12" height="6" rx="2" fill="#2f9e44"/>
-    <rect x="214" y="82" width="12" height="6" rx="2" fill="#e03131"/>`,
+    `<rect x="30" y="130" width="260" height="20" rx="4" fill="#495057"/>
+    <circle cx="90" cy="95" r="16" fill="#ffd8a8"/><rect x="80" y="110" width="20" height="24" rx="4" fill="#4dabf7"/>
+    <circle cx="160" cy="88" r="16" fill="#ffd8a8"/><rect x="150" y="103" width="20" height="30" rx="4" fill="#69db7c"/>
+    <circle cx="230" cy="95" r="16" fill="#ffd8a8"/><rect x="220" y="110" width="20" height="24" rx="4" fill="#ff8787"/>
+    <rect x="78" y="58" width="24" height="18" rx="4" fill="#FAB005"/><text x="90" y="71" text-anchor="middle" font-size="11" fill="#212529" font-family="Segoe UI,sans-serif">DIG</text>
+    <rect x="148" y="48" width="28" height="18" rx="4" fill="#15AABF"/><text x="162" y="61" text-anchor="middle" font-size="10" fill="#fff" font-family="Segoe UI,sans-serif">BUILD</text>
+    <rect x="218" y="58" width="28" height="18" rx="4" fill="#FA5252"/><text x="232" y="71" text-anchor="middle" font-size="10" fill="#fff" font-family="Segoe UI,sans-serif">BLOCK</text>`,
     ["#212529", "#5c4b37"]
   ),
+
+  // Paper Claim — glowing claim trail (not paper.io squares)
   paper: svg(
     320,
     180,
-    `<rect x="40" y="40" width="100" height="80" fill="#339af0" opacity="0.85"/>
-    <rect x="160" y="70" width="110" height="70" fill="#ff6b6b" opacity="0.85"/>
-    <path d="M140 80 L190 50 L210 95 L160 110 Z" fill="#51cf66"/>
-    <circle cx="120" cy="130" r="8" fill="#ffd43b"/>
-    <path d="M120 130 L150 100" stroke="#ffd43b" stroke-width="4" fill="none"/>`,
-    ["#f8f9fa", "#adb5bd"]
+    `<rect x="30" y="40" width="110" height="90" rx="8" fill="#339af0" opacity="0.55"/>
+    <rect x="180" y="70" width="110" height="80" rx="8" fill="#ff6b6b" opacity="0.55"/>
+    <path d="M90 150 C100 120, 130 100, 160 95 C190 90, 210 70, 230 55" fill="none" stroke="#ffd43b" stroke-width="6" stroke-linecap="round"/>
+    <circle cx="90" cy="150" r="10" fill="#ffd43b"/>
+    <circle cx="230" cy="55" r="8" fill="#fff"/>
+    <path d="M140 60 L175 45 L190 80 L155 95 Z" fill="#51cf66" opacity="0.9"/>`,
+    ["#f1f3f5", "#868e96"]
   )
 };
 
