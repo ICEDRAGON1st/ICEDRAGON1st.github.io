@@ -2445,6 +2445,27 @@ function renderContinueButton() {
   continueLastBtn.textContent = `Continue · ${game.name}`;
 }
 
+function decorateGameCardThumbs() {
+  if (!gamesGrid) return;
+  const build = typeof window.WORDLE_BUILD === "string" ? window.WORDLE_BUILD : "";
+  gamesGrid.querySelectorAll(".game-card[data-game]").forEach((card) => {
+    if (card.querySelector(".game-card-thumb-wrap")) return;
+    const id = String(card.dataset.game || "").trim();
+    if (!id) return;
+    const wrap = document.createElement("span");
+    wrap.className = "game-card-thumb-wrap";
+    wrap.setAttribute("aria-hidden", "true");
+    const img = document.createElement("img");
+    img.className = "game-card-thumb";
+    img.src = `hub-thumbs/${encodeURIComponent(id)}.svg${build ? `?v=${encodeURIComponent(build)}` : ""}`;
+    img.alt = "";
+    img.loading = "lazy";
+    img.decoding = "async";
+    wrap.appendChild(img);
+    card.insertBefore(wrap, card.firstChild);
+  });
+}
+
 function renderCardScoresAndFavorites() {
   const favorites = new Set(loadFavorites());
   document.querySelectorAll(".game-card[data-game]").forEach((card) => {
@@ -2880,6 +2901,7 @@ function stopStreakCountdown() {
 }
 
 function refreshGamesHub() {
+  decorateGameCardThumbs();
   renderContinueButton();
   renderCardScoresAndFavorites();
   sortGamesGrid();
