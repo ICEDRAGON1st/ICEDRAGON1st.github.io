@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260930r": [
+    "My Games: game cards show your leaderboard personal best when it’s higher than (or missing from) local"
+  ],
   "20260930q": [
     "Discord: members with the Updates role get pinged when a hub update posts in #updates"
   ],
@@ -2216,7 +2219,7 @@ function getTodayDailyHubLabel() {
   return "";
 }
 
-function getHubScore(gameId) {
+function getHubScoreLocal(gameId) {
   switch (gameId) {
     case "wordle": {
       const stats = readJsonKey(STATS_KEY, null);
@@ -2428,6 +2431,73 @@ function getHubScore(gameId) {
     default:
       return { label: "—", sort: 0 };
   }
+}
+
+/** Use your leaderboard personal best on game cards when it's better than (or fills in) local. */
+function mergeLeaderboardOntoHubScore(gameId, local) {
+  const base =
+    local && typeof local === "object"
+      ? local
+      : { label: "—", sort: 0 };
+  if (typeof HubLeaderboard === "undefined" || !HubLeaderboard.getMyEntry) return base;
+
+  try {
+    if (gameId === "mine") {
+      const depthEntry = HubLeaderboard.getMyEntry("mine");
+      const oreEntry = HubLeaderboard.getMyEntry("mine-ore");
+      const localDepth = readNumberKey("mine-depth-best-v1");
+      const localOre = readNumberKey("mine-best-ore-v1");
+      const lbDepth = Math.floor(Number(depthEntry?.score) || 0);
+      const lbOre = Math.floor(Number(oreEntry?.score) || 0);
+      const depth = Math.max(localDepth, lbDepth);
+      const oreScore = Math.max(localOre, lbOre);
+      if (!depth && !oreScore) return base;
+      const oreLabel = oreScore
+        ? HubLeaderboard.formatScore("mine-ore", oreScore, oreEntry || undefined)
+        : "";
+      const depthPart = depth ? `${depth}m` : "—";
+      const orePart = oreScore && oreLabel && oreLabel !== "—" ? ` · ${oreLabel}` : "";
+      return { label: `Best ${depthPart}${orePart}`, sort: depth || oreScore };
+    }
+
+    const entry = HubLeaderboard.getMyEntry(gameId);
+    const lbScore = Number(entry?.score);
+    if (!entry || !Number.isFinite(lbScore) || lbScore <= 0) return base;
+
+    const meta = HubLeaderboard.GAME_META?.[gameId] || {};
+    const lowerBetter = !!meta.lowerBetter;
+    const emptyLocal = !base.sort || /^(No |—)/i.test(String(base.label || ""));
+    let localRaw = Number(base.sort) || 0;
+    if (lowerBetter && localRaw > 0 && localRaw < 100000) {
+      localRaw = 100000 - localRaw;
+    }
+
+    const lbBetter = emptyLocal
+      ? true
+      : lowerBetter
+        ? lbScore < localRaw
+        : lbScore > localRaw;
+    if (!lbBetter) return base;
+
+    let label = HubLeaderboard.formatScore(gameId, lbScore, entry);
+    if (!label || label === "—") return base;
+    if (gameId === "hangman") label = `best streak ${Math.floor(lbScore)}`;
+    if (gameId === "connect-four" || gameId === "tictactoe") {
+      label = `${Math.floor(lbScore)} CPU wins`;
+    }
+    if (gameId === "wordle") {
+      const daily = getTodayDailyHubLabel();
+      label = daily ? `${daily} · ${label}` : label;
+    }
+    const sort = lowerBetter ? Math.max(0, 100000 - lbScore) : lbScore;
+    return { label, sort };
+  } catch {
+    return base;
+  }
+}
+
+function getHubScore(gameId) {
+  return mergeLeaderboardOntoHubScore(gameId, getHubScoreLocal(gameId));
 }
 
 function loadFavorites() {
@@ -2754,6 +2824,10 @@ async function refreshLeaderboardsPanel(opts = {}) {
   }
   renderLeaderboardList();
   try {
+    renderCardScoresAndFavorites();
+    renderHighScoresList();
+  } catch {}
+  try {
     HubPlays?.refreshHubPointsTitles?.(true);
     renderTitlePicker();
     if (playersRosterMode) renderPlayersRoster(playersRosterMode);
@@ -2983,6 +3057,19 @@ function refreshGamesHub() {
         renderMostPopularBadge();
       } catch {}
     });
+  } catch {}
+  // Pull leaderboard PBs so cards match what's on the boards (other devices / wiped local)
+  try {
+    if (typeof HubLeaderboard !== "undefined" && HubLeaderboard.sync) {
+      HubLeaderboard.sync(false)
+        .then(() => {
+          try {
+            renderCardScoresAndFavorites();
+            renderHighScoresList();
+          } catch {}
+        })
+        .catch(() => {});
+    }
   } catch {}
 }
 

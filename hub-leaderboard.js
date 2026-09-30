@@ -629,6 +629,7 @@
     if (m.unit === "cow" || gameId === "cows") return formatCowTier(n);
     if (m.unit === "depth" || gameId === "mine") return `Best ${Math.floor(n)}m`;
     if (m.unit === "ore" || gameId === "mine-ore") return formatMineOre(n);
+    if (gameId === "paper") return `Best ${Math.floor(n)}%`;
     if (gameId === "clicker" || m.unit === "compact") return `Best ${formatCompact(n)}`;
     return `Best ${Math.floor(n)}`;
   }
@@ -1669,20 +1670,24 @@
     return true;
   }
 
+  function entryBelongsToMe(entry) {
+    if (!entry) return false;
+    const meId = getPlayerId();
+    const meName = nameKey(getPlayerName());
+    const entryId = String(entry.playerId || "");
+    if (meId && entryId) return entryId === String(meId);
+    if (meName && nameKey(entry.name) === meName) return true;
+    return false;
+  }
+
   function getMyScore(gameId) {
     if (!GAME_META[gameId]) return 0;
     const lowerBetter = meta(gameId).lowerBetter;
     const board = ((cache.games || {})[gameId]) || {};
-    const meName = nameKey(getPlayerName());
-    const meId = getPlayerId();
-    let best = 0;
+    let best = null;
     Object.values(board).forEach((raw) => {
       const entry = normalizeEntry(raw, lowerBetter);
-      if (!entry) return;
-      const mine =
-        (meName && nameKey(entry.name) === meName) ||
-        (meId && entry.playerId && entry.playerId === meId);
-      if (!mine) return;
+      if (!entry || !entryBelongsToMe(entry)) return;
       if (gameId === "fishing") {
         const f = entry.fishing;
         if (f && typeof f === "object") {
@@ -1691,25 +1696,21 @@
           if (id === "soultwin" || rarity === "exclusive") return;
         }
       }
-      best = Math.max(best, Number(entry.score) || 0);
+      if (best == null || isBetter(entry.score, best, lowerBetter)) {
+        best = Number(entry.score) || 0;
+      }
     });
-    return best;
+    return best == null ? 0 : best;
   }
 
   function getMyEntry(gameId) {
     if (!GAME_META[gameId]) return null;
     const lowerBetter = meta(gameId).lowerBetter;
     const board = ((cache.games || {})[gameId]) || {};
-    const meName = nameKey(getPlayerName());
-    const meId = getPlayerId();
     let best = null;
     Object.values(board).forEach((raw) => {
       const entry = normalizeEntry(raw, lowerBetter);
-      if (!entry) return;
-      const mine =
-        (meName && nameKey(entry.name) === meName) ||
-        (meId && entry.playerId && entry.playerId === meId);
-      if (!mine) return;
+      if (!entry || !entryBelongsToMe(entry)) return;
       if (!best || isBetter(entry.score, best.score, lowerBetter)) best = entry;
     });
     return best;
