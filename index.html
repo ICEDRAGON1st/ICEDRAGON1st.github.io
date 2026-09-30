@@ -418,6 +418,14 @@
             <button id="player-code-copy-btn" type="button" class="hub-btn">Copy code</button>
             <button id="player-code-transfer-btn" type="button" class="hub-btn">Copy transfer</button>
           </div>
+          <div class="player-invite-box">
+            <p class="hub-settings-label">Invite friends</p>
+            <p class="player-code-hint">Share your invite link. When 3 new players claim a name through it, you unlock the INVITER title.</p>
+            <div class="player-code-row">
+              <button id="player-invite-copy-btn" type="button" class="hub-btn">Copy invite link</button>
+              <span id="player-invite-progress" class="player-invite-progress" aria-live="polite">0 / 3</span>
+            </div>
+          </div>
           <div class="player-password-box">
             <p class="hub-settings-label">Login password (optional)</p>
             <p id="player-password-state" class="player-password-state" aria-live="polite">No password set</p>
@@ -751,9 +759,9 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20260930b";
+    window.WORDLE_BUILD = "20260930c";
     const scripts = [
-      "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-supabase.js", "hub-account-bag.js", "hub-eggs.js", "hub-plays.js", "hub-online-overlay.js", "hub-fishing-gifts.js", "hub-fishing-mail.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-calls.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js", "hub-discord.js",
+      "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-supabase.js", "hub-account-bag.js", "hub-eggs.js", "hub-plays.js", "hub-referrals.js", "hub-online-overlay.js", "hub-fishing-gifts.js", "hub-fishing-mail.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-calls.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js", "hub-discord.js",
       "words.js",
       "dictionary.js",
       "words-4.js",

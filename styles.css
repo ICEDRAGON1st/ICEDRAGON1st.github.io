@@ -2241,6 +2241,16 @@ header h1 {
   margin-bottom: 0.55rem;
 }
 
+.player-invite-box {
+  margin: 0.75rem 0 0.35rem;
+}
+
+.player-invite-progress {
+  font-size: 0.85rem;
+  color: var(--subtitle);
+  font-variant-numeric: tabular-nums;
+}
+
 .player-code-value {
   flex: 1 1 8rem;
   min-width: 0;

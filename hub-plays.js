@@ -1904,6 +1904,9 @@
           claimedAt: existing?.claimedAt || myClaimAt,
           legend: !!existing?.legend,
           masterFisher: !!existing?.masterFisher,
+          inviter: !!existing?.inviter,
+          inviterAt: existing?.inviterAt || undefined,
+          inviteCount: Math.max(0, Number(existing?.inviteCount) || 0) || undefined,
           activeTitle: existing?.activeTitle || "",
           accentTitle: existing?.accentTitle || "",
           accentColor: existing?.accentColor || "",
@@ -1951,10 +1954,14 @@
       const nextNames = { ...remoteNames };
       let keepLegend = !!existing?.legend;
       let keepMasterFisher = !!existing?.masterFisher;
+      let keepInviter = !!existing?.inviter;
+      let keepInviteCount = Math.max(0, Number(existing?.inviteCount) || 0);
       Object.keys(nextNames).forEach((k) => {
         if (k !== key && nextNames[k]?.playerId === me) {
           if (nextNames[k]?.legend) keepLegend = true;
           if (nextNames[k]?.masterFisher) keepMasterFisher = true;
+          if (nextNames[k]?.inviter) keepInviter = true;
+          keepInviteCount = Math.max(keepInviteCount, Number(nextNames[k]?.inviteCount) || 0);
           delete nextNames[k];
         }
       });
@@ -1965,6 +1972,9 @@
         claimedAt: existing?.claimedAt || myClaimAt,
         legend: keepLegend,
         masterFisher: keepMasterFisher,
+        inviter: keepInviter,
+        inviterAt: existing?.inviterAt || undefined,
+        inviteCount: keepInviteCount || undefined,
         activeTitle: existing?.activeTitle || "",
         accentTitle: existing?.accentTitle || "",
         accentColor: existing?.accentColor || "",
@@ -3718,6 +3728,10 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   color: #042f2e;
   background: #2ec4b6;
 }
+.player-title-inviter {
+  color: #f5f3ff;
+  background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+}
 .player-title-tester {
   color: #fff;
   background: #e03131;
@@ -3986,6 +4000,7 @@ body.light .menu-credit .player-name-creator {
     silly_hat: { id: "silly_hat", label: "SILLY HAT", className: "player-title-silly-hat" },
     centerless: { id: "centerless", label: "CENTERLESS", className: "player-title-centerless" },
     zen_farmer: { id: "zen_farmer", label: "ZEN FARMER", className: "player-title-zen-farmer" },
+    inviter: { id: "inviter", label: "INVITER", className: "player-title-inviter" },
     pacifist: { id: "pacifist", label: "PACIFIST", className: "player-title-pacifist" }
   };
 
@@ -4004,7 +4019,8 @@ body.light .menu-credit .player-name-creator {
     silly_hat: "#e879f9",
     centerless: "#38bdf8",
     zen_farmer: "#a3e635",
-    pacifist: "#94a3b8"
+    pacifist: "#94a3b8",
+    inviter: "#7c3aed"
   };
 
   const HUB_POINTS_TITLE_IDS = ["hub1", "hub2", "hub3"];
@@ -4139,6 +4155,24 @@ body.light .menu-credit .player-name-creator {
     );
   }
 
+  function selfHasInviter() {
+    try {
+      if (window.HubReferrals?.hasInviterTitle?.(getName())) return true;
+    } catch {}
+    try {
+      return !!getClaimForName(getName())?.inviter;
+    } catch {
+      return false;
+    }
+  }
+
+  function isInviterName(name) {
+    try {
+      if (window.HubReferrals?.hasInviterTitle?.(name)) return true;
+    } catch {}
+    return !!getClaimForName(name)?.inviter;
+  }
+
   const EGG_TITLE_MAP = [
     ["clutch_flair", "clutch"],
     ["guac_lefty", "lefty"],
@@ -4169,6 +4203,9 @@ body.light .menu-credit .player-name-creator {
     if (isMasterFisherName(name) || selfMaster) {
       ids.push("master_fisher");
     }
+    if (isInviterName(name) || (key === nameKey(getName()) && selfHasInviter())) {
+      ids.push("inviter");
+    }
     // Owner can equip Hub Points podium titles even though they don't earn points.
     if (key === "ice_dragon") {
       ids.push("hub1", "hub2", "hub3");
@@ -4186,12 +4223,13 @@ body.light .menu-credit .player-name-creator {
     return ids;
   }
 
-  /** Titles shown in Players UI — unlocked ones, plus LEGEND / MASTER FISHER teases. */
+  /** Titles shown in Players UI — unlocked ones, plus LEGEND / MASTER FISHER / INVITER teases. */
   function getTitleShowcase(name = getName()) {
     const unlocked = new Set(getAvailableTitleIds(name));
     const ids = [...unlocked];
     if (!unlocked.has("legend")) ids.push("legend");
     if (!unlocked.has("master_fisher")) ids.push("master_fisher");
+    if (!unlocked.has("inviter")) ids.push("inviter");
     return ids.map((id) => {
       const def = TITLE_DEFS[id];
       if (!def) return null;
@@ -4532,6 +4570,57 @@ body.light .menu-credit .player-name-creator {
     return ok;
   }
 
+  async function markInviter(count = 3) {
+    const n = Math.max(0, Number(count) || 0);
+    const ok = await patchMyClaim((existing) => {
+      const next = {
+        ...existing,
+        inviter: true,
+        inviterAt: existing.inviterAt || Date.now(),
+        inviteCount: Math.max(Number(existing.inviteCount) || 0, n)
+      };
+      if (!next.activeTitle || next.activeTitle === "none") next.activeTitle = "inviter";
+      return next;
+    });
+    if (ok) refreshCreatorCredits();
+    return ok;
+  }
+
+  /** Mark INVITER on another player's claim (when they reach 3 invites). */
+  async function markInviterForPlayerId(playerId, count = 3) {
+    const id = String(playerId || "");
+    if (!id) return false;
+    if (id === getPlayerId()) return markInviter(count);
+    let remoteNames;
+    try {
+      remoteNames = await fetchNamesRemote();
+    } catch {
+      return false;
+    }
+    remoteNames = mergeNameMaps(namesCache, remoteNames);
+    let key = "";
+    Object.entries(remoteNames || {}).forEach(([k, claim]) => {
+      if (claim?.playerId === id) key = k;
+    });
+    if (!key) return false;
+    const existing = remoteNames[key] || {};
+    const nextClaim = {
+      ...existing,
+      inviter: true,
+      inviterAt: existing.inviterAt || Date.now(),
+      inviteCount: Math.max(Number(existing.inviteCount) || 0, Number(count) || 0),
+      profileUpdatedAt: Date.now()
+    };
+    const nextNames = { ...remoteNames, [key]: nextClaim };
+    namesCache = nextNames;
+    try {
+      await pushNamesRemote(nextNames);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   /** MASTER FISHER is catch-book gated (90%) — no permanent ICE auto-grant. */
   async function ensureIceMasterFisherGrant() {
     /* no-op: title is synced from Fishing Idle collection % */
@@ -4658,6 +4747,11 @@ body.light .menu-credit .player-name-creator {
     markMasterFisher,
     clearMasterFisher,
     isMasterFisherName,
+    markInviter,
+    markInviterForPlayerId,
+    isInviterName,
+    getClaimForName,
+    patchMyClaim,
     getAvailableTitleIds,
     getTitleShowcase,
     getColorShowcase,

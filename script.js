@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260930b": [
+    "Fix ICE_DRAGON streak restore so account sync can't wipe it back to 0"
+  ],
   "20260930a": [
     "Restored ICE_DRAGON daily streak to 28"
   ],
@@ -2717,7 +2720,9 @@ function buildShareMomentText() {
 
 async function shareMoment() {
   const cfg = window.SITE_CONFIG || { name: "My Games" };
-  const url = window.location.origin + "/#games";
+  const url =
+    (typeof window.HubReferrals?.getInviteUrl === "function" && HubReferrals.getInviteUrl()) ||
+    window.location.origin + "/#games";
   const payload = {
     title: cfg.name || "My Games",
     url
@@ -2735,7 +2740,7 @@ async function shareMoment() {
 
   try {
     await navigator.clipboard.writeText(url);
-    showGamesMessage("Link copied!", 2200);
+    showGamesMessage("Invite link copied!", 2200);
   } catch {
     showGamesMessage("Sharing not available on this browser yet.", 2600);
   }
@@ -4893,6 +4898,22 @@ function setGateCodeStatus(msg, isError) {
   el.classList.toggle("hidden", !msg);
 }
 
+function refreshInviteProgressUI() {
+  const el = document.getElementById("player-invite-progress");
+  if (!el) return;
+  const status =
+    (typeof window.HubReferrals?.getStatus === "function" && HubReferrals.getStatus()) || null;
+  if (!status) {
+    el.textContent = "0 / 3";
+    return;
+  }
+  const need = Math.max(1, Number(status.need) || 3);
+  const count = Math.max(0, Number(status.count) || 0);
+  el.textContent = status.unlocked
+    ? `INVITER unlocked · ${count} invites`
+    : `${Math.min(count, need)} / ${need}`;
+}
+
 function refreshPlayerCodeUI() {
   const el = document.getElementById("player-code-value");
   if (el && typeof HubPlays !== "undefined") {
@@ -4911,6 +4932,7 @@ function refreshPlayerCodeUI() {
   }
   refreshPasswordStateUI();
   renderSavedAccounts();
+  refreshInviteProgressUI();
 }
 
 function refreshPasswordStateUI() {
@@ -5046,6 +5068,38 @@ document.getElementById("player-code-copy-btn")?.addEventListener("click", async
   } catch {
     setPlayerCodeStatus(`Your code is ${code}`, false);
   }
+});
+
+document.getElementById("player-invite-copy-btn")?.addEventListener("click", async () => {
+  const url =
+    (typeof window.HubReferrals?.getInviteUrl === "function" && HubReferrals.getInviteUrl()) ||
+    "";
+  if (!url) {
+    setPlayerCodeStatus("Claim a name first to get an invite link", true);
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(url);
+    setPlayerCodeStatus("Invite link copied — share it with friends", false);
+  } catch {
+    setPlayerCodeStatus(url, false);
+  }
+  refreshInviteProgressUI();
+});
+
+document.addEventListener("hub-invite-credited", () => {
+  refreshInviteProgressUI();
+  try {
+    renderTitlePicker?.();
+  } catch {}
+});
+document.addEventListener("hub-inviter-unlocked", () => {
+  refreshInviteProgressUI();
+  try {
+    renderTitlePicker?.();
+    renderColorPicker?.();
+  } catch {}
+  setPlayerNameStatus("INVITER title unlocked!", false);
 });
 
 document.getElementById("player-code-transfer-btn")?.addEventListener("click", async () => {
@@ -5330,9 +5384,10 @@ function renderTitlePicker() {
     return;
   }
 
-  // Show unlocked titles always; LEGEND / MASTER FISHER stay visible even when locked.
+  // Show unlocked titles always; LEGEND / MASTER FISHER / INVITER stay visible even when locked.
   const showcase = (HubPlays.getTitleShowcase?.() || []).filter(
-    (t) => t.unlocked || t.id === "legend" || t.id === "master_fisher"
+    (t) =>
+      t.unlocked || t.id === "legend" || t.id === "master_fisher" || t.id === "inviter"
   );
   if (!showcase.length) {
     picker.classList.add("hidden");
@@ -5356,7 +5411,9 @@ function renderTitlePicker() {
       const hint = locked
         ? opt.id === "master_fisher"
           ? "Discover 90% of fish in Fishing Idle"
-          : "Unlock all achievements"
+          : opt.id === "inviter"
+            ? "Invite 3 friends who claim a name with your link"
+            : "Unlock all achievements"
         : opt.label;
       return `<button type="button" class="title-pick-btn ${escapeHtml(opt.className)}${
         selected ? " active" : ""
@@ -5386,7 +5443,10 @@ function renderColorPicker() {
     HubPlays.getColorShowcase?.() ||
     HubPlays.getTitleShowcase?.() ||
     []
-  ).filter((t) => t.unlocked || t.id === "legend" || t.id === "master_fisher");
+  ).filter(
+    (t) =>
+      t.unlocked || t.id === "legend" || t.id === "master_fisher" || t.id === "inviter"
+  );
   if (!showcase.length) {
     picker.classList.add("hidden");
     buttons.innerHTML = "";
@@ -5410,7 +5470,9 @@ function renderColorPicker() {
       const hint = locked
         ? opt.id === "master_fisher"
           ? "MASTER FISHER teal — discover 90% of fish in Fishing Idle"
-          : "LEGEND yellow — unlock all achievements"
+          : opt.id === "inviter"
+            ? "INVITER purple — invite 3 friends who claim a name"
+            : "LEGEND yellow — unlock all achievements"
         : canPick
           ? isAnimated
             ? `${opt.label} animated color (keeps your title)`
@@ -5455,6 +5517,8 @@ document.getElementById("title-picker-buttons")?.addEventListener("click", async
         ? "LEGEND (yellow) unlocks when you complete all achievements"
         : id === "master_fisher"
           ? "MASTER FISHER unlocks at 90% of the Fishing Idle catch book"
+          : id === "inviter"
+            ? "INVITER unlocks when 3 friends claim a name with your invite link"
           : id === "og"
           ? "OG (green) is a reserved title"
           : id === "tester"
