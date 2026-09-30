@@ -7,11 +7,14 @@
     </linearGradient>
   </defs>
   <rect width="320" height="180" fill="url(#g)"/>
-  <path d="M0 110 Q80 90 160 115 T320 105 L320 180 L0 180 Z" fill="#1c7ed6" opacity="0.85"/>
-    <path d="M0 125 Q100 115 180 130 T320 120 L320 180 L0 180 Z" fill="#1864ab"/>
-    <ellipse cx="210" cy="95" rx="34" ry="16" fill="#ffd43b"/>
-    <polygon points="244,95 270,85 270,105" fill="#ffd43b"/>
-    <circle cx="190" cy="90" r="3" fill="#212529"/>
-    <line x1="80" y1="30" x2="160" y2="90" stroke="#e9ecef" stroke-width="3"/>
-    <circle cx="80" cy="30" r="5" fill="#adb5bd"/>
+  <path d="M0 100 Q80 85 160 110 T320 100 L320 180 L0 180 Z" fill="#1c7ed6"/>
+     <path d="M0 120 Q120 110 200 125 T320 115 L320 180 L0 180 Z" fill="#1864ab"/>
+     <line x1="70" y1="25" x2="150" y2="85" stroke="#e9ecef" stroke-width="4"/>
+     <circle cx="70" cy="25" r="7" fill="#adb5bd"/>
+     <ellipse cx="200" cy="90" rx="40" ry="20" fill="#ffd43b"/>
+     <polygon points="240,90 275,78 275,102" fill="#ffd43b"/>
+     <circle cx="180" cy="85" r="4" fill="#212529"/>
+     <text x="200" y="98" text-anchor="middle" font-size="14" fill="#5c3b00" font-family="Segoe UI,sans-serif">FISH</text>
+  <rect x="0" y="148" width="320" height="32" fill="#000" opacity="0.45"/>
+       <text x="160" y="170" text-anchor="middle" font-size="15" font-weight="700" fill="#fff" font-family="Segoe UI,Arial,sans-serif" letter-spacing="0.5">FISHING IDLE</text>
 </svg>

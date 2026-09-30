@@ -2,13 +2,15 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" role="img" aria-hidden="true">
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0b1026"/>
+      <stop offset="0%" stop-color="#1a1b1e"/>
       <stop offset="100%" stop-color="#364fc7"/>
     </linearGradient>
   </defs>
   <rect width="320" height="180" fill="url(#g)"/>
-  <polygon points="40,30 68,36 62,58 36,52" fill="#74c0fc" opacity="0.92"/><polygon points="95,22 123,28 117,50 91,44" fill="#a5d8ff" opacity="0.92"/><polygon points="150,34 178,40 172,62 146,56" fill="#4dabf7" opacity="0.92"/><polygon points="210,26 238,32 232,54 206,48" fill="#91a7ff" opacity="0.92"/><polygon points="265,36 293,42 287,64 261,58" fill="#748ffc" opacity="0.92"/><polygon points="55,70 83,76 77,98 51,92" fill="#9775fa" opacity="0.92"/><polygon points="120,62 148,68 142,90 116,84" fill="#b197fc" opacity="0.92"/><polygon points="185,74 213,80 207,102 181,96" fill="#da77f2" opacity="0.92"/><polygon points="250,66 278,72 272,94 246,88" fill="#e599f7" opacity="0.92"/>
-    <circle cx="160" cy="130" r="12" fill="#fff"/>
-    <circle cx="160" cy="130" r="6" fill="#ff922b"/>
-    <rect x="120" y="158" width="80" height="10" rx="5" fill="#e7f5ff" opacity="0.9"/>
+  <rect x="30" y="28" width="40" height="16" rx="3" fill="#ff6b6b"/><rect x="74" y="28" width="40" height="16" rx="3" fill="#fcc419"/><rect x="118" y="28" width="40" height="16" rx="3" fill="#51cf66"/><rect x="162" y="28" width="40" height="16" rx="3" fill="#339af0"/><rect x="206" y="28" width="40" height="16" rx="3" fill="#cc5de8"/><rect x="250" y="28" width="40" height="16" rx="3" fill="#ff922b"/>
+     <rect x="30" y="50" width="40" height="16" rx="3" fill="#ffa8a8"/><rect x="74" y="50" width="40" height="16" rx="3" fill="#ffe066"/><rect x="118" y="50" width="40" height="16" rx="3" fill="#8ce99a"/><rect x="162" y="50" width="40" height="16" rx="3" fill="#74c0fc"/><rect x="206" y="50" width="40" height="16" rx="3" fill="#e599f7"/><rect x="250" y="50" width="40" height="16" rx="3" fill="#ffc078"/>
+     <circle cx="170" cy="100" r="10" fill="#fff"/>
+     <rect x="120" y="130" width="80" height="12" rx="6" fill="#e9ecef"/>
+  <rect x="0" y="148" width="320" height="32" fill="#000" opacity="0.45"/>
+       <text x="160" y="170" text-anchor="middle" font-size="15" font-weight="700" fill="#fff" font-family="Segoe UI,Arial,sans-serif" letter-spacing="0.5">BOUNCE BREAK</text>
 </svg>

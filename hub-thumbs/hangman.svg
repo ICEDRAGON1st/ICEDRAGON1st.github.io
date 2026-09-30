@@ -7,10 +7,15 @@
     </linearGradient>
   </defs>
   <rect width="320" height="180" fill="url(#g)"/>
-  <line x1="80" y1="150" x2="180" y2="150" stroke="#f8f9fa" stroke-width="6"/>
-    <line x1="110" y1="150" x2="110" y2="35" stroke="#f8f9fa" stroke-width="6"/>
-    <line x1="110" y1="35" x2="190" y2="35" stroke="#f8f9fa" stroke-width="6"/>
-    <line x1="190" y1="35" x2="190" y2="55" stroke="#f8f9fa" stroke-width="5"/>
-    <circle cx="190" cy="72" r="16" fill="none" stroke="#ffd8a8" stroke-width="5"/>
-    <line x1="190" y1="88" x2="190" y2="125" stroke="#ffd8a8" stroke-width="5"/>
+  <line x1="70" y1="140" x2="170" y2="140" stroke="#e7f5ff" stroke-width="7"/>
+     <line x1="100" y1="140" x2="100" y2="30" stroke="#e7f5ff" stroke-width="7"/>
+     <line x1="100" y1="30" x2="190" y2="30" stroke="#e7f5ff" stroke-width="7"/>
+     <line x1="190" y1="30" x2="190" y2="52" stroke="#a5d8ff" stroke-width="5"/>
+     <circle cx="190" cy="70" r="16" fill="none" stroke="#ffd8a8" stroke-width="5"/>
+     <line x1="190" y1="86" x2="190" y2="118" stroke="#ffd8a8" stroke-width="5"/>
+     <line x1="190" y1="95" x2="170" y2="110" stroke="#ffd8a8" stroke-width="4"/>
+     <line x1="190" y1="95" x2="210" y2="110" stroke="#ffd8a8" stroke-width="4"/>
+     <text x="240" y="100" font-size="22" fill="#fff" font-family="Segoe UI,sans-serif">A _ _</text>
+  <rect x="0" y="148" width="320" height="32" fill="#000" opacity="0.45"/>
+       <text x="160" y="170" text-anchor="middle" font-size="15" font-weight="700" fill="#fff" font-family="Segoe UI,Arial,sans-serif" letter-spacing="0.5">HANGMAN</text>
 </svg>

@@ -3,17 +3,19 @@
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#2b8a3e"/>
-      <stop offset="100%" stop-color="#d8f5a2"/>
+      <stop offset="100%" stop-color="#82c91e"/>
     </linearGradient>
   </defs>
   <rect width="320" height="180" fill="url(#g)"/>
-  <circle cx="90" cy="120" r="28" fill="#f8f9fa" stroke="#212529" stroke-width="2"/>
-    <circle cx="82" cy="112" r="3" fill="#212529"/><circle cx="98" cy="112" r="3" fill="#212529"/>
-    <circle cx="160" cy="100" r="40" fill="#e9ecef" stroke="#212529" stroke-width="2"/>
-    <circle cx="148" cy="90" r="4" fill="#212529"/><circle cx="170" cy="90" r="4" fill="#212529"/>
-    <ellipse cx="159" cy="105" rx="10" ry="7" fill="#ffc9c9"/>
-    <circle cx="245" cy="70" r="48" fill="#fff" stroke="#212529" stroke-width="2"/>
-    <circle cx="230" cy="58" r="5" fill="#212529"/><circle cx="258" cy="58" r="5" fill="#212529"/>
-    <path d="M118 120 L130 110" stroke="#ffd43b" stroke-width="4" stroke-linecap="round"/>
-    <path d="M200 85 L212 75" stroke="#ffd43b" stroke-width="4" stroke-linecap="round"/>
+  <circle cx="80" cy="100" r="32" fill="#f8f9fa" stroke="#212529" stroke-width="3"/>
+     <circle cx="70" cy="92" r="4" fill="#212529"/><circle cx="90" cy="92" r="4" fill="#212529"/>
+     <text x="160" y="90" text-anchor="middle" font-size="36" fill="#ffd43b" font-family="Segoe UI,sans-serif">+</text>
+     <circle cx="160" cy="100" r="32" fill="#f8f9fa" stroke="#212529" stroke-width="3"/>
+     <circle cx="150" cy="92" r="4" fill="#212529"/><circle cx="170" cy="92" r="4" fill="#212529"/>
+     <text x="210" y="90" text-anchor="middle" font-size="36" fill="#ffd43b" font-family="Segoe UI,sans-serif">=</text>
+     <circle cx="255" cy="95" r="42" fill="#fff" stroke="#212529" stroke-width="3"/>
+     <circle cx="240" cy="82" r="5" fill="#212529"/><circle cx="268" cy="82" r="5" fill="#212529"/>
+     <ellipse cx="254" cy="100" rx="12" ry="8" fill="#ffc9c9"/>
+  <rect x="0" y="148" width="320" height="32" fill="#000" opacity="0.45"/>
+       <text x="160" y="170" text-anchor="middle" font-size="15" font-weight="700" fill="#fff" font-family="Segoe UI,Arial,sans-serif" letter-spacing="0.5">COW MERGE</text>
 </svg>

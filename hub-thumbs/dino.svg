@@ -3,17 +3,19 @@
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#0b1026"/>
-      <stop offset="100%" stop-color="#212529"/>
+      <stop offset="100%" stop-color="#343a40"/>
     </linearGradient>
   </defs>
   <rect width="320" height="180" fill="url(#g)"/>
-  <polygon points="160,20 300,160 20,160" fill="#1a1b1e"/>
-    <polygon points="160,40 260,150 60,150" fill="#2b2118"/>
-    <polygon points="160,55 220,140 100,140" fill="#343a40"/>
-    <rect x="148" y="100" width="24" height="40" rx="4" fill="#20c997"/>
-    <ellipse cx="160" cy="95" rx="22" ry="14" fill="#12b886"/>
-    <polygon points="175,90 205,78 178,102" fill="#38d9a9"/>
-    <circle cx="172" cy="90" r="3" fill="#e7f5ff"/>
-    <polygon points="70,150 85,95 95,150" fill="#74c0fc" opacity="0.7"/>
-    <polygon points="230,150 245,85 258,150" fill="#cc5de8" opacity="0.7"/>
+  <polygon points="160,15 300,150 20,150" fill="#1a1b1e"/>
+     <polygon points="160,40 250,145 70,145" fill="#2b2118"/>
+     <ellipse cx="155" cy="110" rx="34" ry="20" fill="#20c997"/>
+     <circle cx="185" cy="95" r="16" fill="#12b886"/>
+     <circle cx="192" cy="90" r="3" fill="#e7f5ff"/>
+     <rect x="140" y="122" width="12" height="22" fill="#099268"/>
+     <rect x="165" y="122" width="12" height="22" fill="#099268"/>
+     <polygon points="70,150 82,95 92,150" fill="#74c0fc" opacity="0.8"/>
+     <polygon points="240,150 255,90 268,150" fill="#cc5de8" opacity="0.8"/>
+  <rect x="0" y="148" width="320" height="32" fill="#000" opacity="0.45"/>
+       <text x="160" y="170" text-anchor="middle" font-size="15" font-weight="700" fill="#fff" font-family="Segoe UI,Arial,sans-serif" letter-spacing="0.5">RUNOSAUR</text>
 </svg>

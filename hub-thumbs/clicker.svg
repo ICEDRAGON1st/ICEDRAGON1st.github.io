@@ -7,6 +7,10 @@
     </linearGradient>
   </defs>
   <rect width="320" height="180" fill="url(#g)"/>
-  <polygon points="160,30 185,85 245,90 200,130 215,180 160,150 105,180 120,130 75,90 135,85" fill="#74c0fc" stroke="#e7f5ff" stroke-width="3"/>
-    <circle cx="160" cy="105" r="18" fill="#fff" opacity="0.35"/>
+  <polygon points="160,20 190,80 255,88 205,130 220,175 160,148 100,175 115,130 65,88 130,80" fill="#74c0fc" stroke="#e7f5ff" stroke-width="3"/>
+     <circle cx="160" cy="100" r="22" fill="#fff" opacity="0.35"/>
+     <path d="M200 40 L230 20 L235 35 Z" fill="#ffd43b"/>
+     <text x="245" y="28" font-size="20" fill="#ffd43b" font-family="Segoe UI,sans-serif">click!</text>
+  <rect x="0" y="148" width="320" height="32" fill="#000" opacity="0.45"/>
+       <text x="160" y="170" text-anchor="middle" font-size="15" font-weight="700" fill="#fff" font-family="Segoe UI,Arial,sans-serif" letter-spacing="0.5">CRYSTAL CLICKER</text>
 </svg>
