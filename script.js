@@ -45,6 +45,13 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260930p": [
+    "My Games: stop achievement unlock toasts from popping again on every refresh",
+    "My Games: fix garbled hub icons (streak 🔥, sound, menu, favorites, and more)",
+    "My Games: game cards use your active account scores — no more alt leftovers on the hub",
+    "My Games: day streak merge + leaderboard search no longer fight while you type",
+    "Leaderboards: (you) marks by player id so same-name friends stay separate"
+  ],
   "20260930b": [
     "Fix ICE_DRAGON streak restore so account sync can't wipe it back to 0"
   ],
@@ -1942,8 +1949,19 @@ function showWhatsNew() {
   const build = window.WORDLE_BUILD || "";
   if (!build || build === getSeenBuild()) return false;
 
-  const notes = CHANGELOG[build];
-  if (!notes?.length) {
+  const seen = getSeenBuild();
+  // Show every changelog entry newer than last seen (up to this build),
+  // not only an exact CHANGELOG[build] match — empty builds used to swallow updates.
+  const unseenEntries = getChangelogEntries().filter(
+    (e) => e.id.localeCompare(seen) > 0 && e.id.localeCompare(build) <= 0
+  );
+  if (!unseenEntries.length) {
+    markBuildSeen();
+    return false;
+  }
+
+  const notes = unseenEntries.flatMap((e) => e.notes);
+  if (!notes.length) {
     markBuildSeen();
     return false;
   }
@@ -1954,7 +1972,8 @@ function showWhatsNew() {
   }
   whatsNewModal?.classList.remove("hidden");
   try {
-    window.HubDiscord?.maybeAnnounceHubBuild?.(build, notes)?.catch?.(() => {});
+    const announceNotes = CHANGELOG[build]?.length ? CHANGELOG[build] : notes;
+    window.HubDiscord?.maybeAnnounceHubBuild?.(build, announceNotes)?.catch?.(() => {});
   } catch {}
   return true;
 }
