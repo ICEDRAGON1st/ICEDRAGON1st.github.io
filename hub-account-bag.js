@@ -20,7 +20,8 @@
   const BAG_KEYS = [
     // Hub identity / progress / game cards
     "hub-achievements-v1",
-    "hub-achievements-pending",
+    // Do NOT bag-sync hub-achievements-pending — it's a local toast queue.
+    // Syncing it re-pops "Achievement unlocked" on every refresh.
     "hub-player-name",
     "hub-player-name-locked",
     "hub-profile-style-v1",
@@ -479,12 +480,8 @@
       const b = JSON.parse(remoteKv["hub-achievements-v1"] || "{}");
       kv["hub-achievements-v1"] = JSON.stringify(mergeAchievementMaps(a, b));
     } catch {}
-    try {
-      const pa = JSON.parse(localKv["hub-achievements-pending"] || "[]");
-      const pb = JSON.parse(remoteKv["hub-achievements-pending"] || "[]");
-      const set = new Set([...(Array.isArray(pa) ? pa : []), ...(Array.isArray(pb) ? pb : [])]);
-      kv["hub-achievements-pending"] = JSON.stringify([...set].slice(-80));
-    } catch {}
+    // Toast queue is device-local only — drop any copy that leaked into old bags
+    delete kv["hub-achievements-pending"];
 
     // Fishing: never let a fresher empty/weak save wipe a real one (shared school PCs)
     try {
@@ -539,10 +536,16 @@
   function apply(bag, opts = {}) {
     if (!bag || !bag.kv || typeof bag.kv !== "object") return;
     const bagId = String(bag.playerId || playerIdNow() || "").trim();
+    // Keep live toast queue across soft applies; never restore it from a bag
+    let livePending = null;
+    try {
+      livePending = localStorage.getItem("hub-achievements-pending");
+    } catch {}
     // replace: full account switch — wipe every account key first so leftovers can't blend
     if (opts.replace) clearBagKeys();
     Object.entries(bag.kv).forEach(([key, value]) => {
       if (!isBagKey(key)) return;
+      if (key === "hub-achievements-pending") return;
       try {
         if (value == null || value === "") {
           if (opts.replace) localStorage.removeItem(key);
@@ -572,6 +575,12 @@
         localStorage.setItem(key, out);
       } catch {}
     });
+    // Soft apply: put back this session's toast queue (bag must not stomp it)
+    if (!opts.replace && livePending != null) {
+      try {
+        localStorage.setItem("hub-achievements-pending", livePending);
+      } catch {}
+    }
     if (bagId) setBagOwner(bagId);
     try {
       document.dispatchEvent(

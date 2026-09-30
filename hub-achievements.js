@@ -11,6 +11,8 @@
 (function () {
   const STORAGE_KEY = "hub-achievements-v1";
   const PENDING_KEY = "hub-achievements-pending";
+  /** Ids already toasted — stops bag/sync from re-popping unlocks on refresh. */
+  const ANNOUNCED_KEY = "hub-achievements-announced-v1";
 
   // One-time: clear Ramp Rush achievements for everyone (other games untouched).
   try {
@@ -203,12 +205,32 @@
     } catch {}
   }
 
+  function loadAnnounced() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(ANNOUNCED_KEY));
+      return raw && typeof raw === "object" ? raw : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function saveAnnounced(map) {
+    try {
+      localStorage.setItem(ANNOUNCED_KEY, JSON.stringify(map || {}));
+    } catch {}
+  }
+
   /* ── Public API ── */
   function unlock(id) {
     const data = load();
     if (data[id]) return false; // already unlocked
     data[id] = Date.now();
     save(data);
+    const announced = loadAnnounced();
+    if (announced[id]) {
+      maybeMarkLegend();
+      return true;
+    }
     const pending = loadPending();
     if (!pending.includes(id)) {
       pending.push(id);
@@ -254,7 +276,16 @@
   function getPending() {
     const q = loadPending();
     savePending([]);
-    return q;
+    const announced = loadAnnounced();
+    const fresh = [];
+    q.forEach((id) => {
+      const key = String(id || "");
+      if (!key || announced[key]) return;
+      announced[key] = Date.now();
+      fresh.push(key);
+    });
+    saveAnnounced(announced);
+    return fresh;
   }
 
   function getDefinition(id) {
@@ -294,6 +325,22 @@
   setTimeout(() => maybeMarkLegend(), 800);
   setTimeout(applyNameUnlocks, 400);
   setInterval(applyNameUnlocks, 4000);
+
+  // One-time: mark already-earned achievements as announced and drop the stale
+  // toast queue so a bag-synced pending list can't re-pop on every refresh.
+  try {
+    const SCRUB_KEY = "hub-achievements-pending-scrub-v1";
+    if (localStorage.getItem(SCRUB_KEY) !== "1") {
+      const data = load();
+      const announced = loadAnnounced();
+      Object.keys(data).forEach((id) => {
+        if (!announced[id]) announced[id] = data[id] || Date.now();
+      });
+      saveAnnounced(announced);
+      savePending([]);
+      localStorage.setItem(SCRUB_KEY, "1");
+    }
+  } catch {}
 
   window.HubAchievements = {
     unlock,
