@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260930q": [
+    "Discord: members with the Updates role get pinged when a hub update posts in #updates"
+  ],
   "20260930p": [
     "My Games: stop achievement unlock toasts from popping again on every refresh",
     "My Games: fix garbled hub icons (streak 🔥, sound, menu, favorites, and more)",

@@ -26,6 +26,7 @@
       invite: String(d.invite || DEFAULT_INVITE).trim() || DEFAULT_INVITE,
       webhookUrl: String(d.webhookUrl || "").trim(),
       webhookUpdatesUrl: String(d.webhookUpdatesUrl || d.updatesWebhookUrl || "").trim(),
+      updatesRoleId: String(d.updatesRoleId || d.updatesRole || "").replace(/\D/g, ""),
       loginEnabled: d.loginEnabled !== false
     };
   }
@@ -224,10 +225,15 @@
     if (!url) return { ok: false, reason: "no-webhook" };
     const text = String(content || "").trim().slice(0, 1900);
     if (!text) return { ok: false, reason: "empty" };
+    const roleIds = (Array.isArray(opts.roleIds) ? opts.roleIds : [])
+      .map((id) => String(id || "").replace(/\D/g, ""))
+      .filter(Boolean)
+      .slice(0, 10);
     const body = {
       content: text,
       username: String(opts.username || "My Games").slice(0, 80),
-      allowed_mentions: { parse: [] }
+      // Never parse @everyone/@here; only explicitly listed roles (Updates ping)
+      allowed_mentions: { parse: [], roles: roleIds }
     };
     if (opts.avatarUrl) body.avatar_url = String(opts.avatarUrl);
     try {
@@ -290,14 +296,18 @@
       .slice(0, 12)
       .map((n) => `• ${n}`)
       .join("\n");
-    return `**My Games update${id ? ` · \`${id}\`` : ""}**\n${bullets || "• Site update"}\n${home}`;
+    const roleId = cfg().updatesRoleId;
+    const ping = roleId ? `<@&${roleId}> ` : "";
+    return `${ping}**My Games update${id ? ` · \`${id}\`` : ""}**\n${bullets || "• Site update"}\n${home}`;
   }
 
   async function announceSiteUpdate(build, notes) {
     const webhook = cfg().webhookUpdatesUrl;
     if (!webhook) return { ok: false, reason: "no-webhook" };
+    const roleId = cfg().updatesRoleId;
     return postToWebhook(webhook, formatSiteUpdateMessage(build, notes), {
-      username: "My Games Updates"
+      username: "My Games Updates",
+      roleIds: roleId ? [roleId] : []
     });
   }
 
