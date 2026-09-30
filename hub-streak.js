@@ -3,7 +3,8 @@
   const STREAK_WINDOW_MS = 48 * 60 * 60 * 1000;
   /** One-time streak values for specific players (achievements stay separate). */
   const NAME_STREAK_SET = {
-    hjalte: { streak: 2, version: "set-2-v1" }
+    hjalte: { streak: 2, version: "set-2-v1" },
+    ice_dragon: { streak: 28, version: "set-28-v1" }
   };
 
   function todayLocal() {

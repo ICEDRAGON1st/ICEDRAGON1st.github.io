@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260930a": [
+    "Restored ICE_DRAGON daily streak to 28"
+  ],
   "20260929h": [
     "Discord #updates channel connected for hub/site changelog posts"
   ],
