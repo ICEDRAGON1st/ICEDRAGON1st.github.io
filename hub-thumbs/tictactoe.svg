@@ -2,16 +2,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" role="img" aria-hidden="true">
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0c1624"/>
-      <stop offset="100%" stop-color="#2a4566"/>
+      <stop offset="0%" stop-color="#1a1b1e"/>
+      <stop offset="100%" stop-color="#495057"/>
     </linearGradient>
   </defs>
   <rect width="320" height="180" fill="url(#g)"/>
-  <g stroke="#a5d8ff" stroke-width="6" stroke-linecap="round">
+  <g stroke="#fff" stroke-width="6" stroke-linecap="round">
       <line x1="130" y1="30" x2="130" y2="150"/><line x1="190" y1="30" x2="190" y2="150"/>
       <line x1="80" y1="70" x2="240" y2="70"/><line x1="80" y1="110" x2="240" y2="110"/>
-      <line x1="95" y1="40" x2="115" y2="60" stroke="#74c0fc"/><line x1="115" y1="40" x2="95" y2="60" stroke="#74c0fc"/>
-      <circle cx="160" cy="90" r="14" fill="none" stroke="#fbbf24"/>
-      <line x1="205" y1="120" x2="225" y2="140" stroke="#74c0fc"/><line x1="225" y1="120" x2="205" y2="140" stroke="#74c0fc"/>
+      <line x1="95" y1="40" x2="115" y2="60" stroke="#ff6b6b"/><line x1="115" y1="40" x2="95" y2="60" stroke="#ff6b6b"/>
+      <circle cx="160" cy="90" r="14" fill="none" stroke="#74c0fc"/>
+      <line x1="205" y1="120" x2="225" y2="140" stroke="#ff6b6b"/><line x1="225" y1="120" x2="205" y2="140" stroke="#ff6b6b"/>
     </g>
 </svg>
