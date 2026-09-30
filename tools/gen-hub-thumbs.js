@@ -106,13 +106,16 @@ const arts = {
   "2048": svg(
     320,
     180,
-    `<rect x="70" y="30" width="70" height="70" rx="10" fill="#edc948"/>
-    <text x="105" y="78" text-anchor="middle" font-size="28" font-weight="800" fill="#5c3b00" font-family="Segoe UI,sans-serif">8</text>
-    <rect x="150" y="30" width="70" height="70" rx="10" fill="#f59563"/>
-    <text x="185" y="78" text-anchor="middle" font-size="26" font-weight="800" fill="#fff" font-family="Segoe UI,sans-serif">16</text>
-    <rect x="70" y="110" width="70" height="50" rx="10" fill="#f2b179"/>
-    <rect x="150" y="110" width="100" height="50" rx="10" fill="#edc22e"/>
-    <text x="200" y="145" text-anchor="middle" font-size="24" font-weight="800" fill="#5c3b00" font-family="Segoe UI,sans-serif">2048</text>`,
+    `<rect x="55" y="35" width="64" height="64" rx="10" fill="#edc948"/>
+    <text x="87" y="78" text-anchor="middle" font-size="26" font-weight="800" fill="#5c3b00" font-family="Segoe UI,sans-serif">8</text>
+    <rect x="131" y="35" width="64" height="64" rx="10" fill="#f59563"/>
+    <text x="163" y="78" text-anchor="middle" font-size="24" font-weight="800" fill="#fff" font-family="Segoe UI,sans-serif">16</text>
+    <rect x="207" y="35" width="64" height="64" rx="10" fill="#f2b179"/>
+    <text x="239" y="78" text-anchor="middle" font-size="22" font-weight="800" fill="#fff" font-family="Segoe UI,sans-serif">32</text>
+    <rect x="93" y="110" width="64" height="48" rx="10" fill="#edc22e"/>
+    <rect x="169" y="110" width="64" height="48" rx="10" fill="#f67c5f"/>
+    <path d="M125 134 L145 134" stroke="#5c3b00" stroke-width="4" stroke-linecap="round"/>
+    <path d="M201 134 L221 134 M211 124 L211 144" stroke="#fff" stroke-width="4" stroke-linecap="round"/>`,
     ["#bbada0", "#8f7a66"]
   ),
   snake: svg(
@@ -205,12 +208,18 @@ const arts = {
   flappy: svg(
     320,
     180,
-    `<rect x="60" y="0" width="36" height="70" fill="#2f9e44"/><rect x="60" y="120" width="36" height="60" fill="#2f9e44"/>
-    <rect x="210" y="0" width="36" height="50" fill="#2f9e44"/><rect x="210" y="100" width="36" height="80" fill="#2f9e44"/>
-    <ellipse cx="150" cy="95" rx="22" ry="16" fill="#ffd43b"/>
-    <circle cx="162" cy="90" r="4" fill="#212529"/>
-    <polygon points="170,95 190,90 170,102" fill="#ff922b"/>`,
-    ["#74c0fc", "#1c7ed6"]
+    // Wing Hop: ice dragon + stone towers (not Flappy Bird pipes/bird)
+    `<rect x="48" y="0" width="44" height="68" fill="#868e96"/><rect x="42" y="60" width="56" height="14" fill="#adb5bd"/>
+    <rect x="48" y="118" width="44" height="62" fill="#868e96"/><rect x="42" y="118" width="56" height="14" fill="#adb5bd"/>
+    <rect x="228" y="0" width="44" height="52" fill="#868e96"/><rect x="222" y="44" width="56" height="14" fill="#adb5bd"/>
+    <rect x="228" y="108" width="44" height="72" fill="#868e96"/><rect x="222" y="108" width="56" height="14" fill="#adb5bd"/>
+    <ellipse cx="155" cy="92" rx="26" ry="14" fill="#74c0fc"/>
+    <path d="M128 88 Q118 70 138 78 Q148 68 158 82 Z" fill="#4dabf7"/>
+    <path d="M170 86 Q200 72 188 98 Q178 94 170 96 Z" fill="#4dabf7"/>
+    <circle cx="168" cy="88" r="3.5" fill="#0b2a4a"/>
+    <path d="M178 92 L198 88 L178 98 Z" fill="#ff922b"/>
+    <circle cx="70" cy="40" r="2" fill="#fff" opacity="0.7"/><circle cx="260" cy="70" r="1.5" fill="#fff" opacity="0.6"/>`,
+    ["#1c3d5a", "#0b7285"]
   ),
   tictactoe: svg(
     320,
@@ -304,12 +313,18 @@ const arts = {
   dino: svg(
     320,
     180,
-    `<path d="M0 140 L60 120 L120 145 L180 115 L240 140 L320 125 L320 180 L0 180 Z" fill="#5c4b37"/>
-    <ellipse cx="140" cy="110" rx="40" ry="22" fill="#82c91e"/>
-    <circle cx="175" cy="95" r="16" fill="#82c91e"/>
-    <circle cx="182" cy="90" r="3" fill="#212529"/>
-    <rect x="110" y="125" width="10" height="25" fill="#82c91e"/><rect x="145" y="125" width="10" height="25" fill="#82c91e"/>`,
-    ["#212529", "#495057"]
+    // Runosaur: cave crystals + glowing runner (not Chrome dino)
+    `<path d="M0 150 L50 120 L100 145 L160 110 L220 140 L280 115 L320 135 L320 180 L0 180 Z" fill="#2b2118"/>
+    <path d="M0 0 L320 0 L320 70 Q240 95 160 70 Q80 50 0 75 Z" fill="#1a1b1e" opacity="0.85"/>
+    <polygon points="90,150 100,90 110,150" fill="#74c0fc" opacity="0.75"/>
+    <polygon points="240,145 252,75 264,145" fill="#cc5de8" opacity="0.7"/>
+    <ellipse cx="160" cy="118" rx="28" ry="16" fill="#20c997"/>
+    <circle cx="185" cy="108" r="12" fill="#12b886"/>
+    <circle cx="190" cy="105" r="2.5" fill="#e7f5ff"/>
+    <path d="M140 118 Q130 100 145 108" fill="#38d9a9"/>
+    <rect x="148" y="128" width="8" height="18" rx="2" fill="#099268"/>
+    <rect x="168" y="128" width="8" height="18" rx="2" fill="#099268"/>`,
+    ["#0b1026", "#343a40"]
   ),
   ramp: svg(
     320,
@@ -402,12 +417,15 @@ const arts = {
   lemmings: svg(
     320,
     180,
-    `<rect x="40" y="120" width="240" height="20" fill="#868e96"/>
-    <circle cx="100" cy="100" r="14" fill="#ffd43b"/><rect x="93" y="112" width="14" height="20" fill="#339af0"/>
-    <circle cx="150" cy="95" r="14" fill="#ffd43b"/><rect x="143" y="107" width="14" height="25" fill="#51cf66"/>
-    <circle cx="200" cy="100" r="14" fill="#ffd43b"/><rect x="193" y="112" width="14" height="20" fill="#ff6b6b"/>
-    <polygon points="100,80 110,88 90,88" fill="#e67700"/>`,
-    ["#2b2118", "#e67700"]
+    // Dudes: generic crew (no green-hair lemming look)
+    `<rect x="40" y="125" width="240" height="18" rx="4" fill="#495057"/>
+    <circle cx="100" cy="95" r="14" fill="#ffd8a8"/><rect x="92" y="108" width="16" height="22" rx="3" fill="#4dabf7"/>
+    <circle cx="160" cy="88" r="14" fill="#ffd8a8"/><rect x="152" y="101" width="16" height="28" rx="3" fill="#69db7c"/>
+    <circle cx="220" cy="95" r="14" fill="#ffd8a8"/><rect x="212" y="108" width="16" height="22" rx="3" fill="#ff8787"/>
+    <rect x="94" y="82" width="12" height="6" rx="2" fill="#1c7ed6"/>
+    <rect x="154" y="75" width="12" height="6" rx="2" fill="#2f9e44"/>
+    <rect x="214" y="82" width="12" height="6" rx="2" fill="#e03131"/>`,
+    ["#212529", "#5c4b37"]
   ),
   paper: svg(
     320,

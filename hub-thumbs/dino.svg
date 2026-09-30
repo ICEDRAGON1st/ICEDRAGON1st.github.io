@@ -2,14 +2,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" role="img" aria-hidden="true">
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#212529"/>
-      <stop offset="100%" stop-color="#495057"/>
+      <stop offset="0%" stop-color="#0b1026"/>
+      <stop offset="100%" stop-color="#343a40"/>
     </linearGradient>
   </defs>
   <rect width="320" height="180" fill="url(#g)"/>
-  <path d="M0 140 L60 120 L120 145 L180 115 L240 140 L320 125 L320 180 L0 180 Z" fill="#5c4b37"/>
-    <ellipse cx="140" cy="110" rx="40" ry="22" fill="#82c91e"/>
-    <circle cx="175" cy="95" r="16" fill="#82c91e"/>
-    <circle cx="182" cy="90" r="3" fill="#212529"/>
-    <rect x="110" y="125" width="10" height="25" fill="#82c91e"/><rect x="145" y="125" width="10" height="25" fill="#82c91e"/>
+  <path d="M0 150 L50 120 L100 145 L160 110 L220 140 L280 115 L320 135 L320 180 L0 180 Z" fill="#2b2118"/>
+    <path d="M0 0 L320 0 L320 70 Q240 95 160 70 Q80 50 0 75 Z" fill="#1a1b1e" opacity="0.85"/>
+    <polygon points="90,150 100,90 110,150" fill="#74c0fc" opacity="0.75"/>
+    <polygon points="240,145 252,75 264,145" fill="#cc5de8" opacity="0.7"/>
+    <ellipse cx="160" cy="118" rx="28" ry="16" fill="#20c997"/>
+    <circle cx="185" cy="108" r="12" fill="#12b886"/>
+    <circle cx="190" cy="105" r="2.5" fill="#e7f5ff"/>
+    <path d="M140 118 Q130 100 145 108" fill="#38d9a9"/>
+    <rect x="148" y="128" width="8" height="18" rx="2" fill="#099268"/>
+    <rect x="168" y="128" width="8" height="18" rx="2" fill="#099268"/>
 </svg>
