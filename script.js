@@ -2237,12 +2237,17 @@ function getHubScore(gameId) {
       const legacy = readJsonKey("hangman-stats", {});
       let bestStreak = legacy.bestStreak || 0;
       let wins = legacy.wins || 0;
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (!key || !key.startsWith("hangman-stats-")) continue;
-        const stats = readJsonKey(key, {});
-        bestStreak = Math.max(bestStreak, stats.bestStreak || 0);
-        wins += stats.wins || 0;
+      // Only this account's hangman saves — don't sum leftover keys from other accounts
+      let myId = "";
+      try {
+        myId = String(window.HubPlays?.getPlayerId?.() || localStorage.getItem("hub-player-id") || "");
+      } catch {}
+      if (myId) {
+        const mine = readJsonKey(`hangman-stats-${myId}`, null);
+        if (mine && typeof mine === "object") {
+          bestStreak = Math.max(bestStreak, mine.bestStreak || 0);
+          wins = Math.max(wins, mine.wins || 0);
+        }
       }
       if (!wins && !bestStreak) return { label: "No wins yet", sort: 0 };
       return { label: `${wins} wins · best streak ${bestStreak}`, sort: bestStreak };
@@ -2380,6 +2385,11 @@ function getHubScore(gameId) {
     case "lemmings": {
       const score = readNumberKey("lemmings-high-score");
       return { label: score ? `Best ${score}` : "No score yet", sort: score };
+    }
+    case "paper": {
+      const pct = readNumberKey("paper-io-best-pct");
+      if (!pct) return { label: "No claim yet", sort: 0 };
+      return { label: `Best ${pct}%`, sort: pct };
     }
     case "mine": {
       const depth = readNumberKey("mine-depth-best-v1");
@@ -2584,6 +2594,8 @@ function filterGamesGrid() {
 function filterLeaderboardPickerAndList() {
   if (!leaderboardGamePicker) return;
   const q = normalizeSearch(leaderboardSearchInput?.value);
+  const searching = !!q;
+  const searchFocused = document.activeElement === leaderboardSearchInput;
   const buttons = [...leaderboardGamePicker.querySelectorAll(".leaderboard-game-btn")];
   let visibleBtns = 0;
   let activeVisible = false;
@@ -2603,8 +2615,8 @@ function filterLeaderboardPickerAndList() {
     leaderboardSearchEmpty.classList.toggle("hidden", !q || visibleBtns > 0);
   }
 
-  // If the selected board is filtered out, jump to the first visible one
-  if (q && visibleBtns && !activeVisible) {
+  // Only auto-switch board when not actively typing a search
+  if (q && visibleBtns && !activeVisible && !searchFocused) {
     const first = buttons.find((b) => !b.classList.contains("hub-search-hidden"));
     if (first?.dataset.game) {
       selectedLeaderboardGame = first.dataset.game;
@@ -2613,18 +2625,11 @@ function filterLeaderboardPickerAndList() {
     }
   }
 
-  // Also filter visible player rows by name when searching
+  // Filter player rows by name only (don't show everyone when query matches board title)
   if (leaderboardList) {
     const rows = [...leaderboardList.querySelectorAll("li")];
     rows.forEach((li) => {
-      if (!q) {
-        li.classList.remove("hub-search-hidden");
-        return;
-      }
-      // Prefer player-name match; if query matches the active board name, show all rows
-      const activeName =
-        LEADERBOARD_GAMES.find((g) => g.id === selectedLeaderboardGame)?.name || "";
-      if (matchesSearch(activeName, q) || matchesSearch(selectedLeaderboardGame, q)) {
+      if (!searching) {
         li.classList.remove("hub-search-hidden");
         return;
       }
@@ -2636,6 +2641,8 @@ function filterLeaderboardPickerAndList() {
 
 function renderLeaderboardPicker() {
   if (!leaderboardGamePicker) return;
+  const prevFocus = document.activeElement === leaderboardSearchInput;
+  const prevQuery = leaderboardSearchInput?.value || "";
   leaderboardGamePicker.innerHTML = LEADERBOARD_GAMES.map(
     (game) =>
       `<button type="button" class="leaderboard-game-btn${
@@ -2643,6 +2650,13 @@ function renderLeaderboardPicker() {
       }" data-game="${game.id}">${escapeHtml(game.name)}</button>`
   ).join("");
   filterLeaderboardPickerAndList();
+  if (prevFocus && leaderboardSearchInput) {
+    try {
+      leaderboardSearchInput.focus();
+      const len = String(prevQuery).length;
+      leaderboardSearchInput.setSelectionRange(len, len);
+    } catch {}
+  }
 }
 
 function renderLeaderboardList() {
@@ -2699,11 +2713,17 @@ function renderLeaderboardList() {
 async function refreshLeaderboardsPanel(opts = {}) {
   if (!leaderboardsPanel || leaderboardsPanel.classList.contains("hidden")) return;
   const doSync = opts.sync !== false;
+  const searching = !!(leaderboardSearchInput && normalizeSearch(leaderboardSearchInput.value));
   if (typeof HubPlays !== "undefined") {
     HubPlays.tickOnlineTime?.();
     HubPlays.reconcileOnlineSeconds?.();
   }
-  renderLeaderboardPicker();
+  // Don't rebuild the picker every tick while searching — it fights the input
+  if (!searching || opts.forcePicker) {
+    renderLeaderboardPicker();
+  } else {
+    filterLeaderboardPickerAndList();
+  }
   if (doSync && typeof HubLeaderboard !== "undefined") {
     try {
       await HubLeaderboard.sync(true);
@@ -2935,6 +2955,13 @@ function refreshGamesHub() {
   filterGamesGrid();
   renderHighScoresList();
   renderDailyStreak();
+  try {
+    window.HubPlays?.syncPopularity?.()?.then?.(() => {
+      try {
+        renderMostPopularBadge();
+      } catch {}
+    });
+  } catch {}
 }
 
 function showGamesMessage(text, duration = 2000) {

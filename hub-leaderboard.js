@@ -1438,11 +1438,14 @@
 
     // Competitive points ignore owner / per-game excluded accounts
     let competitiveRank = 0;
+    const meId = getPlayerId();
     return rows.map((entry, i) => {
       const rank = i + 1;
       const excluded = isPointsExcluded(entry.name, gameId);
       if (!excluded) competitiveRank += 1;
       const points = excluded ? 0 : pointsForRank(competitiveRank);
+      const sameId = !!(meId && entry.playerId && String(entry.playerId) === String(meId));
+      const sameName = !!(me && nameKey(entry.name) === me);
       return {
         rank,
         name: entry.name,
@@ -1453,7 +1456,7 @@
         points,
         pointsExcluded: excluded,
         label: formatScore(gameId, entry.score, entry),
-        isYou: me && nameKey(entry.name) === me
+        isYou: sameId || (!entry.playerId && sameName)
       };
     });
   }

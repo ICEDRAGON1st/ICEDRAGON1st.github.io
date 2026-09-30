@@ -254,6 +254,36 @@
     return bag;
   }
 
+  function mergeNumericString(a, b) {
+    const na = Number(a);
+    const nb = Number(b);
+    const aOk = Number.isFinite(na);
+    const bOk = Number.isFinite(nb);
+    if (aOk && bOk) return String(Math.max(na, nb));
+    if (aOk) return String(na);
+    if (bOk) return String(nb);
+    return a != null && a !== "" ? String(a) : b != null && b !== "" ? String(b) : "0";
+  }
+
+  function mergeStreakStrings(aStr, bStr) {
+    const a = parseJsonSafe(aStr, null);
+    const b = parseJsonSafe(bStr, null);
+    if (!a && !b) return aStr || bStr || "";
+    if (!a) return typeof bStr === "string" ? bStr : JSON.stringify(b);
+    if (!b) return typeof aStr === "string" ? aStr : JSON.stringify(a);
+    const aAt = Number(a.lastPlayedAt) || 0;
+    const bAt = Number(b.lastPlayedAt) || 0;
+    const newer = bAt >= aAt ? b : a;
+    const older = bAt >= aAt ? a : b;
+    return JSON.stringify({
+      streak: Math.max(0, Number(newer.streak) || 0),
+      lastDate: newer.lastDate || older.lastDate || null,
+      lastPlayedAt: Math.max(aAt, bAt) || null,
+      best: Math.max(Number(a.best) || 0, Number(b.best) || 0),
+      celebrate: !!(a.celebrate || b.celebrate)
+    });
+  }
+
   function mergeAchievementMaps(a, b) {
     const out = { ...(a || {}) };
     Object.entries(b || {}).forEach(([id, at]) => {
@@ -432,10 +462,6 @@
     return JSON.stringify(out);
   }
 
-  function mergeNumericString(a, b) {
-    return String(Math.max(Number(a) || 0, Number(b) || 0));
-  }
-
   function mergeBags(localBag, remoteBag) {
     if (!localBag && !remoteBag) return null;
     if (!localBag) return remoteBag;
@@ -472,6 +498,14 @@
       kv["fishing-best-catch-v2"] = mergeNumericString(
         localKv["fishing-best-catch-v2"],
         remoteKv["fishing-best-catch-v2"]
+      );
+    } catch {}
+
+    // Day streak: keep the fresher play window + max best (don't let an empty bag wipe)
+    try {
+      kv["hub-daily-streak"] = mergeStreakStrings(
+        localKv["hub-daily-streak"],
+        remoteKv["hub-daily-streak"]
       );
     } catch {}
 
@@ -628,13 +662,28 @@
       // Account switch: only this player's vault + remote — never snapshot the previous account's live keys
       localBag = loadVault()[id] || null;
     } else if (!opts.skipLiveSnapshot) {
-      // Soft mid-session sync: capture live localStorage for THIS player
-      try {
-        localBag = snapshot(id);
-      } catch {
-        localBag = null;
+      // Soft mid-session sync: fold live progress into THIS account's known keys only
+      // so foreign leftovers on the device don't get absorbed into the vault.
+      const prev = loadVault()[id] || null;
+      const prevKv = prev && prev.kv && typeof prev.kv === "object" ? prev.kv : {};
+      const live = readBagKeys();
+      const folded = { ...prevKv };
+      const liveOwner = getBagOwner();
+      Object.keys(prevKv).forEach((key) => {
+        if (live[key] != null) folded[key] = live[key];
+      });
+      // New keys written this session while we own the live bag
+      if (!liveOwner || liveOwner === id) {
+        Object.entries(live).forEach(([key, v]) => {
+          if (folded[key] != null || v == null) return;
+          folded[key] = v;
+        });
       }
-      if (!localBag) localBag = loadVault()[id] || null;
+      localBag = {
+        playerId: id,
+        updatedAt: Date.now(),
+        kv: folded
+      };
     } else {
       localBag = loadVault()[id] || null;
     }
@@ -653,7 +702,9 @@
     const vault = loadVault();
     vault[id] = merged;
     saveVault(vault);
-    apply(merged, { replace: !!opts.replace });
+    // Always replace live keys after a pull so leftover scores from another
+    // account on this device can't stick on game cards.
+    apply(merged, { replace: true });
     setBagOwner(id);
     const api = sb();
     if (api) {
@@ -758,8 +809,8 @@
       if (t.closest(".fav-btn")) setTimeout(tick, 120);
     });
     document.addEventListener("hub-player-changed", () => {
-      const id = playerIdNow();
-      if (id) setBagOwner(id);
+      // Don't stamp bag owner until the active account bag is applied —
+      // prepareSwitch / enforceLiveBagOwner handle ownership.
       pullTick();
     });
   }
@@ -788,19 +839,9 @@
       } else if (liveOwner === id && !vaultHasData) {
         snapshot(id);
       } else if (liveOwner === id && vaultHasData) {
-        const vault = loadVault();
-        const bag = vault[id];
-        let filled = false;
-        const live = readBagKeys();
-        Object.entries(live).forEach(([key, v]) => {
-          if (bag.kv[key] != null || v == null) return;
-          bag.kv[key] = v;
-          filled = true;
-        });
-        if (filled) {
-          vault[id] = bag;
-          saveVault(vault);
-        }
+        // Re-apply this account's vault (replace) so leftover scores from another
+        // account on this device don't stick on game cards.
+        pullAndApply(id, { skipLiveSnapshot: true, replace: true }).catch(() => {});
       }
     }
   } catch {}
