@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001r": [
+    "My Games: Most popular badge tracks real play counts (no double-counting) and sits on the top game"
+  ],
   "20261001q": [
     "Mine Depth: auto dig speed shows as m/s so you can see how fast you’re going"
   ],
@@ -2708,11 +2711,22 @@ function renderCardScoresAndFavorites() {
 function sortGamesGrid() {
   if (!gamesGrid) return;
   const favorites = loadFavorites();
+  let popularId = "";
+  try {
+    popularId = String(
+      window.HubPlays?.getMostPopularGameId?.(HUB_GAMES.map((g) => g.id)) || ""
+    );
+  } catch {
+    popularId = "";
+  }
   const cards = [...gamesGrid.querySelectorAll(".game-card[data-game]")];
   cards.sort((a, b) => {
     const af = favorites.includes(a.dataset.game) ? 0 : 1;
     const bf = favorites.includes(b.dataset.game) ? 0 : 1;
     if (af !== bf) return af - bf;
+    const ap = popularId && a.dataset.game === popularId ? 0 : 1;
+    const bp = popularId && b.dataset.game === popularId ? 0 : 1;
+    if (ap !== bp) return ap - bp;
     return 0;
   });
   cards.forEach((card) => gamesGrid.appendChild(card));
@@ -3150,6 +3164,8 @@ function refreshGamesHub() {
     window.HubPlays?.syncPopularity?.()?.then?.(() => {
       try {
         renderMostPopularBadge();
+        sortGamesGrid();
+        filterGamesGrid();
       } catch {}
     });
   } catch {}

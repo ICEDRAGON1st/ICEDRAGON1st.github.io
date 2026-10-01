@@ -209,13 +209,30 @@
   function bumpPopularityLocal(gameId) {
     const id = String(gameId || "").trim();
     if (!id) return;
-    popularityCache[id] = (Number(popularityCache[id]) || 0) + 1;
+    // Hub card click + in-game ensureSession both call record() — count once per short window.
+    try {
+      const gateKey = `hub-pop-gate-${id}`;
+      const now = Date.now();
+      const last = Number(sessionStorage.getItem(gateKey) || 0);
+      if (now - last < 90_000) return;
+      sessionStorage.setItem(gateKey, String(now));
+    } catch {}
     popularityPending[id] = (Number(popularityPending[id]) || 0) + 1;
     savePopularityLocal();
   }
 
+  function getEffectivePopularity() {
+    const out = { ...(popularityCache || {}) };
+    Object.entries(popularityPending || {}).forEach(([id, raw]) => {
+      const n = Number(raw) || 0;
+      if (n <= 0) return;
+      out[id] = (Number(out[id]) || 0) + n;
+    });
+    return out;
+  }
+
   async function syncPopularity(force = false) {
-    if (popularityBusy) return popularityCache;
+    if (popularityBusy) return getEffectivePopularity();
     popularityBusy = true;
     try {
       let remote = {};
@@ -232,16 +249,17 @@
         }
       } catch {}
 
-      const merged = { ...remote };
-      Object.entries(popularityCache || {}).forEach(([k, v]) => {
-        merged[k] = Math.max(Number(merged[k]) || 0, Number(v) || 0);
-      });
-
       const pending = { ...(popularityPending || {}) };
+      const merged = { ...remote };
+      // Apply pending deltas only (cache already mirrors last synced remote + unsent pending).
       Object.entries(pending).forEach(([k, v]) => {
         const n = Number(v) || 0;
         if (n <= 0) return;
         merged[k] = (Number(merged[k]) || 0) + n;
+      });
+      // Keep any local-only keys that somehow aren't in remote/pending
+      Object.entries(popularityCache || {}).forEach(([k, v]) => {
+        if (merged[k] == null) merged[k] = Number(v) || 0;
       });
 
       popularityCache = merged;
@@ -253,21 +271,21 @@
         } catch {}
       }
       savePopularityLocal();
-      return popularityCache;
+      return getEffectivePopularity();
     } finally {
       popularityBusy = false;
     }
   }
 
   function getPopularityCounts() {
-    return { ...(popularityCache || {}) };
+    return getEffectivePopularity();
   }
 
   function getMostPopularGameId(allowedIds) {
     const allow = Array.isArray(allowedIds) && allowedIds.length ? new Set(allowedIds) : null;
     let bestId = "";
     let best = 0;
-    Object.entries(popularityCache || {}).forEach(([id, raw]) => {
+    Object.entries(getEffectivePopularity()).forEach(([id, raw]) => {
       if (allow && !allow.has(id)) return;
       const n = Number(raw) || 0;
       if (n > best) {
