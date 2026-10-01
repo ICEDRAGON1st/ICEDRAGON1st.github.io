@@ -45,7 +45,7 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
-  "20261001v": [
+  "20261001w": [`n    "Mine Depth: auto digs catch up through lag and redraw less often so m/s stays real",`n  ],`n  "20261001v": [
     "Mine Depth: auto dig keeps true m/s even when the UI is busy — no more feeling slower than the label"
   ],
   "20261001u": [

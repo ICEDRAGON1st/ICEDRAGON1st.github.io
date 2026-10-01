@@ -714,55 +714,84 @@
           rect.top + 18
         );
       }
-    } else {
-      // Track real auto m/s over a rolling second (status used to show one 0.1s tick and looked 10× low).
-      const now = Date.now();
-      if (!autoMeterWindowAt || now - autoMeterWindowAt >= 1000) {
-        autoMeterWindowAt = now;
-        autoMeterWindowSum = 0;
-      }
-      autoMeterWindowSum += m;
-      updateShaftView(added > 0 || m >= 0.5);
       if (lastOre && added) {
-        if (now - lastAutoOreFxAt >= 280) {
-          lastAutoOreFxAt = now;
-          spawnDigFx(lastOre);
-        }
-      }
-    }
-
-    if (source === "auto") {
-      const mps = formatAutoMps(autoMetersPerSecond());
-      if (blocked && !added) {
-        statusLineEl.textContent = `Cart full — sell ore · auto ${mps}`;
-      } else if (lastOre && added) {
         statusLineEl.textContent =
           added === 1
-            ? `Auto ${mps} · ${lastOre.emoji} ${lastOre.name}${newBestOre ? " · new best ore!" : ""}`
-            : `Auto ${mps} · ${added} ore${newBestOre ? " · new best ore!" : ""}`;
-      } else if (Date.now() - autoStatusAt >= 400) {
-        autoStatusAt = Date.now();
-        const elapsed = Math.max(0.2, (Date.now() - autoMeterWindowAt) / 1000);
-        const live = autoMeterWindowSum / elapsed;
-        statusLineEl.textContent = `Auto dig · ${formatAutoMps(autoMetersPerSecond())} (live ${formatAutoMps(live)})`;
+            ? `Dug into ${lastOre.emoji} ${lastOre.name} (↓${formatDepth(m)})${newBestOre ? " · new best ore!" : ""}`
+            : `Shaft sank ${formatDepth(m)} · ${added} ore${newBestOre ? " · new best ore!" : ""}`;
+      } else if (blocked) {
+        statusLineEl.textContent = `Cart full — sell ore, then dig deeper (↓${formatDepth(m)})`;
+      } else {
+        statusLineEl.textContent = `Shaft sank ${formatDepth(m)} · no ore this dig`;
       }
+      checkAchievements();
+      maybeSubmit(false);
+      renderHud();
+      renderCart();
+      refreshShopButtons();
+      save(false);
+      return;
+    }
+
+    // Auto: dig first, redraw less often so UI lag can't cut real m/s.
+    const now = Date.now();
+    if (!autoMeterWindowAt || now - autoMeterWindowAt >= 1000) {
+      autoMeterWindowAt = now;
+      autoMeterWindowSum = 0;
+    }
+    autoMeterWindowSum += m;
+
+    if (hudDepthEl) hudDepthEl.textContent = formatDepth(state.depth);
+    if (hudBestEl) hudBestEl.textContent = `${formatDepth(state.bestDepth)} · ${formatBestOre()}`;
+    updateAutoMpsLabel();
+
+    if (now - lastAutoShaftAt >= 250) {
+      lastAutoShaftAt = now;
+      updateShaftView(false);
+      const layer = layerFor(state.depth);
+      const idx = Math.max(0, LAYERS.findIndex((l) => l.id === layer.id));
+      if (layerLabelEl) {
+        layerLabelEl.textContent = layer.name;
+        const chipLabel = layerLabelEl.parentElement?.querySelector(".stat-chip-label");
+        if (chipLabel) chipLabel.textContent = `Layer ${idx + 1}`;
+      }
+      if (hudLayerEl) hudLayerEl.textContent = `Layer ${idx + 1} · ${layer.name}`;
+      const next = LAYERS[idx + 1];
+      if (layerProgressLabelEl) {
+        layerProgressLabelEl.textContent = next
+          ? `Layer ${idx + 1}: ${layer.name} · ${Math.round(nextLayerProgress(state.depth) * 100)}% to ${next.name}`
+          : `Layer ${idx + 1}: ${layer.name} · deepest`;
+      }
+      if (depthFillEl) depthFillEl.style.width = `${Math.round(nextLayerProgress(state.depth) * 100)}%`;
+    }
+
+    if (lastOre && added && now - lastAutoOreFxAt >= 280) {
+      lastAutoOreFxAt = now;
+      spawnDigFx(lastOre);
+    }
+
+    const mps = formatAutoMps(autoMetersPerSecond());
+    if (blocked && !added) {
+      statusLineEl.textContent = `Cart full — sell ore · auto ${mps}`;
     } else if (lastOre && added) {
       statusLineEl.textContent =
         added === 1
-          ? `Dug into ${lastOre.emoji} ${lastOre.name} (↓${formatDepth(m)})${newBestOre ? " · new best ore!" : ""}`
-          : `Shaft sank ${formatDepth(m)} · ${added} ore${newBestOre ? " · new best ore!" : ""}`;
-    } else if (blocked) {
-      statusLineEl.textContent = `Cart full — sell ore, then dig deeper (↓${formatDepth(m)})`;
-    } else {
-      statusLineEl.textContent = `Shaft sank ${formatDepth(m)} · no ore this dig`;
+          ? `Auto ${mps} · ${lastOre.emoji} ${lastOre.name}${newBestOre ? " · new best ore!" : ""}`
+          : `Auto ${mps} · ${added} ore${newBestOre ? " · new best ore!" : ""}`;
+    } else if (now - autoStatusAt >= 500) {
+      autoStatusAt = now;
+      const elapsed = Math.max(0.2, (now - autoMeterWindowAt) / 1000);
+      const live = autoMeterWindowSum / elapsed;
+      statusLineEl.textContent = `Auto dig · ${mps} (live ${formatAutoMps(live)})`;
     }
 
-    checkAchievements();
-    maybeSubmit(false);
-    renderHud();
-    if (source === "click" || added > 0 || blocked > 0) renderCart();
-    refreshShopButtons();
-    save(false);
+    if (added > 0 || blocked > 0) renderCart();
+    if (now - lastAutoSaveAt >= 1000) {
+      lastAutoSaveAt = now;
+      checkAchievements();
+      maybeSubmit(false);
+      save(true);
+    }
   }
 
   function doDigBatch(count, source) {
