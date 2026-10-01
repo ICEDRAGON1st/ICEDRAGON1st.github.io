@@ -257,6 +257,51 @@
     return ORES.find((o) => o.id === id) || null;
   }
 
+  /** Integer coins as BigInt so late-game ore values don't vanish into float precision. */
+  function toCoins(v) {
+    try {
+      if (typeof v === "bigint") return v < 0n ? 0n : v;
+      if (typeof v === "string") {
+        const s = v.trim();
+        if (/^\d+$/.test(s)) return BigInt(s);
+        const n = Math.floor(Number(s));
+        if (!Number.isFinite(n) || n <= 0) return 0n;
+        return BigInt(Math.min(n, Number.MAX_SAFE_INTEGER));
+      }
+      const n = Math.floor(Number(v));
+      if (!Number.isFinite(n) || n <= 0) return 0n;
+      // Floats above MAX_SAFE_INTEGER lose low digits — keep what IEEE still represents.
+      if (n > Number.MAX_SAFE_INTEGER) return BigInt(Math.floor(n));
+      return BigInt(n);
+    } catch {
+      return 0n;
+    }
+  }
+
+  function coinsToSave(v) {
+    return toCoins(v).toString();
+  }
+
+  function canAfford(cost) {
+    return toCoins(state.coins) >= toCoins(cost);
+  }
+
+  function addCoins(amount) {
+    const gain = toCoins(amount);
+    if (gain <= 0n) return 0n;
+    state.coins = toCoins(state.coins) + gain;
+    return gain;
+  }
+
+  function spendCoins(amount) {
+    const cost = toCoins(amount);
+    const have = toCoins(state.coins);
+    if (cost <= 0n) return true;
+    if (have < cost) return false;
+    state.coins = have - cost;
+    return true;
+  }
+
   function formatBestOre(oreOrValue) {
     if (typeof oreOrValue === "object" && oreOrValue) {
       return `${oreOrValue.emoji} ${oreOrValue.name}`;
@@ -272,12 +317,47 @@
   }
 
   function formatNum(n) {
-    const x = Number(n) || 0;
-    if (x >= 1e18) return (x / 1e18).toFixed(2).replace(/\.?0+$/, "") + "Qi";
-    if (x >= 1e15) return (x / 1e15).toFixed(2).replace(/\.?0+$/, "") + "Qa";
-    if (x >= 1e12) return (x / 1e12).toFixed(2).replace(/\.?0+$/, "") + "T";
-    if (x >= 1e9) return (x / 1e9).toFixed(2).replace(/\.?0+$/, "") + "B";
-    if (x >= 1e6) return (x / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M";
+    let x;
+    try {
+      if (typeof n === "bigint") x = n < 0n ? 0n : n;
+      else if (typeof n === "string" && /^\d+$/.test(n.trim())) x = BigInt(n.trim());
+      else {
+        const num = Number(n);
+        if (!Number.isFinite(num) || num <= 0) return "0";
+        if (num >= Number.MAX_SAFE_INTEGER) x = BigInt(Math.floor(num));
+        else return formatNumSmall(num);
+      }
+    } catch {
+      return "0";
+    }
+    if (x < 10000n) return x.toString();
+    const units = [
+      [10n ** 36n, "Ud"],
+      [10n ** 33n, "Dc"],
+      [10n ** 30n, "No"],
+      [10n ** 27n, "Oc"],
+      [10n ** 24n, "Sp"],
+      [10n ** 21n, "Sx"],
+      [10n ** 18n, "Qi"],
+      [10n ** 15n, "Qa"],
+      [10n ** 12n, "T"],
+      [10n ** 9n, "B"],
+      [10n ** 6n, "M"],
+      [10n ** 3n, "K"]
+    ];
+    for (const [div, suffix] of units) {
+      if (x >= div) {
+        const whole = x / div;
+        const frac = ((x % div) * 100n) / div;
+        const fracStr = frac === 0n ? "" : `.${frac.toString().padStart(2, "0").replace(/0+$/, "")}`;
+        return `${whole}${fracStr}${suffix}`;
+      }
+    }
+    return x.toString();
+  }
+
+  function formatNumSmall(num) {
+    const x = Number(num) || 0;
     if (x >= 1e4) return (x / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
     if (x >= 1000) return (x / 1e3).toFixed(2).replace(/\.?0+$/, "") + "K";
     return String(Math.floor(x));
@@ -403,8 +483,14 @@
 
   function upgradeCost(u) {
     const n = ownedCount(u.id);
-    const cost = Math.floor(u.baseCost * Math.pow(1.55, n));
-    return Number.isFinite(cost) && cost > 0 ? cost : u.baseCost;
+    const base = Number(u.baseCost) || 0;
+    if (!(base > 0)) return 1;
+    // Keep cost as Number for shop display; clamp so it stays finite.
+    const raw = base * Math.pow(1.55, n);
+    if (!Number.isFinite(raw) || raw <= 0) {
+      return Number.MAX_SAFE_INTEGER;
+    }
+    return Math.max(1, Math.floor(raw));
   }
 
   function ensureSession() {
@@ -420,7 +506,7 @@
       if (!raw) return;
       const data = JSON.parse(raw);
       if (!data || typeof data !== "object") return;
-      state.coins = Math.max(0, Number(data.coins) || 0);
+      state.coins = toCoins(data.coins);
       state.depth = Math.max(0, Number(data.depth) || 0);
       state.bestDepth = Math.max(
         state.depth,
@@ -463,7 +549,7 @@
       localStorage.setItem(
         SAVE_KEY,
         JSON.stringify({
-          coins: state.coins,
+          coins: coinsToSave(state.coins),
           depth: state.depth,
           bestDepth: state.bestDepth,
           bestOreId: state.bestOreId,
@@ -520,16 +606,16 @@
     if (d >= at(900) || d >= 2e7) HubAchievements.unlock("mine_depth_500000");
     if (drillRate() > 0) HubAchievements.unlock("mine_drill");
     try {
-      const life = Number(localStorage.getItem("mine-depth-lifetime-coins") || 0);
-      if (life >= 10000) HubAchievements.unlock("mine_coins_10k");
+      const life = toCoins(localStorage.getItem("mine-depth-lifetime-coins") || "0");
+      if (life >= 10000n) HubAchievements.unlock("mine_coins_10k");
     } catch {}
   }
 
   function trackLifetimeCoins(gained) {
     try {
       const key = "mine-depth-lifetime-coins";
-      const prev = Number(localStorage.getItem(key)) || 0;
-      localStorage.setItem(key, String(prev + gained));
+      const prev = toCoins(localStorage.getItem(key) || "0");
+      localStorage.setItem(key, (prev + toCoins(gained)).toString());
     } catch {}
   }
 
@@ -829,15 +915,25 @@
     if (!state.cart.length) return;
     ensureSession();
     const mult = sellMult();
-    let gained = 0;
+    let gained = 0n;
+    const multParts = Math.max(1, Math.round(mult * 1000));
     state.cart.forEach((id) => {
       const ore = ORES.find((o) => o.id === id);
-      if (ore) gained += ore.value * mult;
+      if (!ore) return;
+      const value = toCoins(ore.value);
+      // mult can be fractional (e.g. 1.4) — apply as thousandths in BigInt
+      gained += (value * BigInt(multParts)) / 1000n;
     });
-    gained = Math.floor(gained);
+    if (gained <= 0n) {
+      statusLineEl.textContent = "Nothing to sell — cart ores looked empty";
+      state.cart = [];
+      renderCart();
+      return;
+    }
     state.cart = [];
-    state.coins += gained;
+    addCoins(gained);
     trackLifetimeCoins(gained);
+    if (coinCountEl) coinCountEl.textContent = formatNum(state.coins);
     statusLineEl.textContent = `Sold ore for ${formatNum(gained)} coins`;
     window.HubSound?.play?.("merge");
     checkAchievements();
@@ -852,13 +948,17 @@
     if (!u) return false;
     if (!state.owned || typeof state.owned !== "object") state.owned = {};
     const cost = upgradeCost(u);
-    if (!Number.isFinite(cost) || state.coins < cost) {
+    if (!Number.isFinite(cost) || cost <= 0 || !canAfford(cost)) {
       statusLineEl.textContent = `Need ${formatNum(cost)} coins for ${u.name}`;
       window.HubSound?.play?.("error");
       return false;
     }
     ensureSession();
-    state.coins -= cost;
+    if (!spendCoins(cost)) {
+      statusLineEl.textContent = `Need ${formatNum(cost)} coins for ${u.name}`;
+      window.HubSound?.play?.("error");
+      return false;
+    }
     state.owned[u.id] = ownedCount(u.id) + 1;
     statusLineEl.textContent = `Bought ${u.name} · now ${formatNum(digPower())}m/dig · ${formatAutoMps(autoMetersPerSecond())} auto`;
     window.HubSound?.play?.("merge");
@@ -917,7 +1017,7 @@
       const u = UPGRADES.find((x) => x.id === id);
       if (!u) return;
       const cost = upgradeCost(u);
-      const can = state.coins >= cost;
+      const can = canAfford(cost);
       item.classList.toggle("locked", !can);
       const btn = item.querySelector(".shop-buy");
       if (btn) {
@@ -940,7 +1040,7 @@
     const gearRow = (u) => {
       const n = ownedCount(u.id);
       const cost = upgradeCost(u);
-      const can = state.coins >= cost;
+      const can = canAfford(cost);
       return `<div class="shop-item ${can ? "" : "locked"}" role="listitem" data-buy="${u.id}">
         <div>
           <div class="shop-name">${u.name}</div>

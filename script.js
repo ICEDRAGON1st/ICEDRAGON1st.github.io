@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001z": [
+    "Mine Depth: selling ore pays out again — late-game coin totals no longer lose small sells to float rounding"
+  ],
   "20261001y": [
     "Mine Depth: more late-game gear — extra picks, drills, luck, sell, offline, and cart upgrades"
   ],
