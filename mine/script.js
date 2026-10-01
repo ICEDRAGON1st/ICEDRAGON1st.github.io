@@ -267,10 +267,11 @@
   /** Meters from current layer start to the next layer (or a late-game fallback). */
   function layerThickness(depth) {
     const layer = layerFor(depth);
+    if (Number(layer.span) > 0) return Number(layer.span);
     const idx = Math.max(0, LAYERS.findIndex((l) => l.id === layer.id));
     const next = LAYERS[idx + 1];
     if (!next) return Math.max(8000, Number(layer.min) * 0.06 || 8000);
-    return Math.max(12, next.min - layer.min);
+    return Math.max(10, next.min - layer.min);
   }
 
   /**
@@ -598,7 +599,7 @@
       lastClickAt = now;
     }
     ensureSession();
-    const meters = digMetersForCount(count);
+    const meters = digMetersForCount(count, { usePickPower: source === "click" });
     const prevBest = state.bestDepth;
     state.depth += meters;
     if (state.depth > state.bestDepth) state.bestDepth = state.depth;
@@ -719,7 +720,7 @@
     let found = 0;
     let sunk = 0;
     for (let i = 0; i < whole; i += 1) {
-      const step = digMetersForCount(1);
+      const step = digMetersForCount(1, { usePickPower: false });
       state.depth += step;
       sunk += step;
       if (state.depth > state.bestDepth) state.bestDepth = state.depth;
@@ -852,12 +853,10 @@
     const rate = drillRate();
     if (rate > 0) {
       autoAcc += rate * (TICK_MS / 1000);
-      // Soft-limit auto digs so one tick can't clear multiple full layers
+      // Soft-limit auto digs so one tick can't clear multiple full layers.
+      // Auto uses 1m base digs (pick power does not apply).
       const span = layerThickness(state.depth);
-      const maxPerTick = Math.max(
-        1,
-        Math.min(24, Math.ceil((span * 0.55) / Math.max(0.05, digPower())))
-      );
+      const maxPerTick = Math.max(1, Math.min(24, Math.ceil((span * 0.55) / 1)));
       const digs = Math.min(maxPerTick, Math.floor(autoAcc));
       if (digs > 0) {
         autoAcc -= digs;

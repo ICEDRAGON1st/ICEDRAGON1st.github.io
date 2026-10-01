@@ -41,11 +41,19 @@
     "#312e81", "#0f172a", "#e0e7ff", "#818cf8", "#f472b6", "#e2e8f0", "#fb923c", "#2dd4bf"
   ];
 
+  /** Thickness of layer index i (0 = first / smallest). Strictly increases with depth. */
+  function layerSpan(i) {
+    const n = Math.max(0, Math.floor(Number(i) || 0));
+    // Layer 1 shortest (~10m), deepest layers longest (tens of km).
+    return Math.max(10, Math.floor(10 + 3 * n + Math.pow(n, 1.75) * 0.55));
+  }
+
   function layerMin(i) {
-    if (i <= 0) return 0;
-    // Thicker bands so dig upgrades don't skip whole layers at once.
-    // Early ~40–110m/layer, mid hundreds, deep thousands+.
-    return Math.floor(28 * i + Math.pow(i, 2.2) * 0.45 + Math.pow(i, 1.6) * 10);
+    const n = Math.max(0, Math.floor(Number(i) || 0));
+    if (n <= 0) return 0;
+    let sum = 0;
+    for (let k = 0; k < n; k += 1) sum += layerSpan(k);
+    return sum;
   }
 
   function layerName(i) {
@@ -72,14 +80,17 @@
 
   function buildLayers() {
     const layers = [];
+    let depth = 0;
     for (let i = 0; i < LAYER_COUNT; i += 1) {
       layers.push({
         id: `layer_${i}`,
         name: layerName(i),
-        min: layerMin(i),
+        min: depth,
         color: COLORS[i % COLORS.length],
-        index: i
+        index: i,
+        span: layerSpan(i)
       });
+      depth += layerSpan(i);
     }
     return layers;
   }
@@ -135,6 +146,7 @@
     ORES,
     oreByValue,
     formatOre,
-    layerMin
+    layerMin,
+    layerSpan
   };
 })();

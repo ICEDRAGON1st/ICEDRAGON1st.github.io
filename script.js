@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001k": [
+    "Mine Depth: each layer is longer than the one above — first is shortest, deepest is longest"
+  ],
   "20261001j": [
     "Mine Depth: pick “+m per dig” upgrades only boost manual digs — auto drills stay 1m each"
   ],
