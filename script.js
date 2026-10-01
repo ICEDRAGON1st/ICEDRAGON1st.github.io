@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ac": [
+    "Mine Depth: Dig down stays put like Fishing’s Cast — sticky dock, no bounce on tap"
+  ],
   "20261001ab": [
     "Mine Depth: see layer thickness clearly, plus Numbers and Depth menus (km, Bm, Dc, and what they mean)"
   ],
