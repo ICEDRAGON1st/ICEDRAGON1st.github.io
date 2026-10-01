@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ad": [
+    "Mine Depth: clear Layer size chip plus how much of the layer is left"
+  ],
   "20261001ac": [
     "Mine Depth: Dig down stays put like Fishing’s Cast — sticky dock, no bounce on tap"
   ],

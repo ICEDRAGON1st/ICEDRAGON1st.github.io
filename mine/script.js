@@ -183,6 +183,9 @@
   const layerLabelEl = document.getElementById("layer-label");
   const digPowerLabelEl = document.getElementById("dig-power-label");
   const dpsLabelEl = document.getElementById("dps-label");
+  const layerSizeLabelEl = document.getElementById("layer-size-label");
+  const layerRemainingLabelEl = document.getElementById("layer-remaining-label");
+  const layerSizeDetailEl = document.getElementById("layer-size-detail");
   const hudDepthEl = document.getElementById("hud-depth");
   const hudBestEl = document.getElementById("hud-best");
   const hudLayerEl = document.getElementById("hud-layer");
@@ -546,6 +549,42 @@
     const next = LAYERS[idx + 1];
     if (!next) return Math.max(8000, Number(layer.min) * 0.06 || 8000);
     return Math.max(10, next.min - layer.min);
+  }
+
+  function layerRemainingMeters(depth) {
+    const layer = layerFor(depth);
+    const idx = Math.max(0, LAYERS.findIndex((l) => l.id === layer.id));
+    const next = LAYERS[idx + 1];
+    const span = layerThickness(depth);
+    if (!next) return Math.max(0, span - (depth - (Number(layer.min) || 0)));
+    return Math.max(0, next.min - depth);
+  }
+
+  function updateLayerSizeHud() {
+    const depth = state.depth;
+    const layer = layerFor(depth);
+    const idx = Math.max(0, LAYERS.findIndex((l) => l.id === layer.id));
+    const span = layerThickness(depth);
+    const pct = Math.round(nextLayerProgress(depth) * 100);
+    const left = layerRemainingMeters(depth);
+    const next = LAYERS[idx + 1];
+
+    if (layerSizeLabelEl) layerSizeLabelEl.textContent = formatDepth(span);
+    if (layerRemainingLabelEl) {
+      layerRemainingLabelEl.textContent = next ? `${formatDepth(left)} left` : "deepest";
+    }
+    if (layerSizeDetailEl) {
+      layerSizeDetailEl.textContent = next
+        ? `This layer is ${formatDepth(span)} thick · ${pct}% through · ${formatDepth(left)} to ${next.name}`
+        : `This layer is ${formatDepth(span)} thick · deepest band`;
+    }
+    if (layerProgressLabelEl) {
+      layerProgressLabelEl.textContent = `Layer ${idx + 1}: ${layer.name}`;
+    }
+    if (depthFillEl) depthFillEl.style.width = `${pct}%`;
+    if (hudLayerEl) {
+      hudLayerEl.textContent = `Layer ${idx + 1} · ${layer.name} · ${formatDepth(span)} thick`;
+    }
   }
 
   /**
@@ -1019,18 +1058,7 @@
         const chipLabel = layerLabelEl.parentElement?.querySelector(".stat-chip-label");
         if (chipLabel) chipLabel.textContent = `Layer ${idx + 1}`;
       }
-      if (hudLayerEl) {
-        const span = layerThickness(state.depth);
-        hudLayerEl.textContent = `Layer ${idx + 1} · ${layer.name} · ${formatDepth(span)} thick`;
-      }
-      const next = LAYERS[idx + 1];
-      if (layerProgressLabelEl) {
-        const span = layerThickness(state.depth);
-        layerProgressLabelEl.textContent = next
-          ? `Layer ${idx + 1}: ${layer.name} · ${formatDepth(span)} thick · ${Math.round(nextLayerProgress(state.depth) * 100)}% to ${next.name}`
-          : `Layer ${idx + 1}: ${layer.name} · ${formatDepth(span)} thick · deepest`;
-      }
-      if (depthFillEl) depthFillEl.style.width = `${Math.round(nextLayerProgress(state.depth) * 100)}%`;
+      updateLayerSizeHud();
     }
 
     if (lastOre && added && now - lastAutoOreFxAt >= 280) {
@@ -1240,24 +1268,13 @@
     }
     updateAutoMpsLabel();
     if (hudDepthEl) hudDepthEl.textContent = formatDepth(state.depth);
-    if (hudLayerEl) {
-      const span = layerThickness(state.depth);
-      hudLayerEl.textContent = `Layer ${idx + 1} · ${layer.name} · ${formatDepth(span)} thick`;
-    }
     if (hudBestEl) {
       hudBestEl.textContent = `${formatDepth(state.bestDepth)} · ${formatBestOre()}`;
     }
     if (overlayBestEl) {
       overlayBestEl.textContent = `${formatDepth(state.bestDepth)} · ${formatBestOre()}`;
     }
-    const next = LAYERS[idx + 1];
-    const spanNow = layerThickness(state.depth);
-    if (layerProgressLabelEl) {
-      layerProgressLabelEl.textContent = next
-        ? `Layer ${idx + 1}: ${layer.name} · ${formatDepth(spanNow)} thick · ${Math.round(nextLayerProgress(state.depth) * 100)}% to ${next.name}`
-        : `Layer ${idx + 1}: ${layer.name} · ${formatDepth(spanNow)} thick · deepest`;
-    }
-    if (depthFillEl) depthFillEl.style.width = `${Math.round(nextLayerProgress(state.depth) * 100)}%`;
+    updateLayerSizeHud();
     updateShaftView(false);
   }
 
