@@ -43,8 +43,9 @@
 
   function layerMin(i) {
     if (i <= 0) return 0;
-    // Smooth early game, huge late game — ~layer 999 near 2e9 m scale compressed via pow.
-    return Math.floor(6 * i + Math.pow(i, 2.05) * 0.12 + Math.pow(i, 1.35) * 2);
+    // Thicker bands so dig upgrades don't skip whole layers at once.
+    // Early ~40–110m/layer, mid hundreds, deep thousands+.
+    return Math.floor(28 * i + Math.pow(i, 2.2) * 0.45 + Math.pow(i, 1.6) * 10);
   }
 
   function layerName(i) {

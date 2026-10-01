@@ -140,9 +140,9 @@
   let strataBuilt = false;
   let lastClickAt = 0;
   let lastStrataCenter = -1;
-  const BAND_H = 72;
-  const VIEW_PAD = 100;
-  const STRATA_WINDOW = 14;
+  const BAND_H = 104;
+  const VIEW_PAD = 110;
+  const STRATA_WINDOW = 12;
 
   function defaultState() {
     const owned = {};
@@ -212,6 +212,27 @@
     if (!next) return 1;
     const span = next.min - layer.min;
     return Math.min(1, Math.max(0, (depth - layer.min) / span));
+  }
+
+  /** Meters from current layer start to the next layer (or a late-game fallback). */
+  function layerThickness(depth) {
+    const layer = layerFor(depth);
+    const idx = Math.max(0, LAYERS.findIndex((l) => l.id === layer.id));
+    const next = LAYERS[idx + 1];
+    if (!next) return Math.max(8000, Number(layer.min) * 0.06 || 8000);
+    return Math.max(12, next.min - layer.min);
+  }
+
+  /**
+   * Cap dig advance so one click / auto burst can't blast through many layers.
+   * Raw dig power still matters, but stays within a chunk of the current band.
+   */
+  function digMetersForCount(count) {
+    const n = Math.max(1, Math.floor(Number(count) || 1));
+    const raw = Math.max(0.05, n * digPower());
+    const span = layerThickness(state.depth);
+    const cap = Math.max(span * 0.55, digPower() * 0.4, 1.25);
+    return Math.min(raw, cap);
   }
 
   function ownedCount(id) {
@@ -526,8 +547,7 @@
       lastClickAt = now;
     }
     ensureSession();
-    const power = digPower();
-    const meters = Math.max(0.05, count * power);
+    const meters = digMetersForCount(count);
     const prevBest = state.bestDepth;
     state.depth += meters;
     if (state.depth > state.bestDepth) state.bestDepth = state.depth;
@@ -641,15 +661,18 @@
     const whole = Math.floor(digs);
     if (whole <= 0) return;
     let found = 0;
+    let sunk = 0;
     for (let i = 0; i < whole; i += 1) {
-      state.depth += digPower();
+      const step = digMetersForCount(1);
+      state.depth += step;
+      sunk += step;
       if (state.depth > state.bestDepth) state.bestDepth = state.depth;
       const ore = pickOre();
       noteBestOre(ore);
       if (addOre(ore)) found += 1;
       if (state.cart.length >= cartMax()) break;
     }
-    statusLineEl.textContent = `While away: +${formatDepth(whole * digPower())}, ${found} ore`;
+    statusLineEl.textContent = `While away: +${formatDepth(sunk)}, ${found} ore`;
     checkAchievements();
     maybeSubmit(true);
   }
@@ -773,7 +796,10 @@
     const rate = drillRate();
     if (rate > 0) {
       autoAcc += rate * (TICK_MS / 1000);
-      const digs = Math.min(40, Math.floor(autoAcc));
+      // Soft-limit auto digs so one tick can't clear multiple full layers
+      const span = layerThickness(state.depth);
+      const maxPerTick = Math.max(2, Math.ceil((span * 0.7) / Math.max(0.05, digPower())));
+      const digs = Math.min(maxPerTick, 24, Math.floor(autoAcc));
       if (digs > 0) {
         autoAcc -= digs;
         doDigBatch(digs, "auto");

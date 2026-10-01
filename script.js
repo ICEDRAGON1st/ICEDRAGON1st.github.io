@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20260930w": [
+    "Mine Depth: thicker layers and dig caps so late digs don’t rocket through the shaft"
+  ],
   "20260930v": [
     "Fishing Idle: catch book % ignores exclusive, ???, and easter egg fish (still catchable as bonuses)",
     "Fishing Idle: Hjalte can’t give exclusive / ??? / easter egg fish",
