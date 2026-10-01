@@ -44,10 +44,14 @@
   /** Thickness of layer index i (0 = first / smallest). Strictly increases with depth. */
   function layerSpan(i) {
     const n = Math.max(0, Math.floor(Number(i) || 0));
-    // Surface stays short; past ~layer 20 spans stretch hard so deep bands take real dig time.
-    const base = 12 + 5 * n + Math.pow(n, 1.95) * 0.95;
-    const deep = n < 20 ? 0 : Math.pow(n - 20, 2.45) * 3.5;
-    return Math.max(10, Math.floor(base + deep));
+    // Early layers stay short; geometric floor makes each next layer clearly longer
+    // (~16% thicker than the previous — no more 57.8Mm then 58Mm twins).
+    const early = 12 + 5 * n + Math.pow(n, 1.85) * 0.75;
+    const geo = 12 * Math.pow(1.16, n);
+    const deepBoost = n < 18 ? 0 : Math.pow(n - 18, 2.15) * 2.2;
+    let span = Math.max(early + deepBoost, geo);
+    if (!Number.isFinite(span) || span > 1e280) span = 1e280;
+    return Math.max(10, Math.floor(span));
   }
 
   function layerMin(i) {

@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ae": [
+    "Mine Depth: each deeper layer is clearly longer (~16% thicker than the last — no more near-twin sizes)"
+  ],
   "20261001ad": [
     "Mine Depth: clear Layer size chip plus how much of the layer is left"
   ],
