@@ -33,7 +33,7 @@
 
   // One-time: clear local Mine Depth stats for everyone (full board reset companion).
   try {
-    const MINE_LOCAL_WIPE = "hub-mine-local-wipe-v2";
+    const MINE_LOCAL_WIPE = "hub-mine-local-wipe-v3";
     if (localStorage.getItem(MINE_LOCAL_WIPE) !== "done") {
       const doomed = [];
       for (let i = 0; i < localStorage.length; i += 1) {
@@ -53,6 +53,20 @@
             });
           });
           localStorage.setItem("hub-account-bags-v1", JSON.stringify(vault));
+        }
+      } catch {}
+      // Empty Mine Depth boards in the local leaderboard cache so sync can't re-upload them
+      try {
+        const lbRaw = localStorage.getItem("hub-leaderboards-v1");
+        if (lbRaw) {
+          const lb = JSON.parse(lbRaw) || {};
+          if (lb.games && typeof lb.games === "object") {
+            lb.games.mine = {};
+            lb.games["mine-ore"] = {};
+          }
+          if (!lb.resets || typeof lb.resets !== "object") lb.resets = {};
+          lb.resets["mine:hard-empty-20261001c"] = Date.UTC(2026, 9, 1, 14, 45, 0);
+          localStorage.setItem("hub-leaderboards-v1", JSON.stringify(lb));
         }
       } catch {}
       try {
@@ -78,7 +92,7 @@
         }
       } catch {}
       localStorage.setItem(MINE_LOCAL_WIPE, "done");
-      // Push empty mine bag + wiped boards once HubAccountBag / sync are ready
+      localStorage.setItem("hub-mine-local-wipe-v2", "done");
       setTimeout(() => {
         try {
           window.HubAccountBag?.scrubMineProgressAfterWipe?.()?.catch?.(() => {});
@@ -1022,17 +1036,19 @@
     });
 
     // Full Mine Depth reset for everyone (depth + best ore boards only).
-    const mineFullResetKey = "mine:full-reset-20261001b";
-    const MINE_FULL_RESET_AT = Date.UTC(2026, 9, 1, 14, 20, 0); // 2026-10-01 14:20 UTC
-    if (!resets[mineFullResetKey] || Number(resets[mineFullResetKey]) > MINE_FULL_RESET_AT) {
-      resets[mineFullResetKey] = MINE_FULL_RESET_AT;
+    // v1/v2 failed when local caches re-pushed old scores with fresh timestamps.
+    const mineHardWipeKey = "mine:hard-empty-20261001c";
+    const MINE_HARD_WIPE_AT = Date.UTC(2026, 9, 1, 14, 45, 0); // 2026-10-01 14:45 UTC
+    if (!resets[mineHardWipeKey] || Number(resets[mineHardWipeKey]) !== MINE_HARD_WIPE_AT) {
+      resets[mineHardWipeKey] = MINE_HARD_WIPE_AT;
+      games.mine = {};
+      games["mine-ore"] = {};
     }
-    const mineFullCut = Number(resets[mineFullResetKey]) || MINE_FULL_RESET_AT;
     ["mine", "mine-ore"].forEach((gameId) => {
       const board = { ...(games[gameId] || {}) };
       Object.keys(board).forEach((key) => {
         const at = Number(board[key]?.at) || 0;
-        if (at <= mineFullCut) delete board[key];
+        if (at <= MINE_HARD_WIPE_AT) delete board[key];
       });
       games[gameId] = board;
     });

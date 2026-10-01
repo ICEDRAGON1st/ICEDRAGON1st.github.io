@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001c": [
+    "Mine Depth: hard-clear leaderboards + local cache so old depth scores can’t come back"
+  ],
   "20261001b": [
     "Mine Depth: re-run full reset so cloud saves can’t restore wiped progress"
   ],

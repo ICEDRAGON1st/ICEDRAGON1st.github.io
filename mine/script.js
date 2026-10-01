@@ -3,7 +3,7 @@
   const HIGH_SCORE_KEY = "mine-depth-best-v1";
   const BEST_ORE_KEY = "mine-best-ore-v1";
   const BEST_ORE_ID_KEY = "mine-best-ore-id-v1";
-  const LOCAL_WIPE_ID = "hub-mine-local-wipe-v2";
+  const LOCAL_WIPE_ID = "hub-mine-local-wipe-v3";
   const ICE_LOCAL_WIPE_ID = "hub-mine-ice-dragon-wipe-v1";
   const TICK_MS = 100;
   const CART_MAX = 20;
@@ -29,6 +29,19 @@
           });
         });
         localStorage.setItem("hub-account-bags-v1", JSON.stringify(vault));
+      }
+    } catch {}
+    try {
+      const lbRaw = localStorage.getItem("hub-leaderboards-v1");
+      if (lbRaw) {
+        const lb = JSON.parse(lbRaw) || {};
+        if (lb.games && typeof lb.games === "object") {
+          lb.games.mine = {};
+          lb.games["mine-ore"] = {};
+        }
+        if (!lb.resets || typeof lb.resets !== "object") lb.resets = {};
+        lb.resets["mine:hard-empty-20261001c"] = Date.UTC(2026, 9, 1, 14, 45, 0);
+        localStorage.setItem("hub-leaderboards-v1", JSON.stringify(lb));
       }
     } catch {}
     try {
@@ -60,6 +73,7 @@
     if (localStorage.getItem(LOCAL_WIPE_ID) !== "done") {
       wipeLocalMineKeys();
       localStorage.setItem(LOCAL_WIPE_ID, "done");
+      localStorage.setItem("hub-mine-local-wipe-v2", "done");
       setTimeout(() => {
         try {
           window.HubAccountBag?.scrubMineProgressAfterWipe?.()?.catch?.(() => {});

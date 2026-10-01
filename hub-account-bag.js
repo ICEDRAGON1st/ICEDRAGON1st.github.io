@@ -157,7 +157,10 @@
 
   function mineWipeDone() {
     try {
-      return localStorage.getItem("hub-mine-local-wipe-v2") === "done";
+      return (
+        localStorage.getItem("hub-mine-local-wipe-v3") === "done" ||
+        localStorage.getItem("hub-mine-local-wipe-v2") === "done"
+      );
     } catch {
       return false;
     }
