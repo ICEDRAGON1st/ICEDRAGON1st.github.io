@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001f": [
+    "My Games: What’s new pops for each update when it ships (one at a time — no more skipped then all at once)"
+  ],
   "20261001e": [
     "My Games: What’s new shows only the latest update (not a stack of older ones)"
   ],
@@ -1970,26 +1973,42 @@ function getSeenBuild() {
   return localStorage.getItem(SEEN_BUILD_KEY) || "";
 }
 
-function markBuildSeen() {
-  const build = window.WORDLE_BUILD || "";
+function markBuildSeen(id) {
+  const build = String(id || window.WORDLE_BUILD || "");
   if (build) localStorage.setItem(SEEN_BUILD_KEY, build);
 }
+
+/** Unseen changelog builds from after last-seen up to the live WORDLE_BUILD (oldest first). */
+function getUnseenChangelogEntries() {
+  const build = window.WORDLE_BUILD || "";
+  const seen = getSeenBuild();
+  if (!build || build === seen) return [];
+  return getChangelogEntries()
+    .filter((e) => e.id.localeCompare(seen) > 0 && e.id.localeCompare(build) <= 0)
+    .sort((a, b) => a.id.localeCompare(b.id));
+}
+
+let whatsNewShowingId = "";
 
 function showWhatsNew() {
   const build = window.WORDLE_BUILD || "";
   if (!build || build === getSeenBuild()) return false;
 
-  // One update at a time: only this build's notes (not every missed build stacked).
-  const notes = CHANGELOG[build];
-  if (!notes?.length) {
-    // Empty mid-builds: mark seen so the next real changelog can show.
-    markBuildSeen();
+  const unseen = getUnseenChangelogEntries();
+  if (!unseen.length) {
+    // If script.js is still cached without this build's CHANGELOG key, do NOT mark seen —
+    // that was swallowing popups until several updates piled up.
+    if (Object.prototype.hasOwnProperty.call(CHANGELOG, build)) {
+      markBuildSeen(build);
+    }
     return false;
   }
 
-  if (whatsNewBuild) whatsNewBuild.textContent = build;
+  const next = unseen[0];
+  whatsNewShowingId = next.id;
+  if (whatsNewBuild) whatsNewBuild.textContent = next.id;
   if (whatsNewList) {
-    whatsNewList.innerHTML = notes.map((note) => `<li>${note}</li>`).join("");
+    whatsNewList.innerHTML = next.notes.map((note) => `<li>${note}</li>`).join("");
   }
   whatsNewModal?.classList.remove("hidden");
   return true;
@@ -2005,9 +2024,34 @@ function announceHubBuildOnBoot() {
   } catch {}
 }
 
+/** Dismiss the showing update; returns true if another update popup opened. */
 function hideWhatsNew() {
+  const shown = whatsNewShowingId || window.WORDLE_BUILD || "";
+  whatsNewShowingId = "";
+  if (shown) markBuildSeen(shown);
+  try {
+    renderUpdatesPanel?.();
+    updateUpdatesButtonLabel(!updatesPanel?.classList.contains("hidden"));
+  } catch {}
+  if (showWhatsNew()) return true;
   whatsNewModal?.classList.add("hidden");
-  markBuildSeen();
+  return false;
+}
+
+function bindWhatsNewOk(onCaughtUp) {
+  if (!whatsNewOkBtn || whatsNewOkBtn.dataset.bound === "1") {
+    if (onCaughtUp) window.__whatsNewOnCaughtUp = onCaughtUp;
+    return;
+  }
+  whatsNewOkBtn.dataset.bound = "1";
+  whatsNewOkBtn.addEventListener("click", () => {
+    const more = hideWhatsNew();
+    if (more) return;
+    const fn = window.__whatsNewOnCaughtUp;
+    window.__whatsNewOnCaughtUp = null;
+    if (typeof fn === "function") fn();
+  });
+  if (onCaughtUp) window.__whatsNewOnCaughtUp = onCaughtUp;
 }
 
 function getChangelogEntries() {
@@ -6033,14 +6077,12 @@ showMessage(`Loaded · ${sixCount} six-letter words`);
 function bootAfterUsername() {
   // Land on My Games first so What's new never sits on the Guessword board.
   announceHubBuildOnBoot();
+  bindWhatsNewOk();
   if (location.hash === "#wordle") {
     document.documentElement.classList.add("playing-guessword");
     gamesScreen?.classList.add("hidden");
     if (showWhatsNew()) {
-      whatsNewOkBtn?.addEventListener("click", () => {
-        hideWhatsNew();
-        showMenu();
-      }, { once: true });
+      bindWhatsNewOk(() => showMenu());
     } else {
       showMenu();
     }
@@ -6065,11 +6107,7 @@ function bootAfterUsername() {
       renderTitlePicker?.();
     }
   } catch {}
-  if (showWhatsNew()) {
-    whatsNewOkBtn?.addEventListener("click", () => {
-      hideWhatsNew();
-    }, { once: true });
-  }
+  showWhatsNew();
 }
 
 if (!hasPlayerName()) {
