@@ -1036,22 +1036,24 @@
     });
 
     // Full Mine Depth reset for everyone (depth + best ore boards only).
-    // v1/v2 failed when local caches re-pushed old scores with fresh timestamps.
+    // Keep boards empty for several hours so stale tabs can't re-upload old depth with a fresh `at`.
     const mineHardWipeKey = "mine:hard-empty-20261001c";
     const MINE_HARD_WIPE_AT = Date.UTC(2026, 9, 1, 14, 45, 0); // 2026-10-01 14:45 UTC
-    if (!resets[mineHardWipeKey] || Number(resets[mineHardWipeKey]) !== MINE_HARD_WIPE_AT) {
-      resets[mineHardWipeKey] = MINE_HARD_WIPE_AT;
+    const MINE_HARD_EMPTY_UNTIL = MINE_HARD_WIPE_AT + 12 * 60 * 60 * 1000;
+    resets[mineHardWipeKey] = MINE_HARD_WIPE_AT;
+    if (Date.now() < MINE_HARD_EMPTY_UNTIL) {
       games.mine = {};
       games["mine-ore"] = {};
-    }
-    ["mine", "mine-ore"].forEach((gameId) => {
-      const board = { ...(games[gameId] || {}) };
-      Object.keys(board).forEach((key) => {
-        const at = Number(board[key]?.at) || 0;
-        if (at <= MINE_HARD_WIPE_AT) delete board[key];
+    } else {
+      ["mine", "mine-ore"].forEach((gameId) => {
+        const board = { ...(games[gameId] || {}) };
+        Object.keys(board).forEach((key) => {
+          const at = Number(board[key]?.at) || 0;
+          if (at <= MINE_HARD_WIPE_AT) delete board[key];
+        });
+        games[gameId] = board;
       });
-      games[gameId] = board;
-    });
+    }
 
     // One-time: wipe Fishing Idle lifetime-coin board; new board is best catch.
     const fishingWipeKey = "fishing:catch-board-v1";
@@ -1618,6 +1620,16 @@
     if (!GAME_META[gameId] || !Number.isFinite(n) || n <= 0) return false;
     const name = getPlayerName();
     if (!name) return false;
+    // Block Mine posts until the local wipe companion has cleared cached depth/ore.
+    if (gameId === "mine" || gameId === "mine-ore") {
+      try {
+        if (localStorage.getItem("hub-mine-local-wipe-v3") !== "done") return false;
+        const holdUntil = Date.UTC(2026, 9, 1, 14, 45, 0) + 12 * 60 * 60 * 1000;
+        if (Date.now() < holdUntil) return false;
+      } catch {
+        return false;
+      }
+    }
 
     const lowerBetter =
       typeof opts.lowerBetter === "boolean" ? opts.lowerBetter : meta(gameId).lowerBetter;
