@@ -236,28 +236,54 @@
     popularityBusy = true;
     try {
       let remote = {};
+      let remoteResetAt = 0;
       try {
         const data = await fetchDoc(POPULARITY_DOC, POPULARITY_API);
-        if (data && data.games && typeof data.games === "object") remote = data.games;
-        else if (data && typeof data === "object") {
+        if (data && data.games && typeof data.games === "object") {
+          remote = data.games;
+          remoteResetAt = Number(data.resetAt) || 0;
+        } else if (data && typeof data === "object") {
           const flat = {};
           Object.entries(data).forEach(([k, v]) => {
-            if (k === "games" || k === "pending" || k === "at" || k === "updated_at") return;
+            if (k === "games" || k === "pending" || k === "at" || k === "updated_at" || k === "resetAt" || k === "note")
+              return;
             if (Number.isFinite(Number(v))) flat[k] = Number(v) || 0;
           });
           if (Object.keys(flat).length) remote = flat;
+          remoteResetAt = Number(data.resetAt) || 0;
         }
       } catch {}
 
+      let localResetAt = 0;
+      try {
+        localResetAt = Number(localStorage.getItem("hub-game-popularity-reset-at") || 0);
+      } catch {}
+
+      // Server rebalance / wipe of inflated counts — replace local cache instead of merging up.
+      if (remoteResetAt > localResetAt) {
+        popularityCache = { ...remote };
+        popularityPending = {};
+        try {
+          localStorage.setItem("hub-game-popularity-reset-at", String(remoteResetAt));
+        } catch {}
+        savePopularityLocal();
+        try {
+          await pushDoc(
+            POPULARITY_DOC,
+            { games: popularityCache, resetAt: remoteResetAt, updated_at: Date.now() },
+            POPULARITY_API
+          );
+        } catch {}
+        return getEffectivePopularity();
+      }
+
       const pending = { ...(popularityPending || {}) };
       const merged = { ...remote };
-      // Apply pending deltas only (cache already mirrors last synced remote + unsent pending).
       Object.entries(pending).forEach(([k, v]) => {
         const n = Number(v) || 0;
         if (n <= 0) return;
         merged[k] = (Number(merged[k]) || 0) + n;
       });
-      // Keep any local-only keys that somehow aren't in remote/pending
       Object.entries(popularityCache || {}).forEach(([k, v]) => {
         if (merged[k] == null) merged[k] = Number(v) || 0;
       });
@@ -266,7 +292,11 @@
       const hasPending = Object.values(pending).some((v) => (Number(v) || 0) > 0);
       if (hasPending || force) {
         try {
-          await pushDoc(POPULARITY_DOC, { games: merged, updated_at: Date.now() }, POPULARITY_API);
+          await pushDoc(
+            POPULARITY_DOC,
+            { games: merged, resetAt: remoteResetAt || localResetAt || 0, updated_at: Date.now() },
+            POPULARITY_API
+          );
           popularityPending = {};
         } catch {}
       }
