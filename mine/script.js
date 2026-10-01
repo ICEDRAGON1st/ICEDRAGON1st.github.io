@@ -152,6 +152,7 @@
   const dpsLabelEl = document.getElementById("dps-label");
   const hudDepthEl = document.getElementById("hud-depth");
   const hudBestEl = document.getElementById("hud-best");
+  const hudLayerEl = document.getElementById("hud-layer");
   const digBtn = document.getElementById("dig-btn");
   const shaftViewport = document.getElementById("shaft-viewport");
   const strataEl = document.getElementById("strata");
@@ -490,7 +491,7 @@
     while (idx < LAYERS.length - 1 && (LAYERS[idx + 1]?.min ?? Infinity) <= depth) idx += 1;
     const from = Math.max(0, idx - 2);
     const to = Math.min(LAYERS.length - 1, idx + 3);
-    const key = `${from}:${to}:${meters}`;
+    const key = `${from}:${to}:${meters}:${idx}`;
     if (key !== lastStrataKey || !strataEl.childElementCount) {
       lastStrataKey = key;
       let html = "";
@@ -505,7 +506,8 @@
         const topPx = start * ppm;
         const heightPx = Math.max(36, (end - start) * ppm);
         maxBottom = Math.max(maxBottom, topPx + heightPx);
-        html += `<div class="strata-band" style="top:${topPx}px;height:${heightPx}px;background:linear-gradient(180deg, ${band.color}cc, ${band.color}88);">${band.name}<span class="strata-depth">#${i + 1} · ${formatDepth(band.min)}+</span></div>`;
+        const current = i === idx ? " is-current" : "";
+        html += `<div class="strata-band${current}" style="top:${topPx}px;height:${heightPx}px;background:linear-gradient(180deg, ${band.color}cc, ${band.color}88);">${band.name}<span class="strata-depth">Layer ${i + 1} · ${formatDepth(band.min)}+</span></div>`;
       }
       strataEl.style.height = `${Math.max(viewH + 200, maxBottom + 120)}px`;
       strataEl.innerHTML = html;
@@ -838,23 +840,28 @@
 
   function renderHud() {
     const layer = layerFor(state.depth);
+    const idx = Math.max(0, LAYERS.findIndex((l) => l.id === layer.id));
     if (coinCountEl) coinCountEl.textContent = formatNum(state.coins);
-    if (layerLabelEl) layerLabelEl.textContent = layer.name;
+    if (layerLabelEl) {
+      layerLabelEl.textContent = layer.name;
+      const chipLabel = layerLabelEl.parentElement?.querySelector(".stat-chip-label");
+      if (chipLabel) chipLabel.textContent = `Layer ${idx + 1}`;
+    }
     if (digPowerLabelEl) digPowerLabelEl.textContent = `${digPower().toFixed(digPower() % 1 ? 1 : 0)}m`;
     if (dpsLabelEl) dpsLabelEl.textContent = `${drillRate().toFixed(drillRate() % 1 ? 1 : 0)}/s`;
     if (hudDepthEl) hudDepthEl.textContent = formatDepth(state.depth);
+    if (hudLayerEl) hudLayerEl.textContent = `Layer ${idx + 1} · ${layer.name}`;
     if (hudBestEl) {
       hudBestEl.textContent = `${formatDepth(state.bestDepth)} · ${formatBestOre()}`;
     }
     if (overlayBestEl) {
       overlayBestEl.textContent = `${formatDepth(state.bestDepth)} · ${formatBestOre()}`;
     }
-    const idx = LAYERS.findIndex((l) => l.id === layer.id);
     const next = LAYERS[idx + 1];
     if (layerProgressLabelEl) {
       layerProgressLabelEl.textContent = next
-        ? `${Math.round(nextLayerProgress(state.depth) * 100)}% to ${next.name}`
-        : "Deepest layer";
+        ? `Layer ${idx + 1}: ${layer.name} · ${Math.round(nextLayerProgress(state.depth) * 100)}% to ${next.name}`
+        : `Layer ${idx + 1}: ${layer.name} · deepest`;
     }
     if (depthFillEl) depthFillEl.style.width = `${Math.round(nextLayerProgress(state.depth) * 100)}%`;
     updateShaftView(false);
@@ -881,7 +888,7 @@
         .map(
           (l, i) => {
             const realIdx = Math.max(0, idx - 5) + i;
-            return `<div class="guide-row"><span style="width:12px;height:12px;border-radius:50%;background:${l.color}"></span><div><div class="name">${l.name}</div><div class="meta">#${realIdx + 1} · from ${formatDepth(l.min)}</div></div><span></span></div>`;
+            return `<div class="guide-row"><span style="width:12px;height:12px;border-radius:50%;background:${l.color}"></span><div><div class="name">${l.name}${realIdx === idx ? " · you" : ""}</div><div class="meta">Layer ${realIdx + 1} · from ${formatDepth(l.min)}</div></div><span></span></div>`;
           }
         )
         .join("") +

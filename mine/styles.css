@@ -229,6 +229,17 @@ body {
   text-transform: none;
 }
 
+.strata-band.is-current {
+  color: rgba(255, 255, 255, 0.78);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+  box-shadow: inset 0 0 0 2px rgba(255, 220, 140, 0.35);
+  z-index: 1;
+}
+
+.strata-band.is-current .strata-depth {
+  color: rgba(255, 236, 180, 0.7);
+}
+
 .strata-band::before {
   content: "";
   position: absolute;

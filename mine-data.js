@@ -57,11 +57,12 @@
   }
 
   function layerName(i) {
-    const rock = ROCKS[i % ROCKS.length];
-    const tier = Math.floor(i / ROCKS.length) + 1;
-    if (tier === 1) return rock;
-    const adj = ADJECTIVES[(i * 3) % ADJECTIVES.length];
-    return `${adj} ${rock} ${tier}`;
+    const n = Math.max(0, Math.floor(Number(i) || 0));
+    const rock = ROCKS[n % ROCKS.length];
+    // First cycle: plain rock names. Later: adjective + rock (no trailing tier number).
+    if (n < ROCKS.length) return rock;
+    const adj = ADJECTIVES[(n * 3) % ADJECTIVES.length];
+    return `${adj} ${rock}`;
   }
 
   function oreValue(i) {

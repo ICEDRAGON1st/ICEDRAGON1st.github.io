@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001o": [
+    "Mine Depth: drop the confusing “5” on layer names, and show which layer you’re on clearly"
+  ],
   "20261001n": [
     "Mine Depth: ores drop from depth dug (not 1 ore per meter) — auto drills find ore much less often"
   ],
