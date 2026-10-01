@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001g": [
+    "Discord: hub update posts go to #updates as soon as they’re published (no refresh needed)"
+  ],
   "20261001f": [
     "My Games: What’s new pops for each update when it ships (one at a time — no more skipped then all at once)"
   ],

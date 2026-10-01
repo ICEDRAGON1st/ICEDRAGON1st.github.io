@@ -10,5 +10,6 @@ After finishing game or hub changes in this repo:
 1. Commit the relevant files (with the usual git safety rules).
 2. **Push to `origin` immediately** so GitHub Pages updates — do not wait to be asked.
 3. Only skip the push if the user explicitly says not to publish / push / go live.
+4. After a successful push that bumps `WORDLE_BUILD` with CHANGELOG notes, run `node tools/announce-hub-update.js` so Discord #updates posts immediately (do not wait for someone to refresh the hub).
 
 Bump `WORDLE_BUILD` / `?v=` cache-bust when shipping frontend changes, as usual.
