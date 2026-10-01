@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001s": [
+    "Mine Depth: auto digs run in real m/s now — the Auto readout matches how fast you go"
+  ],
   "20261001r": [
     "My Games: Most popular badge tracks real play counts (no double-counting) and sits on the top game"
   ],

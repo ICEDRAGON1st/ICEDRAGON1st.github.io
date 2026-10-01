@@ -148,7 +148,7 @@
 
   const SHOP_CATEGORIES = [
     { id: "power", title: "Picks", blurb: "More meters when you tap Dig down (does not boost auto drills)." },
-    { id: "drill", title: "Drills", blurb: "Auto dig while the page is open — 1m per dig tick." },
+    { id: "drill", title: "Drills", blurb: "Auto dig speed in meters per second while the page is open." },
     { id: "luck", title: "Luck", blurb: "Better odds of rarer ores when something drops." },
     { id: "sell", title: "Sell boost", blurb: "Earn more coins when you sell your cart." },
     { id: "offline", title: "Offline", blurb: "More digs while you’re away." },
@@ -197,7 +197,6 @@
   let sessionStarted = false;
   let lastSaveAt = 0;
   let lastSubmitAt = 0;
-  let autoAcc = 0;
   let lastAutoOreFxAt = 0;
   let oreMeterBank = 0;
   let shopDirty = true;
@@ -319,6 +318,29 @@
       if (u.kind === "drill") r += ownedCount(u.id) * u.amount;
     });
     return r;
+  }
+
+  /** Auto depth speed in m/s (pick power does not apply; soft-capped by current layer). */
+  function autoMetersPerSecond() {
+    const rate = drillRate();
+    if (rate <= 0) return 0;
+    const span = layerThickness(state.depth);
+    // Same soft-cap as the tick: at most ~55% of the current layer per tick.
+    const maxPerSec = Math.max(0.5, span * 0.55 * (1000 / TICK_MS));
+    return Math.min(rate, maxPerSec);
+  }
+
+  function formatAutoMps(mps) {
+    const n = Math.max(0, Number(mps) || 0);
+    if (n <= 0) return "0m/s";
+    if (n >= 100) return `${Math.round(n)}m/s`;
+    if (n >= 10) return `${n.toFixed(n % 1 ? 1 : 0)}m/s`;
+    return `${n.toFixed(n % 1 ? 1 : 0)}m/s`;
+  }
+
+  function updateAutoMpsLabel() {
+    if (!dpsLabelEl) return;
+    dpsLabelEl.textContent = formatAutoMps(autoMetersPerSecond());
   }
 
   function luckMult() {
@@ -646,23 +668,23 @@
     return rolls;
   }
 
-  function doDigBatch(count, source) {
-    if (count <= 0) return;
+  function applyDigMeters(meters, source) {
+    const m = Math.max(0, Number(meters) || 0);
+    if (m <= 0) return;
     if (source === "click") {
       const now = Date.now();
       if (now - lastClickAt < MIN_CLICK_MS) return;
       lastClickAt = now;
     }
     ensureSession();
-    const meters = digMetersForCount(count, { usePickPower: source === "click" });
     const prevBest = state.bestDepth;
-    state.depth += meters;
+    state.depth += m;
     if (state.depth > state.bestDepth) state.bestDepth = state.depth;
     if (Math.floor(state.bestDepth) >= 1000 && Math.floor(prevBest) < 1000) {
       window.HubConfetti?.burst?.();
     }
 
-    const rolls = takeOreRolls(meters, source);
+    const rolls = takeOreRolls(m, source);
     let lastOre = null;
     let added = 0;
     let blocked = 0;
@@ -686,13 +708,13 @@
       const rect = digBtn?.getBoundingClientRect() || shaftViewport?.getBoundingClientRect();
       if (rect) {
         floatAt(
-          `↓ ${meters.toFixed(meters >= 10 ? 0 : 1)}m`,
+          `↓ ${m.toFixed(m >= 10 ? 0 : 1)}m`,
           rect.left + rect.width * 0.5,
           rect.top + 18
         );
       }
     } else {
-      updateShaftView(count >= 2 || added > 0 || meters >= 1);
+      updateShaftView(added > 0 || m >= 0.5);
       if (lastOre && added) {
         const now = Date.now();
         if (now - lastAutoOreFxAt >= 280) {
@@ -705,12 +727,12 @@
     if (lastOre && added) {
       statusLineEl.textContent =
         added === 1
-          ? `Dug into ${lastOre.emoji} ${lastOre.name} (↓${formatDepth(meters)})${newBestOre ? " · new best ore!" : ""}`
-          : `Shaft sank ${formatDepth(meters)} · ${added} ore${newBestOre ? " · new best ore!" : ""}`;
+          ? `Dug into ${lastOre.emoji} ${lastOre.name} (↓${formatDepth(m)})${newBestOre ? " · new best ore!" : ""}`
+          : `Shaft sank ${formatDepth(m)} · ${added} ore${newBestOre ? " · new best ore!" : ""}`;
     } else if (blocked) {
-      statusLineEl.textContent = `Cart full — sell ore, then dig deeper (↓${formatDepth(meters)})`;
+      statusLineEl.textContent = `Cart full — sell ore, then dig deeper (↓${formatDepth(m)})`;
     } else if (source === "click") {
-      statusLineEl.textContent = `Shaft sank ${formatDepth(meters)} · no ore this dig`;
+      statusLineEl.textContent = `Shaft sank ${formatDepth(m)} · no ore this dig`;
     }
 
     checkAchievements();
@@ -719,6 +741,12 @@
     if (source === "click" || added > 0 || blocked > 0) renderCart();
     refreshShopButtons();
     save(false);
+  }
+
+  function doDigBatch(count, source) {
+    if (count <= 0) return;
+    const meters = digMetersForCount(count, { usePickPower: source === "click" });
+    applyDigMeters(meters, source);
   }
 
   function sellAll() {
@@ -756,7 +784,7 @@
     ensureSession();
     state.coins -= cost;
     state.owned[u.id] = ownedCount(u.id) + 1;
-    statusLineEl.textContent = `Bought ${u.name} · now ${formatNum(digPower())}m/dig · ${formatNum(drillRate())}/s drills`;
+    statusLineEl.textContent = `Bought ${u.name} · now ${formatNum(digPower())}m/dig · ${formatAutoMps(autoMetersPerSecond())} auto`;
     window.HubSound?.play?.("merge");
     checkAchievements();
     shopDirty = true;
@@ -771,18 +799,11 @@
     if (elapsed < 5000) return;
     const rate = drillRate();
     if (rate <= 0) return;
-    const digs = (elapsed / 1000) * rate * offlineMult();
-    const whole = Math.floor(digs);
-    if (whole <= 0) return;
+    const sunk = (elapsed / 1000) * rate * offlineMult();
+    if (sunk <= 0) return;
+    state.depth += sunk;
+    if (state.depth > state.bestDepth) state.bestDepth = state.depth;
     let found = 0;
-    let sunk = 0;
-    for (let i = 0; i < whole; i += 1) {
-      const step = digMetersForCount(1, { usePickPower: false });
-      state.depth += step;
-      sunk += step;
-      if (state.depth > state.bestDepth) state.bestDepth = state.depth;
-      if (state.cart.length >= cartMax()) break;
-    }
     const rolls = takeOreRolls(sunk, "auto");
     for (let i = 0; i < rolls; i += 1) {
       if (state.cart.length >= cartMax()) break;
@@ -881,7 +902,7 @@
       if (chipLabel) chipLabel.textContent = `Layer ${idx + 1}`;
     }
     if (digPowerLabelEl) digPowerLabelEl.textContent = `${digPower().toFixed(digPower() % 1 ? 1 : 0)}m`;
-    if (dpsLabelEl) dpsLabelEl.textContent = `${drillRate().toFixed(drillRate() % 1 ? 1 : 0)}/s`;
+    updateAutoMpsLabel();
     if (hudDepthEl) hudDepthEl.textContent = formatDepth(state.depth);
     if (hudLayerEl) hudLayerEl.textContent = `Layer ${idx + 1} · ${layer.name}`;
     if (hudBestEl) {
@@ -1003,19 +1024,15 @@
   function tick() {
     const rate = drillRate();
     if (rate > 0) {
-      autoAcc += rate * (TICK_MS / 1000);
-      // Soft-limit auto digs so one tick can't clear multiple full layers.
-      // Auto uses 1m base digs (pick power does not apply).
+      // Drill upgrades are m/s — dig that many meters each tick (soft-capped by layer).
       const span = layerThickness(state.depth);
-      const maxPerTick = Math.max(1, Math.min(24, Math.ceil((span * 0.55) / 1)));
-      const digs = Math.min(maxPerTick, Math.floor(autoAcc));
-      if (digs > 0) {
-        autoAcc -= digs;
-        doDigBatch(digs, "auto");
-      }
+      const raw = rate * (TICK_MS / 1000);
+      const meters = Math.min(raw, Math.max(0.05, span * 0.55));
+      if (meters > 0) applyDigMeters(meters, "auto");
     } else {
       refreshShopButtons();
     }
+    updateAutoMpsLabel();
     if (shopDirty) renderShop();
     save(false);
   }
