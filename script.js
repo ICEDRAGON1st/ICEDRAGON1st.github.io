@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001n": [
+    "Mine Depth: ores drop from depth dug (not 1 ore per meter) — auto drills find ore much less often"
+  ],
   "20261001m": [
     "Mine Depth: shaft view scrolls with every dig again (no more stuck in giant deep layers)"
   ],

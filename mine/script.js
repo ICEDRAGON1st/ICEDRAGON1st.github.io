@@ -186,6 +186,7 @@
   let lastSubmitAt = 0;
   let autoAcc = 0;
   let lastAutoOreFxAt = 0;
+  let oreMeterBank = 0;
   let shopDirty = true;
   let lastClickAt = 0;
   let lastStrataKey = "";
@@ -608,6 +609,27 @@
     return true;
   }
 
+  /**
+   * Ore drops from meters dug — not 1 ore per dig tick.
+   * Manual digs are a bit richer; auto/offline need more depth per ore.
+   */
+  function takeOreRolls(meters, source) {
+    const m = Math.max(0, Number(meters) || 0);
+    if (m <= 0) return 0;
+    const luck = luckMult();
+    const base = source === "click" ? 5 : 18;
+    const metersPerOre = Math.max(3, base / (1 + (luck - 1) * 0.12));
+    oreMeterBank += m;
+    let rolls = Math.floor(oreMeterBank / metersPerOre);
+    oreMeterBank -= rolls * metersPerOre;
+    const cap = source === "click" ? 6 : 3;
+    if (rolls > cap) {
+      oreMeterBank += (rolls - cap) * metersPerOre * 0.2;
+      rolls = cap;
+    }
+    return rolls;
+  }
+
   function doDigBatch(count, source) {
     if (count <= 0) return;
     if (source === "click") {
@@ -624,11 +646,12 @@
       window.HubConfetti?.burst?.();
     }
 
+    const rolls = takeOreRolls(meters, source);
     let lastOre = null;
     let added = 0;
     let blocked = 0;
     let newBestOre = false;
-    for (let i = 0; i < count; i += 1) {
+    for (let i = 0; i < rolls; i += 1) {
       const ore = pickOre();
       if (noteBestOre(ore)) newBestOre = true;
       if (addOre(ore)) {
@@ -653,8 +676,7 @@
         );
       }
     } else {
-      // Auto digs often come in 1–2 at a time after layer caps — still refresh cart.
-      updateShaftView(count >= 2 || added > 0);
+      updateShaftView(count >= 2 || added > 0 || meters >= 1);
       if (lastOre && added) {
         const now = Date.now();
         if (now - lastAutoOreFxAt >= 280) {
@@ -666,11 +688,13 @@
 
     if (lastOre && added) {
       statusLineEl.textContent =
-        count === 1
+        added === 1
           ? `Dug into ${lastOre.emoji} ${lastOre.name} (↓${formatDepth(meters)})${newBestOre ? " · new best ore!" : ""}`
           : `Shaft sank ${formatDepth(meters)} · ${added} ore${newBestOre ? " · new best ore!" : ""}`;
     } else if (blocked) {
       statusLineEl.textContent = `Cart full — sell ore, then dig deeper (↓${formatDepth(meters)})`;
+    } else if (source === "click") {
+      statusLineEl.textContent = `Shaft sank ${formatDepth(meters)} · no ore this dig`;
     }
 
     checkAchievements();
@@ -741,10 +765,14 @@
       state.depth += step;
       sunk += step;
       if (state.depth > state.bestDepth) state.bestDepth = state.depth;
+      if (state.cart.length >= cartMax()) break;
+    }
+    const rolls = takeOreRolls(sunk, "auto");
+    for (let i = 0; i < rolls; i += 1) {
+      if (state.cart.length >= cartMax()) break;
       const ore = pickOre();
       noteBestOre(ore);
       if (addOre(ore)) found += 1;
-      if (state.cart.length >= cartMax()) break;
     }
     statusLineEl.textContent = `While away: +${formatDepth(sunk)}, ${found} ore`;
     checkAchievements();
