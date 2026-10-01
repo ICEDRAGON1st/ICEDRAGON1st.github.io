@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001e": [
+    "My Games: What’s new shows only the latest update (not a stack of older ones)"
+  ],
   "20261001d": [
     "Mine Depth: hold empty boards longer so stale tabs can’t re-upload the old Best depth"
   ],
@@ -1976,22 +1979,11 @@ function showWhatsNew() {
   const build = window.WORDLE_BUILD || "";
   if (!build || build === getSeenBuild()) return false;
 
-  const seen = getSeenBuild();
-  // Show every changelog entry newer than last seen (up to this build),
-  // not only an exact CHANGELOG[build] match — empty builds used to swallow updates.
-  const unseenEntries = getChangelogEntries().filter(
-    (e) => e.id.localeCompare(seen) > 0 && e.id.localeCompare(build) <= 0
-  );
-  if (!unseenEntries.length) {
-    // Only mark seen when this build itself has no notes — otherwise keep trying
-    // until CHANGELOG catches up (empty mid-builds were swallowing What's new).
-    if (!CHANGELOG[build]?.length) markBuildSeen();
-    return false;
-  }
-
-  const notes = unseenEntries.flatMap((e) => e.notes);
-  if (!notes.length) {
-    if (!CHANGELOG[build]?.length) markBuildSeen();
+  // One update at a time: only this build's notes (not every missed build stacked).
+  const notes = CHANGELOG[build];
+  if (!notes?.length) {
+    // Empty mid-builds: mark seen so the next real changelog can show.
+    markBuildSeen();
     return false;
   }
 
