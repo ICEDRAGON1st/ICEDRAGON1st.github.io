@@ -273,15 +273,15 @@
   }
 
   /**
-   * Cap dig advance so one click / auto burst can't blast through many layers.
-   * Raw dig power still matters, but stays within a chunk of the current band.
+   * Cap dig advance per dig so one click / auto burst can't blast through many layers.
+   * Dig power still applies; each dig is at most a chunk of the current band.
    */
   function digMetersForCount(count) {
     const n = Math.max(1, Math.floor(Number(count) || 1));
-    const raw = Math.max(0.05, n * digPower());
+    const power = Math.max(0.05, digPower());
     const span = layerThickness(state.depth);
-    const cap = Math.max(span * 0.55, digPower() * 0.4, 1.25);
-    return Math.min(raw, cap);
+    const perDig = Math.min(power, Math.max(0.5, span * 0.4));
+    return perDig * n;
   }
 
   function ownedCount(id) {
@@ -847,8 +847,11 @@
       autoAcc += rate * (TICK_MS / 1000);
       // Soft-limit auto digs so one tick can't clear multiple full layers
       const span = layerThickness(state.depth);
-      const maxPerTick = Math.max(2, Math.ceil((span * 0.7) / Math.max(0.05, digPower())));
-      const digs = Math.min(maxPerTick, 24, Math.floor(autoAcc));
+      const maxPerTick = Math.max(
+        1,
+        Math.min(24, Math.ceil((span * 0.55) / Math.max(0.05, digPower())))
+      );
+      const digs = Math.min(maxPerTick, Math.floor(autoAcc));
       if (digs > 0) {
         autoAcc -= digs;
         doDigBatch(digs, "auto");

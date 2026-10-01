@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001h": [
+    "Mine Depth: fix progress vanishing on refresh after the wipe, and digs matching dig power again"
+  ],
   "20261001g": [
     "Discord: hub update posts go to #updates as soon as they’re published (no refresh needed)"
   ],

@@ -157,10 +157,7 @@
 
   function mineWipeDone() {
     try {
-      return (
-        localStorage.getItem("hub-mine-local-wipe-v3") === "done" ||
-        localStorage.getItem("hub-mine-local-wipe-v2") === "done"
-      );
+      return localStorage.getItem("hub-mine-local-wipe-v3") === "done";
     } catch {
       return false;
     }
@@ -625,8 +622,27 @@
     try {
       livePending = localStorage.getItem("hub-achievements-pending");
     } catch {}
+    // After wipe: clearBagKeys would delete new Mine progress — snapshot + restore it.
+    let keepMine = null;
+    if (opts.replace && mineWipeDone()) {
+      keepMine = {};
+      BAG_KEYS.forEach((k) => {
+        if (!isMineBagKey(k)) return;
+        try {
+          const v = localStorage.getItem(k);
+          if (v != null) keepMine[k] = v;
+        } catch {}
+      });
+    }
     // replace: full account switch — wipe every account key first so leftovers can't blend
     if (opts.replace) clearBagKeys();
+    if (keepMine) {
+      Object.entries(keepMine).forEach(([k, v]) => {
+        try {
+          localStorage.setItem(k, v);
+        } catch {}
+      });
+    }
     Object.entries(bag.kv).forEach(([key, value]) => {
       if (!isBagKey(key)) return;
       if (key === "hub-achievements-pending") return;

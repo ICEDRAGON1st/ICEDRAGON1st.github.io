@@ -1036,24 +1036,18 @@
     });
 
     // Full Mine Depth reset for everyone (depth + best ore boards only).
-    // Keep boards empty for several hours so stale tabs can't re-upload old depth with a fresh `at`.
+    // Drop pre-wipe scores by timestamp; new posts after the wipe are kept.
     const mineHardWipeKey = "mine:hard-empty-20261001c";
     const MINE_HARD_WIPE_AT = Date.UTC(2026, 9, 1, 14, 45, 0); // 2026-10-01 14:45 UTC
-    const MINE_HARD_EMPTY_UNTIL = MINE_HARD_WIPE_AT + 12 * 60 * 60 * 1000;
     resets[mineHardWipeKey] = MINE_HARD_WIPE_AT;
-    if (Date.now() < MINE_HARD_EMPTY_UNTIL) {
-      games.mine = {};
-      games["mine-ore"] = {};
-    } else {
-      ["mine", "mine-ore"].forEach((gameId) => {
-        const board = { ...(games[gameId] || {}) };
-        Object.keys(board).forEach((key) => {
-          const at = Number(board[key]?.at) || 0;
-          if (at <= MINE_HARD_WIPE_AT) delete board[key];
-        });
-        games[gameId] = board;
+    ["mine", "mine-ore"].forEach((gameId) => {
+      const board = { ...(games[gameId] || {}) };
+      Object.keys(board).forEach((key) => {
+        const at = Number(board[key]?.at) || 0;
+        if (at <= MINE_HARD_WIPE_AT) delete board[key];
       });
-    }
+      games[gameId] = board;
+    });
 
     // One-time: wipe Fishing Idle lifetime-coin board; new board is best catch.
     const fishingWipeKey = "fishing:catch-board-v1";
@@ -1624,8 +1618,6 @@
     if (gameId === "mine" || gameId === "mine-ore") {
       try {
         if (localStorage.getItem("hub-mine-local-wipe-v3") !== "done") return false;
-        const holdUntil = Date.UTC(2026, 9, 1, 14, 45, 0) + 12 * 60 * 60 * 1000;
-        if (Date.now() < holdUntil) return false;
       } catch {
         return false;
       }
