@@ -316,51 +316,106 @@
     return `${ore.emoji} ${ore.name}`;
   }
 
-  function formatNum(n) {
-    let x;
-    try {
-      if (typeof n === "bigint") x = n < 0n ? 0n : n;
-      else if (typeof n === "string" && /^\d+$/.test(n.trim())) x = BigInt(n.trim());
-      else {
-        const num = Number(n);
-        if (!Number.isFinite(num) || num <= 0) return "0";
-        if (num >= Number.MAX_SAFE_INTEGER) x = BigInt(Math.floor(num));
-        else return formatNumSmall(num);
-      }
-    } catch {
-      return "0";
-    }
-    if (x < 10000n) return x.toString();
-    const units = [
-      [10n ** 36n, "Ud"],
-      [10n ** 33n, "Dc"],
-      [10n ** 30n, "No"],
-      [10n ** 27n, "Oc"],
-      [10n ** 24n, "Sp"],
-      [10n ** 21n, "Sx"],
-      [10n ** 18n, "Qi"],
-      [10n ** 15n, "Qa"],
-      [10n ** 12n, "T"],
-      [10n ** 9n, "B"],
-      [10n ** 6n, "M"],
-      [10n ** 3n, "K"]
-    ];
-    for (const [div, suffix] of units) {
-      if (x >= div) {
-        const whole = x / div;
-        const frac = ((x % div) * 100n) / div;
-        const fracStr = frac === 0n ? "" : `.${frac.toString().padStart(2, "0").replace(/0+$/, "")}`;
-        return `${whole}${fracStr}${suffix}`;
-      }
-    }
-    return x.toString();
+  // Same short suffixes as Fishing Idle (K, M, … Dc, UDc, … C).
+  const SUFFIXES = [
+    "",
+    "K",
+    "M",
+    "B",
+    "T",
+    "Qa",
+    "Qi",
+    "Sx",
+    "Sp",
+    "Oc",
+    "No",
+    "Dc",
+    "UDc",
+    "DDc",
+    "TDc",
+    "QaDc",
+    "QiDc",
+    "SxDc",
+    "SpDc",
+    "OcDc",
+    "NoDc",
+    "Vg",
+    "UVg",
+    "DVg",
+    "TVg",
+    "QaVg",
+    "QiVg",
+    "SxVg",
+    "SpVg",
+    "OcVg",
+    "NoVg",
+    "Tg",
+    "UTg",
+    "DTg",
+    "TTg",
+    "QaTg",
+    "QiTg",
+    "SxTg",
+    "SpTg",
+    "OcTg",
+    "NoTg",
+    "Qag",
+    "Qig",
+    "Sxg",
+    "Spg",
+    "Ocg",
+    "Nog",
+    "C"
+  ];
+
+  function formatNumTrim(text) {
+    return String(text).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1");
   }
 
-  function formatNumSmall(num) {
-    const x = Number(num) || 0;
-    if (x >= 1e4) return (x / 1e3).toFixed(1).replace(/\.0$/, "") + "K";
-    if (x >= 1000) return (x / 1e3).toFixed(2).replace(/\.?0+$/, "") + "K";
-    return String(Math.floor(x));
+  function formatNum(n) {
+    // Number path — matches Fishing Idle when the value still fits in a float.
+    if (typeof n !== "bigint") {
+      if (typeof n === "string" && /^\d+$/.test(String(n).trim()) && String(n).trim().length > 15) {
+        // long integer string → BigInt path below
+      } else {
+        let v = Math.abs(Number(n) || 0);
+        if (!Number.isFinite(v)) return "0";
+        if (v < 1000) return String(Math.floor(v));
+        if (v < 1e21) {
+          let tier = 0;
+          while (v >= 1000 && tier < SUFFIXES.length - 1) {
+            v /= 1000;
+            tier += 1;
+          }
+          const text = v >= 100 ? v.toFixed(0) : v >= 10 ? v.toFixed(1) : v.toFixed(2);
+          return `${formatNumTrim(text)}${SUFFIXES[tier]}`;
+        }
+      }
+    }
+
+    // BigInt path for huge coin totals.
+    let x = toCoins(n);
+    if (x < 1000n) return x.toString();
+    let tier = 0;
+    let div = 1n;
+    while (tier < SUFFIXES.length - 1 && x / (div * 1000n) >= 1n) {
+      div *= 1000n;
+      tier += 1;
+    }
+    const whole = x / div;
+    const rem = x % div;
+    let text;
+    if (whole >= 100n) {
+      text = whole.toString();
+    } else if (whole >= 10n) {
+      const frac = (rem * 10n) / div;
+      text = frac === 0n ? whole.toString() : `${whole}.${frac}`;
+    } else {
+      const frac = (rem * 100n) / div;
+      const fracStr = frac.toString().padStart(2, "0").replace(/0+$/, "");
+      text = fracStr ? `${whole}.${fracStr}` : whole.toString();
+    }
+    return `${formatNumTrim(text)}${SUFFIXES[tier]}`;
   }
 
   function formatDepth(m) {

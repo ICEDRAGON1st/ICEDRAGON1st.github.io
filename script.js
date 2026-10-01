@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001aa": [
+    "Mine Depth: coin/depth numbers use the same short suffixes as Fishing Idle (K, M, … Dc, UDc, …)"
+  ],
   "20261001z": [
     "Mine Depth: selling ore pays out again — late-game coin totals no longer lose small sells to float rounding"
   ],
