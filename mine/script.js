@@ -275,11 +275,12 @@
 
   /**
    * Cap dig advance per dig so one click / auto burst can't blast through many layers.
-   * Dig power still applies; each dig is at most a chunk of the current band.
+   * Pick power ("+Xm per dig") only applies to manual digs — auto/offline use 1m base.
    */
-  function digMetersForCount(count) {
+  function digMetersForCount(count, opts = {}) {
     const n = Math.max(1, Math.floor(Number(count) || 1));
-    const power = Math.max(0.05, digPower());
+    const usePick = opts.usePickPower !== false;
+    const power = Math.max(0.05, usePick ? digPower() : 1);
     const span = layerThickness(state.depth);
     const perDig = Math.min(power, Math.max(0.5, span * 0.4));
     return perDig * n;

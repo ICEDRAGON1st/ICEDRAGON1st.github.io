@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001j": [
+    "Mine Depth: pick “+m per dig” upgrades only boost manual digs — auto drills stay 1m each"
+  ],
   "20261001i": [
     "Mine Depth: auto dig ores show in the cart and shaft again"
   ],
