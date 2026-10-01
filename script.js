@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001b": [
+    "Mine Depth: re-run full reset so cloud saves can’t restore wiped progress"
+  ],
   "20261001a": [
     "Mine Depth: full reset — everyone’s progress and Mine Depth / best-ore leaderboards wiped (other games untouched)"
   ],

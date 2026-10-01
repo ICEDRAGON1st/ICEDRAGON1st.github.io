@@ -3,7 +3,7 @@
   const HIGH_SCORE_KEY = "mine-depth-best-v1";
   const BEST_ORE_KEY = "mine-best-ore-v1";
   const BEST_ORE_ID_KEY = "mine-best-ore-id-v1";
-  const LOCAL_WIPE_ID = "hub-mine-local-wipe-v1";
+  const LOCAL_WIPE_ID = "hub-mine-local-wipe-v2";
   const ICE_LOCAL_WIPE_ID = "hub-mine-ice-dragon-wipe-v1";
   const TICK_MS = 100;
   const CART_MAX = 20;
@@ -60,6 +60,14 @@
     if (localStorage.getItem(LOCAL_WIPE_ID) !== "done") {
       wipeLocalMineKeys();
       localStorage.setItem(LOCAL_WIPE_ID, "done");
+      setTimeout(() => {
+        try {
+          window.HubAccountBag?.scrubMineProgressAfterWipe?.()?.catch?.(() => {});
+        } catch {}
+        try {
+          window.HubLeaderboard?.sync?.(true)?.catch?.(() => {});
+        } catch {}
+      }, 800);
     }
   } catch {}
 

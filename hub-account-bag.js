@@ -143,6 +143,74 @@
     return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
   }
 
+  function isMineBagKey(key) {
+    return /^mine(-depth|-best)?/i.test(String(key || ""));
+  }
+
+  function stripMineBagKeys(kv) {
+    if (!kv || typeof kv !== "object") return kv;
+    Object.keys(kv).forEach((k) => {
+      if (isMineBagKey(k)) delete kv[k];
+    });
+    return kv;
+  }
+
+  function mineWipeDone() {
+    try {
+      return localStorage.getItem("hub-mine-local-wipe-v2") === "done";
+    } catch {
+      return false;
+    }
+  }
+
+  /** After a global Mine Depth wipe: drop cloud/vault mine saves and push the scrubbed bag. */
+  async function scrubMineProgressAfterWipe() {
+    if (!mineWipeDone()) return false;
+    const id = playerIdNow();
+    // Live keys stay wiped; strip vault copies for every account on this device
+    const vault = loadVault();
+    Object.keys(vault).forEach((pid) => {
+      if (vault[pid]?.kv) stripMineBagKeys(vault[pid].kv);
+    });
+    saveVault(vault);
+    if (!id) return true;
+    try {
+      const remote = await pullRemote(id);
+      const local = loadVault()[id] || { playerId: id, updatedAt: Date.now(), kv: {} };
+      const merged = mergeBags(local, remote) || local;
+      if (merged?.kv) stripMineBagKeys(merged.kv);
+      merged.playerId = id;
+      merged.updatedAt = Date.now();
+      vault[id] = merged;
+      saveVault(vault);
+      // Don't re-apply mine onto live
+      const liveMine = {};
+      BAG_KEYS.forEach((k) => {
+        if (!isMineBagKey(k)) return;
+        try {
+          const v = localStorage.getItem(k);
+          if (v != null) liveMine[k] = v;
+        } catch {}
+      });
+      apply(merged, { replace: true });
+      Object.entries(liveMine).forEach(([k, v]) => {
+        try {
+          localStorage.setItem(k, v);
+        } catch {}
+      });
+      setBagOwner(id);
+      const api = sb();
+      if (api) {
+        try {
+          await api.upsertDoc(DOC_PREFIX + id, merged);
+        } catch {}
+      }
+    } catch (err) {
+      console.warn("[HubAccountBag] mine wipe scrub failed", err);
+    }
+    return true;
+  }
+
   function playerIdNow(fallback) {
     try {
       if (fallback) return String(fallback);
@@ -526,6 +594,19 @@
       }
     } catch {}
 
+    // After Mine Depth global wipe: never rehydrate old cloud mine saves.
+    // Keep only mine keys that still exist on the live device (new progress).
+    if (mineWipeDone()) {
+      stripMineBagKeys(kv);
+      try {
+        BAG_KEYS.forEach((k) => {
+          if (!isMineBagKey(k)) return;
+          const live = localStorage.getItem(k);
+          if (live != null) kv[k] = live;
+        });
+      } catch {}
+    }
+
     return {
       playerId: remoteBag.playerId || localBag.playerId,
       updatedAt: Math.max(Number(localBag.updatedAt) || 0, Number(remoteBag.updatedAt) || 0),
@@ -546,6 +627,8 @@
     Object.entries(bag.kv).forEach(([key, value]) => {
       if (!isBagKey(key)) return;
       if (key === "hub-achievements-pending") return;
+      // After wipe: never restore mine saves from a bag onto live storage
+      if (mineWipeDone() && isMineBagKey(key)) return;
       try {
         if (value == null || value === "") {
           if (opts.replace) localStorage.removeItem(key);
@@ -875,6 +958,8 @@
     getBagOwner,
     setBagOwner,
     mergeBags,
-    loadVault
+    loadVault,
+    scrubMineProgressAfterWipe,
+    stripMineBagKeys
   };
 })();

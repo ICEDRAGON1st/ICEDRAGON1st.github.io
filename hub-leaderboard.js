@@ -33,7 +33,7 @@
 
   // One-time: clear local Mine Depth stats for everyone (full board reset companion).
   try {
-    const MINE_LOCAL_WIPE = "hub-mine-local-wipe-v1";
+    const MINE_LOCAL_WIPE = "hub-mine-local-wipe-v2";
     if (localStorage.getItem(MINE_LOCAL_WIPE) !== "done") {
       const doomed = [];
       for (let i = 0; i < localStorage.length; i += 1) {
@@ -78,6 +78,15 @@
         }
       } catch {}
       localStorage.setItem(MINE_LOCAL_WIPE, "done");
+      // Push empty mine bag + wiped boards once HubAccountBag / sync are ready
+      setTimeout(() => {
+        try {
+          window.HubAccountBag?.scrubMineProgressAfterWipe?.()?.catch?.(() => {});
+        } catch {}
+        try {
+          window.HubLeaderboard?.sync?.(true)?.catch?.(() => {});
+        } catch {}
+      }, 1200);
     }
   } catch {}
 
@@ -1013,8 +1022,8 @@
     });
 
     // Full Mine Depth reset for everyone (depth + best ore boards only).
-    const mineFullResetKey = "mine:full-reset-20261001";
-    const MINE_FULL_RESET_AT = Date.UTC(2026, 9, 1, 14, 5, 0); // 2026-10-01 14:05 UTC
+    const mineFullResetKey = "mine:full-reset-20261001b";
+    const MINE_FULL_RESET_AT = Date.UTC(2026, 9, 1, 14, 20, 0); // 2026-10-01 14:20 UTC
     if (!resets[mineFullResetKey] || Number(resets[mineFullResetKey]) > MINE_FULL_RESET_AT) {
       resets[mineFullResetKey] = MINE_FULL_RESET_AT;
     }
