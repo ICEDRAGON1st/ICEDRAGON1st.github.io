@@ -202,6 +202,9 @@
   let autoMeterWindowAt = 0;
   let autoMeterWindowSum = 0;
   let autoStatusAt = 0;
+  let lastAutoTickAt = 0;
+  let lastAutoShaftAt = 0;
+  let lastAutoSaveAt = 0;
   let shopDirty = true;
   let lastClickAt = 0;
   let lastStrataKey = "";
@@ -1042,16 +1045,20 @@
 
   function tick() {
     const rate = drillRate();
+    const now = performance.now();
+    // Use real elapsed time so laggy redraws don't make auto dig slower than the m/s label.
+    const dtSec = lastAutoTickAt
+      ? Math.min(1, Math.max(TICK_MS / 1000, (now - lastAutoTickAt) / 1000))
+      : TICK_MS / 1000;
+    lastAutoTickAt = now;
     if (rate > 0) {
-      // Drill upgrades are m/s — dig exactly that many meters each tick.
-      const meters = rate * (TICK_MS / 1000);
+      const meters = rate * dtSec;
       if (meters > 0) applyDigMeters(meters, "auto");
     } else {
       refreshShopButtons();
       updateAutoMpsLabel();
     }
     if (shopDirty) renderShop();
-    save(false);
   }
 
   digBtn?.addEventListener("click", () => doDigBatch(1, "click"));

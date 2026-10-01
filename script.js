@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001v": [
+    "Mine Depth: auto dig keeps true m/s even when the UI is busy — no more feeling slower than the label"
+  ],
   "20261001u": [
     "Mine Depth: auto status shows real m/s (995m each tick was 1/10 of a second, not a slow dig)"
   ],
