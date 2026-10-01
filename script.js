@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001a": [
+    "Mine Depth: full reset — everyone’s progress and Mine Depth / best-ore leaderboards wiped (other games untouched)"
+  ],
   "20260930w": [
     "Mine Depth: thicker layers and dig caps so late digs don’t rocket through the shaft"
   ],

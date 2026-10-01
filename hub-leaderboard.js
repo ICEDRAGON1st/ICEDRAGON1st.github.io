@@ -31,6 +31,56 @@
     }
   } catch {}
 
+  // One-time: clear local Mine Depth stats for everyone (full board reset companion).
+  try {
+    const MINE_LOCAL_WIPE = "hub-mine-local-wipe-v1";
+    if (localStorage.getItem(MINE_LOCAL_WIPE) !== "done") {
+      const doomed = [];
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (!key || /wipe/i.test(key)) continue;
+        if (/^mine(-depth|-best)?/i.test(key)) doomed.push(key);
+      }
+      doomed.forEach((key) => localStorage.removeItem(key));
+      try {
+        const vault = JSON.parse(localStorage.getItem("hub-account-bags-v1") || "{}");
+        if (vault && typeof vault === "object") {
+          Object.keys(vault).forEach((pid) => {
+            const kv = vault[pid] && vault[pid].kv;
+            if (!kv || typeof kv !== "object") return;
+            Object.keys(kv).forEach((k) => {
+              if (/^mine(-depth|-best)?/i.test(k)) delete kv[k];
+            });
+          });
+          localStorage.setItem("hub-account-bags-v1", JSON.stringify(vault));
+        }
+      } catch {}
+      try {
+        const achKey = "hub-achievements-v1";
+        const raw = localStorage.getItem(achKey);
+        if (raw) {
+          const data = JSON.parse(raw) || {};
+          Object.keys(data).forEach((id) => {
+            if (/^mine_/i.test(id)) delete data[id];
+          });
+          localStorage.setItem(achKey, JSON.stringify(data));
+        }
+        const pendingKey = "hub-achievements-pending";
+        const pendingRaw = localStorage.getItem(pendingKey);
+        if (pendingRaw) {
+          const list = JSON.parse(pendingRaw);
+          if (Array.isArray(list)) {
+            localStorage.setItem(
+              pendingKey,
+              JSON.stringify(list.filter((id) => !/^mine_/i.test(String(id || ""))))
+            );
+          }
+        }
+      } catch {}
+      localStorage.setItem(MINE_LOCAL_WIPE, "done");
+    }
+  } catch {}
+
   const GAME_META = {
     wordle: { label: "Guessword", lowerBetter: false, unit: "wins" },
     space: { label: "Space Shooter", lowerBetter: false, unit: "score" },
@@ -958,6 +1008,22 @@
           entry.playerId === ICE_MINE_PLAYER_ID;
         const at = Number(entry.at) || 0;
         if (isIce && at <= iceMineCut) delete board[key];
+      });
+      games[gameId] = board;
+    });
+
+    // Full Mine Depth reset for everyone (depth + best ore boards only).
+    const mineFullResetKey = "mine:full-reset-20261001";
+    const MINE_FULL_RESET_AT = Date.UTC(2026, 9, 1, 14, 5, 0); // 2026-10-01 14:05 UTC
+    if (!resets[mineFullResetKey] || Number(resets[mineFullResetKey]) > MINE_FULL_RESET_AT) {
+      resets[mineFullResetKey] = MINE_FULL_RESET_AT;
+    }
+    const mineFullCut = Number(resets[mineFullResetKey]) || MINE_FULL_RESET_AT;
+    ["mine", "mine-ore"].forEach((gameId) => {
+      const board = { ...(games[gameId] || {}) };
+      Object.keys(board).forEach((key) => {
+        const at = Number(board[key]?.at) || 0;
+        if (at <= mineFullCut) delete board[key];
       });
       games[gameId] = board;
     });

@@ -3,11 +3,65 @@
   const HIGH_SCORE_KEY = "mine-depth-best-v1";
   const BEST_ORE_KEY = "mine-best-ore-v1";
   const BEST_ORE_ID_KEY = "mine-best-ore-id-v1";
+  const LOCAL_WIPE_ID = "hub-mine-local-wipe-v1";
   const ICE_LOCAL_WIPE_ID = "hub-mine-ice-dragon-wipe-v1";
   const TICK_MS = 100;
   const CART_MAX = 20;
   const OFFLINE_CAP_MS = 8 * 60 * 60 * 1000;
   const MIN_CLICK_MS = 75;
+
+  function wipeLocalMineKeys() {
+    const doomed = [];
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const key = localStorage.key(i);
+      if (!key || /wipe/i.test(key)) continue;
+      if (/^mine(-depth|-best)?/i.test(key)) doomed.push(key);
+    }
+    doomed.forEach((key) => localStorage.removeItem(key));
+    try {
+      const vault = JSON.parse(localStorage.getItem("hub-account-bags-v1") || "{}");
+      if (vault && typeof vault === "object") {
+        Object.keys(vault).forEach((pid) => {
+          const kv = vault[pid] && vault[pid].kv;
+          if (!kv || typeof kv !== "object") return;
+          Object.keys(kv).forEach((k) => {
+            if (/^mine(-depth|-best)?/i.test(k)) delete kv[k];
+          });
+        });
+        localStorage.setItem("hub-account-bags-v1", JSON.stringify(vault));
+      }
+    } catch {}
+    try {
+      const achKey = "hub-achievements-v1";
+      const raw = localStorage.getItem(achKey);
+      if (raw) {
+        const data = JSON.parse(raw) || {};
+        Object.keys(data).forEach((id) => {
+          if (/^mine_/i.test(id)) delete data[id];
+        });
+        localStorage.setItem(achKey, JSON.stringify(data));
+      }
+      const pendingKey = "hub-achievements-pending";
+      const pendingRaw = localStorage.getItem(pendingKey);
+      if (pendingRaw) {
+        const list = JSON.parse(pendingRaw);
+        if (Array.isArray(list)) {
+          localStorage.setItem(
+            pendingKey,
+            JSON.stringify(list.filter((id) => !/^mine_/i.test(String(id || ""))))
+          );
+        }
+      }
+    } catch {}
+  }
+
+  // Force-clear every local Mine Depth key once (leaderboard wipe companion).
+  try {
+    if (localStorage.getItem(LOCAL_WIPE_ID) !== "done") {
+      wipeLocalMineKeys();
+      localStorage.setItem(LOCAL_WIPE_ID, "done");
+    }
+  } catch {}
 
   // One-time: reset ICE_DRAGON's local Mine Depth progress only.
   try {
@@ -17,34 +71,7 @@
       .trim()
       .toLowerCase();
     if (name === "ice_dragon" && localStorage.getItem(ICE_LOCAL_WIPE_ID) !== "done") {
-      const doomed = [];
-      for (let i = 0; i < localStorage.length; i += 1) {
-        const key = localStorage.key(i);
-        if (key && /^mine(-depth|-best)?/i.test(key)) doomed.push(key);
-      }
-      doomed.forEach((key) => localStorage.removeItem(key));
-      try {
-        const achKey = "hub-achievements-v1";
-        const raw = localStorage.getItem(achKey);
-        if (raw) {
-          const data = JSON.parse(raw) || {};
-          Object.keys(data).forEach((id) => {
-            if (/^mine_/i.test(id)) delete data[id];
-          });
-          localStorage.setItem(achKey, JSON.stringify(data));
-        }
-        const pendingKey = "hub-achievements-pending";
-        const pendingRaw = localStorage.getItem(pendingKey);
-        if (pendingRaw) {
-          const list = JSON.parse(pendingRaw);
-          if (Array.isArray(list)) {
-            localStorage.setItem(
-              pendingKey,
-              JSON.stringify(list.filter((id) => !/^mine_/i.test(String(id || ""))))
-            );
-          }
-        }
-      } catch {}
+      wipeLocalMineKeys();
       localStorage.setItem(ICE_LOCAL_WIPE_ID, "done");
     }
   } catch {}
