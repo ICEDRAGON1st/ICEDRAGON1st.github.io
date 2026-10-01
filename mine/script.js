@@ -146,6 +146,15 @@
     { id: "cart4", name: "Void Hopper", desc: "Cart holds +80 ore", baseCost: 8000000, kind: "cart", amount: 80 }
   ];
 
+  const SHOP_CATEGORIES = [
+    { id: "power", title: "Picks", blurb: "More meters when you tap Dig down (does not boost auto drills)." },
+    { id: "drill", title: "Drills", blurb: "Auto dig while the page is open — 1m per dig tick." },
+    { id: "luck", title: "Luck", blurb: "Better odds of rarer ores when something drops." },
+    { id: "sell", title: "Sell boost", blurb: "Earn more coins when you sell your cart." },
+    { id: "offline", title: "Offline", blurb: "More digs while you’re away." },
+    { id: "cart", title: "Cart", blurb: "Hold more ore before you need to sell." }
+  ];
+
   const coinCountEl = document.getElementById("coin-count");
   const layerLabelEl = document.getElementById("layer-label");
   const digPowerLabelEl = document.getElementById("dig-power-label");
@@ -170,6 +179,7 @@
   const cartListEl = document.getElementById("cart-list");
   const sellBtn = document.getElementById("sell-btn");
   const shopList = document.getElementById("shop-list");
+  const shopCats = document.getElementById("shop-cats");
   const overlay = document.getElementById("overlay");
   const overlayBestEl = document.getElementById("overlay-best");
   const startBtn = document.getElementById("start-btn");
@@ -179,6 +189,8 @@
   const guideOverlay = document.getElementById("guide-overlay");
   const guideClose = document.getElementById("guide-close");
   const guideBody = document.getElementById("guide-body");
+  const guideCats = document.getElementById("guide-cats");
+  const guideLead = document.getElementById("guide-lead");
   const floatLayer = document.getElementById("float-layer");
 
   let state = defaultState();
@@ -191,6 +203,8 @@
   let shopDirty = true;
   let lastClickAt = 0;
   let lastStrataKey = "";
+  let shopCat = "all";
+  let guideCat = "layers";
   const VIEW_PAD = 110;
 
   function defaultState() {
@@ -821,7 +835,12 @@
   function renderShop() {
     if (!shopList || !shopDirty) return;
     shopDirty = false;
-    shopList.innerHTML = UPGRADES.map((u) => {
+    const active = shopCat || "all";
+    shopCats?.querySelectorAll("[data-shop-cat]").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.shopCat === active);
+    });
+
+    const gearRow = (u) => {
       const n = ownedCount(u.id);
       const cost = upgradeCost(u);
       const can = state.coins >= cost;
@@ -835,7 +854,21 @@
           ${formatNum(cost)}
         </button>
       </div>`;
-    }).join("");
+    };
+
+    const cats = SHOP_CATEGORIES.filter((c) => active === "all" || c.id === active);
+    shopList.innerHTML = cats
+      .map((cat) => {
+        const rows = UPGRADES.filter((u) => u.kind === cat.id).map(gearRow).join("");
+        return `<div class="shop-category" data-category="${cat.id}">
+          <div class="shop-category-head">
+            <div class="shop-category-title">${cat.title}</div>
+            <div class="shop-category-blurb">${cat.blurb}</div>
+          </div>
+          ${rows}
+        </div>`;
+      })
+      .join("");
   }
 
   function renderHud() {
@@ -878,25 +911,91 @@
     if (!guideBody) return;
     const layer = layerFor(state.depth);
     const idx = Math.max(0, LAYERS.findIndex((l) => l.id === layer.id));
-    const layerSlice = LAYERS.slice(Math.max(0, idx - 5), Math.min(LAYERS.length, idx + 20));
     const unlocked = ORES.filter((o) => state.depth >= o.minDepth);
-    const upcoming = ORES.filter((o) => state.depth < o.minDepth).slice(0, 15);
-    const showOres = unlocked.slice(-20).concat(upcoming);
+    const upcoming = ORES.filter((o) => state.depth < o.minDepth);
+    const bestOre = oreById(state.bestOreId);
+
+    guideCats?.querySelectorAll("[data-guide-cat]").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.guideCat === guideCat);
+    });
+
+    if (guideLead) {
+      if (guideCat === "layers") {
+        guideLead.textContent = `You are on layer ${idx + 1} of ${LAYERS.length}: ${layer.name}.`;
+      } else if (guideCat === "found") {
+        guideLead.textContent = `${unlocked.length} ores unlocked at your depth · best find: ${
+          bestOre ? `${bestOre.emoji} ${bestOre.name}` : "—"
+        }.`;
+      } else {
+        guideLead.textContent = `${upcoming.length} ores still deeper than you · next ones listed first.`;
+      }
+    }
+
+    if (guideCat === "layers") {
+      const from = Math.max(0, idx - 4);
+      const to = Math.min(LAYERS.length, idx + 12);
+      const slice = LAYERS.slice(from, to);
+      guideBody.innerHTML =
+        `<div class="guide-section-head">Nearby layers</div>` +
+        slice
+          .map((l, i) => {
+            const realIdx = from + i;
+            const here = realIdx === idx;
+            const span = Number(l.span) || 0;
+            return `<div class="guide-row${here ? " is-you" : ""}">
+              <span class="guide-swatch" style="background:${l.color}"></span>
+              <div>
+                <div class="name">${here ? "▶ " : ""}${l.name}</div>
+                <div class="meta">Layer ${realIdx + 1} · starts ${formatDepth(l.min)} · ${formatDepth(span)} thick</div>
+              </div>
+              <strong class="guide-tag">${here ? "You" : realIdx < idx ? "Above" : "Below"}</strong>
+            </div>`;
+          })
+          .join("");
+      return;
+    }
+
+    if (guideCat === "found") {
+      const list = unlocked.slice(-40).reverse();
+      if (!list.length) {
+        guideBody.innerHTML = `<div class="guide-empty">Dig a little to unlock your first ores.</div>`;
+        return;
+      }
+      guideBody.innerHTML =
+        `<div class="guide-section-head">Unlocked ores (newest depth first)</div>` +
+        list
+          .map((o) => {
+            const isBest = bestOre && o.id === bestOre.id;
+            return `<div class="guide-row${isBest ? " is-best" : ""}">
+              <span class="guide-emoji">${o.emoji}</span>
+              <div>
+                <div class="name">${o.name}${isBest ? " · best find" : ""}</div>
+                <div class="meta">Unlocks from ${formatDepth(o.minDepth)}</div>
+              </div>
+              <strong class="guide-value">${formatNum(o.value)}</strong>
+            </div>`;
+          })
+          .join("");
+      return;
+    }
+
+    const list = upcoming.slice(0, 35);
+    if (!list.length) {
+      guideBody.innerHTML = `<div class="guide-empty">You’ve reached every ore depth.</div>`;
+      return;
+    }
     guideBody.innerHTML =
-      `<div class="guide-row"><span></span><div><div class="name">${LAYERS.length} layers · ${ORES.length} ores</div><div class="meta">Showing nearby layers and ores around your depth.</div></div><span></span></div>` +
-      layerSlice
+      `<div class="guide-section-head">Coming up (need more depth)</div>` +
+      list
         .map(
-          (l, i) => {
-            const realIdx = Math.max(0, idx - 5) + i;
-            return `<div class="guide-row"><span style="width:12px;height:12px;border-radius:50%;background:${l.color}"></span><div><div class="name">${l.name}${realIdx === idx ? " · you" : ""}</div><div class="meta">Layer ${realIdx + 1} · from ${formatDepth(l.min)}</div></div><span></span></div>`;
-          }
-        )
-        .join("") +
-      `<div class="guide-row"><span></span><div><div class="name">Ores near you</div><div class="meta">${unlocked.length} unlocked</div></div><span></span></div>` +
-      showOres
-        .map(
-          (o) =>
-            `<div class="guide-row"><span>${o.emoji}</span><div><div class="name">${o.name}</div><div class="meta">From ${formatDepth(o.minDepth)}</div></div><strong>${formatNum(o.value)}</strong></div>`
+          (o) => `<div class="guide-row is-locked">
+            <span class="guide-emoji">${o.emoji}</span>
+            <div>
+              <div class="name">${o.name}</div>
+              <div class="meta">Needs ${formatDepth(o.minDepth)} · ${formatDepth(Math.max(0, o.minDepth - state.depth))} deeper</div>
+            </div>
+            <strong class="guide-value">${formatNum(o.value)}</strong>
+          </div>`
         )
         .join("");
   }
@@ -930,6 +1029,13 @@
     }
   });
   sellBtn?.addEventListener("click", () => sellAll());
+  shopCats?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-shop-cat]");
+    if (!btn || !shopCats.contains(btn)) return;
+    shopCat = btn.dataset.shopCat || "all";
+    shopDirty = true;
+    renderShop();
+  });
   shopList?.addEventListener("click", (e) => {
     const target = e.target.closest("[data-buy]");
     if (!target || !shopList.contains(target)) return;
@@ -947,6 +1053,12 @@
   guideBtn?.addEventListener("click", () => {
     renderGuide();
     guideOverlay?.classList.remove("hidden");
+  });
+  guideCats?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-guide-cat]");
+    if (!btn || !guideCats.contains(btn)) return;
+    guideCat = btn.dataset.guideCat || "layers";
+    renderGuide();
   });
   guideClose?.addEventListener("click", () => guideOverlay?.classList.add("hidden"));
 

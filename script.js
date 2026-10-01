@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001p": [
+    "Mine Depth: gear shop uses Fishing-style categories, and the mine guide is clearer (layers / found / upcoming)"
+  ],
   "20261001o": [
     "Mine Depth: drop the confusing “5” on layer names, and show which layer you’re on clearly"
   ],
