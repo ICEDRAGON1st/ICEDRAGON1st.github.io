@@ -187,12 +187,9 @@
   let autoAcc = 0;
   let lastAutoOreFxAt = 0;
   let shopDirty = true;
-  let strataBuilt = false;
   let lastClickAt = 0;
-  let lastStrataCenter = -1;
-  const BAND_H = 104;
+  let lastStrataKey = "";
   const VIEW_PAD = 110;
-  const STRATA_WINDOW = 12;
 
   function defaultState() {
     const owned = {};
@@ -472,34 +469,54 @@
     } catch {}
   }
 
+  /** How many meters the shaft camera shows — shrinks with dig power so each dig moves the view. */
+  function shaftViewMeters(depth) {
+    const span = layerThickness(depth);
+    const power = Math.max(1, digPower());
+    // Always show a bite of the current layer so progress isn't frozen in multi-km bands.
+    return Math.max(60, Math.min(span * 0.45, Math.max(120, power * 28)));
+  }
+
   function buildStrata() {
-    if (!strataEl) return;
-    const totalH = LAYERS.length * BAND_H + 400;
-    if (!strataBuilt) {
-      strataBuilt = true;
-      strataEl.style.height = `${totalH}px`;
+    if (!strataEl || !shaftViewport) return;
+    const depth = state.depth;
+    const viewH = Math.max(220, shaftViewport.clientHeight || 320);
+    // Quantize so we don't rebuild every meter, but digs still scroll smoothly.
+    const meters = Math.max(60, Math.round(shaftViewMeters(depth) / 20) * 20);
+    const ppm = viewH / meters;
+
+    let idx = 0;
+    while (idx < LAYERS.length - 1 && (LAYERS[idx + 1]?.min ?? Infinity) <= depth) idx += 1;
+    const from = Math.max(0, idx - 2);
+    const to = Math.min(LAYERS.length - 1, idx + 3);
+    const key = `${from}:${to}:${meters}`;
+    if (key !== lastStrataKey || !strataEl.childElementCount) {
+      lastStrataKey = key;
+      let html = "";
+      let maxBottom = 0;
+      for (let i = from; i <= to; i += 1) {
+        const band = LAYERS[i];
+        const next = LAYERS[i + 1];
+        const start = Number(band.min) || 0;
+        const end = next
+          ? Number(next.min)
+          : start + (Number(band.span) || Math.max(1000, start * 0.05));
+        const topPx = start * ppm;
+        const heightPx = Math.max(36, (end - start) * ppm);
+        maxBottom = Math.max(maxBottom, topPx + heightPx);
+        html += `<div class="strata-band" style="top:${topPx}px;height:${heightPx}px;background:linear-gradient(180deg, ${band.color}cc, ${band.color}88);">${band.name}<span class="strata-depth">#${i + 1} · ${formatDepth(band.min)}+</span></div>`;
+      }
+      strataEl.style.height = `${Math.max(viewH + 200, maxBottom + 120)}px`;
+      strataEl.innerHTML = html;
     }
-    const layer = layerFor(state.depth);
-    const idx = Math.max(0, LAYERS.findIndex((l) => l.id === layer.id));
-    if (idx === lastStrataCenter && strataEl.childElementCount) return;
-    lastStrataCenter = idx;
-    const from = Math.max(0, idx - STRATA_WINDOW);
-    const to = Math.min(LAYERS.length - 1, idx + STRATA_WINDOW);
-    let html = "";
-    for (let i = from; i <= to; i += 1) {
-      const band = LAYERS[i];
-      html += `<div class="strata-band" style="top:${i * BAND_H}px;height:${BAND_H}px;background:linear-gradient(180deg, ${band.color}cc, ${band.color}88);">${band.name}<span class="strata-depth">#${i + 1} · ${formatDepth(band.min)}+</span></div>`;
-    }
-    strataEl.innerHTML = html;
+    strataEl.dataset.ppm = String(ppm);
   }
 
   function shaftScrollForDepth(depth) {
-    const layer = layerFor(depth);
-    const idx = Math.max(0, LAYERS.findIndex((l) => l.id === layer.id));
-    const next = LAYERS[idx + 1];
-    const span = next ? Math.max(1, next.min - layer.min) : Math.max(1, layer.min * 0.2 || 1e6);
-    const prog = Math.min(1, Math.max(0, (depth - layer.min) / span));
-    return Math.max(0, (idx + prog) * BAND_H - VIEW_PAD);
+    if (!strataEl) return 0;
+    const ppm = Number(strataEl.dataset.ppm) || 1;
+    // Meter-based scroll: every dig moves the shaft, even inside huge layers.
+    return Math.max(0, depth * ppm - VIEW_PAD);
   }
 
   function updateShaftView(animateDig) {
@@ -518,10 +535,10 @@
       surfaceLightEl.style.opacity = String(Math.max(0.04, 0.85 - Math.log10(depth + 10) / 8));
     }
 
-    const viewSpan = Math.max(40, digPower() * 8);
-    if (rulerTopEl) rulerTopEl.textContent = formatDepth(Math.max(0, depth - viewSpan));
+    const viewSpan = shaftViewMeters(depth);
+    if (rulerTopEl) rulerTopEl.textContent = formatDepth(Math.max(0, depth - viewSpan * 0.38));
     if (rulerMidEl) rulerMidEl.textContent = formatDepth(depth);
-    if (rulerBotEl) rulerBotEl.textContent = formatDepth(depth + viewSpan);
+    if (rulerBotEl) rulerBotEl.textContent = formatDepth(depth + viewSpan * 0.62);
 
     if (animateDig && shaftViewport) {
       shaftViewport.classList.remove("digging");

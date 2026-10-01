@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001m": [
+    "Mine Depth: shaft view scrolls with every dig again (no more stuck in giant deep layers)"
+  ],
   "20261001k": [
     "Mine Depth: each layer is longer than the one above — first is shortest, deepest is longest"
   ],
