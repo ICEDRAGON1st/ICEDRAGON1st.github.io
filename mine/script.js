@@ -185,6 +185,7 @@
   let lastSaveAt = 0;
   let lastSubmitAt = 0;
   let autoAcc = 0;
+  let lastAutoOreFxAt = 0;
   let shopDirty = true;
   let strataBuilt = false;
   let lastClickAt = 0;
@@ -632,11 +633,16 @@
           rect.top + 18
         );
       }
-    } else if (count >= 3) {
-      updateShaftView(true);
-      if (lastOre) spawnDigFx(lastOre);
     } else {
-      updateShaftView(false);
+      // Auto digs often come in 1–2 at a time after layer caps — still refresh cart.
+      updateShaftView(count >= 2 || added > 0);
+      if (lastOre && added) {
+        const now = Date.now();
+        if (now - lastAutoOreFxAt >= 280) {
+          lastAutoOreFxAt = now;
+          spawnDigFx(lastOre);
+        }
+      }
     }
 
     if (lastOre && added) {
@@ -651,7 +657,7 @@
     checkAchievements();
     maybeSubmit(false);
     renderHud();
-    if (source === "click" || count >= 3) renderCart();
+    if (source === "click" || added > 0 || blocked > 0) renderCart();
     refreshShopButtons();
     save(false);
   }

@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001i": [
+    "Mine Depth: auto dig ores show in the cart and shaft again"
+  ],
   "20261001h": [
     "Mine Depth: fix progress vanishing on refresh after the wipe, and digs matching dig power again"
   ],
