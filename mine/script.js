@@ -124,6 +124,10 @@
     { id: "pick14", name: "Event Horizon Bit", desc: "+6km per dig", baseCost: 3.2e11, kind: "power", amount: 6000 },
     { id: "pick15", name: "Primordial Chisel", desc: "+15km per dig", baseCost: 2.4e12, kind: "power", amount: 15000 },
     { id: "pick16", name: "Absolute Pick", desc: "+40km per dig", baseCost: 2e13, kind: "power", amount: 40000 },
+    { id: "pick17", name: "Axiom Bore", desc: "+100km per dig", baseCost: 1.6e14, kind: "power", amount: 100000 },
+    { id: "pick18", name: "Genesis Tip", desc: "+250km per dig", baseCost: 1.4e15, kind: "power", amount: 250000 },
+    { id: "pick19", name: "Eternity Chisel", desc: "+700km per dig", baseCost: 1.2e16, kind: "power", amount: 700000 },
+    { id: "pick20", name: "Final Pick", desc: "+2Mm per dig", baseCost: 1.1e17, kind: "power", amount: 2000000 },
     { id: "drill1", name: "Hand Drill", desc: "Auto dig +0.4m/s", baseCost: 80, kind: "drill", amount: 0.4 },
     { id: "drill2", name: "Tunnel Crew", desc: "Auto dig +1m/s", baseCost: 500, kind: "drill", amount: 1 },
     { id: "drill3", name: "Bore Machine", desc: "Auto dig +2.5m/s", baseCost: 3500, kind: "drill", amount: 2.5 },
@@ -138,6 +142,10 @@
     { id: "drill12", name: "Chrono Bore", desc: "Auto dig +6km/s", baseCost: 9e11, kind: "drill", amount: 6000 },
     { id: "drill13", name: "Astral Swarm", desc: "Auto dig +15km/s", baseCost: 7.5e12, kind: "drill", amount: 15000 },
     { id: "drill14", name: "World Eater", desc: "Auto dig +40km/s", baseCost: 6.5e13, kind: "drill", amount: 40000 },
+    { id: "drill15", name: "Mantle Choir", desc: "Auto dig +100km/s", baseCost: 5.5e14, kind: "drill", amount: 100000 },
+    { id: "drill16", name: "Core Symphony", desc: "Auto dig +280km/s", baseCost: 4.8e15, kind: "drill", amount: 280000 },
+    { id: "drill17", name: "Abyss Engine", desc: "Auto dig +750km/s", baseCost: 4.2e16, kind: "drill", amount: 750000 },
+    { id: "drill18", name: "End Drill", desc: "Auto dig +2Mm/s", baseCost: 3.8e17, kind: "drill", amount: 2000000 },
     { id: "luck1", name: "Lucky Lamp", desc: "+25% rare ore odds", baseCost: 200, kind: "luck", amount: 0.25 },
     { id: "luck2", name: "Ore Dog", desc: "+50% rare ore odds", baseCost: 2500, kind: "luck", amount: 0.5 },
     { id: "luck3", name: "Seer Goggles", desc: "+100% rare ore odds", baseCost: 45000, kind: "luck", amount: 1 },
@@ -146,6 +154,8 @@
     { id: "luck6", name: "Fortune Prism", desc: "+550% rare ore odds", baseCost: 280000000, kind: "luck", amount: 5.5 },
     { id: "luck7", name: "Destiny Loom", desc: "+900% rare ore odds", baseCost: 6.5e9, kind: "luck", amount: 9 },
     { id: "luck8", name: "Mythic Dowser", desc: "+1500% rare ore odds", baseCost: 1.6e11, kind: "luck", amount: 15 },
+    { id: "luck9", name: "Star Augur", desc: "+2500% rare ore odds", baseCost: 4e12, kind: "luck", amount: 25 },
+    { id: "luck10", name: "Fate Engine", desc: "+4000% rare ore odds", baseCost: 1.2e14, kind: "luck", amount: 40 },
     { id: "sell1", name: "Ore Broker", desc: "+40% sell value", baseCost: 350, kind: "sell", amount: 0.4 },
     { id: "sell2", name: "Trade Post", desc: "+80% sell value", baseCost: 8000, kind: "sell", amount: 0.8 },
     { id: "sell3", name: "Guild Market", desc: "+150% sell value", baseCost: 120000, kind: "sell", amount: 1.5 },
@@ -154,6 +164,8 @@
     { id: "sell6", name: "Nebula Bourse", desc: "+650% sell value", baseCost: 900000000, kind: "sell", amount: 6.5 },
     { id: "sell7", name: "Astral Syndicate", desc: "+1000% sell value", baseCost: 2.2e10, kind: "sell", amount: 10 },
     { id: "sell8", name: "Omni Auction", desc: "+1600% sell value", baseCost: 5.5e11, kind: "sell", amount: 16 },
+    { id: "sell9", name: "Vault Relay", desc: "+2500% sell value", baseCost: 1.5e13, kind: "sell", amount: 25 },
+    { id: "sell10", name: "Crown Mint", desc: "+4000% sell value", baseCost: 4.5e14, kind: "sell", amount: 40 },
     { id: "off1", name: "Night Shift", desc: "+50% offline digs", baseCost: 1500, kind: "offline", amount: 0.5 },
     { id: "off2", name: "Autopilot Crew", desc: "+100% offline digs", baseCost: 35000, kind: "offline", amount: 1 },
     { id: "off3", name: "Dream Bore", desc: "+200% offline digs", baseCost: 500000, kind: "offline", amount: 2 },
@@ -161,19 +173,52 @@
     { id: "off5", name: "Phantom Shift", desc: "+700% offline digs", baseCost: 450000000, kind: "offline", amount: 7 },
     { id: "off6", name: "Timeless Gang", desc: "+1200% offline digs", baseCost: 1.2e10, kind: "offline", amount: 12 },
     { id: "off7", name: "Forever Shaft", desc: "+2000% offline digs", baseCost: 3.5e11, kind: "offline", amount: 20 },
+    { id: "off8", name: "Sleep Foundry", desc: "+3500% offline digs", baseCost: 9e12, kind: "offline", amount: 35 },
+    { id: "off9", name: "Dream Core", desc: "+6000% offline digs", baseCost: 2.8e14, kind: "offline", amount: 60 },
     { id: "cart1", name: "Bigger Cart", desc: "Cart holds +10 ore", baseCost: 400, kind: "cart", amount: 10 },
     { id: "cart2", name: "Mine Wagon", desc: "Cart holds +20 ore", baseCost: 12000, kind: "cart", amount: 20 },
     { id: "cart3", name: "Ore Train", desc: "Cart holds +40 ore", baseCost: 180000, kind: "cart", amount: 40 },
     { id: "cart4", name: "Void Hopper", desc: "Cart holds +80 ore", baseCost: 8000000, kind: "cart", amount: 80 },
     { id: "cart5", name: "Rift Freighter", desc: "Cart holds +160 ore", baseCost: 220000000, kind: "cart", amount: 160 },
     { id: "cart6", name: "Star Hauler", desc: "Cart holds +320 ore", baseCost: 6e9, kind: "cart", amount: 320 },
-    { id: "cart7", name: "Infinity Hold", desc: "Cart holds +640 ore", baseCost: 1.8e11, kind: "cart", amount: 640 }
+    { id: "cart7", name: "Infinity Hold", desc: "Cart holds +640 ore", baseCost: 1.8e11, kind: "cart", amount: 640 },
+    { id: "cart8", name: "Pocket Dimension", desc: "Cart holds +1280 ore", baseCost: 5e12, kind: "cart", amount: 1280 },
+    { id: "cart9", name: "World Bag", desc: "Cart holds +2560 ore", baseCost: 1.6e14, kind: "cart", amount: 2560 },
+    { id: "yield1", name: "Sifting Pan", desc: "+20% ore from meters dug", baseCost: 900, kind: "yield", amount: 0.2 },
+    { id: "yield2", name: "Vein Sniffer", desc: "+40% ore from meters dug", baseCost: 22000, kind: "yield", amount: 0.4 },
+    { id: "yield3", name: "Ore Siphon", desc: "+80% ore from meters dug", baseCost: 480000, kind: "yield", amount: 0.8 },
+    { id: "yield4", name: "Lode Magnet", desc: "+150% ore from meters dug", baseCost: 1.2e7, kind: "yield", amount: 1.5 },
+    { id: "yield5", name: "Harvest Lattice", desc: "+280% ore from meters dug", baseCost: 3.5e8, kind: "yield", amount: 2.8 },
+    { id: "yield6", name: "Motherlode Pump", desc: "+500% ore from meters dug", baseCost: 1.2e10, kind: "yield", amount: 5 },
+    { id: "yield7", name: "Abundance Core", desc: "+900% ore from meters dug", baseCost: 4.5e11, kind: "yield", amount: 9 },
+    { id: "crit1", name: "Weighted Swing", desc: "8% crit dig (×2 meters)", baseCost: 1500, kind: "crit", amount: 0.08 },
+    { id: "crit2", name: "Impact Gloves", desc: "12% crit dig (×2 meters)", baseCost: 45000, kind: "crit", amount: 0.12 },
+    { id: "crit3", name: "Fault Hammer", desc: "18% crit dig (×2.2 meters)", baseCost: 1.1e6, kind: "crit", amount: 0.18 },
+    { id: "crit4", name: "Quake Gauntlets", desc: "25% crit dig (×2.4 meters)", baseCost: 3.2e7, kind: "crit", amount: 0.25 },
+    { id: "crit5", name: "Breach Coil", desc: "35% crit dig (×2.6 meters)", baseCost: 9e8, kind: "crit", amount: 0.35 },
+    { id: "crit6", name: "Cataclysm Arm", desc: "45% crit dig (×3 meters)", baseCost: 3.5e10, kind: "crit", amount: 0.45 },
+    { id: "sync1", name: "Gear Link", desc: "Auto gains 2% of pick power as m/s", baseCost: 2500, kind: "sync", amount: 0.02 },
+    { id: "sync2", name: "Shaft Coupler", desc: "Auto gains 4% of pick power as m/s", baseCost: 85000, kind: "sync", amount: 0.04 },
+    { id: "sync3", name: "Power Relay", desc: "Auto gains 7% of pick power as m/s", baseCost: 2.4e6, kind: "sync", amount: 0.07 },
+    { id: "sync4", name: "Unity Drive", desc: "Auto gains 12% of pick power as m/s", baseCost: 7.5e7, kind: "sync", amount: 0.12 },
+    { id: "sync5", name: "Harmony Gear", desc: "Auto gains 18% of pick power as m/s", baseCost: 2.8e9, kind: "sync", amount: 0.18 },
+    { id: "sync6", name: "One Machine", desc: "Auto gains 28% of pick power as m/s", baseCost: 1.2e11, kind: "sync", amount: 0.28 },
+    { id: "scout1", name: "Depth Map", desc: "Bias finds toward deeper ores", baseCost: 1800, kind: "scout", amount: 0.35 },
+    { id: "scout2", name: "Echo Sounder", desc: "Stronger deep-ore bias", baseCost: 55000, kind: "scout", amount: 0.7 },
+    { id: "scout3", name: "Strata Radar", desc: "Much stronger deep-ore bias", baseCost: 1.6e6, kind: "scout", amount: 1.3 },
+    { id: "scout4", name: "Core Sonar", desc: "Heavy deep-ore bias", baseCost: 4.8e7, kind: "scout", amount: 2.2 },
+    { id: "scout5", name: "Oracle Probe", desc: "Extreme deep-ore bias", baseCost: 1.8e9, kind: "scout", amount: 3.5 },
+    { id: "scout6", name: "Future Sight", desc: "Max deep-ore bias", baseCost: 8e10, kind: "scout", amount: 5.5 }
   ];
 
   const SHOP_CATEGORIES = [
     { id: "power", title: "Picks", blurb: "More meters when you tap Dig down (does not boost auto drills)." },
     { id: "drill", title: "Drills", blurb: "Auto dig speed in meters per second while the page is open." },
+    { id: "sync", title: "Sync", blurb: "Feeds a % of your pick power into auto dig m/s." },
+    { id: "crit", title: "Crit digs", blurb: "Chance for a manual dig to smash extra meters." },
+    { id: "yield", title: "Yield", blurb: "More ore drops from the same meters dug." },
     { id: "luck", title: "Luck", blurb: "Better odds of rarer ores when something drops." },
+    { id: "scout", title: "Scout", blurb: "Bias finds toward deeper, higher-value ores." },
     { id: "sell", title: "Sell boost", blurb: "Earn more coins when you sell your cart." },
     { id: "offline", title: "Offline", blurb: "More digs while you’re away." },
     { id: "cart", title: "Cart", blurb: "Hold more ore before you need to sell." }
@@ -242,6 +287,7 @@
   let lastAutoSaveAt = 0;
   let shopDirty = true;
   let lastClickAt = 0;
+  let pendingCritDig = false;
   let lastStrataKey = "";
   let shopCat = "all";
   let guideCat = "layers";
@@ -621,9 +667,17 @@
     return r;
   }
 
-  /** Auto depth speed in m/s (pick power does not apply). */
+  /** Auto depth speed in m/s (Sync gear feeds a % of pick power into auto). */
+  function syncFrac() {
+    let s = 0;
+    UPGRADES.forEach((u) => {
+      if (u.kind === "sync") s += ownedCount(u.id) * u.amount;
+    });
+    return Math.min(0.9, Math.max(0, s));
+  }
+
   function autoMetersPerSecond() {
-    return Math.max(0, drillRate());
+    return Math.max(0, drillRate() + digPower() * syncFrac());
   }
 
   function formatAutoMps(mps) {
@@ -646,6 +700,34 @@
       if (u.kind === "luck") m += ownedCount(u.id) * u.amount;
     });
     return m;
+  }
+
+  function yieldMult() {
+    let y = 0;
+    UPGRADES.forEach((u) => {
+      if (u.kind === "yield") y += ownedCount(u.id) * u.amount;
+    });
+    return Math.max(0, y);
+  }
+
+  function critChance() {
+    let c = 0;
+    UPGRADES.forEach((u) => {
+      if (u.kind === "crit") c += ownedCount(u.id) * u.amount;
+    });
+    return Math.min(0.85, Math.max(0, c));
+  }
+
+  function critPower() {
+    return 2 + Math.min(1.5, critChance() * 2.2);
+  }
+
+  function scoutMult() {
+    let s = 1;
+    UPGRADES.forEach((u) => {
+      if (u.kind === "scout") s += ownedCount(u.id) * u.amount;
+    });
+    return Math.max(1, s);
   }
 
   function sellMult() {
@@ -929,11 +1011,14 @@
   function pickOre() {
     const depth = state.depth;
     const luck = luckMult();
+    const scout = scoutMult();
     const pool = ORES.filter((o) => depth >= o.minDepth).map((o) => {
       const age = Math.max(0, depth - o.minDepth);
       const recency = 1 / (1 + age / Math.max(80, depth * 0.12 + 40));
       const rarityBoost = (o.index || 0) > 30 ? luck : 1 + (luck - 1) * 0.4;
-      return { ore: o, w: o.weight * recency * rarityBoost };
+      const deepBias =
+        1 + (scout - 1) * ((o.index || 0) / Math.max(1, ORES.length - 1));
+      return { ore: o, w: o.weight * recency * rarityBoost * deepBias };
     });
     const total = pool.reduce((s, p) => s + p.w, 0);
     if (!total) return ORES[0];
@@ -959,12 +1044,19 @@
     const m = Math.max(0, Number(meters) || 0);
     if (m <= 0) return 0;
     const luck = luckMult();
+    const yieldBonus = yieldMult();
     const base = source === "click" ? 5 : 18;
-    const metersPerOre = Math.max(3, base / (1 + (luck - 1) * 0.12));
+    const metersPerOre = Math.max(
+      2.2,
+      base / (1 + (luck - 1) * 0.12) / (1 + yieldBonus * 0.55)
+    );
     oreMeterBank += m;
     let rolls = Math.floor(oreMeterBank / metersPerOre);
     oreMeterBank -= rolls * metersPerOre;
-    const cap = source === "click" ? 6 : 3;
+    const cap =
+      source === "click"
+        ? 6 + Math.min(8, Math.floor(yieldBonus))
+        : 3 + Math.min(5, Math.floor(yieldBonus * 0.5));
     if (rolls > cap) {
       oreMeterBank += (rolls - cap) * metersPerOre * 0.2;
       rolls = cap;
@@ -1012,20 +1104,22 @@
       const rect = digBtn?.getBoundingClientRect() || shaftViewport?.getBoundingClientRect();
       if (rect) {
         floatAt(
-          `↓ ${m.toFixed(m >= 10 ? 0 : 1)}m`,
+          `${pendingCritDig ? "CRIT " : ""}↓ ${formatDepth(m)}`,
           rect.left + rect.width * 0.5,
           rect.top + 18
         );
       }
+      const critTag = pendingCritDig ? " · CRIT!" : "";
+      pendingCritDig = false;
       if (lastOre && added) {
         statusLineEl.textContent =
           added === 1
-            ? `Dug into ${lastOre.emoji} ${lastOre.name} (↓${formatDepth(m)})${newBestOre ? " · new best ore!" : ""}`
-            : `Shaft sank ${formatDepth(m)} · ${added} ore${newBestOre ? " · new best ore!" : ""}`;
+            ? `Dug into ${lastOre.emoji} ${lastOre.name} (↓${formatDepth(m)})${critTag}${newBestOre ? " · new best ore!" : ""}`
+            : `Shaft sank ${formatDepth(m)}${critTag} · ${added} ore${newBestOre ? " · new best ore!" : ""}`;
       } else if (blocked) {
-        statusLineEl.textContent = `Cart full — sell ore, then dig deeper (↓${formatDepth(m)})`;
+        statusLineEl.textContent = `Cart full — sell ore, then dig deeper (↓${formatDepth(m)})${critTag}`;
       } else {
-        statusLineEl.textContent = `Shaft sank ${formatDepth(m)} · no ore this dig`;
+        statusLineEl.textContent = `Shaft sank ${formatDepth(m)}${critTag} · no ore this dig`;
       }
       checkAchievements();
       maybeSubmit(false);
@@ -1092,7 +1186,12 @@
 
   function doDigBatch(count, source) {
     if (count <= 0) return;
-    const meters = digMetersForCount(count, { usePickPower: source === "click" });
+    let meters = digMetersForCount(count, { usePickPower: source === "click" });
+    pendingCritDig = false;
+    if (source === "click" && critChance() > 0 && Math.random() < critChance()) {
+      meters *= critPower();
+      pendingCritDig = true;
+    }
     applyDigMeters(meters, source);
   }
 

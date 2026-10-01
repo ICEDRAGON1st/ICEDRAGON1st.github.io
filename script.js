@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001af": [
+    "Mine Depth: more gear plus new kinds — Sync, Crit digs, Yield, and Scout"
+  ],
   "20261001ae": [
     "Mine Depth: each deeper layer is clearly longer (~16% thicker than the last — no more near-twin sizes)"
   ],
