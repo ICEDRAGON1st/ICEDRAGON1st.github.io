@@ -118,6 +118,12 @@
     { id: "pick8", name: "Star Pick", desc: "+60m per dig", baseCost: 2800000, kind: "power", amount: 60 },
     { id: "pick9", name: "Rift Pick", desc: "+120m per dig", baseCost: 18000000, kind: "power", amount: 120 },
     { id: "pick10", name: "Omega Bore Tip", desc: "+250m per dig", baseCost: 120000000, kind: "power", amount: 250 },
+    { id: "pick11", name: "Nebula Spike", desc: "+500m per dig", baseCost: 850000000, kind: "power", amount: 500 },
+    { id: "pick12", name: "Quasar Edge", desc: "+1km per dig", baseCost: 6e9, kind: "power", amount: 1000 },
+    { id: "pick13", name: "Singularity Pick", desc: "+2.5km per dig", baseCost: 4.5e10, kind: "power", amount: 2500 },
+    { id: "pick14", name: "Event Horizon Bit", desc: "+6km per dig", baseCost: 3.2e11, kind: "power", amount: 6000 },
+    { id: "pick15", name: "Primordial Chisel", desc: "+15km per dig", baseCost: 2.4e12, kind: "power", amount: 15000 },
+    { id: "pick16", name: "Absolute Pick", desc: "+40km per dig", baseCost: 2e13, kind: "power", amount: 40000 },
     { id: "drill1", name: "Hand Drill", desc: "Auto dig +0.4m/s", baseCost: 80, kind: "drill", amount: 0.4 },
     { id: "drill2", name: "Tunnel Crew", desc: "Auto dig +1m/s", baseCost: 500, kind: "drill", amount: 1 },
     { id: "drill3", name: "Bore Machine", desc: "Auto dig +2.5m/s", baseCost: 3500, kind: "drill", amount: 2.5 },
@@ -126,24 +132,42 @@
     { id: "drill6", name: "Planet Drill", desc: "Auto dig +35m/s", baseCost: 1600000, kind: "drill", amount: 35 },
     { id: "drill7", name: "Rift Engine", desc: "Auto dig +80m/s", baseCost: 22000000, kind: "drill", amount: 80 },
     { id: "drill8", name: "Cosmic Auger", desc: "Auto dig +180m/s", baseCost: 250000000, kind: "drill", amount: 180 },
+    { id: "drill9", name: "Galaxy Spiral", desc: "Auto dig +420m/s", baseCost: 1.8e9, kind: "drill", amount: 420 },
+    { id: "drill10", name: "Void Cascade", desc: "Auto dig +1km/s", baseCost: 1.4e10, kind: "drill", amount: 1000 },
+    { id: "drill11", name: "Nova Lattice", desc: "Auto dig +2.5km/s", baseCost: 1.1e11, kind: "drill", amount: 2500 },
+    { id: "drill12", name: "Chrono Bore", desc: "Auto dig +6km/s", baseCost: 9e11, kind: "drill", amount: 6000 },
+    { id: "drill13", name: "Astral Swarm", desc: "Auto dig +15km/s", baseCost: 7.5e12, kind: "drill", amount: 15000 },
+    { id: "drill14", name: "World Eater", desc: "Auto dig +40km/s", baseCost: 6.5e13, kind: "drill", amount: 40000 },
     { id: "luck1", name: "Lucky Lamp", desc: "+25% rare ore odds", baseCost: 200, kind: "luck", amount: 0.25 },
     { id: "luck2", name: "Ore Dog", desc: "+50% rare ore odds", baseCost: 2500, kind: "luck", amount: 0.5 },
     { id: "luck3", name: "Seer Goggles", desc: "+100% rare ore odds", baseCost: 45000, kind: "luck", amount: 1 },
     { id: "luck4", name: "Fate Compass", desc: "+200% rare ore odds", baseCost: 650000, kind: "luck", amount: 2 },
     { id: "luck5", name: "Oracle Lens", desc: "+350% rare ore odds", baseCost: 12000000, kind: "luck", amount: 3.5 },
+    { id: "luck6", name: "Fortune Prism", desc: "+550% rare ore odds", baseCost: 280000000, kind: "luck", amount: 5.5 },
+    { id: "luck7", name: "Destiny Loom", desc: "+900% rare ore odds", baseCost: 6.5e9, kind: "luck", amount: 9 },
+    { id: "luck8", name: "Mythic Dowser", desc: "+1500% rare ore odds", baseCost: 1.6e11, kind: "luck", amount: 15 },
     { id: "sell1", name: "Ore Broker", desc: "+40% sell value", baseCost: 350, kind: "sell", amount: 0.4 },
     { id: "sell2", name: "Trade Post", desc: "+80% sell value", baseCost: 8000, kind: "sell", amount: 0.8 },
     { id: "sell3", name: "Guild Market", desc: "+150% sell value", baseCost: 120000, kind: "sell", amount: 1.5 },
     { id: "sell4", name: "Royal Charter", desc: "+250% sell value", baseCost: 1400000, kind: "sell", amount: 2.5 },
     { id: "sell5", name: "Cosmic Exchange", desc: "+400% sell value", baseCost: 35000000, kind: "sell", amount: 4 },
+    { id: "sell6", name: "Nebula Bourse", desc: "+650% sell value", baseCost: 900000000, kind: "sell", amount: 6.5 },
+    { id: "sell7", name: "Astral Syndicate", desc: "+1000% sell value", baseCost: 2.2e10, kind: "sell", amount: 10 },
+    { id: "sell8", name: "Omni Auction", desc: "+1600% sell value", baseCost: 5.5e11, kind: "sell", amount: 16 },
     { id: "off1", name: "Night Shift", desc: "+50% offline digs", baseCost: 1500, kind: "offline", amount: 0.5 },
     { id: "off2", name: "Autopilot Crew", desc: "+100% offline digs", baseCost: 35000, kind: "offline", amount: 1 },
     { id: "off3", name: "Dream Bore", desc: "+200% offline digs", baseCost: 500000, kind: "offline", amount: 2 },
     { id: "off4", name: "Eternal Crew", desc: "+400% offline digs", baseCost: 18000000, kind: "offline", amount: 4 },
+    { id: "off5", name: "Phantom Shift", desc: "+700% offline digs", baseCost: 450000000, kind: "offline", amount: 7 },
+    { id: "off6", name: "Timeless Gang", desc: "+1200% offline digs", baseCost: 1.2e10, kind: "offline", amount: 12 },
+    { id: "off7", name: "Forever Shaft", desc: "+2000% offline digs", baseCost: 3.5e11, kind: "offline", amount: 20 },
     { id: "cart1", name: "Bigger Cart", desc: "Cart holds +10 ore", baseCost: 400, kind: "cart", amount: 10 },
     { id: "cart2", name: "Mine Wagon", desc: "Cart holds +20 ore", baseCost: 12000, kind: "cart", amount: 20 },
     { id: "cart3", name: "Ore Train", desc: "Cart holds +40 ore", baseCost: 180000, kind: "cart", amount: 40 },
-    { id: "cart4", name: "Void Hopper", desc: "Cart holds +80 ore", baseCost: 8000000, kind: "cart", amount: 80 }
+    { id: "cart4", name: "Void Hopper", desc: "Cart holds +80 ore", baseCost: 8000000, kind: "cart", amount: 80 },
+    { id: "cart5", name: "Rift Freighter", desc: "Cart holds +160 ore", baseCost: 220000000, kind: "cart", amount: 160 },
+    { id: "cart6", name: "Star Hauler", desc: "Cart holds +320 ore", baseCost: 6e9, kind: "cart", amount: 320 },
+    { id: "cart7", name: "Infinity Hold", desc: "Cart holds +640 ore", baseCost: 1.8e11, kind: "cart", amount: 640 }
   ];
 
   const SHOP_CATEGORIES = [
@@ -334,6 +358,7 @@
   function formatAutoMps(mps) {
     const n = Math.max(0, Number(mps) || 0);
     if (n <= 0) return "0m/s";
+    if (n >= 1000) return `${formatNum(n)}m/s`;
     if (n >= 100) return `${Math.round(n)}m/s`;
     if (n >= 10) return `${n.toFixed(n % 1 ? 1 : 0)}m/s`;
     return `${n.toFixed(n % 1 ? 1 : 0)}m/s`;

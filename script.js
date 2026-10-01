@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001y": [
+    "Mine Depth: more late-game gear — extra picks, drills, luck, sell, offline, and cart upgrades"
+  ],
   "20261001x": [
     "Mine Depth: deeper layers stretch much longer — digs only clear a small bite, so bands take real time"
   ],
