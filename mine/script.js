@@ -199,6 +199,9 @@
   let lastSubmitAt = 0;
   let lastAutoOreFxAt = 0;
   let oreMeterBank = 0;
+  let autoMeterWindowAt = 0;
+  let autoMeterWindowSum = 0;
+  let autoStatusAt = 0;
   let shopDirty = true;
   let lastClickAt = 0;
   let lastStrataKey = "";
@@ -320,14 +323,9 @@
     return r;
   }
 
-  /** Auto depth speed in m/s (pick power does not apply; soft-capped by current layer). */
+  /** Auto depth speed in m/s (pick power does not apply). */
   function autoMetersPerSecond() {
-    const rate = drillRate();
-    if (rate <= 0) return 0;
-    const span = layerThickness(state.depth);
-    // Same soft-cap as the tick: at most ~55% of the current layer per tick.
-    const maxPerSec = Math.max(0.5, span * 0.55 * (1000 / TICK_MS));
-    return Math.min(rate, maxPerSec);
+    return Math.max(0, drillRate());
   }
 
   function formatAutoMps(mps) {
@@ -714,9 +712,15 @@
         );
       }
     } else {
+      // Track real auto m/s over a rolling second (status used to show one 0.1s tick and looked 10× low).
+      const now = Date.now();
+      if (!autoMeterWindowAt || now - autoMeterWindowAt >= 1000) {
+        autoMeterWindowAt = now;
+        autoMeterWindowSum = 0;
+      }
+      autoMeterWindowSum += m;
       updateShaftView(added > 0 || m >= 0.5);
       if (lastOre && added) {
-        const now = Date.now();
         if (now - lastAutoOreFxAt >= 280) {
           lastAutoOreFxAt = now;
           spawnDigFx(lastOre);
@@ -724,14 +728,29 @@
       }
     }
 
-    if (lastOre && added) {
+    if (source === "auto") {
+      const mps = formatAutoMps(autoMetersPerSecond());
+      if (blocked && !added) {
+        statusLineEl.textContent = `Cart full — sell ore · auto ${mps}`;
+      } else if (lastOre && added) {
+        statusLineEl.textContent =
+          added === 1
+            ? `Auto ${mps} · ${lastOre.emoji} ${lastOre.name}${newBestOre ? " · new best ore!" : ""}`
+            : `Auto ${mps} · ${added} ore${newBestOre ? " · new best ore!" : ""}`;
+      } else if (Date.now() - autoStatusAt >= 400) {
+        autoStatusAt = Date.now();
+        const elapsed = Math.max(0.2, (Date.now() - autoMeterWindowAt) / 1000);
+        const live = autoMeterWindowSum / elapsed;
+        statusLineEl.textContent = `Auto dig · ${formatAutoMps(autoMetersPerSecond())} (live ${formatAutoMps(live)})`;
+      }
+    } else if (lastOre && added) {
       statusLineEl.textContent =
         added === 1
           ? `Dug into ${lastOre.emoji} ${lastOre.name} (↓${formatDepth(m)})${newBestOre ? " · new best ore!" : ""}`
           : `Shaft sank ${formatDepth(m)} · ${added} ore${newBestOre ? " · new best ore!" : ""}`;
     } else if (blocked) {
       statusLineEl.textContent = `Cart full — sell ore, then dig deeper (↓${formatDepth(m)})`;
-    } else if (source === "click") {
+    } else {
       statusLineEl.textContent = `Shaft sank ${formatDepth(m)} · no ore this dig`;
     }
 
@@ -1024,15 +1043,13 @@
   function tick() {
     const rate = drillRate();
     if (rate > 0) {
-      // Drill upgrades are m/s — dig that many meters each tick (soft-capped by layer).
-      const span = layerThickness(state.depth);
-      const raw = rate * (TICK_MS / 1000);
-      const meters = Math.min(raw, Math.max(0.05, span * 0.55));
+      // Drill upgrades are m/s — dig exactly that many meters each tick.
+      const meters = rate * (TICK_MS / 1000);
       if (meters > 0) applyDigMeters(meters, "auto");
     } else {
       refreshShopButtons();
+      updateAutoMpsLabel();
     }
-    updateAutoMpsLabel();
     if (shopDirty) renderShop();
     save(false);
   }

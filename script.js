@@ -45,6 +45,12 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001u": [
+    "Mine Depth: auto status shows real m/s (995m each tick was 1/10 of a second, not a slow dig)"
+  ],
+  "20261001t": [
+    "My Games: Most popular is Fishing Idle again — Mine Depth’s play count was inflated"
+  ],
   "20261001s": [
     "Mine Depth: auto digs run in real m/s now — the Auto readout matches how fast you go"
   ],
