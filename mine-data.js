@@ -44,8 +44,10 @@
   /** Thickness of layer index i (0 = first / smallest). Strictly increases with depth. */
   function layerSpan(i) {
     const n = Math.max(0, Math.floor(Number(i) || 0));
-    // Layer 1 shortest (~10m), deepest layers longest (tens of km).
-    return Math.max(10, Math.floor(10 + 3 * n + Math.pow(n, 1.75) * 0.55));
+    // Surface stays short; past ~layer 20 spans stretch hard so deep bands take real dig time.
+    const base = 12 + 5 * n + Math.pow(n, 1.95) * 0.95;
+    const deep = n < 20 ? 0 : Math.pow(n - 20, 2.45) * 3.5;
+    return Math.max(10, Math.floor(base + deep));
   }
 
   function layerMin(i) {

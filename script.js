@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001x": [
+    "Mine Depth: deeper layers stretch much longer — digs only clear a small bite, so bands take real time"
+  ],
   "20261001w": [
     "Mine Depth: auto digs catch up through lag and redraw less often so m/s stays real"
   ],

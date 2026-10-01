@@ -293,15 +293,15 @@
   }
 
   /**
-   * Cap dig advance per dig so one click / auto burst can't blast through many layers.
-   * Pick power ("+Xm per dig") only applies to manual digs — auto/offline use 1m base.
+   * Cap dig advance per dig so one click can't clear a thick layer in 2–3 taps.
+   * ~8% of the current layer max → deep bands take many digs. Pick power is click-only.
    */
   function digMetersForCount(count, opts = {}) {
     const n = Math.max(1, Math.floor(Number(count) || 1));
     const usePick = opts.usePickPower !== false;
     const power = Math.max(0.05, usePick ? digPower() : 1);
     const span = layerThickness(state.depth);
-    const perDig = Math.min(power, Math.max(0.5, span * 0.4));
+    const perDig = Math.min(power, Math.max(0.5, span * 0.08));
     return perDig * n;
   }
 
@@ -952,7 +952,10 @@
       const chipLabel = layerLabelEl.parentElement?.querySelector(".stat-chip-label");
       if (chipLabel) chipLabel.textContent = `Layer ${idx + 1}`;
     }
-    if (digPowerLabelEl) digPowerLabelEl.textContent = `${digPower().toFixed(digPower() % 1 ? 1 : 0)}m`;
+    if (digPowerLabelEl) {
+      const effective = digMetersForCount(1, { usePickPower: true });
+      digPowerLabelEl.textContent = `${effective.toFixed(effective % 1 ? 1 : 0)}m`;
+    }
     updateAutoMpsLabel();
     if (hudDepthEl) hudDepthEl.textContent = formatDepth(state.depth);
     if (hudLayerEl) hudLayerEl.textContent = `Layer ${idx + 1} · ${layer.name}`;
