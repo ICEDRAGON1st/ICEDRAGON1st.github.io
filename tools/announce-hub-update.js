@@ -108,8 +108,30 @@ async function postWebhook(webhook, content, roleId) {
   }
 }
 
+function buildRank(id) {
+  const m = /^(\d+)([a-z]*)$/i.exec(String(id || "").trim());
+  if (!m) return [0, 0, String(id || "")];
+  const letters = m[2].toLowerCase();
+  let n = 0;
+  for (let i = 0; i < letters.length; i += 1) {
+    n = n * 26 + (letters.charCodeAt(i) - 96);
+  }
+  return [Number(m[1]) || 0, n, String(id || "")];
+}
+
+function alreadyAnnounced(last, build) {
+  if (!last) return false;
+  if (last === build) return true;
+  const [ld, ls] = buildRank(last);
+  const [bd, bs] = buildRank(build);
+  if (ld !== bd) return ld > bd;
+  return ls >= bs;
+}
+
 async function main() {
-  const argBuild = String(process.argv[2] || "").trim();
+  const args = process.argv.slice(2).map((a) => String(a || "").trim());
+  const force = args.includes("--force");
+  const argBuild = args.find((a) => a && a !== "--force") || "";
   const build = argBuild || readBuild();
   const changelog = readChangelog();
   const notes = Array.isArray(changelog[build])
@@ -132,7 +154,7 @@ async function main() {
 
   const existing = await readClaim();
   const last = String(existing?.lastBuild || "");
-  if (last && last.localeCompare(build) >= 0) {
+  if (!force && alreadyAnnounced(last, build)) {
     console.log("skip — already announced", last, ">=", build);
     return;
   }
