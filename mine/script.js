@@ -216,6 +216,14 @@
   const guideCats = document.getElementById("guide-cats");
   const guideLead = document.getElementById("guide-lead");
   const floatLayer = document.getElementById("float-layer");
+  const suffixBtn = document.getElementById("suffix-btn");
+  const depthUnitsBtn = document.getElementById("depth-units-btn");
+  const menuSuffixBtn = document.getElementById("menu-suffix-btn");
+  const menuDepthBtn = document.getElementById("menu-depth-btn");
+  const suffixOverlay = document.getElementById("suffix-overlay");
+  const suffixClose = document.getElementById("suffix-close");
+  const depthUnitsOverlay = document.getElementById("depth-units-overlay");
+  const depthUnitsClose = document.getElementById("depth-units-close");
 
   let state = defaultState();
   let sessionStarted = false;
@@ -368,6 +376,73 @@
     "C"
   ];
 
+  const SUFFIX_NAMES = [
+    "ones (no suffix)",
+    "Thousand",
+    "Million",
+    "Billion",
+    "Trillion",
+    "Quadrillion",
+    "Quintillion",
+    "Sextillion",
+    "Septillion",
+    "Octillion",
+    "Nonillion",
+    "Decillion",
+    "Undecillion",
+    "Duodecillion",
+    "Tredecillion",
+    "Quattuordecillion",
+    "Quindecillion",
+    "Sexdecillion",
+    "Septendecillion",
+    "Octodecillion",
+    "Novemdecillion",
+    "Vigintillion",
+    "Unvigintillion",
+    "Duovigintillion",
+    "Trevigintillion",
+    "Quattuorvigintillion",
+    "Quinvigintillion",
+    "Sexvigintillion",
+    "Septenvigintillion",
+    "Octovigintillion",
+    "Novemvigintillion",
+    "Trigintillion",
+    "Untrigintillion",
+    "Duotrigintillion",
+    "Tretrigintillion",
+    "Quattuortrigintillion",
+    "Quintrigintillion",
+    "Sextrigintillion",
+    "Septentrigintillion",
+    "Octotrigintillion",
+    "Novemtrigintillion",
+    "Quadragintillion",
+    "Quinquagintillion",
+    "Sexagintillion",
+    "Septuagintillion",
+    "Octogintillion",
+    "Nonagintillion",
+    "Centillion (game)"
+  ];
+
+  /** Depth readout units (meters + short scale with m). */
+  const DEPTH_UNITS = [
+    { unit: "m", name: "meters", meters: 1, example: "842m" },
+    { unit: "km", name: "kilometers", meters: 1e3, example: "1.5km" },
+    { unit: "Mm", name: "megameters (million m)", meters: 1e6, example: "2.4Mm" },
+    { unit: "Bm", name: "billion meters", meters: 1e9, example: "3Bm" },
+    { unit: "Tm", name: "trillion meters", meters: 1e12, example: "1.2Tm" },
+    { unit: "Qam", name: "quadrillion meters", meters: 1e15, example: "5Qam" },
+    { unit: "Qim", name: "quintillion meters", meters: 1e18, example: "2Qim" },
+    { unit: "Sxm", name: "sextillion meters", meters: 1e21, example: "1Sxm" },
+    { unit: "Spm", name: "septillion meters", meters: 1e24, example: "1Spm" },
+    { unit: "Ocm", name: "octillion meters", meters: 1e27, example: "1Ocm" },
+    { unit: "Nom", name: "nonillion meters", meters: 1e30, example: "1Nom" },
+    { unit: "Dcm", name: "decillion meters", meters: 1e33, example: "1Dcm" }
+  ];
+
   function formatNumTrim(text) {
     return String(text).replace(/\.0+$/, "").replace(/(\.\d*[1-9])0+$/, "$1");
   }
@@ -419,9 +494,31 @@
   }
 
   function formatDepth(m) {
-    const n = Math.floor(Number(m) || 0);
-    if (n >= 10000) return formatNum(n) + "m";
-    return n + "m";
+    const n = Math.max(0, Number(m) || 0);
+    if (!Number.isFinite(n)) return "0m";
+    if (n < 1000) return `${Math.floor(n)}m`;
+    // Prefer readable km for mid depths, then same short scale as coins + m.
+    if (n < 1e6) {
+      const km = n / 1000;
+      const text = km >= 100 ? km.toFixed(0) : km >= 10 ? km.toFixed(1) : km.toFixed(2);
+      return `${formatNumTrim(text)}km`;
+    }
+    return `${formatNum(n)}m`;
+  }
+
+  function escapeHtml(s) {
+    return String(s || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function formatSuffixPower(tier) {
+    const exp = tier * 3;
+    if (exp <= 0) return "1";
+    if (exp <= 6) return `1${"0".repeat(exp)}`;
+    return `10^${exp}`;
   }
 
   function layerFor(depth) {
@@ -710,7 +807,8 @@
         const heightPx = Math.max(36, (end - start) * ppm);
         maxBottom = Math.max(maxBottom, topPx + heightPx);
         const current = i === idx ? " is-current" : "";
-        html += `<div class="strata-band${current}" style="top:${topPx}px;height:${heightPx}px;background:linear-gradient(180deg, ${band.color}cc, ${band.color}88);">${band.name}<span class="strata-depth">Layer ${i + 1} · ${formatDepth(band.min)}+</span></div>`;
+        const thick = formatDepth(Math.max(0, end - start));
+        html += `<div class="strata-band${current}" style="top:${topPx}px;height:${heightPx}px;background:linear-gradient(180deg, ${band.color}cc, ${band.color}88);">${band.name}<span class="strata-depth">Layer ${i + 1} · ${formatDepth(band.min)}+ · ${thick} thick</span></div>`;
       }
       strataEl.style.height = `${Math.max(viewH + 200, maxBottom + 120)}px`;
       strataEl.innerHTML = html;
@@ -921,12 +1019,16 @@
         const chipLabel = layerLabelEl.parentElement?.querySelector(".stat-chip-label");
         if (chipLabel) chipLabel.textContent = `Layer ${idx + 1}`;
       }
-      if (hudLayerEl) hudLayerEl.textContent = `Layer ${idx + 1} · ${layer.name}`;
+      if (hudLayerEl) {
+        const span = layerThickness(state.depth);
+        hudLayerEl.textContent = `Layer ${idx + 1} · ${layer.name} · ${formatDepth(span)} thick`;
+      }
       const next = LAYERS[idx + 1];
       if (layerProgressLabelEl) {
+        const span = layerThickness(state.depth);
         layerProgressLabelEl.textContent = next
-          ? `Layer ${idx + 1}: ${layer.name} · ${Math.round(nextLayerProgress(state.depth) * 100)}% to ${next.name}`
-          : `Layer ${idx + 1}: ${layer.name} · deepest`;
+          ? `Layer ${idx + 1}: ${layer.name} · ${formatDepth(span)} thick · ${Math.round(nextLayerProgress(state.depth) * 100)}% to ${next.name}`
+          : `Layer ${idx + 1}: ${layer.name} · ${formatDepth(span)} thick · deepest`;
       }
       if (depthFillEl) depthFillEl.style.width = `${Math.round(nextLayerProgress(state.depth) * 100)}%`;
     }
@@ -1134,11 +1236,14 @@
     }
     if (digPowerLabelEl) {
       const effective = digMetersForCount(1, { usePickPower: true });
-      digPowerLabelEl.textContent = `${effective.toFixed(effective % 1 ? 1 : 0)}m`;
+      digPowerLabelEl.textContent = formatDepth(effective);
     }
     updateAutoMpsLabel();
     if (hudDepthEl) hudDepthEl.textContent = formatDepth(state.depth);
-    if (hudLayerEl) hudLayerEl.textContent = `Layer ${idx + 1} · ${layer.name}`;
+    if (hudLayerEl) {
+      const span = layerThickness(state.depth);
+      hudLayerEl.textContent = `Layer ${idx + 1} · ${layer.name} · ${formatDepth(span)} thick`;
+    }
     if (hudBestEl) {
       hudBestEl.textContent = `${formatDepth(state.bestDepth)} · ${formatBestOre()}`;
     }
@@ -1146,10 +1251,11 @@
       overlayBestEl.textContent = `${formatDepth(state.bestDepth)} · ${formatBestOre()}`;
     }
     const next = LAYERS[idx + 1];
+    const spanNow = layerThickness(state.depth);
     if (layerProgressLabelEl) {
       layerProgressLabelEl.textContent = next
-        ? `Layer ${idx + 1}: ${layer.name} · ${Math.round(nextLayerProgress(state.depth) * 100)}% to ${next.name}`
-        : `Layer ${idx + 1}: ${layer.name} · deepest`;
+        ? `Layer ${idx + 1}: ${layer.name} · ${formatDepth(spanNow)} thick · ${Math.round(nextLayerProgress(state.depth) * 100)}% to ${next.name}`
+        : `Layer ${idx + 1}: ${layer.name} · ${formatDepth(spanNow)} thick · deepest`;
     }
     if (depthFillEl) depthFillEl.style.width = `${Math.round(nextLayerProgress(state.depth) * 100)}%`;
     updateShaftView(false);
@@ -1176,7 +1282,8 @@
 
     if (guideLead) {
       if (guideCat === "layers") {
-        guideLead.textContent = `You are on layer ${idx + 1} of ${LAYERS.length}: ${layer.name}.`;
+        const span = layerThickness(state.depth);
+        guideLead.textContent = `You are on layer ${idx + 1} of ${LAYERS.length}: ${layer.name} — ${formatDepth(span)} thick.`;
       } else if (guideCat === "found") {
         guideLead.textContent = `${unlocked.length} ores unlocked at your depth · best find: ${
           bestOre ? `${bestOre.emoji} ${bestOre.name}` : "—"
@@ -1190,20 +1297,23 @@
       const from = Math.max(0, idx - 4);
       const to = Math.min(LAYERS.length, idx + 12);
       const slice = LAYERS.slice(from, to);
+      const maxSpan = Math.max(1, ...slice.map((l) => Number(l.span) || 0));
       guideBody.innerHTML =
-        `<div class="guide-section-head">Nearby layers</div>` +
+        `<div class="guide-section-head">Nearby layers (bar = relative thickness)</div>` +
         slice
           .map((l, i) => {
             const realIdx = from + i;
             const here = realIdx === idx;
             const span = Number(l.span) || 0;
+            const pct = Math.max(4, Math.round((span / maxSpan) * 100));
             return `<div class="guide-row${here ? " is-you" : ""}">
               <span class="guide-swatch" style="background:${l.color}"></span>
-              <div>
+              <div class="guide-row-main">
                 <div class="name">${here ? "▶ " : ""}${l.name}</div>
-                <div class="meta">Layer ${realIdx + 1} · starts ${formatDepth(l.min)} · ${formatDepth(span)} thick</div>
+                <div class="meta">Layer ${realIdx + 1} · starts ${formatDepth(l.min)}</div>
+                <div class="layer-size-track" aria-hidden="true"><span class="layer-size-fill" style="width:${pct}%;background:${l.color}"></span></div>
               </div>
-              <strong class="guide-tag">${here ? "You" : realIdx < idx ? "Above" : "Below"}</strong>
+              <strong class="guide-tag guide-thickness">${formatDepth(span)} thick</strong>
             </div>`;
           })
           .join("");
@@ -1303,8 +1413,63 @@
   gamesBtn?.addEventListener("click", () => {
     window.location.href = "../index.html#games";
   });
+  let suffixGuideBuilt = false;
+  let depthUnitsGuideBuilt = false;
+
+  function renderSuffixGuide() {
+    const body = document.getElementById("suffix-body");
+    if (!body || suffixGuideBuilt) return;
+    body.innerHTML = SUFFIXES.map((suf, i) => {
+      const label = suf || "—";
+      const name = SUFFIX_NAMES[i] || "—";
+      const power = formatSuffixPower(i);
+      const example = i === 0 ? "842" : `1.25${suf}`;
+      return `<tr>
+        <td><strong class="suffix-code">${escapeHtml(label)}</strong></td>
+        <td>${escapeHtml(name)}</td>
+        <td class="suffix-power">${escapeHtml(power)}</td>
+        <td class="suffix-example">${escapeHtml(example)}</td>
+      </tr>`;
+    }).join("");
+    suffixGuideBuilt = true;
+  }
+
+  function renderDepthUnitsGuide() {
+    const body = document.getElementById("depth-units-body");
+    if (!body || depthUnitsGuideBuilt) return;
+    body.innerHTML = DEPTH_UNITS.map((u) => {
+      const meters =
+        u.meters >= 1e6 ? formatNum(u.meters) : u.meters >= 1000 ? formatNum(u.meters) : String(u.meters);
+      return `<tr>
+        <td><strong class="suffix-code">${escapeHtml(u.unit)}</strong></td>
+        <td>${escapeHtml(u.name)}</td>
+        <td class="suffix-power">${escapeHtml(meters)}</td>
+        <td class="suffix-example">${escapeHtml(u.example)}</td>
+      </tr>`;
+    }).join("");
+    depthUnitsGuideBuilt = true;
+  }
+
+  function openSuffixGuide() {
+    renderSuffixGuide();
+    depthUnitsOverlay?.classList.add("hidden");
+    guideOverlay?.classList.add("hidden");
+    overlay?.classList.add("hidden");
+    suffixOverlay?.classList.remove("hidden");
+  }
+
+  function openDepthUnitsGuide() {
+    renderDepthUnitsGuide();
+    suffixOverlay?.classList.add("hidden");
+    guideOverlay?.classList.add("hidden");
+    overlay?.classList.add("hidden");
+    depthUnitsOverlay?.classList.remove("hidden");
+  }
+
   guideBtn?.addEventListener("click", () => {
     renderGuide();
+    suffixOverlay?.classList.add("hidden");
+    depthUnitsOverlay?.classList.add("hidden");
     guideOverlay?.classList.remove("hidden");
   });
   guideCats?.addEventListener("click", (e) => {
@@ -1314,6 +1479,21 @@
     renderGuide();
   });
   guideClose?.addEventListener("click", () => guideOverlay?.classList.add("hidden"));
+  suffixBtn?.addEventListener("click", openSuffixGuide);
+  menuSuffixBtn?.addEventListener("click", openSuffixGuide);
+  depthUnitsBtn?.addEventListener("click", openDepthUnitsGuide);
+  menuDepthBtn?.addEventListener("click", openDepthUnitsGuide);
+  suffixClose?.addEventListener("click", () => suffixOverlay?.classList.add("hidden"));
+  depthUnitsClose?.addEventListener("click", () => depthUnitsOverlay?.classList.add("hidden"));
+  suffixOverlay?.addEventListener("click", (e) => {
+    if (e.target === suffixOverlay) suffixOverlay.classList.add("hidden");
+  });
+  depthUnitsOverlay?.addEventListener("click", (e) => {
+    if (e.target === depthUnitsOverlay) depthUnitsOverlay.classList.add("hidden");
+  });
+  guideOverlay?.addEventListener("click", (e) => {
+    if (e.target === guideOverlay) guideOverlay.classList.add("hidden");
+  });
 
   load();
   applyOffline();

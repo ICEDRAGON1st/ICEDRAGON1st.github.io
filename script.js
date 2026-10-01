@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ab": [
+    "Mine Depth: see layer thickness clearly, plus Numbers and Depth menus (km, Bm, Dc, and what they mean)"
+  ],
   "20261001aa": [
     "Mine Depth: coin/depth numbers use the same short suffixes as Fishing Idle (K, M, … Dc, UDc, …)"
   ],

@@ -9,13 +9,15 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261001aa">
+  <link rel="stylesheet" href="styles.css?v=20261001ab">
 </head>
 <body>
   <header class="top-bar">
     <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰ Menu</button>
     <h1>Mine Depth</h1>
     <div class="top-stats">
+      <button id="suffix-btn" type="button" class="guide-btn" title="What K, M, Dc mean">Numbers</button>
+      <button id="depth-units-btn" type="button" class="guide-btn" title="What km, Bm mean">Depth</button>
       <button id="guide-btn" type="button" class="guide-btn">Mine guide</button>
       Depth <strong id="hud-depth">0m</strong>
       · <span id="hud-layer">Layer 1 · Soil</span>
@@ -116,14 +118,16 @@
       <div class="overlay-actions">
         <button id="start-btn" type="button" class="btn">Play</button>
         <button id="games-btn" type="button" class="btn btn-ghost">Games</button>
+        <button id="menu-suffix-btn" type="button" class="btn btn-ghost">Number suffixes</button>
+        <button id="menu-depth-btn" type="button" class="btn btn-ghost">Depth units</button>
       </div>
     </div>
   </div>
 
-  <div id="guide-overlay" class="overlay hidden">
+  <div id="guide-overlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="guide-title">
     <div class="overlay-card guide-card">
-      <h2>Mine guide</h2>
-      <p class="guide-lead" id="guide-lead">Where you are, and what ores you’ve unlocked.</p>
+      <h2 id="guide-title">Mine guide</h2>
+      <p class="guide-lead" id="guide-lead">Where you are, how thick each layer is, and what ores you’ve unlocked.</p>
       <div id="guide-cats" class="shop-cats guide-cats" role="tablist" aria-label="Guide sections">
         <button type="button" class="shop-cat-btn active" data-guide-cat="layers">Layers</button>
         <button type="button" class="shop-cat-btn" data-guide-cat="found">Found ores</button>
@@ -136,11 +140,69 @@
     </div>
   </div>
 
+  <div id="suffix-overlay" class="overlay suffix-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="suffix-title">
+    <div class="overlay-card guide-card suffix-card">
+      <div class="guide-head">
+        <div>
+          <p class="eyebrow">Coin readout</p>
+          <h2 id="suffix-title">Number suffixes</h2>
+        </div>
+        <button id="suffix-close" type="button" class="btn btn-ghost">Close</button>
+      </div>
+      <p class="guide-lead">
+        Big coin amounts shorten with a letter suffix. Each step is <strong>×1,000</strong>
+        (so <strong>1M</strong> = 1,000K = one million). Same system as Fishing Idle.
+      </p>
+      <div class="guide-table-wrap">
+        <table class="guide-table suffix-table">
+          <thead>
+            <tr>
+              <th>Suffix</th>
+              <th>Stands for</th>
+              <th>Value</th>
+              <th>Example</th>
+            </tr>
+          </thead>
+          <tbody id="suffix-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div id="depth-units-overlay" class="overlay suffix-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="depth-units-title">
+    <div class="overlay-card guide-card suffix-card">
+      <div class="guide-head">
+        <div>
+          <p class="eyebrow">Shaft depth</p>
+          <h2 id="depth-units-title">Depth units</h2>
+        </div>
+        <button id="depth-units-close" type="button" class="btn btn-ghost">Close</button>
+      </div>
+      <p class="guide-lead">
+        Depth and layer thickness use meters, then the same short scale as coins with an
+        <strong>m</strong> on the end — <strong>1km</strong> = 1,000m, <strong>1Bm</strong> = 1 billion meters.
+      </p>
+      <div class="guide-table-wrap">
+        <table class="guide-table suffix-table">
+          <thead>
+            <tr>
+              <th>Unit</th>
+              <th>Stands for</th>
+              <th>Meters</th>
+              <th>Example</th>
+            </tr>
+          </thead>
+          <tbody id="depth-units-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
   <script src="../hub-streak.js"></script>
   <script src="../hub-achievements.js"></script>
   <script src="../hub-sound.js"></script>
   <script src="../hub-confetti.js"></script>
-  <script src="../mine-data.js?v=20261001aa"></script>
+  <script src="../mine-data.js?v=20261001ab"></script>
   <script src="../hub-supabase.js?v=20260923u"></script>
   <script src="../hub-account-bag.js?v=20260923ag"></script>
   <script src="../hub-plays.js?v=20260927k"></script>
@@ -148,6 +210,6 @@
   <script src="../hub-chat.js?v=20260927c"></script>
   <script src="../hub-calls.js?v=20260925a"></script>
 <script src="../hub-leaderboard.js?v=20260925a"></script>
-  <script src="script.js?v=20261001aa"></script>
+  <script src="script.js?v=20261001ab"></script>
 </body>
 </html>
