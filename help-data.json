@@ -61,9 +61,23 @@
     {
       "id": "owner",
       "games": ["*", "hub"],
-      "keywords": ["owner", "creator", "developer", "who made", "who owns", "admin", "ice_dragon", "ice dragon"],
+      "keywords": ["owner", "creator", "developer", "who made", "who owns", "admin", "ice_dragon", "ice dragon", "publisher", "studio"],
       "title": "Who owns My Games?",
       "answer": "The owner of My Games is ICE_DRAGON."
+    },
+    {
+      "id": "updates-help",
+      "games": ["*", "hub"],
+      "keywords": ["update", "updates", "patch", "changelog", "what's new", "version"],
+      "title": "Updates & patches",
+      "answer": "Open the hub and tap Updates to see What's New for each build. Fresh notes also show when the hub loads after a new release."
+    },
+    {
+      "id": "troubleshoot-help",
+      "games": ["*", "hub"],
+      "keywords": ["bug", "broken", "not working", "troubleshoot", "fix", "glitch", "stuck", "crash"],
+      "title": "Something broken?",
+      "answer": "Try a hard refresh, make sure you're on the latest build (check Updates), and confirm your username is set. You can also send Feedback from the hub if a bug keeps happening."
     },
     {
       "id": "controls-general",

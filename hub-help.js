@@ -50,7 +50,7 @@
       refuseCheat:
         "I can't spoil secret words, hidden tiles, or puzzle answers. Ask about rules and controls instead.",
       refuseOffTopic:
-        "That isn't about these games. Ask about controls, rules, menus, achievements, or your own account.",
+        "I'm here for My Games, so I can't help with that one. Ask me anything about the hub or the games!",
       refusePrivacy:
         "That's private — I can't show other players' codes, usernames, or account info. You can only ask about your own.",
       refusePassword:
@@ -71,7 +71,7 @@
       refuseCheat:
         "TILT! No free credits for spoilers — I don't reveal secret words, tiles, or puzzle keys. Play fair and chase that high score!",
       refuseOffTopic:
-        "Wrong cabinet, player! I only serve My Games tips — controls, rules, menus, achievements. No real-world trivia in this arcade!",
+        "Wrong cabinet for that one — I'm here for My Games. Ask me about the hub or any game!",
       greet:
         "Hey player! Chip online — ask how to play, where achievements are, or tap a quick question. Let's chase that high score!",
       helpOffer: (where) =>
@@ -88,7 +88,7 @@
       refuseCheat:
         "ERROR! My protocols prevent me from spoiling the fun or answering non-game trivia!",
       refuseOffTopic:
-        "ERROR! My protocols prevent me from spoiling the fun or answering non-game trivia!",
+        "Beep — that's outside My Games. Ask me about the hub or a game instead!",
       greet: "Beep-boop hi!! Hype systems online — ask me about this game, menus, or achievements! ⚡",
       helpOffer: (where) =>
         `Yes! Help mode ON! Ask me anything about ${where} — how to play, controls, achievements, settings, or your username / player code. Just type a question! ⚡`
@@ -104,7 +104,7 @@
       refuseCheat:
         "A true master finds the secret word on their own, human. No hints from me!",
       refuseOffTopic:
-        "I tutor games, not the universe. Ask about rules, menus, or achievements — or I'll go back to my nap.",
+        "That's outside my tutoring hours. Ask me about My Games instead.",
       greet: "Hm. Hello. Ask about the games if you must — I suppose I can spare a moment before my nap.",
       helpOffer: (where) =>
         `Fine, I can help. Ask about ${where}: how to play, controls, achievements, settings, or your own username and player code. Don't make me repeat myself.`
@@ -120,7 +120,7 @@
       refuseCheat:
         "nice try~ I'm chaotic, not a cheat engine. secret answers stay corrupted on purpose. go guess it yourself ;)",
       refuseOffTopic:
-        "lol that question isn't even in this build. ask me about games, buttons, or menus — not random life lore.",
+        "lol not in this build — ask me about My Games instead~",
       greet: "heyyy~ glitch here. ask about games/menus… i promise i only mostly broke the UI",
       helpOffer: (where) =>
         `yep i can help~ just ask. i know ${where} tips: how to play, controls, achievements, settings, your username/code. tap a button or type something :)`
@@ -136,7 +136,7 @@
       refuseCheat:
         "yeah no — i'm not shipping spoilers. secret words and puzzle keys stay out of the help build. go play it.",
       refuseOffTopic:
-        "that's outside the repo, bud. i only answer hub/game stuff — controls, rules, settings. filing this as won't-fix.",
+        "outside the repo — ask me about My Games instead.",
       greet: "hey… *yawns* ask about the hub or a game. then i'm going back to bed.",
       helpOffer: (where) =>
         `yeah i can help. ask about ${where} — how to play, controls, achievements, settings, or your username/player code. then maybe let me sleep.`
@@ -152,7 +152,7 @@
       refuseCheat:
         "NO SHORTCUTS ON MY WATCH! Spoilers are for quitters — earn that win with SWEAT and REPS!",
       refuseOffTopic:
-        "WRONG WORKOUT PLAN! This gym is My Games only — controls, rules, achievements. NO outside trivia sets!",
+        "Wrong gym for that one! Ask me about My Games instead!",
       greet: "HEYYY CHAMP! Ask me how to play or where the menus are — LET'S GET THOSE GAINS!",
       helpOffer: (where) =>
         `YES I CAN HELP YOU!! Ask me about ${where}: how to play, controls, achievements, settings, leaderboards, YOUR username or player code — JUST ASK!!`
@@ -168,7 +168,7 @@
       refuseCheat:
         "Greedy, yes — cheater, never. I won't sell secret words or puzzle keys. Dig up the treasure yourself!",
       refuseOffTopic:
-        "That shiny isn't from this dungeon. Ask about games, loot menus, and achievements — not worldly nonsense.",
+        "That shiny isn't from this dungeon. Ask me about My Games instead.",
       greet: "Yesss, hello shiny seeker… ask about games and loot menus. Leave the goblin a tip.",
       helpOffer: (where) =>
         `Yesss, I can help… Ask about ${where}: how to play, controls, achievements, settings, or your own username and player code. Then leave the goblin a tip.`
@@ -184,7 +184,7 @@
       refuseCheat:
         "Spoiler signals are jammed, cadet. I will not transmit secret words or puzzle solutions. Complete the mission yourself.",
       refuseOffTopic:
-        "That query is outside this star system. I only brief My Games missions — controls, rules, menus, achievements.",
+        "Outside this star system. Ask me about My Games instead, cadet.",
       greet: "Greetings, star-cadet. Ready for a briefing? Ask about controls, rules, or hub menus.",
       helpOffer: (where) =>
         `Affirmative — I can help. Ask about ${where}: how to play, controls, achievements, settings, or your username and player code. Transmit your question when ready.`
@@ -200,7 +200,7 @@
       refuseCheat:
         "Ah-ah! No tasting the secret ingredient early — I won't serve spoilers or puzzle answers. Cook it yourself!",
       refuseOffTopic:
-        "Wrong kitchen! I only plate My Games recipes — controls, rules, menus, achievements. No outside menu items.",
+        "Wrong kitchen for that dish — ask me about My Games instead!",
       greet: "Bonjour, chef! Hungry for game tips? Ask how to play or where the menus are!",
       helpOffer: (where) =>
         `Of course I can help! Ask about ${where} — how to play, controls, achievements, settings, or your username and player code. What's cooking?`
@@ -216,7 +216,7 @@
       refuseCheat:
         "That information is top secret, detective. You'll have to solve this case yourself.",
       refuseOffTopic:
-        "Wrong beat, kid. My desk only handles My Games cases — controls, rules, menus, achievements. Nothing else.",
+        "Wrong beat, kid. Ask me about My Games instead.",
       greet: "Evening, kid. You looking for a case tip? Ask about the games, menus, or achievements.",
       helpOffer: (where) =>
         `Yeah, I can help. Ask about ${where}: how to play, controls, achievements, settings, or your own username and player code. What's the case?`
@@ -717,9 +717,13 @@
   const HELP_OFFER_RE =
     /\b((can|could|will|would)\s+you\s+help(\s+me)?|help\s+me(\s+please)?|i\s+need\s+help|need\s+help|please\s+help|can\s+u\s+help|help\s+please|i\s+want\s+help|how\s+can\s+you\s+help)\b/i;
 
-  // Only real-world / homework style asks — not missing game FAQ hits.
+  // Clearly non-game / real-world asks only (never block game ownership, lore, etc.).
   const TRIVIA_RE =
-    /(\d+\s*[\+\-\*\/x×÷]\s*\d+|what\s*is\s+\d|how\s*much\s*is\s+\d|calculate|capital\s+of|when\s+was\s+|who\s+won\s+|weather\s+today|define\s+|translate\s+|president|prime\s*minister|united\s*states|\busa\b|who\s+is\s+the\s+|what\s+is\s+the\s+capital|real\s*world|homework|school\s*test)\b/i;
+    /(\d+\s*[\+\-\*\/x×÷]\s*\d+|what\s*is\s+\d+|how\s*much\s*is\s+\d+|calculate\s+\d|capital\s+of\s+\w+|weather\s+(today|tomorrow)|define\s+\w+|translate\s+\w+|president\s+of|prime\s*minister|united\s*states|\busa\b|what\s+is\s+the\s+capital|homework|school\s*test|math\s*problem|recipe\s+for|how\s+to\s+cook|bake\s+a|real\s*world\s+advice)\b/i;
+
+  // Anything that sounds like My Games / this hub stays in-scope.
+  const GAME_RELATED_RE =
+    /\b(my\s*games|hub|game|games|minigame|owner|creator|developer|dev|studio|publisher|admin|ice[_\s-]?dragon|lore|story|backstory|character|plot|world|patch|update|changelog|bug|glitch|troubleshoot|achievement|leaderboard|controls?|menu|settings?|mascot|assistant|fishing|mine|snake|guessword|wordle|player\s*code|username|cast|dig|ore|rod)\b/i;
 
   // Never reveal passwords — refuse even if somehow stored.
   const PASSWORD_RE =
@@ -740,7 +744,7 @@
     /\b((code|username|user\s*name|password|player\s*code)\s+(to|for|of)\s+|(his|her|their|someone'?s|somebody'?s)\s+(code|username|user\s*name|password|account|player\s*code)|([A-Za-z][\w-]{1,24})'s\s+(code|username|password|account|player\s*code)|(code|username|password)\s+to\s+\w[\w-]{0,24}\s+account|what\s+is\s+\w[\w-]{0,24}\s*('s)?\s*(code|username|password|player\s*code))\b/i;
 
   const OWNER_RE =
-    /\b(who\s+(is|made|created|owns)|who'?s\s+the|(owner|creator|developer|dev|admin)\s+of|(made|created|owns)\s+(this|the)\s+(game|hub|site|website)|who\s+(runs|built)\s+(this|the)\s+(game|hub|site))\b/i;
+    /\b(who\s+(is|made|created|owns|runs|built)|who'?s\s+the|(owner|creator|developer|dev|admin|publisher)\s+of|(made|created|owns)\s+(this|the|my)\s+(game|games|hub|site|website)|who\s+(runs|built)\s+(this|the|my)\s+(game|games|hub|site)|owner\s+of\s+(the\s+)?(game|hub|site|my\s*games))\b/i;
 
   function isGreeting(query) {
     const raw = String(query || "").trim();
@@ -796,10 +800,15 @@
       return "account";
     }
     if (CHEAT_RE.test(q) || CHEAT_RE.test(raw)) return "cheat";
-    // Only hard-refuse clear real-world / homework questions.
+    // Game-related asks always stay in scope (owner, lore, updates, etc.).
+    if (GAME_RELATED_RE.test(q) || GAME_RELATED_RE.test(raw)) return "ok";
+    // Only refuse clearly non-game / real-world questions.
     if (TRIVIA_RE.test(q) || TRIVIA_RE.test(raw)) return "offtopic";
-    // Everything else can try the game FAQ (no blanket "not in game" wall).
     return "ok";
+  }
+
+  function unknownGameLine() {
+    return "I don't have the exact details on that right now, but feel free to check our official updates or community channels!";
   }
 
   function refusalLine(kind) {
@@ -807,24 +816,25 @@
     if (kind === "privacy") {
       return (
         m.refusePrivacy ||
-        "That's private — I can't show other players' codes, usernames, or account info. You can only ask about your own (like “what is my player code?”)."
+        "That's private — I can't share other players' account details."
       );
     }
     if (kind === "password") {
       return (
         m.refusePassword ||
-        "I can't show passwords — not even yours. Check Hub → Settings if you need to set or change a login password. I can tell you your username or player code instead."
+        "I can't show passwords. You can manage a login password in Hub → Settings."
       );
     }
     if (kind === "cheat") {
       return (
         m.refuseCheat ||
-        "I won't spoil secret words, hidden tiles, or puzzle answers. Ask about rules and controls instead."
+        "I can't spoil secret answers or puzzle solutions — that would ruin the fun."
       );
     }
+    // Polite turn-away — no long rule lists.
     return (
       m.refuseOffTopic ||
-      "That isn't about these games. Ask me about controls, rules, menus, achievements, or your own account — not real-world trivia."
+      "I'm here for My Games, so I can't help with that one. Ask me anything about the hub or the games!"
     );
   }
 
@@ -1071,7 +1081,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     refreshChrome();
     pushBot(
       "Hi!",
-      "Tap a blue button above, or type a question like “how do I play?” or “what is my username?” I only help with these games — not homework or secret answers.",
+      "I'm your My Games assistant. Ask about gameplay, menus, your account, the owner, updates, lore, or tap a button above. I stay focused on My Games — not homework or real-world trivia.",
       { raw: true }
     );
   }
@@ -1093,7 +1103,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     if (titleEl) titleEl.textContent = m.name;
     if (avatarEl) avatarEl.textContent = m.icon || "?";
     if (contextEl) {
-      contextEl.textContent = `${m.fullName} can explain rules, menus, and your account.`;
+      contextEl.textContent = `${m.fullName} · My Games help (play, account, owner, updates, and more).`;
     }
     const pill = root?.querySelector?.("#hub-help-game-pill");
     if (pill) {
@@ -1176,6 +1186,10 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
       pushBot("I can help!", helpOfferLine(), withMeant());
       return;
     }
+    if (guard === "owner") {
+      pushBot("Owner", ownerLine(), withMeant());
+      return;
+    }
     if (guard === "password") {
       pushBot("That's private", refusalLine("password"), withMeant());
       return;
@@ -1193,20 +1207,15 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
       return;
     }
     if (guard === "offtopic") {
-      pushBot("Game help only", refusalLine("offtopic"), withMeant());
+      pushBot("Hmm…", refusalLine("offtopic"), withMeant());
       return;
     }
 
     const gameId = currentGameId();
     const hits = search(q, gameId);
     if (!hits.length) {
-      pushBot(
-        "I don't know that one yet",
-        `Try asking about ${gameLabel(
-          gameId
-        )} — like “how to play”, “achievements”, “settings”, or “leaderboard”. I never reveal secret words or puzzle answers.`,
-        withMeant()
-      );
+      // Valid game ask with no FAQ hit — never treat as forbidden.
+      pushBot("Still digging…", unknownGameLine(), withMeant());
       return;
     }
     const t = hits[0].topic;
