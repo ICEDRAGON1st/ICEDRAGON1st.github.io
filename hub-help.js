@@ -47,7 +47,9 @@
       refuseCheat:
         "TILT! No free credits for spoilers — I don't reveal secret words, tiles, or puzzle keys. Play fair and chase that high score!",
       refuseOffTopic:
-        "Wrong cabinet, player! I only serve My Games tips — controls, rules, menus, achievements. No real-world trivia in this arcade!"
+        "Wrong cabinet, player! I only serve My Games tips — controls, rules, menus, achievements. No real-world trivia in this arcade!",
+      greet:
+        "Hey player! Chip online — ask how to play, where achievements are, or tap a quick question. Let's chase that high score!"
     },
     {
       id: "spark-e",
@@ -60,7 +62,8 @@
       refuseCheat:
         "ERROR! My protocols prevent me from spoiling the fun or answering non-game trivia!",
       refuseOffTopic:
-        "ERROR! My protocols prevent me from spoiling the fun or answering non-game trivia!"
+        "ERROR! My protocols prevent me from spoiling the fun or answering non-game trivia!",
+      greet: "Beep-boop hi!! Hype systems online — ask me about this game, menus, or achievements! ⚡"
     },
     {
       id: "whiskers",
@@ -73,7 +76,8 @@
       refuseCheat:
         "A true master finds the secret word on their own, human. No hints from me!",
       refuseOffTopic:
-        "I tutor games, not the universe. Ask about rules, menus, or achievements — or I'll go back to my nap."
+        "I tutor games, not the universe. Ask about rules, menus, or achievements — or I'll go back to my nap.",
+      greet: "Hm. Hello. Ask about the games if you must — I suppose I can spare a moment before my nap."
     },
     {
       id: "glitch",
@@ -86,7 +90,8 @@
       refuseCheat:
         "nice try~ I'm chaotic, not a cheat engine. secret answers stay corrupted on purpose. go guess it yourself ;)",
       refuseOffTopic:
-        "lol that question isn't even in this build. ask me about games, buttons, or menus — not random life lore."
+        "lol that question isn't even in this build. ask me about games, buttons, or menus — not random life lore.",
+      greet: "heyyy~ glitch here. ask about games/menus… i promise i only mostly broke the UI"
     },
     {
       id: "pixel-8",
@@ -99,7 +104,8 @@
       refuseCheat:
         "yeah no — i'm not shipping spoilers. secret words and puzzle keys stay out of the help build. go play it.",
       refuseOffTopic:
-        "that's outside the repo, bud. i only answer hub/game stuff — controls, rules, settings. filing this as won't-fix."
+        "that's outside the repo, bud. i only answer hub/game stuff — controls, rules, settings. filing this as won't-fix.",
+      greet: "hey… *yawns* ask about the hub or a game. then i'm going back to bed."
     },
     {
       id: "barnaby",
@@ -112,7 +118,8 @@
       refuseCheat:
         "NO SHORTCUTS ON MY WATCH! Spoilers are for quitters — earn that win with SWEAT and REPS!",
       refuseOffTopic:
-        "WRONG WORKOUT PLAN! This gym is My Games only — controls, rules, achievements. NO outside trivia sets!"
+        "WRONG WORKOUT PLAN! This gym is My Games only — controls, rules, achievements. NO outside trivia sets!",
+      greet: "HEYYY CHAMP! Ask me how to play or where the menus are — LET'S GET THOSE GAINS!"
     },
     {
       id: "goldsworth",
@@ -125,7 +132,8 @@
       refuseCheat:
         "Greedy, yes — cheater, never. I won't sell secret words or puzzle keys. Dig up the treasure yourself!",
       refuseOffTopic:
-        "That shiny isn't from this dungeon. Ask about games, loot menus, and achievements — not worldly nonsense."
+        "That shiny isn't from this dungeon. Ask about games, loot menus, and achievements — not worldly nonsense.",
+      greet: "Yesss, hello shiny seeker… ask about games and loot menus. Leave the goblin a tip."
     },
     {
       id: "astra",
@@ -138,7 +146,8 @@
       refuseCheat:
         "Spoiler signals are jammed, cadet. I will not transmit secret words or puzzle solutions. Complete the mission yourself.",
       refuseOffTopic:
-        "That query is outside this star system. I only brief My Games missions — controls, rules, menus, achievements."
+        "That query is outside this star system. I only brief My Games missions — controls, rules, menus, achievements.",
+      greet: "Greetings, star-cadet. Ready for a briefing? Ask about controls, rules, or hub menus."
     },
     {
       id: "gusto",
@@ -151,7 +160,8 @@
       refuseCheat:
         "Ah-ah! No tasting the secret ingredient early — I won't serve spoilers or puzzle answers. Cook it yourself!",
       refuseOffTopic:
-        "Wrong kitchen! I only plate My Games recipes — controls, rules, menus, achievements. No outside menu items."
+        "Wrong kitchen! I only plate My Games recipes — controls, rules, menus, achievements. No outside menu items.",
+      greet: "Bonjour, chef! Hungry for game tips? Ask how to play or where the menus are!"
     },
     {
       id: "shadow",
@@ -164,7 +174,8 @@
       refuseCheat:
         "That information is top secret, detective. You'll have to solve this case yourself.",
       refuseOffTopic:
-        "Wrong beat, kid. My desk only handles My Games cases — controls, rules, menus, achievements. Nothing else."
+        "Wrong beat, kid. My desk only handles My Games cases — controls, rules, menus, achievements. Nothing else.",
+      greet: "Evening, kid. You looking for a case tip? Ask about the games, menus, or achievements."
     }
   ];
 
@@ -446,11 +457,27 @@
   const SCOPE_RE =
     /\b(how|play|control|controls|rule|rules|menu|menus|setting|settings|option|options|achievement|achievements|leaderboard|leaderboards|hub|game|games|hotkey|button|pause|resume|cast|dig|fish|score|upgrade|shop|tutorial|guide|help|assistant|mascot|friends|chat|nickname|player|streak|fair\s*play|spoiler|hint|hints|coin|ore|rod|keyboard|wasd)\b/i;
 
+  // Small talk is fine; school/trivia/math is not.
+  const GREET_RE =
+    /^(hi|hii+|hello|hey+|yo|sup|howdy|hiya|heya|hai|good\s*(morning|afternoon|evening|day)|thanks|thank\s*you|ty|thx|bye|goodbye|see\s*ya|cya|what'?s\s*up|wassup|how\s*are\s*you)(\s+(there|chat|assistant|friend|buddy|chip|spark.?e))?[!?.]*$/i;
+
+  const TRIVIA_RE =
+    /(\d+\s*[\+\-\*\/x×÷]\s*\d+|what\s*is\s+\d|how\s*much\s*is\s+\d|calculate|capital\s+of|who\s+is\s+|when\s+was\s+|who\s+won\s+|weather\s+today|define\s+|translate\s+)/i;
+
+  function isGreeting(query) {
+    const raw = String(query || "").trim();
+    const q = normalize(raw);
+    if (!q || q.length > 48) return false;
+    return GREET_RE.test(q) || GREET_RE.test(raw);
+  }
+
   function classifyGuard(query) {
     const q = normalize(query);
     if (!q) return "empty";
+    if (isGreeting(query)) return "greet";
     if (CHEAT_RE.test(q) || CHEAT_RE.test(String(query || ""))) return "cheat";
-    // Pure off-topic: no in-game scope words and not a short game how-to phrase
+    if (TRIVIA_RE.test(q) || TRIVIA_RE.test(String(query || ""))) return "offtopic";
+    // Pure off-topic: no in-game scope words
     if (!SCOPE_RE.test(q) && !SCOPE_RE.test(String(query || ""))) return "offtopic";
     return "ok";
   }
@@ -466,6 +493,14 @@
     return (
       m.refuseOffTopic ||
       "I only answer questions about this game collection — controls, rules, menus, achievements, and settings."
+    );
+  }
+
+  function greetLine() {
+    const m = getMascot();
+    return (
+      m.greet ||
+      `Hey! I'm ${m.name}. Ask how to play, where achievements are, or tap a quick question — game stuff only.`
     );
   }
 
@@ -674,6 +709,10 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     pushUser(q);
 
     const guard = classifyGuard(q);
+    if (guard === "greet") {
+      pushBot("Hey", greetLine(), { raw: true });
+      return;
+    }
     if (guard === "cheat") {
       pushBot("Fair play", refusalLine("cheat"), { raw: true });
       return;
@@ -695,13 +734,8 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
       );
       return;
     }
-    // Voice wrap (prefix/suffix) once per ask — not on every FAQ card.
-    hits.forEach((h, i) => {
-      const t = h.topic;
-      if (!t || typeof t.answer !== "string") return;
-      if (i === 0) pushBot(t.title, t.answer);
-      else pushBot(t.title, t.answer, { raw: true });
-    });
+    const t = hits[0].topic;
+    if (t && typeof t.answer === "string") pushBot(t.title, t.answer);
   }
 
   /* ── Pause host minigame while help is open ── */

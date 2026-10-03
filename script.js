@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001aq": [
+    "Help Assistant: say hi — still refuses trivia like “what is 5+5”"
+  ],
   "20261001ap": [
     "Help Assistant: one answer per question (no more triple tip dump)"
   ],
