@@ -194,72 +194,111 @@ client.once(Events.ClientReady, (c) => {
   if (guildId) console.log(`Target guild: ${guildId}`);
 });
 
+async function safeEdit(interaction, content) {
+  try {
+    if (interaction.deferred || interaction.replied) {
+      await interaction.editReply(content);
+    } else {
+      await interaction.reply({ content, flags: MessageFlags.Ephemeral });
+    }
+  } catch (err) {
+    console.warn("reply failed", err?.code || err?.message || err);
+  }
+}
+
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
-  if (interaction.commandName === "unlink") {
-    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-    try {
-      const member = interaction.member;
-      if (!member || typeof member.setNickname !== "function") {
-        await interaction.editReply("Couldn't access your member profile.");
+  try {
+    if (interaction.commandName === "unlink") {
+      try {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+      } catch (err) {
+        console.warn("/unlink defer failed", err?.code || err?.message || err);
         return;
       }
-      await member.setNickname(null, "My Games /unlink");
-      await interaction.editReply("Nickname cleared on this server.");
+      try {
+        const member = interaction.member;
+        if (!member || typeof member.setNickname !== "function") {
+          await safeEdit(interaction, "Couldn't access your member profile.");
+          return;
+        }
+        await member.setNickname(null, "My Games /unlink");
+        await safeEdit(interaction, "Nickname cleared on this server.");
+      } catch (err) {
+        console.warn("/unlink failed", err);
+        await safeEdit(
+          interaction,
+          "Couldn't clear your nickname. Make sure the bot role is above yours and has **Manage Nicknames**."
+        );
+      }
+      return;
+    }
+
+    if (interaction.commandName !== "link") return;
+
+    try {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     } catch (err) {
-      console.warn("/unlink failed", err);
-      await interaction.editReply(
-        "Couldn't clear your nickname. Make sure the bot role is above yours and has **Manage Nicknames**."
+      console.warn("/link defer failed", err?.code || err?.message || err);
+      return;
+    }
+
+    const raw = interaction.options.getString("code", true);
+
+    try {
+      const resolved = await resolveCodeToUsername(raw);
+      if (!resolved.ok) {
+        await safeEdit(interaction, resolved.error);
+        return;
+      }
+
+      const member = interaction.member;
+      if (!member || typeof member.setNickname !== "function") {
+        await safeEdit(interaction, "Couldn't access your member profile in this server.");
+        return;
+      }
+
+      // Keep Discord name + hub username in parentheses: ICE_DRAGON (ICE_DRAGON)
+      const nick = buildLinkedNickname(discordDisplayName(interaction), resolved.name);
+      await member.setNickname(nick, `My Games /link ${resolved.code}`);
+      await saveDiscordLink(interaction.user.id, {
+        discordId: interaction.user.id,
+        discordTag: interaction.user.tag,
+        playerId: resolved.playerId,
+        name: resolved.name,
+        code: resolved.code,
+        nick
+      });
+
+      await safeEdit(
+        interaction,
+        `Linked! Your Discord nickname is now **${nick}** (code ${resolved.code}).`
       );
+    } catch (err) {
+      console.warn("/link failed", err);
+      const msg = String(err?.message || err);
+      if (/Missing Permissions|hierarchy|nickname/i.test(msg)) {
+        await safeEdit(
+          interaction,
+          "Found your account, but Discord blocked the nickname change. Drag the bot's role **above** member roles and give it **Manage Nicknames**."
+        );
+        return;
+      }
+      await safeEdit(interaction, "Something went wrong looking up that code. Try again in a moment.");
     }
-    return;
-  }
-
-  if (interaction.commandName !== "link") return;
-
-  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-  const raw = interaction.options.getString("code", true);
-
-  try {
-    const resolved = await resolveCodeToUsername(raw);
-    if (!resolved.ok) {
-      await interaction.editReply(resolved.error);
-      return;
-    }
-
-    const member = interaction.member;
-    if (!member || typeof member.setNickname !== "function") {
-      await interaction.editReply("Couldn't access your member profile in this server.");
-      return;
-    }
-
-    // Keep Discord name + hub username in parentheses: ICE_DRAGON (ICE_DRAGON)
-    const nick = buildLinkedNickname(discordDisplayName(interaction), resolved.name);
-    await member.setNickname(nick, `My Games /link ${resolved.code}`);
-    await saveDiscordLink(interaction.user.id, {
-      discordId: interaction.user.id,
-      discordTag: interaction.user.tag,
-      playerId: resolved.playerId,
-      name: resolved.name,
-      code: resolved.code,
-      nick
-    });
-
-    await interaction.editReply(
-      `Linked! Your Discord nickname is now **${nick}** (code ${resolved.code}).`
-    );
   } catch (err) {
-    console.warn("/link failed", err);
-    const msg = String(err?.message || err);
-    if (/Missing Permissions|hierarchy|nickname/i.test(msg)) {
-      await interaction.editReply(
-        "Found your account, but Discord blocked the nickname change. Drag the bot's role **above** member roles and give it **Manage Nicknames**."
-      );
-      return;
-    }
-    await interaction.editReply("Something went wrong looking up that code. Try again in a moment.");
+    // Never let a bad interaction kill the whole bot process.
+    console.warn("interaction handler error", err?.code || err?.message || err);
   }
+});
+
+client.on("error", (err) => {
+  console.warn("client error", err?.code || err?.message || err);
+});
+
+process.on("unhandledRejection", (err) => {
+  console.warn("unhandledRejection", err?.code || err?.message || err);
 });
 
 client.login(token).catch((err) => {
