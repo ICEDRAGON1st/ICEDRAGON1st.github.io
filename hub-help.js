@@ -9,7 +9,7 @@
   const Z = 12100;
   const MASCOT_KEY = "hub-help-mascot-v1";
   const UNLOCK_KEY = "hub-help-mascot-unlocks-v1";
-  const DEFAULT_MASCOT = "spark-e";
+  const DEFAULT_MASCOT = "normal";
 
   /** Minimal offline fallback if help-data.json cannot load. */
   const FALLBACK = {
@@ -38,6 +38,28 @@
    * Locked mascots wait for later coin unlocks via HubHelp.unlockMascot(id).
    */
   const MASCOTS = [
+    {
+      id: "normal",
+      name: "Helper",
+      fullName: "Helper",
+      blurb: "Plain helpful answers — no character voice",
+      icon: "💬",
+      starter: true,
+      plain: true,
+      wrap: (core) => String(core || ""),
+      refuseCheat:
+        "I can't spoil secret words, hidden tiles, or puzzle answers. Ask about rules and controls instead.",
+      refuseOffTopic:
+        "That isn't about these games. Ask about controls, rules, menus, achievements, or your own account.",
+      refusePrivacy:
+        "That's private — I can't show other players' codes, usernames, or account info. You can only ask about your own.",
+      refusePassword:
+        "I can't show passwords. Check Hub → Settings to set or change a login password. I can tell you your username or player code instead.",
+      greet:
+        "Hi! Ask how to play, where achievements or settings are, or tap a quick question. I only help with these games.",
+      helpOffer: (where) =>
+        `Yes — I can help you. Just ask. I can help with how to play ${where}, controls, achievements, settings, leaderboards, and your username or player code.`
+    },
     {
       id: "chip",
       name: "Chip",
@@ -626,6 +648,7 @@
   function styleAnswer(core) {
     const m = getMascot();
     const text = String(core || "").trim();
+    if (m.plain) return text;
     try {
       return typeof m.wrap === "function" ? m.wrap(text) : text;
     } catch {

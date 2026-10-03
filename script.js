@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ay": [
+    "Help: new plain Helper option — normal answers with no character voice"
+  ],
   "20261001ax": [
     "Help: “can you help me?” gets a friendly yes — here’s what I can help with"
   ],
