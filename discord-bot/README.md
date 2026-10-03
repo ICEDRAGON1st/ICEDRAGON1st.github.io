@@ -19,7 +19,9 @@ npm run register
 npm start
 ```
 
-Keep `npm start` running (or host it on Railway / Render). Slash commands only work while the bot is online.
+Keep **one** `npm start` running (or host it on Railway / Render). Do not start the bot twice — duplicate processes break `/link`. Slash commands only work while the bot is online.
+
+In Discord Developer Portal → your app → **General Information**, leave **Interactions Endpoint URL** empty (gateway bot only).
 
 ## Commands
 

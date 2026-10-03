@@ -8,6 +8,8 @@
  */
 require("dotenv").config();
 
+const fs = require("fs");
+const path = require("path");
 const {
   Client,
   GatewayIntentBits,
@@ -29,6 +31,47 @@ if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
   console.error("Missing Supabase config in .env");
   process.exit(1);
 }
+
+/** Only one bot process at a time — duplicates race slash commands (10062 Unknown interaction). */
+const LOCK_PATH = path.join(__dirname, ".bot.lock");
+function acquireSingletonLock() {
+  try {
+    if (fs.existsSync(LOCK_PATH)) {
+      const prev = Number(String(fs.readFileSync(LOCK_PATH, "utf8") || "").trim());
+      if (Number.isFinite(prev) && prev > 0) {
+        try {
+          process.kill(prev, 0); // throws if not running
+          console.error(
+            `Another My Games LINK bot is already running (pid ${prev}). Stop it first.`
+          );
+          process.exit(1);
+        } catch {
+          // stale lock
+        }
+      }
+    }
+    fs.writeFileSync(LOCK_PATH, String(process.pid), "utf8");
+  } catch (err) {
+    console.warn("lock warning", err?.message || err);
+  }
+  const clear = () => {
+    try {
+      if (fs.existsSync(LOCK_PATH) && String(fs.readFileSync(LOCK_PATH, "utf8")).trim() === String(process.pid)) {
+        fs.unlinkSync(LOCK_PATH);
+      }
+    } catch {}
+  };
+  process.on("exit", clear);
+  process.on("SIGINT", () => {
+    clear();
+    process.exit(0);
+  });
+  process.on("SIGTERM", () => {
+    clear();
+    process.exit(0);
+  });
+}
+acquireSingletonLock();
 
 function normalizePlayerCode(raw) {
   return String(raw || "")

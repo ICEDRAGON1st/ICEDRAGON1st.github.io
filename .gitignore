@@ -5,6 +5,7 @@ desktop.ini
 *.zip
 .env
 .env.*
+discord-bot/.bot.lock
 node_modules/
 tools/discord-secrets.local.js
 tools/discord-secrets.local.json
