@@ -1,7 +1,7 @@
 /**
  * In-game Help Assistant — local FAQ search + selectable mascot personalities.
  * Core answers stay in help-data.json; mascots only change voice, avatar, and wrap.
- * Open with F or the ? button. Pauses typical minigames while open.
+ * Open with F (or F1 in letter games), or the ? button. Pauses typical minigames while open.
  */
 (function () {
   if (window.HubHelp) return;
@@ -26,7 +26,7 @@
         keywords: ["hub", "games", "help", "how to play", "achievements", "settings", "leaderboard"],
         title: "My Games help",
         answer:
-          "Tap a game card to play. On the hub: Achievements, Leaderboards, Settings, Friends, and more are in the top/toolbar buttons. Press F for this assistant. Open Help again inside a minigame for that game's controls."
+          "Tap a game card to play. On the hub: Achievements, Leaderboards, Settings, Friends, and more are in the top/toolbar buttons. Press F for this assistant (F1 in letter games like Guessword). Open Help again inside a minigame for that game's controls."
       }
     ]
   };
@@ -466,7 +466,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     fab.id = "hub-help-fab";
     fab.type = "button";
     fab.setAttribute("aria-label", "Open help assistant");
-    fab.title = "Help (F)";
+    fab.title = helpHotkeyLabel();
     fab.textContent = "?";
     fab.addEventListener("click", (e) => {
       e.preventDefault();
@@ -496,7 +496,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
           <input id="hub-help-input" type="text" maxlength="160" placeholder="Ask about this game…" aria-label="Ask a help question" />
           <button type="submit">Ask</button>
         </form>
-        <p class="hub-help-hint">Local answers · swap mascot in Settings · press F · Esc closes</p>
+        <p class="hub-help-hint" id="hub-help-hint">Local answers · swap mascot in Settings · Esc closes</p>
       </div>
     `;
     document.body.appendChild(root);
@@ -528,12 +528,17 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     );
   }
 
+  function helpHotkeyLabel() {
+    return isLetterGameplayActive() ? "Help (F1)" : "Help (F)";
+  }
+
   function refreshChrome() {
     const m = getMascot();
+    const key = isLetterGameplayActive() ? "F1" : "F";
     const fab = document.getElementById("hub-help-fab");
     if (fab) {
       fab.textContent = m.icon || "?";
-      fab.title = `${m.name} — Help (F)`;
+      fab.title = `${m.name} — Help (${key})`;
       fab.setAttribute("aria-label", `Open help assistant (${m.fullName})`);
     }
     if (titleEl) titleEl.textContent = m.name;
@@ -541,6 +546,10 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     if (contextEl) {
       const id = currentGameId();
       contextEl.textContent = `${m.fullName} · ${gameLabel(id)}`;
+    }
+    const hint = root?.querySelector?.("#hub-help-hint");
+    if (hint) {
+      hint.textContent = `Local answers · swap mascot in Settings · press ${key} · Esc closes`;
     }
   }
 
@@ -714,19 +723,22 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
       close();
       return;
     }
-    if (isTypingTarget(e.target) && !(open && e.target === inputEl)) {
-      if (e.target !== inputEl) return;
-    }
-    // Help hotkey: F (skip when typing letters into Guessword / Hangman / etc.)
-    if ((e.key === "f" || e.key === "F" || e.code === "KeyF") && !e.ctrlKey && !e.metaKey && !e.altKey) {
-      if (isTypingTarget(e.target)) return;
-      if (open && e.target === inputEl) return;
-      if (!open && isLetterGameplayActive()) return;
-      e.preventDefault();
-      e.stopPropagation();
-      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
-      toggle();
-    }
+    if (isTypingTarget(e.target)) return;
+
+    const letterGame = isLetterGameplayActive();
+    const wantF1 = letterGame && (e.code === "F1" || e.key === "F1");
+    const wantF =
+      !letterGame &&
+      (e.key === "f" || e.key === "F" || e.code === "KeyF") &&
+      !e.ctrlKey &&
+      !e.metaKey &&
+      !e.altKey;
+
+    if (!wantF1 && !wantF) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+    toggle();
   }
 
   function isLetterGameplayActive() {
@@ -736,6 +748,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
       // Guessword board is up on the hub page.
       if (document.documentElement.classList.contains("playing-guessword")) return true;
       const path = String(location.pathname || "").toLowerCase();
+      // Games where F is needed for typing / answers
       if (/\/(hangman|quiz|sudoku)(\/|$)/i.test(path)) return true;
     } catch {}
     return false;

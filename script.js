@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001al": [
+    "Help hotkey: F most places, F1 in letter games (Guessword, Hangman, Quiz, Sudoku)"
+  ],
   "20261001ak": [
     "Help Assistant hotkey is now F (instead of F1)"
   ],

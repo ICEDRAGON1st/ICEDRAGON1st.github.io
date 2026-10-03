@@ -12,7 +12,7 @@
       "games": ["hub", "*"],
       "keywords": ["hub", "home", "games list", "my games", "menu", "start"],
       "title": "My Games hub",
-      "answer": "You're on the My Games hub. Tap any game card to play. Use the top buttons for Achievements, Leaderboards, Friends, Players, Updates, Feedback, and Settings. Search games with the search box. Press F anytime for this Help Assistant."
+      "answer": "You're on the My Games hub. Tap any game card to play. Use the top buttons for Achievements, Leaderboards, Friends, Players, Updates, Feedback, and Settings. Search games with the search box. Press F anytime for this Help Assistant (F1 inside letter games)."
     },
     {
       "id": "how-to-play-hub",
@@ -54,14 +54,14 @@
       "games": ["*"],
       "keywords": ["controls", "keys", "keyboard", "hotkey", "shortcut", "button"],
       "title": "Common controls",
-      "answer": "☰ Menu (or Esc) pauses most action games. Games returns to the hub. Help: press F, or tap the ? button. Exact move/shoot keys depend on the current minigame — ask “how to play” while inside that game."
+      "answer": "☰ Menu (or Esc) pauses most action games. Games returns to the hub. Help: press F (or F1 in letter games like Guessword), or tap the ? button. Exact move/shoot keys depend on the current minigame — ask “how to play” while inside that game."
     },
     {
       "id": "help-hotkey",
       "games": ["*", "hub"],
       "keywords": ["help", "assistant", "question", "faq", "f1", "f", "?"],
       "title": "Help Assistant",
-      "answer": "Tap the ? button (bottom-right) or press F. Ask in plain language or use a quick question. Answers come from a local guide — no internet or API key needed. The current minigame is detected automatically."
+      "answer": "Tap the ? button (bottom-right) or press F — in Guessword, Hangman, Quiz, and Sudoku use F1 so letter keys stay free. Ask in plain language or use a quick question. Answers come from a local guide — no internet or API key needed."
     },
     {
       "id": "wordle-play",
