@@ -746,6 +746,10 @@
   const OWNER_RE =
     /\b(who\s+(is|made|created|owns|runs|built)|who'?s\s+the|(owner|creator|developer|dev|admin|publisher)\s+of|(made|created|owns)\s+(this|the|my)\s+(game|games|hub|site|website)|who\s+(runs|built)\s+(this|the|my)\s+(game|games|hub|site)|owner\s+of\s+(the\s+)?(game|hub|site|my\s*games))\b/i;
 
+  // Live / dynamic stats Help cannot truthfully stream from a live DB.
+  const LIVE_STATS_RE =
+    /\b(how\s+many\s+(players?|people|users?)|player\s+count|players?\s+(online|playing|active|have\s+played|total)|online\s+(players?|count|now)|active\s+(players?|users?)|live\s+(stats?|leaderboard|rankings?)|real[-\s]?time\s+(stats?|leaderboard|players?)|total\s+(players?|accounts?|users?)|how\s+popular|most\s+played\s+right\s+now)\b/i;
+
   function isGreeting(query) {
     const raw = String(query || "").trim();
     const q = normalize(raw);
@@ -787,6 +791,7 @@
     if (isGreeting(query)) return "greet";
     if (HELP_OFFER_RE.test(q) || HELP_OFFER_RE.test(raw)) return "helpoffer";
     if (OWNER_RE.test(q) || OWNER_RE.test(raw)) return "owner";
+    if (LIVE_STATS_RE.test(q) || LIVE_STATS_RE.test(raw)) return "livestats";
     if (PASSWORD_RE.test(q) || PASSWORD_RE.test(raw)) return "password";
     if (isOtherAccountAsk(query)) return "privacy";
     if (
@@ -809,6 +814,48 @@
 
   function unknownGameLine() {
     return "I don't have the exact details on that right now, but feel free to check our official updates or community channels!";
+  }
+
+  function discordInvite() {
+    try {
+      const url = window.SITE_CONFIG?.discord?.invite;
+      if (url) return String(url);
+    } catch {}
+    return "https://discord.gg/6NHYfPwAwg";
+  }
+
+  function liveStatsLine() {
+    const m = getMascot();
+    if (typeof m.liveStats === "function") {
+      try {
+        return m.liveStats();
+      } catch {}
+    }
+
+    let snapshot = "";
+    try {
+      const status = window.HubPlays?.getStatus?.();
+      const online = Number(status?.online);
+      const allTime = Number(status?.allTime);
+      const bits = [];
+      if (Number.isFinite(online) && online > 0) {
+        bits.push(`about ${online} look online in the current hub snapshot`);
+      }
+      if (Number.isFinite(allTime) && allTime > 0) {
+        bits.push(`roughly ${allTime} names show up in the all-time players list on this device`);
+      }
+      if (bits.length) {
+        snapshot = ` Closest public snapshot I can see: ${bits.join(", ")} — these are not live official totals.`;
+      }
+    } catch {}
+
+    return (
+      "I don't have live database stats in chat (exact active players, real-time online counts, or live leaderboards)." +
+      snapshot +
+      " For the best numbers, check Players and Leaderboards on the hub, hold Tab to peek who's online, or visit Discord: " +
+      discordInvite() +
+      "."
+    );
   }
 
   function refusalLine(kind) {
@@ -1188,6 +1235,10 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     }
     if (guard === "owner") {
       pushBot("Owner", ownerLine(), withMeant());
+      return;
+    }
+    if (guard === "livestats") {
+      pushBot("Live stats", liveStatsLine(), withMeant());
       return;
     }
     if (guard === "password") {

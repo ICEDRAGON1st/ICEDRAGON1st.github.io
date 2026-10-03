@@ -45,6 +45,12 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001bb": [
+    "Help: live player-count asks get a friendly “check hub/Discord” answer — not a forbidden wall"
+  ],
+  "20261001ba": [
+    "Help is a full My Games assistant — owner/lore/updates OK; only real-world asks are turned away"
+  ],
   "20261001az": [
     "Help: “who is the owner?” answers ICE_DRAGON"
   ],

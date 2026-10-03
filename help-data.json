@@ -73,6 +73,13 @@
       "answer": "Open the hub and tap Updates to see What's New for each build. Fresh notes also show when the hub loads after a new release."
     },
     {
+      "id": "live-stats-help",
+      "games": ["*", "hub"],
+      "keywords": ["how many players", "player count", "players online", "active players", "live stats", "online count"],
+      "title": "Player counts & live stats",
+      "answer": "Help chat can't pull exact live database stats. Check Players and Leaderboards on the hub, hold Tab to see who's online, or ask in Discord for the latest community numbers."
+    },
+    {
       "id": "troubleshoot-help",
       "games": ["*", "hub"],
       "keywords": ["bug", "broken", "not working", "troubleshoot", "fix", "glitch", "stuck", "crash"],
