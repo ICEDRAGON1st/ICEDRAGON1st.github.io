@@ -6,3 +6,5 @@ desktop.ini
 .env
 .env.*
 node_modules/
+tools/discord-secrets.local.js
+tools/discord-secrets.local.json

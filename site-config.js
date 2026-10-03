@@ -8,9 +8,9 @@ window.SITE_CONFIG = {
     // Channel webhook for admin abuse / announcements
     webhookUrl:
       "https://discord.com/api/webhooks/1554593207927709728/aP4OsrIQcBF_qeZ301F9y09GraridUsCaoCQyIR8gmSVqO4PUCekT2D8rnqPcx-g1kcv",
-    // #updates channel — hub/site changelog posts
-    webhookUpdatesUrl:
-      "https://discord.com/api/webhooks/1554596814492270754/tic5Tif91GLtNyui1YJzw-4yPte8nR2rsq3ZK4jRAMPWvUnCyVL67KTYqC2gCRATDeNJ",
+    // #updates — kept EMPTY on purpose (public repo). Announce tool reads
+    // tools/discord-secrets.local.js or DISCORD_UPDATES_WEBHOOK instead.
+    webhookUpdatesUrl: "",
     // Opt-in "Updates" role — pinged on each hub changelog post
     updatesRoleId: "1554586826914930768",
     // Opt-in "Admin Abuse" role — pinged on fishing admin abuse posts

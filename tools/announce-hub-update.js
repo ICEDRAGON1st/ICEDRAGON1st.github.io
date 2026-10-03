@@ -13,9 +13,26 @@ const SUPABASE_ANON_KEY =
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Ftc2Zsenl2ZGNlcHZlbGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNjE3ODEsImV4cCI6MjEwNTczNzc4MX0.s-k2d37X0gByK2-SLnsLWhkbQb15_sDuKpvZs7ABM3g";
 const DOC_ID = "hub-discord-site-updates";
 
+function readPrivateUpdatesWebhook() {
+  const fromEnv = String(process.env.DISCORD_UPDATES_WEBHOOK || "").trim();
+  if (fromEnv) return fromEnv;
+  const localPath = path.join(__dirname, "discord-secrets.local.js");
+  if (!fs.existsSync(localPath)) return "";
+  try {
+    // eslint-disable-next-line import/no-dynamic-require, global-require
+    const local = require(localPath);
+    return String(local?.webhookUpdatesUrl || "").trim();
+  } catch {
+    return "";
+  }
+}
+
 function readSiteConfig() {
   const src = fs.readFileSync(path.join(ROOT, "site-config.js"), "utf8");
+  // Prefer private local/env webhook — never rely on the public site-config URL
+  // (scrapers steal webhooks from GitHub Pages and spam #updates).
   const webhook =
+    readPrivateUpdatesWebhook() ||
     /webhookUpdatesUrl:\s*\n?\s*"([^"]+)"/.exec(src)?.[1] ||
     /webhookUpdatesUrl:\s*"([^"]+)"/.exec(src)?.[1] ||
     "";
