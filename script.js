@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ap": [
+    "Help Assistant: one answer per question (no more triple tip dump)"
+  ],
   "20261001ao": [
     "Help Assistant: mascot catchphrase only once per reply (not on every tip card)"
   ],

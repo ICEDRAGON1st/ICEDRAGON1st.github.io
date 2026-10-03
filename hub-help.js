@@ -471,13 +471,15 @@
 
   function search(query, gameId) {
     // Dataset-only search. Never accept or merge live game-state / answer keys.
+    // One best tip per ask — don't dump multiple FAQ cards for a single question.
     const g = gameId || currentGameId();
     const topics = Array.isArray(data.topics) ? data.topics : [];
     const ranked = topics
       .map((t) => ({ t, s: scoreTopic(t, query, g) }))
       .filter((x) => x.s >= 20)
       .sort((a, b) => b.s - a.s || a.t.title.localeCompare(b.t.title));
-    return ranked.slice(0, 3).map((x) => ({ topic: x.t, score: x.s }));
+    if (!ranked.length) return [];
+    return [{ topic: ranked[0].t, score: ranked[0].s }];
   }
 
   function ensureDom() {
