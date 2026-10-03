@@ -50,6 +50,29 @@ function sanitizeName(raw) {
     .slice(0, 16);
 }
 
+/** Discord display name for nick prefix (not the hub username). */
+function discordDisplayName(interaction) {
+  const user = interaction?.user;
+  const global = String(user?.globalName || "").trim();
+  const username = String(user?.username || "").trim();
+  return sanitizeName(global || username) || "Player";
+}
+
+/**
+ * Keep Discord name, append hub username: `ICE_DRAGON (ICE_DRAGON)`.
+ * Discord nicknames max 32 chars.
+ */
+function buildLinkedNickname(discordName, hubName) {
+  const hub = sanitizeName(hubName) || "Player";
+  const suffix = ` (${hub})`;
+  const maxBase = Math.max(1, 32 - suffix.length);
+  let base = sanitizeName(discordName) || "Player";
+  // Drop a previous " (hub)" suffix if someone re-links.
+  base = base.replace(/\s*\([^)]*\)\s*$/, "").trim() || "Player";
+  base = base.slice(0, maxBase);
+  return `${base}${suffix}`.slice(0, 32);
+}
+
 async function getHubDoc(id) {
   const url = `${SUPABASE_URL}/rest/v1/hub_docs?id=eq.${encodeURIComponent(id)}&select=data`;
   const res = await fetch(url, {
@@ -211,18 +234,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return;
     }
 
-    // Discord nicknames max 32; hub names are ≤16
-    await member.setNickname(resolved.name, `My Games /link ${resolved.code}`);
+    // Keep Discord name + hub username in parentheses: ICE_DRAGON (ICE_DRAGON)
+    const nick = buildLinkedNickname(discordDisplayName(interaction), resolved.name);
+    await member.setNickname(nick, `My Games /link ${resolved.code}`);
     await saveDiscordLink(interaction.user.id, {
       discordId: interaction.user.id,
       discordTag: interaction.user.tag,
       playerId: resolved.playerId,
       name: resolved.name,
-      code: resolved.code
+      code: resolved.code,
+      nick
     });
 
     await interaction.editReply(
-      `Linked! Your Discord nickname is now **${resolved.name}** (code ${resolved.code}).`
+      `Linked! Your Discord nickname is now **${nick}** (code ${resolved.code}).`
     );
   } catch (err) {
     console.warn("/link failed", err);

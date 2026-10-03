@@ -23,5 +23,5 @@ Keep `npm start` running (or host it on Railway / Render). Slash commands only w
 
 ## Commands
 
-- `/link code:ABCD-EFGH` — set your Discord nickname to your hub username
+- `/link code:ABCD-EFGH` — set nickname to `DiscordName (HubUsername)` (e.g. `ICE_DRAGON (ICE_DRAGON)`)
 - `/unlink` — clear the nickname override
