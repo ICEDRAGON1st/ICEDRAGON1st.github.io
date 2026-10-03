@@ -14,10 +14,12 @@
   /** Minimal offline fallback if help-data.json cannot load. */
   const FALLBACK = {
     quick: [
-      { label: "How do I play?", query: "how to play" },
-      { label: "Where are achievements?", query: "achievements" },
-      { label: "Where are options?", query: "settings options" },
-      { label: "Leaderboards?", query: "leaderboard" }
+      { label: "How do I play?", query: "how to play", icon: "🎮" },
+      { label: "My username", query: "what is my username", icon: "👤" },
+      { label: "My player code", query: "what is my player code", icon: "🔑" },
+      { label: "Achievements", query: "achievements", icon: "🏆" },
+      { label: "Settings", query: "settings options", icon: "⚙️" },
+      { label: "Leaderboards", query: "leaderboard", icon: "📊" }
     ],
     topics: [
       {
@@ -819,48 +821,70 @@
 /* Sit left of the Chat FAB (right:1rem;bottom:1rem) so they don't overlap */
 #hub-help-fab{position:fixed;right:max(7.35rem,calc(6.5rem + env(safe-area-inset-right)));
 bottom:max(0.9rem,env(safe-area-inset-bottom));
-z-index:${Z};width:2.85rem;height:2.85rem;border-radius:999px;border:1px solid rgba(124,156,255,.45);
-background:linear-gradient(180deg,#24365a,#152238);color:#e8eefc;font:800 1.15rem/1 Outfit,Segoe UI,system-ui,sans-serif;
-box-shadow:0 10px 28px rgba(0,0,0,.4);cursor:pointer;display:grid;place-items:center;padding:0;
+z-index:${Z};width:3rem;height:3rem;border-radius:999px;border:2px solid rgba(156,190,255,.55);
+background:linear-gradient(160deg,#3a5a9a,#1a2a4a);color:#e8eefc;font:800 1.2rem/1 Outfit,Segoe UI,system-ui,sans-serif;
+box-shadow:0 10px 28px rgba(0,0,0,.45);cursor:pointer;display:grid;place-items:center;padding:0;
 transition:transform .12s ease,box-shadow .12s ease}
-#hub-help-fab:hover{transform:translateY(-1px);box-shadow:0 14px 32px rgba(0,0,0,.5)}
-#hub-help-fab:focus-visible{outline:2px solid #7c9cff;outline-offset:2px}
+#hub-help-fab:hover{transform:translateY(-2px);box-shadow:0 14px 32px rgba(0,0,0,.55)}
+#hub-help-fab:focus-visible{outline:2px solid #9cbcff;outline-offset:3px}
 #hub-help-root{position:fixed;inset:0;z-index:${Z + 1};display:none;align-items:flex-end;justify-content:center;
-padding:1rem;padding-bottom:max(1rem,env(safe-area-inset-bottom));background:rgba(4,10,18,.55);
-backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);font-family:Outfit,Segoe UI,system-ui,sans-serif;color:#e8f4ff}
+padding:0.75rem;padding-bottom:max(0.75rem,env(safe-area-inset-bottom));background:rgba(4,10,18,.58);
+backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);font-family:Outfit,Segoe UI,system-ui,sans-serif;color:#e8f4ff}
 #hub-help-root.is-open{display:flex}
-#hub-help-root .hub-help-panel{width:min(26rem,100%);max-height:min(78vh,36rem);display:flex;flex-direction:column;
-background:linear-gradient(180deg,rgba(18,32,52,.98),rgba(10,18,30,.98));border:1px solid rgba(124,156,255,.35);
-border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.5);overflow:hidden}
-#hub-help-root .hub-help-head{display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;
-padding:.9rem 1rem .65rem;border-bottom:1px solid rgba(124,156,255,.18)}
-#hub-help-root .hub-help-head-main{display:flex;gap:.65rem;align-items:flex-start;min-width:0}
-#hub-help-root .hub-help-avatar{flex:0 0 auto;width:2.6rem;height:2.6rem;border-radius:14px;display:grid;place-items:center;
-font-size:1.35rem;background:rgba(124,156,255,.14);border:1px solid rgba(124,156,255,.28)}
-#hub-help-root .hub-help-head h2{margin:0;font-size:1.05rem;font-weight:800;letter-spacing:.02em}
-#hub-help-root .hub-help-context{margin:.2rem 0 0;font-size:.78rem;font-weight:650;color:#8aa4c0}
-#hub-help-root .hub-help-close{border:0;background:rgba(255,255,255,.06);color:#e8f4ff;width:2rem;height:2rem;
-border-radius:10px;font-size:1.1rem;cursor:pointer;line-height:1}
-#hub-help-root .hub-help-close:hover{background:rgba(255,255,255,.12)}
-#hub-help-root .hub-help-quick{display:flex;flex-wrap:wrap;gap:.4rem;padding:.55rem .75rem;border-bottom:1px solid rgba(124,156,255,.12)}
-#hub-help-root .hub-help-chip{border:1px solid rgba(124,156,255,.28);background:rgba(124,156,255,.1);color:#dce7ff;
-border-radius:999px;padding:.35rem .65rem;font-size:.78rem;font-weight:700;cursor:pointer}
-#hub-help-root .hub-help-chip:hover{background:rgba(124,156,255,.2)}
-#hub-help-root .hub-help-chat{flex:1;min-height:10rem;overflow:auto;padding:.75rem;display:flex;flex-direction:column;gap:.55rem}
-#hub-help-root .hub-help-msg{max-width:95%;padding:.55rem .7rem;border-radius:12px;font-size:.9rem;font-weight:550;line-height:1.35;
+#hub-help-root .hub-help-panel{width:min(28rem,100%);max-height:min(82vh,40rem);display:flex;flex-direction:column;
+background:linear-gradient(180deg,#182848 0%,#101c34 45%,#0c1528 100%);border:1px solid rgba(140,175,255,.4);
+border-radius:22px;box-shadow:0 28px 70px rgba(0,0,0,.55);overflow:hidden}
+#hub-help-root .hub-help-head{display:flex;align-items:center;justify-content:space-between;gap:.75rem;
+padding:1rem 1rem .85rem;background:linear-gradient(180deg,rgba(90,130,220,.18),transparent);
+border-bottom:1px solid rgba(140,175,255,.16)}
+#hub-help-root .hub-help-head-main{display:flex;gap:.75rem;align-items:center;min-width:0}
+#hub-help-root .hub-help-avatar{flex:0 0 auto;width:3.1rem;height:3.1rem;border-radius:16px;display:grid;place-items:center;
+font-size:1.55rem;background:linear-gradient(160deg,rgba(150,185,255,.25),rgba(80,120,200,.12));
+border:1px solid rgba(160,195,255,.4);box-shadow:0 6px 16px rgba(0,0,0,.25)}
+#hub-help-root .hub-help-head h2{margin:0;font-size:1.15rem;font-weight:800;letter-spacing:.01em}
+#hub-help-root .hub-help-eyebrow{margin:0 0 .15rem;font-size:.68rem;font-weight:800;letter-spacing:.08em;
+text-transform:uppercase;color:#8eb0e0}
+#hub-help-root .hub-help-context{margin:.15rem 0 0;font-size:.84rem;font-weight:650;color:#a8c0e0;line-height:1.3}
+#hub-help-root .hub-help-game-pill{display:inline-flex;align-items:center;gap:.3rem;margin-top:.35rem;
+padding:.2rem .55rem;border-radius:999px;background:rgba(100,170,255,.16);border:1px solid rgba(120,180,255,.3);
+font-size:.72rem;font-weight:800;color:#d4e6ff}
+#hub-help-root .hub-help-close{border:0;background:rgba(255,255,255,.08);color:#e8f4ff;width:2.25rem;height:2.25rem;
+border-radius:12px;font-size:1.25rem;cursor:pointer;line-height:1;flex:0 0 auto}
+#hub-help-root .hub-help-close:hover{background:rgba(255,255,255,.14)}
+#hub-help-root .hub-help-quick-wrap{padding:.65rem .85rem .7rem;border-bottom:1px solid rgba(140,175,255,.12)}
+#hub-help-root .hub-help-quick-label{margin:0 0 .45rem;font-size:.78rem;font-weight:800;color:#c5d8f5}
+#hub-help-root .hub-help-quick{display:flex;flex-wrap:wrap;gap:.45rem}
+#hub-help-root .hub-help-chip{border:1px solid rgba(140,175,255,.32);background:rgba(100,150,240,.12);color:#eef4ff;
+border-radius:999px;padding:.42rem .75rem;font-size:.82rem;font-weight:750;cursor:pointer;
+display:inline-flex;align-items:center;gap:.35rem}
+#hub-help-root .hub-help-chip:hover{background:rgba(120,170,255,.22);border-color:rgba(160,195,255,.5)}
+#hub-help-root .hub-help-chip-icon{font-size:1rem;line-height:1}
+#hub-help-root .hub-help-chat{flex:1;min-height:11rem;overflow:auto;padding:.85rem;display:flex;flex-direction:column;gap:.65rem;
+background:rgba(0,0,0,.12)}
+#hub-help-root .hub-help-msg{max-width:94%;padding:.7rem .85rem;border-radius:16px;font-size:.95rem;font-weight:550;line-height:1.4;
 white-space:pre-wrap;word-break:break-word}
-#hub-help-root .hub-help-msg.user{align-self:flex-end;background:rgba(124,156,255,.22);border:1px solid rgba(124,156,255,.28)}
-#hub-help-root .hub-help-msg.bot{align-self:flex-start;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
-display:grid;grid-template-columns:auto 1fr;gap:.55rem;align-items:start}
-#hub-help-root .hub-help-msg .hub-help-msg-icon{font-size:1.2rem;line-height:1.2}
-#hub-help-root .hub-help-msg .hub-help-msg-title{display:block;font-weight:800;margin-bottom:.25rem;color:#b8ccff;font-size:.82rem}
-#hub-help-root .hub-help-form{display:flex;gap:.45rem;padding:.65rem .75rem .8rem;border-top:1px solid rgba(124,156,255,.14)}
-#hub-help-root .hub-help-form input{flex:1;min-width:0;border-radius:12px;border:1px solid rgba(124,156,255,.28);
-background:rgba(0,0,0,.25);color:#e8f4ff;padding:.55rem .7rem;font:650 .9rem Outfit,Segoe UI,system-ui,sans-serif}
-#hub-help-root .hub-help-form input:focus{outline:2px solid rgba(124,156,255,.45);outline-offset:1px}
-#hub-help-root .hub-help-form button{border:0;border-radius:12px;padding:.55rem .85rem;font:800 .88rem Outfit,Segoe UI,system-ui,sans-serif;
-background:linear-gradient(180deg,#6d8dff,#4a67d6);color:#fff;cursor:pointer}
-#hub-help-root .hub-help-hint{margin:0;padding:0 .75rem .65rem;font-size:.72rem;color:#6b829c;text-align:center}
+#hub-help-root .hub-help-msg.user{align-self:flex-end;background:linear-gradient(160deg,rgba(90,140,255,.35),rgba(70,110,220,.22));
+border:1px solid rgba(140,180,255,.4);border-bottom-right-radius:6px}
+#hub-help-root .hub-help-msg.user .hub-help-who{display:block;font-size:.68rem;font-weight:800;letter-spacing:.06em;
+text-transform:uppercase;color:#b8d0ff;margin-bottom:.25rem}
+#hub-help-root .hub-help-msg.bot{align-self:flex-start;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);
+border-bottom-left-radius:6px;display:grid;grid-template-columns:auto 1fr;gap:.65rem;align-items:start}
+#hub-help-root .hub-help-msg .hub-help-msg-icon{width:2.1rem;height:2.1rem;border-radius:12px;display:grid;place-items:center;
+font-size:1.15rem;background:rgba(120,160,255,.16);border:1px solid rgba(140,180,255,.25)}
+#hub-help-root .hub-help-msg .hub-help-msg-title{display:block;font-weight:800;margin-bottom:.2rem;color:#dce8ff;font-size:.92rem}
+#hub-help-root .hub-help-msg .hub-help-meant{display:inline-flex;margin:.15rem 0 .4rem;padding:.18rem .5rem;border-radius:999px;
+background:rgba(255,210,120,.14);border:1px solid rgba(255,200,100,.35);color:#ffe2a8;font-size:.72rem;font-weight:750}
+#hub-help-root .hub-help-msg .hub-help-body{color:#e8f0ff}
+#hub-help-root .hub-help-form{display:flex;gap:.5rem;padding:.75rem .85rem .55rem;border-top:1px solid rgba(140,175,255,.14);
+background:rgba(0,0,0,.15)}
+#hub-help-root .hub-help-form input{flex:1;min-width:0;border-radius:14px;border:1px solid rgba(140,175,255,.32);
+background:rgba(0,0,0,.28);color:#e8f4ff;padding:.7rem .85rem;font:650 .95rem Outfit,Segoe UI,system-ui,sans-serif}
+#hub-help-root .hub-help-form input::placeholder{color:#7f96b8}
+#hub-help-root .hub-help-form input:focus{outline:2px solid rgba(140,180,255,.55);outline-offset:1px}
+#hub-help-root .hub-help-form button{border:0;border-radius:14px;padding:.7rem 1.05rem;font:800 .92rem Outfit,Segoe UI,system-ui,sans-serif;
+background:linear-gradient(180deg,#7a9dff,#4d6fe0);color:#fff;cursor:pointer;box-shadow:0 6px 16px rgba(50,90,200,.35)}
+#hub-help-root .hub-help-form button:hover{filter:brightness(1.06)}
+#hub-help-root .hub-help-hint{margin:0;padding:0 .85rem .75rem;font-size:.74rem;color:#7f96b8;text-align:center;line-height:1.35}
 html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;pointer-events:none!important}
 `;
     document.head.appendChild(style);
@@ -887,19 +911,24 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
           <div class="hub-help-head-main">
             <div class="hub-help-avatar" id="hub-help-avatar" aria-hidden="true">🤖</div>
             <div>
-              <h2 id="hub-help-title">Help Assistant</h2>
-              <p class="hub-help-context" id="hub-help-context">Current: Hub</p>
+              <p class="hub-help-eyebrow">Help Assistant</p>
+              <h2 id="hub-help-title">Ask me anything</h2>
+              <p class="hub-help-context" id="hub-help-context">I explain games, menus, and your account.</p>
+              <span class="hub-help-game-pill" id="hub-help-game-pill">Playing: Hub</span>
             </div>
           </div>
           <button type="button" class="hub-help-close" id="hub-help-close" aria-label="Close help">×</button>
         </div>
-        <div class="hub-help-quick" id="hub-help-quick"></div>
+        <div class="hub-help-quick-wrap">
+          <p class="hub-help-quick-label">Tap a question — or type your own below</p>
+          <div class="hub-help-quick" id="hub-help-quick"></div>
+        </div>
         <div class="hub-help-chat" id="hub-help-chat" aria-live="polite"></div>
         <form class="hub-help-form" id="hub-help-form" autocomplete="off">
-          <input id="hub-help-input" type="text" maxlength="160" placeholder="Ask about this game…" aria-label="Ask a help question" />
+          <input id="hub-help-input" type="text" maxlength="160" placeholder="Example: how do I play?" aria-label="Ask a help question" />
           <button type="submit">Ask</button>
         </form>
-        <p class="hub-help-hint" id="hub-help-hint">Local answers · swap mascot in Settings · Esc closes</p>
+        <p class="hub-help-hint" id="hub-help-hint">Tip: press F for Help · change helper in Settings · Esc closes</p>
       </div>
     `;
     document.body.appendChild(root);
@@ -926,8 +955,9 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     paintQuick();
     refreshChrome();
     pushBot(
-      "Welcome",
-      "Ask how to play, where achievements or settings are, or tap a quick question. I only cover this game collection — no spoilers, no outside trivia. Pick your assistant in Hub → Settings."
+      "Hi!",
+      "Tap a blue button above, or type a question like “how do I play?” or “what is my username?” I only help with these games — not homework or secret answers.",
+      { raw: true }
     );
   }
 
@@ -938,6 +968,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
   function refreshChrome() {
     const m = getMascot();
     const key = isLetterGameplayActive() ? "F1" : "F";
+    const gameName = gameLabel(currentGameId());
     const fab = document.getElementById("hub-help-fab");
     if (fab) {
       fab.textContent = m.icon || "?";
@@ -947,12 +978,22 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     if (titleEl) titleEl.textContent = m.name;
     if (avatarEl) avatarEl.textContent = m.icon || "?";
     if (contextEl) {
-      const id = currentGameId();
-      contextEl.textContent = `${m.fullName} · ${gameLabel(id)}`;
+      contextEl.textContent = `${m.fullName} can explain rules, menus, and your account.`;
+    }
+    const pill = root?.querySelector?.("#hub-help-game-pill");
+    if (pill) {
+      pill.textContent =
+        currentGameId() === "hub" ? "On the My Games hub" : `Helping with: ${gameName}`;
     }
     const hint = root?.querySelector?.("#hub-help-hint");
     if (hint) {
-      hint.textContent = `Local answers · swap mascot in Settings · press ${key} · Esc closes`;
+      hint.textContent = `Tip: press ${key} for Help · pick a different helper in Settings · Esc closes`;
+    }
+    if (inputEl) {
+      inputEl.placeholder =
+        currentGameId() === "hub"
+          ? "Example: what is my username?"
+          : `Example: how do I play ${gameName}?`;
     }
   }
 
@@ -960,15 +1001,15 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     if (!quickEl) return;
     const items = Array.isArray(data.quick) && data.quick.length ? data.quick : FALLBACK.quick;
     quickEl.innerHTML = items
-      .map(
-        (q) =>
-          `<button type="button" class="hub-help-chip" data-q="${escapeHtml(q.query)}">${escapeHtml(
-            q.label
-          )}</button>`
-      )
+      .map((q) => {
+        const icon = q.icon ? `<span class="hub-help-chip-icon" aria-hidden="true">${escapeHtml(q.icon)}</span>` : "";
+        return `<button type="button" class="hub-help-chip" data-q="${escapeHtml(q.query)}">${icon}<span>${escapeHtml(
+          q.label
+        )}</span></button>`;
+      })
       .join("");
     quickEl.querySelectorAll(".hub-help-chip").forEach((btn) => {
-      btn.addEventListener("click", () => ask(btn.getAttribute("data-q") || btn.textContent || ""));
+      btn.addEventListener("click", () => ask(btn.getAttribute("data-q") || ""));
     });
   }
 
@@ -976,7 +1017,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     if (!chatEl) return;
     const el = document.createElement("div");
     el.className = "hub-help-msg user";
-    el.textContent = text;
+    el.innerHTML = `<span class="hub-help-who">You asked</span>${escapeHtml(text)}`;
     chatEl.appendChild(el);
     chatEl.scrollTop = chatEl.scrollHeight;
   }
@@ -985,11 +1026,16 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     if (!chatEl) return;
     const m = getMascot();
     const styled = opts && opts.raw ? String(coreAnswer || "") : styleAnswer(coreAnswer);
+    const meant = opts && opts.meant ? String(opts.meant) : "";
+    const meantHtml = meant
+      ? `<span class="hub-help-meant">I understood: ${escapeHtml(meant)}</span>`
+      : "";
     const el = document.createElement("div");
     el.className = "hub-help-msg bot";
     el.innerHTML =
       `<span class="hub-help-msg-icon" aria-hidden="true">${escapeHtml(m.icon)}</span>` +
-      `<div><span class="hub-help-msg-title">${escapeHtml(title)}</span>${escapeHtml(styled)}</div>`;
+      `<div><span class="hub-help-msg-title">${escapeHtml(title)}</span>${meantHtml}` +
+      `<div class="hub-help-body">${escapeHtml(styled)}</div></div>`;
     chatEl.appendChild(el);
     chatEl.scrollTop = chatEl.scrollHeight;
   }
@@ -1004,43 +1050,46 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     pushUser(typed);
 
     const guard = classifyGuard(q);
-    const note = fixed.corrected && q !== typed ? ` (meant: ${q})` : "";
+    const meant = fixed.corrected && normalize(q) !== normalize(typed) ? q : "";
+    const withMeant = (extra) => Object.assign({ raw: true }, extra || {}, meant ? { meant } : {});
 
     if (guard === "greet") {
-      pushBot("Hey" + note, greetLine(), { raw: true });
+      pushBot("Hey there!", greetLine(), withMeant());
       return;
     }
     if (guard === "password") {
-      pushBot("Private" + note, refusalLine("password"), { raw: true });
+      pushBot("That's private", refusalLine("password"), withMeant());
       return;
     }
     if (guard === "account") {
-      pushBot("Your account" + note, accountAnswer(q), { raw: true });
+      pushBot("Your account", accountAnswer(q), withMeant());
       return;
     }
     if (guard === "cheat") {
-      pushBot("Fair play" + note, refusalLine("cheat"), { raw: true });
+      pushBot("No spoilers", refusalLine("cheat"), withMeant());
       return;
     }
     if (guard === "offtopic") {
-      pushBot("Out of scope" + note, refusalLine("offtopic"), { raw: true });
+      pushBot("Game help only", refusalLine("offtopic"), withMeant());
       return;
     }
 
     const gameId = currentGameId();
     const hits = search(q, gameId);
     if (!hits.length) {
-      // In-scope wording but no FAQ hit — stay helpful, still no spoilers / trivia.
       pushBot(
-        "No match" + note,
-        `I don't have a public tip for that in ${gameLabel(
+        "I don't know that one yet",
+        `Try asking about ${gameLabel(
           gameId
-        )} yet. Try “how to play”, “achievements”, “settings”, or “leaderboard”. I never reveal secret words or puzzle answers.`
+        )} — like “how to play”, “achievements”, “settings”, or “leaderboard”. I never reveal secret words or puzzle answers.`,
+        withMeant()
       );
       return;
     }
     const t = hits[0].topic;
-    if (t && typeof t.answer === "string") pushBot(t.title + note, t.answer);
+    if (t && typeof t.answer === "string") {
+      pushBot(t.title, t.answer, meant ? { meant } : undefined);
+    }
   }
 
   /* ── Pause host minigame while help is open ── */

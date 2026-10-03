@@ -1,10 +1,12 @@
 {
   "quick": [
-    { "label": "How do I play?", "query": "how to play" },
-    { "label": "Where are achievements?", "query": "achievements" },
-    { "label": "Where are options?", "query": "settings options" },
-    { "label": "Leaderboards?", "query": "leaderboard" },
-    { "label": "Controls?", "query": "controls" }
+    { "label": "How do I play?", "query": "how to play", "icon": "🎮" },
+    { "label": "My username", "query": "what is my username", "icon": "👤" },
+    { "label": "My player code", "query": "what is my player code", "icon": "🔑" },
+    { "label": "Achievements", "query": "achievements", "icon": "🏆" },
+    { "label": "Settings", "query": "settings options", "icon": "⚙️" },
+    { "label": "Leaderboards", "query": "leaderboard", "icon": "📊" },
+    { "label": "Controls", "query": "controls", "icon": "⌨️" }
   ],
   "topics": [
     {

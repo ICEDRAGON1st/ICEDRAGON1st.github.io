@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001av": [
+    "Help menu clearer for kids — bigger buttons, plain labels, easier chat"
+  ],
   "20261001au": [
     "Help: kid typos like “what is me user” → your username (not Friends/chat)"
   ],
