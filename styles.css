@@ -1286,6 +1286,83 @@ header h1 {
   padding: 0 0.15rem 0.1rem;
 }
 
+.hub-mascot-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.4rem, 1fr));
+  gap: 0.55rem;
+  margin: 0 0 1.1rem;
+}
+
+.hub-mascot-btn {
+  appearance: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.2rem;
+  padding: 0.55rem 0.6rem 0.65rem;
+  border: 1px solid var(--tile-border);
+  border-radius: 0.75rem;
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  min-height: 6.4rem;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.12s ease;
+}
+
+.hub-mascot-btn:hover:not(.is-locked) {
+  border-color: rgba(124, 156, 255, 0.45);
+}
+
+.hub-mascot-btn.active {
+  border-color: var(--correct);
+  box-shadow: 0 0 0 1px var(--correct);
+  background: rgba(61, 184, 232, 0.08);
+}
+
+.hub-mascot-btn.is-locked {
+  opacity: 0.55;
+  cursor: not-allowed;
+  filter: grayscale(0.35);
+}
+
+.hub-mascot-btn.is-shake {
+  animation: hub-mascot-shake 0.28s ease;
+}
+
+@keyframes hub-mascot-shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-3px); }
+  75% { transform: translateX(3px); }
+}
+
+.hub-mascot-icon {
+  font-size: 1.45rem;
+  line-height: 1.2;
+}
+
+.hub-mascot-name {
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.hub-mascot-blurb {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--subtitle);
+  line-height: 1.25;
+}
+
+.hub-mascot-lock {
+  margin-top: 0.15rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ffb38a;
+}
+
 .hub-streak-badge {
   position: absolute;
   right: 0;

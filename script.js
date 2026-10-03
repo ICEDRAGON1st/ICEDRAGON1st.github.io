@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ai": [
+    "Help Assistant mascots: pick Chip, SPARK-E, and more in Settings — same tips, different personality"
+  ],
   "20261001ah": [
     "Help Assistant: tap ? or press F1 — local how-to answers for the hub and every minigame"
   ],
@@ -3242,6 +3245,9 @@ function showGamesMessage(text, duration = 2000) {
     }, duration);
   }
 }
+try {
+  window.showGamesMessage = showGamesMessage;
+} catch {}
 
 function currentHubPlayerKey() {
   return String((typeof HubPlays !== "undefined" && HubPlays.getName?.()) || "")
@@ -4303,6 +4309,9 @@ toggleSettingsBtn?.addEventListener("click", () => {
   if (open) {
     applyHubTheme();
     refreshNotificationPermStatus();
+    try {
+      window.HubHelp?.renderMascotPicker?.(document.getElementById("hub-help-mascot-picker"));
+    } catch {}
   }
 });
 

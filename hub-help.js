@@ -1,12 +1,15 @@
 /**
- * In-game Help Assistant — local FAQ search, no API key.
- * Auto-injects ? button + popup. Open with ? / F1 or the button.
- * Pauses typical hub games while open (menu-btn → resume-btn).
+ * In-game Help Assistant — local FAQ search + selectable mascot personalities.
+ * Core answers stay in help-data.json; mascots only change voice, avatar, and wrap.
+ * Open with ? / F1 or the ? button. Pauses typical minigames while open.
  */
 (function () {
   if (window.HubHelp) return;
 
   const Z = 12100;
+  const MASCOT_KEY = "hub-help-mascot-v1";
+  const UNLOCK_KEY = "hub-help-mascot-unlocks-v1";
+  const DEFAULT_MASCOT = "spark-e";
 
   /** Minimal offline fallback if help-data.json cannot load. */
   const FALLBACK = {
@@ -28,12 +31,113 @@
     ]
   };
 
+  /**
+   * Mascot roster. `starter: true` = unlocked by default.
+   * Locked mascots wait for later coin unlocks via HubHelp.unlockMascot(id).
+   */
+  const MASCOTS = [
+    {
+      id: "chip",
+      name: "Chip",
+      fullName: "Chip the Arcade Cabinet",
+      blurb: "Enthusiastic retro arcade host",
+      icon: "🕹️",
+      starter: true,
+      wrap: (core) => `INSERT COIN—and listen up, player! ${core} High-score vibes only—don't tilt the cabinet!`
+    },
+    {
+      id: "spark-e",
+      name: "SPARK-E",
+      fullName: "SPARK-E the Robot",
+      blurb: "Eager cheerleader drone",
+      icon: "🤖",
+      starter: true,
+      wrap: (core) => `Beep-boop! Hype systems online! ${core} You have got this—boosters fired! ⚡`
+    },
+    {
+      id: "whiskers",
+      name: "Whiskers",
+      fullName: "Professor Whiskers the Cat",
+      blurb: "Cozy, wise, slightly sarcastic",
+      icon: "🐱",
+      starter: false,
+      wrap: (core) => `*adjusts tiny wizard hat* Hmph. Pay attention. ${core} …Yes, even you. Now run along before I nap on the keyboard.`
+    },
+    {
+      id: "glitch",
+      name: "Glitch",
+      fullName: "Glitch the Pixel",
+      blurb: "Playful mischievous insider",
+      icon: "👾",
+      starter: false,
+      wrap: (core) => `psst—don't tell the patch notes, but… ${core} heh. I totally didn't rearrange your HUD. (or did i)`
+    },
+    {
+      id: "pixel-8",
+      name: "Pixel-8",
+      fullName: "Pixel-8 the Game Dev",
+      blurb: "Sleepy pajama developer",
+      icon: "💻",
+      starter: false,
+      wrap: (core) => `*yawns in commit history* okay so basically— ${core} anyway i'm shipping this note and going back to bed. please don't file a bug about the pajamas.`
+    },
+    {
+      id: "barnaby",
+      name: "Barnaby",
+      fullName: "Barnaby the Hype-Man",
+      blurb: "80s gym instructor energy",
+      icon: "📣",
+      starter: false,
+      wrap: (core) => `CAN YOU HEAR ME IN THE BACK?! ${core} NOW DROP AND GIVE ME ONE MORE TRY—YOU'RE A CHAMPION!`
+    },
+    {
+      id: "goldsworth",
+      name: "Sir Goldsworth",
+      fullName: "Sir Goldsworth the Goblin",
+      blurb: "Treasure-obsessed coin goblin",
+      icon: "🪙",
+      starter: false,
+      wrap: (core) => `Yesss, shiny seeker… listen close from my coin sack. ${core} More loot awaits. Leave the goblin his tip.`
+    },
+    {
+      id: "astra",
+      name: "Astra",
+      fullName: "Astra the Space Explorer",
+      blurb: "Curious alien mission officer",
+      icon: "🚀",
+      starter: false,
+      wrap: (core) => `Mission briefing, star-cadet: ${core} Chart a course, log the discovery, and may your high score reach orbit.`
+    },
+    {
+      id: "gusto",
+      name: "Chef Gusto",
+      fullName: "Chef Gusto",
+      blurb: "Cheerful cooking metaphors",
+      icon: "👨‍🍳",
+      starter: false,
+      wrap: (core) => `Bon appétit, chef! Here's the recipe: ${core} Season with practice, plate with confidence—and don't burn the combo!`
+    },
+    {
+      id: "shadow",
+      name: "Shadow",
+      fullName: "Shadow the Detective",
+      blurb: "Noir detective, classified files",
+      icon: "🕵️",
+      starter: false,
+      wrap: (core) => `Case file — confidential. ${core} That's all the dossier says, kid. Keep it under your hat.`
+    }
+  ];
+
+  const MASCOT_BY_ID = Object.fromEntries(MASCOTS.map((m) => [m.id, m]));
+
   let data = FALLBACK;
   let root = null;
   let chatEl = null;
   let inputEl = null;
   let quickEl = null;
   let contextEl = null;
+  let titleEl = null;
+  let avatarEl = null;
   let open = false;
   let wePausedHost = false;
   let ready = false;
@@ -52,12 +156,6 @@
     } catch {}
     try {
       const path = String(location.pathname || "").replace(/\\/g, "/");
-      if (/\/[^/]+\.(html?)?$/i.test(path) && /\/(snake|mine|fishing|hub)?/i.test(path)) {
-        /* game subfolder */
-      }
-      if (/\/[a-z0-9-]+\/[^/]*$/i.test(path) && !/index\.html?$/i.test(path.split("/").pop() || "")) {
-        return "../";
-      }
       const segs = path.split("/").filter(Boolean);
       const last = segs[segs.length - 1] || "";
       if (last && !/\.html?$/i.test(last) && last !== "Wordle") return "../";
@@ -153,6 +251,108 @@
       .filter((w) => w.length > 1);
   }
 
+  /* ── Mascot save / unlock ── */
+
+  function readUnlockMap() {
+    const map = {};
+    MASCOTS.forEach((m) => {
+      if (m.starter) map[m.id] = true;
+    });
+    try {
+      const raw = localStorage.getItem(UNLOCK_KEY);
+      if (!raw) return map;
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === "object") {
+        Object.keys(parsed).forEach((id) => {
+          if (MASCOT_BY_ID[id] && parsed[id]) map[id] = true;
+        });
+      }
+    } catch {}
+    return map;
+  }
+
+  function writeUnlockMap(map) {
+    try {
+      const out = {};
+      Object.keys(map || {}).forEach((id) => {
+        if (map[id] && MASCOT_BY_ID[id] && !MASCOT_BY_ID[id].starter) out[id] = true;
+      });
+      localStorage.setItem(UNLOCK_KEY, JSON.stringify(out));
+    } catch {}
+  }
+
+  function isUnlocked(id) {
+    const m = MASCOT_BY_ID[id];
+    if (!m) return false;
+    if (m.starter) return true;
+    return !!readUnlockMap()[id];
+  }
+
+  function unlockMascot(id) {
+    const m = MASCOT_BY_ID[id];
+    if (!m) return false;
+    const map = readUnlockMap();
+    map[id] = true;
+    writeUnlockMap(map);
+    renderMascotPicker();
+    refreshChrome();
+    try {
+      document.dispatchEvent(new CustomEvent("hub-help-mascot-unlocked", { detail: { id } }));
+    } catch {}
+    return true;
+  }
+
+  function getMascotId() {
+    try {
+      const id = String(localStorage.getItem(MASCOT_KEY) || "").trim();
+      if (id && MASCOT_BY_ID[id] && isUnlocked(id)) return id;
+    } catch {}
+    return DEFAULT_MASCOT;
+  }
+
+  function getMascot() {
+    return MASCOT_BY_ID[getMascotId()] || MASCOT_BY_ID[DEFAULT_MASCOT];
+  }
+
+  function setMascot(id) {
+    const m = MASCOT_BY_ID[id];
+    if (!m) return { ok: false, error: "Unknown mascot" };
+    if (!isUnlocked(id)) return { ok: false, error: "Locked", locked: true };
+    try {
+      localStorage.setItem(MASCOT_KEY, id);
+    } catch {}
+    refreshChrome();
+    renderMascotPicker();
+    try {
+      document.dispatchEvent(new CustomEvent("hub-help-mascot-changed", { detail: { id } }));
+    } catch {}
+    return { ok: true, id };
+  }
+
+  function listMascots() {
+    const active = getMascotId();
+    return MASCOTS.map((m) => ({
+      id: m.id,
+      name: m.name,
+      fullName: m.fullName,
+      blurb: m.blurb,
+      icon: m.icon,
+      starter: !!m.starter,
+      unlocked: isUnlocked(m.id),
+      active: m.id === active
+    }));
+  }
+
+  function styleAnswer(core) {
+    const m = getMascot();
+    const text = String(core || "").trim();
+    try {
+      return typeof m.wrap === "function" ? m.wrap(text) : text;
+    } catch {
+      return text;
+    }
+  }
+
   function topicApplies(topic, gameId) {
     const games = Array.isArray(topic.games) ? topic.games : ["*"];
     if (games.includes(gameId)) return true;
@@ -193,7 +393,6 @@
     else if (games.includes("hub") && gameId === "hub") score += 40;
     else if (games.includes("*")) score += 5;
 
-    // Prefer how-to when query looks like how-to-play
     if (/\b(how|play|control|tutorial|guide)\b/.test(q) && /how to play|controls/i.test(topic.title)) {
       score += 35;
     }
@@ -217,8 +416,8 @@
     style.id = "hub-help-style";
     style.textContent = `
 #hub-help-fab{position:fixed;right:max(0.75rem,env(safe-area-inset-right));bottom:max(0.75rem,env(safe-area-inset-bottom));
-z-index:${Z};width:2.75rem;height:2.75rem;border-radius:999px;border:1px solid rgba(124,156,255,.45);
-background:linear-gradient(180deg,#24365a,#152238);color:#e8eefc;font:800 1.25rem/1 Outfit,Segoe UI,system-ui,sans-serif;
+z-index:${Z};width:2.85rem;height:2.85rem;border-radius:999px;border:1px solid rgba(124,156,255,.45);
+background:linear-gradient(180deg,#24365a,#152238);color:#e8eefc;font:800 1.15rem/1 Outfit,Segoe UI,system-ui,sans-serif;
 box-shadow:0 10px 28px rgba(0,0,0,.4);cursor:pointer;display:grid;place-items:center;padding:0;
 transition:transform .12s ease,box-shadow .12s ease}
 #hub-help-fab:hover{transform:translateY(-1px);box-shadow:0 14px 32px rgba(0,0,0,.5)}
@@ -232,7 +431,10 @@ background:linear-gradient(180deg,rgba(18,32,52,.98),rgba(10,18,30,.98));border:
 border-radius:18px;box-shadow:0 24px 60px rgba(0,0,0,.5);overflow:hidden}
 #hub-help-root .hub-help-head{display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;
 padding:.9rem 1rem .65rem;border-bottom:1px solid rgba(124,156,255,.18)}
-#hub-help-root .hub-help-head h2{margin:0;font-size:1.1rem;font-weight:800;letter-spacing:.02em}
+#hub-help-root .hub-help-head-main{display:flex;gap:.65rem;align-items:flex-start;min-width:0}
+#hub-help-root .hub-help-avatar{flex:0 0 auto;width:2.6rem;height:2.6rem;border-radius:14px;display:grid;place-items:center;
+font-size:1.35rem;background:rgba(124,156,255,.14);border:1px solid rgba(124,156,255,.28)}
+#hub-help-root .hub-help-head h2{margin:0;font-size:1.05rem;font-weight:800;letter-spacing:.02em}
 #hub-help-root .hub-help-context{margin:.2rem 0 0;font-size:.78rem;font-weight:650;color:#8aa4c0}
 #hub-help-root .hub-help-close{border:0;background:rgba(255,255,255,.06);color:#e8f4ff;width:2rem;height:2rem;
 border-radius:10px;font-size:1.1rem;cursor:pointer;line-height:1}
@@ -245,7 +447,9 @@ border-radius:999px;padding:.35rem .65rem;font-size:.78rem;font-weight:700;curso
 #hub-help-root .hub-help-msg{max-width:95%;padding:.55rem .7rem;border-radius:12px;font-size:.9rem;font-weight:550;line-height:1.35;
 white-space:pre-wrap;word-break:break-word}
 #hub-help-root .hub-help-msg.user{align-self:flex-end;background:rgba(124,156,255,.22);border:1px solid rgba(124,156,255,.28)}
-#hub-help-root .hub-help-msg.bot{align-self:flex-start;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+#hub-help-root .hub-help-msg.bot{align-self:flex-start;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
+display:grid;grid-template-columns:auto 1fr;gap:.55rem;align-items:start}
+#hub-help-root .hub-help-msg .hub-help-msg-icon{font-size:1.2rem;line-height:1.2}
 #hub-help-root .hub-help-msg .hub-help-msg-title{display:block;font-weight:800;margin-bottom:.25rem;color:#b8ccff;font-size:.82rem}
 #hub-help-root .hub-help-form{display:flex;gap:.45rem;padding:.65rem .75rem .8rem;border-top:1px solid rgba(124,156,255,.14)}
 #hub-help-root .hub-help-form input{flex:1;min-width:0;border-radius:12px;border:1px solid rgba(124,156,255,.28);
@@ -277,9 +481,12 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     root.innerHTML = `
       <div class="hub-help-panel" role="dialog" aria-modal="true" aria-labelledby="hub-help-title">
         <div class="hub-help-head">
-          <div>
-            <h2 id="hub-help-title">Help Assistant</h2>
-            <p class="hub-help-context" id="hub-help-context">Current: Hub</p>
+          <div class="hub-help-head-main">
+            <div class="hub-help-avatar" id="hub-help-avatar" aria-hidden="true">🤖</div>
+            <div>
+              <h2 id="hub-help-title">Help Assistant</h2>
+              <p class="hub-help-context" id="hub-help-context">Current: Hub</p>
+            </div>
           </div>
           <button type="button" class="hub-help-close" id="hub-help-close" aria-label="Close help">×</button>
         </div>
@@ -289,7 +496,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
           <input id="hub-help-input" type="text" maxlength="160" placeholder="Ask about this game…" aria-label="Ask a help question" />
           <button type="submit">Ask</button>
         </form>
-        <p class="hub-help-hint">Local answers · ? or F1 · Esc closes</p>
+        <p class="hub-help-hint">Local answers · swap mascot in Settings · ? / F1 · Esc closes</p>
       </div>
     `;
     document.body.appendChild(root);
@@ -298,6 +505,8 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     inputEl = root.querySelector("#hub-help-input");
     quickEl = root.querySelector("#hub-help-quick");
     contextEl = root.querySelector("#hub-help-context");
+    titleEl = root.querySelector("#hub-help-title");
+    avatarEl = root.querySelector("#hub-help-avatar");
 
     root.querySelector("#hub-help-close").addEventListener("click", () => close());
     root.addEventListener("click", (e) => {
@@ -312,10 +521,27 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     });
 
     paintQuick();
+    refreshChrome();
     pushBot(
       "Welcome",
-      "Ask how to play, where achievements or settings are, or tap a quick question below. I use a local guide for this page's game."
+      "Ask how to play, where achievements or settings are, or tap a quick question. Pick your assistant in Hub → Settings."
     );
+  }
+
+  function refreshChrome() {
+    const m = getMascot();
+    const fab = document.getElementById("hub-help-fab");
+    if (fab) {
+      fab.textContent = m.icon || "?";
+      fab.title = `${m.name} — Help (? or F1)`;
+      fab.setAttribute("aria-label", `Open help assistant (${m.fullName})`);
+    }
+    if (titleEl) titleEl.textContent = m.name;
+    if (avatarEl) avatarEl.textContent = m.icon || "?";
+    if (contextEl) {
+      const id = currentGameId();
+      contextEl.textContent = `${m.fullName} · ${gameLabel(id)}`;
+    }
   }
 
   function paintQuick() {
@@ -343,26 +569,24 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     chatEl.scrollTop = chatEl.scrollHeight;
   }
 
-  function pushBot(title, answer) {
+  function pushBot(title, coreAnswer, opts) {
     if (!chatEl) return;
+    const m = getMascot();
+    const styled = opts && opts.raw ? String(coreAnswer || "") : styleAnswer(coreAnswer);
     const el = document.createElement("div");
     el.className = "hub-help-msg bot";
-    el.innerHTML = `<span class="hub-help-msg-title">${escapeHtml(title)}</span>${escapeHtml(answer)}`;
+    el.innerHTML =
+      `<span class="hub-help-msg-icon" aria-hidden="true">${escapeHtml(m.icon)}</span>` +
+      `<div><span class="hub-help-msg-title">${escapeHtml(title)}</span>${escapeHtml(styled)}</div>`;
     chatEl.appendChild(el);
     chatEl.scrollTop = chatEl.scrollHeight;
-  }
-
-  function refreshContext() {
-    if (!contextEl) return;
-    const id = currentGameId();
-    contextEl.textContent = `Current: ${gameLabel(id)}`;
   }
 
   function ask(query) {
     ensureDom();
     const q = String(query || "").trim();
     if (!q) return;
-    refreshContext();
+    refreshChrome();
     pushUser(q);
     const gameId = currentGameId();
     const hits = search(q, gameId);
@@ -376,25 +600,33 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     hits.forEach((t) => pushBot(t.title, t.answer));
   }
 
+  /* ── Pause host minigame while help is open ── */
+
   function pauseHostGame() {
     wePausedHost = false;
+    window.__hubHelpPaused = true;
     try {
       const overlay = document.getElementById("overlay");
       const menuBtn = document.getElementById("menu-btn");
-      if (!menuBtn) return;
       const overlayHidden = !overlay || overlay.classList.contains("hidden") || overlay.hidden;
-      if (!overlayHidden) return;
-      wePausedHost = true;
-      if (overlay) overlay.classList.add("hub-help-host-pause");
-      menuBtn.click();
-      // Keep their pause overlay invisible under help
-      if (overlay) overlay.classList.add("hub-help-host-pause");
+      if (menuBtn && overlayHidden) {
+        wePausedHost = true;
+        if (overlay) overlay.classList.add("hub-help-host-pause");
+        menuBtn.click();
+        if (overlay) overlay.classList.add("hub-help-host-pause");
+        return;
+      }
+      if (typeof window.pauseGame === "function") {
+        window.pauseGame();
+        wePausedHost = true;
+      }
     } catch {
       wePausedHost = false;
     }
   }
 
   function resumeHostGame() {
+    window.__hubHelpPaused = false;
     try {
       const overlay = document.getElementById("overlay");
       if (overlay) overlay.classList.remove("hub-help-host-pause");
@@ -402,11 +634,11 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
       const resumeBtn = document.getElementById("resume-btn");
       if (resumeBtn && !resumeBtn.classList.contains("hidden") && !resumeBtn.hidden) {
         resumeBtn.click();
-      } else if (overlay && !overlay.classList.contains("hidden")) {
-        // Some games resume by hiding overlay / start btn labeled Resume
+      } else if (typeof window.resumeGame === "function") {
+        window.resumeGame();
+      } else {
         const startBtn = document.getElementById("start-btn");
-        if (resumeBtn) resumeBtn.click();
-        else if (startBtn && /resume/i.test(startBtn.textContent || "")) startBtn.click();
+        if (startBtn && /resume/i.test(startBtn.textContent || "")) startBtn.click();
       }
     } catch {}
     wePausedHost = false;
@@ -416,14 +648,16 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     ensureDom();
     if (open) return;
     open = true;
-    refreshContext();
+    refreshChrome();
     paintQuick();
     document.documentElement.classList.add("hub-help-open");
     pauseHostGame();
     root.classList.add("is-open");
     root.setAttribute("aria-hidden", "false");
     try {
-      window.dispatchEvent(new CustomEvent("hubhelp:open", { detail: { game: currentGameId() } }));
+      window.dispatchEvent(
+        new CustomEvent("hubhelp:open", { detail: { game: currentGameId(), mascot: getMascotId() } })
+      );
     } catch {}
     setTimeout(() => {
       try {
@@ -442,7 +676,9 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     document.documentElement.classList.remove("hub-help-open");
     resumeHostGame();
     try {
-      window.dispatchEvent(new CustomEvent("hubhelp:close", { detail: { game: currentGameId() } }));
+      window.dispatchEvent(
+        new CustomEvent("hubhelp:close", { detail: { game: currentGameId(), mascot: getMascotId() } })
+      );
     } catch {}
   }
 
@@ -460,7 +696,6 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
       return;
     }
     if (isTypingTarget(e.target) && !(open && e.target === inputEl)) {
-      // Allow ? only when not typing elsewhere
       if (e.target !== inputEl) return;
     }
     if (e.code === "F1") {
@@ -468,12 +703,79 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
       toggle();
       return;
     }
-    // "?" key (Shift+/ on many layouts) or key === '?'
     if (e.key === "?" && !e.ctrlKey && !e.metaKey && !e.altKey) {
       if (isTypingTarget(e.target) && e.target !== inputEl) return;
       if (open && e.target === inputEl) return;
       e.preventDefault();
       toggle();
+    }
+  }
+
+  /* ── Settings character grid ── */
+
+  function renderMascotPicker(container) {
+    const el =
+      container ||
+      document.getElementById("hub-help-mascot-picker") ||
+      document.querySelector("[data-hub-help-mascot-picker]");
+    if (!el) return;
+
+    const active = getMascotId();
+    el.innerHTML = listMascots()
+      .map((m) => {
+        const locked = !m.unlocked;
+        const classes = [
+          "hub-mascot-btn",
+          m.active ? "active" : "",
+          locked ? "is-locked" : ""
+        ]
+          .filter(Boolean)
+          .join(" ");
+        const lockNote = locked ? `<span class="hub-mascot-lock">Locked · coins later</span>` : "";
+        return `<button type="button" class="${classes}" data-hub-mascot="${escapeHtml(m.id)}" ${
+          locked ? 'aria-disabled="true"' : ""
+        } title="${escapeHtml(m.fullName)} — ${escapeHtml(m.blurb)}">
+          <span class="hub-mascot-icon" aria-hidden="true">${escapeHtml(m.icon)}</span>
+          <span class="hub-mascot-name">${escapeHtml(m.name)}</span>
+          <span class="hub-mascot-blurb">${escapeHtml(m.blurb)}</span>
+          ${lockNote}
+        </button>`;
+      })
+      .join("");
+
+    function setPickerStatus(msg) {
+      const status = document.getElementById("hub-help-mascot-status");
+      if (status) status.textContent = msg || "";
+      try {
+        if (typeof window.showGamesMessage === "function") window.showGamesMessage(msg, 1600);
+      } catch {}
+    }
+
+    if (el.dataset.hubMascotBound !== "1") {
+      el.dataset.hubMascotBound = "1";
+      el.addEventListener("click", (e) => {
+        const btn = e.target.closest?.("[data-hub-mascot]");
+        if (!btn || !el.contains(btn)) return;
+        const id = btn.getAttribute("data-hub-mascot");
+        if (!id) return;
+        if (!isUnlocked(id)) {
+          setPickerStatus("Locked — unlock with coins later");
+          btn.classList.add("is-shake");
+          setTimeout(() => btn.classList.remove("is-shake"), 320);
+          return;
+        }
+        const res = setMascot(id);
+        if (res.ok) {
+          const m = MASCOT_BY_ID[id];
+          setPickerStatus(`Help assistant: ${m?.fullName || id}`);
+          if (open && chatEl) {
+            pushBot(
+              "Assistant swapped",
+              `You're now chatting with ${getMascot().fullName}. Same tips, new vibe.`
+            );
+          }
+        }
+      });
     }
   }
 
@@ -498,7 +800,12 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
   function boot() {
     ensureDom();
     loadData();
+    renderMascotPicker();
     document.addEventListener("keydown", onKeyDown, true);
+    document.addEventListener("hub-help-mascot-changed", () => {
+      refreshChrome();
+      renderMascotPicker();
+    });
   }
 
   if (document.readyState === "loading") {
@@ -515,6 +822,14 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     search,
     isOpen: () => open,
     currentGame: currentGameId,
-    ready: () => ready
+    ready: () => ready,
+    getMascotId,
+    getMascot,
+    setMascot,
+    listMascots,
+    isUnlocked,
+    unlockMascot,
+    renderMascotPicker,
+    MASCOTS
   };
 })();
