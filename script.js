@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001as": [
+    "Help only mentions passwords when you ask about passwords"
+  ],
   "20261001ar": [
     "Help can tell your username / player code — never your password"
   ],

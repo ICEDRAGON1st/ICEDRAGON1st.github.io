@@ -587,7 +587,6 @@
         code ? `Your player code is ${code}.` : "No player code found on this device."
       );
     }
-    bits.push("I never show passwords.");
     return bits.join(" ");
   }
 
