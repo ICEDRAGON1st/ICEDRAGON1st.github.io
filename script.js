@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001am": [
+    "Help Assistant: fair-play guardrails — no spoilers or off-topic answers, mascot refusals"
+  ],
   "20261001al": [
     "Help hotkey: F most places, F1 in letter games (Guessword, Hangman, Quiz, Sudoku)"
   ],

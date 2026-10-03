@@ -64,6 +64,13 @@
       "answer": "Tap the ? button (bottom-right) or press F — in Guessword, Hangman, Quiz, and Sudoku use F1 so letter keys stay free. Ask in plain language or use a quick question. Answers come from a local guide — no internet or API key needed."
     },
     {
+      "id": "fair-play",
+      "games": ["*", "hub"],
+      "keywords": ["cheat", "spoiler", "secret word", "answer key", "fair play", "hints", "solution", "reveal"],
+      "title": "Fair play",
+      "answer": "Help only shares public rules, controls, and menu directions. It never reveals secret words, hidden tiles, puzzle keys, or other live answers — those you earn by playing."
+    },
+    {
       "id": "wordle-play",
       "games": ["wordle"],
       "keywords": ["how to play", "controls", "guess", "word", "daily", "practice", "hint"],

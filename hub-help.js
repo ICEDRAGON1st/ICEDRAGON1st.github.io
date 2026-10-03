@@ -43,7 +43,11 @@
       blurb: "Enthusiastic retro arcade host",
       icon: "🕹️",
       starter: true,
-      wrap: (core) => `INSERT COIN—and listen up, player! ${core} High-score vibes only—don't tilt the cabinet!`
+      wrap: (core) => `INSERT COIN—and listen up, player! ${core} High-score vibes only—don't tilt the cabinet!`,
+      refuseCheat:
+        "TILT! No free credits for spoilers — I don't reveal secret words, tiles, or puzzle keys. Play fair and chase that high score!",
+      refuseOffTopic:
+        "Wrong cabinet, player! I only serve My Games tips — controls, rules, menus, achievements. No real-world trivia in this arcade!"
     },
     {
       id: "spark-e",
@@ -52,7 +56,11 @@
       blurb: "Eager cheerleader drone",
       icon: "🤖",
       starter: true,
-      wrap: (core) => `Beep-boop! Hype systems online! ${core} You have got this—boosters fired! ⚡`
+      wrap: (core) => `Beep-boop! Hype systems online! ${core} You have got this—boosters fired! ⚡`,
+      refuseCheat:
+        "ERROR! My protocols prevent me from spoiling the fun or answering non-game trivia!",
+      refuseOffTopic:
+        "ERROR! My protocols prevent me from spoiling the fun or answering non-game trivia!"
     },
     {
       id: "whiskers",
@@ -61,7 +69,11 @@
       blurb: "Cozy, wise, slightly sarcastic",
       icon: "🐱",
       starter: false,
-      wrap: (core) => `*adjusts tiny wizard hat* Hmph. Pay attention. ${core} …Yes, even you. Now run along before I nap on the keyboard.`
+      wrap: (core) => `*adjusts tiny wizard hat* Hmph. Pay attention. ${core} …Yes, even you. Now run along before I nap on the keyboard.`,
+      refuseCheat:
+        "A true master finds the secret word on their own, human. No hints from me!",
+      refuseOffTopic:
+        "I tutor games, not the universe. Ask about rules, menus, or achievements — or I'll go back to my nap."
     },
     {
       id: "glitch",
@@ -70,7 +82,11 @@
       blurb: "Playful mischievous insider",
       icon: "👾",
       starter: false,
-      wrap: (core) => `psst—don't tell the patch notes, but… ${core} heh. I totally didn't rearrange your HUD. (or did i)`
+      wrap: (core) => `psst—don't tell the patch notes, but… ${core} heh. I totally didn't rearrange your HUD. (or did i)`,
+      refuseCheat:
+        "nice try~ I'm chaotic, not a cheat engine. secret answers stay corrupted on purpose. go guess it yourself ;)",
+      refuseOffTopic:
+        "lol that question isn't even in this build. ask me about games, buttons, or menus — not random life lore."
     },
     {
       id: "pixel-8",
@@ -79,7 +95,11 @@
       blurb: "Sleepy pajama developer",
       icon: "💻",
       starter: false,
-      wrap: (core) => `*yawns in commit history* okay so basically— ${core} anyway i'm shipping this note and going back to bed. please don't file a bug about the pajamas.`
+      wrap: (core) => `*yawns in commit history* okay so basically— ${core} anyway i'm shipping this note and going back to bed. please don't file a bug about the pajamas.`,
+      refuseCheat:
+        "yeah no — i'm not shipping spoilers. secret words and puzzle keys stay out of the help build. go play it.",
+      refuseOffTopic:
+        "that's outside the repo, bud. i only answer hub/game stuff — controls, rules, settings. filing this as won't-fix."
     },
     {
       id: "barnaby",
@@ -88,7 +108,11 @@
       blurb: "80s gym instructor energy",
       icon: "📣",
       starter: false,
-      wrap: (core) => `CAN YOU HEAR ME IN THE BACK?! ${core} NOW DROP AND GIVE ME ONE MORE TRY—YOU'RE A CHAMPION!`
+      wrap: (core) => `CAN YOU HEAR ME IN THE BACK?! ${core} NOW DROP AND GIVE ME ONE MORE TRY—YOU'RE A CHAMPION!`,
+      refuseCheat:
+        "NO SHORTCUTS ON MY WATCH! Spoilers are for quitters — earn that win with SWEAT and REPS!",
+      refuseOffTopic:
+        "WRONG WORKOUT PLAN! This gym is My Games only — controls, rules, achievements. NO outside trivia sets!"
     },
     {
       id: "goldsworth",
@@ -97,7 +121,11 @@
       blurb: "Treasure-obsessed coin goblin",
       icon: "🪙",
       starter: false,
-      wrap: (core) => `Yesss, shiny seeker… listen close from my coin sack. ${core} More loot awaits. Leave the goblin his tip.`
+      wrap: (core) => `Yesss, shiny seeker… listen close from my coin sack. ${core} More loot awaits. Leave the goblin his tip.`,
+      refuseCheat:
+        "Greedy, yes — cheater, never. I won't sell secret words or puzzle keys. Dig up the treasure yourself!",
+      refuseOffTopic:
+        "That shiny isn't from this dungeon. Ask about games, loot menus, and achievements — not worldly nonsense."
     },
     {
       id: "astra",
@@ -106,7 +134,11 @@
       blurb: "Curious alien mission officer",
       icon: "🚀",
       starter: false,
-      wrap: (core) => `Mission briefing, star-cadet: ${core} Chart a course, log the discovery, and may your high score reach orbit.`
+      wrap: (core) => `Mission briefing, star-cadet: ${core} Chart a course, log the discovery, and may your high score reach orbit.`,
+      refuseCheat:
+        "Spoiler signals are jammed, cadet. I will not transmit secret words or puzzle solutions. Complete the mission yourself.",
+      refuseOffTopic:
+        "That query is outside this star system. I only brief My Games missions — controls, rules, menus, achievements."
     },
     {
       id: "gusto",
@@ -115,7 +147,11 @@
       blurb: "Cheerful cooking metaphors",
       icon: "👨‍🍳",
       starter: false,
-      wrap: (core) => `Bon appétit, chef! Here's the recipe: ${core} Season with practice, plate with confidence—and don't burn the combo!`
+      wrap: (core) => `Bon appétit, chef! Here's the recipe: ${core} Season with practice, plate with confidence—and don't burn the combo!`,
+      refuseCheat:
+        "Ah-ah! No tasting the secret ingredient early — I won't serve spoilers or puzzle answers. Cook it yourself!",
+      refuseOffTopic:
+        "Wrong kitchen! I only plate My Games recipes — controls, rules, menus, achievements. No outside menu items."
     },
     {
       id: "shadow",
@@ -124,7 +160,11 @@
       blurb: "Noir detective, classified files",
       icon: "🕵️",
       starter: false,
-      wrap: (core) => `Case file — confidential. ${core} That's all the dossier says, kid. Keep it under your hat.`
+      wrap: (core) => `Case file — confidential. ${core} That's all the dossier says, kid. Keep it under your hat.`,
+      refuseCheat:
+        "That information is top secret, detective. You'll have to solve this case yourself.",
+      refuseOffTopic:
+        "Wrong beat, kid. My desk only handles My Games cases — controls, rules, menus, achievements. Nothing else."
     }
   ];
 
@@ -399,14 +439,45 @@
     return score;
   }
 
+  /** Fair-play / scope guardrails — never reads live game state or answer keys. */
+  const CHEAT_RE =
+    /\b(secret\s*word|today'?s\s*word|daily\s*word|what\s*is\s*the\s*word|tell\s*me\s*the\s*word|give\s*me\s*the\s*(word|answer)|reveal\s*(the\s*)?(word|answer|solution)|spoil(er|s|ing)?|cheat(code|s)?|answer\s*key|puzzle\s*key|solve\s*(it|this|the\s*puzzle)|what'?s\s*the\s*(answer|solution|word)|hidden\s*(tile|word|answer)|mine\s*(location|spot)|which\s*tile|exact\s*answer|walkthrough\s*answer)\b/i;
+
+  const SCOPE_RE =
+    /\b(how|play|control|controls|rule|rules|menu|menus|setting|settings|option|options|achievement|achievements|leaderboard|leaderboards|hub|game|games|hotkey|button|pause|resume|cast|dig|fish|score|upgrade|shop|tutorial|guide|help|assistant|mascot|friends|chat|nickname|player|streak|fair\s*play|spoiler|hint|hints|coin|ore|rod|keyboard|wasd)\b/i;
+
+  function classifyGuard(query) {
+    const q = normalize(query);
+    if (!q) return "empty";
+    if (CHEAT_RE.test(q) || CHEAT_RE.test(String(query || ""))) return "cheat";
+    // Pure off-topic: no in-game scope words and not a short game how-to phrase
+    if (!SCOPE_RE.test(q) && !SCOPE_RE.test(String(query || ""))) return "offtopic";
+    return "ok";
+  }
+
+  function refusalLine(kind) {
+    const m = getMascot();
+    if (kind === "cheat") {
+      return (
+        m.refuseCheat ||
+        "I won't spoil secret words, hidden tiles, or puzzle answers. Ask about rules and controls instead."
+      );
+    }
+    return (
+      m.refuseOffTopic ||
+      "I only answer questions about this game collection — controls, rules, menus, achievements, and settings."
+    );
+  }
+
   function search(query, gameId) {
+    // Dataset-only search. Never accept or merge live game-state / answer keys.
     const g = gameId || currentGameId();
     const topics = Array.isArray(data.topics) ? data.topics : [];
     const ranked = topics
       .map((t) => ({ t, s: scoreTopic(t, query, g) }))
-      .filter((x) => x.s > 0)
+      .filter((x) => x.s >= 20)
       .sort((a, b) => b.s - a.s || a.t.title.localeCompare(b.t.title));
-    return ranked.slice(0, 3).map((x) => x.t);
+    return ranked.slice(0, 3).map((x) => ({ topic: x.t, score: x.s }));
   }
 
   function ensureDom() {
@@ -524,7 +595,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     refreshChrome();
     pushBot(
       "Welcome",
-      "Ask how to play, where achievements or settings are, or tap a quick question. Pick your assistant in Hub → Settings."
+      "Ask how to play, where achievements or settings are, or tap a quick question. I only cover this game collection — no spoilers, no outside trivia. Pick your assistant in Hub → Settings."
     );
   }
 
@@ -597,16 +668,35 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     if (!q) return;
     refreshChrome();
     pushUser(q);
+
+    const guard = classifyGuard(q);
+    if (guard === "cheat") {
+      pushBot("Fair play", refusalLine("cheat"), { raw: true });
+      return;
+    }
+    if (guard === "offtopic") {
+      pushBot("Out of scope", refusalLine("offtopic"), { raw: true });
+      return;
+    }
+
     const gameId = currentGameId();
     const hits = search(q, gameId);
     if (!hits.length) {
+      // In-scope wording but no FAQ hit — stay helpful, still no spoilers / trivia.
       pushBot(
         "No match",
-        `I don't have a note for that yet in ${gameLabel(gameId)}. Try “how to play”, “achievements”, “settings”, or “leaderboard”.`
+        `I don't have a public tip for that in ${gameLabel(
+          gameId
+        )} yet. Try “how to play”, “achievements”, “settings”, or “leaderboard”. I never reveal secret words or puzzle answers.`
       );
       return;
     }
-    hits.forEach((t) => pushBot(t.title, t.answer));
+    hits.forEach((h) => {
+      const t = h.topic;
+      // Defense-in-depth: only static FAQ strings, never live state.
+      if (!t || typeof t.answer !== "string") return;
+      pushBot(t.title, t.answer);
+    });
   }
 
   /* ── Pause host minigame while help is open ── */
@@ -863,6 +953,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     toggle,
     ask,
     search,
+    classifyGuard,
     isOpen: () => open,
     currentGame: currentGameId,
     ready: () => ready,
