@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ak": [
+    "Help Assistant hotkey is now F (instead of F1)"
+  ],
   "20261001aj": [
     "Help (F1): stay on My Games — no more jumping into Guessword"
   ],
