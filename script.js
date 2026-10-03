@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001an": [
+    "Help button sits beside Chat instead of covering it"
+  ],
   "20261001am": [
     "Help Assistant: fair-play guardrails — no spoilers or off-topic answers, mascot refusals"
   ],

@@ -486,7 +486,9 @@
     const style = document.createElement("style");
     style.id = "hub-help-style";
     style.textContent = `
-#hub-help-fab{position:fixed;right:max(0.75rem,env(safe-area-inset-right));bottom:max(0.75rem,env(safe-area-inset-bottom));
+/* Sit left of the Chat FAB (right:1rem;bottom:1rem) so they don't overlap */
+#hub-help-fab{position:fixed;right:max(7.35rem,calc(6.5rem + env(safe-area-inset-right)));
+bottom:max(0.9rem,env(safe-area-inset-bottom));
 z-index:${Z};width:2.85rem;height:2.85rem;border-radius:999px;border:1px solid rgba(124,156,255,.45);
 background:linear-gradient(180deg,#24365a,#152238);color:#e8eefc;font:800 1.15rem/1 Outfit,Segoe UI,system-ui,sans-serif;
 box-shadow:0 10px 28px rgba(0,0,0,.4);cursor:pointer;display:grid;place-items:center;padding:0;
