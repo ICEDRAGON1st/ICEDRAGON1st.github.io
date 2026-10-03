@@ -670,21 +670,27 @@
   const GREET_RE =
     /^(hi|hii+|hello|hey+|yo|sup|howdy|hiya|heya|hai|good\s*(morning|afternoon|evening|day)|thanks|thank\s*you|ty|thx|bye|goodbye|see\s*ya|cya|what'?s\s*up|wassup|how\s*are\s*you)(\s+(there|chat|assistant|friend|buddy|chip|spark.?e))?[!?.]*$/i;
 
+  // Only real-world / homework style asks — not missing game FAQ hits.
   const TRIVIA_RE =
-    /(\d+\s*[\+\-\*\/x×÷]\s*\d+|what\s*is\s+\d|how\s*much\s*is\s+\d|calculate|capital\s+of|when\s+was\s+|who\s+won\s+|weather\s+today|define\s+|translate\s+)/i;
+    /(\d+\s*[\+\-\*\/x×÷]\s*\d+|what\s*is\s+\d|how\s*much\s*is\s+\d|calculate|capital\s+of|when\s+was\s+|who\s+won\s+|weather\s+today|define\s+|translate\s+|president|prime\s*minister|united\s*states|\busa\b|who\s+is\s+the\s+|what\s+is\s+the\s+capital|real\s*world|homework|school\s*test)\b/i;
 
   // Never reveal passwords — refuse even if somehow stored.
   const PASSWORD_RE =
     /\b(passwords?|pass\s*phrases?|login\s*password|account\s*password|(my|the|your)\s*password|what'?s\s*(my|the)\s*password|tell\s*me\s*(my|the)\s*password|show\s*(my|the)\s*password|reveal\s*(my|the)\s*password)\b/i;
 
+  // Only YOUR account (must say my/me) — not other players.
   const ACCOUNT_USER_RE =
-    /\b((what('?s|\s+is)|show|tell\s*me|whats)\s+(my\s+|me\s+)?(user(\s*name)?|username|nickname|name|handle)|(my|me)\s+(user(\s*name)?|username|nickname|handle)|who\s+am\s+i)\b/i;
+    /\b((what('?s|\s+is)|show|tell\s*me|whats)\s+(my|me)\s+(user(\s*name)?|username|nickname|name|handle)|(my|me)\s+(user(\s*name)?|username|nickname|handle)|who\s+am\s+i)\b/i;
 
   const ACCOUNT_CODE_RE =
-    /\b((what('?s|\s+is)|show|tell\s*me|whats)\s+(my\s+|me\s+)?((player\s*)?code)|(my|me)\s+(player\s*)?code|player\s*code)\b/i;
+    /\b((what('?s|\s+is)|show|tell\s*me|whats)\s+(my|me)\s+((player\s*)?code)|(my|me)\s+(player\s*)?code|my\s+player\s*code)\b/i;
 
   const ACCOUNT_BOTH_RE =
-    /\b(my\s+account|account\s+info|account\s+details|username\s+and\s+(player\s*)?code|(player\s*)?code\s+and\s+(user(\s*name)?|username))\b/i;
+    /\b(my\s+account|my\s+account\s+(info|details)|my\s+username\s+and\s+(player\s*)?code|my\s+(player\s*)?code\s+and\s+(user(\s*name)?|username))\b/i;
+
+  // Other people's codes / usernames / accounts — always private.
+  const PRIVACY_RE =
+    /\b((code|username|user\s*name|password|player\s*code)\s+(to|for|of)\s+|(his|her|their|someone'?s|somebody'?s)\s+(code|username|user\s*name|password|account|player\s*code)|([A-Za-z][\w-]{1,24})'s\s+(code|username|password|account|player\s*code)|(code|username|password)\s+to\s+\w[\w-]{0,24}\s+account|what\s+is\s+\w[\w-]{0,24}\s*('s)?\s*(code|username|password|player\s*code))\b/i;
 
   function isGreeting(query) {
     const raw = String(query || "").trim();
@@ -693,12 +699,40 @@
     return GREET_RE.test(q) || GREET_RE.test(raw);
   }
 
+  function isOtherAccountAsk(query) {
+    const q = normalize(query);
+    const raw = String(query || "");
+    if (!q) return false;
+    // Own-account asks are allowed elsewhere.
+    if (
+      ACCOUNT_BOTH_RE.test(q) ||
+      ACCOUNT_USER_RE.test(q) ||
+      ACCOUNT_CODE_RE.test(q) ||
+      ACCOUNT_BOTH_RE.test(raw) ||
+      ACCOUNT_USER_RE.test(raw) ||
+      ACCOUNT_CODE_RE.test(raw)
+    ) {
+      return false;
+    }
+    if (PRIVACY_RE.test(q) || PRIVACY_RE.test(raw)) return true;
+    // "hjalte account code", "account code for bob", etc.
+    if (
+      /\baccount\b/.test(q) &&
+      /\b(code|username|password|user)\b/.test(q) &&
+      !/\b(my|me)\b/.test(q)
+    ) {
+      return true;
+    }
+    return false;
+  }
+
   function classifyGuard(query) {
     const q = normalize(query);
     const raw = String(query || "");
     if (!q) return "empty";
     if (isGreeting(query)) return "greet";
     if (PASSWORD_RE.test(q) || PASSWORD_RE.test(raw)) return "password";
+    if (isOtherAccountAsk(query)) return "privacy";
     if (
       ACCOUNT_BOTH_RE.test(q) ||
       ACCOUNT_BOTH_RE.test(raw) ||
@@ -710,14 +744,20 @@
       return "account";
     }
     if (CHEAT_RE.test(q) || CHEAT_RE.test(raw)) return "cheat";
+    // Only hard-refuse clear real-world / homework questions.
     if (TRIVIA_RE.test(q) || TRIVIA_RE.test(raw)) return "offtopic";
-    // Pure off-topic: no in-game scope words
-    if (!SCOPE_RE.test(q) && !SCOPE_RE.test(raw)) return "offtopic";
+    // Everything else can try the game FAQ (no blanket "not in game" wall).
     return "ok";
   }
 
   function refusalLine(kind) {
     const m = getMascot();
+    if (kind === "privacy") {
+      return (
+        m.refusePrivacy ||
+        "That's private — I can't show other players' codes, usernames, or account info. You can only ask about your own (like “what is my player code?”)."
+      );
+    }
     if (kind === "password") {
       return (
         m.refusePassword ||
@@ -732,7 +772,7 @@
     }
     return (
       m.refuseOffTopic ||
-      "I only answer questions about this game collection — controls, rules, menus, achievements, and settings."
+      "That isn't about these games. Ask me about controls, rules, menus, achievements, or your own account — not real-world trivia."
     );
   }
 
@@ -1059,6 +1099,10 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     }
     if (guard === "password") {
       pushBot("That's private", refusalLine("password"), withMeant());
+      return;
+    }
+    if (guard === "privacy") {
+      pushBot("That's private", refusalLine("privacy"), withMeant());
       return;
     }
     if (guard === "account") {

@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001aw": [
+    "Help: other players’ codes stay private; “not in game” only for real-world trivia"
+  ],
   "20261001av": [
     "Help menu clearer for kids — bigger buttons, plain labels, easier chat"
   ],
