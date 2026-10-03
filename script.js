@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001bf": [
+    "My Games: Mine Depth card moved back next to Runosaur"
+  ],
   "20261001be": [
     "Help Assistant UI polish — cleaner panel, smoother open, nicer chat bubbles"
   ],
@@ -1546,12 +1549,12 @@ const HUB_GAMES = [
   { id: "fishing", name: "Fishing Idle", path: "fishing/index.html" },
   { id: "cows", name: "Cow Merge", path: "cows/index.html" },
   { id: "dino", name: "Runosaur", path: "runosaur/index.html" },
+  { id: "mine", name: "Mine Depth", path: "mine/index.html" },
   { id: "ramp", name: "Ramp Rush", path: "ramp-rush/run.html" },
   { id: "guac", name: "Guac-A-Mole", path: "guac-a-mole/index.html" },
   { id: "bubble", name: "Bubble Pop Relay", path: "bubble-pop/index.html" },
   { id: "cafe", name: "Cafe Queue", path: "cafe-queue/index.html" },
   { id: "garden", name: "Garden Snap", path: "garden-snap/index.html" },
-  { id: "mine", name: "Mine Depth", path: "mine/index.html" },
   { id: "blockblast", name: "Block Sweep", path: "block-sweep/index.html" },
   { id: "lemmings", name: "Dudes", path: "dudes/index.html" },
   { id: "paper", name: "Paper Claim", path: "paper-io/index.html" }
@@ -2837,6 +2840,7 @@ function sortGamesGrid() {
     popularId = "";
   }
   const cards = [...gamesGrid.querySelectorAll(".game-card[data-game]")];
+  const order = new Map(HUB_GAMES.map((g, i) => [g.id, i]));
   cards.sort((a, b) => {
     const af = favorites.includes(a.dataset.game) ? 0 : 1;
     const bf = favorites.includes(b.dataset.game) ? 0 : 1;
@@ -2844,7 +2848,7 @@ function sortGamesGrid() {
     const ap = popularId && a.dataset.game === popularId ? 0 : 1;
     const bp = popularId && b.dataset.game === popularId ? 0 : 1;
     if (ap !== bp) return ap - bp;
-    return 0;
+    return (order.get(a.dataset.game) ?? 999) - (order.get(b.dataset.game) ?? 999);
   });
   cards.forEach((card) => gamesGrid.appendChild(card));
 }
