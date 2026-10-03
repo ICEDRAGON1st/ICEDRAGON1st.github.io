@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001be": [
+    "Help Assistant UI polish — cleaner panel, smoother open, nicer chat bubbles"
+  ],
   "20261001bd": [
     "Help typo fix: “players have played” no longer becomes “player have player”"
   ],

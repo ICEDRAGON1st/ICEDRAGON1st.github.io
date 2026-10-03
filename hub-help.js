@@ -1178,74 +1178,135 @@
     const style = document.createElement("style");
     style.id = "hub-help-style";
     style.textContent = `
-/* Sit left of the Chat FAB (right:1rem;bottom:1rem) so they don't overlap */
+/* Sit left of the Chat FAB so they don't overlap */
 #hub-help-fab{position:fixed;right:max(7.35rem,calc(6.5rem + env(safe-area-inset-right)));
 bottom:max(0.9rem,env(safe-area-inset-bottom));
-z-index:${Z};width:3rem;height:3rem;border-radius:999px;border:2px solid rgba(156,190,255,.55);
-background:linear-gradient(160deg,#3a5a9a,#1a2a4a);color:#e8eefc;font:800 1.2rem/1 Outfit,Segoe UI,system-ui,sans-serif;
-box-shadow:0 10px 28px rgba(0,0,0,.45);cursor:pointer;display:grid;place-items:center;padding:0;
-transition:transform .12s ease,box-shadow .12s ease}
-#hub-help-fab:hover{transform:translateY(-2px);box-shadow:0 14px 32px rgba(0,0,0,.55)}
+z-index:${Z};width:3.15rem;height:3.15rem;border-radius:999px;border:2px solid rgba(170,210,255,.62);
+background:
+  radial-gradient(circle at 30% 28%,rgba(190,220,255,.35),transparent 42%),
+  linear-gradient(165deg,#4a78c8 0%,#243868 55%,#152448 100%);
+color:#f2f7ff;font:800 1.25rem/1 Outfit,"Segoe UI",system-ui,sans-serif;
+box-shadow:0 10px 28px rgba(0,0,0,.48),0 0 0 0 rgba(120,180,255,.35);cursor:pointer;display:grid;place-items:center;padding:0;
+transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;
+animation:hubHelpFabPulse 2.8s ease-in-out infinite}
+#hub-help-fab:hover{transform:translateY(-3px) scale(1.04);box-shadow:0 16px 34px rgba(0,0,0,.55),0 0 0 5px rgba(120,180,255,.18);
+border-color:rgba(200,225,255,.85);animation:none}
 #hub-help-fab:focus-visible{outline:2px solid #9cbcff;outline-offset:3px}
+@keyframes hubHelpFabPulse{0%,100%{box-shadow:0 10px 28px rgba(0,0,0,.48),0 0 0 0 rgba(120,180,255,.28)}
+50%{box-shadow:0 10px 28px rgba(0,0,0,.48),0 0 0 7px rgba(120,180,255,0)}}
+
 #hub-help-root{position:fixed;inset:0;z-index:${Z + 1};display:none;align-items:flex-end;justify-content:center;
-padding:0.75rem;padding-bottom:max(0.75rem,env(safe-area-inset-bottom));background:rgba(4,10,18,.58);
-backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);font-family:Outfit,Segoe UI,system-ui,sans-serif;color:#e8f4ff}
+padding:.7rem;padding-bottom:max(.7rem,env(safe-area-inset-bottom));
+background:rgba(3,8,16,.62);backdrop-filter:blur(10px) saturate(1.15);-webkit-backdrop-filter:blur(10px) saturate(1.15);
+font-family:Outfit,"Segoe UI",system-ui,sans-serif;color:#eaf3ff}
 #hub-help-root.is-open{display:flex}
-#hub-help-root .hub-help-panel{width:min(28rem,100%);max-height:min(82vh,40rem);display:flex;flex-direction:column;
-background:linear-gradient(180deg,#182848 0%,#101c34 45%,#0c1528 100%);border:1px solid rgba(140,175,255,.4);
-border-radius:22px;box-shadow:0 28px 70px rgba(0,0,0,.55);overflow:hidden}
-#hub-help-root .hub-help-head{display:flex;align-items:center;justify-content:space-between;gap:.75rem;
-padding:1rem 1rem .85rem;background:linear-gradient(180deg,rgba(90,130,220,.18),transparent);
-border-bottom:1px solid rgba(140,175,255,.16)}
-#hub-help-root .hub-help-head-main{display:flex;gap:.75rem;align-items:center;min-width:0}
-#hub-help-root .hub-help-avatar{flex:0 0 auto;width:3.1rem;height:3.1rem;border-radius:16px;display:grid;place-items:center;
-font-size:1.55rem;background:linear-gradient(160deg,rgba(150,185,255,.25),rgba(80,120,200,.12));
-border:1px solid rgba(160,195,255,.4);box-shadow:0 6px 16px rgba(0,0,0,.25)}
-#hub-help-root .hub-help-head h2{margin:0;font-size:1.15rem;font-weight:800;letter-spacing:.01em}
-#hub-help-root .hub-help-eyebrow{margin:0 0 .15rem;font-size:.68rem;font-weight:800;letter-spacing:.08em;
-text-transform:uppercase;color:#8eb0e0}
-#hub-help-root .hub-help-context{margin:.15rem 0 0;font-size:.84rem;font-weight:650;color:#a8c0e0;line-height:1.3}
-#hub-help-root .hub-help-game-pill{display:inline-flex;align-items:center;gap:.3rem;margin-top:.35rem;
-padding:.2rem .55rem;border-radius:999px;background:rgba(100,170,255,.16);border:1px solid rgba(120,180,255,.3);
-font-size:.72rem;font-weight:800;color:#d4e6ff}
-#hub-help-root .hub-help-close{border:0;background:rgba(255,255,255,.08);color:#e8f4ff;width:2.25rem;height:2.25rem;
-border-radius:12px;font-size:1.25rem;cursor:pointer;line-height:1;flex:0 0 auto}
-#hub-help-root .hub-help-close:hover{background:rgba(255,255,255,.14)}
-#hub-help-root .hub-help-quick-wrap{padding:.65rem .85rem .7rem;border-bottom:1px solid rgba(140,175,255,.12)}
-#hub-help-root .hub-help-quick-label{margin:0 0 .45rem;font-size:.78rem;font-weight:800;color:#c5d8f5}
-#hub-help-root .hub-help-quick{display:flex;flex-wrap:wrap;gap:.45rem}
-#hub-help-root .hub-help-chip{border:1px solid rgba(140,175,255,.32);background:rgba(100,150,240,.12);color:#eef4ff;
-border-radius:999px;padding:.42rem .75rem;font-size:.82rem;font-weight:750;cursor:pointer;
-display:inline-flex;align-items:center;gap:.35rem}
-#hub-help-root .hub-help-chip:hover{background:rgba(120,170,255,.22);border-color:rgba(160,195,255,.5)}
+#hub-help-root.is-open .hub-help-panel{animation:hubHelpPanelIn .32s cubic-bezier(.2,.85,.2,1) both}
+@keyframes hubHelpPanelIn{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:none}}
+
+#hub-help-root .hub-help-panel{position:relative;width:min(30rem,100%);max-height:min(86vh,42rem);display:flex;flex-direction:column;
+background:
+  radial-gradient(120% 80% at 0% 0%,rgba(90,160,255,.16),transparent 55%),
+  radial-gradient(90% 70% at 100% 0%,rgba(60,200,220,.1),transparent 50%),
+  linear-gradient(185deg,#1a2d52 0%,#122038 42%,#0b1426 100%);
+border:1px solid rgba(150,190,255,.42);border-radius:24px;
+box-shadow:0 30px 80px rgba(0,0,0,.58),inset 0 1px 0 rgba(255,255,255,.08);overflow:hidden}
+#hub-help-root .hub-help-panel::before{content:"";position:absolute;inset:0 0 auto 0;height:2px;pointer-events:none;
+background:linear-gradient(90deg,transparent,rgba(170,210,255,.75),rgba(120,230,240,.55),transparent);z-index:2}
+
+#hub-help-root .hub-help-head{display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;
+padding:1.05rem 1.05rem .9rem;border-bottom:1px solid rgba(140,175,255,.14);
+background:linear-gradient(180deg,rgba(100,150,240,.14),rgba(100,150,240,0))}
+#hub-help-root .hub-help-head-main{display:flex;gap:.8rem;align-items:flex-start;min-width:0}
+#hub-help-root .hub-help-avatar-wrap{position:relative;flex:0 0 auto}
+#hub-help-root .hub-help-avatar{width:3.35rem;height:3.35rem;border-radius:18px;display:grid;place-items:center;
+font-size:1.65rem;background:
+  radial-gradient(circle at 30% 25%,rgba(220,240,255,.28),transparent 45%),
+  linear-gradient(160deg,rgba(140,185,255,.32),rgba(50,100,190,.16));
+border:1px solid rgba(170,210,255,.45);box-shadow:0 8px 20px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.12)}
+#hub-help-root .hub-help-online{position:absolute;right:-2px;bottom:-2px;width:.72rem;height:.72rem;border-radius:999px;
+background:#4ade80;border:2px solid #122038;box-shadow:0 0 0 3px rgba(74,222,128,.18)}
+#hub-help-root .hub-help-head-copy{min-width:0}
+#hub-help-root .hub-help-head h2{margin:0;font-size:1.22rem;font-weight:800;letter-spacing:.01em;color:#f4f8ff;
+text-shadow:0 1px 0 rgba(0,0,0,.2)}
+#hub-help-root .hub-help-eyebrow{margin:0 0 .12rem;font-size:.66rem;font-weight:800;letter-spacing:.1em;
+text-transform:uppercase;color:#8fb4e6}
+#hub-help-root .hub-help-context{margin:.2rem 0 0;font-size:.82rem;font-weight:600;color:#a9c3e4;line-height:1.35}
+#hub-help-root .hub-help-game-pill{display:inline-flex;align-items:center;gap:.3rem;margin-top:.4rem;
+padding:.22rem .62rem;border-radius:999px;
+background:linear-gradient(180deg,rgba(100,180,255,.2),rgba(80,140,220,.1));
+border:1px solid rgba(130,190,255,.35);font-size:.7rem;font-weight:800;color:#d8ebff;
+box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+#hub-help-root .hub-help-close{border:0;background:rgba(255,255,255,.07);color:#e8f4ff;width:2.35rem;height:2.35rem;
+border-radius:12px;font-size:1.3rem;cursor:pointer;line-height:1;flex:0 0 auto;
+border:1px solid rgba(255,255,255,.08);transition:background .14s ease,transform .14s ease}
+#hub-help-root .hub-help-close:hover{background:rgba(255,255,255,.14);transform:scale(1.04)}
+
+#hub-help-root .hub-help-quick-wrap{padding:.7rem .95rem .75rem;border-bottom:1px solid rgba(140,175,255,.1);
+background:rgba(0,0,0,.1)}
+#hub-help-root .hub-help-quick-label{margin:0 0 .5rem;font-size:.76rem;font-weight:800;color:#c8dbf7;letter-spacing:.01em}
+#hub-help-root .hub-help-quick{display:flex;flex-wrap:nowrap;gap:.45rem;overflow-x:auto;padding-bottom:.15rem;
+scrollbar-width:thin;scrollbar-color:rgba(140,180,255,.35) transparent;-webkit-overflow-scrolling:touch}
+#hub-help-root .hub-help-quick::-webkit-scrollbar{height:4px}
+#hub-help-root .hub-help-quick::-webkit-scrollbar-thumb{background:rgba(140,180,255,.35);border-radius:999px}
+#hub-help-root .hub-help-chip{flex:0 0 auto;border:1px solid rgba(150,190,255,.34);
+background:linear-gradient(180deg,rgba(120,170,255,.18),rgba(80,130,220,.1));color:#eef5ff;
+border-radius:999px;padding:.48rem .82rem;font-size:.8rem;font-weight:750;cursor:pointer;
+display:inline-flex;align-items:center;gap:.38rem;white-space:nowrap;
+box-shadow:inset 0 1px 0 rgba(255,255,255,.06);transition:transform .12s ease,background .12s ease,border-color .12s ease}
+#hub-help-root .hub-help-chip:hover{background:linear-gradient(180deg,rgba(140,190,255,.28),rgba(100,150,240,.16));
+border-color:rgba(180,210,255,.55);transform:translateY(-1px)}
+#hub-help-root .hub-help-chip:active{transform:translateY(0)}
 #hub-help-root .hub-help-chip-icon{font-size:1rem;line-height:1}
-#hub-help-root .hub-help-chat{flex:1;min-height:11rem;overflow:auto;padding:.85rem;display:flex;flex-direction:column;gap:.65rem;
-background:rgba(0,0,0,.12)}
-#hub-help-root .hub-help-msg{max-width:94%;padding:.7rem .85rem;border-radius:16px;font-size:.95rem;font-weight:550;line-height:1.4;
-white-space:pre-wrap;word-break:break-word}
-#hub-help-root .hub-help-msg.user{align-self:flex-end;background:linear-gradient(160deg,rgba(90,140,255,.35),rgba(70,110,220,.22));
-border:1px solid rgba(140,180,255,.4);border-bottom-right-radius:6px}
-#hub-help-root .hub-help-msg.user .hub-help-who{display:block;font-size:.68rem;font-weight:800;letter-spacing:.06em;
-text-transform:uppercase;color:#b8d0ff;margin-bottom:.25rem}
-#hub-help-root .hub-help-msg.bot{align-self:flex-start;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);
-border-bottom-left-radius:6px;display:grid;grid-template-columns:auto 1fr;gap:.65rem;align-items:start}
-#hub-help-root .hub-help-msg .hub-help-msg-icon{width:2.1rem;height:2.1rem;border-radius:12px;display:grid;place-items:center;
-font-size:1.15rem;background:rgba(120,160,255,.16);border:1px solid rgba(140,180,255,.25)}
-#hub-help-root .hub-help-msg .hub-help-msg-title{display:block;font-weight:800;margin-bottom:.2rem;color:#dce8ff;font-size:.92rem}
-#hub-help-root .hub-help-msg .hub-help-meant{display:inline-flex;margin:.15rem 0 .4rem;padding:.18rem .5rem;border-radius:999px;
-background:rgba(255,210,120,.14);border:1px solid rgba(255,200,100,.35);color:#ffe2a8;font-size:.72rem;font-weight:750}
-#hub-help-root .hub-help-msg .hub-help-body{color:#e8f0ff}
-#hub-help-root .hub-help-form{display:flex;gap:.5rem;padding:.75rem .85rem .55rem;border-top:1px solid rgba(140,175,255,.14);
-background:rgba(0,0,0,.15)}
-#hub-help-root .hub-help-form input{flex:1;min-width:0;border-radius:14px;border:1px solid rgba(140,175,255,.32);
-background:rgba(0,0,0,.28);color:#e8f4ff;padding:.7rem .85rem;font:650 .95rem Outfit,Segoe UI,system-ui,sans-serif}
+
+#hub-help-root .hub-help-chat{flex:1;min-height:12rem;overflow:auto;padding:1rem .95rem;display:flex;flex-direction:column;gap:.7rem;
+background:
+  radial-gradient(circle at 1px 1px,rgba(140,180,255,.07) 1px,transparent 0) 0 0/18px 18px,
+  rgba(0,0,0,.16);scrollbar-width:thin;scrollbar-color:rgba(140,180,255,.3) transparent}
+#hub-help-root .hub-help-msg{max-width:92%;padding:.78rem .9rem;border-radius:18px;font-size:.94rem;font-weight:550;line-height:1.45;
+white-space:pre-wrap;word-break:break-word;animation:hubHelpMsgIn .24s ease both}
+@keyframes hubHelpMsgIn{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
+#hub-help-root .hub-help-msg.user{align-self:flex-end;
+background:linear-gradient(155deg,rgba(95,150,255,.42),rgba(55,100,210,.24));
+border:1px solid rgba(150,195,255,.45);border-bottom-right-radius:7px;
+box-shadow:0 6px 16px rgba(20,50,120,.22)}
+#hub-help-root .hub-help-msg.user .hub-help-who{display:block;font-size:.66rem;font-weight:800;letter-spacing:.07em;
+text-transform:uppercase;color:#c2d8ff;margin-bottom:.28rem}
+#hub-help-root .hub-help-msg.bot{align-self:flex-start;
+background:linear-gradient(180deg,rgba(255,255,255,.09),rgba(255,255,255,.04));
+border:1px solid rgba(180,210,255,.14);border-bottom-left-radius:7px;
+display:grid;grid-template-columns:auto 1fr;gap:.7rem;align-items:start;
+box-shadow:0 6px 18px rgba(0,0,0,.16)}
+#hub-help-root .hub-help-msg .hub-help-msg-icon{width:2.2rem;height:2.2rem;border-radius:13px;display:grid;place-items:center;
+font-size:1.18rem;background:linear-gradient(160deg,rgba(140,180,255,.22),rgba(80,130,210,.12));
+border:1px solid rgba(150,190,255,.28);box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}
+#hub-help-root .hub-help-msg .hub-help-msg-title{display:block;font-weight:800;margin-bottom:.22rem;color:#e4eeff;font-size:.93rem}
+#hub-help-root .hub-help-msg .hub-help-meant{display:inline-flex;margin:.12rem 0 .4rem;padding:.2rem .55rem;border-radius:999px;
+background:rgba(255,205,110,.12);border:1px solid rgba(255,200,100,.32);color:#ffe4b0;font-size:.7rem;font-weight:750}
+#hub-help-root .hub-help-msg .hub-help-body{color:#e8f1ff}
+
+#hub-help-root .hub-help-form{padding:.8rem .95rem .45rem;border-top:1px solid rgba(140,175,255,.12);
+background:linear-gradient(180deg,rgba(0,0,0,.12),rgba(0,0,0,.22))}
+#hub-help-root .hub-help-composer{display:flex;gap:.5rem;align-items:stretch;
+padding:.28rem;border-radius:16px;border:1px solid rgba(150,190,255,.28);
+background:rgba(0,0,0,.28);box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+transition:border-color .14s ease,box-shadow .14s ease}
+#hub-help-root .hub-help-composer:focus-within{border-color:rgba(160,205,255,.55);
+box-shadow:inset 0 1px 0 rgba(255,255,255,.05),0 0 0 3px rgba(100,160,255,.18)}
+#hub-help-root .hub-help-form input{flex:1;min-width:0;border:0;border-radius:12px;background:transparent;
+color:#eaf3ff;padding:.62rem .75rem;font:650 .95rem Outfit,"Segoe UI",system-ui,sans-serif}
 #hub-help-root .hub-help-form input::placeholder{color:#7f96b8}
-#hub-help-root .hub-help-form input:focus{outline:2px solid rgba(140,180,255,.55);outline-offset:1px}
-#hub-help-root .hub-help-form button{border:0;border-radius:14px;padding:.7rem 1.05rem;font:800 .92rem Outfit,Segoe UI,system-ui,sans-serif;
-background:linear-gradient(180deg,#7a9dff,#4d6fe0);color:#fff;cursor:pointer;box-shadow:0 6px 16px rgba(50,90,200,.35)}
-#hub-help-root .hub-help-form button:hover{filter:brightness(1.06)}
-#hub-help-root .hub-help-hint{margin:0;padding:0 .85rem .75rem;font-size:.74rem;color:#7f96b8;text-align:center;line-height:1.35}
+#hub-help-root .hub-help-form input:focus{outline:none}
+#hub-help-root .hub-help-form button{border:0;border-radius:12px;padding:.62rem 1.05rem;font:800 .9rem Outfit,"Segoe UI",system-ui,sans-serif;
+background:linear-gradient(180deg,#8eb0ff,#4f78ef);color:#fff;cursor:pointer;
+box-shadow:0 6px 16px rgba(50,90,200,.35);transition:filter .12s ease,transform .12s ease}
+#hub-help-root .hub-help-form button:hover{filter:brightness(1.07);transform:translateY(-1px)}
+#hub-help-root .hub-help-form button:active{transform:translateY(0)}
+#hub-help-root .hub-help-hint{margin:0;padding:.15rem .95rem .8rem;font-size:.72rem;color:#7f96b8;text-align:center;line-height:1.35}
 html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;pointer-events:none!important}
+@media (max-width:420px){
+  #hub-help-root .hub-help-panel{max-height:min(90vh,44rem);border-radius:20px}
+  #hub-help-root .hub-help-context{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+}
 `;
     document.head.appendChild(style);
 
@@ -1269,8 +1330,11 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
       <div class="hub-help-panel" role="dialog" aria-modal="true" aria-labelledby="hub-help-title">
         <div class="hub-help-head">
           <div class="hub-help-head-main">
-            <div class="hub-help-avatar" id="hub-help-avatar" aria-hidden="true">🤖</div>
-            <div>
+            <div class="hub-help-avatar-wrap">
+              <div class="hub-help-avatar" id="hub-help-avatar" aria-hidden="true">🤖</div>
+              <span class="hub-help-online" title="Online" aria-hidden="true"></span>
+            </div>
+            <div class="hub-help-head-copy">
               <p class="hub-help-eyebrow">Help Assistant</p>
               <h2 id="hub-help-title">Ask me anything</h2>
               <p class="hub-help-context" id="hub-help-context">I explain games, menus, and your account.</p>
@@ -1280,13 +1344,15 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
           <button type="button" class="hub-help-close" id="hub-help-close" aria-label="Close help">×</button>
         </div>
         <div class="hub-help-quick-wrap">
-          <p class="hub-help-quick-label">Tap a question — or type your own below</p>
+          <p class="hub-help-quick-label">Quick questions</p>
           <div class="hub-help-quick" id="hub-help-quick"></div>
         </div>
         <div class="hub-help-chat" id="hub-help-chat" aria-live="polite"></div>
         <form class="hub-help-form" id="hub-help-form" autocomplete="off">
-          <input id="hub-help-input" type="text" maxlength="160" placeholder="Example: how do I play?" aria-label="Ask a help question" />
-          <button type="submit">Ask</button>
+          <div class="hub-help-composer">
+            <input id="hub-help-input" type="text" maxlength="160" placeholder="Ask about the games…" aria-label="Ask a help question" />
+            <button type="submit">Ask</button>
+          </div>
         </form>
         <p class="hub-help-hint" id="hub-help-hint">Tip: press F for Help · change helper in Settings · Esc closes</p>
       </div>
@@ -1338,7 +1404,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     if (titleEl) titleEl.textContent = m.name;
     if (avatarEl) avatarEl.textContent = m.icon || "?";
     if (contextEl) {
-      contextEl.textContent = `${m.fullName} · My Games help (play, account, owner, updates, and more).`;
+      contextEl.textContent = `${m.fullName} · ask about play, menus, your account, and more`;
     }
     const pill = root?.querySelector?.("#hub-help-game-pill");
     if (pill) {
