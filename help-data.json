@@ -1,0 +1,277 @@
+{
+  "quick": [
+    { "label": "How do I play?", "query": "how to play" },
+    { "label": "Where are achievements?", "query": "achievements" },
+    { "label": "Where are options?", "query": "settings options" },
+    { "label": "Leaderboards?", "query": "leaderboard" },
+    { "label": "Controls?", "query": "controls" }
+  ],
+  "topics": [
+    {
+      "id": "hub-overview",
+      "games": ["hub", "*"],
+      "keywords": ["hub", "home", "games list", "my games", "menu", "start"],
+      "title": "My Games hub",
+      "answer": "You're on the My Games hub. Tap any game card to play. Use the top buttons for Achievements, Leaderboards, Friends, Players, Updates, Feedback, and Settings. Search games with the search box. Press ? or F1 anytime for this Help Assistant."
+    },
+    {
+      "id": "how-to-play-hub",
+      "games": ["hub"],
+      "keywords": ["how to play", "howto", "help", "tutorial", "guide", "instructions"],
+      "title": "How to play (hub)",
+      "answer": "Pick a minigame from the grid. Each game has its own rules — open Help (?) again after you enter a game for that game's instructions. On the hub you can also check achievements, high scores, leaderboards, and settings."
+    },
+    {
+      "id": "achievements",
+      "games": ["*", "hub"],
+      "keywords": ["achievement", "achievements", "trophy", "badge", "unlock"],
+      "title": "Where are achievements?",
+      "answer": "On the hub home screen, tap 🏆 Achievements. Unlocks sync with your player name across games. Many games toast a popup when you earn one mid-run."
+    },
+    {
+      "id": "settings",
+      "games": ["*", "hub"],
+      "keywords": ["settings", "options", "sound", "volume", "theme", "preferences", "config"],
+      "title": "Where are options / settings?",
+      "answer": "On the hub, tap ⚙ Settings (top of the games screen) for look themes, sound, and account options. Inside some games (like Fishing Idle), use the in-game Settings / ⚙ button for game-specific options."
+    },
+    {
+      "id": "leaderboard",
+      "games": ["*", "hub"],
+      "keywords": ["leaderboard", "leaderboards", "high score", "ranking", "rank", "scoreboard"],
+      "title": "Leaderboards",
+      "answer": "On the hub, tap Leaderboards, then pick a game or hub board (Hub Points, Day Streak, etc.). Set a unique player name so your scores can sync. High Scores on the hub shows your personal bests."
+    },
+    {
+      "id": "friends-chat",
+      "games": ["*", "hub"],
+      "keywords": ["friends", "chat", "call", "online", "players", "nickname", "name"],
+      "title": "Friends, chat & online",
+      "answer": "Set a player name on the hub first. Friends and chat are on the hub panels. Hold Tab on most pages to peek at who's online. Calls use the hub call tools when friends are available."
+    },
+    {
+      "id": "controls-general",
+      "games": ["*"],
+      "keywords": ["controls", "keys", "keyboard", "hotkey", "shortcut", "button"],
+      "title": "Common controls",
+      "answer": "☰ Menu (or Esc) pauses most action games. Games returns to the hub. Help: press ? or F1, or tap the ? button. Exact move/shoot keys depend on the current minigame — ask “how to play” while inside that game."
+    },
+    {
+      "id": "help-hotkey",
+      "games": ["*", "hub"],
+      "keywords": ["help", "assistant", "question", "faq", "f1", "?"],
+      "title": "Help Assistant",
+      "answer": "Tap the ? button (bottom-right) or press ? / F1. Ask in plain language or use a quick question. Answers come from a local guide — no internet or API key needed. The current minigame is detected automatically."
+    },
+    {
+      "id": "wordle-play",
+      "games": ["wordle"],
+      "keywords": ["how to play", "controls", "guess", "word", "daily", "practice", "hint"],
+      "title": "Guessword — How to play",
+      "answer": "Guess the secret word in 6 tries. After each guess, tiles show correct letter+spot (cyan), wrong spot (purple), or not in the word. Switch Daily (shared word) vs Practice from the badge by the title. Open the hub Games screen to leave Guessword."
+    },
+    {
+      "id": "space-play",
+      "games": ["space"],
+      "keywords": ["how to play", "controls", "shoot", "spaceship"],
+      "title": "Space Shooter — How to play",
+      "answer": "Move with the mouse or WASD. Shoot with Space or click. Dodge enemies and survive as long as you can for a high score. Esc / Menu pauses."
+    },
+    {
+      "id": "quiz-play",
+      "games": ["quiz"],
+      "keywords": ["how to play", "controls", "questions", "trivia"],
+      "title": "Quizmaster — How to play",
+      "answer": "Answer trivia questions as fast and accurately as you can. Pick the correct choice each round to build your score. Menu pauses / returns you toward the hub."
+    },
+    {
+      "id": "breakout-play",
+      "games": ["breakout"],
+      "keywords": ["how to play", "controls", "paddle", "ball", "bricks"],
+      "title": "Bounce Break — How to play",
+      "answer": "Move the paddle to bounce the ball and break all the bricks. Don't let the ball fall past the paddle. Esc / Menu pauses."
+    },
+    {
+      "id": "hangman-play",
+      "games": ["hangman"],
+      "keywords": ["how to play", "controls", "letters", "guess"],
+      "title": "Hangman — How to play",
+      "answer": "Guess the hidden word one letter at a time. Wrong letters fill the hangman figure — too many misses and you lose. Use the on-screen letters or your keyboard."
+    },
+    {
+      "id": "2048-play",
+      "games": ["2048"],
+      "keywords": ["how to play", "controls", "merge", "tiles", "swipe"],
+      "title": "Block Merge — How to play",
+      "answer": "Use arrow keys or swipe to slide all tiles. Matching numbers merge into their sum. Reach 2048 (and beyond). Plan ahead — the board fills when you can't move."
+    },
+    {
+      "id": "snake-play",
+      "games": ["snake"],
+      "keywords": ["how to play", "controls", "apple", "wasd", "arrows"],
+      "title": "Snake — How to play",
+      "answer": "Use arrow keys or WASD to steer. Eat the apples (there are 4 on the board), grow longer, and don't hit the walls or yourself. Esc / Menu pauses."
+    },
+    {
+      "id": "memory-play",
+      "games": ["memory"],
+      "keywords": ["how to play", "controls", "pairs", "cards", "match"],
+      "title": "Memory Match — How to play",
+      "answer": "Flip cards to find matching pairs. Clear the board in as few moves and as little time as you can for a better score."
+    },
+    {
+      "id": "connect-four-play",
+      "games": ["connect-four"],
+      "keywords": ["how to play", "controls", "drop", "four", "column"],
+      "title": "Drop Four — How to play",
+      "answer": "Click a column to drop your disc. Connect four in a row — horizontal, vertical, or diagonal — to win."
+    },
+    {
+      "id": "math-play",
+      "games": ["math"],
+      "keywords": ["how to play", "controls", "math", "numbers", "sprint"],
+      "title": "Math Sprint — How to play",
+      "answer": "Solve arithmetic problems quickly and accurately. Race the clock or beat your best streak depending on the round. Menu returns you toward the hub."
+    },
+    {
+      "id": "sudoku-play",
+      "games": ["sudoku"],
+      "keywords": ["how to play", "controls", "digits", "grid", "puzzle"],
+      "title": "Sudoku — How to play",
+      "answer": "Classic 9×9 logic puzzle. Fill digits so each appears once per row, column, and 3×3 box. Tap a cell, then pick a number."
+    },
+    {
+      "id": "flappy-play",
+      "games": ["flappy"],
+      "keywords": ["how to play", "controls", "flap", "tap", "space", "towers"],
+      "title": "Wing Hop — How to play",
+      "answer": "Tap, click, or press Space to flap. Fly your dragon through the castle towers without crashing. Esc / Menu pauses."
+    },
+    {
+      "id": "tictactoe-play",
+      "games": ["tictactoe"],
+      "keywords": ["how to play", "controls", "x", "o", "three"],
+      "title": "Tic Tac Toe — How to play",
+      "answer": "Take turns placing X and O on the 3×3 grid. First to get three in a row wins. Play vs a friend or the built-in opponent mode if available."
+    },
+    {
+      "id": "pixletris-play",
+      "games": ["pixletris"],
+      "keywords": ["how to play", "controls", "blocks", "sand", "bridge", "color"],
+      "title": "Pixel Drop — How to play",
+      "answer": "Blocks crumble into sand when they land. Bridge one color from the left wall to the right wall to clear it. Plan drops carefully."
+    },
+    {
+      "id": "clicker-play",
+      "games": ["clicker"],
+      "keywords": ["how to play", "controls", "crystal", "upgrade", "idle", "click"],
+      "title": "Crystal Clicker — How to play",
+      "answer": "Tap the crystal to earn. Buy Click power upgrades first, then Idle income so you earn while away. Open Menu for pause / hub."
+    },
+    {
+      "id": "stacker-play",
+      "games": ["stacker"],
+      "keywords": ["how to play", "controls", "stack", "tower", "timing"],
+      "title": "Tower Stack 3D — How to play",
+      "answer": "Time your taps to stack moving blocks into a tower. Perfect placements keep the full size; misses trim the stack. Go as high as you can."
+    },
+    {
+      "id": "crossy-play",
+      "games": ["crossy"],
+      "keywords": ["how to play", "controls", "cross", "road", "traffic"],
+      "title": "Cross Walk — How to play",
+      "answer": "Cross roads and lanes safely. Move forward for score, dodge traffic and hazards. Esc / Menu pauses."
+    },
+    {
+      "id": "fishing-play",
+      "games": ["fishing"],
+      "keywords": ["how to play", "controls", "cast", "reel", "bobber", "fish", "cooler", "sell"],
+      "title": "Fishing Idle — How to play",
+      "answer": "Cast, wait for the bobber to dunk, then time your reel. Fill the cooler, sell fish for coins, and buy rods/gear. Use Menu for Settings, Catch book, Fish guide, Shiny machine, and number-suffix help. Best catches hit the leaderboard."
+    },
+    {
+      "id": "fishing-settings",
+      "games": ["fishing"],
+      "keywords": ["settings", "options", "sound", "volume", "chests"],
+      "title": "Fishing Idle — Settings",
+      "answer": "Tap ⚙ or Menu → Settings for master sound, volume, SFX, confetti, storm flash, and chests. Number suffixes (K, M, …) are explained under Menu → Number suffixes."
+    },
+    {
+      "id": "cows-play",
+      "games": ["cows"],
+      "keywords": ["how to play", "controls", "merge", "cow"],
+      "title": "Cow Merge — How to play",
+      "answer": "Merge matching cows to make stronger ones. Keep making space and climb to higher tiers for a better score."
+    },
+    {
+      "id": "dino-play",
+      "games": ["dino"],
+      "keywords": ["how to play", "controls", "run", "jump", "duck", "dragon"],
+      "title": "Runosaur — How to play",
+      "answer": "Run through the cave. Jump crystals and duck bats — stay ahead of the dragon. Space / tap to jump; learn the duck control on the start screen. Esc / Menu pauses."
+    },
+    {
+      "id": "ramp-play",
+      "games": ["ramp"],
+      "keywords": ["how to play", "controls", "steer", "ramp", "ball"],
+      "title": "Ramp Rush — How to play",
+      "answer": "Steer left/right (arrows, A/D, or on-screen) along the track. Hit ramps, avoid voids, and survive for distance. Esc / Menu pauses."
+    },
+    {
+      "id": "guac-play",
+      "games": ["guac"],
+      "keywords": ["how to play", "controls", "mole", "whack", "tap"],
+      "title": "Guac-A-Mole — How to play",
+      "answer": "Whack the avocados / moles as they pop up. Hit the right targets for points — miss or hit bad ones and you'll lose score or lives. Play fast!"
+    },
+    {
+      "id": "bubble-play",
+      "games": ["bubble"],
+      "keywords": ["how to play", "controls", "bubble", "pop", "cluster"],
+      "title": "Bubble Pop Relay — How to play",
+      "answer": "Pop matching bubble clusters before the rising line swallows the tank. Aim carefully and clear groups to stay alive."
+    },
+    {
+      "id": "cafe-play",
+      "games": ["cafe"],
+      "keywords": ["how to play", "controls", "serve", "queue", "tips", "combo"],
+      "title": "Cafe Queue — How to play",
+      "answer": "Serve drinks and snacks as the line grows. Keep combos alive for bigger tips. Don't let customers wait too long."
+    },
+    {
+      "id": "garden-play",
+      "games": ["garden"],
+      "keywords": ["how to play", "controls", "plant", "water", "harvest", "season"],
+      "title": "Garden Snap — How to play",
+      "answer": "Race through short seasons — plant, water, and harvest for points. Match the season goals before time runs out."
+    },
+    {
+      "id": "mine-play",
+      "games": ["mine"],
+      "keywords": ["how to play", "controls", "dig", "ore", "layer", "drill", "sell", "gear"],
+      "title": "Mine Depth — How to play",
+      "answer": "Dig down through layers to find ore. Sell ore for coins, buy picks/drills/gear (luck, sell, Sync, Crit, Yield, Scout, and more). Auto dig earns while you watch. Use Numbers/Depth menus for suffixes (K, M, … Dc). Layer size shows how thick the current band is."
+    },
+    {
+      "id": "blockblast-play",
+      "games": ["blockblast"],
+      "keywords": ["how to play", "controls", "blocks", "clear", "line", "drag"],
+      "title": "Block Sweep — How to play",
+      "answer": "Drag colorful blocks onto the 8×8 board. Clear full lines, chain combos, and beat your best score."
+    },
+    {
+      "id": "lemmings-play",
+      "games": ["lemmings"],
+      "keywords": ["how to play", "controls", "dudes", "walkers", "skills", "door"],
+      "title": "Dudes — How to play",
+      "answer": "Green walkers drop from the yellow IN box and walk on their own. Get enough into the green OUT door to clear the level. On later levels: tap a skill, then tap a walker. Cleared levels stay unlocked."
+    },
+    {
+      "id": "paper-play",
+      "games": ["paper"],
+      "keywords": ["how to play", "controls", "paint", "territory", "trail"],
+      "title": "Paper Claim — How to play",
+      "answer": "Paint the map like paper.io — claim territory, cut enemy trails, and survive. Don't get cut while your trail is open."
+    }
+  ]
+}

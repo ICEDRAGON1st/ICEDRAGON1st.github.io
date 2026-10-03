@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ah": [
+    "Help Assistant: tap ? or press F1 — local how-to answers for the hub and every minigame"
+  ],
   "20261001ag": [
     "Mine Depth: Sync is buy-once, Crit gear is equippable, and Yield actually dumps more ore"
   ],
