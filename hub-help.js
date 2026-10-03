@@ -602,18 +602,37 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
 
   /* ── Pause host minigame while help is open ── */
 
+  function isHubGamesScreenOpen() {
+    try {
+      const gs = document.getElementById("games-screen");
+      if (gs && !gs.classList.contains("hidden") && !gs.hidden) return true;
+    } catch {}
+    return false;
+  }
+
   function pauseHostGame() {
     wePausedHost = false;
     window.__hubHelpPaused = true;
     try {
+      // Hub page: #menu-btn is Guessword's menu — clicking it leaves My Games.
+      if (isHubGamesScreenOpen() || currentGameId() === "hub") return;
+
       const overlay = document.getElementById("overlay");
       const menuBtn = document.getElementById("menu-btn");
-      const overlayHidden = !overlay || overlay.classList.contains("hidden") || overlay.hidden;
-      if (menuBtn && overlayHidden) {
+      // Only auto-pause real minigames that use the shared #overlay pattern.
+      if (!overlay || !menuBtn) {
+        if (typeof window.pauseGame === "function") {
+          window.pauseGame();
+          wePausedHost = true;
+        }
+        return;
+      }
+      const overlayHidden = overlay.classList.contains("hidden") || overlay.hidden;
+      if (overlayHidden) {
         wePausedHost = true;
-        if (overlay) overlay.classList.add("hub-help-host-pause");
+        overlay.classList.add("hub-help-host-pause");
         menuBtn.click();
-        if (overlay) overlay.classList.add("hub-help-host-pause");
+        overlay.classList.add("hub-help-host-pause");
         return;
       }
       if (typeof window.pauseGame === "function") {
@@ -698,8 +717,10 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     if (isTypingTarget(e.target) && !(open && e.target === inputEl)) {
       if (e.target !== inputEl) return;
     }
-    if (e.code === "F1") {
+    if (e.code === "F1" || e.key === "F1") {
       e.preventDefault();
+      e.stopPropagation();
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
       toggle();
       return;
     }

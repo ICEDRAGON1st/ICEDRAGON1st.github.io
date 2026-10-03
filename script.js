@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001aj": [
+    "Help (F1): stay on My Games — no more jumping into Guessword"
+  ],
   "20261001ai": [
     "Help Assistant mascots: pick Chip, SPARK-E, and more in Settings — same tips, different personality"
   ],
