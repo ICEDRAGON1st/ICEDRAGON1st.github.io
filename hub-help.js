@@ -302,6 +302,165 @@
       .filter((w) => w.length > 1);
   }
 
+  /** Common help words for typo fixing (e.g. "ser" → "user"). */
+  const HELP_VOCAB = [
+    "user",
+    "username",
+    "name",
+    "nickname",
+    "handle",
+    "code",
+    "player",
+    "password",
+    "account",
+    "achievement",
+    "achievements",
+    "settings",
+    "options",
+    "leaderboard",
+    "leaderboards",
+    "controls",
+    "control",
+    "play",
+    "how",
+    "help",
+    "menu",
+    "menus",
+    "hub",
+    "friends",
+    "friend",
+    "chat",
+    "score",
+    "scores",
+    "rules",
+    "rule",
+    "guide",
+    "tutorial",
+    "assistant",
+    "mascot",
+    "fishing",
+    "mine",
+    "snake",
+    "guessword",
+    "wordle"
+  ];
+
+  const TYPO_MAP = {
+    ser: "user",
+    usr: "user",
+    usre: "user",
+    uesr: "user",
+    ure: "user",
+    usar: "user",
+    userr: "user",
+    usernme: "username",
+    usename: "username",
+    userame: "username",
+    usernam: "username",
+    useranme: "username",
+    nickame: "nickname",
+    nicknme: "nickname",
+    plaer: "player",
+    playyer: "player",
+    playe: "player",
+    cod: "code",
+    coed: "code",
+    kode: "code",
+    passowrd: "password",
+    passord: "password",
+    pasword: "password",
+    acheivement: "achievement",
+    acheivements: "achievements",
+    achievments: "achievements",
+    settigns: "settings",
+    setings: "settings",
+    settins: "settings",
+    optoins: "options",
+    leaderbord: "leaderboard",
+    leaderboad: "leaderboard",
+    controlls: "controls",
+    contols: "controls",
+    teh: "the",
+    wat: "what",
+    wht: "what",
+    wut: "what",
+    waht: "what",
+    hwo: "how",
+    ply: "play",
+    paly: "play"
+  };
+
+  function editDistance(a, b) {
+    const s = String(a || "");
+    const t = String(b || "");
+    if (s === t) return 0;
+    if (!s.length) return t.length;
+    if (!t.length) return s.length;
+    const rows = s.length + 1;
+    const cols = t.length + 1;
+    const prev = new Array(cols);
+    const cur = new Array(cols);
+    for (let j = 0; j < cols; j += 1) prev[j] = j;
+    for (let i = 1; i < rows; i += 1) {
+      cur[0] = i;
+      for (let j = 1; j < cols; j += 1) {
+        const cost = s.charCodeAt(i - 1) === t.charCodeAt(j - 1) ? 0 : 1;
+        cur[j] = Math.min(cur[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost);
+      }
+      for (let j = 0; j < cols; j += 1) prev[j] = cur[j];
+    }
+    return prev[cols - 1];
+  }
+
+  function correctToken(tok) {
+    const w = String(tok || "").toLowerCase();
+    if (!w) return tok;
+    if (TYPO_MAP[w]) return TYPO_MAP[w];
+    if (HELP_VOCAB.indexOf(w) !== -1) return w;
+    // Don't "fix" tiny words like "my", "is", "a"
+    if (w.length < 3) return w;
+    const maxD = w.length <= 4 ? 1 : w.length <= 7 ? 2 : 2;
+    let best = null;
+    let bestD = 99;
+    for (let i = 0; i < HELP_VOCAB.length; i += 1) {
+      const v = HELP_VOCAB[i];
+      if (Math.abs(v.length - w.length) > maxD) continue;
+      const d = editDistance(w, v);
+      if (d > 0 && d <= maxD && d < bestD) {
+        bestD = d;
+        best = v;
+      }
+    }
+    return best || w;
+  }
+
+  /** Fix typos in a help question; returns { text, corrected }. */
+  function autocorrectQuery(query) {
+    const raw = String(query || "").trim();
+    if (!raw) return { text: "", corrected: false };
+    const parts = raw.split(/(\s+)/);
+    let corrected = false;
+    const out = parts.map((part) => {
+      if (!part || /^\s+$/.test(part)) return part;
+      const m = part.match(/^([^A-Za-z]*)([A-Za-z]+)([^A-Za-z]*)$/);
+      if (!m) return part;
+      const fixed = correctToken(m[2]);
+      if (fixed.toLowerCase() !== m[2].toLowerCase()) {
+        corrected = true;
+        // Keep original capitalization style lightly: all lower if input was lower
+        const keep =
+          m[2] === m[2].toUpperCase()
+            ? fixed.toUpperCase()
+            : m[2][0] === m[2][0].toUpperCase()
+              ? fixed.charAt(0).toUpperCase() + fixed.slice(1)
+              : fixed;
+        return m[1] + keep + m[3];
+      }
+      return part;
+    });
+    return { text: out.join(""), corrected };
+  }
+
   /* ── Mascot save / unlock ── */
 
   function readUnlockMap() {
@@ -789,30 +948,34 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
 
   function ask(query) {
     ensureDom();
-    const q = String(query || "").trim();
-    if (!q) return;
+    const typed = String(query || "").trim();
+    if (!typed) return;
+    const fixed = autocorrectQuery(typed);
+    const q = fixed.text || typed;
     refreshChrome();
-    pushUser(q);
+    pushUser(typed);
 
     const guard = classifyGuard(q);
+    const note = fixed.corrected && q !== typed ? ` (meant: ${q})` : "";
+
     if (guard === "greet") {
-      pushBot("Hey", greetLine(), { raw: true });
+      pushBot("Hey" + note, greetLine(), { raw: true });
       return;
     }
     if (guard === "password") {
-      pushBot("Private", refusalLine("password"), { raw: true });
+      pushBot("Private" + note, refusalLine("password"), { raw: true });
       return;
     }
     if (guard === "account") {
-      pushBot("Your account", accountAnswer(q), { raw: true });
+      pushBot("Your account" + note, accountAnswer(q), { raw: true });
       return;
     }
     if (guard === "cheat") {
-      pushBot("Fair play", refusalLine("cheat"), { raw: true });
+      pushBot("Fair play" + note, refusalLine("cheat"), { raw: true });
       return;
     }
     if (guard === "offtopic") {
-      pushBot("Out of scope", refusalLine("offtopic"), { raw: true });
+      pushBot("Out of scope" + note, refusalLine("offtopic"), { raw: true });
       return;
     }
 
@@ -821,7 +984,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     if (!hits.length) {
       // In-scope wording but no FAQ hit — stay helpful, still no spoilers / trivia.
       pushBot(
-        "No match",
+        "No match" + note,
         `I don't have a public tip for that in ${gameLabel(
           gameId
         )} yet. Try “how to play”, “achievements”, “settings”, or “leaderboard”. I never reveal secret words or puzzle answers.`
@@ -829,7 +992,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
       return;
     }
     const t = hits[0].topic;
-    if (t && typeof t.answer === "string") pushBot(t.title, t.answer);
+    if (t && typeof t.answer === "string") pushBot(t.title + note, t.answer);
   }
 
   /* ── Pause host minigame while help is open ── */

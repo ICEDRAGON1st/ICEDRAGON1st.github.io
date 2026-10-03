@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001at": [
+    "Help Assistant typos: “what is my ser” understands as “user”"
+  ],
   "20261001as": [
     "Help only mentions passwords when you ask about passwords"
   ],
