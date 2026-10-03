@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001au": [
+    "Help: kid typos like “what is me user” → your username (not Friends/chat)"
+  ],
   "20261001at": [
     "Help Assistant typos: “what is my ser” understands as “user”"
   ],

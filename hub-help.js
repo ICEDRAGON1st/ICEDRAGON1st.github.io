@@ -385,9 +385,43 @@
     wht: "what",
     wut: "what",
     waht: "what",
+    wats: "whats",
     hwo: "how",
     ply: "play",
     paly: "play"
+  };
+
+  /** Never fuzzy-correct these (stops "what" → "chat"). Explicit TYPO_MAP still applies. */
+  const LOCKED_WORDS = {
+    what: 1,
+    whats: 1,
+    is: 1,
+    my: 1,
+    the: 1,
+    a: 1,
+    an: 1,
+    to: 1,
+    for: 1,
+    do: 1,
+    i: 1,
+    am: 1,
+    are: 1,
+    you: 1,
+    your: 1,
+    and: 1,
+    or: 1,
+    in: 1,
+    on: 1,
+    of: 1,
+    it: 1,
+    this: 1,
+    that: 1,
+    where: 1,
+    who: 1,
+    how: 1,
+    why: 1,
+    can: 1,
+    please: 1
   };
 
   function editDistance(a, b) {
@@ -415,11 +449,12 @@
   function correctToken(tok) {
     const w = String(tok || "").toLowerCase();
     if (!w) return tok;
-    if (TYPO_MAP[w]) return TYPO_MAP[w];
+    if (Object.prototype.hasOwnProperty.call(TYPO_MAP, w)) return TYPO_MAP[w];
+    // Locked common words: never fuzzy-match (e.g. what ≠ chat)
+    if (LOCKED_WORDS[w]) return w;
     if (HELP_VOCAB.indexOf(w) !== -1) return w;
-    // Don't "fix" tiny words like "my", "is", "a"
     if (w.length < 3) return w;
-    const maxD = w.length <= 4 ? 1 : w.length <= 7 ? 2 : 2;
+    const maxD = w.length <= 4 ? 1 : 2;
     let best = null;
     let bestD = 99;
     for (let i = 0; i < HELP_VOCAB.length; i += 1) {
@@ -432,6 +467,18 @@
       }
     }
     return best || w;
+  }
+
+  /** Kid-friendly phrase fixes after token pass. */
+  function fixKidPhrases(text) {
+    let s = String(text || "");
+    // "me user" / "me code" → my …
+    s = s.replace(/\bme\s+(user|username|name|nickname|handle|code|player\s*code)\b/gi, "my $1");
+    // "whats my user" / "whats me user"
+    s = s.replace(/\bwhats\b/gi, "what's");
+    s = s.replace(/\bwhat\s+is\s+me\s+/gi, "what is my ");
+    s = s.replace(/\bwhat'?s\s+me\s+/gi, "what's my ");
+    return s;
   }
 
   /** Fix typos in a help question; returns { text, corrected }. */
@@ -447,7 +494,6 @@
       const fixed = correctToken(m[2]);
       if (fixed.toLowerCase() !== m[2].toLowerCase()) {
         corrected = true;
-        // Keep original capitalization style lightly: all lower if input was lower
         const keep =
           m[2] === m[2].toUpperCase()
             ? fixed.toUpperCase()
@@ -458,7 +504,9 @@
       }
       return part;
     });
-    return { text: out.join(""), corrected };
+    let text = fixKidPhrases(out.join(""));
+    if (normalize(text) !== normalize(raw)) corrected = true;
+    return { text, corrected };
   }
 
   /* ── Mascot save / unlock ── */
@@ -628,10 +676,10 @@
     /\b(passwords?|pass\s*phrases?|login\s*password|account\s*password|(my|the|your)\s*password|what'?s\s*(my|the)\s*password|tell\s*me\s*(my|the)\s*password|show\s*(my|the)\s*password|reveal\s*(my|the)\s*password)\b/i;
 
   const ACCOUNT_USER_RE =
-    /\b((what('?s|\s+is)|show|tell\s*me|whats)\s+(my\s+)?(user(\s*name)?|username|nickname|name|handle)|my\s+(user(\s*name)?|username|nickname|handle)|who\s+am\s+i)\b/i;
+    /\b((what('?s|\s+is)|show|tell\s*me|whats)\s+(my\s+|me\s+)?(user(\s*name)?|username|nickname|name|handle)|(my|me)\s+(user(\s*name)?|username|nickname|handle)|who\s+am\s+i)\b/i;
 
   const ACCOUNT_CODE_RE =
-    /\b((what('?s|\s+is)|show|tell\s*me|whats)\s+(my\s+)?((player\s*)?code)|my\s+(player\s*)?code|player\s*code)\b/i;
+    /\b((what('?s|\s+is)|show|tell\s*me|whats)\s+(my\s+|me\s+)?((player\s*)?code)|(my|me)\s+(player\s*)?code|player\s*code)\b/i;
 
   const ACCOUNT_BOTH_RE =
     /\b(my\s+account|account\s+info|account\s+details|username\s+and\s+(player\s*)?code|(player\s*)?code\s+and\s+(user(\s*name)?|username))\b/i;
