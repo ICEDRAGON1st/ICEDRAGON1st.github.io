@@ -12,7 +12,8 @@ const {
   Client,
   GatewayIntentBits,
   Partials,
-  Events
+  Events,
+  MessageFlags
 } = require("discord.js");
 
 const token = process.env.DISCORD_TOKEN;
@@ -49,27 +50,50 @@ function sanitizeName(raw) {
     .slice(0, 16);
 }
 
-/** Discord display name for nick prefix (not the hub username). */
-function discordDisplayName(interaction) {
-  const user = interaction?.user;
-  const global = String(user?.globalName || "").trim();
-  const username = String(user?.username || "").trim();
-  return sanitizeName(global || username) || "Player";
+function cleanDiscordLabel(raw) {
+  return String(raw || "")
+    .replace(/[<>&"'`]/g, "")
+    .replace(/\s+/g, " ")
+    .replace(/\s*\([^)]*\)\s*$/, "") // drop previous " (hub)" suffix
+    .trim();
 }
 
 /**
- * Keep Discord name, append hub username: `ICE_DRAGON (ICE_DRAGON)`.
- * Discord nicknames max 32 chars.
+ * Left side of nick = Discord profile name (e.g. ice_dragon alt).
+ * Never use the current server nickname — that may already be an old hub-only link.
+ */
+function discordDisplayName(interaction, hubName) {
+  const user = interaction?.user;
+  const hub = sanitizeName(hubName).toLowerCase();
+  const global = cleanDiscordLabel(user?.globalName);
+  const username = cleanDiscordLabel(user?.username);
+  for (const candidate of [global, username]) {
+    if (!candidate) continue;
+    if (hub && candidate.toLowerCase() === hub) continue;
+    return candidate;
+  }
+  return global || username || "Player";
+}
+
+/**
+ * `DiscordName (HubUsername)` e.g. `ice_dragon alt (ICE_DRAGON PHONE)`.
+ * Discord nicknames max 32 chars — keep Discord name; shrink hub in () if needed.
  */
 function buildLinkedNickname(discordName, hubName) {
-  const hub = sanitizeName(hubName) || "Player";
-  const suffix = ` (${hub})`;
-  const maxBase = Math.max(1, 32 - suffix.length);
-  let base = sanitizeName(discordName) || "Player";
-  // Drop a previous " (hub)" suffix if someone re-links.
-  base = base.replace(/\s*\([^)]*\)\s*$/, "").trim() || "Player";
-  base = base.slice(0, maxBase);
-  return `${base}${suffix}`.slice(0, 32);
+  let base = cleanDiscordLabel(discordName) || "Player";
+  let hub = sanitizeName(hubName) || "Player";
+  let nick = `${base} (${hub})`;
+  if (nick.length > 32) {
+    const maxHub = 32 - base.length - 3; // space + ( + )
+    if (maxHub >= 2) {
+      hub = hub.slice(0, maxHub);
+      nick = `${base} (${hub})`;
+    } else {
+      base = base.slice(0, Math.max(1, 32 - hub.length - 3));
+      nick = `${base} (${hub})`;
+    }
+  }
+  return nick.slice(0, 32);
 }
 
 async function getHubDoc(id) {
@@ -198,7 +222,7 @@ async function safeEdit(interaction, content) {
     if (interaction.deferred || interaction.replied) {
       await interaction.editReply({ content });
     } else {
-      await interaction.reply({ content, ephemeral: true });
+      await interaction.reply({ content, flags: MessageFlags.Ephemeral });
     }
   } catch (err) {
     console.warn("reply failed", err?.code || err?.message || err);
@@ -208,7 +232,7 @@ async function safeEdit(interaction, content) {
 async function ack(interaction) {
   if (interaction.deferred || interaction.replied) return true;
   try {
-    await interaction.deferReply({ ephemeral: true });
+    await interaction.deferReply({ flags: MessageFlags.Ephemeral });
     return true;
   } catch (err) {
     console.warn("defer failed", err?.code || err?.message || err);
@@ -265,15 +289,20 @@ client.on(Events.InteractionCreate, async (interaction) => {
         return;
       }
 
-      // Keep Discord name + hub username in parentheses: ICE_DRAGON (ICE_DRAGON)
-      const nick = buildLinkedNickname(discordDisplayName(interaction), resolved.name);
+      // DiscordName (HubUsername) — e.g. ice_dragon alt (ICE_DRAGON PHONE)
+      const discordName = discordDisplayName(interaction, resolved.name);
+      const nick = buildLinkedNickname(discordName, resolved.name);
+      console.log(
+        `/link nick for ${interaction.user.id}: discord="${discordName}" hub="${resolved.name}" -> "${nick}"`
+      );
       const payload = {
         discordId: interaction.user.id,
         discordTag: interaction.user.tag,
         playerId: resolved.playerId,
         name: resolved.name,
         code: resolved.code,
-        nick
+        nick,
+        discordName
       };
 
       // Always save the account link, even if Discord blocks the nickname.
