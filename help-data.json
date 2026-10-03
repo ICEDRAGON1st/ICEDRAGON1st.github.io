@@ -59,6 +59,13 @@
       "answer": "Ask Help “what is my username?” or “what is my player code?” to see the values saved on this device. Find them anytime in Hub → Settings. Passwords are never shown by Help."
     },
     {
+      "id": "owner",
+      "games": ["*", "hub"],
+      "keywords": ["owner", "creator", "developer", "who made", "who owns", "admin", "ice_dragon", "ice dragon"],
+      "title": "Who owns My Games?",
+      "answer": "The owner of My Games is ICE_DRAGON."
+    },
+    {
       "id": "controls-general",
       "games": ["*"],
       "keywords": ["controls", "keys", "keyboard", "hotkey", "shortcut", "button"],

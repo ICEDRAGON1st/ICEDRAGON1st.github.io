@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001az": [
+    "Help: “who is the owner?” answers ICE_DRAGON"
+  ],
   "20261001ay": [
     "Help: new plain Helper option — normal answers with no character voice"
   ],

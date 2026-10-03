@@ -739,6 +739,9 @@
   const PRIVACY_RE =
     /\b((code|username|user\s*name|password|player\s*code)\s+(to|for|of)\s+|(his|her|their|someone'?s|somebody'?s)\s+(code|username|user\s*name|password|account|player\s*code)|([A-Za-z][\w-]{1,24})'s\s+(code|username|password|account|player\s*code)|(code|username|password)\s+to\s+\w[\w-]{0,24}\s+account|what\s+is\s+\w[\w-]{0,24}\s*('s)?\s*(code|username|password|player\s*code))\b/i;
 
+  const OWNER_RE =
+    /\b(who\s+(is|made|created|owns)|who'?s\s+the|(owner|creator|developer|dev|admin)\s+of|(made|created|owns)\s+(this|the)\s+(game|hub|site|website)|who\s+(runs|built)\s+(this|the)\s+(game|hub|site))\b/i;
+
   function isGreeting(query) {
     const raw = String(query || "").trim();
     const q = normalize(raw);
@@ -779,6 +782,7 @@
     if (!q) return "empty";
     if (isGreeting(query)) return "greet";
     if (HELP_OFFER_RE.test(q) || HELP_OFFER_RE.test(raw)) return "helpoffer";
+    if (OWNER_RE.test(q) || OWNER_RE.test(raw)) return "owner";
     if (PASSWORD_RE.test(q) || PASSWORD_RE.test(raw)) return "password";
     if (isOtherAccountAsk(query)) return "privacy";
     if (
@@ -842,6 +846,17 @@
       } catch {}
     }
     return `Yes — I can help you! Just ask me. I can help with how to play ${where}, controls, achievements, settings, leaderboards, and your username or player code. Tap a blue button above, or type a question.`;
+  }
+
+  function ownerLine() {
+    const m = getMascot();
+    if (m.ownerLine) {
+      try {
+        return m.ownerLine();
+      } catch {}
+    }
+    if (m.plain) return "The owner of My Games is ICE_DRAGON.";
+    return `The owner of My Games is ICE_DRAGON.`;
   }
 
   function readAccountName() {
