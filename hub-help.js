@@ -359,6 +359,11 @@
     "handle",
     "code",
     "player",
+    "players",
+    "played",
+    "playing",
+    "people",
+    "users",
     "password",
     "account",
     "achievement",
@@ -371,6 +376,12 @@
     "control",
     "play",
     "how",
+    "many",
+    "have",
+    "online",
+    "active",
+    "total",
+    "count",
     "help",
     "menu",
     "menus",
@@ -439,12 +450,13 @@
     paly: "play"
   };
 
-  /** Never fuzzy-correct these (stops "what" → "chat"). Explicit TYPO_MAP still applies. */
+  /** Never fuzzy-correct these (stops "what" → "chat", "played" → "player"). Explicit TYPO_MAP still applies. */
   const LOCKED_WORDS = {
     what: 1,
     whats: 1,
     is: 1,
     my: 1,
+    me: 1,
     the: 1,
     a: 1,
     an: 1,
@@ -469,7 +481,27 @@
     how: 1,
     why: 1,
     can: 1,
-    please: 1
+    please: 1,
+    have: 1,
+    has: 1,
+    had: 1,
+    many: 1,
+    much: 1,
+    some: 1,
+    any: 1,
+    all: 1,
+    most: 1,
+    been: 1,
+    was: 1,
+    were: 1,
+    players: 1,
+    played: 1,
+    playing: 1,
+    people: 1,
+    online: 1,
+    active: 1,
+    total: 1,
+    count: 1
   };
 
   function editDistance(a, b) {
@@ -498,16 +530,24 @@
     const w = String(tok || "").toLowerCase();
     if (!w) return tok;
     if (Object.prototype.hasOwnProperty.call(TYPO_MAP, w)) return TYPO_MAP[w];
-    // Locked common words: never fuzzy-match (e.g. what ≠ chat)
+    // Locked common words: never fuzzy-match (e.g. what ≠ chat, played ≠ player)
     if (LOCKED_WORDS[w]) return w;
     if (HELP_VOCAB.indexOf(w) !== -1) return w;
     if (w.length < 3) return w;
+    // Don't strip a trailing "s" / "ed" / "ing" onto a shorter vocab stem (players→player).
     const maxD = w.length <= 4 ? 1 : 2;
     let best = null;
     let bestD = 99;
     for (let i = 0; i < HELP_VOCAB.length; i += 1) {
       const v = HELP_VOCAB[i];
       if (Math.abs(v.length - w.length) > maxD) continue;
+      // Plural / tense form of a vocab word — keep the typed form.
+      if (w.length > v.length && w.startsWith(v) && /^(s|es|ed|ing)$/.test(w.slice(v.length))) {
+        continue;
+      }
+      if (v.length > w.length && v.startsWith(w) && /^(s|es|ed|ing)$/.test(v.slice(w.length))) {
+        continue;
+      }
       const d = editDistance(w, v);
       if (d > 0 && d <= maxD && d < bestD) {
         bestD = d;

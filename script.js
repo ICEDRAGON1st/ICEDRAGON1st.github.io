@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001bd": [
+    "Help typo fix: “players have played” no longer becomes “player have player”"
+  ],
   "20261001bc": [
     "Help reads GAME_INFO.txt for ownership, controls, gameplay, rules, and player-stat milestones"
   ],
