@@ -455,14 +455,27 @@
     /\b(secret\s*word|today'?s\s*word|daily\s*word|what\s*is\s*the\s*word|tell\s*me\s*the\s*word|give\s*me\s*the\s*(word|answer)|reveal\s*(the\s*)?(word|answer|solution)|spoil(er|s|ing)?|cheat(code|s)?|answer\s*key|puzzle\s*key|solve\s*(it|this|the\s*puzzle)|what'?s\s*the\s*(answer|solution|word)|hidden\s*(tile|word|answer)|mine\s*(location|spot)|which\s*tile|exact\s*answer|walkthrough\s*answer)\b/i;
 
   const SCOPE_RE =
-    /\b(how|play|control|controls|rule|rules|menu|menus|setting|settings|option|options|achievement|achievements|leaderboard|leaderboards|hub|game|games|hotkey|button|pause|resume|cast|dig|fish|score|upgrade|shop|tutorial|guide|help|assistant|mascot|friends|chat|nickname|player|streak|fair\s*play|spoiler|hint|hints|coin|ore|rod|keyboard|wasd)\b/i;
+    /\b(how|play|control|controls|rule|rules|menu|menus|setting|settings|option|options|achievement|achievements|leaderboard|leaderboards|hub|game|games|hotkey|button|pause|resume|cast|dig|fish|score|upgrade|shop|tutorial|guide|help|assistant|mascot|friends|chat|nickname|player|streak|fair\s*play|spoiler|hint|hints|coin|ore|rod|keyboard|wasd|username|user\s*name|player\s*code)\b/i;
 
   // Small talk is fine; school/trivia/math is not.
   const GREET_RE =
     /^(hi|hii+|hello|hey+|yo|sup|howdy|hiya|heya|hai|good\s*(morning|afternoon|evening|day)|thanks|thank\s*you|ty|thx|bye|goodbye|see\s*ya|cya|what'?s\s*up|wassup|how\s*are\s*you)(\s+(there|chat|assistant|friend|buddy|chip|spark.?e))?[!?.]*$/i;
 
   const TRIVIA_RE =
-    /(\d+\s*[\+\-\*\/x×÷]\s*\d+|what\s*is\s+\d|how\s*much\s*is\s+\d|calculate|capital\s+of|who\s+is\s+|when\s+was\s+|who\s+won\s+|weather\s+today|define\s+|translate\s+)/i;
+    /(\d+\s*[\+\-\*\/x×÷]\s*\d+|what\s*is\s+\d|how\s*much\s*is\s+\d|calculate|capital\s+of|when\s+was\s+|who\s+won\s+|weather\s+today|define\s+|translate\s+)/i;
+
+  // Never reveal passwords — refuse even if somehow stored.
+  const PASSWORD_RE =
+    /\b(passwords?|pass\s*phrases?|login\s*password|account\s*password|(my|the|your)\s*password|what'?s\s*(my|the)\s*password|tell\s*me\s*(my|the)\s*password|show\s*(my|the)\s*password|reveal\s*(my|the)\s*password)\b/i;
+
+  const ACCOUNT_USER_RE =
+    /\b((what('?s|\s+is)|show|tell\s*me|whats)\s+(my\s+)?(user(\s*name)?|username|nickname|name|handle)|my\s+(user(\s*name)?|username|nickname|handle)|who\s+am\s+i)\b/i;
+
+  const ACCOUNT_CODE_RE =
+    /\b((what('?s|\s+is)|show|tell\s*me|whats)\s+(my\s+)?((player\s*)?code)|my\s+(player\s*)?code|player\s*code)\b/i;
+
+  const ACCOUNT_BOTH_RE =
+    /\b(my\s+account|account\s+info|account\s+details|username\s+and\s+(player\s*)?code|(player\s*)?code\s+and\s+(user(\s*name)?|username))\b/i;
 
   function isGreeting(query) {
     const raw = String(query || "").trim();
@@ -473,17 +486,35 @@
 
   function classifyGuard(query) {
     const q = normalize(query);
+    const raw = String(query || "");
     if (!q) return "empty";
     if (isGreeting(query)) return "greet";
-    if (CHEAT_RE.test(q) || CHEAT_RE.test(String(query || ""))) return "cheat";
-    if (TRIVIA_RE.test(q) || TRIVIA_RE.test(String(query || ""))) return "offtopic";
+    if (PASSWORD_RE.test(q) || PASSWORD_RE.test(raw)) return "password";
+    if (
+      ACCOUNT_BOTH_RE.test(q) ||
+      ACCOUNT_BOTH_RE.test(raw) ||
+      ACCOUNT_USER_RE.test(q) ||
+      ACCOUNT_USER_RE.test(raw) ||
+      ACCOUNT_CODE_RE.test(q) ||
+      ACCOUNT_CODE_RE.test(raw)
+    ) {
+      return "account";
+    }
+    if (CHEAT_RE.test(q) || CHEAT_RE.test(raw)) return "cheat";
+    if (TRIVIA_RE.test(q) || TRIVIA_RE.test(raw)) return "offtopic";
     // Pure off-topic: no in-game scope words
-    if (!SCOPE_RE.test(q) && !SCOPE_RE.test(String(query || ""))) return "offtopic";
+    if (!SCOPE_RE.test(q) && !SCOPE_RE.test(raw)) return "offtopic";
     return "ok";
   }
 
   function refusalLine(kind) {
     const m = getMascot();
+    if (kind === "password") {
+      return (
+        m.refusePassword ||
+        "I can't show passwords — not even yours. Check Hub → Settings if you need to set or change a login password. I can tell you your username or player code instead."
+      );
+    }
     if (kind === "cheat") {
       return (
         m.refuseCheat ||
@@ -502,6 +533,62 @@
       m.greet ||
       `Hey! I'm ${m.name}. Ask how to play, where achievements are, or tap a quick question — game stuff only.`
     );
+  }
+
+  function readAccountName() {
+    try {
+      const n = window.HubPlays?.getName?.();
+      return String(n || "").trim();
+    } catch {
+      return "";
+    }
+  }
+
+  function readPlayerCode() {
+    try {
+      let code = window.HubPlays?.getPlayerCode?.() || "";
+      if (window.HubPlays?.formatPlayerCode) {
+        code = HubPlays.formatPlayerCode(code) || code;
+      }
+      return String(code || "").trim();
+    } catch {
+      return "";
+    }
+  }
+
+  function accountAnswer(query) {
+    const q = normalize(query);
+    const raw = String(query || "");
+    const name = readAccountName();
+    const code = readPlayerCode();
+    const wantBoth = ACCOUNT_BOTH_RE.test(q) || ACCOUNT_BOTH_RE.test(raw);
+    const wantUser =
+      wantBoth || ACCOUNT_USER_RE.test(q) || ACCOUNT_USER_RE.test(raw) || /\b(user|username|nickname|handle)\b/i.test(q);
+    const wantCode =
+      wantBoth ||
+      ACCOUNT_CODE_RE.test(q) ||
+      ACCOUNT_CODE_RE.test(raw) ||
+      (/\bcode\b/i.test(q) && !/\bcheat\b/i.test(q) && !/\bpassword\b/i.test(q));
+
+    const bits = [];
+    if (wantUser) {
+      bits.push(name ? `Your username is ${name}.` : "You don't have a username set yet — open the hub and pick one.");
+    }
+    if (wantCode) {
+      bits.push(
+        code
+          ? `Your player code is ${code}.`
+          : "I can't find a player code on this device yet — open Hub → Settings to see or restore your code."
+      );
+    }
+    if (!bits.length) {
+      bits.push(
+        name ? `Your username is ${name}.` : "No username set yet.",
+        code ? `Your player code is ${code}.` : "No player code found on this device."
+      );
+    }
+    bits.push("I never show passwords.");
+    return bits.join(" ");
   }
 
   function search(query, gameId) {
@@ -711,6 +798,14 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     const guard = classifyGuard(q);
     if (guard === "greet") {
       pushBot("Hey", greetLine(), { raw: true });
+      return;
+    }
+    if (guard === "password") {
+      pushBot("Private", refusalLine("password"), { raw: true });
+      return;
+    }
+    if (guard === "account") {
+      pushBot("Your account", accountAnswer(q), { raw: true });
       return;
     }
     if (guard === "cheat") {

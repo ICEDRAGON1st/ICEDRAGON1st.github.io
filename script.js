@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ar": [
+    "Help can tell your username / player code — never your password"
+  ],
   "20261001aq": [
     "Help Assistant: say hi — still refuses trivia like “what is 5+5”"
   ],

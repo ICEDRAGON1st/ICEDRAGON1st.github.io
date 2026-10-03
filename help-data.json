@@ -50,6 +50,13 @@
       "answer": "Set a player name on the hub first. Friends and chat are on the hub panels. Hold Tab on most pages to peek at who's online. Calls use the hub call tools when friends are available."
     },
     {
+      "id": "account-identity",
+      "games": ["*", "hub"],
+      "keywords": ["username", "user name", "player code", "my code", "my name", "account", "nickname"],
+      "title": "Username & player code",
+      "answer": "Ask Help “what is my username?” or “what is my player code?” to see the values saved on this device. Find them anytime in Hub → Settings. Passwords are never shown by Help."
+    },
+    {
       "id": "controls-general",
       "games": ["*"],
       "keywords": ["controls", "keys", "keyboard", "hotkey", "shortcut", "button"],
