@@ -12,8 +12,7 @@ const {
   Client,
   GatewayIntentBits,
   Partials,
-  Events,
-  MessageFlags
+  Events
 } = require("discord.js");
 
 const token = process.env.DISCORD_TOKEN;
@@ -197,12 +196,23 @@ client.once(Events.ClientReady, (c) => {
 async function safeEdit(interaction, content) {
   try {
     if (interaction.deferred || interaction.replied) {
-      await interaction.editReply(content);
+      await interaction.editReply({ content });
     } else {
-      await interaction.reply({ content, flags: MessageFlags.Ephemeral });
+      await interaction.reply({ content, ephemeral: true });
     }
   } catch (err) {
     console.warn("reply failed", err?.code || err?.message || err);
+  }
+}
+
+async function ack(interaction) {
+  if (interaction.deferred || interaction.replied) return true;
+  try {
+    await interaction.deferReply({ ephemeral: true });
+    return true;
+  } catch (err) {
+    console.warn("defer failed", err?.code || err?.message || err);
+    return false;
   }
 }
 
@@ -211,22 +221,24 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   try {
     if (interaction.commandName === "unlink") {
-      try {
-        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-      } catch (err) {
-        console.warn("/unlink defer failed", err?.code || err?.message || err);
-        return;
-      }
+      if (!(await ack(interaction))) return;
       try {
         const member = interaction.member;
         if (!member || typeof member.setNickname !== "function") {
           await safeEdit(interaction, "Couldn't access your member profile.");
           return;
         }
+        if (interaction.guild?.ownerId === interaction.user.id) {
+          await safeEdit(
+            interaction,
+            "Discord does not allow bots to clear the **server owner's** nickname. Clear it yourself in Discord (server profile → nickname)."
+          );
+          return;
+        }
         await member.setNickname(null, "My Games /unlink");
         await safeEdit(interaction, "Nickname cleared on this server.");
       } catch (err) {
-        console.warn("/unlink failed", err);
+        console.warn("/unlink failed", err?.code || err?.message || err);
         await safeEdit(
           interaction,
           "Couldn't clear your nickname. Make sure the bot role is above yours and has **Manage Nicknames**."
@@ -236,13 +248,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
     }
 
     if (interaction.commandName !== "link") return;
-
-    try {
-      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-    } catch (err) {
-      console.warn("/link defer failed", err?.code || err?.message || err);
-      return;
-    }
+    if (!(await ack(interaction))) return;
 
     const raw = interaction.options.getString("code", true);
 
@@ -261,30 +267,53 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
       // Keep Discord name + hub username in parentheses: ICE_DRAGON (ICE_DRAGON)
       const nick = buildLinkedNickname(discordDisplayName(interaction), resolved.name);
-      await member.setNickname(nick, `My Games /link ${resolved.code}`);
-      await saveDiscordLink(interaction.user.id, {
+      const payload = {
         discordId: interaction.user.id,
         discordTag: interaction.user.tag,
         playerId: resolved.playerId,
         name: resolved.name,
         code: resolved.code,
         nick
-      });
+      };
+
+      // Always save the account link, even if Discord blocks the nickname.
+      await saveDiscordLink(interaction.user.id, payload);
+
+      const isOwner = interaction.guild?.ownerId === interaction.user.id;
+      if (isOwner) {
+        await safeEdit(
+          interaction,
+          `Account linked as **${resolved.name}** (code ${resolved.code}).\n` +
+            `Discord **blocks bots from changing the server owner's nickname**.\n` +
+            `Set it yourself to: \`${nick}\`\n` +
+            `(Server profile → Edit server profile → Nickname)`
+        );
+        return;
+      }
+
+      try {
+        await member.setNickname(nick, `My Games /link ${resolved.code}`);
+      } catch (err) {
+        console.warn("/link nick failed", err?.code || err?.message || err);
+        const msg = String(err?.message || err);
+        if (/Missing Permissions|hierarchy|nickname|50013/i.test(msg)) {
+          await safeEdit(
+            interaction,
+            `Account linked as **${resolved.name}**, but Discord blocked the nickname change.\n` +
+              `Put the **MY GAMES LINK** role above members and enable **Manage Nicknames**.\n` +
+              `Target nickname: \`${nick}\``
+          );
+          return;
+        }
+        throw err;
+      }
 
       await safeEdit(
         interaction,
         `Linked! Your Discord nickname is now **${nick}** (code ${resolved.code}).`
       );
     } catch (err) {
-      console.warn("/link failed", err);
-      const msg = String(err?.message || err);
-      if (/Missing Permissions|hierarchy|nickname/i.test(msg)) {
-        await safeEdit(
-          interaction,
-          "Found your account, but Discord blocked the nickname change. Drag the bot's role **above** member roles and give it **Manage Nicknames**."
-        );
-        return;
-      }
+      console.warn("/link failed", err?.code || err?.message || err);
       await safeEdit(interaction, "Something went wrong looking up that code. Try again in a moment.");
     }
   } catch (err) {
