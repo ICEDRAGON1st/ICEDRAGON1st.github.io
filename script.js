@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ax": [
+    "Help: “can you help me?” gets a friendly yes — here’s what I can help with"
+  ],
   "20261001aw": [
     "Help: other players’ codes stay private; “not in game” only for real-world trivia"
   ],
