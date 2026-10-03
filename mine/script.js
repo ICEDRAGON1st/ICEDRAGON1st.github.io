@@ -184,25 +184,25 @@
     { id: "cart7", name: "Infinity Hold", desc: "Cart holds +640 ore", baseCost: 1.8e11, kind: "cart", amount: 640 },
     { id: "cart8", name: "Pocket Dimension", desc: "Cart holds +1280 ore", baseCost: 5e12, kind: "cart", amount: 1280 },
     { id: "cart9", name: "World Bag", desc: "Cart holds +2560 ore", baseCost: 1.6e14, kind: "cart", amount: 2560 },
-    { id: "yield1", name: "Sifting Pan", desc: "+20% ore from meters dug", baseCost: 900, kind: "yield", amount: 0.2 },
-    { id: "yield2", name: "Vein Sniffer", desc: "+40% ore from meters dug", baseCost: 22000, kind: "yield", amount: 0.4 },
-    { id: "yield3", name: "Ore Siphon", desc: "+80% ore from meters dug", baseCost: 480000, kind: "yield", amount: 0.8 },
-    { id: "yield4", name: "Lode Magnet", desc: "+150% ore from meters dug", baseCost: 1.2e7, kind: "yield", amount: 1.5 },
-    { id: "yield5", name: "Harvest Lattice", desc: "+280% ore from meters dug", baseCost: 3.5e8, kind: "yield", amount: 2.8 },
-    { id: "yield6", name: "Motherlode Pump", desc: "+500% ore from meters dug", baseCost: 1.2e10, kind: "yield", amount: 5 },
-    { id: "yield7", name: "Abundance Core", desc: "+900% ore from meters dug", baseCost: 4.5e11, kind: "yield", amount: 9 },
-    { id: "crit1", name: "Weighted Swing", desc: "8% crit dig (×2 meters)", baseCost: 1500, kind: "crit", amount: 0.08 },
-    { id: "crit2", name: "Impact Gloves", desc: "12% crit dig (×2 meters)", baseCost: 45000, kind: "crit", amount: 0.12 },
-    { id: "crit3", name: "Fault Hammer", desc: "18% crit dig (×2.2 meters)", baseCost: 1.1e6, kind: "crit", amount: 0.18 },
-    { id: "crit4", name: "Quake Gauntlets", desc: "25% crit dig (×2.4 meters)", baseCost: 3.2e7, kind: "crit", amount: 0.25 },
-    { id: "crit5", name: "Breach Coil", desc: "35% crit dig (×2.6 meters)", baseCost: 9e8, kind: "crit", amount: 0.35 },
-    { id: "crit6", name: "Cataclysm Arm", desc: "45% crit dig (×3 meters)", baseCost: 3.5e10, kind: "crit", amount: 0.45 },
-    { id: "sync1", name: "Gear Link", desc: "Auto gains 2% of pick power as m/s", baseCost: 2500, kind: "sync", amount: 0.02 },
-    { id: "sync2", name: "Shaft Coupler", desc: "Auto gains 4% of pick power as m/s", baseCost: 85000, kind: "sync", amount: 0.04 },
-    { id: "sync3", name: "Power Relay", desc: "Auto gains 7% of pick power as m/s", baseCost: 2.4e6, kind: "sync", amount: 0.07 },
-    { id: "sync4", name: "Unity Drive", desc: "Auto gains 12% of pick power as m/s", baseCost: 7.5e7, kind: "sync", amount: 0.12 },
-    { id: "sync5", name: "Harmony Gear", desc: "Auto gains 18% of pick power as m/s", baseCost: 2.8e9, kind: "sync", amount: 0.18 },
-    { id: "sync6", name: "One Machine", desc: "Auto gains 28% of pick power as m/s", baseCost: 1.2e11, kind: "sync", amount: 0.28 },
+    { id: "yield1", name: "Sifting Pan", desc: "+80% ore from meters dug", baseCost: 900, kind: "yield", amount: 0.8 },
+    { id: "yield2", name: "Vein Sniffer", desc: "+160% ore from meters dug", baseCost: 22000, kind: "yield", amount: 1.6 },
+    { id: "yield3", name: "Ore Siphon", desc: "+320% ore from meters dug", baseCost: 480000, kind: "yield", amount: 3.2 },
+    { id: "yield4", name: "Lode Magnet", desc: "+650% ore from meters dug", baseCost: 1.2e7, kind: "yield", amount: 6.5 },
+    { id: "yield5", name: "Harvest Lattice", desc: "+1200% ore from meters dug", baseCost: 3.5e8, kind: "yield", amount: 12 },
+    { id: "yield6", name: "Motherlode Pump", desc: "+2200% ore from meters dug", baseCost: 1.2e10, kind: "yield", amount: 22 },
+    { id: "yield7", name: "Abundance Core", desc: "+4000% ore from meters dug", baseCost: 4.5e11, kind: "yield", amount: 40 },
+    { id: "crit1", name: "Weighted Swing", desc: "Equip: 14% crit · ×2.3 dig", baseCost: 1500, kind: "crit", amount: 0.14, critMult: 2.3, maxOwned: 1, equipable: true },
+    { id: "crit2", name: "Impact Gloves", desc: "Equip: 20% crit · ×2.5 dig", baseCost: 45000, kind: "crit", amount: 0.2, critMult: 2.5, maxOwned: 1, equipable: true },
+    { id: "crit3", name: "Fault Hammer", desc: "Equip: 28% crit · ×2.8 dig", baseCost: 1.1e6, kind: "crit", amount: 0.28, critMult: 2.8, maxOwned: 1, equipable: true },
+    { id: "crit4", name: "Quake Gauntlets", desc: "Equip: 36% crit · ×3.1 dig", baseCost: 3.2e7, kind: "crit", amount: 0.36, critMult: 3.1, maxOwned: 1, equipable: true },
+    { id: "crit5", name: "Breach Coil", desc: "Equip: 48% crit · ×3.5 dig", baseCost: 9e8, kind: "crit", amount: 0.48, critMult: 3.5, maxOwned: 1, equipable: true },
+    { id: "crit6", name: "Cataclysm Arm", desc: "Equip: 60% crit · ×4 dig", baseCost: 3.5e10, kind: "crit", amount: 0.6, critMult: 4, maxOwned: 1, equipable: true },
+    { id: "sync1", name: "Gear Link", desc: "Auto gains 4% of pick power as m/s (once)", baseCost: 2500, kind: "sync", amount: 0.04, maxOwned: 1 },
+    { id: "sync2", name: "Shaft Coupler", desc: "Auto gains 8% of pick power as m/s (once)", baseCost: 85000, kind: "sync", amount: 0.08, maxOwned: 1 },
+    { id: "sync3", name: "Power Relay", desc: "Auto gains 12% of pick power as m/s (once)", baseCost: 2.4e6, kind: "sync", amount: 0.12, maxOwned: 1 },
+    { id: "sync4", name: "Unity Drive", desc: "Auto gains 18% of pick power as m/s (once)", baseCost: 7.5e7, kind: "sync", amount: 0.18, maxOwned: 1 },
+    { id: "sync5", name: "Harmony Gear", desc: "Auto gains 25% of pick power as m/s (once)", baseCost: 2.8e9, kind: "sync", amount: 0.25, maxOwned: 1 },
+    { id: "sync6", name: "One Machine", desc: "Auto gains 35% of pick power as m/s (once)", baseCost: 1.2e11, kind: "sync", amount: 0.35, maxOwned: 1 },
     { id: "scout1", name: "Depth Map", desc: "Bias finds toward deeper ores", baseCost: 1800, kind: "scout", amount: 0.35 },
     { id: "scout2", name: "Echo Sounder", desc: "Stronger deep-ore bias", baseCost: 55000, kind: "scout", amount: 0.7 },
     { id: "scout3", name: "Strata Radar", desc: "Much stronger deep-ore bias", baseCost: 1.6e6, kind: "scout", amount: 1.3 },
@@ -214,9 +214,9 @@
   const SHOP_CATEGORIES = [
     { id: "power", title: "Picks", blurb: "More meters when you tap Dig down (does not boost auto drills)." },
     { id: "drill", title: "Drills", blurb: "Auto dig speed in meters per second while the page is open." },
-    { id: "sync", title: "Sync", blurb: "Feeds a % of your pick power into auto dig m/s." },
-    { id: "crit", title: "Crit digs", blurb: "Chance for a manual dig to smash extra meters." },
-    { id: "yield", title: "Yield", blurb: "More ore drops from the same meters dug." },
+    { id: "sync", title: "Sync", blurb: "Each Sync part is buy-once — together they feed pick power into auto m/s." },
+    { id: "crit", title: "Crit digs", blurb: "Buy crit gear, then equip one. Only the equipped crit is active." },
+    { id: "yield", title: "Yield", blurb: "Much more ore from the same meters dug." },
     { id: "luck", title: "Luck", blurb: "Better odds of rarer ores when something drops." },
     { id: "scout", title: "Scout", blurb: "Bias finds toward deeper, higher-value ores." },
     { id: "sell", title: "Sell boost", blurb: "Earn more coins when you sell your cart." },
@@ -306,6 +306,7 @@
       bestOreValue: 0,
       cart: [],
       owned,
+      equippedCrit: "",
       lastTick: Date.now()
     };
   }
@@ -651,6 +652,23 @@
     return Math.max(0, Math.floor(Number(state.owned[id]) || 0));
   }
 
+  function maxOwnedFor(u) {
+    const n = Number(u?.maxOwned);
+    if (Number.isFinite(n) && n > 0) return Math.floor(n);
+    return Infinity;
+  }
+
+  function isMaxOwned(u) {
+    return ownedCount(u.id) >= maxOwnedFor(u);
+  }
+
+  function equippedCritUpgrade() {
+    const id = String(state.equippedCrit || "");
+    if (!id || ownedCount(id) <= 0) return null;
+    const u = UPGRADES.find((x) => x.id === id && x.kind === "crit");
+    return u || null;
+  }
+
   function digPower() {
     let p = 1;
     UPGRADES.forEach((u) => {
@@ -673,7 +691,7 @@
     UPGRADES.forEach((u) => {
       if (u.kind === "sync") s += ownedCount(u.id) * u.amount;
     });
-    return Math.min(0.9, Math.max(0, s));
+    return Math.min(1.2, Math.max(0, s));
   }
 
   function autoMetersPerSecond() {
@@ -711,15 +729,16 @@
   }
 
   function critChance() {
-    let c = 0;
-    UPGRADES.forEach((u) => {
-      if (u.kind === "crit") c += ownedCount(u.id) * u.amount;
-    });
-    return Math.min(0.85, Math.max(0, c));
+    const u = equippedCritUpgrade();
+    if (!u) return 0;
+    return Math.min(0.85, Math.max(0, Number(u.amount) || 0));
   }
 
   function critPower() {
-    return 2 + Math.min(1.5, critChance() * 2.2);
+    const u = equippedCritUpgrade();
+    if (!u) return 2;
+    const mult = Number(u.critMult);
+    return Number.isFinite(mult) && mult > 1 ? mult : 2 + Math.min(1.5, critChance() * 2.2);
   }
 
   function scoutMult() {
@@ -806,8 +825,20 @@
         : [];
       if (!state.owned || typeof state.owned !== "object") state.owned = {};
       UPGRADES.forEach((u) => {
-        state.owned[u.id] = Math.max(0, Math.floor(Number(data.owned?.[u.id]) || 0));
+        let n = Math.max(0, Math.floor(Number(data.owned?.[u.id]) || 0));
+        const max = maxOwnedFor(u);
+        if (Number.isFinite(max)) n = Math.min(n, max);
+        state.owned[u.id] = n;
       });
+      const eq = typeof data.equippedCrit === "string" ? data.equippedCrit : "";
+      state.equippedCrit =
+        eq && ownedCount(eq) > 0 && UPGRADES.some((u) => u.id === eq && u.kind === "crit")
+          ? eq
+          : "";
+      if (!state.equippedCrit) {
+        const firstCrit = UPGRADES.find((u) => u.kind === "crit" && ownedCount(u.id) > 0);
+        if (firstCrit) state.equippedCrit = firstCrit.id;
+      }
       if (state.cart.length > cartMax()) state.cart = state.cart.slice(0, cartMax());
       state.lastTick = Number(data.lastTick) || Date.now();
     } catch {}
@@ -829,6 +860,7 @@
           bestOreValue: state.bestOreValue,
           cart: state.cart,
           owned: state.owned,
+          equippedCrit: state.equippedCrit || "",
           lastTick: state.lastTick
         })
       );
@@ -1046,19 +1078,18 @@
     const luck = luckMult();
     const yieldBonus = yieldMult();
     const base = source === "click" ? 5 : 18;
-    const metersPerOre = Math.max(
-      2.2,
-      base / (1 + (luck - 1) * 0.12) / (1 + yieldBonus * 0.55)
-    );
+    // Yield is a direct ore-rate multiplier so early buys already feel big.
+    const oreRate = 1 + yieldBonus;
+    const metersPerOre = Math.max(1.2, base / (1 + (luck - 1) * 0.12) / oreRate);
     oreMeterBank += m;
     let rolls = Math.floor(oreMeterBank / metersPerOre);
     oreMeterBank -= rolls * metersPerOre;
     const cap =
       source === "click"
-        ? 6 + Math.min(8, Math.floor(yieldBonus))
-        : 3 + Math.min(5, Math.floor(yieldBonus * 0.5));
+        ? 6 + Math.min(24, Math.floor(yieldBonus * 1.5))
+        : 3 + Math.min(16, Math.floor(yieldBonus));
     if (rolls > cap) {
-      oreMeterBank += (rolls - cap) * metersPerOre * 0.2;
+      oreMeterBank += (rolls - cap) * metersPerOre * 0.35;
       rolls = cap;
     }
     return rolls;
@@ -1231,6 +1262,11 @@
     const u = UPGRADES.find((x) => x.id === key);
     if (!u) return false;
     if (!state.owned || typeof state.owned !== "object") state.owned = {};
+    if (isMaxOwned(u)) {
+      statusLineEl.textContent = `${u.name} is already owned (buy once)`;
+      window.HubSound?.play?.("error");
+      return false;
+    }
     const cost = upgradeCost(u);
     if (!Number.isFinite(cost) || cost <= 0 || !canAfford(cost)) {
       statusLineEl.textContent = `Need ${formatNum(cost)} coins for ${u.name}`;
@@ -1244,9 +1280,32 @@
       return false;
     }
     state.owned[u.id] = ownedCount(u.id) + 1;
-    statusLineEl.textContent = `Bought ${u.name} · now ${formatNum(digPower())}m/dig · ${formatAutoMps(autoMetersPerSecond())} auto`;
+    if (u.equipable && u.kind === "crit") {
+      state.equippedCrit = u.id;
+      statusLineEl.textContent = `Bought & equipped ${u.name}`;
+    } else {
+      statusLineEl.textContent = `Bought ${u.name} · now ${formatNum(digPower())}m/dig · ${formatAutoMps(autoMetersPerSecond())} auto`;
+    }
     window.HubSound?.play?.("merge");
     checkAchievements();
+    shopDirty = true;
+    render();
+    save(true);
+    return true;
+  }
+
+  function equipCrit(id) {
+    const key = String(id || "");
+    const u = UPGRADES.find((x) => x.id === key && x.kind === "crit");
+    if (!u || ownedCount(u.id) <= 0) {
+      statusLineEl.textContent = "Buy that crit gear before equipping it";
+      window.HubSound?.play?.("error");
+      return false;
+    }
+    ensureSession();
+    state.equippedCrit = u.id;
+    statusLineEl.textContent = `Equipped ${u.name} · ${Math.round(critChance() * 100)}% crit · ×${critPower().toFixed(1)}`;
+    window.HubSound?.play?.("click");
     shopDirty = true;
     render();
     save(true);
@@ -1297,19 +1356,42 @@
   function refreshShopButtons() {
     if (!shopList || shopDirty) return;
     shopList.querySelectorAll(".shop-item").forEach((item) => {
-      const id = item.getAttribute("data-buy");
+      const id = item.getAttribute("data-item");
       const u = UPGRADES.find((x) => x.id === id);
       if (!u) return;
+      const n = ownedCount(u.id);
+      const maxed = isMaxOwned(u);
       const cost = upgradeCost(u);
-      const can = canAfford(cost);
-      item.classList.toggle("locked", !can);
-      const btn = item.querySelector(".shop-buy");
-      if (btn) {
-        btn.disabled = !can;
-        btn.textContent = formatNum(cost);
+      const can = !maxed && canAfford(cost);
+      item.classList.toggle("locked", !can && !maxed);
+      item.classList.toggle("is-equipped", u.kind === "crit" && state.equippedCrit === u.id);
+      const buyBtn = item.querySelector("[data-buy]");
+      if (buyBtn) {
+        buyBtn.disabled = maxed || !canAfford(cost);
+        buyBtn.textContent = maxed ? "Owned" : formatNum(cost);
+      }
+      const equipBtn = item.querySelector("[data-equip]");
+      if (equipBtn) {
+        const on = state.equippedCrit === u.id;
+        equipBtn.disabled = n <= 0 || on;
+        equipBtn.textContent = n <= 0 ? "Buy first" : on ? "Equipped" : "Equip";
+        equipBtn.classList.toggle("is-on", on);
       }
       const meta = item.querySelector(".shop-meta");
-      if (meta) meta.textContent = `Owned ${ownedCount(u.id)}`;
+      if (meta) {
+        if (u.kind === "crit") {
+          meta.textContent =
+            n <= 0
+              ? "Not owned"
+              : state.equippedCrit === u.id
+                ? "Owned · equipped"
+                : "Owned · tap Equip";
+        } else if (maxed) {
+          meta.textContent = "Owned (once)";
+        } else {
+          meta.textContent = `Owned ${n}`;
+        }
+      }
     });
   }
 
@@ -1323,17 +1405,43 @@
 
     const gearRow = (u) => {
       const n = ownedCount(u.id);
+      const maxed = isMaxOwned(u);
       const cost = upgradeCost(u);
-      const can = canAfford(cost);
-      return `<div class="shop-item ${can ? "" : "locked"}" role="listitem" data-buy="${u.id}">
+      const can = !maxed && canAfford(cost);
+      const equipped = u.kind === "crit" && state.equippedCrit === u.id;
+      let actions = "";
+      if (u.equipable && u.kind === "crit") {
+        const equipLabel = n <= 0 ? "Buy first" : equipped ? "Equipped" : "Equip";
+        actions = `<div class="shop-actions">
+          <button type="button" class="shop-buy" data-buy="${u.id}" ${maxed || !canAfford(cost) ? "disabled" : ""}>
+            ${maxed ? "Owned" : formatNum(cost)}
+          </button>
+          <button type="button" class="shop-equip${equipped ? " is-on" : ""}" data-equip="${u.id}" ${n <= 0 || equipped ? "disabled" : ""}>
+            ${equipLabel}
+          </button>
+        </div>`;
+      } else {
+        actions = `<button type="button" class="shop-buy" data-buy="${u.id}" ${maxed || !canAfford(cost) ? "disabled" : ""}>
+          ${maxed ? "Owned" : formatNum(cost)}
+        </button>`;
+      }
+      const meta =
+        u.kind === "crit"
+          ? n <= 0
+            ? "Not owned"
+            : equipped
+              ? "Owned · equipped"
+              : "Owned · tap Equip"
+          : maxed
+            ? "Owned (once)"
+            : `Owned ${n}`;
+      return `<div class="shop-item ${can || maxed ? "" : "locked"}${equipped ? " is-equipped" : ""}" role="listitem" data-item="${u.id}">
         <div>
           <div class="shop-name">${u.name}</div>
           <p class="shop-desc">${u.desc}</p>
-          <div class="shop-meta">Owned ${n}</div>
+          <div class="shop-meta">${meta}</div>
         </div>
-        <button type="button" class="shop-buy" data-buy="${u.id}" ${can ? "" : "disabled"}>
-          ${formatNum(cost)}
-        </button>
+        ${actions}
       </div>`;
     };
 
@@ -1516,6 +1624,12 @@
     renderShop();
   });
   shopList?.addEventListener("click", (e) => {
+    const equip = e.target.closest("[data-equip]");
+    if (equip && shopList.contains(equip)) {
+      e.preventDefault();
+      equipCrit(equip.getAttribute("data-equip"));
+      return;
+    }
     const target = e.target.closest("[data-buy]");
     if (!target || !shopList.contains(target)) return;
     e.preventDefault();

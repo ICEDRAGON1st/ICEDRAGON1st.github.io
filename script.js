@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ag": [
+    "Mine Depth: Sync is buy-once, Crit gear is equippable, and Yield actually dumps more ore"
+  ],
   "20261001af": [
     "Mine Depth: more gear plus new kinds — Sync, Crit digs, Yield, and Scout"
   ],
