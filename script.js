@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ao": [
+    "Help Assistant: mascot catchphrase only once per reply (not on every tip card)"
+  ],
   "20261001an": [
     "Help button sits beside Chat instead of covering it"
   ],

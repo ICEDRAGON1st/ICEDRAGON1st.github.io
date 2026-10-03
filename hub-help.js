@@ -693,11 +693,12 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
       );
       return;
     }
-    hits.forEach((h) => {
+    // Voice wrap (prefix/suffix) once per ask — not on every FAQ card.
+    hits.forEach((h, i) => {
       const t = h.topic;
-      // Defense-in-depth: only static FAQ strings, never live state.
       if (!t || typeof t.answer !== "string") return;
-      pushBot(t.title, t.answer);
+      if (i === 0) pushBot(t.title, t.answer);
+      else pushBot(t.title, t.answer, { raw: true });
     });
   }
 
