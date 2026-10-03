@@ -1,6 +1,6 @@
 /**
  * In-game Help Assistant — local FAQ search + selectable mascot personalities.
- * Core answers stay in help-data.json; mascots only change voice, avatar, and wrap.
+ * Core answers stay in help-data.json + GAME_INFO.txt; mascots only change voice, avatar, and wrap.
  * Open with F (or F1 in letter games), or the ? button. Pauses typical minigames while open.
  */
 (function () {
@@ -10,6 +10,10 @@
   const MASCOT_KEY = "hub-help-mascot-v1";
   const UNLOCK_KEY = "hub-help-mascot-unlocks-v1";
   const DEFAULT_MASCOT = "normal";
+
+  /** Parsed fields from GAME_INFO.txt (project knowledge base). */
+  let gameInfo = null;
+  let gameInfoRaw = "";
 
   /** Minimal offline fallback if help-data.json cannot load. */
   const FALLBACK = {
@@ -824,6 +828,63 @@
     return "https://discord.gg/6NHYfPwAwg";
   }
 
+  function isGameInfoPlaceholder(val) {
+    const s = String(val || "").trim();
+    if (!s) return true;
+    return /^\[insert\b/i.test(s) || /\[insert\b/i.test(s);
+  }
+
+  function gameInfoField(key) {
+    if (!gameInfo || !key) return "";
+    const val = gameInfo[key];
+    if (isGameInfoPlaceholder(val)) return "";
+    return String(val).trim();
+  }
+
+  /** Parse GAME_INFO.txt `Key: value` lines into a flat object. */
+  function parseGameInfo(text) {
+    const out = {
+      gameName: "",
+      owner: "",
+      platform: "",
+      releaseDate: "",
+      objective: "",
+      controls: "",
+      menus: "",
+      totalPlays: "",
+      peakConcurrent: "",
+      liveStatsNote: "",
+      rules: "",
+      supportLinks: ""
+    };
+    const map = [
+      [/^\s*game\s*name\s*:/i, "gameName"],
+      [/^\s*owner\s*&\s*developer\s*:/i, "owner"],
+      [/^\s*owner\s*:/i, "owner"],
+      [/^\s*platform\s*:/i, "platform"],
+      [/^\s*release\s*date\s*:/i, "releaseDate"],
+      [/^\s*main\s*objective\s*:/i, "objective"],
+      [/^\s*controls?\s*:/i, "controls"],
+      [/^\s*menus?\s*:/i, "menus"],
+      [/^\s*total\s*plays?(\s*\/\s*visits?)?\s*:/i, "totalPlays"],
+      [/^\s*peak\s*concurrent(\s*players?)?\s*:/i, "peakConcurrent"],
+      [/^\s*live\s*stats?\s*note\s*:/i, "liveStatsNote"],
+      [/^\s*rules?\s*:/i, "rules"],
+      [/^\s*support\s*links?\s*:/i, "supportLinks"]
+    ];
+    String(text || "")
+      .split(/\r?\n/)
+      .forEach((line) => {
+        for (const [re, key] of map) {
+          if (!re.test(line)) continue;
+          const val = line.replace(re, "").trim();
+          if (val) out[key] = val;
+          break;
+        }
+      });
+    return out;
+  }
+
   function liveStatsLine() {
     const m = getMascot();
     if (typeof m.liveStats === "function") {
@@ -833,6 +894,15 @@
     }
 
     let snapshot = "";
+    const milestones = [];
+    const total = gameInfoField("totalPlays");
+    const peak = gameInfoField("peakConcurrent");
+    if (total) milestones.push(`listed total plays/visits: ${total}`);
+    if (peak) milestones.push(`listed peak concurrent: ${peak}`);
+    if (milestones.length) {
+      snapshot = ` Closest public milestone from GAME_INFO: ${milestones.join("; ")}.`;
+    }
+
     try {
       const status = window.HubPlays?.getStatus?.();
       const online = Number(status?.online);
@@ -845,17 +915,93 @@
         bits.push(`roughly ${allTime} names show up in the all-time players list on this device`);
       }
       if (bits.length) {
-        snapshot = ` Closest public snapshot I can see: ${bits.join(", ")} — these are not live official totals.`;
+        snapshot += ` Closest public snapshot I can see: ${bits.join(", ")} — these are not live official totals.`;
       }
     } catch {}
+
+    const note =
+      gameInfoField("liveStatsNote") ||
+      "Exact live numbers update in real time on the main game page, Players list, Leaderboards, and Discord.";
 
     return (
       "I don't have live database stats in chat (exact active players, real-time online counts, or live leaderboards)." +
       snapshot +
+      " " +
+      note +
       " For the best numbers, check Players and Leaderboards on the hub, hold Tab to peek who's online, or visit Discord: " +
       discordInvite() +
       "."
     );
+  }
+
+  /**
+   * Answer ownership / gameplay / controls / rules / support from GAME_INFO.txt
+   * when those fields are filled in (not still `[Insert …]`).
+   */
+  function answerFromGameInfo(query) {
+    const q = normalize(query);
+    const raw = String(query || "");
+    if (!q || !gameInfo) return null;
+
+    const owner = gameInfoField("owner");
+    const gameName = gameInfoField("gameName");
+    const platform = gameInfoField("platform");
+    const releaseDate = gameInfoField("releaseDate");
+    const objective = gameInfoField("objective");
+    const controls = gameInfoField("controls");
+    const menus = gameInfoField("menus");
+    const rules = gameInfoField("rules");
+    const support = gameInfoField("supportLinks");
+
+    if (OWNER_RE.test(q) || OWNER_RE.test(raw)) {
+      if (owner) {
+        return {
+          title: "Owner",
+          answer: gameName
+            ? `The owner & developer of ${gameName} is ${owner}.`
+            : `The owner & developer is ${owner}.`
+        };
+      }
+      return null;
+    }
+
+    if (/\b(support|discord|social|website|community\s*link|invite)\b/i.test(q) && support) {
+      return { title: "Support links", answer: support };
+    }
+
+    if (/\b(rules?|community\s*rules?|fair\s*play|code\s*of\s*conduct)\b/i.test(q) && rules) {
+      return { title: "Rules", answer: rules };
+    }
+
+    if (/\b(controls?|hotkeys?|keybinds?|keyboard|wasd|buttons?)\b/i.test(q) && controls) {
+      return { title: "Controls", answer: controls };
+    }
+
+    if (/\b(menus?|navigation|where\s+(is|are)|settings?\s*menu)\b/i.test(q) && menus) {
+      return { title: "Menus", answer: menus };
+    }
+
+    if (
+      /\b(main\s*objective|objective|goal|how\s+to\s+play|gameplay|what\s+do\s+i\s+do)\b/i.test(q) &&
+      objective
+    ) {
+      return { title: "Gameplay", answer: objective };
+    }
+
+    if (
+      /\b(game\s*name|what\s+game|platform|release\s*date|when\s+(was|did).*(release|launch)|about\s+(the\s+)?game)\b/i.test(
+        q
+      )
+    ) {
+      const bits = [];
+      if (gameName) bits.push(`Game name: ${gameName}`);
+      if (owner) bits.push(`Owner & developer: ${owner}`);
+      if (platform) bits.push(`Platform: ${platform}`);
+      if (releaseDate) bits.push(`Release date: ${releaseDate}`);
+      if (bits.length) return { title: "About", answer: bits.join(" · ") };
+    }
+
+    return null;
   }
 
   function refusalLine(kind) {
@@ -912,8 +1058,10 @@
         return m.ownerLine();
       } catch {}
     }
-    if (m.plain) return "The owner of My Games is ICE_DRAGON.";
-    return `The owner of My Games is ICE_DRAGON.`;
+    const owner = gameInfoField("owner");
+    const gameName = gameInfoField("gameName") || "My Games";
+    if (owner) return `The owner & developer of ${gameName} is ${owner}.`;
+    return "The owner of My Games is ICE_DRAGON.";
   }
 
   function readAccountName() {
@@ -1262,6 +1410,13 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
       return;
     }
 
+    // Prefer filled GAME_INFO.txt fields for ownership / gameplay / controls / rules.
+    const fromInfo = answerFromGameInfo(q);
+    if (fromInfo && fromInfo.answer) {
+      pushBot(fromInfo.title || "Game info", fromInfo.answer, meant ? { meant } : undefined);
+      return;
+    }
+
     const gameId = currentGameId();
     const hits = search(q, gameId);
     if (!hits.length) {
@@ -1488,6 +1643,22 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     }
   }
 
+  async function loadGameInfo() {
+    const base = scriptBase();
+    const v = window.WORDLE_BUILD || "1";
+    const url = `${base}GAME_INFO.txt?v=${encodeURIComponent(v)}`;
+    try {
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error("bad status");
+      const text = await res.text();
+      gameInfoRaw = String(text || "");
+      gameInfo = parseGameInfo(gameInfoRaw);
+    } catch {
+      gameInfoRaw = "";
+      gameInfo = parseGameInfo("");
+    }
+  }
+
   async function loadData() {
     const base = scriptBase();
     const v = window.WORDLE_BUILD || "1";
@@ -1503,6 +1674,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     } catch {
       data = FALLBACK;
     }
+    await loadGameInfo();
     ready = true;
   }
 
@@ -1540,6 +1712,8 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     isUnlocked,
     unlockMascot,
     renderMascotPicker,
+    getGameInfo: () => gameInfo,
+    reloadGameInfo: loadGameInfo,
     MASCOTS
   };
 })();

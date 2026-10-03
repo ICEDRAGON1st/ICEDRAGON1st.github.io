@@ -1,0 +1,32 @@
+---
+description: Read GAME_INFO.txt for ownership, controls, gameplay, rules, and player-stats answers
+alwaysApply: true
+---
+
+# GAME_INFO knowledge base
+
+`GAME_INFO.txt` in the project root is the main knowledge base for game ownership, controls, gameplay, menus, rules, support links, and public player-stat milestones.
+
+## When to read it
+
+Before answering questions about:
+
+- Who owns / made / develops the game or hub
+- Platform, release date, game name
+- Main objective / how to play (high level)
+- Controls, menus, navigation
+- Community rules
+- Support / Discord / social links
+- Player counts, visits, peak concurrent, or other milestone stats listed in the file
+
+**Read `GAME_INFO.txt` first** (or refresh if it may have changed), then answer from that file.
+
+## How to use values
+
+- Prefer filled-in fields over guessing.
+- Treat values that still look like `[Insert …]` as **not filled yet** — say the detail is not set in the knowledge base yet, and point to the hub Help assistant, Players / Leaderboards, or Discord when relevant.
+- For live / real-time player counts: do **not** invent numbers. Use milestones from `GAME_INFO.txt` if present, explain that exact live stats are not available in chat, and direct players to the main game page, Players, Leaderboards, Tab online peek, or Discord (same idea as the Help assistant’s livestats rule).
+
+## In-game Help
+
+The player-facing Help assistant (`hub-help.js`) also loads `GAME_INFO.txt` at runtime. Keep the file in plain text with `Key: value` lines so both Cursor and the in-game helper can parse it.

@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001bc": [
+    "Help reads GAME_INFO.txt for ownership, controls, gameplay, rules, and player-stat milestones"
+  ],
   "20261001bb": [
     "Help: live player-count asks get a friendly “check hub/Discord” answer — not a forbidden wall"
   ],

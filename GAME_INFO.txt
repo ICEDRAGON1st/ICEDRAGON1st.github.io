@@ -1,0 +1,31 @@
+GAME INFORMATION & FAQ
+
+Game Name: [Insert Game Name]
+
+Owner & Developer: [Insert Owner / Studio Name]
+
+Platform: [Insert Platform, e.g., Roblox, PC, Mobile]
+
+Release Date: [Insert Release Date]
+
+GAMEPLAY & CONTROLS
+
+Main Objective: [Insert core gameplay goal]
+
+Controls: [Insert control scheme, e.g., WASD to move, Space to jump]
+
+Menus: [Insert menu locations and navigation]
+
+PLAYER STATS & MILESTONES
+
+Total Plays/Visits: [Insert total player count or milestone]
+
+Peak Concurrent Players: [Insert highest record count]
+
+Live Stats Note: Exact live numbers update in real time on the main game page, Players list, Leaderboards, and Discord. Chat does not stream a live database.
+
+RULES & COMMUNITY
+
+Rules: [Insert main community/game rules]
+
+Support Links: [Insert links to Discord, website, or social media]
