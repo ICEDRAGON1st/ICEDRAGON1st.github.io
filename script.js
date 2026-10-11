@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001cj": [
+    "Fishing Idle: Esc while playing opens the Menu (same as ☰)"
+  ],
   "20261001ci": [
     "Esc while playing opens the game Menu (with Music / SFX / song search) in every minigame"
   ],

@@ -19316,10 +19316,32 @@
       closeSuffixGuide();
       return;
     }
+    const mailEl = document.getElementById("mail-overlay");
+    if (mailEl && !mailEl.classList.contains("hidden")) {
+      e.preventDefault();
+      closeMailOverlay();
+      return;
+    }
+    const visitAquaEl = document.getElementById("visit-aqua-overlay");
+    if (visitAquaEl && !visitAquaEl.classList.contains("hidden")) {
+      e.preventDefault();
+      closeVisitAquariumPicker();
+      return;
+    }
+    const offlineClaimEl = document.getElementById("offline-claim-overlay");
+    if (offlineClaimEl && !offlineClaimEl.classList.contains("hidden")) {
+      e.preventDefault();
+      offlineClaimEl.classList.add("hidden");
+      return;
+    }
     if (overlay && !overlay.classList.contains("hidden")) {
       e.preventDefault();
       closeMenu();
+      return;
     }
+    // In-game: Esc opens the same Menu as ☰
+    e.preventDefault();
+    openMenu();
   });
   gamesBtn?.addEventListener("click", () => {
     saveState();
