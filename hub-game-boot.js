@@ -54,6 +54,15 @@
             '"></script>'
         );
       }
+      if (!window.HubCoins) {
+        document.write(
+          '<script src="' +
+            iconBase +
+            "hub-coins.js?v=" +
+            encodeURIComponent(bootVer) +
+            '"></script>'
+        );
+      }
     } catch (e) {}
     // Offline shell for games visited once online.
     try {

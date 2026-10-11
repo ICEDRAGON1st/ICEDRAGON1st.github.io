@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001bw": [
+    "Hub coins: earn from wins, daily login, pickups, and Help — spend on Help mascots in the Coins shop"
+  ],
   "20261001bv": [
     "My Games: Titles & colors moved to their own Titles menu — no longer inside Players"
   ],
@@ -1653,6 +1656,7 @@ const toggleLeaderboardsBtn = document.getElementById("toggle-leaderboards-btn")
 const toggleAchievementsBtn = document.getElementById("toggle-achievements-btn");
 const togglePlayersBtn = document.getElementById("toggle-players-btn");
 const toggleTitlesBtn = document.getElementById("toggle-titles-btn");
+const toggleCoinsBtn = document.getElementById("toggle-coins-btn");
 const toggleFriendsBtn = document.getElementById("toggle-friends-btn");
 const toggleUpdatesBtn = document.getElementById("toggle-updates-btn");
 const toggleFeedbackBtn = document.getElementById("toggle-feedback-btn");
@@ -1685,6 +1689,7 @@ const feedbackUnread = document.getElementById("feedback-unread");
 const feedbackRefreshBtn = document.getElementById("feedback-refresh-btn");
 const playersPanel = document.getElementById("players-panel");
 const titlesPanel = document.getElementById("titles-panel");
+const coinsPanel = document.getElementById("coins-panel");
 const friendsPanel = document.getElementById("friends-panel");
 const friendsChatPoll = () => renderFriendsPanel();
 let friendsComposingGroup = false;
@@ -3310,6 +3315,17 @@ function stopStreakCountdown() {
   streakTimerInterval = null;
 }
 
+function maybeClaimDailyHubCoins() {
+  try {
+    if (typeof HubCoins === "undefined" || !HubCoins.canClaimDaily?.()) return;
+    const res = HubCoins.claimDaily();
+    if (res?.ok) {
+      showGamesMessage(`Daily reward: +${res.gained} coins`, 2200);
+      updateCoinsButtonLabel?.(coinsPanel && !coinsPanel.classList.contains("hidden"));
+    }
+  } catch {}
+}
+
 function refreshGamesHub() {
   decorateGameCardThumbs();
   renderMostPopularBadge();
@@ -3319,6 +3335,11 @@ function refreshGamesHub() {
   filterGamesGrid();
   renderHighScoresList();
   renderDailyStreak();
+  try {
+    HubCoins?.refreshUi?.();
+    updateCoinsButtonLabel?.(coinsPanel && !coinsPanel.classList.contains("hidden"));
+  } catch {}
+  maybeClaimDailyHubCoins();
   try {
     window.HubPlays?.syncPopularity?.()?.then?.(() => {
       try {
@@ -3808,6 +3829,9 @@ function handleWin(row) {
     if (stats.currentStreak >= 3) HubAchievements.unlock("wordle_streak_3");
     if (isDailyMode()) HubAchievements.unlock("wordle_daily");
   }
+  try {
+    window.HubCoins?.rewardWin?.();
+  } catch {}
   showMessage(getWinMessage(row), false, 0);
   saveState();
   renderKeyboard();
@@ -4547,6 +4571,10 @@ function maybeOpenHubHash() {
     renderTitlePicker?.();
     renderColorPicker?.();
     updateTitlesButtonLabel(true);
+  } else if (hash === "coins" || hash === "coin" || hash === "shop") {
+    coinsPanel?.classList.remove("hidden");
+    renderCoinsPanel?.();
+    updateCoinsButtonLabel(true);
   } else if (hash === "feedback") {
     feedbackPanel?.classList.remove("hidden");
     openFeedbackPanel?.();
@@ -4574,6 +4602,48 @@ function updateTitlesButtonLabel(open) {
   toggleTitlesBtn.textContent = open ? "Hide titles" : "Titles";
 }
 
+function updateCoinsButtonLabel(open) {
+  if (!toggleCoinsBtn) return;
+  const bal =
+    typeof HubCoins !== "undefined" ? HubCoins.format(HubCoins.getBalance()) : "0";
+  toggleCoinsBtn.innerHTML = open
+    ? `<span aria-hidden="true">🪙</span> <span data-hub-coins-balance>${bal}</span> Hide`
+    : `<span aria-hidden="true">🪙</span> <span data-hub-coins-balance>${bal}</span> Coins`;
+}
+
+function setCoinsStatus(msg, kind) {
+  const el = document.getElementById("coins-status");
+  if (!el) return;
+  el.textContent = msg || "";
+  el.classList.toggle("is-error", kind === "error");
+  el.classList.toggle("is-ok", kind === "ok");
+}
+
+function renderCoinsPanel() {
+  const list = document.getElementById("coins-shop-list");
+  if (typeof HubCoins === "undefined") return;
+  HubCoins.refreshUi?.();
+  updateCoinsButtonLabel(coinsPanel && !coinsPanel.classList.contains("hidden"));
+  if (!list) return;
+  const shop = HubCoins.getShop?.() || [];
+  list.innerHTML = shop
+    .map((item) => {
+      const owned = !!item.owned;
+      return `<li class="coins-shop-item">
+        <div class="coins-shop-meta">
+          <span class="coins-shop-name">${escapeHtml(item.label)}</span>
+          <span class="coins-shop-cost">${
+            owned ? "Owned" : `${HubCoins.format(item.cost)} coins`
+          }</span>
+        </div>
+        <button type="button" class="hub-btn${owned ? "" : " hub-btn-primary"}" data-coin-buy="${escapeHtml(
+          item.id
+        )}" ${owned ? "disabled" : ""}>${owned ? "Owned" : "Buy"}</button>
+      </li>`;
+    })
+    .join("");
+}
+
 toggleTitlesBtn?.addEventListener("click", () => {
   if (!titlesPanel) return;
   const open = titlesPanel.classList.toggle("hidden") === false;
@@ -4582,6 +4652,63 @@ toggleTitlesBtn?.addEventListener("click", () => {
     maybeAskPlayerName();
     renderTitlePicker();
     renderColorPicker();
+  }
+});
+
+toggleCoinsBtn?.addEventListener("click", () => {
+  if (!coinsPanel) return;
+  const open = coinsPanel.classList.toggle("hidden") === false;
+  updateCoinsButtonLabel(open);
+  if (open) {
+    maybeAskPlayerName();
+    renderCoinsPanel();
+  }
+});
+
+document.getElementById("coins-daily-btn")?.addEventListener("click", () => {
+  if (typeof HubCoins === "undefined") return;
+  const res = HubCoins.claimDaily();
+  if (res.ok) {
+    setCoinsStatus(`Daily reward: +${res.gained} coins!`, "ok");
+    showGamesMessage(`+${res.gained} daily coins`, 1600);
+  } else {
+    setCoinsStatus(res.error || "Already claimed today.", "error");
+  }
+  renderCoinsPanel();
+});
+
+document.getElementById("coins-pickup-btn")?.addEventListener("click", () => {
+  if (typeof HubCoins === "undefined") return;
+  const res = HubCoins.rewardPickup();
+  if (res.ok) {
+    setCoinsStatus(`Picked up +${res.gained} coin.`, "ok");
+  }
+  renderCoinsPanel();
+});
+
+document.getElementById("coins-shop-list")?.addEventListener("click", (e) => {
+  const btn = e.target.closest?.("[data-coin-buy]");
+  if (!btn || typeof HubCoins === "undefined") return;
+  const id = btn.getAttribute("data-coin-buy");
+  const res = HubCoins.buy(id);
+  if (!res.ok) {
+    setCoinsStatus(res.error || HubCoins.NEED_MORE, "error");
+    showGamesMessage(res.error || HubCoins.NEED_MORE, 2000);
+    return;
+  }
+  setCoinsStatus(`Unlocked ${res.item?.label || "item"}!`, "ok");
+  showGamesMessage(`Bought ${res.item?.label || "item"}`, 1800);
+  try {
+    HubHelp?.renderMascotPicker?.();
+  } catch {}
+  renderCoinsPanel();
+});
+
+document.addEventListener("hub-coins-changed", () => {
+  try {
+    renderCoinsPanel();
+  } catch {
+    HubCoins?.refreshUi?.();
   }
 });
 

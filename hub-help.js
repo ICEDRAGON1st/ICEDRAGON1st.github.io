@@ -2114,16 +2114,57 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     chatEl.scrollTop = chatEl.scrollHeight;
   }
 
+  function tryHelpCoinQuestLine() {
+    try {
+      if (typeof window.HubCoins === "undefined") return "";
+      if (!HubCoins.canAiQuest?.()) return "";
+      const res = HubCoins.rewardAiQuest();
+      if (!res?.ok) return "";
+      return `+${res.gained} bonus coins for chatting with Help today!`;
+    } catch {
+      return "";
+    }
+  }
+
+  function coinsBalanceAnswer() {
+    try {
+      if (typeof window.HubCoins === "undefined") {
+        return "Coin tracking isn't loaded right now.";
+      }
+      const n = HubCoins.getBalance();
+      const text = HubCoins.format(n);
+      return `You have ${text} hub coin${n === 1 ? "" : "s"} saved in this browser.\n\nOpen Coins on the hub to claim your daily reward or buy Help mascots.`;
+    } catch {
+      return "I can't read your coin balance right now.";
+    }
+  }
+
+  function isCoinsBalanceAsk(query) {
+    const q = normalize(query);
+    return (
+      /\b(how many|whats?|what\s+is|show|tell\s*me|check)\b[\s\S]{0,24}\bcoins?\b/i.test(q) ||
+      /\b(my|have)\s+coins?\b/i.test(q) ||
+      /\bcoin\s*balance\b/i.test(q) ||
+      /\bhow\s+many\s+coins?\s+do\s+i\s+have\b/i.test(q)
+    );
+  }
+
   function replyHelp(userText, title, answer, opts, memory) {
     const o = Object.assign({}, opts || {});
-    pushBot(title, answer, o);
+    let finalAnswer = String(answer || "");
+    const refuse = !!(memory && (memory.topic === "refuse" || memory.topic === "unknown"));
+    if (!refuse && !o.skipQuest && !memory?.skipQuest) {
+      const bonus = tryHelpCoinQuestLine();
+      if (bonus) finalAnswer = `${finalAnswer}\n\n${bonus}`;
+    }
+    pushBot(title, finalAnswer, o);
     rememberExchange(userText, {
       title: String(title || ""),
       topic: memory?.topic || null,
       gameIds: memory?.gameIds || null,
       count: memory?.count || null,
       category: memory?.category || null,
-      answerPreview: String(answer || "").slice(0, 220)
+      answerPreview: String(finalAnswer || "").slice(0, 220)
     });
   }
 
@@ -2139,6 +2180,14 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     const guard = classifyGuard(q);
     const meant = fixed.corrected && normalize(q) !== normalize(typed) ? q : "";
     const withMeant = (extra) => Object.assign({ raw: true }, extra || {}, meant ? { meant } : {});
+
+    if (isCoinsBalanceAsk(q) || isCoinsBalanceAsk(typed)) {
+      replyHelp(typed, "Your coins", coinsBalanceAnswer(), withMeant(), {
+        topic: "coins",
+        skipQuest: true
+      });
+      return;
+    }
 
     if (guard === "greet") {
       replyHelp(typed, "Hey there!", greetLine(), withMeant(), { topic: "greet" });
@@ -2421,7 +2470,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
         ]
           .filter(Boolean)
           .join(" ");
-        const lockNote = locked ? `<span class="hub-mascot-lock">Locked · coins later</span>` : "";
+        const lockNote = locked ? `<span class="hub-mascot-lock">Locked · Coins shop</span>` : "";
         return `<button type="button" class="${classes}" data-hub-mascot="${escapeHtml(m.id)}" ${
           locked ? 'aria-disabled="true"' : ""
         } title="${escapeHtml(m.fullName)} — ${escapeHtml(m.blurb)}">
@@ -2449,7 +2498,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
         const id = btn.getAttribute("data-hub-mascot");
         if (!id) return;
         if (!isUnlocked(id)) {
-          setPickerStatus("Locked — unlock with coins later");
+          setPickerStatus("Locked — buy this mascot in the Coins shop");
           btn.classList.add("is-shake");
           setTimeout(() => btn.classList.remove("is-shake"), 320);
           return;
@@ -2536,6 +2585,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     setMascot,
     listMascots,
     isUnlocked,
+    isMascotUnlocked: isUnlocked,
     unlockMascot,
     renderMascotPicker,
     getGameInfo: () => gameInfo,
