@@ -240,6 +240,102 @@
 
   const MASCOT_BY_ID = Object.fromEntries(MASCOTS.map((m) => [m.id, m]));
 
+  /** Tagged catalog so follow-ups like “how many of them are clicker games” work. */
+  const GAME_CATALOG = [
+    { id: "wordle", title: "Guessword", tags: ["word", "puzzle", "daily"] },
+    { id: "space", title: "Space Shooter", tags: ["action", "arcade", "shooter"] },
+    { id: "quiz", title: "Quizmaster", tags: ["quiz", "trivia", "puzzle"] },
+    { id: "breakout", title: "Bounce Break", tags: ["action", "arcade"] },
+    { id: "hangman", title: "Hangman", tags: ["word", "puzzle"] },
+    { id: "2048", title: "Block Merge", tags: ["puzzle", "merge"] },
+    { id: "snake", title: "Snake", tags: ["action", "arcade"] },
+    { id: "memory", title: "Memory Match", tags: ["puzzle", "memory"] },
+    { id: "connect-four", title: "Drop Four", tags: ["board", "strategy"] },
+    { id: "math", title: "Math Sprint", tags: ["quiz", "math", "puzzle"] },
+    { id: "sudoku", title: "Sudoku", tags: ["puzzle"] },
+    { id: "flappy", title: "Wing Hop", tags: ["action", "arcade", "flyer"] },
+    { id: "tictactoe", title: "Tic Tac Toe", tags: ["board", "strategy"] },
+    { id: "pixletris", title: "Pixel Drop", tags: ["puzzle", "arcade"] },
+    { id: "clicker", title: "Crystal Clicker", tags: ["clicker", "idle", "incremental"] },
+    { id: "stacker", title: "Tower Stack 3D", tags: ["action", "arcade", "timing"] },
+    { id: "crossy", title: "Cross Walk", tags: ["action", "arcade"] },
+    { id: "fishing", title: "Fishing Idle", tags: ["idle", "incremental", "fishing"] },
+    { id: "cows", title: "Cow Merge", tags: ["idle", "incremental", "merge"] },
+    { id: "dino", title: "Runosaur", tags: ["action", "runner"] },
+    { id: "ramp", title: "Ramp Rush", tags: ["action", "runner"] },
+    { id: "guac", title: "Guac-A-Mole", tags: ["action", "arcade", "whack"] },
+    { id: "bubble", title: "Bubble Pop Relay", tags: ["puzzle", "arcade"] },
+    { id: "cafe", title: "Cafe Queue", tags: ["action", "timing"] },
+    { id: "garden", title: "Garden Snap", tags: ["puzzle", "timing"] },
+    { id: "mine", title: "Mine Depth", tags: ["idle", "incremental", "mining"] },
+    { id: "blockblast", title: "Block Sweep", tags: ["puzzle"] },
+    { id: "lemmings", title: "Dudes", tags: ["puzzle", "strategy"] },
+    { id: "paper", title: "Paper Claim", tags: ["action", "online", "io"] }
+  ];
+
+  const GAME_CATEGORY_DEFS = [
+    {
+      key: "clicker",
+      label: "clicker",
+      pattern: /\bclickers?\b|\bclicking\s*games?\b|\btap\s*games?\b/i,
+      tags: ["clicker"]
+    },
+    {
+      key: "idle",
+      label: "idle / incremental",
+      pattern: /\bidles?\b|\bincrementals?\b|\bidle\s*games?\b/i,
+      tags: ["idle", "incremental"]
+    },
+    {
+      key: "puzzle",
+      label: "puzzle",
+      pattern: /\bpuzzles?\b|\bbrain\s*games?\b/i,
+      tags: ["puzzle"]
+    },
+    {
+      key: "word",
+      label: "word",
+      pattern: /\bword\s*games?\b|\bletter\s*games?\b/i,
+      tags: ["word"]
+    },
+    {
+      key: "action",
+      label: "action / arcade",
+      pattern: /\baction\b|\barcades?\b/i,
+      tags: ["action", "arcade"]
+    },
+    {
+      key: "runner",
+      label: "runner",
+      pattern: /\brunners?\b|\bendless\s*runners?\b/i,
+      tags: ["runner"]
+    },
+    {
+      key: "merge",
+      label: "merge",
+      pattern: /\bmerge\s*games?\b|\bmerging\b/i,
+      tags: ["merge"]
+    },
+    {
+      key: "shooter",
+      label: "shooter",
+      pattern: /\bshooters?\b|\bspace\s*shooters?\b/i,
+      tags: ["shooter"]
+    },
+    {
+      key: "board",
+      label: "board / strategy",
+      pattern: /\bboard\s*games?\b|\bstrategy\b/i,
+      tags: ["board", "strategy"]
+    },
+    {
+      key: "online",
+      label: "online / io",
+      pattern: /\bonline\b|\bmultiplayer\b|\bio\s*games?\b/i,
+      tags: ["online", "io"]
+    }
+  ];
+
   let data = FALLBACK;
   let root = null;
   let chatEl = null;
@@ -251,6 +347,9 @@
   let open = false;
   let wePausedHost = false;
   let ready = false;
+  /** Short chat memory so follow-ups (“how many of them…”) keep context. */
+  let chatMemory = [];
+  const MEMORY_MAX = 16;
 
   function scriptBase() {
     try {
@@ -946,7 +1045,7 @@
 
   // Anything that sounds like My Games / this hub stays in-scope.
   const GAME_RELATED_RE =
-    /\b(my\s*games|hub|game|games|minigame|owner|creator|developer|dev|studio|publisher|admin|ice[_\s-]?dragon|lore|story|backstory|character|plot|world|patch|update|changelog|bug|glitch|troubleshoot|achievement|leaderboard|controls?|menu|settings?|mascot|assistant|fishing|mine|snake|guessword|wordle|player\s*code|username|cast|dig|ore|rod)\b/i;
+    /\b(my\s*games|hub|game|games|minigame|owner|creator|developer|dev|studio|publisher|admin|ice[_\s-]?dragon|lore|story|backstory|character|plot|world|patch|update|changelog|bug|glitch|troubleshoot|achievement|leaderboard|controls?|menu|settings?|mascot|assistant|fishing|mine|snake|guessword|wordle|player\s*code|username|cast|dig|ore|rod|clickers?|idles?|puzzles?|runners?|shooters?|arcade|incremental)\b/i;
 
   // Never reveal passwords — refuse even if somehow stored.
   const PASSWORD_RE =
@@ -1007,6 +1106,154 @@
     return false;
   }
 
+  function rememberExchange(userText, botMeta) {
+    chatMemory.push({
+      role: "user",
+      text: String(userText || "").trim(),
+      at: Date.now()
+    });
+    chatMemory.push(
+      Object.assign(
+        {
+          role: "bot",
+          at: Date.now()
+        },
+        botMeta || {}
+      )
+    );
+    while (chatMemory.length > MEMORY_MAX) chatMemory.shift();
+  }
+
+  function lastBotMemory() {
+    for (let i = chatMemory.length - 1; i >= 0; i -= 1) {
+      const row = chatMemory[i];
+      if (row && row.role === "bot" && row.topic) return row;
+    }
+    return null;
+  }
+
+  function detectGameCategory(query) {
+    const raw = String(query || "");
+    for (let i = 0; i < GAME_CATEGORY_DEFS.length; i += 1) {
+      const def = GAME_CATEGORY_DEFS[i];
+      if (def.pattern.test(raw)) return def;
+    }
+    return null;
+  }
+
+  function looksLikeFollowUp(query) {
+    const q = normalize(query);
+    const raw = String(query || "");
+    if (!q) return false;
+    if (
+      /\b(them|those|these|of them|of those|of these|the ones|that list|this list|from that|from those|from them|among them|among those|from the list)\b/i.test(
+        q
+      ) ||
+      /\b(them|those|these)\b/i.test(raw)
+    ) {
+      return true;
+    }
+    if (/^(and|also|what about|how about)\b/i.test(q)) return true;
+    const prev = lastBotMemory();
+    if (
+      prev &&
+      prev.topic === "games-list" &&
+      detectGameCategory(raw) &&
+      /\b(how many|which|any|are there|is there|list)\b/i.test(q)
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  function gamesInScope(memory) {
+    const ids = Array.isArray(memory?.gameIds) ? memory.gameIds : null;
+    if (ids && ids.length) {
+      const set = new Set(ids.map((id) => String(id)));
+      return GAME_CATALOG.filter((g) => set.has(g.id));
+    }
+    return GAME_CATALOG.slice();
+  }
+
+  function answerGamesCategoryFollowUp(query, memory) {
+    const cat = detectGameCategory(query);
+    if (!cat) return null;
+    const pool = gamesInScope(memory);
+    const total = pool.length;
+    const matches = pool.filter((g) => cat.tags.some((t) => g.tags.includes(t)));
+    const names = matches.map((g) => g.title);
+    const n = names.length;
+    let answer = "";
+    if (n === 0) {
+      answer = `Of the ${total} games we were talking about, none are tagged as ${cat.label} games.`;
+    } else if (n === 1) {
+      answer =
+        `Of the ${total} games we were talking about, 1 is a ${cat.label} game:\n\n` +
+        `• ${names[0]}`;
+    } else {
+      answer =
+        `Of the ${total} games we were talking about, ${n} are ${cat.label} games:\n\n` +
+        names.map((name) => `• ${name}`).join("\n");
+    }
+    // Helpful nudge when someone says “clicker” but might mean idle loops.
+    if (cat.key === "clicker") {
+      const idle = pool.filter(
+        (g) => g.tags.includes("idle") && !g.tags.includes("clicker")
+      );
+      if (idle.length) {
+        answer +=
+          `\n\nRelated idle games (upgrade / earn loops, not pure clickers):\n` +
+          idle.map((g) => `• ${g.title}`).join("\n");
+      }
+    }
+    return {
+      title: `${cat.label.charAt(0).toUpperCase()}${cat.label.slice(1)} games`,
+      answer,
+      memory: {
+        topic: "games-list",
+        // Keep the full list in memory so the next follow-up can still filter all games.
+        gameIds: pool.map((g) => g.id),
+        count: total,
+        category: cat.key
+      },
+      meant: `of those ${total} games — how many are ${cat.label}`
+    };
+  }
+
+  function answerFromChatMemory(query) {
+    const prev = lastBotMemory();
+    if (!prev || !looksLikeFollowUp(query)) return null;
+    if (prev.topic === "games-list") {
+      const hit = answerGamesCategoryFollowUp(query, prev);
+      if (hit) return hit;
+      // Generic “how many of them” with no category → remind total count.
+      if (/\b(how many|count|number)\b/i.test(query) && /\b(them|those|these|games?)\b/i.test(query)) {
+        const total = Number(prev.count) || gamesInScope(prev).length;
+        return {
+          title: "Games count",
+          answer: `Still ${total} games in that list we talked about.\n\nAsk a follow-up like “how many of them are clicker games” or “which are puzzle games”.`,
+          memory: {
+            topic: "games-list",
+            gameIds: prev.gameIds || GAME_CATALOG.map((g) => g.id),
+            count: total
+          },
+          meant: `how many games in the list (${total})`
+        };
+      }
+    }
+    if (prev.topic === "hub-features" && /\b(them|those|these)\b/i.test(query)) {
+      return {
+        title: "Hub features",
+        answer:
+          gameInfoField("hubFeatures") ||
+          "Ask me about a specific hub feature — friends, leaderboards, achievements, offline, or AFK.",
+        memory: { topic: "hub-features" },
+        meant: "follow-up about hub features"
+      };
+    }
+    return null;
+  }
+
   function classifyGuard(query) {
     const q = normalize(query);
     const raw = String(query || "");
@@ -1028,6 +1275,8 @@
       return "account";
     }
     if (CHEAT_RE.test(q) || CHEAT_RE.test(raw)) return "cheat";
+    // Follow-ups with chat memory stay in-scope (e.g. “how many of them are clickers?”).
+    if (looksLikeFollowUp(raw) && lastBotMemory()) return "ok";
     // Game-related asks always stay in scope (owner, lore, updates, etc.).
     if (GAME_RELATED_RE.test(q) || GAME_RELATED_RE.test(raw)) return "ok";
     // Only refuse clearly non-game / real-world questions.
@@ -1238,12 +1487,19 @@
               .filter(Boolean)
           : details.map((g) => g.title).filter(Boolean);
         const countBit = gameCount || String(names.length);
+        const countOnly = /\b(how\s+many|count|number\s+of)\b/i.test(q) && !/\b(list|which|what\s+are)\b/i.test(q);
         return {
-          title: "Games list",
-          answer:
-            `${gameName || "My Games"} includes ${countBit} games:\n\n` +
-            names.map((n) => `• ${n}`).join("\n") +
-            `\n\nTap a card on the hub to play any of them.`
+          title: countOnly ? "Games count" : "Games list",
+          answer: countOnly
+            ? `${gameName || "My Games"} has ${countBit} games.\n\nYou can ask a follow-up like “how many of them are clicker games” or “which are puzzle games”.`
+            : `${gameName || "My Games"} includes ${countBit} games:\n\n` +
+              names.map((n) => `• ${n}`).join("\n") +
+              `\n\nTap a card on the hub to play any of them.\n\nYou can also ask follow-ups like “how many of them are clicker games”.`,
+          memory: {
+            topic: "games-list",
+            gameIds: GAME_CATALOG.map((g) => g.id),
+            count: Number(countBit) || names.length
+          }
         };
       }
     }
@@ -1254,7 +1510,7 @@
       ) &&
       hubFeatures
     ) {
-      return { title: "Hub features", answer: hubFeatures };
+      return { title: "Hub features", answer: hubFeatures, memory: { topic: "hub-features" } };
     }
 
     if (
@@ -1778,7 +2034,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     }
     if (inputEl) {
       inputEl.placeholder = hubStage
-        ? "Ask anything — e.g. what games are in this?"
+        ? "Ask anything — then follow up, like “how many of them are clicker games?”"
         : `Example: how do I play ${gameName}?`;
     }
   }
@@ -1826,6 +2082,19 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     chatEl.scrollTop = chatEl.scrollHeight;
   }
 
+  function replyHelp(userText, title, answer, opts, memory) {
+    const o = Object.assign({}, opts || {});
+    pushBot(title, answer, o);
+    rememberExchange(userText, {
+      title: String(title || ""),
+      topic: memory?.topic || null,
+      gameIds: memory?.gameIds || null,
+      count: memory?.count || null,
+      category: memory?.category || null,
+      answerPreview: String(answer || "").slice(0, 220)
+    });
+  }
+
   function ask(query) {
     ensureDom();
     const typed = String(query || "").trim();
@@ -1840,46 +2109,92 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     const withMeant = (extra) => Object.assign({ raw: true }, extra || {}, meant ? { meant } : {});
 
     if (guard === "greet") {
-      pushBot("Hey there!", greetLine(), withMeant());
+      replyHelp(typed, "Hey there!", greetLine(), withMeant(), { topic: "greet" });
       return;
     }
     if (guard === "helpoffer") {
-      pushBot("I can help!", helpOfferLine(), withMeant());
+      replyHelp(typed, "I can help!", helpOfferLine(), withMeant(), { topic: "help-offer" });
       return;
     }
     if (guard === "owner") {
-      pushBot("Owner", ownerLine(), withMeant());
+      replyHelp(typed, "Owner", ownerLine(), withMeant(), { topic: "owner" });
       return;
     }
     if (guard === "livestats") {
-      pushBot("Live stats", liveStatsLine(), withMeant());
+      replyHelp(typed, "Live stats", liveStatsLine(), withMeant(), { topic: "live-stats" });
       return;
     }
     if (guard === "password") {
-      pushBot("That's private", refusalLine("password"), withMeant());
+      replyHelp(typed, "That's private", refusalLine("password"), withMeant(), { topic: "refuse" });
       return;
     }
     if (guard === "privacy") {
-      pushBot("That's private", refusalLine("privacy"), withMeant());
+      replyHelp(typed, "That's private", refusalLine("privacy"), withMeant(), { topic: "refuse" });
       return;
     }
     if (guard === "account") {
-      pushBot("Your account", accountAnswer(q), withMeant());
+      replyHelp(typed, "Your account", accountAnswer(q), withMeant(), { topic: "account" });
       return;
     }
     if (guard === "cheat") {
-      pushBot("No spoilers", refusalLine("cheat"), withMeant());
+      replyHelp(typed, "No spoilers", refusalLine("cheat"), withMeant(), { topic: "refuse" });
       return;
     }
     if (guard === "offtopic") {
-      pushBot("Hmm…", refusalLine("offtopic"), withMeant());
+      replyHelp(typed, "Hmm…", refusalLine("offtopic"), withMeant(), { topic: "refuse" });
       return;
+    }
+
+    // Gemini-style memory: “how many of them are clicker games?” after a games-list ask.
+    const fromMemory = answerFromChatMemory(q);
+    if (fromMemory && fromMemory.answer) {
+      const memMeant = fromMemory.meant || meant;
+      replyHelp(
+        typed,
+        fromMemory.title || "Follow-up",
+        fromMemory.answer,
+        memMeant ? { meant: memMeant } : undefined,
+        fromMemory.memory || null
+      );
+      return;
+    }
+
+    // Direct category asks even without prior memory: “how many clicker games are there?”
+    if (
+      detectGameCategory(q) &&
+      /\b(how many|which|list|any|are there|is there)\b/i.test(q) &&
+      /\b(games?|minigames?|hub)\b/i.test(q)
+    ) {
+      const direct = answerGamesCategoryFollowUp(q, {
+        topic: "games-list",
+        gameIds: GAME_CATALOG.map((g) => g.id),
+        count: GAME_CATALOG.length
+      });
+      if (direct && direct.answer) {
+        replyHelp(
+          typed,
+          direct.title || "Games",
+          direct.answer.replace(
+            /Of the \d+ games we were talking about/,
+            `Across the ${GAME_CATALOG.length} games in My Games`
+          ),
+          meant ? { meant } : undefined,
+          direct.memory || null
+        );
+        return;
+      }
     }
 
     // Prefer filled GAME_INFO.txt fields for ownership / gameplay / controls / rules.
     const fromInfo = answerFromGameInfo(q);
     if (fromInfo && fromInfo.answer) {
-      pushBot(fromInfo.title || "Game info", fromInfo.answer, meant ? { meant } : undefined);
+      replyHelp(
+        typed,
+        fromInfo.title || "Game info",
+        fromInfo.answer,
+        meant ? { meant } : undefined,
+        fromInfo.memory || null
+      );
       return;
     }
 
@@ -1887,12 +2202,20 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     const hits = search(q, gameId);
     if (!hits.length) {
       // Valid game ask with no FAQ hit — never treat as forbidden.
-      pushBot("Still digging…", unknownGameLine(), withMeant());
+      replyHelp(typed, "Still digging…", unknownGameLine(), withMeant(), { topic: "unknown" });
       return;
     }
     const t = hits[0].topic;
     if (t && typeof t.answer === "string") {
-      pushBot(t.title, t.answer, meant ? { meant } : undefined);
+      const topicMem =
+        t.id === "games-list"
+          ? {
+              topic: "games-list",
+              gameIds: GAME_CATALOG.map((g) => g.id),
+              count: GAME_CATALOG.length
+            }
+          : { topic: t.id || "faq" };
+      replyHelp(typed, t.title, t.answer, meant ? { meant } : undefined, topicMem);
     }
   }
 
