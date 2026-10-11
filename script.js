@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001bo": [
+    "Help typos: misspellings still auto-correct, but “games” no longer becomes “name”"
+  ],
   "20261001bn": [
     "Help GAME_INFO.txt enriched with Guessword Daily/Practice details, Hub Points titles, and nickname rules"
   ],
