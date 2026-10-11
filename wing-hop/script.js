@@ -601,60 +601,182 @@ function drawPipes() {
 function drawAlienPillar(x, y, w, h, tipSide, s) {
   if (h <= 0) return;
 
-  const shaft = ctx.createLinearGradient(x, y, x + w, y);
-  shaft.addColorStop(0, s.pipeDark);
-  shaft.addColorStop(0.45, s.pipe);
-  shaft.addColorStop(1, mixHex(s.pipeLight || s.pipe, "#0a1020", 0.35));
-  ctx.fillStyle = shaft;
-  ctx.fillRect(x + 6, y, w - 12, h);
+  const mid = x + w / 2;
+  const dark = s.pipeDark || "#24305c";
+  const midCol = s.pipe || "#3d4f8c";
+  const light = s.pipeLight || "#6ea8ff";
+  const glow = s.pipeStroke || "#9bbcff";
+  const acid = "#69db7c";
+  const seed = Math.floor(x * 0.17 + y * 0.03);
 
-  // Glowing edge rails
-  ctx.fillStyle = s.pipeStroke || "#9bbcff";
+  // Soft alien aura behind the column
+  const aura = ctx.createLinearGradient(x - 10, y, x + w + 10, y);
+  aura.addColorStop(0, "rgba(105,219,124,0)");
+  aura.addColorStop(0.5, "rgba(124,156,255,0.14)");
+  aura.addColorStop(1, "rgba(105,219,124,0)");
+  ctx.fillStyle = aura;
+  ctx.fillRect(x - 14, y, w + 28, h);
+
+  // Organic wavy body (not a rectangle)
+  const steps = Math.max(8, Math.floor(h / 14));
+  ctx.beginPath();
+  for (let i = 0; i <= steps; i++) {
+    const t = i / steps;
+    const yy = y + t * h;
+    const bulge = 10 + Math.sin(t * Math.PI * 3 + seed) * 7 + Math.sin(t * 9 + seed * 0.4) * 3;
+    const xx = mid - (w * 0.28 + bulge * 0.55);
+    if (i === 0) ctx.moveTo(xx, yy);
+    else ctx.lineTo(xx, yy);
+  }
+  for (let i = steps; i >= 0; i--) {
+    const t = i / steps;
+    const yy = y + t * h;
+    const bulge = 10 + Math.sin(t * Math.PI * 3 + seed + 1.2) * 7 + Math.sin(t * 8.5 + seed) * 3;
+    ctx.lineTo(mid + (w * 0.28 + bulge * 0.55), yy);
+  }
+  ctx.closePath();
+
+  const bodyGrad = ctx.createLinearGradient(x, y, x + w, y + h);
+  bodyGrad.addColorStop(0, dark);
+  bodyGrad.addColorStop(0.35, midCol);
+  bodyGrad.addColorStop(0.7, mixHex(midCol, light, 0.35));
+  bodyGrad.addColorStop(1, mixHex(dark, "#12081c", 0.4));
+  ctx.fillStyle = bodyGrad;
+  ctx.fill();
+  ctx.strokeStyle = mixHex(glow, "#d0ebff", 0.25);
+  ctx.lineWidth = 2.4;
+  ctx.stroke();
+
+  // Bioluminescent veins
+  ctx.strokeStyle = acid;
+  ctx.lineWidth = 1.6;
   ctx.globalAlpha = 0.55;
-  ctx.fillRect(x + 6, y, 3, h);
-  ctx.fillRect(x + w - 9, y, 3, h);
+  for (let v = 0; v < 3; v++) {
+    const ox = mid + (v - 1) * 12;
+    ctx.beginPath();
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const yy = y + t * h;
+      const wobble = Math.sin(t * Math.PI * 4 + seed + v) * 5;
+      const xx = ox + wobble;
+      if (i === 0) ctx.moveTo(xx, yy);
+      else ctx.lineTo(xx, yy);
+    }
+    ctx.stroke();
+  }
   ctx.globalAlpha = 1;
 
-  // Energy rings
-  ctx.strokeStyle = s.pipeLight || "#6ea8ff";
-  ctx.lineWidth = 2;
-  ctx.globalAlpha = 0.65;
-  for (let ry = y + 24; ry < y + h - 20; ry += 36) {
+  // Eye / spore pods along the shaft
+  for (let i = 1; i < steps; i += 3) {
+    const t = i / steps;
+    const yy = y + t * h;
+    const side = (i + seed) % 2 === 0 ? -1 : 1;
+    const px = mid + side * (w * 0.22 + 6);
+    const pulse = 0.65 + Math.sin(distance * 0.08 + yy * 0.04 + seed) * 0.35;
+
+    ctx.fillStyle = `rgba(105,219,124,${0.2 * pulse})`;
     ctx.beginPath();
-    ctx.moveTo(x + 10, ry);
-    ctx.lineTo(x + w - 10, ry);
-    ctx.stroke();
-    ctx.fillStyle = "rgba(105,219,124,0.35)";
+    ctx.ellipse(px, yy, 10, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = mixHex(acid, "#e7ffe8", 0.35);
     ctx.beginPath();
-    ctx.arc(x + w / 2, ry, 4, 0, Math.PI * 2);
+    ctx.ellipse(px, yy, 5.5, 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#0b1020";
+    ctx.beginPath();
+    ctx.ellipse(px + side * 0.8, yy, 2.2, 3.2, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "rgba(255,255,255,0.35)";
+    ctx.beginPath();
+    ctx.arc(px - side * 1.2, yy - 1.2, 1.1, 0, Math.PI * 2);
     ctx.fill();
   }
-  ctx.globalAlpha = 1;
 
-  // Crystal tip facing the gap
-  const tipH = 28;
-  ctx.fillStyle = mixHex(s.pipeLight || "#6ea8ff", "#d0ebff", 0.35);
-  ctx.strokeStyle = s.pipeStroke || "#9bbcff";
+  // Tendril claws near the gap
+  const clawY = tipSide === "down" ? y + h - 8 : y + 8;
+  const clawDir = tipSide === "down" ? 1 : -1;
+  ctx.strokeStyle = mixHex(light, acid, 0.4);
+  ctx.fillStyle = mixHex(midCol, dark, 0.2);
+  ctx.lineWidth = 2;
+  for (let c = -2; c <= 2; c++) {
+    if (c === 0) continue;
+    const cx = mid + c * 14;
+    ctx.beginPath();
+    ctx.moveTo(mid + c * 6, clawY - clawDir * 18);
+    ctx.quadraticCurveTo(cx + c * 4, clawY + clawDir * 8, cx, clawY + clawDir * 26);
+    ctx.quadraticCurveTo(mid + c * 8, clawY + clawDir * 10, mid + c * 4, clawY - clawDir * 10);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+
+  // Mouth / maw tip facing the gap
+  ctx.save();
+  if (tipSide === "down") {
+    ctx.translate(mid, y + h);
+  } else {
+    ctx.translate(mid, y);
+    ctx.scale(1, -1);
+  }
+
+  // Outer jaws
+  const jaw = ctx.createLinearGradient(-40, -36, 40, 10);
+  jaw.addColorStop(0, dark);
+  jaw.addColorStop(0.5, mixHex(midCol, acid, 0.2));
+  jaw.addColorStop(1, dark);
+  ctx.fillStyle = jaw;
+  ctx.strokeStyle = glow;
   ctx.lineWidth = 2.2;
   ctx.beginPath();
-  if (tipSide === "down") {
-    const ty = y + h;
-    ctx.moveTo(x + 4, ty - tipH);
-    ctx.lineTo(x + w - 4, ty - tipH);
-    ctx.lineTo(x + w / 2, ty + 6);
-  } else {
-    const ty = y;
-    ctx.moveTo(x + 4, ty + tipH);
-    ctx.lineTo(x + w - 4, ty + tipH);
-    ctx.lineTo(x + w / 2, ty - 6);
-  }
+  ctx.moveTo(-38, -34);
+  ctx.bezierCurveTo(-44, -8, -28, 8, -6, 16);
+  ctx.quadraticCurveTo(0, 22, 6, 16);
+  ctx.bezierCurveTo(28, 8, 44, -8, 38, -34);
+  ctx.bezierCurveTo(18, -20, -18, -20, -38, -34);
   ctx.closePath();
   ctx.fill();
   ctx.stroke();
 
-  ctx.strokeStyle = mixHex(s.pipeStroke || "#9bbcff", "#ffffff", 0.2);
-  ctx.lineWidth = 2.5;
-  ctx.strokeRect(x + 6, y, w - 12, h);
+  // Inner glow throat
+  const throat = ctx.createRadialGradient(0, -4, 2, 0, 2, 22);
+  throat.addColorStop(0, "rgba(105,219,124,0.75)");
+  throat.addColorStop(0.45, "rgba(124,156,255,0.35)");
+  throat.addColorStop(1, "rgba(10,8,24,0)");
+  ctx.fillStyle = throat;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, 16, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Teeth
+  ctx.fillStyle = mixHex(light, "#f1f8ff", 0.45);
+  for (let t = -3; t <= 3; t++) {
+    if (t === 0) continue;
+    const tx = t * 7;
+    ctx.beginPath();
+    ctx.moveTo(tx - 3, -6);
+    ctx.lineTo(tx, 10 + Math.abs(t));
+    ctx.lineTo(tx + 3, -6);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Horn spikes on the sides of the maw
+  ctx.fillStyle = mixHex(acid, light, 0.25);
+  ctx.strokeStyle = glow;
+  ctx.lineWidth = 1.6;
+  for (const side of [-1, 1]) {
+    ctx.beginPath();
+    ctx.moveTo(side * 28, -28);
+    ctx.lineTo(side * 48, -40);
+    ctx.lineTo(side * 30, -18);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.restore();
 }
 
 function drawCastleTower(x, y, w, h, battlementSide, s) {

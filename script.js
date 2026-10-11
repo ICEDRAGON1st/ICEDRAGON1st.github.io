@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001cc": [
+    "Wing Hop UFO: towers look more alien — organic trunks, eye pods, tendrils, and glowing maws"
+  ],
   "20261001cb": [
     "Wing Hop UFO skin: space background, alien pillars, and moon ground when equipped"
   ],
