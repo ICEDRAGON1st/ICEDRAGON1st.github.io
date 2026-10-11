@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001bk": [
+    "Help Assistant: real portrait icons for Helper, Chip, SPARK-E, Whiskers, Glitch, Pixel-8, Astra, Chef Gusto, and Shadow"
+  ],
   "20261001bj": [
     "My Games: play offline after one visit, and after 10m AFK this tab pauses cloud sync (other players unaffected)"
   ],
