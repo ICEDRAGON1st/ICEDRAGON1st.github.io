@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001bu": [
+    "Help: if it doesn’t know (e.g. “what is the game made with”), it just says “I can’t answer that.”"
+  ],
   "20261001bt": [
     "Help remembers your chat — ask “how many games?” then “how many of them are clicker games?”"
   ],

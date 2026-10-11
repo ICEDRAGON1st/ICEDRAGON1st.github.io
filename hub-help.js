@@ -1285,7 +1285,31 @@
   }
 
   function unknownGameLine() {
-    return "I don't have the exact details on that right now, but feel free to check our official updates or community channels!";
+    return "I can't answer that.";
+  }
+
+  /** Asks Help should not guess at (avoids wrong FAQ hits like dumping the games list). */
+  function isUnanswerableAsk(query) {
+    const q = normalize(query);
+    const raw = String(query || "");
+    return /\b(made\s+with|built\s+with|coded\s+(in|with)|written\s+in|what\s+language|what\s+engine|tech\s*stack|source\s*code|what\s+(framework|library)|how\s+(was|is)\s+(it|this|the\s+game)\s+(made|built|coded)|what\s+is\s+(it|the\s+game)\s+made)\b/i.test(
+      q
+    ) || /\b(made\s+with|built\s+with|coded\s+(in|with)|written\s+in)\b/i.test(raw);
+  }
+
+  function isGamesListAsk(query) {
+    const q = normalize(query);
+    if (isUnanswerableAsk(q)) return false;
+    // Require clear list/count intent — not every sentence that says “the game”.
+    return (
+      /\b(what|which)\s+(games?|minigames?)\b/i.test(q) ||
+      /\b(how\s+many)\s+(games?|minigames?)\b/i.test(q) ||
+      /\b(list|show|name)\b[\s\S]{0,24}\b(all\s+)?(the\s+)?(games?|minigames?)\b/i.test(q) ||
+      /\b(games?|minigames?)\b[\s\S]{0,24}\b(list|are\s+there|in\s+(this|the\s+hub|my\s+games)|available|included)\b/i.test(
+        q
+      ) ||
+      /\b(games?\s*list|list\s+of\s+games|minigame\s+list|all\s+(the\s+)?games)\b/i.test(q)
+    );
   }
 
   function discordInvite() {
@@ -1471,14 +1495,17 @@
       return null;
     }
 
+    if (isUnanswerableAsk(q) || isUnanswerableAsk(raw)) {
+      return {
+        title: "Can't answer",
+        answer: "I can't answer that.",
+        refuse: true,
+        memory: { topic: "refuse" }
+      };
+    }
+
     // "what games are in this" / game list / how many games
-    if (
-      /\b(what|which|list|all|how\s+many|show|name)\b[\s\S]{0,40}\b(games?|minigames?)\b/i.test(q) ||
-      /\b(games?|minigames?)\b[\s\S]{0,24}\b(list|are\s+there|in\s+(this|the\s+hub|my\s+games)|available|included)\b/i.test(
-        q
-      ) ||
-      /\b(games?\s*list|list\s+of\s+games|minigame\s+list)\b/i.test(q)
-    ) {
+    if (isGamesListAsk(q) || isGamesListAsk(raw)) {
       if (gamesList || details.length) {
         const names = gamesList
           ? String(gamesList)
@@ -1529,7 +1556,12 @@
       return { title: "Help assistant", answer: helpAssistant };
     }
 
-    if (/\b(tech\s*notes?|offline\s*mode|service\s*worker|supabase|mantle|how\s+is\s+it\s+built)\b/i.test(q) && techNotes) {
+    // Skip tech/build asks here — those are refused as “I can't answer that.”
+    if (
+      /\b(offline\s*mode|service\s*worker)\b/i.test(q) &&
+      techNotes &&
+      !isUnanswerableAsk(q)
+    ) {
       return { title: "Tech notes", answer: techNotes };
     }
 
@@ -2186,13 +2218,18 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     }
 
     // Prefer filled GAME_INFO.txt fields for ownership / gameplay / controls / rules.
+    if (isUnanswerableAsk(q)) {
+      replyHelp(typed, "Can't answer", unknownGameLine(), withMeant(), { topic: "refuse" });
+      return;
+    }
+
     const fromInfo = answerFromGameInfo(q);
     if (fromInfo && fromInfo.answer) {
       replyHelp(
         typed,
         fromInfo.title || "Game info",
         fromInfo.answer,
-        meant ? { meant } : undefined,
+        fromInfo.refuse ? withMeant() : meant ? { meant } : undefined,
         fromInfo.memory || null
       );
       return;
@@ -2200,9 +2237,9 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
 
     const gameId = currentGameId();
     const hits = search(q, gameId);
-    if (!hits.length) {
-      // Valid game ask with no FAQ hit — never treat as forbidden.
-      replyHelp(typed, "Still digging…", unknownGameLine(), withMeant(), { topic: "unknown" });
+    if (!hits.length || (hits[0] && hits[0].score < 40)) {
+      // Don't invent an answer from a weak FAQ match.
+      replyHelp(typed, "Can't answer", unknownGameLine(), withMeant(), { topic: "unknown" });
       return;
     }
     const t = hits[0].topic;
