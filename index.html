@@ -98,9 +98,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261001bx">
-  <script src="hub-net.js?v=20261001bx"></script>
-  <script src="hub-afk.js?v=20261001bx"></script>
+  <link rel="stylesheet" href="styles.css?v=20261001by">
+  <script src="hub-net.js?v=20261001by"></script>
+  <script src="hub-afk.js?v=20261001by"></script>
 </head>
 <body data-guess-colors="ice">
   <div id="hub-boot-loader" aria-live="polite" aria-busy="true">
@@ -486,12 +486,12 @@
         <p class="coins-intro">Hub coins save in this browser. Earn them from wins, daily login, pickups, and Help quests — spend them on Help mascots in the shop below.</p>
         <div class="coins-actions">
           <button type="button" id="coins-daily-btn" class="hub-btn hub-btn-primary" data-hub-coins-daily>Claim daily (+50)</button>
-          <button type="button" id="coins-pickup-btn" class="hub-btn" title="Grab a loose coin">Pick up coin (+1)</button>
+          <button type="button" id="coins-pickup-btn" class="hub-btn" data-hub-coins-pickup title="Grab +25 coins (once per hour)">Pick up coin (+25)</button>
         </div>
         <p id="coins-status" class="coins-status" aria-live="polite"></p>
         <p class="hub-settings-label">Coin shop</p>
         <ul id="coins-shop-list" class="coins-shop-list"></ul>
-        <p class="coins-hint">Ask Help “how many coins do I have?” anytime. Win a round for +25 · defeat an enemy for +5 · Help quest +10 once a day.</p>
+        <p class="coins-hint">Ask Help “how many coins do I have?” anytime. Win a round for +25 · defeat an enemy for +5 · pickup +25 once per hour · Help quest +10 once a day.</p>
       </div>
 
       <div id="friends-panel" class="friends-panel hidden">
@@ -791,7 +791,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20261001bx";
+    window.WORDLE_BUILD = "20261001by";
     try {
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("sw.js?v=" + window.WORDLE_BUILD).catch(function () {});

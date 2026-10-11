@@ -11,19 +11,20 @@
  *   .onChange(fn) · .offChange(fn)
  *   .refreshUi()
  *
- * Rewards: enemy 5 · win/level 25 · daily 50 · pickup 1 · AI quest 10
+ * Rewards: enemy 5 · win/level 25 · daily 50 · pickup 25 (1h cooldown) · AI quest 10
  */
 (function () {
   if (window.HubCoins) return;
 
   const STORAGE_PREFIX = "hub-coins-v1";
   const NEED_MORE = "You need more coins for this item!";
+  const PICKUP_COOLDOWN_MS = 60 * 60 * 1000; // 1 hour
 
   const REWARDS = {
     enemy: 5,
     win: 25,
     daily: 50,
-    pickup: 1,
+    pickup: 25,
     aiQuest: 10
   };
 
@@ -85,6 +86,7 @@
       lifetimeSpent: 0,
       lastDailyDay: "",
       lastAiQuestDay: "",
+      lastPickupAt: 0,
       purchases: {},
       updatedAt: Date.now()
     };
@@ -104,6 +106,7 @@
         lifetimeSpent: Math.max(0, Math.floor(Number(parsed.lifetimeSpent) || 0)),
         lastDailyDay: String(parsed.lastDailyDay || ""),
         lastAiQuestDay: String(parsed.lastAiQuestDay || ""),
+        lastPickupAt: Math.max(0, Math.floor(Number(parsed.lastPickupAt) || 0)),
         purchases:
           parsed.purchases && typeof parsed.purchases === "object" ? { ...parsed.purchases } : {},
         updatedAt: Number(parsed.updatedAt) || Date.now()
@@ -245,7 +248,44 @@
     return earn(REWARDS.win, "win");
   }
 
+  function pickupMsLeft() {
+    const last = readState().lastPickupAt || 0;
+    if (!last) return 0;
+    return Math.max(0, last + PICKUP_COOLDOWN_MS - Date.now());
+  }
+
+  function canClaimPickup() {
+    return pickupMsLeft() <= 0;
+  }
+
+  function formatPickupWait(ms) {
+    const left = Math.max(0, Math.ceil(Number(ms) || 0));
+    if (left <= 0) return "ready";
+    const totalSec = Math.ceil(left / 1000);
+    const h = Math.floor(totalSec / 3600);
+    const m = Math.floor((totalSec % 3600) / 60);
+    const s = totalSec % 60;
+    if (h > 0) return `${h}h ${m}m`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+  }
+
   function rewardPickup() {
+    const wait = pickupMsLeft();
+    if (wait > 0) {
+      return {
+        ok: false,
+        balance: getBalance(),
+        gained: 0,
+        reason: "pickup",
+        cooldown: true,
+        msLeft: wait,
+        error: `Pickup ready again in ${formatPickupWait(wait)}.`
+      };
+    }
+    const state = readState();
+    state.lastPickupAt = Date.now();
+    writeState(state);
     return earn(REWARDS.pickup, "pickup");
   }
 
@@ -351,6 +391,19 @@
         el.textContent = ready ? `Claim daily (+${REWARDS.daily})` : "Daily claimed";
       }
     });
+    document.querySelectorAll("[data-hub-coins-pickup]").forEach((el) => {
+      const ready = canClaimPickup();
+      const wait = pickupMsLeft();
+      if (el.tagName === "BUTTON") {
+        el.disabled = !ready;
+        el.textContent = ready
+          ? `Pick up coin (+${REWARDS.pickup})`
+          : `Pickup in ${formatPickupWait(wait)}`;
+        el.title = ready
+          ? `Grab +${REWARDS.pickup} coins (once per hour)`
+          : `Come back in ${formatPickupWait(wait)}`;
+      }
+    });
   }
 
   function ensureHubBadge() {
@@ -373,6 +426,7 @@
   window.HubCoins = {
     REWARDS,
     NEED_MORE,
+    PICKUP_COOLDOWN_MS,
     SHOP,
     getBalance,
     format,
@@ -383,6 +437,9 @@
     rewardEnemy,
     rewardWin,
     rewardPickup,
+    canClaimPickup,
+    pickupMsLeft,
+    formatPickupWait,
     rewardAiQuest,
     canAiQuest,
     buy,
