@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001cf": [
+    "Music library: added Abstraction Music Loop Bundle (29 CC0 OGG loops) to the song picker"
+  ],
   "20261001ce": [
     "Audio Manager: background music with crossfades, Music/SFX volume sliders, song picker, and Credits"
   ],
