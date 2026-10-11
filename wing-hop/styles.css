@@ -168,6 +168,24 @@ body {
   color: #1a1200;
 }
 
+.skin-btn.skin-btn-locked {
+  opacity: 0.72;
+  border-style: dashed;
+  color: #c6d6ea;
+}
+
+.skin-btn.skin-btn-locked.active {
+  opacity: 1;
+}
+
+.skin-lock-hint {
+  margin: -0.55rem 0 0.9rem;
+  min-height: 1.1rem;
+  font-size: 0.82rem;
+  font-weight: 650;
+  color: var(--muted);
+}
+
 #hud-skin {
   color: var(--accent);
   font-weight: 700;
