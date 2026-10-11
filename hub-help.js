@@ -73,7 +73,7 @@
       icon: "🕹️",
       avatar: "hub-help-icons/chip.png",
       starter: true,
-      wrap: (core) => `INSERT COIN—and listen up, player! ${core} High-score vibes only—don't tilt the cabinet!`,
+      wrap: (core) => `INSERT COIN—and listen up, player!\n\n${core}\n\nHigh-score vibes only—don't tilt the cabinet!`,
       refuseCheat:
         "TILT! No free credits for spoilers — I don't reveal secret words, tiles, or puzzle keys. Play fair and chase that high score!",
       refuseOffTopic:
@@ -91,7 +91,7 @@
       icon: "🤖",
       avatar: "hub-help-icons/spark-e.png",
       starter: true,
-      wrap: (core) => `Beep-boop! Hype systems online! ${core} You have got this—boosters fired! ⚡`,
+      wrap: (core) => `Beep-boop! Hype systems online!\n\n${core}\n\nYou have got this—boosters fired! ⚡`,
       refuseCheat:
         "ERROR! My protocols prevent me from spoiling the fun or answering non-game trivia!",
       refuseOffTopic:
@@ -108,7 +108,7 @@
       icon: "🐱",
       avatar: "hub-help-icons/whiskers.png",
       starter: false,
-      wrap: (core) => `*adjusts tiny wizard hat* Hmph. Pay attention. ${core} …Yes, even you. Now run along before I nap on the keyboard.`,
+      wrap: (core) => `*adjusts tiny wizard hat* Hmph. Pay attention.\n\n${core}\n\n…Yes, even you. Now run along before I nap on the keyboard.`,
       refuseCheat:
         "A true master finds the secret word on their own, human. No hints from me!",
       refuseOffTopic:
@@ -125,7 +125,7 @@
       icon: "👾",
       avatar: "hub-help-icons/glitch.png",
       starter: false,
-      wrap: (core) => `psst—don't tell the patch notes, but… ${core} heh. I totally didn't rearrange your HUD. (or did i)`,
+      wrap: (core) => `psst—don't tell the patch notes, but…\n\n${core}\n\nheh. I totally didn't rearrange your HUD. (or did i)`,
       refuseCheat:
         "nice try~ I'm chaotic, not a cheat engine. secret answers stay corrupted on purpose. go guess it yourself ;)",
       refuseOffTopic:
@@ -142,7 +142,7 @@
       icon: "💻",
       avatar: "hub-help-icons/pixel-8.png",
       starter: false,
-      wrap: (core) => `*yawns in commit history* okay so basically— ${core} anyway i'm shipping this note and going back to bed. please don't file a bug about the pajamas.`,
+      wrap: (core) => `*yawns in commit history* okay so basically—\n\n${core}\n\nanyway i'm shipping this note and going back to bed. please don't file a bug about the pajamas.`,
       refuseCheat:
         "yeah no — i'm not shipping spoilers. secret words and puzzle keys stay out of the help build. go play it.",
       refuseOffTopic:
@@ -159,7 +159,7 @@
       icon: "📣",
       avatar: "hub-help-icons/barnaby.png",
       starter: false,
-      wrap: (core) => `CAN YOU HEAR ME IN THE BACK?! ${core} NOW DROP AND GIVE ME ONE MORE TRY—YOU'RE A CHAMPION!`,
+      wrap: (core) => `CAN YOU HEAR ME IN THE BACK?!\n\n${core}\n\nNOW DROP AND GIVE ME ONE MORE TRY—YOU'RE A CHAMPION!`,
       refuseCheat:
         "NO SHORTCUTS ON MY WATCH! Spoilers are for quitters — earn that win with SWEAT and REPS!",
       refuseOffTopic:
@@ -176,7 +176,7 @@
       icon: "🪙",
       avatar: "hub-help-icons/goldsworth.png",
       starter: false,
-      wrap: (core) => `Yesss, shiny seeker… listen close from my coin sack. ${core} More loot awaits. Leave the goblin his tip.`,
+      wrap: (core) => `Yesss, shiny seeker… listen close from my coin sack.\n\n${core}\n\nMore loot awaits. Leave the goblin his tip.`,
       refuseCheat:
         "Greedy, yes — cheater, never. I won't sell secret words or puzzle keys. Dig up the treasure yourself!",
       refuseOffTopic:
@@ -193,7 +193,7 @@
       icon: "🚀",
       avatar: "hub-help-icons/astra.png",
       starter: false,
-      wrap: (core) => `Mission briefing, star-cadet: ${core} Chart a course, log the discovery, and may your high score reach orbit.`,
+      wrap: (core) => `Mission briefing, star-cadet:\n\n${core}\n\nChart a course, log the discovery, and may your high score reach orbit.`,
       refuseCheat:
         "Spoiler signals are jammed, cadet. I will not transmit secret words or puzzle solutions. Complete the mission yourself.",
       refuseOffTopic:
@@ -210,7 +210,7 @@
       icon: "👨‍🍳",
       avatar: "hub-help-icons/gusto.png",
       starter: false,
-      wrap: (core) => `Bon appétit, chef! Here's the recipe: ${core} Season with practice, plate with confidence—and don't burn the combo!`,
+      wrap: (core) => `Bon appétit, chef! Here's the recipe:\n\n${core}\n\nSeason with practice, plate with confidence—and don't burn the combo!`,
       refuseCheat:
         "Ah-ah! No tasting the secret ingredient early — I won't serve spoilers or puzzle answers. Cook it yourself!",
       refuseOffTopic:
@@ -227,7 +227,7 @@
       icon: "🕵️",
       avatar: "hub-help-icons/shadow.png",
       starter: false,
-      wrap: (core) => `Case file — confidential. ${core} That's all the dossier says, kid. Keep it under your hat.`,
+      wrap: (core) => `Case file — confidential.\n\n${core}\n\nThat's all the dossier says, kid. Keep it under your hat.`,
       refuseCheat:
         "That information is top secret, detective. You'll have to solve this case yourself.",
       refuseOffTopic:
@@ -762,9 +762,115 @@
     }));
   }
 
+  function isBulletLine(line) {
+    return /^[-•*]\s+/.test(String(line || "").trim()) || /^\d+\.\s+/.test(String(line || "").trim());
+  }
+
+  function stripBullet(line) {
+    return String(line || "")
+      .trim()
+      .replace(/^[-•*]\s+/, "")
+      .replace(/^\d+\.\s+/, "");
+  }
+
+  /** Turn dense FAQ / GAME_INFO blurbs into multi-line, scannable text. */
+  function organizeAnswer(text) {
+    let t = String(text || "").replace(/\r\n/g, "\n").trim();
+    if (!t || /\n/.test(t)) return t;
+
+    // Long comma lists after a colon → intro + bullets (+ optional tip sentence).
+    const colon = t.match(/^(.*?):\s*(.+)$/);
+    if (colon && (colon[2].match(/,/g) || []).length >= 3) {
+      const head = colon[1].trim();
+      let listPart = colon[2].trim();
+      let tip = "";
+      const trail = listPart.match(/^(.*?)\.\s+([A-Z].+)$/);
+      if (trail && (trail[1].match(/,/g) || []).length >= 3) {
+        listPart = trail[1].trim();
+        tip = trail[2].replace(/\.$/, "").trim();
+      }
+      const items = listPart
+        .split(/\s*,\s*(?:and\s+)?|\s+and\s+/i)
+        .map((s) => s.replace(/\.$/, "").trim())
+        .filter(Boolean);
+      if (items.length >= 4) {
+        return (
+          `${head}:\n\n${items.map((i) => `• ${i}`).join("\n")}` + (tip ? `\n\n${tip}.` : "")
+        );
+      }
+    }
+
+    // "A · B · C" (support / about / mascots)
+    if ((t.match(/\s·\s/g) || []).length >= 2) {
+      return t
+        .split(/\s·\s/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((s) => `• ${s}`)
+        .join("\n");
+    }
+
+    // Hub features style: many "; "-separated clauses
+    if ((t.match(/;\s+/g) || []).length >= 3) {
+      return t
+        .split(/;\s+/)
+        .map((s) => s.trim().replace(/\.$/, ""))
+        .filter(Boolean)
+        .map((s) => `• ${s}`)
+        .join("\n");
+    }
+
+    // Long single paragraph → one sentence per line block
+    if (t.length > 140) {
+      const sentences = t.match(/[^.!?]+[.!?]+(?:\s+|$)|[^.!?]+$/g);
+      if (sentences && sentences.length >= 2) {
+        return sentences
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .join("\n\n");
+      }
+    }
+    return t;
+  }
+
+  /** Render organized plain text as Gemini-like HTML (paragraphs + lists). */
+  function formatHelpHtml(raw) {
+    const text = String(raw || "").replace(/\r\n/g, "\n").trim();
+    if (!text) return "";
+    const blocks = text.split(/\n{2,}/);
+    return blocks
+      .map((block) => {
+        const lines = block
+          .split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean);
+        if (!lines.length) return "";
+        let html = "";
+        let listBuf = [];
+        const flushList = () => {
+          if (!listBuf.length) return;
+          html += `<ul class="hub-help-list">${listBuf
+            .map((l) => `<li>${escapeHtml(stripBullet(l))}</li>`)
+            .join("")}</ul>`;
+          listBuf = [];
+        };
+        for (const line of lines) {
+          if (isBulletLine(line)) {
+            listBuf.push(line);
+          } else {
+            flushList();
+            html += `<p>${escapeHtml(line)}</p>`;
+          }
+        }
+        flushList();
+        return html;
+      })
+      .join("");
+  }
+
   function styleAnswer(core) {
     const m = getMascot();
-    const text = String(core || "").trim();
+    const text = organizeAnswer(core);
     if (m.plain) return text;
     try {
       return typeof m.wrap === "function" ? m.wrap(text) : text;
@@ -1124,18 +1230,20 @@
       ) ||
       /\b(games?\s*list|list\s+of\s+games|minigame\s+list)\b/i.test(q)
     ) {
-      if (gamesList) {
-        const countBit = gameCount ? `${gameCount} games` : "these games";
+      if (gamesList || details.length) {
+        const names = gamesList
+          ? String(gamesList)
+              .split(/\s*,\s*/)
+              .map((s) => s.trim())
+              .filter(Boolean)
+          : details.map((g) => g.title).filter(Boolean);
+        const countBit = gameCount || String(names.length);
         return {
           title: "Games list",
-          answer: `${gameName || "My Games"} includes ${countBit}: ${gamesList}. Tap a card on the hub to play any of them.`
-        };
-      }
-      if (details.length) {
-        const names = details.map((g) => g.title).filter(Boolean).join(", ");
-        return {
-          title: "Games list",
-          answer: `${gameName || "My Games"} includes ${details.length} games: ${names}. Tap a card on the hub to play any of them.`
+          answer:
+            `${gameName || "My Games"} includes ${countBit} games:\n\n` +
+            names.map((n) => `• ${n}`).join("\n") +
+            `\n\nTap a card on the hub to play any of them.`
         };
       }
     }
@@ -1203,7 +1311,12 @@
       if (platform) bits.push(`Platform: ${platform}`);
       if (releaseDate) bits.push(`Release date: ${releaseDate}`);
       if (gameCount) bits.push(`${gameCount} minigames`);
-      if (bits.length) return { title: "About", answer: bits.join(" · ") };
+      if (bits.length) {
+        return {
+          title: "About",
+          answer: bits.map((b) => `• ${b}`).join("\n")
+        };
+      }
     }
 
     return null;
@@ -1253,7 +1366,15 @@
         return m.helpOffer(where);
       } catch {}
     }
-    return `Yes — I can help you! Just ask me. I can help with how to play ${where}, controls, achievements, settings, leaderboards, and your username or player code. Tap a blue button above, or type a question.`;
+    return (
+      `Yes — I can help you! Just ask me.\n\n` +
+      `I can help with:\n` +
+      `• How to play ${where}\n` +
+      `• Controls and menus\n` +
+      `• Achievements and leaderboards\n` +
+      `• Your username or player code\n\n` +
+      `Tap a blue button above, or type a question.`
+    );
   }
 
   function ownerLine() {
@@ -1461,9 +1582,9 @@ background:
   radial-gradient(circle at 1px 1px,rgba(140,180,255,.07) 1px,transparent 0) 0 0/18px 18px,
   rgba(0,0,0,.16);scrollbar-width:thin;scrollbar-color:rgba(140,180,255,.3) transparent}
 #hub-help-root .hub-help-msg{max-width:92%;padding:.78rem .9rem;border-radius:18px;font-size:.94rem;font-weight:550;line-height:1.45;
-white-space:pre-wrap;word-break:break-word;animation:hubHelpMsgIn .24s ease both}
+word-break:break-word;animation:hubHelpMsgIn .24s ease both}
 @keyframes hubHelpMsgIn{from{opacity:0;transform:translateY(8px) scale(.985)}to{opacity:1;transform:none}}
-#hub-help-root .hub-help-msg.user{align-self:flex-end;
+#hub-help-root .hub-help-msg.user{align-self:flex-end;white-space:pre-wrap;
 background:linear-gradient(155deg,rgba(95,150,255,.42),rgba(55,100,210,.24));
 border:1px solid rgba(150,195,255,.45);border-bottom-right-radius:7px;
 box-shadow:0 6px 16px rgba(20,50,120,.22)}
@@ -1481,7 +1602,12 @@ border:1px solid rgba(150,190,255,.28);box-shadow:inset 0 1px 0 rgba(255,255,255
 #hub-help-root .hub-help-msg .hub-help-msg-title{display:block;font-weight:800;margin-bottom:.22rem;color:#e4eeff;font-size:.93rem}
 #hub-help-root .hub-help-msg .hub-help-meant{display:inline-flex;margin:.12rem 0 .4rem;padding:.2rem .55rem;border-radius:999px;
 background:rgba(255,205,110,.12);border:1px solid rgba(255,200,100,.32);color:#ffe4b0;font-size:.7rem;font-weight:750}
-#hub-help-root .hub-help-msg .hub-help-body{color:#e8f1ff}
+#hub-help-root .hub-help-msg .hub-help-body{color:#e8f1ff;display:flex;flex-direction:column;gap:.55rem}
+#hub-help-root .hub-help-msg .hub-help-body p{margin:0;line-height:1.5}
+#hub-help-root .hub-help-msg .hub-help-body .hub-help-list{margin:0;padding:0 0 0 1.2rem;display:flex;flex-direction:column;gap:.38rem;
+list-style:disc}
+#hub-help-root .hub-help-msg .hub-help-body .hub-help-list li{line-height:1.45;padding-left:.1rem}
+#hub-help-root .hub-help-msg .hub-help-body .hub-help-list li::marker{color:#8fb4e6}
 
 #hub-help-root .hub-help-form{padding:.8rem .95rem .45rem;border-top:1px solid rgba(140,175,255,.12);
 background:linear-gradient(180deg,rgba(0,0,0,.12),rgba(0,0,0,.22))}
@@ -1695,7 +1821,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     el.innerHTML =
       `<span class="hub-help-msg-icon" aria-hidden="true">${mascotIconHtml(m)}</span>` +
       `<div><span class="hub-help-msg-title">${escapeHtml(title)}</span>${meantHtml}` +
-      `<div class="hub-help-body">${escapeHtml(styled)}</div></div>`;
+      `<div class="hub-help-body">${formatHelpHtml(styled)}</div></div>`;
     chatEl.appendChild(el);
     chatEl.scrollTop = chatEl.scrollHeight;
   }

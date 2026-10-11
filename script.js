@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001bs": [
+    "Help answers are clearer — short paragraphs and bullet lists instead of one long wall of text"
+  ],
   "20261001br": [
     "Help Assistant on the hub opens full-screen like a game — Esc / Games returns to the grid"
   ],
