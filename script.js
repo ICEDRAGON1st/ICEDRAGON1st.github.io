@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001cd": [
+    "Help Assistant: change your mascot right inside the Help menu"
+  ],
   "20261001cc": [
     "Wing Hop UFO: towers look more alien — organic trunks, eye pods, tendrils, and glowing maws"
   ],

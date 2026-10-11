@@ -1848,6 +1848,32 @@ border-radius:12px;font-size:1.3rem;cursor:pointer;line-height:1;flex:0 0 auto;
 border:1px solid rgba(255,255,255,.08);transition:background .14s ease,transform .14s ease}
 #hub-help-root .hub-help-close:hover{background:rgba(255,255,255,.14);transform:scale(1.04)}
 
+#hub-help-root .hub-help-mascot-wrap{padding:.55rem .95rem .65rem;border-bottom:1px solid rgba(140,175,255,.1);
+background:rgba(0,0,0,.12)}
+#hub-help-root.is-hub-stage .hub-help-mascot-wrap{padding-left:max(1.1rem,env(safe-area-inset-left));
+padding-right:max(1.1rem,env(safe-area-inset-right))}
+#hub-help-root .hub-help-mascot-label{margin:0 0 .45rem;font-size:.76rem;font-weight:800;color:#c8dbf7;letter-spacing:.01em}
+#hub-help-root .hub-help-mascot-strip{display:flex;flex-wrap:nowrap;gap:.45rem;overflow-x:auto;padding-bottom:.1rem;
+scrollbar-width:thin;scrollbar-color:rgba(140,180,255,.35) transparent;-webkit-overflow-scrolling:touch}
+#hub-help-root .hub-help-mascot-strip::-webkit-scrollbar{height:4px}
+#hub-help-root .hub-help-mascot-strip::-webkit-scrollbar-thumb{background:rgba(140,180,255,.35);border-radius:999px}
+#hub-help-root .hub-help-mascot-pill{flex:0 0 auto;display:inline-flex;align-items:center;gap:.4rem;
+border:1px solid rgba(150,190,255,.34);border-radius:999px;padding:.28rem .7rem .28rem .28rem;
+background:linear-gradient(180deg,rgba(120,170,255,.16),rgba(80,130,220,.08));color:#eef5ff;
+font:750 .78rem Outfit,"Segoe UI",system-ui,sans-serif;cursor:pointer;
+transition:transform .12s ease,border-color .12s ease,background .12s ease}
+#hub-help-root .hub-help-mascot-pill:hover{border-color:rgba(180,210,255,.55);transform:translateY(-1px)}
+#hub-help-root .hub-help-mascot-pill.active{border-color:rgba(160,210,255,.75);
+background:linear-gradient(180deg,rgba(140,190,255,.32),rgba(90,140,230,.18));
+box-shadow:0 0 0 2px rgba(120,170,255,.2)}
+#hub-help-root .hub-help-mascot-pill.is-locked{opacity:.55;cursor:not-allowed}
+#hub-help-root .hub-help-mascot-pill .hub-help-mascot-face{width:1.85rem;height:1.85rem;border-radius:999px;
+display:grid;place-items:center;overflow:hidden;font-size:1rem;background:#0b1426;
+border:1px solid rgba(170,210,255,.35)}
+#hub-help-root .hub-help-mascot-pill .hub-help-mascot-face img{width:100%;height:100%;object-fit:cover;display:block}
+#hub-help-root .hub-help-mascot-pill .hub-help-mascot-lockmark{font-size:.7rem;opacity:.85}
+#hub-help-root .hub-help-mascot-status{margin:.4rem 0 0;min-height:1rem;font-size:.72rem;font-weight:650;color:#9eb6d8}
+
 #hub-help-root .hub-help-quick-wrap{padding:.7rem .95rem .75rem;border-bottom:1px solid rgba(140,175,255,.1);
 background:rgba(0,0,0,.1)}
 #hub-help-root .hub-help-quick-label{margin:0 0 .5rem;font-size:.76rem;font-weight:800;color:#c8dbf7;letter-spacing:.01em}
@@ -1958,6 +1984,11 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
           </div>
           <button type="button" class="hub-help-close" id="hub-help-close" aria-label="Close help">×</button>
         </div>
+        <div class="hub-help-mascot-wrap">
+          <p class="hub-help-mascot-label">Change mascot</p>
+          <div id="hub-help-mascot-strip" class="hub-help-mascot-strip" role="group" aria-label="Choose Help mascot"></div>
+          <p id="hub-help-mascot-strip-status" class="hub-help-mascot-status" aria-live="polite"></p>
+        </div>
         <div class="hub-help-quick-wrap">
           <p class="hub-help-quick-label">Quick questions</p>
           <div class="hub-help-quick" id="hub-help-quick"></div>
@@ -1969,7 +2000,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
             <button type="submit">Ask</button>
           </div>
         </form>
-        <p class="hub-help-hint" id="hub-help-hint">Tip: press F for Help · change helper in Settings · Esc closes</p>
+        <p class="hub-help-hint" id="hub-help-hint">Tip: press F for Help · pick a mascot above · Esc closes</p>
       </div>
     `;
     document.body.appendChild(root);
@@ -1994,6 +2025,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     });
 
     paintQuick();
+    renderMascotPicker();
     refreshChrome();
     pushBot(
       "Hi!",
@@ -2061,8 +2093,8 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     const hint = root?.querySelector?.("#hub-help-hint");
     if (hint) {
       hint.textContent = hubStage
-        ? `Tip: press ${key} or Esc / Games to leave · pick a helper in Settings`
-        : `Tip: press ${key} for Help · pick a different helper in Settings · Esc closes`;
+        ? `Tip: press ${key} or Esc / Games to leave · change mascot above`
+        : `Tip: press ${key} for Help · change mascot above · Esc closes`;
     }
     if (inputEl) {
       inputEl.placeholder = hubStage
@@ -2374,6 +2406,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     open = true;
     refreshChrome();
     paintQuick();
+    renderMascotPicker();
     document.documentElement.classList.add("hub-help-open");
     pauseHostGame();
     root.classList.add("is-open");
@@ -2450,40 +2483,83 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     return false;
   }
 
-  /* ── Settings character grid ── */
+  /* ── Settings character grid + in-Help mascot strip ── */
 
   function renderMascotPicker(container) {
-    const el =
-      container ||
-      document.getElementById("hub-help-mascot-picker") ||
-      document.querySelector("[data-hub-help-mascot-picker]");
-    if (!el) return;
+    const targets = [];
+    if (container) {
+      targets.push(container);
+    } else {
+      const settings = document.getElementById("hub-help-mascot-picker");
+      const strip = document.getElementById("hub-help-mascot-strip");
+      const extras = document.querySelectorAll("[data-hub-help-mascot-picker]");
+      if (settings) targets.push(settings);
+      if (strip) targets.push(strip);
+      extras.forEach((el) => {
+        if (!targets.includes(el)) targets.push(el);
+      });
+    }
+    targets.forEach((el) => paintMascotPickerEl(el));
+  }
 
-    const active = getMascotId();
-    el.innerHTML = listMascots()
-      .map((m) => {
-        const locked = !m.unlocked;
-        const classes = [
-          "hub-mascot-btn",
-          m.active ? "active" : "",
-          locked ? "is-locked" : ""
-        ]
-          .filter(Boolean)
-          .join(" ");
-        const lockNote = locked ? `<span class="hub-mascot-lock">Locked · Coins shop</span>` : "";
-        return `<button type="button" class="${classes}" data-hub-mascot="${escapeHtml(m.id)}" ${
-          locked ? 'aria-disabled="true"' : ""
-        } title="${escapeHtml(m.fullName)} — ${escapeHtml(m.blurb)}">
-          <span class="hub-mascot-icon${m.avatar ? " has-avatar" : ""}" aria-hidden="true">${mascotIconHtml(m)}</span>
-          <span class="hub-mascot-name">${escapeHtml(m.name)}</span>
-          <span class="hub-mascot-blurb">${escapeHtml(m.blurb)}</span>
-          ${lockNote}
-        </button>`;
-      })
-      .join("");
+  function paintMascotPickerEl(el) {
+    if (!el) return;
+    const compact =
+      el.id === "hub-help-mascot-strip" ||
+      el.classList.contains("hub-help-mascot-strip") ||
+      el.classList.contains("is-compact");
+    const mascots = listMascots();
+
+    if (compact) {
+      el.innerHTML = mascots
+        .map((m) => {
+          const locked = !m.unlocked;
+          const classes = [
+            "hub-help-mascot-pill",
+            m.active ? "active" : "",
+            locked ? "is-locked" : ""
+          ]
+            .filter(Boolean)
+            .join(" ");
+          return `<button type="button" class="${classes}" data-hub-mascot="${escapeHtml(m.id)}" ${
+            locked ? 'aria-disabled="true"' : ""
+          } title="${escapeHtml(m.fullName)} — ${escapeHtml(m.blurb)}">
+            <span class="hub-help-mascot-face${m.avatar ? " has-avatar" : ""}" aria-hidden="true">${mascotIconHtml(
+              m
+            )}</span>
+            <span>${escapeHtml(m.name)}</span>
+            ${locked ? '<span class="hub-help-mascot-lockmark" aria-hidden="true">🔒</span>' : ""}
+          </button>`;
+        })
+        .join("");
+    } else {
+      el.innerHTML = mascots
+        .map((m) => {
+          const locked = !m.unlocked;
+          const classes = [
+            "hub-mascot-btn",
+            m.active ? "active" : "",
+            locked ? "is-locked" : ""
+          ]
+            .filter(Boolean)
+            .join(" ");
+          const lockNote = locked ? `<span class="hub-mascot-lock">Locked · Coins shop</span>` : "";
+          return `<button type="button" class="${classes}" data-hub-mascot="${escapeHtml(m.id)}" ${
+            locked ? 'aria-disabled="true"' : ""
+          } title="${escapeHtml(m.fullName)} — ${escapeHtml(m.blurb)}">
+            <span class="hub-mascot-icon${m.avatar ? " has-avatar" : ""}" aria-hidden="true">${mascotIconHtml(m)}</span>
+            <span class="hub-mascot-name">${escapeHtml(m.name)}</span>
+            <span class="hub-mascot-blurb">${escapeHtml(m.blurb)}</span>
+            ${lockNote}
+          </button>`;
+        })
+        .join("");
+    }
 
     function setPickerStatus(msg) {
-      const status = document.getElementById("hub-help-mascot-status");
+      const status =
+        document.getElementById("hub-help-mascot-strip-status") ||
+        document.getElementById("hub-help-mascot-status");
       if (status) status.textContent = msg || "";
       try {
         if (typeof window.showGamesMessage === "function") window.showGamesMessage(msg, 1600);
@@ -2506,11 +2582,14 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
         const res = setMascot(id);
         if (res.ok) {
           const m = MASCOT_BY_ID[id];
-          setPickerStatus(`Help assistant: ${m?.fullName || id}`);
+          setPickerStatus(`Now chatting as ${m?.fullName || id}`);
+          refreshChrome();
+          renderMascotPicker();
           if (open && chatEl) {
             pushBot(
               "Assistant swapped",
-              `You're now chatting with ${getMascot().fullName}. Same tips, new vibe.`
+              `You're now chatting with ${getMascot().fullName}. Same tips, new vibe.`,
+              { raw: true }
             );
           }
         }
@@ -2560,6 +2639,12 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     document.addEventListener("keydown", onKeyDown, true);
     document.addEventListener("hub-help-mascot-changed", () => {
       refreshChrome();
+      renderMascotPicker();
+    });
+    document.addEventListener("hub-help-mascot-unlocked", () => {
+      renderMascotPicker();
+    });
+    document.addEventListener("hub-coins-changed", () => {
       renderMascotPicker();
     });
   }
