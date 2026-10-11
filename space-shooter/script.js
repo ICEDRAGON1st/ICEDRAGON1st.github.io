@@ -710,6 +710,9 @@ function update(dt) {
             maybeUpdateHighScore();
             spawnBurst(e.x, e.y, "#6ecbff");
             window.HubSound?.play("hit");
+            try {
+              window.HubCoins?.rewardEnemy?.();
+            } catch {}
             if (Math.random() < cfg().powerupChance) spawnPowerup(e.x, e.y);
           }
           hit = true;

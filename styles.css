@@ -3231,6 +3231,118 @@ header h1 {
   margin-top: 0.85rem;
 }
 
+.coins-panel {
+  margin: 0 0 1.25rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--tile-border);
+  border-radius: 12px;
+  background: var(--modal-bg);
+}
+
+.coins-panel h3 {
+  margin: 0 0 0.45rem;
+  font-size: 1.1rem;
+  letter-spacing: 0.04rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.coins-balance-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.2rem 0.65rem;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 800;
+  background: rgba(255, 200, 80, 0.14);
+  border: 1px solid rgba(255, 200, 80, 0.35);
+  color: #ffe4a8;
+}
+
+.coins-intro,
+.coins-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  color: var(--subtitle);
+}
+
+.coins-hint {
+  margin-top: 0.85rem;
+  margin-bottom: 0;
+  font-size: 0.82rem;
+}
+
+.coins-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.65rem;
+}
+
+.coins-status {
+  min-height: 1.2rem;
+  margin: 0 0 0.75rem;
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: var(--subtitle);
+}
+
+.coins-status.is-error {
+  color: #ff8f8f;
+}
+
+.coins-status.is-ok {
+  color: #8dffb0;
+}
+
+.coins-shop-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.coins-shop-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem 0.75rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 10px;
+  border: 1px solid var(--tile-border);
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.coins-shop-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.coins-shop-name {
+  font-weight: 750;
+  font-size: 0.92rem;
+}
+
+.coins-shop-cost {
+  font-size: 0.8rem;
+  color: var(--subtitle);
+  font-weight: 650;
+}
+
+.hub-coins-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
 .friends-panel {
   margin: 0 0 1.25rem;
   padding: 1rem 1.1rem;
@@ -4224,6 +4336,7 @@ html[data-theme="dark"] .hub-notify-item {
 .games-screen.hub-theme-arcade .updates-panel,
 .games-screen.hub-theme-arcade .players-panel,
 .games-screen.hub-theme-arcade .titles-panel,
+.games-screen.hub-theme-arcade .coins-panel,
 .games-screen.hub-theme-arcade .friends-panel {
   border-radius: 0.85rem;
   border: 1px solid var(--arcade-line);
@@ -4236,6 +4349,7 @@ html[data-theme="dark"] .hub-notify-item {
 .games-screen.hub-theme-arcade .updates-panel h3,
 .games-screen.hub-theme-arcade .players-panel h3,
 .games-screen.hub-theme-arcade .titles-panel h3,
+.games-screen.hub-theme-arcade .coins-panel h3,
 .games-screen.hub-theme-arcade .friends-panel h3 {
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -4409,6 +4523,7 @@ html[data-theme="dark"] .hub-notify-item {
 .games-screen.hub-theme-ice .updates-panel,
 .games-screen.hub-theme-ice .players-panel,
 .games-screen.hub-theme-ice .titles-panel,
+.games-screen.hub-theme-ice .coins-panel,
 .games-screen.hub-theme-ice .friends-panel,
 .games-screen.hub-theme-ice .hub-settings-panel {
   background: var(--ice-panel);
@@ -4528,6 +4643,7 @@ html[data-theme="dark"] .hub-notify-item {
 .games-screen.hub-theme-retro .updates-panel,
 .games-screen.hub-theme-retro .players-panel,
 .games-screen.hub-theme-retro .titles-panel,
+.games-screen.hub-theme-retro .coins-panel,
 .games-screen.hub-theme-retro .friends-panel,
 .games-screen.hub-theme-retro .hub-settings-panel {
   border: 1px solid var(--retro-dim);
@@ -4633,6 +4749,7 @@ html[data-theme="dark"] .hub-notify-item {
 .games-screen.hub-theme-workshop .updates-panel,
 .games-screen.hub-theme-workshop .players-panel,
 .games-screen.hub-theme-workshop .titles-panel,
+.games-screen.hub-theme-workshop .coins-panel,
 .games-screen.hub-theme-workshop .friends-panel,
 .games-screen.hub-theme-workshop .hub-settings-panel {
   background: var(--ws-panel);
@@ -4773,6 +4890,7 @@ html[data-theme="dark"] .hub-notify-item {
 .games-screen.hub-theme-poster .updates-panel,
 .games-screen.hub-theme-poster .players-panel,
 .games-screen.hub-theme-poster .titles-panel,
+.games-screen.hub-theme-poster .coins-panel,
 .games-screen.hub-theme-poster .friends-panel,
 .games-screen.hub-theme-poster .hub-settings-panel {
   border: 2px solid #f7f4ef;
@@ -4972,6 +5090,7 @@ html[data-theme="dark"] .hub-notify-item {
 .games-screen.hub-theme-aurora .updates-panel,
 .games-screen.hub-theme-aurora .players-panel,
 .games-screen.hub-theme-aurora .titles-panel,
+.games-screen.hub-theme-aurora .coins-panel,
 .games-screen.hub-theme-aurora .friends-panel,
 .games-screen.hub-theme-aurora .hub-settings-panel,
 .games-screen.hub-theme-mono .hub-streak-badge,
@@ -4980,6 +5099,7 @@ html[data-theme="dark"] .hub-notify-item {
 .games-screen.hub-theme-mono .updates-panel,
 .games-screen.hub-theme-mono .players-panel,
 .games-screen.hub-theme-mono .titles-panel,
+.games-screen.hub-theme-mono .coins-panel,
 .games-screen.hub-theme-mono .friends-panel,
 .games-screen.hub-theme-mono .hub-settings-panel,
 .games-screen.hub-theme-tide .hub-streak-badge,
@@ -4988,6 +5108,7 @@ html[data-theme="dark"] .hub-notify-item {
 .games-screen.hub-theme-tide .updates-panel,
 .games-screen.hub-theme-tide .players-panel,
 .games-screen.hub-theme-tide .titles-panel,
+.games-screen.hub-theme-tide .coins-panel,
 .games-screen.hub-theme-tide .friends-panel,
 .games-screen.hub-theme-tide .hub-settings-panel {
   background: color-mix(in srgb, var(--hub-bg) 78%, transparent);
