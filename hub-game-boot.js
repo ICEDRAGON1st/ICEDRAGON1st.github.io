@@ -26,6 +26,42 @@
   try {
     var bootSrc = (script && script.src) || "";
     var iconBase = bootSrc ? bootSrc.replace(/[^/]+$/, "") : "../";
+    var bootVer = "1";
+    try {
+      var qm = bootSrc.indexOf("?");
+      if (qm >= 0) {
+        var params = new URLSearchParams(bootSrc.slice(qm + 1));
+        bootVer = params.get("v") || bootVer;
+      }
+    } catch (e) {}
+    // Inject per-tab net gate + AFK early (document.write while parsing).
+    try {
+      if (!window.HubNet) {
+        document.write(
+          '<script src="' +
+            iconBase +
+            "hub-net.js?v=" +
+            encodeURIComponent(bootVer) +
+            '"></script>'
+        );
+      }
+      if (!window.HubAfk) {
+        document.write(
+          '<script src="' +
+            iconBase +
+            "hub-afk.js?v=" +
+            encodeURIComponent(bootVer) +
+            '"></script>'
+        );
+      }
+    } catch (e) {}
+    // Offline shell for games visited once online.
+    try {
+      if ("serviceWorker" in navigator) {
+        var swUrl = iconBase + "sw.js?v=" + encodeURIComponent(bootVer);
+        navigator.serviceWorker.register(swUrl).catch(function () {});
+      }
+    } catch (e) {}
     if (!document.querySelector('link[rel="icon"][data-hub-icon]')) {
       var fav = document.createElement("link");
       fav.rel = "icon";

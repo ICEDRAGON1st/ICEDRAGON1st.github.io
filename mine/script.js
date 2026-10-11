@@ -1590,6 +1590,7 @@
   }
 
   function tick() {
+    if (window.HubAfk?.isAfk?.()) return;
     const rate = drillRate();
     const now = performance.now();
     // Use real elapsed time so laggy redraws don't make auto dig slower than the m/s label.
