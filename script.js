@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001bl": [
+    "Help Assistant: Barnaby and Sir Goldsworth now have matching portrait icons too"
+  ],
   "20261001bk": [
     "Help Assistant: real portrait icons for Helper, Chip, SPARK-E, Whiskers, Glitch, Pixel-8, Astra, Chef Gusto, and Shadow"
   ],

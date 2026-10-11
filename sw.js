@@ -35,6 +35,8 @@ const PRECACHE = [
   "./hub-help-icons/astra.png",
   "./hub-help-icons/gusto.png",
   "./hub-help-icons/shadow.png",
+  "./hub-help-icons/barnaby.png",
+  "./hub-help-icons/goldsworth.png",
   "./hub-game-popularity.json",
   "./script.js",
   "./words.js",
