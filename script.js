@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001cb": [
+    "Wing Hop UFO skin: space background, alien pillars, and moon ground when equipped"
+  ],
   "20261001bz": [
     "Wing Hop: buy a UFO skin with hub coins (350) from the Coins shop or in-game skin picker"
   ],

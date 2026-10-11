@@ -184,17 +184,25 @@ const SKINS = {
     belly: "#212529",
     eye: "#d0ebff",
     pupil: "#0b2948",
-    skyTop: "#0b1024",
-    skyBottom: "#1b3a5c",
-    pipe: "#5c5f72",
-    pipeDark: "#3f4254",
-    pipeStroke: "#222433",
-    pipeLight: "#787b90",
-    ground: "#2b2f3a",
-    grass: "#748ffc",
-    dirt: "#1a1d26"
+    skyTop: "#050814",
+    skyBottom: "#1a1040",
+    pipe: "#3d4f8c",
+    pipeDark: "#24305c",
+    pipeStroke: "#9bbcff",
+    pipeLight: "#6ea8ff",
+    ground: "#1a1528",
+    grass: "#2f6fed",
+    dirt: "#12101c"
   }
 };
+
+/** Fixed star field so the UFO sky doesn't flicker every frame. */
+const UFO_STARS = Array.from({ length: 64 }, (_, i) => ({
+  x: ((i * 97) % 600) + ((i * 13) % 17),
+  y: ((i * 53) % 780) + 8,
+  r: 0.6 + (i % 4) * 0.45,
+  a: 0.35 + (i % 5) * 0.12
+}));
 
 const UFO_COIN_ITEM = "skin:wing-hop-ufo";
 
@@ -501,6 +509,10 @@ function update(dt) {
 
 function drawSky() {
   const s = skin();
+  if (s.form === "ufo") {
+    drawUfoSky(s);
+    return;
+  }
   const grad = ctx.createLinearGradient(0, 0, 0, H);
   grad.addColorStop(0, s.skyTop);
   grad.addColorStop(1, s.skyBottom);
@@ -511,6 +523,56 @@ function drawSky() {
   drawCloud(90, 135, 0.9);
   drawCloud(375, 90, 1.1);
   drawCloud(270, 225, 0.75);
+}
+
+function drawUfoSky(s) {
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, s.skyTop || "#050814");
+  grad.addColorStop(0.45, "#12082c");
+  grad.addColorStop(1, s.skyBottom || "#1a1040");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+
+  // Nebula washes
+  const nebulaA = ctx.createRadialGradient(120, 160, 10, 120, 160, 220);
+  nebulaA.addColorStop(0, "rgba(124,156,255,0.28)");
+  nebulaA.addColorStop(0.55, "rgba(88,40,160,0.14)");
+  nebulaA.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = nebulaA;
+  ctx.fillRect(0, 0, W, H * 0.75);
+
+  const nebulaB = ctx.createRadialGradient(480, 280, 8, 480, 280, 200);
+  nebulaB.addColorStop(0, "rgba(105,219,124,0.12)");
+  nebulaB.addColorStop(0.6, "rgba(60,100,220,0.1)");
+  nebulaB.addColorStop(1, "rgba(0,0,0,0)");
+  ctx.fillStyle = nebulaB;
+  ctx.fillRect(0, 0, W, H * 0.8);
+
+  // Distant planet
+  const px = 470;
+  const py = 120;
+  const planet = ctx.createRadialGradient(px - 12, py - 10, 6, px, py, 48);
+  planet.addColorStop(0, "#b8c8ff");
+  planet.addColorStop(0.45, "#5c7ad6");
+  planet.addColorStop(1, "#1a2250");
+  ctx.fillStyle = planet;
+  ctx.beginPath();
+  ctx.arc(px, py, 42, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(200,220,255,0.25)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(px, py + 4, 58, 10, -0.25, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Stars
+  for (const star of UFO_STARS) {
+    const twinkle = 0.75 + Math.sin(distance * 0.04 + star.x * 0.05) * 0.25;
+    ctx.fillStyle = `rgba(230,240,255,${star.a * twinkle})`;
+    ctx.beginPath();
+    ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
 }
 
 function drawCloud(x, y, scale) {
@@ -526,9 +588,73 @@ function drawPipes() {
   for (const pipe of pipes) {
     const bottomY = pipe.top + PIPE_GAP;
     const bottomH = H - GROUND_H - bottomY;
-    drawCastleTower(pipe.x, 0, PIPE_WIDTH, pipe.top, "down", s);
-    drawCastleTower(pipe.x, bottomY, PIPE_WIDTH, bottomH, "up", s);
+    if (s.form === "ufo") {
+      drawAlienPillar(pipe.x, 0, PIPE_WIDTH, pipe.top, "down", s);
+      drawAlienPillar(pipe.x, bottomY, PIPE_WIDTH, bottomH, "up", s);
+    } else {
+      drawCastleTower(pipe.x, 0, PIPE_WIDTH, pipe.top, "down", s);
+      drawCastleTower(pipe.x, bottomY, PIPE_WIDTH, bottomH, "up", s);
+    }
   }
+}
+
+function drawAlienPillar(x, y, w, h, tipSide, s) {
+  if (h <= 0) return;
+
+  const shaft = ctx.createLinearGradient(x, y, x + w, y);
+  shaft.addColorStop(0, s.pipeDark);
+  shaft.addColorStop(0.45, s.pipe);
+  shaft.addColorStop(1, mixHex(s.pipeLight || s.pipe, "#0a1020", 0.35));
+  ctx.fillStyle = shaft;
+  ctx.fillRect(x + 6, y, w - 12, h);
+
+  // Glowing edge rails
+  ctx.fillStyle = s.pipeStroke || "#9bbcff";
+  ctx.globalAlpha = 0.55;
+  ctx.fillRect(x + 6, y, 3, h);
+  ctx.fillRect(x + w - 9, y, 3, h);
+  ctx.globalAlpha = 1;
+
+  // Energy rings
+  ctx.strokeStyle = s.pipeLight || "#6ea8ff";
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.65;
+  for (let ry = y + 24; ry < y + h - 20; ry += 36) {
+    ctx.beginPath();
+    ctx.moveTo(x + 10, ry);
+    ctx.lineTo(x + w - 10, ry);
+    ctx.stroke();
+    ctx.fillStyle = "rgba(105,219,124,0.35)";
+    ctx.beginPath();
+    ctx.arc(x + w / 2, ry, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  // Crystal tip facing the gap
+  const tipH = 28;
+  ctx.fillStyle = mixHex(s.pipeLight || "#6ea8ff", "#d0ebff", 0.35);
+  ctx.strokeStyle = s.pipeStroke || "#9bbcff";
+  ctx.lineWidth = 2.2;
+  ctx.beginPath();
+  if (tipSide === "down") {
+    const ty = y + h;
+    ctx.moveTo(x + 4, ty - tipH);
+    ctx.lineTo(x + w - 4, ty - tipH);
+    ctx.lineTo(x + w / 2, ty + 6);
+  } else {
+    const ty = y;
+    ctx.moveTo(x + 4, ty + tipH);
+    ctx.lineTo(x + w - 4, ty + tipH);
+    ctx.lineTo(x + w / 2, ty - 6);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.strokeStyle = mixHex(s.pipeStroke || "#9bbcff", "#ffffff", 0.2);
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(x + 6, y, w - 12, h);
 }
 
 function drawCastleTower(x, y, w, h, battlementSide, s) {
@@ -604,6 +730,10 @@ function drawCastleTower(x, y, w, h, battlementSide, s) {
 
 function drawGround() {
   const s = skin();
+  if (s.form === "ufo") {
+    drawUfoGround(s);
+    return;
+  }
   ctx.fillStyle = s.ground;
   ctx.fillRect(0, H - GROUND_H, W, GROUND_H);
 
@@ -614,6 +744,45 @@ function drawGround() {
   for (let x = -groundOffset; x < W + 42; x += 42) {
     ctx.fillRect(x, H - GROUND_H + 27, 21, 12);
     ctx.fillRect(x + 21, H - GROUND_H + 51, 21, 12);
+  }
+}
+
+function drawUfoGround(s) {
+  const gy = H - GROUND_H;
+  const moon = ctx.createLinearGradient(0, gy, 0, H);
+  moon.addColorStop(0, mixHex(s.grass || "#2f6fed", "#1a1528", 0.35));
+  moon.addColorStop(0.35, s.ground || "#1a1528");
+  moon.addColorStop(1, s.dirt || "#12101c");
+  ctx.fillStyle = moon;
+  ctx.fillRect(0, gy, W, GROUND_H);
+
+  // Glowing horizon line
+  const glow = ctx.createLinearGradient(0, gy - 8, 0, gy + 18);
+  glow.addColorStop(0, "rgba(124,156,255,0)");
+  glow.addColorStop(0.45, "rgba(124,156,255,0.35)");
+  glow.addColorStop(1, "rgba(105,219,124,0.08)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, gy - 8, W, 26);
+
+  // Craters scrolling with ground
+  ctx.fillStyle = "rgba(0,0,0,0.28)";
+  for (let x = -groundOffset; x < W + 80; x += 70) {
+    ctx.beginPath();
+    ctx.ellipse(x + 18, gy + 38, 16, 7, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(x + 48, gy + 62, 10, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // Scattered rocks / lights
+  for (let x = -groundOffset; x < W + 60; x += 52) {
+    ctx.fillStyle = mixHex(s.pipeLight || "#6ea8ff", "#0a1020", 0.45);
+    ctx.fillRect(x + 8, gy + 28, 7, 5);
+    ctx.fillStyle = "rgba(105,219,124,0.45)";
+    ctx.beginPath();
+    ctx.arc(x + 36, gy + 22, 2.2, 0, Math.PI * 2);
+    ctx.fill();
   }
 }
 
