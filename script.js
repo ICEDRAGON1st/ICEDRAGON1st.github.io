@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001bp": [
+    "Help: ask “what games are in this” for the full 29-game list — GAME_INFO also covers features, controls, and local Help AI"
+  ],
   "20261001bo": [
     "Help typos: misspellings still auto-correct, but “games” no longer becomes “name”"
   ],
