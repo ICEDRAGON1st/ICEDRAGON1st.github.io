@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001bh": [
+    "My Games: badge says Most played (not Most popular) and sits on the thumbnail — no longer pinned to the top of the list"
+  ],
   "20261001bg": [
     "My Games: put Mine Depth hub card back where it was"
   ],
@@ -2800,12 +2803,15 @@ function renderMostPopularBadge() {
     card.classList.toggle("is-most-popular", isPopular);
     let badge = card.querySelector(".game-card-popular");
     if (isPopular) {
+      const host = card.querySelector(".game-card-thumb-wrap") || card;
       if (!badge) {
         badge = document.createElement("span");
         badge.className = "game-card-popular";
-        badge.textContent = "Most popular";
-        card.appendChild(badge);
+        host.appendChild(badge);
+      } else if (badge.parentElement !== host) {
+        host.appendChild(badge);
       }
+      badge.textContent = "Most played";
     } else if (badge) {
       badge.remove();
     }
@@ -2831,22 +2837,11 @@ function renderCardScoresAndFavorites() {
 function sortGamesGrid() {
   if (!gamesGrid) return;
   const favorites = loadFavorites();
-  let popularId = "";
-  try {
-    popularId = String(
-      window.HubPlays?.getMostPopularGameId?.(HUB_GAMES.map((g) => g.id)) || ""
-    );
-  } catch {
-    popularId = "";
-  }
   const cards = [...gamesGrid.querySelectorAll(".game-card[data-game]")];
   cards.sort((a, b) => {
     const af = favorites.includes(a.dataset.game) ? 0 : 1;
     const bf = favorites.includes(b.dataset.game) ? 0 : 1;
     if (af !== bf) return af - bf;
-    const ap = popularId && a.dataset.game === popularId ? 0 : 1;
-    const bp = popularId && b.dataset.game === popularId ? 0 : 1;
-    if (ap !== bp) return ap - bp;
     return 0;
   });
   cards.forEach((card) => gamesGrid.appendChild(card));

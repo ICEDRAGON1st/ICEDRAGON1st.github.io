@@ -1776,6 +1776,7 @@ header h1 {
 }
 
 .game-card-thumb-wrap {
+  position: relative;
   display: block;
   width: 100%;
   aspect-ratio: 16 / 9;
@@ -1802,11 +1803,12 @@ header h1 {
 
 .game-card-popular {
   position: absolute;
-  top: 0.85rem;
-  left: 0;
+  top: auto;
+  bottom: 0.4rem;
+  left: 0.4rem;
   z-index: 2;
-  padding: 0.28rem 0.65rem 0.28rem 0.55rem;
-  border-radius: 0 999px 999px 0;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
   background: linear-gradient(135deg, #f59f00 0%, #f08c00 55%, #e67700 100%);
   color: #1a1208;
   font-size: 0.68rem;
