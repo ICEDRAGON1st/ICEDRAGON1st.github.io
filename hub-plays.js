@@ -1766,7 +1766,20 @@
     return GAME_NAMES[id] ? id : id.slice(0, 32);
   }
 
+  function netBlocked(url) {
+    try {
+      if (window.HubNet?.shouldBlock?.(url || POPULARITY_API)) return true;
+      if (window.HubNet?.isPaused?.()) return true;
+      if (window.HubNet && HubNet.isOnline && !HubNet.isOnline()) return true;
+    } catch {}
+    try {
+      if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
+    } catch {}
+    return false;
+  }
+
   async function fetchJson(url) {
+    if (netBlocked(url)) throw new Error("hub-net-blocked");
     if (isRateLimited()) throw new Error("rate limited");
     const res = await fetch(url, { cache: "no-store" });
     if (res.status === 404) return null;
@@ -1779,6 +1792,7 @@
   }
 
   async function postJson(url, data) {
+    if (netBlocked(url)) throw new Error("hub-net-blocked");
     if (isRateLimited()) throw new Error("rate limited");
     const res = await fetch(url, {
       method: "POST",
@@ -3038,6 +3052,10 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       if (document.hidden) {
         return getOnlineCount();
       }
+      // No WiFi / AFK pause: do not touch Mantle or Supabase from this tab.
+      if (netBlocked(PRESENCE_API) || window.HubAfk?.isAfk?.()) {
+        return getOnlineCount();
+      }
 
       const now = Date.now();
       tickOnlineTime(now);
@@ -3800,6 +3818,12 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       lastOnlineTickAt = Date.now();
       reconcileOnlineSeconds();
       heartbeat().catch(() => {});
+    });
+    // Resume light presence when WiFi returns (this tab only).
+    window.addEventListener("online", () => {
+      if (document.hidden || window.HubAfk?.isAfk?.()) return;
+      heartbeat().catch(() => {});
+      syncPopularity().catch(() => {});
     });
   }
 
@@ -4921,6 +4945,7 @@ body.light .menu-credit .player-name-creator {
     normalizePlayerCode,
     formatPlayerCode,
     heartbeat,
+    goOffline,
     getOnlineCount,
     getOnlinePlayers,
     getAllTimeCount,

@@ -1449,6 +1449,22 @@ header h1 {
   opacity: 1;
 }
 
+.hub-offline-banner {
+  margin: -0.35rem 0 0.85rem;
+  padding: 0.45rem 0.75rem;
+  border-radius: 999px;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #1a1208;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.28);
+}
+
+.hub-offline-banner.hidden {
+  display: none;
+}
+
 .games-toolbar {
   display: flex;
   flex-wrap: wrap;

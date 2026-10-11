@@ -165,6 +165,17 @@
   function fishingSb() {
     return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
   }
+
+  /** This tab only — AFK / no WiFi skips Mantle+Supabase polls. */
+  function fishingCloudQuiet() {
+    try {
+      if (window.HubAfk?.isAfk?.()) return true;
+      if (window.HubNet?.isPaused?.()) return true;
+      if (window.HubNet && HubNet.isOnline && !HubNet.isOnline()) return true;
+      if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
+    } catch {}
+    return false;
+  }
   const FISH_GIFTS_CLAIMED_KEY = "fishing-gifts-claimed-v1";
   const FISH_GIFTS_POLL_MS = 12_000;
   const ADMIN_SCOPE_KEY = "fishing-admin-scope-v1";
@@ -3484,6 +3495,7 @@
   }
 
   async function syncCommunity(force = false) {
+    if (fishingCloudQuiet()) return communityCache;
     if (communitySyncInFlight) {
       if (force) scheduleCommunitySync();
       return communityCache;
@@ -4285,6 +4297,7 @@
   }
 
   async function refreshAquaShareCache(force = false) {
+    if (fishingCloudQuiet()) return aquaShareCache;
     const now = Date.now();
     if (!force && now - aquaShareFetchedAt < AQUA_SHARE_POLL_MS) return aquaShareCache;
     aquaShareFetchedAt = now;
@@ -6322,6 +6335,7 @@
   }
 
   async function pollAdminEvent(force = false) {
+    if (fishingCloudQuiet()) return;
     const now = Date.now();
     if (!force && now - adminEventFetchedAt < ADMIN_EVENT_POLL_MS) return;
     adminEventFetchedAt = now;
@@ -6545,6 +6559,7 @@
   }
 
   async function pollAdminAnnounce(force = false) {
+    if (fishingCloudQuiet()) return;
     const now = Date.now();
     if (!force && now - adminAnnounceFetchedAt < ADMIN_ANNOUNCE_POLL_MS) return;
     adminAnnounceFetchedAt = now;
@@ -8265,6 +8280,7 @@
   let fishGiftFetchedAt = 0;
 
   async function pollFishGifts(force = false) {
+    if (fishingCloudQuiet()) return;
     const now = Date.now();
     if (!force && now - fishGiftFetchedAt < FISH_GIFTS_POLL_MS) return;
     fishGiftFetchedAt = now;
@@ -9166,6 +9182,7 @@
   }
 
   async function pollPlayerMail(force = false) {
+    if (fishingCloudQuiet()) return;
     const now = Date.now();
     if (!force && now - playerMailFetchedAt < PLAYER_MAIL_POLL_MS) return;
     playerMailFetchedAt = now;
@@ -17806,6 +17823,7 @@
   }
 
   function tick() {
+    if (window.HubAfk?.isAfk?.()) return;
     const before = coolerKey();
     ensureWeather();
     tickAquarium();
@@ -19974,6 +19992,7 @@
     } catch {}
   }, 1000);
   setInterval(() => {
+    if (fishingCloudQuiet()) return;
     maybeSubmitBest(true);
   }, 15000);
   window.addEventListener("beforeunload", () => {

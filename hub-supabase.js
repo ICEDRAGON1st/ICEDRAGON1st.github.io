@@ -10,6 +10,15 @@
   const SUPABASE_ANON_KEY =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Ftc2Zsenl2ZGNlcHZlbGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNjE3ODEsImV4cCI6MjEwNTczNzc4MX0.s-k2d37X0gByK2-SLnsLWhkbQb15_sDuKpvZs7ABM3g";
 
+  function netBlocked() {
+    try {
+      if (window.HubNet?.shouldBlock?.(SUPABASE_URL)) return true;
+      if (window.HubNet?.isPaused?.()) return true;
+      if (window.HubNet && HubNet.isOnline && !HubNet.isOnline()) return true;
+    } catch {}
+    return false;
+  }
+
   const DOCS = {
     leaderboards: "leaderboards",
     plays: "plays-log",
@@ -46,6 +55,11 @@
   }
 
   async function getDoc(id) {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
     const url = `${SUPABASE_URL}/rest/v1/hub_docs?id=eq.${encodeURIComponent(id)}&select=data`;
     const res = await fetch(url, { headers: headers(), cache: "no-store" });
     if (res.status === 404) return null;
@@ -56,6 +70,11 @@
   }
 
   async function upsertDoc(id, data) {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
     const url = `${SUPABASE_URL}/rest/v1/hub_docs`;
     const res = await fetch(url, {
       method: "POST",
@@ -79,13 +98,24 @@
    * Empty objects from Supabase count as a hit (no Mantle round-trip).
    */
   async function getPrefer(docId, mantleUrl) {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
     try {
       const data = await getDoc(docId);
       if (data != null) return data;
     } catch (err) {
+      if (err && err.hubNetBlocked) throw err;
       console.warn("[HubSupabase] getPrefer", docId, err);
     }
     if (!mantleUrl) return null;
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
     const res = await fetch(mantleUrl, { cache: "no-store" });
     if (res.status === 404) return null;
     if (res.status === 429) {
@@ -101,15 +131,22 @@
    * Write Supabase first (source of truth). Best-effort Mantle backup while migrating.
    */
   async function pushPrefer(docId, data, mantleUrl) {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
     let ok = false;
     try {
       await upsertDoc(docId, data);
       ok = true;
     } catch (err) {
+      if (err && err.hubNetBlocked) throw err;
       console.warn("[HubSupabase] pushPrefer", docId, err);
     }
     if (mantleUrl) {
       try {
+        if (netBlocked()) throw new Error("hub-net-blocked");
         const res = await fetch(mantleUrl, {
           method: "POST",
           headers: { "Content-Type": "application/json" },

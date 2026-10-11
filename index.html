@@ -98,7 +98,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261001bi">
+  <link rel="stylesheet" href="styles.css?v=20261001bj">
+  <script src="hub-net.js?v=20261001bj"></script>
+  <script src="hub-afk.js?v=20261001bj"></script>
 </head>
 <body data-guess-colors="ice">
   <div id="hub-boot-loader" aria-live="polite" aria-busy="true">
@@ -271,6 +273,7 @@
         </div>
       </header>
       <p id="games-message" class="games-message" role="status" aria-live="polite"></p>
+      <p id="hub-offline-banner" class="hub-offline-banner hidden" role="status" aria-live="polite">Offline — progress saves on this device</p>
 
       <div class="games-toolbar">
         <button id="continue-last-btn" type="button" class="hub-btn hub-btn-primary hidden">Continue last game</button>
@@ -763,7 +766,12 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20261001bi";
+    window.WORDLE_BUILD = "20261001bj";
+    try {
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.register("sw.js?v=" + window.WORDLE_BUILD).catch(function () {});
+      }
+    } catch (e) {}
     const scripts = [
       "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-supabase.js", "hub-account-bag.js", "hub-eggs.js", "hub-plays.js", "hub-referrals.js", "hub-online-overlay.js", "hub-help.js", "hub-fishing-gifts.js", "hub-fishing-mail.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-calls.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js", "hub-discord.js",
       "words.js",

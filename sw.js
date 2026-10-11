@@ -1,0 +1,122 @@
+/* My Games service worker — offline shell + cache-as-you-go for visited games. */
+const BUILD = new URL(self.location.href).searchParams.get("v") || "1";
+const CACHE = `mygames-v1-${BUILD}`;
+
+const PRECACHE = [
+  "./",
+  "./index.html",
+  "./styles.css",
+  "./site.webmanifest",
+  "./site-config.js",
+  "./icon.png",
+  "./apple-touch-icon.png",
+  "./hub-net.js",
+  "./hub-afk.js",
+  "./hub-game-boot.js",
+  "./hub-supabase.js",
+  "./hub-plays.js",
+  "./hub-streak.js",
+  "./hub-achievements.js",
+  "./hub-sound.js",
+  "./hub-confetti.js",
+  "./hub-account-bag.js",
+  "./hub-leaderboard.js",
+  "./hub-friends.js",
+  "./hub-chat.js",
+  "./hub-calls.js",
+  "./hub-online-overlay.js",
+  "./hub-help.js",
+  "./hub-game-popularity.json",
+  "./script.js",
+  "./words.js",
+  "./dictionary.js",
+  "./words-4.js",
+  "./dictionary-4.js",
+  "./words-6.js",
+  "./dictionary-6.js",
+  "./wordle-themes.js"
+];
+
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches
+      .open(CACHE)
+      .then((cache) => cache.addAll(PRECACHE.map((p) => new Request(p, { cache: "reload" }))))
+      .then(() => self.skipWaiting())
+      .catch(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches
+      .keys()
+      .then((keys) =>
+        Promise.all(keys.filter((k) => k.startsWith("mygames-") && k !== CACHE).map((k) => caches.delete(k)))
+      )
+      .then(() => self.clients.claim())
+  );
+});
+
+function sameOrigin(url) {
+  try {
+    return new URL(url, self.location.href).origin === self.location.origin;
+  } catch {
+    return false;
+  }
+}
+
+function isNavigate(request) {
+  return request.mode === "navigate" || (request.destination === "document");
+}
+
+async function networkFirst(request) {
+  const cache = await caches.open(CACHE);
+  try {
+    const fresh = await fetch(request);
+    if (fresh && fresh.ok) {
+      try {
+        cache.put(request, fresh.clone());
+      } catch {}
+    }
+    return fresh;
+  } catch {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    const fallback = await cache.match("./index.html");
+    if (fallback) return fallback;
+    throw new Error("offline");
+  }
+}
+
+async function cacheFirst(request) {
+  const cache = await caches.open(CACHE);
+  const cached = await cache.match(request);
+  if (cached) {
+    fetch(request)
+      .then((fresh) => {
+        if (fresh && fresh.ok) cache.put(request, fresh.clone());
+      })
+      .catch(() => {});
+    return cached;
+  }
+  const fresh = await fetch(request);
+  if (fresh && fresh.ok) {
+    try {
+      cache.put(request, fresh.clone());
+    } catch {}
+  }
+  return fresh;
+}
+
+self.addEventListener("fetch", (event) => {
+  const { request } = event;
+  if (request.method !== "GET") return;
+  if (!sameOrigin(request.url)) return;
+  // Never cache API-ish JSON posts; GET to cloud hosts is cross-origin anyway.
+  if (isNavigate(request)) {
+    event.respondWith(networkFirst(request));
+    return;
+  }
+  event.respondWith(cacheFirst(request));
+});

@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001bj": [
+    "My Games: play offline after one visit, and after 10m AFK this tab pauses cloud sync (other players unaffected)"
+  ],
   "20261001bi": [
     "My Games: Most played badge uses real hub ranks again — Fishing Idle on top (Wing Hop was a stale local count)"
   ],
@@ -3316,6 +3319,30 @@ try {
   window.showGamesMessage = showGamesMessage;
 } catch {}
 
+function updateHubOfflineBanner() {
+  const el = document.getElementById("hub-offline-banner");
+  if (!el) return;
+  let offline = false;
+  try {
+    offline =
+      (window.HubNet && HubNet.isOnline && !HubNet.isOnline()) ||
+      (typeof navigator !== "undefined" && navigator.onLine === false);
+  } catch {
+    offline = false;
+  }
+  el.classList.toggle("hidden", !offline);
+}
+try {
+  window.addEventListener("online", updateHubOfflineBanner);
+  window.addEventListener("offline", updateHubOfflineBanner);
+  window.addEventListener("hub-net", updateHubOfflineBanner);
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", updateHubOfflineBanner, { once: true });
+  } else {
+    updateHubOfflineBanner();
+  }
+} catch {}
+
 function currentHubPlayerKey() {
   return String((typeof HubPlays !== "undefined" && HubPlays.getName?.()) || "")
     .trim()
@@ -3381,6 +3408,9 @@ function showGamesScreen() {
   } catch {}
   gamesMessageEl.classList.remove("visible");
   gamesMessageEl.textContent = "";
+  try {
+    updateHubOfflineBanner();
+  } catch {}
   if (highScoresPanel) highScoresPanel.classList.add("hidden");
   if (leaderboardsPanel) leaderboardsPanel.classList.add("hidden");
   if (hubSettingsPanel) hubSettingsPanel.classList.add("hidden");
