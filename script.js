@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ci": [
+    "Esc while playing opens the game Menu (with Music / SFX / song search) in every minigame"
+  ],
   "20261001ch": [
     "Press Esc / Menu in any game to change Music, SFX, and song (searchable)"
   ],

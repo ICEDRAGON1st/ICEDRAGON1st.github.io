@@ -965,12 +965,95 @@
     } catch {}
   }
 
+  function isTypingTarget(el) {
+    if (!el || el === document.body) return false;
+    const tag = String(el.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "textarea" || tag === "select" || tag === "button") {
+      // Allow Esc from plain buttons; block only real typing fields
+      if (tag === "button") return false;
+      return true;
+    }
+    if (el.isContentEditable) return true;
+    return !!el.closest?.("input, textarea, select, [contenteditable='true']");
+  }
+
+  function isHubGamesOpen() {
+    const gs = document.getElementById("games-screen");
+    return !!(gs && overlayIsVisible(gs));
+  }
+
+  function anyGameChromeOpen() {
+    const nodes = document.querySelectorAll(
+      [
+        ".overlay",
+        "#menu-modal",
+        "#settings-overlay",
+        "#guide-overlay",
+        "#suffix-overlay",
+        "#depth-units-overlay",
+        "#book-overlay",
+        "#admin-overlay",
+        "#shiny-machine-overlay",
+        "#lucky-block-overlay",
+        "#hub-credits-modal",
+        "#whats-new-modal",
+        "#player-name-modal",
+        "#player-profile-modal"
+      ].join(",")
+    );
+    for (let i = 0; i < nodes.length; i += 1) {
+      if (overlayIsVisible(nodes[i])) return true;
+    }
+    const help = document.getElementById("hub-help-root");
+    if (help?.classList.contains("is-open")) return true;
+    return false;
+  }
+
+  /**
+   * While you're in a game (menu closed), Esc opens the same Menu the ☰ button uses.
+   * If a game already handled Esc (opened or closed something), we leave it alone.
+   */
+  function bindEscOpensInGameMenu() {
+    if (document.documentElement.dataset.hubEscMenuBound === "1") return;
+    document.documentElement.dataset.hubEscMenuBound = "1";
+
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape" && e.code !== "Escape") return;
+      if (e.repeat) return;
+      if (isTypingTarget(e.target)) return;
+      // Song search dropdown uses Esc to close itself
+      if (document.querySelector("[data-hub-audio-song-results]:not(.hidden)")) return;
+      if (isHubGamesOpen()) return;
+
+      const wasOpen = anyGameChromeOpen();
+      setTimeout(() => {
+        try {
+          if (isHubGamesOpen()) return;
+          const stillOpen = anyGameChromeOpen();
+          // Playing in-game: nothing was open, nothing opened → open Menu
+          if (!wasOpen && !stillOpen) {
+            const btn = document.getElementById("menu-btn");
+            if (btn) {
+              btn.click();
+            } else {
+              // Guessword / pages with only menu-modal
+              const modal = document.getElementById("menu-modal");
+              if (modal) modal.classList.remove("hidden");
+            }
+          }
+          scanGameMenus();
+        } catch {}
+      }, 0);
+    });
+  }
+
   function watchGameMenus() {
     let timer = 0;
     const kick = () => {
       clearTimeout(timer);
       timer = setTimeout(scanGameMenus, 40);
     };
+    bindEscOpensInGameMenu();
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" || e.code === "Escape") kick();
     });
