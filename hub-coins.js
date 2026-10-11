@@ -37,7 +37,15 @@
     { id: "mascot:goldsworth", label: "Sir Goldsworth (Help mascot)", cost: 450, kind: "mascot", mascotId: "goldsworth" },
     { id: "mascot:astra", label: "Astra (Help mascot)", cost: 400, kind: "mascot", mascotId: "astra" },
     { id: "mascot:gusto", label: "Chef Gusto (Help mascot)", cost: 400, kind: "mascot", mascotId: "gusto" },
-    { id: "mascot:shadow", label: "Shadow (Help mascot)", cost: 500, kind: "mascot", mascotId: "shadow" }
+    { id: "mascot:shadow", label: "Shadow (Help mascot)", cost: 500, kind: "mascot", mascotId: "shadow" },
+    {
+      id: "skin:wing-hop-ufo",
+      label: "Wing Hop — UFO skin",
+      cost: 350,
+      kind: "skin",
+      game: "flappy",
+      skinId: "ufo"
+    }
   ];
 
   const listeners = new Set();

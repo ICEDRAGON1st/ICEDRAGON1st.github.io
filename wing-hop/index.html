@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="../hub-game-boot.js?v=20261001bj"></script>
+  <script src="../hub-game-boot.js?v=20261001bz"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Wing Hop</title>
-  <link rel="stylesheet" href="styles.css?v=20260918r">
+  <link rel="stylesheet" href="styles.css?v=20261001bz">
 </head>
 <body>
   <div class="hud">
@@ -23,8 +23,8 @@
     <div class="overlay-card">
       <h1 id="overlay-title">Wing Hop</h1>
       <p id="overlay-text">Tap, click, or press Space to flap. Fly your dragon through the castle towers.</p>
-      <p class="picker-label">Dragon skin</p>
-      <div id="skin-picker" class="skin-picker" role="group" aria-label="Dragon skin">
+      <p class="picker-label">Skins</p>
+      <div id="skin-picker" class="skin-picker" role="group" aria-label="Player skin">
         <button type="button" class="skin-btn active" data-skin="classic">Dragon</button>
         <button type="button" class="skin-btn" data-skin="sky">Sky</button>
         <button type="button" class="skin-btn" data-skin="rose">Rose</button>
@@ -33,7 +33,9 @@
         <button type="button" class="skin-btn" data-skin="ice">Ice</button>
         <button type="button" class="skin-btn" data-skin="midnight">Midnight</button>
         <button type="button" class="skin-btn" data-skin="gold">Gold</button>
+        <button type="button" class="skin-btn skin-btn-locked" data-skin="ufo" data-coin-skin="skin:wing-hop-ufo" title="Buy with hub coins">UFO · 350🪙</button>
       </div>
+      <p id="skin-lock-hint" class="skin-lock-hint" aria-live="polite"></p>
       <div class="overlay-actions">
         <button id="resume-btn" type="button" class="btn btn-secondary hidden">Resume</button>
         <button id="view-board-btn" type="button" class="btn btn-secondary hidden">View board</button>
@@ -49,10 +51,11 @@
   <script src="../hub-supabase.js?v=20260923u"></script>
   <script src="../hub-account-bag.js?v=20260923ag"></script>
   <script src="../hub-plays.js?v=20260927k"></script>
+  <script src="../hub-coins.js?v=20261001bz"></script>
   <script src="../hub-friends.js?v=20260923u"></script>
   <script src="../hub-chat.js?v=20260927c"></script>
   <script src="../hub-calls.js?v=20260925a"></script>
 <script src="../hub-leaderboard.js?v=20260925a"></script>
-  <script src="script.js?v=20260918r"></script>
+  <script src="script.js?v=20261001bz"></script>
 </body>
 </html>

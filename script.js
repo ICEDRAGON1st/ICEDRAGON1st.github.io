@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001bz": [
+    "Wing Hop: buy a UFO skin with hub coins (350) from the Coins shop or in-game skin picker"
+  ],
   "20261001by": [
     "Coins: Pick up coin gives +25, but only once every hour"
   ],
