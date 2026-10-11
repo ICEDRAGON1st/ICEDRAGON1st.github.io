@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001by": [
+    "Coins: Pick up coin gives +25, but only once every hour"
+  ],
   "20261001bx": [
     "Coins shop: Help mascots cost more (250–500 coins)"
   ],
@@ -4684,7 +4687,10 @@ document.getElementById("coins-pickup-btn")?.addEventListener("click", () => {
   if (typeof HubCoins === "undefined") return;
   const res = HubCoins.rewardPickup();
   if (res.ok) {
-    setCoinsStatus(`Picked up +${res.gained} coin.`, "ok");
+    setCoinsStatus(`Picked up +${res.gained} coins! Next pickup in 1 hour.`, "ok");
+    showGamesMessage(`+${res.gained} pickup coins`, 1600);
+  } else {
+    setCoinsStatus(res.error || "Pickup is on cooldown.", "error");
   }
   renderCoinsPanel();
 });
