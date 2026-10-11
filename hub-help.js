@@ -157,6 +157,7 @@
       fullName: "Barnaby the Hype-Man",
       blurb: "80s gym instructor energy",
       icon: "📣",
+      avatar: "hub-help-icons/barnaby.png",
       starter: false,
       wrap: (core) => `CAN YOU HEAR ME IN THE BACK?! ${core} NOW DROP AND GIVE ME ONE MORE TRY—YOU'RE A CHAMPION!`,
       refuseCheat:
@@ -173,6 +174,7 @@
       fullName: "Sir Goldsworth the Goblin",
       blurb: "Treasure-obsessed coin goblin",
       icon: "🪙",
+      avatar: "hub-help-icons/goldsworth.png",
       starter: false,
       wrap: (core) => `Yesss, shiny seeker… listen close from my coin sack. ${core} More loot awaits. Leave the goblin his tip.`,
       refuseCheat:
