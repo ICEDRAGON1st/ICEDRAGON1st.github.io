@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001bt": [
+    "Help remembers your chat — ask “how many games?” then “how many of them are clicker games?”"
+  ],
   "20261001bs": [
     "Help answers are clearer — short paragraphs and bullet lists instead of one long wall of text"
   ],
