@@ -534,6 +534,22 @@
       .hub-audio-song-option .hub-audio-song-artist{display:block;font-size:.75rem;font-weight:600;color:#8fa4c6;margin-top:.1rem}
       .hub-audio-song-empty{padding:.55rem .6rem;color:#8fa4c6;font-size:.85rem}
       .hub-audio-credits-btn{margin-top:.65rem}
+      .hub-audio-settings.is-menu{margin:.7rem 0 .85rem;padding:.7rem .75rem;max-width:100%;
+        text-align:left}
+      .hub-audio-settings.is-menu .hub-settings-label,
+      .hub-audio-settings.is-menu .hub-audio-song-label{color:inherit;opacity:.95}
+      .hub-audio-settings.is-menu .hub-settings-intro{margin:0 0 .45rem;font-size:.78rem;line-height:1.35;opacity:.8}
+      .hub-audio-settings.is-menu .hub-audio-row{grid-template-columns:6.2rem 1fr 2.6rem;gap:.4rem;margin:.4rem 0}
+      .hub-audio-settings.is-menu .hub-audio-row label{font-size:.8rem}
+      .hub-audio-settings.is-menu .hub-audio-song-picker{max-width:100%}
+      .hub-audio-settings.is-menu .hub-audio-song-search,
+      .hub-audio-settings.is-menu .hub-audio-song-results{background:rgba(0,0,0,.22);color:inherit;
+        border-color:rgba(255,255,255,.22)}
+      .hub-audio-settings.is-menu .hub-audio-credits-btn{display:inline-flex;align-items:center;
+        margin-top:.55rem;padding:.4rem .7rem;border-radius:8px;border:1px solid currentColor;
+        background:transparent;color:inherit;font:inherit;font-size:.85rem;font-weight:700;cursor:pointer;opacity:.9}
+      .hub-audio-settings.is-menu .hub-audio-credits-btn:hover{opacity:1}
+      .modal-content .hub-audio-settings.is-menu{background:rgba(20,30,55,.55)}
     `;
   }
 
@@ -618,6 +634,8 @@
 
   /* ── Settings controls ── */
 
+  let mountSeq = 0;
+
   function songLabel(id) {
     if (id === "auto") return "Auto (by screen)";
     const t = TRACK_BY_ID[id];
@@ -640,54 +658,64 @@
     });
   }
 
-  function settingsHtml() {
+  function settingsHtml({ compact = false, uid = "hub" } = {}) {
+    const id = (name) => `hub-audio-${name}-${uid}`;
     return `
-      <div class="hub-audio-settings" data-hub-audio-settings>
+      <div class="hub-audio-settings${compact ? " is-menu" : ""}" data-hub-audio-settings data-hub-audio-uid="${escapeAttr(uid)}">
         <p class="hub-settings-label">Sound &amp; music</p>
-        <p class="hub-settings-intro">Volumes save on this device. Auto picks a track for each menu or minigame and crossfades when you switch.</p>
+        <p class="hub-settings-intro">Volumes save on this device. Search to pick a song, or leave Auto for each screen.</p>
         <div class="hub-audio-row">
-          <label for="hub-audio-bgm">Music</label>
-          <input id="hub-audio-bgm" type="range" min="0" max="100" step="1" value="${Math.round(bgmVolume * 100)}" />
+          <label for="${id("bgm")}">Music</label>
+          <input id="${id("bgm")}" data-hub-audio-bgm type="range" min="0" max="100" step="1" value="${Math.round(bgmVolume * 100)}" />
           <span class="hub-audio-pct" data-hub-audio-bgm-pct>${Math.round(bgmVolume * 100)}%</span>
         </div>
         <div class="hub-audio-row">
-          <label for="hub-audio-sfx">Sound effects</label>
-          <input id="hub-audio-sfx" type="range" min="0" max="100" step="1" value="${Math.round(sfxVolume * 100)}" />
+          <label for="${id("sfx")}">Sound effects</label>
+          <input id="${id("sfx")}" data-hub-audio-sfx type="range" min="0" max="100" step="1" value="${Math.round(sfxVolume * 100)}" />
           <span class="hub-audio-pct" data-hub-audio-sfx-pct>${Math.round(sfxVolume * 100)}%</span>
         </div>
-        <p class="hub-audio-song-label" id="hub-audio-song-label">Song</p>
+        <p class="hub-audio-song-label" id="${id("song-label")}">Song</p>
         <div class="hub-audio-song-picker" data-hub-audio-song-picker>
-          <input id="hub-audio-song-search" class="hub-audio-song-search" type="search"
+          <input id="${id("search")}" data-hub-audio-song-search class="hub-audio-song-search" type="search"
             placeholder="Search songs…" autocomplete="off" spellcheck="false"
-            aria-labelledby="hub-audio-song-label" aria-controls="hub-audio-song-results"
+            aria-labelledby="${id("song-label")}" aria-controls="${id("results")}"
             aria-autocomplete="list" aria-expanded="false" />
-          <ul id="hub-audio-song-results" class="hub-audio-song-results hidden" role="listbox" aria-label="Songs"></ul>
+          <ul id="${id("results")}" data-hub-audio-song-results class="hub-audio-song-results hidden" role="listbox" aria-label="Songs"></ul>
         </div>
-        <button type="button" class="hub-btn hub-audio-credits-btn" id="hub-audio-open-credits">Music credits</button>
+        <button type="button" class="hub-btn btn hub-audio-credits-btn" data-hub-audio-credits>Music credits</button>
       </div>`;
   }
 
-  function paintSettings(root) {
-    const scope = root || document;
-    const bgm = scope.querySelector("#hub-audio-bgm");
-    const sfx = scope.querySelector("#hub-audio-sfx");
-    const search = scope.querySelector("#hub-audio-song-search");
-    const bgmPct = scope.querySelector("[data-hub-audio-bgm-pct]");
-    const sfxPct = scope.querySelector("[data-hub-audio-sfx-pct]");
-    if (bgm) bgm.value = String(Math.round(bgmVolume * 100));
-    if (sfx) sfx.value = String(Math.round(sfxVolume * 100));
-    if (search && document.activeElement !== search) {
-      search.value = songLabel(trackPref);
-      search.dataset.selectedId = trackPref;
+  function settingsBoxes(root) {
+    if (!root || root === document) {
+      return [...document.querySelectorAll("[data-hub-audio-settings]")];
     }
-    if (bgmPct) bgmPct.textContent = `${Math.round(bgmVolume * 100)}%`;
-    if (sfxPct) sfxPct.textContent = `${Math.round(sfxVolume * 100)}%`;
+    if (root.matches?.("[data-hub-audio-settings]")) return [root];
+    return [...root.querySelectorAll("[data-hub-audio-settings]")];
+  }
+
+  function paintSettings(root) {
+    settingsBoxes(root).forEach((box) => {
+      const bgm = box.querySelector("[data-hub-audio-bgm]");
+      const sfx = box.querySelector("[data-hub-audio-sfx]");
+      const search = box.querySelector("[data-hub-audio-song-search]");
+      const bgmPct = box.querySelector("[data-hub-audio-bgm-pct]");
+      const sfxPct = box.querySelector("[data-hub-audio-sfx-pct]");
+      if (bgm) bgm.value = String(Math.round(bgmVolume * 100));
+      if (sfx) sfx.value = String(Math.round(sfxVolume * 100));
+      if (search && document.activeElement !== search) {
+        search.value = songLabel(trackPref);
+        search.dataset.selectedId = trackPref;
+      }
+      if (bgmPct) bgmPct.textContent = `${Math.round(bgmVolume * 100)}%`;
+      if (sfxPct) sfxPct.textContent = `${Math.round(sfxVolume * 100)}%`;
+    });
   }
 
   function bindSongSearch(box) {
     const picker = box.querySelector("[data-hub-audio-song-picker]");
-    const search = box.querySelector("#hub-audio-song-search");
-    const results = box.querySelector("#hub-audio-song-results");
+    const search = box.querySelector("[data-hub-audio-song-search]");
+    const results = box.querySelector("[data-hub-audio-song-results]");
     if (!picker || !search || !results || search.dataset.hubAudioBound) return;
     search.dataset.hubAudioBound = "1";
 
@@ -707,15 +735,11 @@
         results.innerHTML = matches
           .map((t, i) => {
             const selected = t.id === trackPref ? " is-selected" : "";
-            const artist =
-              t.id === "auto"
-                ? `<span class="hub-audio-song-artist">${escapeHtml(t.artist)}</span>`
-                : `<span class="hub-audio-song-artist">${escapeHtml(t.artist)}</span>`;
             return `<li role="presentation">
               <button type="button" class="hub-audio-song-option${selected}" role="option"
                 data-song-id="${escapeAttr(t.id)}" data-index="${i}"
                 aria-selected="${t.id === trackPref ? "true" : "false"}">
-                ${escapeHtml(t.title)}${artist}
+                ${escapeHtml(t.title)}<span class="hub-audio-song-artist">${escapeHtml(t.artist)}</span>
               </button>
             </li>`;
           })
@@ -770,9 +794,12 @@
           choose(pick.getAttribute("data-song-id"));
         }
       } else if (e.key === "Escape") {
-        closeList();
-        search.value = songLabel(trackPref);
-        search.blur();
+        if (!results.classList.contains("hidden")) {
+          e.preventDefault();
+          e.stopPropagation();
+          closeList();
+          search.value = songLabel(trackPref);
+        }
       }
     });
     results.addEventListener("click", (e) => {
@@ -785,44 +812,12 @@
     });
   }
 
-  function bindSettings(rootEl) {
-    const root = rootEl || document.getElementById("hub-settings-panel");
-    if (!root) return;
-    let box = root.querySelector("[data-hub-audio-settings]");
-    if (!box) {
-      const mount = document.createElement("div");
-      mount.innerHTML = settingsHtml();
-      box = mount.firstElementChild;
-      const hubLook = [...root.querySelectorAll(".hub-settings-label")].find((el) =>
-        /hub look/i.test(el.textContent || "")
-      );
-      if (hubLook) root.insertBefore(box, hubLook);
-      else {
-        const h3 = root.querySelector("h3");
-        if (h3 && h3.nextSibling) root.insertBefore(box, h3.nextSibling);
-        else root.appendChild(box);
-      }
-    } else if (!box.querySelector("[data-hub-audio-song-picker]")) {
-      // Upgrade older dropdown UI to searchable picker
-      const oldSelect = box.querySelector("#hub-audio-song, .hub-audio-song-select");
-      const mount = document.createElement("div");
-      mount.innerHTML = `<div class="hub-audio-song-picker" data-hub-audio-song-picker>
-          <input id="hub-audio-song-search" class="hub-audio-song-search" type="search"
-            placeholder="Search songs…" autocomplete="off" spellcheck="false"
-            aria-labelledby="hub-audio-song-label" aria-controls="hub-audio-song-results"
-            aria-autocomplete="list" aria-expanded="false" />
-          <ul id="hub-audio-song-results" class="hub-audio-song-results hidden" role="listbox" aria-label="Songs"></ul>
-        </div>`;
-      const picker = mount.firstElementChild;
-      if (oldSelect) oldSelect.replaceWith(picker);
-      else box.querySelector(".hub-audio-song-label")?.insertAdjacentElement("afterend", picker);
-    }
-
+  function wireSettingsBox(box) {
+    if (!box) return;
     ensureAudioStyles();
-
-    const bgm = box.querySelector("#hub-audio-bgm");
-    const sfx = box.querySelector("#hub-audio-sfx");
-    const creditsBtn = box.querySelector("#hub-audio-open-credits");
+    const bgm = box.querySelector("[data-hub-audio-bgm]");
+    const sfx = box.querySelector("[data-hub-audio-sfx]");
+    const creditsBtn = box.querySelector("[data-hub-audio-credits]");
 
     if (bgm && !bgm.dataset.hubAudioBound) {
       bgm.dataset.hubAudioBound = "1";
@@ -852,6 +847,148 @@
     paintSettings(box);
   }
 
+  function bindSettings(rootEl) {
+    const root = rootEl || document.getElementById("hub-settings-panel");
+    if (!root) return;
+    let box = root.querySelector("[data-hub-audio-settings]");
+    if (!box) {
+      const mount = document.createElement("div");
+      mount.innerHTML = settingsHtml({ compact: false, uid: "hub" });
+      box = mount.firstElementChild;
+      const hubLook = [...root.querySelectorAll(".hub-settings-label")].find((el) =>
+        /hub look/i.test(el.textContent || "")
+      );
+      if (hubLook) root.insertBefore(box, hubLook);
+      else {
+        const h3 = root.querySelector("h3");
+        if (h3 && h3.nextSibling) root.insertBefore(box, h3.nextSibling);
+        else root.appendChild(box);
+      }
+    } else if (!box.querySelector("[data-hub-audio-song-picker]")) {
+      const oldSelect = box.querySelector("#hub-audio-song, .hub-audio-song-select");
+      const uid = box.getAttribute("data-hub-audio-uid") || "hub";
+      const mount = document.createElement("div");
+      mount.innerHTML = `<div class="hub-audio-song-picker" data-hub-audio-song-picker>
+          <input id="hub-audio-search-${uid}" data-hub-audio-song-search class="hub-audio-song-search" type="search"
+            placeholder="Search songs…" autocomplete="off" spellcheck="false"
+            aria-autocomplete="list" aria-expanded="false" />
+          <ul id="hub-audio-results-${uid}" data-hub-audio-song-results class="hub-audio-song-results hidden" role="listbox" aria-label="Songs"></ul>
+        </div>`;
+      const picker = mount.firstElementChild;
+      if (oldSelect) oldSelect.replaceWith(picker);
+      else box.querySelector(".hub-audio-song-label")?.insertAdjacentElement("afterend", picker);
+    }
+
+    // Migrate legacy id-only inputs
+    box.querySelectorAll("#hub-audio-bgm").forEach((el) => el.setAttribute("data-hub-audio-bgm", ""));
+    box.querySelectorAll("#hub-audio-sfx").forEach((el) => el.setAttribute("data-hub-audio-sfx", ""));
+    box.querySelectorAll("#hub-audio-open-credits").forEach((el) => el.setAttribute("data-hub-audio-credits", ""));
+    box.querySelectorAll("#hub-audio-song-search").forEach((el) => el.setAttribute("data-hub-audio-song-search", ""));
+    box.querySelectorAll("#hub-audio-song-results").forEach((el) => el.setAttribute("data-hub-audio-song-results", ""));
+
+    wireSettingsBox(box);
+  }
+
+  function overlayIsVisible(ov) {
+    if (!ov) return false;
+    if (ov.classList.contains("hidden") || ov.hasAttribute("hidden")) return false;
+    const style = window.getComputedStyle(ov);
+    if (style.display === "none" || style.visibility === "hidden") return false;
+    return true;
+  }
+
+  function looksLikeGameMenu(card, ov) {
+    if (!card) return false;
+    if (card.querySelector("[data-hub-audio-settings]")) return true;
+    const oid = String(ov?.id || "");
+    if (oid === "settings-overlay" || oid === "overlay" || oid === "menu-overlay" || oid === "pause-overlay") {
+      return true;
+    }
+    return !!(
+      card.querySelector("#games-btn") ||
+      card.querySelector("#start-btn") ||
+      card.querySelector("#resume-btn") ||
+      card.querySelector("#menu-settings-btn")
+    );
+  }
+
+  function mountIntoMenuHost(host, { compact = true } = {}) {
+    if (!host) return null;
+    let box = host.querySelector(":scope > [data-hub-audio-settings], [data-hub-audio-settings]");
+    if (box && host.contains(box)) {
+      wireSettingsBox(box);
+      return box;
+    }
+    const uid = `m${++mountSeq}`;
+    const mount = document.createElement("div");
+    mount.innerHTML = settingsHtml({ compact, uid });
+    box = mount.firstElementChild;
+    const actions = host.querySelector(
+      ":scope > .overlay-actions, :scope > .modal-actions, .overlay-actions, .modal-actions"
+    );
+    if (actions && actions.parentNode === host) host.insertBefore(box, actions);
+    else if (actions) actions.insertAdjacentElement("beforebegin", box);
+    else host.appendChild(box);
+    wireSettingsBox(box);
+    return box;
+  }
+
+  function scanGameMenus() {
+    try {
+      document.querySelectorAll(".overlay").forEach((ov) => {
+        if (!overlayIsVisible(ov)) return;
+        // Prefer the primary card (first direct child), skip nested guide panels
+        const card =
+          ov.querySelector(":scope > .overlay-card") ||
+          ov.querySelector(".overlay-card") ||
+          ov;
+        if (!looksLikeGameMenu(card, ov)) return;
+        // Avoid stuffing audio into secondary fishing/mine panels without nav actions
+        if (
+          ov.id &&
+          ov.id !== "overlay" &&
+          ov.id !== "settings-overlay" &&
+          ov.id !== "menu-overlay" &&
+          ov.id !== "pause-overlay" &&
+          !card.querySelector("#games-btn, #start-btn, #resume-btn")
+        ) {
+          return;
+        }
+        mountIntoMenuHost(card, { compact: true });
+      });
+
+      const menuModal = document.getElementById("menu-modal");
+      if (menuModal && overlayIsVisible(menuModal)) {
+        const content = menuModal.querySelector(".modal-content") || menuModal;
+        mountIntoMenuHost(content, { compact: true });
+      }
+    } catch {}
+  }
+
+  function watchGameMenus() {
+    let timer = 0;
+    const kick = () => {
+      clearTimeout(timer);
+      timer = setTimeout(scanGameMenus, 40);
+    };
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" || e.code === "Escape") kick();
+    });
+    document.addEventListener("click", (e) => {
+      if (e.target.closest?.("#menu-btn, .menu-btn, #settings-btn, #menu-settings-btn")) kick();
+    });
+    try {
+      const mo = new MutationObserver(kick);
+      mo.observe(document.documentElement, {
+        subtree: true,
+        childList: true,
+        attributes: true,
+        attributeFilter: ["class", "hidden", "style"]
+      });
+    } catch {}
+    kick();
+  }
+
   function showToast(msg) {
     try {
       if (typeof window.showGamesMessage === "function") {
@@ -872,6 +1009,7 @@
     currentTheme = themeFromLocation();
     currentTrackId = resolveTrackId(currentTheme);
     ensureCreditsUi();
+    watchGameMenus();
 
     const kick = () => {
       unlock();
@@ -902,6 +1040,7 @@
   // Auto-bind hub settings when present
   const tryBind = () => {
     if (document.getElementById("hub-settings-panel")) bindSettings();
+    scanGameMenus();
   };
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", tryBind);
@@ -927,6 +1066,8 @@
     openCredits,
     closeCredits,
     bindSettings,
+    mountIntoMenuHost,
+    scanGameMenus,
     unlock,
     TRACKS
   };

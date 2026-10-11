@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ch": [
+    "Press Esc / Menu in any game to change Music, SFX, and song (searchable)"
+  ],
   "20261001cg": [
     "Settings song picker: type to search tracks by name or artist"
   ],
