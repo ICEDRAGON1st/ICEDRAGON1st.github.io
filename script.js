@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001cg": [
+    "Settings song picker: type to search tracks by name or artist"
+  ],
   "20261001cf": [
     "Music library: added Abstraction Music Loop Bundle (29 CC0 OGG loops) to the song picker"
   ],
