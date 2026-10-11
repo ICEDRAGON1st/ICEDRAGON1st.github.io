@@ -20,11 +20,87 @@
   const PREF_MUTED = "hub-audio-bgm-muted";
   const FADE_MS = 900;
 
+  const ABS = {
+    artist: "Abstraction",
+    license: "CC0",
+    licenseUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
+    sourceUrl: "https://tallbeard.itch.io/music-loop-bundle"
+  };
+
+  function absTrack(id, title, file, themes) {
+    return {
+      id,
+      title,
+      artist: ABS.artist,
+      file: `sounds/music/abstraction/${file}`,
+      license: ABS.license,
+      licenseUrl: ABS.licenseUrl,
+      sourceUrl: ABS.sourceUrl,
+      themes: themes || []
+    };
+  }
+
   /**
    * Royalty-free / CC0 catalog. Drop new files in sounds/music/ and add a row here.
    * Themes map screens → default track when song mode is Auto.
+   * Abstraction pack: https://tallbeard.itch.io/music-loop-bundle (CC0)
    */
   const TRACKS = [
+    absTrack("skyline-city", "Distant Skyline — City Lights", "distant-skyline-city-lights.ogg", [
+      "hub",
+      "menu",
+      "settings",
+      "credits"
+    ]),
+    absTrack("skyline-night", "Distant Skyline — Night Drive", "distant-skyline-night-drive.ogg"),
+    absTrack("skyline-strut", "Distant Skyline — Sidewalk Strut", "distant-skyline-sidewalk-strut.ogg", [
+      "puzzle",
+      "wordle",
+      "sudoku",
+      "memory",
+      "hangman"
+    ]),
+    absTrack("seaside-waves", "Seaside — Endless Waves", "seaside-endless-waves.ogg", ["fishing"]),
+    absTrack("seaside-coral", "Seaside — Coral Reef", "seaside-coral-reef.ogg"),
+    absTrack("sunburn-beach", "Sunburn — Beach House", "sunburn-beach-house.ogg", ["garden", "cafe"]),
+    absTrack("sunburn-spf", "Sunburn — SPF 3000", "sunburn-spf-3000.ogg"),
+    absTrack("vacation-chill", "Vacation Day — Chillout", "vacation-day-chillout.ogg", ["cows"]),
+    absTrack("vacation-adventure", "Vacation Day — Adventure", "vacation-day-adventure.ogg", [
+      "arcade",
+      "crossy",
+      "guac",
+      "bubble"
+    ]),
+    absTrack("summer-pool", "Have A Great Summer — Pool Party", "have-a-great-summer-pool-party.ogg"),
+    absTrack("freefall-glide", "Freefall — Glide", "freefall-glide.ogg", ["flappy", "dino", "ramp"]),
+    absTrack("freefall-view", "Freefall — What A View", "freefall-what-a-view.ogg", ["space"]),
+    absTrack("deep-well", "Pull Me Down — Deep Well", "pull-me-down-deep-well.ogg", ["mine"]),
+    absTrack("gravity", "Pull Me Down — Gravity", "pull-me-down-gravity.ogg"),
+    absTrack("dark-traveler", "Dark Portents — Mysterious Traveler", "dark-portents-mysterious-traveler.ogg"),
+    absTrack("dark-future", "Dark Portents — Shrouded Future", "dark-portents-shrouded-future.ogg"),
+    absTrack("dust-rain", "Dust Bowl — Hope of Rain", "dust-bowl-hope-of-rain.ogg"),
+    absTrack("dust-parched", "Dust Bowl — Parched", "dust-bowl-parched.ogg"),
+    absTrack("dunes-oasis", "The Walking Dunes — Evening Oasis", "the-walking-dunes-evening-oasis.ogg"),
+    absTrack("dunes-sun", "The Walking Dunes — Unblinking Sun", "the-walking-dunes-unblinking-sun.ogg"),
+    absTrack("workshop", "Workshop — Breadboard", "workshop-breadboard.ogg", ["clicker", "stacker"]),
+    absTrack("magnetic-tape", "Magnetic Tape — Scuffed", "magnetic-tape-scuffed.ogg", ["retro"]),
+    absTrack("alley-divin", "Alley Cat — Dumpster Divin'", "alley-cat-dumpster-divin.ogg", [
+      "snake",
+      "breakout"
+    ]),
+    absTrack("alley-party", "Alley Cat — Dumpster Party", "alley-cat-dumpster-party.ogg", [
+      "paper",
+      "lemmings"
+    ]),
+    absTrack("soup-base", "Primordial Soup — Base", "primordial-soup-base.ogg"),
+    absTrack("soup-jangles", "Primordial Soup — Jangles", "primordial-soup-jangles.ogg", [
+      "blockblast",
+      "pixletris",
+      "2048"
+    ]),
+    absTrack("soup-melody", "Primordial Soup — Melody", "primordial-soup-melody.ogg"),
+    absTrack("lift-chorus", "Lift You Up — Chorus", "lift-you-up-chorus.ogg", ["tictactoe", "connect-four"]),
+    absTrack("lift-melody", "Lift You Up — Melody", "lift-you-up-melody.ogg", ["math", "quiz"]),
     {
       id: "hub-lounge",
       title: "Ambient Soundscape",
@@ -33,7 +109,7 @@
       license: "CC0",
       licenseUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
       sourceUrl: "https://opengameart.org/content/ambient-soundscape",
-      themes: ["hub", "menu", "settings", "credits"]
+      themes: []
     },
     {
       id: "forest-calm",
@@ -43,7 +119,7 @@
       license: "CC0",
       licenseUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
       sourceUrl: "https://opengameart.org/content/forest-ambience",
-      themes: ["fishing", "garden", "cafe", "cows", "puzzle", "wordle", "sudoku", "memory", "hangman"]
+      themes: []
     },
     {
       id: "dream-depths",
@@ -53,7 +129,7 @@
       license: "CC0",
       licenseUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
       sourceUrl: "https://opengameart.org/content/dream-2-ambience",
-      themes: ["mine", "space", "clicker", "stacker"]
+      themes: []
     },
     {
       id: "happy-run",
@@ -63,7 +139,7 @@
       license: "CC0",
       licenseUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
       sourceUrl: "https://opengameart.org/content/happy-adventure-loop",
-      themes: ["arcade", "flappy", "dino", "crossy", "guac", "bubble", "ramp", "snake", "breakout", "paper", "lemmings", "blockblast", "pixletris", "2048", "math", "quiz", "tictactoe", "connect-four"]
+      themes: []
     },
     {
       id: "chippey",
@@ -73,7 +149,7 @@
       license: "CC0",
       licenseUrl: "https://creativecommons.org/publicdomain/zero/1.0/",
       sourceUrl: "https://opengameart.org/content/chippey",
-      themes: ["retro"]
+      themes: []
     }
   ];
 
@@ -459,7 +535,7 @@
     modal.innerHTML = `
       <div class="hub-credits-card">
         <h2 id="hub-credits-title">Credits</h2>
-        <p class="hub-credits-intro">Music used in My Games. All listed tracks are royalty-free (CC0) — thank you to the artists.</p>
+        <p class="hub-credits-intro">Music used in My Games. Most loops are from Abstraction’s <a href="https://tallbeard.itch.io/music-loop-bundle" target="_blank" rel="noopener noreferrer">Music Loop Bundle</a> (CC0). Thank you to every artist listed below.</p>
         <ul class="hub-credits-list" id="hub-credits-list"></ul>
         <div class="hub-credits-actions">
           <button type="button" class="hub-btn modal-btn" id="hub-credits-close">Close</button>
