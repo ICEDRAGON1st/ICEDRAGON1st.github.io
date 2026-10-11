@@ -961,6 +961,8 @@
       owner: "",
       platform: "",
       releaseDate: "",
+      gameCount: "",
+      gamesList: "",
       objective: "",
       controls: "",
       menus: "",
@@ -968,7 +970,12 @@
       peakConcurrent: "",
       liveStatsNote: "",
       rules: "",
-      supportLinks: ""
+      supportLinks: "",
+      hubFeatures: "",
+      helpAssistant: "",
+      helpMascots: "",
+      techNotes: "",
+      gamesDetail: []
     };
     const map = [
       [/^\s*game\s*name\s*:/i, "gameName"],
@@ -976,6 +983,8 @@
       [/^\s*owner\s*:/i, "owner"],
       [/^\s*platform\s*:/i, "platform"],
       [/^\s*release\s*date\s*:/i, "releaseDate"],
+      [/^\s*game\s*count\s*:/i, "gameCount"],
+      [/^\s*games?\s*list\s*:/i, "gamesList"],
       [/^\s*main\s*objective\s*:/i, "objective"],
       [/^\s*controls?\s*:/i, "controls"],
       [/^\s*menus?\s*:/i, "menus"],
@@ -983,11 +992,25 @@
       [/^\s*peak\s*concurrent(\s*players?)?\s*:/i, "peakConcurrent"],
       [/^\s*live\s*stats?\s*note\s*:/i, "liveStatsNote"],
       [/^\s*rules?\s*:/i, "rules"],
-      [/^\s*support\s*links?\s*:/i, "supportLinks"]
+      [/^\s*support\s*links?\s*:/i, "supportLinks"],
+      [/^\s*hub\s*features?\s*:/i, "hubFeatures"],
+      [/^\s*help\s*assistant\s*:/i, "helpAssistant"],
+      [/^\s*help\s*mascots?\s*:/i, "helpMascots"],
+      [/^\s*tech\s*notes?\s*:/i, "techNotes"]
     ];
     String(text || "")
       .split(/\r?\n/)
       .forEach((line) => {
+        const gameLine = line.match(/^\s*game\s+([\w-]+)\s*:\s*(.+)$/i);
+        if (gameLine) {
+          const id = String(gameLine[1] || "").trim().toLowerCase();
+          const body = String(gameLine[2] || "").trim();
+          const title = body.split(/\s*[·|]\s*/)[0].trim();
+          if (id && body) {
+            out.gamesDetail.push({ id, title, body });
+          }
+          return;
+        }
         for (const [re, key] of map) {
           if (!re.test(line)) continue;
           const val = line.replace(re, "").trim();
@@ -995,6 +1018,12 @@
           break;
         }
       });
+    if (!out.gamesList && out.gamesDetail.length) {
+      out.gamesList = out.gamesDetail.map((g) => g.title).filter(Boolean).join(", ");
+    }
+    if (!out.gameCount && out.gamesDetail.length) {
+      out.gameCount = String(out.gamesDetail.length);
+    }
     return out;
   }
 
@@ -1060,11 +1089,18 @@
     const gameName = gameInfoField("gameName");
     const platform = gameInfoField("platform");
     const releaseDate = gameInfoField("releaseDate");
+    const gameCount = gameInfoField("gameCount");
+    const gamesList = gameInfoField("gamesList");
     const objective = gameInfoField("objective");
     const controls = gameInfoField("controls");
     const menus = gameInfoField("menus");
     const rules = gameInfoField("rules");
     const support = gameInfoField("supportLinks");
+    const hubFeatures = gameInfoField("hubFeatures");
+    const helpAssistant = gameInfoField("helpAssistant");
+    const helpMascots = gameInfoField("helpMascots");
+    const techNotes = gameInfoField("techNotes");
+    const details = Array.isArray(gameInfo.gamesDetail) ? gameInfo.gamesDetail : [];
 
     if (OWNER_RE.test(q) || OWNER_RE.test(raw)) {
       if (owner) {
@@ -1076,6 +1112,59 @@
         };
       }
       return null;
+    }
+
+    // "what games are in this" / game list / how many games
+    if (
+      /\b(what|which|list|all|how\s+many|show|name)\b[\s\S]{0,40}\b(games?|minigames?)\b/i.test(q) ||
+      /\b(games?|minigames?)\b[\s\S]{0,24}\b(list|are\s+there|in\s+(this|the\s+hub|my\s+games)|available|included)\b/i.test(
+        q
+      ) ||
+      /\b(games?\s*list|list\s+of\s+games|minigame\s+list)\b/i.test(q)
+    ) {
+      if (gamesList) {
+        const countBit = gameCount ? `${gameCount} games` : "these games";
+        return {
+          title: "Games list",
+          answer: `${gameName || "My Games"} includes ${countBit}: ${gamesList}. Tap a card on the hub to play any of them.`
+        };
+      }
+      if (details.length) {
+        const names = details.map((g) => g.title).filter(Boolean).join(", ");
+        return {
+          title: "Games list",
+          answer: `${gameName || "My Games"} includes ${details.length} games: ${names}. Tap a card on the hub to play any of them.`
+        };
+      }
+    }
+
+    if (
+      /\b(hub\s*features?|what\s+features|features?\s+(of|in|does)|what\s+can\s+(the\s+)?hub\s+do|feature\s*list)\b/i.test(
+        q
+      ) &&
+      hubFeatures
+    ) {
+      return { title: "Hub features", answer: hubFeatures };
+    }
+
+    if (
+      /\b(help\s*mascots?|mascots?|bot\s*personalit|which\s+mascot|help\s*icons?)\b/i.test(q) &&
+      helpMascots
+    ) {
+      return { title: "Help mascots", answer: helpMascots };
+    }
+
+    if (
+      /\b(local\s*ai|help\s*assistant|how\s+does\s+help|is\s+there\s+(an?\s+)?ai|ai\s+help|faq\s*bot|no\s+api\s*key)\b/i.test(
+        q
+      ) &&
+      helpAssistant
+    ) {
+      return { title: "Help assistant", answer: helpAssistant };
+    }
+
+    if (/\b(tech\s*notes?|offline\s*mode|service\s*worker|supabase|mantle|how\s+is\s+it\s+built)\b/i.test(q) && techNotes) {
+      return { title: "Tech notes", answer: techNotes };
     }
 
     if (/\b(support|discord|social|website|community\s*link|invite)\b/i.test(q) && support) {
@@ -1102,7 +1191,7 @@
     }
 
     if (
-      /\b(game\s*name|what\s+game|platform|release\s*date|when\s+(was|did).*(release|launch)|about\s+(the\s+)?game)\b/i.test(
+      /\b(game\s*name|what\s+game|platform|release\s*date|when\s+(was|did).*(release|launch)|about\s+(the\s+)?(game|hub))\b/i.test(
         q
       )
     ) {
@@ -1111,6 +1200,7 @@
       if (owner) bits.push(`Owner & developer: ${owner}`);
       if (platform) bits.push(`Platform: ${platform}`);
       if (releaseDate) bits.push(`Release date: ${releaseDate}`);
+      if (gameCount) bits.push(`${gameCount} minigames`);
       if (bits.length) return { title: "About", answer: bits.join(" · ") };
     }
 
