@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001bm": [
+    "Help knowledge base filled from the live hub — GAME_INFO.txt lists every game, controls, and the local Help mascots"
+  ],
   "20261001bl": [
     "Help Assistant: Barnaby and Sir Goldsworth now have matching portrait icons too"
   ],

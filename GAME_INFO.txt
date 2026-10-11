@@ -1,31 +1,72 @@
 GAME INFORMATION & FAQ
 
-Game Name: [Insert Game Name]
-
-Owner & Developer: [Insert Owner / Studio Name]
-
-Platform: [Insert Platform, e.g., Roblox, PC, Mobile]
-
-Release Date: [Insert Release Date]
+Game Name: My Games
+Owner & Developer: ICE_DRAGON
+Platform: Web (GitHub Pages) — https://icedragon1st.github.io/ and custom domain https://mygames.com
+Release Date: Ongoing browser hub (live builds stamped as WORDLE_BUILD in index.html)
 
 GAMEPLAY & CONTROLS
 
-Main Objective: [Insert core gameplay goal]
+Main Objective: Play a collection of browser minigames from one hub. Pick a game card, set a unique player name for sync/leaderboards, chase high scores, achievements, streaks, and friends features. Most progress saves on this device; cloud sync is used when online.
 
-Controls: [Insert control scheme, e.g., WASD to move, Space to jump]
+Controls: Hub: tap a game card to play; search box filters games; star favorites a game. Help Assistant: tap ? or press F (use F1 inside letter games — Guessword, Hangman, Quiz, Sudoku). Hold Tab to peek who is online. Esc / ☰ Menu pauses most action games and offers Games to return to the hub. Per-game move/shoot keys differ — see Games list below and ask Help “how to play” while inside a game.
 
-Menus: [Insert menu locations and navigation]
+Menus: Hub home (My Games grid) has Continue last game, High scores, Leaderboards, Achievements, Players, Friends, Updates, Feedback, Share game, Discord, and ⚙ Settings (look themes, sound, account / player name / player code, Help mascot picker). Inside games: ☰ Menu / Esc for pause, Settings where available (e.g. Fishing Idle ⚙), and Games to return to the hub.
 
 PLAYER STATS & MILESTONES
 
 Total Plays/Visits: [Insert total player count or milestone]
-
 Peak Concurrent Players: [Insert highest record count]
-
-Live Stats Note: Exact live numbers update in real time on the main game page, Players list, Leaderboards, and Discord. Chat does not stream a live database.
+Live Stats Note: Exact live numbers update in real time on the main game page, Players list, Leaderboards, and Discord. Chat does not stream a live database. Hold Tab for an online peek. Help cannot invent live counts.
 
 RULES & COMMUNITY
 
-Rules: [Insert main community/game rules]
+Rules: Be fair — no spoilers for secret words, hidden tiles, or live puzzle answers. Use a unique player name; don’t impersonate others. Keep chat and feedback respectful. Help only covers My Games (not homework or real-world trivia). Passwords are never shown by Help.
 
-Support Links: [Insert links to Discord, website, or social media]
+Support Links: Discord invite https://discord.gg/6NHYfPwAwg · Website https://mygames.com · Hub Feedback button · Updates panel for changelog
+
+HUB FEATURES
+
+Hub Features: Game grid with search and favorites; Continue last game; personal High scores; global Leaderboards (Hub Points, Time Online, Day Streak, Most Invites, plus per-game boards — Mine Depth splits into depth + best ore); Achievements with unlock toasts; Players / all-time roster; Friends, chat, and calls; Referrals / Share invite link (INVITER title); Discord login option; day streak (play within 48h); hub look themes; Guessword Daily vs Practice; Most played badge from hub play counts; offline shell after one online visit (service worker); AFK screen after 10 minutes idle on this tab only (pauses this client’s Mantle/Supabase usage — other players unaffected).
+
+LOCAL AI / HELP ASSISTANT
+
+Help Assistant: Local FAQ + personality wrapper — no cloud LLM and no API key. Answers come from help-data.json topics, GAME_INFO.txt fields, and light device context (username / player code on this device). Hotkeys: F most places; F1 in letter games. Open via ? FAB. Fair-play: no spoilers, secret words, or other players’ private codes/passwords.
+
+Help Mascots: Helper (normal, starter, plain voice) · Chip (chip, starter) · SPARK-E (spark-e, starter) · Whiskers (whiskers, locked until coin unlock) · Glitch (glitch, locked) · Pixel-8 (pixel-8, locked) · Barnaby (barnaby, locked) · Sir Goldsworth (goldsworth, locked) · Astra (astra, locked) · Chef Gusto (gusto, locked) · Shadow (shadow, locked). Portrait icons live in hub-help-icons/. Pick mascot in Hub → Settings.
+
+GAMES LIST (id · name · path · card blurb · how to play)
+
+Game wordle: Guessword · (hub Guessword board) · Ice-melt tiles · Flex 4/5/6 · Guess the secret word in 6 tries; cyan = right letter+spot, purple = wrong spot; Daily vs Practice badge by the title.
+Game space: Space Shooter · space-shooter/index.html · Fly, dodge, and shoot · Mouse or WASD to move; Space/click to shoot; Esc/Menu pauses.
+Game quiz: Quizmaster · quiz/index.html · General knowledge quiz · Pick correct trivia answers to score; F1 for Help so letter keys stay free.
+Game breakout: Bounce Break · breakout/index.html · Bounce and smash bricks · Move paddle to bounce the ball and clear bricks; don’t let the ball fall.
+Game hangman: Hangman · hangman/index.html · Guess the word · Guess letters; too many misses lose; keyboard or on-screen letters; F1 for Help.
+Game 2048: Block Merge · 2048/index.html · Slide and merge tiles · Arrow keys/swipe; merge matching numbers toward 2048+.
+Game snake: Snake · snake/index.html · Eat food and grow · Arrows or WASD; eat apples; avoid walls and yourself.
+Game memory: Memory Match · memory-match/index.html · Flip cards and find pairs · Flip cards; match pairs in few moves/time.
+Game connect-four: Drop Four · connect-four/index.html · Connect four in a row · Click a column to drop; four in a row wins.
+Game math: Math Sprint · math/index.html · Quick arithmetic quiz · Solve arithmetic quickly; Menu returns toward hub.
+Game sudoku: Sudoku · sudoku/index.html · Classic 9×9 logic puzzle · Fill 1–9 once per row, column, and 3×3 box; F1 for Help.
+Game flappy: Wing Hop · wing-hop/index.html · Fly a dragon through castle towers · Tap/click/Space to flap; dodge towers; Esc/Menu pauses.
+Game tictactoe: Tic Tac Toe · tic-tac-toe/index.html · Three in a row to win · Place X/O; first to three in a row wins.
+Game pixletris: Pixel Drop · pixel-drop/index.html · Drop blocks and clear lines · Landed blocks become sand; bridge one color left-to-right to clear.
+Game clicker: Crystal Clicker · clicker/index.html · Tap crystals, buy upgrades · Tap for crystals; buy click power then idle income.
+Game stacker: Tower Stack 3D · stacker/index.html · Stack 3D slabs — X then Z · Time taps to stack moving slabs; misses trim the tower.
+Game crossy: Cross Walk · cross-walk/index.html · Hop lava, ice, and carts · Cross lanes; dodge hazards; Esc/Menu pauses.
+Game fishing: Fishing Idle · fishing/index.html · Cast, reel, sell your catch · Cast, wait for dunk, time the reel; sell fish; upgrade rods/gear; Menu for Catch book, Fish guide, Shiny machine, Settings, number suffixes; admin events/mail when online.
+Game cows: Cow Merge · cows/index.html · Merge cows and evolve your herd · Merge matching cows into higher tiers; claim offline milk when returning.
+Game dino: Runosaur · runosaur/index.html · 3D cave runner — jump, duck, strafe · Jump crystals, duck bats, stay ahead of the dragon; Space/tap jump.
+Game ramp: Ramp Rush · ramp-rush/run.html · Jump floating ramps over open void · Steer A/D or arrows; hit gold pads; dodge killers; Esc/Menu pauses.
+Game guac: Guac-A-Mole · guac-a-mole/index.html · Whack ripe avocados — skip the rotten ones · Whack good targets; avoid rotten ones.
+Game bubble: Bubble Pop Relay · bubble-pop/index.html · Clear color clusters before the tide rises · Pop matching clusters before the line rises.
+Game cafe: Cafe Queue · cafe-queue/index.html · Serve orders fast — keep the combo alive · Serve the line; keep combos for tips.
+Game garden: Garden Snap · garden-snap/index.html · Plant, water, harvest before the season ends · Short seasons — plant, water, harvest before time runs out.
+Game mine: Mine Depth · mine/index.html · Dig down, sell ore, upgrade drills · Dig layers for ore; sell; buy picks/drills/luck/sell/Sync/Crit/Yield/Scout; Auto dig; Numbers/Depth menus for suffixes; layer size shows current band thickness.
+Game blockblast: Block Sweep · block-sweep/index.html · Place blocks, clear rows and columns · Drag pieces onto an 8×8 board; clear full lines/columns; chain combos.
+Game lemmings: Dudes · dudes/index.html · Assign skills and save the crew · Walkers leave yellow IN; get enough into green OUT; later levels: pick skill then tap a walker.
+Game paper: Paper Claim · paper-io/index.html · Claim land vs NPCs or online — paper.io style · Paint territory; don’t get cut while your trail is open.
+
+TECH NOTES
+
+Tech Notes: Frontend-only hub on GitHub Pages. Sync prefers Supabase hub_docs with Mantle as fallback. Local saves use localStorage. Offline: visit once online to cache via service worker, then airplane mode can load cached games. Build cache-bust: WORDLE_BUILD in index.html.
