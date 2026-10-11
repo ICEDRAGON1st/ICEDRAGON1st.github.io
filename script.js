@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001bx": [
+    "Coins shop: Help mascots cost more (250–500 coins)"
+  ],
   "20261001bw": [
     "Hub coins: earn from wins, daily login, pickups, and Help — spend on Help mascots in the Coins shop"
   ],
