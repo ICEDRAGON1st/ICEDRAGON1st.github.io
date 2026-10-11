@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001bi": [
+    "My Games: Most played badge uses real hub ranks again — Fishing Idle on top (Wing Hop was a stale local count)"
+  ],
   "20261001bh": [
     "My Games: badge says Most played (not Most popular) and sits on the thumbnail — no longer pinned to the top of the list"
   ],
