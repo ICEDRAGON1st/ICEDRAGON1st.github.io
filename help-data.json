@@ -33,7 +33,14 @@
       "games": ["hub", "*"],
       "keywords": ["hub", "home", "my games", "menu", "start"],
       "title": "My Games hub",
-      "answer": "You're on the My Games hub. Tap any game card to play. Use the top buttons for Achievements, Leaderboards, Friends, Players, Updates, Feedback, and Settings. Search games with the search box. Press F anytime for this Help Assistant (F1 inside letter games). Ask “what games are in this” for the full list."
+      "answer": "You're on the My Games hub. Tap any game card to play. Use the top buttons for Achievements, Leaderboards, Players, Titles, Friends, Updates, Feedback, and Settings. Search games with the search box. Press F anytime for this Help Assistant (F1 inside letter games). Ask “what games are in this” for the full list."
+    },
+    {
+      "id": "titles-colors",
+      "games": ["*", "hub"],
+      "keywords": ["title", "titles", "name color", "color picker", "my title", "legend title", "inviter"],
+      "title": "Titles & colors",
+      "answer": "On the hub, tap Titles to choose your title and name color. Players is only for the roster, your name, and account codes — titles live in their own menu."
     },
     {
       "id": "how-to-play-hub",
