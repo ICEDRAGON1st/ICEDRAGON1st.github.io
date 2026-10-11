@@ -1001,22 +1001,24 @@
     String(text || "")
       .split(/\r?\n/)
       .forEach((line) => {
-        const gameLine = line.match(/^\s*game\s+([\w-]+)\s*:\s*(.+)$/i);
-        if (gameLine) {
-          const id = String(gameLine[1] || "").trim().toLowerCase();
-          const body = String(gameLine[2] || "").trim();
-          const title = body.split(/\s*[·|]\s*/)[0].trim();
-          if (id && body) {
-            out.gamesDetail.push({ id, title, body });
-          }
-          return;
-        }
+        let matchedKey = false;
         for (const [re, key] of map) {
           if (!re.test(line)) continue;
           const val = line.replace(re, "").trim();
           if (val) out[key] = val;
+          matchedKey = true;
           break;
         }
+        if (matchedKey) return;
+        // Per-game rows look like `Game wordle: Guessword · …` (not Game Name / Game Count).
+        const gameLine = line.match(/^\s*game\s+([\w-]+)\s*:\s*(.+)$/i);
+        if (!gameLine) return;
+        const id = String(gameLine[1] || "").trim().toLowerCase();
+        if (!id || /^(name|count|list)$/i.test(id)) return;
+        const body = String(gameLine[2] || "").trim();
+        if (!body) return;
+        const title = body.split(/\s*[·|]\s*/)[0].trim();
+        out.gamesDetail.push({ id, title, body });
       });
     if (!out.gamesList && out.gamesDetail.length) {
       out.gamesList = out.gamesDetail.map((g) => g.title).filter(Boolean).join(", ");
