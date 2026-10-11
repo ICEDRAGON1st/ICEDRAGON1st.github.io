@@ -29,14 +29,14 @@
 
   /** Shop catalog — Help mascots unlock with hub coins. */
   const SHOP = [
-    { id: "mascot:whiskers", label: "Whiskers (Help mascot)", cost: 75, kind: "mascot", mascotId: "whiskers" },
-    { id: "mascot:glitch", label: "Glitch (Help mascot)", cost: 75, kind: "mascot", mascotId: "glitch" },
-    { id: "mascot:pixel-8", label: "Pixel-8 (Help mascot)", cost: 75, kind: "mascot", mascotId: "pixel-8" },
-    { id: "mascot:barnaby", label: "Barnaby (Help mascot)", cost: 100, kind: "mascot", mascotId: "barnaby" },
-    { id: "mascot:goldsworth", label: "Sir Goldsworth (Help mascot)", cost: 100, kind: "mascot", mascotId: "goldsworth" },
-    { id: "mascot:astra", label: "Astra (Help mascot)", cost: 100, kind: "mascot", mascotId: "astra" },
-    { id: "mascot:gusto", label: "Chef Gusto (Help mascot)", cost: 100, kind: "mascot", mascotId: "gusto" },
-    { id: "mascot:shadow", label: "Shadow (Help mascot)", cost: 100, kind: "mascot", mascotId: "shadow" }
+    { id: "mascot:whiskers", label: "Whiskers (Help mascot)", cost: 250, kind: "mascot", mascotId: "whiskers" },
+    { id: "mascot:glitch", label: "Glitch (Help mascot)", cost: 300, kind: "mascot", mascotId: "glitch" },
+    { id: "mascot:pixel-8", label: "Pixel-8 (Help mascot)", cost: 300, kind: "mascot", mascotId: "pixel-8" },
+    { id: "mascot:barnaby", label: "Barnaby (Help mascot)", cost: 400, kind: "mascot", mascotId: "barnaby" },
+    { id: "mascot:goldsworth", label: "Sir Goldsworth (Help mascot)", cost: 450, kind: "mascot", mascotId: "goldsworth" },
+    { id: "mascot:astra", label: "Astra (Help mascot)", cost: 400, kind: "mascot", mascotId: "astra" },
+    { id: "mascot:gusto", label: "Chef Gusto (Help mascot)", cost: 400, kind: "mascot", mascotId: "gusto" },
+    { id: "mascot:shadow", label: "Shadow (Help mascot)", cost: 500, kind: "mascot", mascotId: "shadow" }
   ];
 
   const listeners = new Set();
