@@ -1370,6 +1370,35 @@ font-family:Outfit,"Segoe UI",system-ui,sans-serif;color:#eaf3ff}
 #hub-help-root.is-open .hub-help-panel{animation:hubHelpPanelIn .32s cubic-bezier(.2,.85,.2,1) both}
 @keyframes hubHelpPanelIn{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:none}}
 
+/* Hub: open Help like a full-screen game stage */
+#hub-help-root.is-hub-stage{align-items:stretch;justify-content:stretch;padding:0;
+background:#070d18;backdrop-filter:none;-webkit-backdrop-filter:none}
+#hub-help-root.is-hub-stage.is-open .hub-help-panel{animation:hubHelpStageIn .38s cubic-bezier(.2,.85,.2,1) both}
+@keyframes hubHelpStageIn{from{opacity:0;transform:scale(1.025)}to{opacity:1;transform:none}}
+#hub-help-root.is-hub-stage .hub-help-panel{width:100%;max-width:none;height:100%;max-height:none;border-radius:0;border:0;
+box-shadow:none;background:
+  radial-gradient(110% 70% at 50% -8%,rgba(90,160,255,.26),transparent 55%),
+  radial-gradient(80% 55% at 100% 100%,rgba(40,180,200,.12),transparent 48%),
+  radial-gradient(70% 45% at 0% 100%,rgba(80,120,255,.1),transparent 50%),
+  linear-gradient(185deg,#1a2d52 0%,#0e1a30 42%,#070d18 100%)}
+#hub-help-root.is-hub-stage .hub-help-head{padding:1.2rem max(1.2rem,env(safe-area-inset-right)) 1rem max(1.2rem,env(safe-area-inset-left));
+background:linear-gradient(180deg,rgba(100,150,240,.18),rgba(100,150,240,0))}
+#hub-help-root.is-hub-stage .hub-help-avatar{width:4.4rem;height:4.4rem;border-radius:22px;font-size:2.05rem}
+#hub-help-root.is-hub-stage .hub-help-head h2{font-size:clamp(1.35rem,3.5vw,1.75rem)}
+#hub-help-root.is-hub-stage .hub-help-eyebrow{font-size:.72rem;letter-spacing:.12em}
+#hub-help-root.is-hub-stage .hub-help-context{font-size:.9rem;max-width:36rem}
+#hub-help-root.is-hub-stage .hub-help-close{width:auto;min-width:2.5rem;height:2.5rem;padding:0 .9rem;border-radius:14px;
+font-size:.82rem;font-weight:800;letter-spacing:.02em}
+#hub-help-root.is-hub-stage .hub-help-close-games{display:inline-block}
+#hub-help-root.is-hub-stage .hub-help-quick-wrap{padding:.85rem max(1.1rem,env(safe-area-inset-right)) .9rem max(1.1rem,env(safe-area-inset-left))}
+#hub-help-root.is-hub-stage .hub-help-chat{min-height:0;flex:1;padding:1.15rem max(1.15rem,env(safe-area-inset-right)) 1.15rem max(1.15rem,env(safe-area-inset-left))}
+#hub-help-root.is-hub-stage .hub-help-msg{max-width:min(42rem,94%);font-size:1rem}
+#hub-help-root.is-hub-stage .hub-help-form{padding:.9rem max(1.1rem,env(safe-area-inset-right)) .5rem max(1.1rem,env(safe-area-inset-left))}
+#hub-help-root.is-hub-stage .hub-help-composer{max-width:42rem;margin:0 auto;width:100%}
+#hub-help-root.is-hub-stage .hub-help-hint{padding:.2rem max(1rem,env(safe-area-inset-right)) max(.95rem,env(safe-area-inset-bottom)) max(1rem,env(safe-area-inset-left));
+font-size:.76rem}
+#hub-help-root.is-hub-stage .hub-help-quick{max-width:56rem}
+
 #hub-help-root .hub-help-panel{position:relative;width:min(30rem,100%);max-height:min(86vh,42rem);display:flex;flex-direction:column;
 background:
   radial-gradient(120% 80% at 0% 0%,rgba(90,160,255,.16),transparent 55%),
@@ -1474,8 +1503,10 @@ box-shadow:0 6px 16px rgba(50,90,200,.35);transition:filter .12s ease,transform 
 #hub-help-root .hub-help-hint{margin:0;padding:.15rem .95rem .8rem;font-size:.72rem;color:#7f96b8;text-align:center;line-height:1.35}
 html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;pointer-events:none!important}
 @media (max-width:420px){
-  #hub-help-root .hub-help-panel{max-height:min(90vh,44rem);border-radius:20px}
+  #hub-help-root:not(.is-hub-stage) .hub-help-panel{max-height:min(90vh,44rem);border-radius:20px}
   #hub-help-root .hub-help-context{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  #hub-help-root.is-hub-stage .hub-help-context{-webkit-line-clamp:3}
+  #hub-help-root.is-hub-stage .hub-help-avatar{width:3.8rem;height:3.8rem}
 }
 `;
     document.head.appendChild(style);
@@ -1561,10 +1592,41 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     return isLetterGameplayActive() ? "Help (F1)" : "Help (F)";
   }
 
+  /** On the hub home grid, Help opens as a full-screen “game stage”. */
+  function isHubHelpStage() {
+    try {
+      if (document.documentElement.classList.contains("playing-guessword")) return false;
+    } catch {}
+    try {
+      if (currentGameId() === "hub") return true;
+    } catch {}
+    return isHubGamesScreenOpen();
+  }
+
+  function syncHubStageMode() {
+    if (!root) return;
+    const hubStage = isHubHelpStage();
+    root.classList.toggle("is-hub-stage", hubStage);
+    const closeBtn = root.querySelector("#hub-help-close");
+    if (closeBtn) {
+      if (hubStage) {
+        closeBtn.innerHTML = '<span class="hub-help-close-games">Games</span>';
+        closeBtn.setAttribute("aria-label", "Back to games");
+        closeBtn.title = "Back to games (Esc)";
+      } else {
+        closeBtn.textContent = "×";
+        closeBtn.setAttribute("aria-label", "Close help");
+        closeBtn.title = "Close";
+      }
+    }
+  }
+
   function refreshChrome() {
     const m = getMascot();
     const key = isLetterGameplayActive() ? "F1" : "F";
     const gameName = gameLabel(currentGameId());
+    const hubStage = isHubHelpStage();
+    syncHubStageMode();
     const fab = document.getElementById("hub-help-fab");
     if (fab) {
       paintMascotFace(fab, m);
@@ -1574,22 +1636,24 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     if (titleEl) titleEl.textContent = m.name;
     paintMascotFace(avatarEl, m);
     if (contextEl) {
-      contextEl.textContent = `${m.fullName} · ask about play, menus, your account, and more`;
+      contextEl.textContent = hubStage
+        ? `${m.fullName} · your Help game — ask about any minigame, menus, or your account`
+        : `${m.fullName} · ask about play, menus, your account, and more`;
     }
     const pill = root?.querySelector?.("#hub-help-game-pill");
     if (pill) {
-      pill.textContent =
-        currentGameId() === "hub" ? "On the My Games hub" : `Helping with: ${gameName}`;
+      pill.textContent = hubStage ? "Playing: Help Assistant" : `Helping with: ${gameName}`;
     }
     const hint = root?.querySelector?.("#hub-help-hint");
     if (hint) {
-      hint.textContent = `Tip: press ${key} for Help · pick a different helper in Settings · Esc closes`;
+      hint.textContent = hubStage
+        ? `Tip: press ${key} or Esc / Games to leave · pick a helper in Settings`
+        : `Tip: press ${key} for Help · pick a different helper in Settings · Esc closes`;
     }
     if (inputEl) {
-      inputEl.placeholder =
-        currentGameId() === "hub"
-          ? "Example: what is my username?"
-          : `Example: how do I play ${gameName}?`;
+      inputEl.placeholder = hubStage
+        ? "Ask anything — e.g. what games are in this?"
+        : `Example: how do I play ${gameName}?`;
     }
   }
 

@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001br": [
+    "Help Assistant on the hub opens full-screen like a game — Esc / Games returns to the grid"
+  ],
   "20261001bq": [
     "Help GAME_INFO parser: Game Name / Game Count no longer get mixed into the minigame list"
   ],
