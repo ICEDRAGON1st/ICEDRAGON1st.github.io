@@ -18,6 +18,7 @@ const PRECACHE = [
   "./hub-streak.js",
   "./hub-achievements.js",
   "./hub-sound.js",
+  "./hub-audio.js",
   "./hub-confetti.js",
   "./hub-account-bag.js",
   "./hub-leaderboard.js",

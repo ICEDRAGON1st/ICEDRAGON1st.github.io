@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ce": [
+    "Audio Manager: background music with crossfades, Music/SFX volume sliders, song picker, and Credits"
+  ],
   "20261001cd": [
     "Help Assistant: change your mascot right inside the Help menu"
   ],
@@ -3483,6 +3486,9 @@ function showGamesScreen() {
   try {
     HubPlays?.setActiveGame?.("hub");
   } catch {}
+  try {
+    window.HubAudio?.setTheme?.("hub");
+  } catch {}
   gamesMessageEl.classList.remove("visible");
   gamesMessageEl.textContent = "";
   try {
@@ -3523,6 +3529,9 @@ function hideGamesScreen() {
   document.documentElement.classList.remove("hub-flip");
   gamesScreen.classList.add("hidden");
   document.documentElement.classList.add("playing-guessword");
+  try {
+    window.HubAudio?.setTheme?.("wordle");
+  } catch {}
 }
 
 /** Easter egg: tap/click "My Games" title 7× → flip hub for 5s. */
@@ -3614,6 +3623,10 @@ function selectGame(gameId) {
       if (allIds.every(id => played.includes(id))) HubAchievements.unlock("all_rounder");
     } catch {}
   }
+
+  try {
+    window.HubAudio?.setTheme?.(gameId);
+  } catch {}
 
   if (!game.path) {
     setPlayMode(isTodayDailyFinished() ? "practice" : "daily");
@@ -4489,7 +4502,21 @@ toggleSettingsBtn?.addEventListener("click", () => {
     try {
       window.HubHelp?.renderMascotPicker?.(document.getElementById("hub-help-mascot-picker"));
     } catch {}
+    try {
+      window.HubAudio?.bindSettings?.(hubSettingsPanel);
+      window.HubAudio?.setTheme?.("settings");
+    } catch {}
+  } else {
+    try {
+      window.HubAudio?.setTheme?.("hub");
+    } catch {}
   }
+});
+
+document.getElementById("toggle-credits-btn")?.addEventListener("click", () => {
+  try {
+    window.HubAudio?.openCredits?.();
+  } catch {}
 });
 
 hubThemePicker?.addEventListener("click", (e) => {

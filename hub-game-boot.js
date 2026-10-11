@@ -63,6 +63,24 @@
             '"></script>'
         );
       }
+      if (!window.HubSound) {
+        document.write(
+          '<script src="' +
+            iconBase +
+            "hub-sound.js?v=" +
+            encodeURIComponent(bootVer) +
+            '"></script>'
+        );
+      }
+      if (!window.HubAudio) {
+        document.write(
+          '<script src="' +
+            iconBase +
+            "hub-audio.js?v=" +
+            encodeURIComponent(bootVer) +
+            '"></script>'
+        );
+      }
     } catch (e) {}
     // Offline shell for games visited once online.
     try {
