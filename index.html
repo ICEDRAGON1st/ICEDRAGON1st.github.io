@@ -98,9 +98,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261001bu">
-  <script src="hub-net.js?v=20261001bu"></script>
-  <script src="hub-afk.js?v=20261001bu"></script>
+  <link rel="stylesheet" href="styles.css?v=20261001bv">
+  <script src="hub-net.js?v=20261001bv"></script>
+  <script src="hub-afk.js?v=20261001bv"></script>
 </head>
 <body data-guess-colors="ice">
   <div id="hub-boot-loader" aria-live="polite" aria-busy="true">
@@ -281,6 +281,7 @@
         <button id="toggle-leaderboards-btn" type="button" class="hub-btn">Leaderboards</button>
         <button id="toggle-achievements-btn" type="button" class="hub-btn">🏆 Achievements</button>
         <button id="toggle-players-btn" type="button" class="hub-btn">Players</button>
+        <button id="toggle-titles-btn" type="button" class="hub-btn">Titles</button>
         <button id="toggle-friends-btn" type="button" class="hub-btn">Friends</button>
         <button id="toggle-updates-btn" type="button" class="hub-btn">Updates</button>
         <button id="toggle-feedback-btn" type="button" class="hub-btn">Feedback</button>
@@ -456,6 +457,14 @@
           </div>
           <p id="player-code-status" class="player-name-status hidden" aria-live="polite"></p>
         </div>
+        <p id="player-name-status" class="player-name-status hidden" aria-live="polite"></p>
+        <p id="players-totals" class="players-totals"></p>
+        <ul id="players-list" class="players-list"></ul>
+      </div>
+
+      <div id="titles-panel" class="titles-panel hidden">
+        <h3>Titles &amp; colors</h3>
+        <p class="titles-intro">Pick which title shows next to your name, and which color to use. Unlock more through achievements, Fishing Idle, and invites.</p>
         <div id="title-picker" class="title-picker hidden">
           <span class="title-picker-label">Your title</span>
           <div id="title-picker-buttons" class="title-picker-buttons" role="group" aria-label="Choose your title"></div>
@@ -464,9 +473,7 @@
           <span class="title-picker-label">Your color</span>
           <div id="color-picker-buttons" class="title-picker-buttons color-picker-buttons" role="group" aria-label="Choose your color"></div>
         </div>
-        <p id="player-name-status" class="player-name-status hidden" aria-live="polite"></p>
-        <p id="players-totals" class="players-totals"></p>
-        <ul id="players-list" class="players-list"></ul>
+        <p id="titles-panel-hint" class="titles-panel-hint">Set a player name in Players first if pickers stay empty.</p>
       </div>
 
       <div id="friends-panel" class="friends-panel hidden">
@@ -766,7 +773,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20261001bu";
+    window.WORDLE_BUILD = "20261001bv";
     try {
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("sw.js?v=" + window.WORDLE_BUILD).catch(function () {});

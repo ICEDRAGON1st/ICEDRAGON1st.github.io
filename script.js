@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001bv": [
+    "My Games: Titles & colors moved to their own Titles menu — no longer inside Players"
+  ],
   "20261001bu": [
     "Help: if it doesn’t know (e.g. “what is the game made with”), it just says “I can’t answer that.”"
   ],
@@ -1649,6 +1652,7 @@ const toggleScoresBtn = document.getElementById("toggle-scores-btn");
 const toggleLeaderboardsBtn = document.getElementById("toggle-leaderboards-btn");
 const toggleAchievementsBtn = document.getElementById("toggle-achievements-btn");
 const togglePlayersBtn = document.getElementById("toggle-players-btn");
+const toggleTitlesBtn = document.getElementById("toggle-titles-btn");
 const toggleFriendsBtn = document.getElementById("toggle-friends-btn");
 const toggleUpdatesBtn = document.getElementById("toggle-updates-btn");
 const toggleFeedbackBtn = document.getElementById("toggle-feedback-btn");
@@ -1680,6 +1684,7 @@ const feedbackEmpty = document.getElementById("feedback-empty");
 const feedbackUnread = document.getElementById("feedback-unread");
 const feedbackRefreshBtn = document.getElementById("feedback-refresh-btn");
 const playersPanel = document.getElementById("players-panel");
+const titlesPanel = document.getElementById("titles-panel");
 const friendsPanel = document.getElementById("friends-panel");
 const friendsChatPoll = () => renderFriendsPanel();
 let friendsComposingGroup = false;
@@ -4537,6 +4542,11 @@ function maybeOpenHubHash() {
     friendsPanel?.classList.remove("hidden");
     renderFriendsPanel?.();
     toggleFriendsBtn && (toggleFriendsBtn.textContent = "Hide friends");
+  } else if (hash === "titles" || hash === "title" || hash === "colors") {
+    titlesPanel?.classList.remove("hidden");
+    renderTitlePicker?.();
+    renderColorPicker?.();
+    updateTitlesButtonLabel(true);
   } else if (hash === "feedback") {
     feedbackPanel?.classList.remove("hidden");
     openFeedbackPanel?.();
@@ -4556,6 +4566,22 @@ togglePlayersBtn?.addEventListener("click", () => {
   if (open) {
     maybeAskPlayerName();
     renderPlayersPanel();
+  }
+});
+
+function updateTitlesButtonLabel(open) {
+  if (!toggleTitlesBtn) return;
+  toggleTitlesBtn.textContent = open ? "Hide titles" : "Titles";
+}
+
+toggleTitlesBtn?.addEventListener("click", () => {
+  if (!titlesPanel) return;
+  const open = titlesPanel.classList.toggle("hidden") === false;
+  updateTitlesButtonLabel(open);
+  if (open) {
+    maybeAskPlayerName();
+    renderTitlePicker();
+    renderColorPicker();
   }
 });
 
