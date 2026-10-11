@@ -98,9 +98,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261001cd">
-  <script src="hub-net.js?v=20261001cd"></script>
-  <script src="hub-afk.js?v=20261001cd"></script>
+  <link rel="stylesheet" href="styles.css?v=20261001ce">
+  <script src="hub-net.js?v=20261001ce"></script>
+  <script src="hub-afk.js?v=20261001ce"></script>
 </head>
 <body data-guess-colors="ice">
   <div id="hub-boot-loader" aria-live="polite" aria-busy="true">
@@ -290,6 +290,7 @@
         <button id="toggle-friends-btn" type="button" class="hub-btn">Friends</button>
         <button id="toggle-updates-btn" type="button" class="hub-btn">Updates</button>
         <button id="toggle-feedback-btn" type="button" class="hub-btn">Feedback</button>
+        <button id="toggle-credits-btn" type="button" class="hub-btn" title="Music and attribution">Credits</button>
         <button id="share-moment-btn" type="button" class="hub-btn" title="Share your invite link — unlock INVITER at 3 joins">Share game</button>
         <a id="discord-invite-btn" class="hub-btn hub-btn-discord" href="https://discord.gg/6NHYfPwAwg" target="_blank" rel="noopener noreferrer">Discord</a>
       </div>
@@ -297,6 +298,7 @@
       <div id="hub-settings-panel" class="hub-settings-panel high-scores-panel hidden">
         <h3>Settings</h3>
         <p class="hub-settings-intro">Pick a look for the My Games hub. Saved on this device.</p>
+        <!-- Sound & music controls are injected by hub-audio.js -->
         <p class="hub-settings-label">Hub look</p>
         <div id="hub-theme-picker" class="hub-theme-picker" role="group" aria-label="Hub look">
           <button type="button" class="hub-theme-btn" data-hub-theme="classic" title="Classic hub look">
@@ -791,14 +793,14 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20261001cd";
+    window.WORDLE_BUILD = "20261001ce";
     try {
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("sw.js?v=" + window.WORDLE_BUILD).catch(function () {});
       }
     } catch (e) {}
     const scripts = [
-      "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-confetti.js", "hub-supabase.js", "hub-account-bag.js", "hub-eggs.js", "hub-plays.js", "hub-coins.js", "hub-referrals.js", "hub-online-overlay.js", "hub-help.js", "hub-fishing-gifts.js", "hub-fishing-mail.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-calls.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js", "hub-discord.js",
+      "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-audio.js", "hub-confetti.js", "hub-supabase.js", "hub-account-bag.js", "hub-eggs.js", "hub-plays.js", "hub-coins.js", "hub-referrals.js", "hub-online-overlay.js", "hub-help.js", "hub-fishing-gifts.js", "hub-fishing-mail.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-calls.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js", "hub-discord.js",
       "words.js",
       "dictionary.js",
       "words-4.js",
