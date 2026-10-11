@@ -9,9 +9,9 @@ GAMEPLAY & CONTROLS
 
 Main Objective: Play a collection of browser minigames from one hub. Pick a game card, set a unique player name for sync/leaderboards, chase high scores, achievements, streaks, and friends features. Most progress saves on this device; cloud sync is used when online.
 
-Controls: Hub: tap a game card to play; search box filters games; star favorites a game. Help Assistant: tap ? or press F (use F1 inside letter games — Guessword, Hangman, Quiz, Sudoku). Hold Tab to peek who is online. Esc / ☰ Menu pauses most action games and offers Games to return to the hub. Per-game move/shoot keys differ — see Games list below and ask Help “how to play” while inside a game.
+Controls: Hub: tap a game card to play; search box filters games; star favorites a game. Help Assistant: tap ? or press F (use F1 inside letter games — Guessword, Hangman, Quiz, Sudoku). Hold Tab to peek who is online. Esc / ☰ Menu pauses most action games and offers Games to return to the hub. Guessword: Daily = one shared Classic 5-letter word; Practice = flex 4/5/6 letters with optional word themes; languages EN/DA/IS; deep link #wordle. Per-game move/shoot keys differ — see Games list below and ask Help “how to play” while inside a game.
 
-Menus: Hub home (My Games grid) has Continue last game, High scores, Leaderboards, Achievements, Players, Friends, Updates, Feedback, Share game, Discord, and ⚙ Settings (look themes, sound, account / player name / player code, Help mascot picker). Inside games: ☰ Menu / Esc for pause, Settings where available (e.g. Fishing Idle ⚙), and Games to return to the hub.
+Menus: Hub home (My Games grid) has Continue last game, High scores, Leaderboards, Achievements, Players, Friends, Updates, Feedback, Share game, Discord, and ⚙ Settings (hub look themes, sound, account / player name / player code / transfer / optional password / Discord login, Help mascot picker, notifications). Inside games: ☰ Menu / Esc for pause, Settings where available (e.g. Fishing Idle ⚙), and Games to return to the hub.
 
 PLAYER STATS & MILESTONES
 
@@ -21,13 +21,13 @@ Live Stats Note: Exact live numbers update in real time on the main game page, P
 
 RULES & COMMUNITY
 
-Rules: Be fair — no spoilers for secret words, hidden tiles, or live puzzle answers. Use a unique player name; don’t impersonate others. Keep chat and feedback respectful. Help only covers My Games (not homework or real-world trivia). Passwords are never shown by Help.
+Rules: Be fair — no spoilers for secret words, hidden tiles, or live puzzle answers. Unique nicknames are claimed once and locked to that player’s code (don’t impersonate others). Keep chat and Feedback respectful. Help only covers My Games (not homework or real-world trivia). Passwords and other players’ private codes are never shown by Help.
 
 Support Links: Discord invite https://discord.gg/6NHYfPwAwg · Website https://mygames.com · Hub Feedback button · Updates panel for changelog
 
 HUB FEATURES
 
-Hub Features: Game grid with search and favorites; Continue last game; personal High scores; global Leaderboards (Hub Points, Time Online, Day Streak, Most Invites, plus per-game boards — Mine Depth splits into depth + best ore); Achievements with unlock toasts; Players / all-time roster; Friends, chat, and calls; Referrals / Share invite link (INVITER title); Discord login option; day streak (play within 48h); hub look themes; Guessword Daily vs Practice; Most played badge from hub play counts; offline shell after one online visit (service worker); AFK screen after 10 minutes idle on this tab only (pauses this client’s Mantle/Supabase usage — other players unaffected).
+Hub Features: Game grid with search and favorites; Continue last game; personal High scores; global Leaderboards (Hub Points, Time Online, Day Streak, Most Invites, plus per-game boards — Mine Depth splits into depth + best ore); ranks #1–#10 on boards can earn Hub Points and top Hub Points titles; Achievements (~100 badges) with unlock toasts; Players / all-time roster with player code + copy transfer; Friends, global chat, DMs, groups, and voice calls; Referrals / Share invite (?ref=) unlocks INVITER at 3 unique joins; Discord login option; day streak (play within 48h); hub look themes (Classic, Arcade, Ice, Retro, Workshop, Poster; some owner-locked looks); Guessword Daily vs Practice; Most played badge from hub play counts; offline shell after one online visit (service worker); AFK screen after 10 minutes idle on this tab only (pauses this client’s Mantle/Supabase usage — other players unaffected).
 
 LOCAL AI / HELP ASSISTANT
 
@@ -37,7 +37,7 @@ Help Mascots: Helper (normal, starter, plain voice) · Chip (chip, starter) · S
 
 GAMES LIST (id · name · path · card blurb · how to play)
 
-Game wordle: Guessword · (hub Guessword board) · Ice-melt tiles · Flex 4/5/6 · Guess the secret word in 6 tries; cyan = right letter+spot, purple = wrong spot; Daily vs Practice badge by the title.
+Game wordle: Guessword · (hub Guessword board / #wordle) · Ice-melt tiles · Flex 4/5/6 · Guess the secret word in 6 tries; cyan = right letter+spot, purple = wrong spot; Daily = shared Classic 5-letter word; Practice = random 4/5/6 with word themes; languages EN/DA/IS; on-screen or physical keyboard.
 Game space: Space Shooter · space-shooter/index.html · Fly, dodge, and shoot · Mouse or WASD to move; Space/click to shoot; Esc/Menu pauses.
 Game quiz: Quizmaster · quiz/index.html · General knowledge quiz · Pick correct trivia answers to score; F1 for Help so letter keys stay free.
 Game breakout: Bounce Break · breakout/index.html · Bounce and smash bricks · Move paddle to bounce the ball and clear bricks; don’t let the ball fall.

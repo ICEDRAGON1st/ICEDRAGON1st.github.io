@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001bn": [
+    "Help GAME_INFO.txt enriched with Guessword Daily/Practice details, Hub Points titles, and nickname rules"
+  ],
   "20261001bm": [
     "Help knowledge base filled from the live hub — GAME_INFO.txt lists every game, controls, and the local Help mascots"
   ],
