@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ck": [
+    "Music: Mute / Unmute button in Settings and every game Esc menu"
+  ],
   "20261001cj": [
     "Fishing Idle: Esc while playing opens the Menu (same as ☰)"
   ],

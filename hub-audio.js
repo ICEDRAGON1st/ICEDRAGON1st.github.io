@@ -534,6 +534,15 @@
       .hub-audio-song-option .hub-audio-song-artist{display:block;font-size:.75rem;font-weight:600;color:#8fa4c6;margin-top:.1rem}
       .hub-audio-song-empty{padding:.55rem .6rem;color:#8fa4c6;font-size:.85rem}
       .hub-audio-credits-btn{margin-top:.65rem}
+      .hub-audio-mute-row{display:flex;flex-wrap:wrap;gap:.45rem;align-items:center;margin:.35rem 0 .55rem}
+      .hub-audio-mute-btn{appearance:none;display:inline-flex;align-items:center;gap:.4rem;
+        padding:.4rem .7rem;border-radius:8px;border:1px solid rgba(140,170,230,.4);
+        background:rgba(16,26,48,.9);color:#e8eefc;font:inherit;font-size:.85rem;font-weight:700;
+        cursor:pointer}
+      .hub-audio-mute-btn:hover{border-color:rgba(180,210,255,.65)}
+      .hub-audio-mute-btn.is-muted{border-color:rgba(255,160,140,.45);color:#ffd4c8;
+        background:rgba(60,24,20,.55)}
+      .hub-audio-mute-btn .hub-audio-mute-icon{font-size:1.05rem;line-height:1}
       .hub-audio-settings.is-menu{margin:.7rem 0 .85rem;padding:.7rem .75rem;max-width:100%;
         text-align:left}
       .hub-audio-settings.is-menu .hub-settings-label,
@@ -545,10 +554,14 @@
       .hub-audio-settings.is-menu .hub-audio-song-search,
       .hub-audio-settings.is-menu .hub-audio-song-results{background:rgba(0,0,0,.22);color:inherit;
         border-color:rgba(255,255,255,.22)}
-      .hub-audio-settings.is-menu .hub-audio-credits-btn{display:inline-flex;align-items:center;
-        margin-top:.55rem;padding:.4rem .7rem;border-radius:8px;border:1px solid currentColor;
+      .hub-audio-settings.is-menu .hub-audio-credits-btn,
+      .hub-audio-settings.is-menu .hub-audio-mute-btn{display:inline-flex;align-items:center;
+        margin-top:.15rem;padding:.4rem .7rem;border-radius:8px;border:1px solid currentColor;
         background:transparent;color:inherit;font:inherit;font-size:.85rem;font-weight:700;cursor:pointer;opacity:.9}
-      .hub-audio-settings.is-menu .hub-audio-credits-btn:hover{opacity:1}
+      .hub-audio-settings.is-menu .hub-audio-credits-btn{margin-top:.55rem}
+      .hub-audio-settings.is-menu .hub-audio-credits-btn:hover,
+      .hub-audio-settings.is-menu .hub-audio-mute-btn:hover{opacity:1}
+      .hub-audio-settings.is-menu .hub-audio-mute-btn.is-muted{opacity:1}
       .modal-content .hub-audio-settings.is-menu{background:rgba(20,30,55,.55)}
     `;
   }
@@ -669,6 +682,13 @@
           <input id="${id("bgm")}" data-hub-audio-bgm type="range" min="0" max="100" step="1" value="${Math.round(bgmVolume * 100)}" />
           <span class="hub-audio-pct" data-hub-audio-bgm-pct>${Math.round(bgmVolume * 100)}%</span>
         </div>
+        <div class="hub-audio-mute-row">
+          <button type="button" class="hub-audio-mute-btn" data-hub-audio-mute
+            aria-pressed="${bgmMuted ? "true" : "false"}" title="Mute or unmute background music">
+            <span class="hub-audio-mute-icon" aria-hidden="true">${bgmMuted ? "🔇" : "🎵"}</span>
+            <span data-hub-audio-mute-label>${bgmMuted ? "Unmute music" : "Mute music"}</span>
+          </button>
+        </div>
         <div class="hub-audio-row">
           <label for="${id("sfx")}">Sound effects</label>
           <input id="${id("sfx")}" data-hub-audio-sfx type="range" min="0" max="100" step="1" value="${Math.round(sfxVolume * 100)}" />
@@ -694,6 +714,18 @@
     return [...root.querySelectorAll("[data-hub-audio-settings]")];
   }
 
+  function paintMuteButton(btn) {
+    if (!btn) return;
+    const muted = !!bgmMuted;
+    btn.classList.toggle("is-muted", muted);
+    btn.setAttribute("aria-pressed", muted ? "true" : "false");
+    btn.title = muted ? "Unmute background music" : "Mute background music";
+    const icon = btn.querySelector(".hub-audio-mute-icon");
+    const label = btn.querySelector("[data-hub-audio-mute-label]");
+    if (icon) icon.textContent = muted ? "🔇" : "🎵";
+    if (label) label.textContent = muted ? "Unmute music" : "Mute music";
+  }
+
   function paintSettings(root) {
     settingsBoxes(root).forEach((box) => {
       const bgm = box.querySelector("[data-hub-audio-bgm]");
@@ -701,14 +733,19 @@
       const search = box.querySelector("[data-hub-audio-song-search]");
       const bgmPct = box.querySelector("[data-hub-audio-bgm-pct]");
       const sfxPct = box.querySelector("[data-hub-audio-sfx-pct]");
-      if (bgm) bgm.value = String(Math.round(bgmVolume * 100));
+      const muteBtn = box.querySelector("[data-hub-audio-mute]");
+      if (bgm) {
+        bgm.value = String(Math.round(bgmVolume * 100));
+        bgm.disabled = !!bgmMuted;
+      }
       if (sfx) sfx.value = String(Math.round(sfxVolume * 100));
       if (search && document.activeElement !== search) {
         search.value = songLabel(trackPref);
         search.dataset.selectedId = trackPref;
       }
-      if (bgmPct) bgmPct.textContent = `${Math.round(bgmVolume * 100)}%`;
+      if (bgmPct) bgmPct.textContent = bgmMuted ? "Muted" : `${Math.round(bgmVolume * 100)}%`;
       if (sfxPct) sfxPct.textContent = `${Math.round(sfxVolume * 100)}%`;
+      paintMuteButton(muteBtn);
     });
   }
 
@@ -812,11 +849,27 @@
     });
   }
 
+  function ensureMuteButton(box) {
+    if (!box || box.querySelector("[data-hub-audio-mute]")) return;
+    const musicRow = box.querySelector("[data-hub-audio-bgm]")?.closest?.(".hub-audio-row");
+    if (!musicRow) return;
+    const row = document.createElement("div");
+    row.className = "hub-audio-mute-row";
+    row.innerHTML = `<button type="button" class="hub-audio-mute-btn" data-hub-audio-mute
+        aria-pressed="false" title="Mute or unmute background music">
+        <span class="hub-audio-mute-icon" aria-hidden="true">🎵</span>
+        <span data-hub-audio-mute-label>Mute music</span>
+      </button>`;
+    musicRow.insertAdjacentElement("afterend", row);
+  }
+
   function wireSettingsBox(box) {
     if (!box) return;
     ensureAudioStyles();
+    ensureMuteButton(box);
     const bgm = box.querySelector("[data-hub-audio-bgm]");
     const sfx = box.querySelector("[data-hub-audio-sfx]");
+    const muteBtn = box.querySelector("[data-hub-audio-mute]");
     const creditsBtn = box.querySelector("[data-hub-audio-credits]");
 
     if (bgm && !bgm.dataset.hubAudioBound) {
@@ -827,6 +880,18 @@
         if (effectiveBgmVolume() > 0 && (!currentTrackId || active.paused)) {
           setTheme(currentTheme);
         }
+      });
+    }
+    if (muteBtn && !muteBtn.dataset.hubAudioBound) {
+      muteBtn.dataset.hubAudioBound = "1";
+      muteBtn.addEventListener("click", () => {
+        unlock();
+        const nextMuted = !bgmMuted;
+        setBgmMuted(nextMuted);
+        if (!nextMuted && (!currentTrackId || active.paused)) {
+          setTheme(currentTheme);
+        }
+        showToast(nextMuted ? "Music muted" : "Music unmuted");
       });
     }
     if (sfx && !sfx.dataset.hubAudioBound) {
