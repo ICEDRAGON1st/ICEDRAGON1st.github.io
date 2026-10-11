@@ -419,6 +419,44 @@
     refreshUi();
   }
 
+  /** One-time owner grant — not listed in What's New. */
+  const ICE_GRANT_FLAG = "hub-coins-ice-dragon-10k-v1";
+  const ICE_GRANT_AMOUNT = 10000;
+
+  function isIceDragonName(name) {
+    return (
+      String(name || "")
+        .trim()
+        .toLowerCase()
+        .replace(/[\s-]+/g, "_") === "ice_dragon"
+    );
+  }
+
+  function maybeGrantIceDragonCoins() {
+    try {
+      if (!canUseLocalStorage()) return false;
+      const name =
+        (typeof window.HubPlays?.getName === "function" && HubPlays.getName()) || "";
+      if (!isIceDragonName(name)) return false;
+      const flagKey = `${ICE_GRANT_FLAG}:${walletKey()}`;
+      if (localStorage.getItem(flagKey) === "done") return false;
+      const state = readState();
+      state.balance += ICE_GRANT_AMOUNT;
+      state.lifetimeEarned += ICE_GRANT_AMOUNT;
+      writeState(state);
+      localStorage.setItem(flagKey, "done");
+      emit({
+        type: "earn",
+        amount: ICE_GRANT_AMOUNT,
+        balance: state.balance,
+        reason: "owner-grant"
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   // Migrate legacy unscoped wallet once.
   try {
     if (canUseLocalStorage()) {
@@ -457,16 +495,27 @@
     offChange,
     refreshUi,
     ensureHubBadge,
-    readState
+    readState,
+    maybeGrantIceDragonCoins
   };
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
-      ensureHubBadge();
-      refreshUi();
-    });
-  } else {
+  function bootCoins() {
+    maybeGrantIceDragonCoins();
     ensureHubBadge();
     refreshUi();
   }
+
+  document.addEventListener("hub-username-ready", () => {
+    maybeGrantIceDragonCoins();
+    refreshUi();
+  });
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bootCoins, { once: true });
+  } else {
+    bootCoins();
+  }
+  // HubPlays may finish loading after this file.
+  setTimeout(maybeGrantIceDragonCoins, 400);
+  setTimeout(maybeGrantIceDragonCoins, 2000);
 })();
