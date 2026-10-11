@@ -231,6 +231,36 @@
     return out;
   }
 
+  function parsePopularityPayload(data) {
+    if (!data || typeof data !== "object") return { games: {}, resetAt: 0 };
+    if (data.games && typeof data.games === "object") {
+      return { games: { ...data.games }, resetAt: Number(data.resetAt) || 0 };
+    }
+    const flat = {};
+    Object.entries(data).forEach(([k, v]) => {
+      if (k === "games" || k === "pending" || k === "at" || k === "updated_at" || k === "resetAt" || k === "note")
+        return;
+      if (Number.isFinite(Number(v))) flat[k] = Number(v) || 0;
+    });
+    return { games: flat, resetAt: Number(data.resetAt) || 0 };
+  }
+
+  async function fetchPagesPopularitySeed() {
+    try {
+      const build =
+        typeof window !== "undefined" && typeof window.WORDLE_BUILD === "string"
+          ? window.WORDLE_BUILD
+          : String(Date.now());
+      const res = await fetch(`hub-game-popularity.json?v=${encodeURIComponent(build)}`, {
+        cache: "no-store"
+      });
+      if (!res.ok) return null;
+      return parsePopularityPayload(await res.json());
+    } catch {
+      return null;
+    }
+  }
+
   async function syncPopularity(force = false) {
     if (popularityBusy) return getEffectivePopularity();
     popularityBusy = true;
@@ -238,19 +268,17 @@
       let remote = {};
       let remoteResetAt = 0;
       try {
-        const data = await fetchDoc(POPULARITY_DOC, POPULARITY_API);
-        if (data && data.games && typeof data.games === "object") {
-          remote = data.games;
-          remoteResetAt = Number(data.resetAt) || 0;
-        } else if (data && typeof data === "object") {
-          const flat = {};
-          Object.entries(data).forEach(([k, v]) => {
-            if (k === "games" || k === "pending" || k === "at" || k === "updated_at" || k === "resetAt" || k === "note")
-              return;
-            if (Number.isFinite(Number(v))) flat[k] = Number(v) || 0;
-          });
-          if (Object.keys(flat).length) remote = flat;
-          remoteResetAt = Number(data.resetAt) || 0;
+        const parsed = parsePopularityPayload(await fetchDoc(POPULARITY_DOC, POPULARITY_API));
+        remote = parsed.games;
+        remoteResetAt = parsed.resetAt;
+      } catch {}
+
+      // Mantle/Supabase often 429/402 — Pages seed keeps Fishing Idle as most played.
+      try {
+        const seed = await fetchPagesPopularitySeed();
+        if (seed && seed.resetAt > remoteResetAt && Object.keys(seed.games).length) {
+          remote = seed.games;
+          remoteResetAt = seed.resetAt;
         }
       } catch {}
 
@@ -323,18 +351,8 @@
         bestId = id;
       }
     });
-    if (!bestId) {
-      const localCounts =
-        (cache.counts && Object.keys(cache.counts).length ? cache.counts : null) || {};
-      Object.entries(localCounts).forEach(([id, raw]) => {
-        if (allow && !allow.has(id)) return;
-        const n = Number(raw) || 0;
-        if (n > best) {
-          best = n;
-          bestId = id;
-        }
-      });
-    }
+    // Do not fall back to this device's personal play counts — that made Wing Hop
+    // look "most played" when Mantle/Supabase were down.
     return best > 0 ? bestId : "";
   }
 
