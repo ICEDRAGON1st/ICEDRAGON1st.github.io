@@ -414,6 +414,11 @@
     "controls",
     "control",
     "play",
+    "game",
+    "games",
+    "minigame",
+    "minigames",
+    "list",
     "how",
     "many",
     "have",
@@ -456,11 +461,17 @@
     userame: "username",
     usernam: "username",
     useranme: "username",
+    nmae: "name",
+    naem: "name",
     nickame: "nickname",
     nicknme: "nickname",
     plaer: "player",
     playyer: "player",
     playe: "player",
+    gmes: "games",
+    gaems: "games",
+    gamees: "games",
+    gamse: "games",
     cod: "code",
     coed: "code",
     kode: "code",
@@ -476,6 +487,7 @@
     optoins: "options",
     leaderbord: "leaderboard",
     leaderboad: "leaderboard",
+    leadrebord: "leaderboard",
     controlls: "controls",
     contols: "controls",
     teh: "the",
@@ -489,7 +501,7 @@
     paly: "play"
   };
 
-  /** Never fuzzy-correct these (stops "what" → "chat", "played" → "player"). Explicit TYPO_MAP still applies. */
+  /** Never fuzzy-correct these (stops "what" → "chat", "games" → "name"). Explicit TYPO_MAP still applies. */
   const LOCKED_WORDS = {
     what: 1,
     whats: 1,
@@ -515,6 +527,15 @@
     it: 1,
     this: 1,
     that: 1,
+    these: 1,
+    those: 1,
+    there: 1,
+    here: 1,
+    with: 1,
+    from: 1,
+    about: 1,
+    which: 1,
+    when: 1,
     where: 1,
     who: 1,
     how: 1,
@@ -533,6 +554,11 @@
     been: 1,
     was: 1,
     were: 1,
+    list: 1,
+    game: 1,
+    games: 1,
+    minigame: 1,
+    minigames: 1,
     players: 1,
     played: 1,
     playing: 1,
@@ -569,17 +595,18 @@
     const w = String(tok || "").toLowerCase();
     if (!w) return tok;
     if (Object.prototype.hasOwnProperty.call(TYPO_MAP, w)) return TYPO_MAP[w];
-    // Locked common words: never fuzzy-match (e.g. what ≠ chat, played ≠ player)
+    // Locked / known words: never fuzzy-match (e.g. games ≠ name, what ≠ chat).
     if (LOCKED_WORDS[w]) return w;
     if (HELP_VOCAB.indexOf(w) !== -1) return w;
     if (w.length < 3) return w;
-    // Don't strip a trailing "s" / "ed" / "ing" onto a shorter vocab stem (players→player).
-    const maxD = w.length <= 4 ? 1 : 2;
+    // Fuzzy typos only: same first letter (blocks games→name), tight distance.
     let best = null;
     let bestD = 99;
     for (let i = 0; i < HELP_VOCAB.length; i += 1) {
       const v = HELP_VOCAB[i];
-      if (Math.abs(v.length - w.length) > maxD) continue;
+      if (v.charAt(0) !== w.charAt(0)) continue;
+      const lenGap = Math.abs(v.length - w.length);
+      if (lenGap > 2) continue;
       // Plural / tense form of a vocab word — keep the typed form.
       if (w.length > v.length && w.startsWith(v) && /^(s|es|ed|ing)$/.test(w.slice(v.length))) {
         continue;
@@ -587,6 +614,12 @@
       if (v.length > w.length && v.startsWith(w) && /^(s|es|ed|ing)$/.test(v.slice(w.length))) {
         continue;
       }
+      // Same length: 1 edit for short words, 2 for longer. Different length: stricter.
+      let maxD = 0;
+      if (lenGap === 0) maxD = w.length <= 4 ? 1 : 2;
+      else if (lenGap === 1) maxD = 1;
+      else if (w.slice(0, 3) === v.slice(0, 3)) maxD = 2;
+      if (!maxD) continue;
       const d = editDistance(w, v);
       if (d > 0 && d <= maxD && d < bestD) {
         bestD = d;
