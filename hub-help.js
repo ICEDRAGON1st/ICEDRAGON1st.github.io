@@ -48,6 +48,7 @@
       fullName: "Helper",
       blurb: "Plain helpful answers — no character voice",
       icon: "💬",
+      avatar: "hub-help-icons/helper.png",
       starter: true,
       plain: true,
       wrap: (core) => String(core || ""),
@@ -70,6 +71,7 @@
       fullName: "Chip the Arcade Cabinet",
       blurb: "Enthusiastic retro arcade host",
       icon: "🕹️",
+      avatar: "hub-help-icons/chip.png",
       starter: true,
       wrap: (core) => `INSERT COIN—and listen up, player! ${core} High-score vibes only—don't tilt the cabinet!`,
       refuseCheat:
@@ -87,6 +89,7 @@
       fullName: "SPARK-E the Robot",
       blurb: "Eager cheerleader drone",
       icon: "🤖",
+      avatar: "hub-help-icons/spark-e.png",
       starter: true,
       wrap: (core) => `Beep-boop! Hype systems online! ${core} You have got this—boosters fired! ⚡`,
       refuseCheat:
@@ -103,6 +106,7 @@
       fullName: "Professor Whiskers the Cat",
       blurb: "Cozy, wise, slightly sarcastic",
       icon: "🐱",
+      avatar: "hub-help-icons/whiskers.png",
       starter: false,
       wrap: (core) => `*adjusts tiny wizard hat* Hmph. Pay attention. ${core} …Yes, even you. Now run along before I nap on the keyboard.`,
       refuseCheat:
@@ -119,6 +123,7 @@
       fullName: "Glitch the Pixel",
       blurb: "Playful mischievous insider",
       icon: "👾",
+      avatar: "hub-help-icons/glitch.png",
       starter: false,
       wrap: (core) => `psst—don't tell the patch notes, but… ${core} heh. I totally didn't rearrange your HUD. (or did i)`,
       refuseCheat:
@@ -135,6 +140,7 @@
       fullName: "Pixel-8 the Game Dev",
       blurb: "Sleepy pajama developer",
       icon: "💻",
+      avatar: "hub-help-icons/pixel-8.png",
       starter: false,
       wrap: (core) => `*yawns in commit history* okay so basically— ${core} anyway i'm shipping this note and going back to bed. please don't file a bug about the pajamas.`,
       refuseCheat:
@@ -183,6 +189,7 @@
       fullName: "Astra the Space Explorer",
       blurb: "Curious alien mission officer",
       icon: "🚀",
+      avatar: "hub-help-icons/astra.png",
       starter: false,
       wrap: (core) => `Mission briefing, star-cadet: ${core} Chart a course, log the discovery, and may your high score reach orbit.`,
       refuseCheat:
@@ -199,6 +206,7 @@
       fullName: "Chef Gusto",
       blurb: "Cheerful cooking metaphors",
       icon: "👨‍🍳",
+      avatar: "hub-help-icons/gusto.png",
       starter: false,
       wrap: (core) => `Bon appétit, chef! Here's the recipe: ${core} Season with practice, plate with confidence—and don't burn the combo!`,
       refuseCheat:
@@ -215,6 +223,7 @@
       fullName: "Shadow the Detective",
       blurb: "Noir detective, classified files",
       icon: "🕵️",
+      avatar: "hub-help-icons/shadow.png",
       starter: false,
       wrap: (core) => `Case file — confidential. ${core} That's all the dossier says, kid. Keep it under your hat.`,
       refuseCheat:
@@ -261,6 +270,34 @@
       if (/\.html?$/i.test(last) && segs.length > 1) return "../";
     } catch {}
     return "";
+  }
+
+  function mascotAvatarUrl(m) {
+    const file = String(m?.avatar || "").trim();
+    if (!file) return "";
+    const v = typeof window !== "undefined" && window.WORDLE_BUILD ? window.WORDLE_BUILD : "1";
+    return `${scriptBase()}${file}?v=${encodeURIComponent(v)}`;
+  }
+
+  function mascotIconHtml(m, className) {
+    const cls = className ? ` class="${escapeHtml(className)}"` : "";
+    const url = mascotAvatarUrl(m);
+    if (url) {
+      return `<img${cls} src="${escapeHtml(url)}" alt="" width="64" height="64" loading="lazy" decoding="async">`;
+    }
+    return `<span${cls} aria-hidden="true">${escapeHtml(m?.icon || "?")}</span>`;
+  }
+
+  function paintMascotFace(el, m) {
+    if (!el) return;
+    const url = mascotAvatarUrl(m);
+    if (url) {
+      el.classList.add("has-avatar");
+      el.innerHTML = `<img src="${escapeHtml(url)}" alt="" width="64" height="64" decoding="async">`;
+    } else {
+      el.classList.remove("has-avatar");
+      el.textContent = m?.icon || "?";
+    }
   }
 
   function currentGameId() {
@@ -683,6 +720,7 @@
       fullName: m.fullName,
       blurb: m.blurb,
       icon: m.icon,
+      avatar: m.avatar || "",
       starter: !!m.starter,
       unlocked: isUnlocked(m.id),
       active: m.id === active
@@ -1187,8 +1225,10 @@ background:
   linear-gradient(165deg,#4a78c8 0%,#243868 55%,#152448 100%);
 color:#f2f7ff;font:800 1.25rem/1 Outfit,"Segoe UI",system-ui,sans-serif;
 box-shadow:0 10px 28px rgba(0,0,0,.48),0 0 0 0 rgba(120,180,255,.35);cursor:pointer;display:grid;place-items:center;padding:0;
-transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;
+overflow:hidden;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease;
 animation:hubHelpFabPulse 2.8s ease-in-out infinite}
+#hub-help-fab.has-avatar{font-size:0;background:#0b1426}
+#hub-help-fab img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}
 #hub-help-fab:hover{transform:translateY(-3px) scale(1.04);box-shadow:0 16px 34px rgba(0,0,0,.55),0 0 0 5px rgba(120,180,255,.18);
 border-color:rgba(200,225,255,.85);animation:none}
 #hub-help-fab:focus-visible{outline:2px solid #9cbcff;outline-offset:3px}
@@ -1219,10 +1259,12 @@ background:linear-gradient(180deg,rgba(100,150,240,.14),rgba(100,150,240,0))}
 #hub-help-root .hub-help-head-main{display:flex;gap:.8rem;align-items:flex-start;min-width:0}
 #hub-help-root .hub-help-avatar-wrap{position:relative;flex:0 0 auto}
 #hub-help-root .hub-help-avatar{width:3.35rem;height:3.35rem;border-radius:18px;display:grid;place-items:center;
-font-size:1.65rem;background:
+font-size:1.65rem;overflow:hidden;background:
   radial-gradient(circle at 30% 25%,rgba(220,240,255,.28),transparent 45%),
   linear-gradient(160deg,rgba(140,185,255,.32),rgba(50,100,190,.16));
 border:1px solid rgba(170,210,255,.45);box-shadow:0 8px 20px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.12)}
+#hub-help-root .hub-help-avatar.has-avatar{font-size:0;padding:0;background:#0b1426}
+#hub-help-root .hub-help-avatar img{width:100%;height:100%;object-fit:cover;display:block}
 #hub-help-root .hub-help-online{position:absolute;right:-2px;bottom:-2px;width:.72rem;height:.72rem;border-radius:999px;
 background:#4ade80;border:2px solid #122038;box-shadow:0 0 0 3px rgba(74,222,128,.18)}
 #hub-help-root .hub-help-head-copy{min-width:0}
@@ -1277,8 +1319,9 @@ border:1px solid rgba(180,210,255,.14);border-bottom-left-radius:7px;
 display:grid;grid-template-columns:auto 1fr;gap:.7rem;align-items:start;
 box-shadow:0 6px 18px rgba(0,0,0,.16)}
 #hub-help-root .hub-help-msg .hub-help-msg-icon{width:2.2rem;height:2.2rem;border-radius:13px;display:grid;place-items:center;
-font-size:1.18rem;background:linear-gradient(160deg,rgba(140,180,255,.22),rgba(80,130,210,.12));
+font-size:1.18rem;overflow:hidden;background:linear-gradient(160deg,rgba(140,180,255,.22),rgba(80,130,210,.12));
 border:1px solid rgba(150,190,255,.28);box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}
+#hub-help-root .hub-help-msg .hub-help-msg-icon img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}
 #hub-help-root .hub-help-msg .hub-help-msg-title{display:block;font-weight:800;margin-bottom:.22rem;color:#e4eeff;font-size:.93rem}
 #hub-help-root .hub-help-msg .hub-help-meant{display:inline-flex;margin:.12rem 0 .4rem;padding:.2rem .55rem;border-radius:999px;
 background:rgba(255,205,110,.12);border:1px solid rgba(255,200,100,.32);color:#ffe4b0;font-size:.7rem;font-weight:750}
@@ -1397,12 +1440,12 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     const gameName = gameLabel(currentGameId());
     const fab = document.getElementById("hub-help-fab");
     if (fab) {
-      fab.textContent = m.icon || "?";
+      paintMascotFace(fab, m);
       fab.title = `${m.name} — Help (${key})`;
       fab.setAttribute("aria-label", `Open help assistant (${m.fullName})`);
     }
     if (titleEl) titleEl.textContent = m.name;
-    if (avatarEl) avatarEl.textContent = m.icon || "?";
+    paintMascotFace(avatarEl, m);
     if (contextEl) {
       contextEl.textContent = `${m.fullName} · ask about play, menus, your account, and more`;
     }
@@ -1459,7 +1502,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     const el = document.createElement("div");
     el.className = "hub-help-msg bot";
     el.innerHTML =
-      `<span class="hub-help-msg-icon" aria-hidden="true">${escapeHtml(m.icon)}</span>` +
+      `<span class="hub-help-msg-icon" aria-hidden="true">${mascotIconHtml(m)}</span>` +
       `<div><span class="hub-help-msg-title">${escapeHtml(title)}</span>${meantHtml}` +
       `<div class="hub-help-body">${escapeHtml(styled)}</div></div>`;
     chatEl.appendChild(el);
@@ -1705,7 +1748,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
         return `<button type="button" class="${classes}" data-hub-mascot="${escapeHtml(m.id)}" ${
           locked ? 'aria-disabled="true"' : ""
         } title="${escapeHtml(m.fullName)} — ${escapeHtml(m.blurb)}">
-          <span class="hub-mascot-icon" aria-hidden="true">${escapeHtml(m.icon)}</span>
+          <span class="hub-mascot-icon${m.avatar ? " has-avatar" : ""}" aria-hidden="true">${mascotIconHtml(m)}</span>
           <span class="hub-mascot-name">${escapeHtml(m.name)}</span>
           <span class="hub-mascot-blurb">${escapeHtml(m.blurb)}</span>
           ${lockNote}
