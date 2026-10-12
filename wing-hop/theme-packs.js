@@ -1264,8 +1264,41 @@
     }
   }
 
+  /**
+   * Collision box inset so skinny visuals (bee stalks, temple columns, …)
+   * don't keep the full castle-width hitbox.
+   * Returns { x, w } in canvas space for a pipe column at pipeX with draw width pipeW.
+   */
+  function pipeHitbox(s, pipeX, pipeW) {
+    const world = s?.world || s?.form || "";
+    // inset from each side of the draw rect (PIPE_WIDTH)
+    const insetByWorld = {
+      meadow: 28, // flower stalks — visually ~40px wide
+      doodle: 8,
+      ocean: 14,
+      town: 12,
+      spooky: 16,
+      haunt: 16,
+      neon: 10,
+      steam: 14,
+      frost: 20, // ice spire tip is narrow
+      lava: 10,
+      pixel: 6,
+      temple: 18, // sandstone shaft
+      void: 16,
+      candy: 14,
+      alien: 10 // UFO organic pillar (still a bit inset)
+    };
+    let inset = insetByWorld[world];
+    if (inset == null && s?.form === "ufo") inset = 10;
+    if (inset == null) inset = 0;
+    inset = Math.max(0, Math.min(Math.floor(pipeW / 2) - 8, inset));
+    return { x: pipeX + inset, w: Math.max(16, pipeW - inset * 2) };
+  }
+
   window.WingHopThemePacks = {
     skins: packs,
+    pipeHitbox,
     drawPlayer(ctx, api) {
       const form = api.s.form;
       if (!form || form === "ufo") return false;
