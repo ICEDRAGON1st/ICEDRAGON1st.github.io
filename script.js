@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001dc": [
+    "Wing Hop: 14 new coin theme skins (Bee, Neon City, Rainbow Trail, and more)"
+  ],
   "20261001db": [
     "Hub: Download app button for the Windows installer"
   ],

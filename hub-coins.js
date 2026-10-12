@@ -45,7 +45,21 @@
       kind: "skin",
       game: "flappy",
       skinId: "ufo"
-    }
+    },
+    { id: "skin:wing-hop-plane", label: "Wing Hop — Paper Plane", cost: 250, kind: "skin", game: "flappy", skinId: "plane" },
+    { id: "skin:wing-hop-bee", label: "Wing Hop — Bee", cost: 250, kind: "skin", game: "flappy", skinId: "bee" },
+    { id: "skin:wing-hop-sub", label: "Wing Hop — Submarine", cost: 300, kind: "skin", game: "flappy", skinId: "sub" },
+    { id: "skin:wing-hop-balloon", label: "Wing Hop — Hot Air Balloon", cost: 300, kind: "skin", game: "flappy", skinId: "balloon" },
+    { id: "skin:wing-hop-broom", label: "Wing Hop — Witch Broom", cost: 350, kind: "skin", game: "flappy", skinId: "broom" },
+    { id: "skin:wing-hop-neon", label: "Wing Hop — Neon City", cost: 450, kind: "skin", game: "flappy", skinId: "neon" },
+    { id: "skin:wing-hop-steam", label: "Wing Hop — Steampunk", cost: 450, kind: "skin", game: "flappy", skinId: "steam" },
+    { id: "skin:wing-hop-frost", label: "Wing Hop — Ice Fortress", cost: 400, kind: "skin", game: "flappy", skinId: "frost" },
+    { id: "skin:wing-hop-volcano", label: "Wing Hop — Volcano", cost: 400, kind: "skin", game: "flappy", skinId: "volcano" },
+    { id: "skin:wing-hop-ghost", label: "Wing Hop — Ghost", cost: 450, kind: "skin", game: "flappy", skinId: "ghost" },
+    { id: "skin:wing-hop-pixel", label: "Wing Hop — Pixel-8", cost: 500, kind: "skin", game: "flappy", skinId: "pixel" },
+    { id: "skin:wing-hop-idol", label: "Wing Hop — Golden Idol", cost: 550, kind: "skin", game: "flappy", skinId: "idol" },
+    { id: "skin:wing-hop-shadow", label: "Wing Hop — Shadow", cost: 500, kind: "skin", game: "flappy", skinId: "shadow" },
+    { id: "skin:wing-hop-rainbow", label: "Wing Hop — Rainbow Trail", cost: 500, kind: "skin", game: "flappy", skinId: "rainbow" }
   ];
 
   const listeners = new Set();
