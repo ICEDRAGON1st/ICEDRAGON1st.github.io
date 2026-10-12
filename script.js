@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ek": [
+    "Admin: press G (ICE_DRAGON) in any game — Help-style window that pauses play"
+  ],
   "20261001ej": [
     "Paper Claim: claimed land merges into smooth blobs (no stacked circles)"
   ],
