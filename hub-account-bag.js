@@ -342,13 +342,45 @@
     if (!b) return typeof aStr === "string" ? aStr : JSON.stringify(a);
     const aAt = Number(a.lastPlayedAt) || 0;
     const bAt = Number(b.lastPlayedAt) || 0;
-    const newer = bAt >= aAt ? b : a;
-    const older = bAt >= aAt ? a : b;
+    const WINDOW = 48 * 60 * 60 * 1000;
+    const now = Date.now();
+    const aLive = aAt > 0 && now - aAt < WINDOW;
+    const bLive = bAt > 0 && now - bAt < WINDOW;
+    const aStreak = Math.max(0, Number(a.streak) || 0);
+    const bStreak = Math.max(0, Number(b.streak) || 0);
+
+    let streak = 0;
+    let lastDate = null;
+    let lastPlayedAt = Math.max(aAt, bAt) || null;
+    if (aLive && bLive) {
+      // Both active — keep the higher streak (don't let a fresher low count wipe a longer one)
+      if (aStreak >= bStreak) {
+        streak = aStreak;
+        lastDate = a.lastDate || b.lastDate || null;
+      } else {
+        streak = bStreak;
+        lastDate = b.lastDate || a.lastDate || null;
+      }
+    } else if (aLive) {
+      streak = aStreak;
+      lastDate = a.lastDate || null;
+      lastPlayedAt = aAt;
+    } else if (bLive) {
+      streak = bStreak;
+      lastDate = b.lastDate || null;
+      lastPlayedAt = bAt;
+    } else {
+      // Both expired — keep history from the higher count / newer play
+      const newer = bAt >= aAt ? b : a;
+      streak = Math.max(aStreak, bStreak);
+      lastDate = newer.lastDate || a.lastDate || b.lastDate || null;
+    }
+
     return JSON.stringify({
-      streak: Math.max(0, Number(newer.streak) || 0),
-      lastDate: newer.lastDate || older.lastDate || null,
-      lastPlayedAt: Math.max(aAt, bAt) || null,
-      best: Math.max(Number(a.best) || 0, Number(b.best) || 0),
+      streak,
+      lastDate,
+      lastPlayedAt,
+      best: Math.max(Number(a.best) || 0, Number(b.best) || 0, aStreak, bStreak, streak),
       celebrate: !!(a.celebrate || b.celebrate)
     });
   }
