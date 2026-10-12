@@ -2439,10 +2439,21 @@ header h1 {
   letter-spacing: 0.08em;
 }
 
-.player-code-value.is-masked {
+.player-code-value.is-masked,
+.player-accounts-code.is-masked {
   color: var(--subtitle);
   letter-spacing: 0.18em;
   user-select: none;
+}
+
+.player-accounts-code {
+  display: block;
+  margin-top: 0.15rem;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--correct);
 }
 
 .player-code-restore-row input {

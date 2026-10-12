@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001dj": [
+    "Players: saved-account codes stay hidden until you tap Show"
+  ],
   "20261001di": [
     "Players: player code is hidden by default — tap Show code to reveal"
   ],
@@ -5881,6 +5884,8 @@ function refreshPasswordStateUI() {
   el.classList.toggle("has-password", has);
 }
 
+const revealedAccountCodes = new Set();
+
 function accountListHtml(accounts, activeCode) {
   if (!accounts.length) {
     return `<li class="player-accounts-empty">No saved accounts yet — create one or log in with a code.</li>`;
@@ -5896,14 +5901,20 @@ function accountListHtml(accounts, activeCode) {
         return "";
       }
       const active = norm && norm === activeCode;
+      const revealed = !!(norm && revealedAccountCodes.has(norm));
       const label = HubPlays.sanitizeName?.(a.name) || a.name || "Unnamed";
       const lock = a.hasPassword ? " · password" : "";
       return `<li class="${active ? "is-active" : ""}" data-account-code="${escapeHtml(code)}">
         <span class="player-accounts-meta">
           <strong>${escapeHtml(label)}${active ? " · active" : ""}${lock}</strong>
-          <span>${escapeHtml(code)}</span>
+          <span class="player-accounts-code${revealed ? "" : " is-masked"}" aria-label="${
+            revealed ? `Player code ${escapeHtml(code)}` : "Player code hidden"
+          }">${revealed ? escapeHtml(code) : "••••-••••"}</span>
         </span>
         <span class="player-accounts-actions">
+          <button type="button" class="hub-btn" data-account-reveal="${escapeHtml(
+            code
+          )}" aria-pressed="${revealed ? "true" : "false"}">${revealed ? "Hide" : "Show"}</button>
           ${
             active
               ? ""
@@ -6130,8 +6141,19 @@ document.getElementById("gate-new-account-btn")?.addEventListener("click", async
 });
 
 function onAccountListClick(e) {
+  const revealBtn = e.target.closest("[data-account-reveal]");
   const switchBtn = e.target.closest("[data-account-switch]");
   const forgetBtn = e.target.closest("[data-account-forget]");
+  if (revealBtn) {
+    const code = revealBtn.getAttribute("data-account-reveal") || "";
+    const norm = HubPlays?.normalizePlayerCode?.(code) || "";
+    if (norm) {
+      if (revealedAccountCodes.has(norm)) revealedAccountCodes.delete(norm);
+      else revealedAccountCodes.add(norm);
+    }
+    renderSavedAccounts();
+    return;
+  }
   if (switchBtn) {
     const statusFn = e.currentTarget?.id === "gate-accounts-list" ? setGateCodeStatus : setPlayerCodeStatus;
     const code = switchBtn.getAttribute("data-account-switch") || "";
