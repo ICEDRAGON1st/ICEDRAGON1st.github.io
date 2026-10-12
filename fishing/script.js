@@ -15379,17 +15379,119 @@
     return (RARITY_RANK[rarity] || 0) >= RARITY_RANK.legendary;
   }
 
+  /** Settings groups for which rarities play the full-screen cutscene. */
+  const CUTSCENE_RARITY_GROUPS = [
+    { id: "rare", label: "Rare", rarities: ["rare"], onByDefault: false },
+    { id: "epic", label: "Epic", rarities: ["epic"], onByDefault: false },
+    { id: "legendary", label: "Legendary", rarities: ["legendary"], onByDefault: true },
+    { id: "mythic", label: "Mythic", rarities: ["mythic"], onByDefault: true },
+    { id: "secret", label: "Secret", rarities: ["secret"], onByDefault: true },
+    {
+      id: "divine",
+      label: "Divine+",
+      rarities: ["divine", "eternal", "cosmic", "astral"],
+      onByDefault: true
+    },
+    {
+      id: "singularity",
+      label: "Singularity+",
+      rarities: [
+        "singularity",
+        "omega",
+        "genesis",
+        "paradox",
+        "infinity",
+        "absolute",
+        "transcendent",
+        "nexus",
+        "voidborn",
+        "zenith",
+        "crown",
+        "origin",
+        "aether",
+        "radiant",
+        "dusk",
+        "apex",
+        "sovereign",
+        "celestial",
+        "primordial"
+      ],
+      onByDefault: true
+    },
+    {
+      id: "ultimate",
+      label: "Ultimate+",
+      rarities: ["ultimate", "exclusive", "mystery", "easteregg"],
+      onByDefault: true
+    }
+  ];
+
+  const CUTSCENE_RARITY_TO_GROUP = (() => {
+    const map = Object.create(null);
+    CUTSCENE_RARITY_GROUPS.forEach((g) => {
+      g.rarities.forEach((r) => {
+        map[r] = g.id;
+      });
+    });
+    return map;
+  })();
+
+  function defaultCutscenePrefs() {
+    const rarities = {};
+    CUTSCENE_RARITY_GROUPS.forEach((g) => {
+      rarities[g.id] = !!g.onByDefault;
+    });
+    return {
+      rarities,
+      shiny: false,
+      mutation: false,
+      variant: false
+    };
+  }
+
+  function normalizeCutscenePrefs(raw) {
+    const defaults = defaultCutscenePrefs();
+    const src = raw && typeof raw === "object" ? raw : {};
+    const rarities = { ...defaults.rarities };
+    const incoming = src.rarities && typeof src.rarities === "object" ? src.rarities : {};
+    CUTSCENE_RARITY_GROUPS.forEach((g) => {
+      if (Object.prototype.hasOwnProperty.call(incoming, g.id)) {
+        rarities[g.id] = !!incoming[g.id];
+      }
+    });
+    return {
+      rarities,
+      shiny: src.shiny === true,
+      mutation: src.mutation === true,
+      variant: src.variant === true
+    };
+  }
+
+  function cutscenePrefs() {
+    return normalizeCutscenePrefs(fishingPrefs.cutscene);
+  }
+
+  function setCutscenePrefs(next) {
+    fishingPrefs.cutscene = normalizeCutscenePrefs(next);
+    saveFishingPrefs();
+    syncCutsceneSettingsUi();
+  }
+
+  function isCutsceneRarityEnabled(rarity) {
+    const groupId = CUTSCENE_RARITY_TO_GROUP[rarity];
+    if (!groupId) return false;
+    return !!cutscenePrefs().rarities[groupId];
+  }
+
   function shouldPlayCatchCutscene(fish, entry) {
     if (!fish || isTreasureItem(fish)) return false;
-    if (isShowcaseRarity(fish.rarity)) return true;
-    if (entry?.shiny) return true;
-    if (normalizeMutation(entry?.mutation)) return true;
-    const v = normalizeVariant(entry?.variant);
-    if (
-      (v === "gold" || v === "diamond" || v === "rainbow") &&
-      (RARITY_RANK[fish.rarity] || 0) >= RARITY_RANK.epic
-    ) {
-      return true;
+    const prefs = cutscenePrefs();
+    if (isCutsceneRarityEnabled(fish.rarity)) return true;
+    if (prefs.shiny && entry?.shiny) return true;
+    if (prefs.mutation && normalizeMutation(entry?.mutation)) return true;
+    if (prefs.variant) {
+      const v = normalizeVariant(entry?.variant);
+      if (v === "gold" || v === "diamond" || v === "rainbow") return true;
     }
     return false;
   }
@@ -17987,10 +18089,17 @@
         lightningFlash: raw.lightningFlash !== false,
         sfx: raw.sfx !== false,
         confetti: raw.confetti !== false,
-        chests: raw.chests !== false
+        chests: raw.chests !== false,
+        cutscene: normalizeCutscenePrefs(raw.cutscene)
       };
     } catch {
-      return { lightningFlash: true, sfx: true, confetti: true, chests: true };
+      return {
+        lightningFlash: true,
+        sfx: true,
+        confetti: true,
+        chests: true,
+        cutscene: defaultCutscenePrefs()
+      };
     }
   }
 
@@ -18061,6 +18170,41 @@
     document.getElementById("weather-fx")?.classList.toggle("no-lightning-flash", !on);
   }
 
+  function ensureCutsceneRarityChips() {
+    const host = document.getElementById("settings-cutscene-rarities");
+    if (!host || host.dataset.ready === "1") return host;
+    host.dataset.ready = "1";
+    host.innerHTML = CUTSCENE_RARITY_GROUPS.map(
+      (g) => `<label class="settings-cutscene-chip">
+        <input type="checkbox" data-cutscene-rarity="${g.id}" />
+        <span>${g.label}</span>
+      </label>`
+    ).join("");
+    host.addEventListener("change", (e) => {
+      const input = e.target?.closest?.("input[data-cutscene-rarity]");
+      if (!input) return;
+      const prefs = cutscenePrefs();
+      prefs.rarities[input.getAttribute("data-cutscene-rarity")] = !!input.checked;
+      setCutscenePrefs(prefs);
+    });
+    return host;
+  }
+
+  function syncCutsceneSettingsUi() {
+    ensureCutsceneRarityChips();
+    const prefs = cutscenePrefs();
+    document.querySelectorAll("[data-cutscene-rarity]").forEach((input) => {
+      const id = input.getAttribute("data-cutscene-rarity");
+      input.checked = !!prefs.rarities[id];
+    });
+    const shiny = document.getElementById("settings-cutscene-shiny");
+    const mutation = document.getElementById("settings-cutscene-mutation");
+    const variant = document.getElementById("settings-cutscene-variant");
+    if (shiny) shiny.checked = !!prefs.shiny;
+    if (mutation) mutation.checked = !!prefs.mutation;
+    if (variant) variant.checked = !!prefs.variant;
+  }
+
   function syncSettingsPanel() {
     if (settingsSoundEnabled) {
       settingsSoundEnabled.checked = window.HubSound?.isEnabled?.() !== false;
@@ -18075,6 +18219,7 @@
     if (settingsConfettiEnabled) settingsConfettiEnabled.checked = confettiEnabled();
     if (settingsLightningFlash) settingsLightningFlash.checked = lightningFlashEnabled();
     if (settingsChestsEnabled) settingsChestsEnabled.checked = chestsEnabled();
+    syncCutsceneSettingsUi();
   }
 
   function openSettings() {
@@ -18959,6 +19104,29 @@
   });
   settingsChestsEnabled?.addEventListener("change", () => {
     setChestsEnabled(!!settingsChestsEnabled.checked);
+  });
+  ensureCutsceneRarityChips();
+  syncCutsceneSettingsUi();
+  ["settings-cutscene-shiny", "settings-cutscene-mutation", "settings-cutscene-variant"].forEach(
+    (id) => {
+      document.getElementById(id)?.addEventListener("change", (e) => {
+        const prefs = cutscenePrefs();
+        const key = e.currentTarget?.getAttribute("data-cutscene-extra");
+        if (!key) return;
+        prefs[key] = !!e.currentTarget.checked;
+        setCutscenePrefs(prefs);
+      });
+    }
+  );
+  document.getElementById("settings-cutscene-all")?.addEventListener("click", () => {
+    const prefs = cutscenePrefs();
+    CUTSCENE_RARITY_GROUPS.forEach((g) => {
+      prefs.rarities[g.id] = true;
+    });
+    setCutscenePrefs(prefs);
+  });
+  document.getElementById("settings-cutscene-defaults")?.addEventListener("click", () => {
+    setCutscenePrefs(defaultCutscenePrefs());
   });
   adminBtn?.addEventListener("click", openAdmin);
   (function bindFishingTitleEggs() {

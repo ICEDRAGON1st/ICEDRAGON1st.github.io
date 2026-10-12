@@ -250,8 +250,62 @@ body.modal-open {
 }
 
 .settings-card {
-  width: min(380px, 100%);
+  width: min(420px, 100%);
   text-align: left;
+}
+
+.settings-cutscene-block {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.settings-cutscene-grid,
+.settings-cutscene-extras {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+
+.settings-cutscene-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.45);
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.settings-cutscene-chip input {
+  width: 0.95rem;
+  height: 0.95rem;
+  accent-color: #38bdf8;
+  margin: 0;
+}
+
+.settings-cutscene-chip:has(input:checked) {
+  color: #e2e8f0;
+  border-color: rgba(56, 189, 248, 0.55);
+  background: rgba(14, 116, 144, 0.28);
+}
+
+.settings-cutscene-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+
+.settings-cutscene-actions .btn {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.78rem;
 }
 
 .settings-rows {
