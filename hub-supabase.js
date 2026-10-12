@@ -37,7 +37,11 @@
     fishingGifts: "fishing-gifts",
     fishingMail: "fishing-player-mail",
     fishingAquariums: "fishing-aquariums",
-    calls: "hub-calls"
+    calls: "hub-calls",
+    hubAdminAnnounce: "hub-admin-announce",
+    hubAdminMaintenance: "hub-admin-maintenance",
+    hubAdminModeration: "hub-admin-moderation",
+    hubAdminGrants: "hub-admin-grants"
   };
 
   function headers(extra) {

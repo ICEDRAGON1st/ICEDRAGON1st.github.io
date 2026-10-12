@@ -544,6 +544,13 @@
     const text = sanitizeText(rawText);
     if (!me || !myName) return { ok: false, error: "Set a username first" };
     if (!text) return { ok: false, error: "Type a message" };
+    try {
+      const mute = window.HubAdmin?.getMute?.(myName);
+      if (mute) {
+        const why = mute.reason ? `: ${mute.reason}` : "";
+        return { ok: false, error: `You are muted${why}` };
+      }
+    } catch {}
     if (containsProfanity(text)) {
       return { ok: false, error: "Keep it clean — that word isn't allowed" };
     }
