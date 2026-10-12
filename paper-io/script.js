@@ -133,8 +133,47 @@
   }
 
   const RAINBOW_COLS = ["#ff6b6b", "#fcc419", "#51cf66", "#339af0", "#cc5de8"];
+  const NEON_COLS = ["#22d3ee", "#e93cac", "#a78bfa", "#22d3ee"];
   function rainbowAt(i) {
     return RAINBOW_COLS[Math.abs(i) % RAINBOW_COLS.length];
+  }
+
+  function hexToRgb(hex) {
+    const h = String(hex || "").replace("#", "");
+    const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+    const n = parseInt(full, 16);
+    if (!Number.isFinite(n)) return { r: 62, g: 198, b: 255 };
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+  }
+
+  function lerpHex(a, b, t) {
+    const A = hexToRgb(a);
+    const B = hexToRgb(b);
+    const u = Math.max(0, Math.min(1, t));
+    const r = Math.round(A.r + (B.r - A.r) * u);
+    const g = Math.round(A.g + (B.g - A.g) * u);
+    const bl = Math.round(A.b + (B.b - A.b) * u);
+    return `#${((1 << 24) | (r << 16) | (g << 8) | bl).toString(16).slice(1)}`;
+  }
+
+  function rgbaFromHex(hex, a) {
+    const { r, g, b } = hexToRgb(hex);
+    return `rgba(${r},${g},${b},${a})`;
+  }
+
+  function isAnimLandSkin(head) {
+    return head === "rainbow" || head === "neon";
+  }
+
+  /** Cycle land/blob tint through palette colors over time. */
+  function landAnimColor(head, now) {
+    const t = now != null ? now : performance.now();
+    const cols = head === "neon" ? NEON_COLS : head === "rainbow" ? RAINBOW_COLS : null;
+    if (!cols || !cols.length) return null;
+    const speed = head === "neon" ? 420 : 520;
+    const f = ((t / speed) % cols.length + cols.length) % cols.length;
+    const i = f | 0;
+    return lerpHex(cols[i], cols[(i + 1) % cols.length], f - i);
   }
 
   function previewColors() {
@@ -669,6 +708,11 @@
     if (p && p.id === localId) {
       const sk = skin();
       if (sk && skinId !== "classic" && sk.fill) {
+        const head = sk.head || "classic";
+        if (isAnimLandSkin(head)) {
+          const fill = landAnimColor(head) || sk.fill;
+          return { fill, soft: rgbaFromHex(fill, 0.8), name: sk.label || "You" };
+        }
         return { fill: sk.fill, soft: sk.soft || sk.fill, name: sk.label || "You" };
       }
     }
@@ -679,10 +723,16 @@
   const ctx = canvas.getContext("2d", { alpha: false });
   const landLayer = document.createElement("canvas");
   const landCtx = landLayer.getContext("2d");
+  const animLandMask = document.createElement("canvas");
+  const animLandMaskCtx = animLandMask.getContext("2d");
+  const animLandTint = document.createElement("canvas");
+  const animLandTintCtx = animLandTint.getContext("2d");
   const miniLayer = document.createElement("canvas");
   const miniCtx = miniLayer.getContext("2d", { alpha: false });
   let landDirty = true;
   let miniDirty = true;
+  let hasAnimLandMask = false;
+  let lastMiniAnimAt = 0;
 
   const scoreEl = document.getElementById("score");
   const highEl = document.getElementById("high-score");
@@ -2026,6 +2076,42 @@
     }
   }
 
+  function ensureAnimLandCanvases(W) {
+    if (animLandMask.width !== W || animLandMask.height !== W) {
+      animLandMask.width = W;
+      animLandMask.height = W;
+      animLandTint.width = W;
+      animLandTint.height = W;
+    }
+  }
+
+  function drawAnimLandTint(scale) {
+    const head = landSkinHead();
+    if (!hasAnimLandMask || !isAnimLandSkin(head)) return;
+    const W = animLandMask.width;
+    if (!W) return;
+    const fill = landAnimColor(head) || skin()?.fill || "#ffffff";
+    animLandTintCtx.save();
+    animLandTintCtx.setTransform(1, 0, 0, 1, 0, 0);
+    animLandTintCtx.globalCompositeOperation = "copy";
+    animLandTintCtx.fillStyle = rgbaFromHex(fill, 0.82);
+    animLandTintCtx.fillRect(0, 0, W, W);
+    animLandTintCtx.globalCompositeOperation = "destination-in";
+    animLandTintCtx.drawImage(animLandMask, 0, 0);
+    animLandTintCtx.restore();
+
+    if (typeof ctx.filter === "string") {
+      ctx.filter = `blur(${(0.22 * scale).toFixed(2)}px)`;
+      ctx.drawImage(animLandTint, 0, 0, W, W, 0, 0, WORLD, WORLD);
+      ctx.filter = "none";
+      ctx.globalAlpha = 0.65;
+      ctx.drawImage(animLandTint, 0, 0, W, W, 0, 0, WORLD, WORLD);
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.drawImage(animLandTint, 0, 0, W, W, 0, 0, WORLD, WORLD);
+    }
+  }
+
   function paintLandLayer() {
     const W = WORLD * LAND_PX;
     if (landLayer.width !== W || landLayer.height !== W) {
@@ -2033,16 +2119,36 @@
       landLayer.height = W;
       landDirty = true;
     }
+    ensureAnimLandCanvases(W);
     if (!landDirty) return;
     landDirty = false;
     landCtx.clearRect(0, 0, W, W);
     landCtx.imageSmoothingEnabled = true;
+    animLandMaskCtx.clearRect(0, 0, W, W);
+    animLandMaskCtx.imageSmoothingEnabled = true;
+    hasAnimLandMask = false;
+
+    const animHead = landSkinHead();
+    const animLocal = isAnimLandSkin(animHead) && localId;
+    const localHid = animLocal ? idHash(localId) : 0;
+
     // Soft overlapping disks at hi-res merge into smooth blobs when zoomed
     const rad = LAND_PX * 0.78;
     for (let y = 0; y < WORLD; y++) {
       for (let x = 0; x < WORLD; x++) {
         const owner = grid[idx(x, y)];
         if (!owner) continue;
+        const cx = (x + 0.5) * LAND_PX;
+        const cy = (y + 0.5) * LAND_PX;
+        if (animLocal && owner === localHid) {
+          // White mask — tinted each frame for rainbow/neon land
+          animLandMaskCtx.fillStyle = "rgba(255,255,255,0.92)";
+          animLandMaskCtx.beginPath();
+          animLandMaskCtx.arc(cx, cy, rad, 0, Math.PI * 2);
+          animLandMaskCtx.fill();
+          hasAnimLandMask = true;
+          continue;
+        }
         const pid = idFromHash(owner);
         const pl = players.find((p) => p.id === pid);
         const color = pl
@@ -2050,20 +2156,23 @@
           : COLORS[(owner - 1) % COLORS.length];
         landCtx.fillStyle = color.soft;
         landCtx.beginPath();
-        landCtx.arc((x + 0.5) * LAND_PX, (y + 0.5) * LAND_PX, rad, 0, Math.PI * 2);
+        landCtx.arc(cx, cy, rad, 0, Math.PI * 2);
         landCtx.fill();
       }
     }
 
     // Themed props inside your claimed land (arena floor stays classic)
-    const head = landSkinHead();
+    const head = animHead;
     if (head !== "classic" && localId) {
       const hid = idHash(localId);
       const fill = skin()?.fill || COLORS[0].fill;
       const px = LAND_PX;
-      landCtx.save();
-      landCtx.lineCap = "round";
-      landCtx.lineJoin = "round";
+      // Props sit on the static layer for non-anim skins; for rainbow/neon
+      // draw them into the mask so they tint with the land.
+      const propCtx = isAnimLandSkin(head) ? animLandMaskCtx : landCtx;
+      propCtx.save();
+      propCtx.lineCap = "round";
+      propCtx.lineJoin = "round";
       for (let y = 0; y < WORLD; y++) {
         for (let x = 0; x < WORLD; x++) {
           if (grid[idx(x, y)] !== hid) continue;
@@ -2073,30 +2182,30 @@
 
           if (head === "pixel") {
             if (x % 4 === 0 && y % 4 === 0) {
-              landCtx.fillStyle = "rgba(255,255,255,0.16)";
-              landCtx.fillRect(x * px, y * px, px * 2, px * 2);
+              propCtx.fillStyle = "rgba(255,255,255,0.16)";
+              propCtx.fillRect(x * px, y * px, px * 2, px * 2);
             } else if (seed % 72 === 0 && isInteriorOwned(x, y, hid)) {
-              landCtx.fillStyle = "#ffd43b";
-              landCtx.fillRect(cx - px * 0.55, cy - px * 0.55, px * 1.1, px * 1.1);
+              propCtx.fillStyle = "#ffd43b";
+              propCtx.fillRect(cx - px * 0.55, cy - px * 0.55, px * 1.1, px * 1.1);
             }
             continue;
           }
 
           if (head === "honey") {
             if (x % 6 === 0 && y % 6 === 0 && isInteriorOwned(x, y, hid)) {
-              landCtx.strokeStyle = "rgba(120,50,0,0.38)";
-              landCtx.lineWidth = px * 0.2;
-              landCtx.beginPath();
+              propCtx.strokeStyle = "rgba(120,50,0,0.38)";
+              propCtx.lineWidth = px * 0.2;
+              propCtx.beginPath();
               const hs = px * 2.1;
               for (let i = 0; i < 6; i++) {
                 const a = (Math.PI / 3) * i + Math.PI / 6;
                 const hx = cx + Math.cos(a) * hs * 0.55;
                 const hy = cy + Math.sin(a) * hs * 0.55;
-                if (i === 0) landCtx.moveTo(hx, hy);
-                else landCtx.lineTo(hx, hy);
+                if (i === 0) propCtx.moveTo(hx, hy);
+                else propCtx.lineTo(hx, hy);
               }
-              landCtx.closePath();
-              landCtx.stroke();
+              propCtx.closePath();
+              propCtx.stroke();
             }
             continue;
           }
@@ -2111,10 +2220,10 @@
           ) {
             continue;
           }
-          stampLandMotif(landCtx, cx, cy, px, head, seed, fill);
+          stampLandMotif(propCtx, cx, cy, px, head, seed, fill);
         }
       }
-      landCtx.restore();
+      propCtx.restore();
     }
   }
 
@@ -2494,6 +2603,16 @@
       ctx.globalAlpha = 1;
     } else {
       ctx.drawImage(landLayer, 0, 0, landLayer.width, landLayer.height, 0, 0, WORLD, WORLD);
+    }
+    drawAnimLandTint(scale);
+
+    // Keep minimap in sync while land color cycles
+    if (isAnimLandSkin(landSkinHead())) {
+      const now = performance.now();
+      if (now - lastMiniAnimAt > 80) {
+        lastMiniAnimAt = now;
+        miniDirty = true;
+      }
     }
 
     for (const p of players) drawTrail(p, colorFor(p));

@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ea": [
+    "Paper Claim: Rainbow and Neon claimed land cycles through colors"
+  ],
   "20261001dz": [
     "Paper Claim: fewer themed props inside claimed land"
   ],
