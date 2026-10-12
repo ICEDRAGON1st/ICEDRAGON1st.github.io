@@ -1716,6 +1716,214 @@
     }
   }
 
+  function landSkinHead() {
+    if (!localId || skinId === "classic") return "classic";
+    return skin()?.head || "classic";
+  }
+
+  function cellSeed(x, y) {
+    return (Math.imul(x + 1, 374761393) ^ Math.imul(y + 1, 668265263)) >>> 0;
+  }
+
+  function isInteriorOwned(x, y, hid) {
+    if (x <= 0 || y <= 0 || x >= WORLD - 1 || y >= WORLD - 1) return false;
+    return (
+      grid[idx(x - 1, y)] === hid &&
+      grid[idx(x + 1, y)] === hid &&
+      grid[idx(x, y - 1)] === hid &&
+      grid[idx(x, y + 1)] === hid
+    );
+  }
+
+  /** Themed props inside claimed land (trees, waves, hexes, …). */
+  function stampLandMotif(g, cx, cy, px, head, seed, fill) {
+    const s = px * 0.85;
+    if (head === "forest") {
+      if (seed % 13 !== 0) return;
+      g.fillStyle = "#5c3d1e";
+      g.fillRect(cx - s * 0.12, cy - s * 0.05, s * 0.24, s * 0.7);
+      g.fillStyle = seed % 26 === 0 ? "#2f9e44" : "#40c057";
+      g.beginPath();
+      g.moveTo(cx, cy - s * 1.15);
+      g.lineTo(cx + s * 0.55, cy - s * 0.15);
+      g.lineTo(cx - s * 0.55, cy - s * 0.15);
+      g.closePath();
+      g.fill();
+      g.fillStyle = "#8ce99a";
+      g.beginPath();
+      g.moveTo(cx, cy - s * 0.75);
+      g.lineTo(cx + s * 0.4, cy + s * 0.05);
+      g.lineTo(cx - s * 0.4, cy + s * 0.05);
+      g.closePath();
+      g.fill();
+      return;
+    }
+    if (head === "ocean") {
+      if (seed % 7 === 0) {
+        g.strokeStyle = "rgba(200,240,255,0.55)";
+        g.lineWidth = px * 0.12;
+        g.beginPath();
+        g.moveTo(cx - s * 0.55, cy);
+        g.quadraticCurveTo(cx - s * 0.2, cy - s * 0.35, cx + s * 0.15, cy);
+        g.quadraticCurveTo(cx + s * 0.4, cy + s * 0.3, cx + s * 0.7, cy - s * 0.05);
+        g.stroke();
+      }
+      if (seed % 11 === 0) {
+        g.fillStyle = "rgba(255,255,255,0.55)";
+        g.beginPath();
+        g.arc(cx + s * 0.2, cy - s * 0.25, s * 0.18, 0, Math.PI * 2);
+        g.fill();
+      }
+      return;
+    }
+    if (head === "lava") {
+      if (seed % 9 === 0) {
+        g.strokeStyle = "rgba(255,212,59,0.7)";
+        g.lineWidth = px * 0.1;
+        g.beginPath();
+        g.moveTo(cx - s * 0.4, cy - s * 0.2);
+        g.lineTo(cx - s * 0.05, cy + s * 0.15);
+        g.lineTo(cx + s * 0.35, cy - s * 0.1);
+        g.lineTo(cx + s * 0.55, cy + s * 0.35);
+        g.stroke();
+      }
+      if (seed % 5 === 0) {
+        g.fillStyle = seed % 10 === 0 ? "#ffe066" : "#ff922b";
+        g.beginPath();
+        g.arc(cx, cy, s * 0.14, 0, Math.PI * 2);
+        g.fill();
+      }
+      return;
+    }
+    if (head === "ice") {
+      if (seed % 8 !== 0) return;
+      g.strokeStyle = "rgba(255,255,255,0.75)";
+      g.lineWidth = px * 0.1;
+      g.beginPath();
+      g.moveTo(cx, cy - s * 0.55);
+      g.lineTo(cx, cy + s * 0.55);
+      g.moveTo(cx - s * 0.45, cy);
+      g.lineTo(cx + s * 0.45, cy);
+      g.moveTo(cx - s * 0.35, cy - s * 0.35);
+      g.lineTo(cx + s * 0.35, cy + s * 0.35);
+      g.stroke();
+      return;
+    }
+    if (head === "ink") {
+      if (seed % 10 !== 0) return;
+      g.fillStyle = "rgba(10,10,14,0.45)";
+      g.beginPath();
+      g.ellipse(cx, cy, s * 0.35, s * 0.22, (seed % 5) * 0.4, 0, Math.PI * 2);
+      g.fill();
+      return;
+    }
+    if (head === "neon") {
+      if (seed % 12 !== 0) return;
+      g.strokeStyle = seed % 24 === 0 ? "#e93cac" : fill || "#22d3ee";
+      g.lineWidth = px * 0.12;
+      g.beginPath();
+      g.moveTo(cx - s * 0.35, cy);
+      g.lineTo(cx + s * 0.35, cy);
+      g.moveTo(cx, cy - s * 0.35);
+      g.lineTo(cx, cy + s * 0.35);
+      g.stroke();
+      return;
+    }
+    if (head === "shadow") {
+      if (seed % 9 !== 0) return;
+      g.fillStyle = "rgba(190,75,219,0.35)";
+      g.beginPath();
+      g.ellipse(cx, cy, s * 0.4, s * 0.25, 0.3, 0, Math.PI * 2);
+      g.fill();
+      return;
+    }
+    if (head === "rainbow") {
+      if (seed % 14 !== 0) return;
+      g.lineWidth = px * 0.1;
+      for (let i = 0; i < 5; i++) {
+        g.strokeStyle = RAINBOW_COLS[i];
+        g.beginPath();
+        g.arc(cx, cy + s * 0.2, s * (0.25 + i * 0.08), Math.PI, 0);
+        g.stroke();
+      }
+      return;
+    }
+    if (head === "gold") {
+      if (seed % 11 !== 0) return;
+      g.fillStyle = "rgba(255,236,153,0.7)";
+      g.beginPath();
+      g.arc(cx, cy, s * 0.28, 0, Math.PI * 2);
+      g.fill();
+      g.strokeStyle = "rgba(230,119,0,0.65)";
+      g.lineWidth = px * 0.08;
+      g.stroke();
+      return;
+    }
+    if (head === "graffiti") {
+      if (seed % 8 !== 0) return;
+      g.fillStyle = seed % 16 === 0 ? "#ffd43b" : fill || "#ff6bcb";
+      g.beginPath();
+      g.moveTo(cx, cy - s * 0.4);
+      g.lineTo(cx + s * 0.15, cy - s * 0.08);
+      g.lineTo(cx + s * 0.42, cy - s * 0.08);
+      g.lineTo(cx + s * 0.2, cy + s * 0.12);
+      g.lineTo(cx + s * 0.28, cy + s * 0.42);
+      g.lineTo(cx, cy + s * 0.2);
+      g.lineTo(cx - s * 0.28, cy + s * 0.42);
+      g.lineTo(cx - s * 0.2, cy + s * 0.12);
+      g.lineTo(cx - s * 0.42, cy - s * 0.08);
+      g.lineTo(cx - s * 0.15, cy - s * 0.08);
+      g.closePath();
+      g.fill();
+      return;
+    }
+    if (head === "storm") {
+      if (seed % 12 !== 0) return;
+      g.fillStyle = "#ffe066";
+      g.beginPath();
+      g.moveTo(cx + s * 0.05, cy - s * 0.45);
+      g.lineTo(cx - s * 0.2, cy + s * 0.05);
+      g.lineTo(cx + s * 0.05, cy + s * 0.05);
+      g.lineTo(cx - s * 0.05, cy + s * 0.5);
+      g.lineTo(cx + s * 0.35, cy - s * 0.05);
+      g.lineTo(cx + s * 0.1, cy - s * 0.05);
+      g.closePath();
+      g.fill();
+      return;
+    }
+    if (head === "candy") {
+      if (seed % 10 !== 0) return;
+      g.fillStyle = "#fff";
+      g.beginPath();
+      g.arc(cx, cy, s * 0.28, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "#be4bdb";
+      g.beginPath();
+      g.moveTo(cx, cy);
+      g.arc(cx, cy, s * 0.28, -0.4, 1.2);
+      g.closePath();
+      g.fill();
+      g.beginPath();
+      g.moveTo(cx, cy);
+      g.arc(cx, cy, s * 0.28, 2.4, 4.0);
+      g.closePath();
+      g.fill();
+      return;
+    }
+    if (head === "blueprint") {
+      if (seed % 6 !== 0) return;
+      g.strokeStyle = "rgba(255,255,255,0.4)";
+      g.lineWidth = px * 0.07;
+      g.strokeRect(cx - s * 0.35, cy - s * 0.35, s * 0.7, s * 0.7);
+      g.beginPath();
+      g.moveTo(cx - s * 0.45, cy);
+      g.lineTo(cx + s * 0.45, cy);
+      g.moveTo(cx, cy - s * 0.45);
+      g.lineTo(cx, cy + s * 0.45);
+      g.stroke();
+    }
+  }
+
   function paintLandLayer() {
     const W = WORLD * LAND_PX;
     if (landLayer.width !== W || landLayer.height !== W) {
@@ -1743,6 +1951,68 @@
         landCtx.arc((x + 0.5) * LAND_PX, (y + 0.5) * LAND_PX, rad, 0, Math.PI * 2);
         landCtx.fill();
       }
+    }
+
+    // Themed props inside your claimed land (arena floor stays classic)
+    const head = landSkinHead();
+    if (head !== "classic" && localId) {
+      const hid = idHash(localId);
+      const fill = skin()?.fill || COLORS[0].fill;
+      const px = LAND_PX;
+      landCtx.save();
+      landCtx.lineCap = "round";
+      landCtx.lineJoin = "round";
+      for (let y = 0; y < WORLD; y++) {
+        for (let x = 0; x < WORLD; x++) {
+          if (grid[idx(x, y)] !== hid) continue;
+          const seed = cellSeed(x, y);
+          const cx = (x + 0.5) * px;
+          const cy = (y + 0.5) * px;
+
+          if (head === "pixel") {
+            if ((x + y) % 2 === 0) {
+              landCtx.fillStyle = "rgba(255,255,255,0.14)";
+              landCtx.fillRect(x * px, y * px, px, px);
+            } else if (seed % 17 === 0 && isInteriorOwned(x, y, hid)) {
+              landCtx.fillStyle = "#ffd43b";
+              landCtx.fillRect(cx - px * 0.2, cy - px * 0.2, px * 0.4, px * 0.4);
+            }
+            continue;
+          }
+
+          if (head === "honey") {
+            if ((x + Math.floor(y / 2)) % 2 === 0 && isInteriorOwned(x, y, hid)) {
+              landCtx.strokeStyle = "rgba(120,50,0,0.32)";
+              landCtx.lineWidth = px * 0.08;
+              landCtx.beginPath();
+              const hs = px * 0.72;
+              for (let i = 0; i < 6; i++) {
+                const a = (Math.PI / 3) * i + Math.PI / 6;
+                const hx = cx + Math.cos(a) * hs * 0.5;
+                const hy = cy + Math.sin(a) * hs * 0.5;
+                if (i === 0) landCtx.moveTo(hx, hy);
+                else landCtx.lineTo(hx, hy);
+              }
+              landCtx.closePath();
+              landCtx.stroke();
+            }
+            continue;
+          }
+
+          if (
+            (head === "forest" ||
+              head === "storm" ||
+              head === "gold" ||
+              head === "graffiti" ||
+              head === "rainbow") &&
+            !isInteriorOwned(x, y, hid)
+          ) {
+            continue;
+          }
+          stampLandMotif(landCtx, cx, cy, px, head, seed, fill);
+        }
+      }
+      landCtx.restore();
     }
   }
 

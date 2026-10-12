@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001dw": [
+    "Paper Claim: claimed land shows skin props (trees, waves, hexes, bolts, …)"
+  ],
   "20261001dv": [
     "Paper Claim: remove white ring around skin preview and blob"
   ],
