@@ -5189,6 +5189,17 @@ function togglePlayerNameLock() {
   showGamesMessage(next ? "Name locked" : "Name unlocked", 1600);
 }
 
+function updatePlayersMilestonesLine() {
+  const el = document.getElementById("players-milestones");
+  if (!el || typeof HubPlays === "undefined") return;
+  const m = HubPlays.getAllTimeMilestone?.();
+  const total = HubPlays.getAllTimeCount?.() || 0;
+  const games = Math.max(0, Number(m?.games) || 29);
+  const most = String(m?.mostPlayed || "Fishing Idle").trim() || "Fishing Idle";
+  const badges = Math.max(0, Number(m?.achievements) || 100);
+  el.textContent = `Hub milestones: ${total} all-time players · ${games} games · ${most} most played · ~${badges} achievements`;
+}
+
 function updateOnlineCountDisplay(onlineCount, allTimeCount) {
   const onlineEl = document.getElementById("players-online");
   const allTimeEl = document.getElementById("players-alltime");
@@ -5213,6 +5224,7 @@ function updateOnlineCountDisplay(onlineCount, allTimeCount) {
       ? `Hide players · ${n}/${total}`
       : `Players · ${n}/${total}`;
   }
+  updatePlayersMilestonesLine();
   if (playersRosterMode) renderPlayersRoster(playersRosterMode);
 }
 

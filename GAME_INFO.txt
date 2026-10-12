@@ -2,7 +2,7 @@ GAME INFORMATION & FAQ
 
 Game Name: My Games
 Owner & Developer: ICE_DRAGON
-Platform: Web (GitHub Pages) — https://icedragon1st.github.io/ and custom domain https://mygames.com
+Platform: Web (GitHub Pages) — https://icedragon1st.github.io/ (also desktop app)
 Release Date: Ongoing browser hub (live builds stamped as WORDLE_BUILD in index.html)
 Game Count: 29
 
@@ -20,15 +20,17 @@ Hub Coins: Browser localStorage wallet (per player code on this device). Starts 
 
 PLAYER STATS & MILESTONES
 
-Total Plays/Visits: [Insert total player count or milestone]
-Peak Concurrent Players: [Insert highest record count]
-Live Stats Note: Exact live numbers update in real time on the main game page, Players list, Leaderboards, and Discord. Chat does not stream a live database. Hold Tab for an online peek. Help cannot invent live counts.
+Total Plays/Visits: 45 all-time unique players (milestone — live roster on Players when cloud is up)
+Peak Concurrent Players: Not recorded as a fixed milestone yet — check Players / Tab online peek for who’s online now
+Most Played Game: Fishing Idle (hub play-count seed)
+Achievements Count: about 100 badges
+Live Stats Note: Exact live online counts update on the hub Players panel, Leaderboards, and Discord when the account server is up. Public milestones above are from GAME_INFO / players-alltime.json. Hold Tab for an online peek. Help will not invent live counts beyond these milestones and what this device can see.
 
 RULES & COMMUNITY
 
 Rules: Be fair — no spoilers for secret words, hidden tiles, or live puzzle answers. Unique nicknames are claimed once and locked to that player’s code (don’t impersonate others). Keep chat and Feedback respectful. Help only covers My Games (not homework or real-world trivia). Passwords and other players’ private codes are never shown by Help.
 
-Support Links: Discord invite https://discord.gg/6NHYfPwAwg · Website https://mygames.com · Hub Feedback button · Updates panel for changelog
+Support Links: Discord invite https://discord.gg/6NHYfPwAwg · Website https://icedragon1st.github.io/ · Hub Feedback button · Updates panel for changelog
 
 HUB FEATURES
 

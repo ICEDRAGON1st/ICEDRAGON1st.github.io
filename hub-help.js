@@ -1347,6 +1347,8 @@
       menus: "",
       totalPlays: "",
       peakConcurrent: "",
+      mostPlayedGame: "",
+      achievementsCount: "",
       liveStatsNote: "",
       rules: "",
       supportLinks: "",
@@ -1369,6 +1371,8 @@
       [/^\s*menus?\s*:/i, "menus"],
       [/^\s*total\s*plays?(\s*\/\s*visits?)?\s*:/i, "totalPlays"],
       [/^\s*peak\s*concurrent(\s*players?)?\s*:/i, "peakConcurrent"],
+      [/^\s*most\s*played\s*game\s*:/i, "mostPlayedGame"],
+      [/^\s*achievements?\s*count\s*:/i, "achievementsCount"],
       [/^\s*live\s*stats?\s*note\s*:/i, "liveStatsNote"],
       [/^\s*rules?\s*:/i, "rules"],
       [/^\s*support\s*links?\s*:/i, "supportLinks"],
@@ -1420,8 +1424,12 @@
     const milestones = [];
     const total = gameInfoField("totalPlays");
     const peak = gameInfoField("peakConcurrent");
+    const mostPlayed = gameInfoField("mostPlayedGame");
+    const achievements = gameInfoField("achievementsCount");
     if (total) milestones.push(`listed total plays/visits: ${total}`);
     if (peak) milestones.push(`listed peak concurrent: ${peak}`);
+    if (mostPlayed) milestones.push(`most played: ${mostPlayed}`);
+    if (achievements) milestones.push(`achievements: ${achievements}`);
     if (milestones.length) {
       snapshot = ` Closest public milestone from GAME_INFO: ${milestones.join("; ")}.`;
     }
