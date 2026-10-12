@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001el": [
+    "Hub: grant Hjalte +1000 coins (one-time when logged in as Hjalte)"
+  ],
   "20261001ek": [
     "Admin: press G (ICE_DRAGON) in any game — Help-style window that pauses play"
   ],

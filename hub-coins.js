@@ -451,39 +451,76 @@
   /** One-time owner grant — not listed in What's New. */
   const ICE_GRANT_FLAG = "hub-coins-ice-dragon-10k-v1";
   const ICE_GRANT_AMOUNT = 10000;
+  /** One-time admin gift for Hjalte — not listed in What's New. */
+  const HJALTE_GRANT_FLAG = "hub-coins-hjalte-1k-v1";
+  const HJALTE_GRANT_AMOUNT = 1000;
 
-  function isIceDragonName(name) {
-    return (
-      String(name || "")
-        .trim()
-        .toLowerCase()
-        .replace(/[\s-]+/g, "_") === "ice_dragon"
-    );
+  function normalizePlayerNameKey(name) {
+    return String(name || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[\s-]+/g, "_");
   }
 
-  function maybeGrantIceDragonCoins() {
+  function isIceDragonName(name) {
+    return normalizePlayerNameKey(name) === "ice_dragon";
+  }
+
+  function isHjalteName(name) {
+    return normalizePlayerNameKey(name) === "hjalte";
+  }
+
+  function maybeGrantNamedCoins(opts) {
     try {
       if (!canUseLocalStorage()) return false;
       const name =
         (typeof window.HubPlays?.getName === "function" && HubPlays.getName()) || "";
-      if (!isIceDragonName(name)) return false;
-      const flagKey = `${ICE_GRANT_FLAG}:${walletKey()}`;
+      if (!opts.matchName(name)) return false;
+      const flagKey = `${opts.flag}:${walletKey()}`;
       if (localStorage.getItem(flagKey) === "done") return false;
+      const amount = Math.max(0, Math.floor(Number(opts.amount) || 0));
+      if (!amount) return false;
       const state = readState();
-      state.balance += ICE_GRANT_AMOUNT;
-      state.lifetimeEarned += ICE_GRANT_AMOUNT;
+      state.balance += amount;
+      state.lifetimeEarned += amount;
       writeState(state);
       localStorage.setItem(flagKey, "done");
       emit({
         type: "earn",
-        amount: ICE_GRANT_AMOUNT,
+        amount,
         balance: state.balance,
-        reason: "owner-grant"
+        reason: opts.reason || "admin-grant"
       });
+      try {
+        window.showGamesMessage?.(`Admin grant: +${amount} coins`, 2800);
+      } catch {}
       return true;
     } catch {
       return false;
     }
+  }
+
+  function maybeGrantIceDragonCoins() {
+    return maybeGrantNamedCoins({
+      matchName: isIceDragonName,
+      flag: ICE_GRANT_FLAG,
+      amount: ICE_GRANT_AMOUNT,
+      reason: "owner-grant"
+    });
+  }
+
+  function maybeGrantHjalteCoins() {
+    return maybeGrantNamedCoins({
+      matchName: isHjalteName,
+      flag: HJALTE_GRANT_FLAG,
+      amount: HJALTE_GRANT_AMOUNT,
+      reason: "admin-grant"
+    });
+  }
+
+  function maybeGrantPendingCoins() {
+    maybeGrantIceDragonCoins();
+    maybeGrantHjalteCoins();
   }
 
   // Migrate legacy unscoped wallet once.
@@ -525,17 +562,18 @@
     refreshUi,
     ensureHubBadge,
     readState,
-    maybeGrantIceDragonCoins
+    maybeGrantIceDragonCoins,
+    maybeGrantHjalteCoins
   };
 
   function bootCoins() {
-    maybeGrantIceDragonCoins();
+    maybeGrantPendingCoins();
     ensureHubBadge();
     refreshUi();
   }
 
   document.addEventListener("hub-username-ready", () => {
-    maybeGrantIceDragonCoins();
+    maybeGrantPendingCoins();
     refreshUi();
   });
 
@@ -545,6 +583,6 @@
     bootCoins();
   }
   // HubPlays may finish loading after this file.
-  setTimeout(maybeGrantIceDragonCoins, 400);
-  setTimeout(maybeGrantIceDragonCoins, 2000);
+  setTimeout(maybeGrantPendingCoins, 400);
+  setTimeout(maybeGrantPendingCoins, 2000);
 })();
