@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ds": [
+    "Paper Claim: skins no longer change the arena ground — only your blob and trail"
+  ],
   "20261001dr": [
     "Paper Claim: 15 coin skins (Ink, Neon, Honey, Lava, Ice, Pixel, Shadow, Rainbow, Gold, Ocean, Graffiti, Forest, Storm, Candy, Blueprint)"
   ],
