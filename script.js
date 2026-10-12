@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001cp": [
+    "Fishing Idle: multi-catch cutscenes always feature the best fish"
+  ],
   "20261001co": [
     "Fishing Idle: auto boat catches can trigger rarity cutscenes"
   ],
