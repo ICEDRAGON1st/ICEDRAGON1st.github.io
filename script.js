@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001df": [
+    "Wing Hop: each coin skin has its own pipes/walls (not just castle towers)"
+  ],
   "20261001de": [
     "Wing Hop: Neon, Ice Fortress, Rainbow, and other packs now have their own characters (not recolored dragons)"
   ],
