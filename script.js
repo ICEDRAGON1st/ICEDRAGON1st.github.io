@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001db": [
+    "Hub: Download app button for the Windows installer"
+  ],
   "20261001da": [
     "Desktop app: hide the white system scrollbar so the hub doesn’t glitch"
   ],
@@ -2432,6 +2435,14 @@ function applySiteConfig() {
   document.title = cfg.name;
   const gamesTitle = document.getElementById("games-title");
   if (gamesTitle) gamesTitle.textContent = cfg.name;
+  const downloadBtn = document.getElementById("download-app-btn");
+  if (downloadBtn) {
+    const url = String(cfg.desktopAppDownloadUrl || "").trim();
+    if (url) downloadBtn.href = url;
+    // Already running the desktop shell — no need to re-download.
+    const onDesktop = document.documentElement.dataset.mygamesDesktop === "1";
+    downloadBtn.classList.toggle("hidden", onDesktop || !url);
+  }
 }
 
 function hideMenu() {
