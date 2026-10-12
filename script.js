@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001fc": [
+    "Sticker Garage + Space Waves: bigger near-fullscreen layouts"
+  ],
   "20261001fb": [
     "Space Waves: tighter, less slippery controls + slightly slower scroll"
   ],

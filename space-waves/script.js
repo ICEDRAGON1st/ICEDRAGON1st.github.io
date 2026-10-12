@@ -288,8 +288,8 @@
 
   function resize() {
     const wrap = canvas.parentElement;
-    const w = Math.min(960, wrap?.clientWidth || 960);
-    const h = Math.round(w * (9 / 16));
+    const w = Math.max(320, Math.floor(wrap?.clientWidth || window.innerWidth || 960));
+    const h = Math.max(240, Math.floor(wrap?.clientHeight || window.innerHeight || 540));
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     canvas.width = Math.floor(w * dpr);
     canvas.height = Math.floor(h * dpr);
