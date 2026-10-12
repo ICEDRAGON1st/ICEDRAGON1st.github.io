@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001es": [
+    "Esc on the hub opens Settings instead of leaving My Games"
+  ],
   "20261001er": [
     "AFK: only click or Esc wakes you — mouse move no longer leaves AFK"
   ],
@@ -4277,7 +4280,18 @@ function handlePhysicalKeyboard(event) {
   if (isGamesScreenOpen()) {
     if (event.key === "Escape") {
       event.preventDefault();
-      backFromGames();
+      // Esc on hub opens Settings (does not leave My Games).
+      // Close overlays first; AFK / Help / Admin already swallow Esc in capture.
+      if (typeof isCoinsShopOpen === "function" && isCoinsShopOpen()) {
+        setCoinsShopOpen(false);
+        return;
+      }
+      const profileModal = document.getElementById("player-profile-modal");
+      if (profileModal && !profileModal.classList.contains("hidden")) {
+        closePlayerProfileModal();
+        return;
+      }
+      setHubSettingsOpen(!isHubSettingsOpen());
     }
     return;
   }
@@ -4706,11 +4720,18 @@ feedbackList?.addEventListener("click", async (e) => {
   updateFeedbackButtonLabel(true);
 });
 
-toggleSettingsBtn?.addEventListener("click", () => {
+function isHubSettingsOpen() {
+  return !!(hubSettingsPanel && !hubSettingsPanel.classList.contains("hidden"));
+}
+
+function setHubSettingsOpen(open) {
   if (!hubSettingsPanel) return;
-  const open = hubSettingsPanel.classList.toggle("hidden") === false;
-  toggleSettingsBtn.textContent = open ? "Hide settings" : "⚙ Settings";
-  if (open) {
+  const want = !!open;
+  hubSettingsPanel.classList.toggle("hidden", !want);
+  if (toggleSettingsBtn) {
+    toggleSettingsBtn.textContent = want ? "Hide settings" : "⚙ Settings";
+  }
+  if (want) {
     applyHubTheme();
     refreshNotificationPermStatus();
     try {
@@ -4725,6 +4746,10 @@ toggleSettingsBtn?.addEventListener("click", () => {
       window.HubAudio?.setTheme?.("hub");
     } catch {}
   }
+}
+
+toggleSettingsBtn?.addEventListener("click", () => {
+  setHubSettingsOpen(!isHubSettingsOpen());
 });
 
 document.getElementById("toggle-credits-btn")?.addEventListener("click", () => {
