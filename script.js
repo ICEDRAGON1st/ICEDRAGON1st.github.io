@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001eo": [
+    "Coin shop: fix scroll so the full skin list can be browsed"
+  ],
   "20261001en": [
     "Coin shop: unique Dudes walker icons (no Wing Hop ghost/rainbow copies)"
   ],
@@ -4871,12 +4874,21 @@ function setCoinsShopOpen(open) {
   }
   coinsPanel.classList.toggle("hidden", !open);
   document.body.classList.toggle("coins-shop-open", !!open);
+  document.documentElement.classList.toggle("coins-shop-open", !!open);
   gamesScreen?.classList.toggle("shop-open", !!open);
   updateCoinsButtonLabel(!!open);
   if (open) {
     maybeAskPlayerName();
     renderCoinsPanel();
-    document.getElementById("coins-shop-close")?.focus?.();
+    const body = coinsPanel.querySelector(".coins-shop-body");
+    if (body) body.scrollTop = 0;
+    // Focus the scroll body so wheel / arrows work immediately (not only the Games button).
+    try {
+      body?.setAttribute("tabindex", "-1");
+      body?.focus?.({ preventScroll: true });
+    } catch {
+      document.getElementById("coins-shop-close")?.focus?.();
+    }
   }
 }
 
@@ -4894,6 +4906,7 @@ function shopItemKindLabel(item) {
   if (kind === "skin") {
     if (item?.game === "paper") return "Paper Claim skin";
     if (item?.game === "flappy") return "Wing Hop skin";
+    if (item?.game === "lemmings" || item?.game === "dudes") return "Dudes skin";
     return "Game skin";
   }
   return "Item";
