@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001cs": [
+    "My Games icon: transparent corners (no black edges)"
+  ],
   "20261001cr": [
     "What's new popup only shows the latest update (one Got it)"
   ],
