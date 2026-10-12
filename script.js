@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ey": [
+    "Sticker Garage shop shows job pay per sticker and paint color"
+  ],
   "20261001ex": [
     "Sticker Garage: customers request paint colors — spray the car, unlock more paints in shop"
   ],

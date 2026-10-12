@@ -4,18 +4,18 @@
   const HIGH_KEY = "sticker-garage-high-score";
 
   const STICKERS = [
-    { id: "star", emoji: "⭐", name: "Star", cost: 0, pack: "basic" },
-    { id: "heart", emoji: "💖", name: "Heart", cost: 35, pack: "basic" },
-    { id: "flame", emoji: "🔥", name: "Flame", cost: 70, pack: "basic" },
-    { id: "bolt", emoji: "⚡", name: "Bolt", cost: 110, pack: "basic" },
-    { id: "skull", emoji: "💀", name: "Skull", cost: 160, pack: "flashy" },
-    { id: "rainbow", emoji: "🌈", name: "Rainbow", cost: 220, pack: "flashy" },
-    { id: "crown", emoji: "👑", name: "Crown", cost: 300, pack: "flashy" },
-    { id: "rocket", emoji: "🚀", name: "Rocket", cost: 400, pack: "flashy" },
-    { id: "diamond", emoji: "💎", name: "Diamond", cost: 520, pack: "legend" },
-    { id: "ghost", emoji: "👻", name: "Ghost", cost: 650, pack: "legend" },
-    { id: "dragon", emoji: "🐉", name: "Dragon", cost: 850, pack: "legend" },
-    { id: "unicorn", emoji: "🦄", name: "Unicorn", cost: 1100, pack: "legend" }
+    { id: "star", emoji: "⭐", name: "Star", cost: 0, pack: "basic", pay: 8 },
+    { id: "heart", emoji: "💖", name: "Heart", cost: 35, pack: "basic", pay: 10 },
+    { id: "flame", emoji: "🔥", name: "Flame", cost: 70, pack: "basic", pay: 12 },
+    { id: "bolt", emoji: "⚡", name: "Bolt", cost: 110, pack: "basic", pay: 14 },
+    { id: "skull", emoji: "💀", name: "Skull", cost: 160, pack: "flashy", pay: 18 },
+    { id: "rainbow", emoji: "🌈", name: "Rainbow", cost: 220, pack: "flashy", pay: 22 },
+    { id: "crown", emoji: "👑", name: "Crown", cost: 300, pack: "flashy", pay: 26 },
+    { id: "rocket", emoji: "🚀", name: "Rocket", cost: 400, pack: "flashy", pay: 30 },
+    { id: "diamond", emoji: "💎", name: "Diamond", cost: 520, pack: "legend", pay: 36 },
+    { id: "ghost", emoji: "👻", name: "Ghost", cost: 650, pack: "legend", pay: 42 },
+    { id: "dragon", emoji: "🐉", name: "Dragon", cost: 850, pack: "legend", pay: 50 },
+    { id: "unicorn", emoji: "🦄", name: "Unicorn", cost: 1100, pack: "legend", pay: 60 }
   ];
 
   const UPGRADES = [
@@ -68,25 +68,25 @@
   ];
 
   const PAINTS = [
-    { id: "primer", name: "Primer gray", hi: "#9aa3ad", lo: "#5c6570", cost: 0, starter: true, orderable: false },
-    { id: "red", name: "Cherry red", hi: "#e85d4c", lo: "#a83228", cost: 0, starter: true },
-    { id: "blue", name: "Sky blue", hi: "#4ea1ff", lo: "#1d5fad", cost: 0, starter: true },
-    { id: "white", name: "Pearl white", hi: "#f2f2f2", lo: "#9a9a9a", cost: 0, starter: true },
-    { id: "green", name: "Forest green", hi: "#3ecf8e", lo: "#1a7a52", cost: 55 },
-    { id: "yellow", name: "Taxi yellow", hi: "#ffd24a", lo: "#c48a10", cost: 70 },
-    { id: "orange", name: "Sunset orange", hi: "#ff8a3d", lo: "#b34e12", cost: 95 },
-    { id: "purple", name: "Violet dusk", hi: "#c9a0ff", lo: "#6b3fa0", cost: 140 },
-    { id: "teal", name: "Ocean teal", hi: "#2dd4bf", lo: "#0f766e", cost: 180 },
-    { id: "pink", name: "Hot pink", hi: "#ff6ad5", lo: "#b01e86", cost: 240 },
-    { id: "black", name: "Midnight", hi: "#3a3f48", lo: "#12151a", cost: 320 },
-    { id: "gold", name: "Showroom gold", hi: "#ffe08a", lo: "#b8860b", cost: 480 }
+    { id: "primer", name: "Primer gray", hi: "#9aa3ad", lo: "#5c6570", cost: 0, pay: 0, starter: true, orderable: false },
+    { id: "red", name: "Cherry red", hi: "#e85d4c", lo: "#a83228", cost: 0, pay: 10, starter: true },
+    { id: "blue", name: "Sky blue", hi: "#4ea1ff", lo: "#1d5fad", cost: 0, pay: 10, starter: true },
+    { id: "white", name: "Pearl white", hi: "#f2f2f2", lo: "#9a9a9a", cost: 0, pay: 10, starter: true },
+    { id: "green", name: "Forest green", hi: "#3ecf8e", lo: "#1a7a52", cost: 55, pay: 14 },
+    { id: "yellow", name: "Taxi yellow", hi: "#ffd24a", lo: "#c48a10", cost: 70, pay: 16 },
+    { id: "orange", name: "Sunset orange", hi: "#ff8a3d", lo: "#b34e12", cost: 95, pay: 18 },
+    { id: "purple", name: "Violet dusk", hi: "#c9a0ff", lo: "#6b3fa0", cost: 140, pay: 22 },
+    { id: "teal", name: "Ocean teal", hi: "#2dd4bf", lo: "#0f766e", cost: 180, pay: 26 },
+    { id: "pink", name: "Hot pink", hi: "#ff6ad5", lo: "#b01e86", cost: 240, pay: 30 },
+    { id: "black", name: "Midnight", hi: "#3a3f48", lo: "#12151a", cost: 320, pay: 36 },
+    { id: "gold", name: "Showroom gold", hi: "#ffe08a", lo: "#b8860b", cost: 480, pay: 45 }
   ];
 
   const SHOP_CATEGORIES = [
-    { id: "paints", title: "Paints", blurb: "Unlock spray colors customers can request." },
-    { id: "basic", title: "Basic packs", blurb: "Starter decals customers ask for early on." },
-    { id: "flashy", title: "Flashy packs", blurb: "Bolder wraps that unlock juicier orders." },
-    { id: "legend", title: "Legend packs", blurb: "Rare stickers for big tips and flex jobs." },
+    { id: "paints", title: "Paints", blurb: "Each color adds job pay when a customer orders it." },
+    { id: "basic", title: "Basic packs", blurb: "Each ordered sticker adds its pay to the job." },
+    { id: "flashy", title: "Flashy packs", blurb: "Each ordered sticker adds its pay to the job." },
+    { id: "legend", title: "Legend packs", blurb: "Each ordered sticker adds its pay to the job." },
     { id: "tips", title: "Tip upgrades", blurb: "Earn more when you nail a perfect wrap." },
     { id: "pay", title: "Pay boost", blurb: "Raise base job pay across every customer." }
   ];
@@ -387,9 +387,12 @@
       needs,
       wantPaintId: wantPaint.id,
       basePay:
-        22 +
-        needs.reduce((a, n) => a + n.count * 8, 0) +
-        10 +
+        12 +
+        needs.reduce((a, n) => {
+          const s = stickerById(n.id);
+          return a + n.count * (Number(s?.pay) || 8);
+        }, 0) +
+        (Number(wantPaint?.pay) || 10) +
         Math.floor(save.jobs / 3) * 2
     };
     applyPaint("primer");
@@ -496,14 +499,15 @@
 
   function shopItemsForCat(catId) {
     if (catId === "paints") {
-      return PAINTS.filter((p) => p.cost > 0).map((p) => {
+      return PAINTS.filter((p) => p.cost > 0 || p.starter).filter((p) => p.orderable !== false).map((p) => {
         const owned = isPaintUnlocked(p.id);
+        const payLine = `+$${p.pay} job pay when ordered`;
         return {
           key: `paint-${p.id}`,
           icon: `<span class="need-swatch" style="--swatch-hi:${p.hi};--swatch-lo:${p.lo};width:28px;height:28px;border-radius:8px;display:block"></span>`,
           title: p.name,
-          desc: owned ? "In your paint tray" : "Spray color customers can request",
-          status: owned ? "Owned" : save.cash >= p.cost ? "Ready to buy" : "Save up",
+          desc: payLine,
+          status: owned ? (p.cost <= 0 ? "Starter · owned" : "Owned") : save.cash >= p.cost ? "Ready to buy" : "Save up",
           cost: p.cost,
           owned,
           locked: false,
@@ -534,14 +538,15 @@
         };
       });
     }
-    return STICKERS.filter((s) => s.pack === catId && s.cost > 0).map((s) => {
+    return STICKERS.filter((s) => s.pack === catId && (s.cost > 0 || s.id === "star")).map((s) => {
       const owned = isUnlocked(s.id);
+      const payLine = `+$${s.pay} job pay per sticker ordered`;
       return {
         key: `sticker-${s.id}`,
         icon: s.emoji,
         title: s.name,
-        desc: owned ? "In your tray" : "Sticker pack for the bay tray",
-        status: owned ? "Owned" : save.cash >= s.cost ? "Ready to buy" : "Save up",
+        desc: payLine,
+        status: owned ? (s.cost <= 0 ? "Starter · owned" : "Owned") : save.cash >= s.cost ? "Ready to buy" : "Save up",
         cost: s.cost,
         owned,
         locked: false,
