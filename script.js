@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001dp": [
+    "Wing Hop: richer pack worlds — Sub is underwater (rays, bubbles, seabed); UFO/Dragon unchanged"
+  ],
   "20261001do": [
     "Wing Hop: fix broken coin-pack skin drawing (empty rect crash)"
   ],
