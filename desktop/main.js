@@ -2,11 +2,9 @@ const { app, BrowserWindow, shell, Menu, dialog } = require("electron");
 const path = require("path");
 
 /** Live hub — installer stays current without rebuilding for every site update. */
-const HUB_URL = process.env.MYGAMES_URL || "https://mygames.com/";
+const HUB_URL = process.env.MYGAMES_URL || "https://icedragon1st.github.io/";
 
 const HUB_HOSTS = new Set([
-  "mygames.com",
-  "www.mygames.com",
   "icedragon1st.github.io"
 ]);
 
@@ -145,7 +143,7 @@ function buildMenu() {
               title: "My Games",
               message: "My Games",
               detail:
-                "Desktop app for ICE_DRAGON's game hub.\nLoads the live site so updates appear without reinstalling.\n\nhttps://mygames.com/"
+                "Desktop app for ICE_DRAGON's game hub.\nLoads the live site so updates appear without reinstalling.\n\nhttps://icedragon1st.github.io/"
             });
           }
         },
