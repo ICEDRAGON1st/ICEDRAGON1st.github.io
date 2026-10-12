@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001dl": [
+    "Admin: Grant local applies coins/titles/colors on this device when cloud is down"
+  ],
   "20261001dk": [
     "Hub: ICE_DRAGON Master Admin panel (announce, maintenance, players, ban/mute, grants, leaderboard wipe, Discord, diagnostics)"
   ],
