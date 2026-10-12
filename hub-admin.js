@@ -1,5 +1,6 @@
 /**
- * hub-admin.js — ICE_DRAGON-only hub master Admin (not Fishing Idle).
+ * hub-admin.js — ICE_DRAGON-only Master Admin (not Fishing Idle).
+ * Press G (owner) on hub or any game. In games: Help-style float + pauses play.
  *
  * window.HubAdmin:
  *   isOwner() · start() · open()/close()/toggle()/isOpen()
@@ -37,6 +38,8 @@
   let panelBound = false;
   let revealedCodes = new Set();
   let statusTimer = 0;
+  let wePausedHost = false;
+  let floatStylesInjected = false;
 
   try {
     lastShownAnnounceId = String(localStorage.getItem(ANNOUNCE_SEEN_KEY) || "");
@@ -265,6 +268,7 @@
   }
 
   function ensureChrome() {
+    injectFloatStyles();
     if (!document.getElementById("hub-admin-announce-popup")) {
       const popup = document.createElement("div");
       popup.id = "hub-admin-announce-popup";
@@ -281,6 +285,267 @@
       ban.innerHTML = `<strong>Maintenance</strong> <span id="hub-admin-maintenance-text"></span>`;
       document.body.appendChild(ban);
     }
+  }
+
+  function isTypingTarget(el) {
+    if (!el) return false;
+    const tag = String(el.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "textarea" || tag === "select") return true;
+    if (el.isContentEditable) return true;
+    try {
+      return !!el.closest?.("input, textarea, select, [contenteditable='true']");
+    } catch {
+      return false;
+    }
+  }
+
+  function isHubGamesScreenOpen() {
+    try {
+      const gs = document.getElementById("games-screen");
+      if (gs && !gs.classList.contains("hidden") && !gs.hidden) return true;
+    } catch {}
+    return false;
+  }
+
+  function isFloatAdminPanel(panel) {
+    return !!(panel && panel.classList.contains("admin-panel--float"));
+  }
+
+  function injectFloatStyles() {
+    if (floatStylesInjected || document.getElementById("hub-admin-float-style")) {
+      floatStylesInjected = true;
+      return;
+    }
+    floatStylesInjected = true;
+    const style = document.createElement("style");
+    style.id = "hub-admin-float-style";
+    style.textContent = `
+#admin-panel.admin-panel--float{position:fixed;inset:0;z-index:13060;margin:0;padding:max(.75rem,env(safe-area-inset-top)) max(.75rem,env(safe-area-inset-right)) max(.9rem,env(safe-area-inset-bottom)) max(.75rem,env(safe-area-inset-left));
+display:flex;align-items:flex-end;justify-content:center;box-sizing:border-box;
+background:rgba(4,10,22,.48);backdrop-filter:blur(7px);-webkit-backdrop-filter:blur(7px);
+font-family:Outfit,"Segoe UI",system-ui,sans-serif;color:#eaf3ff}
+#admin-panel.admin-panel--float.hidden{display:none!important}
+#admin-panel.admin-panel--float .admin-panel-sheet{width:min(30rem,100%);max-height:min(78vh,42rem);display:flex;flex-direction:column;
+border-radius:22px;overflow:hidden;border:1px solid rgba(150,190,255,.28);
+background:linear-gradient(165deg,rgba(22,36,64,.97),rgba(10,18,34,.98));
+box-shadow:0 24px 60px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.06)}
+#admin-panel.admin-panel--float .coins-shop-head,#admin-panel.admin-panel--float .admin-panel-head{
+display:flex;align-items:flex-start;justify-content:space-between;gap:.75rem;
+padding:.9rem 1rem .75rem;border-bottom:1px solid rgba(140,175,255,.14);
+background:linear-gradient(180deg,rgba(120,170,255,.12),transparent)}
+#admin-panel.admin-panel--float .coins-shop-eyebrow{margin:0;font-size:.72rem;font-weight:800;letter-spacing:.04em;color:#9eb6d8;text-transform:uppercase}
+#admin-panel.admin-panel--float h3{margin:.15rem 0 0;font-size:1.2rem;font-weight:800;color:#eef5ff}
+#admin-panel.admin-panel--float .admin-panel-body{flex:1;min-height:0;overflow:auto;padding:.85rem 1rem 1.1rem;
+display:flex;flex-direction:column;gap:.85rem}
+#admin-panel.admin-panel--float .hub-admin-section{margin:0;padding:.7rem .75rem;border-radius:14px;
+border:1px solid rgba(140,175,255,.14);background:rgba(0,0,0,.18)}
+#admin-panel.admin-panel--float .hub-admin-section h4{margin:0 0 .45rem;font-size:.88rem;font-weight:800;color:#d7e6ff}
+#admin-panel.admin-panel--float .hub-admin-live{margin:0 0 .5rem;font-size:.78rem;color:#9eb6d8;line-height:1.35}
+#admin-panel.admin-panel--float .hub-admin-form-row{display:flex;flex-wrap:wrap;gap:.4rem;align-items:center}
+#admin-panel.admin-panel--float .hub-admin-form-col{flex-direction:column;align-items:stretch}
+#admin-panel.admin-panel--float .hub-admin-form-row input,#admin-panel.admin-panel--float .hub-admin-form-row select,
+#admin-panel.admin-panel--float .hub-admin-form-row textarea{flex:1 1 8rem;min-width:0;border-radius:10px;border:1px solid rgba(150,190,255,.28);
+background:rgba(0,0,0,.28);color:#eaf3ff;padding:.45rem .55rem;font:650 .85rem Outfit,"Segoe UI",system-ui,sans-serif}
+#admin-panel.admin-panel--float .hub-admin-form-row input[type="number"]{flex:0 0 4.5rem}
+#admin-panel.admin-panel--float .hub-admin-check{display:inline-flex;align-items:center;gap:.35rem;font-size:.78rem;color:#c8dbf7}
+#admin-panel.admin-panel--float .hub-btn{border:1px solid rgba(150,190,255,.34);border-radius:10px;padding:.42rem .7rem;
+background:linear-gradient(180deg,rgba(120,170,255,.2),rgba(80,130,220,.12));color:#eef5ff;
+font:750 .8rem Outfit,"Segoe UI",system-ui,sans-serif;cursor:pointer}
+#admin-panel.admin-panel--float .hub-btn-primary{background:linear-gradient(180deg,#8eb0ff,#4f78ef);border-color:transparent;color:#fff}
+#admin-panel.admin-panel--float .hub-admin-list{list-style:none;margin:.45rem 0 0;padding:0;display:flex;flex-direction:column;gap:.35rem;max-height:10rem;overflow:auto}
+#admin-panel.admin-panel--float .hub-admin-row{display:flex;flex-wrap:wrap;gap:.35rem;align-items:center;justify-content:space-between;
+padding:.4rem .5rem;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(140,175,255,.1)}
+#admin-panel.admin-panel--float .hub-admin-row.is-online{border-color:rgba(110,220,160,.35)}
+#admin-panel.admin-panel--float .hub-admin-meta{font-size:.8rem;color:#e8f1ff}
+#admin-panel.admin-panel--float .hub-admin-sub{font-size:.72rem;color:#9eb6d8}
+#admin-panel.admin-panel--float .hub-admin-actions{display:flex;flex-wrap:wrap;gap:.3rem}
+#admin-panel.admin-panel--float .hub-admin-empty{margin:0;font-size:.78rem;color:#8aa0c0}
+#admin-panel.admin-panel--float .hub-admin-diagnostics,#admin-panel.admin-panel--float .hub-admin-diag-list{font-size:.78rem;color:#c8dbf7}
+#admin-panel.admin-panel--float .coins-status{min-height:1.1rem;margin:0;font-size:.8rem;color:#9eb6d8}
+#admin-panel.admin-panel--float .coins-status.is-ok{color:#8ce99a}
+#admin-panel.admin-panel--float .coins-status.is-error{color:#ff8787}
+#admin-panel.admin-panel--float .admin-float-hint{margin:.15rem 0 0;font-size:.72rem;color:#7f96b8}
+html.hub-admin-open #overlay.hub-admin-host-pause{visibility:hidden!important;pointer-events:none!important}
+.hub-admin-announce-popup{position:fixed;left:50%;bottom:max(1.2rem,env(safe-area-inset-bottom));transform:translateX(-50%);
+z-index:13100;max-width:min(28rem,92vw);padding:.7rem 1rem;border-radius:14px;border:1px solid rgba(150,190,255,.3);
+background:rgba(12,22,40,.94);color:#eaf3ff;box-shadow:0 12px 32px rgba(0,0,0,.4);display:flex;gap:.65rem;align-items:flex-start}
+.hub-admin-announce-popup.hidden{display:none!important}
+.hub-admin-announce-tag{flex:0 0 auto;font-size:.68rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase;
+color:#9eb6d8;padding:.2rem .45rem;border-radius:999px;border:1px solid rgba(150,190,255,.28)}
+.hub-admin-announce-popup p{margin:0;font-size:.88rem;line-height:1.35}
+.hub-admin-maintenance-banner{position:fixed;top:0;left:0;right:0;z-index:12900;padding:.45rem .75rem;text-align:center;
+background:linear-gradient(90deg,#5c3d1e,#7a4518);color:#fff3bf;font:750 .82rem Outfit,"Segoe UI",system-ui,sans-serif;
+border-bottom:1px solid rgba(255,220,150,.25)}
+.hub-admin-maintenance-banner.hidden{display:none!important}
+body.hub-admin-open{overflow:hidden}
+`;
+    document.head.appendChild(style);
+  }
+
+  /** Build Help-style floating Master Admin when hub #admin-panel is missing (in-game). */
+  function ensurePanelDom() {
+    ensureChrome();
+    if (document.getElementById("admin-panel")) return document.getElementById("admin-panel");
+    injectFloatStyles();
+    const panel = document.createElement("div");
+    panel.id = "admin-panel";
+    panel.className = "admin-panel admin-panel--float hidden";
+    panel.setAttribute("role", "dialog");
+    panel.setAttribute("aria-modal", "true");
+    panel.setAttribute("aria-labelledby", "admin-panel-title");
+    panel.innerHTML = `
+      <div class="admin-panel-sheet coins-shop-sheet" role="document">
+        <div class="coins-shop-head admin-panel-head">
+          <div class="coins-shop-title-wrap">
+            <p class="coins-shop-eyebrow">ICE_DRAGON · G</p>
+            <h3 id="admin-panel-title">Master Admin</h3>
+            <p class="admin-float-hint">Game paused · Esc / G closes</p>
+          </div>
+          <button type="button" id="admin-panel-close" class="hub-btn coins-shop-close" aria-label="Close admin">Close</button>
+        </div>
+        <div class="coins-shop-body admin-panel-body">
+          <p id="hub-admin-status" class="coins-status" aria-live="polite"></p>
+          <section class="hub-admin-section">
+            <h4>Announcement</h4>
+            <p id="hub-admin-announce-live" class="hub-admin-live">No live announcement</p>
+            <div class="hub-admin-form-row">
+              <input id="hub-admin-announce-text-input" type="text" maxlength="180" placeholder="Message for every player" autocomplete="off">
+              <input id="hub-admin-announce-mins" type="number" min="1" max="1440" value="10" title="Minutes" aria-label="Minutes">
+              <button type="button" id="hub-admin-announce-send" class="hub-btn hub-btn-primary">Send</button>
+              <button type="button" id="hub-admin-announce-clear" class="hub-btn">Clear</button>
+            </div>
+          </section>
+          <section class="hub-admin-section">
+            <h4>Maintenance banner</h4>
+            <p id="hub-admin-maint-live" class="hub-admin-live">No maintenance banner</p>
+            <div class="hub-admin-form-row">
+              <input id="hub-admin-maint-text" type="text" maxlength="180" placeholder="Hub updating — back soon" autocomplete="off">
+              <input id="hub-admin-maint-mins" type="number" min="1" max="1440" value="15" title="Minutes" aria-label="Minutes">
+              <label class="hub-admin-check"><input id="hub-admin-maint-softlock" type="checkbox"> Soft lock games</label>
+              <button type="button" id="hub-admin-maint-send" class="hub-btn hub-btn-primary">Start</button>
+              <button type="button" id="hub-admin-maint-clear" class="hub-btn">Clear</button>
+            </div>
+          </section>
+          <section class="hub-admin-section">
+            <h4>Players</h4>
+            <div class="hub-admin-form-row">
+              <input id="hub-admin-players-q" type="search" placeholder="Search name…" autocomplete="off">
+              <button type="button" id="hub-admin-players-refresh" class="hub-btn">Refresh</button>
+            </div>
+            <ul id="hub-admin-players-list" class="hub-admin-list"></ul>
+          </section>
+          <section class="hub-admin-section">
+            <h4>Ban / mute</h4>
+            <div class="hub-admin-form-row">
+              <input id="hub-admin-mod-name" type="text" maxlength="16" placeholder="Player name" autocomplete="off">
+              <input id="hub-admin-mod-reason" type="text" maxlength="120" placeholder="Reason" autocomplete="off">
+              <input id="hub-admin-mod-mins" type="number" min="1" max="1440" value="60" title="Minutes" aria-label="Minutes">
+              <button type="button" id="hub-admin-mod-ban" class="hub-btn">Ban</button>
+              <button type="button" id="hub-admin-mod-mute" class="hub-btn">Mute</button>
+            </div>
+            <ul id="hub-admin-mod-list" class="hub-admin-list"></ul>
+          </section>
+          <section class="hub-admin-section">
+            <h4>Grants</h4>
+            <div class="hub-admin-form-row">
+              <input id="hub-admin-grant-name" type="text" maxlength="16" placeholder="Target name" autocomplete="off">
+              <select id="hub-admin-grant-kind" aria-label="Grant kind">
+                <option value="coins">Coins</option>
+                <option value="title">Title</option>
+                <option value="color">Color</option>
+              </select>
+              <input id="hub-admin-grant-value" type="text" placeholder="Amount or id (tester / aurora)" autocomplete="off">
+              <button type="button" id="hub-admin-grant-send" class="hub-btn hub-btn-primary" title="Queue for everyone via cloud">Grant</button>
+              <button type="button" id="hub-admin-grant-local" class="hub-btn" title="Apply now on this device only">Grant local</button>
+            </div>
+            <p class="hub-admin-live">Grant local = this device only. Grant = cloud queue.</p>
+            <ul id="hub-admin-grants-list" class="hub-admin-list"></ul>
+          </section>
+          <section class="hub-admin-section">
+            <h4>Leaderboard wipe</h4>
+            <div class="hub-admin-form-row">
+              <select id="hub-admin-lb-game" aria-label="Leaderboard game"></select>
+              <input id="hub-admin-lb-name" type="text" maxlength="16" placeholder="Player name" autocomplete="off">
+              <button type="button" id="hub-admin-lb-wipe" class="hub-btn">Wipe entry</button>
+            </div>
+          </section>
+          <section class="hub-admin-section">
+            <h4>Discord post</h4>
+            <div class="hub-admin-form-row hub-admin-form-col">
+              <textarea id="hub-admin-discord-text" rows="3" maxlength="1800" placeholder="Message to Discord"></textarea>
+              <div class="hub-admin-form-row">
+                <select id="hub-admin-discord-dest" aria-label="Discord destination">
+                  <option value="main">Main webhook</option>
+                  <option value="updates">Updates webhook</option>
+                </select>
+                <label class="hub-admin-check"><input id="hub-admin-discord-abuse" type="checkbox"> Ping Admin Abuse (main)</label>
+                <button type="button" id="hub-admin-discord-send" class="hub-btn hub-btn-primary">Post</button>
+              </div>
+            </div>
+          </section>
+          <section class="hub-admin-section">
+            <h4>Diagnostics</h4>
+            <button type="button" id="hub-admin-diag-refresh" class="hub-btn">Refresh</button>
+            <div id="hub-admin-diagnostics" class="hub-admin-diagnostics"></div>
+          </section>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(panel);
+    panel.addEventListener("click", (e) => {
+      if (e.target === panel) close();
+    });
+    return panel;
+  }
+
+  function pauseHostGame() {
+    wePausedHost = false;
+    window.__hubAdminPaused = true;
+    try {
+      if (isHubGamesScreenOpen()) return;
+      const overlay = document.getElementById("overlay");
+      const menuBtn = document.getElementById("menu-btn");
+      if (!overlay || !menuBtn) {
+        if (typeof window.pauseGame === "function") {
+          window.pauseGame();
+          wePausedHost = true;
+        }
+        return;
+      }
+      const overlayHidden = overlay.classList.contains("hidden") || overlay.hidden;
+      if (overlayHidden) {
+        wePausedHost = true;
+        overlay.classList.add("hub-admin-host-pause");
+        menuBtn.click();
+        overlay.classList.add("hub-admin-host-pause");
+        return;
+      }
+      if (typeof window.pauseGame === "function") {
+        window.pauseGame();
+        wePausedHost = true;
+      }
+    } catch {
+      wePausedHost = false;
+    }
+  }
+
+  function resumeHostGame() {
+    window.__hubAdminPaused = false;
+    try {
+      const overlay = document.getElementById("overlay");
+      if (overlay) overlay.classList.remove("hub-admin-host-pause");
+      if (!wePausedHost) return;
+      const resumeBtn = document.getElementById("resume-btn");
+      if (resumeBtn && !resumeBtn.classList.contains("hidden") && !resumeBtn.hidden) {
+        resumeBtn.click();
+      } else if (typeof window.resumeGame === "function") {
+        window.resumeGame();
+      } else {
+        const startBtn = document.getElementById("start-btn");
+        if (startBtn && /resume/i.test(startBtn.textContent || "")) startBtn.click();
+      }
+    } catch {}
+    wePausedHost = false;
   }
 
   function hideAnnouncePopup() {
@@ -726,8 +991,11 @@
 
   function open() {
     if (!isOwner()) return;
-    const panel = document.getElementById("admin-panel");
+    const panel = ensurePanelDom();
     if (!panel) return;
+    try {
+      window.HubHelp?.close?.();
+    } catch {}
     try {
       window.setCoinsShopOpen?.(false);
     } catch {}
@@ -737,8 +1005,10 @@
     } catch {}
     panel.classList.remove("hidden");
     document.body.classList.add("hub-admin-open");
+    document.documentElement.classList.add("hub-admin-open");
     document.getElementById("games-screen")?.classList.add("shop-open");
     bindPanel();
+    if (isFloatAdminPanel(panel)) pauseHostGame();
     const grantName = document.getElementById("hub-admin-grant-name");
     if (grantName && !String(grantName.value || "").trim()) {
       grantName.value = getPlayerName() || "ICE_DRAGON";
@@ -751,9 +1021,12 @@
   function close() {
     const panel = document.getElementById("admin-panel");
     if (!panel) return;
+    const wasFloat = isFloatAdminPanel(panel);
     panel.classList.add("hidden");
     document.body.classList.remove("hub-admin-open");
+    document.documentElement.classList.remove("hub-admin-open");
     document.getElementById("games-screen")?.classList.remove("shop-open");
+    if (wasFloat) resumeHostGame();
     updateToolbarButton();
   }
 
@@ -1156,8 +1429,33 @@
     });
   }
 
+  function onKeyDown(e) {
+    if (!e) return;
+    if (isOpen() && (e.key === "Escape" || e.code === "Escape")) {
+      e.preventDefault();
+      e.stopPropagation();
+      if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+      close();
+      return;
+    }
+    if (isTypingTarget(e.target)) return;
+    if (!isOwner()) return;
+    const wantG =
+      (e.key === "g" || e.key === "G" || e.code === "KeyG") &&
+      !e.ctrlKey &&
+      !e.metaKey &&
+      !e.altKey;
+    if (!wantG) return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+    toggle();
+  }
+
   function start() {
     ensureChrome();
+    // In games, pre-build the floating panel so G opens instantly for the owner.
+    if (!document.getElementById("admin-panel") && isOwner()) ensurePanelDom();
     updateToolbarButton();
     refreshRemote().catch(() => {});
     if (pollTimer) clearInterval(pollTimer);
@@ -1165,17 +1463,13 @@
       if (document.hidden) return;
       refreshRemote().catch(() => {});
       updateToolbarButton();
+      if (!document.getElementById("admin-panel") && isOwner()) ensurePanelDom();
     }, POLL_MS);
     document.getElementById("toggle-admin-btn")?.addEventListener("click", () => {
       if (!isOwner()) return;
       toggle();
     });
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && isOpen()) {
-        e.preventDefault();
-        close();
-      }
-    });
+    document.addEventListener("keydown", onKeyDown, true);
   }
 
   window.HubAdmin = {

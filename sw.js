@@ -27,6 +27,7 @@ const PRECACHE = [
   "./hub-calls.js",
   "./hub-online-overlay.js",
   "./hub-help.js",
+  "./hub-admin.js",
   "./hub-help-icons/helper.png",
   "./hub-help-icons/chip.png",
   "./hub-help-icons/spark-e.png",
