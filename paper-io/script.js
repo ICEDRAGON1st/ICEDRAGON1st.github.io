@@ -1,6 +1,8 @@
 (function () {
   const HIGH_KEY = "paper-io-best-pct";
+  const ARENA_KEY = "paper-claim-arena";
   const WORLD = 360;
+  const ARENA_SHAPES = ["box", "circle", "star", "hex", "diamond", "triangle"];
   const VIEW_SPAN_MIN = 72; // slightly wider than tight paper.io zoom
   const VIEW_SPAN_MAX = 160;
   const LAND_PX = 8; // hi-res land texture so zoom stays smooth
@@ -792,6 +794,14 @@
   /** Ownership bitmap — same resolution as world for simple mapping */
   /** @type {Int16Array} */
   let grid = new Int16Array(WORLD * WORLD);
+  /** 1 = playable arena cell, 0 = void outside the chosen shape */
+  const arenaMask = new Uint8Array(WORLD * WORLD);
+  let playableTotal = WORLD * WORLD;
+  let arenaShape = "box";
+  try {
+    const savedArena = String(localStorage.getItem(ARENA_KEY) || "box");
+    if (ARENA_SHAPES.includes(savedArena)) arenaShape = savedArena;
+  } catch {}
   /** @type {any[]} */
   let players = [];
   let localId = "";
@@ -834,6 +844,187 @@
     const cx = clamp(x | 0, 0, WORLD - 1);
     const cy = clamp(y | 0, 0, WORLD - 1);
     return grid[idx(cx, cy)];
+  }
+
+  function pointInPoly(px, py, pts) {
+    let inside = false;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      const xi = pts[i][0];
+      const yi = pts[i][1];
+      const xj = pts[j][0];
+      const yj = pts[j][1];
+      const hit = yi > py !== yj > py && px < ((xj - xi) * (py - yi)) / (yj - yi + 0.0) + xi;
+      if (hit) inside = !inside;
+    }
+    return inside;
+  }
+
+  function arenaPolygon(shape) {
+    const cx = (WORLD - 1) * 0.5;
+    const cy = (WORLD - 1) * 0.5;
+    const R = WORLD * 0.48;
+    if (shape === "star") {
+      const pts = [];
+      const n = 5;
+      for (let i = 0; i < n * 2; i++) {
+        const r = i % 2 === 0 ? R : R * 0.42;
+        const a = -Math.PI / 2 + (i * Math.PI) / n;
+        pts.push([cx + Math.cos(a) * r, cy + Math.sin(a) * r]);
+      }
+      return pts;
+    }
+    if (shape === "hex") {
+      const pts = [];
+      for (let i = 0; i < 6; i++) {
+        const a = (Math.PI / 3) * i - Math.PI / 6;
+        pts.push([cx + Math.cos(a) * R, cy + Math.sin(a) * R]);
+      }
+      return pts;
+    }
+    if (shape === "diamond") {
+      return [
+        [cx, cy - R],
+        [cx + R, cy],
+        [cx, cy + R],
+        [cx - R, cy]
+      ];
+    }
+    if (shape === "triangle") {
+      return [
+        [cx, cy - R * 1.05],
+        [cx + R * 0.96, cy + R * 0.78],
+        [cx - R * 0.96, cy + R * 0.78]
+      ];
+    }
+    return null;
+  }
+
+  function pointInArenaShape(x, y, shape) {
+    const cx = (WORLD - 1) * 0.5;
+    const cy = (WORLD - 1) * 0.5;
+    const R = WORLD * 0.48;
+    if (shape === "box") {
+      const m = WORLD * 0.03;
+      return x >= m && y >= m && x <= WORLD - 1 - m && y <= WORLD - 1 - m;
+    }
+    if (shape === "circle") {
+      const dx = x - cx;
+      const dy = y - cy;
+      return dx * dx + dy * dy <= R * R;
+    }
+    const poly = arenaPolygon(shape);
+    if (poly) return pointInPoly(x, y, poly);
+    return true;
+  }
+
+  function rebuildArenaMask(shape) {
+    arenaShape = ARENA_SHAPES.includes(shape) ? shape : "box";
+    let n = 0;
+    for (let y = 0; y < WORLD; y++) {
+      for (let x = 0; x < WORLD; x++) {
+        const on = pointInArenaShape(x + 0.5, y + 0.5, arenaShape) ? 1 : 0;
+        arenaMask[idx(x, y)] = on;
+        if (on) n++;
+      }
+    }
+    playableTotal = Math.max(1, n);
+    // Clear ownership on void cells
+    for (let i = 0; i < grid.length; i++) {
+      if (!arenaMask[i] && grid[i]) grid[i] = 0;
+    }
+    markLandDirty();
+  }
+
+  function isPlayableCell(x, y) {
+    const cx = clamp(x | 0, 0, WORLD - 1);
+    const cy = clamp(y | 0, 0, WORLD - 1);
+    return arenaMask[idx(cx, cy)] === 1;
+  }
+
+  function clampToArena(x, y, edge) {
+    let nx = clamp(x, edge, WORLD - edge);
+    let ny = clamp(y, edge, WORLD - edge);
+    if (isPlayableCell(nx, ny)) return { x: nx, y: ny };
+    const cx = WORLD * 0.5;
+    const cy = WORLD * 0.5;
+    let x0 = cx;
+    let y0 = cy;
+    let x1 = nx;
+    let y1 = ny;
+    for (let i = 0; i < 14; i++) {
+      const mx = (x0 + x1) * 0.5;
+      const my = (y0 + y1) * 0.5;
+      if (isPlayableCell(mx, my)) {
+        x0 = mx;
+        y0 = my;
+      } else {
+        x1 = mx;
+        y1 = my;
+      }
+    }
+    const dx = cx - x0;
+    const dy = cy - y0;
+    const len = Math.hypot(dx, dy) || 1;
+    return {
+      x: clamp(x0 + (dx / len) * 0.55, edge, WORLD - edge),
+      y: clamp(y0 + (dy / len) * 0.55, edge, WORLD - edge)
+    };
+  }
+
+  function setArenaShape(shape) {
+    if (!ARENA_SHAPES.includes(shape)) return;
+    rebuildArenaMask(shape);
+    try {
+      localStorage.setItem(ARENA_KEY, arenaShape);
+    } catch {}
+    document.querySelectorAll("#arena-picker [data-arena]").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.arena === arenaShape);
+    });
+  }
+
+  function drawArenaBorder() {
+    ctx.strokeStyle = "rgba(62,198,255,0.45)";
+    ctx.lineWidth = 1.15;
+    ctx.lineJoin = "round";
+    if (arenaShape === "box") {
+      const m = WORLD * 0.03;
+      ctx.strokeRect(m, m, WORLD - m * 2, WORLD - m * 2);
+      return;
+    }
+    if (arenaShape === "circle") {
+      ctx.beginPath();
+      ctx.arc(WORLD * 0.5, WORLD * 0.5, WORLD * 0.48, 0, Math.PI * 2);
+      ctx.stroke();
+      return;
+    }
+    const poly = arenaPolygon(arenaShape);
+    if (!poly || !poly.length) return;
+    ctx.beginPath();
+    ctx.moveTo(poly[0][0], poly[0][1]);
+    for (let i = 1; i < poly.length; i++) ctx.lineTo(poly[i][0], poly[i][1]);
+    ctx.closePath();
+    ctx.stroke();
+  }
+
+  function drawArenaVoid() {
+    // Dim outside the shape so the arena reads clearly
+    if (arenaShape === "box") return;
+    ctx.fillStyle = "rgba(4, 10, 18, 0.72)";
+    if (arenaShape === "circle") {
+      ctx.beginPath();
+      ctx.rect(0, 0, WORLD, WORLD);
+      ctx.arc(WORLD * 0.5, WORLD * 0.5, WORLD * 0.48, 0, Math.PI * 2, true);
+      ctx.fill("evenodd");
+      return;
+    }
+    const poly = arenaPolygon(arenaShape);
+    if (!poly) return;
+    ctx.beginPath();
+    ctx.rect(0, 0, WORLD, WORLD);
+    ctx.moveTo(poly[0][0], poly[0][1]);
+    for (let i = 1; i < poly.length; i++) ctx.lineTo(poly[i][0], poly[i][1]);
+    ctx.closePath();
+    ctx.fill("evenodd");
   }
 
   function idHash(id) {
@@ -921,9 +1112,11 @@
     const y1 = Math.min(WORLD - 1, Math.ceil(cy + r));
     for (let y = y0; y <= y1; y++) {
       for (let x = x0; x <= x1; x++) {
+        const i = idx(x, y);
+        if (!arenaMask[i]) continue;
         const dx = x + 0.5 - cx;
         const dy = y + 0.5 - cy;
-        if (dx * dx + dy * dy <= r2) grid[idx(x, y)] = hid;
+        if (dx * dx + dy * dy <= r2) grid[i] = hid;
       }
     }
     markLandDirty();
@@ -941,6 +1134,7 @@
   }
 
   function spawnAreaClear(cx, cy, r) {
+    if (!isPlayableCell(cx, cy)) return false;
     const r2 = (r + 0.75) * (r + 0.75);
     const x0 = Math.max(0, Math.floor(cx - r - 1));
     const x1 = Math.min(WORLD - 1, Math.ceil(cx + r + 1));
@@ -1043,6 +1237,7 @@
   }
 
   function resetArena(humans, bots) {
+    rebuildArenaMask(arenaShape);
     clearGrid();
     idMap.clear();
     idSeq = 1;
@@ -1074,16 +1269,18 @@
 
   function territoryCount(hash) {
     let n = 0;
-    for (let i = 0; i < grid.length; i++) if (grid[i] === hash) n++;
+    for (let i = 0; i < grid.length; i++) {
+      if (arenaMask[i] && grid[i] === hash) n++;
+    }
     return n;
   }
 
   function pctFor(p) {
     if (!p) return 0;
     const n = territoryCount(idHash(p.id));
-    if (n >= grid.length) return 100;
-    // One-decimal display; treat near-full maps as 100 once sealed
-    const raw = (1000 * n) / grid.length;
+    const denom = playableTotal || 1;
+    if (n >= denom) return 100;
+    const raw = (1000 * n) / denom;
     return Math.round(raw) / 10;
   }
 
@@ -1101,7 +1298,7 @@
     for (let y = 1; y < WORLD - 1; y++) {
       for (let x = 1; x < WORLD - 1; x++) {
         const i = idx(x, y);
-        if (grid[i]) continue;
+        if (!arenaMask[i] || grid[i]) continue;
         if (
           grid[idx(x - 1, y)] === hid &&
           grid[idx(x + 1, y)] === hid &&
@@ -1116,9 +1313,15 @@
     return filled;
   }
 
+  function touchesVoid(x, y) {
+    if (x <= 0 || y <= 0 || x >= WORLD - 1 || y >= WORLD - 1) return true;
+    if (!arenaMask[idx(x - 1, y)] || !arenaMask[idx(x + 1, y)]) return true;
+    if (!arenaMask[idx(x, y - 1)] || !arenaMask[idx(x, y + 1)]) return true;
+    return false;
+  }
+
   /**
-   * Claim empty rim cells that touch your land (walls are claimable paint,
-   * but enclosure flood never fills the map border on its own).
+   * Claim empty rim cells that touch your land along the arena edge / void.
    */
   function claimTouchingEdge(hid) {
     let filled = 0;
@@ -1126,21 +1329,11 @@
     let grew = true;
     while (grew && guard++ < WORLD + 4) {
       grew = false;
-      for (let x = 0; x < WORLD; x++) {
-        for (const y of [0, WORLD - 1]) {
+      for (let y = 0; y < WORLD; y++) {
+        for (let x = 0; x < WORLD; x++) {
           const i = idx(x, y);
-          if (grid[i]) continue;
-          if (hasNeighborOwned(x, y, hid)) {
-            grid[i] = hid;
-            filled++;
-            grew = true;
-          }
-        }
-      }
-      for (let y = 1; y < WORLD - 1; y++) {
-        for (const x of [0, WORLD - 1]) {
-          const i = idx(x, y);
-          if (grid[i]) continue;
+          if (!arenaMask[i] || grid[i]) continue;
+          if (!touchesVoid(x, y)) continue;
           if (hasNeighborOwned(x, y, hid)) {
             grid[i] = hid;
             filled++;
@@ -1153,8 +1346,8 @@
   }
 
   /**
-   * If nobody else owns any land, absorb leftover empty cells (the classic
-   * ~1.1% map-rim gap that enclosure flood leaves behind).
+   * If nobody else owns any land, absorb leftover empty playable cells
+   * (usually the thin rim the enclosure flood leaves behind).
    */
   function absorbLeftoverEmpty(p) {
     if (!p || !p.alive) return false;
@@ -1162,13 +1355,14 @@
     let empty = 0;
     let other = 0;
     for (let i = 0; i < grid.length; i++) {
+      if (!arenaMask[i]) continue;
       const v = grid[i];
       if (!v) empty++;
       else if (v !== hid) other++;
     }
     if (other > 0 || empty === 0) return false;
     for (let i = 0; i < grid.length; i++) {
-      if (!grid[i]) grid[i] = hid;
+      if (arenaMask[i] && !grid[i]) grid[i] = hid;
     }
     markLandDirty();
     return true;
@@ -1318,19 +1512,27 @@
     function push(x, y) {
       if (x < 0 || y < 0 || x >= WORLD || y >= WORLD) return;
       const i = idx(x, y);
+      if (!arenaMask[i]) {
+        visited[i] = 1;
+        return;
+      }
       if (visited[i] || grid[i] === hid) return;
       visited[i] = 1;
       qx[qt] = x;
       qy[qt] = y;
       qt++;
     }
-    for (let x = 0; x < WORLD; x++) {
-      push(x, 0);
-      push(x, WORLD - 1);
-    }
+    // Outside = void cells + flood into unowned playable cells from the rim
     for (let y = 0; y < WORLD; y++) {
-      push(0, y);
-      push(WORLD - 1, y);
+      for (let x = 0; x < WORLD; x++) {
+        const i = idx(x, y);
+        if (arenaMask[i]) continue;
+        visited[i] = 1;
+        push(x + 1, y);
+        push(x - 1, y);
+        push(x, y + 1);
+        push(x, y - 1);
+      }
     }
     while (qh < qt) {
       const x = qx[qh];
@@ -1341,6 +1543,10 @@
       push(x, y - 1);
     }
     for (let i = 0; i < grid.length; i++) {
+      if (!arenaMask[i]) {
+        grid[i] = 0;
+        continue;
+      }
       if (!visited[i] && grid[i] !== hid) grid[i] = hid;
     }
     finalizeClaim(p);
@@ -1647,12 +1853,18 @@
       }
     }
 
-    // Soft edge avoidance
+    // Soft edge / void avoidance — steer toward center when near the rim
     const margin = 16;
-    if (p.x < margin) p.botAngle = 0.15 + Math.random() * 0.4;
-    if (p.x > WORLD - margin) p.botAngle = Math.PI - (0.15 + Math.random() * 0.4);
-    if (p.y < margin) p.botAngle = Math.PI / 2 + (Math.random() - 0.5) * 0.5;
-    if (p.y > WORLD - margin) p.botAngle = -Math.PI / 2 + (Math.random() - 0.5) * 0.5;
+    const lookX = p.x + Math.cos(p.botAngle) * margin;
+    const lookY = p.y + Math.sin(p.botAngle) * margin;
+    if (!isPlayableCell(lookX, lookY) || !isPlayableCell(p.x, p.y)) {
+      p.botAngle = Math.atan2(WORLD * 0.5 - p.y, WORLD * 0.5 - p.x) + (Math.random() - 0.5) * 0.5;
+    } else {
+      if (p.x < margin) p.botAngle = 0.15 + Math.random() * 0.4;
+      if (p.x > WORLD - margin) p.botAngle = Math.PI - (0.15 + Math.random() * 0.4);
+      if (p.y < margin) p.botAngle = Math.PI / 2 + (Math.random() - 0.5) * 0.5;
+      if (p.y > WORLD - margin) p.botAngle = -Math.PI / 2 + (Math.random() - 0.5) * 0.5;
+    }
 
     p.wantAngle = p.botAngle;
   }
@@ -1675,16 +1887,18 @@
     const nxRaw = p.x + Math.cos(p.angle) * SPEED * dt;
     const nyRaw = p.y + Math.sin(p.angle) * SPEED * dt;
 
-    // Walls are solid — slide along them (no bounce), never KO
+    // Walls / arena rim are solid — slide along them (no bounce), never KO
     const edge = PLAYER_R + 0.35;
-    let nx = clamp(nxRaw, edge, WORLD - edge);
-    let ny = clamp(nyRaw, edge, WORLD - edge);
+    let clamped = clampToArena(nxRaw, nyRaw, edge);
+    let nx = clamped.x;
+    let ny = clamped.y;
 
     // Solid heads: block / slide, never tunnel through, never KO
     {
       const moved = separateFromHeads(p, nx, ny, edge);
-      nx = moved.x;
-      ny = moved.y;
+      clamped = clampToArena(moved.x, moved.y, edge);
+      nx = clamped.x;
+      ny = clamped.y;
     }
 
     // Trail cuts kill; head bumps only block (above). Can cut from your own land too.
@@ -2158,7 +2372,9 @@
     const rad = LAND_PX * 0.78;
     for (let y = 0; y < WORLD; y++) {
       for (let x = 0; x < WORLD; x++) {
-        const owner = grid[idx(x, y)];
+        const i = idx(x, y);
+        if (!arenaMask[i]) continue;
+        const owner = grid[i];
         if (!owner) continue;
         const cx = (x + 0.5) * LAND_PX;
         const cy = (y + 0.5) * LAND_PX;
@@ -2257,11 +2473,15 @@
     }
     if (!miniDirty) return;
     miniDirty = false;
-    miniCtx.fillStyle = "#0c1a2a";
+    miniCtx.fillStyle = "#050a12";
     miniCtx.fillRect(0, 0, WORLD, WORLD);
     for (let y = 0; y < WORLD; y++) {
       for (let x = 0; x < WORLD; x++) {
-        const owner = grid[idx(x, y)];
+        const i = idx(x, y);
+        if (!arenaMask[i]) continue;
+        miniCtx.fillStyle = "#0c1a2a";
+        miniCtx.fillRect(x, y, 1, 1);
+        const owner = grid[i];
         if (!owner) continue;
         const pid = idFromHash(owner);
         const pl = players.find((p) => p.id === pid);
@@ -2593,11 +2813,6 @@
     ctx.scale(scale, scale);
     ctx.translate(-camX, -camY);
 
-    // Soft border (walls don't kill) — world units (arena stays classic for all skins)
-    ctx.strokeStyle = "rgba(62,198,255,0.35)";
-    ctx.lineWidth = 1.1;
-    ctx.strokeRect(0.5, 0.5, WORLD - 1, WORLD - 1);
-
     // Faint grid so zoomed view keeps depth
     ctx.strokeStyle = "rgba(62,198,255,0.06)";
     ctx.lineWidth = 0.08;
@@ -2627,6 +2842,8 @@
       ctx.drawImage(landLayer, 0, 0, landLayer.width, landLayer.height, 0, 0, WORLD, WORLD);
     }
     drawAnimLandTint(scale);
+    drawArenaVoid();
+    drawArenaBorder();
 
     // Keep minimap in sync while land color cycles
     if (isAnimLandSkin(landSkinHead())) {
@@ -2835,6 +3052,12 @@
 
   function applySnapshot(snap) {
     if (!snap) return;
+    if (snap.arena && ARENA_SHAPES.includes(snap.arena)) {
+      rebuildArenaMask(snap.arena);
+      document.querySelectorAll("#arena-picker [data-arena]").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.arena === arenaShape);
+      });
+    }
     if (snap.grid) decodeGrid(snap.grid);
     if (snap.idMap) {
       idMap.clear();
@@ -2890,6 +3113,7 @@
       status: "playing",
       hostId: localId,
       snap: {
+        arena: arenaShape,
         grid: encodeGrid(),
         idMap: idMapObj,
         players: snapshotPlayers(),
@@ -3106,6 +3330,7 @@
       updatedAt: Date.now(),
       hostId: localId,
       snap: {
+        arena: arenaShape,
         grid: encodeGrid(),
         idMap: idMapObj,
         players: snapshotPlayers(),
@@ -3244,12 +3469,18 @@
   });
 
   npcPanel?.addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-bots]");
-    if (!btn) return;
-    botCount = Number(btn.dataset.bots) || 4;
-    npcPanel.querySelectorAll(".pick-btn").forEach((b) => {
-      b.classList.toggle("active", b === btn);
-    });
+    const botBtn = e.target.closest("[data-bots]");
+    if (botBtn) {
+      botCount = Number(botBtn.dataset.bots) || 4;
+      npcPanel.querySelectorAll("[data-bots]").forEach((b) => {
+        b.classList.toggle("active", b === botBtn);
+      });
+      return;
+    }
+    const arenaBtn = e.target.closest("[data-arena]");
+    if (arenaBtn) {
+      setArenaShape(arenaBtn.dataset.arena);
+    }
   });
 
   startBtn?.addEventListener("click", async () => {
@@ -3287,6 +3518,8 @@
     }
   });
 
+  rebuildArenaMask(arenaShape);
+  setArenaShape(arenaShape);
   updateBestHud();
   setMode("npc");
   setMenuPanel("home");
