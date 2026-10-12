@@ -15379,6 +15379,128 @@
     return (RARITY_RANK[rarity] || 0) >= RARITY_RANK.legendary;
   }
 
+  function shouldPlayCatchCutscene(fish, entry) {
+    if (!fish || isTreasureItem(fish)) return false;
+    if (isShowcaseRarity(fish.rarity)) return true;
+    if (entry?.shiny) return true;
+    if (normalizeMutation(entry?.mutation)) return true;
+    const v = normalizeVariant(entry?.variant);
+    if (
+      (v === "gold" || v === "diamond" || v === "rainbow") &&
+      (RARITY_RANK[fish.rarity] || 0) >= RARITY_RANK.epic
+    ) {
+      return true;
+    }
+    return false;
+  }
+
+  function catchCutsceneTier(fish, entry) {
+    const rank = RARITY_RANK[fish?.rarity] || 0;
+    if (
+      rank >= (RARITY_RANK.ultimate || 31) ||
+      fish?.rarity === "exclusive" ||
+      fish?.rarity === "mystery" ||
+      fish?.rarity === "easteregg"
+    ) {
+      return "apex";
+    }
+    if (rank >= (RARITY_RANK.secret || 7)) return "mythic";
+    return "great";
+  }
+
+  function catchCutsceneEyebrow(fish, entry) {
+    if (entry?.shiny && isShowcaseRarity(fish.rarity)) return "Shiny legendary";
+    if (entry?.shiny) return "Shiny catch";
+    if (normalizeMutation(entry?.mutation)) {
+      return `${String(entry.mutation).charAt(0).toUpperCase()}${String(entry.mutation).slice(1)} mutation`;
+    }
+    const v = normalizeVariant(entry?.variant);
+    if (v === "rainbow") return "Rainbow catch";
+    if (v === "diamond") return "Diamond catch";
+    if (v === "gold") return "Gold catch";
+    if ((RARITY_RANK[fish.rarity] || 0) >= (RARITY_RANK.ultimate || 31)) return "Ultimate haul";
+    if ((RARITY_RANK[fish.rarity] || 0) >= (RARITY_RANK.secret || 7)) return "Secret catch";
+    if ((RARITY_RANK[fish.rarity] || 0) >= (RARITY_RANK.mythic || 6)) return "Mythic catch";
+    return "Legendary catch";
+  }
+
+  let catchCutsceneTimer = 0;
+  let catchCutsceneOpen = false;
+
+  function isCatchCutsceneOpen() {
+    return catchCutsceneOpen;
+  }
+
+  function closeCatchCutscene() {
+    const el = document.getElementById("catch-cutscene");
+    clearTimeout(catchCutsceneTimer);
+    catchCutsceneTimer = 0;
+    catchCutsceneOpen = false;
+    if (!el) return;
+    el.classList.add("hidden");
+    el.hidden = true;
+    el.classList.remove("is-show", "tier-great", "tier-mythic", "tier-apex");
+  }
+
+  function playCatchCutscene({ fish, entry, value, perfect } = {}) {
+    if (!shouldPlayCatchCutscene(fish, entry)) return 0;
+    const el = document.getElementById("catch-cutscene");
+    if (!el) return 0;
+    closeCatchCutscene();
+
+    const tier = catchCutsceneTier(fish, entry);
+    const accent = rarityColor(fish.rarity);
+    const eyebrow = document.getElementById("catch-cutscene-eyebrow");
+    const glyph = document.getElementById("catch-cutscene-glyph");
+    const nameEl = document.getElementById("catch-cutscene-name");
+    const metaEl = document.getElementById("catch-cutscene-meta");
+    const valueEl = document.getElementById("catch-cutscene-value");
+
+    el.style.setProperty("--cutscene-accent", accent);
+    el.className = `catch-cutscene is-show tier-${tier}`;
+    el.hidden = false;
+    el.classList.remove("hidden");
+    catchCutsceneOpen = true;
+
+    if (eyebrow) eyebrow.textContent = catchCutsceneEyebrow(fish, entry);
+    if (glyph) {
+      glyph.innerHTML = fishGlyphHtml(fish, entry);
+      glyph.className = `catch-cutscene-glyph rarity-${fish.rarity || "common"} ${variantClassList(entry)}`.trim();
+    }
+    if (nameEl) nameEl.textContent = formatFishName(fish, entry);
+    if (metaEl) {
+      const bits = [
+        formatRarityName(fish.rarity),
+        formatVariantTitle(entry),
+        perfect ? "Perfect reel" : ""
+      ].filter(Boolean);
+      metaEl.textContent = bits.join(" · ");
+    }
+    if (valueEl) {
+      const n = Math.floor(Number(value) || 0);
+      valueEl.textContent = n > 0 ? `Worth ${formatNum(n)} coins` : "";
+    }
+
+    const baseMs = tier === "apex" ? 4200 : tier === "mythic" ? 3400 : 2800;
+    const hold = catchResultHoldMs(baseMs);
+    burstConfetti({
+      count: tier === "apex" ? 160 : tier === "mythic" ? 110 : 80,
+      duration: tier === "apex" ? 2600 : 2000
+    });
+    playSfx("achieve");
+    catchCutsceneTimer = setTimeout(() => closeCatchCutscene(), hold);
+    return hold;
+  }
+
+  function bindCatchCutsceneUi() {
+    const el = document.getElementById("catch-cutscene");
+    if (!el || el.dataset.bound) return;
+    el.dataset.bound = "1";
+    el.addEventListener("click", () => {
+      if (catchCutsceneOpen) closeCatchCutscene();
+    });
+  }
+
   function catchTone(rarity) {
     if (rarity === "easteregg") return "easteregg";
     if (rarity === "mystery") return "mystery";
@@ -15618,6 +15740,7 @@
       else noteQuestProgress("catch", 1, { rarity: fifthFish.rarity, forBoat: false });
     }
     setPhase("result");
+    let cutsceneHold = 0;
     if (entry) {
       const haul = [{ fish, val: fishValue(fish, spot, entry), perfect, entry }];
       if (bonusFish && bonusEntry) {
@@ -15703,6 +15826,13 @@
           ? `${formatFishName(showcase, showcaseEntry)} +${extrasN}`
           : formatFishName(showcase, showcaseEntry)
       );
+      const showcaseHaul = haul.find((h) => h.fish === showcase) || haul[0];
+      cutsceneHold = playCatchCutscene({
+        fish: showcase,
+        entry: showcaseEntry,
+        value: showcaseHaul?.val || 0,
+        perfect: !!showcaseHaul?.perfect
+      });
     } else {
       clearCatchSilhouette();
       castBtn.classList.add("is-miss");
@@ -15710,10 +15840,11 @@
     }
     checkAchievements();
     setTimeout(() => {
+      closeCatchCutscene();
       setPhase("ready");
       render(false);
       saveSoon();
-    }, catchResultHoldMs(1400));
+    }, Math.max(catchResultHoldMs(1400), cutsceneHold || 0));
   }
 
   function sellOneFish(index) {
@@ -18765,6 +18896,7 @@
   });
   startBtn?.addEventListener("click", closeMenu);
   menuBtn?.addEventListener("click", openMenu);
+  bindCatchCutsceneUi();
   settingsBtn?.addEventListener("click", openSettings);
   settingsClose?.addEventListener("click", closeSettings);
   menuSettingsBtn?.addEventListener("click", () => {
@@ -19271,6 +19403,11 @@
       return;
     }
     if (e.code !== "Escape") return;
+    if (isCatchCutsceneOpen()) {
+      e.preventDefault();
+      closeCatchCutscene();
+      return;
+    }
     if (luckyBlockOverlay && !luckyBlockOverlay.classList.contains("hidden")) {
       e.preventDefault();
       closeLuckyBlockGui();
