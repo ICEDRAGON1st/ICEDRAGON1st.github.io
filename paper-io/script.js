@@ -563,8 +563,14 @@
       g.fill();
     }
 
-    // Facing tick (skip for some ornate heads)
-    if (head !== "gold" && head !== "storm" && head !== "candy" && head !== "forest") {
+    // Facing tick (skip for menu preview + some ornate heads)
+    if (
+      opts.showAim !== false &&
+      head !== "gold" &&
+      head !== "storm" &&
+      head !== "candy" &&
+      head !== "forest"
+    ) {
       g.strokeStyle = head === "neon" ? "#e93cac" : "rgba(255,255,255,0.85)";
       g.lineWidth = lw;
       g.beginPath();
@@ -609,8 +615,9 @@
       head: col.head,
       fill: col.fill,
       glow: col.glow,
-      selected: true,
+      selected: false,
       showFace: true,
+      showAim: false,
       lineScale: 3.2
     });
   }
@@ -1864,7 +1871,7 @@
       head: p.id === localId ? head : "classic",
       fill: c.fill,
       glow,
-      selected: p.id === localId,
+      selected: false,
       showFace: true,
       lineScale: 0.22
     });

@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001dv": [
+    "Paper Claim: remove white ring around skin preview and blob"
+  ],
   "20261001du": [
     "Paper Claim: skins have unique shapes and trail styles (not just recolors)"
   ],
