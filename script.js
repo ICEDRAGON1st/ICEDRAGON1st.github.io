@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001dk": [
+    "Hub: ICE_DRAGON Master Admin panel (announce, maintenance, players, ban/mute, grants, leaderboard wipe, Discord, diagnostics)"
+  ],
   "20261001dj": [
     "Players: saved-account codes stay hidden until you tap Show"
   ],
@@ -3600,6 +3603,9 @@ function showGamesScreen() {
   if (leaderboardsPanel) leaderboardsPanel.classList.add("hidden");
   if (hubSettingsPanel) hubSettingsPanel.classList.add("hidden");
   if (feedbackPanel) feedbackPanel.classList.add("hidden");
+  try {
+    window.HubAdmin?.close?.();
+  } catch {}
   if (toggleLeaderboardsBtn) toggleLeaderboardsBtn.textContent = "Leaderboards";
   if (toggleSettingsBtn) toggleSettingsBtn.textContent = "⚙ Settings";
   if (toggleFeedbackBtn) updateFeedbackButtonLabel(false);
@@ -3702,6 +3708,13 @@ function backFromGames() {
 
 function selectGame(gameId) {
   if (!requirePlayerName()) return;
+  try {
+    if (window.HubAdmin?.isSoftLocked?.()) {
+      const maint = HubAdmin.getMaintenance?.();
+      showGamesMessage(maint?.message || "Hub maintenance — games locked", 2800);
+      return;
+    }
+  } catch {}
   const game = getHubGame(gameId);
   if (!game) {
     showGamesMessage("Coming soon");
@@ -4764,6 +4777,11 @@ function updateCoinsButtonLabel(open) {
 
 function setCoinsShopOpen(open) {
   if (!coinsPanel) return;
+  if (open) {
+    try {
+      window.HubAdmin?.close?.();
+    } catch {}
+  }
   coinsPanel.classList.toggle("hidden", !open);
   document.body.classList.toggle("coins-shop-open", !!open);
   gamesScreen?.classList.toggle("shop-open", !!open);

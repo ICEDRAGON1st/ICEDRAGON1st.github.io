@@ -3264,6 +3264,244 @@ header h1 {
   min-height: min(70vh, 720px);
 }
 
+/* Hub master Admin — same fullscreen stage as Coin shop */
+.admin-panel.coins-shop-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 13060 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  display: flex !important;
+  flex-direction: column;
+  overflow: hidden;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  background: #070d18 !important;
+  font-family: Outfit, "Segoe UI", system-ui, sans-serif;
+  color: #eaf3ff;
+}
+
+.admin-panel.coins-shop-overlay.hidden {
+  display: none !important;
+}
+
+body.hub-admin-open {
+  overflow: hidden;
+}
+
+body.hub-admin-open #hub-help-fab,
+body.hub-admin-open #hub-chat-fab,
+body.hub-admin-open #hub-chat-panel,
+body.hub-admin-open #hub-chat-toasts,
+body.hub-admin-open #hub-notify-root {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+html[data-mygames-desktop="1"] .admin-panel.coins-shop-overlay {
+  top: var(--mg-desk-chrome-h, 42px) !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+.admin-panel-body {
+  overflow: auto;
+}
+
+.hub-admin-section {
+  margin: 0 0 1.25rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(120, 160, 220, 0.18);
+}
+
+.hub-admin-section h4 {
+  margin: 0 0 0.45rem;
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #9ec5ff;
+}
+
+.hub-admin-live {
+  margin: 0 0 0.55rem;
+  color: rgba(220, 228, 240, 0.7);
+  font-size: 0.82rem;
+}
+
+.hub-admin-form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+  margin-bottom: 0.55rem;
+}
+
+.hub-admin-form-col {
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.hub-admin-form-row input[type="text"],
+.hub-admin-form-row input[type="search"],
+.hub-admin-form-row input[type="number"],
+.hub-admin-form-row select,
+.hub-admin-form-row textarea {
+  flex: 1 1 8rem;
+  min-width: 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid rgba(120, 160, 220, 0.35);
+  background: rgba(8, 14, 26, 0.85);
+  color: #eaf3ff;
+  font: inherit;
+}
+
+.hub-admin-form-row input[type="number"] {
+  flex: 0 0 4.5rem;
+  width: 4.5rem;
+}
+
+.hub-admin-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  color: rgba(220, 228, 240, 0.85);
+  white-space: nowrap;
+}
+
+.hub-admin-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 14rem;
+  overflow: auto;
+}
+
+.hub-admin-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid rgba(120, 160, 220, 0.28);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.hub-admin-row.is-online {
+  border-color: rgba(60, 180, 255, 0.55);
+  box-shadow: 0 0 0 1px rgba(60, 180, 255, 0.15);
+}
+
+.hub-admin-meta {
+  min-width: 0;
+  flex: 1 1 10rem;
+}
+
+.hub-admin-meta strong {
+  display: block;
+}
+
+.hub-admin-sub {
+  display: block;
+  margin-top: 0.1rem;
+  color: rgba(180, 200, 230, 0.7);
+  font-size: 0.78rem;
+}
+
+.hub-admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.hub-admin-empty {
+  color: rgba(180, 200, 230, 0.65);
+  font-size: 0.85rem;
+  padding: 0.35rem 0;
+}
+
+.hub-admin-diag-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+}
+
+.hub-admin-announce-popup {
+  position: fixed;
+  left: 50%;
+  top: 18%;
+  transform: translateX(-50%);
+  z-index: 14000;
+  max-width: min(28rem, calc(100vw - 2rem));
+  padding: 0.85rem 1rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(100, 180, 255, 0.45);
+  background: rgba(10, 18, 32, 0.96);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  color: #eaf3ff;
+}
+
+.hub-admin-announce-popup.hidden {
+  display: none !important;
+}
+
+.hub-admin-announce-tag {
+  display: inline-block;
+  margin-bottom: 0.35rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #7eb6ff;
+}
+
+.hub-admin-announce-popup p {
+  margin: 0;
+  line-height: 1.35;
+}
+
+.hub-admin-maintenance-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 12040;
+  padding: 0.55rem 0.85rem;
+  background: linear-gradient(90deg, #5c4a12, #3d2f0a);
+  color: #ffe8a3;
+  font-size: 0.88rem;
+  text-align: center;
+  border-bottom: 1px solid rgba(255, 220, 120, 0.35);
+}
+
+html[data-mygames-desktop="1"] .hub-admin-maintenance-banner {
+  top: var(--mg-desk-chrome-h, 42px);
+}
+
+.hub-admin-maintenance-banner.hidden {
+  display: none !important;
+}
+
+body.hub-admin-maintenance-on #games-screen {
+  padding-top: 2.4rem;
+}
+
 /* Full-screen shop stage — same idea as Help on the hub (covers title + toolbar + FABs) */
 .coins-panel.coins-shop-overlay {
   position: fixed !important;

@@ -7,8 +7,8 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>My Games</title>
-  <link rel="icon" href="icon.png?v=20261001dj" type="image/png" sizes="any">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20261001dj">
+  <link rel="icon" href="icon.png?v=20261001dk" type="image/png" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20261001dk">
   <link rel="manifest" href="site.webmanifest">
   <meta name="theme-color" content="#5b4dff">
   <meta property="og:title" content="My Games">
@@ -94,13 +94,13 @@
       pointer-events: none !important;
     }
   </style>
-  <script src="site-config.js?v=20261001dj"></script>
+  <script src="site-config.js?v=20261001dk"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261001dj">
-  <script src="hub-net.js?v=20261001dj"></script>
-  <script src="hub-afk.js?v=20261001dj"></script>
+  <link rel="stylesheet" href="styles.css?v=20261001dk">
+  <script src="hub-net.js?v=20261001dk"></script>
+  <script src="hub-afk.js?v=20261001dk"></script>
 </head>
 <body data-guess-colors="ice">
   <div id="hub-boot-loader" aria-live="polite" aria-busy="true">
@@ -290,6 +290,7 @@
         <button id="toggle-friends-btn" type="button" class="hub-btn">Friends</button>
         <button id="toggle-updates-btn" type="button" class="hub-btn">Updates</button>
         <button id="toggle-feedback-btn" type="button" class="hub-btn">Feedback</button>
+        <button id="toggle-admin-btn" type="button" class="hub-btn hub-admin-toolbar-btn hidden" hidden aria-controls="admin-panel" aria-expanded="false" title="ICE_DRAGON master Admin">Admin</button>
         <button id="toggle-credits-btn" type="button" class="hub-btn" title="Music and attribution">Credits</button>
         <button id="share-moment-btn" type="button" class="hub-btn" title="Share your invite link — unlock INVITER at 3 joins">Share game</button>
         <a id="download-app-btn" class="hub-btn hub-btn-download-app" href="https://github.com/ICEDRAGON1st/ICEDRAGON1st.github.io/releases/download/v1.0.6/MyGames-Setup-1.0.6.exe" download title="Download the Windows desktop app">Download app</a>
@@ -769,6 +770,110 @@
     </div>
   </div>
 
+  <div id="admin-panel" class="admin-panel coins-shop-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="admin-panel-title">
+    <div class="coins-shop-sheet admin-panel-sheet">
+      <div class="coins-shop-head">
+        <div class="coins-shop-title-wrap">
+          <p class="coins-shop-eyebrow">ICE_DRAGON</p>
+          <h3 id="admin-panel-title">Master Admin</h3>
+        </div>
+        <button type="button" id="admin-panel-close" class="hub-btn coins-shop-close" aria-label="Back to games">Games</button>
+      </div>
+      <div class="coins-shop-body admin-panel-body">
+        <p id="hub-admin-status" class="coins-status" aria-live="polite"></p>
+
+        <section class="hub-admin-section">
+          <h4>Announcement</h4>
+          <p id="hub-admin-announce-live" class="hub-admin-live">No live announcement</p>
+          <div class="hub-admin-form-row">
+            <input id="hub-admin-announce-text-input" type="text" maxlength="180" placeholder="Message for every player" autocomplete="off">
+            <input id="hub-admin-announce-mins" type="number" min="1" max="1440" value="10" title="Minutes" aria-label="Minutes">
+            <button type="button" id="hub-admin-announce-send" class="hub-btn hub-btn-primary">Send</button>
+            <button type="button" id="hub-admin-announce-clear" class="hub-btn">Clear</button>
+          </div>
+        </section>
+
+        <section class="hub-admin-section">
+          <h4>Maintenance banner</h4>
+          <p id="hub-admin-maint-live" class="hub-admin-live">No maintenance banner</p>
+          <div class="hub-admin-form-row">
+            <input id="hub-admin-maint-text" type="text" maxlength="180" placeholder="Hub updating — back soon" autocomplete="off">
+            <input id="hub-admin-maint-mins" type="number" min="1" max="1440" value="15" title="Minutes" aria-label="Minutes">
+            <label class="hub-admin-check"><input id="hub-admin-maint-softlock" type="checkbox"> Soft lock games</label>
+            <button type="button" id="hub-admin-maint-send" class="hub-btn hub-btn-primary">Start</button>
+            <button type="button" id="hub-admin-maint-clear" class="hub-btn">Clear</button>
+          </div>
+        </section>
+
+        <section class="hub-admin-section">
+          <h4>Players</h4>
+          <div class="hub-admin-form-row">
+            <input id="hub-admin-players-q" type="search" placeholder="Search name…" autocomplete="off">
+            <button type="button" id="hub-admin-players-refresh" class="hub-btn">Refresh</button>
+          </div>
+          <ul id="hub-admin-players-list" class="hub-admin-list"></ul>
+        </section>
+
+        <section class="hub-admin-section">
+          <h4>Ban / mute</h4>
+          <div class="hub-admin-form-row">
+            <input id="hub-admin-mod-name" type="text" maxlength="16" placeholder="Player name" autocomplete="off">
+            <input id="hub-admin-mod-reason" type="text" maxlength="120" placeholder="Reason" autocomplete="off">
+            <input id="hub-admin-mod-mins" type="number" min="1" max="1440" value="60" title="Minutes" aria-label="Minutes">
+            <button type="button" id="hub-admin-mod-ban" class="hub-btn">Ban</button>
+            <button type="button" id="hub-admin-mod-mute" class="hub-btn">Mute</button>
+          </div>
+          <ul id="hub-admin-mod-list" class="hub-admin-list"></ul>
+        </section>
+
+        <section class="hub-admin-section">
+          <h4>Grants</h4>
+          <div class="hub-admin-form-row">
+            <input id="hub-admin-grant-name" type="text" maxlength="16" placeholder="Target name" autocomplete="off">
+            <select id="hub-admin-grant-kind" aria-label="Grant kind">
+              <option value="coins">Coins</option>
+              <option value="title">Title</option>
+              <option value="color">Color</option>
+            </select>
+            <input id="hub-admin-grant-value" type="text" placeholder="Amount or id (tester / aurora)" autocomplete="off">
+            <button type="button" id="hub-admin-grant-send" class="hub-btn hub-btn-primary">Grant</button>
+          </div>
+          <ul id="hub-admin-grants-list" class="hub-admin-list"></ul>
+        </section>
+
+        <section class="hub-admin-section">
+          <h4>Leaderboard wipe</h4>
+          <div class="hub-admin-form-row">
+            <select id="hub-admin-lb-game" aria-label="Leaderboard game"></select>
+            <input id="hub-admin-lb-name" type="text" maxlength="16" placeholder="Player name" autocomplete="off">
+            <button type="button" id="hub-admin-lb-wipe" class="hub-btn">Wipe entry</button>
+          </div>
+        </section>
+
+        <section class="hub-admin-section">
+          <h4>Discord post</h4>
+          <div class="hub-admin-form-row hub-admin-form-col">
+            <textarea id="hub-admin-discord-text" rows="3" maxlength="1800" placeholder="Message to Discord"></textarea>
+            <div class="hub-admin-form-row">
+              <select id="hub-admin-discord-dest" aria-label="Discord destination">
+                <option value="main">Main webhook</option>
+                <option value="updates">Updates webhook</option>
+              </select>
+              <label class="hub-admin-check"><input id="hub-admin-discord-abuse" type="checkbox"> Ping Admin Abuse (main)</label>
+              <button type="button" id="hub-admin-discord-send" class="hub-btn hub-btn-primary">Post</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="hub-admin-section">
+          <h4>Diagnostics</h4>
+          <button type="button" id="hub-admin-diag-refresh" class="hub-btn">Refresh</button>
+          <div id="hub-admin-diagnostics" class="hub-admin-diagnostics"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
   <div id="coins-panel" class="coins-panel coins-shop-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="coins-shop-title">
     <div class="coins-shop-sheet">
       <div class="coins-shop-head">
@@ -808,14 +913,14 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20261001dj";
+    window.WORDLE_BUILD = "20261001dk";
     try {
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("sw.js?v=" + window.WORDLE_BUILD).catch(function () {});
       }
     } catch (e) {}
     const scripts = [
-      "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-audio.js", "hub-confetti.js", "hub-supabase.js", "hub-account-bag.js", "hub-eggs.js", "hub-plays.js", "hub-coins.js", "hub-referrals.js", "hub-online-overlay.js", "hub-help.js", "hub-fishing-gifts.js", "hub-fishing-mail.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-calls.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js", "hub-discord.js",
+      "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-audio.js", "hub-confetti.js", "hub-supabase.js", "hub-account-bag.js", "hub-eggs.js", "hub-plays.js", "hub-coins.js", "hub-referrals.js", "hub-online-overlay.js", "hub-help.js", "hub-fishing-gifts.js", "hub-fishing-mail.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-calls.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js", "hub-discord.js", "hub-admin.js",
       "words.js",
       "dictionary.js",
       "words-4.js",

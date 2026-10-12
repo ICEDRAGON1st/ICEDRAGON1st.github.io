@@ -2041,6 +2041,14 @@
       return { ok: false, error: "Pick a real username — guest names aren’t allowed" };
     }
 
+    try {
+      const ban = window.HubAdmin?.getBan?.(next);
+      if (ban) {
+        const why = ban.reason ? `: ${ban.reason}` : "";
+        return { ok: false, error: `That name is banned${why}` };
+      }
+    } catch {}
+
     const current = getName();
     if (isNameLocked() && current && nameKey(current) !== nameKey(next)) {
       return { ok: false, error: "Name is locked — unlock it to change" };
@@ -3029,6 +3037,33 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       }
     }
     return total;
+  }
+
+  /** Admin: remove a player id from the shared presence map (ghost kick). */
+  async function kickPlayer(playerId) {
+    const id = String(playerId || "");
+    if (!id) return false;
+    try {
+      let remote = {};
+      try {
+        remote = await fetchPresenceRemote();
+      } catch {
+        remote = { ...(presenceCache || {}) };
+      }
+      if (!remote[id]) {
+        presenceCache = enrichPresenceNames(prunePresence({ ...remote }, Date.now()));
+        return true;
+      }
+      delete remote[id];
+      const next = prunePresence(remote, Date.now());
+      try {
+        await pushPresenceRemote(next);
+      } catch {}
+      presenceCache = enrichPresenceNames(next);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /** Drop ourselves from presence so "online" matches a visible tab. */
@@ -4498,6 +4533,11 @@ body.light .menu-credit .player-name-creator {
     if (key === "ice_dragon") {
       ids.push("hub1", "hub2", "hub3");
       appendEggTitleIds(ids);
+      try {
+        (window.HubAdmin?.getUnlocksFor?.(name)?.titles || []).forEach((id) => {
+          if (TITLE_DEFS[id] && !ids.includes(id)) ids.push(id);
+        });
+      } catch {}
       return ids;
     }
     const hubTitle = getHubPointsTitleId(name);
@@ -4508,6 +4548,11 @@ body.light .menu-credit .player-name-creator {
       HubAchievements.hasAllUnlocked?.();
     if (isLegendName(name) || selfLegend) ids.push("legend");
     appendEggTitleIds(ids);
+    try {
+      (window.HubAdmin?.getUnlocksFor?.(name)?.titles || []).forEach((id) => {
+        if (TITLE_DEFS[id] && !ids.includes(id)) ids.push(id);
+      });
+    } catch {}
     return ids;
   }
 
@@ -4553,9 +4598,18 @@ body.light .menu-credit .player-name-creator {
 
   function getExtraColorIds(name = getName()) {
     const key = nameKey(name);
-    return Object.keys(EXTRA_COLOR_GRANTS).filter((id) =>
+    const ids = Object.keys(EXTRA_COLOR_GRANTS).filter((id) =>
       EXTRA_COLOR_GRANTS[id].has(key)
     );
+    try {
+      (window.HubAdmin?.getUnlocksFor?.(name)?.colors || []).forEach((id) => {
+        const c = String(id || "").toLowerCase();
+        if ((EXTRA_COLORS[c] || COLOR_OPTIONS.some((o) => o.id === c)) && !ids.includes(c)) {
+          ids.push(c);
+        }
+      });
+    } catch {}
+    return ids;
   }
 
   function isExtraAccentId(id) {
@@ -5019,6 +5073,7 @@ body.light .menu-credit .player-name-creator {
     formatPlayerCode,
     heartbeat,
     goOffline,
+    kickPlayer,
     getOnlineCount,
     getOnlinePlayers,
     getAllTimeCount,
