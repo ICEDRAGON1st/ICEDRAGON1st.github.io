@@ -74,7 +74,26 @@
     { id: "skin:paper-claim-pixel", label: "Paper Claim — Pixel Stamp", cost: 500, kind: "skin", game: "paper", skinId: "pixel" },
     { id: "skin:paper-claim-shadow", label: "Paper Claim — Shadow Mark", cost: 500, kind: "skin", game: "paper", skinId: "shadow" },
     { id: "skin:paper-claim-rainbow", label: "Paper Claim — Rainbow Paint", cost: 500, kind: "skin", game: "paper", skinId: "rainbow" },
-    { id: "skin:paper-claim-gold", label: "Paper Claim — Gold Foil", cost: 550, kind: "skin", game: "paper", skinId: "gold" }
+    { id: "skin:paper-claim-gold", label: "Paper Claim — Gold Foil", cost: 550, kind: "skin", game: "paper", skinId: "gold" },
+    { id: "skin:dudes-sunset", label: "Dudes — Sunset", cost: 200, kind: "skin", game: "lemmings", skinId: "sunset" },
+    { id: "skin:dudes-honey", label: "Dudes — Honey", cost: 200, kind: "skin", game: "lemmings", skinId: "honey" },
+    { id: "skin:dudes-mint", label: "Dudes — Mint ice", cost: 200, kind: "skin", game: "lemmings", skinId: "mint" },
+    { id: "skin:dudes-midnight", label: "Dudes — Midnight", cost: 250, kind: "skin", game: "lemmings", skinId: "midnight" },
+    { id: "skin:dudes-beanie", label: "Dudes — Beanie", cost: 250, kind: "skin", game: "lemmings", skinId: "beanie" },
+    { id: "skin:dudes-hardhat", label: "Dudes — Hard hat", cost: 300, kind: "skin", game: "lemmings", skinId: "hardhat" },
+    { id: "skin:dudes-bandana", label: "Dudes — Bandana", cost: 300, kind: "skin", game: "lemmings", skinId: "bandana" },
+    { id: "skin:dudes-builder", label: "Dudes — Builder", cost: 300, kind: "skin", game: "lemmings", skinId: "builder" },
+    { id: "skin:dudes-floater", label: "Dudes — Floater", cost: 300, kind: "skin", game: "lemmings", skinId: "floater" },
+    { id: "skin:dudes-climber", label: "Dudes — Climber", cost: 300, kind: "skin", game: "lemmings", skinId: "climber" },
+    { id: "skin:dudes-blocker", label: "Dudes — Blocker", cost: 300, kind: "skin", game: "lemmings", skinId: "blocker" },
+    { id: "skin:dudes-propeller", label: "Dudes — Propeller", cost: 350, kind: "skin", game: "lemmings", skinId: "propeller" },
+    { id: "skin:dudes-bomber", label: "Dudes — Bomber", cost: 350, kind: "skin", game: "lemmings", skinId: "bomber" },
+    { id: "skin:dudes-cat", label: "Dudes — Cat", cost: 400, kind: "skin", game: "lemmings", skinId: "cat" },
+    { id: "skin:dudes-duck", label: "Dudes — Duck", cost: 400, kind: "skin", game: "lemmings", skinId: "duck" },
+    { id: "skin:dudes-crown", label: "Dudes — Crown", cost: 450, kind: "skin", game: "lemmings", skinId: "crown" },
+    { id: "skin:dudes-ghost", label: "Dudes — Ghost", cost: 450, kind: "skin", game: "lemmings", skinId: "ghost" },
+    { id: "skin:dudes-robot", label: "Dudes — Robot", cost: 500, kind: "skin", game: "lemmings", skinId: "robot" },
+    { id: "skin:dudes-rainbow", label: "Dudes — Rainbow", cost: 500, kind: "skin", game: "lemmings", skinId: "rainbow" }
   ];
 
   const listeners = new Set();

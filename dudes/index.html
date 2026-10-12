@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="../hub-game-boot.js?v=20261001el"></script>
+  <script src="../hub-game-boot.js?v=20261001em"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260914e">
+  <link rel="stylesheet" href="styles.css?v=20261001em">
 </head>
 <body>
   <header class="hud">
@@ -52,6 +52,33 @@
         </ol>
       </div>
       <div id="level-select" class="level-select" aria-label="Choose level"></div>
+      <div class="skin-panel">
+        <p class="picker-label">Walker skins</p>
+        <div id="skin-picker" class="skin-picker" role="group" aria-label="Dude skins">
+          <button type="button" class="skin-btn active" data-skin="classic">Classic</button>
+          <button type="button" class="skin-btn" data-skin="blue">Blue crew</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="sunset">Sunset · 200🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="honey">Honey · 200🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="mint">Mint ice · 200🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="midnight">Midnight · 250🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="beanie">Beanie · 250🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="hardhat">Hard hat · 300🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="bandana">Bandana · 300🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="builder">Builder · 300🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="floater">Floater · 300🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="climber">Climber · 300🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="blocker">Blocker · 300🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="propeller">Propeller · 350🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="bomber">Bomber · 350🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="cat">Cat · 400🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="duck">Duck · 400🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="crown">Crown · 450🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="ghost">Ghost · 450🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="robot">Robot · 500🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="rainbow">Rainbow · 500🪙</button>
+        </div>
+        <p id="skin-lock-hint" class="skin-lock-hint" aria-live="polite"></p>
+      </div>
       <p class="score-line">Best score: <strong id="overlay-best">0</strong></p>
       <div class="overlay-actions">
         <button id="start-btn" type="button" class="btn">Play</button>
@@ -68,11 +95,11 @@
   <script src="../hub-confetti.js"></script>
   <script src="../hub-supabase.js?v=20260923u"></script>
   <script src="../hub-account-bag.js?v=20260923ag"></script>
-  <script src="../hub-plays.js?v=20261001el"></script>
+  <script src="../hub-plays.js?v=20261001em"></script>
   <script src="../hub-friends.js?v=20260923u"></script>
   <script src="../hub-chat.js?v=20260927c"></script>
   <script src="../hub-calls.js?v=20260925a"></script>
 <script src="../hub-leaderboard.js?v=20260925a"></script>
-  <script src="script.js?v=20260914e"></script>
+  <script src="script.js?v=20261001em"></script>
 </body>
 </html>

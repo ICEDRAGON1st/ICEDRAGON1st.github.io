@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001em": [
+    "Dudes: 21 walker skins (free Classic/Blue + coin unlocks)"
+  ],
   "20261001el": [
     "Hub: grant Hjalte +1000 coins (one-time when logged in as Hjalte)"
   ],
