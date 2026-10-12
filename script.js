@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ed": [
+    "Paper Claim: fix Online and Games dock buttons not working reliably"
+  ],
   "20261001ec": [
     "Paper Claim: cleaner menu dock icons (no glitchy unicode)"
   ],

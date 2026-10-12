@@ -684,12 +684,33 @@
     }
   }
 
+  function syncDockActive() {
+    const shown = overlay?.dataset.panel || "home";
+    document.querySelectorAll(".menu-dock .dock-btn[data-panel]").forEach((btn) => {
+      const id = btn.dataset.panel;
+      let on = false;
+      if (id === "skins") on = shown === "skins";
+      else if (id === "online") on = shown === "home" && mode === "online";
+      else if (id === "home") on = shown === "home" && mode !== "online";
+      else on = false;
+      btn.classList.toggle("active", on);
+    });
+  }
+
   function setMenuPanel(panel) {
     if (!overlay) return;
     const want = panel || "home";
+    if (want === "games") {
+      location.href = "../index.html#games";
+      return;
+    }
     if (want === "online") {
       overlay.dataset.panel = "home";
       setMode("online");
+    } else if (want === "home") {
+      overlay.dataset.panel = "home";
+      // Only flip back to vs NPC from the Play dock when not mid-match
+      if (!running) setMode("npc");
     } else {
       overlay.dataset.panel = want;
     }
@@ -697,15 +718,11 @@
     overlay.querySelectorAll(".menu-panel[data-show]").forEach((el) => {
       el.classList.toggle("hidden", el.getAttribute("data-show") !== shown);
     });
-    document.querySelectorAll(".menu-dock .dock-btn[data-panel]").forEach((btn) => {
-      const id = btn.dataset.panel;
-      let on = false;
-      if (id === "skins") on = shown === "skins";
-      else if (id === "online") on = shown === "home" && mode === "online";
-      else if (id === "home") on = shown === "home" && mode !== "online";
-      btn.classList.toggle("active", on);
-    });
+    syncDockActive();
     refreshSkinPreview();
+    if (want === "online" || (want === "home" && mode === "online")) {
+      onlinePanel?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+    }
   }
 
   /** Local human uses equipped pack colors; everyone else keeps slot colors. */
@@ -2750,21 +2767,12 @@
 
   function setMode(next) {
     mode = next;
-    modePicker.querySelectorAll(".pick-btn").forEach((b) => {
+    modePicker?.querySelectorAll(".pick-btn").forEach((b) => {
       b.classList.toggle("active", b.dataset.mode === mode);
     });
-    npcPanel.classList.toggle("hidden", mode !== "npc");
-    onlinePanel.classList.toggle("hidden", mode !== "online");
-    if (overlay && !overlay.classList.contains("hidden") && (overlay.dataset.panel || "home") === "home") {
-      document.querySelectorAll(".menu-dock .dock-btn[data-panel]").forEach((btn) => {
-        const id = btn.dataset.panel;
-        let on = false;
-        if (id === "skins") on = false;
-        else if (id === "online") on = mode === "online";
-        else if (id === "home") on = mode !== "online";
-        btn.classList.toggle("active", on);
-      });
-    }
+    npcPanel?.classList.toggle("hidden", mode !== "npc");
+    onlinePanel?.classList.toggle("hidden", mode !== "online");
+    if (overlay && !overlay.classList.contains("hidden")) syncDockActive();
   }
 
   // —— Networking ——
@@ -3217,9 +3225,10 @@
   setPlayLabel("Play");
 
   document.querySelector(".menu-dock")?.addEventListener("click", (e) => {
-    const btn = e.target.closest("[data-panel]");
-    if (!btn) return;
+    const btn = e.target.closest(".dock-btn[data-panel]");
+    if (!btn || !document.querySelector(".menu-dock")?.contains(btn)) return;
     e.preventDefault();
+    e.stopPropagation();
     setMenuPanel(btn.dataset.panel);
   });
 
@@ -3228,7 +3237,10 @@
     if (!btn) return;
     setMode(btn.dataset.mode);
     if (overlay) overlay.dataset.panel = "home";
-    setMenuPanel(btn.dataset.mode === "online" ? "online" : "home");
+    syncDockActive();
+    if (mode === "online") {
+      onlinePanel?.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+    }
   });
 
   npcPanel?.addEventListener("click", (e) => {

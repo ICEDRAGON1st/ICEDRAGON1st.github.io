@@ -694,6 +694,7 @@ body {
   flex-shrink: 0;
   box-shadow: 0 2px 0 rgba(13, 42, 77, 0.15);
   overflow: hidden;
+  pointer-events: none;
 }
 
 .dock-play::before {
