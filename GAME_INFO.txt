@@ -55,7 +55,7 @@ Game memory: Memory Match · memory-match/index.html · Flip cards and find pair
 Game connect-four: Drop Four · connect-four/index.html · Connect four in a row · Click a column to drop; four in a row wins.
 Game math: Math Sprint · math/index.html · Quick arithmetic quiz · Solve arithmetic quickly; Menu returns toward hub.
 Game sudoku: Sudoku · sudoku/index.html · Classic 9×9 logic puzzle · Fill 1–9 once per row, column, and 3×3 box; F1 for Help.
-Game flappy: Wing Hop · wing-hop/index.html · Fly a dragon through castle towers · Tap/click/Space to flap; dodge towers; Esc/Menu pauses. Free color skins plus coin theme packs (UFO, Paper Plane, Bee, Submarine, Balloon, Broom, Neon City, Steampunk, Ice Fortress, Volcano, Ghost, Pixel-8, Golden Idol, Shadow, Rainbow Trail).
+Game flappy: Wing Hop · wing-hop/index.html · Fly a dragon through castle towers · Tap/click/Space to flap; dodge towers; Esc/Menu pauses. Default Dragon plus coin skins (UFO, Paper Plane, Bee, Submarine, Balloon, Broom, Neon City, Steampunk, Ice Fortress, Volcano, Ghost, Pixel-8, Golden Idol, Shadow, Rainbow Trail).
 Game tictactoe: Tic Tac Toe · tic-tac-toe/index.html · Three in a row to win · Place X/O; first to three in a row wins.
 Game pixletris: Pixel Drop · pixel-drop/index.html · Drop blocks and clear lines · Landed blocks become sand; bridge one color left-to-right to clear.
 Game clicker: Crystal Clicker · clicker/index.html · Tap crystals, buy upgrades · Tap for crystals; buy click power then idle income.
