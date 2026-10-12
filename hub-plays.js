@@ -2410,6 +2410,7 @@
 }
 #username-gate-modal .username-gate-accounts-list li {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
@@ -2428,9 +2429,17 @@
   background: #1c7ed6;
   color: #fff;
 }
+#username-gate-modal .username-gate-accounts-list button[data-reveal] {
+  background: rgba(255,255,255,0.08);
+}
 #username-gate-modal .username-gate-accounts-empty {
   color: rgba(220,228,240,0.65);
   font-size: 0.82rem;
+}
+#username-gate-modal .gate-account-code.is-masked {
+  letter-spacing: 0.14em;
+  color: rgba(220,228,240,0.55);
+  user-select: none;
 }
 body.username-gate-open {
   overflow: hidden !important;
@@ -2590,7 +2599,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
             const label = sanitizeName(a.name) || "Unnamed";
             const lock = a.hasPassword || accountHasPassword(a.playerId) ? " · password" : "";
             return `<li data-code="${code}">
-              <span><strong>${label}${activeNow ? " · active" : ""}${lock}</strong><br>${code}</span>
+              <span><strong>${label}${activeNow ? " · active" : ""}${lock}</strong><br><span class="gate-account-code is-masked" data-gate-code="${code}">••••-••••</span></span>
+              <button type="button" data-reveal="${code}">Show</button>
               ${
                 activeNow
                   ? ""
@@ -2664,6 +2674,24 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
         }
       });
       listEl.addEventListener("click", async (e) => {
+        const reveal = e.target.closest("[data-reveal]");
+        if (reveal) {
+          const code = reveal.getAttribute("data-reveal") || "";
+          const row = reveal.closest("li");
+          const codeEl = row?.querySelector("[data-gate-code]");
+          if (!codeEl) return;
+          const shown = !codeEl.classList.contains("is-masked");
+          if (shown) {
+            codeEl.classList.add("is-masked");
+            codeEl.textContent = "••••-••••";
+            reveal.textContent = "Show";
+          } else {
+            codeEl.classList.remove("is-masked");
+            codeEl.textContent = code;
+            reveal.textContent = "Hide";
+          }
+          return;
+        }
         const sw = e.target.closest("[data-switch]");
         if (!sw) return;
         const code = sw.getAttribute("data-switch") || "";
@@ -2723,7 +2751,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
               const label = sanitizeName(a.name) || "Unnamed";
               const lock = a.hasPassword || accountHasPassword(a.playerId) ? " · password" : "";
               return `<li data-code="${code}">
-                <span><strong>${label}${activeNow ? " · active" : ""}${lock}</strong><br>${code}</span>
+                <span><strong>${label}${activeNow ? " · active" : ""}${lock}</strong><br><span class="gate-account-code is-masked" data-gate-code="${code}">••••-••••</span></span>
+                <button type="button" data-reveal="${code}">Show</button>
                 ${
                   activeNow
                     ? ""
