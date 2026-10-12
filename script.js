@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ee": [
+    "Paper Claim: arena shapes — Box, Circle, Star, Hex, Diamond, Triangle"
+  ],
   "20261001ed": [
     "Paper Claim: fix Online and Games dock buttons not working reliably"
   ],
