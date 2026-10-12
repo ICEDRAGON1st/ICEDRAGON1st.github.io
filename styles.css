@@ -3304,8 +3304,23 @@ body.coins-shop-open #hub-notify-root {
   pointer-events: none !important;
 }
 
-/* Desktop Electron Refresh bar sits above the page — keep shop below it.
-   Do not use inset:auto here (it cancels top/right/bottom/left and parks the shop off-screen). */
+/* Desktop Electron: no white system page scrollbar; content scrolls under Refresh bar */
+html[data-mygames-desktop="1"],
+html[data-mygames-desktop="1"] body {
+  height: 100% !important;
+  overflow: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+html[data-mygames-desktop="1"]::-webkit-scrollbar,
+html[data-mygames-desktop="1"] *::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
+html[data-mygames-desktop="1"] #games-screen,
 html[data-mygames-desktop="1"] .coins-panel.coins-shop-overlay {
   top: var(--mg-desk-chrome-h, 42px) !important;
   right: 0 !important;
@@ -3314,6 +3329,8 @@ html[data-mygames-desktop="1"] .coins-panel.coins-shop-overlay {
   width: auto !important;
   height: auto !important;
   max-height: none !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 
 .coins-shop-sheet {

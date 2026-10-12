@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001da": [
+    "Desktop app: hide the white system scrollbar so the hub doesn’t glitch"
+  ],
   "20261001cz": [
     "Desktop app: Coin shop opens again (fixed off-screen layout under Refresh bar)"
   ],

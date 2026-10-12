@@ -55,17 +55,34 @@ function mountChrome() {
       font-weight: 500;
       font-size: 11px;
     }
-    /* Keep Refresh bar fixed; push hub/games content below it */
+    /* Keep Refresh bar fixed; hub scrolls under it without a page scrollbar */
     html[data-mygames-desktop="1"] {
       --mg-desk-chrome-h: 42px;
       scroll-padding-top: var(--mg-desk-chrome-h);
+      height: 100% !important;
+      overflow: hidden !important;
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
     }
     html[data-mygames-desktop="1"] body {
-      padding-top: var(--mg-desk-chrome-h) !important;
+      padding-top: 0 !important;
+      margin: 0 !important;
       box-sizing: border-box !important;
       scroll-padding-top: var(--mg-desk-chrome-h);
-      min-height: 100vh;
+      height: 100% !important;
+      min-height: 0 !important;
+      overflow: hidden !important;
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
     }
+    html[data-mygames-desktop="1"]::-webkit-scrollbar,
+    html[data-mygames-desktop="1"] *::-webkit-scrollbar {
+      width: 0 !important;
+      height: 0 !important;
+      display: none !important;
+      background: transparent !important;
+    }
+    html[data-mygames-desktop="1"] #games-screen,
     html[data-mygames-desktop="1"] .overlay,
     html[data-mygames-desktop="1"] .modal,
     html[data-mygames-desktop="1"] #coins-panel.coins-shop-overlay,
@@ -77,6 +94,8 @@ function mountChrome() {
       width: auto !important;
       height: auto !important;
       max-height: none !important;
+      scrollbar-width: none !important;
+      -ms-overflow-style: none !important;
     }
   `;
 
