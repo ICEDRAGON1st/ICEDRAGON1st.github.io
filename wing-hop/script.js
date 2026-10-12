@@ -175,6 +175,7 @@ const SKINS = {
   ufo: {
     label: "UFO",
     form: "ufo",
+    world: "alien",
     locked: true,
     coinItem: "skin:wing-hop-ufo",
     coinCost: 350,
@@ -196,6 +197,9 @@ const SKINS = {
   }
 };
 
+// Coin theme packs (Paper, Bee, Neon City, …) from theme-packs.js
+Object.assign(SKINS, window.WingHopThemePacks?.skins || {});
+
 /** Fixed star field so the UFO sky doesn't flicker every frame. */
 const UFO_STARS = Array.from({ length: 64 }, (_, i) => ({
   x: ((i * 97) % 600) + ((i * 13) % 17),
@@ -205,6 +209,22 @@ const UFO_STARS = Array.from({ length: 64 }, (_, i) => ({
 }));
 
 const UFO_COIN_ITEM = "skin:wing-hop-ufo";
+
+function themeApi(extra) {
+  return {
+    s: skin(),
+    bird,
+    wingPhase,
+    wingBurst,
+    BIRD_X,
+    W,
+    H,
+    GROUND_H,
+    groundOffset,
+    distance,
+    ...(extra || {})
+  };
+}
 
 let bird = { y: H / 2, vy: 0, rot: 0 };
 let pipes = [];
@@ -236,11 +256,17 @@ function ownsSkin(id) {
   const s = SKINS[id];
   if (!s) return false;
   if (!s.locked && !s.coinItem) return true;
-  const itemId = s.coinItem || UFO_COIN_ITEM;
+  const itemId = s.coinItem;
+  if (!itemId) return false;
   try {
     if (window.HubCoins?.hasPurchase?.(itemId)) return true;
   } catch {}
   return false;
+}
+
+function isCoinSkin(id) {
+  const s = SKINS[id];
+  return !!(s && (s.locked || s.coinItem));
 }
 
 function loadSkin() {
@@ -267,14 +293,16 @@ function updateSkinPicker() {
   skinPicker?.querySelectorAll("[data-skin]").forEach((btn) => {
     const id = btn.dataset.skin;
     const s = SKINS[id];
-    const locked = !!(s?.locked || s?.coinItem) && !ownsSkin(id);
+    if (!s) return;
+    const locked = isCoinSkin(id) && !ownsSkin(id);
     btn.classList.toggle("active", id === skinId);
     btn.classList.toggle("skin-btn-locked", locked);
-    if (id === "ufo") {
-      btn.textContent = locked ? `UFO · ${s.coinCost || 350}🪙` : "UFO";
+    if (isCoinSkin(id)) {
+      const short = s.label || id;
+      btn.textContent = locked ? `${short} · ${s.coinCost || "?"}🪙` : short;
       btn.title = locked
-        ? `Buy with hub coins (${s.coinCost || 350})`
-        : "UFO skin unlocked";
+        ? `Buy with hub coins (${s.coinCost || "?"})`
+        : `${short} unlocked`;
     }
   });
   if (hudSkinEl) hudSkinEl.textContent = skin().label;
@@ -283,8 +311,9 @@ function updateSkinPicker() {
 function setSkin(id) {
   if (!SKINS[id]) return false;
   if (!ownsSkin(id)) {
+    const s = SKINS[id];
     setSkinHint(
-      `UFO skin is locked — buy it for ${SKINS[id].coinCost || 350} coins in the hub Coins shop, or tap UFO again to buy here.`
+      `${s.label || id} is locked — buy it for ${s.coinCost || "?"} coins in the hub shop, or tap it again to buy here.`
     );
     return false;
   }
@@ -292,28 +321,30 @@ function setSkin(id) {
   try {
     localStorage.setItem(SKIN_KEY, id);
   } catch {}
-  setSkinHint(id === "ufo" ? "UFO skin equipped." : "");
+  setSkinHint(isCoinSkin(id) ? `${SKINS[id].label} equipped.` : "");
   updateSkinPicker();
   draw();
   return true;
 }
 
-function tryBuyUfoSkin() {
-  if (ownsSkin("ufo")) {
-    setSkin("ufo");
+function tryBuySkin(id) {
+  if (ownsSkin(id)) {
+    setSkin(id);
     return;
   }
+  const s = SKINS[id];
+  if (!s?.coinItem) return;
   if (typeof window.HubCoins === "undefined") {
-    setSkinHint("Coins aren't loaded — open the hub Coins shop to buy the UFO skin.");
+    setSkinHint("Coins aren't loaded — open the hub Coin shop to buy this skin.");
     return;
   }
-  const res = HubCoins.buy(UFO_COIN_ITEM);
+  const res = HubCoins.buy(s.coinItem);
   if (!res.ok) {
     setSkinHint(res.error || HubCoins.NEED_MORE || "You need more coins for this item!");
     return;
   }
-  setSkinHint("UFO skin unlocked!");
-  setSkin("ufo");
+  setSkinHint(`${s.label} unlocked!`);
+  setSkin(id);
 }
 
 function updateHud() {
@@ -519,10 +550,13 @@ function drawSky() {
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, W, H);
 
-  ctx.fillStyle = "rgba(255,255,255,0.75)";
-  drawCloud(90, 135, 0.9);
-  drawCloud(375, 90, 1.1);
-  drawCloud(270, 225, 0.75);
+  if (!s.world || s.world === "doodle" || s.world === "meadow" || s.world === "town" || s.world === "candy") {
+    ctx.fillStyle = "rgba(255,255,255,0.75)";
+    drawCloud(90, 135, 0.9);
+    drawCloud(375, 90, 1.1);
+    drawCloud(270, 225, 0.75);
+  }
+  window.WingHopThemePacks?.afterSky?.(ctx, themeApi());
 }
 
 function drawUfoSky(s) {
@@ -594,6 +628,16 @@ function drawPipes() {
     } else {
       drawCastleTower(pipe.x, 0, PIPE_WIDTH, pipe.top, "down", s);
       drawCastleTower(pipe.x, bottomY, PIPE_WIDTH, bottomH, "up", s);
+      window.WingHopThemePacks?.afterPipe?.(ctx, themeApi(), pipe.x, 0, PIPE_WIDTH, pipe.top, "down");
+      window.WingHopThemePacks?.afterPipe?.(
+        ctx,
+        themeApi(),
+        pipe.x,
+        bottomY,
+        PIPE_WIDTH,
+        bottomH,
+        "up"
+      );
     }
   }
 }
@@ -867,6 +911,7 @@ function drawGround() {
     ctx.fillRect(x, H - GROUND_H + 27, 21, 12);
     ctx.fillRect(x + 21, H - GROUND_H + 51, 21, 12);
   }
+  window.WingHopThemePacks?.afterGround?.(ctx, themeApi());
 }
 
 function drawUfoGround(s) {
@@ -1057,6 +1102,9 @@ function drawBird() {
     drawUfo();
     return;
   }
+  const api = themeApi();
+  if (window.WingHopThemePacks?.drawPlayer?.(ctx, api)) return;
+
   const s = skin();
   const beat = Math.sin(wingPhase);
   const sweep = beat * (1.05 + wingBurst * 0.4);
@@ -1066,8 +1114,23 @@ function drawBird() {
   const light = mixHex(s.body, "#d8e2ec", 0.22);
   const belly = s.belly || mixHex(s.body, "#c5b89a", 0.45);
   const horn = mixHex(s.beak || "#c9a227", "#5c4030", 0.15);
-  const outline = mixHex(s.body, "#02040a", 0.62);
+  const outline =
+    s.form === "neon"
+      ? s.pipeStroke || "#22b8cf"
+      : mixHex(s.body, "#02040a", 0.62);
   const membrane = mixHex(s.wing, s.body, 0.25);
+
+  if (s.form === "rainbow") {
+    const cols = ["#ff6b6b", "#fcc419", "#51cf66", "#339af0", "#cc5de8"];
+    for (let i = 0; i < 5; i++) {
+      ctx.fillStyle = cols[i];
+      ctx.globalAlpha = 0.35 - i * 0.04;
+      ctx.beginPath();
+      ctx.ellipse(BIRD_X - 18 - i * 10, bird.y + Math.sin(wingPhase + i) * 3, 10, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
 
   ctx.save();
   try {
@@ -1075,7 +1138,7 @@ function drawBird() {
     ctx.rotate(bird.rot * 0.55);
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
-    ctx.globalAlpha = 1;
+    ctx.globalAlpha = s.form === "ghost" ? 0.62 : 1;
 
     // Soft local shadow
     ctx.fillStyle = "rgba(0,0,0,0.22)";
@@ -1501,15 +1564,15 @@ skinPicker?.addEventListener("click", (e) => {
   const btn = e.target.closest("[data-skin]");
   if (!btn) return;
   const id = btn.dataset.skin;
-  if (id === "ufo" && !ownsSkin("ufo")) {
-    tryBuyUfoSkin();
+  if (isCoinSkin(id) && !ownsSkin(id)) {
+    tryBuySkin(id);
     return;
   }
   setSkin(id);
 });
 
 document.addEventListener("hub-coins-changed", () => {
-  if (skinId === "ufo" && !ownsSkin("ufo")) {
+  if (isCoinSkin(skinId) && !ownsSkin(skinId)) {
     skinId = "classic";
     try {
       localStorage.setItem(SKIN_KEY, "classic");
