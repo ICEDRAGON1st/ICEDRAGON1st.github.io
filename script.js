@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ct": [
+    "Day streak: desktop keeps the higher streak when syncing (ICE_DRAGON restored to 38)"
+  ],
   "20261001cs": [
     "My Games icon: transparent corners (no black edges)"
   ],
