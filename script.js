@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ep": [
+    "Coin shop: remove stuck scale animation that blocked scrolling"
+  ],
   "20261001eo": [
     "Coin shop: fix scroll so the full skin list can be browsed"
   ],
@@ -4880,9 +4883,15 @@ function setCoinsShopOpen(open) {
   if (open) {
     maybeAskPlayerName();
     renderCoinsPanel();
+    const sheet = coinsPanel.querySelector(".coins-shop-sheet");
     const body = coinsPanel.querySelector(".coins-shop-body");
+    // Kill leftover scale transform from older CSS so wheel/touch can scroll.
+    if (sheet) {
+      sheet.style.transform = "none";
+      sheet.style.animation = "none";
+    }
     if (body) body.scrollTop = 0;
-    // Focus the scroll body so wheel / arrows work immediately (not only the Games button).
+    coinsPanel.scrollTop = 0;
     try {
       body?.setAttribute("tabindex", "-1");
       body?.focus?.({ preventScroll: true });
