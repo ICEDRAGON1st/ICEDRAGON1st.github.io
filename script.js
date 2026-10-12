@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001dq": [
+    "Wing Hop: remove trail lines from Ghost and Shadow skins"
+  ],
   "20261001dp": [
     "Wing Hop: richer pack worlds — Sub is underwater (rays, bubbles, seabed); UFO/Dragon unchanged"
   ],

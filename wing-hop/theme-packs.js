@@ -826,12 +826,6 @@
       ctx.arc(-6, -6, 1.2, 0, Math.PI * 2);
       ctx.arc(4, -6, 1.2, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = "rgba(233,236,239,0.4)";
-      ctx.lineWidth = 3.5;
-      ctx.beginPath();
-      ctx.moveTo(-16, 6);
-      ctx.quadraticCurveTo(-30, 8 + beat * 5, -40, 2);
-      ctx.stroke();
     } else if (kind === "idol") {
       const gold = ctx.createLinearGradient(0, -16, 0, 18);
       gold.addColorStop(0, mix(s.body, "#fff", 0.35));
@@ -900,12 +894,6 @@
       ctx.arc(-5, -6, 1.1, 0, Math.PI * 2);
       ctx.arc(5, -6, 1.1, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = "rgba(190,75,219,0.4)";
-      ctx.lineWidth = 2.2;
-      ctx.beginPath();
-      ctx.moveTo(-13, 12);
-      ctx.quadraticCurveTo(-26, 15 + beat * 4, -34, 8);
-      ctx.stroke();
     } else if (kind === "rainbow") {
       const cols = ["#ff6b6b", "#fcc419", "#51cf66", "#339af0", "#cc5de8"];
       for (let i = 0; i < cols.length; i++) {
