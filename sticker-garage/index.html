@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="../hub-game-boot.js?v=20261001eu"></script>
+  <script src="../hub-game-boot.js?v=20261001ev"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261001eu">
+  <link rel="stylesheet" href="styles.css?v=20261001ev">
 </head>
 <body>
   <header class="hud">
@@ -82,11 +82,22 @@
   <div id="shop-modal" class="modal hidden" aria-hidden="true">
     <div class="modal-card shop-card">
       <div class="modal-top">
-        <h2>Garage Shop</h2>
+        <div>
+          <h2>Garage Shop</h2>
+          <p class="shop-cash">Cash <strong id="shop-cash">0</strong></p>
+        </div>
         <button id="shop-close" type="button" class="icon-x" aria-label="Close shop">×</button>
       </div>
-      <p class="shop-lead">Spend cash on sticker packs and bay upgrades.</p>
-      <div id="shop-list" class="shop-list"></div>
+      <p class="shop-lead">Browse by category — sticker packs, tip upgrades, and pay boosts.</p>
+      <div id="shop-cats" class="shop-cats" role="tablist" aria-label="Shop categories">
+        <button type="button" class="shop-cat-btn active" data-shop-cat="all">All</button>
+        <button type="button" class="shop-cat-btn" data-shop-cat="basic">Basic packs</button>
+        <button type="button" class="shop-cat-btn" data-shop-cat="flashy">Flashy packs</button>
+        <button type="button" class="shop-cat-btn" data-shop-cat="legend">Legend packs</button>
+        <button type="button" class="shop-cat-btn" data-shop-cat="tips">Tips</button>
+        <button type="button" class="shop-cat-btn" data-shop-cat="pay">Pay boost</button>
+      </div>
+      <div id="shop-list" class="shop-list" role="list"></div>
     </div>
   </div>
 
@@ -115,6 +126,6 @@
   <script src="../hub-chat.js?v=20260927c"></script>
   <script src="../hub-calls.js?v=20260925a"></script>
   <script src="../hub-leaderboard.js?v=20260925a"></script>
-  <script src="script.js?v=20261001eu"></script>
+  <script src="script.js?v=20261001ev"></script>
 </body>
 </html>

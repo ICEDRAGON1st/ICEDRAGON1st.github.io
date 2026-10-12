@@ -4,18 +4,18 @@
   const HIGH_KEY = "sticker-garage-high-score";
 
   const STICKERS = [
-    { id: "star", emoji: "⭐", name: "Star", cost: 0 },
-    { id: "heart", emoji: "💖", name: "Heart", cost: 35 },
-    { id: "flame", emoji: "🔥", name: "Flame", cost: 70 },
-    { id: "bolt", emoji: "⚡", name: "Bolt", cost: 110 },
-    { id: "skull", emoji: "💀", name: "Skull", cost: 160 },
-    { id: "rainbow", emoji: "🌈", name: "Rainbow", cost: 220 },
-    { id: "crown", emoji: "👑", name: "Crown", cost: 300 },
-    { id: "rocket", emoji: "🚀", name: "Rocket", cost: 400 },
-    { id: "diamond", emoji: "💎", name: "Diamond", cost: 520 },
-    { id: "ghost", emoji: "👻", name: "Ghost", cost: 650 },
-    { id: "dragon", emoji: "🐉", name: "Dragon", cost: 850 },
-    { id: "unicorn", emoji: "🦄", name: "Unicorn", cost: 1100 }
+    { id: "star", emoji: "⭐", name: "Star", cost: 0, pack: "basic" },
+    { id: "heart", emoji: "💖", name: "Heart", cost: 35, pack: "basic" },
+    { id: "flame", emoji: "🔥", name: "Flame", cost: 70, pack: "basic" },
+    { id: "bolt", emoji: "⚡", name: "Bolt", cost: 110, pack: "basic" },
+    { id: "skull", emoji: "💀", name: "Skull", cost: 160, pack: "flashy" },
+    { id: "rainbow", emoji: "🌈", name: "Rainbow", cost: 220, pack: "flashy" },
+    { id: "crown", emoji: "👑", name: "Crown", cost: 300, pack: "flashy" },
+    { id: "rocket", emoji: "🚀", name: "Rocket", cost: 400, pack: "flashy" },
+    { id: "diamond", emoji: "💎", name: "Diamond", cost: 520, pack: "legend" },
+    { id: "ghost", emoji: "👻", name: "Ghost", cost: 650, pack: "legend" },
+    { id: "dragon", emoji: "🐉", name: "Dragon", cost: 850, pack: "legend" },
+    { id: "unicorn", emoji: "🦄", name: "Unicorn", cost: 1100, pack: "legend" }
   ];
 
   const UPGRADES = [
@@ -25,6 +25,7 @@
       desc: "+15% tips on perfect jobs",
       cost: 120,
       icon: "🪙",
+      cat: "tips",
       apply: (s) => {
         s.tipMult = Math.max(s.tipMult || 1, 1.15);
       }
@@ -35,6 +36,7 @@
       desc: "+30% tips on perfect jobs",
       cost: 350,
       icon: "🥂",
+      cat: "tips",
       requires: "tip1",
       apply: (s) => {
         s.tipMult = Math.max(s.tipMult || 1, 1.3);
@@ -46,6 +48,7 @@
       desc: "+20% base job pay",
       cost: 250,
       icon: "🪧",
+      cat: "pay",
       apply: (s) => {
         s.payMult = Math.max(s.payMult || 1, 1.2);
       }
@@ -56,11 +59,20 @@
       desc: "+40% base job pay",
       cost: 700,
       icon: "📣",
+      cat: "pay",
       requires: "pay1",
       apply: (s) => {
         s.payMult = Math.max(s.payMult || 1, 1.4);
       }
     }
+  ];
+
+  const SHOP_CATEGORIES = [
+    { id: "basic", title: "Basic packs", blurb: "Starter decals customers ask for early on." },
+    { id: "flashy", title: "Flashy packs", blurb: "Bolder wraps that unlock juicier orders." },
+    { id: "legend", title: "Legend packs", blurb: "Rare stickers for big tips and flex jobs." },
+    { id: "tips", title: "Tip upgrades", blurb: "Earn more when you nail a perfect wrap." },
+    { id: "pay", title: "Pay boost", blurb: "Raise base job pay across every customer." }
   ];
 
   const NAMES = [
@@ -96,6 +108,8 @@
     shopBtn: document.getElementById("shop-btn"),
     shopModal: document.getElementById("shop-modal"),
     shopClose: document.getElementById("shop-close"),
+    shopCats: document.getElementById("shop-cats"),
+    shopCash: document.getElementById("shop-cash"),
     shopList: document.getElementById("shop-list"),
     overlay: document.getElementById("overlay"),
     overlayTitle: document.getElementById("overlay-title"),
@@ -116,6 +130,7 @@
   let paused = false;
   let recordedPlay = false;
   let toastTimer = 0;
+  let shopCat = "all";
 
   function defaultSave() {
     return {
@@ -193,6 +208,7 @@
 
   function paintHud() {
     els.cash.textContent = fmt(save.cash);
+    if (els.shopCash) els.shopCash.textContent = `$${fmt(save.cash)}`;
     els.jobs.textContent = String(save.jobs || 0);
     const best = Math.max(readHigh(), Math.floor(save.earned || 0));
     els.high.textContent = fmt(best);
@@ -382,53 +398,109 @@
     } catch {}
   }
 
-  function renderShop() {
-    const rows = [];
-    STICKERS.forEach((s) => {
-      if (s.cost <= 0) return;
+  function shopItemsForCat(catId) {
+    if (catId === "tips" || catId === "pay") {
+      return UPGRADES.filter((u) => u.cat === catId).map((u) => {
+        const owned = hasUpgrade(u.id);
+        const reqOk = !u.requires || hasUpgrade(u.requires);
+        const reqName = u.requires
+          ? UPGRADES.find((x) => x.id === u.requires)?.name || "prior upgrade"
+          : "";
+        return {
+          key: `up-${u.id}`,
+          icon: u.icon,
+          title: u.name,
+          desc: !reqOk ? `Needs ${reqName}` : u.desc,
+          status: owned ? "Owned" : !reqOk ? "Locked" : save.cash >= u.cost ? "Ready to buy" : "Save up",
+          cost: u.cost,
+          owned,
+          locked: !reqOk,
+          disabled: owned || !reqOk || save.cash < u.cost,
+          onBuy: () => buyUpgrade(u.id)
+        };
+      });
+    }
+    return STICKERS.filter((s) => s.pack === catId && s.cost > 0).map((s) => {
       const owned = isUnlocked(s.id);
-      rows.push({
+      return {
         key: `sticker-${s.id}`,
         icon: s.emoji,
         title: s.name,
-        desc: owned ? "Unlocked" : `Sticker pack · $${s.cost}`,
+        desc: owned ? "In your tray" : "Sticker pack for the bay tray",
+        status: owned ? "Owned" : save.cash >= s.cost ? "Ready to buy" : "Save up",
         cost: s.cost,
         owned,
+        locked: false,
         disabled: owned || save.cash < s.cost,
         onBuy: () => buySticker(s.id)
-      });
+      };
     });
-    UPGRADES.forEach((u) => {
-      const owned = hasUpgrade(u.id);
-      const reqOk = !u.requires || hasUpgrade(u.requires);
-      rows.push({
-        key: `up-${u.id}`,
-        icon: u.icon,
-        title: u.name,
-        desc: !reqOk ? `Needs prior upgrade` : owned ? "Owned" : u.desc,
-        cost: u.cost,
-        owned,
-        disabled: owned || !reqOk || save.cash < u.cost,
-        onBuy: () => buyUpgrade(u.id)
-      });
+  }
+
+  function nextBuyKey(items) {
+    const next = items.find((r) => !r.owned && !r.locked && save.cash >= r.cost);
+    return next?.key || items.find((r) => !r.owned && !r.locked)?.key || null;
+  }
+
+  function renderShop() {
+    if (!els.shopList) return;
+    paintHud();
+
+    const active = shopCat || "all";
+    els.shopCats?.querySelectorAll("[data-shop-cat]").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.shopCat === active);
     });
 
+    const cats = SHOP_CATEGORIES.filter((c) => active === "all" || c.id === active);
     els.shopList.innerHTML = "";
-    rows.forEach((r) => {
-      const row = document.createElement("div");
-      row.className = "shop-item";
-      row.innerHTML = `
-        <div class="shop-icon">${r.icon}</div>
-        <div class="shop-meta"><strong>${r.title}</strong><span>${r.desc}</span></div>
+
+    cats.forEach((cat) => {
+      const items = shopItemsForCat(cat.id);
+      if (!items.length) return;
+      const nextKey = nextBuyKey(items);
+
+      const section = document.createElement("div");
+      section.className = "shop-category";
+      section.dataset.category = cat.id;
+      section.innerHTML = `
+        <div class="shop-category-head">
+          <div class="shop-category-title">${cat.title}</div>
+          <div class="shop-category-blurb">${cat.blurb}</div>
+        </div>
       `;
-      const btn = document.createElement("button");
-      btn.type = "button";
-      btn.className = "buy-btn" + (r.owned ? " is-owned" : "");
-      btn.textContent = r.owned ? "Owned" : `$${r.cost}`;
-      btn.disabled = r.disabled;
-      btn.addEventListener("click", r.onBuy);
-      row.appendChild(btn);
-      els.shopList.appendChild(row);
+
+      const sorted = [...items].sort((a, b) => {
+        if (a.owned !== b.owned) return a.owned ? 1 : -1;
+        if (a.locked !== b.locked) return a.locked ? 1 : -1;
+        return a.cost - b.cost;
+      });
+
+      sorted.forEach((r) => {
+        const row = document.createElement("div");
+        row.className =
+          "shop-item" +
+          (r.owned ? " is-owned-row" : "") +
+          (r.key === nextKey ? " is-next" : "");
+        row.setAttribute("role", "listitem");
+        row.innerHTML = `
+          <div class="shop-icon">${r.icon}</div>
+          <div class="shop-meta">
+            <strong>${r.title}</strong>
+            <span class="shop-desc">${r.desc}</span>
+            <span class="shop-status">${r.status}</span>
+          </div>
+        `;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "buy-btn" + (r.owned ? " is-owned" : "");
+        btn.textContent = r.owned ? "✓" : `$${r.cost}`;
+        btn.disabled = r.disabled;
+        btn.addEventListener("click", r.onBuy);
+        row.appendChild(btn);
+        section.appendChild(row);
+      });
+
+      els.shopList.appendChild(section);
     });
   }
 
@@ -541,6 +613,12 @@
   els.shopClose.addEventListener("click", closeShop);
   els.shopModal.addEventListener("click", (e) => {
     if (e.target === els.shopModal) closeShop();
+  });
+  els.shopCats?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-shop-cat]");
+    if (!btn) return;
+    shopCat = btn.dataset.shopCat || "all";
+    renderShop();
   });
 
   els.start.addEventListener("click", startGame);

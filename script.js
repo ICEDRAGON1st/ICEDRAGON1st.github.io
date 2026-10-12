@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ev": [
+    "Sticker Garage shop: Fishing-style categories (packs, tips, pay boost)"
+  ],
   "20261001eu": [
     "Sticker Garage: no patience timer — take your time on each wrap"
   ],
