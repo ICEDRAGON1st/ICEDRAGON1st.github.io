@@ -3247,27 +3247,32 @@ header h1 {
   min-height: min(70vh, 720px);
 }
 
-/* Full-screen shop stage — same idea as Help on the hub */
+/* Full-screen shop stage — same idea as Help on the hub (covers title + toolbar + FABs) */
 .coins-panel.coins-shop-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 11950;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  display: flex;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 13050 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  display: flex !important;
   flex-direction: column;
   align-items: stretch;
   justify-content: stretch;
   overflow: hidden;
-  background: #070d18;
+  width: 100vw !important;
+  height: 100vh !important;
+  height: 100dvh !important;
+  max-width: none !important;
+  background: #070d18 !important;
   font-family: Outfit, "Segoe UI", system-ui, sans-serif;
   color: #eaf3ff;
+  box-shadow: none !important;
 }
 
 .coins-panel.coins-shop-overlay.hidden {
-  display: none;
+  display: none !important;
 }
 
 .coins-panel.coins-shop-overlay:not(.hidden) .coins-shop-sheet {
@@ -3287,6 +3292,16 @@ header h1 {
 
 body.coins-shop-open {
   overflow: hidden;
+}
+
+/* Hide hub chrome while shop stage is open (Help does the same kind of takeover) */
+body.coins-shop-open #hub-help-fab,
+body.coins-shop-open #hub-chat-fab,
+body.coins-shop-open #hub-chat-panel,
+body.coins-shop-open #hub-chat-toasts,
+body.coins-shop-open #hub-notify-root {
+  visibility: hidden !important;
+  pointer-events: none !important;
 }
 
 .coins-shop-sheet {
@@ -3354,6 +3369,9 @@ body.coins-shop-open {
   font-size: 0.82rem;
   font-weight: 800;
   letter-spacing: 0.02em;
+  border: 1px solid rgba(255, 220, 140, 0.45) !important;
+  background: rgba(255, 200, 80, 0.16) !important;
+  color: #ffe4a8 !important;
 }
 
 .coins-shop-body {
