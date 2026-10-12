@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001eh": [
+    "Paper Claim: soft circle land back; animated land tint and props stay off (lag)"
+  ],
   "20261001eg": [
     "Paper Claim: major lag fix — fast land rendering, lighter trails"
   ],
