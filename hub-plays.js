@@ -1438,30 +1438,28 @@
         return {
           ok: false,
           error:
-            "Code not found. Open the account on the original device and copy its player code / transfer key, or use your password."
+            "Code not found. On the device where you're already logged in, use Copy transfer and paste that full key here (or use your password)."
         };
       } else {
-        entry = {
-          playerId: playerIdForOfflineCode(norm),
-          name: "",
-          at: Date.now()
+        // Server unreachable — don't invent a blank account from a short code.
+        return {
+          ok: false,
+          error:
+            "Account server is unreachable right now. On your other device open Settings → Copy transfer, then paste the full MG1:… key here (not just ABCD-EFGH)."
         };
-        adopted = true;
       }
     } else if (remote != null) {
       return {
         ok: false,
         error:
-          "Code not found. Open the account on the original device and copy its player code / transfer key."
+          "Code not found. On the device where you're already logged in, use Copy transfer and paste that full key here."
       };
     } else {
-      // Server unreachable: still allow login on this device with a stable offline id
-      entry = {
-        playerId: playerIdForOfflineCode(norm),
-        name: "",
-        at: Date.now()
+      return {
+        ok: false,
+        error:
+          "Account server is unreachable right now. On your other device open Settings → Copy transfer, then paste the full MG1:… key here."
       };
-      adopted = true;
     }
 
     const me = getPlayerId();

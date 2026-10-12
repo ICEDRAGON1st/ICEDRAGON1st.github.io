@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001cq": [
+    "Account login: clearer message when short player code needs Copy transfer (server down)"
+  ],
   "20261001cp": [
     "Fishing Idle: multi-catch cutscenes always feature the best fish"
   ],
