@@ -1,5 +1,5 @@
 /**
- * hub-afk.js — per-tab AFK overlay after 10 minutes idle.
+ * hub-afk.js — per-tab AFK overlay after 10 minutes idle, or via AFK button.
  * Pauses only THIS client's Mantle/Supabase usage. Other players are unaffected.
  */
 (function () {
@@ -12,6 +12,7 @@
   let checkTimer = 0;
   let afk = false;
   let overlay = null;
+  let afkFab = null;
   const pauseHooks = new Set();
   const resumeHooks = new Set();
 
@@ -27,6 +28,63 @@
       lastMoveMark = now;
     }
     lastActivity = now;
+  }
+
+  function goAfkFromUi(e) {
+    try {
+      e?.preventDefault?.();
+      e?.stopPropagation?.();
+      if (typeof e?.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+    } catch {}
+    enterAfk();
+  }
+
+  function syncAfkButtons() {
+    const label = afk ? "AFK on" : "AFK";
+    const title = afk
+      ? "You're AFK — tap Resume on the overlay"
+      : "Go AFK — pauses cloud sync on this device";
+    document.querySelectorAll("[data-hub-afk-btn]").forEach((btn) => {
+      btn.textContent = label;
+      btn.title = title;
+      btn.setAttribute("aria-pressed", afk ? "true" : "false");
+      btn.classList.toggle("is-afk", afk);
+      btn.disabled = !!afk;
+    });
+    if (afkFab) {
+      afkFab.textContent = "AFK";
+      afkFab.title = title;
+      afkFab.hidden = !!afk;
+      afkFab.setAttribute("aria-hidden", afk ? "true" : "false");
+    }
+  }
+
+  function ensureAfkFab() {
+    if (afkFab || document.getElementById("hub-afk-fab")) {
+      afkFab = afkFab || document.getElementById("hub-afk-fab");
+      return afkFab;
+    }
+    ensureOverlay();
+    afkFab = document.createElement("button");
+    afkFab.id = "hub-afk-fab";
+    afkFab.type = "button";
+    afkFab.setAttribute("data-hub-afk-btn", "1");
+    afkFab.dataset.afkBound = "1";
+    afkFab.setAttribute("aria-label", "Go AFK");
+    afkFab.textContent = "AFK";
+    afkFab.addEventListener("click", goAfkFromUi, true);
+    (document.body || document.documentElement).appendChild(afkFab);
+    syncAfkButtons();
+    return afkFab;
+  }
+
+  function wireToolbarButtons() {
+    document.querySelectorAll("[data-hub-afk-btn]").forEach((btn) => {
+      if (btn.dataset.afkBound === "1") return;
+      btn.dataset.afkBound = "1";
+      btn.addEventListener("click", goAfkFromUi, true);
+    });
+    syncAfkButtons();
   }
 
   function ensureOverlay() {
@@ -47,7 +105,17 @@
       "#hub-afk-overlay p{margin:0 0 1rem;color:#9aa8c7;font-size:.95rem;line-height:1.45;font-weight:600}" +
       "#hub-afk-overlay .hub-afk-btn{appearance:none;border:0;border-radius:999px;padding:.7rem 1.35rem;" +
       "font:inherit;font-weight:800;cursor:pointer;color:#10182a;background:linear-gradient(135deg,#7c9cff,#a78bfa)}" +
-      "#hub-afk-overlay .hub-afk-btn:hover{filter:brightness(1.06)}";
+      "#hub-afk-overlay .hub-afk-btn:hover{filter:brightness(1.06)}" +
+      "#hub-afk-fab{position:fixed;left:max(.85rem,env(safe-area-inset-left));" +
+      "bottom:max(.85rem,env(safe-area-inset-bottom));z-index:12080;" +
+      "appearance:none;border:1px solid rgba(160,190,255,.35);border-radius:999px;" +
+      "padding:.55rem .95rem;font:800 .82rem Outfit,\"Segoe UI\",system-ui,sans-serif;" +
+      "cursor:pointer;color:#eaf3ff;background:linear-gradient(180deg,rgba(40,55,90,.92),rgba(18,26,48,.96));" +
+      "box-shadow:0 10px 24px rgba(0,0,0,.35);letter-spacing:.02em}" +
+      "#hub-afk-fab:hover{filter:brightness(1.08);transform:translateY(-1px)}" +
+      "#hub-afk-fab:focus-visible{outline:2px solid #9cbcff;outline-offset:3px}" +
+      "html.hub-afk #hub-afk-fab,body.coins-shop-open #hub-afk-fab,body.hub-admin-open #hub-afk-fab," +
+      "html.hub-help-open #hub-afk-fab{visibility:hidden;pointer-events:none}";
     (document.head || document.documentElement).appendChild(style);
 
     overlay = document.createElement("div");
@@ -80,6 +148,7 @@
     if (afk) return;
     afk = true;
     ensureOverlay().classList.add("is-open");
+    syncAfkButtons();
     try {
       document.documentElement.classList.add("hub-afk");
     } catch {}
@@ -112,6 +181,7 @@
     try {
       net()?.resume?.("afk");
     } catch {}
+    syncAfkButtons();
     runHooks(resumeHooks);
     try {
       window.HubPlays?.heartbeat?.();
@@ -160,6 +230,11 @@
     );
     checkTimer = window.setInterval(tick, 15_000);
     markActivity(false);
+    ensureAfkFab();
+    wireToolbarButtons();
+    // Toolbar may render later on the hub.
+    window.setTimeout(wireToolbarButtons, 400);
+    window.setTimeout(wireToolbarButtons, 1500);
   }
 
   window.HubAfk = {

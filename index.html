@@ -7,8 +7,8 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>My Games</title>
-  <link rel="icon" href="icon.png?v=20261001ep" type="image/png" sizes="any">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20261001ep">
+  <link rel="icon" href="icon.png?v=20261001eq" type="image/png" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20261001eq">
   <link rel="manifest" href="site.webmanifest">
   <meta name="theme-color" content="#5b4dff">
   <meta property="og:title" content="My Games">
@@ -94,13 +94,13 @@
       pointer-events: none !important;
     }
   </style>
-  <script src="site-config.js?v=20261001ep"></script>
+  <script src="site-config.js?v=20261001eq"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261001ep">
-  <script src="hub-net.js?v=20261001ep"></script>
-  <script src="hub-afk.js?v=20261001ep"></script>
+  <link rel="stylesheet" href="styles.css?v=20261001eq">
+  <script src="hub-net.js?v=20261001eq"></script>
+  <script src="hub-afk.js?v=20261001eq"></script>
 </head>
 <body data-guess-colors="ice">
   <div id="hub-boot-loader" aria-live="polite" aria-busy="true">
@@ -292,6 +292,7 @@
         <button id="toggle-feedback-btn" type="button" class="hub-btn">Feedback</button>
         <button id="toggle-admin-btn" type="button" class="hub-btn hub-admin-toolbar-btn hidden" hidden aria-controls="admin-panel" aria-expanded="false" title="ICE_DRAGON master Admin">Admin</button>
         <button id="toggle-credits-btn" type="button" class="hub-btn" title="Music and attribution">Credits</button>
+        <button id="hub-afk-toolbar-btn" type="button" class="hub-btn" data-hub-afk-btn="1" aria-pressed="false" title="Go AFK — pauses cloud sync on this device">AFK</button>
         <button id="share-moment-btn" type="button" class="hub-btn" title="Share your invite link — unlock INVITER at 3 joins">Share game</button>
         <a id="download-app-btn" class="hub-btn hub-btn-download-app" href="https://github.com/ICEDRAGON1st/ICEDRAGON1st.github.io/releases/download/v1.0.6/MyGames-Setup-1.0.6.exe" download title="Download the Windows desktop app">Download app</a>
         <a id="discord-invite-btn" class="hub-btn hub-btn-discord" href="https://discord.gg/6NHYfPwAwg" target="_blank" rel="noopener noreferrer">Discord</a>
@@ -915,7 +916,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20261001ep";
+    window.WORDLE_BUILD = "20261001eq";
     try {
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("sw.js?v=" + window.WORDLE_BUILD).catch(function () {});
