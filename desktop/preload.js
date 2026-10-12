@@ -71,13 +71,12 @@ function mountChrome() {
     html[data-mygames-desktop="1"] #coins-panel.coins-shop-overlay,
     html[data-mygames-desktop="1"] #hub-help-root {
       top: var(--mg-desk-chrome-h) !important;
+      right: 0 !important;
       bottom: 0 !important;
+      left: 0 !important;
+      width: auto !important;
       height: auto !important;
       max-height: none !important;
-    }
-    html[data-mygames-desktop="1"] #hub-help-root {
-      inset: auto 0 0 0 !important;
-      padding-top: 0 !important;
     }
   `;
 

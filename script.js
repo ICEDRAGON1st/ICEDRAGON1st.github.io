@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001cz": [
+    "Desktop app: Coin shop opens again (fixed off-screen layout under Refresh bar)"
+  ],
   "20261001cy": [
     "Desktop app: Coin shop sits below the Refresh bar so Games isn’t covered"
   ],
