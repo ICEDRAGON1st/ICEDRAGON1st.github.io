@@ -1479,11 +1479,9 @@
     const w = canvas.width;
     const h = canvas.height;
     const scale = Math.min(w, h) / viewSpan;
-    const sk = skin();
-
     const bg = ctx.createRadialGradient(w * 0.5, h * 0.45, w * 0.08, w * 0.5, h * 0.5, w * 0.75);
-    bg.addColorStop(0, sk.bg0 || "#102338");
-    bg.addColorStop(1, sk.bg1 || "#060d16");
+    bg.addColorStop(0, "#102338");
+    bg.addColorStop(1, "#060d16");
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
 
@@ -1492,13 +1490,13 @@
     ctx.scale(scale, scale);
     ctx.translate(-camX, -camY);
 
-    // Soft border (walls don't kill) — world units
-    ctx.strokeStyle = sk.border || "rgba(62,198,255,0.35)";
+    // Soft border (walls don't kill) — world units (arena stays classic for all skins)
+    ctx.strokeStyle = "rgba(62,198,255,0.35)";
     ctx.lineWidth = 1.1;
     ctx.strokeRect(0.5, 0.5, WORLD - 1, WORLD - 1);
 
     // Faint grid so zoomed view keeps depth
-    ctx.strokeStyle = sk.grid || "rgba(62,198,255,0.06)";
+    ctx.strokeStyle = "rgba(62,198,255,0.06)";
     ctx.lineWidth = 0.08;
     ctx.beginPath();
     for (let g = 0; g <= WORLD; g += 10) {
