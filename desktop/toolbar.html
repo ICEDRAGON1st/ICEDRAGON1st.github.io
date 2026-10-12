@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My Games toolbar</title>
+  <style>
+    :root {
+      --bg: #0d1524;
+      --line: rgba(140, 180, 230, 0.18);
+      --text: #e8eef8;
+      --muted: #9bb0cc;
+      --accent: #4da3ff;
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font: 600 13px/1.2 "Segoe UI", system-ui, sans-serif;
+      user-select: none;
+      -webkit-app-region: drag;
+    }
+    .bar {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 0 10px;
+      border-bottom: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(77, 163, 255, 0.08), transparent 70%),
+        var(--bg);
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-right: 4px;
+      letter-spacing: 0.04em;
+    }
+    .brand img {
+      width: 22px;
+      height: 22px;
+      border-radius: 5px;
+    }
+    .brand span { font-size: 13px; }
+    .spacer { flex: 1; }
+    button {
+      -webkit-app-region: no-drag;
+      appearance: none;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      border-radius: 8px;
+      height: 30px;
+      padding: 0 12px;
+      font: inherit;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    button:hover {
+      border-color: rgba(77, 163, 255, 0.55);
+      background: rgba(77, 163, 255, 0.14);
+    }
+    button:active { transform: translateY(1px); }
+    button.primary {
+      background: linear-gradient(135deg, #7ec8ff, var(--accent));
+      border-color: transparent;
+      color: #061018;
+    }
+    button.primary:hover { filter: brightness(1.05); }
+    .hint {
+      color: var(--muted);
+      font-weight: 500;
+      font-size: 11px;
+      margin-left: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="bar">
+    <div class="brand">
+      <img src="icon.png" alt="" />
+      <span>My Games</span>
+    </div>
+    <button type="button" class="primary" id="refresh" title="Reload hub (Ctrl+R / F5)">↻ Refresh</button>
+    <button type="button" id="home" title="Go to hub home">Home</button>
+    <span class="spacer"></span>
+    <span class="hint">Ctrl+R · F5</span>
+  </div>
+  <script>
+    document.getElementById("refresh").addEventListener("click", () => {
+      window.MyGamesToolbar?.refresh?.();
+    });
+    document.getElementById("home").addEventListener("click", () => {
+      window.MyGamesToolbar?.home?.();
+    });
+  </script>
+</body>
+</html>
