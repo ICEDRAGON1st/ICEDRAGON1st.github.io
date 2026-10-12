@@ -4,7 +4,8 @@
   /** One-time streak restores for specific players (achievements stay separate). */
   const NAME_STREAK_SET = {
     hjalte: { streak: 2, version: "set-2-v1" },
-    ice_dragon: { streak: 28, version: "set-28-v3" }
+    // Keep in sync with the live site when desktop/localStorage lags behind
+    ice_dragon: { streak: 38, version: "set-38-v1" }
   };
 
   function todayLocal() {
