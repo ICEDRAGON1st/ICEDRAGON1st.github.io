@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001cy": [
+    "Desktop app: Coin shop sits below the Refresh bar so Games isn’t covered"
+  ],
   "20261001cx": [
     "Coin shop: stronger full-screen takeover (covers hub chrome; clearer Games exit)"
   ],
