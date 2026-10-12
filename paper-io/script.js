@@ -1737,189 +1737,190 @@
 
   /** Themed props inside claimed land (trees, waves, hexes, …). */
   function stampLandMotif(g, cx, cy, px, head, seed, fill) {
-    const s = px * 0.85;
+    // Props span ~2–3 cells so they read clearly when zoomed out
+    const s = px * 2.35;
     if (head === "forest") {
-      if (seed % 13 !== 0) return;
+      if (seed % 29 !== 0) return;
       g.fillStyle = "#5c3d1e";
-      g.fillRect(cx - s * 0.12, cy - s * 0.05, s * 0.24, s * 0.7);
-      g.fillStyle = seed % 26 === 0 ? "#2f9e44" : "#40c057";
+      g.fillRect(cx - s * 0.14, cy - s * 0.05, s * 0.28, s * 0.85);
+      g.fillStyle = seed % 58 === 0 ? "#2f9e44" : "#40c057";
       g.beginPath();
-      g.moveTo(cx, cy - s * 1.15);
-      g.lineTo(cx + s * 0.55, cy - s * 0.15);
-      g.lineTo(cx - s * 0.55, cy - s * 0.15);
+      g.moveTo(cx, cy - s * 1.35);
+      g.lineTo(cx + s * 0.7, cy - s * 0.05);
+      g.lineTo(cx - s * 0.7, cy - s * 0.05);
       g.closePath();
       g.fill();
       g.fillStyle = "#8ce99a";
       g.beginPath();
-      g.moveTo(cx, cy - s * 0.75);
-      g.lineTo(cx + s * 0.4, cy + s * 0.05);
-      g.lineTo(cx - s * 0.4, cy + s * 0.05);
+      g.moveTo(cx, cy - s * 0.85);
+      g.lineTo(cx + s * 0.52, cy + s * 0.15);
+      g.lineTo(cx - s * 0.52, cy + s * 0.15);
       g.closePath();
       g.fill();
       return;
     }
     if (head === "ocean") {
-      if (seed % 7 === 0) {
-        g.strokeStyle = "rgba(200,240,255,0.55)";
-        g.lineWidth = px * 0.12;
+      if (seed % 17 === 0) {
+        g.strokeStyle = "rgba(200,240,255,0.6)";
+        g.lineWidth = px * 0.28;
         g.beginPath();
-        g.moveTo(cx - s * 0.55, cy);
-        g.quadraticCurveTo(cx - s * 0.2, cy - s * 0.35, cx + s * 0.15, cy);
-        g.quadraticCurveTo(cx + s * 0.4, cy + s * 0.3, cx + s * 0.7, cy - s * 0.05);
+        g.moveTo(cx - s * 0.7, cy);
+        g.quadraticCurveTo(cx - s * 0.25, cy - s * 0.45, cx + s * 0.2, cy);
+        g.quadraticCurveTo(cx + s * 0.5, cy + s * 0.4, cx + s * 0.85, cy - s * 0.05);
         g.stroke();
       }
-      if (seed % 11 === 0) {
-        g.fillStyle = "rgba(255,255,255,0.55)";
+      if (seed % 23 === 0) {
+        g.fillStyle = "rgba(255,255,255,0.6)";
         g.beginPath();
-        g.arc(cx + s * 0.2, cy - s * 0.25, s * 0.18, 0, Math.PI * 2);
+        g.arc(cx + s * 0.25, cy - s * 0.3, s * 0.28, 0, Math.PI * 2);
         g.fill();
       }
       return;
     }
     if (head === "lava") {
-      if (seed % 9 === 0) {
-        g.strokeStyle = "rgba(255,212,59,0.7)";
-        g.lineWidth = px * 0.1;
+      if (seed % 19 === 0) {
+        g.strokeStyle = "rgba(255,212,59,0.75)";
+        g.lineWidth = px * 0.24;
         g.beginPath();
-        g.moveTo(cx - s * 0.4, cy - s * 0.2);
-        g.lineTo(cx - s * 0.05, cy + s * 0.15);
-        g.lineTo(cx + s * 0.35, cy - s * 0.1);
-        g.lineTo(cx + s * 0.55, cy + s * 0.35);
+        g.moveTo(cx - s * 0.55, cy - s * 0.25);
+        g.lineTo(cx - s * 0.05, cy + s * 0.2);
+        g.lineTo(cx + s * 0.45, cy - s * 0.15);
+        g.lineTo(cx + s * 0.7, cy + s * 0.45);
         g.stroke();
       }
-      if (seed % 5 === 0) {
-        g.fillStyle = seed % 10 === 0 ? "#ffe066" : "#ff922b";
+      if (seed % 13 === 0) {
+        g.fillStyle = seed % 26 === 0 ? "#ffe066" : "#ff922b";
         g.beginPath();
-        g.arc(cx, cy, s * 0.14, 0, Math.PI * 2);
+        g.arc(cx, cy, s * 0.22, 0, Math.PI * 2);
         g.fill();
       }
       return;
     }
     if (head === "ice") {
-      if (seed % 8 !== 0) return;
-      g.strokeStyle = "rgba(255,255,255,0.75)";
-      g.lineWidth = px * 0.1;
+      if (seed % 19 !== 0) return;
+      g.strokeStyle = "rgba(255,255,255,0.8)";
+      g.lineWidth = px * 0.22;
       g.beginPath();
-      g.moveTo(cx, cy - s * 0.55);
-      g.lineTo(cx, cy + s * 0.55);
-      g.moveTo(cx - s * 0.45, cy);
-      g.lineTo(cx + s * 0.45, cy);
-      g.moveTo(cx - s * 0.35, cy - s * 0.35);
-      g.lineTo(cx + s * 0.35, cy + s * 0.35);
+      g.moveTo(cx, cy - s * 0.75);
+      g.lineTo(cx, cy + s * 0.75);
+      g.moveTo(cx - s * 0.65, cy);
+      g.lineTo(cx + s * 0.65, cy);
+      g.moveTo(cx - s * 0.5, cy - s * 0.5);
+      g.lineTo(cx + s * 0.5, cy + s * 0.5);
       g.stroke();
       return;
     }
     if (head === "ink") {
-      if (seed % 10 !== 0) return;
-      g.fillStyle = "rgba(10,10,14,0.45)";
+      if (seed % 21 !== 0) return;
+      g.fillStyle = "rgba(10,10,14,0.5)";
       g.beginPath();
-      g.ellipse(cx, cy, s * 0.35, s * 0.22, (seed % 5) * 0.4, 0, Math.PI * 2);
+      g.ellipse(cx, cy, s * 0.5, s * 0.32, (seed % 5) * 0.4, 0, Math.PI * 2);
       g.fill();
       return;
     }
     if (head === "neon") {
-      if (seed % 12 !== 0) return;
-      g.strokeStyle = seed % 24 === 0 ? "#e93cac" : fill || "#22d3ee";
-      g.lineWidth = px * 0.12;
+      if (seed % 25 !== 0) return;
+      g.strokeStyle = seed % 50 === 0 ? "#e93cac" : fill || "#22d3ee";
+      g.lineWidth = px * 0.28;
       g.beginPath();
-      g.moveTo(cx - s * 0.35, cy);
-      g.lineTo(cx + s * 0.35, cy);
-      g.moveTo(cx, cy - s * 0.35);
-      g.lineTo(cx, cy + s * 0.35);
+      g.moveTo(cx - s * 0.5, cy);
+      g.lineTo(cx + s * 0.5, cy);
+      g.moveTo(cx, cy - s * 0.5);
+      g.lineTo(cx, cy + s * 0.5);
       g.stroke();
       return;
     }
     if (head === "shadow") {
-      if (seed % 9 !== 0) return;
-      g.fillStyle = "rgba(190,75,219,0.35)";
+      if (seed % 21 !== 0) return;
+      g.fillStyle = "rgba(190,75,219,0.4)";
       g.beginPath();
-      g.ellipse(cx, cy, s * 0.4, s * 0.25, 0.3, 0, Math.PI * 2);
+      g.ellipse(cx, cy, s * 0.55, s * 0.35, 0.3, 0, Math.PI * 2);
       g.fill();
       return;
     }
     if (head === "rainbow") {
-      if (seed % 14 !== 0) return;
-      g.lineWidth = px * 0.1;
+      if (seed % 31 !== 0) return;
+      g.lineWidth = px * 0.22;
       for (let i = 0; i < 5; i++) {
         g.strokeStyle = RAINBOW_COLS[i];
         g.beginPath();
-        g.arc(cx, cy + s * 0.2, s * (0.25 + i * 0.08), Math.PI, 0);
+        g.arc(cx, cy + s * 0.25, s * (0.35 + i * 0.12), Math.PI, 0);
         g.stroke();
       }
       return;
     }
     if (head === "gold") {
-      if (seed % 11 !== 0) return;
-      g.fillStyle = "rgba(255,236,153,0.7)";
+      if (seed % 25 !== 0) return;
+      g.fillStyle = "rgba(255,236,153,0.75)";
       g.beginPath();
-      g.arc(cx, cy, s * 0.28, 0, Math.PI * 2);
+      g.arc(cx, cy, s * 0.42, 0, Math.PI * 2);
       g.fill();
-      g.strokeStyle = "rgba(230,119,0,0.65)";
-      g.lineWidth = px * 0.08;
+      g.strokeStyle = "rgba(230,119,0,0.7)";
+      g.lineWidth = px * 0.18;
       g.stroke();
       return;
     }
     if (head === "graffiti") {
-      if (seed % 8 !== 0) return;
-      g.fillStyle = seed % 16 === 0 ? "#ffd43b" : fill || "#ff6bcb";
+      if (seed % 19 !== 0) return;
+      g.fillStyle = seed % 38 === 0 ? "#ffd43b" : fill || "#ff6bcb";
       g.beginPath();
-      g.moveTo(cx, cy - s * 0.4);
-      g.lineTo(cx + s * 0.15, cy - s * 0.08);
-      g.lineTo(cx + s * 0.42, cy - s * 0.08);
-      g.lineTo(cx + s * 0.2, cy + s * 0.12);
-      g.lineTo(cx + s * 0.28, cy + s * 0.42);
-      g.lineTo(cx, cy + s * 0.2);
-      g.lineTo(cx - s * 0.28, cy + s * 0.42);
-      g.lineTo(cx - s * 0.2, cy + s * 0.12);
-      g.lineTo(cx - s * 0.42, cy - s * 0.08);
-      g.lineTo(cx - s * 0.15, cy - s * 0.08);
+      g.moveTo(cx, cy - s * 0.55);
+      g.lineTo(cx + s * 0.2, cy - s * 0.1);
+      g.lineTo(cx + s * 0.58, cy - s * 0.1);
+      g.lineTo(cx + s * 0.28, cy + s * 0.16);
+      g.lineTo(cx + s * 0.38, cy + s * 0.58);
+      g.lineTo(cx, cy + s * 0.28);
+      g.lineTo(cx - s * 0.38, cy + s * 0.58);
+      g.lineTo(cx - s * 0.28, cy + s * 0.16);
+      g.lineTo(cx - s * 0.58, cy - s * 0.1);
+      g.lineTo(cx - s * 0.2, cy - s * 0.1);
       g.closePath();
       g.fill();
       return;
     }
     if (head === "storm") {
-      if (seed % 12 !== 0) return;
+      if (seed % 27 !== 0) return;
       g.fillStyle = "#ffe066";
       g.beginPath();
-      g.moveTo(cx + s * 0.05, cy - s * 0.45);
-      g.lineTo(cx - s * 0.2, cy + s * 0.05);
-      g.lineTo(cx + s * 0.05, cy + s * 0.05);
-      g.lineTo(cx - s * 0.05, cy + s * 0.5);
-      g.lineTo(cx + s * 0.35, cy - s * 0.05);
-      g.lineTo(cx + s * 0.1, cy - s * 0.05);
+      g.moveTo(cx + s * 0.08, cy - s * 0.65);
+      g.lineTo(cx - s * 0.3, cy + s * 0.05);
+      g.lineTo(cx + s * 0.08, cy + s * 0.05);
+      g.lineTo(cx - s * 0.08, cy + s * 0.7);
+      g.lineTo(cx + s * 0.5, cy - s * 0.05);
+      g.lineTo(cx + s * 0.15, cy - s * 0.05);
       g.closePath();
       g.fill();
       return;
     }
     if (head === "candy") {
-      if (seed % 10 !== 0) return;
+      if (seed % 23 !== 0) return;
       g.fillStyle = "#fff";
       g.beginPath();
-      g.arc(cx, cy, s * 0.28, 0, Math.PI * 2);
+      g.arc(cx, cy, s * 0.42, 0, Math.PI * 2);
       g.fill();
       g.fillStyle = "#be4bdb";
       g.beginPath();
       g.moveTo(cx, cy);
-      g.arc(cx, cy, s * 0.28, -0.4, 1.2);
+      g.arc(cx, cy, s * 0.42, -0.4, 1.2);
       g.closePath();
       g.fill();
       g.beginPath();
       g.moveTo(cx, cy);
-      g.arc(cx, cy, s * 0.28, 2.4, 4.0);
+      g.arc(cx, cy, s * 0.42, 2.4, 4.0);
       g.closePath();
       g.fill();
       return;
     }
     if (head === "blueprint") {
-      if (seed % 6 !== 0) return;
-      g.strokeStyle = "rgba(255,255,255,0.4)";
-      g.lineWidth = px * 0.07;
-      g.strokeRect(cx - s * 0.35, cy - s * 0.35, s * 0.7, s * 0.7);
+      if (seed % 15 !== 0) return;
+      g.strokeStyle = "rgba(255,255,255,0.45)";
+      g.lineWidth = px * 0.16;
+      g.strokeRect(cx - s * 0.5, cy - s * 0.5, s, s);
       g.beginPath();
-      g.moveTo(cx - s * 0.45, cy);
-      g.lineTo(cx + s * 0.45, cy);
-      g.moveTo(cx, cy - s * 0.45);
-      g.lineTo(cx, cy + s * 0.45);
+      g.moveTo(cx - s * 0.65, cy);
+      g.lineTo(cx + s * 0.65, cy);
+      g.moveTo(cx, cy - s * 0.65);
+      g.lineTo(cx, cy + s * 0.65);
       g.stroke();
     }
   }
@@ -1973,23 +1974,23 @@
             if ((x + y) % 2 === 0) {
               landCtx.fillStyle = "rgba(255,255,255,0.14)";
               landCtx.fillRect(x * px, y * px, px, px);
-            } else if (seed % 17 === 0 && isInteriorOwned(x, y, hid)) {
+            } else if (seed % 29 === 0 && isInteriorOwned(x, y, hid)) {
               landCtx.fillStyle = "#ffd43b";
-              landCtx.fillRect(cx - px * 0.2, cy - px * 0.2, px * 0.4, px * 0.4);
+              landCtx.fillRect(cx - px * 0.55, cy - px * 0.55, px * 1.1, px * 1.1);
             }
             continue;
           }
 
           if (head === "honey") {
-            if ((x + Math.floor(y / 2)) % 2 === 0 && isInteriorOwned(x, y, hid)) {
-              landCtx.strokeStyle = "rgba(120,50,0,0.32)";
-              landCtx.lineWidth = px * 0.08;
+            if (x % 3 === 0 && y % 3 === 0 && isInteriorOwned(x, y, hid)) {
+              landCtx.strokeStyle = "rgba(120,50,0,0.38)";
+              landCtx.lineWidth = px * 0.2;
               landCtx.beginPath();
-              const hs = px * 0.72;
+              const hs = px * 2.1;
               for (let i = 0; i < 6; i++) {
                 const a = (Math.PI / 3) * i + Math.PI / 6;
-                const hx = cx + Math.cos(a) * hs * 0.5;
-                const hy = cy + Math.sin(a) * hs * 0.5;
+                const hx = cx + Math.cos(a) * hs * 0.55;
+                const hy = cy + Math.sin(a) * hs * 0.55;
                 if (i === 0) landCtx.moveTo(hx, hy);
                 else landCtx.lineTo(hx, hy);
               }
