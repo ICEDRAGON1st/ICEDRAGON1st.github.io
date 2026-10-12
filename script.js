@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001er": [
+    "AFK: only click or Esc wakes you — mouse move no longer leaves AFK"
+  ],
   "20261001eq": [
     "Hub: AFK button — go AFK anytime (pauses cloud sync on this device)"
   ],
