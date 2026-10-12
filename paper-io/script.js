@@ -5,7 +5,7 @@
   const ARENA_SHAPES = ["box", "circle", "star", "hex", "diamond", "triangle"];
   const VIEW_SPAN_MIN = 72; // slightly wider than tight paper.io zoom
   const VIEW_SPAN_MAX = 160;
-  const LAND_PX = 1; // 1 cell = 1 px on land buffer (ImageData; was lagging with arc()s)
+  const LAND_PX = 3; // soft overlapping disks (no animated land tint / props — those lagged)
   const SPEED = 24;
   const TURN_RATE = 10.5; // rad/s — sharp cuts, not huge arcs
   const TURN_RATE_HARD = 16; // extra snap for big direction changes
@@ -738,11 +738,7 @@
     if (p && p.id === localId) {
       const sk = skin();
       if (sk && skinId !== "classic" && sk.fill) {
-        const head = sk.head || "classic";
-        if (isAnimLandSkin(head)) {
-          const fill = landAnimColor(head) || sk.fill;
-          return { fill, soft: rgbaFromHex(fill, 0.8), name: sk.label || "You" };
-        }
+        // Static land/blob color (animated land tint was a big lag source)
         return { fill: sk.fill, soft: sk.soft || sk.fill, name: sk.label || "You" };
       }
     }
@@ -752,7 +748,7 @@
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d", { alpha: false });
   const landLayer = document.createElement("canvas");
-  const landCtx = landLayer.getContext("2d", { alpha: true, willReadFrequently: false });
+  const landCtx = landLayer.getContext("2d");
   const voidLayer = document.createElement("canvas");
   const voidCtx = voidLayer.getContext("2d");
   const miniLayer = document.createElement("canvas");
@@ -760,10 +756,6 @@
   let landDirty = true;
   let voidDirty = true;
   let miniDirty = true;
-  let lastAnimLandAt = 0;
-  let lastMiniAnimAt = 0;
-  /** @type {ImageData|null} */
-  let landImage = null;
   /** @type {Map<number, string>} */
   const idFromHashMap = new Map();
 
@@ -2368,51 +2360,54 @@
   }
 
   function paintLandLayer() {
-    const W = WORLD;
+    const W = WORLD * LAND_PX;
     if (landLayer.width !== W || landLayer.height !== W) {
       landLayer.width = W;
       landLayer.height = W;
-      landImage = null;
       landDirty = true;
     }
     if (!landDirty) return;
     landDirty = false;
+    landCtx.clearRect(0, 0, W, W);
+    landCtx.imageSmoothingEnabled = true;
 
-    if (!landImage || landImage.width !== W) {
-      landImage = landCtx.createImageData(W, W);
-    }
-    const data = landImage.data;
-    data.fill(0);
-
-    // owner hash → [r,g,b,a]
-    const rgbaByOwner = new Map();
+    // Batch by owner so fillStyle isn't set per cell
+    const softByOwner = new Map();
+    /** @type {Map<number, number[]>} */
+    const cellsByOwner = new Map();
     for (const pl of players) {
-      rgbaByOwner.set(idHash(pl.id), softToRgba(colorFor(pl).soft));
+      softByOwner.set(idHash(pl.id), colorFor(pl).soft);
     }
-    for (let o = 1; o < 12; o++) {
-      if (!rgbaByOwner.has(o)) {
-        rgbaByOwner.set(o, softToRgba(COLORS[(o - 1) % COLORS.length].soft));
+    for (let y = 0; y < WORLD; y++) {
+      for (let x = 0; x < WORLD; x++) {
+        const i = idx(x, y);
+        if (!arenaMask[i]) continue;
+        const owner = grid[i];
+        if (!owner) continue;
+        let list = cellsByOwner.get(owner);
+        if (!list) {
+          list = [];
+          cellsByOwner.set(owner, list);
+          if (!softByOwner.has(owner)) {
+            softByOwner.set(owner, COLORS[(owner - 1) % COLORS.length].soft);
+          }
+        }
+        list.push(x, y);
       }
     }
 
-    const gridArr = grid;
-    const mask = arenaMask;
-    for (let i = 0; i < gridArr.length; i++) {
-      if (!mask[i]) continue;
-      const owner = gridArr[i];
-      if (!owner) continue;
-      let rgba = rgbaByOwner.get(owner);
-      if (!rgba) {
-        rgba = softToRgba(COLORS[(owner - 1) % COLORS.length].soft);
-        rgbaByOwner.set(owner, rgba);
+    const rad = LAND_PX * 0.78;
+    for (const [owner, list] of cellsByOwner) {
+      landCtx.fillStyle = softByOwner.get(owner) || COLORS[0].soft;
+      for (let k = 0; k < list.length; k += 2) {
+        const x = list[k];
+        const y = list[k + 1];
+        landCtx.beginPath();
+        landCtx.arc((x + 0.5) * LAND_PX, (y + 0.5) * LAND_PX, rad, 0, Math.PI * 2);
+        landCtx.fill();
       }
-      const p = i << 2;
-      data[p] = rgba[0];
-      data[p + 1] = rgba[1];
-      data[p + 2] = rgba[2];
-      data[p + 3] = rgba[3];
     }
-    landCtx.putImageData(landImage, 0, 0);
+    // No land props here — they were a major lag source
   }
 
   function paintMiniLayer() {
@@ -2687,22 +2682,22 @@
       ctx.stroke();
     }
 
-    // Rainbow/Neon: refresh land tint a few times per second (not every frame)
-    if (isAnimLandSkin(landSkinHead())) {
-      const now = performance.now();
-      if (now - lastAnimLandAt > 160) {
-        lastAnimLandAt = now;
-        landDirty = true;
-      }
-      if (now - lastMiniAnimAt > 250) {
-        lastMiniAnimAt = now;
-        miniDirty = true;
-      }
-    }
-
     paintLandLayer();
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(landLayer, 0, 0, WORLD, WORLD);
+    ctx.imageSmoothingEnabled = true;
+    try {
+      ctx.imageSmoothingQuality = "high";
+    } catch {}
+    // Soften cell edges a touch when zoomed (cheap vs per-cell blur bake)
+    if (typeof ctx.filter === "string" && viewSpan < 110) {
+      ctx.filter = `blur(${(0.18 * scale).toFixed(2)}px)`;
+      ctx.drawImage(landLayer, 0, 0, landLayer.width, landLayer.height, 0, 0, WORLD, WORLD);
+      ctx.filter = "none";
+      ctx.globalAlpha = 0.7;
+      ctx.drawImage(landLayer, 0, 0, landLayer.width, landLayer.height, 0, 0, WORLD, WORLD);
+      ctx.globalAlpha = 1;
+    } else {
+      ctx.drawImage(landLayer, 0, 0, landLayer.width, landLayer.height, 0, 0, WORLD, WORLD);
+    }
     drawArenaVoid();
     drawArenaBorder();
 
