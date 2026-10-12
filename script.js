@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001du": [
+    "Paper Claim: skins have unique shapes and trail styles (not just recolors)"
+  ],
   "20261001dt": [
     "Paper Claim: Paper.io-style home menu (sky backdrop, big Play, skins dock)"
   ],
