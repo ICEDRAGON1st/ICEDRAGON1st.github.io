@@ -122,6 +122,7 @@
     lemmings: "Dudes",
     paper: "Paper Claim",
     stickers: "Sticker Garage",
+    waves: "Space Waves",
     hub: "Hub"
   };
 
@@ -146,6 +147,7 @@
     "guac-a-mole": "guac",
     "bubble-pop": "bubble",
     "sticker-garage": "stickers",
+    "space-waves": "waves",
     "cafe-queue": "cafe",
     "garden-snap": "garden",
     dudes: "lemmings",

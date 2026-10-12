@@ -129,6 +129,7 @@
     guac: { label: "Guac-A-Mole", lowerBetter: false, unit: "score" },
     bubble: { label: "Bubble Pop Relay", lowerBetter: false, unit: "score" },
     stickers: { label: "Sticker Garage", lowerBetter: false, unit: "score" },
+    waves: { label: "Space Waves", lowerBetter: false, unit: "score" },
     cafe: { label: "Cafe Queue", lowerBetter: false, unit: "score" },
     garden: { label: "Garden Snap", lowerBetter: false, unit: "score" },
     blockblast: { label: "Block Sweep", lowerBetter: false, unit: "score" },

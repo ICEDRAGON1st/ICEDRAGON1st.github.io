@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="../hub-game-boot.js?v=20261001ez"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Space Waves</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20261001ez">
+</head>
+<body>
+  <header class="hud">
+    <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰</button>
+    <div class="hud-stats">
+      <span id="hud-mode">Classic</span>
+      <span>Prog <strong id="progress">0%</strong></span>
+      <span>Best <strong id="high-score">0</strong></span>
+    </div>
+  </header>
+
+  <main class="shell">
+    <canvas id="game" width="960" height="540" aria-label="Space Waves"></canvas>
+    <p class="hint" id="hint">Hold to rise · release to fall</p>
+  </main>
+
+  <div id="overlay" class="overlay">
+    <div class="overlay-card">
+      <p class="eyebrow">Geometry dash · space</p>
+      <h1 id="overlay-title">Space Waves</h1>
+      <p id="overlay-text" class="lead">Hold to fly up, release to drop. Guide the arrow through neon tunnels — don’t clip the walls or spikes.</p>
+      <p class="score-line">Best distance: <strong id="overlay-best">0</strong></p>
+
+      <div class="mode-row" role="group" aria-label="Mode">
+        <button type="button" class="mode-btn active" data-mode="classic">Classic</button>
+        <button type="button" class="mode-btn" data-mode="endless">Endless</button>
+      </div>
+
+      <div id="level-picker" class="level-picker" aria-label="Levels"></div>
+
+      <div class="overlay-actions">
+        <button id="start-btn" type="button" class="btn">Play</button>
+        <button id="resume-btn" type="button" class="btn btn-ghost hidden">Resume</button>
+        <button id="retry-btn" type="button" class="btn btn-ghost hidden">Retry</button>
+        <button id="games-btn" type="button" class="btn btn-ghost">Games</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../hub-streak.js"></script>
+  <script src="../hub-achievements.js?v=20260917aw"></script>
+  <script src="../hub-sound.js"></script>
+  <script src="../hub-confetti.js"></script>
+  <script src="../hub-supabase.js?v=20260923u"></script>
+  <script src="../hub-account-bag.js?v=20260923ag"></script>
+  <script src="../hub-plays.js?v=20261001em"></script>
+  <script src="../hub-friends.js?v=20260923u"></script>
+  <script src="../hub-chat.js?v=20260927c"></script>
+  <script src="../hub-calls.js?v=20260925a"></script>
+  <script src="../hub-leaderboard.js?v=20260925a"></script>
+  <script src="script.js?v=20261001ez"></script>
+</body>
+</html>

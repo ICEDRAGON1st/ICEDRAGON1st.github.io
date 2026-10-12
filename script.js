@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ez": [
+    "New game: Space Waves — hold to rise through neon tunnels (classic levels + endless)"
+  ],
   "20261001ey": [
     "Sticker Garage shop shows job pay per sticker and paint color"
   ],
@@ -1843,7 +1846,8 @@ const HUB_GAMES = [
   { id: "blockblast", name: "Block Sweep", path: "block-sweep/index.html" },
   { id: "lemmings", name: "Dudes", path: "dudes/index.html" },
   { id: "paper", name: "Paper Claim", path: "paper-io/index.html" },
-  { id: "stickers", name: "Sticker Garage", path: "sticker-garage/index.html" }
+  { id: "stickers", name: "Sticker Garage", path: "sticker-garage/index.html" },
+  { id: "waves", name: "Space Waves", path: "space-waves/index.html" }
 ];
 
 /** Leaderboard tabs = hub points + hub-only boards first, then games (Mine Depth splits into depth + ore). */
@@ -2915,6 +2919,10 @@ function getHubScoreLocal(gameId) {
     case "stickers": {
       const score = readNumberKey("sticker-garage-high-score");
       return { label: score ? `Best $${score}` : "No jobs yet", sort: score };
+    }
+    case "waves": {
+      const score = readNumberKey("space-waves-high-score");
+      return { label: score ? `Best ${score}m` : "No runs yet", sort: score };
     }
     case "cafe": {
       const score = readNumberKey("cafe-queue-high-score");
