@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001dn": [
+    "Wing Hop: richer coin-pack skins in-game and in the shop (UFO + Dragon unchanged)"
+  ],
   "20261001dm": [
     "Coin shop: Help mascot portraits and Wing Hop skin pack previews on each item"
   ],
@@ -4814,23 +4817,23 @@ function shopItemKindLabel(item) {
   return "Item";
 }
 
-/** Wing Hop shop preview — pack colors + glyph (matches theme packs / UFO). */
+/** Wing Hop shop preview palettes (UFO kept as original tile style). */
 const WING_HOP_SHOP_ICONS = {
   ufo: { emoji: "🛸", body: "#7c9cff", wing: "#3b5bdb", skyTop: "#050814", skyBottom: "#1a1040" },
-  plane: { emoji: "✈️", body: "#f1f3f5", wing: "#ced4da", skyTop: "#e7f5ff", skyBottom: "#fff4e6" },
-  bee: { emoji: "🐝", body: "#fcc419", wing: "#fff9db", skyTop: "#74c0fc", skyBottom: "#d0ebff" },
-  sub: { emoji: "🛥️", body: "#ff922b", wing: "#e8590c", skyTop: "#0b2948", skyBottom: "#1c7ed6" },
-  balloon: { emoji: "🎈", body: "#fa5252", wing: "#ffc9c9", skyTop: "#74c0fc", skyBottom: "#ffe3e3" },
-  broom: { emoji: "🧹", body: "#862e9c", wing: "#be4bdb", skyTop: "#1b1b2f", skyBottom: "#5f3dc4" },
-  neon: { emoji: "🌃", body: "#22b8cf", wing: "#e64980", skyTop: "#0b1020", skyBottom: "#341c4d" },
-  steam: { emoji: "⚙️", body: "#868e96", wing: "#fab005", skyTop: "#adb5bd", skyBottom: "#fff4e6" },
-  frost: { emoji: "❄️", body: "#a5d8ff", wing: "#74c0fc", skyTop: "#d0ebff", skyBottom: "#e7f5ff" },
-  volcano: { emoji: "🌋", body: "#e03131", wing: "#f08c00", skyTop: "#212529", skyBottom: "#872e0e" },
-  ghost: { emoji: "👻", body: "#e9ecef", wing: "#ced4da", skyTop: "#212529", skyBottom: "#495057" },
-  pixel: { emoji: "👾", body: "#51cf66", wing: "#ff6b6b", skyTop: "#1a1b26", skyBottom: "#364fc7" },
-  idol: { emoji: "🛕", body: "#fcc419", wing: "#f08c00", skyTop: "#fff3bf", skyBottom: "#ffe8cc" },
-  shadow: { emoji: "🌑", body: "#343a40", wing: "#212529", skyTop: "#0b0d12", skyBottom: "#212529" },
-  rainbow: { emoji: "🌈", body: "#ff6b6b", wing: "#845ef7", skyTop: "#e7f5ff", skyBottom: "#fff0f6" }
+  plane: { body: "#f1f3f5", wing: "#ced4da", accent: "#fa5252", skyTop: "#e7f5ff", skyBottom: "#fff4e6" },
+  bee: { body: "#fcc419", wing: "#fff9db", accent: "#212529", skyTop: "#74c0fc", skyBottom: "#d0ebff" },
+  sub: { body: "#ff922b", wing: "#e8590c", accent: "#ffd43b", skyTop: "#0b2948", skyBottom: "#1c7ed6" },
+  balloon: { body: "#fa5252", wing: "#ffc9c9", accent: "#fff5f5", skyTop: "#74c0fc", skyBottom: "#ffe3e3" },
+  broom: { body: "#862e9c", wing: "#e67700", accent: "#9775fa", skyTop: "#1b1b2f", skyBottom: "#5f3dc4" },
+  neon: { body: "#22b8cf", wing: "#e64980", accent: "#ff6bcb", skyTop: "#0b1020", skyBottom: "#341c4d" },
+  steam: { body: "#868e96", wing: "#fab005", accent: "#ffe066", skyTop: "#adb5bd", skyBottom: "#fff4e6" },
+  frost: { body: "#a5d8ff", wing: "#74c0fc", accent: "#e7f5ff", skyTop: "#d0ebff", skyBottom: "#e7f5ff" },
+  volcano: { body: "#e03131", wing: "#f08c00", accent: "#ffd43b", skyTop: "#212529", skyBottom: "#872e0e" },
+  ghost: { body: "#e9ecef", wing: "#ced4da", accent: "#212529", skyTop: "#212529", skyBottom: "#495057" },
+  pixel: { body: "#51cf66", wing: "#ff6b6b", accent: "#ffd43b", skyTop: "#1a1b26", skyBottom: "#364fc7" },
+  idol: { body: "#fcc419", wing: "#f08c00", accent: "#fff3bf", skyTop: "#fff3bf", skyBottom: "#ffe8cc" },
+  shadow: { body: "#343a40", wing: "#212529", accent: "#e599f7", skyTop: "#0b0d12", skyBottom: "#212529" },
+  rainbow: { body: "#ff6b6b", wing: "#845ef7", accent: "#51cf66", skyTop: "#e7f5ff", skyBottom: "#fff0f6" }
 };
 
 function shopMascotIconHtml(item) {
@@ -4853,6 +4856,47 @@ function shopMascotIconHtml(item) {
   return `<span class="coins-shop-icon coins-shop-icon-emoji" aria-hidden="true">${escapeHtml(emoji)}</span>`;
 }
 
+function shopSkinArtSvg(skinId, p) {
+  const b = escapeHtml(p.body);
+  const w = escapeHtml(p.wing);
+  const a = escapeHtml(p.accent || p.wing);
+  const svgOpen =
+    '<svg class="coins-shop-skin-art" viewBox="0 0 64 64" width="64" height="64" aria-hidden="true">';
+  const svgClose = "</svg>";
+  switch (skinId) {
+    case "plane":
+      return `${svgOpen}<polygon points="50,32 14,22 22,32 14,42" fill="${b}" stroke="#495057" stroke-width="2"/><polygon points="30,32 22,16 26,32 22,48" fill="${w}"/><rect x="26" y="29" width="10" height="6" rx="1" fill="${a}"/>${svgClose}`;
+    case "bee":
+      return `${svgOpen}<ellipse cx="28" cy="18" rx="10" ry="6" fill="${w}" opacity=".85"/><ellipse cx="28" cy="46" rx="10" ry="6" fill="${w}" opacity=".85"/><ellipse cx="32" cy="32" rx="16" ry="11" fill="${b}"/><rect x="20" y="24" width="4" height="16" fill="${a}"/><rect x="28" y="24" width="4" height="16" fill="${a}"/><rect x="36" y="24" width="4" height="16" fill="${a}"/><circle cx="44" cy="28" r="3.5" fill="#fff"/><circle cx="45" cy="28" r="1.6" fill="${a}"/>${svgClose}`;
+    case "sub":
+      return `${svgOpen}<ellipse cx="34" cy="34" rx="20" ry="10" fill="${b}" stroke="#7c2d12" stroke-width="1.5"/><rect x="28" y="18" width="12" height="10" rx="2" fill="#ffe8cc"/><circle cx="44" cy="32" r="4.5" fill="#e7f5ff"/><polygon points="12,34 2,28 2,40" fill="${w}"/><line x1="34" y1="18" x2="34" y2="10" stroke="${a}" stroke-width="2"/>${svgClose}`;
+    case "balloon":
+      return `${svgOpen}<ellipse cx="32" cy="24" rx="14" ry="16" fill="${b}"/><path d="M24 38 L22 48 M40 38 L42 48 M32 40 L32 48" stroke="${w}" stroke-width="1.8" fill="none"/><rect x="24" y="48" width="16" height="9" rx="2" fill="#fff5f5"/><circle cx="27" cy="20" r="2.2" fill="#fff"/><circle cx="37" cy="20" r="2.2" fill="#fff"/>${svgClose}`;
+    case "broom":
+      return `${svgOpen}<line x1="12" y1="40" x2="48" y2="22" stroke="${a}" stroke-width="3" stroke-linecap="round"/><polygon points="12,40 2,30 4,48" fill="${w}"/><ellipse cx="40" cy="24" rx="9" ry="7" fill="${b}"/><circle cx="44" cy="22" r="2" fill="#fff"/>${svgClose}`;
+    case "neon":
+      return `${svgOpen}<polygon points="10,40 52,34 46,44 12,48" fill="#1a1030"/><ellipse cx="34" cy="30" rx="14" ry="7" fill="${b}"/><polygon points="28,30 14,16 38,28" fill="${w}"/><rect x="44" y="26" width="12" height="4" rx="1" fill="${a}"/><circle cx="38" cy="26" r="2" fill="#fff"/><path d="M10 38 H0 M10 42 H2 M10 46 H4" stroke="${a}" stroke-width="2" opacity=".8"/>${svgClose}`;
+    case "steam":
+      return `${svgOpen}<ellipse cx="34" cy="34" rx="18" ry="12" fill="${b}" stroke="#495057" stroke-width="1.5"/><ellipse cx="34" cy="38" rx="11" ry="6" fill="#dee2e6"/><rect x="28" y="16" width="12" height="8" rx="1" fill="${w}"/><g transform="translate(12 34) rotate(25)"><rect x="-2" y="-10" width="4" height="20" fill="#495057"/><rect x="-10" y="-2" width="20" height="4" fill="#495057"/></g><circle cx="42" cy="30" r="3" fill="#e7f5ff"/><circle cx="43" cy="30" r="1.3" fill="#212529"/>${svgClose}`;
+    case "frost":
+      return `${svgOpen}<polygon points="32,8 48,34 32,52 16,34" fill="${w}" opacity=".45"/><polygon points="32,12 44,34 32,48 20,34" fill="${b}" stroke="#4dabf7" stroke-width="1.5"/><polygon points="32,20 38,34 32,42 26,34" fill="${a}"/><polygon points="28,32 12,22 22,36" fill="${w}"/><circle cx="34" cy="30" r="2" fill="#1c7ed6"/>${svgClose}`;
+    case "volcano":
+      return `${svgOpen}<ellipse cx="32" cy="38" rx="18" ry="12" fill="${w}"/><ellipse cx="32" cy="36" rx="14" ry="10" fill="${b}"/><ellipse cx="34" cy="40" rx="8" ry="5" fill="#ffa94d"/><polygon points="18,28 14,12 22,28" fill="${a}"/><polygon points="32,26 28,8 36,26" fill="${a}"/><polygon points="46,28 42,14 50,28" fill="${a}"/><circle cx="40" cy="34" r="3" fill="#fff3bf"/><circle cx="41" cy="34" r="1.3" fill="#212529"/>${svgClose}`;
+    case "ghost":
+      return `${svgOpen}<path d="M18 28 a14 14 0 0 1 28 0 v18 q-6-8-10 0 q-4-8-8 0 q-4-8-10 0 z" fill="${b}" opacity=".92"/><ellipse cx="26" cy="28" rx="3" ry="4.5" fill="${a}"/><ellipse cx="38" cy="28" rx="3" ry="4.5" fill="${a}"/><circle cx="25" cy="26" r="1" fill="#fff"/><circle cx="37" cy="26" r="1" fill="#fff"/>${svgClose}`;
+    case "pixel":
+      return `${svgOpen}<g shape-rendering="crispEdges"><rect x="24" y="16" width="8" height="8" fill="${b}"/><rect x="32" y="16" width="8" height="8" fill="${b}"/><rect x="16" y="24" width="8" height="8" fill="${w}"/><rect x="24" y="24" width="8" height="8" fill="${b}"/><rect x="32" y="24" width="8" height="8" fill="${b}"/><rect x="40" y="24" width="8" height="8" fill="${a}"/><rect x="16" y="32" width="8" height="8" fill="${w}"/><rect x="24" y="32" width="8" height="8" fill="#8ce99a"/><rect x="32" y="32" width="8" height="8" fill="${b}"/><rect x="24" y="40" width="8" height="8" fill="${b}"/><rect x="32" y="40" width="8" height="8" fill="${b}"/><rect x="36" y="20" width="3" height="3" fill="#212529"/></g>${svgClose}`;
+    case "idol":
+      return `${svgOpen}<ellipse cx="20" cy="32" rx="10" ry="6" fill="${w}" transform="rotate(-25 20 32)"/><ellipse cx="44" cy="32" rx="10" ry="6" fill="${w}" transform="rotate(25 44 32)"/><ellipse cx="32" cy="34" rx="11" ry="14" fill="${b}" stroke="#e67700" stroke-width="1.5"/><ellipse cx="32" cy="38" rx="6" ry="8" fill="#ffe066"/><polygon points="28,18 32,8 36,18" fill="${a}"/><circle cx="28" cy="30" r="2" fill="#7a3b00"/><circle cx="36" cy="30" r="2" fill="#7a3b00"/>${svgClose}`;
+    case "shadow":
+      return `${svgOpen}<ellipse cx="32" cy="52" rx="14" ry="4" fill="#000" opacity=".35"/><path d="M18 48 Q14 28 22 16 Q32 4 42 16 Q50 28 46 48 Q38 40 32 50 Q26 40 18 48 Z" fill="${b}"/><ellipse cx="26" cy="24" rx="3.2" ry="2.2" fill="${a}"/><ellipse cx="38" cy="24" rx="3.2" ry="2.2" fill="${a}"/><circle cx="26" cy="24" r="1" fill="#120012"/><circle cx="38" cy="24" r="1" fill="#120012"/>${svgClose}`;
+    case "rainbow":
+      return `${svgOpen}<ellipse cx="18" cy="28" rx="14" ry="10" fill="#ff6b6b" opacity=".85" transform="rotate(-30 18 28)"/><ellipse cx="46" cy="28" rx="14" ry="10" fill="#845ef7" opacity=".85" transform="rotate(30 46 28)"/><ellipse cx="18" cy="28" rx="9" ry="6" fill="#fcc419" opacity=".7" transform="rotate(-30 18 28)"/><ellipse cx="46" cy="28" rx="9" ry="6" fill="#339af0" opacity=".7" transform="rotate(30 46 28)"/><ellipse cx="32" cy="34" rx="6" ry="11" fill="${b}"/><circle cx="32" cy="22" r="4" fill="#ffd8a8"/><circle cx="30" cy="21" r="1" fill="#212529"/><circle cx="34" cy="21" r="1" fill="#212529"/>${svgClose}`;
+    default:
+      return "";
+  }
+}
+
 function shopSkinIconHtml(item) {
   const skinId = String(item?.skinId || "").toLowerCase();
   const preview = WING_HOP_SHOP_ICONS[skinId] || {
@@ -4862,13 +4906,21 @@ function shopSkinIconHtml(item) {
     skyTop: "#1b3a5c",
     skyBottom: "#4c6ef5"
   };
-  return `<span class="coins-shop-icon coins-shop-skin-icon" aria-hidden="true" style="--skin-sky-top:${escapeHtml(
+  // Keep UFO (and any unknown/dragon-like fallback) on the original tile style.
+  if (skinId === "ufo" || !shopSkinArtSvg(skinId, preview)) {
+    return `<span class="coins-shop-icon coins-shop-skin-icon" aria-hidden="true" style="--skin-sky-top:${escapeHtml(
+      preview.skyTop
+    )};--skin-sky-bottom:${escapeHtml(preview.skyBottom)};--skin-body:${escapeHtml(
+      preview.body
+    )};--skin-wing:${escapeHtml(preview.wing)}"><span class="coins-shop-skin-glyph">${escapeHtml(
+      preview.emoji || "🐉"
+    )}</span></span>`;
+  }
+  return `<span class="coins-shop-icon coins-shop-skin-icon coins-shop-skin-art-wrap" aria-hidden="true" style="--skin-sky-top:${escapeHtml(
     preview.skyTop
   )};--skin-sky-bottom:${escapeHtml(preview.skyBottom)};--skin-body:${escapeHtml(
     preview.body
-  )};--skin-wing:${escapeHtml(preview.wing)}"><span class="coins-shop-skin-glyph">${escapeHtml(
-    preview.emoji
-  )}</span></span>`;
+  )};--skin-wing:${escapeHtml(preview.wing)}">${shopSkinArtSvg(skinId, preview)}</span>`;
 }
 
 function shopItemIconHtml(item) {
