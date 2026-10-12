@@ -872,47 +872,369 @@
     }
   }
 
-  function decoratePipe(ctx, api, x, y, w, h, tipSide) {
-    const { s } = api;
+  /** Full replacement pipes/walls (like UFO alien pillars). Returns true if drawn. */
+  function drawThemePipe(ctx, api, x, y, w, h, tipSide) {
+    const { s, distance = 0 } = api;
     const world = s.world;
-    if (!world || world === "alien") return;
-    if (world === "meadow") {
-      ctx.fillStyle = s.pipeStroke || "#d9480f";
-      const flowerY = tipSide === "down" ? y + h - 18 : y + 18;
-      ctx.beginPath();
-      ctx.arc(x + w / 2, flowerY, 8, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = "#fff3bf";
-      ctx.beginPath();
-      ctx.arc(x + w / 2, flowerY, 3, 0, Math.PI * 2);
-      ctx.fill();
-    } else if (world === "neon") {
-      ctx.strokeStyle = s.pipeStroke;
-      ctx.shadowColor = s.pipeStroke;
-      ctx.shadowBlur = 12;
-      ctx.lineWidth = 3;
-      ctx.strokeRect(x + 4, y + 4, w - 8, Math.max(8, h - 8));
-      ctx.shadowBlur = 0;
-    } else if (world === "pixel") {
-      ctx.fillStyle = s.pipeLight;
-      for (let yy = y + 8; yy < y + h - 8; yy += 16) {
-        ctx.fillRect(x + 8, yy, 10, 10);
-        ctx.fillRect(x + w - 18, yy + 8, 10, 10);
-      }
-    } else if (world === "steam") {
-      ctx.strokeStyle = s.pipeStroke;
+    if (!world || world === "alien") return false;
+    if (h <= 0) return true;
+    const mid = x + w / 2;
+    const dark = s.pipeDark || "#333";
+    const midCol = s.pipe || "#666";
+    const light = s.pipeLight || "#aaa";
+    const stroke = s.pipeStroke || "#111";
+    const tipY = tipSide === "down" ? y + h : y;
+
+    if (world === "doodle") {
+      // Cardboard box stacks with tape
+      ctx.fillStyle = midCol;
+      ctx.strokeStyle = stroke;
       ctx.lineWidth = 2;
+      ctx.setLineDash([5, 4]);
+      ctx.fillRect(x + 6, y, w - 12, h);
+      ctx.strokeRect(x + 6, y, w - 12, h);
+      ctx.setLineDash([]);
+      ctx.fillStyle = light;
+      for (let yy = y + 18; yy < y + h - 10; yy += 36) {
+        ctx.fillRect(x + 10, yy, w - 20, 8);
+        ctx.strokeStyle = stroke;
+        ctx.strokeRect(x + 10, yy, w - 20, 8);
+      }
+      ctx.fillStyle = stroke;
+      ctx.fillRect(mid - 10, tipY - (tipSide === "down" ? 14 : 0), 20, 14);
+      return true;
+    }
+
+    if (world === "meadow") {
+      // Flower stalks / stems
+      ctx.strokeStyle = midCol;
+      ctx.lineWidth = 10;
+      ctx.lineCap = "round";
       ctx.beginPath();
-      ctx.arc(x + w / 2, tipSide === "down" ? y + h - 24 : y + 24, 10, 0, Math.PI * 2);
+      ctx.moveTo(mid - 12, tipSide === "down" ? y : y + h);
+      ctx.lineTo(mid - 12, tipSide === "down" ? y + h : y);
+      ctx.moveTo(mid + 12, tipSide === "down" ? y : y + h);
+      ctx.lineTo(mid + 12, tipSide === "down" ? y + h : y);
       ctx.stroke();
-    } else if (world === "lava") {
-      ctx.fillStyle = s.pipeLight;
-      ctx.globalAlpha = 0.55;
-      for (let i = 0; i < 4; i++) {
-        ctx.fillRect(x + 10 + (i % 2) * 20, y + 20 + i * 28, 6, 18);
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = light;
+      ctx.beginPath();
+      ctx.moveTo(mid, tipSide === "down" ? y : y + h);
+      ctx.lineTo(mid, tipSide === "down" ? y + h : y);
+      ctx.stroke();
+      const flowerY = tipSide === "down" ? y + h - 6 : y + 6;
+      for (const ox of [-12, 0, 12]) {
+        ctx.fillStyle = stroke;
+        ctx.beginPath();
+        ctx.arc(mid + ox, flowerY, 9, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = "#fff3bf";
+        ctx.beginPath();
+        ctx.arc(mid + ox, flowerY, 3.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      return true;
+    }
+
+    if (world === "ocean") {
+      // Coral columns
+      const steps = Math.max(6, Math.floor(h / 16));
+      ctx.beginPath();
+      for (let i = 0; i <= steps; i++) {
+        const t = i / steps;
+        const yy = y + t * h;
+        const bulge = 8 + Math.sin(t * Math.PI * 2.5 + x * 0.1) * 10;
+        const xx = mid - w * 0.22 - bulge * 0.4;
+        if (i === 0) ctx.moveTo(xx, yy);
+        else ctx.lineTo(xx, yy);
+      }
+      for (let i = steps; i >= 0; i--) {
+        const t = i / steps;
+        const yy = y + t * h;
+        const bulge = 8 + Math.sin(t * Math.PI * 2.5 + x * 0.1 + 1) * 10;
+        ctx.lineTo(mid + w * 0.22 + bulge * 0.4, yy);
+      }
+      ctx.closePath();
+      const g = ctx.createLinearGradient(x, y, x + w, y);
+      g.addColorStop(0, dark);
+      g.addColorStop(0.5, midCol);
+      g.addColorStop(1, light);
+      ctx.fillStyle = g;
+      ctx.fill();
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // polyps
+      ctx.fillStyle = light;
+      for (let i = 1; i < steps; i += 2) {
+        const yy = y + (i / steps) * h;
+        ctx.beginPath();
+        ctx.arc(mid + ((i % 2) * 2 - 1) * 16, yy, 4, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      return true;
+    }
+
+    if (world === "town") {
+      // Brick chimneys
+      ctx.fillStyle = midCol;
+      ctx.fillRect(x + 10, y, w - 20, h);
+      ctx.fillStyle = dark;
+      for (let yy = y + 8; yy < y + h; yy += 14) {
+        const odd = Math.floor((yy - y) / 14) % 2;
+        for (let xx = x + 12 + odd * 8; xx < x + w - 14; xx += 16) {
+          ctx.fillRect(xx, yy, 14, 10);
+        }
+      }
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2;
+      ctx.strokeRect(x + 10, y, w - 20, h);
+      ctx.fillStyle = dark;
+      const capY = tipSide === "down" ? y + h - 16 : y;
+      ctx.fillRect(x + 4, capY, w - 8, 16);
+      ctx.fillStyle = "#343a40";
+      ctx.fillRect(mid - 8, tipSide === "down" ? y + h - 28 : y + 16, 16, 12);
+      return true;
+    }
+
+    if (world === "spooky" || world === "haunt") {
+      // Crooked haunted posts
+      ctx.fillStyle = midCol;
+      ctx.beginPath();
+      ctx.moveTo(x + 18, tipSide === "down" ? y : y + h);
+      ctx.lineTo(x + 8, tipSide === "down" ? y + h * 0.4 : y + h * 0.6);
+      ctx.lineTo(x + 20, tipSide === "down" ? y + h : y);
+      ctx.lineTo(x + w - 20, tipSide === "down" ? y + h : y);
+      ctx.lineTo(x + w - 8, tipSide === "down" ? y + h * 0.45 : y + h * 0.55);
+      ctx.lineTo(x + w - 18, tipSide === "down" ? y : y + h);
+      ctx.closePath();
+      ctx.fill();
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      // lantern / skull near tip
+      const ly = tipSide === "down" ? y + h - 20 : y + 20;
+      ctx.fillStyle = light;
+      ctx.beginPath();
+      ctx.arc(mid, ly, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = dark;
+      ctx.beginPath();
+      ctx.arc(mid - 3, ly - 2, 2, 0, Math.PI * 2);
+      ctx.arc(mid + 3, ly - 2, 2, 0, Math.PI * 2);
+      ctx.fill();
+      return true;
+    }
+
+    if (world === "neon") {
+      // Neon skyscraper slabs
+      ctx.fillStyle = dark;
+      ctx.fillRect(x + 8, y, w - 16, h);
+      ctx.shadowColor = stroke;
+      ctx.shadowBlur = 16;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x + 8, y, w - 16, h);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = light;
+      for (let yy = y + 12; yy < y + h - 12; yy += 22) {
+        ctx.globalAlpha = 0.35 + ((Math.floor(yy + distance) / 22) % 2) * 0.35;
+        ctx.fillRect(x + 14, yy, w - 28, 8);
       }
       ctx.globalAlpha = 1;
+      ctx.fillStyle = stroke;
+      ctx.fillRect(x + 4, tipSide === "down" ? y + h - 10 : y, w - 8, 10);
+      return true;
     }
+
+    if (world === "steam") {
+      // Copper pipe towers with flanges + bolts
+      ctx.fillStyle = midCol;
+      ctx.fillRect(x + 14, y, w - 28, h);
+      const g = ctx.createLinearGradient(x, y, x + w, y);
+      g.addColorStop(0, dark);
+      g.addColorStop(0.45, light);
+      g.addColorStop(1, dark);
+      ctx.fillStyle = g;
+      ctx.fillRect(x + 14, y, w - 28, h);
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2;
+      for (let yy = y + 20; yy < y + h - 10; yy += 40) {
+        ctx.fillStyle = dark;
+        ctx.fillRect(x + 6, yy, w - 12, 12);
+        ctx.strokeRect(x + 6, yy, w - 12, 12);
+        ctx.fillStyle = stroke;
+        ctx.beginPath();
+        ctx.arc(x + 16, yy + 6, 2.5, 0, Math.PI * 2);
+        ctx.arc(x + w - 16, yy + 6, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.fillStyle = dark;
+      ctx.beginPath();
+      ctx.arc(mid, tipY, 16, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = stroke;
+      ctx.stroke();
+      return true;
+    }
+
+    if (world === "frost") {
+      // Ice spires
+      ctx.fillStyle = midCol;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      if (tipSide === "down") {
+        ctx.moveTo(mid, y + h);
+        ctx.lineTo(x + 8, y + h * 0.15);
+        ctx.lineTo(x + w * 0.35, y);
+        ctx.lineTo(x + w * 0.65, y);
+        ctx.lineTo(x + w - 8, y + h * 0.15);
+      } else {
+        ctx.moveTo(mid, y);
+        ctx.lineTo(x + 8, y + h * 0.85);
+        ctx.lineTo(x + w * 0.35, y + h);
+        ctx.lineTo(x + w * 0.65, y + h);
+        ctx.lineTo(x + w - 8, y + h * 0.85);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.strokeStyle = light;
+      ctx.globalAlpha = 0.7;
+      ctx.beginPath();
+      ctx.moveTo(mid - 6, tipSide === "down" ? y + 10 : y + h - 10);
+      ctx.lineTo(mid - 6, tipSide === "down" ? y + h - 20 : y + 20);
+      ctx.stroke();
+      ctx.globalAlpha = 1;
+      return true;
+    }
+
+    if (world === "lava") {
+      // Basalt pillars with magma cracks
+      ctx.fillStyle = dark;
+      ctx.fillRect(x + 8, y, w - 16, h);
+      ctx.fillStyle = midCol;
+      ctx.fillRect(x + 14, y, w - 28, h);
+      ctx.fillStyle = light;
+      ctx.globalAlpha = 0.75;
+      for (let i = 0; i < 5; i++) {
+        const yy = y + 16 + i * (h / 5);
+        ctx.beginPath();
+        ctx.moveTo(mid - 8 + (i % 2) * 6, yy);
+        ctx.lineTo(mid + 10, yy + 18);
+        ctx.lineTo(mid - 4, yy + 28);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x + 8, y, w - 16, h);
+      ctx.fillStyle = stroke;
+      ctx.globalAlpha = 0.85;
+      ctx.fillRect(x + 4, tipSide === "down" ? y + h - 12 : y, w - 8, 12);
+      ctx.globalAlpha = 1;
+      return true;
+    }
+
+    if (world === "pixel") {
+      // Chunky pixel wall
+      const cell = 12;
+      for (let yy = y; yy < y + h; yy += cell) {
+        for (let xx = x + 4; xx < x + w - 4; xx += cell) {
+          const on = ((xx / cell) + (yy / cell)) % 3 !== 0;
+          ctx.fillStyle = on ? midCol : dark;
+          ctx.fillRect(xx, yy, cell - 1, cell - 1);
+        }
+      }
+      ctx.fillStyle = light;
+      for (let yy = y + cell; yy < y + h - cell; yy += cell * 2) {
+        ctx.fillRect(x + 8, yy, cell - 1, cell - 1);
+        ctx.fillRect(x + w - 8 - cell, yy + cell, cell - 1, cell - 1);
+      }
+      ctx.fillStyle = stroke;
+      ctx.fillRect(x, tipSide === "down" ? y + h - cell : y, w, cell);
+      return true;
+    }
+
+    if (world === "temple") {
+      // Sandstone columns with capital
+      ctx.fillStyle = midCol;
+      ctx.fillRect(x + 18, y, w - 36, h);
+      const g = ctx.createLinearGradient(x, y, x + w, y);
+      g.addColorStop(0, dark);
+      g.addColorStop(0.5, light);
+      g.addColorStop(1, dark);
+      ctx.fillStyle = g;
+      ctx.fillRect(x + 18, y, w - 36, h);
+      ctx.fillStyle = dark;
+      const capH = 22;
+      const cy = tipSide === "down" ? y + h - capH : y;
+      ctx.fillRect(x + 6, cy, w - 12, capH);
+      ctx.fillStyle = stroke;
+      ctx.fillRect(x + 10, cy + 6, w - 20, 4);
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 3; i++) {
+        const xx = x + 26 + i * 14;
+        ctx.beginPath();
+        ctx.moveTo(xx, y + 8);
+        ctx.lineTo(xx, y + h - 8);
+        ctx.stroke();
+      }
+      return true;
+    }
+
+    if (world === "void") {
+      // Black void pillars with purple rim
+      ctx.fillStyle = dark;
+      ctx.beginPath();
+      ctx.moveTo(x + 20, y);
+      ctx.lineTo(x + 10, y + h);
+      ctx.lineTo(x + w - 10, y + h);
+      ctx.lineTo(x + w - 20, y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.shadowColor = stroke;
+      ctx.shadowBlur = 18;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = stroke;
+      ctx.globalAlpha = 0.5;
+      for (let i = 0; i < 4; i++) {
+        ctx.beginPath();
+        ctx.arc(mid, y + 24 + i * (h / 4), 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      return true;
+    }
+
+    if (world === "candy") {
+      // Soft candy cane / striped tubes
+      ctx.fillStyle = midCol;
+      ctx.fillRect(x + 12, y, w - 24, h);
+      const cols = ["#ff6b6b", "#ffffff", "#fcc419", "#ffffff", "#748ffc"];
+      for (let i = 0; i < Math.ceil(h / 18); i++) {
+        ctx.fillStyle = cols[i % cols.length];
+        ctx.globalAlpha = 0.85;
+        ctx.fillRect(x + 14, y + i * 18, w - 28, 14);
+      }
+      ctx.globalAlpha = 1;
+      ctx.strokeStyle = stroke;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x + 12, y, w - 24, h);
+      ctx.fillStyle = light;
+      ctx.beginPath();
+      ctx.arc(mid, tipY, 14, 0, Math.PI * 2);
+      ctx.fill();
+      return true;
+    }
+
+    return false;
   }
 
   function decorateGround(ctx, api) {
@@ -953,9 +1275,10 @@
       if (api.s.form === "ufo") return;
       decorateSky(ctx, api);
     },
-    afterPipe(ctx, api, x, y, w, h, tipSide) {
-      if (api.s.form === "ufo") return;
-      decoratePipe(ctx, api, x, y, w, h, tipSide);
+    /** Draw themed pipes instead of castle towers. Returns true if handled. */
+    drawPipe(ctx, api, x, y, w, h, tipSide) {
+      if (api.s.form === "ufo") return false;
+      return drawThemePipe(ctx, api, x, y, w, h, tipSide);
     },
     afterGround(ctx, api) {
       if (api.s.form === "ufo") return;

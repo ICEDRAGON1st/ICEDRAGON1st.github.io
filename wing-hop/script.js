@@ -494,26 +494,35 @@ function drawCloud(x, y, scale) {
 
 function drawPipes() {
   const s = skin();
+  const api = themeApi();
   for (const pipe of pipes) {
     const bottomY = pipe.top + PIPE_GAP;
     const bottomH = H - GROUND_H - bottomY;
     if (s.form === "ufo") {
       drawAlienPillar(pipe.x, 0, PIPE_WIDTH, pipe.top, "down", s);
       drawAlienPillar(pipe.x, bottomY, PIPE_WIDTH, bottomH, "up", s);
-    } else {
-      drawCastleTower(pipe.x, 0, PIPE_WIDTH, pipe.top, "down", s);
-      drawCastleTower(pipe.x, bottomY, PIPE_WIDTH, bottomH, "up", s);
-      window.WingHopThemePacks?.afterPipe?.(ctx, themeApi(), pipe.x, 0, PIPE_WIDTH, pipe.top, "down");
-      window.WingHopThemePacks?.afterPipe?.(
-        ctx,
-        themeApi(),
-        pipe.x,
-        bottomY,
-        PIPE_WIDTH,
-        bottomH,
-        "up"
-      );
+      continue;
     }
+    const themedTop = window.WingHopThemePacks?.drawPipe?.(
+      ctx,
+      api,
+      pipe.x,
+      0,
+      PIPE_WIDTH,
+      pipe.top,
+      "down"
+    );
+    const themedBot = window.WingHopThemePacks?.drawPipe?.(
+      ctx,
+      api,
+      pipe.x,
+      bottomY,
+      PIPE_WIDTH,
+      bottomH,
+      "up"
+    );
+    if (!themedTop) drawCastleTower(pipe.x, 0, PIPE_WIDTH, pipe.top, "down", s);
+    if (!themedBot) drawCastleTower(pipe.x, bottomY, PIPE_WIDTH, bottomH, "up", s);
   }
 }
 
