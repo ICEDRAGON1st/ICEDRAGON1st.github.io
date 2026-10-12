@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ew": [
+    "Sticker Garage: fix shop category bar scrollbar covering the tabs"
+  ],
   "20261001ev": [
     "Sticker Garage shop: Fishing-style categories (packs, tips, pay boost)"
   ],

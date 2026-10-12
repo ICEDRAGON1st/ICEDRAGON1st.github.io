@@ -408,13 +408,11 @@ body {
 
 .shop-cats {
   display: flex;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
   gap: 0.35rem;
   margin: 0 0 0.65rem;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  scrollbar-width: thin;
-  padding-bottom: 0.15rem;
+  padding: 0;
+  overflow: visible;
 }
 
 .shop-cat-btn {
