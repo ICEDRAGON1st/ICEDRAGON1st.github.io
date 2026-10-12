@@ -1,9 +1,8 @@
-const { app, BrowserWindow, BrowserView, shell, Menu, dialog, ipcMain } = require("electron");
+const { app, BrowserWindow, shell, Menu, dialog, ipcMain } = require("electron");
 const path = require("path");
 
 /** Live hub — installer stays current without rebuilding for every site update. */
 const HUB_URL = process.env.MYGAMES_URL || "https://icedragon1st.github.io/";
-const TOOLBAR_H = 44;
 
 const HUB_HOSTS = new Set(["icedragon1st.github.io"]);
 
@@ -21,8 +20,6 @@ const IN_APP_HOSTS = new Set([
 ]);
 
 let mainWindow = null;
-let toolbarView = null;
-let hubView = null;
 
 function isAllowedInApp(url) {
   try {
@@ -48,56 +45,18 @@ function isHubUrl(url) {
   }
 }
 
-function layoutViews() {
-  if (!mainWindow || !toolbarView || !hubView) return;
-  const [width, height] = mainWindow.getContentSize();
-  toolbarView.setBounds({ x: 0, y: 0, width, height: TOOLBAR_H });
-  hubView.setBounds({
-    x: 0,
-    y: TOOLBAR_H,
-    width,
-    height: Math.max(100, height - TOOLBAR_H)
-  });
-}
-
 function refreshHub({ home = false } = {}) {
-  if (!hubView) return;
+  if (!mainWindow || mainWindow.isDestroyed()) return;
   if (home) {
-    hubView.webContents.loadURL(HUB_URL);
+    mainWindow.loadURL(HUB_URL);
     return;
   }
-  const url = hubView.webContents.getURL() || "";
+  const url = mainWindow.webContents.getURL() || "";
   if (!url || url.startsWith("file:")) {
-    hubView.webContents.loadURL(HUB_URL);
+    mainWindow.loadURL(HUB_URL);
     return;
   }
-  hubView.webContents.reloadIgnoringCache();
-}
-
-function wireHubNavigation(contents) {
-  contents.setWindowOpenHandler(({ url }) => {
-    if (isAllowedInApp(url) && isHubUrl(url)) {
-      return { action: "allow" };
-    }
-    shell.openExternal(url).catch(() => {});
-    return { action: "deny" };
-  });
-
-  contents.on("will-navigate", (event, url) => {
-    if (isAllowedInApp(url)) return;
-    event.preventDefault();
-    shell.openExternal(url).catch(() => {});
-  });
-
-  contents.on("did-fail-load", (_e, errorCode, _err, _validatedURL, isMainFrame) => {
-    if (!isMainFrame) return;
-    if (errorCode === -3) return;
-    hubView.webContents
-      .loadFile(path.join(__dirname, "offline.html"), {
-        query: { url: HUB_URL }
-      })
-      .catch(() => {});
-  });
+  mainWindow.webContents.reloadIgnoringCache();
 }
 
 function createWindow() {
@@ -110,21 +69,6 @@ function createWindow() {
     title: "My Games",
     icon: path.join(__dirname, "icon.png"),
     autoHideMenuBar: true,
-    show: false
-  });
-
-  mainWindow.setMenuBarVisibility(false);
-
-  toolbarView = new BrowserView({
-    webPreferences: {
-      preload: path.join(__dirname, "toolbar-preload.js"),
-      contextIsolation: true,
-      nodeIntegration: false,
-      sandbox: true
-    }
-  });
-
-  hubView = new BrowserView({
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
@@ -134,24 +78,47 @@ function createWindow() {
     }
   });
 
-  mainWindow.addBrowserView(toolbarView);
-  mainWindow.addBrowserView(hubView);
-  layoutViews();
+  mainWindow.setMenuBarVisibility(false);
+  mainWindow.loadURL(HUB_URL);
 
-  toolbarView.webContents.loadFile(path.join(__dirname, "toolbar.html"));
-  wireHubNavigation(hubView.webContents);
-  hubView.webContents.loadURL(HUB_URL);
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    // Same-hub paths (games folders) stay in-app; everything else opens outside.
+    if (isAllowedInApp(url)) {
+      if (isHubUrl(url) || url.startsWith(HUB_URL)) {
+        return { action: "allow" };
+      }
+      // Discord/Supabase OAuth must navigate this window, not spawn a blank tab
+      mainWindow.loadURL(url);
+      return { action: "deny" };
+    }
+    shell.openExternal(url).catch(() => {});
+    return { action: "deny" };
+  });
 
-  mainWindow.on("resize", layoutViews);
-  mainWindow.once("ready-to-show", () => {
-    layoutViews();
-    mainWindow.show();
+  mainWindow.webContents.on("will-navigate", (event, url) => {
+    if (isAllowedInApp(url)) return;
+    event.preventDefault();
+    shell.openExternal(url).catch(() => {});
+  });
+
+  mainWindow.webContents.on("did-fail-load", (_e, errorCode, _err, _validatedURL, isMainFrame) => {
+    if (!isMainFrame) return;
+    if (errorCode === -3) return;
+    mainWindow
+      .loadFile(path.join(__dirname, "offline.html"), {
+        query: { url: HUB_URL }
+      })
+      .catch(() => {});
+  });
+
+  mainWindow.webContents.on("did-finish-load", () => {
+    mainWindow.webContents
+      .executeJavaScript("window.MyGamesDesktop && window.MyGamesDesktop.mountChrome && window.MyGamesDesktop.mountChrome();")
+      .catch(() => {});
   });
 
   mainWindow.on("closed", () => {
     mainWindow = null;
-    toolbarView = null;
-    hubView = null;
   });
 }
 
@@ -203,7 +170,7 @@ function buildMenu() {
         {
           label: "Toggle Developer Tools",
           accelerator: "CmdOrCtrl+Shift+I",
-          click: () => hubView?.webContents.openDevTools({ mode: "detach" })
+          click: () => mainWindow?.webContents.openDevTools({ mode: "detach" })
         }
       ]
     },
@@ -234,6 +201,13 @@ function buildMenu() {
 
 ipcMain.on("hub-refresh", () => refreshHub());
 ipcMain.on("hub-home", () => refreshHub({ home: true }));
+
+process.on("uncaughtException", (err) => {
+  console.error(err);
+  try {
+    dialog.showErrorBox("My Games crashed", String(err && err.stack ? err.stack : err));
+  } catch {}
+});
 
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
