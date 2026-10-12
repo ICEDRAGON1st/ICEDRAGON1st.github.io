@@ -236,9 +236,12 @@
   let shake = 0;
 
   const SHIP_SCREEN_X = 0.22;
-  const GRAVITY = 2.4;
-  const LIFT = 2.55;
-  const MAX_VY = 1.55;
+  // Tighter flight: pull toward a climb/fall speed instead of slippery accel
+  const CLIMB_VY = -0.72;
+  const FALL_VY = 0.78;
+  const STEER = 14; // how fast velocity snaps to climb/fall (higher = less slippery)
+  const MAX_VY = 0.95;
+  const MOVE_SCALE = 145;
 
   function readHigh() {
     try {
@@ -273,8 +276,9 @@
   }
 
   function speed() {
-    if (mode === "endless") return 300 + Math.min(220, worldX / 40);
-    return currentLevel().speed;
+    // Slightly slower scroll so steering has more time to react
+    if (mode === "endless") return 250 + Math.min(180, worldX / 48);
+    return currentLevel().speed * 0.88;
   }
 
   function themeColor() {
@@ -518,10 +522,10 @@
     worldX += speed() * dt;
     if (mode === "endless") extendEndless(worldX + 2200);
 
-    if (holding) shipVy -= LIFT * dt;
-    else shipVy += GRAVITY * dt;
+    const targetVy = holding ? CLIMB_VY : FALL_VY;
+    shipVy += (targetVy - shipVy) * Math.min(1, STEER * dt);
     shipVy = clamp(shipVy, -MAX_VY, MAX_VY);
-    shipY += (shipVy * dt * 180) / h;
+    shipY += (shipVy * dt * MOVE_SCALE) / h;
     shipY = clamp(shipY, 0.02, 0.98);
 
     trail.push({ x: worldX, y: shipY });

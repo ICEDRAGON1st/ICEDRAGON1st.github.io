@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001fb": [
+    "Space Waves: tighter, less slippery controls + slightly slower scroll"
+  ],
   "20261001fa": [
     "Space Waves: Spacebar reliably rises (and starts / retries)"
   ],
