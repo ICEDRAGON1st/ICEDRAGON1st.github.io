@@ -33,6 +33,9 @@
   const PRESENCE_API = `https://mantledb.sh/v2/${NS}/${PRESENCE_PATH}`;
   const ALLTIME_API = `https://mantledb.sh/v2/${NS}/${ALLTIME_PATH}`;
   const POPULARITY_API = `https://mantledb.sh/v2/${NS}/hub-game-popularity`;
+  /** Pages milestone floor when cloud all-time roster can't load (see players-alltime.json). */
+  let allTimeFloor = 0;
+  let allTimeMilestone = null;
 
   function sb() {
     return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
@@ -3423,8 +3426,49 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     return false;
   }
 
+  async function fetchPagesAlltimeSeed() {
+    try {
+      const build =
+        typeof window !== "undefined" && typeof window.WORDLE_BUILD === "string"
+          ? window.WORDLE_BUILD
+          : String(Date.now());
+      const res = await fetch(`players-alltime.json?v=${encodeURIComponent(build)}`, {
+        cache: "no-store"
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (!data || typeof data !== "object") return null;
+      return {
+        count: Math.max(0, Math.floor(Number(data.count) || 0)),
+        games: Math.max(0, Math.floor(Number(data.games) || 0)),
+        mostPlayed: String(data.mostPlayed || "").trim(),
+        achievements: Math.max(0, Math.floor(Number(data.achievements) || 0)),
+        note: String(data.note || "").trim()
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  async function syncAlltimeFloor() {
+    const seed = await fetchPagesAlltimeSeed();
+    if (!seed) return allTimeFloor;
+    allTimeMilestone = seed;
+    if (seed.count > allTimeFloor) allTimeFloor = seed.count;
+    try {
+      document.dispatchEvent(
+        new CustomEvent("hub-plays-alltime", { detail: { floor: allTimeFloor, milestone: seed } })
+      );
+    } catch {}
+    return allTimeFloor;
+  }
+
+  function getAllTimeMilestone() {
+    return allTimeMilestone;
+  }
+
   function getAllTimeCount() {
-    return getAllTimePlayers().length;
+    return Math.max(getAllTimePlayers().length, allTimeFloor);
   }
 
   function isPresentOnline(playerId, now = Date.now(), name = "") {
@@ -3801,6 +3845,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     heartbeat().catch(() => {});
     // Pull repaired all-time lastAt immediately (don't wait 10 min).
     registerAllTime().catch(() => {});
+    // Pages milestone floor (45 all-time, etc.) when Supabase/Mantle are down.
+    syncAlltimeFloor().catch(() => {});
     presenceTimer = setInterval(() => {
       heartbeat().catch(() => {});
     }, HEARTBEAT_MS);
@@ -4947,6 +4993,8 @@ body.light .menu-credit .player-name-creator {
     getOnlineCount,
     getOnlinePlayers,
     getAllTimeCount,
+    getAllTimeMilestone,
+    syncAlltimeFloor,
     getAllTimePlayers,
     getPlayerProfile,
     getActiveGame,
