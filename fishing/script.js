@@ -20172,25 +20172,13 @@
   }
 
   function syncAccountHud() {
+    // Player name/code stays in the hub Players menu — not on the in-game HUD.
     const el = document.getElementById("hud-account");
-    if (!el) return;
-    const name = fishingOwnerName() || "No name";
-    let code = "";
-    try {
-      code = String(window.HubPlays?.getPlayerCode?.() || "").trim();
-      if (
-        window.HubPlays?.isPoisonPlayerCode?.(code) ||
-        /^unde-?fned$/i.test(code.replace(/\s/g, ""))
-      ) {
-        try {
-          localStorage.removeItem("hub-player-code");
-        } catch {}
-        code = String(window.HubPlays?.getPlayerCode?.() || "").trim();
-      }
-      if (/^unde-?fned$/i.test(code.replace(/\s/g, ""))) code = "";
-    } catch {}
-    el.textContent = code ? `${name} · ${code}` : name;
-    el.title = "Active account on this device — switch from the hub if this isn't you";
+    if (el) {
+      el.textContent = "";
+      el.classList.add("hidden");
+      el.hidden = true;
+    }
   }
   window.addEventListener("pagehide", () => {
     try {
