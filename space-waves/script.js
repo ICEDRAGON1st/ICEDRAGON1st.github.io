@@ -495,8 +495,8 @@
     const h = canvas.clientHeight;
     const sx = w * SHIP_SCREEN_X;
     const sy = shipY * h;
-    // Slightly larger than the original, not huge
-    return { x: sx, y: sy, r: Math.max(8, h * 0.021), scale: Math.max(1.2, h * 0.0031) };
+    // A touch larger than the original tiny arrow
+    return { x: sx, y: sy, r: Math.max(7, h * 0.018), scale: Math.max(1.05, h * 0.0026) };
   }
 
   function collide() {

@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001fh": [
+    "Space Waves: slightly smaller player arrow"
+  ],
   "20261001fg": [
     "Space Waves: levels 3–12 widened and slowed so they are beatable"
   ],
