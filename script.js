@@ -2240,24 +2240,27 @@ function markBuildSeen(id) {
   if (build) localStorage.setItem(SEEN_BUILD_KEY, build);
 }
 
-/** Unseen changelog builds from after last-seen up to the live WORDLE_BUILD (oldest first). */
+/** Unseen changelog builds from after last-seen up to the live WORDLE_BUILD (newest first). */
 function getUnseenChangelogEntries() {
   const build = window.WORDLE_BUILD || "";
   const seen = getSeenBuild();
   if (!build || build === seen) return [];
   return getChangelogEntries()
     .filter((e) => e.id.localeCompare(seen) > 0 && e.id.localeCompare(build) <= 0)
-    .sort((a, b) => a.id.localeCompare(b.id));
+    .sort((a, b) => b.id.localeCompare(a.id));
 }
 
 let whatsNewShowingId = "";
 
+/** Popup only the latest build — never walk every missed update one click at a time. */
 function showWhatsNew() {
   const build = window.WORDLE_BUILD || "";
   if (!build || build === getSeenBuild()) return false;
 
-  const unseen = getUnseenChangelogEntries();
-  if (!unseen.length) {
+  const notes = Array.isArray(CHANGELOG[build])
+    ? CHANGELOG[build].map((n) => String(n || "").trim()).filter(Boolean)
+    : [];
+  if (!notes.length) {
     // If script.js is still cached without this build's CHANGELOG key, do NOT mark seen —
     // that was swallowing popups until several updates piled up.
     if (Object.prototype.hasOwnProperty.call(CHANGELOG, build)) {
@@ -2266,11 +2269,10 @@ function showWhatsNew() {
     return false;
   }
 
-  const next = unseen[0];
-  whatsNewShowingId = next.id;
-  if (whatsNewBuild) whatsNewBuild.textContent = next.id;
+  whatsNewShowingId = build;
+  if (whatsNewBuild) whatsNewBuild.textContent = build;
   if (whatsNewList) {
-    whatsNewList.innerHTML = next.notes.map((note) => `<li>${note}</li>`).join("");
+    whatsNewList.innerHTML = notes.map((note) => `<li>${escapeHtml(note)}</li>`).join("");
   }
   whatsNewModal?.classList.remove("hidden");
   return true;
@@ -2286,16 +2288,15 @@ function announceHubBuildOnBoot() {
   } catch {}
 }
 
-/** Dismiss the showing update; returns true if another update popup opened. */
+/** Dismiss the latest What's new and catch up to the live build in one click. */
 function hideWhatsNew() {
-  const shown = whatsNewShowingId || window.WORDLE_BUILD || "";
+  const current = window.WORDLE_BUILD || whatsNewShowingId || "";
   whatsNewShowingId = "";
-  if (shown) markBuildSeen(shown);
+  if (current) markBuildSeen(current);
   try {
     renderUpdatesPanel?.();
     updateUpdatesButtonLabel(!updatesPanel?.classList.contains("hidden"));
   } catch {}
-  if (showWhatsNew()) return true;
   whatsNewModal?.classList.add("hidden");
   return false;
 }
