@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001cx": [
+    "Coin shop: stronger full-screen takeover (covers hub chrome; clearer Games exit)"
+  ],
   "20261001cw": [
     "Coin shop opens full-screen like the Help assistant"
   ],
