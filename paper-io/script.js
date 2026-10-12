@@ -38,6 +38,115 @@
     { fill: "#fda4af", soft: "rgba(253,164,175,0.78)", name: "Rose" }
   ];
 
+  const SKIN_KEY = "paper-claim-skin";
+  const SKINS = Object.assign(
+    {
+      classic: {
+        label: "Classic",
+        locked: false,
+        fill: COLORS[0].fill,
+        soft: COLORS[0].soft,
+        bg0: "#102338",
+        bg1: "#060d16",
+        grid: "rgba(62,198,255,0.06)",
+        border: "rgba(62,198,255,0.35)",
+        trailGlow: COLORS[0].fill,
+        head: "classic"
+      }
+    },
+    window.PaperClaimThemePacks?.skins || {}
+  );
+
+  let skinId = "classic";
+  try {
+    const saved = String(localStorage.getItem(SKIN_KEY) || "classic");
+    if (SKINS[saved]) skinId = saved;
+  } catch {}
+
+  function skin() {
+    return SKINS[skinId] || SKINS.classic;
+  }
+
+  function skinUnlocked(id) {
+    const s = SKINS[id];
+    if (!s) return false;
+    if (!s.locked && !s.coinItem) return true;
+    const itemId = s.coinItem;
+    if (!itemId) return false;
+    try {
+      if (window.HubCoins?.hasPurchase?.(itemId)) return true;
+    } catch {}
+    return false;
+  }
+
+  function setSkin(id) {
+    if (!SKINS[id]) return false;
+    if (!skinUnlocked(id)) return false;
+    skinId = id;
+    try {
+      localStorage.setItem(SKIN_KEY, id);
+    } catch {}
+    landDirty = true;
+    miniDirty = true;
+    refreshSkinPicker();
+    return true;
+  }
+
+  function tryBuySkin(id) {
+    const s = SKINS[id];
+    if (!s?.coinItem) return;
+    if (typeof window.HubCoins === "undefined") {
+      setSkinHint("Coins aren't loaded — open the hub Coin shop to buy this skin.");
+      return;
+    }
+    const res = HubCoins.buy(s.coinItem);
+    if (!res.ok) {
+      setSkinHint(res.error || HubCoins.NEED_MORE || "You need more coins for this item!");
+      return;
+    }
+    setSkin(id);
+    setSkinHint(`Unlocked ${s.label}!`);
+  }
+
+  function setSkinHint(msg) {
+    const el = document.getElementById("skin-lock-hint");
+    if (el) el.textContent = msg || "";
+  }
+
+  function refreshSkinPicker() {
+    const picker = document.getElementById("skin-picker");
+    if (!picker) return;
+    if (!skinUnlocked(skinId)) skinId = "classic";
+    picker.querySelectorAll("[data-skin]").forEach((btn) => {
+      const id = btn.dataset.skin;
+      const s = SKINS[id];
+      const locked = !skinUnlocked(id);
+      btn.classList.toggle("active", id === skinId);
+      btn.classList.toggle("skin-btn-locked", locked);
+      if (s?.coinCost && locked) {
+        btn.textContent = `${s.label} · ${s.coinCost}🪙`;
+      } else if (s) {
+        btn.textContent = s.label;
+      }
+    });
+  }
+
+  /** Local human uses equipped pack colors; everyone else keeps slot colors. */
+  function colorFor(p) {
+    if (p && p.id === localId) {
+      const sk = skin();
+      if (sk && skinId !== "classic" && sk.fill) {
+        return { fill: sk.fill, soft: sk.soft || sk.fill, name: sk.label || "You" };
+      }
+    }
+    return COLORS[(p?.color || 0) % COLORS.length];
+  }
+
+  const RAINBOW_COLS = ["#ff6b6b", "#fcc419", "#51cf66", "#339af0", "#cc5de8"];
+  function rainbowAt(i) {
+    return RAINBOW_COLS[Math.abs(i) % RAINBOW_COLS.length];
+  }
+
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d", { alpha: false });
   const landLayer = document.createElement("canvas");
@@ -1094,7 +1203,9 @@
         if (!owner) continue;
         const pid = idFromHash(owner);
         const pl = players.find((p) => p.id === pid);
-        const color = COLORS[(pl ? pl.color : owner - 1) % COLORS.length];
+        const color = pl
+          ? colorFor(pl)
+          : COLORS[(owner - 1) % COLORS.length];
         landCtx.fillStyle = color.soft;
         landCtx.beginPath();
         landCtx.arc((x + 0.5) * LAND_PX, (y + 0.5) * LAND_PX, rad, 0, Math.PI * 2);
@@ -1119,7 +1230,9 @@
         if (!owner) continue;
         const pid = idFromHash(owner);
         const pl = players.find((p) => p.id === pid);
-        const color = COLORS[(pl ? pl.color : owner - 1) % COLORS.length];
+        const color = pl
+          ? colorFor(pl)
+          : COLORS[(owner - 1) % COLORS.length];
         miniCtx.fillStyle = color.fill;
         miniCtx.fillRect(x, y, 1, 1);
       }
@@ -1172,7 +1285,7 @@
     // Trails — subsample so long trails don't flicker/overdraw
     for (const p of players) {
       if (!p.alive || p.trail.length < 2) continue;
-      const c = COLORS[p.color % COLORS.length];
+      const c = colorFor(p);
       const step = Math.max(1, Math.floor(p.trail.length / 80));
       ctx.strokeStyle = c.fill;
       ctx.globalAlpha = 0.85;
@@ -1192,7 +1305,7 @@
     // Players
     for (const p of players) {
       if (!p.alive) continue;
-      const c = COLORS[p.color % COLORS.length];
+      const c = colorFor(p);
       const px = mapX + p.x * cell;
       const py = mapY + p.y * cell;
       const isMe = p.id === localId;
@@ -1216,14 +1329,161 @@
     ctx.restore();
   }
 
+  function drawPlayerHead(p, c) {
+    const r = HEAD_DRAW_R;
+    const sk = p.id === localId ? skin() : null;
+    const head = sk?.head || "classic";
+    const glow = sk?.trailGlow || c.fill;
+
+    ctx.shadowColor = glow;
+    ctx.shadowBlur = r * (head === "neon" || head === "lava" ? 2.4 : 1.8);
+    ctx.fillStyle = c.fill;
+
+    if (head === "pixel") {
+      ctx.shadowBlur = 0;
+      ctx.fillRect(p.x - r, p.y - r, r * 2, r * 2);
+    } else if (head === "ink") {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.beginPath();
+      ctx.ellipse(p.x + r * 0.15, p.y + r * 0.85, r * 0.35, r * 0.55, 0.2, 0, Math.PI * 2);
+      ctx.fill();
+    } else {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+
+    if (head === "ice") {
+      ctx.strokeStyle = "rgba(255,255,255,0.75)";
+      ctx.lineWidth = 0.2;
+      ctx.beginPath();
+      ctx.moveTo(p.x - r * 0.4, p.y);
+      ctx.lineTo(p.x, p.y - r * 0.85);
+      ctx.lineTo(p.x + r * 0.4, p.y);
+      ctx.stroke();
+    } else if (head === "honey") {
+      ctx.strokeStyle = "rgba(120,50,0,0.35)";
+      ctx.lineWidth = 0.18;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r * 0.55, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (head === "shadow") {
+      ctx.fillStyle = "rgba(190,75,219,0.85)";
+      ctx.beginPath();
+      ctx.ellipse(p.x - r * 0.25, p.y - r * 0.1, r * 0.18, r * 0.12, 0, 0, Math.PI * 2);
+      ctx.ellipse(p.x + r * 0.25, p.y - r * 0.1, r * 0.18, r * 0.12, 0, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (head === "gold") {
+      ctx.strokeStyle = "rgba(255,255,255,0.55)";
+      ctx.lineWidth = 0.22;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r * 0.7, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (head === "blueprint") {
+      ctx.strokeStyle = "rgba(255,255,255,0.85)";
+      ctx.lineWidth = 0.2;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
+      ctx.stroke();
+    } else if (head !== "pixel" && head !== "ink") {
+      ctx.fillStyle = "rgba(255,255,255,0.35)";
+      ctx.beginPath();
+      ctx.arc(p.x - r * 0.28, p.y - r * 0.28, r * 0.32, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.strokeStyle = head === "neon" ? glow : "rgba(255,255,255,0.7)";
+    ctx.lineWidth = 0.22;
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+    ctx.lineTo(p.x + Math.cos(p.angle) * r * 1.35, p.y + Math.sin(p.angle) * r * 1.35);
+    ctx.stroke();
+
+    if (p.id === localId) {
+      ctx.strokeStyle = "rgba(255,255,255,0.95)";
+      ctx.lineWidth = 0.28;
+      ctx.beginPath();
+      if (head === "pixel") {
+        ctx.strokeRect(p.x - r - 0.35, p.y - r - 0.35, (r + 0.35) * 2, (r + 0.35) * 2);
+      } else {
+        ctx.arc(p.x, p.y, r + 0.35, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+    }
+
+    ctx.fillStyle = "rgba(6,12,20,0.72)";
+    ctx.font = "bold 1.85px Outfit,sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "bottom";
+    ctx.fillText(p.name.slice(0, 10), p.x, p.y - r - 0.45);
+  }
+
+  function drawTrail(p, c) {
+    if (!p.alive || p.trail.length < 1) return;
+    const sk = p.id === localId ? skin() : null;
+    const stride = trailDrawStride(p.trail.length);
+    const glow = sk?.trailGlow || c.fill;
+    const useRainbow = !!(sk?.rainbow && p.id === localId);
+
+    ctx.globalAlpha = 0.92;
+    ctx.lineWidth = TRAIL_W * 1.15;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+
+    const pts = [];
+    pts.push(p.trail[0]);
+    for (let i = stride; i < p.trail.length; i += stride) pts.push(p.trail[i]);
+    const last = p.trail[p.trail.length - 1];
+    if (last) pts.push(last);
+    {
+      const tip = pts[pts.length - 1] || { x: p.x, y: p.y };
+      const dx = p.x - tip.x;
+      const dy = p.y - tip.y;
+      const len = Math.hypot(dx, dy) || 1;
+      const gap = PLAYER_R * 1.05;
+      if (len > gap) {
+        pts.push({ x: p.x - (dx / len) * gap, y: p.y - (dy / len) * gap });
+      }
+    }
+
+    if (useRainbow && pts.length > 1) {
+      ctx.shadowBlur = 0;
+      for (let i = 1; i < pts.length; i++) {
+        ctx.strokeStyle = rainbowAt(i);
+        ctx.beginPath();
+        ctx.moveTo(pts[i - 1].x, pts[i - 1].y);
+        ctx.lineTo(pts[i].x, pts[i].y);
+        ctx.stroke();
+      }
+    } else {
+      ctx.strokeStyle = c.fill;
+      if (p.trail.length < 220) {
+        ctx.shadowColor = glow;
+        ctx.shadowBlur = 1.4;
+      } else {
+        ctx.shadowBlur = 0;
+      }
+      ctx.beginPath();
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i].x, pts[i].y);
+      ctx.stroke();
+    }
+    ctx.shadowBlur = 0;
+    ctx.globalAlpha = 1;
+  }
+
   function draw() {
     const w = canvas.width;
     const h = canvas.height;
     const scale = Math.min(w, h) / viewSpan;
+    const sk = skin();
 
     const bg = ctx.createRadialGradient(w * 0.5, h * 0.45, w * 0.08, w * 0.5, h * 0.5, w * 0.75);
-    bg.addColorStop(0, "#102338");
-    bg.addColorStop(1, "#060d16");
+    bg.addColorStop(0, sk.bg0 || "#102338");
+    bg.addColorStop(1, sk.bg1 || "#060d16");
     ctx.fillStyle = bg;
     ctx.fillRect(0, 0, w, h);
 
@@ -1233,12 +1493,12 @@
     ctx.translate(-camX, -camY);
 
     // Soft border (walls don't kill) — world units
-    ctx.strokeStyle = "rgba(62,198,255,0.35)";
+    ctx.strokeStyle = sk.border || "rgba(62,198,255,0.35)";
     ctx.lineWidth = 1.1;
     ctx.strokeRect(0.5, 0.5, WORLD - 1, WORLD - 1);
 
     // Faint grid so zoomed view keeps depth
-    ctx.strokeStyle = "rgba(62,198,255,0.06)";
+    ctx.strokeStyle = sk.grid || "rgba(62,198,255,0.06)";
     ctx.lineWidth = 0.08;
     ctx.beginPath();
     for (let g = 0; g <= WORLD; g += 10) {
@@ -1266,82 +1526,10 @@
       ctx.drawImage(landLayer, 0, 0, landLayer.width, landLayer.height, 0, 0, WORLD, WORLD);
     }
 
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    for (const p of players) {
-      if (!p.alive || p.trail.length < 1) continue;
-      const c = COLORS[p.color % COLORS.length];
-      const stride = trailDrawStride(p.trail.length);
-      ctx.strokeStyle = c.fill;
-      ctx.globalAlpha = 0.92;
-      ctx.lineWidth = TRAIL_W * 1.15;
-      // Shadows on huge trails crush FPS — only glow short ones
-      if (p.trail.length < 220) {
-        ctx.shadowColor = c.fill;
-        ctx.shadowBlur = 1.4;
-      } else {
-        ctx.shadowBlur = 0;
-      }
-      ctx.beginPath();
-      ctx.moveTo(p.trail[0].x, p.trail[0].y);
-      for (let i = stride; i < p.trail.length; i += stride) {
-        ctx.lineTo(p.trail[i].x, p.trail[i].y);
-      }
-      const last = p.trail[p.trail.length - 1];
-      if (last) ctx.lineTo(last.x, last.y);
-      // Stop at the head rim so the killable trail matches what you see
-      {
-        const dx = p.x - (last ? last.x : p.x);
-        const dy = p.y - (last ? last.y : p.y);
-        const len = Math.hypot(dx, dy) || 1;
-        const gap = PLAYER_R * 1.05;
-        if (len > gap) {
-          ctx.lineTo(p.x - (dx / len) * gap, p.y - (dy / len) * gap);
-        }
-      }
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-      ctx.globalAlpha = 1;
-    }
-
+    for (const p of players) drawTrail(p, colorFor(p));
     for (const p of players) {
       if (!p.alive) continue;
-      const c = COLORS[p.color % COLORS.length];
-      const r = HEAD_DRAW_R;
-
-      ctx.shadowColor = c.fill;
-      ctx.shadowBlur = r * 1.8;
-      ctx.fillStyle = c.fill;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, r, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-
-      ctx.fillStyle = "rgba(255,255,255,0.35)";
-      ctx.beginPath();
-      ctx.arc(p.x - r * 0.28, p.y - r * 0.28, r * 0.32, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.strokeStyle = "rgba(255,255,255,0.7)";
-      ctx.lineWidth = 0.22;
-      ctx.beginPath();
-      ctx.moveTo(p.x, p.y);
-      ctx.lineTo(p.x + Math.cos(p.angle) * r * 1.35, p.y + Math.sin(p.angle) * r * 1.35);
-      ctx.stroke();
-
-      if (p.id === localId) {
-        ctx.strokeStyle = "rgba(255,255,255,0.95)";
-        ctx.lineWidth = 0.28;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, r + 0.35, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
-      ctx.fillStyle = "rgba(6,12,20,0.72)";
-      ctx.font = "bold 1.85px Outfit,sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "bottom";
-      ctx.fillText(p.name.slice(0, 10), p.x, p.y - r - 0.45);
+      drawPlayerHead(p, colorFor(p));
     }
 
     ctx.restore();
@@ -1389,7 +1577,7 @@
         .slice(0, 6);
       liveBoard.innerHTML = ranked
         .map(({ p, pct: v }) => {
-          const c = COLORS[p.color % COLORS.length].fill;
+          const c = colorFor(p).fill;
           const mark = p.id === localId ? "★ " : "";
           const dead = p.alive ? "" : " (out)";
           return `<span class="lb-item"><span class="swatch" style="background:${c}"></span>${mark}${escapeHtml(
@@ -1886,6 +2074,25 @@
       aimFromEvent(e);
     }
   });
+
+  document.getElementById("skin-picker")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-skin]");
+    if (!btn) return;
+    const id = btn.dataset.skin;
+    if (!SKINS[id]) return;
+    if (skinUnlocked(id)) {
+      setSkin(id);
+      setSkinHint("");
+    } else {
+      tryBuySkin(id);
+      refreshSkinPicker();
+    }
+  });
+
+  try {
+    window.HubCoins?.onChange?.(() => refreshSkinPicker());
+  } catch {}
+  refreshSkinPicker();
 
   modePicker?.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-mode]");

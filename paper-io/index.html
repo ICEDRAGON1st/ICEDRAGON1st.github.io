@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260926x">
+  <link rel="stylesheet" href="styles.css?v=20261001dr">
 </head>
 <body>
   <div class="hud">
@@ -52,6 +52,26 @@
         <p id="online-code" class="online-code hidden"></p>
         <button id="online-cancel-btn" type="button" class="btn btn-secondary hidden">Leave lobby</button>
       </div>
+      <p class="picker-label">Skins</p>
+      <div id="skin-picker" class="skin-picker" role="group" aria-label="Player skin">
+        <button type="button" class="skin-btn active" data-skin="classic">Classic</button>
+        <button type="button" class="skin-btn skin-btn-locked" data-skin="ink" data-coin-skin="skin:paper-claim-ink">Ink · 250🪙</button>
+        <button type="button" class="skin-btn skin-btn-locked" data-skin="blueprint" data-coin-skin="skin:paper-claim-blueprint">Blueprint · 250🪙</button>
+        <button type="button" class="skin-btn skin-btn-locked" data-skin="honeycomb" data-coin-skin="skin:paper-claim-honeycomb">Honey · 250🪙</button>
+        <button type="button" class="skin-btn skin-btn-locked" data-skin="ocean" data-coin-skin="skin:paper-claim-ocean">Ocean · 300🪙</button>
+        <button type="button" class="skin-btn skin-btn-locked" data-skin="forest" data-coin-skin="skin:paper-claim-forest">Forest · 300🪙</button>
+        <button type="button" class="skin-btn skin-btn-locked" data-skin="candy" data-coin-skin="skin:paper-claim-candy">Candy · 300🪙</button>
+        <button type="button" class="skin-btn skin-btn-locked" data-skin="graffiti" data-coin-skin="skin:paper-claim-graffiti">Graffiti · 350🪙</button>
+        <button type="button" class="skin-btn skin-btn-locked" data-skin="storm" data-coin-skin="skin:paper-claim-storm">Storm · 350🪙</button>
+        <button type="button" class="skin-btn skin-btn-locked" data-skin="lava" data-coin-skin="skin:paper-claim-lava">Lava · 400🪙</button>
+        <button type="button" class="skin-btn skin-btn-locked" data-skin="ice" data-coin-skin="skin:paper-claim-ice">Ice · 400🪙</button>
+        <button type="button" class="skin-btn skin-btn-locked" data-skin="neon" data-coin-skin="skin:paper-claim-neon">Neon · 450🪙</button>
+        <button type="button" class="skin-btn skin-btn-locked" data-skin="pixel" data-coin-skin="skin:paper-claim-pixel">Pixel · 500🪙</button>
+        <button type="button" class="skin-btn skin-btn-locked" data-skin="shadow" data-coin-skin="skin:paper-claim-shadow">Shadow · 500🪙</button>
+        <button type="button" class="skin-btn skin-btn-locked" data-skin="rainbow" data-coin-skin="skin:paper-claim-rainbow">Rainbow · 500🪙</button>
+        <button type="button" class="skin-btn skin-btn-locked" data-skin="gold" data-coin-skin="skin:paper-claim-gold">Gold · 550🪙</button>
+      </div>
+      <p id="skin-lock-hint" class="skin-lock-hint" aria-live="polite"></p>
       <p id="overlay-best" class="overlay-best">Best claim: <strong>0%</strong></p>
       <div class="overlay-actions">
         <button id="resume-btn" type="button" class="btn btn-secondary hidden">Resume</button>
@@ -68,11 +88,13 @@
   <script src="../hub-supabase.js?v=20260923u"></script>
   <script src="../hub-account-bag.js?v=20260923ag"></script>
   <script src="../hub-plays.js?v=20260927k"></script>
+  <script src="../hub-coins.js?v=20261001dr"></script>
   <script src="../hub-eggs.js?v=20260926q"></script>
   <script src="../hub-friends.js?v=20260923u"></script>
   <script src="../hub-chat.js?v=20260927c"></script>
   <script src="../hub-calls.js?v=20260925a"></script>
   <script src="../hub-leaderboard.js?v=20260925a"></script>
-  <script src="script.js?v=20260928x"></script>
+  <script src="theme-packs.js?v=20261001dr"></script>
+  <script src="script.js?v=20261001dr"></script>
 </body>
 </html>

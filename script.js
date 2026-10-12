@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001dr": [
+    "Paper Claim: 15 coin skins (Ink, Neon, Honey, Lava, Ice, Pixel, Shadow, Rainbow, Gold, Ocean, Graffiti, Forest, Storm, Candy, Blueprint)"
+  ],
   "20261001dq": [
     "Wing Hop: remove trail lines from Ghost and Shadow skins"
   ],
@@ -4822,7 +4825,11 @@ function setCoinsStatus(msg, kind) {
 function shopItemKindLabel(item) {
   const kind = String(item?.kind || "");
   if (kind === "mascot") return "Help mascot";
-  if (kind === "skin") return "Game skin";
+  if (kind === "skin") {
+    if (item?.game === "paper") return "Paper Claim skin";
+    if (item?.game === "flappy") return "Wing Hop skin";
+    return "Game skin";
+  }
   return "Item";
 }
 
@@ -4863,6 +4870,34 @@ function shopMascotIconHtml(item) {
   }
   const emoji = mascot?.icon || "💬";
   return `<span class="coins-shop-icon coins-shop-icon-emoji" aria-hidden="true">${escapeHtml(emoji)}</span>`;
+}
+
+const PAPER_CLAIM_SHOP_ICONS = {
+  ink: { body: "#1a1b1e", wing: "#495057", accent: "#868e96", skyTop: "#e8eef5", skyBottom: "#c5d0dc" },
+  blueprint: { body: "#e7f5ff", wing: "#1c7ed6", accent: "#ffffff", skyTop: "#1c7ed6", skyBottom: "#1864ab" },
+  honeycomb: { body: "#fcc419", wing: "#ffec99", accent: "#d9480f", skyTop: "#d8f5a2", skyBottom: "#8ce99a" },
+  ocean: { body: "#22b8cf", wing: "#66d9e8", accent: "#e7f5ff", skyTop: "#0b2948", skyBottom: "#041526" },
+  forest: { body: "#40c057", wing: "#8ce99a", accent: "#2b8a3e", skyTop: "#2b8a3e", skyBottom: "#1b4332" },
+  candy: { body: "#f783ac", wing: "#fcc2d7", accent: "#be4bdb", skyTop: "#fff0f6", skyBottom: "#fcc2d7" },
+  graffiti: { body: "#ff6bcb", wing: "#ffd43b", accent: "#ffffff", skyTop: "#3d3d3d", skyBottom: "#1f1f1f" },
+  storm: { body: "#748ffc", wing: "#ffd166", accent: "#e7f5ff", skyTop: "#364fc7", skyBottom: "#1b1f3a" },
+  lava: { body: "#ff6b2c", wing: "#ffd43b", accent: "#ffa94d", skyTop: "#2b1210", skyBottom: "#120808" },
+  ice: { body: "#a5d8ff", wing: "#e7f5ff", accent: "#4c6ef5", skyTop: "#e7f5ff", skyBottom: "#74c0fc" },
+  neon: { body: "#22d3ee", wing: "#e93cac", accent: "#ff6bcb", skyTop: "#12081f", skyBottom: "#05040c" },
+  pixel: { body: "#51cf66", wing: "#ff6b6b", accent: "#ffd43b", skyTop: "#1a1b26", skyBottom: "#101018" },
+  shadow: { body: "#343a40", wing: "#212529", accent: "#be4bdb", skyTop: "#141018", skyBottom: "#07060a" },
+  rainbow: { body: "#ff6b6b", wing: "#845ef7", accent: "#51cf66", skyTop: "#fff0f6", skyBottom: "#e7f5ff" },
+  gold: { body: "#fcc419", wing: "#ffe066", accent: "#e67700", skyTop: "#fff9db", skyBottom: "#ffe8cc" }
+};
+
+function shopPaperSkinArtSvg(skinId, p) {
+  const b = escapeHtml(p.body);
+  const a = escapeHtml(p.accent || p.wing);
+  const svgOpen =
+    '<svg class="coins-shop-skin-art" viewBox="0 0 64 64" width="64" height="64" aria-hidden="true">';
+  const svgClose = "</svg>";
+  // Claim blob + trail ribbon preview
+  return `${svgOpen}<rect x="8" y="8" width="28" height="28" rx="6" fill="${b}" opacity=".55"/><path d="M36 36 C44 40, 50 48, 54 56" stroke="${a}" stroke-width="5" stroke-linecap="round" fill="none"/><circle cx="40" cy="40" r="9" fill="${b}"/><circle cx="37" cy="37" r="2.5" fill="#fff" opacity=".45"/>${svgClose}`;
 }
 
 function shopSkinArtSvg(skinId, p) {
@@ -4908,6 +4943,21 @@ function shopSkinArtSvg(skinId, p) {
 
 function shopSkinIconHtml(item) {
   const skinId = String(item?.skinId || "").toLowerCase();
+  const game = String(item?.game || "");
+  if (game === "paper") {
+    const preview = PAPER_CLAIM_SHOP_ICONS[skinId] || {
+      body: "#3ec6ff",
+      wing: "#1c7ed6",
+      accent: "#ffffff",
+      skyTop: "#102338",
+      skyBottom: "#060d16"
+    };
+    return `<span class="coins-shop-icon coins-shop-skin-icon coins-shop-skin-art-wrap" aria-hidden="true" style="--skin-sky-top:${escapeHtml(
+      preview.skyTop
+    )};--skin-sky-bottom:${escapeHtml(preview.skyBottom)};--skin-body:${escapeHtml(
+      preview.body
+    )};--skin-wing:${escapeHtml(preview.wing)}">${shopPaperSkinArtSvg(skinId, preview)}</span>`;
+  }
   const preview = WING_HOP_SHOP_ICONS[skinId] || {
     emoji: "🐉",
     body: "#3d5a80",
@@ -4968,9 +5018,14 @@ function renderCoinsPanel() {
   const mascots = shop.filter((i) => i.kind === "mascot");
   const skins = shop.filter((i) => i.kind === "skin");
   const other = shop.filter((i) => i.kind !== "mascot" && i.kind !== "skin");
+  const wingSkins = skins.filter((i) => i.game === "flappy");
+  const paperSkins = skins.filter((i) => i.game === "paper");
+  const otherSkins = skins.filter((i) => i.game !== "flappy" && i.game !== "paper");
   const sections = [
     { title: "Help mascots", items: mascots },
-    { title: "Game skins", items: skins },
+    { title: "Wing Hop skins", items: wingSkins },
+    { title: "Paper Claim skins", items: paperSkins },
+    { title: "Game skins", items: otherSkins },
     { title: "More", items: other }
   ].filter((s) => s.items.length);
   list.innerHTML = sections
