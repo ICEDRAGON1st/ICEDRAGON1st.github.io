@@ -3551,6 +3551,18 @@ html[data-mygames-desktop="1"] .coins-panel.coins-shop-overlay {
   gap: 0.35rem;
 }
 
+.hub-btn-download-app {
+  border-color: rgba(120, 210, 160, 0.45);
+  background: rgba(80, 180, 120, 0.14);
+  color: #b8ffd0;
+  text-decoration: none;
+}
+
+.hub-btn-download-app:hover {
+  border-color: rgba(140, 240, 180, 0.7);
+  background: rgba(80, 180, 120, 0.22);
+}
+
 @media (max-width: 640px) {
   .coins-shop-grid {
     grid-template-columns: 1fr;

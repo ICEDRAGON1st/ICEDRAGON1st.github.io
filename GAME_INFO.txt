@@ -14,7 +14,7 @@ Main Objective: Play a collection of 29 browser minigames from one hub. Pick a g
 
 Controls: Hub: tap a game card to play; search box filters games; star favorites a game. Help Assistant: tap ? or press F (use F1 inside letter games — Guessword, Hangman, Quiz, Sudoku). Hold Tab to peek who is online. Esc / ☰ Menu pauses most action games and offers Games to return to the hub. Guessword: Daily = one shared Classic 5-letter word; Practice = flex 4/5/6 letters with optional word themes; languages EN/DA/IS; deep link #wordle. Per-game move/shoot keys differ — ask Help “how to play” while inside a game, or see each Game line below.
 
-Menus: Hub home (My Games grid) has Continue last game, High scores, Leaderboards, Achievements, Players, Titles (title + name color pickers), Shop / Coins (full-screen shop stage like Help — balance, daily reward, pickup, Help mascots + Wing Hop UFO skin), Friends, Updates, Feedback, Credits (music attribution), Share game, Discord, and ⚙ Settings (Music/SFX volume, searchable song picker Auto or fixed track, hub look themes, account / player name / player code / transfer / optional password / Discord login, Help mascot picker, notifications). Inside games: press Esc (or ☰ Menu) while playing to open the pause Menu — Sound & music + song search appear there. Settings where available (e.g. Fishing Idle ⚙), and Games to return to the hub. Background music crossfades by screen when Song is Auto.
+Menus: Hub home (My Games grid) has Continue last game, High scores, Leaderboards, Achievements, Players, Titles (title + name color pickers), Shop / Coins (full-screen shop stage like Help — balance, daily reward, pickup, Help mascots + Wing Hop UFO skin), Friends, Updates, Feedback, Credits (music attribution), Share game, Download app (Windows installer), Discord, and ⚙ Settings (Music/SFX volume, searchable song picker Auto or fixed track, hub look themes, account / player name / player code / transfer / optional password / Discord login, Help mascot picker, notifications). Inside games: press Esc (or ☰ Menu) while playing to open the pause Menu — Sound & music + song search appear there. Settings where available (e.g. Fishing Idle ⚙), and Games to return to the hub. Background music crossfades by screen when Song is Auto.
 
 Hub Coins: Browser localStorage wallet (per player code on this device). Starts at 0. Earn: +5 defeat enemy, +25 win round/level, +50 daily first hub open each day, +25 pickup once every hour, +10 Help AI quest once per day. Spend in Coins shop (Help mascots, Wing Hop UFO skin for 350). Not enough coins shows: You need more coins for this item! Ask Help “how many coins do I have?” to read the saved balance.
 
@@ -30,7 +30,7 @@ RULES & COMMUNITY
 
 Rules: Be fair — no spoilers for secret words, hidden tiles, or live puzzle answers. Unique nicknames are claimed once and locked to that player’s code (don’t impersonate others). Keep chat and Feedback respectful. Help only covers My Games (not homework or real-world trivia). Passwords and other players’ private codes are never shown by Help.
 
-Support Links: Discord invite https://discord.gg/6NHYfPwAwg · Website https://icedragon1st.github.io/ · Hub Feedback button · Updates panel for changelog
+Support Links: Discord invite https://discord.gg/6NHYfPwAwg · Website https://icedragon1st.github.io/ · Download app (Windows) via hub toolbar · Hub Feedback button · Updates panel for changelog
 
 HUB FEATURES
 
