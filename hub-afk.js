@@ -103,6 +103,7 @@
       "box-shadow:0 18px 40px rgba(0,0,0,.35)}" +
       "#hub-afk-overlay h2{margin:0 0 .45rem;font-size:1.45rem;font-weight:800}" +
       "#hub-afk-overlay p{margin:0 0 1rem;color:#9aa8c7;font-size:.95rem;line-height:1.45;font-weight:600}" +
+      "#hub-afk-overlay .hub-afk-hint{margin:-.35rem 0 1rem;font-size:.78rem;color:#7f96b8;font-weight:650}" +
       "#hub-afk-overlay .hub-afk-btn{appearance:none;border:0;border-radius:999px;padding:.7rem 1.35rem;" +
       "font:inherit;font-weight:800;cursor:pointer;color:#10182a;background:linear-gradient(135deg,#7c9cff,#a78bfa)}" +
       "#hub-afk-overlay .hub-afk-btn:hover{filter:brightness(1.06)}" +
@@ -127,6 +128,7 @@
       '<div class="hub-afk-card">' +
       '<h2 id="hub-afk-title">You\'re AFK</h2>' +
       "<p>Cloud sync is paused on this device to save data. Other players are unaffected.</p>" +
+      "<p class=\"hub-afk-hint\">Click Resume / the backdrop, or press Esc — mouse move won't wake you.</p>" +
       '<button type="button" class="hub-afk-btn" id="hub-afk-resume">Resume</button>' +
       "</div>";
     overlay.addEventListener("click", (e) => {
@@ -200,17 +202,20 @@
   }
 
   function onActivity(e) {
-    if (afk) {
-      // Only the overlay itself resumes (button / backdrop). Ignore background game noise.
-      if (e && overlay && overlay.classList.contains("is-open")) {
-        if (e.target === overlay || (e.target && e.target.closest && e.target.closest("#hub-afk-resume"))) {
-          resume();
-        }
-      }
-      return;
-    }
+    // While AFK: ignore mouse move / wheel / background noise entirely.
+    // Resume only via overlay click handler or Esc (onAfkKeyDown).
+    if (afk) return;
     const move = e && (e.type === "mousemove" || e.type === "pointermove");
     markActivity(!!move);
+  }
+
+  function onAfkKeyDown(e) {
+    if (!afk || !e) return;
+    if (e.key !== "Escape" && e.code !== "Escape") return;
+    e.preventDefault();
+    e.stopPropagation();
+    if (typeof e.stopImmediatePropagation === "function") e.stopImmediatePropagation();
+    resume();
   }
 
   function start() {
@@ -221,10 +226,12 @@
     });
     window.addEventListener("mousemove", onActivity, opts);
     window.addEventListener("pointermove", onActivity, opts);
+    // Esc must resume even while AFK (capture so games don't swallow it).
+    window.addEventListener("keydown", onAfkKeyDown, true);
     document.addEventListener(
       "visibilitychange",
       () => {
-        if (!document.hidden) markActivity(false);
+        if (!document.hidden && !afk) markActivity(false);
       },
       false
     );
