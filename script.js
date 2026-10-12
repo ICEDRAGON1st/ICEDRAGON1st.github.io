@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001eg": [
+    "Paper Claim: major lag fix — fast land rendering, lighter trails"
+  ],
   "20261001ef": [
     "Paper Claim: big performance fix (less lag while claiming / with skins)"
   ],
