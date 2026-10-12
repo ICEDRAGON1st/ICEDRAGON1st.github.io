@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ej": [
+    "Paper Claim: claimed land merges into smooth blobs (no stacked circles)"
+  ],
   "20261001ei": [
     "Paper Claim: themed land props back on soft circle land"
   ],

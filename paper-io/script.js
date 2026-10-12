@@ -5,7 +5,7 @@
   const ARENA_SHAPES = ["box", "circle", "star", "hex", "diamond", "triangle"];
   const VIEW_SPAN_MIN = 72; // slightly wider than tight paper.io zoom
   const VIEW_SPAN_MAX = 160;
-  const LAND_PX = 3; // soft overlapping disks (animated land tint stays off — lag)
+  const LAND_PX = 5; // hi-res soft disks; opaque fill so overlaps merge (no alpha stacking)
   const SPEED = 24;
   const TURN_RATE = 10.5; // rad/s — sharp cuts, not huge arcs
   const TURN_RATE_HARD = 16; // extra snap for big direction changes
@@ -1130,6 +1130,12 @@
       ];
     }
     return [62, 198, 255, 210];
+  }
+
+  /** Opaque land tint — translucent soft colors stack as visible circles. */
+  function landPaintColor(soft) {
+    const [r, g, b] = softToRgba(soft);
+    return `rgb(${r},${g},${b})`;
   }
 
   function clearGrid() {
@@ -2396,16 +2402,20 @@
       }
     }
 
-    const rad = LAND_PX * 0.78;
+    // Heavy overlap + opaque fill → one continuous blob (not stacked circles)
+    const rad = LAND_PX * 0.92;
     for (const [owner, list] of cellsByOwner) {
-      landCtx.fillStyle = softByOwner.get(owner) || COLORS[0].soft;
+      landCtx.fillStyle = landPaintColor(softByOwner.get(owner) || COLORS[0].soft);
+      landCtx.beginPath();
       for (let k = 0; k < list.length; k += 2) {
         const x = list[k];
         const y = list[k + 1];
-        landCtx.beginPath();
-        landCtx.arc((x + 0.5) * LAND_PX, (y + 0.5) * LAND_PX, rad, 0, Math.PI * 2);
-        landCtx.fill();
+        const cx = (x + 0.5) * LAND_PX;
+        const cy = (y + 0.5) * LAND_PX;
+        landCtx.moveTo(cx + rad, cy);
+        landCtx.arc(cx, cy, rad, 0, Math.PI * 2);
       }
+      landCtx.fill();
     }
 
     // Themed props inside your claimed land (arena floor stays classic)
@@ -2748,12 +2758,13 @@
     try {
       ctx.imageSmoothingQuality = "high";
     } catch {}
-    // Soften cell edges a touch when zoomed (cheap vs per-cell blur bake)
-    if (typeof ctx.filter === "string" && viewSpan < 110) {
-      ctx.filter = `blur(${(0.18 * scale).toFixed(2)}px)`;
+    // Soften perimeter so adjacent disks read as one smooth shape
+    if (typeof ctx.filter === "string") {
+      const blurPx = Math.max(0.22, 0.32 * scale).toFixed(2);
+      ctx.filter = `blur(${blurPx}px)`;
       ctx.drawImage(landLayer, 0, 0, landLayer.width, landLayer.height, 0, 0, WORLD, WORLD);
       ctx.filter = "none";
-      ctx.globalAlpha = 0.7;
+      ctx.globalAlpha = 0.82;
       ctx.drawImage(landLayer, 0, 0, landLayer.width, landLayer.height, 0, 0, WORLD, WORLD);
       ctx.globalAlpha = 1;
     } else {
