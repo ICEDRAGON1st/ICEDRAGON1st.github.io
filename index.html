@@ -7,8 +7,8 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>My Games</title>
-  <link rel="icon" href="icon.png?v=20261001cu" type="image/png" sizes="any">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20261001cu">
+  <link rel="icon" href="icon.png?v=20261001cv" type="image/png" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20261001cv">
   <link rel="manifest" href="site.webmanifest">
   <meta name="theme-color" content="#5b4dff">
   <meta property="og:title" content="My Games">
@@ -98,9 +98,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261001cu">
-  <script src="hub-net.js?v=20261001cu"></script>
-  <script src="hub-afk.js?v=20261001cu"></script>
+  <link rel="stylesheet" href="styles.css?v=20261001cv">
+  <script src="hub-net.js?v=20261001cv"></script>
+  <script src="hub-afk.js?v=20261001cv"></script>
 </head>
 <body data-guess-colors="ice">
   <div id="hub-boot-loader" aria-live="polite" aria-busy="true">
@@ -282,10 +282,10 @@
         <button id="toggle-achievements-btn" type="button" class="hub-btn">🏆 Achievements</button>
         <button id="toggle-players-btn" type="button" class="hub-btn">Players</button>
         <button id="toggle-titles-btn" type="button" class="hub-btn">Titles</button>
-        <button id="toggle-coins-btn" type="button" class="hub-btn hub-coins-toolbar-btn">
+        <button id="toggle-coins-btn" type="button" class="hub-btn hub-coins-toolbar-btn" aria-controls="coins-panel" aria-expanded="false">
           <span aria-hidden="true">🪙</span>
           <span data-hub-coins-balance>0</span>
-          Coins
+          Shop
         </button>
         <button id="toggle-friends-btn" type="button" class="hub-btn">Friends</button>
         <button id="toggle-updates-btn" type="button" class="hub-btn">Updates</button>
@@ -484,19 +484,6 @@
         <p id="titles-panel-hint" class="titles-panel-hint">Set a player name in Players first if pickers stay empty.</p>
       </div>
 
-      <div id="coins-panel" class="coins-panel hidden">
-        <h3>Coins <span class="coins-balance-pill" aria-live="polite"><span aria-hidden="true">🪙</span> <span data-hub-coins-balance>0</span></span></h3>
-        <p class="coins-intro">Hub coins save in this browser. Earn them from wins, daily login, pickups, and Help quests — spend them on Help mascots in the shop below.</p>
-        <div class="coins-actions">
-          <button type="button" id="coins-daily-btn" class="hub-btn hub-btn-primary" data-hub-coins-daily>Claim daily (+50)</button>
-          <button type="button" id="coins-pickup-btn" class="hub-btn" data-hub-coins-pickup title="Grab +25 coins (once per hour)">Pick up coin (+25)</button>
-        </div>
-        <p id="coins-status" class="coins-status" aria-live="polite"></p>
-        <p class="hub-settings-label">Coin shop</p>
-        <ul id="coins-shop-list" class="coins-shop-list"></ul>
-        <p class="coins-hint">Ask Help “how many coins do I have?” anytime. Win a round for +25 · defeat an enemy for +5 · pickup +25 once per hour · Help quest +10 once a day. Shop also sells the Wing Hop UFO skin.</p>
-      </div>
-
       <div id="friends-panel" class="friends-panel hidden">
         <h3>Friends</h3>
         <p class="friends-intro">Add people by username, accept requests, chat, and invite them to play.</p>
@@ -536,10 +523,31 @@
         <div id="achievements-grid" class="achievements-grid"></div>
       </div>
 
+      <div id="hub-play-area" class="hub-play-area">
       <label class="hub-search-wrap games-search-wrap" for="games-search">
         <span class="visually-hidden">Search games</span>
         <input id="games-search" class="hub-search-input" type="search" placeholder="Search games…" autocomplete="off" spellcheck="false">
       </label>
+
+      <div id="coins-panel" class="coins-panel coins-shop-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="coins-shop-title">
+        <div class="coins-shop-sheet">
+          <div class="coins-shop-head">
+            <div class="coins-shop-title-wrap">
+              <h3 id="coins-shop-title">Coin shop</h3>
+              <span class="coins-balance-pill" aria-live="polite"><span aria-hidden="true">🪙</span> <span data-hub-coins-balance>0</span></span>
+            </div>
+            <button type="button" id="coins-shop-close" class="hub-btn coins-shop-close" aria-label="Close shop">Close</button>
+          </div>
+          <p class="coins-intro">Spend hub coins on Help mascots and skins. Coins save on this device with your account.</p>
+          <div class="coins-actions">
+            <button type="button" id="coins-daily-btn" class="hub-btn hub-btn-primary" data-hub-coins-daily>Claim daily (+50)</button>
+            <button type="button" id="coins-pickup-btn" class="hub-btn" data-hub-coins-pickup title="Grab +25 coins (once per hour)">Pick up coin (+25)</button>
+          </div>
+          <p id="coins-status" class="coins-status" aria-live="polite"></p>
+          <div id="coins-shop-list" class="coins-shop-list" role="list"></div>
+          <p class="coins-hint">Earn: +25 win · +5 enemy · +50 daily · +25 pickup (1h) · +10 Help quest (daily). Ask Help “how many coins do I have?” anytime.</p>
+        </div>
+      </div>
 
       <div class="games-grid" id="games-grid">
         <button type="button" class="game-card" data-game="wordle">
@@ -775,6 +783,7 @@
           <span class="game-card-score" data-score-for="paper"></span>
         </button>
       </div>
+      </div>
     </div>
   </div>
 
@@ -794,7 +803,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20261001cu";
+    window.WORDLE_BUILD = "20261001cv";
     try {
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("sw.js?v=" + window.WORDLE_BUILD).catch(function () {});
