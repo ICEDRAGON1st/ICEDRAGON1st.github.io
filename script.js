@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ec": [
+    "Paper Claim: cleaner menu dock icons (no glitchy unicode)"
+  ],
   "20261001eb": [
     "Paper Claim: Neon land pulses cyan/pink only (not a rainbow cycle)"
   ],

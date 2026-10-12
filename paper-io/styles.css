@@ -683,22 +683,35 @@ body {
 }
 
 .dock-ico {
-  width: 1.85rem;
-  height: 1.85rem;
-  border-radius: 0.65rem;
+  width: 2.15rem;
+  height: 2.15rem;
+  border-radius: 0.7rem;
   border: 2.5px solid var(--ink);
   background: #6ec4f5;
   color: #fff;
-  display: grid;
-  place-items: center;
-  font-size: 0.75rem;
-  font-weight: 700;
+  display: block;
+  position: relative;
+  flex-shrink: 0;
   box-shadow: 0 2px 0 rgba(13, 42, 77, 0.15);
+  overflow: hidden;
+}
+
+.dock-play::before {
+  content: "";
+  position: absolute;
+  left: 52%;
+  top: 50%;
+  width: 0;
+  height: 0;
+  border-style: solid;
+  border-width: 0.42rem 0 0.42rem 0.72rem;
+  border-color: transparent transparent transparent #fff;
+  transform: translate(-35%, -50%);
+  filter: drop-shadow(0 1px 0 rgba(13, 42, 77, 0.25));
 }
 
 .dock-face {
   background: #fff;
-  position: relative;
 }
 
 .dock-face::before,
@@ -706,14 +719,59 @@ body {
   content: "";
   position: absolute;
   top: 42%;
-  width: 0.28rem;
-  height: 0.28rem;
+  width: 0.32rem;
+  height: 0.32rem;
   border-radius: 50%;
   background: var(--ink);
 }
 
-.dock-face::before { left: 28%; }
-.dock-face::after { right: 28%; }
+.dock-face::before { left: 26%; }
+.dock-face::after { right: 26%; }
+
+.dock-online::before,
+.dock-online::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-sizing: border-box;
+}
+
+.dock-online::before {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.dock-online::after {
+  width: 0.45rem;
+  height: 0.45rem;
+  background: #fff;
+  border-width: 0;
+}
+
+.dock-games {
+  background: #5bb3ef;
+}
+
+.dock-games::before {
+  content: "";
+  position: absolute;
+  inset: 0.38rem;
+  border-radius: 0.2rem;
+  background:
+    linear-gradient(#fff, #fff) 0 0 / 0.32rem 0.32rem no-repeat,
+    linear-gradient(#fff, #fff) 50% 0 / 0.32rem 0.32rem no-repeat,
+    linear-gradient(#fff, #fff) 100% 0 / 0.32rem 0.32rem no-repeat,
+    linear-gradient(#fff, #fff) 0 50% / 0.32rem 0.32rem no-repeat,
+    linear-gradient(#fff, #fff) 50% 50% / 0.32rem 0.32rem no-repeat,
+    linear-gradient(#fff, #fff) 100% 50% / 0.32rem 0.32rem no-repeat,
+    linear-gradient(#fff, #fff) 0 100% / 0.32rem 0.32rem no-repeat,
+    linear-gradient(#fff, #fff) 50% 100% / 0.32rem 0.32rem no-repeat,
+    linear-gradient(#fff, #fff) 100% 100% / 0.32rem 0.32rem no-repeat;
+}
 
 .overlay[data-panel="skins"] .menu-hero {
   flex: 0 1 auto;
