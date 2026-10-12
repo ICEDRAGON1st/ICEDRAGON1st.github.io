@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001eu": [
+    "Sticker Garage: no patience timer — take your time on each wrap"
+  ],
   "20261001et": [
     "New game: Sticker Garage — wrap cars for customers, earn cash, unlock sticker packs"
   ],

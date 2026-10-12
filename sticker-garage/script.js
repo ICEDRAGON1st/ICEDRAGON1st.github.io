@@ -41,27 +41,6 @@
       }
     },
     {
-      id: "patience1",
-      name: "Cool AC",
-      desc: "Customers wait 25% longer",
-      cost: 180,
-      icon: "❄️",
-      apply: (s) => {
-        s.patienceMult = Math.max(s.patienceMult || 1, 1.25);
-      }
-    },
-    {
-      id: "patience2",
-      name: "Lounge seats",
-      desc: "Customers wait 50% longer",
-      cost: 480,
-      icon: "🛋️",
-      requires: "patience1",
-      apply: (s) => {
-        s.patienceMult = Math.max(s.patienceMult || 1, 1.5);
-      }
-    },
-    {
       id: "pay1",
       name: "Neon sign",
       desc: "+20% base job pay",
@@ -107,7 +86,6 @@
     face: document.getElementById("customer-face"),
     name: document.getElementById("customer-name"),
     order: document.getElementById("customer-order"),
-    patience: document.getElementById("patience-fill"),
     stage: document.getElementById("car-stage"),
     layer: document.getElementById("sticker-layer"),
     tray: document.getElementById("sticker-tray"),
@@ -137,10 +115,7 @@
   let running = false;
   let paused = false;
   let recordedPlay = false;
-  let patienceLeft = 1;
-  let lastTs = 0;
   let toastTimer = 0;
-  let raf = 0;
 
   function defaultSave() {
     return {
@@ -150,7 +125,6 @@
       unlocked: ["star"],
       upgrades: [],
       tipMult: 1,
-      patienceMult: 1,
       payMult: 1
     };
   }
@@ -166,7 +140,6 @@
       if (!next.unlocked.includes("star")) next.unlocked.push("star");
       if (!Array.isArray(next.upgrades)) next.upgrades = [];
       next.tipMult = Number(next.tipMult) || 1;
-      next.patienceMult = Number(next.patienceMult) || 1;
       next.payMult = Number(next.payMult) || 1;
       return next;
     } catch {
@@ -300,11 +273,6 @@
     return `Wrap it with ${bits.slice(0, -1).join(", ")}, and ${bits[bits.length - 1]}.`;
   }
 
-  function patienceSeconds() {
-    const base = 22 + Math.min(10, (job?.needs?.length || 1) * 3);
-    return base * (save.patienceMult || 1);
-  }
-
   function nextJob() {
     placed = [];
     selectedId = selectedId && isUnlocked(selectedId) ? selectedId : null;
@@ -321,8 +289,6 @@
     els.face.textContent = job.face;
     els.name.textContent = job.name;
     els.order.innerHTML = `${orderHtml(needs)} <span style="opacity:.75">${orderSpeech(needs)}</span>`;
-    patienceLeft = 1;
-    els.patience.style.transform = "scaleX(1)";
     renderPlaced();
     renderTray();
     els.hint.textContent = "Match their order — extras cut the tip.";
@@ -370,9 +336,6 @@
     } else {
       pay = Math.max(4, pay - g.extras * 4 - g.missing * 6);
     }
-    const patienceBonus = patienceLeft > 0.55 ? Math.round(4 * payMult) : 0;
-    pay += patienceBonus;
-
     save.cash += pay;
     save.earned += pay;
     save.jobs += 1;
@@ -394,14 +357,6 @@
       showToast(`Messy wrap — +$${pay}`, "is-bad");
     }
 
-    nextJob();
-  }
-
-  function failJob(reason) {
-    showToast(reason || "Customer left…", "is-bad");
-    try {
-      window.HubSound?.play?.("error");
-    } catch {}
     nextJob();
   }
 
@@ -553,7 +508,6 @@
   function hideMenu() {
     els.overlay.classList.add("hidden");
     paused = false;
-    lastTs = performance.now();
   }
 
   function startGame() {
@@ -563,24 +517,6 @@
     hideMenu();
     closeShop();
     if (!job) nextJob();
-    lastTs = performance.now();
-    if (!raf) raf = requestAnimationFrame(tick);
-  }
-
-  function tick(ts) {
-    raf = requestAnimationFrame(tick);
-    if (!running || paused || !job) {
-      lastTs = ts;
-      return;
-    }
-    const dt = Math.min(0.05, (ts - lastTs) / 1000);
-    lastTs = ts;
-    const total = patienceSeconds();
-    patienceLeft = Math.max(0, patienceLeft - dt / total);
-    els.patience.style.transform = `scaleX(${patienceLeft})`;
-    if (patienceLeft <= 0) {
-      failJob(`${job.name} got tired of waiting`);
-    }
   }
 
   // Events

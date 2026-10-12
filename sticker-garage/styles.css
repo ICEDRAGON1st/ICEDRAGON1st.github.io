@@ -91,8 +91,8 @@ body {
 .customer-bar {
   display: grid;
   grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
   gap: 0.35rem 0.7rem;
+  align-items: center;
   padding: 0.75rem 0.85rem;
   background: var(--card);
   color: var(--ink);
@@ -102,7 +102,6 @@ body {
 }
 
 .customer-face {
-  grid-row: 1 / 3;
   width: 52px;
   height: 52px;
   border-radius: 16px;
@@ -110,7 +109,6 @@ body {
   place-items: center;
   font-size: 1.7rem;
   background: linear-gradient(160deg, #ffe0b8, #ffc078);
-  align-self: center;
 }
 
 .customer-name {
@@ -137,24 +135,6 @@ body {
   border-radius: 999px;
   background: rgba(255, 138, 61, 0.18);
   font-weight: 800;
-}
-
-.patience {
-  grid-column: 1 / -1;
-  height: 8px;
-  border-radius: 999px;
-  background: rgba(26, 20, 16, 0.1);
-  overflow: hidden;
-}
-
-.patience-fill {
-  height: 100%;
-  width: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, var(--accent-2), #ffd24a, var(--danger));
-  background-size: 200% 100%;
-  transform-origin: left center;
-  transition: transform 0.1s linear;
 }
 
 .bay {
