@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001en": [
+    "Coin shop: unique Dudes walker icons (no Wing Hop ghost/rainbow copies)"
+  ],
   "20261001em": [
     "Dudes: 21 walker skins (free Classic/Blue + coin unlocks)"
   ],
@@ -4963,6 +4966,87 @@ function shopPaperSkinArtSvg(skinId, p) {
   return `${svgOpen}<rect x="8" y="8" width="28" height="28" rx="6" fill="${b}" opacity=".55"/><path d="M36 36 C44 40, 50 48, 54 56" stroke="${a}" stroke-width="5" stroke-linecap="round" fill="none"/><circle cx="40" cy="40" r="9" fill="${b}"/><circle cx="37" cy="37" r="2.5" fill="#fff" opacity=".45"/>${svgClose}`;
 }
 
+/** Coin-shop previews for Dudes — tiny walkers, not Wing Hop copies. */
+const DUDES_SHOP_ICONS = {
+  sunset: { body: "#fb7185", hat: "#9f1239", face: "#ffedd5", skyTop: "#fda4af", skyBottom: "#9f1239" },
+  honey: { body: "#f59e0b", hat: "#78350f", face: "#fef3c7", skyTop: "#fde68a", skyBottom: "#b45309" },
+  mint: { body: "#6ee7b7", hat: "#047857", face: "#ecfdf5", skyTop: "#a7f3d0", skyBottom: "#065f46", hatStyle: "pom" },
+  midnight: { body: "#334155", hat: "#0f172a", face: "#a5f3fc", skyTop: "#1e293b", skyBottom: "#020617" },
+  beanie: { body: "#22c55e", hat: "#7c3aed", face: "#fde68a", skyTop: "#c4b5fd", skyBottom: "#5b21b6", hatStyle: "beanie" },
+  hardhat: { body: "#22c55e", hat: "#facc15", face: "#fde68a", skyTop: "#fef08a", skyBottom: "#3f6212", hatStyle: "hardhat" },
+  bandana: { body: "#16a34a", hat: "#dc2626", face: "#fde68a", skyTop: "#fecaca", skyBottom: "#14532d", hatStyle: "bandana" },
+  builder: { body: "#ea580c", hat: "#facc15", face: "#fde68a", vest: "#fb923c", skyTop: "#fdba74", skyBottom: "#9a3412", hatStyle: "hardhat" },
+  floater: { body: "#38bdf8", hat: "#0369a1", face: "#fde68a", skyTop: "#bae6fd", skyBottom: "#075985", float: true },
+  climber: { body: "#22c55e", hat: "#14532d", face: "#fde68a", skyTop: "#86efac", skyBottom: "#14532d", pack: true },
+  blocker: { body: "#f97316", hat: "#9a3412", face: "#fde68a", skyTop: "#fdba74", skyBottom: "#7c2d12", stop: true },
+  propeller: { body: "#22c55e", hat: "#0ea5e9", face: "#fde68a", skyTop: "#7dd3fc", skyBottom: "#0369a1", hatStyle: "propeller" },
+  bomber: { body: "#64748b", hat: "#1e293b", face: "#fde68a", skyTop: "#94a3b8", skyBottom: "#0f172a", fuse: true },
+  cat: { body: "#a78bfa", hat: "#6d28d9", face: "#fde68a", skyTop: "#ddd6fe", skyBottom: "#5b21b6", hatStyle: "ears" },
+  duck: { body: "#facc15", hat: "#eab308", face: "#fef08a", skyTop: "#fef9c3", skyBottom: "#ca8a04", hatStyle: "beak" },
+  crown: { body: "#22c55e", hat: "#eab308", face: "#fde68a", skyTop: "#fde68a", skyBottom: "#166534", hatStyle: "crown" },
+  ghost: { body: "#f8fafc", hat: "#e2e8f0", face: "#0f172a", skyTop: "#cbd5e1", skyBottom: "#334155", special: "ghost" },
+  robot: { body: "#94a3b8", hat: "#475569", face: "#22d3ee", skyTop: "#e2e8f0", skyBottom: "#334155", special: "robot" },
+  rainbow: { body: "#22c55e", hat: "#14532d", face: "#fff7ed", skyTop: "#fda4af", skyBottom: "#818cf8", special: "rainbow" }
+};
+
+function shopDudesSkinArtSvg(skinId, p) {
+  const body = escapeHtml(p.body);
+  const hat = escapeHtml(p.hat || p.body);
+  const face = escapeHtml(p.face || "#fde68a");
+  const vest = escapeHtml(p.vest || "");
+  const style = p.hatStyle || "flat";
+  const svgOpen =
+    '<svg class="coins-shop-skin-art" viewBox="0 0 64 64" width="64" height="64" aria-hidden="true">';
+  const svgClose = "</svg>";
+
+  if (p.special === "ghost") {
+    return `${svgOpen}<ellipse cx="32" cy="34" rx="12" ry="16" fill="${body}" opacity=".92"/><rect x="26" y="28" width="4" height="5" rx="1" fill="${face}"/><rect x="34" y="28" width="4" height="5" rx="1" fill="${face}"/>${svgClose}`;
+  }
+  if (p.special === "robot") {
+    return `${svgOpen}<rect x="22" y="22" width="20" height="24" rx="2" fill="${body}"/><rect x="22" y="16" width="20" height="8" fill="${hat}"/><rect x="32" y="26" width="8" height="7" fill="${face}"/><rect x="34" y="28" width="3" height="3" fill="#0ea5e9"/>${svgClose}`;
+  }
+  if (p.special === "rainbow") {
+    return `${svgOpen}<rect x="18" y="14" width="6" height="6" fill="#ef4444"/><rect x="24" y="14" width="6" height="6" fill="#f59e0b"/><rect x="30" y="14" width="6" height="6" fill="#22c55e"/><rect x="36" y="14" width="6" height="6" fill="#3b82f6"/><rect x="42" y="14" width="6" height="6" fill="#a855f7"/><rect x="24" y="26" width="16" height="20" rx="2" fill="${body}"/><rect x="24" y="20" width="16" height="7" fill="${hat}"/><rect x="32" y="28" width="7" height="7" fill="${face}"/>${svgClose}`;
+  }
+
+  let hatSvg = `<rect x="24" y="20" width="16" height="7" fill="${hat}"/>`;
+  if (style === "beanie") {
+    hatSvg = `<ellipse cx="32" cy="22" rx="10" ry="7" fill="${hat}"/><rect x="22" y="22" width="20" height="5" fill="${hat}"/>`;
+  } else if (style === "hardhat") {
+    hatSvg = `<rect x="22" y="20" width="20" height="7" fill="${hat}"/><rect x="26" y="15" width="12" height="6" fill="${hat}"/>`;
+  } else if (style === "crown") {
+    hatSvg = `<path d="M22 28 L22 16 L28 22 L32 14 L36 22 L42 16 L42 28 Z" fill="${hat}"/><rect x="30" y="17" width="4" height="4" fill="#fef08a"/>`;
+  } else if (style === "propeller") {
+    hatSvg = `<rect x="24" y="20" width="16" height="7" fill="${hat}"/><line x1="20" y1="14" x2="44" y2="14" stroke="#e2e8f0" stroke-width="2.5" stroke-linecap="round"/><rect x="30" y="12" width="4" height="9" fill="#94a3b8"/>`;
+  } else if (style === "bandana") {
+    hatSvg = `<rect x="24" y="20" width="16" height="7" fill="${hat}"/><rect x="28" y="20" width="5" height="7" fill="#fef2f2"/><path d="M40 24 L48 30 L40 28 Z" fill="${hat}"/>`;
+  } else if (style === "pom") {
+    hatSvg = `<rect x="24" y="20" width="16" height="7" fill="${hat}"/><circle cx="32" cy="14" r="4" fill="#fff"/>`;
+  } else if (style === "ears") {
+    hatSvg = `<rect x="24" y="20" width="16" height="7" fill="${hat}"/><path d="M22 20 L18 10 L28 20 Z" fill="${hat}"/><path d="M42 20 L46 10 L36 20 Z" fill="${hat}"/>`;
+  } else if (style === "beak") {
+    hatSvg = `<rect x="24" y="20" width="16" height="7" fill="${hat}"/><path d="M36 30 L48 34 L36 38 Z" fill="#ea580c"/>`;
+  }
+
+  const vestSvg = vest
+    ? `<rect x="26" y="34" width="12" height="8" fill="${vest}"/>`
+    : "";
+  const stopSvg = p.stop
+    ? `<rect x="28" y="34" width="8" height="8" fill="#ef4444"/><rect x="29" y="37" width="6" height="2" fill="#fff"/>`
+    : "";
+  const packSvg = p.pack
+    ? `<rect x="18" y="34" width="5" height="10" fill="#38bdf8"/><line x1="20" y1="34" x2="20" y2="24" stroke="#7dd3fc" stroke-width="1.5"/>`
+    : "";
+  const fuseSvg = p.fuse
+    ? `<rect x="30" y="12" width="4" height="8" fill="#fbbf24"/><circle cx="32" cy="10" r="3" fill="#fb7185"/>`
+    : "";
+  const floatSvg = p.float
+    ? `<path d="M20 18 A12 10 0 0 1 44 18" fill="#f8fafc"/><rect x="22" y="16" width="5" height="6" fill="#ef4444"/><rect x="30" y="16" width="5" height="6" fill="#3b82f6"/><line x1="32" y1="26" x2="32" y2="30" stroke="#94a3b8" stroke-width="1.5"/>`
+    : "";
+
+  return `${svgOpen}${floatSvg}${fuseSvg}<rect x="24" y="26" width="16" height="20" rx="2" fill="${body}"/>${vestSvg}${hatSvg}<rect x="32" y="28" width="7" height="7" fill="${face}"/>${stopSvg}${packSvg}${svgClose}`;
+}
+
 function shopSkinArtSvg(skinId, p) {
   const b = escapeHtml(p.body);
   const w = escapeHtml(p.wing);
@@ -5020,6 +5104,23 @@ function shopSkinIconHtml(item) {
     )};--skin-sky-bottom:${escapeHtml(preview.skyBottom)};--skin-body:${escapeHtml(
       preview.body
     )};--skin-wing:${escapeHtml(preview.wing)}">${shopPaperSkinArtSvg(skinId, preview)}</span>`;
+  }
+  if (game === "lemmings" || game === "dudes") {
+    const preview = DUDES_SHOP_ICONS[skinId] || {
+      body: "#22c55e",
+      hat: "#14532d",
+      face: "#fde68a",
+      skyTop: "#86efac",
+      skyBottom: "#14532d"
+    };
+    return `<span class="coins-shop-icon coins-shop-skin-icon coins-shop-skin-art-wrap" aria-hidden="true" style="--skin-sky-top:${escapeHtml(
+      preview.skyTop
+    )};--skin-sky-bottom:${escapeHtml(preview.skyBottom)};--skin-body:${escapeHtml(
+      preview.body
+    )};--skin-wing:${escapeHtml(preview.hat || preview.body)}">${shopDudesSkinArtSvg(
+      skinId,
+      preview
+    )}</span>`;
   }
   const preview = WING_HOP_SHOP_ICONS[skinId] || {
     emoji: "🐉",
@@ -5083,11 +5184,15 @@ function renderCoinsPanel() {
   const other = shop.filter((i) => i.kind !== "mascot" && i.kind !== "skin");
   const wingSkins = skins.filter((i) => i.game === "flappy");
   const paperSkins = skins.filter((i) => i.game === "paper");
-  const otherSkins = skins.filter((i) => i.game !== "flappy" && i.game !== "paper");
+  const dudesSkins = skins.filter((i) => i.game === "lemmings" || i.game === "dudes");
+  const otherSkins = skins.filter(
+    (i) => i.game !== "flappy" && i.game !== "paper" && i.game !== "lemmings" && i.game !== "dudes"
+  );
   const sections = [
     { title: "Help mascots", items: mascots },
     { title: "Wing Hop skins", items: wingSkins },
     { title: "Paper Claim skins", items: paperSkins },
+    { title: "Dudes skins", items: dudesSkins },
     { title: "Game skins", items: otherSkins },
     { title: "More", items: other }
   ].filter((s) => s.items.length);
