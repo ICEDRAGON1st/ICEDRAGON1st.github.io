@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001cu": [
+    "Hub milestones: 45 all-time players, 29 games, Fishing Idle most played (shown when cloud is down)"
+  ],
   "20261001ct": [
     "Day streak: desktop keeps the higher streak when syncing (ICE_DRAGON restored to 38)"
   ],
