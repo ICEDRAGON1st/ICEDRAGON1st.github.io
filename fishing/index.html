@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="../hub-game-boot.js?v=20261001ck"></script>
+  <script src="../hub-game-boot.js?v=20261001cl"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260928af">
+  <link rel="stylesheet" href="styles.css?v=20261001cl">
 </head>
 <body data-spot="creek" data-hub-sound-btn="off">
   <div id="weather-fx" class="weather-fx" aria-hidden="true">
@@ -1009,11 +1009,26 @@
     </div>
   </div>
 
+  <div id="catch-cutscene" class="catch-cutscene hidden" role="dialog" aria-modal="true" aria-labelledby="catch-cutscene-name" hidden>
+    <div class="catch-cutscene-veil" aria-hidden="true"></div>
+    <div class="catch-cutscene-rays" aria-hidden="true"></div>
+    <div class="catch-cutscene-ring" aria-hidden="true"></div>
+    <div class="catch-cutscene-sparks" aria-hidden="true"></div>
+    <div class="catch-cutscene-card">
+      <p class="catch-cutscene-eyebrow" id="catch-cutscene-eyebrow">Rare catch</p>
+      <div class="catch-cutscene-glyph" id="catch-cutscene-glyph" aria-hidden="true"></div>
+      <h2 class="catch-cutscene-name" id="catch-cutscene-name">Fish</h2>
+      <p class="catch-cutscene-meta" id="catch-cutscene-meta"></p>
+      <p class="catch-cutscene-value" id="catch-cutscene-value"></p>
+      <p class="catch-cutscene-hint">Tap or Esc to continue</p>
+    </div>
+  </div>
+
   <script src="../site-config.js?v=20260930t"></script>
   <script src="../hub-streak.js"></script>
   <script src="../hub-achievements.js?v=20260928y"></script>
-  <script src="../hub-sound.js?v=20261001ck"></script>
-  <script src="../hub-audio.js?v=20261001ck"></script>
+  <script src="../hub-sound.js?v=20261001cl"></script>
+  <script src="../hub-audio.js?v=20261001cl"></script>
   <script src="../hub-confetti.js"></script>
   <script src="../hub-supabase.js?v=20260926i"></script>
   <script src="../hub-account-bag.js?v=20260928ak"></script>
@@ -1023,6 +1038,6 @@
   <script src="../hub-chat.js?v=20260927c"></script>
   <script src="../hub-calls.js?v=20260925a"></script>
   <script src="../hub-leaderboard.js?v=20260925k"></script>
-  <script src="script.js?v=20261001cj"></script>
+  <script src="script.js?v=20261001cl"></script>
 </body>
 </html>

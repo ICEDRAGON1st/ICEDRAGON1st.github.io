@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001cl": [
+    "Fishing Idle: rare catches play a full-screen cutscene (legendary+, shiny, mutations)"
+  ],
   "20261001ck": [
     "Music: Mute / Unmute button in Settings and every game Esc menu"
   ],
