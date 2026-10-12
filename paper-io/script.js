@@ -1841,10 +1841,10 @@
     // Props span ~2–3 cells so they read clearly when zoomed out
     const s = px * 2.35;
     if (head === "forest") {
-      if (seed % 29 !== 0) return;
+      if (seed % 72 !== 0) return;
       g.fillStyle = "#5c3d1e";
       g.fillRect(cx - s * 0.14, cy - s * 0.05, s * 0.28, s * 0.85);
-      g.fillStyle = seed % 58 === 0 ? "#2f9e44" : "#40c057";
+      g.fillStyle = seed % 144 === 0 ? "#2f9e44" : "#40c057";
       g.beginPath();
       g.moveTo(cx, cy - s * 1.35);
       g.lineTo(cx + s * 0.7, cy - s * 0.05);
@@ -1861,7 +1861,7 @@
       return;
     }
     if (head === "ocean") {
-      if (seed % 17 === 0) {
+      if (seed % 48 === 0) {
         g.strokeStyle = "rgba(200,240,255,0.6)";
         g.lineWidth = px * 0.28;
         g.beginPath();
@@ -1870,7 +1870,7 @@
         g.quadraticCurveTo(cx + s * 0.5, cy + s * 0.4, cx + s * 0.85, cy - s * 0.05);
         g.stroke();
       }
-      if (seed % 23 === 0) {
+      if (seed % 61 === 0) {
         g.fillStyle = "rgba(255,255,255,0.6)";
         g.beginPath();
         g.arc(cx + s * 0.25, cy - s * 0.3, s * 0.28, 0, Math.PI * 2);
@@ -1879,7 +1879,7 @@
       return;
     }
     if (head === "lava") {
-      if (seed % 19 === 0) {
+      if (seed % 52 === 0) {
         g.strokeStyle = "rgba(255,212,59,0.75)";
         g.lineWidth = px * 0.24;
         g.beginPath();
@@ -1889,8 +1889,8 @@
         g.lineTo(cx + s * 0.7, cy + s * 0.45);
         g.stroke();
       }
-      if (seed % 13 === 0) {
-        g.fillStyle = seed % 26 === 0 ? "#ffe066" : "#ff922b";
+      if (seed % 41 === 0) {
+        g.fillStyle = seed % 82 === 0 ? "#ffe066" : "#ff922b";
         g.beginPath();
         g.arc(cx, cy, s * 0.22, 0, Math.PI * 2);
         g.fill();
@@ -1898,7 +1898,7 @@
       return;
     }
     if (head === "ice") {
-      if (seed % 19 !== 0) return;
+      if (seed % 55 !== 0) return;
       g.strokeStyle = "rgba(255,255,255,0.8)";
       g.lineWidth = px * 0.22;
       g.beginPath();
@@ -1912,7 +1912,7 @@
       return;
     }
     if (head === "ink") {
-      if (seed % 21 !== 0) return;
+      if (seed % 58 !== 0) return;
       g.fillStyle = "rgba(10,10,14,0.5)";
       g.beginPath();
       g.ellipse(cx, cy, s * 0.5, s * 0.32, (seed % 5) * 0.4, 0, Math.PI * 2);
@@ -1920,8 +1920,8 @@
       return;
     }
     if (head === "neon") {
-      if (seed % 25 !== 0) return;
-      g.strokeStyle = seed % 50 === 0 ? "#e93cac" : fill || "#22d3ee";
+      if (seed % 64 !== 0) return;
+      g.strokeStyle = seed % 128 === 0 ? "#e93cac" : fill || "#22d3ee";
       g.lineWidth = px * 0.28;
       g.beginPath();
       g.moveTo(cx - s * 0.5, cy);
@@ -1932,7 +1932,7 @@
       return;
     }
     if (head === "shadow") {
-      if (seed % 21 !== 0) return;
+      if (seed % 58 !== 0) return;
       g.fillStyle = "rgba(190,75,219,0.4)";
       g.beginPath();
       g.ellipse(cx, cy, s * 0.55, s * 0.35, 0.3, 0, Math.PI * 2);
@@ -1940,7 +1940,7 @@
       return;
     }
     if (head === "rainbow") {
-      if (seed % 31 !== 0) return;
+      if (seed % 78 !== 0) return;
       g.lineWidth = px * 0.22;
       for (let i = 0; i < 5; i++) {
         g.strokeStyle = RAINBOW_COLS[i];
@@ -1951,7 +1951,7 @@
       return;
     }
     if (head === "gold") {
-      if (seed % 25 !== 0) return;
+      if (seed % 64 !== 0) return;
       g.fillStyle = "rgba(255,236,153,0.75)";
       g.beginPath();
       g.arc(cx, cy, s * 0.42, 0, Math.PI * 2);
@@ -1962,8 +1962,8 @@
       return;
     }
     if (head === "graffiti") {
-      if (seed % 19 !== 0) return;
-      g.fillStyle = seed % 38 === 0 ? "#ffd43b" : fill || "#ff6bcb";
+      if (seed % 55 !== 0) return;
+      g.fillStyle = seed % 110 === 0 ? "#ffd43b" : fill || "#ff6bcb";
       g.beginPath();
       g.moveTo(cx, cy - s * 0.55);
       g.lineTo(cx + s * 0.2, cy - s * 0.1);
@@ -1980,7 +1980,7 @@
       return;
     }
     if (head === "storm") {
-      if (seed % 27 !== 0) return;
+      if (seed % 68 !== 0) return;
       g.fillStyle = "#ffe066";
       g.beginPath();
       g.moveTo(cx + s * 0.08, cy - s * 0.65);
@@ -1994,7 +1994,7 @@
       return;
     }
     if (head === "candy") {
-      if (seed % 23 !== 0) return;
+      if (seed % 61 !== 0) return;
       g.fillStyle = "#fff";
       g.beginPath();
       g.arc(cx, cy, s * 0.42, 0, Math.PI * 2);
@@ -2013,7 +2013,7 @@
       return;
     }
     if (head === "blueprint") {
-      if (seed % 15 !== 0) return;
+      if (seed % 45 !== 0) return;
       g.strokeStyle = "rgba(255,255,255,0.45)";
       g.lineWidth = px * 0.16;
       g.strokeRect(cx - s * 0.5, cy - s * 0.5, s, s);
@@ -2072,10 +2072,10 @@
           const cy = (y + 0.5) * px;
 
           if (head === "pixel") {
-            if ((x + y) % 2 === 0) {
-              landCtx.fillStyle = "rgba(255,255,255,0.14)";
-              landCtx.fillRect(x * px, y * px, px, px);
-            } else if (seed % 29 === 0 && isInteriorOwned(x, y, hid)) {
+            if (x % 4 === 0 && y % 4 === 0) {
+              landCtx.fillStyle = "rgba(255,255,255,0.16)";
+              landCtx.fillRect(x * px, y * px, px * 2, px * 2);
+            } else if (seed % 72 === 0 && isInteriorOwned(x, y, hid)) {
               landCtx.fillStyle = "#ffd43b";
               landCtx.fillRect(cx - px * 0.55, cy - px * 0.55, px * 1.1, px * 1.1);
             }
@@ -2083,7 +2083,7 @@
           }
 
           if (head === "honey") {
-            if (x % 3 === 0 && y % 3 === 0 && isInteriorOwned(x, y, hid)) {
+            if (x % 6 === 0 && y % 6 === 0 && isInteriorOwned(x, y, hid)) {
               landCtx.strokeStyle = "rgba(120,50,0,0.38)";
               landCtx.lineWidth = px * 0.2;
               landCtx.beginPath();
