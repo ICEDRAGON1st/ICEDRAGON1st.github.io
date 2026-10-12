@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001cv": [
+    "Coin shop: full overlay over the game grid — buy Help mascots and skins with hub coins"
+  ],
   "20261001cu": [
     "Hub milestones: 45 all-time players, 29 games, Fishing Idle most played (shown when cloud is down)"
   ],
@@ -4666,9 +4669,7 @@ function maybeOpenHubHash() {
     renderColorPicker?.();
     updateTitlesButtonLabel(true);
   } else if (hash === "coins" || hash === "coin" || hash === "shop") {
-    coinsPanel?.classList.remove("hidden");
-    renderCoinsPanel?.();
-    updateCoinsButtonLabel(true);
+    setCoinsShopOpen?.(true);
   } else if (hash === "feedback") {
     feedbackPanel?.classList.remove("hidden");
     openFeedbackPanel?.();
@@ -4696,13 +4697,31 @@ function updateTitlesButtonLabel(open) {
   toggleTitlesBtn.textContent = open ? "Hide titles" : "Titles";
 }
 
+function isCoinsShopOpen() {
+  return !!(coinsPanel && !coinsPanel.classList.contains("hidden"));
+}
+
 function updateCoinsButtonLabel(open) {
   if (!toggleCoinsBtn) return;
   const bal =
     typeof HubCoins !== "undefined" ? HubCoins.format(HubCoins.getBalance()) : "0";
-  toggleCoinsBtn.innerHTML = open
-    ? `<span aria-hidden="true">🪙</span> <span data-hub-coins-balance>${bal}</span> Hide`
-    : `<span aria-hidden="true">🪙</span> <span data-hub-coins-balance>${bal}</span> Coins`;
+  const shown = open == null ? isCoinsShopOpen() : !!open;
+  toggleCoinsBtn.setAttribute("aria-expanded", shown ? "true" : "false");
+  toggleCoinsBtn.innerHTML = shown
+    ? `<span aria-hidden="true">🪙</span> <span data-hub-coins-balance>${bal}</span> Hide shop`
+    : `<span aria-hidden="true">🪙</span> <span data-hub-coins-balance>${bal}</span> Shop`;
+}
+
+function setCoinsShopOpen(open) {
+  if (!coinsPanel) return;
+  coinsPanel.classList.toggle("hidden", !open);
+  gamesScreen?.classList.toggle("shop-open", !!open);
+  updateCoinsButtonLabel(!!open);
+  if (open) {
+    maybeAskPlayerName();
+    renderCoinsPanel();
+    document.getElementById("coins-shop-close")?.focus?.();
+  }
 }
 
 function setCoinsStatus(msg, kind) {
@@ -4713,28 +4732,51 @@ function setCoinsStatus(msg, kind) {
   el.classList.toggle("is-ok", kind === "ok");
 }
 
+function shopItemKindLabel(item) {
+  const kind = String(item?.kind || "");
+  if (kind === "mascot") return "Help mascot";
+  if (kind === "skin") return "Game skin";
+  return "Item";
+}
+
+function renderCoinsShopItem(item) {
+  const owned = !!item.owned;
+  return `<li class="coins-shop-item${owned ? " is-owned" : ""}" role="listitem">
+    <div class="coins-shop-meta">
+      <span class="coins-shop-kind">${escapeHtml(shopItemKindLabel(item))}</span>
+      <span class="coins-shop-name">${escapeHtml(item.label)}</span>
+      <span class="coins-shop-cost">${
+        owned ? "Owned" : `${HubCoins.format(item.cost)} coins`
+      }</span>
+    </div>
+    <button type="button" class="hub-btn${owned ? "" : " hub-btn-primary"}" data-coin-buy="${escapeHtml(
+      item.id
+    )}" ${owned ? "disabled" : ""}>${owned ? "Owned" : "Buy"}</button>
+  </li>`;
+}
+
 function renderCoinsPanel() {
   const list = document.getElementById("coins-shop-list");
   if (typeof HubCoins === "undefined") return;
   HubCoins.refreshUi?.();
-  updateCoinsButtonLabel(coinsPanel && !coinsPanel.classList.contains("hidden"));
+  updateCoinsButtonLabel(isCoinsShopOpen());
   if (!list) return;
   const shop = HubCoins.getShop?.() || [];
-  list.innerHTML = shop
-    .map((item) => {
-      const owned = !!item.owned;
-      return `<li class="coins-shop-item">
-        <div class="coins-shop-meta">
-          <span class="coins-shop-name">${escapeHtml(item.label)}</span>
-          <span class="coins-shop-cost">${
-            owned ? "Owned" : `${HubCoins.format(item.cost)} coins`
-          }</span>
-        </div>
-        <button type="button" class="hub-btn${owned ? "" : " hub-btn-primary"}" data-coin-buy="${escapeHtml(
-          item.id
-        )}" ${owned ? "disabled" : ""}>${owned ? "Owned" : "Buy"}</button>
-      </li>`;
-    })
+  const mascots = shop.filter((i) => i.kind === "mascot");
+  const skins = shop.filter((i) => i.kind === "skin");
+  const other = shop.filter((i) => i.kind !== "mascot" && i.kind !== "skin");
+  const sections = [
+    { title: "Help mascots", items: mascots },
+    { title: "Game skins", items: skins },
+    { title: "More", items: other }
+  ].filter((s) => s.items.length);
+  list.innerHTML = sections
+    .map(
+      (section) => `<section class="coins-shop-section">
+      <h4 class="coins-shop-section-title">${escapeHtml(section.title)}</h4>
+      <ul class="coins-shop-grid">${section.items.map(renderCoinsShopItem).join("")}</ul>
+    </section>`
+    )
     .join("");
 }
 
@@ -4750,13 +4792,11 @@ toggleTitlesBtn?.addEventListener("click", () => {
 });
 
 toggleCoinsBtn?.addEventListener("click", () => {
-  if (!coinsPanel) return;
-  const open = coinsPanel.classList.toggle("hidden") === false;
-  updateCoinsButtonLabel(open);
-  if (open) {
-    maybeAskPlayerName();
-    renderCoinsPanel();
-  }
+  setCoinsShopOpen(!isCoinsShopOpen());
+});
+
+document.getElementById("coins-shop-close")?.addEventListener("click", () => {
+  setCoinsShopOpen(false);
 });
 
 document.getElementById("coins-daily-btn")?.addEventListener("click", () => {
@@ -5385,7 +5425,13 @@ document.getElementById("player-profile-modal")?.addEventListener("click", (e) =
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
   const modal = document.getElementById("player-profile-modal");
-  if (modal && !modal.classList.contains("hidden")) closePlayerProfileModal();
+  if (modal && !modal.classList.contains("hidden")) {
+    closePlayerProfileModal();
+    return;
+  }
+  if (isCoinsShopOpen()) {
+    setCoinsShopOpen(false);
+  }
 });
 
 document.getElementById("players-roster-list")?.addEventListener("click", (e) => {
