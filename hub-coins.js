@@ -59,7 +59,22 @@
     { id: "skin:wing-hop-pixel", label: "Wing Hop — Pixel-8", cost: 500, kind: "skin", game: "flappy", skinId: "pixel" },
     { id: "skin:wing-hop-idol", label: "Wing Hop — Golden Idol", cost: 550, kind: "skin", game: "flappy", skinId: "idol" },
     { id: "skin:wing-hop-shadow", label: "Wing Hop — Shadow", cost: 500, kind: "skin", game: "flappy", skinId: "shadow" },
-    { id: "skin:wing-hop-rainbow", label: "Wing Hop — Rainbow Trail", cost: 500, kind: "skin", game: "flappy", skinId: "rainbow" }
+    { id: "skin:wing-hop-rainbow", label: "Wing Hop — Rainbow Trail", cost: 500, kind: "skin", game: "flappy", skinId: "rainbow" },
+    { id: "skin:paper-claim-ink", label: "Paper Claim — Ink Drop", cost: 250, kind: "skin", game: "paper", skinId: "ink" },
+    { id: "skin:paper-claim-blueprint", label: "Paper Claim — Blueprint", cost: 250, kind: "skin", game: "paper", skinId: "blueprint" },
+    { id: "skin:paper-claim-honeycomb", label: "Paper Claim — Honeycomb", cost: 250, kind: "skin", game: "paper", skinId: "honeycomb" },
+    { id: "skin:paper-claim-ocean", label: "Paper Claim — Ocean Tide", cost: 300, kind: "skin", game: "paper", skinId: "ocean" },
+    { id: "skin:paper-claim-forest", label: "Paper Claim — Forest Sap", cost: 300, kind: "skin", game: "paper", skinId: "forest" },
+    { id: "skin:paper-claim-candy", label: "Paper Claim — Candy Coat", cost: 300, kind: "skin", game: "paper", skinId: "candy" },
+    { id: "skin:paper-claim-graffiti", label: "Paper Claim — Graffiti", cost: 350, kind: "skin", game: "paper", skinId: "graffiti" },
+    { id: "skin:paper-claim-storm", label: "Paper Claim — Storm Cloud", cost: 350, kind: "skin", game: "paper", skinId: "storm" },
+    { id: "skin:paper-claim-lava", label: "Paper Claim — Lava Flow", cost: 400, kind: "skin", game: "paper", skinId: "lava" },
+    { id: "skin:paper-claim-ice", label: "Paper Claim — Ice Shard", cost: 400, kind: "skin", game: "paper", skinId: "ice" },
+    { id: "skin:paper-claim-neon", label: "Paper Claim — Neon Grid", cost: 450, kind: "skin", game: "paper", skinId: "neon" },
+    { id: "skin:paper-claim-pixel", label: "Paper Claim — Pixel Stamp", cost: 500, kind: "skin", game: "paper", skinId: "pixel" },
+    { id: "skin:paper-claim-shadow", label: "Paper Claim — Shadow Mark", cost: 500, kind: "skin", game: "paper", skinId: "shadow" },
+    { id: "skin:paper-claim-rainbow", label: "Paper Claim — Rainbow Paint", cost: 500, kind: "skin", game: "paper", skinId: "rainbow" },
+    { id: "skin:paper-claim-gold", label: "Paper Claim — Gold Foil", cost: 550, kind: "skin", game: "paper", skinId: "gold" }
   ];
 
   const listeners = new Set();
