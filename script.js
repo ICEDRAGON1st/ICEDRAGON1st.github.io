@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001cn": [
+    "Fishing Idle: cutscene settings list every rarity individually"
+  ],
   "20261001cm": [
     "Fishing Idle: Settings → choose which rarities get catch cutscenes (shiny/mutation off by default)"
   ],

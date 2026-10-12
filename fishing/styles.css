@@ -267,6 +267,13 @@ body.modal-open {
   margin-top: 0.55rem;
 }
 
+.settings-cutscene-grid {
+  max-height: min(42vh, 16rem);
+  overflow: auto;
+  padding: 0.15rem 0.1rem 0.25rem;
+  scrollbar-width: thin;
+}
+
 .settings-cutscene-chip {
   display: inline-flex;
   align-items: center;
