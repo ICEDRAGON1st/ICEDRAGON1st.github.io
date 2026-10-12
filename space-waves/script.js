@@ -469,8 +469,8 @@
     const h = canvas.clientHeight;
     const sx = w * SHIP_SCREEN_X;
     const sy = shipY * h;
-    // Collision a bit smaller than the drawn arrow so the bigger ship still feels fair
-    return { x: sx, y: sy, r: Math.max(10, h * 0.026), scale: Math.max(1.55, h * 0.0042) };
+    // Slightly larger than the original, not huge
+    return { x: sx, y: sy, r: Math.max(8, h * 0.021), scale: Math.max(1.2, h * 0.0031) };
   }
 
   function collide() {
@@ -685,7 +685,7 @@
       const a = (i + 1) / trail.length;
       ctx.fillStyle = `rgba(92, 225, 255, ${a * 0.4})`;
       ctx.beginPath();
-      ctx.arc(tx, ty, (4 + a * 5) * Math.min(1.4, s * 0.55), 0, Math.PI * 2);
+      ctx.arc(tx, ty, (3.5 + a * 3.5) * Math.min(1.2, s * 0.7), 0, Math.PI * 2);
       ctx.fill();
     }
 
@@ -699,19 +699,19 @@
     ctx.shadowColor = theme;
     ctx.shadowBlur = 18;
     ctx.beginPath();
-    ctx.moveTo(18, 0);
-    ctx.lineTo(-14, 11);
-    ctx.lineTo(-8, 0);
-    ctx.lineTo(-14, -11);
+    ctx.moveTo(16, 0);
+    ctx.lineTo(-12, 9);
+    ctx.lineTo(-7, 0);
+    ctx.lineTo(-12, -9);
     ctx.closePath();
     ctx.fill();
     ctx.shadowBlur = 0;
     ctx.fillStyle = theme;
     ctx.beginPath();
-    ctx.moveTo(5, 0);
-    ctx.lineTo(-9, 6);
-    ctx.lineTo(-5.5, 0);
-    ctx.lineTo(-9, -6);
+    ctx.moveTo(4, 0);
+    ctx.lineTo(-8, 5);
+    ctx.lineTo(-5, 0);
+    ctx.lineTo(-8, -5);
     ctx.closePath();
     ctx.fill();
     ctx.restore();
