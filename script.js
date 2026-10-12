@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ff": [
+    "Space Waves: faster up/down movement"
+  ],
   "20261001fe": [
     "Space Waves: tone down player arrow size"
   ],

@@ -236,12 +236,12 @@
   let shake = 0;
 
   const SHIP_SCREEN_X = 0.22;
-  // Tighter flight: pull toward a climb/fall speed instead of slippery accel
-  const CLIMB_VY = -0.72;
-  const FALL_VY = 0.78;
-  const STEER = 14; // how fast velocity snaps to climb/fall (higher = less slippery)
-  const MAX_VY = 0.95;
-  const MOVE_SCALE = 145;
+  // Snappy vertical flight
+  const CLIMB_VY = -1.15;
+  const FALL_VY = 1.2;
+  const STEER = 20; // how fast velocity snaps to climb/fall
+  const MAX_VY = 1.35;
+  const MOVE_SCALE = 195;
 
   function readHigh() {
     try {
