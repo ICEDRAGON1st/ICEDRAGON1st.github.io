@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001dy": [
+    "Paper Claim: full-map clears can reach 100% (was stuck around 98.9% on the rim)"
+  ],
   "20261001dx": [
     "Paper Claim: bigger themed props inside claimed land"
   ],
