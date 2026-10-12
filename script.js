@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001di": [
+    "Players: player code is hidden by default — tap Show code to reveal"
+  ],
   "20261001dh": [
     "Fishing Idle: hide player name/code from the in-game HUD (use hub Players instead)"
   ],
@@ -5822,21 +5825,48 @@ function refreshInviteProgressUI() {
     : `${Math.min(count, need)} / ${need}`;
 }
 
+let playerCodeRevealed = false;
+
+function currentPlayerCodeDisplay() {
+  if (typeof HubPlays === "undefined") return "";
+  let code = String(HubPlays.getPlayerCode?.() || "").trim();
+  if (
+    !code ||
+    (typeof HubPlays.isPoisonPlayerCode === "function" && HubPlays.isPoisonPlayerCode(code)) ||
+    /^unde-?fned$/i.test(code.replace(/\s/g, ""))
+  ) {
+    try {
+      localStorage.removeItem("hub-player-code");
+    } catch {}
+    code = String(HubPlays.getPlayerCode?.() || "").trim();
+  }
+  if (/^unde-?fned$/i.test(code.replace(/\s/g, ""))) code = "";
+  return code;
+}
+
 function refreshPlayerCodeUI() {
   const el = document.getElementById("player-code-value");
-  if (el && typeof HubPlays !== "undefined") {
-    let code = String(HubPlays.getPlayerCode?.() || "").trim();
-    if (
-      !code ||
-      (typeof HubPlays.isPoisonPlayerCode === "function" && HubPlays.isPoisonPlayerCode(code)) ||
-      /^unde-?fned$/i.test(code.replace(/\s/g, ""))
-    ) {
-      try {
-        localStorage.removeItem("hub-player-code");
-      } catch {}
-      code = String(HubPlays.getPlayerCode?.() || "").trim();
+  const revealBtn = document.getElementById("player-code-reveal-btn");
+  const code = currentPlayerCodeDisplay();
+  if (el) {
+    if (!code) {
+      el.textContent = "————";
+      el.classList.remove("is-masked");
+      el.setAttribute("aria-label", "No player code yet");
+    } else if (playerCodeRevealed) {
+      el.textContent = code;
+      el.classList.remove("is-masked");
+      el.setAttribute("aria-label", `Player code ${code}`);
+    } else {
+      el.textContent = "••••-••••";
+      el.classList.add("is-masked");
+      el.setAttribute("aria-label", "Player code hidden");
     }
-    el.textContent = code || "————";
+  }
+  if (revealBtn) {
+    revealBtn.textContent = playerCodeRevealed ? "Hide code" : "Show code";
+    revealBtn.setAttribute("aria-pressed", playerCodeRevealed ? "true" : "false");
+    revealBtn.disabled = !code;
   }
   refreshPasswordStateUI();
   renderSavedAccounts();
@@ -5965,6 +5995,11 @@ async function createAccountFlow(statusFn = setPlayerCodeStatus) {
   statusFn(`New account ready · code ${result.code}. Reloading…`, false);
   setTimeout(() => window.location.reload(), 500);
 }
+
+document.getElementById("player-code-reveal-btn")?.addEventListener("click", () => {
+  playerCodeRevealed = !playerCodeRevealed;
+  refreshPlayerCodeUI();
+});
 
 document.getElementById("player-code-copy-btn")?.addEventListener("click", async () => {
   if (typeof HubPlays === "undefined") return;
