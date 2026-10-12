@@ -1008,7 +1008,107 @@
 
   function pctFor(p) {
     if (!p) return 0;
-    return Math.round((1000 * territoryCount(idHash(p.id))) / grid.length) / 10;
+    const n = territoryCount(idHash(p.id));
+    if (n >= grid.length) return 100;
+    // One-decimal display; treat near-full maps as 100 once sealed
+    const raw = (1000 * n) / grid.length;
+    return Math.round(raw) / 10;
+  }
+
+  function hasNeighborOwned(x, y, hid) {
+    if (x > 0 && grid[idx(x - 1, y)] === hid) return true;
+    if (x < WORLD - 1 && grid[idx(x + 1, y)] === hid) return true;
+    if (y > 0 && grid[idx(x, y - 1)] === hid) return true;
+    if (y < WORLD - 1 && grid[idx(x, y + 1)] === hid) return true;
+    return false;
+  }
+
+  /** Fill 1-cell holes fully surrounded by your land. */
+  function fillEnclosedGaps(hid) {
+    let filled = 0;
+    for (let y = 1; y < WORLD - 1; y++) {
+      for (let x = 1; x < WORLD - 1; x++) {
+        const i = idx(x, y);
+        if (grid[i]) continue;
+        if (
+          grid[idx(x - 1, y)] === hid &&
+          grid[idx(x + 1, y)] === hid &&
+          grid[idx(x, y - 1)] === hid &&
+          grid[idx(x, y + 1)] === hid
+        ) {
+          grid[i] = hid;
+          filled++;
+        }
+      }
+    }
+    return filled;
+  }
+
+  /**
+   * Claim empty rim cells that touch your land (walls are claimable paint,
+   * but enclosure flood never fills the map border on its own).
+   */
+  function claimTouchingEdge(hid) {
+    let filled = 0;
+    let guard = 0;
+    let grew = true;
+    while (grew && guard++ < WORLD + 4) {
+      grew = false;
+      for (let x = 0; x < WORLD; x++) {
+        for (const y of [0, WORLD - 1]) {
+          const i = idx(x, y);
+          if (grid[i]) continue;
+          if (hasNeighborOwned(x, y, hid)) {
+            grid[i] = hid;
+            filled++;
+            grew = true;
+          }
+        }
+      }
+      for (let y = 1; y < WORLD - 1; y++) {
+        for (const x of [0, WORLD - 1]) {
+          const i = idx(x, y);
+          if (grid[i]) continue;
+          if (hasNeighborOwned(x, y, hid)) {
+            grid[i] = hid;
+            filled++;
+            grew = true;
+          }
+        }
+      }
+    }
+    return filled;
+  }
+
+  /**
+   * If nobody else owns any land, absorb leftover empty cells (the classic
+   * ~1.1% map-rim gap that enclosure flood leaves behind).
+   */
+  function absorbLeftoverEmpty(p) {
+    if (!p || !p.alive) return false;
+    const hid = idHash(p.id);
+    let empty = 0;
+    let other = 0;
+    for (let i = 0; i < grid.length; i++) {
+      const v = grid[i];
+      if (!v) empty++;
+      else if (v !== hid) other++;
+    }
+    if (other > 0 || empty === 0) return false;
+    for (let i = 0; i < grid.length; i++) {
+      if (!grid[i]) grid[i] = hid;
+    }
+    markLandDirty();
+    return true;
+  }
+
+  function finalizeClaim(p) {
+    if (!p) return;
+    const hid = idHash(p.id);
+    fillEnclosedGaps(hid);
+    claimTouchingEdge(hid);
+    absorbLeftoverEmpty(p);
+    markLandDirty();
   }
 
   function isOwnLand(p, x, y) {
@@ -1069,6 +1169,7 @@
     let stolen = 0;
     if (killer && killer !== p && killer.alive) {
       stolen = transferTerritory(killer, p);
+      finalizeClaim(killer);
     } else {
       clearPlayerCells(p);
     }
@@ -1170,7 +1271,7 @@
     for (let i = 0; i < grid.length; i++) {
       if (!visited[i] && grid[i] !== hid) grid[i] = hid;
     }
-    markLandDirty();
+    finalizeClaim(p);
 
     // Kill rivals trapped in newly claimed cells (enemy/empty land you just took)
     for (const other of players) {
