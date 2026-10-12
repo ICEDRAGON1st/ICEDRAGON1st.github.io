@@ -5,7 +5,7 @@
   const ARENA_SHAPES = ["box", "circle", "star", "hex", "diamond", "triangle"];
   const VIEW_SPAN_MIN = 72; // slightly wider than tight paper.io zoom
   const VIEW_SPAN_MAX = 160;
-  const LAND_PX = 4; // land texture scale (lower = much faster paint)
+  const LAND_PX = 1; // 1 cell = 1 px on land buffer (ImageData; was lagging with arc()s)
   const SPEED = 24;
   const TURN_RATE = 10.5; // rad/s — sharp cuts, not huge arcs
   const TURN_RATE_HARD = 16; // extra snap for big direction changes
@@ -307,8 +307,12 @@
     g.save();
     g.translate(x, y);
     g.rotate(angle || 0);
-    g.shadowColor = glow;
-    g.shadowBlur = r * (head === "neon" || head === "lava" || head === "gold" ? 0.55 : 0.35);
+    if (!opts.noShadow) {
+      g.shadowColor = glow;
+      g.shadowBlur = r * (head === "neon" || head === "lava" || head === "gold" ? 0.55 : 0.35);
+    } else {
+      g.shadowBlur = 0;
+    }
     g.fillStyle = fill;
     g.strokeStyle = "rgba(255,255,255,0.75)";
     g.lineWidth = lw;
@@ -338,8 +342,10 @@
       g.arc(r * 0.65, -r * 0.2, r * 0.16, 0, Math.PI * 2);
       g.fill();
     } else if (head === "neon") {
-      g.shadowBlur = r * 0.7;
-      g.shadowColor = "#e93cac";
+      if (!opts.noShadow) {
+        g.shadowBlur = r * 0.7;
+        g.shadowColor = "#e93cac";
+      }
       g.beginPath();
       for (let i = 0; i < 6; i++) {
         const a = (Math.PI / 3) * i - Math.PI / 6;
@@ -746,13 +752,18 @@
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d", { alpha: false });
   const landLayer = document.createElement("canvas");
-  const landCtx = landLayer.getContext("2d");
+  const landCtx = landLayer.getContext("2d", { alpha: true, willReadFrequently: false });
+  const voidLayer = document.createElement("canvas");
+  const voidCtx = voidLayer.getContext("2d");
   const miniLayer = document.createElement("canvas");
   const miniCtx = miniLayer.getContext("2d", { alpha: false });
   let landDirty = true;
+  let voidDirty = true;
   let miniDirty = true;
   let lastAnimLandAt = 0;
   let lastMiniAnimAt = 0;
+  /** @type {ImageData|null} */
+  let landImage = null;
   /** @type {Map<number, string>} */
   const idFromHashMap = new Map();
 
@@ -930,6 +941,7 @@
     for (let i = 0; i < grid.length; i++) {
       if (!arenaMask[i] && grid[i]) grid[i] = 0;
     }
+    voidDirty = true;
     markLandDirty();
   }
 
@@ -1004,25 +1016,38 @@
     ctx.stroke();
   }
 
-  function drawArenaVoid() {
-    // Dim outside the shape so the arena reads clearly
+  function paintVoidLayer() {
+    if (voidLayer.width !== WORLD || voidLayer.height !== WORLD) {
+      voidLayer.width = WORLD;
+      voidLayer.height = WORLD;
+      voidDirty = true;
+    }
+    if (!voidDirty) return;
+    voidDirty = false;
+    voidCtx.clearRect(0, 0, WORLD, WORLD);
     if (arenaShape === "box") return;
-    ctx.fillStyle = "rgba(4, 10, 18, 0.72)";
+    voidCtx.fillStyle = "rgba(4, 10, 18, 0.72)";
     if (arenaShape === "circle") {
-      ctx.beginPath();
-      ctx.rect(0, 0, WORLD, WORLD);
-      ctx.arc(WORLD * 0.5, WORLD * 0.5, WORLD * 0.48, 0, Math.PI * 2, true);
-      ctx.fill("evenodd");
+      voidCtx.beginPath();
+      voidCtx.rect(0, 0, WORLD, WORLD);
+      voidCtx.arc(WORLD * 0.5, WORLD * 0.5, WORLD * 0.48, 0, Math.PI * 2, true);
+      voidCtx.fill("evenodd");
       return;
     }
     const poly = arenaPolygon(arenaShape);
     if (!poly) return;
-    ctx.beginPath();
-    ctx.rect(0, 0, WORLD, WORLD);
-    ctx.moveTo(poly[0][0], poly[0][1]);
-    for (let i = 1; i < poly.length; i++) ctx.lineTo(poly[i][0], poly[i][1]);
-    ctx.closePath();
-    ctx.fill("evenodd");
+    voidCtx.beginPath();
+    voidCtx.rect(0, 0, WORLD, WORLD);
+    voidCtx.moveTo(poly[0][0], poly[0][1]);
+    for (let i = 1; i < poly.length; i++) voidCtx.lineTo(poly[i][0], poly[i][1]);
+    voidCtx.closePath();
+    voidCtx.fill("evenodd");
+  }
+
+  function drawArenaVoid() {
+    paintVoidLayer();
+    if (arenaShape === "box") return;
+    ctx.drawImage(voidLayer, 0, 0);
   }
 
   function idHash(id) {
@@ -1095,6 +1120,24 @@
   function markLandDirty() {
     landDirty = true;
     miniDirty = true;
+  }
+
+  function softToRgba(soft) {
+    const s = String(soft || "");
+    if (s.charAt(0) === "#") {
+      const { r, g, b } = hexToRgb(s);
+      return [r, g, b, 210];
+    }
+    const m = s.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)(?:\s*,\s*([\d.]+))?\s*\)/i);
+    if (m) {
+      return [
+        Number(m[1]) | 0,
+        Number(m[2]) | 0,
+        Number(m[3]) | 0,
+        Math.round((m[4] != null ? Number(m[4]) : 1) * 255)
+      ];
+    }
+    return [62, 198, 255, 210];
   }
 
   function clearGrid() {
@@ -2325,101 +2368,51 @@
   }
 
   function paintLandLayer() {
-    const W = WORLD * LAND_PX;
+    const W = WORLD;
     if (landLayer.width !== W || landLayer.height !== W) {
       landLayer.width = W;
       landLayer.height = W;
+      landImage = null;
       landDirty = true;
     }
     if (!landDirty) return;
     landDirty = false;
-    landCtx.clearRect(0, 0, W, W);
-    landCtx.imageSmoothingEnabled = false;
 
-    // Cache owner → soft color (avoid find/colorFor per cell)
-    const softByOwner = new Map();
+    if (!landImage || landImage.width !== W) {
+      landImage = landCtx.createImageData(W, W);
+    }
+    const data = landImage.data;
+    data.fill(0);
+
+    // owner hash → [r,g,b,a]
+    const rgbaByOwner = new Map();
     for (const pl of players) {
-      softByOwner.set(idHash(pl.id), colorFor(pl).soft);
+      rgbaByOwner.set(idHash(pl.id), softToRgba(colorFor(pl).soft));
     }
-
-    const rad = LAND_PX * 0.72;
-    for (let y = 0; y < WORLD; y++) {
-      for (let x = 0; x < WORLD; x++) {
-        const i = idx(x, y);
-        if (!arenaMask[i]) continue;
-        const owner = grid[i];
-        if (!owner) continue;
-        let soft = softByOwner.get(owner);
-        if (!soft) {
-          soft = COLORS[(owner - 1) % COLORS.length].soft;
-          softByOwner.set(owner, soft);
-        }
-        landCtx.fillStyle = soft;
-        landCtx.beginPath();
-        landCtx.arc((x + 0.5) * LAND_PX, (y + 0.5) * LAND_PX, rad, 0, Math.PI * 2);
-        landCtx.fill();
+    for (let o = 1; o < 12; o++) {
+      if (!rgbaByOwner.has(o)) {
+        rgbaByOwner.set(o, softToRgba(COLORS[(o - 1) % COLORS.length].soft));
       }
     }
 
-    // Sparse props only — skip when you already own a huge chunk (keeps FPS up)
-    const head = landSkinHead();
-    if (head !== "classic" && localId) {
-      const hid = idHash(localId);
-      const mine = territoryCount(hid);
-      if (mine > 0 && mine < playableTotal * 0.45) {
-        const fill = softByOwner.get(hid) || skin()?.fill || COLORS[0].fill;
-        const px = LAND_PX;
-        landCtx.save();
-        landCtx.lineCap = "round";
-        landCtx.lineJoin = "round";
-        // Stride the grid so we don't visit every owned cell
-        for (let y = 0; y < WORLD; y += 2) {
-          for (let x = 0; x < WORLD; x += 2) {
-            if (grid[idx(x, y)] !== hid) continue;
-            const seed = cellSeed(x, y);
-            const cx = (x + 0.5) * px;
-            const cy = (y + 0.5) * px;
-            if (head === "pixel") {
-              if ((x + y) % 8 === 0) {
-                landCtx.fillStyle = "rgba(255,255,255,0.14)";
-                landCtx.fillRect(x * px, y * px, px * 2, px * 2);
-              }
-              continue;
-            }
-            if (head === "honey") {
-              if (x % 8 === 0 && y % 8 === 0 && isInteriorOwned(x, y, hid)) {
-                landCtx.strokeStyle = "rgba(120,50,0,0.32)";
-                landCtx.lineWidth = px * 0.18;
-                landCtx.beginPath();
-                const hs = px * 2.1;
-                for (let k = 0; k < 6; k++) {
-                  const a = (Math.PI / 3) * k + Math.PI / 6;
-                  const hx = cx + Math.cos(a) * hs * 0.55;
-                  const hy = cy + Math.sin(a) * hs * 0.55;
-                  if (k === 0) landCtx.moveTo(hx, hy);
-                  else landCtx.lineTo(hx, hy);
-                }
-                landCtx.closePath();
-                landCtx.stroke();
-              }
-              continue;
-            }
-            if (
-              (head === "forest" ||
-                head === "storm" ||
-                head === "gold" ||
-                head === "graffiti" ||
-                head === "rainbow") &&
-              !isInteriorOwned(x, y, hid)
-            ) {
-              continue;
-            }
-            stampLandMotif(landCtx, cx, cy, px, head, seed, fill);
-          }
-        }
-        landCtx.restore();
+    const gridArr = grid;
+    const mask = arenaMask;
+    for (let i = 0; i < gridArr.length; i++) {
+      if (!mask[i]) continue;
+      const owner = gridArr[i];
+      if (!owner) continue;
+      let rgba = rgbaByOwner.get(owner);
+      if (!rgba) {
+        rgba = softToRgba(COLORS[(owner - 1) % COLORS.length].soft);
+        rgbaByOwner.set(owner, rgba);
       }
+      const p = i << 2;
+      data[p] = rgba[0];
+      data[p + 1] = rgba[1];
+      data[p + 2] = rgba[2];
+      data[p + 3] = rgba[3];
     }
+    landCtx.putImageData(landImage, 0, 0);
   }
 
   function paintMiniLayer() {
@@ -2553,6 +2546,8 @@
       glow,
       selected: false,
       showFace: true,
+      showAim: true,
+      noShadow: true,
       lineScale: 0.22
     });
 
@@ -2602,20 +2597,21 @@
     ctx.globalAlpha = 0.92;
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
-    ctx.shadowBlur = 0;
+    ctx.shadowBlur = 0; // shadows are a major FPS killer
 
     if (useRainbow) {
+      // Chunk rainbow segments instead of 1 stroke per point
       ctx.lineWidth = TRAIL_W * 1.2;
-      for (let i = 1; i < pts.length; i++) {
+      const chunk = Math.max(2, (pts.length / 24) | 0);
+      for (let i = 1; i < pts.length; i += chunk) {
         ctx.strokeStyle = rainbowAt(i);
         ctx.beginPath();
         ctx.moveTo(pts[i - 1].x, pts[i - 1].y);
-        ctx.lineTo(pts[i].x, pts[i].y);
+        const end = Math.min(pts.length - 1, i + chunk - 1);
+        for (let j = i; j <= end; j++) ctx.lineTo(pts[j].x, pts[j].y);
         ctx.stroke();
       }
     } else if (head === "neon") {
-      ctx.shadowColor = glow;
-      ctx.shadowBlur = 2.2;
       ctx.strokeStyle = "#e93cac";
       ctx.lineWidth = TRAIL_W * 1.55;
       strokeTrailPath(pts);
@@ -2636,115 +2632,22 @@
         ctx.lineTo(b.x, b.y);
       }
       ctx.stroke();
-    } else if (head === "honey" || head === "candy") {
-      ctx.strokeStyle = c.fill;
-      ctx.lineWidth = TRAIL_W * 1.2;
-      ctx.setLineDash([TRAIL_W * 1.8, TRAIL_W * 1.2]);
-      if (p.trail.length < 220) {
-        ctx.shadowColor = glow;
-        ctx.shadowBlur = 1.2;
-      }
-      strokeTrailPath(pts);
-      ctx.setLineDash([]);
-    } else if (head === "blueprint" || head === "ice") {
-      ctx.strokeStyle = c.fill;
-      ctx.lineWidth = TRAIL_W * 1.05;
-      ctx.setLineDash([TRAIL_W * 2.4, TRAIL_W * 1.6]);
-      strokeTrailPath(pts);
-      ctx.setLineDash([]);
-    } else if (head === "storm") {
-      ctx.strokeStyle = c.fill;
-      ctx.lineWidth = TRAIL_W * 1.15;
-      ctx.shadowColor = glow;
-      ctx.shadowBlur = 1.6;
-      ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (let i = 1; i < pts.length; i++) {
-        const a = pts[i - 1];
-        const b = pts[i];
-        const mx = (a.x + b.x) * 0.5;
-        const my = (a.y + b.y) * 0.5;
-        const ox = (b.y - a.y) * (i % 2 === 0 ? 0.35 : -0.35);
-        const oy = (a.x - b.x) * (i % 2 === 0 ? 0.35 : -0.35);
-        ctx.lineTo(mx + ox, my + oy);
-        ctx.lineTo(b.x, b.y);
-      }
-      ctx.stroke();
-    } else if (head === "shadow") {
-      ctx.globalAlpha = 0.55;
-      ctx.strokeStyle = c.fill;
-      ctx.lineWidth = TRAIL_W * 1.6;
-      ctx.shadowColor = glow;
-      ctx.shadowBlur = 2.4;
-      strokeTrailPath(pts);
-      ctx.globalAlpha = 0.85;
-      ctx.lineWidth = TRAIL_W * 0.7;
-      ctx.strokeStyle = "rgba(190,75,219,0.75)";
-      strokeTrailPath(pts);
-    } else if (head === "ink") {
-      ctx.strokeStyle = c.fill;
-      ctx.lineWidth = TRAIL_W * 1.45;
-      ctx.lineCap = "round";
-      if (p.trail.length < 220) {
-        ctx.shadowColor = glow;
-        ctx.shadowBlur = 1.2;
-      }
-      strokeTrailPath(pts);
-      ctx.fillStyle = c.fill;
-      for (let i = 2; i < pts.length; i += 3) {
-        ctx.beginPath();
-        ctx.arc(pts[i].x, pts[i].y, TRAIL_W * 0.55, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    } else if (head === "graffiti") {
-      ctx.strokeStyle = c.fill;
-      ctx.lineWidth = TRAIL_W * 1.25;
-      strokeTrailPath(pts);
-      ctx.strokeStyle = "#ffd43b";
-      ctx.lineWidth = TRAIL_W * 0.45;
-      ctx.setLineDash([TRAIL_W * 0.8, TRAIL_W * 1.4]);
-      strokeTrailPath(pts);
-      ctx.setLineDash([]);
-    } else if (head === "forest") {
-      ctx.strokeStyle = c.fill;
-      ctx.lineWidth = TRAIL_W * 1.2;
-      strokeTrailPath(pts);
-      ctx.fillStyle = "#8ce99a";
-      for (let i = 2; i < pts.length; i += 4) {
-        const q = pts[i];
-        ctx.beginPath();
-        ctx.ellipse(q.x, q.y, TRAIL_W * 0.55, TRAIL_W * 0.85, i * 0.4, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    } else if (head === "gold") {
-      ctx.strokeStyle = c.fill;
-      ctx.lineWidth = TRAIL_W * 1.3;
-      ctx.shadowColor = glow;
-      ctx.shadowBlur = 2;
-      strokeTrailPath(pts);
-      ctx.strokeStyle = "rgba(255,255,255,0.55)";
-      ctx.lineWidth = TRAIL_W * 0.35;
-      ctx.shadowBlur = 0;
-      strokeTrailPath(pts);
     } else {
+      // One stroke for all non-rainbow trails (was doing multi-pass + shadows)
       ctx.strokeStyle = c.fill;
-      ctx.lineWidth = TRAIL_W * 1.15;
-      if (p.trail.length < 220) {
-        ctx.shadowColor = glow;
-        ctx.shadowBlur = 1.4;
+      ctx.lineWidth = TRAIL_W * (head === "ink" || head === "gold" ? 1.35 : 1.15);
+      if (head === "honey" || head === "candy" || head === "blueprint" || head === "ice") {
+        ctx.setLineDash([TRAIL_W * 2, TRAIL_W * 1.4]);
       }
       strokeTrailPath(pts);
-    }
-
-    if (head === "ocean" || head === "lava") {
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = head === "ocean" ? "rgba(200,240,255,0.8)" : "rgba(255,220,80,0.85)";
-      const step = Math.max(2, Math.floor(pts.length / 18));
-      for (let i = step; i < pts.length; i += step) {
-        const q = pts[i];
-        ctx.beginPath();
-        ctx.arc(q.x, q.y, TRAIL_W * (head === "ocean" ? 0.45 : 0.35), 0, Math.PI * 2);
-        ctx.fill();
+      ctx.setLineDash([]);
+      if (head === "neon") {
+        /* already handled above */
+      } else if (head === "shadow") {
+        ctx.globalAlpha = 0.75;
+        ctx.strokeStyle = "rgba(190,75,219,0.7)";
+        ctx.lineWidth = TRAIL_W * 0.65;
+        strokeTrailPath(pts);
       }
     }
 
@@ -2770,34 +2673,36 @@
     ctx.scale(scale, scale);
     ctx.translate(-camX, -camY);
 
-    // Faint grid so zoomed view keeps depth
-    ctx.strokeStyle = "rgba(62,198,255,0.06)";
-    ctx.lineWidth = 0.08;
-    ctx.beginPath();
-    for (let g = 0; g <= WORLD; g += 10) {
-      ctx.moveTo(g, 0);
-      ctx.lineTo(g, WORLD);
-      ctx.moveTo(0, g);
-      ctx.lineTo(WORLD, g);
+    // Skip full-world grid lines when zoomed out — cheap depth only when close
+    if (viewSpan < 120) {
+      ctx.strokeStyle = "rgba(62,198,255,0.06)";
+      ctx.lineWidth = 0.08;
+      ctx.beginPath();
+      for (let g = 0; g <= WORLD; g += 10) {
+        ctx.moveTo(g, 0);
+        ctx.lineTo(g, WORLD);
+        ctx.moveTo(0, g);
+        ctx.lineTo(WORLD, g);
+      }
+      ctx.stroke();
     }
-    ctx.stroke();
 
     // Rainbow/Neon: refresh land tint a few times per second (not every frame)
     if (isAnimLandSkin(landSkinHead())) {
       const now = performance.now();
-      if (now - lastAnimLandAt > 120) {
+      if (now - lastAnimLandAt > 160) {
         lastAnimLandAt = now;
         landDirty = true;
       }
-      if (now - lastMiniAnimAt > 200) {
+      if (now - lastMiniAnimAt > 250) {
         lastMiniAnimAt = now;
         miniDirty = true;
       }
     }
 
     paintLandLayer();
-    ctx.imageSmoothingEnabled = true;
-    ctx.drawImage(landLayer, 0, 0, landLayer.width, landLayer.height, 0, 0, WORLD, WORLD);
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(landLayer, 0, 0, WORLD, WORLD);
     drawArenaVoid();
     drawArenaBorder();
 
