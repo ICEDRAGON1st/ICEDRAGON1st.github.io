@@ -15379,22 +15379,16 @@
     return (RARITY_RANK[rarity] || 0) >= RARITY_RANK.legendary;
   }
 
-  /** Settings groups for which rarities play the full-screen cutscene. */
-  const CUTSCENE_RARITY_GROUPS = [
-    { id: "rare", label: "Rare", rarities: ["rare"], onByDefault: false },
-    { id: "epic", label: "Epic", rarities: ["epic"], onByDefault: false },
-    { id: "legendary", label: "Legendary", rarities: ["legendary"], onByDefault: true },
-    { id: "mythic", label: "Mythic", rarities: ["mythic"], onByDefault: true },
-    { id: "secret", label: "Secret", rarities: ["secret"], onByDefault: true },
-    {
-      id: "divine",
-      label: "Divine+",
-      rarities: ["divine", "eternal", "cosmic", "astral"],
-      onByDefault: true
-    },
+  /** Legacy grouped cutscene prefs → expand into per-rarity keys. */
+  const CUTSCENE_LEGACY_GROUPS = [
+    { id: "rare", rarities: ["rare"] },
+    { id: "epic", rarities: ["epic"] },
+    { id: "legendary", rarities: ["legendary"] },
+    { id: "mythic", rarities: ["mythic"] },
+    { id: "secret", rarities: ["secret"] },
+    { id: "divine", rarities: ["divine", "eternal", "cosmic", "astral"] },
     {
       id: "singularity",
-      label: "Singularity+",
       rarities: [
         "singularity",
         "omega",
@@ -15415,31 +15409,15 @@
         "sovereign",
         "celestial",
         "primordial"
-      ],
-      onByDefault: true
+      ]
     },
-    {
-      id: "ultimate",
-      label: "Ultimate+",
-      rarities: ["ultimate", "exclusive", "mystery", "easteregg"],
-      onByDefault: true
-    }
+    { id: "ultimate", rarities: ["ultimate", "exclusive", "mystery", "easteregg"] }
   ];
-
-  const CUTSCENE_RARITY_TO_GROUP = (() => {
-    const map = Object.create(null);
-    CUTSCENE_RARITY_GROUPS.forEach((g) => {
-      g.rarities.forEach((r) => {
-        map[r] = g.id;
-      });
-    });
-    return map;
-  })();
 
   function defaultCutscenePrefs() {
     const rarities = {};
-    CUTSCENE_RARITY_GROUPS.forEach((g) => {
-      rarities[g.id] = !!g.onByDefault;
+    RARITIES.forEach((r) => {
+      rarities[r] = (RARITY_RANK[r] || 0) >= (RARITY_RANK.legendary || 5);
     });
     return {
       rarities,
@@ -15454,11 +15432,23 @@
     const src = raw && typeof raw === "object" ? raw : {};
     const rarities = { ...defaults.rarities };
     const incoming = src.rarities && typeof src.rarities === "object" ? src.rarities : {};
-    CUTSCENE_RARITY_GROUPS.forEach((g) => {
-      if (Object.prototype.hasOwnProperty.call(incoming, g.id)) {
-        rarities[g.id] = !!incoming[g.id];
-      }
-    });
+    const hasPerRarity = RARITIES.some((r) => Object.prototype.hasOwnProperty.call(incoming, r));
+    if (hasPerRarity) {
+      RARITIES.forEach((r) => {
+        if (Object.prototype.hasOwnProperty.call(incoming, r)) {
+          rarities[r] = !!incoming[r];
+        }
+      });
+    } else {
+      // Migrate older grouped toggles into every rarity they covered
+      CUTSCENE_LEGACY_GROUPS.forEach((g) => {
+        if (!Object.prototype.hasOwnProperty.call(incoming, g.id)) return;
+        const on = !!incoming[g.id];
+        g.rarities.forEach((r) => {
+          rarities[r] = on;
+        });
+      });
+    }
     return {
       rarities,
       shiny: src.shiny === true,
@@ -15478,9 +15468,9 @@
   }
 
   function isCutsceneRarityEnabled(rarity) {
-    const groupId = CUTSCENE_RARITY_TO_GROUP[rarity];
-    if (!groupId) return false;
-    return !!cutscenePrefs().rarities[groupId];
+    const id = String(rarity || "");
+    if (!id) return false;
+    return !!cutscenePrefs().rarities[id];
   }
 
   function shouldPlayCatchCutscene(fish, entry) {
@@ -18172,21 +18162,25 @@
 
   function ensureCutsceneRarityChips() {
     const host = document.getElementById("settings-cutscene-rarities");
-    if (!host || host.dataset.ready === "1") return host;
-    host.dataset.ready = "1";
-    host.innerHTML = CUTSCENE_RARITY_GROUPS.map(
-      (g) => `<label class="settings-cutscene-chip">
-        <input type="checkbox" data-cutscene-rarity="${g.id}" />
-        <span>${g.label}</span>
+    if (!host) return null;
+    if (host.dataset.ready === "v2-all") return host;
+    host.dataset.ready = "v2-all";
+    host.innerHTML = RARITIES.map(
+      (r) => `<label class="settings-cutscene-chip" title="${escapeHtml(formatRarityName(r))}">
+        <input type="checkbox" data-cutscene-rarity="${r}" />
+        <span>${escapeHtml(formatRarityName(r))}</span>
       </label>`
     ).join("");
-    host.addEventListener("change", (e) => {
-      const input = e.target?.closest?.("input[data-cutscene-rarity]");
-      if (!input) return;
-      const prefs = cutscenePrefs();
-      prefs.rarities[input.getAttribute("data-cutscene-rarity")] = !!input.checked;
-      setCutscenePrefs(prefs);
-    });
+    if (!host.dataset.cutsceneBound) {
+      host.dataset.cutsceneBound = "1";
+      host.addEventListener("change", (e) => {
+        const input = e.target?.closest?.("input[data-cutscene-rarity]");
+        if (!input) return;
+        const prefs = cutscenePrefs();
+        prefs.rarities[input.getAttribute("data-cutscene-rarity")] = !!input.checked;
+        setCutscenePrefs(prefs);
+      });
+    }
     return host;
   }
 
@@ -19120,13 +19114,23 @@
   );
   document.getElementById("settings-cutscene-all")?.addEventListener("click", () => {
     const prefs = cutscenePrefs();
-    CUTSCENE_RARITY_GROUPS.forEach((g) => {
-      prefs.rarities[g.id] = true;
+    RARITIES.forEach((r) => {
+      prefs.rarities[r] = true;
     });
     setCutscenePrefs(prefs);
   });
   document.getElementById("settings-cutscene-defaults")?.addEventListener("click", () => {
     setCutscenePrefs(defaultCutscenePrefs());
+  });
+  document.getElementById("settings-cutscene-none")?.addEventListener("click", () => {
+    const prefs = cutscenePrefs();
+    RARITIES.forEach((r) => {
+      prefs.rarities[r] = false;
+    });
+    prefs.shiny = false;
+    prefs.mutation = false;
+    prefs.variant = false;
+    setCutscenePrefs(prefs);
   });
   adminBtn?.addEventListener("click", openAdmin);
   (function bindFishingTitleEggs() {
