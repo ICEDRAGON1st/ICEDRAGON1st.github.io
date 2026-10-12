@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="../hub-game-boot.js?v=20261001ew"></script>
+  <script src="../hub-game-boot.js?v=20261001ex"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261001ew">
+  <link rel="stylesheet" href="styles.css?v=20261001ex">
 </head>
 <body>
   <header class="hud">
@@ -58,15 +58,22 @@
         </svg>
         <div id="sticker-layer" class="sticker-layer" aria-label="Stickers on car"></div>
       </div>
-      <p class="bay-hint" id="bay-hint">Pick a sticker, then tap the car to place it.</p>
+      <p class="bay-hint" id="bay-hint">Paint the car, then place stickers to match the order.</p>
     </section>
 
     <section class="tray-wrap">
       <div class="tray-head">
-        <span>Your stickers</span>
+        <span>Paint</span>
+      </div>
+      <div id="paint-tray" class="paint-tray" role="listbox" aria-label="Paint colors"></div>
+    </section>
+
+    <section class="tray-wrap">
+      <div class="tray-head">
+        <span>Stickers</span>
         <div class="tray-actions">
           <button id="undo-btn" type="button" class="tiny-btn">Undo</button>
-          <button id="clear-btn" type="button" class="tiny-btn">Clear</button>
+          <button id="clear-btn" type="button" class="tiny-btn">Clear stickers</button>
         </div>
       </div>
       <div id="sticker-tray" class="sticker-tray" role="listbox" aria-label="Sticker tray"></div>
@@ -88,9 +95,10 @@
         </div>
         <button id="shop-close" type="button" class="icon-x" aria-label="Close shop">×</button>
       </div>
-      <p class="shop-lead">Browse by category — sticker packs, tip upgrades, and pay boosts.</p>
+      <p class="shop-lead">Browse by category — paints, sticker packs, tips, and pay boosts.</p>
       <div id="shop-cats" class="shop-cats" role="tablist" aria-label="Shop categories">
         <button type="button" class="shop-cat-btn active" data-shop-cat="all">All</button>
+        <button type="button" class="shop-cat-btn" data-shop-cat="paints">Paints</button>
         <button type="button" class="shop-cat-btn" data-shop-cat="basic">Basic packs</button>
         <button type="button" class="shop-cat-btn" data-shop-cat="flashy">Flashy packs</button>
         <button type="button" class="shop-cat-btn" data-shop-cat="legend">Legend packs</button>
@@ -105,7 +113,7 @@
     <div class="overlay-card">
       <p class="eyebrow">Custom bay</p>
       <h1 id="overlay-title">Sticker Garage</h1>
-      <p id="overlay-text" class="lead">Customers roll in with sticker orders. Slap the right decals on the car, deliver for cash, and unlock flashier packs.</p>
+      <p id="overlay-text" class="lead">Customers want a paint job and stickers. Spray the right color, slap on the decals, cash out, and unlock more paints and packs.</p>
       <p class="score-line">Career cash: <strong id="overlay-best">0</strong></p>
       <div class="overlay-actions">
         <button id="start-btn" type="button" class="btn">Open bay</button>
@@ -126,6 +134,6 @@
   <script src="../hub-chat.js?v=20260927c"></script>
   <script src="../hub-calls.js?v=20260925a"></script>
   <script src="../hub-leaderboard.js?v=20260925a"></script>
-  <script src="script.js?v=20261001ev"></script>
+  <script src="script.js?v=20261001ex"></script>
 </body>
 </html>

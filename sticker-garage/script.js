@@ -67,7 +67,23 @@
     }
   ];
 
+  const PAINTS = [
+    { id: "primer", name: "Primer gray", hi: "#9aa3ad", lo: "#5c6570", cost: 0, starter: true, orderable: false },
+    { id: "red", name: "Cherry red", hi: "#e85d4c", lo: "#a83228", cost: 0, starter: true },
+    { id: "blue", name: "Sky blue", hi: "#4ea1ff", lo: "#1d5fad", cost: 0, starter: true },
+    { id: "white", name: "Pearl white", hi: "#f2f2f2", lo: "#9a9a9a", cost: 0, starter: true },
+    { id: "green", name: "Forest green", hi: "#3ecf8e", lo: "#1a7a52", cost: 55 },
+    { id: "yellow", name: "Taxi yellow", hi: "#ffd24a", lo: "#c48a10", cost: 70 },
+    { id: "orange", name: "Sunset orange", hi: "#ff8a3d", lo: "#b34e12", cost: 95 },
+    { id: "purple", name: "Violet dusk", hi: "#c9a0ff", lo: "#6b3fa0", cost: 140 },
+    { id: "teal", name: "Ocean teal", hi: "#2dd4bf", lo: "#0f766e", cost: 180 },
+    { id: "pink", name: "Hot pink", hi: "#ff6ad5", lo: "#b01e86", cost: 240 },
+    { id: "black", name: "Midnight", hi: "#3a3f48", lo: "#12151a", cost: 320 },
+    { id: "gold", name: "Showroom gold", hi: "#ffe08a", lo: "#b8860b", cost: 480 }
+  ];
+
   const SHOP_CATEGORIES = [
+    { id: "paints", title: "Paints", blurb: "Unlock spray colors customers can request." },
     { id: "basic", title: "Basic packs", blurb: "Starter decals customers ask for early on." },
     { id: "flashy", title: "Flashy packs", blurb: "Bolder wraps that unlock juicier orders." },
     { id: "legend", title: "Legend packs", blurb: "Rare stickers for big tips and flex jobs." },
@@ -80,16 +96,6 @@
     "Zara", "Chris", "Nina", "Omar", "Jade", "Ben", "Lux", "Tess"
   ];
   const FACES = ["😎", "🤩", "😊", "🥸", "😺", "🤠", "🤓", "😇", "🥳", "😤"];
-  const CAR_COLORS = [
-    { hi: "#e85d4c", lo: "#a83228" },
-    { hi: "#4ea1ff", lo: "#1d5fad" },
-    { hi: "#3ecf8e", lo: "#1a7a52" },
-    { hi: "#ffd24a", lo: "#c48a10" },
-    { hi: "#c9a0ff", lo: "#6b3fa0" },
-    { hi: "#f2f2f2", lo: "#9a9a9a" },
-    { hi: "#ff8a3d", lo: "#b34e12" },
-    { hi: "#2dd4bf", lo: "#0f766e" }
-  ];
 
   const els = {
     cash: document.getElementById("cash"),
@@ -100,6 +106,7 @@
     order: document.getElementById("customer-order"),
     stage: document.getElementById("car-stage"),
     layer: document.getElementById("sticker-layer"),
+    paintTray: document.getElementById("paint-tray"),
     tray: document.getElementById("sticker-tray"),
     hint: document.getElementById("bay-hint"),
     deliver: document.getElementById("deliver-btn"),
@@ -125,6 +132,7 @@
   let save = loadSave();
   let selectedId = null;
   let placed = [];
+  let currentPaintId = "primer";
   let job = null;
   let running = false;
   let paused = false;
@@ -138,6 +146,7 @@
       earned: 0,
       jobs: 0,
       unlocked: ["star"],
+      paints: PAINTS.filter((p) => p.starter).map((p) => p.id),
       upgrades: [],
       tipMult: 1,
       payMult: 1
@@ -153,6 +162,12 @@
       const next = { ...base, ...parsed };
       if (!Array.isArray(next.unlocked) || !next.unlocked.length) next.unlocked = ["star"];
       if (!next.unlocked.includes("star")) next.unlocked.push("star");
+      if (!Array.isArray(next.paints) || !next.paints.length) {
+        next.paints = PAINTS.filter((p) => p.starter).map((p) => p.id);
+      }
+      PAINTS.filter((p) => p.starter).forEach((p) => {
+        if (!next.paints.includes(p.id)) next.paints.push(p.id);
+      });
       if (!Array.isArray(next.upgrades)) next.upgrades = [];
       next.tipMult = Number(next.tipMult) || 1;
       next.payMult = Number(next.payMult) || 1;
@@ -190,12 +205,24 @@
     return STICKERS.find((s) => s.id === id);
   }
 
+  function paintById(id) {
+    return PAINTS.find((p) => p.id === id);
+  }
+
   function isUnlocked(id) {
     return save.unlocked.includes(id);
   }
 
+  function isPaintUnlocked(id) {
+    return save.paints.includes(id);
+  }
+
   function hasUpgrade(id) {
     return save.upgrades.includes(id);
+  }
+
+  function orderablePaints() {
+    return PAINTS.filter((p) => p.orderable !== false && isPaintUnlocked(p.id));
   }
 
   function showToast(msg, kind) {
@@ -213,6 +240,55 @@
     const best = Math.max(readHigh(), Math.floor(save.earned || 0));
     els.high.textContent = fmt(best);
     els.overlayBest.textContent = `$${fmt(best)}`;
+  }
+
+  function setCarColor(paint) {
+    if (!paint) return;
+    document.documentElement.style.setProperty("--car-hi", paint.hi);
+    document.documentElement.style.setProperty("--car-lo", paint.lo);
+  }
+
+  function applyPaint(id) {
+    if (!isPaintUnlocked(id) && id !== "primer") return;
+    const paint = paintById(id);
+    if (!paint) return;
+    currentPaintId = id;
+    setCarColor(paint);
+    renderPaintTray();
+    updateDeliverEnabled();
+    els.hint.textContent =
+      id === "primer"
+        ? "Spray a color, then add stickers."
+        : `Painted ${paint.name}. Add stickers to finish.`;
+  }
+
+  function renderPaintTray() {
+    if (!els.paintTray) return;
+    const unlocked = PAINTS.filter((p) => p.id !== "primer" && isPaintUnlocked(p.id));
+    els.paintTray.innerHTML = "";
+    unlocked.forEach((p) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className =
+        "paint-chip" +
+        (currentPaintId === p.id ? " is-active is-selected" : "");
+      btn.title = p.name;
+      btn.style.setProperty("--swatch-hi", p.hi);
+      btn.style.setProperty("--swatch-lo", p.lo);
+      btn.setAttribute("role", "option");
+      btn.setAttribute("aria-label", p.name);
+      btn.setAttribute("aria-selected", currentPaintId === p.id ? "true" : "false");
+      btn.innerHTML = `<span class="paint-check" aria-hidden="true">✓</span>`;
+      btn.addEventListener("click", () => {
+        selectedId = null;
+        renderTray();
+        applyPaint(p.id);
+        try {
+          window.HubSound?.play?.("tap");
+        } catch {}
+      });
+      els.paintTray.appendChild(btn);
+    });
   }
 
   function renderTray() {
@@ -237,6 +313,11 @@
     });
   }
 
+  function updateDeliverEnabled() {
+    const paintOk = !!(job && currentPaintId !== "primer");
+    els.deliver.disabled = !running || !job || placed.length === 0 || !paintOk;
+  }
+
   function renderPlaced() {
     els.layer.innerHTML = "";
     placed.forEach((p) => {
@@ -250,12 +331,7 @@
       el.style.setProperty("--rot", `${p.rot}deg`);
       els.layer.appendChild(el);
     });
-    els.deliver.disabled = !running || !job || placed.length === 0;
-  }
-
-  function setCarColor(color) {
-    document.documentElement.style.setProperty("--car-hi", color.hi);
-    document.documentElement.style.setProperty("--car-lo", color.lo);
+    updateDeliverEnabled();
   }
 
   function pickOrder() {
@@ -270,44 +346,59 @@
     return needs;
   }
 
-  function orderHtml(needs) {
-    return needs
+  function pickWantPaint() {
+    const pool = orderablePaints();
+    if (!pool.length) return paintById("red");
+    return pool[Math.floor(Math.random() * pool.length)];
+  }
+
+  function orderHtml(needs, wantPaint) {
+    const paintBit = wantPaint
+      ? `<span class="need-paint"><span class="need-swatch" style="--swatch-hi:${wantPaint.hi};--swatch-lo:${wantPaint.lo}"></span>${wantPaint.name}</span>`
+      : "";
+    const stickerBits = needs
       .map((n) => {
         const s = stickerById(n.id);
         return `<span class="need">${n.count}×${s?.emoji || "?"}</span>`;
       })
       .join("");
+    return paintBit + stickerBits;
   }
 
-  function orderSpeech(needs) {
+  function orderSpeech(needs, wantPaint) {
     const bits = needs.map((n) => {
       const s = stickerById(n.id);
       return `${n.count} ${s?.name || "sticker"}${n.count > 1 ? "s" : ""}`;
     });
-    if (bits.length === 1) return `Hit me with ${bits[0]}!`;
-    if (bits.length === 2) return `I want ${bits[0]} and ${bits[1]}.`;
-    return `Wrap it with ${bits.slice(0, -1).join(", ")}, and ${bits[bits.length - 1]}.`;
+    const color = wantPaint?.name || "a fresh color";
+    if (bits.length === 1) return `Paint it ${color} and hit me with ${bits[0]}!`;
+    if (bits.length === 2) return `${color} paint, plus ${bits[0]} and ${bits[1]}.`;
+    return `${color} paint, then ${bits.slice(0, -1).join(", ")}, and ${bits[bits.length - 1]}.`;
   }
 
   function nextJob() {
     placed = [];
     selectedId = selectedId && isUnlocked(selectedId) ? selectedId : null;
     const needs = pickOrder();
-    const color = CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)];
+    const wantPaint = pickWantPaint();
     job = {
       name: NAMES[Math.floor(Math.random() * NAMES.length)],
       face: FACES[Math.floor(Math.random() * FACES.length)],
       needs,
-      color,
-      basePay: 18 + needs.reduce((a, n) => a + n.count * 8, 0) + Math.floor(save.jobs / 3) * 2
+      wantPaintId: wantPaint.id,
+      basePay:
+        22 +
+        needs.reduce((a, n) => a + n.count * 8, 0) +
+        10 +
+        Math.floor(save.jobs / 3) * 2
     };
-    setCarColor(color);
+    applyPaint("primer");
     els.face.textContent = job.face;
     els.name.textContent = job.name;
-    els.order.innerHTML = `${orderHtml(needs)} <span style="opacity:.75">${orderSpeech(needs)}</span>`;
+    els.order.innerHTML = `${orderHtml(needs, wantPaint)} <span style="opacity:.75">${orderSpeech(needs, wantPaint)}</span>`;
     renderPlaced();
     renderTray();
-    els.hint.textContent = "Match their order — extras cut the tip.";
+    els.hint.textContent = "Spray their color first, then match the stickers.";
   }
 
   function countPlaced() {
@@ -334,17 +425,20 @@
     Object.values(counts).forEach((c) => {
       extras += c;
     });
-    const perfect = missing === 0 && extras === 0;
+    const paintOk = currentPaintId === job.wantPaintId;
+    const stickersPerfect = missing === 0 && extras === 0;
+    const perfect = stickersPerfect && paintOk;
     const accuracy = needed ? matched / needed : 0;
-    return { missing, extras, matched, needed, perfect, accuracy };
+    return { missing, extras, matched, needed, perfect, accuracy, paintOk, stickersPerfect };
   }
 
   function deliver() {
-    if (!running || !job || !placed.length) return;
+    if (!running || !job || !placed.length || currentPaintId === "primer") return;
     const g = gradeJob();
     const payMult = save.payMult || 1;
     const tipMult = save.tipMult || 1;
     let pay = Math.round(job.basePay * payMult * (0.35 + 0.65 * g.accuracy));
+    if (!g.paintOk) pay = Math.max(4, Math.round(pay * 0.55));
     let tip = 0;
     if (g.perfect) {
       tip = Math.round(job.basePay * 0.45 * tipMult);
@@ -360,13 +454,15 @@
     paintHud();
 
     if (g.perfect) {
-      showToast(`Perfect! +$${pay}`, "is-good");
+      showToast(`Perfect paint + wrap! +$${pay}`, "is-good");
       try {
         window.HubConfetti?.burst?.();
       } catch {}
       try {
         window.HubSound?.play?.("success");
       } catch {}
+    } else if (!g.paintOk && g.stickersPerfect) {
+      showToast(`Wrong color — +$${pay}`, "is-bad");
     } else if (g.accuracy >= 0.7) {
       showToast(`Close enough — +$${pay}`, "is-good");
     } else {
@@ -399,6 +495,24 @@
   }
 
   function shopItemsForCat(catId) {
+    if (catId === "paints") {
+      return PAINTS.filter((p) => p.cost > 0).map((p) => {
+        const owned = isPaintUnlocked(p.id);
+        return {
+          key: `paint-${p.id}`,
+          icon: `<span class="need-swatch" style="--swatch-hi:${p.hi};--swatch-lo:${p.lo};width:28px;height:28px;border-radius:8px;display:block"></span>`,
+          title: p.name,
+          desc: owned ? "In your paint tray" : "Spray color customers can request",
+          status: owned ? "Owned" : save.cash >= p.cost ? "Ready to buy" : "Save up",
+          cost: p.cost,
+          owned,
+          locked: false,
+          htmlIcon: true,
+          disabled: owned || save.cash < p.cost,
+          onBuy: () => buyPaint(p.id)
+        };
+      });
+    }
     if (catId === "tips" || catId === "pay") {
       return UPGRADES.filter((u) => u.cat === catId).map((u) => {
         const owned = hasUpgrade(u.id);
@@ -483,13 +597,16 @@
           (r.key === nextKey ? " is-next" : "");
         row.setAttribute("role", "listitem");
         row.innerHTML = `
-          <div class="shop-icon">${r.icon}</div>
+          <div class="shop-icon">${r.htmlIcon ? r.icon : ""}</div>
           <div class="shop-meta">
             <strong>${r.title}</strong>
             <span class="shop-desc">${r.desc}</span>
             <span class="shop-status">${r.status}</span>
           </div>
         `;
+        if (!r.htmlIcon) {
+          row.querySelector(".shop-icon").textContent = r.icon;
+        }
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "buy-btn" + (r.owned ? " is-owned" : "");
@@ -502,6 +619,18 @@
 
       els.shopList.appendChild(section);
     });
+  }
+
+  function buyPaint(id) {
+    const p = paintById(id);
+    if (!p || isPaintUnlocked(id) || save.cash < p.cost) return;
+    save.cash -= p.cost;
+    save.paints.push(id);
+    persist();
+    paintHud();
+    renderPaintTray();
+    renderShop();
+    showToast(`Unlocked ${p.name} paint!`, "is-good");
   }
 
   function buySticker(id) {
@@ -572,7 +701,7 @@
     } else {
       els.overlayTitle.textContent = "Sticker Garage";
       els.overlayText.textContent =
-        "Customers roll in with sticker orders. Slap the right decals on the car, deliver for cash, and unlock flashier packs.";
+        "Customers want a paint job and stickers. Spray the right color, slap on the decals, cash out, and unlock more paints and packs.";
     }
     paintHud();
   }
@@ -644,7 +773,7 @@
 
   // Boot
   paintHud();
+  applyPaint("primer");
   renderTray();
-  setCarColor(CAR_COLORS[0]);
   showMenu(false);
 })();

@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ex": [
+    "Sticker Garage: customers request paint colors — spray the car, unlock more paints in shop"
+  ],
   "20261001ew": [
     "Sticker Garage: fix shop category bar scrollbar covering the tabs"
   ],
