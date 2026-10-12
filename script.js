@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001cw": [
+    "Coin shop opens full-screen like the Help assistant"
+  ],
   "20261001cv": [
     "Coin shop: full overlay over the game grid — buy Help mascots and skins with hub coins"
   ],
@@ -4715,6 +4718,7 @@ function updateCoinsButtonLabel(open) {
 function setCoinsShopOpen(open) {
   if (!coinsPanel) return;
   coinsPanel.classList.toggle("hidden", !open);
+  document.body.classList.toggle("coins-shop-open", !!open);
   gamesScreen?.classList.toggle("shop-open", !!open);
   updateCoinsButtonLabel(!!open);
   if (open) {
