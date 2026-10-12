@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001eb": [
+    "Paper Claim: Neon land pulses cyan/pink only (not a rainbow cycle)"
+  ],
   "20261001ea": [
     "Paper Claim: Rainbow and Neon claimed land cycles through colors"
   ],

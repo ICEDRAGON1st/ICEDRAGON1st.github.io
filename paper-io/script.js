@@ -133,7 +133,6 @@
   }
 
   const RAINBOW_COLS = ["#ff6b6b", "#fcc419", "#51cf66", "#339af0", "#cc5de8"];
-  const NEON_COLS = ["#22d3ee", "#e93cac", "#a78bfa", "#22d3ee"];
   function rainbowAt(i) {
     return RAINBOW_COLS[Math.abs(i) % RAINBOW_COLS.length];
   }
@@ -165,15 +164,21 @@
     return head === "rainbow" || head === "neon";
   }
 
-  /** Cycle land/blob tint through palette colors over time. */
+  /** Rainbow cycles the spectrum; neon only pulses cyan ↔ hot pink. */
   function landAnimColor(head, now) {
     const t = now != null ? now : performance.now();
-    const cols = head === "neon" ? NEON_COLS : head === "rainbow" ? RAINBOW_COLS : null;
-    if (!cols || !cols.length) return null;
-    const speed = head === "neon" ? 420 : 520;
-    const f = ((t / speed) % cols.length + cols.length) % cols.length;
-    const i = f | 0;
-    return lerpHex(cols[i], cols[(i + 1) % cols.length], f - i);
+    if (head === "neon") {
+      // Smooth back-and-forth (not a multi-hue loop)
+      const u = (Math.sin(t / 380) + 1) * 0.5;
+      return lerpHex("#22d3ee", "#ff2bd6", u);
+    }
+    if (head === "rainbow") {
+      const cols = RAINBOW_COLS;
+      const f = ((t / 520) % cols.length + cols.length) % cols.length;
+      const i = f | 0;
+      return lerpHex(cols[i], cols[(i + 1) % cols.length], f - i);
+    }
+    return null;
   }
 
   function previewColors() {
