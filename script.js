@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001dm": [
+    "Coin shop: Help mascot portraits and Wing Hop skin pack previews on each item"
+  ],
   "20261001dl": [
     "Admin: Grant local applies coins/titles/colors on this device when cloud is down"
   ],
@@ -4811,15 +4814,82 @@ function shopItemKindLabel(item) {
   return "Item";
 }
 
+/** Wing Hop shop preview — pack colors + glyph (matches theme packs / UFO). */
+const WING_HOP_SHOP_ICONS = {
+  ufo: { emoji: "🛸", body: "#7c9cff", wing: "#3b5bdb", skyTop: "#050814", skyBottom: "#1a1040" },
+  plane: { emoji: "✈️", body: "#f1f3f5", wing: "#ced4da", skyTop: "#e7f5ff", skyBottom: "#fff4e6" },
+  bee: { emoji: "🐝", body: "#fcc419", wing: "#fff9db", skyTop: "#74c0fc", skyBottom: "#d0ebff" },
+  sub: { emoji: "🛥️", body: "#ff922b", wing: "#e8590c", skyTop: "#0b2948", skyBottom: "#1c7ed6" },
+  balloon: { emoji: "🎈", body: "#fa5252", wing: "#ffc9c9", skyTop: "#74c0fc", skyBottom: "#ffe3e3" },
+  broom: { emoji: "🧹", body: "#862e9c", wing: "#be4bdb", skyTop: "#1b1b2f", skyBottom: "#5f3dc4" },
+  neon: { emoji: "🌃", body: "#22b8cf", wing: "#e64980", skyTop: "#0b1020", skyBottom: "#341c4d" },
+  steam: { emoji: "⚙️", body: "#868e96", wing: "#fab005", skyTop: "#adb5bd", skyBottom: "#fff4e6" },
+  frost: { emoji: "❄️", body: "#a5d8ff", wing: "#74c0fc", skyTop: "#d0ebff", skyBottom: "#e7f5ff" },
+  volcano: { emoji: "🌋", body: "#e03131", wing: "#f08c00", skyTop: "#212529", skyBottom: "#872e0e" },
+  ghost: { emoji: "👻", body: "#e9ecef", wing: "#ced4da", skyTop: "#212529", skyBottom: "#495057" },
+  pixel: { emoji: "👾", body: "#51cf66", wing: "#ff6b6b", skyTop: "#1a1b26", skyBottom: "#364fc7" },
+  idol: { emoji: "🛕", body: "#fcc419", wing: "#f08c00", skyTop: "#fff3bf", skyBottom: "#ffe8cc" },
+  shadow: { emoji: "🌑", body: "#343a40", wing: "#212529", skyTop: "#0b0d12", skyBottom: "#212529" },
+  rainbow: { emoji: "🌈", body: "#ff6b6b", wing: "#845ef7", skyTop: "#e7f5ff", skyBottom: "#fff0f6" }
+};
+
+function shopMascotIconHtml(item) {
+  const id = String(item?.mascotId || "").toLowerCase();
+  let mascot = null;
+  try {
+    mascot = (HubHelp?.listMascots?.() || []).find((m) => m.id === id) || null;
+    if (!mascot && Array.isArray(HubHelp?.MASCOTS)) {
+      mascot = HubHelp.MASCOTS.find((m) => m.id === id) || null;
+    }
+  } catch {}
+  const build = window.WORDLE_BUILD || "1";
+  const avatar = String(mascot?.avatar || (id ? `hub-help-icons/${id}.png` : "")).trim();
+  if (avatar) {
+    return `<span class="coins-shop-icon has-avatar" aria-hidden="true"><img src="${escapeHtml(
+      avatar
+    )}?v=${escapeHtml(build)}" alt="" width="64" height="64" loading="lazy" decoding="async"></span>`;
+  }
+  const emoji = mascot?.icon || "💬";
+  return `<span class="coins-shop-icon coins-shop-icon-emoji" aria-hidden="true">${escapeHtml(emoji)}</span>`;
+}
+
+function shopSkinIconHtml(item) {
+  const skinId = String(item?.skinId || "").toLowerCase();
+  const preview = WING_HOP_SHOP_ICONS[skinId] || {
+    emoji: "🐉",
+    body: "#3d5a80",
+    wing: "#1b2838",
+    skyTop: "#1b3a5c",
+    skyBottom: "#4c6ef5"
+  };
+  return `<span class="coins-shop-icon coins-shop-skin-icon" aria-hidden="true" style="--skin-sky-top:${escapeHtml(
+    preview.skyTop
+  )};--skin-sky-bottom:${escapeHtml(preview.skyBottom)};--skin-body:${escapeHtml(
+    preview.body
+  )};--skin-wing:${escapeHtml(preview.wing)}"><span class="coins-shop-skin-glyph">${escapeHtml(
+    preview.emoji
+  )}</span></span>`;
+}
+
+function shopItemIconHtml(item) {
+  const kind = String(item?.kind || "");
+  if (kind === "mascot") return shopMascotIconHtml(item);
+  if (kind === "skin") return shopSkinIconHtml(item);
+  return `<span class="coins-shop-icon coins-shop-icon-emoji" aria-hidden="true">🪙</span>`;
+}
+
 function renderCoinsShopItem(item) {
   const owned = !!item.owned;
   return `<li class="coins-shop-item${owned ? " is-owned" : ""}" role="listitem">
-    <div class="coins-shop-meta">
-      <span class="coins-shop-kind">${escapeHtml(shopItemKindLabel(item))}</span>
-      <span class="coins-shop-name">${escapeHtml(item.label)}</span>
-      <span class="coins-shop-cost">${
-        owned ? "Owned" : `${HubCoins.format(item.cost)} coins`
-      }</span>
+    <div class="coins-shop-item-main">
+      ${shopItemIconHtml(item)}
+      <div class="coins-shop-meta">
+        <span class="coins-shop-kind">${escapeHtml(shopItemKindLabel(item))}</span>
+        <span class="coins-shop-name">${escapeHtml(item.label)}</span>
+        <span class="coins-shop-cost">${
+          owned ? "Owned" : `${HubCoins.format(item.cost)} coins`
+        }</span>
+      </div>
     </div>
     <button type="button" class="hub-btn${owned ? "" : " hub-btn-primary"}" data-coin-buy="${escapeHtml(
       item.id

@@ -3768,11 +3768,62 @@ html[data-mygames-desktop="1"] .coins-panel.coins-shop-overlay {
   background: rgba(80, 180, 120, 0.08);
 }
 
+.coins-shop-item-main {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.7rem;
+  min-width: 0;
+}
+
+.coins-shop-icon {
+  flex: 0 0 auto;
+  width: 3.35rem;
+  height: 3.35rem;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: rgba(12, 20, 36, 0.9);
+  border: 1px solid rgba(140, 180, 230, 0.28);
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.coins-shop-icon.has-avatar {
+  padding: 0;
+  background: #0b1426;
+}
+
+.coins-shop-icon.has-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.coins-shop-icon-emoji {
+  background: linear-gradient(160deg, rgba(40, 60, 100, 0.55), rgba(12, 18, 32, 0.95));
+}
+
+.coins-shop-skin-icon {
+  position: relative;
+  background: linear-gradient(180deg, var(--skin-sky-top, #1b3a5c), var(--skin-sky-bottom, #4c6ef5));
+  border-color: color-mix(in srgb, var(--skin-wing, #3b5bdb) 55%, rgba(255, 255, 255, 0.2));
+  box-shadow: inset 0 -0.55rem 0 0 color-mix(in srgb, var(--skin-body, #7c9cff) 70%, transparent);
+}
+
+.coins-shop-skin-glyph {
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.45));
+}
+
 .coins-shop-meta {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .coins-shop-kind {
