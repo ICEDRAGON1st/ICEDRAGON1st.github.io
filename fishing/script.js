@@ -13826,18 +13826,44 @@
     </svg>`;
   }
 
-  function pickBestCatchFish(entries) {
-    const list = (Array.isArray(entries) ? entries : [entries])
+  /** Best haul row by catchScore (keeps the matching entry — same species can differ). */
+  function pickBestCatchHaul(entries) {
+    const raw = Array.isArray(entries) ? entries : [entries];
+    const list = raw
       .map((e) => {
-        if (e?.fish) return { fish: e.fish, entry: e.entry || e };
-        if (e && !isTreasureItem(e)) return { fish: e, entry: null };
+        if (e?.fish && !isTreasureItem(e.fish)) {
+          return {
+            fish: e.fish,
+            entry: e.entry || null,
+            val: e.val,
+            perfect: !!e.perfect,
+            sold: !!e.sold,
+            missed: !!e.missed
+          };
+        }
+        if (e && !e.fish && !isTreasureItem(e)) {
+          return { fish: e, entry: null, val: undefined, perfect: false, sold: false, missed: false };
+        }
         return null;
       })
-      .filter((x) => x && x.fish && !isTreasureItem(x.fish));
+      .filter((x) => x && x.fish);
     if (!list.length) return null;
     return list.reduce((best, cur) =>
       catchScore(cur.fish, cur.entry) > catchScore(best.fish, best.entry) ? cur : best
-    ).fish;
+    );
+  }
+
+  function pickBestCatchFish(entries) {
+    return pickBestCatchHaul(entries)?.fish || null;
+  }
+
+  /** Best fish in a multi-catch that should play a cutscene. */
+  function pickCutsceneCatchHaul(entries) {
+    const raw = Array.isArray(entries) ? entries : [entries];
+    const eligible = raw.filter(
+      (e) => e?.fish && !e.missed && shouldPlayCatchCutscene(e.fish, e.entry)
+    );
+    return pickBestCatchHaul(eligible);
   }
 
   function clearCatchSilhouette() {
@@ -15867,9 +15893,14 @@
           entry: fifthEntry
         });
       }
-      const showcase = pickBestCatchFish(haul) || fish;
-      const showcaseEntry =
-        haul.find((h) => h.fish === showcase)?.entry || entry;
+      const showcaseHaul = pickBestCatchHaul(haul) || {
+        fish,
+        entry,
+        val: fishValue(fish, spot, entry),
+        perfect
+      };
+      const showcase = showcaseHaul.fish || fish;
+      const showcaseEntry = showcaseHaul.entry || entry;
       castBtn.classList.add("is-catch", `rarity-${showcase.rarity}`);
       showCatchSilhouette(showcase, showcaseEntry);
       showCatchCard(haul);
@@ -15918,13 +15949,16 @@
           ? `${formatFishName(showcase, showcaseEntry)} +${extrasN}`
           : formatFishName(showcase, showcaseEntry)
       );
-      const showcaseHaul = haul.find((h) => h.fish === showcase) || haul[0];
-      cutsceneHold = playCatchCutscene({
-        fish: showcase,
-        entry: showcaseEntry,
-        value: showcaseHaul?.val || 0,
-        perfect: !!showcaseHaul?.perfect
-      });
+      // Multi-catch: cutscene always features the best cutscene-worthy fish.
+      const cutsceneHaul = pickCutsceneCatchHaul(haul) || null;
+      if (cutsceneHaul) {
+        cutsceneHold = playCatchCutscene({
+          fish: cutsceneHaul.fish,
+          entry: cutsceneHaul.entry,
+          value: cutsceneHaul.val || 0,
+          perfect: !!cutsceneHaul.perfect
+        });
+      }
     } else {
       clearCatchSilhouette();
       castBtn.classList.add("is-miss");
@@ -16666,15 +16700,13 @@
     setCatchLine(line, kept.length ? catchTone(best.fish.rarity) : "miss");
     // Don't open the big catch card for boat hauls — it fights the cast UI.
     // Rare boat catches still use the catch cutscene (same Settings toggles).
-    const cutsceneHaul = kept.filter((h) => shouldPlayCatchCutscene(h.fish, h.entry));
-    if (cutsceneHaul.length && !isCatchCutsceneOpen()) {
-      const showcase = pickBestCatchFish(cutsceneHaul) || cutsceneHaul[0].fish;
-      const showcaseHaul =
-        cutsceneHaul.find((h) => h.fish === showcase) || cutsceneHaul[0];
+    // Multi-haul: best cutscene-worthy fish wins.
+    const cutsceneHaul = pickCutsceneCatchHaul(kept);
+    if (cutsceneHaul && !isCatchCutsceneOpen()) {
       playCatchCutscene({
-        fish: showcase,
-        entry: showcaseHaul.entry,
-        value: showcaseHaul.val || 0,
+        fish: cutsceneHaul.fish,
+        entry: cutsceneHaul.entry,
+        value: cutsceneHaul.val || 0,
         perfect: false
       });
     }
