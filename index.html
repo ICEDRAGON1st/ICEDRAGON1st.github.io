@@ -7,8 +7,8 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>My Games</title>
-  <link rel="icon" href="icon.png?v=20261001dh" type="image/png" sizes="any">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20261001dh">
+  <link rel="icon" href="icon.png?v=20261001di" type="image/png" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20261001di">
   <link rel="manifest" href="site.webmanifest">
   <meta name="theme-color" content="#5b4dff">
   <meta property="og:title" content="My Games">
@@ -94,13 +94,13 @@
       pointer-events: none !important;
     }
   </style>
-  <script src="site-config.js?v=20261001dh"></script>
+  <script src="site-config.js?v=20261001di"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261001dh">
-  <script src="hub-net.js?v=20261001dh"></script>
-  <script src="hub-afk.js?v=20261001dh"></script>
+  <link rel="stylesheet" href="styles.css?v=20261001di">
+  <script src="hub-net.js?v=20261001di"></script>
+  <script src="hub-afk.js?v=20261001di"></script>
 </head>
 <body data-guess-colors="ice">
   <div id="hub-boot-loader" aria-live="polite" aria-busy="true">
@@ -431,7 +431,8 @@
           <p class="hub-settings-label">Your player code</p>
           <p class="player-code-hint">Accounts are saved on this device — no account server needed to switch. Use Log in with a code, password, or New account. To move an account to another device, Copy transfer and paste that into Log in there. The name ICE_DRAGON can only be used with its owner’s player code.</p>
           <div class="player-code-row">
-            <code id="player-code-value" class="player-code-value">————</code>
+            <code id="player-code-value" class="player-code-value is-masked" aria-label="Player code hidden">••••-••••</code>
+            <button id="player-code-reveal-btn" type="button" class="hub-btn" aria-pressed="false" title="Show or hide your player code">Show code</button>
             <button id="player-code-copy-btn" type="button" class="hub-btn">Copy code</button>
             <button id="player-code-transfer-btn" type="button" class="hub-btn">Copy transfer</button>
           </div>
@@ -807,7 +808,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20261001dh";
+    window.WORDLE_BUILD = "20261001di";
     try {
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("sw.js?v=" + window.WORDLE_BUILD).catch(function () {});
