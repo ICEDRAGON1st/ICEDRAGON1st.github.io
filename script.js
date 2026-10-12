@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001dh": [
+    "Fishing Idle: hide player name/code from the in-game HUD (use hub Players instead)"
+  ],
   "20261001dg": [
     "Wing Hop: pipe hitboxes match skinny skins (bee stalks, ice spires, etc.)"
   ],
