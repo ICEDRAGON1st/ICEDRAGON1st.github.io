@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ei": [
+    "Paper Claim: themed land props back on soft circle land"
+  ],
   "20261001eh": [
     "Paper Claim: soft circle land back; animated land tint and props stay off (lag)"
   ],

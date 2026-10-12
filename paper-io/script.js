@@ -5,7 +5,7 @@
   const ARENA_SHAPES = ["box", "circle", "star", "hex", "diamond", "triangle"];
   const VIEW_SPAN_MIN = 72; // slightly wider than tight paper.io zoom
   const VIEW_SPAN_MAX = 160;
-  const LAND_PX = 3; // soft overlapping disks (no animated land tint / props — those lagged)
+  const LAND_PX = 3; // soft overlapping disks (animated land tint stays off — lag)
   const SPEED = 24;
   const TURN_RATE = 10.5; // rad/s — sharp cuts, not huge arcs
   const TURN_RATE_HARD = 16; // extra snap for big direction changes
@@ -2407,7 +2407,68 @@
         landCtx.fill();
       }
     }
-    // No land props here — they were a major lag source
+
+    // Themed props inside your claimed land (arena floor stays classic)
+    const head = landSkinHead();
+    if (head !== "classic" && localId) {
+      const hid = idHash(localId);
+      const fill = skin()?.fill || COLORS[0].fill;
+      const px = LAND_PX;
+      landCtx.save();
+      landCtx.lineCap = "round";
+      landCtx.lineJoin = "round";
+      for (let y = 0; y < WORLD; y++) {
+        for (let x = 0; x < WORLD; x++) {
+          if (grid[idx(x, y)] !== hid) continue;
+          const seed = cellSeed(x, y);
+          const cx = (x + 0.5) * px;
+          const cy = (y + 0.5) * px;
+
+          if (head === "pixel") {
+            if (x % 4 === 0 && y % 4 === 0) {
+              landCtx.fillStyle = "rgba(255,255,255,0.16)";
+              landCtx.fillRect(x * px, y * px, px * 2, px * 2);
+            } else if (seed % 72 === 0 && isInteriorOwned(x, y, hid)) {
+              landCtx.fillStyle = "#ffd43b";
+              landCtx.fillRect(cx - px * 0.55, cy - px * 0.55, px * 1.1, px * 1.1);
+            }
+            continue;
+          }
+
+          if (head === "honey") {
+            if (x % 6 === 0 && y % 6 === 0 && isInteriorOwned(x, y, hid)) {
+              landCtx.strokeStyle = "rgba(120,50,0,0.38)";
+              landCtx.lineWidth = px * 0.2;
+              landCtx.beginPath();
+              const hs = px * 2.1;
+              for (let i = 0; i < 6; i++) {
+                const a = (Math.PI / 3) * i + Math.PI / 6;
+                const hx = cx + Math.cos(a) * hs * 0.55;
+                const hy = cy + Math.sin(a) * hs * 0.55;
+                if (i === 0) landCtx.moveTo(hx, hy);
+                else landCtx.lineTo(hx, hy);
+              }
+              landCtx.closePath();
+              landCtx.stroke();
+            }
+            continue;
+          }
+
+          if (
+            (head === "forest" ||
+              head === "storm" ||
+              head === "gold" ||
+              head === "graffiti" ||
+              head === "rainbow") &&
+            !isInteriorOwned(x, y, hid)
+          ) {
+            continue;
+          }
+          stampLandMotif(landCtx, cx, cy, px, head, seed, fill);
+        }
+      }
+      landCtx.restore();
+    }
   }
 
   function paintMiniLayer() {
