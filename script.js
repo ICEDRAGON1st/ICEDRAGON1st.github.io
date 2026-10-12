@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001do": [
+    "Wing Hop: fix broken coin-pack skin drawing (empty rect crash)"
+  ],
   "20261001dn": [
     "Wing Hop: richer coin-pack skins in-game and in the shop (UFO + Dragon unchanged)"
   ],
