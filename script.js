@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001co": [
+    "Fishing Idle: auto boat catches can trigger rarity cutscenes"
+  ],
   "20261001cn": [
     "Fishing Idle: cutscene settings list every rarity individually"
   ],

@@ -16665,6 +16665,19 @@
           : `Boat caught ${bestName}`;
     setCatchLine(line, kept.length ? catchTone(best.fish.rarity) : "miss");
     // Don't open the big catch card for boat hauls — it fights the cast UI.
+    // Rare boat catches still use the catch cutscene (same Settings toggles).
+    const cutsceneHaul = kept.filter((h) => shouldPlayCatchCutscene(h.fish, h.entry));
+    if (cutsceneHaul.length && !isCatchCutsceneOpen()) {
+      const showcase = pickBestCatchFish(cutsceneHaul) || cutsceneHaul[0].fish;
+      const showcaseHaul =
+        cutsceneHaul.find((h) => h.fish === showcase) || cutsceneHaul[0];
+      playCatchCutscene({
+        fish: showcase,
+        entry: showcaseHaul.entry,
+        value: showcaseHaul.val || 0,
+        perfect: false
+      });
+    }
     playSfx(kept.length ? "click" : "miss");
     checkAchievements();
     renderCooler(true);
