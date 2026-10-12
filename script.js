@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001fa": [
+    "Space Waves: Spacebar reliably rises (and starts / retries)"
+  ],
   "20261001ez": [
     "New game: Space Waves — hold to rise through neon tunnels (classic levels + endless)"
   ],

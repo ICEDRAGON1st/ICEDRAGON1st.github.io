@@ -726,44 +726,85 @@
   }
 
   function setHold(v) {
-    holding = v;
+    holding = !!v;
   }
 
-  // input
-  window.addEventListener("keydown", (e) => {
-    if (e.repeat) return;
-    if (e.code === "KeyP") {
-      if (running && !dead && !won) {
-        if (paused) {
-          hideOverlay();
-          lastTs = performance.now();
-        } else showOverlay("pause");
+  function isTypingTarget(el) {
+    if (!el) return false;
+    const tag = String(el.tagName || "").toUpperCase();
+    return tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || !!el.isContentEditable;
+  }
+
+  function isFlyKey(e) {
+    return (
+      e.code === "Space" ||
+      e.key === " " ||
+      e.key === "Spacebar" ||
+      e.code === "KeyW" ||
+      e.code === "ArrowUp" ||
+      e.key === "w" ||
+      e.key === "W" ||
+      e.key === "ArrowUp"
+    );
+  }
+
+  function onFlyKeyDown(e) {
+    if (!isFlyKey(e)) {
+      if (e.code === "KeyP" || e.key === "p" || e.key === "P") {
+        if (isTypingTarget(e.target)) return;
+        if (running && !dead && !won) {
+          e.preventDefault();
+          if (paused) {
+            hideOverlay();
+            lastTs = performance.now();
+          } else showOverlay("pause");
+        }
       }
       return;
     }
-    if (e.code === "Space" || e.code === "KeyW" || e.code === "ArrowUp") {
-      e.preventDefault();
-      if (!running && !els.overlay.classList.contains("hidden") && !paused) return;
-      if (!running && dead) {
-        startGame();
-        setHold(true);
-        return;
-      }
+    if (isTypingTarget(e.target)) return;
+    e.preventDefault();
+    if (typeof e.stopPropagation === "function") e.stopPropagation();
+    if (e.repeat) {
       setHold(true);
+      return;
     }
-  });
-  window.addEventListener("keyup", (e) => {
-    if (e.code === "Space" || e.code === "KeyW" || e.code === "ArrowUp") setHold(false);
-  });
+    // Mid-run pause: Space resumes and rises
+    if (paused && running && !dead && !won) {
+      hideOverlay();
+      lastTs = performance.now();
+      setHold(true);
+      return;
+    }
+    // Menu / crash / win screen: Space starts a run
+    if (!running || dead || won) {
+      startGame();
+      setHold(true);
+      return;
+    }
+    setHold(true);
+  }
+
+  function onFlyKeyUp(e) {
+    if (!isFlyKey(e)) return;
+    if (isTypingTarget(e.target)) return;
+    e.preventDefault();
+    setHold(false);
+  }
+
+  // Capture so Space isn't eaten by focused buttons / page scroll
+  window.addEventListener("keydown", onFlyKeyDown, true);
+  window.addEventListener("keyup", onFlyKeyUp, true);
 
   canvas.addEventListener("pointerdown", (e) => {
     e.preventDefault();
     canvas.setPointerCapture?.(e.pointerId);
-    if (!running && dead) startGame();
+    if (!running || dead || won) startGame();
     setHold(true);
   });
   canvas.addEventListener("pointerup", () => setHold(false));
   canvas.addEventListener("pointercancel", () => setHold(false));
+  canvas.addEventListener("lostpointercapture", () => setHold(false));
   window.addEventListener("blur", () => setHold(false));
 
   document.querySelectorAll("[data-mode]").forEach((btn) => {
