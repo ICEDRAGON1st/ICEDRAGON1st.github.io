@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>My Games — Offline</title>
+  <style>
+    :root {
+      --bg0: #0b1220;
+      --bg1: #152238;
+      --text: #e8eef8;
+      --muted: #9bb0cc;
+      --accent: #4da3ff;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      font-family: "Segoe UI", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(900px 500px at 20% 0%, #1a3a66 0%, transparent 55%),
+        radial-gradient(700px 400px at 90% 100%, #2a1a4a 0%, transparent 50%),
+        linear-gradient(160deg, var(--bg0), var(--bg1));
+      padding: 24px;
+    }
+    main {
+      max-width: 420px;
+      text-align: center;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 1.75rem;
+      letter-spacing: 0.02em;
+    }
+    p {
+      margin: 0 0 20px;
+      color: var(--muted);
+      line-height: 1.45;
+    }
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 10px;
+      padding: 12px 22px;
+      font: inherit;
+      font-weight: 600;
+      color: #061018;
+      background: linear-gradient(135deg, #7ec8ff, var(--accent));
+      cursor: pointer;
+    }
+    button:hover { filter: brightness(1.06); }
+    button:active { transform: translateY(1px); }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>You're offline</h1>
+    <p>My Games needs an internet connection to load the hub. Check your connection, then try again.</p>
+    <button type="button" id="retry">Retry</button>
+  </main>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const hub = params.get("url") || "https://mygames.com/";
+    document.getElementById("retry").addEventListener("click", () => {
+      location.href = hub;
+    });
+  </script>
+</body>
+</html>

@@ -9,3 +9,6 @@ discord-bot/.bot.lock
 node_modules/
 tools/discord-secrets.local.js
 tools/discord-secrets.local.json
+desktop/node_modules/
+desktop/dist/
+desktop/*.exe
