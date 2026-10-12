@@ -5,7 +5,7 @@
   const ARENA_SHAPES = ["box", "circle", "star", "hex", "diamond", "triangle"];
   const VIEW_SPAN_MIN = 72; // slightly wider than tight paper.io zoom
   const VIEW_SPAN_MAX = 160;
-  const LAND_PX = 8; // hi-res land texture so zoom stays smooth
+  const LAND_PX = 4; // land texture scale (lower = much faster paint)
   const SPEED = 24;
   const TURN_RATE = 10.5; // rad/s — sharp cuts, not huge arcs
   const TURN_RATE_HARD = 16; // extra snap for big direction changes
@@ -747,16 +747,14 @@
   const ctx = canvas.getContext("2d", { alpha: false });
   const landLayer = document.createElement("canvas");
   const landCtx = landLayer.getContext("2d");
-  const animLandMask = document.createElement("canvas");
-  const animLandMaskCtx = animLandMask.getContext("2d");
-  const animLandTint = document.createElement("canvas");
-  const animLandTintCtx = animLandTint.getContext("2d");
   const miniLayer = document.createElement("canvas");
   const miniCtx = miniLayer.getContext("2d", { alpha: false });
   let landDirty = true;
   let miniDirty = true;
-  let hasAnimLandMask = false;
+  let lastAnimLandAt = 0;
   let lastMiniAnimAt = 0;
+  /** @type {Map<number, string>} */
+  const idFromHashMap = new Map();
 
   const scoreEl = document.getElementById("score");
   const highEl = document.getElementById("high-score");
@@ -1031,12 +1029,12 @@
     if (idMap.has(id)) return idMap.get(id);
     const n = idSeq++;
     idMap.set(id, n);
+    idFromHashMap.set(n, id);
     return n;
   }
 
   function idFromHash(n) {
-    for (const [k, v] of idMap) if (v === n) return k;
-    return "";
+    return idFromHashMap.get(n) || "";
   }
 
   function playerName() {
@@ -1104,7 +1102,7 @@
     markLandDirty();
   }
 
-  function paintDisk(hid, cx, cy, r) {
+  function paintDisk(hid, cx, cy, r, deferDirty) {
     const r2 = r * r;
     const x0 = Math.max(0, Math.floor(cx - r));
     const x1 = Math.min(WORLD - 1, Math.ceil(cx + r));
@@ -1119,18 +1117,19 @@
         if (dx * dx + dy * dy <= r2) grid[i] = hid;
       }
     }
-    markLandDirty();
+    if (!deferDirty) markLandDirty();
   }
 
   function paintStroke(hid, x0, y0, x1, y1, half) {
     const dx = x1 - x0;
     const dy = y1 - y0;
     const len = Math.hypot(dx, dy) || 1;
-    const steps = Math.ceil(len / 0.45);
+    const steps = Math.ceil(len / 0.55);
     for (let i = 0; i <= steps; i++) {
       const t = i / steps;
-      paintDisk(hid, x0 + dx * t, y0 + dy * t, half);
+      paintDisk(hid, x0 + dx * t, y0 + dy * t, half, true);
     }
+    markLandDirty();
   }
 
   function spawnAreaClear(cx, cy, r) {
@@ -1240,6 +1239,7 @@
     rebuildArenaMask(arenaShape);
     clearGrid();
     idMap.clear();
+    idFromHashMap.clear();
     idSeq = 1;
     players = [];
     nextBotId = 1;
@@ -1322,23 +1322,18 @@
 
   /**
    * Claim empty rim cells that touch your land along the arena edge / void.
+   * Single pass only — multi-pass full-map scans were a major lag source.
    */
   function claimTouchingEdge(hid) {
     let filled = 0;
-    let guard = 0;
-    let grew = true;
-    while (grew && guard++ < WORLD + 4) {
-      grew = false;
-      for (let y = 0; y < WORLD; y++) {
-        for (let x = 0; x < WORLD; x++) {
-          const i = idx(x, y);
-          if (!arenaMask[i] || grid[i]) continue;
-          if (!touchesVoid(x, y)) continue;
-          if (hasNeighborOwned(x, y, hid)) {
-            grid[i] = hid;
-            filled++;
-            grew = true;
-          }
+    for (let y = 0; y < WORLD; y++) {
+      for (let x = 0; x < WORLD; x++) {
+        const i = idx(x, y);
+        if (!arenaMask[i] || grid[i]) continue;
+        if (!touchesVoid(x, y)) continue;
+        if (hasNeighborOwned(x, y, hid)) {
+          grid[i] = hid;
+          filled++;
         }
       }
     }
@@ -1495,11 +1490,27 @@
       let px = p.trail[0].x;
       let py = p.trail[0].y;
       for (let i = 1; i < p.trail.length; i++) {
-        paintStroke(hid, px, py, p.trail[i].x, p.trail[i].y, TRAIL_W * 0.85);
+        const dx = p.trail[i].x - px;
+        const dy = p.trail[i].y - py;
+        const len = Math.hypot(dx, dy) || 1;
+        const steps = Math.ceil(len / 0.55);
+        for (let s = 0; s <= steps; s++) {
+          const t = s / steps;
+          paintDisk(hid, px + dx * t, py + dy * t, TRAIL_W * 0.85, true);
+        }
         px = p.trail[i].x;
         py = p.trail[i].y;
       }
-      paintStroke(hid, px, py, p.x, p.y, TRAIL_W * 0.85);
+      {
+        const dx = p.x - px;
+        const dy = p.y - py;
+        const len = Math.hypot(dx, dy) || 1;
+        const steps = Math.ceil(len / 0.55);
+        for (let s = 0; s <= steps; s++) {
+          const t = s / steps;
+          paintDisk(hid, px + dx * t, py + dy * t, TRAIL_W * 0.85, true);
+        }
+      }
     }
     p.trail = [];
     p.outside = false;
@@ -1549,6 +1560,7 @@
       }
       if (!visited[i] && grid[i] !== hid) grid[i] = hid;
     }
+    markLandDirty();
     finalizeClaim(p);
 
     // Kill rivals trapped in newly claimed cells (enemy/empty land you just took)
@@ -2127,7 +2139,7 @@
     // Props span ~2–3 cells so they read clearly when zoomed out
     const s = px * 2.35;
     if (head === "forest") {
-      if (seed % 72 !== 0) return;
+      if (seed % 110 !== 0) return;
       g.fillStyle = "#5c3d1e";
       g.fillRect(cx - s * 0.14, cy - s * 0.05, s * 0.28, s * 0.85);
       g.fillStyle = seed % 144 === 0 ? "#2f9e44" : "#40c057";
@@ -2312,42 +2324,6 @@
     }
   }
 
-  function ensureAnimLandCanvases(W) {
-    if (animLandMask.width !== W || animLandMask.height !== W) {
-      animLandMask.width = W;
-      animLandMask.height = W;
-      animLandTint.width = W;
-      animLandTint.height = W;
-    }
-  }
-
-  function drawAnimLandTint(scale) {
-    const head = landSkinHead();
-    if (!hasAnimLandMask || !isAnimLandSkin(head)) return;
-    const W = animLandMask.width;
-    if (!W) return;
-    const fill = landAnimColor(head) || skin()?.fill || "#ffffff";
-    animLandTintCtx.save();
-    animLandTintCtx.setTransform(1, 0, 0, 1, 0, 0);
-    animLandTintCtx.globalCompositeOperation = "copy";
-    animLandTintCtx.fillStyle = rgbaFromHex(fill, 0.82);
-    animLandTintCtx.fillRect(0, 0, W, W);
-    animLandTintCtx.globalCompositeOperation = "destination-in";
-    animLandTintCtx.drawImage(animLandMask, 0, 0);
-    animLandTintCtx.restore();
-
-    if (typeof ctx.filter === "string") {
-      ctx.filter = `blur(${(0.22 * scale).toFixed(2)}px)`;
-      ctx.drawImage(animLandTint, 0, 0, W, W, 0, 0, WORLD, WORLD);
-      ctx.filter = "none";
-      ctx.globalAlpha = 0.65;
-      ctx.drawImage(animLandTint, 0, 0, W, W, 0, 0, WORLD, WORLD);
-      ctx.globalAlpha = 1;
-    } else {
-      ctx.drawImage(animLandTint, 0, 0, W, W, 0, 0, WORLD, WORLD);
-    }
-  }
-
   function paintLandLayer() {
     const W = WORLD * LAND_PX;
     if (landLayer.width !== W || landLayer.height !== W) {
@@ -2355,113 +2331,94 @@
       landLayer.height = W;
       landDirty = true;
     }
-    ensureAnimLandCanvases(W);
     if (!landDirty) return;
     landDirty = false;
     landCtx.clearRect(0, 0, W, W);
-    landCtx.imageSmoothingEnabled = true;
-    animLandMaskCtx.clearRect(0, 0, W, W);
-    animLandMaskCtx.imageSmoothingEnabled = true;
-    hasAnimLandMask = false;
+    landCtx.imageSmoothingEnabled = false;
 
-    const animHead = landSkinHead();
-    const animLocal = isAnimLandSkin(animHead) && localId;
-    const localHid = animLocal ? idHash(localId) : 0;
+    // Cache owner → soft color (avoid find/colorFor per cell)
+    const softByOwner = new Map();
+    for (const pl of players) {
+      softByOwner.set(idHash(pl.id), colorFor(pl).soft);
+    }
 
-    // Soft overlapping disks at hi-res merge into smooth blobs when zoomed
-    const rad = LAND_PX * 0.78;
+    const rad = LAND_PX * 0.72;
     for (let y = 0; y < WORLD; y++) {
       for (let x = 0; x < WORLD; x++) {
         const i = idx(x, y);
         if (!arenaMask[i]) continue;
         const owner = grid[i];
         if (!owner) continue;
-        const cx = (x + 0.5) * LAND_PX;
-        const cy = (y + 0.5) * LAND_PX;
-        if (animLocal && owner === localHid) {
-          // White mask — tinted each frame for rainbow/neon land
-          animLandMaskCtx.fillStyle = "rgba(255,255,255,0.92)";
-          animLandMaskCtx.beginPath();
-          animLandMaskCtx.arc(cx, cy, rad, 0, Math.PI * 2);
-          animLandMaskCtx.fill();
-          hasAnimLandMask = true;
-          continue;
+        let soft = softByOwner.get(owner);
+        if (!soft) {
+          soft = COLORS[(owner - 1) % COLORS.length].soft;
+          softByOwner.set(owner, soft);
         }
-        const pid = idFromHash(owner);
-        const pl = players.find((p) => p.id === pid);
-        const color = pl
-          ? colorFor(pl)
-          : COLORS[(owner - 1) % COLORS.length];
-        landCtx.fillStyle = color.soft;
+        landCtx.fillStyle = soft;
         landCtx.beginPath();
-        landCtx.arc(cx, cy, rad, 0, Math.PI * 2);
+        landCtx.arc((x + 0.5) * LAND_PX, (y + 0.5) * LAND_PX, rad, 0, Math.PI * 2);
         landCtx.fill();
       }
     }
 
-    // Themed props inside your claimed land (arena floor stays classic)
-    const head = animHead;
+    // Sparse props only — skip when you already own a huge chunk (keeps FPS up)
+    const head = landSkinHead();
     if (head !== "classic" && localId) {
       const hid = idHash(localId);
-      const fill = skin()?.fill || COLORS[0].fill;
-      const px = LAND_PX;
-      // Props sit on the static layer for non-anim skins; for rainbow/neon
-      // draw them into the mask so they tint with the land.
-      const propCtx = isAnimLandSkin(head) ? animLandMaskCtx : landCtx;
-      propCtx.save();
-      propCtx.lineCap = "round";
-      propCtx.lineJoin = "round";
-      for (let y = 0; y < WORLD; y++) {
-        for (let x = 0; x < WORLD; x++) {
-          if (grid[idx(x, y)] !== hid) continue;
-          const seed = cellSeed(x, y);
-          const cx = (x + 0.5) * px;
-          const cy = (y + 0.5) * px;
-
-          if (head === "pixel") {
-            if (x % 4 === 0 && y % 4 === 0) {
-              propCtx.fillStyle = "rgba(255,255,255,0.16)";
-              propCtx.fillRect(x * px, y * px, px * 2, px * 2);
-            } else if (seed % 72 === 0 && isInteriorOwned(x, y, hid)) {
-              propCtx.fillStyle = "#ffd43b";
-              propCtx.fillRect(cx - px * 0.55, cy - px * 0.55, px * 1.1, px * 1.1);
-            }
-            continue;
-          }
-
-          if (head === "honey") {
-            if (x % 6 === 0 && y % 6 === 0 && isInteriorOwned(x, y, hid)) {
-              propCtx.strokeStyle = "rgba(120,50,0,0.38)";
-              propCtx.lineWidth = px * 0.2;
-              propCtx.beginPath();
-              const hs = px * 2.1;
-              for (let i = 0; i < 6; i++) {
-                const a = (Math.PI / 3) * i + Math.PI / 6;
-                const hx = cx + Math.cos(a) * hs * 0.55;
-                const hy = cy + Math.sin(a) * hs * 0.55;
-                if (i === 0) propCtx.moveTo(hx, hy);
-                else propCtx.lineTo(hx, hy);
+      const mine = territoryCount(hid);
+      if (mine > 0 && mine < playableTotal * 0.45) {
+        const fill = softByOwner.get(hid) || skin()?.fill || COLORS[0].fill;
+        const px = LAND_PX;
+        landCtx.save();
+        landCtx.lineCap = "round";
+        landCtx.lineJoin = "round";
+        // Stride the grid so we don't visit every owned cell
+        for (let y = 0; y < WORLD; y += 2) {
+          for (let x = 0; x < WORLD; x += 2) {
+            if (grid[idx(x, y)] !== hid) continue;
+            const seed = cellSeed(x, y);
+            const cx = (x + 0.5) * px;
+            const cy = (y + 0.5) * px;
+            if (head === "pixel") {
+              if ((x + y) % 8 === 0) {
+                landCtx.fillStyle = "rgba(255,255,255,0.14)";
+                landCtx.fillRect(x * px, y * px, px * 2, px * 2);
               }
-              propCtx.closePath();
-              propCtx.stroke();
+              continue;
             }
-            continue;
+            if (head === "honey") {
+              if (x % 8 === 0 && y % 8 === 0 && isInteriorOwned(x, y, hid)) {
+                landCtx.strokeStyle = "rgba(120,50,0,0.32)";
+                landCtx.lineWidth = px * 0.18;
+                landCtx.beginPath();
+                const hs = px * 2.1;
+                for (let k = 0; k < 6; k++) {
+                  const a = (Math.PI / 3) * k + Math.PI / 6;
+                  const hx = cx + Math.cos(a) * hs * 0.55;
+                  const hy = cy + Math.sin(a) * hs * 0.55;
+                  if (k === 0) landCtx.moveTo(hx, hy);
+                  else landCtx.lineTo(hx, hy);
+                }
+                landCtx.closePath();
+                landCtx.stroke();
+              }
+              continue;
+            }
+            if (
+              (head === "forest" ||
+                head === "storm" ||
+                head === "gold" ||
+                head === "graffiti" ||
+                head === "rainbow") &&
+              !isInteriorOwned(x, y, hid)
+            ) {
+              continue;
+            }
+            stampLandMotif(landCtx, cx, cy, px, head, seed, fill);
           }
-
-          if (
-            (head === "forest" ||
-              head === "storm" ||
-              head === "gold" ||
-              head === "graffiti" ||
-              head === "rainbow") &&
-            !isInteriorOwned(x, y, hid)
-          ) {
-            continue;
-          }
-          stampLandMotif(propCtx, cx, cy, px, head, seed, fill);
         }
+        landCtx.restore();
       }
-      propCtx.restore();
     }
   }
 
@@ -2825,34 +2782,24 @@
     }
     ctx.stroke();
 
-    paintLandLayer();
-    ctx.imageSmoothingEnabled = true;
-    try {
-      ctx.imageSmoothingQuality = "high";
-    } catch {}
-    // Light screen-space soften so cell edges don't read as pixels when zoomed
-    if (typeof ctx.filter === "string") {
-      ctx.filter = `blur(${(0.22 * scale).toFixed(2)}px)`;
-      ctx.drawImage(landLayer, 0, 0, landLayer.width, landLayer.height, 0, 0, WORLD, WORLD);
-      ctx.filter = "none";
-      ctx.globalAlpha = 0.65;
-      ctx.drawImage(landLayer, 0, 0, landLayer.width, landLayer.height, 0, 0, WORLD, WORLD);
-      ctx.globalAlpha = 1;
-    } else {
-      ctx.drawImage(landLayer, 0, 0, landLayer.width, landLayer.height, 0, 0, WORLD, WORLD);
-    }
-    drawAnimLandTint(scale);
-    drawArenaVoid();
-    drawArenaBorder();
-
-    // Keep minimap in sync while land color cycles
+    // Rainbow/Neon: refresh land tint a few times per second (not every frame)
     if (isAnimLandSkin(landSkinHead())) {
       const now = performance.now();
-      if (now - lastMiniAnimAt > 80) {
+      if (now - lastAnimLandAt > 120) {
+        lastAnimLandAt = now;
+        landDirty = true;
+      }
+      if (now - lastMiniAnimAt > 200) {
         lastMiniAnimAt = now;
         miniDirty = true;
       }
     }
+
+    paintLandLayer();
+    ctx.imageSmoothingEnabled = true;
+    ctx.drawImage(landLayer, 0, 0, landLayer.width, landLayer.height, 0, 0, WORLD, WORLD);
+    drawArenaVoid();
+    drawArenaBorder();
 
     for (const p of players) drawTrail(p, colorFor(p));
     for (const p of players) {
@@ -3061,9 +3008,12 @@
     if (snap.grid) decodeGrid(snap.grid);
     if (snap.idMap) {
       idMap.clear();
+      idFromHashMap.clear();
       for (const [k, v] of Object.entries(snap.idMap)) {
-        idMap.set(k, Number(v));
-        idSeq = Math.max(idSeq, Number(v) + 1);
+        const num = Number(v);
+        idMap.set(k, num);
+        idFromHashMap.set(num, k);
+        idSeq = Math.max(idSeq, num + 1);
       }
     }
     if (Array.isArray(snap.players)) {

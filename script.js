@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ef": [
+    "Paper Claim: big performance fix (less lag while claiming / with skins)"
+  ],
   "20261001ee": [
     "Paper Claim: arena shapes — Box, Circle, Star, Hex, Diamond, Triangle"
   ],
