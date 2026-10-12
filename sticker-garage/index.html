@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="../hub-game-boot.js?v=20261001et"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Sticker Garage</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Bebas+Neue&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20261001et">
+</head>
+<body>
+  <header class="hud">
+    <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰</button>
+    <div class="hud-stats">
+      <span class="cash-pill">💵 <strong id="cash">0</strong></span>
+      <span>Jobs <strong id="jobs">0</strong></span>
+      <span>Best <strong id="high-score">0</strong></span>
+    </div>
+    <button id="shop-btn" type="button" class="shop-btn">Shop</button>
+  </header>
+
+  <main class="shell">
+    <section class="customer-bar" aria-live="polite">
+      <div class="customer-face" id="customer-face" aria-hidden="true">😎</div>
+      <div class="customer-copy">
+        <p class="customer-name" id="customer-name">Waiting…</p>
+        <p class="customer-order" id="customer-order">Open the bay to start taking jobs.</p>
+      </div>
+      <div class="patience" title="Patience">
+        <div id="patience-fill" class="patience-fill"></div>
+      </div>
+    </section>
+
+    <section class="bay" id="bay">
+      <div class="bay-glow" aria-hidden="true"></div>
+      <div class="car-stage" id="car-stage">
+        <svg class="car-svg" id="car-svg" viewBox="0 0 360 160" aria-label="Customer car">
+          <defs>
+            <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="var(--car-hi)"/>
+              <stop offset="100%" stop-color="var(--car-lo)"/>
+            </linearGradient>
+            <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="6" stdDeviation="5" flood-opacity="0.35"/>
+            </filter>
+          </defs>
+          <ellipse cx="180" cy="142" rx="120" ry="10" fill="rgba(0,0,0,0.28)"/>
+          <g filter="url(#softShadow)">
+            <path id="car-body" d="M48 108 C62 78 92 58 128 52 L168 38 C190 32 220 34 248 48 L292 72 C312 82 328 96 322 112 L48 112 Z" fill="url(#bodyGrad)" stroke="#1a1a1a" stroke-width="3"/>
+            <path d="M140 52 L168 40 C188 34 214 36 238 48 L258 62 L210 62 C188 62 168 58 152 54 Z" fill="rgba(160,220,255,0.45)" stroke="#1a1a1a" stroke-width="2"/>
+            <circle cx="108" cy="112" r="22" fill="#1c1c1c" stroke="#333" stroke-width="3"/>
+            <circle cx="108" cy="112" r="10" fill="#666"/>
+            <circle cx="268" cy="112" r="22" fill="#1c1c1c" stroke="#333" stroke-width="3"/>
+            <circle cx="268" cy="112" r="10" fill="#666"/>
+            <rect x="54" y="88" width="14" height="10" rx="2" fill="#ffe08a"/>
+            <rect x="300" y="88" width="12" height="8" rx="2" fill="#ff6b5a"/>
+          </g>
+        </svg>
+        <div id="sticker-layer" class="sticker-layer" aria-label="Stickers on car"></div>
+      </div>
+      <p class="bay-hint" id="bay-hint">Pick a sticker, then tap the car to place it.</p>
+    </section>
+
+    <section class="tray-wrap">
+      <div class="tray-head">
+        <span>Your stickers</span>
+        <div class="tray-actions">
+          <button id="undo-btn" type="button" class="tiny-btn">Undo</button>
+          <button id="clear-btn" type="button" class="tiny-btn">Clear</button>
+        </div>
+      </div>
+      <div id="sticker-tray" class="sticker-tray" role="listbox" aria-label="Sticker tray"></div>
+    </section>
+
+    <div class="action-row">
+      <button id="deliver-btn" type="button" class="deliver-btn" disabled>Deliver job</button>
+    </div>
+  </main>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+
+  <div id="shop-modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-card shop-card">
+      <div class="modal-top">
+        <h2>Garage Shop</h2>
+        <button id="shop-close" type="button" class="icon-x" aria-label="Close shop">×</button>
+      </div>
+      <p class="shop-lead">Spend cash on sticker packs and bay upgrades.</p>
+      <div id="shop-list" class="shop-list"></div>
+    </div>
+  </div>
+
+  <div id="overlay" class="overlay">
+    <div class="overlay-card">
+      <p class="eyebrow">Custom bay</p>
+      <h1 id="overlay-title">Sticker Garage</h1>
+      <p id="overlay-text" class="lead">Customers roll in with sticker orders. Slap the right decals on the car, deliver for cash, and unlock flashier packs.</p>
+      <p class="score-line">Career cash: <strong id="overlay-best">0</strong></p>
+      <div class="overlay-actions">
+        <button id="start-btn" type="button" class="btn">Open bay</button>
+        <button id="resume-btn" type="button" class="btn btn-ghost hidden">Resume</button>
+        <button id="games-btn" type="button" class="btn btn-ghost">Games</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../hub-streak.js"></script>
+  <script src="../hub-achievements.js?v=20260917aw"></script>
+  <script src="../hub-sound.js"></script>
+  <script src="../hub-confetti.js"></script>
+  <script src="../hub-supabase.js?v=20260923u"></script>
+  <script src="../hub-account-bag.js?v=20260923ag"></script>
+  <script src="../hub-plays.js?v=20261001em"></script>
+  <script src="../hub-friends.js?v=20260923u"></script>
+  <script src="../hub-chat.js?v=20260927c"></script>
+  <script src="../hub-calls.js?v=20260925a"></script>
+  <script src="../hub-leaderboard.js?v=20260925a"></script>
+  <script src="script.js?v=20261001et"></script>
+</body>
+</html>

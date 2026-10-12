@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001et": [
+    "New game: Sticker Garage — wrap cars for customers, earn cash, unlock sticker packs"
+  ],
   "20261001es": [
     "Esc on the hub opens Settings instead of leaving My Games"
   ],
@@ -1824,7 +1827,8 @@ const HUB_GAMES = [
   { id: "mine", name: "Mine Depth", path: "mine/index.html" },
   { id: "blockblast", name: "Block Sweep", path: "block-sweep/index.html" },
   { id: "lemmings", name: "Dudes", path: "dudes/index.html" },
-  { id: "paper", name: "Paper Claim", path: "paper-io/index.html" }
+  { id: "paper", name: "Paper Claim", path: "paper-io/index.html" },
+  { id: "stickers", name: "Sticker Garage", path: "sticker-garage/index.html" }
 ];
 
 /** Leaderboard tabs = hub points + hub-only boards first, then games (Mine Depth splits into depth + ore). */
@@ -2892,6 +2896,10 @@ function getHubScoreLocal(gameId) {
     case "bubble": {
       const score = readNumberKey("bubble-pop-high-score");
       return { label: score ? `Best ${score}` : "No score yet", sort: score };
+    }
+    case "stickers": {
+      const score = readNumberKey("sticker-garage-high-score");
+      return { label: score ? `Best $${score}` : "No jobs yet", sort: score };
     }
     case "cafe": {
       const score = readNumberKey("cafe-queue-high-score");

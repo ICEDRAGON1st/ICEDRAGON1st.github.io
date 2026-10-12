@@ -430,6 +430,7 @@
         "cross-walk": "crossy",
         "guac-a-mole": "guac",
         "bubble-pop": "bubble",
+        "sticker-garage": "stickers",
         "cafe-queue": "cafe",
         "garden-snap": "garden",
         dudes: "lemmings",

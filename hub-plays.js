@@ -121,6 +121,7 @@
     blockblast: "Block Sweep",
     lemmings: "Dudes",
     paper: "Paper Claim",
+    stickers: "Sticker Garage",
     hub: "Hub"
   };
 
@@ -144,6 +145,7 @@
     crossy: "crossy",
     "guac-a-mole": "guac",
     "bubble-pop": "bubble",
+    "sticker-garage": "stickers",
     "cafe-queue": "cafe",
     "garden-snap": "garden",
     dudes: "lemmings",

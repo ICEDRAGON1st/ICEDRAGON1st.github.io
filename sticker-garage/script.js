@@ -1,0 +1,636 @@
+(() => {
+  const GAME_ID = "stickers";
+  const STORAGE_KEY = "sticker-garage-save-v1";
+  const HIGH_KEY = "sticker-garage-high-score";
+
+  const STICKERS = [
+    { id: "star", emoji: "⭐", name: "Star", cost: 0 },
+    { id: "heart", emoji: "💖", name: "Heart", cost: 35 },
+    { id: "flame", emoji: "🔥", name: "Flame", cost: 70 },
+    { id: "bolt", emoji: "⚡", name: "Bolt", cost: 110 },
+    { id: "skull", emoji: "💀", name: "Skull", cost: 160 },
+    { id: "rainbow", emoji: "🌈", name: "Rainbow", cost: 220 },
+    { id: "crown", emoji: "👑", name: "Crown", cost: 300 },
+    { id: "rocket", emoji: "🚀", name: "Rocket", cost: 400 },
+    { id: "diamond", emoji: "💎", name: "Diamond", cost: 520 },
+    { id: "ghost", emoji: "👻", name: "Ghost", cost: 650 },
+    { id: "dragon", emoji: "🐉", name: "Dragon", cost: 850 },
+    { id: "unicorn", emoji: "🦄", name: "Unicorn", cost: 1100 }
+  ];
+
+  const UPGRADES = [
+    {
+      id: "tip1",
+      name: "Tip jar",
+      desc: "+15% tips on perfect jobs",
+      cost: 120,
+      icon: "🪙",
+      apply: (s) => {
+        s.tipMult = Math.max(s.tipMult || 1, 1.15);
+      }
+    },
+    {
+      id: "tip2",
+      name: "VIP lounge",
+      desc: "+30% tips on perfect jobs",
+      cost: 350,
+      icon: "🥂",
+      requires: "tip1",
+      apply: (s) => {
+        s.tipMult = Math.max(s.tipMult || 1, 1.3);
+      }
+    },
+    {
+      id: "patience1",
+      name: "Cool AC",
+      desc: "Customers wait 25% longer",
+      cost: 180,
+      icon: "❄️",
+      apply: (s) => {
+        s.patienceMult = Math.max(s.patienceMult || 1, 1.25);
+      }
+    },
+    {
+      id: "patience2",
+      name: "Lounge seats",
+      desc: "Customers wait 50% longer",
+      cost: 480,
+      icon: "🛋️",
+      requires: "patience1",
+      apply: (s) => {
+        s.patienceMult = Math.max(s.patienceMult || 1, 1.5);
+      }
+    },
+    {
+      id: "pay1",
+      name: "Neon sign",
+      desc: "+20% base job pay",
+      cost: 250,
+      icon: "🪧",
+      apply: (s) => {
+        s.payMult = Math.max(s.payMult || 1, 1.2);
+      }
+    },
+    {
+      id: "pay2",
+      name: "Street cred",
+      desc: "+40% base job pay",
+      cost: 700,
+      icon: "📣",
+      requires: "pay1",
+      apply: (s) => {
+        s.payMult = Math.max(s.payMult || 1, 1.4);
+      }
+    }
+  ];
+
+  const NAMES = [
+    "Mia", "Jordan", "Kai", "Nova", "Riley", "Sam", "Ava", "Leo",
+    "Zara", "Chris", "Nina", "Omar", "Jade", "Ben", "Lux", "Tess"
+  ];
+  const FACES = ["😎", "🤩", "😊", "🥸", "😺", "🤠", "🤓", "😇", "🥳", "😤"];
+  const CAR_COLORS = [
+    { hi: "#e85d4c", lo: "#a83228" },
+    { hi: "#4ea1ff", lo: "#1d5fad" },
+    { hi: "#3ecf8e", lo: "#1a7a52" },
+    { hi: "#ffd24a", lo: "#c48a10" },
+    { hi: "#c9a0ff", lo: "#6b3fa0" },
+    { hi: "#f2f2f2", lo: "#9a9a9a" },
+    { hi: "#ff8a3d", lo: "#b34e12" },
+    { hi: "#2dd4bf", lo: "#0f766e" }
+  ];
+
+  const els = {
+    cash: document.getElementById("cash"),
+    jobs: document.getElementById("jobs"),
+    high: document.getElementById("high-score"),
+    face: document.getElementById("customer-face"),
+    name: document.getElementById("customer-name"),
+    order: document.getElementById("customer-order"),
+    patience: document.getElementById("patience-fill"),
+    stage: document.getElementById("car-stage"),
+    layer: document.getElementById("sticker-layer"),
+    tray: document.getElementById("sticker-tray"),
+    hint: document.getElementById("bay-hint"),
+    deliver: document.getElementById("deliver-btn"),
+    undo: document.getElementById("undo-btn"),
+    clear: document.getElementById("clear-btn"),
+    shopBtn: document.getElementById("shop-btn"),
+    shopModal: document.getElementById("shop-modal"),
+    shopClose: document.getElementById("shop-close"),
+    shopList: document.getElementById("shop-list"),
+    overlay: document.getElementById("overlay"),
+    overlayTitle: document.getElementById("overlay-title"),
+    overlayText: document.getElementById("overlay-text"),
+    overlayBest: document.getElementById("overlay-best"),
+    start: document.getElementById("start-btn"),
+    resume: document.getElementById("resume-btn"),
+    games: document.getElementById("games-btn"),
+    menu: document.getElementById("menu-btn"),
+    toast: document.getElementById("toast")
+  };
+
+  let save = loadSave();
+  let selectedId = null;
+  let placed = [];
+  let job = null;
+  let running = false;
+  let paused = false;
+  let recordedPlay = false;
+  let patienceLeft = 1;
+  let lastTs = 0;
+  let toastTimer = 0;
+  let raf = 0;
+
+  function defaultSave() {
+    return {
+      cash: 40,
+      earned: 0,
+      jobs: 0,
+      unlocked: ["star"],
+      upgrades: [],
+      tipMult: 1,
+      patienceMult: 1,
+      payMult: 1
+    };
+  }
+
+  function loadSave() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return defaultSave();
+      const parsed = JSON.parse(raw);
+      const base = defaultSave();
+      const next = { ...base, ...parsed };
+      if (!Array.isArray(next.unlocked) || !next.unlocked.length) next.unlocked = ["star"];
+      if (!next.unlocked.includes("star")) next.unlocked.push("star");
+      if (!Array.isArray(next.upgrades)) next.upgrades = [];
+      next.tipMult = Number(next.tipMult) || 1;
+      next.patienceMult = Number(next.patienceMult) || 1;
+      next.payMult = Number(next.payMult) || 1;
+      return next;
+    } catch {
+      return defaultSave();
+    }
+  }
+
+  function persist() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
+      const best = Math.max(readHigh(), Math.floor(save.earned || 0));
+      localStorage.setItem(HIGH_KEY, String(best));
+    } catch {}
+  }
+
+  function readHigh() {
+    try {
+      const n = Number(localStorage.getItem(HIGH_KEY));
+      return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  function fmt(n) {
+    const v = Math.floor(Number(n) || 0);
+    if (v >= 1e6) return `${(v / 1e6).toFixed(1)}M`;
+    if (v >= 1e4) return `${(v / 1e3).toFixed(1)}K`;
+    return String(v);
+  }
+
+  function stickerById(id) {
+    return STICKERS.find((s) => s.id === id);
+  }
+
+  function isUnlocked(id) {
+    return save.unlocked.includes(id);
+  }
+
+  function hasUpgrade(id) {
+    return save.upgrades.includes(id);
+  }
+
+  function showToast(msg, kind) {
+    els.toast.textContent = msg;
+    els.toast.classList.remove("hidden", "is-good", "is-bad");
+    if (kind) els.toast.classList.add(kind);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => els.toast.classList.add("hidden"), 1600);
+  }
+
+  function paintHud() {
+    els.cash.textContent = fmt(save.cash);
+    els.jobs.textContent = String(save.jobs || 0);
+    const best = Math.max(readHigh(), Math.floor(save.earned || 0));
+    els.high.textContent = fmt(best);
+    els.overlayBest.textContent = `$${fmt(best)}`;
+  }
+
+  function renderTray() {
+    const unlocked = STICKERS.filter((s) => isUnlocked(s.id));
+    els.tray.innerHTML = "";
+    unlocked.forEach((s) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "sticker-chip" + (selectedId === s.id ? " is-selected" : "");
+      btn.textContent = s.emoji;
+      btn.title = s.name;
+      btn.setAttribute("role", "option");
+      btn.setAttribute("aria-selected", selectedId === s.id ? "true" : "false");
+      btn.addEventListener("click", () => {
+        selectedId = selectedId === s.id ? null : s.id;
+        renderTray();
+        els.hint.textContent = selectedId
+          ? `Selected ${s.emoji} — tap the car to place.`
+          : "Pick a sticker, then tap the car to place it.";
+      });
+      els.tray.appendChild(btn);
+    });
+  }
+
+  function renderPlaced() {
+    els.layer.innerHTML = "";
+    placed.forEach((p) => {
+      const s = stickerById(p.id);
+      if (!s) return;
+      const el = document.createElement("span");
+      el.className = "placed-sticker";
+      el.textContent = s.emoji;
+      el.style.left = `${p.x * 100}%`;
+      el.style.top = `${p.y * 100}%`;
+      el.style.setProperty("--rot", `${p.rot}deg`);
+      els.layer.appendChild(el);
+    });
+    els.deliver.disabled = !running || !job || placed.length === 0;
+  }
+
+  function setCarColor(color) {
+    document.documentElement.style.setProperty("--car-hi", color.hi);
+    document.documentElement.style.setProperty("--car-lo", color.lo);
+  }
+
+  function pickOrder() {
+    const unlocked = STICKERS.filter((s) => isUnlocked(s.id));
+    const pool = unlocked.length ? unlocked : [STICKERS[0]];
+    const kinds = 1 + (Math.random() < 0.55 && pool.length > 1 ? 1 : 0) + (Math.random() < 0.25 && pool.length > 2 ? 1 : 0);
+    const chosen = [...pool].sort(() => Math.random() - 0.5).slice(0, Math.min(kinds, pool.length));
+    const needs = chosen.map((s) => ({
+      id: s.id,
+      count: 1 + Math.floor(Math.random() * (save.jobs > 8 ? 3 : 2))
+    }));
+    return needs;
+  }
+
+  function orderHtml(needs) {
+    return needs
+      .map((n) => {
+        const s = stickerById(n.id);
+        return `<span class="need">${n.count}×${s?.emoji || "?"}</span>`;
+      })
+      .join("");
+  }
+
+  function orderSpeech(needs) {
+    const bits = needs.map((n) => {
+      const s = stickerById(n.id);
+      return `${n.count} ${s?.name || "sticker"}${n.count > 1 ? "s" : ""}`;
+    });
+    if (bits.length === 1) return `Hit me with ${bits[0]}!`;
+    if (bits.length === 2) return `I want ${bits[0]} and ${bits[1]}.`;
+    return `Wrap it with ${bits.slice(0, -1).join(", ")}, and ${bits[bits.length - 1]}.`;
+  }
+
+  function patienceSeconds() {
+    const base = 22 + Math.min(10, (job?.needs?.length || 1) * 3);
+    return base * (save.patienceMult || 1);
+  }
+
+  function nextJob() {
+    placed = [];
+    selectedId = selectedId && isUnlocked(selectedId) ? selectedId : null;
+    const needs = pickOrder();
+    const color = CAR_COLORS[Math.floor(Math.random() * CAR_COLORS.length)];
+    job = {
+      name: NAMES[Math.floor(Math.random() * NAMES.length)],
+      face: FACES[Math.floor(Math.random() * FACES.length)],
+      needs,
+      color,
+      basePay: 18 + needs.reduce((a, n) => a + n.count * 8, 0) + Math.floor(save.jobs / 3) * 2
+    };
+    setCarColor(color);
+    els.face.textContent = job.face;
+    els.name.textContent = job.name;
+    els.order.innerHTML = `${orderHtml(needs)} <span style="opacity:.75">${orderSpeech(needs)}</span>`;
+    patienceLeft = 1;
+    els.patience.style.transform = "scaleX(1)";
+    renderPlaced();
+    renderTray();
+    els.hint.textContent = "Match their order — extras cut the tip.";
+  }
+
+  function countPlaced() {
+    const map = {};
+    placed.forEach((p) => {
+      map[p.id] = (map[p.id] || 0) + 1;
+    });
+    return map;
+  }
+
+  function gradeJob() {
+    const counts = countPlaced();
+    let missing = 0;
+    let matched = 0;
+    let needed = 0;
+    job.needs.forEach((n) => {
+      needed += n.count;
+      const have = counts[n.id] || 0;
+      matched += Math.min(have, n.count);
+      missing += Math.max(0, n.count - have);
+      counts[n.id] = Math.max(0, have - n.count);
+    });
+    let extras = 0;
+    Object.values(counts).forEach((c) => {
+      extras += c;
+    });
+    const perfect = missing === 0 && extras === 0;
+    const accuracy = needed ? matched / needed : 0;
+    return { missing, extras, matched, needed, perfect, accuracy };
+  }
+
+  function deliver() {
+    if (!running || !job || !placed.length) return;
+    const g = gradeJob();
+    const payMult = save.payMult || 1;
+    const tipMult = save.tipMult || 1;
+    let pay = Math.round(job.basePay * payMult * (0.35 + 0.65 * g.accuracy));
+    let tip = 0;
+    if (g.perfect) {
+      tip = Math.round(job.basePay * 0.45 * tipMult);
+      pay += tip;
+    } else {
+      pay = Math.max(4, pay - g.extras * 4 - g.missing * 6);
+    }
+    const patienceBonus = patienceLeft > 0.55 ? Math.round(4 * payMult) : 0;
+    pay += patienceBonus;
+
+    save.cash += pay;
+    save.earned += pay;
+    save.jobs += 1;
+    persist();
+    submitScore();
+    paintHud();
+
+    if (g.perfect) {
+      showToast(`Perfect! +$${pay}`, "is-good");
+      try {
+        window.HubConfetti?.burst?.();
+      } catch {}
+      try {
+        window.HubSound?.play?.("success");
+      } catch {}
+    } else if (g.accuracy >= 0.7) {
+      showToast(`Close enough — +$${pay}`, "is-good");
+    } else {
+      showToast(`Messy wrap — +$${pay}`, "is-bad");
+    }
+
+    nextJob();
+  }
+
+  function failJob(reason) {
+    showToast(reason || "Customer left…", "is-bad");
+    try {
+      window.HubSound?.play?.("error");
+    } catch {}
+    nextJob();
+  }
+
+  function placeAt(clientX, clientY) {
+    if (!running || paused || !job || !selectedId) return;
+    const rect = els.stage.getBoundingClientRect();
+    const x = (clientX - rect.left) / rect.width;
+    const y = (clientY - rect.top) / rect.height;
+    // Keep stickers roughly on the car body band
+    if (x < 0.12 || x > 0.9 || y < 0.18 || y > 0.78) {
+      showToast("Stick it on the car body", "is-bad");
+      return;
+    }
+    placed.push({
+      id: selectedId,
+      x: Math.min(0.88, Math.max(0.14, x)),
+      y: Math.min(0.72, Math.max(0.22, y)),
+      rot: Math.round((Math.random() * 40 - 20) * 10) / 10
+    });
+    renderPlaced();
+    try {
+      window.HubSound?.play?.("tap");
+    } catch {}
+  }
+
+  function renderShop() {
+    const rows = [];
+    STICKERS.forEach((s) => {
+      if (s.cost <= 0) return;
+      const owned = isUnlocked(s.id);
+      rows.push({
+        key: `sticker-${s.id}`,
+        icon: s.emoji,
+        title: s.name,
+        desc: owned ? "Unlocked" : `Sticker pack · $${s.cost}`,
+        cost: s.cost,
+        owned,
+        disabled: owned || save.cash < s.cost,
+        onBuy: () => buySticker(s.id)
+      });
+    });
+    UPGRADES.forEach((u) => {
+      const owned = hasUpgrade(u.id);
+      const reqOk = !u.requires || hasUpgrade(u.requires);
+      rows.push({
+        key: `up-${u.id}`,
+        icon: u.icon,
+        title: u.name,
+        desc: !reqOk ? `Needs prior upgrade` : owned ? "Owned" : u.desc,
+        cost: u.cost,
+        owned,
+        disabled: owned || !reqOk || save.cash < u.cost,
+        onBuy: () => buyUpgrade(u.id)
+      });
+    });
+
+    els.shopList.innerHTML = "";
+    rows.forEach((r) => {
+      const row = document.createElement("div");
+      row.className = "shop-item";
+      row.innerHTML = `
+        <div class="shop-icon">${r.icon}</div>
+        <div class="shop-meta"><strong>${r.title}</strong><span>${r.desc}</span></div>
+      `;
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "buy-btn" + (r.owned ? " is-owned" : "");
+      btn.textContent = r.owned ? "Owned" : `$${r.cost}`;
+      btn.disabled = r.disabled;
+      btn.addEventListener("click", r.onBuy);
+      row.appendChild(btn);
+      els.shopList.appendChild(row);
+    });
+  }
+
+  function buySticker(id) {
+    const s = stickerById(id);
+    if (!s || isUnlocked(id) || save.cash < s.cost) return;
+    save.cash -= s.cost;
+    save.unlocked.push(id);
+    persist();
+    paintHud();
+    renderTray();
+    renderShop();
+    showToast(`Unlocked ${s.emoji} ${s.name}!`, "is-good");
+  }
+
+  function buyUpgrade(id) {
+    const u = UPGRADES.find((x) => x.id === id);
+    if (!u || hasUpgrade(id) || save.cash < u.cost) return;
+    if (u.requires && !hasUpgrade(u.requires)) return;
+    save.cash -= u.cost;
+    save.upgrades.push(id);
+    u.apply(save);
+    persist();
+    paintHud();
+    renderShop();
+    showToast(`${u.name} installed!`, "is-good");
+  }
+
+  function openShop() {
+    renderShop();
+    els.shopModal.classList.remove("hidden");
+    els.shopModal.setAttribute("aria-hidden", "false");
+  }
+
+  function closeShop() {
+    els.shopModal.classList.add("hidden");
+    els.shopModal.setAttribute("aria-hidden", "true");
+  }
+
+  function submitScore() {
+    const best = Math.max(readHigh(), Math.floor(save.earned || 0));
+    try {
+      localStorage.setItem(HIGH_KEY, String(best));
+    } catch {}
+    try {
+      window.HubLeaderboard?.submit?.(GAME_ID, best);
+    } catch {}
+  }
+
+  function recordPlayOnce() {
+    if (recordedPlay) return;
+    recordedPlay = true;
+    try {
+      window.HubPlays?.record?.(GAME_ID);
+    } catch {}
+    try {
+      window.HubStreak?.recordPlay?.();
+    } catch {}
+  }
+
+  function showMenu(fromPause) {
+    paused = true;
+    els.overlay.classList.remove("hidden");
+    els.resume.classList.toggle("hidden", !fromPause && !running);
+    if (fromPause || running) {
+      els.overlayTitle.textContent = "Bay paused";
+      els.overlayText.textContent = "Customers can wait a second — shop upgrades or jump back in.";
+      els.resume.classList.remove("hidden");
+    } else {
+      els.overlayTitle.textContent = "Sticker Garage";
+      els.overlayText.textContent =
+        "Customers roll in with sticker orders. Slap the right decals on the car, deliver for cash, and unlock flashier packs.";
+    }
+    paintHud();
+  }
+
+  function hideMenu() {
+    els.overlay.classList.add("hidden");
+    paused = false;
+    lastTs = performance.now();
+  }
+
+  function startGame() {
+    running = true;
+    paused = false;
+    recordPlayOnce();
+    hideMenu();
+    closeShop();
+    if (!job) nextJob();
+    lastTs = performance.now();
+    if (!raf) raf = requestAnimationFrame(tick);
+  }
+
+  function tick(ts) {
+    raf = requestAnimationFrame(tick);
+    if (!running || paused || !job) {
+      lastTs = ts;
+      return;
+    }
+    const dt = Math.min(0.05, (ts - lastTs) / 1000);
+    lastTs = ts;
+    const total = patienceSeconds();
+    patienceLeft = Math.max(0, patienceLeft - dt / total);
+    els.patience.style.transform = `scaleX(${patienceLeft})`;
+    if (patienceLeft <= 0) {
+      failJob(`${job.name} got tired of waiting`);
+    }
+  }
+
+  // Events
+  els.stage.addEventListener("pointerdown", (e) => {
+    if (e.button != null && e.button !== 0) return;
+    placeAt(e.clientX, e.clientY);
+  });
+
+  els.undo.addEventListener("click", () => {
+    if (!placed.length) return;
+    placed.pop();
+    renderPlaced();
+  });
+
+  els.clear.addEventListener("click", () => {
+    placed = [];
+    renderPlaced();
+  });
+
+  els.deliver.addEventListener("click", deliver);
+  els.shopBtn.addEventListener("click", openShop);
+  els.shopClose.addEventListener("click", closeShop);
+  els.shopModal.addEventListener("click", (e) => {
+    if (e.target === els.shopModal) closeShop();
+  });
+
+  els.start.addEventListener("click", startGame);
+  els.resume.addEventListener("click", () => {
+    if (!running) startGame();
+    else hideMenu();
+  });
+  els.menu.addEventListener("click", () => showMenu(true));
+  els.games.addEventListener("click", () => {
+    window.location.href = "../index.html#games";
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" || e.code === "Escape") {
+      if (!els.shopModal.classList.contains("hidden")) {
+        closeShop();
+        return;
+      }
+      if (els.overlay.classList.contains("hidden") && running) showMenu(true);
+      else if (!els.overlay.classList.contains("hidden") && running) hideMenu();
+    }
+  });
+
+  // Boot
+  paintHud();
+  renderTray();
+  setCarColor(CAR_COLORS[0]);
+  showMenu(false);
+})();

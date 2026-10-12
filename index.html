@@ -7,8 +7,8 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>My Games</title>
-  <link rel="icon" href="icon.png?v=20261001es" type="image/png" sizes="any">
-  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20261001es">
+  <link rel="icon" href="icon.png?v=20261001et" type="image/png" sizes="any">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png?v=20261001et">
   <link rel="manifest" href="site.webmanifest">
   <meta name="theme-color" content="#5b4dff">
   <meta property="og:title" content="My Games">
@@ -94,13 +94,13 @@
       pointer-events: none !important;
     }
   </style>
-  <script src="site-config.js?v=20261001es"></script>
+  <script src="site-config.js?v=20261001et"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261001es">
-  <script src="hub-net.js?v=20261001es"></script>
-  <script src="hub-afk.js?v=20261001es"></script>
+  <link rel="stylesheet" href="styles.css?v=20261001et">
+  <script src="hub-net.js?v=20261001et"></script>
+  <script src="hub-afk.js?v=20261001et"></script>
 </head>
 <body data-guess-colors="ice">
   <div id="hub-boot-loader" aria-live="polite" aria-busy="true">
@@ -718,6 +718,14 @@
           <span class="game-card-desc">Clear color clusters before the tide rises</span>
           <span class="game-card-score" data-score-for="bubble"></span>
         </button>
+        <button type="button" class="game-card" data-game="stickers">
+          <span class="game-card-top">
+            <span class="game-card-name">Sticker Garage</span>
+            <span class="fav-btn" data-fav="stickers" role="button" tabindex="0" aria-label="Favorite Sticker Garage">☆</span>
+          </span>
+          <span class="game-card-desc">Wrap cars with stickers, cash out, unlock packs</span>
+          <span class="game-card-score" data-score-for="stickers"></span>
+        </button>
         <button type="button" class="game-card" data-game="cafe">
           <span class="game-card-top">
             <span class="game-card-name">Cafe Queue</span>
@@ -916,7 +924,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20261001es";
+    window.WORDLE_BUILD = "20261001et";
     try {
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("sw.js?v=" + window.WORDLE_BUILD).catch(function () {});

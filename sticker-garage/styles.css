@@ -1,0 +1,469 @@
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+:root {
+  --ink: #1a1410;
+  --foam: #fff6e8;
+  --bay: #2a3340;
+  --accent: #ff8a3d;
+  --accent-2: #3ecf8e;
+  --danger: #ff5a5a;
+  --card: rgba(255, 246, 232, 0.94);
+  --car-hi: #e85d4c;
+  --car-lo: #a83228;
+}
+
+html, body { margin: 0; min-height: 100%; }
+
+body {
+  font-family: "Outfit", system-ui, sans-serif;
+  color: var(--foam);
+  background:
+    radial-gradient(ellipse at 10% 0%, rgba(255, 138, 61, 0.28), transparent 42%),
+    radial-gradient(ellipse at 95% 80%, rgba(62, 207, 142, 0.12), transparent 40%),
+    linear-gradient(165deg, #1c2430 0%, #12171f 45%, #0c1016 100%);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 0.75rem 1.5rem;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hud {
+  width: min(520px, 100%);
+  margin: 0.75rem 0 0.65rem;
+  padding: 0.55rem 0.65rem;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  background: rgba(18, 22, 30, 0.85);
+  border: 2px solid rgba(255, 246, 232, 0.12);
+  border-radius: 16px;
+  backdrop-filter: blur(8px);
+}
+
+.menu-btn, .shop-btn, .btn, .deliver-btn, .tiny-btn, .buy-btn {
+  appearance: none;
+  border: 0;
+  border-radius: 12px;
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.menu-btn, .shop-btn {
+  background: rgba(255, 246, 232, 0.1);
+  color: var(--foam);
+  border: 2px solid rgba(255, 246, 232, 0.18);
+  padding: 0.45rem 0.7rem;
+}
+
+.shop-btn {
+  background: linear-gradient(180deg, #ffb06a, var(--accent));
+  color: #2a1400;
+  border-color: transparent;
+}
+
+.hud-stats {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 0.75rem;
+  font-weight: 600;
+  font-size: 0.86rem;
+  color: rgba(255, 246, 232, 0.7);
+}
+
+.hud-stats strong { color: #fff; font-weight: 800; }
+.cash-pill {
+  background: rgba(62, 207, 142, 0.15);
+  border: 1px solid rgba(62, 207, 142, 0.35);
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  color: #9af0c4;
+}
+
+.shell { width: min(520px, 100%); display: flex; flex-direction: column; gap: 0.7rem; }
+
+.customer-bar {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  gap: 0.35rem 0.7rem;
+  padding: 0.75rem 0.85rem;
+  background: var(--card);
+  color: var(--ink);
+  border-radius: 18px;
+  border: 2px solid rgba(26, 20, 16, 0.08);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.25);
+}
+
+.customer-face {
+  grid-row: 1 / 3;
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  font-size: 1.7rem;
+  background: linear-gradient(160deg, #ffe0b8, #ffc078);
+  align-self: center;
+}
+
+.customer-name {
+  margin: 0;
+  font-family: "Bebas Neue", "Outfit", sans-serif;
+  font-size: 1.35rem;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.customer-order {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #4a3a2e;
+}
+
+.customer-order .need {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  margin-right: 0.35rem;
+  padding: 0.12rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(255, 138, 61, 0.18);
+  font-weight: 800;
+}
+
+.patience {
+  grid-column: 1 / -1;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(26, 20, 16, 0.1);
+  overflow: hidden;
+}
+
+.patience-fill {
+  height: 100%;
+  width: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent-2), #ffd24a, var(--danger));
+  background-size: 200% 100%;
+  transform-origin: left center;
+  transition: transform 0.1s linear;
+}
+
+.bay {
+  position: relative;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 3px solid rgba(255, 246, 232, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.04), transparent 30%),
+    repeating-linear-gradient(
+      90deg,
+      #2e3848 0 18px,
+      #273040 18px 36px
+    );
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
+  min-height: 210px;
+}
+
+.bay-glow {
+  position: absolute;
+  inset: auto 10% 8% 10%;
+  height: 40px;
+  background: radial-gradient(ellipse, rgba(255, 138, 61, 0.35), transparent 70%);
+  pointer-events: none;
+}
+
+.car-stage {
+  position: relative;
+  width: 100%;
+  padding: 1.1rem 0.5rem 0.35rem;
+  cursor: crosshair;
+}
+
+.car-svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  pointer-events: none;
+}
+
+.sticker-layer {
+  position: absolute;
+  inset: 1.1rem 0.5rem 18%;
+  pointer-events: none;
+}
+
+.placed-sticker {
+  position: absolute;
+  font-size: clamp(1.35rem, 5vw, 1.85rem);
+  transform: translate(-50%, -50%) rotate(var(--rot, 0deg));
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,0.35));
+  line-height: 1;
+  animation: popIn 0.18s ease-out;
+}
+
+@keyframes popIn {
+  from { transform: translate(-50%, -50%) scale(0.4) rotate(var(--rot, 0deg)); opacity: 0; }
+  to { transform: translate(-50%, -50%) scale(1) rotate(var(--rot, 0deg)); opacity: 1; }
+}
+
+.bay-hint {
+  margin: 0;
+  padding: 0.45rem 0.75rem 0.7rem;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: rgba(255, 246, 232, 0.55);
+}
+
+.tray-wrap {
+  background: rgba(18, 22, 30, 0.9);
+  border: 2px solid rgba(255, 246, 232, 0.1);
+  border-radius: 18px;
+  padding: 0.65rem 0.7rem 0.75rem;
+}
+
+.tray-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.45rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: rgba(255, 246, 232, 0.55);
+}
+
+.tray-actions { display: flex; gap: 0.35rem; }
+
+.tiny-btn {
+  padding: 0.3rem 0.55rem;
+  font-size: 0.75rem;
+  background: rgba(255, 246, 232, 0.08);
+  color: var(--foam);
+  border: 1px solid rgba(255, 246, 232, 0.15);
+}
+
+.sticker-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.sticker-chip {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  border: 2px solid rgba(255, 246, 232, 0.14);
+  background: rgba(255, 246, 232, 0.06);
+  font-size: 1.55rem;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: transform 0.12s ease, border-color 0.12s ease, background 0.12s ease;
+}
+
+.sticker-chip:hover { transform: translateY(-2px); }
+.sticker-chip.is-selected {
+  border-color: var(--accent);
+  background: rgba(255, 138, 61, 0.22);
+  box-shadow: 0 0 0 2px rgba(255, 138, 61, 0.25);
+}
+.sticker-chip.is-locked {
+  opacity: 0.35;
+  cursor: not-allowed;
+  filter: grayscale(0.8);
+}
+
+.action-row { display: flex; }
+
+.deliver-btn {
+  flex: 1;
+  padding: 0.9rem 1rem;
+  font-size: 1.05rem;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #5ae0a4, var(--accent-2));
+  color: #062418;
+  box-shadow: 0 10px 24px rgba(62, 207, 142, 0.25);
+}
+
+.deliver-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 1.4rem;
+  transform: translateX(-50%);
+  z-index: 40;
+  padding: 0.7rem 1.1rem;
+  border-radius: 999px;
+  background: rgba(12, 16, 22, 0.94);
+  border: 2px solid rgba(255, 246, 232, 0.2);
+  font-weight: 800;
+  font-size: 0.95rem;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+}
+.toast.hidden { display: none; }
+.toast.is-good { border-color: rgba(62, 207, 142, 0.55); color: #9af0c4; }
+.toast.is-bad { border-color: rgba(255, 90, 90, 0.55); color: #ffb0b0; }
+
+.overlay, .modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(6, 8, 12, 0.72);
+  backdrop-filter: blur(6px);
+}
+.overlay.hidden, .modal.hidden { display: none; }
+
+.overlay-card, .modal-card {
+  width: min(400px, 100%);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: 24px;
+  padding: 1.35rem 1.25rem 1.2rem;
+  border: 3px solid rgba(26, 20, 16, 0.08);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45);
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #a07040;
+}
+
+.overlay-card h1, .modal-card h2 {
+  margin: 0.2rem 0 0.5rem;
+  font-family: "Bebas Neue", "Outfit", sans-serif;
+  font-size: 2.4rem;
+  letter-spacing: 0.03em;
+  line-height: 1;
+}
+
+.lead, .shop-lead {
+  margin: 0 0 0.75rem;
+  font-weight: 600;
+  color: #5a4638;
+  line-height: 1.35;
+}
+
+.score-line {
+  margin: 0 0 1rem;
+  font-weight: 700;
+  color: #3a2a20;
+}
+
+.overlay-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.btn {
+  padding: 0.85rem 1rem;
+  background: linear-gradient(180deg, #ffb06a, var(--accent));
+  color: #2a1400;
+  border-radius: 14px;
+  font-size: 1.05rem;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--ink);
+  border: 2px solid rgba(26, 20, 16, 0.15);
+}
+
+.modal-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.icon-x {
+  appearance: none;
+  border: 0;
+  background: rgba(26, 20, 16, 0.08);
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 1.4rem;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.shop-card { width: min(440px, 100%); max-height: min(84vh, 640px); display: flex; flex-direction: column; }
+.shop-list {
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding-right: 0.15rem;
+}
+
+.shop-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.7rem 0.75rem;
+  border-radius: 14px;
+  background: rgba(26, 20, 16, 0.05);
+  border: 1px solid rgba(26, 20, 16, 0.08);
+}
+
+.shop-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  font-size: 1.45rem;
+  background: #fff;
+}
+
+.shop-meta { min-width: 0; }
+.shop-meta strong { display: block; font-size: 0.95rem; }
+.shop-meta span { font-size: 0.78rem; font-weight: 600; color: #6a5648; }
+
+.buy-btn {
+  padding: 0.45rem 0.7rem;
+  background: var(--ink);
+  color: var(--foam);
+  border-radius: 10px;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+.buy-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.buy-btn.is-owned {
+  background: var(--accent-2);
+  color: #062418;
+}
+
+@media (max-width: 380px) {
+  .sticker-chip { width: 46px; height: 46px; font-size: 1.35rem; }
+  .overlay-card h1 { font-size: 2rem; }
+}
