@@ -326,18 +326,28 @@ function circleRectHit(cx, cy, r, rx, ry, rw, rh) {
   return dx * dx + dy * dy < r * r;
 }
 
+function pipeCollisionBox(pipeX) {
+  const s = skin();
+  const custom = window.WingHopThemePacks?.pipeHitbox?.(s, pipeX, PIPE_WIDTH);
+  if (custom && custom.w > 0) return custom;
+  return { x: pipeX, w: PIPE_WIDTH };
+}
+
 function checkCollision() {
   if (bird.y - BIRD_R <= 0) return true;
   if (bird.y + BIRD_R >= H - GROUND_H) return true;
+
+  const hitR = Math.max(10, BIRD_R - 4);
 
   for (const pipe of pipes) {
     const topH = pipe.top;
     const bottomY = pipe.top + PIPE_GAP;
     const bottomH = H - GROUND_H - bottomY;
+    const box = pipeCollisionBox(pipe.x);
 
     if (
-      circleRectHit(BIRD_X, bird.y, BIRD_R - 2, pipe.x, 0, PIPE_WIDTH, topH) ||
-      circleRectHit(BIRD_X, bird.y, BIRD_R - 2, pipe.x, bottomY, PIPE_WIDTH, bottomH)
+      circleRectHit(BIRD_X, bird.y, hitR, box.x, 0, box.w, topH) ||
+      circleRectHit(BIRD_X, bird.y, hitR, box.x, bottomY, box.w, bottomH)
     ) {
       return true;
     }

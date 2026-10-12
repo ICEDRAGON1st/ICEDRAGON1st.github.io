@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001dg": [
+    "Wing Hop: pipe hitboxes match skinny skins (bee stalks, ice spires, etc.)"
+  ],
   "20261001df": [
     "Wing Hop: each coin skin has its own pipes/walls (not just castle towers)"
   ],
