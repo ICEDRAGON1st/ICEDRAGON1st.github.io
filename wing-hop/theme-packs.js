@@ -388,9 +388,7 @@
       ctx.closePath();
       ctx.fill();
       ctx.fillStyle = s.beak;
-      ctx.beginPath();
-      ctx.rect();
-      ctx.fill();
+      ctx.fillRect(-3, -3, 12, 6);
       ctx.strokeStyle = "rgba(73,80,87,0.35)";
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -420,9 +418,7 @@
       ctx.fill();
       ctx.fillStyle = s.beak;
       for (let i = -12; i <= 10; i += 8) {
-        ctx.beginPath();
-        ctx.rect();
-        ctx.fill();
+        ctx.fillRect(i, -12, 5, 24);
       }
       ctx.fillStyle = s.belly;
       ctx.beginPath();
@@ -464,7 +460,7 @@
       ctx.strokeStyle = mix(s.belly, "#000", 0.2);
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.rect();
+      ctx.rect(-7, -16, 14, 12);
       ctx.fill();
       ctx.stroke();
       ctx.fillStyle = mix(s.eye, "#fff", 0.3);
@@ -527,7 +523,7 @@
       ctx.fillStyle = s.belly;
       ctx.strokeStyle = mix(s.belly, "#000", 0.2);
       ctx.beginPath();
-      ctx.rect();
+      ctx.rect(-9, 20, 18, 11);
       ctx.fill();
       ctx.stroke();
       ctx.fillStyle = s.eye || "#fff";
@@ -642,9 +638,7 @@
       ctx.closePath();
       ctx.fill();
       ctx.fillStyle = s.beak;
-      ctx.beginPath();
-      ctx.rect();
-      ctx.fill();
+      ctx.fillRect(16, -5, 14, 5);
       ctx.shadowBlur = 0;
       ctx.fillStyle = s.eye;
       ctx.beginPath();
@@ -679,7 +673,7 @@
       ctx.fillStyle = s.wing;
       ctx.strokeStyle = mix(s.wing, "#000", 0.25);
       ctx.beginPath();
-      ctx.rect();
+      ctx.rect(-9, -20, 18, 10);
       ctx.fill();
       ctx.stroke();
       ctx.strokeStyle = s.beak;
