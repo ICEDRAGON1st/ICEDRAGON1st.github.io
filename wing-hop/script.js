@@ -989,23 +989,8 @@ function drawBird() {
   const light = mixHex(s.body, "#d8e2ec", 0.22);
   const belly = s.belly || mixHex(s.body, "#c5b89a", 0.45);
   const horn = mixHex(s.beak || "#c9a227", "#5c4030", 0.15);
-  const outline =
-    s.form === "neon"
-      ? s.pipeStroke || "#22b8cf"
-      : mixHex(s.body, "#02040a", 0.62);
+  const outline = mixHex(s.body, "#02040a", 0.62);
   const membrane = mixHex(s.wing, s.body, 0.25);
-
-  if (s.form === "rainbow") {
-    const cols = ["#ff6b6b", "#fcc419", "#51cf66", "#339af0", "#cc5de8"];
-    for (let i = 0; i < 5; i++) {
-      ctx.fillStyle = cols[i];
-      ctx.globalAlpha = 0.35 - i * 0.04;
-      ctx.beginPath();
-      ctx.ellipse(BIRD_X - 18 - i * 10, bird.y + Math.sin(wingPhase + i) * 3, 10, 6, 0, 0, Math.PI * 2);
-      ctx.fill();
-    }
-    ctx.globalAlpha = 1;
-  }
 
   ctx.save();
   try {
@@ -1013,7 +998,7 @@ function drawBird() {
     ctx.rotate(bird.rot * 0.55);
     ctx.lineJoin = "round";
     ctx.lineCap = "round";
-    ctx.globalAlpha = s.form === "ghost" ? 0.62 : 1;
+    ctx.globalAlpha = 1;
 
     // Soft local shadow
     ctx.fillStyle = "rgba(0,0,0,0.22)";

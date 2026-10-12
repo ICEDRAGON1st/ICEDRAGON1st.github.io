@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001de": [
+    "Wing Hop: Neon, Ice Fortress, Rainbow, and other packs now have their own characters (not recolored dragons)"
+  ],
   "20261001dd": [
     "Wing Hop: removed free color themes — only Dragon + coin skins remain"
   ],
