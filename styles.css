@@ -3589,16 +3589,19 @@ html[data-mygames-desktop="1"] .coins-panel.coins-shop-overlay {
 }
 
 .coins-shop-sheet {
-  flex: 1;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
   min-height: 0;
+  height: 100%;
+  max-height: 100%;
   width: 100%;
   margin: 0;
   padding: 0;
   border: 0;
   border-radius: 0;
   box-shadow: none;
+  overflow: hidden;
   background:
     radial-gradient(110% 70% at 50% -8%, rgba(255, 200, 80, 0.22), transparent 55%),
     radial-gradient(80% 55% at 100% 100%, rgba(255, 160, 40, 0.1), transparent 48%),
@@ -3659,17 +3662,20 @@ html[data-mygames-desktop="1"] .coins-panel.coins-shop-overlay {
 }
 
 .coins-shop-body {
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
-  overflow: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  display: block;
   padding: 0.35rem max(1.15rem, env(safe-area-inset-right)) max(1.1rem, env(safe-area-inset-bottom)) max(1.15rem, env(safe-area-inset-left));
   max-width: 56rem;
   width: 100%;
   margin: 0 auto;
   box-sizing: border-box;
+  scrollbar-gutter: stable;
 }
 
 .coins-balance-pill {
@@ -3693,8 +3699,7 @@ html[data-mygames-desktop="1"] .coins-panel.coins-shop-overlay {
 }
 
 .coins-hint {
-  margin-top: auto;
-  margin-bottom: 0;
+  margin: 0.85rem 0 0;
   padding-top: 0.85rem;
   font-size: 0.76rem;
 }
@@ -3729,7 +3734,23 @@ html[data-mygames-desktop="1"] .coins-panel.coins-shop-overlay {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
-  flex: 1;
+}
+
+/* Keep a usable scrollbar in the shop (desktop app hides scrollbars globally). */
+html[data-mygames-desktop="1"] .coins-shop-body {
+  scrollbar-width: thin !important;
+  -ms-overflow-style: auto !important;
+}
+
+html[data-mygames-desktop="1"] .coins-shop-body::-webkit-scrollbar {
+  width: 10px !important;
+  height: 10px !important;
+  display: block !important;
+}
+
+html[data-mygames-desktop="1"] .coins-shop-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 200, 80, 0.35) !important;
+  border-radius: 999px !important;
 }
 
 .coins-shop-section-title {
