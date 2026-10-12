@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001eq": [
+    "Hub: AFK button — go AFK anytime (pauses cloud sync on this device)"
+  ],
   "20261001ep": [
     "Coin shop: remove stuck scale animation that blocked scrolling"
   ],
