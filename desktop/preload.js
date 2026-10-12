@@ -55,8 +55,20 @@ function mountChrome() {
       font-weight: 500;
       font-size: 11px;
     }
+    /* Keep Refresh bar fixed; push hub/games content below it */
+    html[data-mygames-desktop="1"] {
+      --mg-desk-chrome-h: 42px;
+      scroll-padding-top: var(--mg-desk-chrome-h);
+    }
     html[data-mygames-desktop="1"] body {
-      scroll-padding-top: 42px;
+      padding-top: var(--mg-desk-chrome-h) !important;
+      box-sizing: border-box !important;
+      scroll-padding-top: var(--mg-desk-chrome-h);
+      min-height: 100vh;
+    }
+    html[data-mygames-desktop="1"] .overlay,
+    html[data-mygames-desktop="1"] .modal {
+      top: var(--mg-desk-chrome-h) !important;
     }
   `;
 
