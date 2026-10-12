@@ -348,7 +348,7 @@
   }
 
   function drawSimplePlayer(ctx, api, kind) {
-    const { s, bird, wingPhase, wingBurst, BIRD_X } = api;
+    const { s, bird, wingPhase, wingBurst, BIRD_X, distance = 0 } = api;
     const beat = Math.sin(wingPhase);
     ctx.save();
     ctx.translate(BIRD_X, bird.y);
@@ -489,8 +489,319 @@
       }
       ctx.fillStyle = s.pupil;
       ctx.fillRect(sz - 2, -sz - 2 + beat, 3, 3);
+    } else if (kind === "neon") {
+      // Hoverbike / neon speeder
+      const glow = 0.45 + Math.abs(beat) * 0.35 + (wingBurst || 0) * 0.2;
+      ctx.shadowColor = s.pipeStroke || "#22b8cf";
+      ctx.shadowBlur = 14 * glow;
+      ctx.fillStyle = s.belly;
+      ctx.beginPath();
+      ctx.moveTo(-22, 6);
+      ctx.lineTo(24, 2);
+      ctx.lineTo(18, 10);
+      ctx.lineTo(-20, 12);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = s.body;
+      ctx.beginPath();
+      ctx.ellipse(2, -2, 16, 8, -0.15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = s.wing;
+      ctx.beginPath();
+      ctx.moveTo(-4, 0);
+      ctx.lineTo(-18, -14 - beat * 3);
+      ctx.lineTo(6, -2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = s.beak;
+      ctx.fillRect(14, -4, 12, 4);
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = s.eye;
+      ctx.beginPath();
+      ctx.arc(8, -4, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      // Exhaust neon streaks
+      ctx.globalAlpha = 0.55 * glow;
+      ctx.strokeStyle = s.pipeStroke;
+      ctx.lineWidth = 2;
+      for (let i = 0; i < 3; i++) {
+        ctx.beginPath();
+        ctx.moveTo(-22, 4 + i * 3);
+        ctx.lineTo(-34 - i * 4 - Math.abs(beat) * 2, 4 + i * 3);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    } else if (kind === "steam") {
+      // Brass airship pod with propeller
+      ctx.fillStyle = s.body;
+      ctx.strokeStyle = mix(s.body, "#000", 0.35);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 22, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = s.belly;
+      ctx.beginPath();
+      ctx.ellipse(0, 4, 14, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = s.wing;
+      ctx.fillRect(-8, -18, 16, 8);
+      ctx.strokeStyle = s.beak;
+      ctx.beginPath();
+      ctx.moveTo(0, -18);
+      ctx.lineTo(0, -26);
+      ctx.stroke();
+      // Spinning prop
+      const spin = distance * 0.25 + wingPhase * 2;
+      ctx.save();
+      ctx.translate(-24, 0);
+      ctx.rotate(spin);
+      ctx.fillStyle = s.pipeStroke;
+      ctx.fillRect(-2, -12, 4, 24);
+      ctx.fillRect(-12, -2, 24, 4);
+      ctx.restore();
+      ctx.fillStyle = s.eye;
+      ctx.beginPath();
+      ctx.arc(8, -2, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = s.pupil;
+      ctx.beginPath();
+      ctx.arc(9, -2, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (kind === "frost") {
+      // Crystal ice shard / ice phoenix shard
+      ctx.fillStyle = "rgba(231,245,255,0.35)";
+      ctx.beginPath();
+      ctx.moveTo(0, -26);
+      ctx.lineTo(16, 4);
+      ctx.lineTo(0, 20);
+      ctx.lineTo(-16, 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = s.body;
+      ctx.strokeStyle = s.pipeStroke;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, -22);
+      ctx.lineTo(12, 2);
+      ctx.lineTo(0, 16);
+      ctx.lineTo(-12, 2);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = s.belly;
+      ctx.beginPath();
+      ctx.moveTo(0, -10);
+      ctx.lineTo(6, 2);
+      ctx.lineTo(0, 10);
+      ctx.lineTo(-6, 2);
+      ctx.closePath();
+      ctx.fill();
+      // Ice wing flakes
+      ctx.fillStyle = s.wing;
+      ctx.globalAlpha = 0.85;
+      ctx.beginPath();
+      ctx.moveTo(-4, 0);
+      ctx.lineTo(-22, -10 - beat * 4);
+      ctx.lineTo(-10, 4);
+      ctx.closePath();
+      ctx.fill();
+      ctx.beginPath();
+      ctx.moveTo(-4, 4);
+      ctx.lineTo(-20, 12 + beat * 4);
+      ctx.lineTo(-8, 8);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = s.pupil;
+      ctx.beginPath();
+      ctx.arc(2, -2, 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (kind === "volcano") {
+      // Magma rock / lava blob with flame crown
+      const pulse = 0.7 + Math.abs(beat) * 0.3;
+      ctx.fillStyle = s.wing;
+      ctx.beginPath();
+      ctx.ellipse(0, 4, 20, 14, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = s.body;
+      ctx.beginPath();
+      ctx.ellipse(0, 2, 16, 11, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = s.belly;
+      ctx.beginPath();
+      ctx.ellipse(2, 6, 9, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Flames
+      ctx.globalAlpha = pulse;
+      ctx.fillStyle = s.beak;
+      for (let i = -2; i <= 2; i++) {
+        ctx.beginPath();
+        ctx.moveTo(i * 7, -6);
+        ctx.lineTo(i * 7 - 4, -16 - Math.abs(beat) * 3 - (i === 0 ? 4 : 0));
+        ctx.lineTo(i * 7 + 4, -6);
+        ctx.closePath();
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = s.eye;
+      ctx.beginPath();
+      ctx.arc(6, 0, 3.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = s.pupil;
+      ctx.beginPath();
+      ctx.arc(7, 0, 1.4, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (kind === "ghost") {
+      // Classic sheet ghost
+      ctx.globalAlpha = 0.88;
+      ctx.fillStyle = s.body;
+      ctx.beginPath();
+      ctx.arc(0, -4, 14, Math.PI, 0);
+      ctx.lineTo(14, 14);
+      ctx.quadraticCurveTo(9, 8, 5, 14);
+      ctx.quadraticCurveTo(0, 8, -5, 14);
+      ctx.quadraticCurveTo(-9, 8, -14, 14);
+      ctx.closePath();
+      ctx.fill();
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = s.pupil;
+      ctx.beginPath();
+      ctx.ellipse(-5, -4, 2.8, 4, 0, 0, Math.PI * 2);
+      ctx.ellipse(5, -4, 2.8, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "rgba(255,255,255,0.5)";
+      ctx.beginPath();
+      ctx.arc(-6, -6, 1.1, 0, Math.PI * 2);
+      ctx.arc(4, -6, 1.1, 0, Math.PI * 2);
+      ctx.fill();
+      // Wavy trail
+      ctx.strokeStyle = "rgba(233,236,239,0.35)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(-16, 6);
+      ctx.quadraticCurveTo(-28, 6 + beat * 4, -36, 2);
+      ctx.stroke();
+    } else if (kind === "idol") {
+      // Golden scarab / winged idol
+      ctx.fillStyle = s.body;
+      ctx.strokeStyle = mix(s.body, "#7a3b00", 0.35);
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(0, 2, 14, 16, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = s.belly;
+      ctx.beginPath();
+      ctx.ellipse(0, 6, 8, 9, 0, 0, Math.PI * 2);
+      ctx.fill();
+      // Scarab wings
+      ctx.fillStyle = s.wing;
+      ctx.beginPath();
+      ctx.ellipse(-16, 0, 12, 7, -0.5 + beat * 0.15, 0, Math.PI * 2);
+      ctx.ellipse(16, 0, 12, 7, 0.5 - beat * 0.15, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = s.beak;
+      ctx.beginPath();
+      ctx.moveTo(-4, -14);
+      ctx.lineTo(0, -22);
+      ctx.lineTo(4, -14);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = s.pupil;
+      ctx.beginPath();
+      ctx.arc(-4, -2, 2, 0, Math.PI * 2);
+      ctx.arc(4, -2, 2, 0, Math.PI * 2);
+      ctx.fill();
+    } else if (kind === "shadow") {
+      // Void wraith — hooded silhouette with pink eyes
+      ctx.fillStyle = "rgba(0,0,0,0.35)";
+      ctx.beginPath();
+      ctx.ellipse(0, 18, 16, 5, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = s.body;
+      ctx.beginPath();
+      ctx.moveTo(-14, 16);
+      ctx.quadraticCurveTo(-18, 0, -10, -12);
+      ctx.quadraticCurveTo(0, -24, 10, -12);
+      ctx.quadraticCurveTo(18, 0, 14, 16);
+      ctx.quadraticCurveTo(6, 10, 0, 18);
+      ctx.quadraticCurveTo(-6, 10, -14, 16);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = s.eye;
+      ctx.shadowColor = s.eye;
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.ellipse(-5, -6, 3, 2.2, 0, 0, Math.PI * 2);
+      ctx.ellipse(5, -6, 3, 2.2, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = s.pupil;
+      ctx.beginPath();
+      ctx.arc(-5, -6, 1, 0, Math.PI * 2);
+      ctx.arc(5, -6, 1, 0, Math.PI * 2);
+      ctx.fill();
+      // Smoke wisps
+      ctx.strokeStyle = "rgba(190,75,219,0.35)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-12, 12);
+      ctx.quadraticCurveTo(-24, 14 + beat * 3, -30, 8);
+      ctx.stroke();
+    } else if (kind === "rainbow") {
+      // Prism butterfly / rainbow moth
+      const cols = ["#ff6b6b", "#fcc419", "#51cf66", "#339af0", "#cc5de8"];
+      for (let i = 0; i < cols.length; i++) {
+        ctx.fillStyle = cols[i];
+        ctx.globalAlpha = 0.4;
+        ctx.beginPath();
+        ctx.ellipse(-10 - i * 5, beat * 2, 8, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      // Wings
+      const flap = beat * 0.35;
+      ctx.fillStyle = s.wing;
+      ctx.beginPath();
+      ctx.ellipse(-14, -4, 16, 11, -0.6 + flap, 0, Math.PI * 2);
+      ctx.ellipse(14, -4, 16, 11, 0.6 - flap, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = s.body;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 7, 12, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = s.beak;
+      ctx.beginPath();
+      ctx.arc(0, -10, 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = s.body;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(-3, -12);
+      ctx.lineTo(-8, -20);
+      ctx.moveTo(3, -12);
+      ctx.lineTo(8, -20);
+      ctx.stroke();
+      ctx.fillStyle = s.pupil;
+      ctx.beginPath();
+      ctx.arc(-2, -10, 1.2, 0, Math.PI * 2);
+      ctx.arc(2, -10, 1.2, 0, Math.PI * 2);
+      ctx.fill();
+      // Rainbow wing bands
+      for (let i = 0; i < cols.length; i++) {
+        ctx.strokeStyle = cols[i];
+        ctx.globalAlpha = 0.7;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(-14, -4, 12 - i, 9 - i * 0.5, -0.6 + flap, 0.2, Math.PI - 0.2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.ellipse(14, -4, 12 - i, 9 - i * 0.5, 0.6 - flap, 0.2, Math.PI - 0.2);
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
     } else {
-      // neon / steam / frost / volcano / ghost / idol / shadow / rainbow → tinted dragon handled in host
       ctx.restore();
       return false;
     }
@@ -636,21 +947,6 @@
     drawPlayer(ctx, api) {
       const form = api.s.form;
       if (!form || form === "ufo") return false;
-      if (form === "ghost") {
-        ctx.save();
-        ctx.globalAlpha = 0.62;
-        const ok = false; // fall through to dragon with alpha — host draws dragon
-        ctx.restore();
-        api.ghostAlpha = 0.62;
-        return false;
-      }
-      if (form === "rainbow") {
-        api.drawRainbowTrail = true;
-        return false;
-      }
-      if (form === "neon" || form === "steam" || form === "frost" || form === "volcano" || form === "idol" || form === "shadow") {
-        return false; // dragon silhouette with pack colors
-      }
       return drawSimplePlayer(ctx, api, form);
     },
     afterSky(ctx, api) {
