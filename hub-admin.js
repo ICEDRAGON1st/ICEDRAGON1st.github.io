@@ -17,6 +17,7 @@
   const ANNOUNCE_SEEN_KEY = "hub-admin-announce-seen-v1";
   const GRANT_SEEN_KEY = "hub-admin-grants-seen-v1";
   const UNLOCKS_KEY = "hub-admin-unlocks-v1";
+  const LOCAL_GRANTS_KEY = "hub-admin-grants-local-v1";
   const TOKEN = "ice-hub-admin-9f3a";
 
   const DOC = {
@@ -332,6 +333,83 @@
     markAnnounceSeen(announceCache.id);
   }
 
+  function readLocalGrants() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(LOCAL_GRANTS_KEY) || "[]");
+      return Array.isArray(raw) ? raw.filter((g) => g && g.id) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function writeLocalGrants(list) {
+    try {
+      localStorage.setItem(LOCAL_GRANTS_KEY, JSON.stringify((list || []).slice(-100)));
+    } catch {}
+  }
+
+  function rememberLocalGrant(grant) {
+    const list = readLocalGrants();
+    list.push({ ...grant, scope: "local" });
+    writeLocalGrants(list);
+  }
+
+  /** Apply a grant on this device. Coins only if currently logged in as the target. */
+  function applyGrantEffect(grant, opts = {}) {
+    const target = nameKey(grant?.targetName);
+    const me = nameKey(getPlayerName());
+    if (!grant || !target) return { ok: false, error: "Bad grant" };
+    const toast = opts.toast !== false;
+    const kind = String(grant.kind || "").toLowerCase();
+
+    if (kind === "coins") {
+      const n = Math.max(0, Math.min(100000, Math.floor(Number(grant.value) || 0)));
+      if (!n) return { ok: false, error: "Bad coin amount" };
+      if (me !== target) {
+        return {
+          ok: false,
+          error: `Switch to ${target} on this device to receive coins (or use Local while logged in as them)`
+        };
+      }
+      if (typeof HubCoins === "undefined") return { ok: false, error: "Coins unavailable" };
+      HubCoins.earn(n, "admin-grant");
+      if (toast) {
+        try {
+          window.showGamesMessage?.(`Admin grant: +${n} coins`, 2800);
+        } catch {}
+      }
+      return { ok: true, applied: "coins", amount: n };
+    }
+
+    if (kind === "title") {
+      const id = String(grant.value || "").toLowerCase();
+      if (!id || !HubPlays?.TITLE_DEFS?.[id]) return { ok: false, error: "Unknown title" };
+      addUnlock(target, "title", id);
+      if (toast && me === target) {
+        try {
+          window.showGamesMessage?.(`Admin grant: title ${HubPlays.TITLE_DEFS[id].label}`, 2800);
+        } catch {}
+      }
+      return { ok: true, applied: "title", id };
+    }
+
+    if (kind === "color") {
+      const id = String(grant.value || "").toLowerCase();
+      const okExtra = !!HubPlays?.EXTRA_COLORS?.[id];
+      const okBasic = (HubPlays?.COLOR_OPTIONS || []).some((c) => c.id === id);
+      if (!okExtra && !okBasic) return { ok: false, error: "Unknown color" };
+      addUnlock(target, "color", id);
+      if (toast && me === target) {
+        try {
+          window.showGamesMessage?.(`Admin grant: color ${id}`, 2800);
+        } catch {}
+      }
+      return { ok: true, applied: "color", id };
+    }
+
+    return { ok: false, error: "Unknown grant kind" };
+  }
+
   async function applyPendingGrants() {
     const me = nameKey(getPlayerName());
     if (!me) return;
@@ -345,32 +423,10 @@
         changed = true;
         continue;
       }
-      if (g.kind === "coins") {
-        const n = Math.max(0, Math.min(100000, Math.floor(Number(g.value) || 0)));
-        if (n && typeof HubCoins !== "undefined") {
-          HubCoins.earn(n, "admin-grant");
-          try {
-            window.showGamesMessage?.(`Admin grant: +${n} coins`, 2800);
-          } catch {}
-        }
-      } else if (g.kind === "title") {
-        const id = String(g.value || "").toLowerCase();
-        if (id && HubPlays?.TITLE_DEFS?.[id]) {
-          addUnlock(me, "title", id);
-          try {
-            window.showGamesMessage?.(`Admin grant: title ${HubPlays.TITLE_DEFS[id].label}`, 2800);
-          } catch {}
-        }
-      } else if (g.kind === "color") {
-        const id = String(g.value || "").toLowerCase();
-        const okExtra = !!HubPlays?.EXTRA_COLORS?.[id];
-        const okBasic = (HubPlays?.COLOR_OPTIONS || []).some((c) => c.id === id);
-        if (okExtra || okBasic) {
-          addUnlock(me, "color", id);
-          try {
-            window.showGamesMessage?.(`Admin grant: color ${id}`, 2800);
-          } catch {}
-        }
+      const res = applyGrantEffect(g, { toast: true });
+      if (!res.ok && g.kind === "coins") {
+        // Wallet may be mid-switch; keep pending
+        continue;
       }
       seen.add(g.id);
       changed = true;
@@ -560,7 +616,11 @@
   function renderGrantsList() {
     const list = document.getElementById("hub-admin-grants-list");
     if (!list) return;
-    const rows = [...(grantsCache.grants || [])].slice(-40).reverse();
+    const cloud = (grantsCache.grants || []).map((g) => ({ ...g, scope: "cloud" }));
+    const local = readLocalGrants();
+    const rows = [...cloud, ...local]
+      .sort((a, b) => (b.at || 0) - (a.at || 0))
+      .slice(0, 40);
     if (!rows.length) {
       list.innerHTML = `<li class="hub-admin-empty">No grants yet.</li>`;
       return;
@@ -569,9 +629,15 @@
       .map(
         (g) => `<li class="hub-admin-row">
         <span class="hub-admin-meta">
-          <strong>${escapeHtml(g.targetName)} · ${escapeHtml(g.kind)}</strong>
+          <strong>${escapeHtml(g.targetName)} · ${escapeHtml(g.kind)}${
+          g.scope === "local" ? " · local" : ""
+        }</strong>
           <span class="hub-admin-sub">${escapeHtml(String(g.value))} · ${
-          g.claimedBy?.length ? "claimed" : "pending"
+          g.scope === "local"
+            ? "this device"
+            : g.claimedBy?.length
+              ? "claimed"
+              : "pending"
         }</span>
         </span>
       </li>`
@@ -673,6 +739,10 @@
     document.body.classList.add("hub-admin-open");
     document.getElementById("games-screen")?.classList.add("shop-open");
     bindPanel();
+    const grantName = document.getElementById("hub-admin-grant-name");
+    if (grantName && !String(grantName.value || "").trim()) {
+      grantName.value = getPlayerName() || "ICE_DRAGON";
+    }
     refreshRemote().finally(() => refreshUi());
     document.getElementById("admin-panel-close")?.focus?.();
     updateToolbarButton();
@@ -829,50 +899,75 @@
     }
   }
 
-  async function adminGrant() {
-    if (!isOwner()) return;
+  function readGrantForm() {
     const targetName = nameKey(document.getElementById("hub-admin-grant-name")?.value);
     const kind = String(document.getElementById("hub-admin-grant-kind")?.value || "").toLowerCase();
     const valueRaw = String(document.getElementById("hub-admin-grant-value")?.value || "").trim();
-    if (!targetName) {
-      setStatus("Enter target name", "error");
-      return;
-    }
+    if (!targetName) return { ok: false, error: "Enter target name" };
     let value = valueRaw;
     if (kind === "coins") {
       value = Math.max(1, Math.min(100000, Math.floor(Number(valueRaw) || 0)));
-      if (!value) {
-        setStatus("Enter coin amount", "error");
-        return;
-      }
+      if (!value) return { ok: false, error: "Enter coin amount" };
     } else if (kind === "title") {
       value = valueRaw.toLowerCase();
       if (!HubPlays?.TITLE_DEFS?.[value]) {
-        setStatus("Unknown title id (e.g. tester, inviter, legend)", "error");
-        return;
+        return { ok: false, error: "Unknown title id (e.g. tester, inviter, legend)" };
       }
     } else if (kind === "color") {
       value = valueRaw.toLowerCase();
       const ok =
         !!HubPlays?.EXTRA_COLORS?.[value] ||
         (HubPlays?.COLOR_OPTIONS || []).some((c) => c.id === value);
-      if (!ok) {
-        setStatus("Unknown color id (e.g. aurora, blue, tide)", "error");
-        return;
-      }
+      if (!ok) return { ok: false, error: "Unknown color id (e.g. aurora, blue, tide)" };
     } else {
-      setStatus("Pick grant kind", "error");
+      return { ok: false, error: "Pick grant kind" };
+    }
+    return {
+      ok: true,
+      grant: {
+        id: makeId(),
+        targetName,
+        kind,
+        value,
+        at: Date.now(),
+        by: "ICE_DRAGON",
+        claimedBy: []
+      }
+    };
+  }
+
+  function adminGrantLocal() {
+    if (!isOwner()) return;
+    const form = readGrantForm();
+    if (!form.ok) {
+      setStatus(form.error, "error");
       return;
     }
-    const grant = {
-      id: makeId(),
-      targetName,
-      kind,
-      value,
-      at: Date.now(),
-      by: "ICE_DRAGON",
-      claimedBy: []
-    };
+    const grant = form.grant;
+    const res = applyGrantEffect(grant, { toast: true });
+    if (!res.ok) {
+      setStatus(res.error || "Local grant failed", "error");
+      return;
+    }
+    rememberLocalGrant(grant);
+    const seen = readSeenGrants();
+    seen.add(grant.id);
+    writeSeenGrants(seen);
+    setStatus(`Local grant applied for ${grant.targetName} (this device)`, "ok");
+    refreshUi();
+    try {
+      HubCoins?.refreshUi?.();
+    } catch {}
+  }
+
+  async function adminGrant() {
+    if (!isOwner()) return;
+    const form = readGrantForm();
+    if (!form.ok) {
+      setStatus(form.error, "error");
+      return;
+    }
+    const grant = form.grant;
     const next = {
       token: TOKEN,
       grants: [...(grantsCache.grants || []), grant].slice(-200)
@@ -880,10 +975,38 @@
     try {
       await upsertDoc(DOC.grants, next);
       grantsCache = parseGrants(next);
-      setStatus(`Grant queued for ${targetName}`, "ok");
+      // Apply immediately on this device if it's for the logged-in name
+      if (nameKey(getPlayerName()) === grant.targetName) {
+        applyGrantEffect(grant, { toast: true });
+        const seen = readSeenGrants();
+        seen.add(grant.id);
+        writeSeenGrants(seen);
+        grant.claimedBy = [grant.targetName];
+        try {
+          await upsertDoc(DOC.grants, { token: TOKEN, grants: next.grants });
+        } catch {}
+      }
+      setStatus(`Grant queued for ${grant.targetName}`, "ok");
       refreshUi();
     } catch (err) {
-      setStatus(err?.message || "Failed to grant", "error");
+      // Cloud down — still give on this device
+      const res = applyGrantEffect(grant, { toast: true });
+      if (res.ok) {
+        rememberLocalGrant(grant);
+        const seen = readSeenGrants();
+        seen.add(grant.id);
+        writeSeenGrants(seen);
+        setStatus(`Cloud down — applied locally for ${grant.targetName}`, "ok");
+        refreshUi();
+        try {
+          HubCoins?.refreshUi?.();
+        } catch {}
+      } else {
+        setStatus(
+          `${err?.message || "Cloud failed"}; local: ${res.error || "failed"}`,
+          "error"
+        );
+      }
     }
   }
 
@@ -980,6 +1103,7 @@
     document.getElementById("hub-admin-mod-ban")?.addEventListener("click", () => adminAddMod("ban"));
     document.getElementById("hub-admin-mod-mute")?.addEventListener("click", () => adminAddMod("mute"));
     document.getElementById("hub-admin-grant-send")?.addEventListener("click", () => adminGrant());
+    document.getElementById("hub-admin-grant-local")?.addEventListener("click", () => adminGrantLocal());
     document.getElementById("hub-admin-lb-wipe")?.addEventListener("click", () => adminWipeLeaderboard());
     document.getElementById("hub-admin-discord-send")?.addEventListener("click", () => adminDiscordPost());
     document.getElementById("hub-admin-diag-refresh")?.addEventListener("click", () => {
