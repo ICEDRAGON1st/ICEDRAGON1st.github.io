@@ -23,6 +23,224 @@
     { id: "climber", name: "Climb", ico: "🧗", tip: "Gives that walker the ability to climb walls forever" }
   ];
 
+  const SKIN_KEY = "dudes-skin-v1";
+  /** Tiny walker looks — palette + hat/extra. coinItem ties to HubCoins shop. */
+  const SKINS = {
+    classic: {
+      label: "Classic",
+      body: "#22c55e",
+      hat: "#14532d",
+      face: "#fde68a",
+      hatStyle: "flat"
+    },
+    blue: {
+      label: "Blue crew",
+      body: "#3b82f6",
+      hat: "#1e3a8a",
+      face: "#fde68a",
+      hatStyle: "flat"
+    },
+    sunset: {
+      label: "Sunset",
+      body: "#fb7185",
+      hat: "#9f1239",
+      face: "#ffedd5",
+      hatStyle: "flat",
+      coinItem: "skin:dudes-sunset",
+      coinCost: 200,
+      locked: true
+    },
+    midnight: {
+      label: "Midnight",
+      body: "#334155",
+      hat: "#0f172a",
+      face: "#a5f3fc",
+      hatStyle: "flat",
+      coinItem: "skin:dudes-midnight",
+      coinCost: 250,
+      locked: true
+    },
+    honey: {
+      label: "Honey",
+      body: "#f59e0b",
+      hat: "#78350f",
+      face: "#fef3c7",
+      hatStyle: "flat",
+      coinItem: "skin:dudes-honey",
+      coinCost: 200,
+      locked: true
+    },
+    mint: {
+      label: "Mint ice",
+      body: "#6ee7b7",
+      hat: "#047857",
+      face: "#ecfdf5",
+      hatStyle: "pom",
+      coinItem: "skin:dudes-mint",
+      coinCost: 200,
+      locked: true
+    },
+    beanie: {
+      label: "Beanie",
+      body: "#22c55e",
+      hat: "#7c3aed",
+      face: "#fde68a",
+      hatStyle: "beanie",
+      coinItem: "skin:dudes-beanie",
+      coinCost: 250,
+      locked: true
+    },
+    hardhat: {
+      label: "Hard hat",
+      body: "#22c55e",
+      hat: "#facc15",
+      face: "#fde68a",
+      hatStyle: "hardhat",
+      coinItem: "skin:dudes-hardhat",
+      coinCost: 300,
+      locked: true
+    },
+    bandana: {
+      label: "Bandana",
+      body: "#16a34a",
+      hat: "#dc2626",
+      face: "#fde68a",
+      hatStyle: "bandana",
+      coinItem: "skin:dudes-bandana",
+      coinCost: 300,
+      locked: true
+    },
+    propeller: {
+      label: "Propeller",
+      body: "#22c55e",
+      hat: "#0ea5e9",
+      face: "#fde68a",
+      hatStyle: "propeller",
+      coinItem: "skin:dudes-propeller",
+      coinCost: 350,
+      locked: true
+    },
+    crown: {
+      label: "Crown",
+      body: "#22c55e",
+      hat: "#eab308",
+      face: "#fde68a",
+      hatStyle: "crown",
+      coinItem: "skin:dudes-crown",
+      coinCost: 450,
+      locked: true
+    },
+    builder: {
+      label: "Builder",
+      body: "#ea580c",
+      hat: "#facc15",
+      face: "#fde68a",
+      hatStyle: "hardhat",
+      vest: "#fb923c",
+      coinItem: "skin:dudes-builder",
+      coinCost: 300,
+      locked: true
+    },
+    bomber: {
+      label: "Bomber",
+      body: "#64748b",
+      hat: "#1e293b",
+      face: "#fde68a",
+      hatStyle: "flat",
+      fuse: true,
+      coinItem: "skin:dudes-bomber",
+      coinCost: 350,
+      locked: true
+    },
+    floater: {
+      label: "Floater",
+      body: "#38bdf8",
+      hat: "#0369a1",
+      face: "#fde68a",
+      hatStyle: "flat",
+      floatStriped: true,
+      coinItem: "skin:dudes-floater",
+      coinCost: 300,
+      locked: true
+    },
+    climber: {
+      label: "Climber",
+      body: "#22c55e",
+      hat: "#14532d",
+      face: "#fde68a",
+      hatStyle: "flat",
+      pack: true,
+      coinItem: "skin:dudes-climber",
+      coinCost: 300,
+      locked: true
+    },
+    blocker: {
+      label: "Blocker",
+      body: "#f97316",
+      hat: "#9a3412",
+      face: "#fde68a",
+      hatStyle: "flat",
+      stopSign: true,
+      coinItem: "skin:dudes-blocker",
+      coinCost: 300,
+      locked: true
+    },
+    ghost: {
+      label: "Ghost",
+      body: "rgba(248,250,252,0.88)",
+      hat: "rgba(226,232,240,0.5)",
+      face: "#e2e8f0",
+      hatStyle: "none",
+      special: "ghost",
+      coinItem: "skin:dudes-ghost",
+      coinCost: 450,
+      locked: true
+    },
+    robot: {
+      label: "Robot",
+      body: "#94a3b8",
+      hat: "#475569",
+      face: "#22d3ee",
+      hatStyle: "flat",
+      special: "robot",
+      coinItem: "skin:dudes-robot",
+      coinCost: 500,
+      locked: true
+    },
+    cat: {
+      label: "Cat",
+      body: "#a78bfa",
+      hat: "#6d28d9",
+      face: "#fde68a",
+      hatStyle: "ears",
+      whiskers: true,
+      coinItem: "skin:dudes-cat",
+      coinCost: 400,
+      locked: true
+    },
+    duck: {
+      label: "Duck",
+      body: "#facc15",
+      hat: "#eab308",
+      face: "#fef08a",
+      hatStyle: "beak",
+      coinItem: "skin:dudes-duck",
+      coinCost: 400,
+      locked: true
+    },
+    rainbow: {
+      label: "Rainbow",
+      body: "#22c55e",
+      hat: "#14532d",
+      face: "#fde68a",
+      hatStyle: "flat",
+      special: "rainbow",
+      coinItem: "skin:dudes-rainbow",
+      coinCost: 500,
+      locked: true
+    }
+  };
+
   const HOW_TO_HTML = `<ol class="how-list">
     <li><strong>Green walkers</strong> drop from the yellow <strong>IN</strong> box and walk on their own.</li>
     <li>Get enough of them into the green <strong>OUT</strong> door to clear the level.</li>
@@ -450,9 +668,108 @@
   const levelSelectEl = document.getElementById("level-select");
   const levelTipEl = document.getElementById("level-tip");
   const hintEl = document.getElementById("hint");
+  const skinPicker = document.getElementById("skin-picker");
 
   canvas.width = W;
   canvas.height = H;
+
+  function ownsSkin(id) {
+    const s = SKINS[id];
+    if (!s) return false;
+    if (!s.locked && !s.coinItem) return true;
+    const itemId = s.coinItem;
+    if (!itemId) return false;
+    try {
+      if (window.HubCoins?.hasPurchase?.(itemId)) return true;
+    } catch {}
+    return false;
+  }
+
+  function isCoinSkin(id) {
+    const s = SKINS[id];
+    return !!(s && (s.locked || s.coinItem));
+  }
+
+  function loadSkin() {
+    try {
+      const id = localStorage.getItem(SKIN_KEY) || "classic";
+      if (!SKINS[id]) return "classic";
+      if (isCoinSkin(id) && !ownsSkin(id)) return "classic";
+      return id;
+    } catch {
+      return "classic";
+    }
+  }
+
+  let skinId = loadSkin();
+
+  function skin() {
+    return SKINS[skinId] || SKINS.classic;
+  }
+
+  function setSkinHint(msg) {
+    const el = document.getElementById("skin-lock-hint");
+    if (el) el.textContent = msg || "";
+  }
+
+  function updateSkinPicker() {
+    skinPicker?.querySelectorAll("[data-skin]").forEach((btn) => {
+      const id = btn.dataset.skin;
+      const s = SKINS[id];
+      if (!s) return;
+      const locked = isCoinSkin(id) && !ownsSkin(id);
+      btn.classList.toggle("active", id === skinId);
+      btn.classList.toggle("skin-btn-locked", locked);
+      if (isCoinSkin(id)) {
+        const short = s.label || id;
+        btn.textContent = locked ? `${short} · ${s.coinCost || "?"}🪙` : short;
+        btn.title = locked
+          ? `Buy with hub coins (${s.coinCost || "?"})`
+          : `${short} unlocked`;
+      } else {
+        btn.textContent = s.label || id;
+      }
+    });
+  }
+
+  function setSkin(id) {
+    if (!SKINS[id]) return false;
+    if (!ownsSkin(id)) {
+      const s = SKINS[id];
+      setSkinHint(
+        `${s.label || id} is locked — tap again to buy for ${s.coinCost || "?"} coins.`
+      );
+      return false;
+    }
+    skinId = id;
+    try {
+      localStorage.setItem(SKIN_KEY, id);
+    } catch {}
+    setSkinHint(isCoinSkin(id) ? `${SKINS[id].label} equipped.` : "");
+    updateSkinPicker();
+    draw();
+    return true;
+  }
+
+  function tryBuySkin(id) {
+    if (ownsSkin(id)) {
+      setSkin(id);
+      return;
+    }
+    const s = SKINS[id];
+    if (!s?.coinItem) return;
+    if (typeof window.HubCoins === "undefined") {
+      setSkinHint("Coins aren't loaded — open the hub Coin shop to buy this skin.");
+      return;
+    }
+    const res = HubCoins.buy(s.coinItem);
+    if (!res.ok) {
+      setSkinHint(res.error || HubCoins.NEED_MORE || "You need more coins for this item!");
+      return;
+    }
+    setSkinHint(`${s.label} unlocked!`);
+    setSkin(id);
+  }
 
   let best = Math.max(0, Math.floor(Number(localStorage.getItem(HIGH_SCORE_KEY)) || 0));
   let maxLevel = Math.max(0, Math.floor(Number(localStorage.getItem(LEVEL_KEY)) || 0));
@@ -546,6 +863,7 @@
         `<p style="margin:0;color:var(--muted);line-height:1.45;text-align:center">Tap any unlocked level to play it. Cleared levels stay open.</p>`;
     }
     renderLevelSelect();
+    updateSkinPicker();
     if (startBtn) startBtn.textContent = playButtonLabel();
     overlay?.classList.remove("hidden");
   }
@@ -1115,6 +1433,7 @@
     if (overlayTitle) overlayTitle.textContent = title || "How to play";
     if (overlayText) overlayText.innerHTML = HOW_TO_HTML;
     renderLevelSelect();
+    updateSkinPicker();
     if (startBtn) startBtn.textContent = playButtonLabel();
     overlay?.classList.remove("hidden");
   }
@@ -1173,6 +1492,7 @@
       }
     }
     renderLevelSelect();
+    updateSkinPicker();
     if (startBtn) startBtn.textContent = playButtonLabel();
     overlay?.classList.remove("hidden");
   }
@@ -1208,6 +1528,223 @@
       btn.innerHTML = `<span class="skill-ico">${s.ico}</span><span class="skill-name">${s.name}</span><span class="skill-count">${n}</span>`;
       skillsEl.appendChild(btn);
     });
+  }
+
+  function resolveDudeColors(sk, lem) {
+    let body = sk.body;
+    let hat = sk.hat;
+    let face = sk.face;
+    if (sk.special === "rainbow") {
+      const hue = (performance.now() / 18 + (lem.frame || 0) * 40) % 360;
+      body = `hsl(${hue}, 78%, 52%)`;
+      hat = `hsl(${(hue + 40) % 360}, 70%, 32%)`;
+      face = "#fff7ed";
+    }
+    if (lem.state === "blocker" && sk.special !== "ghost") {
+      body = sk.stopSign ? body : "#f97316";
+    }
+    return { body, hat, face };
+  }
+
+  function drawHat(sk, hatColor, lem) {
+    const style = sk.hatStyle || "flat";
+    if (style === "none") return;
+    ctx.fillStyle = hatColor;
+    if (style === "beanie") {
+      ctx.beginPath();
+      ctx.ellipse(0, -9, 6, 4.5, 0, Math.PI, 0);
+      ctx.fill();
+      ctx.fillRect(-5.5, -9, 11, 3);
+      return;
+    }
+    if (style === "hardhat") {
+      ctx.fillRect(-6, -9, 12, 4);
+      ctx.fillRect(-4, -11, 8, 3);
+      return;
+    }
+    if (style === "crown") {
+      ctx.beginPath();
+      ctx.moveTo(-5, -6);
+      ctx.lineTo(-5, -11);
+      ctx.lineTo(-2, -8);
+      ctx.lineTo(0, -12);
+      ctx.lineTo(2, -8);
+      ctx.lineTo(5, -11);
+      ctx.lineTo(5, -6);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = "#fef08a";
+      ctx.fillRect(-1, -10, 2, 2);
+      return;
+    }
+    if (style === "propeller") {
+      ctx.fillRect(-5, -9, 10, 4);
+      const a = (lem.frame || 0) * 14;
+      ctx.strokeStyle = "#e2e8f0";
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(Math.cos(a) * 6, -12 + Math.sin(a) * 2);
+      ctx.lineTo(Math.cos(a + Math.PI) * 6, -12 + Math.sin(a + Math.PI) * 2);
+      ctx.stroke();
+      ctx.fillStyle = "#94a3b8";
+      ctx.fillRect(-1, -13, 2, 4);
+      return;
+    }
+    if (style === "bandana") {
+      ctx.fillRect(-5, -9, 10, 4);
+      ctx.fillStyle = "#fef2f2";
+      ctx.fillRect(-2, -9, 3, 4);
+      ctx.fillStyle = hatColor;
+      ctx.beginPath();
+      ctx.moveTo(5, -7);
+      ctx.lineTo(9, -4);
+      ctx.lineTo(5, -5);
+      ctx.fill();
+      return;
+    }
+    if (style === "pom") {
+      ctx.fillRect(-5, -9, 10, 4);
+      ctx.fillStyle = "#fff";
+      ctx.beginPath();
+      ctx.arc(0, -12, 2.4, 0, Math.PI * 2);
+      ctx.fill();
+      return;
+    }
+    if (style === "ears") {
+      ctx.fillRect(-5, -9, 10, 4);
+      ctx.beginPath();
+      ctx.moveTo(-5, -9);
+      ctx.lineTo(-7, -14);
+      ctx.lineTo(-2, -9);
+      ctx.moveTo(5, -9);
+      ctx.lineTo(7, -14);
+      ctx.lineTo(2, -9);
+      ctx.fill();
+      return;
+    }
+    if (style === "beak") {
+      ctx.fillRect(-5, -9, 10, 4);
+      ctx.fillStyle = "#ea580c";
+      ctx.beginPath();
+      ctx.moveTo(2, -4);
+      ctx.lineTo(8, -2);
+      ctx.lineTo(2, 0);
+      ctx.closePath();
+      ctx.fill();
+      return;
+    }
+    // flat
+    ctx.fillRect(-5, -9, 10, 4);
+  }
+
+  function drawDude(lem) {
+    const sk = skin();
+    const bob = Math.sin(lem.frame * 12) * 1.1;
+    const cols = resolveDudeColors(sk, lem);
+    ctx.save();
+    ctx.translate(centerX(lem), lem.y + 8 + bob);
+    if (lem.dir < 0) ctx.scale(-1, 1);
+
+    if (sk.special === "ghost") {
+      ctx.globalAlpha = 0.9;
+      ctx.fillStyle = cols.body;
+      ctx.beginPath();
+      ctx.ellipse(0, -1, 6, 8, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(-3, -4, 2, 2);
+      ctx.fillRect(1, -4, 2, 2);
+    } else if (sk.special === "robot") {
+      ctx.fillStyle = cols.body;
+      ctx.fillRect(-5, -6, 10, 12);
+      ctx.fillStyle = cols.hat;
+      ctx.fillRect(-5, -9, 10, 4);
+      ctx.fillStyle = cols.face;
+      ctx.fillRect(0, -5, 5, 4);
+      ctx.fillStyle = "#0ea5e9";
+      ctx.fillRect(1, -4, 2, 2);
+    } else {
+      ctx.fillStyle = cols.body;
+      ctx.fillRect(-5, -6, 10, 12);
+      if (sk.vest) {
+        ctx.fillStyle = sk.vest;
+        ctx.fillRect(-4, -2, 8, 5);
+      }
+      drawHat(sk, cols.hat, lem);
+      ctx.fillStyle = cols.face;
+      ctx.fillRect(0, -5, 5, 5);
+      if (sk.whiskers) {
+        ctx.strokeStyle = "rgba(255,255,255,0.75)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(1, -2);
+        ctx.lineTo(7, -3);
+        ctx.moveTo(1, -1);
+        ctx.lineTo(7, 0);
+        ctx.stroke();
+      }
+    }
+
+    if (sk.stopSign || lem.state === "blocker") {
+      ctx.fillStyle = "#ef4444";
+      ctx.fillRect(-3, -1, 6, 6);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(-2, 1, 4, 2);
+    }
+
+    if (sk.fuse || lem.bombTimer > 0) {
+      ctx.fillStyle = "#fbbf24";
+      ctx.fillRect(-1, -13, 2, 4);
+      ctx.fillStyle = "#fb7185";
+      ctx.beginPath();
+      ctx.arc(0, -14, 1.8 + (Math.sin(lem.frame * 20) + 1) * 0.4, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    if (lem.float) {
+      if (sk.floatStriped) {
+        ctx.fillStyle = "#f8fafc";
+        ctx.beginPath();
+        ctx.arc(0, -14, 7, Math.PI, 0);
+        ctx.fill();
+        ctx.fillStyle = "#ef4444";
+        ctx.fillRect(-6, -14, 3, 4);
+        ctx.fillStyle = "#3b82f6";
+        ctx.fillRect(-1, -14, 3, 4);
+        ctx.fillStyle = "#f8fafc";
+        ctx.fillRect(4, -14, 2, 4);
+        ctx.strokeStyle = "#94a3b8";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, -10);
+        ctx.lineTo(0, -6);
+        ctx.stroke();
+      } else {
+        ctx.fillStyle = "#e2e8f0";
+        ctx.beginPath();
+        ctx.arc(0, -14, 7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    if (sk.pack || lem.climb) {
+      ctx.fillStyle = "#38bdf8";
+      ctx.fillRect(-7, 0, 3, 6);
+      ctx.strokeStyle = "#7dd3fc";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(-6, 0);
+      ctx.lineTo(-6, -5);
+      ctx.stroke();
+    }
+
+    if (lem.bombTimer > 0) {
+      ctx.fillStyle = "#fb7185";
+      ctx.font = "bold 11px Outfit,sans-serif";
+      ctx.fillText(String(Math.ceil(lem.bombTimer)), -3, -16);
+    }
+
+    ctx.restore();
   }
 
   function draw() {
@@ -1268,32 +1805,7 @@
 
     lemmings.forEach((lem) => {
       if (lem.dead || lem.saved) return;
-      const bob = Math.sin(lem.frame * 12) * 1.1;
-      ctx.save();
-      ctx.translate(centerX(lem), lem.y + 8 + bob);
-      if (lem.dir < 0) ctx.scale(-1, 1);
-      ctx.fillStyle = lem.state === "blocker" ? "#f97316" : "#22c55e";
-      ctx.fillRect(-5, -6, 10, 12);
-      ctx.fillStyle = "#14532d";
-      ctx.fillRect(-5, -9, 10, 4);
-      ctx.fillStyle = "#fde68a";
-      ctx.fillRect(0, -5, 5, 5);
-      if (lem.float) {
-        ctx.fillStyle = "#e2e8f0";
-        ctx.beginPath();
-        ctx.arc(0, -14, 7, 0, Math.PI * 2);
-        ctx.fill();
-      }
-      if (lem.climb) {
-        ctx.fillStyle = "#38bdf8";
-        ctx.fillRect(-7, 1, 3, 5);
-      }
-      if (lem.bombTimer > 0) {
-        ctx.fillStyle = "#fb7185";
-        ctx.font = "bold 11px Outfit,sans-serif";
-        ctx.fillText(String(Math.ceil(lem.bombTimer)), -3, -14);
-      }
-      ctx.restore();
+      drawDude(lem);
     });
 
     particles.forEach((p) => {
@@ -1417,9 +1929,19 @@
     window.location.href = "../index.html#games";
   });
 
+  skinPicker?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-skin]");
+    if (!btn) return;
+    const id = btn.dataset.skin;
+    if (!SKINS[id]) return;
+    if (ownsSkin(id)) setSkin(id);
+    else tryBuySkin(id);
+  });
+
   loadLevel(continueLevelIndex());
   if (startBtn) startBtn.textContent = playButtonLabel();
   renderLevelSelect();
+  updateSkinPicker();
   updateLevelTip();
   draw();
   requestAnimationFrame(tick);
@@ -1427,5 +1949,9 @@
   window.addEventListener("beforeunload", () => {
     persistProgress();
     maybeSubmit(true);
+  });
+  document.addEventListener("hub-username-ready", () => {
+    if (isCoinSkin(skinId) && !ownsSkin(skinId)) skinId = "classic";
+    updateSkinPicker();
   });
 })();

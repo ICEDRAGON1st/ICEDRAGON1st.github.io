@@ -365,6 +365,59 @@ body {
   font-size: 0.94rem;
 }
 
+.skin-panel {
+  margin: 0.85rem 0 0.7rem;
+  text-align: left;
+}
+
+.picker-label {
+  margin: 0 0 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.skin-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  max-height: 7.5rem;
+  overflow: auto;
+  padding-bottom: 0.15rem;
+}
+
+.skin-btn {
+  border: 1px solid var(--border);
+  background: linear-gradient(180deg, #33486e, #243554);
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 0.32rem 0.65rem;
+  font: 750 0.72rem Outfit, "Segoe UI", system-ui, sans-serif;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.skin-btn.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(125, 211, 252, 0.3);
+  background: linear-gradient(180deg, #3d5f8f, #2a4468);
+}
+
+.skin-btn-locked {
+  opacity: 0.72;
+}
+
+.skin-lock-hint {
+  margin: 0.4rem 0 0;
+  min-height: 1rem;
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--muted);
+  text-align: center;
+}
+
 .score-line {
   margin: 0 0 1rem;
   color: var(--muted);
