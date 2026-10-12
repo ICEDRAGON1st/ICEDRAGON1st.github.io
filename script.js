@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001cr": [
+    "What's new popup only shows the latest update (one Got it)"
+  ],
   "20261001cq": [
     "Account login: clearer message when short player code needs Copy transfer (server down)"
   ],
