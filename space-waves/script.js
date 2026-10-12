@@ -23,103 +23,103 @@
     games: document.getElementById("games-btn")
   };
 
-  /** Handcrafted levels: segments of corridor (world units). */
+  /** Handcrafted levels — gaps stay wide enough to clear with current controls. */
   const LEVELS = [
     {
       id: 1,
       name: "Warmup",
       diff: "easy",
-      speed: 280,
+      speed: 260,
       theme: "#5ce1ff",
-      path: easyPath(3200, 0.35)
+      path: easyPath(3000, 0.42)
     },
     {
       id: 2,
       name: "Ripple",
       diff: "easy",
-      speed: 300,
+      speed: 275,
       theme: "#5dff9f",
-      path: sinePath(3800, 70, 0.004, 0.4)
+      path: sinePath(3400, 55, 0.0032, 0.4, 0)
     },
     {
       id: 3,
       name: "Needle",
       diff: "easy",
-      speed: 310,
+      speed: 285,
       theme: "#7aefff",
-      path: squeezePath(4000, 0.38, 0.28)
+      path: squeezePath(3600, 0.42, 0.34, false)
     },
     {
       id: 4,
       name: "Zig",
       diff: "medium",
-      speed: 330,
+      speed: 295,
       theme: "#ffd24a",
-      path: zigPath(4500, 90, 420, 0.32)
+      path: zigPath(3800, 70, 480, 0.36, 0)
     },
     {
       id: 5,
       name: "Thorns",
       diff: "medium",
-      speed: 340,
+      speed: 300,
       theme: "#ffb347",
-      path: spikePath(4800, 0.3, 280)
+      path: spikePath(4000, 0.36, 420, 28)
     },
     {
       id: 6,
       name: "Pulse",
       diff: "medium",
-      speed: 355,
+      speed: 310,
       theme: "#ff9f6b",
-      path: sinePath(5000, 110, 0.0055, 0.28)
+      path: sinePath(4200, 75, 0.0038, 0.34, 520)
     },
     {
       id: 7,
       name: "Crush",
       diff: "hard",
-      speed: 370,
+      speed: 320,
       theme: "#ff7a96",
-      path: squeezePath(5200, 0.3, 0.2)
+      path: squeezePath(4400, 0.38, 0.3, true)
     },
     {
       id: 8,
       name: "Saw",
       diff: "hard",
-      speed: 385,
+      speed: 330,
       theme: "#ff5a78",
-      path: zigPath(5400, 120, 300, 0.24)
+      path: zigPath(4600, 85, 400, 0.32, 640)
     },
     {
       id: 9,
       name: "Orbit",
       diff: "hard",
-      speed: 400,
+      speed: 340,
       theme: "#ff4fd8",
-      path: spikePath(5600, 0.22, 220)
+      path: spikePath(4800, 0.32, 380, 30)
     },
     {
       id: 10,
       name: "Nova",
       diff: "extreme",
-      speed: 420,
+      speed: 350,
       theme: "#d46bff",
-      path: sinePath(6000, 130, 0.007, 0.2)
+      path: sinePath(5000, 90, 0.0042, 0.3, 400)
     },
     {
       id: 11,
       name: "Void",
       diff: "extreme",
-      speed: 440,
+      speed: 360,
       theme: "#a78bfa",
-      path: zigPath(6200, 140, 260, 0.2)
+      path: zigPath(5200, 95, 360, 0.3, 520)
     },
     {
       id: 12,
       name: "Singularity",
       diff: "extreme",
-      speed: 460,
+      speed: 370,
       theme: "#ff4fd8",
-      path: spikePath(6500, 0.18, 180)
+      path: spikePath(5400, 0.3, 340, 32)
     }
   ];
 
@@ -140,58 +140,85 @@
     return finalizePath(pts);
   }
 
-  function sinePath(len, ampPx, freq, gap) {
+  function sinePath(len, ampPx, freq, gap, spikeEvery) {
     const pts = [];
+    const every = Number(spikeEvery) || 0;
     for (let x = 0; x <= len; x += 28) {
       const mid = 0.5 + (Math.sin(x * freq) * ampPx) / 540;
-      pts.push({ x, top: mid - gap / 2, bot: mid + gap / 2, spike: x > 400 && x % 360 < 40 });
-    }
-    return finalizePath(pts);
-  }
-
-  function zigPath(len, ampPx, period, gap) {
-    const pts = [];
-    for (let x = 0; x <= len; x += 24) {
-      const t = (x % period) / period;
-      const tri = t < 0.5 ? t * 2 : 2 - t * 2;
-      const mid = 0.5 + ((tri - 0.5) * 2 * ampPx) / 540;
-      pts.push({ x, top: mid - gap / 2, bot: mid + gap / 2, spike: x > 500 && Math.floor(x / (period / 2)) % 2 === 0 && x % 80 < 28 });
-    }
-    return finalizePath(pts);
-  }
-
-  function squeezePath(len, openGap, tightGap) {
-    const pts = [];
-    for (let x = 0; x <= len; x += 30) {
-      const wave = (Math.sin(x * 0.0035) + 1) / 2;
-      const gap = lerp(openGap, tightGap, wave);
-      const mid = 0.5 + Math.sin(x * 0.0018) * 0.12;
-      pts.push({ x, top: mid - gap / 2, bot: mid + gap / 2, spike: wave > 0.75 && x % 200 < 36 });
-    }
-    return finalizePath(pts);
-  }
-
-  function spikePath(len, gap, spacing) {
-    const pts = [];
-    for (let x = 0; x <= len; x += 22) {
-      const mid = 0.5 + Math.sin(x * 0.003) * 0.14 + Math.sin(x * 0.0011) * 0.06;
       pts.push({
         x,
         top: mid - gap / 2,
         bot: mid + gap / 2,
-        spike: x > 350 && x % spacing < 50
+        spike: every > 0 && x > 500 && x % every < 36
+      });
+    }
+    return finalizePath(pts);
+  }
+
+  function zigPath(len, ampPx, period, gap, spikeEvery) {
+    const pts = [];
+    const every = Number(spikeEvery) || 0;
+    for (let x = 0; x <= len; x += 24) {
+      const t = (x % period) / period;
+      const tri = t < 0.5 ? t * 2 : 2 - t * 2;
+      const mid = 0.5 + ((tri - 0.5) * 2 * ampPx) / 540;
+      pts.push({
+        x,
+        top: mid - gap / 2,
+        bot: mid + gap / 2,
+        spike: every > 0 && x > 600 && x % every < 32
+      });
+    }
+    return finalizePath(pts);
+  }
+
+  function squeezePath(len, openGap, tightGap, withSpikes) {
+    const pts = [];
+    for (let x = 0; x <= len; x += 30) {
+      const wave = (Math.sin(x * 0.0028) + 1) / 2;
+      const gap = lerp(openGap, tightGap, wave);
+      const mid = 0.5 + Math.sin(x * 0.0015) * 0.08;
+      pts.push({
+        x,
+        top: mid - gap / 2,
+        bot: mid + gap / 2,
+        spike: !!withSpikes && x > 700 && wave > 0.82 && x % 280 < 28
+      });
+    }
+    return finalizePath(pts);
+  }
+
+  function spikePath(len, gap, spacing, spikeWidth) {
+    const pts = [];
+    const width = Number(spikeWidth) || 28;
+    for (let x = 0; x <= len; x += 22) {
+      const mid = 0.5 + Math.sin(x * 0.0024) * 0.1 + Math.sin(x * 0.0009) * 0.04;
+      pts.push({
+        x,
+        top: mid - gap / 2,
+        bot: mid + gap / 2,
+        spike: x > 550 && x % spacing < width
       });
     }
     return finalizePath(pts);
   }
 
   function finalizePath(pts) {
-    return pts.map((p) => ({
-      x: p.x,
-      top: clamp(p.top, 0.04, 0.7),
-      bot: clamp(p.bot, 0.3, 0.96),
-      spike: !!p.spike
-    }));
+    const MIN_GAP = 0.28;
+    return pts.map((p) => {
+      let top = p.top;
+      let bot = p.bot;
+      let mid = (top + bot) / 2;
+      let gap = bot - top;
+      if (gap < MIN_GAP) {
+        gap = MIN_GAP;
+        top = mid - gap / 2;
+        bot = mid + gap / 2;
+      }
+      top = clamp(top, 0.05, 0.62);
+      bot = clamp(bot, top + MIN_GAP, 0.95);
+      return { x: p.x, top, bot, spike: !!p.spike };
+    });
   }
 
   function samplePath(path, x) {
@@ -276,9 +303,8 @@
   }
 
   function speed() {
-    // Slightly slower scroll so steering has more time to react
-    if (mode === "endless") return 250 + Math.min(180, worldX / 48);
-    return currentLevel().speed * 0.88;
+    if (mode === "endless") return 240 + Math.min(140, worldX / 55);
+    return currentLevel().speed;
   }
 
   function themeColor() {
@@ -350,19 +376,19 @@
     while (endlessGenX < untilX) {
       const start = endlessGenX;
       const len = 900 + Math.random() * 700;
-      const gap = clamp(0.38 - endlessGenX / 28000, 0.16, 0.38);
-      const amp = 60 + Math.min(100, endlessGenX / 80);
+      const gap = clamp(0.4 - endlessGenX / 40000, 0.3, 0.4);
+      const amp = 50 + Math.min(70, endlessGenX / 100);
       const kind = Math.floor(Math.random() * 3);
       let chunk;
-      if (kind === 0) chunk = sinePath(len, amp, 0.004 + Math.random() * 0.003, gap);
-      else if (kind === 1) chunk = zigPath(len, amp, 280 + Math.random() * 160, gap);
-      else chunk = spikePath(len, gap, 200 + Math.random() * 120);
+      if (kind === 0) chunk = sinePath(len, amp, 0.003 + Math.random() * 0.002, gap, 600);
+      else if (kind === 1) chunk = zigPath(len, amp, 360 + Math.random() * 160, gap, 700);
+      else chunk = spikePath(len, gap, 360 + Math.random() * 140, 28);
       chunk.forEach((p) => {
         endlessPath.push({
           x: start + p.x,
           top: p.top,
           bot: p.bot,
-          spike: p.spike && start > 200
+          spike: p.spike && start > 400
         });
       });
       endlessGenX = start + len;
@@ -485,15 +511,13 @@
 
     if (sample.spike) {
       const gap = botY - topY;
-      const spikeH = Math.min(gap * 0.42, h * 0.12);
-      // top spike pointing down
+      // Short spikes — leave a clear middle lane
+      const spikeH = Math.min(gap * 0.28, h * 0.07);
       const topTip = topY + spikeH;
       const botTip = botY - spikeH;
-      if (pointInTri(box.x, box.y, box.x - 14, topY, box.x + 14, topY, box.x, topTip)) return true;
-      if (pointInTri(box.x, box.y, box.x - 14, botY, box.x + 14, botY, box.x, botTip)) return true;
-      // radius soft check near tips
-      if (dist2(box.x, box.y, box.x, topTip) < box.r * box.r * 1.2) return true;
-      if (dist2(box.x, box.y, box.x, botTip) < box.r * box.r * 1.2) return true;
+      const hw = 10;
+      if (pointInTri(box.x, box.y, box.x - hw, topY, box.x + hw, topY, box.x, topTip)) return true;
+      if (pointInTri(box.x, box.y, box.x - hw, botY, box.x + hw, botY, box.x, botTip)) return true;
     }
     return false;
   }
@@ -644,16 +668,16 @@
       const topY = s.top * h;
       const botY = s.bot * h;
       const gap = botY - topY;
-      const spikeH = Math.min(gap * 0.42, h * 0.12);
+      const spikeH = Math.min(gap * 0.28, h * 0.07);
       ctx.beginPath();
-      ctx.moveTo(sx - 12, topY);
-      ctx.lineTo(sx + 12, topY);
+      ctx.moveTo(sx - 10, topY);
+      ctx.lineTo(sx + 10, topY);
       ctx.lineTo(sx, topY + spikeH);
       ctx.closePath();
       ctx.fill();
       ctx.beginPath();
-      ctx.moveTo(sx - 12, botY);
-      ctx.lineTo(sx + 12, botY);
+      ctx.moveTo(sx - 10, botY);
+      ctx.lineTo(sx + 10, botY);
       ctx.lineTo(sx, botY - spikeH);
       ctx.closePath();
       ctx.fill();
