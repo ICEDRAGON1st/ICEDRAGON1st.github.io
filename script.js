@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001dt": [
+    "Paper Claim: Paper.io-style home menu (sky backdrop, big Play, skins dock)"
+  ],
   "20261001ds": [
     "Paper Claim: skins no longer change the arena ground — only your blob and trail"
   ],

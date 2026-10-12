@@ -7,8 +7,8 @@
   <title>Paper Claim</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261001dr">
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20261001dt">
 </head>
 <body>
   <div class="hud">
@@ -26,59 +26,105 @@
     <p class="hint">WASD / arrows (diagonals OK) or mouse to steer. Loop back to claim. Walls are safe — if you die, it’s game over.</p>
   </main>
 
-  <div id="overlay" class="overlay">
-    <div class="overlay-card">
-      <h1 id="overlay-title">Paper Claim</h1>
-      <p id="overlay-text">Paint the map like paper.io — claim territory, cut enemy trails, and survive.</p>
-      <div id="mode-picker" class="picker" role="group" aria-label="Game mode">
-        <button type="button" class="pick-btn active" data-mode="npc">vs NPC</button>
-        <button type="button" class="pick-btn" data-mode="online">Online</button>
+  <div id="overlay" class="overlay" data-panel="home">
+    <div class="menu-sky" aria-hidden="true"></div>
+
+    <header class="menu-top">
+      <div class="menu-profile" id="menu-profile" title="You">
+        <span class="menu-avatar" id="menu-avatar">P</span>
       </div>
-      <div id="npc-panel" class="mode-panel">
-        <div class="picker" role="group" aria-label="Bot count">
-          <button type="button" class="pick-btn active" data-bots="4">4 bots</button>
-          <button type="button" class="pick-btn" data-bots="6">6 bots</button>
-          <button type="button" class="pick-btn" data-bots="8">8 bots</button>
+      <div class="menu-coin-pill" title="Hub coins">
+        <span class="menu-coin-ico" aria-hidden="true">🪙</span>
+        <strong data-hub-coins-balance>—</strong>
+      </div>
+      <button id="games-btn" type="button" class="menu-gear" aria-label="Back to games">⌂</button>
+    </header>
+
+    <section class="menu-hero">
+      <div class="menu-bubble" id="overlay-best">Best claim · <strong>0%</strong></div>
+      <div class="menu-stage">
+        <canvas id="skin-preview" width="280" height="280" aria-hidden="true"></canvas>
+        <div class="menu-platform" aria-hidden="true"></div>
+      </div>
+      <h1 id="overlay-title" class="menu-brand">Paper Claim</h1>
+      <p id="overlay-text" class="menu-sub">Claim territory, cut trails, and grow your map.</p>
+    </section>
+
+    <section class="menu-body">
+      <div class="menu-panel menu-panel-home" data-show="home">
+        <div id="mode-picker" class="picker menu-mode-row" role="group" aria-label="Game mode">
+          <button type="button" class="pick-btn active" data-mode="npc">vs NPC</button>
+          <button type="button" class="pick-btn" data-mode="online">Online</button>
+        </div>
+        <div id="npc-panel" class="mode-panel">
+          <div class="picker" role="group" aria-label="Bot count">
+            <button type="button" class="pick-btn active" data-bots="4">4 bots</button>
+            <button type="button" class="pick-btn" data-bots="6">6 bots</button>
+            <button type="button" class="pick-btn" data-bots="8">8 bots</button>
+          </div>
+        </div>
+        <div id="online-panel" class="mode-panel hidden">
+          <button id="online-quick-btn" type="button" class="btn menu-chip-btn">Quick Play</button>
+          <p id="online-status" class="online-status">Match with others, or host a room code.</p>
+          <div class="online-row">
+            <button id="online-create-btn" type="button" class="btn btn-secondary">Create room</button>
+            <input id="online-join-input" type="text" maxlength="6" placeholder="Code" autocomplete="off" spellcheck="false">
+            <button id="online-join-btn" type="button" class="btn btn-secondary">Join</button>
+          </div>
+          <p id="online-code" class="online-code hidden"></p>
+          <button id="online-cancel-btn" type="button" class="btn btn-secondary hidden">Leave lobby</button>
         </div>
       </div>
-      <div id="online-panel" class="mode-panel hidden">
-        <button id="online-quick-btn" type="button" class="btn">Quick Play</button>
-        <p id="online-status" class="online-status">Match with others, or host a room code.</p>
-        <div class="online-row">
-          <button id="online-create-btn" type="button" class="btn btn-secondary">Create room</button>
-          <input id="online-join-input" type="text" maxlength="6" placeholder="Code" autocomplete="off" spellcheck="false">
-          <button id="online-join-btn" type="button" class="btn btn-secondary">Join</button>
+
+      <div class="menu-panel menu-panel-skins hidden" data-show="skins">
+        <p class="picker-label">Skins</p>
+        <div id="skin-picker" class="skin-picker" role="group" aria-label="Player skin">
+          <button type="button" class="skin-btn active" data-skin="classic">Classic</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="ink" data-coin-skin="skin:paper-claim-ink">Ink · 250🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="blueprint" data-coin-skin="skin:paper-claim-blueprint">Blueprint · 250🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="honeycomb" data-coin-skin="skin:paper-claim-honeycomb">Honey · 250🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="ocean" data-coin-skin="skin:paper-claim-ocean">Ocean · 300🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="forest" data-coin-skin="skin:paper-claim-forest">Forest · 300🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="candy" data-coin-skin="skin:paper-claim-candy">Candy · 300🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="graffiti" data-coin-skin="skin:paper-claim-graffiti">Graffiti · 350🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="storm" data-coin-skin="skin:paper-claim-storm">Storm · 350🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="lava" data-coin-skin="skin:paper-claim-lava">Lava · 400🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="ice" data-coin-skin="skin:paper-claim-ice">Ice · 400🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="neon" data-coin-skin="skin:paper-claim-neon">Neon · 450🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="pixel" data-coin-skin="skin:paper-claim-pixel">Pixel · 500🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="shadow" data-coin-skin="skin:paper-claim-shadow">Shadow · 500🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="rainbow" data-coin-skin="skin:paper-claim-rainbow">Rainbow · 500🪙</button>
+          <button type="button" class="skin-btn skin-btn-locked" data-skin="gold" data-coin-skin="skin:paper-claim-gold">Gold · 550🪙</button>
         </div>
-        <p id="online-code" class="online-code hidden"></p>
-        <button id="online-cancel-btn" type="button" class="btn btn-secondary hidden">Leave lobby</button>
+        <p id="skin-lock-hint" class="skin-lock-hint" aria-live="polite"></p>
       </div>
-      <p class="picker-label">Skins</p>
-      <div id="skin-picker" class="skin-picker" role="group" aria-label="Player skin">
-        <button type="button" class="skin-btn active" data-skin="classic">Classic</button>
-        <button type="button" class="skin-btn skin-btn-locked" data-skin="ink" data-coin-skin="skin:paper-claim-ink">Ink · 250🪙</button>
-        <button type="button" class="skin-btn skin-btn-locked" data-skin="blueprint" data-coin-skin="skin:paper-claim-blueprint">Blueprint · 250🪙</button>
-        <button type="button" class="skin-btn skin-btn-locked" data-skin="honeycomb" data-coin-skin="skin:paper-claim-honeycomb">Honey · 250🪙</button>
-        <button type="button" class="skin-btn skin-btn-locked" data-skin="ocean" data-coin-skin="skin:paper-claim-ocean">Ocean · 300🪙</button>
-        <button type="button" class="skin-btn skin-btn-locked" data-skin="forest" data-coin-skin="skin:paper-claim-forest">Forest · 300🪙</button>
-        <button type="button" class="skin-btn skin-btn-locked" data-skin="candy" data-coin-skin="skin:paper-claim-candy">Candy · 300🪙</button>
-        <button type="button" class="skin-btn skin-btn-locked" data-skin="graffiti" data-coin-skin="skin:paper-claim-graffiti">Graffiti · 350🪙</button>
-        <button type="button" class="skin-btn skin-btn-locked" data-skin="storm" data-coin-skin="skin:paper-claim-storm">Storm · 350🪙</button>
-        <button type="button" class="skin-btn skin-btn-locked" data-skin="lava" data-coin-skin="skin:paper-claim-lava">Lava · 400🪙</button>
-        <button type="button" class="skin-btn skin-btn-locked" data-skin="ice" data-coin-skin="skin:paper-claim-ice">Ice · 400🪙</button>
-        <button type="button" class="skin-btn skin-btn-locked" data-skin="neon" data-coin-skin="skin:paper-claim-neon">Neon · 450🪙</button>
-        <button type="button" class="skin-btn skin-btn-locked" data-skin="pixel" data-coin-skin="skin:paper-claim-pixel">Pixel · 500🪙</button>
-        <button type="button" class="skin-btn skin-btn-locked" data-skin="shadow" data-coin-skin="skin:paper-claim-shadow">Shadow · 500🪙</button>
-        <button type="button" class="skin-btn skin-btn-locked" data-skin="rainbow" data-coin-skin="skin:paper-claim-rainbow">Rainbow · 500🪙</button>
-        <button type="button" class="skin-btn skin-btn-locked" data-skin="gold" data-coin-skin="skin:paper-claim-gold">Gold · 550🪙</button>
-      </div>
-      <p id="skin-lock-hint" class="skin-lock-hint" aria-live="polite"></p>
-      <p id="overlay-best" class="overlay-best">Best claim: <strong>0%</strong></p>
-      <div class="overlay-actions">
-        <button id="resume-btn" type="button" class="btn btn-secondary hidden">Resume</button>
-        <button id="start-btn" type="button" class="btn">Play</button>
-        <button id="games-btn" type="button" class="btn btn-secondary">Games</button>
-      </div>
+    </section>
+
+    <div class="menu-play-wrap">
+      <button id="resume-btn" type="button" class="menu-resume hidden">Resume</button>
+      <button id="start-btn" type="button" class="menu-play" aria-label="Play">
+        <span class="menu-play-tri" aria-hidden="true"></span>
+      </button>
     </div>
+
+    <nav class="menu-dock" aria-label="Menu">
+      <button type="button" class="dock-btn active" data-panel="home">
+        <span class="dock-ico" aria-hidden="true">▶</span>
+        <span>Play</span>
+      </button>
+      <button type="button" class="dock-btn" data-panel="skins">
+        <span class="dock-ico dock-face" aria-hidden="true"></span>
+        <span>Skins</span>
+      </button>
+      <button type="button" class="dock-btn" data-panel="online">
+        <span class="dock-ico" aria-hidden="true">◎</span>
+        <span>Online</span>
+      </button>
+      <a class="dock-btn dock-link" href="../index.html#games">
+        <span class="dock-ico" aria-hidden="true">▦</span>
+        <span>Games</span>
+      </a>
+    </nav>
   </div>
 
   <script src="../hub-streak.js"></script>
@@ -95,6 +141,6 @@
   <script src="../hub-calls.js?v=20260925a"></script>
   <script src="../hub-leaderboard.js?v=20260925a"></script>
   <script src="theme-packs.js?v=20261001dr"></script>
-  <script src="script.js?v=20261001ds"></script>
+  <script src="script.js?v=20261001dt"></script>
 </body>
 </html>

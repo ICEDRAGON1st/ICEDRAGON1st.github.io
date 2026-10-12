@@ -89,6 +89,7 @@
     landDirty = true;
     miniDirty = true;
     refreshSkinPicker();
+    refreshSkinPreview();
     return true;
   }
 
@@ -131,6 +132,153 @@
     });
   }
 
+  const RAINBOW_COLS = ["#ff6b6b", "#fcc419", "#51cf66", "#339af0", "#cc5de8"];
+  function rainbowAt(i) {
+    return RAINBOW_COLS[Math.abs(i) % RAINBOW_COLS.length];
+  }
+
+  function previewColors() {
+    const sk = skin();
+    if (skinId !== "classic" && sk?.fill) {
+      return {
+        fill: sk.fill,
+        glow: sk.trailGlow || sk.fill,
+        head: sk.head || "classic",
+        rainbow: !!sk.rainbow
+      };
+    }
+    return {
+      fill: COLORS[0].fill,
+      glow: COLORS[0].fill,
+      head: "classic",
+      rainbow: false
+    };
+  }
+
+  function refreshSkinPreview() {
+    const cnv = document.getElementById("skin-preview");
+    if (!cnv) return;
+    const g = cnv.getContext("2d");
+    if (!g) return;
+    const W = cnv.width;
+    const H = cnv.height;
+    g.clearRect(0, 0, W, H);
+    const col = previewColors();
+
+    g.lineCap = "round";
+    g.lineJoin = "round";
+    g.lineWidth = 20;
+    if (col.rainbow) {
+      for (let i = 0; i < RAINBOW_COLS.length; i++) {
+        g.strokeStyle = RAINBOW_COLS[i];
+        g.beginPath();
+        g.moveTo(36 + i * 10, H * 0.78);
+        g.quadraticCurveTo(95, H * 0.52 - i * 3, 138, H * 0.4);
+        g.stroke();
+      }
+    } else {
+      g.strokeStyle = col.fill;
+      g.shadowColor = col.glow;
+      g.shadowBlur = 18;
+      g.beginPath();
+      g.moveTo(42, H * 0.8);
+      g.quadraticCurveTo(100, H * 0.52, 142, H * 0.4);
+      g.stroke();
+      g.shadowBlur = 0;
+    }
+
+    const cx = W * 0.56;
+    const cy = H * 0.36;
+    const r = 54;
+    g.fillStyle = col.fill;
+    g.shadowColor = col.glow;
+    g.shadowBlur = col.head === "neon" || col.head === "lava" ? 28 : 18;
+    if (col.head === "pixel") {
+      g.shadowBlur = 0;
+      g.fillRect(cx - r, cy - r, r * 2, r * 2);
+    } else {
+      g.beginPath();
+      g.arc(cx, cy, r, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.shadowBlur = 0;
+
+    if (col.head === "shadow") {
+      g.fillStyle = "rgba(190,75,219,0.9)";
+      g.beginPath();
+      g.ellipse(cx - r * 0.28, cy - r * 0.08, r * 0.16, r * 0.12, 0, 0, Math.PI * 2);
+      g.ellipse(cx + r * 0.28, cy - r * 0.08, r * 0.16, r * 0.12, 0, 0, Math.PI * 2);
+      g.fill();
+    } else if (col.head !== "pixel") {
+      g.fillStyle = "rgba(255,255,255,0.42)";
+      g.beginPath();
+      g.arc(cx - r * 0.28, cy - r * 0.28, r * 0.3, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "#163a66";
+      g.beginPath();
+      g.arc(cx - 14, cy - 2, 7, 0, Math.PI * 2);
+      g.arc(cx + 16, cy - 2, 7, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = "#fff";
+      g.beginPath();
+      g.arc(cx - 12, cy - 4, 2.4, 0, Math.PI * 2);
+      g.arc(cx + 18, cy - 4, 2.4, 0, Math.PI * 2);
+      g.fill();
+    }
+
+    g.strokeStyle = "rgba(22, 58, 102, 0.85)";
+    g.lineWidth = 5;
+    g.beginPath();
+    if (col.head === "pixel") {
+      g.strokeRect(cx - r - 3, cy - r - 3, (r + 3) * 2, (r + 3) * 2);
+    } else {
+      g.arc(cx, cy, r + 3, 0, Math.PI * 2);
+      g.stroke();
+    }
+  }
+
+  function refreshMenuProfile() {
+    const av = document.getElementById("menu-avatar");
+    const wrap = document.getElementById("menu-profile");
+    const name = playerName();
+    if (av) av.textContent = (name === "You" ? "P" : name.charAt(0)).toUpperCase();
+    if (wrap) wrap.title = name;
+  }
+
+  function setPlayLabel(label) {
+    if (!startBtn) return;
+    const text = label || "Play";
+    startBtn.setAttribute("aria-label", text);
+    startBtn.title = text;
+    if (!startBtn.querySelector(".menu-play-tri")) {
+      startBtn.innerHTML = '<span class="menu-play-tri" aria-hidden="true"></span>';
+    }
+  }
+
+  function setMenuPanel(panel) {
+    if (!overlay) return;
+    const want = panel || "home";
+    if (want === "online") {
+      overlay.dataset.panel = "home";
+      setMode("online");
+    } else {
+      overlay.dataset.panel = want;
+    }
+    const shown = overlay.dataset.panel || "home";
+    overlay.querySelectorAll(".menu-panel[data-show]").forEach((el) => {
+      el.classList.toggle("hidden", el.getAttribute("data-show") !== shown);
+    });
+    document.querySelectorAll(".menu-dock .dock-btn[data-panel]").forEach((btn) => {
+      const id = btn.dataset.panel;
+      let on = false;
+      if (id === "skins") on = shown === "skins";
+      else if (id === "online") on = shown === "home" && mode === "online";
+      else if (id === "home") on = shown === "home" && mode !== "online";
+      btn.classList.toggle("active", on);
+    });
+    refreshSkinPreview();
+  }
+
   /** Local human uses equipped pack colors; everyone else keeps slot colors. */
   function colorFor(p) {
     if (p && p.id === localId) {
@@ -140,11 +288,6 @@
       }
     }
     return COLORS[(p?.color || 0) % COLORS.length];
-  }
-
-  const RAINBOW_COLS = ["#ff6b6b", "#fcc419", "#51cf66", "#339af0", "#cc5de8"];
-  function rainbowAt(i) {
-    return RAINBOW_COLS[Math.abs(i) % RAINBOW_COLS.length];
   }
 
   const canvas = document.getElementById("game");
@@ -271,7 +414,7 @@
 
   function updateBestHud() {
     if (highEl) highEl.textContent = `${bestPct}%`;
-    if (overlayBest) overlayBest.innerHTML = `Best claim: <strong>${bestPct}%</strong>`;
+    if (overlayBest) overlayBest.innerHTML = `Best claim · <strong>${bestPct}%</strong>`;
   }
 
   function ensureSession() {
@@ -579,7 +722,11 @@
     resumeBtn.classList.add("hidden");
     overlayTitle.textContent = "Game Over";
     overlayText.textContent = `${reason || "You were eliminated"}. Area claimed: ${pct}%. Hit Play to try again.`;
-    startBtn.textContent = "Play again";
+    setPlayLabel("Play again");
+    overlay.dataset.state = "over";
+    setMenuPanel("home");
+    refreshMenuProfile();
+    refreshSkinPreview();
     overlay.classList.remove("hidden");
     cancelAnimationFrame(animId);
     draw();
@@ -1616,7 +1763,8 @@
     lastFrame = 0;
     overlay.classList.add("hidden");
     resumeBtn.classList.add("hidden");
-    startBtn.textContent = mode === "online" && isHost ? "Start match" : "Play";
+    overlay.dataset.state = "home";
+    setPlayLabel(mode === "online" && isHost ? "Start match" : "Play");
     if (hudMode) {
       hudMode.textContent =
         mode === "online" ? (isHost ? `Online host · ${roomCode}` : `Online · ${roomCode}`) : `vs ${bots} NPC`;
@@ -1632,12 +1780,22 @@
       resumeBtn.classList.remove("hidden");
       overlayTitle.textContent = "Paused";
       overlayText.textContent = "Resume, or start a fresh arena.";
+      overlay.dataset.state = "paused";
     } else if (!running) {
       resumeBtn.classList.add("hidden");
       overlayTitle.textContent = "Paper Claim";
-      overlayText.textContent =
-        "Free-move like paper.io — diagonals, mouse aim, claim loops. Walls and heads block you; get cut and it’s game over.";
+      overlayText.textContent = "Claim territory, cut trails, and grow your map.";
+      overlay.dataset.state = "home";
+    } else if (fromPause) {
+      resumeBtn.classList.remove("hidden");
+      overlayTitle.textContent = "Paused";
+      overlayText.textContent = "Resume, or start a fresh arena.";
+      overlay.dataset.state = "paused";
     }
+    setMenuPanel(overlay.dataset.panel === "skins" ? "skins" : "home");
+    refreshMenuProfile();
+    refreshSkinPreview();
+    updateBestHud();
     overlay.classList.remove("hidden");
   }
 
@@ -1648,6 +1806,16 @@
     });
     npcPanel.classList.toggle("hidden", mode !== "npc");
     onlinePanel.classList.toggle("hidden", mode !== "online");
+    if (overlay && !overlay.classList.contains("hidden") && (overlay.dataset.panel || "home") === "home") {
+      document.querySelectorAll(".menu-dock .dock-btn[data-panel]").forEach((btn) => {
+        const id = btn.dataset.panel;
+        let on = false;
+        if (id === "skins") on = false;
+        else if (id === "online") on = mode === "online";
+        else if (id === "home") on = mode !== "online";
+        btn.classList.toggle("active", on);
+      });
+    }
   }
 
   // —— Networking ——
@@ -1844,7 +2012,7 @@
     onlineCode.textContent = `Room ${roomCode} — waiting for players…`;
     onlineCancelBtn.classList.remove("hidden");
     onlineStatus.textContent = "Share the code. Press Play when ready (bots fill empty slots).";
-    startBtn.textContent = "Start match";
+    setPlayLabel("Start match");
   }
 
   async function joinOnlineRoom(code) {
@@ -1882,7 +2050,7 @@
     onlineCode.textContent = isHost ? `Room ${roomCode}` : `Joined ${roomCode}`;
     onlineCancelBtn.classList.remove("hidden");
     onlineStatus.textContent = isHost ? "You are host. Press Play to start." : "Waiting for host to start…";
-    startBtn.textContent = isHost ? "Start match" : "Waiting…";
+    setPlayLabel(isHost ? "Start match" : "Waiting…");
     if (!isHost) watchLobbyStart();
   }
 
@@ -1942,7 +2110,7 @@
     onlineCode.classList.add("hidden");
     onlineCancelBtn.classList.add("hidden");
     onlineStatus.textContent = "Match with others, or host a room code.";
-    startBtn.textContent = "Play";
+    setPlayLabel("Play");
   }
 
   async function startOnlineMatch() {
@@ -2084,18 +2252,34 @@
     } else {
       tryBuySkin(id);
       refreshSkinPicker();
+      refreshSkinPreview();
     }
   });
 
   try {
-    window.HubCoins?.onChange?.(() => refreshSkinPicker());
+    window.HubCoins?.onChange?.(() => {
+      refreshSkinPicker();
+      refreshSkinPreview();
+    });
   } catch {}
   refreshSkinPicker();
+  refreshSkinPreview();
+  refreshMenuProfile();
+  setPlayLabel("Play");
+
+  document.querySelector(".menu-dock")?.addEventListener("click", (e) => {
+    const btn = e.target.closest("[data-panel]");
+    if (!btn) return;
+    e.preventDefault();
+    setMenuPanel(btn.dataset.panel);
+  });
 
   modePicker?.addEventListener("click", (e) => {
     const btn = e.target.closest("[data-mode]");
     if (!btn) return;
     setMode(btn.dataset.mode);
+    if (overlay) overlay.dataset.panel = "home";
+    setMenuPanel(btn.dataset.mode === "online" ? "online" : "home");
   });
 
   npcPanel?.addEventListener("click", (e) => {
@@ -2144,5 +2328,8 @@
 
   updateBestHud();
   setMode("npc");
+  setMenuPanel("home");
+  refreshMenuProfile();
+  refreshSkinPreview();
   draw();
 })();
