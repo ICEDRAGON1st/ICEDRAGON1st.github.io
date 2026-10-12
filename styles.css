@@ -3304,6 +3304,18 @@ body.coins-shop-open #hub-notify-root {
   pointer-events: none !important;
 }
 
+/* Desktop Electron Refresh bar sits above the page — keep shop below it */
+html[data-mygames-desktop="1"] .coins-panel.coins-shop-overlay {
+  top: var(--mg-desk-chrome-h, 42px) !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  inset: auto !important;
+  width: auto !important;
+  height: auto !important;
+  max-height: none !important;
+}
+
 .coins-shop-sheet {
   flex: 1;
   display: flex;

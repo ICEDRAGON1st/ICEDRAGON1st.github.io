@@ -67,8 +67,17 @@ function mountChrome() {
       min-height: 100vh;
     }
     html[data-mygames-desktop="1"] .overlay,
-    html[data-mygames-desktop="1"] .modal {
+    html[data-mygames-desktop="1"] .modal,
+    html[data-mygames-desktop="1"] #coins-panel.coins-shop-overlay,
+    html[data-mygames-desktop="1"] #hub-help-root {
       top: var(--mg-desk-chrome-h) !important;
+      bottom: 0 !important;
+      height: auto !important;
+      max-height: none !important;
+    }
+    html[data-mygames-desktop="1"] #hub-help-root {
+      inset: auto 0 0 0 !important;
+      padding-top: 0 !important;
     }
   `;
 
