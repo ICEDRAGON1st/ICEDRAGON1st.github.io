@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001fl": [
+    "Space Waves: clearer menu + fixed level select / next / retry flow"
+  ],
   "20261001fk": [
     "Space Waves: fix phantom deaths — tighter hitbox, fairer doors/gems, hazards match what you see"
   ],

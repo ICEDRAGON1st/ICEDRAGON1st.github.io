@@ -17,6 +17,8 @@
     text: document.getElementById("overlay-text"),
     best: document.getElementById("overlay-best"),
     picker: document.getElementById("level-picker"),
+    classicPanel: document.getElementById("classic-panel"),
+    levelMeta: document.getElementById("level-meta"),
     start: document.getElementById("start-btn"),
     resume: document.getElementById("resume-btn"),
     retry: document.getElementById("retry-btn"),
@@ -401,6 +403,7 @@
 
   let mode = "classic";
   let levelIndex = 0;
+  let overlayKind = "menu"; // menu | pause | dead | win
   let running = false;
   let paused = false;
   let dead = false;
@@ -414,6 +417,7 @@
   let endlessPath = [];
   let endlessGenX = 0;
   let bestDist = readHigh();
+  let bestLevel = readBestLevel(); // highest level id cleared (1..12)
   let flash = 0;
   let raf = 0;
   let lastTs = 0;
@@ -436,6 +440,27 @@
     }
   }
 
+  function readBestLevel() {
+    try {
+      const n = Number(localStorage.getItem(BEST_LEVEL_KEY));
+      return Number.isFinite(n) && n > 0 ? Math.floor(n) : 0;
+    } catch {
+      return 0;
+    }
+  }
+
+  function persistBestLevel(clearedId) {
+    bestLevel = Math.max(bestLevel, Math.floor(clearedId));
+    try {
+      localStorage.setItem(BEST_LEVEL_KEY, String(bestLevel));
+    } catch {}
+  }
+
+  /** All classic levels are freely selectable; bestLevel only tracks progress */
+  function isLevelUnlocked(_index) {
+    return true;
+  }
+
   function persistHigh(n) {
     bestDist = Math.max(bestDist, Math.floor(n));
     try {
@@ -444,6 +469,23 @@
     try {
       window.HubLeaderboard?.submit?.(GAME_ID, bestDist);
     } catch {}
+  }
+
+  function syncStartLabel() {
+    if (overlayKind === "pause") {
+      els.start.textContent = "Restart";
+      return;
+    }
+    if (overlayKind === "win" && mode === "classic" && levelIndex < LEVELS.length - 1) {
+      els.start.textContent = `Next · ${LEVELS[levelIndex + 1].name}`;
+      return;
+    }
+    if (mode === "endless") {
+      els.start.textContent = overlayKind === "dead" || overlayKind === "win" ? "Play again" : "Play Endless";
+      return;
+    }
+    const lv = currentLevel();
+    els.start.textContent = `Play ${lv.id} · ${lv.name}`;
   }
 
   function currentLevel() {
@@ -482,7 +524,7 @@
   }
 
   function paintHud() {
-    els.mode.textContent = mode === "endless" ? "Endless" : `Lv ${currentLevel().id}`;
+    els.mode.textContent = mode === "endless" ? "Endless" : `Lv ${currentLevel().id} ${currentLevel().name}`;
     els.high.textContent = String(bestDist);
     els.best.textContent = String(bestDist);
     if (mode === "endless") {
@@ -494,22 +536,41 @@
   }
 
   function renderLevelPicker() {
+    const classic = mode === "classic";
+    if (els.classicPanel) els.classicPanel.classList.toggle("hidden", !classic);
     els.picker.innerHTML = "";
-    els.picker.classList.toggle("hidden", mode !== "classic");
-    if (mode !== "classic") return;
+    if (!classic) {
+      if (els.levelMeta) els.levelMeta.textContent = "How far can you go?";
+      syncStartLabel();
+      return;
+    }
+
+    const cur = currentLevel();
+    if (els.levelMeta) {
+      els.levelMeta.textContent = `${cur.id} · ${cur.name} · ${cur.diff}`;
+    }
+
     LEVELS.forEach((lv, i) => {
+      const cleared = lv.id <= bestLevel;
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = `lvl-btn is-${lv.diff}` + (i === levelIndex ? " active" : "");
-      btn.textContent = String(lv.id);
-      btn.title = `${lv.name} · ${lv.diff}`;
+      btn.className =
+        `lvl-btn is-${lv.diff}` +
+        (i === levelIndex ? " active" : "") +
+        (cleared ? " cleared" : "");
+      btn.title = `${lv.name} · ${lv.diff}${cleared ? " · cleared" : ""}`;
+      btn.innerHTML = `<span class="lvl-num">${lv.id}</span><span class="lvl-name">${lv.name}</span>`;
       btn.addEventListener("click", () => {
         levelIndex = i;
+        // Selecting a level cancels "Next level" auto-advance
+        if (overlayKind === "win" || overlayKind === "dead") overlayKind = "menu";
         renderLevelPicker();
         paintHud();
+        syncStartLabel();
       });
       els.picker.appendChild(btn);
     });
+    syncStartLabel();
   }
 
   function resetRun() {
@@ -582,42 +643,49 @@
   }
 
   function showOverlay(kind) {
+    overlayKind = kind || "menu";
     paused = true;
     els.overlay.classList.remove("hidden");
     els.resume.classList.add("hidden");
     els.retry.classList.add("hidden");
-    if (kind === "pause") {
+    els.retry.textContent = "Retry";
+
+    if (overlayKind === "pause") {
       els.title.textContent = "Paused";
-      els.text.textContent = "Hold to rise, release to fall. Watch for teeth, gates, and diamonds.";
+      els.text.textContent = "Hold = up · release = down. Or restart from the beginning.";
       els.resume.classList.remove("hidden");
-      els.start.textContent = "Restart";
-    } else if (kind === "dead") {
+    } else if (overlayKind === "dead") {
       const dist = Math.floor(worldX);
       els.title.textContent = "Crashed";
       els.text.textContent =
         mode === "endless"
-          ? `You made it ${dist}m. Instant retry — find the rhythm.`
-          : `Reached ${Math.floor(clamp((worldX / pathEnd()) * 100, 0, 99))}% of ${currentLevel().name}.`;
+          ? `You flew ${dist}m. Hit Retry to go again.`
+          : `You reached ${Math.floor(clamp((worldX / pathEnd()) * 100, 0, 99))}% of ${currentLevel().name}.`;
       els.retry.classList.remove("hidden");
-      els.start.textContent = mode === "classic" ? "Pick level" : "Play again";
-    } else if (kind === "win") {
-      els.title.textContent = "Cleared!";
-      els.text.textContent = `${currentLevel().name} complete. Next tunnel awaits.`;
+    } else if (overlayKind === "win") {
+      els.title.textContent = "Level cleared!";
+      const next = LEVELS[levelIndex + 1];
+      els.text.textContent = next
+        ? `${currentLevel().name} done — ${next.name} is unlocked.`
+        : `${currentLevel().name} done — you finished every level!`;
       els.retry.classList.remove("hidden");
       els.retry.textContent = "Replay";
-      els.start.textContent = levelIndex < LEVELS.length - 1 ? "Next level" : "Play again";
       try {
         window.HubConfetti?.burst?.();
       } catch {}
     } else {
       els.title.textContent = "Space Waves";
-      els.text.textContent =
-        "Hold to fly up, release to drop. Every level is a different tunnel — ridges, fangs, gates, doors, and more.";
-      els.start.textContent = "Play";
-      els.retry.textContent = "Retry";
+      els.text.textContent = "Hold to fly up. Let go to fall. Reach the green finish line.";
     }
+
+    // Sync mode buttons with current mode
+    document.querySelectorAll("[data-mode]").forEach((b) => {
+      b.classList.toggle("active", b.dataset.mode === mode);
+    });
+
     renderLevelPicker();
     paintHud();
+    syncStartLabel();
   }
 
   function hideOverlay() {
@@ -644,9 +712,7 @@
     won = true;
     running = false;
     persistHigh(pathEnd());
-    try {
-      localStorage.setItem(BEST_LEVEL_KEY, String(Math.max(levelIndex + 1, Number(localStorage.getItem(BEST_LEVEL_KEY) || 0))));
-    } catch {}
+    persistBestLevel(currentLevel().id);
     paintHud();
     try {
       window.HubSound?.play?.("success");
@@ -1121,27 +1187,30 @@
     btn.addEventListener("click", () => {
       mode = btn.dataset.mode || "classic";
       document.querySelectorAll("[data-mode]").forEach((b) => b.classList.toggle("active", b === btn));
+      if (overlayKind === "win" || overlayKind === "dead") overlayKind = "menu";
       renderLevelPicker();
       paintHud();
+      syncStartLabel();
     });
   });
 
   els.start.addEventListener("click", () => {
-    if (won && mode === "classic" && levelIndex < LEVELS.length - 1 && els.start.textContent.includes("Next")) {
+    // Win screen primary button advances one level (picking a tile cancels this)
+    if (overlayKind === "win" && mode === "classic" && levelIndex < LEVELS.length - 1) {
       levelIndex += 1;
     }
     startGame();
   });
   els.retry.addEventListener("click", () => startGame());
   els.resume.addEventListener("click", () => {
-    if (!running && !dead && !won) startGame();
-    else {
-      hideOverlay();
-      lastTs = performance.now();
-      if (!running && !dead && !won) running = true;
-      // if paused mid-run
-      if (!dead && !won) running = true;
+    if (dead || won || !running) {
+      startGame();
+      return;
     }
+    hideOverlay();
+    lastTs = performance.now();
+    running = true;
+    paused = false;
   });
   els.menu.addEventListener("click", () => {
     if (running && !dead && !won) showOverlay("pause");
@@ -1153,7 +1222,13 @@
 
   window.addEventListener("resize", resize);
 
-  // boot
+  // boot — start on first unlocked unfinished level
+  if (bestLevel > 0 && bestLevel < LEVELS.length) {
+    levelIndex = bestLevel; // next unlocked (0-based: cleared id N → index N)
+  } else if (bestLevel >= LEVELS.length) {
+    levelIndex = 0;
+  }
+
   resize();
   renderLevelPicker();
   paintHud();
