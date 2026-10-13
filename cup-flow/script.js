@@ -227,9 +227,11 @@
   let lastTs = 0;
   let drawing = false;
 
-  const GRAVITY = 1.55;
+  const GRAVITY = 1.15;
   const MAX_DROPS = 220;
-  const DROP_R = 0.0075;
+  const DROP_R = 0.007;
+  const LINE_HALF = 0.011; // collision thickness (matches chunky drawn stroke)
+  const MAX_SPEED = 1.35;
 
   function currentLevel() {
     return LEVELS[levelIndex] || LEVELS[0];
@@ -517,6 +519,75 @@
     return { d: Math.hypot(px - qx, py - qy), qx, qy, t, nx: -dy, ny: dx };
   }
 
+  function cross2(ax, ay, bx, by) {
+    return ax * by - ay * bx;
+  }
+
+  /** Fraction along AB where it hits CD, or null */
+  function segHitT(ax, ay, bx, by, cx, cy, dx, dy) {
+    const rx = bx - ax;
+    const ry = by - ay;
+    const sx = dx - cx;
+    const sy = dy - cy;
+    const den = cross2(rx, ry, sx, sy);
+    if (Math.abs(den) < 1e-10) return null;
+    const qpx = cx - ax;
+    const qpy = cy - ay;
+    const t = cross2(qpx, qpy, sx, sy) / den;
+    const u = cross2(qpx, qpy, rx, ry) / den;
+    if (t >= 0 && t <= 1 && u >= 0 && u <= 1) return t;
+    return null;
+  }
+
+  function clampSpeed(d) {
+    const sp = Math.hypot(d.vx, d.vy);
+    if (sp > MAX_SPEED) {
+      d.vx = (d.vx / sp) * MAX_SPEED;
+      d.vy = (d.vy / sp) * MAX_SPEED;
+    }
+  }
+
+  function resolveAgainstSeg(d, s, radius) {
+    const hit = distToSeg(d.x, d.y, s.a.x, s.a.y, s.b.x, s.b.y);
+    if (hit.d >= radius) return false;
+
+    let nx = hit.nx;
+    let ny = hit.ny;
+    const nlen = Math.hypot(nx, ny) || 1;
+    nx /= nlen;
+    ny /= nlen;
+
+    // Prefer the side the drop is already on (from center → drop)
+    const toDropX = d.x - hit.qx;
+    const toDropY = d.y - hit.qy;
+    if (toDropX * nx + toDropY * ny < 0) {
+      nx = -nx;
+      ny = -ny;
+    } else if (Math.abs(toDropX) + Math.abs(toDropY) < 1e-8) {
+      // Exactly on line — push against velocity
+      if (d.vx * nx + d.vy * ny > 0) {
+        nx = -nx;
+        ny = -ny;
+      }
+    }
+
+    // Push fully outside the thick stroke
+    d.x = hit.qx + nx * radius;
+    d.y = hit.qy + ny * radius;
+
+    // Kill penetrating normal speed; keep a bit of slide friction
+    const vn = d.vx * nx + d.vy * ny;
+    if (vn < 0) {
+      d.vx -= vn * nx;
+      d.vy -= vn * ny;
+    }
+    d.vx *= 0.985;
+    d.vy *= 0.985;
+    // Soft rest on near-flat surfaces
+    if (Math.abs(ny) > 0.55 && Math.abs(d.vy) < 0.08) d.vy = 0;
+    return true;
+  }
+
   function inCup(x, y) {
     const c = currentLevel().cup;
     return x > c.x && x < c.x + c.w && y > c.y && y < c.y + c.h;
@@ -526,46 +597,64 @@
     if (drops.length >= MAX_DROPS) return;
     const t = currentLevel().tap;
     drops.push({
-      x: t.x + (Math.random() - 0.5) * 0.012,
+      x: t.x + (Math.random() - 0.5) * 0.01,
       y: t.y + 0.02,
-      vx: (Math.random() - 0.5) * 0.02,
-      vy: 0.05 + Math.random() * 0.04,
+      vx: (Math.random() - 0.5) * 0.015,
+      vy: 0.04 + Math.random() * 0.03,
       alive: true
     });
   }
 
   function updatePhysics(dt) {
     const segs = allSegments();
-    const damp = Math.pow(0.22, dt);
+    const radius = DROP_R + LINE_HALF;
+    // Sub-steps stop fast drops from tunneling through thin strokes
+    const steps = Math.max(6, Math.ceil(dt / 0.005));
+    const h = dt / steps;
 
     for (const d of drops) {
       if (!d.alive) continue;
-      d.vy += GRAVITY * dt;
-      d.vx *= 1 - 0.15 * dt;
-      d.x += d.vx * dt;
-      d.y += d.vy * dt;
 
-      // Collide with drawn lines / blocks
-      for (const s of segs) {
-        const hit = distToSeg(d.x, d.y, s.a.x, s.a.y, s.b.x, s.b.y);
-        if (hit.d < DROP_R + 0.004) {
-          let nx = hit.nx;
-          let ny = hit.ny;
-          const nlen = Math.hypot(nx, ny) || 1;
-          nx /= nlen;
-          ny /= nlen;
-          // Keep normal pointing against velocity
-          if (d.vx * nx + d.vy * ny > 0) {
-            nx = -nx;
-            ny = -ny;
+      for (let step = 0; step < steps; step++) {
+        d.vy += GRAVITY * h;
+        d.vx *= 1 - 0.12 * h;
+        clampSpeed(d);
+
+        const ox = d.x;
+        const oy = d.y;
+        let nx = d.x + d.vx * h;
+        let ny = d.y + d.vy * h;
+
+        // Continuous collision: movement segment vs each wall segment
+        let bestT = 1;
+        let bestSeg = null;
+        for (let i = 0; i < segs.length; i++) {
+          const s = segs[i];
+          const t = segHitT(ox, oy, nx, ny, s.a.x, s.a.y, s.b.x, s.b.y);
+          if (t != null && t < bestT) {
+            bestT = t;
+            bestSeg = s;
           }
-          const vn = d.vx * nx + d.vy * ny;
-          d.vx -= (1.35) * vn * nx;
-          d.vy -= (1.35) * vn * ny;
-          d.vx *= 0.92;
-          d.vy *= 0.92;
-          d.x = hit.qx + nx * (DROP_R + 0.005);
-          d.y = hit.qy + ny * (DROP_R + 0.005);
+        }
+
+        if (bestSeg && bestT < 1) {
+          // Stop just before the crossing, then resolve thickness
+          const stop = Math.max(0, bestT * 0.92);
+          d.x = ox + (nx - ox) * stop;
+          d.y = oy + (ny - oy) * stop;
+          resolveAgainstSeg(d, bestSeg, radius);
+        } else {
+          d.x = nx;
+          d.y = ny;
+        }
+
+        // Penetration sweep (thick capsule) — run a couple times for corners
+        for (let pass = 0; pass < 3; pass++) {
+          let hitAny = false;
+          for (let i = 0; i < segs.length; i++) {
+            if (resolveAgainstSeg(d, segs[i], radius)) hitAny = true;
+          }
+          if (!hitAny) break;
         }
       }
 
@@ -579,7 +668,6 @@
       if (d.y > 1.05 || d.x < -0.05 || d.x > 1.05) {
         d.alive = false;
         spill += 1;
-        // Fail if we spilled a lot and cup is still low
         if (spill > currentLevel().need * 1.6 && filled < currentLevel().need * 0.45) {
           failSpill();
         }
@@ -587,7 +675,6 @@
     }
 
     drops = drops.filter((d) => d.alive);
-    void damp;
   }
 
   function update(dt) {
@@ -684,7 +771,8 @@
   function drawStroke(pts, w, h, color) {
     if (!pts || pts.length < 2) return;
     ctx.strokeStyle = color;
-    ctx.lineWidth = Math.max(5, h * 0.012);
+    // Visual width ≈ 2 * LINE_HALF in world space
+    ctx.lineWidth = Math.max(6, LINE_HALF * 2 * h);
     ctx.lineCap = "round";
     ctx.lineJoin = "round";
     ctx.beginPath();
@@ -767,11 +855,10 @@
     const p = toNorm(e.clientX, e.clientY);
     const last = draft.points[draft.points.length - 1];
     const dist = Math.hypot(p.x - last.x, p.y - last.y);
-    if (dist < 0.008) return;
+    if (dist < 0.005) return;
 
     const usedNow = inkUsed + strokeLength(draft.points) + dist;
     if (usedNow > inkBudget()) {
-      // End stroke at budget limit
       drawing = false;
       if (draft.points.length > 1) {
         strokes.push(draft);
@@ -782,7 +869,19 @@
       els.hint.textContent = "Out of ink — Undo / Clear or Pour";
       return;
     }
-    draft.points.push(p);
+    // Resample long jumps so collision segments stay short
+    if (dist > 0.03) {
+      const steps = Math.ceil(dist / 0.02);
+      for (let i = 1; i <= steps; i++) {
+        const t = i / steps;
+        draft.points.push({
+          x: last.x + (p.x - last.x) * t,
+          y: last.y + (p.y - last.y) * t
+        });
+      }
+    } else {
+      draft.points.push(p);
+    }
   }
 
   function onPointerUp() {

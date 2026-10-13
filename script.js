@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001fp": [
+    "Cup Flow: fix water tunneling through drawn lines (thicker collision + sub-steps)"
+  ],
   "20261001fo": [
     "Cup Flow: add hub game card so it shows in My Games"
   ],
