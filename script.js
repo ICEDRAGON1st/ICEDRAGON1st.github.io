@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001fi": [
+    "Space Waves: unique levels with teeth, gates, diamonds, shelves — fair but not trivial"
+  ],
   "20261001fh": [
     "Space Waves: slightly smaller player arrow"
   ],

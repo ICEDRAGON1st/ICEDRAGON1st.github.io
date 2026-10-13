@@ -23,104 +23,23 @@
     games: document.getElementById("games-btn")
   };
 
-  /** Handcrafted levels — gaps stay wide enough to clear with current controls. */
+  /**
+   * Each classic level uses a different layout + hazard style.
+   * Hazards: none | both | top | bot | gate | diamond
+   */
   const LEVELS = [
-    {
-      id: 1,
-      name: "Warmup",
-      diff: "easy",
-      speed: 260,
-      theme: "#5ce1ff",
-      path: easyPath(3000, 0.42)
-    },
-    {
-      id: 2,
-      name: "Ripple",
-      diff: "easy",
-      speed: 275,
-      theme: "#5dff9f",
-      path: sinePath(3400, 55, 0.0032, 0.4, 0)
-    },
-    {
-      id: 3,
-      name: "Needle",
-      diff: "easy",
-      speed: 285,
-      theme: "#7aefff",
-      path: squeezePath(3600, 0.42, 0.34, false)
-    },
-    {
-      id: 4,
-      name: "Zig",
-      diff: "medium",
-      speed: 295,
-      theme: "#ffd24a",
-      path: zigPath(3800, 70, 480, 0.36, 0)
-    },
-    {
-      id: 5,
-      name: "Thorns",
-      diff: "medium",
-      speed: 300,
-      theme: "#ffb347",
-      path: spikePath(4000, 0.36, 420, 28)
-    },
-    {
-      id: 6,
-      name: "Pulse",
-      diff: "medium",
-      speed: 310,
-      theme: "#ff9f6b",
-      path: sinePath(4200, 75, 0.0038, 0.34, 520)
-    },
-    {
-      id: 7,
-      name: "Crush",
-      diff: "hard",
-      speed: 320,
-      theme: "#ff7a96",
-      path: squeezePath(4400, 0.38, 0.3, true)
-    },
-    {
-      id: 8,
-      name: "Saw",
-      diff: "hard",
-      speed: 330,
-      theme: "#ff5a78",
-      path: zigPath(4600, 85, 400, 0.32, 640)
-    },
-    {
-      id: 9,
-      name: "Orbit",
-      diff: "hard",
-      speed: 340,
-      theme: "#ff4fd8",
-      path: spikePath(4800, 0.32, 380, 30)
-    },
-    {
-      id: 10,
-      name: "Nova",
-      diff: "extreme",
-      speed: 350,
-      theme: "#d46bff",
-      path: sinePath(5000, 90, 0.0042, 0.3, 400)
-    },
-    {
-      id: 11,
-      name: "Void",
-      diff: "extreme",
-      speed: 360,
-      theme: "#a78bfa",
-      path: zigPath(5200, 95, 360, 0.3, 520)
-    },
-    {
-      id: 12,
-      name: "Singularity",
-      diff: "extreme",
-      speed: 370,
-      theme: "#ff4fd8",
-      path: spikePath(5400, 0.3, 340, 32)
-    }
+    { id: 1, name: "Warmup", diff: "easy", speed: 255, theme: "#5ce1ff", path: buildWarmup() },
+    { id: 2, name: "Steps", diff: "easy", speed: 270, theme: "#5dff9f", path: buildSteps() },
+    { id: 3, name: "Breath", diff: "easy", speed: 280, theme: "#7aefff", path: buildBreath() },
+    { id: 4, name: "Teeth", diff: "medium", speed: 290, theme: "#ffd24a", path: buildTeeth() },
+    { id: 5, name: "Gates", diff: "medium", speed: 300, theme: "#ffb347", path: buildGates() },
+    { id: 6, name: "Slalom", diff: "medium", speed: 310, theme: "#ff9f6b", path: buildSlalom() },
+    { id: 7, name: "Saw", diff: "hard", speed: 320, theme: "#ff7a96", path: buildSaw() },
+    { id: 8, name: "Diamonds", diff: "hard", speed: 330, theme: "#ff5a78", path: buildDiamonds() },
+    { id: 9, name: "Shelf", diff: "hard", speed: 335, theme: "#ff4fd8", path: buildShelf() },
+    { id: 10, name: "Weave", diff: "extreme", speed: 345, theme: "#d46bff", path: buildWeave() },
+    { id: 11, name: "Gauntlet", diff: "extreme", speed: 355, theme: "#a78bfa", path: buildGauntlet() },
+    { id: 12, name: "Singularity", diff: "extreme", speed: 365, theme: "#ff4fd8", path: buildSingularity() }
   ];
 
   function lerp(a, b, t) {
@@ -131,80 +50,12 @@
     return Math.max(a, Math.min(b, n));
   }
 
-  function easyPath(len, gap) {
-    const pts = [];
-    for (let x = 0; x <= len; x += 40) {
-      const mid = 0.5 + Math.sin(x * 0.0022) * 0.08;
-      pts.push({ x, top: mid - gap / 2, bot: mid + gap / 2, spike: false });
-    }
-    return finalizePath(pts);
-  }
-
-  function sinePath(len, ampPx, freq, gap, spikeEvery) {
-    const pts = [];
-    const every = Number(spikeEvery) || 0;
-    for (let x = 0; x <= len; x += 28) {
-      const mid = 0.5 + (Math.sin(x * freq) * ampPx) / 540;
-      pts.push({
-        x,
-        top: mid - gap / 2,
-        bot: mid + gap / 2,
-        spike: every > 0 && x > 500 && x % every < 36
-      });
-    }
-    return finalizePath(pts);
-  }
-
-  function zigPath(len, ampPx, period, gap, spikeEvery) {
-    const pts = [];
-    const every = Number(spikeEvery) || 0;
-    for (let x = 0; x <= len; x += 24) {
-      const t = (x % period) / period;
-      const tri = t < 0.5 ? t * 2 : 2 - t * 2;
-      const mid = 0.5 + ((tri - 0.5) * 2 * ampPx) / 540;
-      pts.push({
-        x,
-        top: mid - gap / 2,
-        bot: mid + gap / 2,
-        spike: every > 0 && x > 600 && x % every < 32
-      });
-    }
-    return finalizePath(pts);
-  }
-
-  function squeezePath(len, openGap, tightGap, withSpikes) {
-    const pts = [];
-    for (let x = 0; x <= len; x += 30) {
-      const wave = (Math.sin(x * 0.0028) + 1) / 2;
-      const gap = lerp(openGap, tightGap, wave);
-      const mid = 0.5 + Math.sin(x * 0.0015) * 0.08;
-      pts.push({
-        x,
-        top: mid - gap / 2,
-        bot: mid + gap / 2,
-        spike: !!withSpikes && x > 700 && wave > 0.82 && x % 280 < 28
-      });
-    }
-    return finalizePath(pts);
-  }
-
-  function spikePath(len, gap, spacing, spikeWidth) {
-    const pts = [];
-    const width = Number(spikeWidth) || 28;
-    for (let x = 0; x <= len; x += 22) {
-      const mid = 0.5 + Math.sin(x * 0.0024) * 0.1 + Math.sin(x * 0.0009) * 0.04;
-      pts.push({
-        x,
-        top: mid - gap / 2,
-        bot: mid + gap / 2,
-        spike: x > 550 && x % spacing < width
-      });
-    }
-    return finalizePath(pts);
+  function corridor(mid, gap) {
+    return { top: mid - gap / 2, bot: mid + gap / 2 };
   }
 
   function finalizePath(pts) {
-    const MIN_GAP = 0.28;
+    const MIN_GAP = 0.3;
     return pts.map((p) => {
       let top = p.top;
       let bot = p.bot;
@@ -215,14 +66,233 @@
         top = mid - gap / 2;
         bot = mid + gap / 2;
       }
-      top = clamp(top, 0.05, 0.62);
-      bot = clamp(bot, top + MIN_GAP, 0.95);
-      return { x: p.x, top, bot, spike: !!p.spike };
+      top = clamp(top, 0.06, 0.6);
+      bot = clamp(bot, top + MIN_GAP, 0.94);
+      return {
+        x: p.x,
+        top,
+        bot,
+        haz: p.haz || null,
+        gateY: p.gateY,
+        gateH: p.gateH,
+        diaY: p.diaY,
+        diaS: p.diaS
+      };
+    });
+  }
+
+  function fillPath(len, step, fn) {
+    const pts = [];
+    for (let x = 0; x <= len; x += step) pts.push(fn(x));
+    return finalizePath(pts);
+  }
+
+  /** 1 — gentle open tunnel */
+  function buildWarmup() {
+    return fillPath(2800, 36, (x) => {
+      const mid = 0.5 + Math.sin(x * 0.002) * 0.06;
+      const c = corridor(mid, 0.44);
+      return { x, ...c, haz: null };
+    });
+  }
+
+  /** 2 — terrace / step midlines (unique feel) */
+  function buildSteps() {
+    return fillPath(3200, 28, (x) => {
+      const step = Math.floor(x / 380);
+      const mid = 0.5 + ((step % 2 === 0 ? -1 : 1) * 0.1);
+      const c = corridor(mid, 0.4);
+      return { x, ...c, haz: null };
+    });
+  }
+
+  /** 3 — breathing / squeezing corridor, no spikes */
+  function buildBreath() {
+    return fillPath(3400, 28, (x) => {
+      const wave = (Math.sin(x * 0.0026) + 1) / 2;
+      const gap = lerp(0.44, 0.33, wave);
+      const mid = 0.5 + Math.sin(x * 0.0014) * 0.07;
+      const c = corridor(mid, gap);
+      return { x, ...c, haz: null };
+    });
+  }
+
+  /** 4 — alternating top/bottom teeth only */
+  function buildTeeth() {
+    return fillPath(3600, 22, (x) => {
+      const mid = 0.5 + Math.sin(x * 0.002) * 0.08;
+      const c = corridor(mid, 0.38);
+      let haz = null;
+      if (x > 480 && x % 340 < 40) haz = x % 680 < 340 ? "top" : "bot";
+      return { x, ...c, haz };
+    });
+  }
+
+  /** 5 — floating gate bars (weave above/below) */
+  function buildGates() {
+    return fillPath(3800, 24, (x) => {
+      const mid = 0.5 + Math.sin(x * 0.0016) * 0.05;
+      const c = corridor(mid, 0.4);
+      let haz = null;
+      let gateY;
+      let gateH = 0.08;
+      if (x > 520 && x % 420 < 46) {
+        haz = "gate";
+        const n = Math.floor(x / 420) % 2;
+        gateY = n === 0 ? mid - 0.09 : mid + 0.09;
+      }
+      return { x, ...c, haz, gateY, gateH };
+    });
+  }
+
+  /** 6 — slalom: corridor shifts hard L/R with spaced gates */
+  function buildSlalom() {
+    return fillPath(4000, 24, (x) => {
+      const phase = Math.sin(x * 0.0042);
+      const mid = 0.5 + phase * 0.14;
+      const c = corridor(mid, 0.36);
+      let haz = null;
+      let gateY;
+      let gateH = 0.075;
+      if (x > 600 && x % 500 < 42) {
+        haz = "gate";
+        gateY = mid - phase * 0.06;
+      }
+      return { x, ...c, haz, gateY, gateH };
+    });
+  }
+
+  /** 7 — dense alternating teeth on a mild zig */
+  function buildSaw() {
+    return fillPath(4200, 22, (x) => {
+      const t = (x % 360) / 360;
+      const tri = t < 0.5 ? t * 2 : 2 - t * 2;
+      const mid = 0.5 + (tri - 0.5) * 0.22;
+      const c = corridor(mid, 0.34);
+      let haz = null;
+      if (x > 500 && x % 220 < 34) haz = Math.floor(x / 220) % 2 === 0 ? "top" : "bot";
+      return { x, ...c, haz };
+    });
+  }
+
+  /** 8 — diamond blocks floating in the tunnel */
+  function buildDiamonds() {
+    return fillPath(4400, 24, (x) => {
+      const mid = 0.5 + Math.sin(x * 0.0022) * 0.07;
+      const c = corridor(mid, 0.38);
+      let haz = null;
+      let diaY;
+      let diaS = 0.055;
+      if (x > 560 && x % 460 < 48) {
+        haz = "diamond";
+        diaY = mid + (Math.floor(x / 460) % 2 === 0 ? -0.07 : 0.07);
+      }
+      return { x, ...c, haz, diaY, diaS };
+    });
+  }
+
+  /** 9 — shelf: corridor jumps to high/low terraces with edge teeth */
+  function buildShelf() {
+    return fillPath(4600, 24, (x) => {
+      const base = 0.5 + Math.sin(x * 0.0012) * 0.04;
+      let mid = base;
+      let gap = 0.36;
+      let haz = null;
+      if (x > 400) {
+        const local = (x - 400) % 520;
+        if (local < 180) {
+          mid = base + 0.09;
+          gap = 0.34;
+          if (local < 36) haz = "top";
+        } else if (local > 260 && local < 440) {
+          mid = base - 0.09;
+          gap = 0.34;
+          if (local < 300) haz = "bot";
+        }
+      }
+      const c = corridor(mid, gap);
+      return { x, ...c, haz };
+    });
+  }
+
+  /** 10 — weave: gates + gentle sine */
+  function buildWeave() {
+    return fillPath(4800, 22, (x) => {
+      const mid = 0.5 + Math.sin(x * 0.0035) * 0.11;
+      const c = corridor(mid, 0.33);
+      let haz = null;
+      let gateY;
+      let gateH = 0.07;
+      if (x > 580 && x % 380 < 40) {
+        haz = "gate";
+        gateY = mid + (Math.floor(x / 380) % 2 === 0 ? 0.08 : -0.08);
+      }
+      return { x, ...c, haz, gateY, gateH };
+    });
+  }
+
+  /** 11 — gauntlet: teeth then diamond then gate repeating */
+  function buildGauntlet() {
+    return fillPath(5000, 22, (x) => {
+      const mid = 0.5 + Math.sin(x * 0.002) * 0.08;
+      const c = corridor(mid, 0.32);
+      let haz = null;
+      let gateY;
+      let gateH = 0.07;
+      let diaY;
+      let diaS = 0.05;
+      if (x > 620) {
+        const slot = Math.floor(x / 300) % 3;
+        const local = x % 300;
+        if (local < 36) {
+          if (slot === 0) haz = Math.floor(x / 900) % 2 === 0 ? "top" : "bot";
+          if (slot === 1) {
+            haz = "diamond";
+            diaY = mid + (Math.floor(x / 300) % 2 === 0 ? -0.06 : 0.06);
+          }
+          if (slot === 2) {
+            haz = "gate";
+            gateY = mid - (Math.floor(x / 300) % 2 === 0 ? 0.07 : -0.07);
+          }
+        }
+      }
+      return { x, ...c, haz, gateY, gateH, diaY, diaS };
+    });
+  }
+
+  /** 12 — singularity: tighter mix, still clears MIN_GAP */
+  function buildSingularity() {
+    return fillPath(5200, 20, (x) => {
+      const mid = 0.5 + Math.sin(x * 0.0038) * 0.1 + Math.sin(x * 0.0011) * 0.04;
+      const gap = lerp(0.36, 0.31, (Math.sin(x * 0.002) + 1) / 2);
+      const c = corridor(mid, gap);
+      let haz = null;
+      let gateY;
+      let gateH = 0.065;
+      let diaY;
+      let diaS = 0.048;
+      if (x > 700) {
+        const local = x % 260;
+        if (local < 32) {
+          const kind = Math.floor(x / 260) % 4;
+          if (kind === 0) haz = "top";
+          else if (kind === 1) haz = "bot";
+          else if (kind === 2) {
+            haz = "diamond";
+            diaY = mid;
+          } else {
+            haz = "gate";
+            gateY = mid + (Math.floor(x / 520) % 2 === 0 ? 0.07 : -0.07);
+          }
+        }
+      }
+      return { x, ...c, haz, gateY, gateH, diaY, diaS };
     });
   }
 
   function samplePath(path, x) {
-    if (!path.length) return { top: 0.2, bot: 0.8, spike: false };
+    const empty = { top: 0.2, bot: 0.8, haz: null };
+    if (!path.length) return empty;
     if (x <= path[0].x) return path[0];
     if (x >= path[path.length - 1].x) return path[path.length - 1];
     let lo = 0;
@@ -235,10 +305,15 @@
     const a = path[lo];
     const b = path[hi];
     const t = (x - a.x) / Math.max(1, b.x - a.x);
+    const near = t < 0.5 ? a : b;
     return {
       top: lerp(a.top, b.top, t),
       bot: lerp(a.bot, b.bot, t),
-      spike: t < 0.5 ? a.spike : b.spike
+      haz: near.haz || null,
+      gateY: near.gateY,
+      gateH: near.gateH,
+      diaY: near.diaY,
+      diaS: near.diaS
     };
   }
 
@@ -373,22 +448,26 @@
   }
 
   function extendEndless(untilX) {
+    const builders = [
+      buildBreath,
+      buildTeeth,
+      buildGates,
+      buildSlalom,
+      buildSaw,
+      buildDiamonds,
+      buildShelf,
+      buildWeave
+    ];
     while (endlessGenX < untilX) {
       const start = endlessGenX;
-      const len = 900 + Math.random() * 700;
-      const gap = clamp(0.4 - endlessGenX / 40000, 0.3, 0.4);
-      const amp = 50 + Math.min(70, endlessGenX / 100);
-      const kind = Math.floor(Math.random() * 3);
-      let chunk;
-      if (kind === 0) chunk = sinePath(len, amp, 0.003 + Math.random() * 0.002, gap, 600);
-      else if (kind === 1) chunk = zigPath(len, amp, 360 + Math.random() * 160, gap, 700);
-      else chunk = spikePath(len, gap, 360 + Math.random() * 140, 28);
+      const builder = builders[Math.floor(Math.random() * builders.length)];
+      const chunk = builder();
+      const len = chunk.length ? chunk[chunk.length - 1].x : 1200;
       chunk.forEach((p) => {
         endlessPath.push({
+          ...p,
           x: start + p.x,
-          top: p.top,
-          bot: p.bot,
-          spike: p.spike && start > 400
+          haz: start > 350 ? p.haz : null
         });
       });
       endlessGenX = start + len;
@@ -424,7 +503,7 @@
     els.retry.classList.add("hidden");
     if (kind === "pause") {
       els.title.textContent = "Paused";
-      els.text.textContent = "Hold to rise, release to fall. Neon walls and spikes will end the run.";
+      els.text.textContent = "Hold to rise, release to fall. Watch for teeth, gates, and diamonds.";
       els.resume.classList.remove("hidden");
       els.start.textContent = "Restart";
     } else if (kind === "dead") {
@@ -448,7 +527,7 @@
     } else {
       els.title.textContent = "Space Waves";
       els.text.textContent =
-        "Hold to fly up, release to drop. Guide the arrow through neon tunnels — don’t clip the walls or spikes.";
+        "Hold to fly up, release to drop. Each level has unique hazards — teeth, gates, diamonds, shelves.";
       els.start.textContent = "Play";
       els.retry.textContent = "Retry";
     }
@@ -500,24 +579,34 @@
   }
 
   function collide() {
-    const w = canvas.clientWidth;
     const h = canvas.clientHeight;
-    const worldShipX = worldX;
-    const sample = samplePath(activePath(), worldShipX);
+    const sample = samplePath(activePath(), worldX);
     const topY = sample.top * h;
     const botY = sample.bot * h;
     const box = shipHitbox();
     if (box.y - box.r < topY || box.y + box.r > botY) return true;
 
-    if (sample.spike) {
-      const gap = botY - topY;
-      // Short spikes — leave a clear middle lane
-      const spikeH = Math.min(gap * 0.28, h * 0.07);
-      const topTip = topY + spikeH;
-      const botTip = botY - spikeH;
-      const hw = 10;
-      if (pointInTri(box.x, box.y, box.x - hw, topY, box.x + hw, topY, box.x, topTip)) return true;
-      if (pointInTri(box.x, box.y, box.x - hw, botY, box.x + hw, botY, box.x, botTip)) return true;
+    const gap = botY - topY;
+    const spikeH = Math.min(gap * 0.3, h * 0.075);
+    const hw = 11;
+
+    if (sample.haz === "top" || sample.haz === "both") {
+      const tip = topY + spikeH;
+      if (pointInTri(box.x, box.y, box.x - hw, topY, box.x + hw, topY, box.x, tip)) return true;
+    }
+    if (sample.haz === "bot" || sample.haz === "both") {
+      const tip = botY - spikeH;
+      if (pointInTri(box.x, box.y, box.x - hw, botY, box.x + hw, botY, box.x, tip)) return true;
+    }
+    if (sample.haz === "gate" && sample.gateY != null) {
+      const gy = sample.gateY * h;
+      const gh = Math.max(10, (sample.gateH || 0.08) * h);
+      if (box.y + box.r > gy - gh / 2 && box.y - box.r < gy + gh / 2) return true;
+    }
+    if (sample.haz === "diamond" && sample.diaY != null) {
+      const dy = sample.diaY * h;
+      const ds = Math.max(10, (sample.diaS || 0.05) * h);
+      if (Math.abs(box.y - dy) < box.r + ds * 0.85) return true;
     }
     return false;
   }
@@ -659,28 +748,61 @@
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // spikes
-    ctx.fillStyle = theme;
-    for (let x = Math.floor(viewLeft / 22) * 22; x <= viewRight; x += 22) {
+    // hazards
+    for (let x = Math.floor(viewLeft / 20) * 20; x <= viewRight; x += 20) {
       const s = samplePath(path, x);
-      if (!s.spike) continue;
+      if (!s.haz) continue;
       const sx = x - viewLeft;
       const topY = s.top * h;
       const botY = s.bot * h;
       const gap = botY - topY;
-      const spikeH = Math.min(gap * 0.28, h * 0.07);
-      ctx.beginPath();
-      ctx.moveTo(sx - 10, topY);
-      ctx.lineTo(sx + 10, topY);
-      ctx.lineTo(sx, topY + spikeH);
-      ctx.closePath();
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(sx - 10, botY);
-      ctx.lineTo(sx + 10, botY);
-      ctx.lineTo(sx, botY - spikeH);
-      ctx.closePath();
-      ctx.fill();
+      const spikeH = Math.min(gap * 0.3, h * 0.075);
+
+      if (s.haz === "top" || s.haz === "both") {
+        ctx.fillStyle = theme;
+        ctx.beginPath();
+        ctx.moveTo(sx - 11, topY);
+        ctx.lineTo(sx + 11, topY);
+        ctx.lineTo(sx, topY + spikeH);
+        ctx.closePath();
+        ctx.fill();
+      }
+      if (s.haz === "bot" || s.haz === "both") {
+        ctx.fillStyle = theme;
+        ctx.beginPath();
+        ctx.moveTo(sx - 11, botY);
+        ctx.lineTo(sx + 11, botY);
+        ctx.lineTo(sx, botY - spikeH);
+        ctx.closePath();
+        ctx.fill();
+      }
+      if (s.haz === "gate" && s.gateY != null) {
+        const gy = s.gateY * h;
+        const gh = Math.max(10, (s.gateH || 0.08) * h);
+        const gw = Math.max(12, h * 0.032);
+        ctx.fillStyle = theme;
+        ctx.shadowColor = theme;
+        ctx.shadowBlur = 10;
+        ctx.fillRect(sx - gw, gy - gh / 2, gw * 2, gh);
+        ctx.shadowBlur = 0;
+        ctx.fillStyle = "rgba(5,8,20,0.55)";
+        ctx.fillRect(sx - gw + 3, gy - gh / 2 + 2, gw * 2 - 6, gh - 4);
+      }
+      if (s.haz === "diamond" && s.diaY != null) {
+        const dy = s.diaY * h;
+        const ds = Math.max(10, (s.diaS || 0.05) * h);
+        ctx.fillStyle = theme;
+        ctx.shadowColor = theme;
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.moveTo(sx, dy - ds);
+        ctx.lineTo(sx + ds, dy);
+        ctx.lineTo(sx, dy + ds);
+        ctx.lineTo(sx - ds, dy);
+        ctx.closePath();
+        ctx.fill();
+        ctx.shadowBlur = 0;
+      }
     }
 
     // finish line
