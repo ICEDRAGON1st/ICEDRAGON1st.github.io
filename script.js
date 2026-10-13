@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001fs": [
+    "Cup Flow: faster water with real momentum — crest small uphills without launching"
+  ],
   "20261001fr": [
     "Cup Flow: calm water physics — no more launching off corners"
   ],

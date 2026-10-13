@@ -227,11 +227,13 @@
   let lastTs = 0;
   let drawing = false;
 
-  const GRAVITY = 1.05;
+  const GRAVITY = 1.55;
   const MAX_DROPS = 220;
   const DROP_R = 0.007;
   const LINE_HALF = 0.011; // collision thickness (matches chunky drawn stroke)
-  const MAX_SPEED = 0.85;
+  const MAX_SPEED = 1.75; // fast enough to crest small uphill bits
+  const AIR_DRAG = 0.12; // per-second horizontal drag (gentle)
+  const SURFACE_DRAG = 0.35; // per-second along strokes (keeps momentum)
 
   function currentLevel() {
     return LEVELS[levelIndex] || LEVELS[0];
@@ -543,12 +545,13 @@
     }
   }
 
+  /** @returns {{nx,ny}|null} contact normal if touching */
   function resolveAgainstSeg(d, s, radius) {
     const hit = distToSeg(d.x, d.y, s.a.x, s.a.y, s.b.x, s.b.y);
-    // Shrink collision near endpoints so corners don't form sticky pockets
-    const endFade = hit.t < 0.12 || hit.t > 0.88 ? 0.65 : 1;
+    // Mild shrink near endpoints so corners don’t pocket — keep enough thickness
+    const endFade = hit.t < 0.1 || hit.t > 0.9 ? 0.78 : 1;
     const rad = radius * endFade;
-    if (hit.d >= rad) return false;
+    if (hit.d >= rad) return null;
 
     let nx = hit.nx;
     let ny = hit.ny;
@@ -571,18 +574,20 @@
     d.x = hit.qx + nx * rad;
     d.y = hit.qy + ny * rad;
 
+    // Kill only penetrating normal — keep full tangential momentum
+    // (downhill builds speed via gravity; uphill bleeds it naturally)
     const vn = d.vx * nx + d.vy * ny;
     if (vn < 0) {
       d.vx -= vn * nx;
       d.vy -= vn * ny;
     }
-    // Surface friction — slide, don’t skate forever
-    d.vx *= 0.97;
-    d.vy *= 0.97;
-    // Rest on clear floors (y grows downward → floor normal points up = negative y)
-    if (ny < -0.78 && d.vy > -0.02 && d.vy < 0.15) d.vy = 0;
+
+    // Soft settle only on nearly flat floors when almost stopped
+    const spd = Math.hypot(d.vx, d.vy);
+    if (ny < -0.85 && spd < 0.05 && d.vy > -0.02) d.vy = 0;
+
     clampSpeed(d);
-    return true;
+    return { nx, ny };
   }
 
   /** Solid box collision — prefers top face near corners so drops can fall off */
@@ -599,7 +604,6 @@
     const ob = bot - d.y;
     let m = Math.min(ol, orr, ot, ob);
 
-    // Corner bias: prefer top face so drops aren’t clamped to the side wall
     const nearTopCorner = ot < r * 1.8 && (ol < r * 1.8 || orr < r * 1.8);
     if (nearTopCorner && ot <= Math.min(ol, orr) + r * 0.35) {
       m = ot;
@@ -607,25 +611,24 @@
 
     if (m === ot) {
       d.y = top;
-      if (d.vy > 0) d.vy = 0;
-      // Past the real ledge: move position off the box (no velocity yeet)
+      if (d.vy > 0) d.vy *= 0.15; // keep a little horizontal carry; kill slam
+      // Past the real ledge: slip off by position only (no launch)
       if (d.x > b.x + b.w) d.x = b.x + b.w + r + 0.001;
       else if (d.x < b.x) d.x = b.x - r - 0.001;
     } else if (m === ob) {
       d.y = bot;
       if (d.vy < 0) d.vy = 0;
     } else if (m === ol) {
-      // Above the top lip → sit on top instead of sticking to the side
       if (d.y < b.y + r * 0.85) {
         d.y = top;
-        if (d.vy > 0) d.vy = 0;
+        if (d.vy > 0) d.vy *= 0.15;
       } else {
         d.x = left;
         if (d.vx > 0) d.vx = 0;
       }
     } else if (d.y < b.y + r * 0.85) {
       d.y = top;
-      if (d.vy > 0) d.vy = 0;
+      if (d.vy > 0) d.vy *= 0.15;
     } else {
       d.x = right;
       if (d.vx < 0) d.vx = 0;
@@ -658,19 +661,21 @@
     const radius = DROP_R + LINE_HALF;
     const steps = Math.max(6, Math.ceil(dt / 0.005));
     const h = dt / steps;
+    const airF = Math.pow(1 - AIR_DRAG, dt);
+    const surfF = Math.pow(1 - SURFACE_DRAG, dt);
 
     for (const d of drops) {
       if (!d.alive) continue;
+      let touchedStroke = false;
 
       for (let step = 0; step < steps; step++) {
         d.vy += GRAVITY * h;
-        d.vx *= 1 - 0.18 * h;
         clampSpeed(d);
 
         const ox = d.x;
         const oy = d.y;
-        let nx = d.x + d.vx * h;
-        let ny = d.y + d.vy * h;
+        const nx = d.x + d.vx * h;
+        const ny = d.y + d.vy * h;
 
         let bestT = 1;
         let bestSeg = null;
@@ -687,7 +692,7 @@
           const stop = Math.max(0, bestT * 0.9);
           d.x = ox + (nx - ox) * stop;
           d.y = oy + (ny - oy) * stop;
-          resolveAgainstSeg(d, bestSeg, radius);
+          if (resolveAgainstSeg(d, bestSeg, radius)) touchedStroke = true;
         } else {
           d.x = nx;
           d.y = ny;
@@ -699,19 +704,31 @@
             if (resolveAABB(d, boxes[i], DROP_R + 0.002)) hitAny = true;
           }
           for (let i = 0; i < segs.length; i++) {
-            if (resolveAgainstSeg(d, segs[i], radius)) hitAny = true;
+            if (resolveAgainstSeg(d, segs[i], radius)) {
+              hitAny = true;
+              touchedStroke = true;
+            }
           }
           if (!hitAny) break;
         }
       }
 
+      // Drag once per frame (not per sub-step) so downhill speed can carry uphill
+      if (touchedStroke) {
+        d.vx *= surfF;
+        d.vy *= surfF;
+      } else {
+        d.vx *= airF;
+      }
+      clampSpeed(d);
+
       // Gentle unstick — tiny push, never a launch
       const speed = Math.hypot(d.vx, d.vy);
-      if (speed < 0.025) {
+      if (speed < 0.03) {
         d.stuck = (d.stuck || 0) + dt;
-        if (d.stuck > 0.35) {
-          d.vy = Math.max(d.vy, 0.08);
-          d.vx += (d.x > 0.5 ? 0.04 : -0.04) * (Math.random() > 0.5 ? 1 : -0.5);
+        if (d.stuck > 0.4) {
+          d.vy = Math.max(d.vy, 0.06);
+          d.vx += (Math.random() - 0.5) * 0.05;
           d.stuck = 0;
           clampSpeed(d);
         }
