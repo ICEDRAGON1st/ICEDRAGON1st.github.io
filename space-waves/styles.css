@@ -211,6 +211,7 @@ body {
 .lvl-btn.is-easy { border-color: rgba(93, 255, 159, 0.55); color: var(--ok); }
 .lvl-btn.is-medium { border-color: rgba(255, 210, 74, 0.55); color: #ffd24a; }
 .lvl-btn.is-hard { border-color: rgba(255, 90, 120, 0.55); color: #ff7a96; }
+.lvl-btn.is-expert { border-color: rgba(255, 79, 216, 0.65); color: var(--hot); }
 .lvl-btn.is-extreme { border-color: rgba(255, 79, 216, 0.65); color: var(--hot); }
 .lvl-btn.active {
   background: rgba(92, 225, 255, 0.18);

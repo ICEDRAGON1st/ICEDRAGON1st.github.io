@@ -24,22 +24,23 @@
   };
 
   /**
-   * Each classic level uses a different layout + hazard style.
-   * Hazards: none | both | top | bot | gate | diamond
+   * Each classic level has a unique corridor shape + hazard grammar.
+   * Early = one idea. Mid = tighter. Late = dense but fair (MIN_GAP).
+   * Hazards: none | top | bot | both | gate | diamond | door
    */
   const LEVELS = [
-    { id: 1, name: "Warmup", diff: "easy", speed: 255, theme: "#5ce1ff", path: buildWarmup() },
-    { id: 2, name: "Steps", diff: "easy", speed: 270, theme: "#5dff9f", path: buildSteps() },
-    { id: 3, name: "Breath", diff: "easy", speed: 280, theme: "#7aefff", path: buildBreath() },
-    { id: 4, name: "Teeth", diff: "medium", speed: 290, theme: "#ffd24a", path: buildTeeth() },
-    { id: 5, name: "Gates", diff: "medium", speed: 300, theme: "#ffb347", path: buildGates() },
-    { id: 6, name: "Slalom", diff: "medium", speed: 310, theme: "#ff9f6b", path: buildSlalom() },
-    { id: 7, name: "Saw", diff: "hard", speed: 320, theme: "#ff7a96", path: buildSaw() },
-    { id: 8, name: "Diamonds", diff: "hard", speed: 330, theme: "#ff5a78", path: buildDiamonds() },
-    { id: 9, name: "Shelf", diff: "hard", speed: 335, theme: "#ff4fd8", path: buildShelf() },
-    { id: 10, name: "Weave", diff: "extreme", speed: 345, theme: "#d46bff", path: buildWeave() },
-    { id: 11, name: "Gauntlet", diff: "extreme", speed: 355, theme: "#a78bfa", path: buildGauntlet() },
-    { id: 12, name: "Singularity", diff: "extreme", speed: 365, theme: "#ff4fd8", path: buildSingularity() }
+    { id: 1, name: "Glide", diff: "easy", speed: 250, theme: "#6ec8ff", style: "smooth", path: null },
+    { id: 2, name: "Ridge", diff: "easy", speed: 265, theme: "#7dffb2", style: "ridge", path: null },
+    { id: 3, name: "Bite", diff: "easy", speed: 275, theme: "#ff9a5c", style: "teeth", path: null },
+    { id: 4, name: "Needle", diff: "medium", speed: 285, theme: "#ffd56e", style: "needle", path: null },
+    { id: 5, name: "Slalom", diff: "medium", speed: 295, theme: "#b48cff", style: "slalom", path: null },
+    { id: 6, name: "Shelf", diff: "medium", speed: 305, theme: "#5ce1ff", style: "shelf", path: null },
+    { id: 7, name: "Gate", diff: "hard", speed: 315, theme: "#ff6b9d", style: "gate", path: null },
+    { id: 8, name: "Prism", diff: "hard", speed: 325, theme: "#9dff6e", style: "prism", path: null },
+    { id: 9, name: "Saw", diff: "hard", speed: 335, theme: "#ff5c5c", style: "saw", path: null },
+    { id: 10, name: "Door", diff: "expert", speed: 345, theme: "#c9a0ff", style: "door", path: null },
+    { id: 11, name: "Weave", diff: "expert", speed: 355, theme: "#5cffd0", style: "weave", path: null },
+    { id: 12, name: "Core", diff: "expert", speed: 365, theme: "#ff8c42", style: "core", path: null }
   ];
 
   function lerp(a, b, t) {
@@ -76,7 +77,9 @@
         gateY: p.gateY,
         gateH: p.gateH,
         diaY: p.diaY,
-        diaS: p.diaS
+        diaS: p.diaS,
+        doorY: p.doorY,
+        doorH: p.doorH
       };
     });
   }
@@ -87,208 +90,279 @@
     return finalizePath(pts);
   }
 
-  /** 1 — gentle open tunnel */
-  function buildWarmup() {
-    return fillPath(2800, 36, (x) => {
-      const mid = 0.5 + Math.sin(x * 0.002) * 0.06;
-      const c = corridor(mid, 0.44);
+  /** 1 Glide — wide soft S, no hazards */
+  function buildGlide() {
+    return fillPath(2600, 36, (x) => {
+      const mid = 0.5 + Math.sin(x * 0.0018) * 0.07;
+      const c = corridor(mid, 0.46);
       return { x, ...c, haz: null };
     });
   }
 
-  /** 2 — terrace / step midlines (unique feel) */
-  function buildSteps() {
-    return fillPath(3200, 28, (x) => {
-      const step = Math.floor(x / 380);
-      const mid = 0.5 + ((step % 2 === 0 ? -1 : 1) * 0.1);
-      const c = corridor(mid, 0.4);
-      return { x, ...c, haz: null };
-    });
-  }
-
-  /** 3 — breathing / squeezing corridor, no spikes */
-  function buildBreath() {
-    return fillPath(3400, 28, (x) => {
-      const wave = (Math.sin(x * 0.0026) + 1) / 2;
-      const gap = lerp(0.44, 0.33, wave);
-      const mid = 0.5 + Math.sin(x * 0.0014) * 0.07;
+  /** 2 Ridge — flat floor, roof dips + top spikes only */
+  function buildRidge() {
+    return fillPath(3000, 28, (x) => {
+      const dip = x > 400 && x < 2600 ? Math.max(0, Math.sin((x - 400) * 0.008)) * 0.1 : 0;
+      const mid = 0.52 - dip * 0.4;
+      const gap = 0.42 - dip * 0.5;
       const c = corridor(mid, gap);
-      return { x, ...c, haz: null };
-    });
-  }
-
-  /** 4 — alternating top/bottom teeth only */
-  function buildTeeth() {
-    return fillPath(3600, 22, (x) => {
-      const mid = 0.5 + Math.sin(x * 0.002) * 0.08;
-      const c = corridor(mid, 0.38);
       let haz = null;
-      if (x > 480 && x % 340 < 40) haz = x % 680 < 340 ? "top" : "bot";
+      if (dip > 0.07 && x % 120 < 28) haz = "top";
       return { x, ...c, haz };
     });
   }
 
-  /** 5 — floating gate bars (weave above/below) */
-  function buildGates() {
-    return fillPath(3800, 24, (x) => {
-      const mid = 0.5 + Math.sin(x * 0.0016) * 0.05;
+  /** 3 Bite — calm tunnel with spaced fang pairs */
+  function buildBite() {
+    const fangs = [500, 780, 1100, 1450, 1800, 2200, 2550];
+    return fillPath(3000, 24, (x) => {
+      const mid = 0.5 + Math.sin(x * 0.0022) * 0.05;
       const c = corridor(mid, 0.4);
       let haz = null;
-      let gateY;
-      let gateH = 0.08;
-      if (x > 520 && x % 420 < 46) {
-        haz = "gate";
-        const n = Math.floor(x / 420) % 2;
-        gateY = n === 0 ? mid - 0.09 : mid + 0.09;
+      for (const f of fangs) {
+        if (Math.abs(x - f) < 20) haz = x < f ? "top" : "bot";
+        if (Math.abs(x - (f + 40)) < 20) haz = "bot";
+        if (Math.abs(x - (f - 40)) < 20) haz = "top";
       }
-      return { x, ...c, haz, gateY, gateH };
+      return { x, ...c, haz };
     });
   }
 
-  /** 6 — slalom: corridor shifts hard L/R with spaced gates */
-  function buildSlalom() {
-    return fillPath(4000, 24, (x) => {
-      const phase = Math.sin(x * 0.0042);
-      const mid = 0.5 + phase * 0.14;
-      const c = corridor(mid, 0.36);
-      let haz = null;
-      let gateY;
-      let gateH = 0.075;
-      if (x > 600 && x % 500 < 42) {
-        haz = "gate";
-        gateY = mid - phase * 0.06;
-      }
-      return { x, ...c, haz, gateY, gateH };
-    });
-  }
-
-  /** 7 — dense alternating teeth on a mild zig */
-  function buildSaw() {
-    return fillPath(4200, 22, (x) => {
-      const t = (x % 360) / 360;
-      const tri = t < 0.5 ? t * 2 : 2 - t * 2;
-      const mid = 0.5 + (tri - 0.5) * 0.22;
+  /** 4 Needle — long thin corridor, rare single spikes */
+  function buildNeedle() {
+    return fillPath(3400, 22, (x) => {
+      const mid = 0.5 + Math.sin(x * 0.0015) * 0.09;
       const c = corridor(mid, 0.34);
       let haz = null;
-      if (x > 500 && x % 220 < 34) haz = Math.floor(x / 220) % 2 === 0 ? "top" : "bot";
+      if (x > 500 && x < 3000 && x % 280 < 22) {
+        haz = Math.floor(x / 280) % 2 === 0 ? "top" : "bot";
+      }
       return { x, ...c, haz };
     });
   }
 
-  /** 8 — diamond blocks floating in the tunnel */
-  function buildDiamonds() {
-    return fillPath(4400, 24, (x) => {
-      const mid = 0.5 + Math.sin(x * 0.0022) * 0.07;
+  /** 5 Slalom — big amplitude swings you ride */
+  function buildSlalom() {
+    return fillPath(3600, 26, (x) => {
+      const mid = 0.5 + Math.sin(x * 0.0045) * 0.16;
+      const c = corridor(mid, 0.36);
+      let haz = null;
+      if (x > 450 && Math.abs(Math.sin(x * 0.0045)) > 0.88 && x % 100 < 26) haz = "both";
+      return { x, ...c, haz };
+    });
+  }
+
+  /** 6 Shelf — terrace steps (hold / dump altitude) */
+  function buildShelf() {
+    return fillPath(3600, 24, (x) => {
+      const step = Math.floor(x / 420);
+      const mid = 0.5 + ((step % 2 === 0 ? -1 : 1) * 0.12);
+      const c = corridor(mid, 0.36);
+      let haz = null;
+      if (x > 500 && x % 420 > 300 && x % 420 < 330) haz = step % 2 === 0 ? "bot" : "top";
+      return { x, ...c, haz };
+    });
+  }
+
+  /** 7 Gate — vertical bars to thread */
+  function buildGate() {
+    const gates = [
+      [600, 0.38],
+      [950, 0.58],
+      [1300, 0.4],
+      [1650, 0.6],
+      [2000, 0.45],
+      [2350, 0.55],
+      [2700, 0.48],
+      [3050, 0.52]
+    ];
+    return fillPath(3600, 20, (x) => {
+      const mid = 0.5 + Math.sin(x * 0.002) * 0.06;
+      const c = corridor(mid, 0.4);
+      let haz = null;
+      let gateY;
+      let gateH = 0.09;
+      for (const g of gates) {
+        if (Math.abs(x - g[0]) < 18) {
+          haz = "gate";
+          gateY = g[1];
+          gateH = 0.085;
+        }
+      }
+      return { x, ...c, haz, gateY, gateH };
+    });
+  }
+
+  /** 8 Prism — floating diamonds only */
+  function buildPrism() {
+    const dias = [
+      [550, 0.4],
+      [900, 0.58],
+      [1250, 0.38],
+      [1600, 0.55],
+      [1950, 0.42],
+      [2300, 0.6],
+      [2650, 0.45],
+      [3000, 0.52],
+      [3300, 0.48]
+    ];
+    return fillPath(3800, 22, (x) => {
+      const mid = 0.5 + Math.sin(x * 0.0024) * 0.07;
       const c = corridor(mid, 0.38);
       let haz = null;
       let diaY;
-      let diaS = 0.055;
-      if (x > 560 && x % 460 < 48) {
-        haz = "diamond";
-        diaY = mid + (Math.floor(x / 460) % 2 === 0 ? -0.07 : 0.07);
+      let diaS = 0.052;
+      for (const d of dias) {
+        if (Math.abs(x - d[0]) < 18) {
+          haz = "diamond";
+          diaY = d[1];
+        }
       }
       return { x, ...c, haz, diaY, diaS };
     });
   }
 
-  /** 9 — shelf: corridor jumps to high/low terraces with edge teeth */
-  function buildShelf() {
-    return fillPath(4600, 24, (x) => {
-      const base = 0.5 + Math.sin(x * 0.0012) * 0.04;
-      let mid = base;
-      let gap = 0.36;
+  /** 9 Saw — zig-zag walls + mixed spikes */
+  function buildSaw() {
+    return fillPath(4000, 20, (x) => {
+      const tooth = ((Math.floor(x / 140) % 2) * 2 - 1) * 0.11;
+      const mid = 0.5 + tooth;
+      const c = corridor(mid, 0.33);
       let haz = null;
-      if (x > 400) {
-        const local = (x - 400) % 520;
-        if (local < 180) {
-          mid = base + 0.09;
-          gap = 0.34;
-          if (local < 36) haz = "top";
-        } else if (local > 260 && local < 440) {
-          mid = base - 0.09;
-          gap = 0.34;
-          if (local < 300) haz = "bot";
-        }
+      if (x > 500 && x < 3600) {
+        if (x % 140 < 20) haz = tooth > 0 ? "bot" : "top";
+        else if (x % 280 < 20) haz = "both";
       }
-      const c = corridor(mid, gap);
       return { x, ...c, haz };
     });
   }
 
-  /** 10 — weave: gates + gentle sine */
-  function buildWeave() {
-    return fillPath(4800, 22, (x) => {
-      const mid = 0.5 + Math.sin(x * 0.0035) * 0.11;
-      const c = corridor(mid, 0.33);
+  /** 10 Door — narrowing necks with pass windows */
+  function buildDoor() {
+    const doors = [
+      [700, 0.4, 0.13],
+      [1100, 0.58, 0.12],
+      [1500, 0.38, 0.12],
+      [1900, 0.6, 0.11],
+      [2300, 0.45, 0.11],
+      [2700, 0.55, 0.12],
+      [3100, 0.48, 0.12],
+      [3500, 0.52, 0.13]
+    ];
+    return fillPath(4000, 18, (x) => {
+      let mid = 0.5 + Math.sin(x * 0.0018) * 0.05;
+      let gap = 0.4;
       let haz = null;
-      let gateY;
-      let gateH = 0.07;
-      if (x > 580 && x % 380 < 40) {
-        haz = "gate";
-        gateY = mid + (Math.floor(x / 380) % 2 === 0 ? 0.08 : -0.08);
-      }
-      return { x, ...c, haz, gateY, gateH };
-    });
-  }
-
-  /** 11 — gauntlet: teeth then diamond then gate repeating */
-  function buildGauntlet() {
-    return fillPath(5000, 22, (x) => {
-      const mid = 0.5 + Math.sin(x * 0.002) * 0.08;
-      const c = corridor(mid, 0.32);
-      let haz = null;
-      let gateY;
-      let gateH = 0.07;
-      let diaY;
-      let diaS = 0.05;
-      if (x > 620) {
-        const slot = Math.floor(x / 300) % 3;
-        const local = x % 300;
-        if (local < 36) {
-          if (slot === 0) haz = Math.floor(x / 900) % 2 === 0 ? "top" : "bot";
-          if (slot === 1) {
-            haz = "diamond";
-            diaY = mid + (Math.floor(x / 300) % 2 === 0 ? -0.06 : 0.06);
-          }
-          if (slot === 2) {
-            haz = "gate";
-            gateY = mid - (Math.floor(x / 300) % 2 === 0 ? 0.07 : -0.07);
+      let doorY;
+      let doorH;
+      for (const d of doors) {
+        const dist = Math.abs(x - d[0]);
+        if (dist < 90) {
+          const u = 1 - dist / 90;
+          gap = lerp(0.4, 0.32, u);
+          mid = lerp(mid, d[1], u * 0.35);
+          if (dist < 16) {
+            haz = "door";
+            doorY = d[1];
+            doorH = d[2];
           }
         }
       }
-      return { x, ...c, haz, gateY, gateH, diaY, diaS };
+      const c = corridor(mid, gap);
+      return { x, ...c, haz, doorY, doorH };
     });
   }
 
-  /** 12 — singularity: tighter mix, still clears MIN_GAP */
-  function buildSingularity() {
-    return fillPath(5200, 20, (x) => {
-      const mid = 0.5 + Math.sin(x * 0.0038) * 0.1 + Math.sin(x * 0.0011) * 0.04;
+  /** 11 Weave — criss-cross spikes on a snake path */
+  function buildWeave() {
+    return fillPath(4200, 18, (x) => {
+      const mid = 0.5 + Math.sin(x * 0.0055) * 0.14 + Math.sin(x * 0.0018) * 0.04;
+      const c = corridor(mid, 0.32);
+      let haz = null;
+      if (x > 500 && x < 3800) {
+        const phase = Math.floor(x / 70) % 4;
+        if (phase === 0) haz = "top";
+        else if (phase === 2) haz = "bot";
+        else if (x % 140 < 18) haz = "both";
+      }
+      return { x, ...c, haz };
+    });
+  }
+
+  /** 12 Core — finale mix: teeth → gates → diamonds → doors, spaced */
+  function buildCore() {
+    const events = [
+      { x: 550, haz: "top" },
+      { x: 700, haz: "bot" },
+      { x: 900, haz: "gate", gateY: 0.4, gateH: 0.08 },
+      { x: 1150, haz: "diamond", diaY: 0.55, diaS: 0.05 },
+      { x: 1400, haz: "both" },
+      { x: 1650, haz: "gate", gateY: 0.58, gateH: 0.075 },
+      { x: 1900, haz: "door", doorY: 0.45, doorH: 0.11 },
+      { x: 2150, haz: "diamond", diaY: 0.4, diaS: 0.048 },
+      { x: 2400, haz: "top" },
+      { x: 2550, haz: "bot" },
+      { x: 2800, haz: "gate", gateY: 0.5, gateH: 0.07 },
+      { x: 3050, haz: "both" },
+      { x: 3300, haz: "door", doorY: 0.52, doorH: 0.1 },
+      { x: 3550, haz: "diamond", diaY: 0.48, diaS: 0.05 },
+      { x: 3800, haz: "gate", gateY: 0.42, gateH: 0.075 },
+      { x: 4050, haz: "both" }
+    ];
+    return fillPath(4500, 16, (x) => {
+      const mid = 0.5 + Math.sin(x * 0.0032) * 0.1 + Math.sin(x * 0.001) * 0.03;
       const gap = lerp(0.36, 0.31, (Math.sin(x * 0.002) + 1) / 2);
       const c = corridor(mid, gap);
       let haz = null;
       let gateY;
-      let gateH = 0.065;
+      let gateH;
       let diaY;
-      let diaS = 0.048;
-      if (x > 700) {
-        const local = x % 260;
-        if (local < 32) {
-          const kind = Math.floor(x / 260) % 4;
-          if (kind === 0) haz = "top";
-          else if (kind === 1) haz = "bot";
-          else if (kind === 2) {
-            haz = "diamond";
-            diaY = mid;
-          } else {
-            haz = "gate";
-            gateY = mid + (Math.floor(x / 520) % 2 === 0 ? 0.07 : -0.07);
+      let diaS;
+      let doorY;
+      let doorH;
+      for (const e of events) {
+        if (Math.abs(x - e.x) < 14) {
+          haz = e.haz;
+          if (e.gateY != null) {
+            gateY = e.gateY;
+            gateH = e.gateH;
+          }
+          if (e.diaY != null) {
+            diaY = e.diaY;
+            diaS = e.diaS;
+          }
+          if (e.doorY != null) {
+            doorY = e.doorY;
+            doorH = e.doorH;
           }
         }
       }
-      return { x, ...c, haz, gateY, gateH, diaY, diaS };
+      return { x, ...c, haz, gateY, gateH, diaY, diaS, doorY, doorH };
     });
   }
+
+  // Endless chunk aliases (distinct shapes)
+  const buildBreath = buildGlide;
+  const buildTeeth = buildBite;
+  const buildGates = buildGate;
+  const buildDiamonds = buildPrism;
+  const buildSteps = buildShelf;
+  const buildGauntlet = buildWeave;
+  const buildSingularity = buildCore;
+  const buildWarmup = buildGlide;
+
+  LEVELS[0].path = buildGlide();
+  LEVELS[1].path = buildRidge();
+  LEVELS[2].path = buildBite();
+  LEVELS[3].path = buildNeedle();
+  LEVELS[4].path = buildSlalom();
+  LEVELS[5].path = buildShelf();
+  LEVELS[6].path = buildGate();
+  LEVELS[7].path = buildPrism();
+  LEVELS[8].path = buildSaw();
+  LEVELS[9].path = buildDoor();
+  LEVELS[10].path = buildWeave();
+  LEVELS[11].path = buildCore();
 
   function samplePath(path, x) {
     const empty = { top: 0.2, bot: 0.8, haz: null };
@@ -313,9 +387,12 @@
       gateY: near.gateY,
       gateH: near.gateH,
       diaY: near.diaY,
-      diaS: near.diaS
+      diaS: near.diaS,
+      doorY: near.doorY,
+      doorH: near.doorH
     };
   }
+
 
   let mode = "classic";
   let levelIndex = 0;
@@ -449,13 +526,16 @@
 
   function extendEndless(untilX) {
     const builders = [
-      buildBreath,
-      buildTeeth,
-      buildGates,
+      buildGlide,
+      buildRidge,
+      buildBite,
+      buildNeedle,
       buildSlalom,
-      buildSaw,
-      buildDiamonds,
       buildShelf,
+      buildGate,
+      buildPrism,
+      buildSaw,
+      buildDoor,
       buildWeave
     ];
     while (endlessGenX < untilX) {
@@ -527,7 +607,7 @@
     } else {
       els.title.textContent = "Space Waves";
       els.text.textContent =
-        "Hold to fly up, release to drop. Each level has unique hazards — teeth, gates, diamonds, shelves.";
+        "Hold to fly up, release to drop. Every level is a different tunnel — ridges, fangs, gates, doors, and more.";
       els.start.textContent = "Play";
       els.retry.textContent = "Retry";
     }
@@ -607,6 +687,14 @@
       const dy = sample.diaY * h;
       const ds = Math.max(10, (sample.diaS || 0.05) * h);
       if (Math.abs(box.y - dy) < box.r + ds * 0.85) return true;
+    }
+    if (sample.haz === "door" && sample.doorY != null) {
+      const dy = sample.doorY * h;
+      const dh = Math.max(14, (sample.doorH || 0.12) * h);
+      const openTop = dy - dh / 2;
+      const openBot = dy + dh / 2;
+      // Solid plates above/below the opening
+      if (box.y - box.r < openTop || box.y + box.r > openBot) return true;
     }
     return false;
   }
@@ -802,6 +890,22 @@
         ctx.closePath();
         ctx.fill();
         ctx.shadowBlur = 0;
+      }
+      if (s.haz === "door" && s.doorY != null) {
+        const dy = s.doorY * h;
+        const dh = Math.max(14, (s.doorH || 0.12) * h);
+        const dw = Math.max(14, h * 0.028);
+        const openTop = dy - dh / 2;
+        const openBot = dy + dh / 2;
+        ctx.fillStyle = theme;
+        ctx.shadowColor = theme;
+        ctx.shadowBlur = 10;
+        ctx.fillRect(sx - dw, topY, dw * 2, Math.max(0, openTop - topY));
+        ctx.fillRect(sx - dw, openBot, dw * 2, Math.max(0, botY - openBot));
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = "rgba(5,8,20,0.65)";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(sx - dw + 2, openTop, dw * 2 - 4, dh);
       }
     }
 
