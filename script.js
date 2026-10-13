@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001fu": [
+    "Cup Flow: Stop clears the pour and resets fill (keeps your drawing)"
+  ],
   "20261001ft": [
     "Cup Flow: 1× / 2× slow / 3× slow water speed buttons"
   ],

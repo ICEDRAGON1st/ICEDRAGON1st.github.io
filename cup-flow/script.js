@@ -1041,14 +1041,15 @@
   els.pour.addEventListener("click", () => {
     if (!running || paused || won) return;
     if (pouring) {
-      pouring = false;
-      syncPourBtn();
+      // Stop → reset the pour (water + fill), keep your drawn path
+      resetDrops();
+      paintHud();
+      els.hint.textContent = "Reset — tweak your path or Pour again";
       return;
     }
-    // Start pour (can still have leftover drops)
     pouring = true;
     syncPourBtn();
-    els.hint.textContent = "Water flowing — Stop to redraw";
+    els.hint.textContent = "Water flowing — Stop to reset";
     try {
       window.HubSound?.play?.("click");
     } catch {}
