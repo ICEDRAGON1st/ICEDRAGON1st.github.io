@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001fr": [
+    "Cup Flow: calm water physics — no more launching off corners"
+  ],
   "20261001fq": [
     "Cup Flow: stop water sticking on block corners — solid boxes + unstick nudge"
   ],

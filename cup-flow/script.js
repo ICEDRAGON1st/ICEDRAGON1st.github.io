@@ -227,11 +227,11 @@
   let lastTs = 0;
   let drawing = false;
 
-  const GRAVITY = 1.15;
+  const GRAVITY = 1.05;
   const MAX_DROPS = 220;
   const DROP_R = 0.007;
   const LINE_HALF = 0.011; // collision thickness (matches chunky drawn stroke)
-  const MAX_SPEED = 1.35;
+  const MAX_SPEED = 0.85;
 
   function currentLevel() {
     return LEVELS[levelIndex] || LEVELS[0];
@@ -576,15 +576,16 @@
       d.vx -= vn * nx;
       d.vy -= vn * ny;
     }
-    // Light friction only — keep sliding off edges
-    d.vx *= 0.995;
-    d.vy *= 0.995;
-    // Rest only on clear floors (y grows downward → floor normal points up = negative y)
-    if (ny < -0.78 && d.vy > 0 && d.vy < 0.12) d.vy = 0;
+    // Surface friction — slide, don’t skate forever
+    d.vx *= 0.97;
+    d.vy *= 0.97;
+    // Rest on clear floors (y grows downward → floor normal points up = negative y)
+    if (ny < -0.78 && d.vy > -0.02 && d.vy < 0.15) d.vy = 0;
+    clampSpeed(d);
     return true;
   }
 
-  /** Solid box collision — prefers top face near corners so drops slide off */
+  /** Solid box collision — prefers top face near corners so drops can fall off */
   function resolveAABB(d, b, r) {
     const left = b.x - r;
     const right = b.x + b.w + r;
@@ -598,7 +599,7 @@
     const ob = bot - d.y;
     let m = Math.min(ol, orr, ot, ob);
 
-    // Corner bias: if near top edge, prefer ejecting upward / sideways off the ledge
+    // Corner bias: prefer top face so drops aren’t clamped to the side wall
     const nearTopCorner = ot < r * 1.8 && (ol < r * 1.8 || orr < r * 1.8);
     if (nearTopCorner && ot <= Math.min(ol, orr) + r * 0.35) {
       m = ot;
@@ -607,32 +608,29 @@
     if (m === ot) {
       d.y = top;
       if (d.vy > 0) d.vy = 0;
-      // Nudge off the ledge when past the solid top (not the padded edge)
-      if (d.x > b.x + b.w) d.vx += 0.25;
-      else if (d.x < b.x) d.vx -= 0.25;
-      else if (d.x > b.x + b.w - r * 0.9) d.vx += 0.12;
-      else if (d.x < b.x + r * 0.9) d.vx -= 0.12;
+      // Past the real ledge: move position off the box (no velocity yeet)
+      if (d.x > b.x + b.w) d.x = b.x + b.w + r + 0.001;
+      else if (d.x < b.x) d.x = b.x - r - 0.001;
     } else if (m === ob) {
       d.y = bot;
       if (d.vy < 0) d.vy = 0;
     } else if (m === ol) {
-      d.x = left;
-      if (d.vx > 0) d.vx = 0;
-      // If mostly above the block, kick off the top instead of sticking to the side
-      if (d.y < b.y + r) {
+      // Above the top lip → sit on top instead of sticking to the side
+      if (d.y < b.y + r * 0.85) {
         d.y = top;
-        d.vx -= 0.08;
         if (d.vy > 0) d.vy = 0;
+      } else {
+        d.x = left;
+        if (d.vx > 0) d.vx = 0;
       }
+    } else if (d.y < b.y + r * 0.85) {
+      d.y = top;
+      if (d.vy > 0) d.vy = 0;
     } else {
       d.x = right;
       if (d.vx < 0) d.vx = 0;
-      if (d.y < b.y + r) {
-        d.y = top;
-        d.vx += 0.08;
-        if (d.vy > 0) d.vy = 0;
-      }
     }
+    clampSpeed(d);
     return true;
   }
 
@@ -666,7 +664,7 @@
 
       for (let step = 0; step < steps; step++) {
         d.vy += GRAVITY * h;
-        d.vx *= 1 - 0.06 * h;
+        d.vx *= 1 - 0.18 * h;
         clampSpeed(d);
 
         const ox = d.x;
@@ -707,14 +705,15 @@
         }
       }
 
-      // Unstick: if nearly frozen, give a gravity-aligned kick off corners
+      // Gentle unstick — tiny push, never a launch
       const speed = Math.hypot(d.vx, d.vy);
-      if (speed < 0.04) {
+      if (speed < 0.025) {
         d.stuck = (d.stuck || 0) + dt;
-        if (d.stuck > 0.18) {
-          d.vy += 0.35;
-          d.vx += (Math.random() - 0.5) * 0.35;
+        if (d.stuck > 0.35) {
+          d.vy = Math.max(d.vy, 0.08);
+          d.vx += (d.x > 0.5 ? 0.04 : -0.04) * (Math.random() > 0.5 ? 1 : -0.5);
           d.stuck = 0;
+          clampSpeed(d);
         }
       } else {
         d.stuck = 0;
