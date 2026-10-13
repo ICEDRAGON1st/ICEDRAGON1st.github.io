@@ -240,14 +240,14 @@
   /** 10 Door — narrowing necks with pass windows */
   function buildDoor() {
     const doors = [
-      [700, 0.4, 0.13],
-      [1100, 0.58, 0.12],
-      [1500, 0.38, 0.12],
-      [1900, 0.6, 0.11],
-      [2300, 0.45, 0.11],
-      [2700, 0.55, 0.12],
-      [3100, 0.48, 0.12],
-      [3500, 0.52, 0.13]
+      [700, 0.4, 0.2],
+      [1100, 0.58, 0.2],
+      [1500, 0.38, 0.19],
+      [1900, 0.6, 0.19],
+      [2300, 0.45, 0.19],
+      [2700, 0.55, 0.2],
+      [3100, 0.48, 0.2],
+      [3500, 0.52, 0.2]
     ];
     return fillPath(4000, 18, (x) => {
       let mid = 0.5 + Math.sin(x * 0.0018) * 0.05;
@@ -273,17 +273,15 @@
     });
   }
 
-  /** 11 Weave — criss-cross spikes on a snake path */
+  /** 11 Weave — criss-cross spikes on a snake path (sparse, not solid bands) */
   function buildWeave() {
     return fillPath(4200, 18, (x) => {
       const mid = 0.5 + Math.sin(x * 0.0055) * 0.14 + Math.sin(x * 0.0018) * 0.04;
       const c = corridor(mid, 0.32);
       let haz = null;
-      if (x > 500 && x < 3800) {
-        const phase = Math.floor(x / 70) % 4;
-        if (phase === 0) haz = "top";
-        else if (phase === 2) haz = "bot";
-        else if (x % 140 < 18) haz = "both";
+      if (x > 500 && x < 3800 && x % 95 < 16) {
+        const kind = Math.floor(x / 95) % 3;
+        haz = kind === 0 ? "top" : kind === 1 ? "bot" : "both";
       }
       return { x, ...c, haz };
     });
@@ -298,13 +296,13 @@
       { x: 1150, haz: "diamond", diaY: 0.55, diaS: 0.05 },
       { x: 1400, haz: "both" },
       { x: 1650, haz: "gate", gateY: 0.58, gateH: 0.075 },
-      { x: 1900, haz: "door", doorY: 0.45, doorH: 0.11 },
+      { x: 1900, haz: "door", doorY: 0.45, doorH: 0.2 },
       { x: 2150, haz: "diamond", diaY: 0.4, diaS: 0.048 },
       { x: 2400, haz: "top" },
       { x: 2550, haz: "bot" },
       { x: 2800, haz: "gate", gateY: 0.5, gateH: 0.07 },
       { x: 3050, haz: "both" },
-      { x: 3300, haz: "door", doorY: 0.52, doorH: 0.1 },
+      { x: 3300, haz: "door", doorY: 0.52, doorH: 0.2 },
       { x: 3550, haz: "diamond", diaY: 0.48, diaS: 0.05 },
       { x: 3800, haz: "gate", gateY: 0.42, gateH: 0.075 },
       { x: 4050, haz: "both" }
@@ -364,6 +362,9 @@
   LEVELS[10].path = buildWeave();
   LEVELS[11].path = buildCore();
 
+  // Hazards only count when the ship is this close in world-X to a marked point
+  const HAZ_X = 11;
+
   function samplePath(path, x) {
     const empty = { top: 0.2, bot: 0.8, haz: null };
     if (!path.length) return empty;
@@ -379,17 +380,21 @@
     const a = path[lo];
     const b = path[hi];
     const t = (x - a.x) / Math.max(1, b.x - a.x);
-    const near = t < 0.5 ? a : b;
+    // Prefer the point that actually has a hazard, but only while close to it
+    let hazSrc = null;
+    if (a.haz && Math.abs(x - a.x) <= HAZ_X) hazSrc = a;
+    else if (b.haz && Math.abs(x - b.x) <= HAZ_X) hazSrc = b;
     return {
       top: lerp(a.top, b.top, t),
       bot: lerp(a.bot, b.bot, t),
-      haz: near.haz || null,
-      gateY: near.gateY,
-      gateH: near.gateH,
-      diaY: near.diaY,
-      diaS: near.diaS,
-      doorY: near.doorY,
-      doorH: near.doorH
+      haz: hazSrc ? hazSrc.haz : null,
+      hazX: hazSrc ? hazSrc.x : undefined,
+      gateY: hazSrc ? hazSrc.gateY : undefined,
+      gateH: hazSrc ? hazSrc.gateH : undefined,
+      diaY: hazSrc ? hazSrc.diaY : undefined,
+      diaS: hazSrc ? hazSrc.diaS : undefined,
+      doorY: hazSrc ? hazSrc.doorY : undefined,
+      doorH: hazSrc ? hazSrc.doorH : undefined
     };
   }
 
@@ -654,8 +659,8 @@
     const h = canvas.clientHeight;
     const sx = w * SHIP_SCREEN_X;
     const sy = shipY * h;
-    // A touch larger than the original tiny arrow
-    return { x: sx, y: sy, r: Math.max(7, h * 0.018), scale: Math.max(1.05, h * 0.0026) };
+    // Match the drawn arrow — slightly forgiving vs walls
+    return { x: sx, y: sy, r: Math.max(5, h * 0.011), scale: Math.max(1.05, h * 0.0026) };
   }
 
   function collide() {
@@ -664,39 +669,80 @@
     const topY = sample.top * h;
     const botY = sample.bot * h;
     const box = shipHitbox();
-    if (box.y - box.r < topY || box.y + box.r > botY) return true;
+    // Small pad so you don't die a few pixels before the neon edge
+    const wallR = box.r * 0.7;
+    if (box.y - wallR < topY || box.y + wallR > botY) return true;
+
+    if (!sample.haz || sample.hazX == null) return false;
+
+    const w = canvas.clientWidth;
+    const viewLeft = worldX - w * SHIP_SCREEN_X;
+    const hx = sample.hazX - viewLeft;
+    // Must actually reach the hazard's X (not just share the lane)
+    if (Math.abs(box.x - hx) > Math.max(14, box.r + 10)) return false;
 
     const gap = botY - topY;
-    const spikeH = Math.min(gap * 0.3, h * 0.075);
-    const hw = 11;
+    const spikeH = Math.min(gap * 0.22, h * 0.055);
+    const hw = 9;
 
     if (sample.haz === "top" || sample.haz === "both") {
       const tip = topY + spikeH;
-      if (pointInTri(box.x, box.y, box.x - hw, topY, box.x + hw, topY, box.x, tip)) return true;
+      if (circleHitsTri(box.x, box.y, box.r * 0.85, hx - hw, topY, hx + hw, topY, hx, tip)) return true;
     }
     if (sample.haz === "bot" || sample.haz === "both") {
       const tip = botY - spikeH;
-      if (pointInTri(box.x, box.y, box.x - hw, botY, box.x + hw, botY, box.x, tip)) return true;
+      if (circleHitsTri(box.x, box.y, box.r * 0.85, hx - hw, botY, hx + hw, botY, hx, tip)) return true;
     }
     if (sample.haz === "gate" && sample.gateY != null) {
       const gy = sample.gateY * h;
       const gh = Math.max(10, (sample.gateH || 0.08) * h);
-      if (box.y + box.r > gy - gh / 2 && box.y - box.r < gy + gh / 2) return true;
+      const gw = Math.max(12, h * 0.032);
+      if (
+        box.x + box.r * 0.8 > hx - gw &&
+        box.x - box.r * 0.8 < hx + gw &&
+        box.y + box.r * 0.8 > gy - gh / 2 &&
+        box.y - box.r * 0.8 < gy + gh / 2
+      ) {
+        return true;
+      }
     }
     if (sample.haz === "diamond" && sample.diaY != null) {
       const dy = sample.diaY * h;
-      const ds = Math.max(10, (sample.diaS || 0.05) * h);
-      if (Math.abs(box.y - dy) < box.r + ds * 0.85) return true;
+      const ds = Math.max(8, (sample.diaS || 0.05) * h);
+      const dx = box.x - hx;
+      const dyv = box.y - dy;
+      if (dx * dx + dyv * dyv < (box.r + ds * 0.55) * (box.r + ds * 0.55)) return true;
     }
     if (sample.haz === "door" && sample.doorY != null) {
       const dy = sample.doorY * h;
-      const dh = Math.max(14, (sample.doorH || 0.12) * h);
+      const dh = Math.max(gap * 0.62, (sample.doorH || 0.18) * h);
+      const dw = Math.max(16, h * 0.03);
       const openTop = dy - dh / 2;
       const openBot = dy + dh / 2;
-      // Solid plates above/below the opening
-      if (box.y - box.r < openTop || box.y + box.r > openBot) return true;
+      if (Math.abs(box.x - hx) > dw + box.r * 0.5) return false;
+      // Safe only inside the lit opening
+      if (box.y - box.r * 0.7 < openTop || box.y + box.r * 0.7 > openBot) return true;
     }
     return false;
+  }
+
+  function circleHitsTri(cx, cy, r, x1, y1, x2, y2, x3, y3) {
+    if (pointInTri(cx, cy, x1, y1, x2, y2, x3, y3)) return true;
+    // Cheap edge proximity
+    return (
+      distToSeg(cx, cy, x1, y1, x2, y2) < r ||
+      distToSeg(cx, cy, x2, y2, x3, y3) < r ||
+      distToSeg(cx, cy, x3, y3, x1, y1) < r
+    );
+  }
+
+  function distToSeg(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const len2 = dx * dx + dy * dy || 1;
+    let t = ((px - x1) * dx + (py - y1) * dy) / len2;
+    t = clamp(t, 0, 1);
+    return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
   }
 
   function dist2(ax, ay, bx, by) {
@@ -836,37 +882,39 @@
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // hazards
-    for (let x = Math.floor(viewLeft / 20) * 20; x <= viewRight; x += 20) {
-      const s = samplePath(path, x);
-      if (!s.haz) continue;
-      const sx = x - viewLeft;
-      const topY = s.top * h;
-      const botY = s.bot * h;
+    // Draw one hazard per marked path point (matches collide X window)
+    for (let i = 0; i < path.length; i++) {
+      const p = path[i];
+      if (!p.haz || p.x < viewLeft - 30 || p.x > viewRight + 30) continue;
+      // Skip duplicate marks for the same hazard cluster
+      if (i > 0 && path[i - 1].haz === p.haz && Math.abs(path[i - 1].x - p.x) < HAZ_X) continue;
+      const sx = p.x - viewLeft;
+      const topY = p.top * h;
+      const botY = p.bot * h;
       const gap = botY - topY;
-      const spikeH = Math.min(gap * 0.3, h * 0.075);
+      const spikeH = Math.min(gap * 0.22, h * 0.055);
 
-      if (s.haz === "top" || s.haz === "both") {
+      if (p.haz === "top" || p.haz === "both") {
         ctx.fillStyle = theme;
         ctx.beginPath();
-        ctx.moveTo(sx - 11, topY);
-        ctx.lineTo(sx + 11, topY);
+        ctx.moveTo(sx - 9, topY);
+        ctx.lineTo(sx + 9, topY);
         ctx.lineTo(sx, topY + spikeH);
         ctx.closePath();
         ctx.fill();
       }
-      if (s.haz === "bot" || s.haz === "both") {
+      if (p.haz === "bot" || p.haz === "both") {
         ctx.fillStyle = theme;
         ctx.beginPath();
-        ctx.moveTo(sx - 11, botY);
-        ctx.lineTo(sx + 11, botY);
+        ctx.moveTo(sx - 9, botY);
+        ctx.lineTo(sx + 9, botY);
         ctx.lineTo(sx, botY - spikeH);
         ctx.closePath();
         ctx.fill();
       }
-      if (s.haz === "gate" && s.gateY != null) {
-        const gy = s.gateY * h;
-        const gh = Math.max(10, (s.gateH || 0.08) * h);
+      if (p.haz === "gate" && p.gateY != null) {
+        const gy = p.gateY * h;
+        const gh = Math.max(10, (p.gateH || 0.08) * h);
         const gw = Math.max(12, h * 0.032);
         ctx.fillStyle = theme;
         ctx.shadowColor = theme;
@@ -876,12 +924,12 @@
         ctx.fillStyle = "rgba(5,8,20,0.55)";
         ctx.fillRect(sx - gw + 3, gy - gh / 2 + 2, gw * 2 - 6, gh - 4);
       }
-      if (s.haz === "diamond" && s.diaY != null) {
-        const dy = s.diaY * h;
-        const ds = Math.max(10, (s.diaS || 0.05) * h);
-        ctx.fillStyle = theme;
+      if (p.haz === "diamond" && p.diaY != null) {
+        const dy = p.diaY * h;
+        const ds = Math.max(8, (p.diaS || 0.05) * h);
+        ctx.fillStyle = "#fff6c8";
         ctx.shadowColor = theme;
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = 14;
         ctx.beginPath();
         ctx.moveTo(sx, dy - ds);
         ctx.lineTo(sx + ds, dy);
@@ -890,22 +938,27 @@
         ctx.closePath();
         ctx.fill();
         ctx.shadowBlur = 0;
+        ctx.strokeStyle = theme;
+        ctx.lineWidth = 2;
+        ctx.stroke();
       }
-      if (s.haz === "door" && s.doorY != null) {
-        const dy = s.doorY * h;
-        const dh = Math.max(14, (s.doorH || 0.12) * h);
-        const dw = Math.max(14, h * 0.028);
+      if (p.haz === "door" && p.doorY != null) {
+        const dy = p.doorY * h;
+        const dh = Math.max(gap * 0.62, (p.doorH || 0.18) * h);
+        const dw = Math.max(16, h * 0.03);
         const openTop = dy - dh / 2;
         const openBot = dy + dh / 2;
         ctx.fillStyle = theme;
+        ctx.globalAlpha = 0.92;
         ctx.shadowColor = theme;
-        ctx.shadowBlur = 10;
+        ctx.shadowBlur = 12;
         ctx.fillRect(sx - dw, topY, dw * 2, Math.max(0, openTop - topY));
         ctx.fillRect(sx - dw, openBot, dw * 2, Math.max(0, botY - openBot));
         ctx.shadowBlur = 0;
-        ctx.strokeStyle = "rgba(5,8,20,0.65)";
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = "#fff6c8";
         ctx.lineWidth = 2;
-        ctx.strokeRect(sx - dw + 2, openTop, dw * 2 - 4, dh);
+        ctx.strokeRect(sx - dw, openTop, dw * 2, dh);
       }
     }
 
