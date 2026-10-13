@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001fm": [
+    "Space Waves: Win/Full toggle for windowed vs fullscreen layout"
+  ],
   "20261001fl": [
     "Space Waves: clearer menu + fixed level select / next / retry flow"
   ],

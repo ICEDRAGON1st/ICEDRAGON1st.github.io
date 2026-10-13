@@ -2,12 +2,14 @@
   const GAME_ID = "waves";
   const HIGH_KEY = "space-waves-high-score";
   const BEST_LEVEL_KEY = "space-waves-best-level";
+  const VIEW_KEY = "space-waves-view-mode"; // "full" | "window"
 
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
 
   const els = {
     menu: document.getElementById("menu-btn"),
+    view: document.getElementById("view-btn"),
     mode: document.getElementById("hud-mode"),
     progress: document.getElementById("progress"),
     high: document.getElementById("high-score"),
@@ -511,15 +513,67 @@
     return currentLevel().theme || "#5ce1ff";
   }
 
+  function readViewMode() {
+    try {
+      const v = String(localStorage.getItem(VIEW_KEY) || "full");
+      return v === "window" ? "window" : "full";
+    } catch {
+      return "full";
+    }
+  }
+
+  let viewMode = readViewMode();
+
+  function applyViewMode() {
+    document.body.classList.toggle("is-windowed", viewMode === "window");
+    if (els.view) {
+      const windowed = viewMode === "window";
+      els.view.setAttribute("aria-pressed", windowed ? "true" : "false");
+      els.view.title = windowed ? "Switch to fullscreen" : "Switch to windowed";
+      els.view.setAttribute("aria-label", els.view.title);
+      // Button shows the mode you can switch TO
+      els.view.textContent = windowed ? "Full" : "Win";
+    }
+    requestAnimationFrame(() => {
+      resize();
+      requestAnimationFrame(resize);
+    });
+  }
+
+  function setViewMode(next) {
+    viewMode = next === "window" ? "window" : "full";
+    try {
+      localStorage.setItem(VIEW_KEY, viewMode);
+    } catch {}
+    applyViewMode();
+  }
+
+  function toggleViewMode() {
+    setViewMode(viewMode === "window" ? "full" : "window");
+  }
+
   function resize() {
     const wrap = canvas.parentElement;
-    const w = Math.max(320, Math.floor(wrap?.clientWidth || window.innerWidth || 960));
-    const h = Math.max(240, Math.floor(wrap?.clientHeight || window.innerHeight || 540));
     const dpr = Math.min(2, window.devicePixelRatio || 1);
-    canvas.width = Math.floor(w * dpr);
-    canvas.height = Math.floor(h * dpr);
-    canvas.style.width = `${w}px`;
-    canvas.style.height = `${h}px`;
+
+    if (viewMode === "window") {
+      canvas.style.width = "100%";
+      canvas.style.height = "auto";
+      canvas.style.removeProperty("max-height");
+      const rect = canvas.getBoundingClientRect();
+      let w = Math.max(320, Math.floor(rect.width || wrap?.clientWidth || 960));
+      let h = Math.max(180, Math.floor(rect.height || w * 9 / 16));
+      if (rect.height < 80) h = Math.floor(w * 9 / 16);
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+    } else {
+      const w = Math.max(320, Math.floor(wrap?.clientWidth || window.innerWidth || 960));
+      const h = Math.max(240, Math.floor(wrap?.clientHeight || window.innerHeight || 540));
+      canvas.width = Math.floor(w * dpr);
+      canvas.height = Math.floor(h * dpr);
+      canvas.style.width = `${w}px`;
+      canvas.style.height = `${h}px`;
+    }
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
 
@@ -1216,6 +1270,11 @@
     if (running && !dead && !won) showOverlay("pause");
     else showOverlay("menu");
   });
+  els.view?.addEventListener("click", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleViewMode();
+  });
   els.games.addEventListener("click", () => {
     window.location.href = "../index.html#games";
   });
@@ -1229,7 +1288,7 @@
     levelIndex = 0;
   }
 
-  resize();
+  applyViewMode();
   renderLevelPicker();
   paintHud();
   showOverlay("menu");
