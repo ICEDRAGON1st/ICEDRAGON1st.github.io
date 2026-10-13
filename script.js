@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001fq": [
+    "Cup Flow: stop water sticking on block corners — solid boxes + unstick nudge"
+  ],
   "20261001fp": [
     "Cup Flow: fix water tunneling through drawn lines (thicker collision + sub-steps)"
   ],

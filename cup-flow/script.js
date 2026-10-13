@@ -461,7 +461,7 @@
     };
   }
 
-  function allSegments() {
+  function strokeSegments() {
     const segs = [];
     const pushStroke = (pts) => {
       for (let i = 1; i < pts.length; i++) {
@@ -470,42 +470,39 @@
     };
     strokes.forEach((s) => pushStroke(s.points));
     if (draft && draft.points.length > 1) pushStroke(draft.points);
+    return segs;
+  }
 
-    // Convert axis-aligned / lightly rotated blocks to edge segments
-    const lv = currentLevel();
-    (lv.blocks || []).forEach((b) => {
+  /** Rotated blocks still use edge segments; AABB blocks are solid boxes */
+  function rotatedBlockSegments() {
+    const segs = [];
+    (currentLevel().blocks || []).forEach((b) => {
       const rot = b.rot || 0;
-      if (Math.abs(rot) < 0.001) {
-        const x1 = b.x;
-        const y1 = b.y;
-        const x2 = b.x + b.w;
-        const y2 = b.y + b.h;
-        segs.push({ a: { x: x1, y: y1 }, b: { x: x2, y: y1 } });
-        segs.push({ a: { x: x2, y: y1 }, b: { x: x2, y: y2 } });
-        segs.push({ a: { x: x2, y: y2 }, b: { x: x1, y: y2 } });
-        segs.push({ a: { x: x1, y: y2 }, b: { x: x1, y: y1 } });
-      } else {
-        const cx = b.x + b.w / 2;
-        const cy = b.y + b.h / 2;
-        const hw = b.w / 2;
-        const hh = b.h / 2;
-        const cos = Math.cos(rot);
-        const sin = Math.sin(rot);
-        const corners = [
-          [-hw, -hh],
-          [hw, -hh],
-          [hw, hh],
-          [-hw, hh]
-        ].map(([lx, ly]) => ({
-          x: cx + lx * cos - ly * sin,
-          y: cy + lx * sin + ly * cos
-        }));
-        for (let i = 0; i < 4; i++) {
-          segs.push({ a: corners[i], b: corners[(i + 1) % 4] });
-        }
+      if (Math.abs(rot) < 0.001) return;
+      const cx = b.x + b.w / 2;
+      const cy = b.y + b.h / 2;
+      const hw = b.w / 2;
+      const hh = b.h / 2;
+      const cos = Math.cos(rot);
+      const sin = Math.sin(rot);
+      const corners = [
+        [-hw, -hh],
+        [hw, -hh],
+        [hw, hh],
+        [-hw, hh]
+      ].map(([lx, ly]) => ({
+        x: cx + lx * cos - ly * sin,
+        y: cy + lx * sin + ly * cos
+      }));
+      for (let i = 0; i < 4; i++) {
+        segs.push({ a: corners[i], b: corners[(i + 1) % 4] });
       }
     });
     return segs;
+  }
+
+  function solidBlocks() {
+    return (currentLevel().blocks || []).filter((b) => Math.abs(b.rot || 0) < 0.001);
   }
 
   function distToSeg(px, py, ax, ay, bx, by) {
@@ -523,7 +520,6 @@
     return ax * by - ay * bx;
   }
 
-  /** Fraction along AB where it hits CD, or null */
   function segHitT(ax, ay, bx, by, cx, cy, dx, dy) {
     const rx = bx - ax;
     const ry = by - ay;
@@ -549,7 +545,10 @@
 
   function resolveAgainstSeg(d, s, radius) {
     const hit = distToSeg(d.x, d.y, s.a.x, s.a.y, s.b.x, s.b.y);
-    if (hit.d >= radius) return false;
+    // Shrink collision near endpoints so corners don't form sticky pockets
+    const endFade = hit.t < 0.12 || hit.t > 0.88 ? 0.65 : 1;
+    const rad = radius * endFade;
+    if (hit.d >= rad) return false;
 
     let nx = hit.nx;
     let ny = hit.ny;
@@ -557,34 +556,83 @@
     nx /= nlen;
     ny /= nlen;
 
-    // Prefer the side the drop is already on (from center → drop)
     const toDropX = d.x - hit.qx;
     const toDropY = d.y - hit.qy;
     if (toDropX * nx + toDropY * ny < 0) {
       nx = -nx;
       ny = -ny;
     } else if (Math.abs(toDropX) + Math.abs(toDropY) < 1e-8) {
-      // Exactly on line — push against velocity
       if (d.vx * nx + d.vy * ny > 0) {
         nx = -nx;
         ny = -ny;
       }
     }
 
-    // Push fully outside the thick stroke
-    d.x = hit.qx + nx * radius;
-    d.y = hit.qy + ny * radius;
+    d.x = hit.qx + nx * rad;
+    d.y = hit.qy + ny * rad;
 
-    // Kill penetrating normal speed; keep a bit of slide friction
     const vn = d.vx * nx + d.vy * ny;
     if (vn < 0) {
       d.vx -= vn * nx;
       d.vy -= vn * ny;
     }
-    d.vx *= 0.985;
-    d.vy *= 0.985;
-    // Soft rest on near-flat surfaces
-    if (Math.abs(ny) > 0.55 && Math.abs(d.vy) < 0.08) d.vy = 0;
+    // Light friction only — keep sliding off edges
+    d.vx *= 0.995;
+    d.vy *= 0.995;
+    // Rest only on clear floors (y grows downward → floor normal points up = negative y)
+    if (ny < -0.78 && d.vy > 0 && d.vy < 0.12) d.vy = 0;
+    return true;
+  }
+
+  /** Solid box collision — prefers top face near corners so drops slide off */
+  function resolveAABB(d, b, r) {
+    const left = b.x - r;
+    const right = b.x + b.w + r;
+    const top = b.y - r;
+    const bot = b.y + b.h + r;
+    if (d.x <= left || d.x >= right || d.y <= top || d.y >= bot) return false;
+
+    const ol = d.x - left;
+    const orr = right - d.x;
+    const ot = d.y - top;
+    const ob = bot - d.y;
+    let m = Math.min(ol, orr, ot, ob);
+
+    // Corner bias: if near top edge, prefer ejecting upward / sideways off the ledge
+    const nearTopCorner = ot < r * 1.8 && (ol < r * 1.8 || orr < r * 1.8);
+    if (nearTopCorner && ot <= Math.min(ol, orr) + r * 0.35) {
+      m = ot;
+    }
+
+    if (m === ot) {
+      d.y = top;
+      if (d.vy > 0) d.vy = 0;
+      // Nudge off the ledge when past the solid top (not the padded edge)
+      if (d.x > b.x + b.w) d.vx += 0.25;
+      else if (d.x < b.x) d.vx -= 0.25;
+      else if (d.x > b.x + b.w - r * 0.9) d.vx += 0.12;
+      else if (d.x < b.x + r * 0.9) d.vx -= 0.12;
+    } else if (m === ob) {
+      d.y = bot;
+      if (d.vy < 0) d.vy = 0;
+    } else if (m === ol) {
+      d.x = left;
+      if (d.vx > 0) d.vx = 0;
+      // If mostly above the block, kick off the top instead of sticking to the side
+      if (d.y < b.y + r) {
+        d.y = top;
+        d.vx -= 0.08;
+        if (d.vy > 0) d.vy = 0;
+      }
+    } else {
+      d.x = right;
+      if (d.vx < 0) d.vx = 0;
+      if (d.y < b.y + r) {
+        d.y = top;
+        d.vx += 0.08;
+        if (d.vy > 0) d.vy = 0;
+      }
+    }
     return true;
   }
 
@@ -601,14 +649,15 @@
       y: t.y + 0.02,
       vx: (Math.random() - 0.5) * 0.015,
       vy: 0.04 + Math.random() * 0.03,
-      alive: true
+      alive: true,
+      stuck: 0
     });
   }
 
   function updatePhysics(dt) {
-    const segs = allSegments();
+    const segs = strokeSegments().concat(rotatedBlockSegments());
+    const boxes = solidBlocks();
     const radius = DROP_R + LINE_HALF;
-    // Sub-steps stop fast drops from tunneling through thin strokes
     const steps = Math.max(6, Math.ceil(dt / 0.005));
     const h = dt / steps;
 
@@ -617,7 +666,7 @@
 
       for (let step = 0; step < steps; step++) {
         d.vy += GRAVITY * h;
-        d.vx *= 1 - 0.12 * h;
+        d.vx *= 1 - 0.06 * h;
         clampSpeed(d);
 
         const ox = d.x;
@@ -625,7 +674,6 @@
         let nx = d.x + d.vx * h;
         let ny = d.y + d.vy * h;
 
-        // Continuous collision: movement segment vs each wall segment
         let bestT = 1;
         let bestSeg = null;
         for (let i = 0; i < segs.length; i++) {
@@ -638,8 +686,7 @@
         }
 
         if (bestSeg && bestT < 1) {
-          // Stop just before the crossing, then resolve thickness
-          const stop = Math.max(0, bestT * 0.92);
+          const stop = Math.max(0, bestT * 0.9);
           d.x = ox + (nx - ox) * stop;
           d.y = oy + (ny - oy) * stop;
           resolveAgainstSeg(d, bestSeg, radius);
@@ -648,14 +695,29 @@
           d.y = ny;
         }
 
-        // Penetration sweep (thick capsule) — run a couple times for corners
         for (let pass = 0; pass < 3; pass++) {
           let hitAny = false;
+          for (let i = 0; i < boxes.length; i++) {
+            if (resolveAABB(d, boxes[i], DROP_R + 0.002)) hitAny = true;
+          }
           for (let i = 0; i < segs.length; i++) {
             if (resolveAgainstSeg(d, segs[i], radius)) hitAny = true;
           }
           if (!hitAny) break;
         }
+      }
+
+      // Unstick: if nearly frozen, give a gravity-aligned kick off corners
+      const speed = Math.hypot(d.vx, d.vy);
+      if (speed < 0.04) {
+        d.stuck = (d.stuck || 0) + dt;
+        if (d.stuck > 0.18) {
+          d.vy += 0.35;
+          d.vx += (Math.random() - 0.5) * 0.35;
+          d.stuck = 0;
+        }
+      } else {
+        d.stuck = 0;
       }
 
       if (inCup(d.x, d.y)) {
