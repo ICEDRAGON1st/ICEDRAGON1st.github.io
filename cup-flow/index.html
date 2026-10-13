@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="../hub-game-boot.js?v=20261001fn"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>Cup Flow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Fredoka:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20261001fn">
+</head>
+<body>
+  <main class="shell">
+    <header class="hud">
+      <button id="menu-btn" type="button" class="menu-btn" aria-label="Open menu">☰</button>
+      <div class="hud-stats">
+        <span>Lv <strong id="hud-level">1</strong></span>
+        <span>Fill <strong id="hud-fill">0%</strong></span>
+        <span>Ink <strong id="hud-ink">100%</strong></span>
+        <span>Best <strong id="hud-best">0</strong></span>
+      </div>
+    </header>
+
+    <canvas id="game" width="900" height="560" aria-label="Cup Flow puzzle"></canvas>
+
+    <div class="toolbar">
+      <button id="undo-btn" type="button" class="tool-btn">Undo</button>
+      <button id="clear-btn" type="button" class="tool-btn">Clear</button>
+      <button id="pour-btn" type="button" class="tool-btn tool-pour">Pour</button>
+      <button id="reset-btn" type="button" class="tool-btn">Reset</button>
+    </div>
+    <p class="hint" id="hint">Draw a path · tap Pour · fill the cup</p>
+  </main>
+
+  <div id="overlay" class="overlay">
+    <div class="overlay-card">
+      <h1 id="overlay-title">Cup Flow</h1>
+      <p id="overlay-text" class="lead">Draw lines to guide water from the tap into the cup. Fill it up — don’t waste your ink.</p>
+      <p class="score-line">Highest level: <strong id="overlay-best">0</strong></p>
+
+      <div class="panel-head">
+        <span class="panel-label">Levels</span>
+        <span id="level-meta" class="level-meta">1 · First Drop</span>
+      </div>
+      <div id="level-picker" class="level-picker" aria-label="Levels"></div>
+
+      <div class="overlay-actions">
+        <button id="start-btn" type="button" class="btn">Play</button>
+        <button id="resume-btn" type="button" class="btn btn-ghost hidden">Resume</button>
+        <button id="retry-btn" type="button" class="btn btn-ghost hidden">Retry</button>
+        <button id="games-btn" type="button" class="btn btn-ghost">All games</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../hub-streak.js"></script>
+  <script src="../hub-achievements.js?v=20260917aw"></script>
+  <script src="../hub-sound.js"></script>
+  <script src="../hub-confetti.js"></script>
+  <script src="../hub-supabase.js?v=20260923u"></script>
+  <script src="../hub-account-bag.js?v=20260923ag"></script>
+  <script src="../hub-plays.js?v=20261001em"></script>
+  <script src="../hub-friends.js?v=20260923u"></script>
+  <script src="../hub-chat.js?v=20260927c"></script>
+  <script src="../hub-calls.js?v=20260925a"></script>
+  <script src="../hub-leaderboard.js?v=20260925a"></script>
+  <script src="script.js?v=20261001fn"></script>
+</body>
+</html>

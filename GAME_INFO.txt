@@ -4,13 +4,13 @@ Game Name: My Games
 Owner & Developer: ICE_DRAGON
 Platform: Web (GitHub Pages) — https://icedragon1st.github.io/ (also desktop app)
 Release Date: Ongoing browser hub (live builds stamped as WORDLE_BUILD in index.html)
-Game Count: 29
+Game Count: 32
 
-Games List: Guessword, Space Shooter, Quizmaster, Bounce Break, Hangman, Block Merge, Snake, Memory Match, Drop Four, Math Sprint, Sudoku, Wing Hop, Tic Tac Toe, Pixel Drop, Crystal Clicker, Tower Stack 3D, Cross Walk, Fishing Idle, Cow Merge, Runosaur, Ramp Rush, Guac-A-Mole, Bubble Pop Relay, Cafe Queue, Garden Snap, Mine Depth, Block Sweep, Dudes, Paper Claim
+Games List: Guessword, Space Shooter, Quizmaster, Bounce Break, Hangman, Block Merge, Snake, Memory Match, Drop Four, Math Sprint, Sudoku, Wing Hop, Tic Tac Toe, Pixel Drop, Crystal Clicker, Tower Stack 3D, Cross Walk, Fishing Idle, Cow Merge, Runosaur, Ramp Rush, Guac-A-Mole, Bubble Pop Relay, Cafe Queue, Garden Snap, Mine Depth, Block Sweep, Dudes, Paper Claim, Sticker Garage, Space Waves, Cup Flow
 
 GAMEPLAY & CONTROLS
 
-Main Objective: Play a collection of 29 browser minigames from one hub. Pick a game card, set a unique player name for sync/leaderboards, chase high scores, achievements, streaks, and friends features. Most progress saves on this device; cloud sync is used when online.
+Main Objective: Play a collection of 32 browser minigames from one hub. Pick a game card, set a unique player name for sync/leaderboards, chase high scores, achievements, streaks, and friends features. Most progress saves on this device; cloud sync is used when online.
 
 Controls: Hub: tap a game card to play; search box filters games; star favorites a game. Help Assistant: tap ? or press F (use F1 inside letter games — Guessword, Hangman, Quiz, Sudoku). Hold Tab to peek who is online. Esc / ☰ Menu pauses most action games and offers Games to return to the hub. Guessword: Daily = one shared Classic 5-letter word; Practice = flex 4/5/6 letters with optional word themes; languages EN/DA/IS; deep link #wordle. Per-game move/shoot keys differ — ask Help “how to play” while inside a game, or see each Game line below.
 
@@ -73,6 +73,9 @@ Game mine: Mine Depth · mine/index.html · Dig down, sell ore, upgrade drills �
 Game blockblast: Block Sweep · block-sweep/index.html · Place blocks, clear rows and columns · Drag pieces onto an 8×8 board; clear full lines/columns; chain combos.
 Game lemmings: Dudes · dudes/index.html · Assign skills and save the crew · Walkers leave yellow IN; get enough into green OUT; later levels: pick skill then tap a walker.
 Game paper: Paper Claim · paper-io/index.html · Claim land vs NPCs or online — paper.io style · Paint territory; don’t get cut while your trail is open. Default Classic look plus coin skins (Ink, Blueprint, Honeycomb, Ocean, Forest, Candy, Graffiti, Storm, Lava, Ice, Neon, Pixel, Shadow, Rainbow, Gold) that recolor your blob/trail/arena.
+Game stickers: Sticker Garage · sticker-garage/index.html · Paint custom stickers and sell them · Customize stickers in the shop; sell designs for cash.
+Game waves: Space Waves · space-waves/index.html · Hold-to-rise neon tunnel flyer · Hold to rise, release to fall; clear unique levels or endless.
+Game cup: Cup Flow · cup-flow/index.html · Draw to guide water into the cup · Draw lines from the tap to the cup, then Pour; fill the cup before you spill too much; Undo/Clear/ink budget.
 
 TECH NOTES
 

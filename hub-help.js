@@ -432,6 +432,7 @@
         "bubble-pop": "bubble",
         "sticker-garage": "stickers",
         "space-waves": "waves",
+        "cup-flow": "cup",
         "cafe-queue": "cafe",
         "garden-snap": "garden",
         dudes: "lemmings",

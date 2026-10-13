@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001fn": [
+    "New game: Cup Flow — draw lines to guide water from the tap into the cup"
+  ],
   "20261001fm": [
     "Space Waves: Win/Full toggle for windowed vs fullscreen layout"
   ],
@@ -1886,7 +1889,8 @@ const HUB_GAMES = [
   { id: "lemmings", name: "Dudes", path: "dudes/index.html" },
   { id: "paper", name: "Paper Claim", path: "paper-io/index.html" },
   { id: "stickers", name: "Sticker Garage", path: "sticker-garage/index.html" },
-  { id: "waves", name: "Space Waves", path: "space-waves/index.html" }
+  { id: "waves", name: "Space Waves", path: "space-waves/index.html" },
+  { id: "cup", name: "Cup Flow", path: "cup-flow/index.html" }
 ];
 
 /** Leaderboard tabs = hub points + hub-only boards first, then games (Mine Depth splits into depth + ore). */
@@ -2962,6 +2966,10 @@ function getHubScoreLocal(gameId) {
     case "waves": {
       const score = readNumberKey("space-waves-high-score");
       return { label: score ? `Best ${score}m` : "No runs yet", sort: score };
+    }
+    case "cup": {
+      const score = readNumberKey("cup-flow-high-score");
+      return { label: score ? `Level ${score}` : "No pours yet", sort: score };
     }
     case "cafe": {
       const score = readNumberKey("cafe-queue-high-score");
