@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001fv": [
+    "Cup Flow: 100 verified levels + unlock the next only after you clear the previous"
+  ],
   "20261001fu": [
     "Cup Flow: Stop clears the pour and resets fill (keeps your drawing)"
   ],

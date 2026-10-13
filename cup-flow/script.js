@@ -31,157 +31,23 @@
   };
 
   /**
+   * 100 levels from levels-data.js (generated + verified by tools/gen-cup-levels.js).
    * Coords are normalized 0–1 of the playfield.
-   * Draw lines to guide drops from the tap into the cup.
    */
-  const LEVELS = [
-    {
-      id: 1,
-      name: "First Drop",
-      ink: 1.4,
-      need: 28,
-      tap: { x: 0.22, y: 0.12 },
-      cup: { x: 0.72, y: 0.78, w: 0.12, h: 0.14 },
-      blocks: []
-    },
-    {
-      id: 2,
-      name: "Step Down",
-      ink: 1.35,
-      need: 30,
-      tap: { x: 0.18, y: 0.1 },
-      cup: { x: 0.7, y: 0.8, w: 0.13, h: 0.13 },
-      blocks: [{ x: 0.35, y: 0.45, w: 0.35, h: 0.05 }]
-    },
-    {
-      id: 3,
-      name: "Over the Gap",
-      ink: 1.25,
-      need: 32,
-      tap: { x: 0.15, y: 0.1 },
-      cup: { x: 0.75, y: 0.72, w: 0.12, h: 0.14 },
-      blocks: [
-        { x: 0.05, y: 0.55, w: 0.28, h: 0.05 },
-        { x: 0.55, y: 0.55, w: 0.4, h: 0.05 }
-      ]
-    },
-    {
-      id: 4,
-      name: "Shelf Cup",
-      ink: 1.2,
-      need: 34,
-      tap: { x: 0.5, y: 0.08 },
-      cup: { x: 0.18, y: 0.7, w: 0.12, h: 0.14 },
-      blocks: [
-        { x: 0.4, y: 0.35, w: 0.5, h: 0.045 },
-        { x: 0.08, y: 0.58, w: 0.35, h: 0.045 }
-      ]
-    },
-    {
-      id: 5,
-      name: "Zig",
-      ink: 1.15,
-      need: 36,
-      tap: { x: 0.12, y: 0.1 },
-      cup: { x: 0.78, y: 0.78, w: 0.12, h: 0.13 },
-      blocks: [
-        { x: 0.25, y: 0.28, w: 0.55, h: 0.04 },
-        { x: 0.1, y: 0.5, w: 0.5, h: 0.04 },
-        { x: 0.4, y: 0.7, w: 0.5, h: 0.04 }
-      ]
-    },
-    {
-      id: 6,
-      name: "Wall Slide",
-      ink: 1.1,
-      need: 36,
-      tap: { x: 0.82, y: 0.1 },
-      cup: { x: 0.14, y: 0.76, w: 0.12, h: 0.14 },
-      blocks: [
-        { x: 0.45, y: 0.2, w: 0.05, h: 0.55 },
-        { x: 0.1, y: 0.55, w: 0.35, h: 0.04 }
-      ]
-    },
-    {
-      id: 7,
-      name: "Two Roofs",
-      ink: 1.05,
-      need: 38,
-      tap: { x: 0.5, y: 0.08 },
-      cup: { x: 0.5, y: 0.8, w: 0.13, h: 0.13 },
-      blocks: [
-        { x: 0.15, y: 0.32, w: 0.28, h: 0.04 },
-        { x: 0.57, y: 0.32, w: 0.28, h: 0.04 },
-        { x: 0.35, y: 0.55, w: 0.3, h: 0.04 }
-      ]
-    },
-    {
-      id: 8,
-      name: "Tight Budget",
-      ink: 0.72,
-      need: 34,
-      tap: { x: 0.2, y: 0.1 },
-      cup: { x: 0.72, y: 0.76, w: 0.12, h: 0.14 },
-      blocks: [
-        { x: 0.35, y: 0.4, w: 0.08, h: 0.4 },
-        { x: 0.55, y: 0.25, w: 0.08, h: 0.35 }
-      ]
-    },
-    {
-      id: 9,
-      name: "Catch High",
-      ink: 1.0,
-      need: 40,
-      tap: { x: 0.15, y: 0.12 },
-      cup: { x: 0.7, y: 0.35, w: 0.12, h: 0.13 },
-      blocks: [
-        { x: 0.55, y: 0.48, w: 0.35, h: 0.04 },
-        { x: 0.25, y: 0.65, w: 0.55, h: 0.04 }
-      ]
-    },
-    {
-      id: 10,
-      name: "Funnel",
-      ink: 0.95,
-      need: 42,
-      tap: { x: 0.5, y: 0.08 },
-      cup: { x: 0.5, y: 0.82, w: 0.11, h: 0.12 },
-      blocks: [
-        { x: 0.1, y: 0.3, w: 0.28, h: 0.04, rot: -0.35 },
-        { x: 0.62, y: 0.3, w: 0.28, h: 0.04, rot: 0.35 },
-        { x: 0.22, y: 0.55, w: 0.22, h: 0.04, rot: -0.25 },
-        { x: 0.56, y: 0.55, w: 0.22, h: 0.04, rot: 0.25 }
-      ]
-    },
-    {
-      id: 11,
-      name: "Maze Sip",
-      ink: 1.15,
-      need: 44,
-      tap: { x: 0.12, y: 0.1 },
-      cup: { x: 0.82, y: 0.78, w: 0.11, h: 0.13 },
-      blocks: [
-        { x: 0.3, y: 0.2, w: 0.05, h: 0.35 },
-        { x: 0.3, y: 0.55, w: 0.4, h: 0.05 },
-        { x: 0.65, y: 0.35, w: 0.05, h: 0.4 },
-        { x: 0.45, y: 0.2, w: 0.35, h: 0.05 }
-      ]
-    },
-    {
-      id: 12,
-      name: "Last Pour",
-      ink: 0.85,
-      need: 48,
-      tap: { x: 0.5, y: 0.08 },
-      cup: { x: 0.18, y: 0.78, w: 0.12, h: 0.13 },
-      blocks: [
-        { x: 0.35, y: 0.22, w: 0.5, h: 0.04 },
-        { x: 0.15, y: 0.42, w: 0.5, h: 0.04 },
-        { x: 0.4, y: 0.62, w: 0.5, h: 0.04 },
-        { x: 0.48, y: 0.22, w: 0.05, h: 0.25 }
-      ]
-    }
-  ];
+  const LEVELS =
+    Array.isArray(window.CUP_FLOW_LEVELS) && window.CUP_FLOW_LEVELS.length
+      ? window.CUP_FLOW_LEVELS
+      : [
+          {
+            id: 1,
+            name: "First Drop",
+            ink: 1.4,
+            need: 28,
+            tap: { x: 0.22, y: 0.12 },
+            cup: { x: 0.72, y: 0.78, w: 0.12, h: 0.14 },
+            blocks: []
+          }
+        ];
 
   function clamp(n, a, b) {
     return Math.max(a, Math.min(b, n));
@@ -307,31 +173,56 @@
     els.pour.classList.toggle("is-on", pouring);
   }
 
+  /** Level index unlocked if it's 1 or the previous level was cleared */
+  function isLevelUnlocked(index) {
+    const id = (LEVELS[index] && LEVELS[index].id) || index + 1;
+    return id <= bestLevel + 1;
+  }
+
   function syncStartLabel() {
     if (overlayKind === "pause") {
       els.start.textContent = "Restart";
       return;
     }
-    if (overlayKind === "win" && levelIndex < LEVELS.length - 1) {
+    if (overlayKind === "win" && levelIndex < LEVELS.length - 1 && isLevelUnlocked(levelIndex + 1)) {
       els.start.textContent = `Next · ${LEVELS[levelIndex + 1].name}`;
       return;
     }
     const lv = currentLevel();
-    els.start.textContent = `Play ${lv.id} · ${lv.name}`;
+    els.start.textContent = isLevelUnlocked(levelIndex)
+      ? `Play ${lv.id} · ${lv.name}`
+      : "Locked";
   }
 
   function renderLevelPicker() {
     els.picker.innerHTML = "";
+    if (!isLevelUnlocked(levelIndex)) {
+      levelIndex = Math.min(bestLevel, LEVELS.length - 1);
+      levelIndex = Math.max(0, levelIndex);
+    }
     const cur = currentLevel();
-    if (els.levelMeta) els.levelMeta.textContent = `${cur.id} · ${cur.name}`;
+    if (els.levelMeta) {
+      els.levelMeta.textContent = isLevelUnlocked(levelIndex)
+        ? `${cur.id} · ${cur.name}`
+        : `${cur.id} · Locked`;
+    }
     LEVELS.forEach((lv, i) => {
+      const unlocked = isLevelUnlocked(i);
+      const cleared = lv.id <= bestLevel;
       const btn = document.createElement("button");
       btn.type = "button";
       btn.className =
-        `lvl-btn` + (i === levelIndex ? " active" : "") + (lv.id <= bestLevel ? " cleared" : "");
-      btn.innerHTML = `<span class="lvl-num">${lv.id}</span><span class="lvl-name">${lv.name}</span>`;
-      btn.title = lv.name;
+        `lvl-btn` +
+        (i === levelIndex ? " active" : "") +
+        (cleared ? " cleared" : "") +
+        (unlocked ? "" : " locked");
+      btn.disabled = !unlocked;
+      btn.title = unlocked ? lv.name : `Beat level ${lv.id - 1} to unlock`;
+      btn.innerHTML = unlocked
+        ? `<span class="lvl-num">${lv.id}</span><span class="lvl-name">${lv.name}</span>`
+        : `<span class="lvl-num">${lv.id}</span><span class="lvl-name">Locked</span>`;
       btn.addEventListener("click", () => {
+        if (!isLevelUnlocked(i)) return;
         levelIndex = i;
         if (overlayKind === "win" || overlayKind === "dead") overlayKind = "menu";
         renderLevelPicker();
@@ -432,7 +323,7 @@
     } else {
       els.title.textContent = "Cup Flow";
       els.text.textContent =
-        "Draw lines to guide water from the tap into the cup. Fill it up — don’t waste your ink.";
+        "Draw lines to guide water into the cup. Beat each level to unlock the next (100 total).";
     }
     renderLevelPicker();
     paintHud();
@@ -1062,8 +953,11 @@
   });
 
   els.start.addEventListener("click", () => {
-    if (overlayKind === "win" && levelIndex < LEVELS.length - 1) {
+    if (overlayKind === "win" && levelIndex < LEVELS.length - 1 && isLevelUnlocked(levelIndex + 1)) {
       levelIndex += 1;
+    }
+    if (!isLevelUnlocked(levelIndex)) {
+      levelIndex = Math.max(0, Math.min(bestLevel, LEVELS.length - 1));
     }
     startGame();
   });
@@ -1104,7 +998,12 @@
         // let menu Space be handled lightly — start if menu open
         if (!els.overlay.classList.contains("hidden") && overlayKind !== "pause") {
           e.preventDefault();
-          if (overlayKind === "win" && levelIndex < LEVELS.length - 1) levelIndex += 1;
+          if (overlayKind === "win" && levelIndex < LEVELS.length - 1 && isLevelUnlocked(levelIndex + 1)) {
+            levelIndex += 1;
+          }
+          if (!isLevelUnlocked(levelIndex)) {
+            levelIndex = Math.max(0, Math.min(bestLevel, LEVELS.length - 1));
+          }
           startGame();
         }
       }

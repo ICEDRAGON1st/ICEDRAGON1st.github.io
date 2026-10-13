@@ -237,9 +237,12 @@ body {
 
 .level-picker {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.45rem;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.4rem;
   margin-bottom: 1rem;
+  max-height: min(42vh, 320px);
+  overflow: auto;
+  padding-right: 0.15rem;
 }
 
 .lvl-btn {
@@ -270,6 +273,13 @@ body {
   box-shadow: 0 0 0 1px rgba(43, 183, 255, 0.35);
 }
 .lvl-btn.cleared .lvl-name { color: var(--ok); opacity: 1; }
+.lvl-btn.locked {
+  opacity: 0.42;
+  cursor: not-allowed;
+  filter: grayscale(0.4);
+  background: rgba(20, 48, 74, 0.06);
+}
+.lvl-btn.locked .lvl-num { color: var(--muted); }
 
 .overlay-actions {
   display: flex;
@@ -293,7 +303,7 @@ body {
 .hidden { display: none !important; }
 
 @media (max-width: 520px) {
-  .level-picker { grid-template-columns: repeat(3, 1fr); }
+  .level-picker { grid-template-columns: repeat(4, 1fr); max-height: min(38vh, 280px); }
   .toolbar { gap: 0.35rem; }
   .tool-btn { font-size: 0.82rem; padding: 0.65rem 0.25rem; }
   .speed-btn { padding: 0.4rem 0.55rem; font-size: 0.8rem; min-width: 2.6rem; }
