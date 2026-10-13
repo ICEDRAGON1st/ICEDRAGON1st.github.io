@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001fo": [
+    "Cup Flow: add hub game card so it shows in My Games"
+  ],
   "20261001fn": [
     "New game: Cup Flow — draw lines to guide water from the tap into the cup"
   ],
