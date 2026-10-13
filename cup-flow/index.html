@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <script src="../hub-game-boot.js?v=20261001fs"></script>
+  <script src="../hub-game-boot.js?v=20261001ft"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Fredoka:wght@600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261001fs">
+  <link rel="stylesheet" href="styles.css?v=20261001ft">
 </head>
 <body>
   <main class="shell">
@@ -30,6 +30,12 @@
       <button id="clear-btn" type="button" class="tool-btn">Clear</button>
       <button id="pour-btn" type="button" class="tool-btn tool-pour">Pour</button>
       <button id="reset-btn" type="button" class="tool-btn">Reset</button>
+    </div>
+    <div class="speed-row" role="group" aria-label="Water speed">
+      <span class="speed-label">Speed</span>
+      <button type="button" class="speed-btn active" data-speed="1" title="Normal speed">1×</button>
+      <button type="button" class="speed-btn" data-speed="0.5" title="2× slower">2× slow</button>
+      <button type="button" class="speed-btn" data-speed="0.333" title="3× slower">3× slow</button>
     </div>
     <p class="hint" id="hint">Draw a path · tap Pour · fill the cup</p>
   </main>
@@ -66,6 +72,6 @@
   <script src="../hub-chat.js?v=20260927c"></script>
   <script src="../hub-calls.js?v=20260925a"></script>
   <script src="../hub-leaderboard.js?v=20260925a"></script>
-  <script src="script.js?v=20261001fs"></script>
+  <script src="script.js?v=20261001ft"></script>
 </body>
 </html>

@@ -2,6 +2,7 @@
   const GAME_ID = "cup";
   const HIGH_KEY = "cup-flow-high-score";
   const BEST_LEVEL_KEY = "cup-flow-best-level";
+  const SPEED_KEY = "cup-flow-speed-scale";
 
   const canvas = document.getElementById("game");
   const ctx = canvas.getContext("2d");
@@ -226,6 +227,39 @@
   let raf = 0;
   let lastTs = 0;
   let drawing = false;
+  let speedScale = readSpeedScale(); // 1 | 0.5 | ~0.333
+
+  function readSpeedScale() {
+    try {
+      const n = Number(localStorage.getItem(SPEED_KEY));
+      if (Math.abs(n - 0.5) < 0.01) return 0.5;
+      if (Math.abs(n - 1 / 3) < 0.02) return 1 / 3;
+      return 1;
+    } catch {
+      return 1;
+    }
+  }
+
+  function setSpeedScale(scale) {
+    if (scale <= 0.34) speedScale = 1 / 3;
+    else if (scale <= 0.6) speedScale = 0.5;
+    else speedScale = 1;
+    try {
+      localStorage.setItem(SPEED_KEY, String(speedScale));
+    } catch {}
+    syncSpeedButtons();
+  }
+
+  function syncSpeedButtons() {
+    document.querySelectorAll(".speed-btn").forEach((btn) => {
+      const v = Number(btn.dataset.speed);
+      const active =
+        (speedScale === 1 && v === 1) ||
+        (speedScale === 0.5 && v === 0.5) ||
+        (speedScale < 0.4 && v < 0.4);
+      btn.classList.toggle("active", active);
+    });
+  }
 
   const GRAVITY = 1.55;
   const MAX_DROPS = 220;
@@ -758,15 +792,17 @@
   function update(dt) {
     if (!running || paused || won) return;
 
+    const simDt = dt * speedScale;
+
     if (pouring) {
-      pourAcc += dt;
+      pourAcc += simDt;
       while (pourAcc > 0.055) {
         pourAcc -= 0.055;
         spawnDrop();
       }
     }
 
-    updatePhysics(dt);
+    updatePhysics(simDt);
     paintHud();
     if (flash > 0) flash = Math.max(0, flash - dt * 2.5);
     if (shake > 0) shake = Math.max(0, shake - dt * 28);
@@ -996,6 +1032,12 @@
     els.hint.textContent = "Draw a path · tap Pour · fill the cup";
   });
 
+  document.querySelectorAll(".speed-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      setSpeedScale(Number(btn.dataset.speed) || 1);
+    });
+  });
+
   els.pour.addEventListener("click", () => {
     if (!running || paused || won) return;
     if (pouring) {
@@ -1074,6 +1116,7 @@
   else if (bestLevel >= LEVELS.length) levelIndex = 0;
 
   resize();
+  syncSpeedButtons();
   renderLevelPicker();
   paintHud();
   showOverlay("menu");

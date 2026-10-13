@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ft": [
+    "Cup Flow: 1× / 2× slow / 3× slow water speed buttons"
+  ],
   "20261001fs": [
     "Cup Flow: faster water with real momentum — crest small uphills without launching"
   ],

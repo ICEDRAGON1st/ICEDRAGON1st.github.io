@@ -108,6 +108,40 @@ body {
   margin-top: 0.55rem;
 }
 
+.speed-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+}
+.speed-label {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-right: 0.15rem;
+}
+.speed-btn {
+  appearance: none;
+  border: 2px solid rgba(20, 48, 74, 0.12);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-weight: 800;
+  font-size: 0.82rem;
+  padding: 0.45rem 0.65rem;
+  cursor: pointer;
+  flex: 1;
+  max-width: 6.5rem;
+}
+.speed-btn.active {
+  background: rgba(43, 183, 255, 0.2);
+  border-color: var(--accent);
+  color: var(--accent-deep);
+}
+
 .tool-btn {
   padding: 0.7rem 0.4rem;
   background: #fff;
@@ -262,4 +296,5 @@ body {
   .level-picker { grid-template-columns: repeat(3, 1fr); }
   .toolbar { gap: 0.35rem; }
   .tool-btn { font-size: 0.82rem; padding: 0.65rem 0.25rem; }
+  .speed-btn { padding: 0.4rem 0.55rem; font-size: 0.8rem; min-width: 2.6rem; }
 }
