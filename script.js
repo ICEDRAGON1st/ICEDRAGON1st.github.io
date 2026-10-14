@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001fx": [
+    "Cup Flow: tighter ink budgets — less drawing room, plan your paths"
+  ],
   "20261001fw": [
     "Cup Flow: reworked 100 levels — rising difficulty, real obstacles, no free wins without drawing"
   ],

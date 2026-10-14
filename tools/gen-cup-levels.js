@@ -212,7 +212,8 @@ function buildLevel(index) {
   }
 
   const pathLen = strokeLength(sol);
-  const ink = clamp(pathLen * lerp(1.85, 1.28, d) + lerp(0.4, 0.15, d), 1.15, 3.3);
+  // Tight ink: early levels ~20% spare, late levels barely enough for the solution
+  const ink = clamp(pathLen * lerp(1.22, 1.06, d) + lerp(0.12, 0.04, d), 0.75, 2.2);
   const need = Math.round(lerp(20, 40, d));
 
   return {
@@ -312,7 +313,7 @@ function validate(level) {
     if (pathThroughBlock(sol, b, 0.025)) return { ok: false, reason: "path hits block" };
   }
   const len = strokeLength(sol);
-  if (len > level.ink * 0.9) return { ok: false, reason: "ink tight" };
+  if (len > level.ink * 0.98) return { ok: false, reason: "ink tight" };
   return { ok: true, obstacles: level.blocks.length, len };
 }
 
@@ -357,7 +358,7 @@ function main() {
       while (freeWin(lv.tap, lv.cup, lv.blocks)) {
         lv.blocks.unshift({ x: lv.tap.x - 0.25, y: 0.27, w: 0.5, h: 0.05 });
       }
-      lv.ink = Math.min(3.4, strokeLength(lv._sol) * 1.45 + 0.25);
+      lv.ink = Math.round(Math.min(2.2, strokeLength(lv._sol) * 1.12 + 0.08) * 100) / 100;
       lv.need = Math.round(lerp(20, 40, difficulty(i)));
       lv.name = uniqueName(i);
       lv.id = i + 1;
