@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001gc": [
+    "Cup Flow: 100 unique playable levels — different shapes, not zigzag copies"
+  ],
   "20261001gb": [
     "Cup Flow: zigzag shelves force the route — no more bypassable decoration piles"
   ],

@@ -1,7 +1,7 @@
 /**
- * 100 Cup Flow levels — zigzag shelves force the only route.
- * Every shelf spans nearly the full width with an alternating opening;
- * short diagonals always hit a shelf. Difficulty = more rows + tighter gaps + less ink.
+ * 100 unique, playable Cup Flow levels.
+ * Each level uses a different kit + jitter so they don't look like copies.
+ * Short platforms (not full-width bars). Generous ink. Clear routes.
  */
 const fs = require("fs");
 const path = require("path");
@@ -14,82 +14,41 @@ function clamp(n, a, b) {
 function lerp(a, b, t) {
   return a + (b - a) * t;
 }
-function strokeLength(pts) {
-  let len = 0;
-  for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
-  return len;
+function R(n, p = 3) {
+  return Math.round(n * 10 ** p) / 10 ** p;
 }
-function densify(pts, step = 0.02) {
+function box(x, y, w, h) {
+  return { x: R(x), y: R(y), w: R(Math.max(0.06, w)), h: R(Math.max(0.05, h)) };
+}
+function hits(p, b, pad = 0) {
+  return p.x >= b.x - pad && p.x <= b.x + b.w + pad && p.y >= b.y - pad && p.y <= b.y + b.h + pad;
+}
+function freeFall(tap, cup, blocks) {
+  for (let y = tap.y + 0.02; y < 1; y += 0.01) {
+    const p = { x: tap.x, y };
+    if (blocks.some((b) => hits(p, b))) return false;
+    if (p.x >= cup.x && p.x <= cup.x + cup.w && p.y >= cup.y && p.y <= cup.y + cup.h) return true;
+  }
+  return false;
+}
+function strokeLen(pts) {
+  let n = 0;
+  for (let i = 1; i < pts.length; i++) n += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+  return n;
+}
+function densify(pts, step = 0.025) {
   const out = [{ ...pts[0] }];
   for (let i = 1; i < pts.length; i++) {
     const a = pts[i - 1];
     const b = pts[i];
-    const dist = Math.hypot(b.x - a.x, b.y - a.y);
-    const n = Math.max(1, Math.ceil(dist / step));
+    const d = Math.hypot(b.x - a.x, b.y - a.y);
+    const n = Math.max(1, Math.ceil(d / step));
     for (let k = 1; k <= n; k++) {
       const t = k / n;
       out.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
     }
   }
   return out;
-}
-function R(n, p = 3) {
-  const m = 10 ** p;
-  return Math.round(n * m) / m;
-}
-function box(x, y, w, h) {
-  return { x: R(x), y: R(y), w: R(Math.max(0.05, w)), h: R(Math.max(0.05, h)) };
-}
-function hitsBox(p, b, pad = 0) {
-  return p.x >= b.x - pad && p.x <= b.x + b.w + pad && p.y >= b.y - pad && p.y <= b.y + b.h + pad;
-}
-function insideBlock(p, b, pad = 0) {
-  if (p.y <= b.y + 0.01) return false; // riding top is OK
-  return p.x > b.x - pad && p.x < b.x + b.w + pad && p.y < b.y + b.h + pad;
-}
-function pathThroughBlock(pts, b, pad = 0.02) {
-  return pts.some((p) => insideBlock(p, b, pad));
-}
-/** True only if path cuts deep through a solid (ignore top-skim densify samples). */
-function pathTunnelsBlock(pts, b) {
-  return pts.some(
-    (p) =>
-      p.x > b.x + 0.025 &&
-      p.x < b.x + b.w - 0.025 &&
-      p.y > b.y + 0.02 &&
-      p.y < b.y + b.h - 0.005
-  );
-}
-
-function freeFallWin(tap, cup, blocks) {
-  for (let y = tap.y + 0.02; y < 1; y += 0.008) {
-    const p = { x: tap.x, y };
-    if ((blocks || []).some((b) => hitsBox(p, b))) return false;
-    if (p.x >= cup.x && p.x <= cup.x + cup.w && p.y >= cup.y && p.y <= cup.y + cup.h) return true;
-  }
-  return false;
-}
-
-/** Near-direct routes must hit at least one solid. */
-function shortBypass(tap, cup, blocks) {
-  const cx = cup.x + cup.w * 0.5;
-  const cy = cup.y + cup.h * 0.35;
-  const start = { x: tap.x, y: tap.y + 0.04 };
-  const straight = Math.hypot(cx - start.x, cy - start.y);
-  const routes = [
-    [start, { x: cx, y: cy }],
-    [start, { x: lerp(start.x, cx, 0.5), y: 0.3 }, { x: cx, y: cy }],
-    [start, { x: lerp(start.x, cx, 0.5), y: 0.5 }, { x: cx, y: cy }],
-    [start, { x: start.x, y: 0.45 }, { x: cx, y: 0.45 }, { x: cx, y: cy }],
-    [start, { x: cx, y: start.y + 0.12 }, { x: cx, y: cy }],
-    [start, { x: start.x + Math.sign(cx - start.x) * 0.1, y: 0.28 }, { x: cx, y: cy }]
-  ];
-  for (const route of routes) {
-    const pts = densify(route, 0.012);
-    if (strokeLength(pts) > straight * 1.45) continue;
-    if (!pts.some((p) => (blocks || []).some((b) => hitsBox(p, b, 0.01)))) return true;
-  }
-  return false;
 }
 
 function uniqueName(i) {
@@ -103,250 +62,419 @@ function uniqueName(i) {
     "Slide", "Drop", "Lane", "Hook", "Turn", "Ramp", "Well", "Spout", "Trough", "Flume",
     "Vault", "Sill", "Ledge", "Run", "Pass"
   ];
-  return `${A[i % A.length]} ${B[(i * 3 + Math.floor(i / 7)) % B.length]}`.slice(0, 16);
+  return `${A[i % A.length]} ${B[(i * 5 + 3) % B.length]}`.slice(0, 16);
 }
 
-function difficulty(i) {
-  return i / (COUNT - 1);
+/** Roof under tap — always. */
+function roofUnder(tap, flip, w = 0.34) {
+  const x = flip ? clamp(tap.x - w * 0.35, 0.4, 0.7) : clamp(tap.x - w * 0.55, 0.04, 0.35);
+  const b = box(x, 0.24, w, 0.055);
+  if (tap.x < b.x) b.x = R(tap.x - 0.04);
+  if (tap.x > b.x + b.w) b.w = R(tap.x - b.x + 0.08);
+  return b;
 }
 
-function dedupe(blocks) {
-  const out = [];
-  for (const b of blocks) {
-    if (out.some((c) => Math.abs(c.x - b.x) < 0.02 && Math.abs(c.y - b.y) < 0.02 && Math.abs(c.w - b.w) < 0.03)) continue;
-    out.push(b);
-  }
-  return out;
-}
+/**
+ * 20 visually different kits. Each returns { blocks, waypoints }.
+ * waypoints = path from under tap to cup (ride shelves / go around walls).
+ */
+function kit(kitId, tap, cup, flip, d, jitter) {
+  const j = jitter;
+  const dir = flip ? -1 : 1;
+  const mid = flip ? 0.45 : 0.55;
+  const cupX = cup.x + cup.w * 0.5;
+  const cupY = cup.y + cup.h * 0.35;
+  const roof = roofUnder(tap, flip, lerp(0.32, 0.4, d));
+  const exitX = flip ? roof.x - 0.05 : roof.x + roof.w + 0.05;
+  const ride = roof.y - 0.03;
 
-function buildZigzag(index, tap, cup, flip, d) {
-  const blocks = [];
-  const band = Math.floor(index / 10);
-  const rows = 3 + (index % 4) + Math.min(3, Math.floor(band / 2)); // 3..9, varies within band
-  const openW = clamp(lerp(0.22, 0.1, d) - (index % 3) * 0.015, 0.09, 0.24);
-  const shelfH = 0.055;
-  const margin = 0.04 + (index % 3) * 0.005;
-
-  // Roof under tap
-  const roofW = lerp(0.42, 0.58, d);
-  const roofY = 0.2 + (index % 3) * 0.01;
-  const roof = box(
-    clamp(tap.x - roofW * (flip ? 0.28 : 0.62), 0.03, 0.52),
-    roofY,
-    roofW,
-    shelfH
-  );
-  if (tap.x < roof.x) roof.x = R(tap.x - 0.06);
-  if (tap.x > roof.x + roof.w) roof.w = R(tap.x - roof.x + 0.1);
-  blocks.push(roof);
-
-  // First opening on tap side, then alternate
-  const openRightFirst = flip;
-  const yTop = 0.28 + (index % 5) * 0.012;
-  const yBot = clamp(cup.y - 0.1 - (index % 3) * 0.01, 0.54, 0.68);
-
-  for (let r = 0; r < rows; r++) {
-    const y = lerp(yTop, yBot, rows === 1 ? 0 : r / (rows - 1));
-    const openRight = openRightFirst ? r % 2 === 0 : r % 2 === 1;
-    if (openRight) {
-      // solid left → gap on right (against right wall)
-      const solidW = 1 - margin - openW - margin;
-      blocks.push(box(margin, y, solidW, shelfH));
-    } else {
-      // gap on left → solid toward right wall, leave a tiny slip past the end
-      const gapEnd = margin + openW;
-      const rightEdge = 0.92;
-      blocks.push(box(gapEnd, y, rightEdge - gapEnd, shelfH));
-    }
-  }
-
-  // Side walls — stop running around the shelves
-  blocks.push(box(0.015, 0.22, 0.04, 0.55));
-  blocks.push(box(0.945, 0.22, 0.04, 0.55));
-
-  // Cup landing shelf
-  blocks.push(box(clamp(cup.x - 0.05, 0.06, 0.7), clamp(cup.y - 0.1, 0.58, 0.68), cup.w + 0.14, shelfH));
-
-  // Mid-game+: a vertical baffle in the larger mid opening so you can't skip a row diagonally
-  if (band >= 2) {
-    const midRow = Math.floor(rows / 2);
-    const midY = lerp(yTop, yBot, rows === 1 ? 0 : midRow / (rows - 1));
-    const midOpenRight = openRightFirst ? midRow % 2 === 0 : midRow % 2 === 1;
-    if (midOpenRight) {
-      blocks.push(box(1 - margin - openW - 0.02, midY - 0.09, 0.045, 0.1));
-    } else {
-      blocks.push(box(margin + openW - 0.02, midY - 0.09, 0.045, 0.1));
-    }
-  }
-  if (band >= 5) {
-    const r2 = Math.max(1, rows - 2);
-    const y2 = lerp(yTop, yBot, r2 / (rows - 1));
-    const openR = openRightFirst ? r2 % 2 === 0 : r2 % 2 === 1;
-    if (openR) blocks.push(box(1 - margin - openW - 0.02, y2 - 0.08, 0.045, 0.09));
-    else blocks.push(box(margin + openW - 0.02, y2 - 0.08, 0.045, 0.09));
-  }
-  if (band >= 8) {
-    blocks.push(box(0.46, 0.38, 0.05, 0.16));
-  }
-
-  return dedupe(blocks);
-}
-
-function shelfOpening(s) {
-  // Left-solid shelves start near margin → opening on the right
-  const openRight = s.x <= 0.1;
-  const openX = openRight ? clamp(s.x + s.w + 0.06, 0.12, 0.9) : clamp(s.x - 0.06, 0.1, 0.88);
-  const landX = openRight ? clamp(s.x + s.w - 0.07, 0.12, 0.88) : clamp(s.x + 0.07, 0.12, 0.88);
-  return { openRight, openX, landX };
-}
-
-function buildSolution(tap, cup, blocks, flip) {
-  const roof = blocks[0];
-  const cx = cup.x + cup.w * 0.5;
-  const cy = cup.y + cup.h * 0.4;
-  const rideY = roof.y - 0.03;
-
-  const shelves = blocks
-    .filter((b) => b.h <= 0.08 && b.w >= 0.45)
-    .slice()
-    .sort((a, b) => a.y - b.y)
-    .filter((s) => s !== roof && s.y >= 0.28 && s.y <= cup.y - 0.05);
-
-  // Start in the first shelf's opening (tap side)
-  const first = shelves[0] ? shelfOpening(shelves[0]) : { openX: flip ? 0.82 : 0.18 };
-  const leaveX = first.openX;
-
-  const pts = [
-    { x: tap.x, y: tap.y + 0.03 },
-    { x: tap.x, y: rideY },
-    { x: leaveX, y: rideY }
+  const blocks = [roof];
+  let waypoints = [
+    { x: tap.x, y: tap.y + 0.04 },
+    { x: tap.x, y: ride },
+    { x: clamp(exitX, 0.08, 0.92), y: ride }
   ];
 
-  let y = rideY;
-  for (let i = 0; i < shelves.length; i++) {
-    const s = shelves[i];
-    const { openRight, openX, landX } = shelfOpening(s);
-    // Drop through this shelf's opening onto its top
-    pts.push({ x: openX, y });
-    pts.push({ x: openX, y: s.y - 0.03 });
-    pts.push({ x: landX, y: s.y - 0.03 });
-    // Ride to the far lip
-    const farLip = openRight
-      ? clamp(s.x + 0.06, 0.1, 0.88)
-      : clamp(s.x + s.w - 0.06, 0.12, 0.9);
-    pts.push({ x: farLip, y: s.y - 0.03 });
-    // Slip off into the open column just past the shelf
-    const slipX = openRight
-      ? clamp(s.x - 0.055, 0.08, 0.9)
-      : clamp(s.x + s.w + 0.055, 0.1, 0.92);
-    pts.push({ x: slipX, y: s.y - 0.03 });
-    // Drop a little in free air below this shelf
-    const airY = i + 1 < shelves.length
-      ? (s.y + shelves[i + 1].y) / 2
-      : s.y + 0.04;
-    pts.push({ x: slipX, y: airY });
-    // Cross in free air to the NEXT opening (or cup)
-    if (i + 1 < shelves.length) {
-      const nextOpen = shelfOpening(shelves[i + 1]).openX;
-      pts.push({ x: nextOpen, y: airY });
-      y = airY;
-    } else {
-      y = airY;
+  const add = (...bs) => blocks.push(...bs);
+  const go = (...pts) => {
+    for (const p of pts) waypoints.push(p);
+  };
+
+  switch (kitId % 20) {
+    case 0: {
+      // Two short steps toward cup
+      const a = box(flip ? 0.45 + j : 0.28 + j, 0.4, 0.22, 0.05);
+      const b = box(clamp(cupX - 0.1, 0.08, 0.7), 0.56, 0.22, 0.05);
+      add(a, b);
+      go({ x: a.x + a.w * 0.5, y: a.y - 0.03 }, { x: b.x + b.w * 0.5, y: b.y - 0.03 });
+      break;
+    }
+    case 1: {
+      // Long runway then drop
+      const a = box(flip ? 0.2 : 0.25 + j, 0.38, 0.4, 0.05);
+      const b = box(clamp(cupX - 0.08, 0.08, 0.72), 0.58, 0.2, 0.05);
+      add(a, b);
+      go({ x: a.x + (flip ? 0.08 : a.w - 0.08), y: a.y - 0.03 }, { x: b.x + b.w * 0.5, y: b.y - 0.03 });
+      break;
+    }
+    case 2: {
+      // Center pillar + two shelves
+      const wall = box(mid - 0.03, 0.3, 0.06, lerp(0.28, 0.38, d));
+      const a = box(flip ? 0.12 : 0.55, 0.46, 0.26, 0.05);
+      const b = box(clamp(cupX - 0.1, 0.08, 0.7), 0.62, 0.22, 0.05);
+      add(wall, a, b);
+      go(
+        { x: flip ? wall.x - 0.06 : wall.x + wall.w + 0.06, y: 0.4 },
+        { x: a.x + a.w * 0.5, y: a.y - 0.03 },
+        { x: b.x + b.w * 0.5, y: b.y - 0.03 }
+      );
+      break;
+    }
+    case 3: {
+      // S-curve three short shelves
+      const a = box(flip ? 0.5 : 0.12 + j, 0.36, 0.28, 0.05);
+      const b = box(flip ? 0.14 : 0.48, 0.5, 0.28, 0.05);
+      const c = box(clamp(cupX - 0.1, 0.08, 0.7), 0.64, 0.22, 0.05);
+      add(a, b, c);
+      go(
+        { x: a.x + a.w * 0.5, y: a.y - 0.03 },
+        { x: b.x + b.w * 0.5, y: b.y - 0.03 },
+        { x: c.x + c.w * 0.5, y: c.y - 0.03 }
+      );
+      break;
+    }
+    case 4: {
+      // Diagonal cascade (4 short pads)
+      for (let i = 0; i < 4; i++) {
+        const x = flip ? 0.55 - i * 0.1 + j * 0.3 : 0.2 + i * 0.1 + j * 0.3;
+        const y = 0.34 + i * 0.08;
+        const s = box(clamp(x, 0.08, 0.72), y, 0.18, 0.05);
+        add(s);
+        go({ x: s.x + s.w * 0.5, y: s.y - 0.03 });
+      }
+      break;
+    }
+    case 5: {
+      // Cup pocket (walls beside cup + approach shelf)
+      const shelf = box(flip ? 0.35 : 0.25 + j, 0.42, 0.32, 0.05);
+      const L = box(cup.x - 0.05, cup.y - 0.02, 0.05, cup.h + 0.05);
+      const R = box(cup.x + cup.w, cup.y - 0.02, 0.05, cup.h + 0.05);
+      const lid = box(cup.x - 0.05, cup.y - 0.07, cup.w + 0.1, 0.05);
+      add(shelf, L, R, lid);
+      go({ x: shelf.x + shelf.w * 0.5, y: shelf.y - 0.03 }, { x: cupX, y: lid.y - 0.03 });
+      break;
+    }
+    case 6: {
+      // Bridge gap (two shelves with space)
+      const a = box(0.08, 0.4, 0.3, 0.05);
+      const b = box(0.55, 0.4, 0.32, 0.05);
+      const c = box(clamp(cupX - 0.1, 0.1, 0.7), 0.58, 0.24, 0.05);
+      add(a, b, c);
+      const first = flip ? b : a;
+      const second = flip ? a : b;
+      go(
+        { x: first.x + first.w * 0.5, y: first.y - 0.03 },
+        { x: second.x + second.w * 0.5, y: second.y - 0.03 },
+        { x: c.x + c.w * 0.5, y: c.y - 0.03 }
+      );
+      break;
+    }
+    case 7: {
+      // Side canyon wall
+      const wall = box(flip ? 0.35 : 0.55, 0.28, 0.06, 0.4);
+      const a = box(flip ? 0.5 : 0.15 + j, 0.48, 0.28, 0.05);
+      const b = box(clamp(cupX - 0.1, 0.08, 0.7), 0.64, 0.22, 0.05);
+      add(wall, a, b);
+      go(
+        { x: flip ? wall.x + wall.w + 0.06 : wall.x - 0.06, y: 0.4 },
+        { x: a.x + a.w * 0.5, y: a.y - 0.03 },
+        { x: b.x + b.w * 0.5, y: b.y - 0.03 }
+      );
+      break;
+    }
+    case 8: {
+      // Funnel gates
+      const L = box(0.05, 0.4, 0.28, 0.05);
+      const R = box(0.58, 0.4, 0.3, 0.05);
+      const post = box(0.44, 0.42, 0.05, 0.2);
+      const c = box(clamp(cupX - 0.1, 0.08, 0.7), 0.64, 0.24, 0.05);
+      add(L, R, post, c);
+      go(
+        { x: flip ? R.x + 0.1 : L.x + L.w - 0.1, y: L.y - 0.03 },
+        { x: flip ? post.x - 0.06 : post.x + post.w + 0.06, y: 0.5 },
+        { x: c.x + c.w * 0.5, y: c.y - 0.03 }
+      );
+      break;
+    }
+    case 9: {
+      // High shelf + low ledge
+      const a = box(0.18 + j, 0.34, 0.5, 0.05);
+      const wall = box(mid - 0.03, 0.38, 0.06, 0.2);
+      const b = box(flip ? 0.12 : 0.5, 0.58, 0.28, 0.05);
+      add(a, wall, b);
+      go(
+        { x: a.x + (flip ? 0.1 : a.w - 0.1), y: a.y - 0.03 },
+        { x: flip ? wall.x + wall.w + 0.05 : wall.x - 0.05, y: 0.5 },
+        { x: b.x + b.w * 0.5, y: b.y - 0.03 }
+      );
+      break;
+    }
+    case 10: {
+      // L then reverse-L
+      const a = box(flip ? 0.4 : 0.12 + j, 0.36, 0.36, 0.05);
+      const v1 = box(flip ? 0.4 : 0.43, 0.36, 0.05, 0.2);
+      const b = box(flip ? 0.12 : 0.4, 0.54, 0.36, 0.05);
+      const c = box(clamp(cupX - 0.1, 0.08, 0.7), 0.68, 0.2, 0.05);
+      add(a, v1, b, c);
+      go(
+        { x: a.x + a.w * 0.5, y: a.y - 0.03 },
+        { x: flip ? v1.x - 0.05 : v1.x + v1.w + 0.05, y: 0.48 },
+        { x: b.x + b.w * 0.5, y: b.y - 0.03 },
+        { x: c.x + c.w * 0.5, y: c.y - 0.03 }
+      );
+      break;
+    }
+    case 11: {
+      // Stepping stones (5 tiny pads)
+      for (let i = 0; i < 5; i++) {
+        const x = lerp(tap.x, cupX, (i + 1) / 6) - 0.08 + (i % 2) * 0.06 * dir;
+        const y = 0.34 + i * 0.07;
+        const s = box(clamp(x, 0.08, 0.75), y, 0.16, 0.05);
+        add(s);
+        go({ x: s.x + s.w * 0.5, y: s.y - 0.03 });
+      }
+      break;
+    }
+    case 12: {
+      // Double wall corridor
+      const w1 = box(0.32, 0.3, 0.05, 0.28);
+      const w2 = box(0.55, 0.3, 0.05, 0.28);
+      const a = box(flip ? 0.62 : 0.12 + j, 0.5, 0.22, 0.05);
+      const b = box(clamp(cupX - 0.1, 0.08, 0.7), 0.66, 0.22, 0.05);
+      add(w1, w2, a, b);
+      go(
+        { x: 0.44, y: 0.36 },
+        { x: a.x + a.w * 0.5, y: a.y - 0.03 },
+        { x: b.x + b.w * 0.5, y: b.y - 0.03 }
+      );
+      break;
+    }
+    case 13: {
+      // Overhang stack (3 overlapping toward cup)
+      for (let i = 0; i < 3; i++) {
+        const x = flip ? 0.15 + i * 0.08 : 0.45 - i * 0.08 + j;
+        const y = 0.36 + i * 0.1;
+        const s = box(clamp(x, 0.08, 0.7), y, 0.3 - i * 0.04, 0.05);
+        add(s);
+        go({ x: s.x + s.w * (flip ? 0.7 : 0.3), y: s.y - 0.03 });
+      }
+      break;
+    }
+    case 14: {
+      // Split mid roofs + lower shelf
+      const a = box(0.08, 0.36, 0.28, 0.05);
+      const b = box(0.52, 0.36, 0.3, 0.05);
+      const c = box(0.28, 0.52, 0.35, 0.05);
+      const d = box(clamp(cupX - 0.1, 0.08, 0.7), 0.66, 0.22, 0.05);
+      add(a, b, c, d);
+      go(
+        { x: (flip ? b : a).x + 0.12, y: 0.33 },
+        { x: c.x + c.w * 0.5, y: c.y - 0.03 },
+        { x: d.x + d.w * 0.5, y: d.y - 0.03 }
+      );
+      break;
+    }
+    case 15: {
+      // Tall blocker near roof exit
+      const wall = box(flip ? roof.x - 0.07 : roof.x + roof.w + 0.01, 0.26, 0.055, 0.32);
+      const a = box(flip ? 0.15 : 0.45 + j, 0.5, 0.3, 0.05);
+      const b = box(clamp(cupX - 0.1, 0.08, 0.7), 0.66, 0.22, 0.05);
+      add(wall, a, b);
+      go(
+        { x: flip ? wall.x - 0.05 : wall.x + wall.w + 0.05, y: 0.36 },
+        { x: a.x + a.w * 0.5, y: a.y - 0.03 },
+        { x: b.x + b.w * 0.5, y: b.y - 0.03 }
+      );
+      break;
+    }
+    case 16: {
+      // Checker pads
+      const pads = [
+        box(0.12, 0.36, 0.2, 0.05),
+        box(0.42, 0.36, 0.2, 0.05),
+        box(0.28, 0.5, 0.2, 0.05),
+        box(0.55, 0.5, 0.2, 0.05),
+        box(clamp(cupX - 0.1, 0.08, 0.7), 0.64, 0.2, 0.05)
+      ];
+      add(...pads);
+      for (const s of pads) go({ x: s.x + s.w * 0.5, y: s.y - 0.03 });
+      break;
+    }
+    case 17: {
+      // Z with one wall
+      const a = box(flip ? 0.4 : 0.1 + j, 0.36, 0.4, 0.05);
+      const wall = box(0.44, 0.38, 0.05, 0.22);
+      const b = box(flip ? 0.1 : 0.4, 0.56, 0.4, 0.05);
+      const c = box(clamp(cupX - 0.1, 0.08, 0.7), 0.7, 0.2, 0.05);
+      add(a, wall, b, c);
+      go(
+        { x: a.x + a.w * 0.5, y: a.y - 0.03 },
+        { x: flip ? wall.x - 0.05 : wall.x + wall.w + 0.05, y: 0.48 },
+        { x: b.x + b.w * 0.5, y: b.y - 0.03 },
+        { x: c.x + c.w * 0.5, y: c.y - 0.03 }
+      );
+      break;
+    }
+    case 18: {
+      // Spiral-ish
+      const a = box(0.5, 0.34, 0.28, 0.05);
+      const v = box(0.72, 0.34, 0.05, 0.22);
+      const b = box(0.3, 0.52, 0.4, 0.05);
+      const v2 = box(0.28, 0.4, 0.05, 0.18);
+      const c = box(clamp(cupX - 0.1, 0.08, 0.7), 0.68, 0.2, 0.05);
+      add(a, v, b, v2, c);
+      go(
+        { x: a.x + 0.1, y: a.y - 0.03 },
+        { x: v.x - 0.05, y: 0.42 },
+        { x: b.x + b.w * 0.5, y: b.y - 0.03 },
+        { x: c.x + c.w * 0.5, y: c.y - 0.03 }
+      );
+      break;
+    }
+    default: {
+      // Late maze: two posts + three shelves
+      const w1 = box(0.3 + j, 0.3, 0.05, 0.26);
+      const w2 = box(0.55, 0.38, 0.05, 0.26);
+      const a = box(0.1, 0.46, 0.2, 0.05);
+      const b = box(0.38, 0.56, 0.25, 0.05);
+      const c = box(0.62, 0.48, 0.22, 0.05);
+      const d = box(clamp(cupX - 0.1, 0.08, 0.7), 0.7, 0.2, 0.05);
+      add(w1, w2, a, b, c, d);
+      go(
+        { x: flip ? w1.x - 0.05 : w1.x + w1.w + 0.05, y: 0.36 },
+        { x: a.x + a.w * 0.5, y: a.y - 0.03 },
+        { x: b.x + b.w * 0.5, y: b.y - 0.03 },
+        { x: d.x + d.w * 0.5, y: d.y - 0.03 }
+      );
+      break;
     }
   }
 
-  pts.push({ x: cx, y });
-  pts.push({ x: cx, y: cy });
+  go({ x: cupX, y: Math.min(cup.y - 0.04, 0.72) }, { x: cupX, y: cupY });
+  return { blocks, waypoints };
+}
 
-  let sol = densify(pts, 0.02);
-  // Soft repair: if a point is inside a slab, lift it onto the top or slide to opening
-  for (let pass = 0; pass < 10; pass++) {
+function buildSolution(waypoints, blocks) {
+  let sol = densify(waypoints, 0.022);
+  for (let pass = 0; pass < 6; pass++) {
     sol = sol.map((p) => {
       let q = { ...p };
       for (const b of blocks) {
-        if (!insideBlock(q, b, 0.014)) continue;
-        if (b.h <= 0.08 && b.w >= 0.2) {
-          const { openX } = shelfOpening(b);
-          // If near opening, slide out; else lift onto top
-          if (Math.abs(q.x - openX) < 0.12) q.x = openX;
-          else q.y = b.y - 0.03;
-        } else if (b.h > 0.1) {
+        // interior hit (not riding top)
+        if (q.y <= b.y + 0.01) continue;
+        if (q.x <= b.x - 0.02 || q.x >= b.x + b.w + 0.02 || q.y >= b.y + b.h + 0.02) continue;
+        if (b.h <= 0.08) {
+          q.y = b.y - 0.03;
+        } else {
           const left = b.x - 0.05;
           const right = b.x + b.w + 0.05;
           q.x = Math.abs(q.x - left) < Math.abs(q.x - right) ? left : right;
         }
-        q.x = clamp(q.x, 0.06, 0.94);
+        q.x = clamp(q.x, 0.05, 0.95);
         q.y = clamp(q.y, 0.05, 0.95);
       }
       return q;
     });
   }
-  const end = sol[sol.length - 1];
-  if (end.x < cup.x || end.x > cup.x + cup.w || end.y < cup.y || end.y > cup.y + cup.h) {
-    sol.push({ x: cx, y: cup.y - 0.04 }, { x: cx, y: cy });
-    sol = densify(sol, 0.02);
-  }
-  return densify(sol, 0.02);
+  return densify(sol, 0.022);
 }
 
-function layoutFingerprint(blocks) {
-  // Fine signature: sorted rounded boxes
-  return blocks
-    .map((b) => `${b.x.toFixed(2)},${b.y.toFixed(2)},${b.w.toFixed(2)},${b.h.toFixed(2)}`)
-    .sort()
-    .join("|");
+function shortBypass(tap, cup, blocks) {
+  const cx = cup.x + cup.w * 0.5;
+  const cy = cup.y + cup.h * 0.35;
+  const start = { x: tap.x, y: tap.y + 0.04 };
+  const routes = [
+    [start, { x: cx, y: cy }],
+    [start, { x: lerp(start.x, cx, 0.5), y: 0.35 }, { x: cx, y: cy }],
+    [start, { x: start.x, y: 0.5 }, { x: cx, y: 0.5 }, { x: cx, y: cy }]
+  ];
+  for (const route of routes) {
+    const pts = densify(route, 0.015);
+    if (!pts.some((p) => blocks.some((b) => hits(p, b, 0.01)))) return true;
+  }
+  return false;
 }
 
 function buildLevel(index) {
-  const d = difficulty(index);
+  const d = index / (COUNT - 1);
   const flip = index % 2 === 1;
-  const band = Math.floor(index / 10);
+  const kitId = index % 20;
+  // Each level in a kit-family gets different jitter / piece scale feel
+  const jitter = ((index * 17) % 10) * 0.008;
 
   const tap = {
-    x: flip ? clamp(0.74 - (index % 4) * 0.02, 0.64, 0.8) : clamp(0.22 + (index % 4) * 0.02, 0.18, 0.34),
-    y: 0.09
+    x: flip ? clamp(0.72 - (index % 5) * 0.02, 0.6, 0.8) : clamp(0.2 + (index % 5) * 0.02, 0.14, 0.34),
+    y: 0.1
   };
   const cup = {
-    x: flip ? clamp(0.08 + (index % 3) * 0.015, 0.05, 0.16) : clamp(0.74 - (index % 3) * 0.015, 0.72, 0.82),
-    y: clamp(0.74 - band * 0.004, 0.68, 0.76),
-    w: lerp(0.13, 0.1, d),
-    h: lerp(0.14, 0.11, d)
+    x: flip ? clamp(0.08 + (index % 4) * 0.02, 0.05, 0.2) : clamp(0.72 - (index % 4) * 0.02, 0.68, 0.82),
+    y: clamp(0.72 - Math.floor(index / 25) * 0.02, 0.66, 0.76),
+    w: lerp(0.14, 0.11, d),
+    h: lerp(0.15, 0.12, d)
   };
 
-  let blocks = buildZigzag(index, tap, cup, flip, d);
-  while (freeFallWin(tap, cup, blocks)) {
-    blocks[0].w = Math.min(0.92, blocks[0].w + 0.08);
-    blocks[0].x = clamp(tap.x - blocks[0].w * 0.5, 0.02, 0.5);
+  let { blocks, waypoints } = kit(kitId, tap, cup, flip, d, jitter);
+
+  // Difficulty extras — add 0–3 pieces that sit on the route side (not decoration piles)
+  const band = Math.floor(index / 20);
+  if (band >= 1) {
+    blocks.push(box(flip ? 0.55 : 0.2, 0.32 + jitter, 0.16, 0.05));
+  }
+  if (band >= 2) {
+    blocks.push(box(0.42 + (flip ? 0.08 : -0.08), 0.4, 0.05, 0.18));
+  }
+  if (band >= 3) {
+    blocks.push(box(clamp(cup.x - 0.04, 0.06, 0.7), cup.y - 0.12, cup.w + 0.1, 0.05));
+  }
+  if (band >= 4) {
+    blocks.push(box(flip ? 0.25 : 0.6, 0.55, 0.18, 0.05));
   }
 
-  // If a short bypass still exists, extend the widest mid shelf toward center
+  // Dedup
+  const cleaned = [];
+  for (const b of blocks) {
+    if (cleaned.some((c) => Math.abs(c.x - b.x) < 0.03 && Math.abs(c.y - b.y) < 0.03 && Math.abs(c.w - b.w) < 0.04)) continue;
+    cleaned.push(b);
+  }
+  blocks = cleaned;
+
+  while (freeFall(tap, cup, blocks)) {
+    blocks[0].w = Math.min(0.9, blocks[0].w + 0.1);
+    blocks[0].x = clamp(tap.x - blocks[0].w * 0.5, 0.02, 0.55);
+  }
+
+  // Soft seal: if a straight diagonal is open, extend the roof or add one mid shelf on the line
   let guard = 0;
-  while (shortBypass(tap, cup, blocks) && guard < 8) {
+  while (shortBypass(tap, cup, blocks) && guard < 5) {
     guard += 1;
-    const mid = blocks
-      .filter((b) => b.h <= 0.08 && b.y > 0.32 && b.y < 0.6)
-      .sort((a, b) => b.w - a.w)[0];
-    if (!mid) break;
-    if (mid.x <= 0.08) {
-      mid.w = Math.min(0.88, mid.w + 0.06);
-    } else {
-      mid.x = Math.max(0.08, mid.x - 0.06);
-      mid.w = Math.min(0.9, mid.w + 0.06);
-    }
+    const x = lerp(tap.x, cup.x + cup.w * 0.5, 0.4 + guard * 0.1);
+    const y = lerp(0.35, 0.55, guard / 5);
+    blocks.push(box(x - 0.1, y, 0.2, 0.05));
   }
 
-  let sol = buildSolution(tap, cup, blocks, flip);
-  // Only drop tiny baffles that the path tunnels — never drop zigzag shelves
-  blocks = blocks.filter((b, i) => {
-    if (i === 0) return true;
-    if (b.w >= 0.2) return true; // keep shelves
-    return !pathThroughBlock(sol, b, 0.02);
-  });
-  sol = buildSolution(tap, cup, blocks, flip);
+  let sol = buildSolution(waypoints, blocks);
+  // Ensure end in cup
+  const end = sol[sol.length - 1];
+  const cx = cup.x + cup.w * 0.5;
+  const cy = cup.y + cup.h * 0.35;
+  if (end.x < cup.x || end.x > cup.x + cup.w || end.y < cup.y || end.y > cup.y + cup.h) {
+    sol = densify(sol.concat([{ x: cx, y: cup.y - 0.04 }, { x: cx, y: cy }]), 0.022);
+  }
 
-  const rows = blocks.filter((b) => b.h <= 0.08 && b.w >= 0.45).length;
-  const ink = clamp(1.05 + rows * 0.16 + d * 0.25, 1.1, 2.35);
-  const need = Math.round(lerp(18, 42, d));
+  const pathLen = strokeLen(sol);
+  // Playable ink: plenty of spare early, still comfortable late
+  const ink = clamp(pathLen * lerp(1.55, 1.25, d) + lerp(0.35, 0.2, d), 1.35, 2.8);
+  const need = Math.round(lerp(16, 36, d));
 
   return {
     id: index + 1,
@@ -355,111 +483,106 @@ function buildLevel(index) {
     need,
     tap: { x: R(tap.x), y: R(tap.y) },
     cup: { x: R(cup.x), y: R(cup.y), w: R(cup.w), h: R(cup.h) },
-    blocks: dedupe(blocks),
+    blocks,
     _sol: sol,
-    _fp: layoutFingerprint(blocks)
+    _kit: kitId
   };
 }
 
-function validate(level) {
-  // Gameplay gates: no free-fall win, no short diagonal bypass, enough solids
-  if (freeFallWin(level.tap, level.cup, level.blocks)) return { ok: false, reason: "free-fall" };
-  if (shortBypass(level.tap, level.cup, level.blocks)) return { ok: false, reason: "short-bypass" };
-  if (!level.blocks || level.blocks.length < 5) return { ok: false, reason: "too few" };
-  if (Math.abs(level.tap.x - (level.cup.x + level.cup.w / 2)) < 0.35) return { ok: false, reason: "cup under tap" };
-  const rows = level.blocks.filter((b) => b.h <= 0.08 && b.w >= 0.45).length;
-  return { ok: true, obstacles: level.blocks.length, rows, ink: level.ink };
+function fp(blocks) {
+  return blocks.map((b) => `${b.x.toFixed(2)},${b.y.toFixed(2)},${b.w.toFixed(2)},${b.h.toFixed(2)}`).sort().join("|");
+}
+
+function validate(lv) {
+  if (freeFall(lv.tap, lv.cup, lv.blocks)) return { ok: false, reason: "free-fall" };
+  if (shortBypass(lv.tap, lv.cup, lv.blocks)) return { ok: false, reason: "bypass" };
+  if (lv.blocks.length < 2) return { ok: false, reason: "empty" };
+  if (Math.abs(lv.tap.x - (lv.cup.x + lv.cup.w / 2)) < 0.28) return { ok: false, reason: "aligned" };
+  const end = lv._sol[lv._sol.length - 1];
+  if (end.x < lv.cup.x || end.x > lv.cup.x + lv.cup.w || end.y < lv.cup.y || end.y > lv.cup.y + lv.cup.h) {
+    return { ok: false, reason: "miss-cup" };
+  }
+  // Ink must fit the route with spare
+  const len = strokeLen(lv._sol);
+  if (len > lv.ink * 0.85) {
+    lv.ink = Math.round(Math.min(2.9, len * 1.35 + 0.25) * 100) / 100;
+  }
+  return { ok: true, n: lv.blocks.length, kit: lv._kit, len };
 }
 
 function main() {
   const levels = [];
   const fails = [];
-  const fps = new Map();
+  const seen = new Set();
+  const kitCounts = {};
 
   for (let i = 0; i < COUNT; i++) {
     let lv = null;
     let result = { ok: false };
-    for (let tries = 0; tries < 16; tries++) {
-      lv = buildLevel(i + (tries === 0 ? 0 : tries * 5));
+    for (let tries = 0; tries < 12; tries++) {
+      lv = buildLevel(i + tries * COUNT); // shift seed on retry
       lv.id = i + 1;
       lv.name = uniqueName(i);
-      // Keep side consistent with index
+      // Keep flip/side of index
       if (tries > 0) {
         const flip = i % 2 === 1;
-        const d = difficulty(i);
-        lv.tap.x = flip
-          ? clamp(0.74 - ((i + tries) % 4) * 0.02, 0.64, 0.8)
-          : clamp(0.22 + ((i + tries) % 4) * 0.02, 0.18, 0.34);
-        lv.cup.x = flip
-          ? clamp(0.08 + ((i + tries) % 3) * 0.015, 0.05, 0.16)
-          : clamp(0.74 - ((i + tries) % 3) * 0.015, 0.72, 0.82);
-        lv.blocks = buildZigzag(i + tries * 5, lv.tap, lv.cup, flip, d);
-        while (freeFallWin(lv.tap, lv.cup, lv.blocks)) {
-          lv.blocks[0].w = Math.min(0.92, lv.blocks[0].w + 0.08);
-          lv.blocks[0].x = clamp(lv.tap.x - lv.blocks[0].w * 0.5, 0.02, 0.5);
+        lv.tap.x = flip ? clamp(0.72 - (i % 5) * 0.02, 0.6, 0.8) : clamp(0.2 + (i % 5) * 0.02, 0.14, 0.34);
+        lv.cup.x = flip ? clamp(0.08 + (i % 4) * 0.02, 0.05, 0.2) : clamp(0.72 - (i % 4) * 0.02, 0.68, 0.82);
+        const built = kit((i + tries * 3) % 20, lv.tap, lv.cup, flip, i / 99, ((i + tries) % 10) * 0.008);
+        lv.blocks = built.blocks;
+        while (freeFall(lv.tap, lv.cup, lv.blocks)) {
+          lv.blocks[0].w = Math.min(0.9, lv.blocks[0].w + 0.1);
+          lv.blocks[0].x = clamp(lv.tap.x - lv.blocks[0].w * 0.5, 0.02, 0.55);
         }
-        let g = 0;
-        while (shortBypass(lv.tap, lv.cup, lv.blocks) && g < 8) {
-          g += 1;
-          const mid = lv.blocks.filter((b) => b.h <= 0.08 && b.y > 0.32 && b.y < 0.6).sort((a, b) => b.w - a.w)[0];
-          if (!mid) break;
-          if (mid.x <= 0.08) mid.w = Math.min(0.88, mid.w + 0.06);
-          else {
-            mid.x = Math.max(0.08, mid.x - 0.06);
-            mid.w = Math.min(0.9, mid.w + 0.06);
-          }
-        }
-        lv._sol = buildSolution(lv.tap, lv.cup, lv.blocks, flip);
-        lv.blocks = lv.blocks.filter((b, bi) => bi === 0 || b.w >= 0.2 || !pathThroughBlock(lv._sol, b, 0.02));
-        lv._sol = buildSolution(lv.tap, lv.cup, lv.blocks, flip);
-        lv.ink = Math.round(Math.min(2.9, strokeLength(lv._sol) * 1.1 + 0.06) * 100) / 100;
-        lv.need = Math.round(lerp(18, 42, d));
-        lv._fp = layoutFingerprint(lv.blocks);
+        lv._sol = buildSolution(built.waypoints, lv.blocks);
+        lv._kit = (i + tries * 3) % 20;
       }
       result = validate(lv);
       if (!result.ok) continue;
-      if (fps.has(lv._fp) && tries < 12) {
+      const sig = fp(lv.blocks);
+      if (seen.has(sig) && tries < 10) {
         result = { ok: false, reason: "dup" };
         continue;
       }
+      seen.add(sig);
       break;
     }
     if (!result.ok) {
       fails.push({ id: i + 1, reason: result.reason });
-      console.error(`FAIL ${i + 1}: ${result.reason}`);
+      console.error("FAIL", i + 1, result.reason);
     } else {
-      fps.set(lv._fp, i + 1);
-      if ((i + 1) % 10 === 0) console.log(`OK ${i + 1}/100  blocks=${result.obstacles} rows=${result.rows} ink=${lv.ink}`);
+      kitCounts[result.kit] = (kitCounts[result.kit] || 0) + 1;
+      if ((i + 1) % 10 === 0) console.log(`OK ${i + 1} kit=${result.kit} blocks=${result.n} ink=${lv.ink}`);
     }
-    const { _sol, _fp, ...pub } = lv;
+    const { _sol, _kit, ...pub } = lv;
     levels.push(pub);
   }
 
-  const counts = {};
+  const hist = {};
   levels.forEach((l) => {
-    counts[l.blocks.length] = (counts[l.blocks.length] || 0) + 1;
+    hist[l.blocks.length] = (hist[l.blocks.length] || 0) + 1;
   });
-  console.log("block histogram", counts);
-  console.log("unique fingerprints", fps.size);
+  console.log("block hist", hist);
+  console.log("kit spread", kitCounts);
+  console.log("unique", seen.size);
 
   let leaks = 0;
   for (const lv of levels) {
-    if (freeFallWin(lv.tap, lv.cup, lv.blocks) || shortBypass(lv.tap, lv.cup, lv.blocks)) leaks += 1;
+    if (freeFall(lv.tap, lv.cup, lv.blocks) || shortBypass(lv.tap, lv.cup, lv.blocks)) leaks += 1;
   }
-  console.log("bypass leaks", leaks);
+  console.log("leaks", leaks);
 
-  if (fails.length || leaks) {
-    console.error("generation failed", fails.slice(0, 20));
+  if (fails.length || leaks || seen.size < 90) {
+    console.error("generation failed", fails);
     process.exit(1);
   }
 
-  const out = path.join(__dirname, "..", "cup-flow", "levels-data.js");
   fs.writeFileSync(
-    out,
-    "/* Zigzag Cup Flow — every shelf blocks shortcuts; snake path only */\n" +
+    path.join(__dirname, "..", "cup-flow", "levels-data.js"),
+    "/* Unique playable Cup Flow levels — mixed kits, short shelves */\n" +
       `window.CUP_FLOW_LEVELS = ${JSON.stringify(levels)};\n`
   );
-  console.log(`Wrote ${levels.length} levels`);
+  console.log("Wrote", levels.length);
 }
 
 main();
