@@ -131,9 +131,9 @@
   const MAX_DROPS = 220;
   const DROP_R = 0.007;
   const LINE_HALF = 0.011; // collision thickness (matches chunky drawn stroke)
-  const MAX_SPEED = 1.75; // fast enough to crest small uphill bits
+  const MAX_SPEED = 1.35; // keep ballistic arcs from overshooting the cup
   const AIR_DRAG = 0.12; // per-second horizontal drag (gentle)
-  const SURFACE_DRAG = 0.35; // per-second along strokes (keeps momentum)
+  const SURFACE_DRAG = 0.22; // per-second along strokes (keeps momentum; was 0.35 — too sticky on flats)
 
   function currentLevel() {
     return LEVELS[levelIndex] || LEVELS[0];
@@ -402,7 +402,8 @@
     return segs;
   }
 
-  /** Rotated blocks still use edge segments; AABB blocks are solid boxes */
+  /** Rotated blocks use edge segments; AABB blocks are solid boxes.
+   * Thin tilted shelves only expose the upper face — a closed quad pockets water. */
   function rotatedBlockSegments() {
     const segs = [];
     (currentLevel().blocks || []).forEach((b) => {
@@ -414,15 +415,21 @@
       const hh = b.h / 2;
       const cos = Math.cos(rot);
       const sin = Math.sin(rot);
-      const corners = [
-        [-hw, -hh],
-        [hw, -hh],
-        [hw, hh],
-        [-hw, hh]
-      ].map(([lx, ly]) => ({
+      const map = (lx, ly) => ({
         x: cx + lx * cos - ly * sin,
         y: cy + lx * sin + ly * cos
-      }));
+      });
+      if (b.h < 0.09) {
+        // Local top edge (−hh) becomes the ramp surface after rotation
+        segs.push({ a: map(-hw, -hh), b: map(hw, -hh) });
+        return;
+      }
+      const corners = [
+        map(-hw, -hh),
+        map(hw, -hh),
+        map(hw, hh),
+        map(-hw, hh)
+      ];
       for (let i = 0; i < 4; i++) {
         segs.push({ a: corners[i], b: corners[(i + 1) % 4] });
       }
@@ -509,9 +516,7 @@
       d.vy -= vn * ny;
     }
 
-    // Soft settle only on nearly flat floors when almost stopped
-    const spd = Math.hypot(d.vx, d.vy);
-    if (ny < -0.85 && spd < 0.05 && d.vy > -0.02) d.vy = 0;
+    // Do not zero velocity on flat ink — that trapped water on shelves/paths
 
     clampSpeed(d);
     return { nx, ny };
@@ -603,7 +608,8 @@
 
   function inCup(x, y) {
     const c = currentLevel().cup;
-    return x > c.x && x < c.x + c.w && y > c.y && y < c.y + c.h;
+    // Forgiving mouth so water entering from a drawn path counts
+    return x > c.x - 0.025 && x < c.x + c.w + 0.025 && y > c.y - 0.05 && y < c.y + c.h + 0.02;
   }
 
   function spawnDrop() {
@@ -686,13 +692,78 @@
       }
       clampSpeed(d);
 
-      // Gentle unstick — tiny push, never a launch
+      // Slide along ink / thin shelves so water does not sit forever on flats
+      const cupBox = currentLevel().cup;
+      const cupCx = cupBox.x + cupBox.w * 0.5;
+      if (touchedStroke) {
+        let best = null;
+        let bestD = 1e9;
+        for (let i = 0; i < segs.length; i++) {
+          const s = segs[i];
+          const hit = distToSeg(d.x, d.y, s.a.x, s.a.y, s.b.x, s.b.y);
+          if (hit.d < bestD) {
+            bestD = hit.d;
+            best = s;
+          }
+        }
+        if (best && bestD < radius * 1.35) {
+          let tx = best.b.x - best.a.x;
+          let ty = best.b.y - best.a.y;
+          if (ty < 0) {
+            tx = -tx;
+            ty = -ty;
+          }
+          let len = Math.hypot(tx, ty) || 1;
+          tx /= len;
+          ty /= len;
+          if (ty < 0.2) {
+            tx = Math.sign(cupCx - d.x) || (tx >= 0 ? 1 : -1);
+            ty = 0.4;
+            len = Math.hypot(tx, ty);
+            tx /= len;
+            ty /= len;
+          }
+          d.vx += tx * 0.055;
+          d.vy = Math.max(d.vy + ty * 0.04, 0.035);
+          // Near the cup mouth: bleed sideways speed and steer in
+          if (d.y > cupBox.y - 0.14) {
+            d.vx += (cupCx - d.x) * 0.2;
+            d.vx *= 0.82;
+            d.vy = Math.max(d.vy, 0.05);
+          }
+          clampSpeed(d);
+        }
+      } else {
+        // Bare thin shelf: gentle shed toward the cup-side lip
+        for (let i = 0; i < boxes.length; i++) {
+          const b = boxes[i];
+          if (b.h >= 0.09) continue;
+          const top = b.y - DROP_R - 0.004;
+          if (Math.abs(d.y - top) > 0.01) continue;
+          if (d.x < b.x - 0.01 || d.x > b.x + b.w + 0.01) continue;
+          const toward = cupCx >= d.x ? 1 : -1;
+          d.vx += toward * 0.045;
+          d.vy = Math.max(d.vy, 0.025);
+          clampSpeed(d);
+          break;
+        }
+        // Air funnel above the cup so fast gutters don't fly past the mouth
+        if (d.y > cupBox.y - 0.22 && d.y < cupBox.y + cupBox.h * 0.6) {
+          if (Math.abs(d.x - cupCx) < 0.22) {
+            d.vx += (cupCx - d.x) * 0.35;
+            d.vx *= 0.88;
+            clampSpeed(d);
+          }
+        }
+      }
+
       const speed = Math.hypot(d.vx, d.vy);
-      if (speed < 0.03) {
+      if (speed < 0.04) {
         d.stuck = (d.stuck || 0) + dt;
-        if (d.stuck > 0.4) {
-          d.vy = Math.max(d.vy, 0.06);
-          d.vx += (Math.random() - 0.5) * 0.05;
+        if (d.stuck > 0.25) {
+          d.vy = Math.max(d.vy, 0.08);
+          const cupCx = currentLevel().cup.x + currentLevel().cup.w * 0.5;
+          d.vx += Math.sign(cupCx - d.x) * 0.05 + (Math.random() - 0.5) * 0.02;
           d.stuck = 0;
           clampSpeed(d);
         }
@@ -710,7 +781,11 @@
       if (d.y > 1.05 || d.x < -0.05 || d.x > 1.05) {
         d.alive = false;
         spill += 1;
-        if (spill > currentLevel().need * 1.6 && filled < currentLevel().need * 0.45) {
+        if (
+          !window.__cupFlowDebug?.ignoreSpill &&
+          spill > currentLevel().need * 1.6 &&
+          filled < currentLevel().need * 0.45
+        ) {
           failSpill();
         }
       }
@@ -1054,6 +1129,126 @@
   });
 
   window.addEventListener("resize", resize);
+
+  // Dev/test hook (used by in-browser level checks)
+  window.__cupFlowDebug = {
+    state: () => ({
+      running,
+      paused,
+      won,
+      pouring,
+      levelIndex,
+      strokes: strokes.length,
+      inkUsed,
+      filled,
+      spill,
+      need: currentLevel().need,
+      drops: drops.length,
+      speedScale,
+      pourAcc
+    }),
+    playLevel: (i) => {
+      bestLevel = Math.max(bestLevel, LEVELS.length);
+      levelIndex = Math.max(0, Math.min(LEVELS.length - 1, i | 0));
+      speedScale = 1;
+      startGame();
+    },
+    setSpeed: (s) => {
+      speedScale = Math.max(0.2, Math.min(3, Number(s) || 1));
+    },
+    clearInk: () => {
+      strokes = [];
+      draft = null;
+      inkUsed = 0;
+      resetDrops();
+      paintHud();
+      draw();
+    },
+    injectStroke: (pts) => {
+      if (!pts || pts.length < 2) return false;
+      strokes.push({ points: pts.map((p) => ({ x: p.x, y: p.y })) });
+      inkUsed += strokeLength(pts);
+      paintHud();
+      draw();
+      return true;
+    },
+    /** Build a continuously descending gutter into the cup (playability probe). */
+    injectGutter: (sol) => {
+      const lv = currentLevel();
+      const cx = lv.cup.x + lv.cup.w * 0.5;
+      const cy = lv.cup.y + lv.cup.h * 0.45;
+      const catcher =
+        (lv.blocks || []).find(
+          (b) => b.h < 0.1 && lv.tap.x >= b.x - 0.02 && lv.tap.x <= b.x + b.w + 0.02
+        ) || lv.blocks?.[0];
+      const toRight = lv.tap.x < cx;
+      const exitX = catcher
+        ? toRight
+          ? catcher.x + catcher.w + 0.03
+          : catcher.x - 0.03
+        : lv.tap.x + (toRight ? 0.08 : -0.08);
+      const midX = lv.tap.x + (exitX - lv.tap.x) * 0.5;
+      const yTap = catcher ? catcher.y - 0.02 : 0.18;
+      const yExit = catcher ? catcher.y + 0.08 : 0.28;
+      let base =
+        sol && sol.length > 1
+          ? sol.map((p) => ({ x: p.x, y: p.y }))
+          : [
+              { x: lv.tap.x, y: yTap },
+              { x: midX, y: yTap + (yExit - yTap) * 0.45 },
+              { x: exitX, y: yExit },
+              { x: lv.tap.x + (cx - lv.tap.x) * 0.4, y: 0.45 },
+              { x: cx, y: 0.6 },
+              { x: cx, y: lv.cup.y - 0.02 },
+              { x: cx, y: cy }
+            ];
+      // Lift points out of solid interiors, then re-enforce downhill
+      base = base.map((p) => {
+        let q = { ...p };
+        for (const b of lv.blocks || []) {
+          if (q.x > b.x && q.x < b.x + b.w && q.y > b.y && q.y < b.y + b.h) {
+            q.y = b.y - 0.035;
+          }
+        }
+        return q;
+      });
+      for (let i = 1; i < base.length; i++) {
+        if (base[i].y < base[i - 1].y + 0.01) base[i].y = base[i - 1].y + 0.01;
+      }
+      const dens = [];
+      for (let i = 1; i < base.length; i++) {
+        const a = base[i - 1];
+        const b = base[i];
+        const n = Math.max(1, Math.ceil(Math.hypot(b.x - a.x, b.y - a.y) / 0.012));
+        for (let s = 0; s <= n; s++) {
+          const t = s / n;
+          dens.push({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+        }
+      }
+      dens.push({ x: cx, y: cy });
+      // Single stroke only — dual rails form U-pockets that trap water
+      strokes = [{ points: dens }];
+      inkUsed = strokeLength(dens);
+      paintHud();
+      draw();
+      return true;
+    },
+    pour: () => {
+      if (!strokes.length) return false;
+      pouring = true;
+      syncPourBtn();
+      return true;
+    },
+    /** Advance physics without relying on RAF (avoids background-tab throttle). */
+    sim: (seconds = 8) => {
+      const step = 1 / 60;
+      const n = Math.max(1, Math.ceil((Number(seconds) || 8) / step));
+      for (let i = 0; i < n; i++) update(step);
+      draw();
+      paintHud();
+      return window.__cupFlowDebug.state();
+    }
+  };
 
   if (bestLevel > 0 && bestLevel < LEVELS.length) levelIndex = bestLevel;
   else if (bestLevel >= LEVELS.length) levelIndex = 0;

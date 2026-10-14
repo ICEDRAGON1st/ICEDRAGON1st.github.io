@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001ge": [
+    "Cup Flow: 100 unique tilted-catcher levels — proven pour wins, no zigzag stacks"
+  ],
   "20261001gd": [
     "Cup Flow: 100 distinct playable layouts (varied block counts) — cups stay open, no copy-paste zigzags"
   ],
