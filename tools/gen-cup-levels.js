@@ -74,7 +74,7 @@ function uniqueName(i) {
     "Slide", "Drop", "Lane", "Hook", "Turn", "Ramp", "Well", "Spout", "Trough", "Flume",
     "Vault", "Sill", "Ledge", "Run", "Pass"
   ];
-  return `${A[i % A.length]} ${B[Math.floor(i / A.length) % B.length]}`.slice(0, 16);
+  return `${A[i % A.length]} ${B[(i * 3 + Math.floor(i / 7)) % B.length]}`.slice(0, 16);
 }
 
 function difficulty(i) {
@@ -279,20 +279,29 @@ function blueprint(index, tap, cup, flip, d) {
       break;
   }
 
-  // Progressive extras — only add solids that change the route
-  if (band >= 2) {
+  // Always add a small contrasting piece so early levels aren't just flat shelves
+  if (bp % 2 === 0) {
+    blocks.push(box(flip ? 0.58 : 0.1, 0.46 + j, 0.05, 0.16));
+  } else {
+    blocks.push(box(flip ? 0.12 : 0.62, 0.36 + j, 0.16, 0.05));
+  }
+  // Progressive extras — denser and meaner as you climb
+  if (band >= 1) {
     blocks.push(box(flip ? 0.62 : 0.08, 0.34 + j, 0.18, 0.05));
   }
+  if (band >= 2) {
+    blocks.push(box(0.42 + cupSide * 0.06, 0.38, 0.05, lerp(0.16, 0.28, d)));
+  }
   if (band >= 4) {
-    blocks.push(box(0.42 + cupSide * 0.06, 0.4, 0.05, lerp(0.18, 0.3, d)));
+    blocks.push(box(0.05, 0.58, 0.26, 0.05));
+    blocks.push(box(0.58, 0.58, 0.28, 0.05));
   }
   if (band >= 6) {
-    blocks.push(box(0.05, 0.58, 0.28, 0.05));
-    blocks.push(box(0.58, 0.58, 0.3, 0.05));
+    blocks.push(box(0.46, 0.3, 0.055, lerp(0.28, 0.4, d)));
   }
   if (band >= 8) {
-    blocks.push(box(0.46, 0.3, 0.055, 0.38));
     blocks.push(box(flip ? 0.15 : 0.55, 0.7, 0.24, 0.05));
+    blocks.push(box(flip ? 0.5 : 0.28, 0.44, 0.05, 0.22));
   }
 
   return dedupe(blocks);
@@ -370,7 +379,7 @@ function buildSolution(tap, cup, blocks, flip) {
 }
 
 function packSafe(blocks, sol, tap, cup, flip, index, d) {
-  const minBlocks = 3 + Math.floor(index / 20) + (index > 50 ? 1 : 0);
+  const minBlocks = 5 + Math.floor(index / 15) + (index > 50 ? 1 : 0);
   const fillers = [
     box(flip ? 0.6 : 0.08, 0.36, 0.18, 0.05),
     box(flip ? 0.08 : 0.6, 0.5, 0.2, 0.05),
@@ -459,7 +468,7 @@ function buildLevel(index) {
 
 function validate(level) {
   if (freeWin(level.tap, level.cup, level.blocks)) return { ok: false, reason: "free-win" };
-  const minBlocks = level.id <= 10 ? 3 : level.id <= 30 ? 4 : level.id <= 60 ? 5 : 6;
+  const minBlocks = level.id <= 10 ? 5 : level.id <= 30 ? 6 : level.id <= 60 ? 7 : 8;
   if (!level.blocks || level.blocks.length < minBlocks) return { ok: false, reason: "too few" };
   if (Math.abs(level.tap.x - (level.cup.x + level.cup.w / 2)) < 0.28) return { ok: false, reason: "cup under tap" };
   const sol = level._sol;
