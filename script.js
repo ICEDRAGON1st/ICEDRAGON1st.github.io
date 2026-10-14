@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001gd": [
+    "Cup Flow: 100 distinct playable layouts (varied block counts) — cups stay open, no copy-paste zigzags"
+  ],
   "20261001gc": [
     "Cup Flow: 100 unique playable levels — different shapes, not zigzag copies"
   ],
