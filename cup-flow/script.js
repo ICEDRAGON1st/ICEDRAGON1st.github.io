@@ -754,8 +754,8 @@
 
   function drawBlocks(w, h) {
     const blocks = currentLevel().blocks || [];
-    ctx.fillStyle = "#c5d6e6";
-    ctx.strokeStyle = "#8aa4bc";
+    ctx.fillStyle = "#9eb6cc";
+    ctx.strokeStyle = "#5f7a94";
     ctx.lineWidth = 2;
     blocks.forEach((b) => {
       const rot = b.rot || 0;

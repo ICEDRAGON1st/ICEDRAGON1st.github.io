@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001fy": [
+    "Cup Flow: denser unique layouts (no more empty 2-shelf levels) + clearer platforms"
+  ],
   "20261001fx": [
     "Cup Flow: tighter ink budgets — less drawing room, plan your paths"
   ],
