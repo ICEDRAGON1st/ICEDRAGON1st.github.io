@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001gb": [
+    "Cup Flow: zigzag shelves force the route — no more bypassable decoration piles"
+  ],
   "20261001ga": [
     "Cup Flow: 100 unique denser blueprints that get harder; shelves catch water properly"
   ],
