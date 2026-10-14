@@ -337,6 +337,8 @@
 
   function finishWin() {
     if (won) return;
+    // Must have drawn something — no free wins from an empty board
+    if (!strokes.length || inkUsed < 0.04) return;
     won = true;
     pouring = false;
     syncPourBtn();
@@ -936,6 +938,10 @@
       resetDrops();
       paintHud();
       els.hint.textContent = "Reset — tweak your path or Pour again";
+      return;
+    }
+    if (!strokes.length) {
+      els.hint.textContent = "Draw a path first — then Pour";
       return;
     }
     pouring = true;

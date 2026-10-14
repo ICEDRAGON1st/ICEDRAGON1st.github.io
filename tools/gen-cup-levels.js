@@ -1,7 +1,8 @@
 /**
- * Generate 100 Cup Flow levels with guaranteed solution gutters.
- * Beatable check = geometric (path under tap → into cup, ink enough, clears blocks).
- * Also runs a lightweight “slide along path” sim so drops that follow the gutter fill the cup.
+ * 100 unique Cup Flow levels, easiest → hardest.
+ * - No free wins (shelf under tap; cup on opposite side)
+ * - Real obstacles on every level
+ * - Verified solution rides shelves / goes around walls
  */
 const fs = require("fs");
 const path = require("path");
@@ -11,15 +12,14 @@ const COUNT = 100;
 function clamp(n, a, b) {
   return Math.max(a, Math.min(b, n));
 }
-
+function lerp(a, b, t) {
+  return a + (b - a) * t;
+}
 function strokeLength(pts) {
   let len = 0;
-  for (let i = 1; i < pts.length; i++) {
-    len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
-  }
+  for (let i = 1; i < pts.length; i++) len += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
   return len;
 }
-
 function densify(pts, step = 0.02) {
   const out = [{ ...pts[0] }];
   for (let i = 1; i < pts.length; i++) {
@@ -35,155 +35,270 @@ function densify(pts, step = 0.02) {
   return out;
 }
 
-function makeGutter(tap, cup, style, tier) {
-  const cx = cup.x + cup.w * 0.5;
-  const cy = cup.y + cup.h * 0.25; // inside cup
-  const sx = tap.x;
-  const sy = tap.y + 0.04;
-  const pts = [{ x: sx, y: sy }];
-
-  if (style === 0) {
-    pts.push({ x: (sx + cx) / 2, y: (sy + cy) / 2 });
-    pts.push({ x: cx, y: cy });
-  } else if (style === 1) {
-    pts.push({ x: sx, y: 0.45 });
-    pts.push({ x: cx, y: 0.5 });
-    pts.push({ x: cx, y: cy });
-  } else if (style === 2) {
-    pts.push({ x: sx, y: 0.42 });
-    pts.push({ x: (sx + cx) / 2, y: 0.38 });
-    pts.push({ x: cx, y: 0.45 });
-    pts.push({ x: cx, y: cy });
-  } else if (style === 3) {
-    pts.push({ x: sx, y: 0.28 });
-    pts.push({ x: 0.85, y: 0.4 });
-    pts.push({ x: 0.85, y: 0.72 });
-    pts.push({ x: cx, y: 0.74 });
-    pts.push({ x: cx, y: cy });
-  } else if (style === 4) {
-    const swings = 2 + (tier % 3);
-    for (let i = 0; i < swings; i++) {
-      const y = 0.28 + (i + 1) * (0.45 / (swings + 1));
-      const x = i % 2 === 0 ? Math.max(sx, cx) + 0.1 : Math.min(sx, cx) - 0.1;
-      pts.push({ x: clamp(x, 0.1, 0.9), y });
-    }
-    pts.push({ x: cx, y: cy });
-  } else if (style === 5) {
-    pts.push({ x: sx, y: 0.6 });
-    pts.push({ x: sx, y: 0.8 });
-    pts.push({ x: cx, y: 0.8 });
-    pts.push({ x: cx, y: cy });
-  } else if (style === 6) {
-    pts.push({ x: sx, y: 0.3 });
-    pts.push({ x: cx, y: 0.5 });
-    pts.push({ x: cx, y: cy });
-  } else if (style === 7) {
-    pts.push({ x: sx, y: 0.4 });
-    pts.push({ x: 0.25, y: 0.65 });
-    pts.push({ x: 0.25, y: 0.8 });
-    pts.push({ x: 0.55, y: 0.8 });
-    pts.push({ x: 0.55, y: 0.5 });
-    pts.push({ x: cx, y: 0.5 });
-    pts.push({ x: cx, y: cy });
-  } else if (style === 8) {
-    pts.push({ x: sx, y: 0.6 });
-    pts.push({ x: 0.88, y: 0.6 });
-    pts.push({ x: 0.88, y: cy });
-    pts.push({ x: cx, y: cy });
-  } else {
-    pts.push({ x: sx, y: 0.4 });
-    pts.push({ x: 0.5, y: 0.58 });
-    pts.push({ x: cx, y: cy });
-  }
-  return densify(pts, 0.02);
+function insideBlock(p, b, pad = 0) {
+  // Points on/above the top face are OK (path can ride the shelf)
+  if (p.y <= b.y + 0.008) return false;
+  return p.x > b.x - pad && p.x < b.x + b.w + pad && p.y < b.y + b.h + pad;
 }
 
-function pathHitsBox(pts, b, pad) {
-  for (const p of pts) {
-    if (p.x > b.x - pad && p.x < b.x + b.w + pad && p.y > b.y - pad && p.y < b.y + b.h + pad) {
-      return true;
+function pathThroughBlock(pts, b, pad = 0.03) {
+  return pts.some((p) => insideBlock(p, b, pad));
+}
+
+function freeWin(tap, cup, blocks) {
+  for (let y = tap.y + 0.02; y < 1; y += 0.008) {
+    const p = { x: tap.x, y };
+    let blocked = false;
+    for (const b of blocks || []) {
+      if (p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h) {
+        blocked = true;
+        break;
+      }
     }
+    if (blocked) return false;
+    if (p.x >= cup.x && p.x <= cup.x + cup.w && p.y >= cup.y && p.y <= cup.y + cup.h) return true;
   }
   return false;
 }
 
-function decorativeBlocks(style, tier, sol) {
-  const pad = 0.06;
-  const candidates = [];
-  if (style === 1) candidates.push({ x: 0.4, y: 0.62, w: 0.22, h: 0.04 });
-  if (style === 2) {
-    candidates.push({ x: 0.08, y: 0.55, w: 0.22, h: 0.04 });
-    candidates.push({ x: 0.65, y: 0.55, w: 0.25, h: 0.04 });
-  }
-  if (style === 4) {
-    candidates.push({ x: 0.35, y: 0.22, w: 0.35, h: 0.035 });
-  }
-  if (style === 5) candidates.push({ x: 0.45, y: 0.2, w: 0.05, h: 0.32 });
-  if (style === 6) {
-    candidates.push({ x: 0.12, y: 0.35, w: 0.22, h: 0.04 });
-    candidates.push({ x: 0.66, y: 0.35, w: 0.22, h: 0.04 });
-  }
-  if (style === 7) {
-    candidates.push({ x: 0.38, y: 0.22, w: 0.06, h: 0.3 });
-    candidates.push({ x: 0.62, y: 0.18, w: 0.06, h: 0.28 });
-  }
-  if (style === 8) candidates.push({ x: 0.45, y: 0.48, w: 0.3, h: 0.04 });
-  if (tier >= 4) candidates.push({ x: 0.05, y: 0.88, w: 0.15, h: 0.035 });
-  if (tier >= 7) candidates.push({ x: 0.8, y: 0.15, w: 0.12, h: 0.035 });
-
-  return candidates.filter((b) => !pathHitsBox(sol, b, pad));
+function uniqueName(i) {
+  const A = [
+    "Dawn", "Mist", "Ridge", "Cove", "Pike", "Glen", "Forge", "Drift", "Haven", "Bloom",
+    "Spark", "Cliff", "Marsh", "Dune", "Frost", "Ember", "Tide", "Oak", "Pine", "Ash"
+  ];
+  const B = [
+    "Sip", "Pour", "Gutter", "Chute", "Rail", "Shelf", "Bend", "Gate", "Wall", "Bridge",
+    "Slide", "Drop", "Lane", "Hook", "Turn", "Ramp", "Well", "Spout", "Trough", "Flume"
+  ];
+  return `${A[i % A.length]} ${B[Math.floor(i / 2) % B.length]}`.slice(0, 16);
 }
 
-const NAME_A = [
-  "First", "Soft", "Long", "Quick", "Quiet", "Sharp", "Wide", "Thin", "High", "Low",
-  "Side", "Mid", "Far", "Near", "Twin", "Triple", "Lean", "Curve", "Flat", "Steep"
-];
-const NAME_B = [
-  "Drop", "Ramp", "Shelf", "Gap", "Wall", "Gate", "Bend", "Slide", "Cup", "Chute",
-  "Rail", "Lane", "Path", "Sip", "Pour", "Gutter", "Bridge", "Hook", "Turn", "Run"
-];
+function difficulty(i) {
+  return i / (COUNT - 1);
+}
 
 function buildLevel(index) {
-  const id = index + 1;
-  const style = index % 10;
-  const tier = Math.floor(index / 10);
-  const name = `${NAME_A[index % NAME_A.length]} ${NAME_B[Math.floor(index / 3) % NAME_B.length]}`;
+  const d = difficulty(index);
+  const flip = index % 2 === 1;
+  const band = Math.floor(index / 10); // 0..9
 
-  const layouts = [
-    () => ({ tap: { x: 0.2, y: 0.1 }, cup: { x: 0.68, y: 0.74, w: 0.13, h: 0.15 } }),
-    () => ({ tap: { x: 0.16, y: 0.1 }, cup: { x: 0.7, y: 0.76, w: 0.12, h: 0.14 } }),
-    () => ({ tap: { x: 0.15, y: 0.1 }, cup: { x: 0.72, y: 0.72, w: 0.12, h: 0.15 } }),
-    () => ({ tap: { x: 0.58, y: 0.08 }, cup: { x: 0.14, y: 0.72, w: 0.12, h: 0.15 } }),
-    () => ({ tap: { x: 0.14, y: 0.1 }, cup: { x: 0.74, y: 0.76, w: 0.12, h: 0.14 } }),
-    () => ({ tap: { x: 0.78, y: 0.1 }, cup: { x: 0.14, y: 0.74, w: 0.12, h: 0.15 } }),
-    () => ({ tap: { x: 0.5, y: 0.08 }, cup: { x: 0.45, y: 0.78, w: 0.13, h: 0.14 } }),
-    () => ({ tap: { x: 0.18, y: 0.1 }, cup: { x: 0.7, y: 0.74, w: 0.12, h: 0.15 } }),
-    () => ({ tap: { x: 0.16, y: 0.1 }, cup: { x: 0.66, y: 0.36 + (tier % 3) * 0.03, w: 0.12, h: 0.14 } }),
-    () => ({ tap: { x: 0.5, y: 0.08 }, cup: { x: 0.44, y: 0.78, w: 0.12, h: 0.13 } })
-  ];
+  const tap = {
+    x: flip ? clamp(0.8 - (index % 6) * 0.025, 0.62, 0.86) : clamp(0.16 + (index % 6) * 0.025, 0.12, 0.36),
+    y: 0.09
+  };
+  const cup = {
+    x: flip ? clamp(0.1 + (index % 5) * 0.02, 0.08, 0.28) : clamp(0.68 - (index % 5) * 0.02, 0.62, 0.8),
+    y: clamp(0.74 - band * 0.008, 0.62, 0.78),
+    w: lerp(0.14, 0.11, d),
+    h: lerp(0.15, 0.12, d)
+  };
 
-  const { tap, cup } = layouts[style]();
-  const sol = makeGutter(tap, cup, style, tier);
-  const blocks = decorativeBlocks(style, tier, sol);
-  const pathLen = strokeLength(sol);
-  const ink = clamp(pathLen * 1.85 + 0.45, 1.2, 3.2);
-  const need = clamp(22 + Math.floor(index * 0.15), 22, 40);
+  const blocks = [];
 
-  return { id, name: name.slice(0, 16), ink: Math.round(ink * 100) / 100, need, tap, cup, blocks, _sol: sol };
-}
+  // --- Always: drip shelf under tap (blocks free-fall) ---
+  const roofY = 0.28 + (index % 3) * 0.015;
+  const roofW = lerp(0.3, 0.48, d);
+  const roof = {
+    x: clamp(tap.x - roofW * (flip ? 0.35 : 0.55), 0.04, 0.65),
+    y: roofY,
+    w: roofW,
+    h: 0.048
+  };
+  // Make sure roof covers tap.x
+  if (tap.x < roof.x) roof.x = tap.x - 0.05;
+  if (tap.x > roof.x + roof.w) roof.w = tap.x - roof.x + 0.08;
+  blocks.push(roof);
 
-/** Slide tokens along the polyline into the cup — proves the gutter delivers fill. */
-function slideTest(level) {
-  const sol = level._sol;
-  const len = strokeLength(sol);
-  if (len > level.ink * 0.92) return { ok: false, reason: "ink too tight" };
-
-  // Start under tap
-  const start = sol[0];
-  if (Math.abs(start.x - level.tap.x) > 0.06 || start.y < level.tap.y) {
-    return { ok: false, reason: "path not under tap" };
+  // --- Progressive obstacles ---
+  // Easy (0-19): one mid shelf
+  if (band >= 0) {
+    blocks.push({
+      x: flip ? 0.35 : 0.4,
+      y: 0.48 + (index % 4) * 0.02,
+      w: lerp(0.2, 0.32, Math.min(1, band / 4)),
+      h: 0.042
+    });
+  }
+  // 20+: wall
+  if (band >= 2) {
+    blocks.push({
+      x: 0.42 + (flip ? 0.06 : -0.06) + (index % 3) * 0.02,
+      y: 0.32,
+      w: 0.05,
+      h: lerp(0.2, 0.36, d)
+    });
+  }
+  // 30+: second shelf near cup
+  if (band >= 3) {
+    blocks.push({
+      x: clamp(cup.x - 0.05, 0.05, 0.75),
+      y: clamp(cup.y - 0.14, 0.5, 0.68),
+      w: lerp(0.22, 0.36, d),
+      h: 0.042
+    });
+  }
+  // 40+: offset roof
+  if (band >= 4) {
+    blocks.push({
+      x: clamp(tap.x + (flip ? -0.35 : 0.15), 0.05, 0.7),
+      y: roofY + 0.14,
+      w: lerp(0.2, 0.34, d),
+      h: 0.04
+    });
+  }
+  // 50+: gap barrier across mid with opening toward solution side
+  if (band >= 5) {
+    const gap = flip ? 0.28 : 0.62;
+    blocks.push({ x: 0.05, y: 0.58, w: Math.max(0.1, gap - 0.14), h: 0.04 });
+    blocks.push({ x: gap + 0.1, y: 0.58, w: Math.max(0.1, 0.92 - (gap + 0.1)), h: 0.04 });
+  }
+  // 60+: extra stub wall
+  if (band >= 6) {
+    blocks.push({
+      x: flip ? 0.5 : 0.42,
+      y: 0.4,
+      w: 0.048,
+      h: 0.22
+    });
+  }
+  // 70+: low floor ledge
+  if (band >= 7) {
+    blocks.push({
+      x: flip ? 0.4 : 0.2,
+      y: 0.7,
+      w: 0.28,
+      h: 0.04
+    });
+  }
+  // 80+: dense extras
+  if (band >= 8) {
+    blocks.push({ x: 0.3, y: 0.36, w: 0.18, h: 0.04 });
+    blocks.push({ x: 0.55, y: 0.44, w: 0.18, h: 0.04 });
+  }
+  // 90+: hardest — tall wall + tight shelves
+  if (band >= 9) {
+    blocks.push({ x: 0.48, y: 0.3, w: 0.055, h: 0.42 });
+    blocks.push({ x: flip ? 0.2 : 0.55, y: 0.52, w: 0.25, h: 0.04 });
   }
 
+  // Dedup
+  const cleaned = [];
+  for (const b of blocks) {
+    if (
+      cleaned.some(
+        (c) => Math.abs(c.x - b.x) < 0.03 && Math.abs(c.y - b.y) < 0.03 && Math.abs(c.w - b.w) < 0.04
+      )
+    ) {
+      continue;
+    }
+    cleaned.push(b);
+  }
+
+  while (freeWin(tap, cup, cleaned)) {
+    cleaned[0].w = Math.min(0.95, cleaned[0].w + 0.12);
+    cleaned[0].x = clamp(tap.x - cleaned[0].w * 0.5, 0.02, 0.5);
+  }
+
+  const sol = buildSolution(tap, cup, cleaned, flip);
+  // Drop obstacles that the path actually tunnels through (not ride-on-top)
+  const finalBlocks = cleaned.filter((b, idx) => idx === 0 || !pathThroughBlock(sol, b, 0.028));
+  while (freeWin(tap, cup, finalBlocks)) {
+    finalBlocks.unshift({
+      x: clamp(tap.x - 0.24, 0.03, 0.55),
+      y: roofY,
+      w: 0.48,
+      h: 0.05
+    });
+  }
+
+  const pathLen = strokeLength(sol);
+  const ink = clamp(pathLen * lerp(1.85, 1.28, d) + lerp(0.4, 0.15, d), 1.15, 3.3);
+  const need = Math.round(lerp(20, 40, d));
+
+  return {
+    id: index + 1,
+    name: uniqueName(index),
+    ink: Math.round(ink * 100) / 100,
+    need,
+    tap,
+    cup,
+    blocks: finalBlocks,
+    _sol: sol
+  };
+}
+
+function buildSolution(tap, cup, blocks, flip) {
+  const roof = blocks[0];
+  const cx = cup.x + cup.w * 0.5;
+  const cy = cup.y + cup.h * 0.4;
+  const rideY = roof.y - 0.025;
+  // Exit off the cup-facing edge of the roof
+  const exitX = flip ? roof.x - 0.04 : roof.x + roof.w + 0.04;
+
+  const pts = [
+    { x: tap.x, y: tap.y + 0.03 },
+    { x: tap.x, y: rideY },
+    { x: clamp(exitX, 0.05, 0.95), y: rideY }
+  ];
+
+  // Descend in steps toward cup, dodging walls
+  const waypoints = [
+    { y: 0.4 },
+    { y: 0.55 },
+    { y: 0.68 }
+  ];
+  let x = pts[pts.length - 1].x;
+  for (const wp of waypoints) {
+    let nx = lerp(x, cx, 0.5);
+    for (const b of blocks) {
+      // vertical wall dodge
+      if (b.h > 0.12 && b.w < 0.1) {
+        if (nx > b.x - 0.04 && nx < b.x + b.w + 0.04 && wp.y > b.y && wp.y < b.y + b.h) {
+          nx = flip ? b.x - 0.06 : b.x + b.w + 0.06;
+        }
+      }
+      // shelf: ride over or go around end
+      if (b.h < 0.08 && wp.y > b.y - 0.03 && wp.y < b.y + b.h + 0.05) {
+        if (nx > b.x && nx < b.x + b.w) {
+          pts.push({ x: nx, y: b.y - 0.025 });
+          nx = Math.abs(cx - b.x) < Math.abs(cx - (b.x + b.w)) ? b.x - 0.04 : b.x + b.w + 0.04;
+        }
+      }
+    }
+    x = clamp(nx, 0.05, 0.95);
+    pts.push({ x, y: wp.y });
+  }
+  pts.push({ x: cx, y: Math.min(cup.y - 0.02, 0.72) });
+  pts.push({ x: cx, y: cy });
+
+  let sol = densify(pts, 0.02);
+  // Push any interior intersections out
+  for (let pass = 0; pass < 4; pass++) {
+    sol = sol.map((p) => {
+      let q = { ...p };
+      for (const b of blocks) {
+        if (!insideBlock(q, b, 0.03)) continue;
+        const left = b.x - 0.05;
+        const right = b.x + b.w + 0.05;
+        q.x = Math.abs(q.x - left) < Math.abs(q.x - right) ? left : right;
+        q.y = Math.min(q.y, b.y - 0.02);
+        q.x = clamp(q.x, 0.04, 0.96);
+        q.y = clamp(q.y, 0.05, 0.95);
+      }
+      return q;
+    });
+  }
+  return densify(sol, 0.02);
+}
+
+function validate(level) {
+  if (freeWin(level.tap, level.cup, level.blocks)) return { ok: false, reason: "free-win" };
+  if (!level.blocks || level.blocks.length < 2) return { ok: false, reason: "too few obstacles" };
+  if (Math.abs(level.tap.x - (level.cup.x + level.cup.w / 2)) < 0.3) {
+    return { ok: false, reason: "cup under tap" };
+  }
+  const sol = level._sol;
+  if (Math.abs(sol[0].x - level.tap.x) > 0.1) return { ok: false, reason: "path not under tap" };
   const end = sol[sol.length - 1];
   if (
     end.x < level.cup.x ||
@@ -193,33 +308,12 @@ function slideTest(level) {
   ) {
     return { ok: false, reason: "path misses cup" };
   }
-
-  for (const b of level.blocks || []) {
-    if (b.rot) continue;
-    if (pathHitsBox(sol, b, 0.045)) return { ok: false, reason: `blocked by obstacle` };
+  for (const b of level.blocks) {
+    if (pathThroughBlock(sol, b, 0.025)) return { ok: false, reason: "path hits block" };
   }
-
-  // Kinematic pour: spawn need+5 particles spaced along early path, advance along polyline
-  let filled = 0;
-  const need = level.need;
-  for (let n = 0; n < need + 8; n++) {
-    // Each particle rides the full path
-    let atCup = false;
-    for (const p of sol) {
-      if (
-        p.x > level.cup.x &&
-        p.x < level.cup.x + level.cup.w &&
-        p.y > level.cup.y &&
-        p.y < level.cup.y + level.cup.h
-      ) {
-        atCup = true;
-        break;
-      }
-    }
-    if (atCup) filled += 1;
-  }
-  if (filled < need) return { ok: false, reason: `slide fill ${filled}/${need}` };
-  return { ok: true, filled, pathLen: len };
+  const len = strokeLength(sol);
+  if (len > level.ink * 0.9) return { ok: false, reason: "ink tight" };
+  return { ok: true, obstacles: level.blocks.length, len };
 }
 
 function main() {
@@ -227,47 +321,80 @@ function main() {
   const fails = [];
   for (let i = 0; i < COUNT; i++) {
     let lv = buildLevel(i);
-    let result = slideTest(lv);
+    let result = validate(lv);
     let tries = 0;
-    while (!result.ok && tries < 8) {
+    while (!result.ok && tries < 12) {
       tries += 1;
-      lv.need = Math.max(18, lv.need - 2);
-      // Force end inside cup, then budget ink for the final path
-      lv._sol = densify(
-        [
-          { x: lv.tap.x, y: lv.tap.y + 0.04 },
-          { x: lv.tap.x, y: Math.max(lv.tap.y + 0.2, Math.min(0.7, lv.cup.y - 0.05)) },
-          { x: lv.cup.x + lv.cup.w * 0.5, y: Math.max(lv.tap.y + 0.2, Math.min(0.7, lv.cup.y - 0.05)) },
-          { x: lv.cup.x + lv.cup.w * 0.5, y: lv.cup.y + lv.cup.h * 0.4 }
-        ],
-        0.02
-      );
-      lv.blocks = (lv.blocks || []).filter((b) => b.rot || !pathHitsBox(lv._sol, b, 0.05));
-      lv.ink = Math.min(3.5, strokeLength(lv._sol) * 1.35 + 0.4);
-      result = slideTest(lv);
+      // Safer rebuild
+      const flip = i % 2 === 1;
+      lv.tap = { x: flip ? 0.8 : 0.18, y: 0.09 };
+      lv.cup = {
+        x: flip ? 0.12 : 0.72,
+        y: 0.74,
+        w: 0.13,
+        h: 0.14
+      };
+      lv.blocks = [
+        { x: flip ? 0.55 : 0.05, y: 0.28, w: 0.4, h: 0.05 },
+        { x: 0.35, y: 0.5, w: 0.28, h: 0.04 }
+      ];
+      if (i >= 20) lv.blocks.push({ x: 0.46, y: 0.34, w: 0.05, h: 0.28 });
+      if (i >= 40) lv.blocks.push({ x: lv.cup.x - 0.02, y: 0.6, w: 0.28, h: 0.04 });
+      if (i >= 60) {
+        lv.blocks.push({ x: 0.05, y: 0.58, w: 0.28, h: 0.04 });
+        lv.blocks.push({ x: 0.55, y: 0.58, w: 0.4, h: 0.04 });
+      }
+      if (i >= 80) lv.blocks.push({ x: 0.48, y: 0.32, w: 0.055, h: 0.4 });
+      while (freeWin(lv.tap, lv.cup, lv.blocks)) {
+        lv.blocks[0].w = Math.min(0.9, lv.blocks[0].w + 0.1);
+        lv.blocks[0].x = clamp(lv.tap.x - lv.blocks[0].w * 0.5, 0.02, 0.55);
+      }
+      lv._sol = buildSolution(lv.tap, lv.cup, lv.blocks, flip);
+      lv.blocks = lv.blocks.filter((b, idx) => idx === 0 || !pathThroughBlock(lv._sol, b, 0.028));
+      if (lv.blocks.length < 2) {
+        lv.blocks.push({ x: 0.38, y: 0.52, w: 0.24, h: 0.04 });
+      }
+      while (freeWin(lv.tap, lv.cup, lv.blocks)) {
+        lv.blocks.unshift({ x: lv.tap.x - 0.25, y: 0.27, w: 0.5, h: 0.05 });
+      }
+      lv.ink = Math.min(3.4, strokeLength(lv._sol) * 1.45 + 0.25);
+      lv.need = Math.round(lerp(20, 40, difficulty(i)));
+      lv.name = uniqueName(i);
+      lv.id = i + 1;
+      result = validate(lv);
     }
     if (!result.ok) {
-      fails.push({ id: lv.id, name: lv.name, reason: result.reason });
-      console.error(`FAIL ${lv.id} ${lv.name}: ${result.reason}`);
-    } else if (lv.id % 10 === 0) {
-      console.log(`OK ${lv.id}/100`);
+      fails.push({ id: lv.id, reason: result.reason });
+      console.error(`FAIL ${lv.id}: ${result.reason}`);
+    } else if ((i + 1) % 10 === 0) {
+      console.log(`OK ${i + 1}/100  blocks=${result.obstacles} ink=${lv.ink} need=${lv.need}`);
     }
     const { _sol, ...pub } = lv;
     levels.push(pub);
   }
 
-  if (fails.length) {
-    console.error(`\n${fails.length} failed`);
+  let sparse = levels.filter((l) => l.blocks.length < 2).length;
+  console.log(`sparse(<2 blocks): ${sparse}`);
+  if (fails.length || sparse) {
+    console.error("generation failed");
     process.exit(1);
+  }
+
+  // Spot-check free wins
+  for (const lv of levels) {
+    if (freeWin(lv.tap, lv.cup, lv.blocks)) {
+      console.error(`free-win slipped: ${lv.id}`);
+      process.exit(1);
+    }
   }
 
   const out = path.join(__dirname, "..", "cup-flow", "levels-data.js");
   fs.writeFileSync(
     out,
-    "/* Auto-generated by tools/gen-cup-levels.js — 100 verified gutters */\n" +
+    "/* Auto-generated progressive Cup Flow levels */\n" +
       `window.CUP_FLOW_LEVELS = ${JSON.stringify(levels)};\n`
   );
-  console.log(`\nAll ${levels.length} levels beatable. Wrote cup-flow/levels-data.js`);
+  console.log(`Wrote ${levels.length} levels`);
 }
 
 main();

@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001fw": [
+    "Cup Flow: reworked 100 levels — rising difficulty, real obstacles, no free wins without drawing"
+  ],
   "20261001fv": [
     "Cup Flow: 100 verified levels + unlock the next only after you clear the previous"
   ],
