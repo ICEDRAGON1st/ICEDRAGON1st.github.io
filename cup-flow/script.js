@@ -517,12 +517,35 @@
     return { nx, ny };
   }
 
-  /** Solid box collision — prefers top face near corners so drops can fall off */
-  function resolveAABB(d, b, r) {
+  /**
+   * Solid box collision.
+   * Thin shelves must never let a drop tunnel underneath — if we entered from
+   * above (or swept through the top face), always eject to the top.
+   */
+  function resolveAABB(d, b, r, prevY) {
     const left = b.x - r;
     const right = b.x + b.w + r;
     const top = b.y - r;
     const bot = b.y + b.h + r;
+    const overX = d.x > b.x - r * 0.2 && d.x < b.x + b.w + r * 0.2;
+
+    // Swept top-face hit: was above, now at/below top while still over the slab
+    if (
+      prevY != null &&
+      overX &&
+      prevY <= top + 0.0005 &&
+      d.y > top &&
+      d.x > left &&
+      d.x < right
+    ) {
+      d.y = top;
+      if (d.vy > 0) d.vy *= 0.12;
+      if (d.x > b.x + b.w) d.x = b.x + b.w + r + 0.001;
+      else if (d.x < b.x) d.x = b.x - r - 0.001;
+      clampSpeed(d);
+      return true;
+    }
+
     if (d.x <= left || d.x >= right || d.y <= top || d.y >= bot) return false;
 
     const ol = d.x - left;
@@ -531,31 +554,45 @@
     const ob = bot - d.y;
     let m = Math.min(ol, orr, ot, ob);
 
-    const nearTopCorner = ot < r * 1.8 && (ol < r * 1.8 || orr < r * 1.8);
-    if (nearTopCorner && ot <= Math.min(ol, orr) + r * 0.35) {
+    // Coming from above → always land on top (never resolve "under")
+    const fromAbove = prevY != null && prevY <= b.y + 0.002 && overX;
+    const nearTopCorner = ot < r * 2.2 && (ol < r * 2 || orr < r * 2);
+    if (fromAbove || (nearTopCorner && ot <= Math.min(ol, orr) + r * 0.5)) {
+      m = ot;
+    }
+    // Deep tunnel case: fully below center of a flat shelf → snap back to top
+    if (b.h < 0.09 && overX && d.y < b.y + b.h + r && prevY != null && prevY < b.y + 0.05) {
       m = ot;
     }
 
     if (m === ot) {
       d.y = top;
-      if (d.vy > 0) d.vy *= 0.15; // keep a little horizontal carry; kill slam
-      // Past the real ledge: slip off by position only (no launch)
+      if (d.vy > 0) d.vy *= 0.12;
       if (d.x > b.x + b.w) d.x = b.x + b.w + r + 0.001;
       else if (d.x < b.x) d.x = b.x - r - 0.001;
     } else if (m === ob) {
-      d.y = bot;
-      if (d.vy < 0) d.vy = 0;
-    } else if (m === ol) {
-      if (d.y < b.y + r * 0.85) {
+      // Only allow underside contact when clearly rising into the block from below
+      if (prevY != null && prevY >= bot - 0.001 && d.vy < 0) {
+        d.y = bot;
+        if (d.vy < 0) d.vy = 0;
+      } else if (overX) {
         d.y = top;
-        if (d.vy > 0) d.vy *= 0.15;
+        if (d.vy > 0) d.vy *= 0.12;
+      } else {
+        d.y = bot;
+        if (d.vy < 0) d.vy = 0;
+      }
+    } else if (m === ol) {
+      if (d.y < b.y + r * 0.95 || fromAbove) {
+        d.y = top;
+        if (d.vy > 0) d.vy *= 0.12;
       } else {
         d.x = left;
         if (d.vx > 0) d.vx = 0;
       }
-    } else if (d.y < b.y + r * 0.85) {
+    } else if (d.y < b.y + r * 0.95 || fromAbove) {
       d.y = top;
-      if (d.vy > 0) d.vy *= 0.15;
+      if (d.vy > 0) d.vy *= 0.12;
     } else {
       d.x = right;
       if (d.vx < 0) d.vx = 0;
@@ -628,7 +665,7 @@
         for (let pass = 0; pass < 3; pass++) {
           let hitAny = false;
           for (let i = 0; i < boxes.length; i++) {
-            if (resolveAABB(d, boxes[i], DROP_R + 0.002)) hitAny = true;
+            if (resolveAABB(d, boxes[i], DROP_R + 0.004, oy)) hitAny = true;
           }
           for (let i = 0; i < segs.length; i++) {
             if (resolveAgainstSeg(d, segs[i], radius)) {

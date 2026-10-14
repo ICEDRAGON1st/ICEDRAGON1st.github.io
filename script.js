@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261001fz": [
+    "Cup Flow: water no longer slips under shelves; 100 unique rising-difficulty layouts"
+  ],
   "20261001fy": [
     "Cup Flow: denser unique layouts (no more empty 2-shelf levels) + clearer platforms"
   ],
