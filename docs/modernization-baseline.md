@@ -57,5 +57,15 @@ Until isolated staging and automated releases exist:
 - Paper Claim has per-frame full-grid territory scans and full-layer blur/compositing.
 - Game pages currently use inconsistent service-worker/build versions.
 
-Future performance tickets must compare against recorded cold/warm load, long-task, FPS,
+## Current measurements after the first performance slices
+
+- Hub scripts load in dependency-aware parallel phases and use one stable service-worker URL.
+- Guessword startup loads one active language/length pack (168,142 bytes for English 5-letter)
+  instead of all 18 word/dictionary files (2,264,199 bytes), saving 2,096,057 uncompressed
+  bytes on the default route. Other packs load on demand and are retained for the page session.
+- The isolated local hub smoke test reaches its interactive shell in about 2–3 seconds.
+- The headless Paper Claim smoke test sustains at least 25 FPS while recording video. This is a
+  CI regression guard, not proof of the roadmap's 55 FPS real-device target.
+
+Future performance tickets must continue comparing cold/warm load, long-task, FPS,
 request-rate, and payload measurements rather than relying only on visual impressions.

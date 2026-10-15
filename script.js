@@ -45,6 +45,10 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261015c": [
+    "Faster hub startup: Guessword now loads only the active language and word-length dictionary.",
+    "Language, mode, and word-length changes load their dictionary safely on demand."
+  ],
   "20261015b": [
     "Paper Claim runs smoother with cached territory scores and throttled HUD updates",
     "Paper Claim now pre-renders soft land edges instead of blurring the full map every frame"
@@ -2096,6 +2100,7 @@ const savedLength = Number(localStorage.getItem(LENGTH_KEY));
 let currentLength = LENGTHS.includes(savedLength) ? savedLength : 5;
 let playMode = localStorage.getItem(MODE_KEY) === "practice" ? "practice" : "daily";
 let wordTheme = localStorage.getItem(WORD_THEME_KEY) || "classic";
+let wordAssetChangePending = false;
 if (typeof WORDLE_THEMES !== "undefined" && !WORDLE_THEMES[wordTheme]) {
   wordTheme = "classic";
 }
@@ -2220,13 +2225,32 @@ function applyLengthForMode() {
   updateLengthButton();
 }
 
-function switchLength() {
+async function ensureWordAssets(lang, length) {
+  if (wordAssetChangePending) return false;
+  wordAssetChangePending = true;
+  try {
+    if (typeof window.ensureGuesswordAssets === "function") {
+      await window.ensureGuesswordAssets(lang, length);
+    }
+    return true;
+  } catch (error) {
+    console.error("Could not load Guessword dictionary", error);
+    showMessage("Could not load that dictionary. Check your connection and try again.", true);
+    return false;
+  } finally {
+    wordAssetChangePending = false;
+  }
+}
+
+async function switchLength() {
   if (isDailyMode()) {
     showMessage("Daily is always 5 letters — switch to Practice to change length", true);
     return;
   }
   const idx = LENGTHS.indexOf(currentLength);
-  currentLength = LENGTHS[(idx + 1) % LENGTHS.length];
+  const nextLength = LENGTHS[(idx + 1) % LENGTHS.length];
+  if (!(await ensureWordAssets(currentLang, nextLength))) return;
+  currentLength = nextLength;
   COLS = currentLength;
   localStorage.setItem(LENGTH_KEY, String(currentLength));
   updateLengthButton();
@@ -2280,9 +2304,11 @@ function playSound(kind, extra) {
   window.HubSound?.play(kind, extra);
 }
 
-function switchLanguage() {
+async function switchLanguage() {
   const idx = LANGUAGES.indexOf(currentLang);
-  currentLang = LANGUAGES[(idx + 1) % LANGUAGES.length];
+  const nextLang = LANGUAGES[(idx + 1) % LANGUAGES.length];
+  if (!(await ensureWordAssets(nextLang, currentLength))) return;
+  currentLang = nextLang;
   localStorage.setItem(LANG_KEY, currentLang);
   updateLangButton();
   reloadBoard();
@@ -2368,8 +2394,17 @@ function updateModeButton() {
   }
 }
 
-function togglePlayMode() {
-  setPlayMode(isDailyMode() ? "practice" : "daily");
+async function togglePlayMode() {
+  const nextMode = isDailyMode() ? "practice" : "daily";
+  const savedPracticeLength = Number(localStorage.getItem(LENGTH_KEY));
+  const nextLength =
+    nextMode === "daily"
+      ? DAILY_LENGTH
+      : LENGTHS.includes(savedPracticeLength)
+        ? savedPracticeLength
+        : DAILY_LENGTH;
+  if (!(await ensureWordAssets(currentLang, nextLength))) return;
+  setPlayMode(nextMode);
   reloadBoard();
   showMessage(
     isDailyMode() ? "Today's Daily Guessword" : "Practice · themes + Flex 4/5/6"
@@ -2719,12 +2754,17 @@ function updateWordThemePicker() {
   }
 }
 
-function setWordTheme(mode) {
+async function setWordTheme(mode) {
   const def = getWordThemeDef(mode);
   if (!def) return;
   const next = def.id;
   const wasDaily = isDailyMode();
   const changed = next !== wordTheme || (next !== "classic" && wasDaily);
+  if (next !== "classic" && wasDaily) {
+    const savedPracticeLength = Number(localStorage.getItem(LENGTH_KEY));
+    const nextLength = LENGTHS.includes(savedPracticeLength) ? savedPracticeLength : DAILY_LENGTH;
+    if (!(await ensureWordAssets(currentLang, nextLength))) return;
+  }
   wordTheme = next;
   try {
     localStorage.setItem(WORD_THEME_KEY, next);

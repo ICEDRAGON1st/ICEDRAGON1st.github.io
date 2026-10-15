@@ -54,3 +54,56 @@ for (const target of PAGES) {
     expect(errors, `${target.path} browser errors`).toEqual([]);
   });
 }
+
+test("Guessword loads only the active dictionary pack", async ({ page }) => {
+  const requestedPacks = [];
+  page.on("request", (request) => {
+    const path = new URL(request.url()).pathname;
+    if (/\/(?:words|dictionary)(?:-[a-z0-9]+)*\.js$/i.test(path)) {
+      requestedPacks.push(path);
+    }
+  });
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(
+    () => !document.documentElement.classList.contains("hub-booting"),
+    null,
+    { timeout: 20_000 }
+  );
+
+  expect(new Set(requestedPacks)).toEqual(new Set(["/words.js", "/dictionary.js"]));
+
+  await page.evaluate(() => window.switchLanguage());
+  await expect
+    .poll(() => new Set(requestedPacks), { timeout: 10_000 })
+    .toEqual(new Set(["/words.js", "/dictionary.js", "/words-da.js", "/dictionary-da.js"]));
+
+  await page.evaluate(() => window.togglePlayMode());
+  await page.evaluate(() => window.switchLength());
+  await expect
+    .poll(() => new Set(requestedPacks), { timeout: 10_000 })
+    .toEqual(
+      new Set([
+        "/words.js",
+        "/dictionary.js",
+        "/words-da.js",
+        "/dictionary-da.js",
+        "/words-da-6.js",
+        "/dictionary-da-6.js"
+      ])
+    );
+
+  await page.evaluate(() => window.switchLanguage());
+  await expect
+    .poll(() => new Set(requestedPacks), { timeout: 10_000 })
+    .toContain("/dictionary-is-6.js");
+
+  requestedPacks.length = 0;
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.waitForFunction(
+    () => !document.documentElement.classList.contains("hub-booting"),
+    null,
+    { timeout: 20_000 }
+  );
+  expect(new Set(requestedPacks)).toEqual(new Set(["/words-is-6.js", "/dictionary-is-6.js"]));
+});

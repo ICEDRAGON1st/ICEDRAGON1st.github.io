@@ -94,13 +94,13 @@
       pointer-events: none !important;
     }
   </style>
-  <script src="site-config.js?v=20261015b"></script>
+  <script src="site-config.js?v=20261015c"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=20261001ge">
-  <script src="hub-net.js?v=20261015b"></script>
-  <script src="hub-afk.js?v=20261015b"></script>
+  <script src="hub-net.js?v=20261015c"></script>
+  <script src="hub-afk.js?v=20261015c"></script>
 </head>
 <body data-guess-colors="ice">
   <div id="hub-boot-loader" aria-live="polite" aria-busy="true">
@@ -940,7 +940,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20261015b";
+    window.WORDLE_BUILD = "20261015c";
     try {
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("sw.js").catch(function () {});
@@ -976,29 +976,7 @@
         "hub-discord.js",
         "hub-admin.js"
       ],
-      ["hub-chat.js", "hub-calls.js"],
-      [
-        "words.js",
-        "dictionary.js",
-        "words-4.js",
-        "dictionary-4.js",
-        "words-6.js",
-        "dictionary-6.js",
-        "words-da.js",
-        "dictionary-da.js",
-        "words-da-4.js",
-        "dictionary-da-4.js",
-        "words-da-6.js",
-        "dictionary-da-6.js",
-        "words-is.js",
-        "dictionary-is.js",
-        "words-is-4.js",
-        "dictionary-is-4.js",
-        "words-is-6.js",
-        "dictionary-is-6.js",
-        "wordle-themes.js"
-      ],
-      ["script.js"]
+      ["hub-chat.js", "hub-calls.js"]
     ];
     function dismissHubBootLoader() {
       try {
@@ -1012,22 +990,91 @@
       } catch (e) {}
     }
     window.dismissHubBootLoader = dismissHubBootLoader;
-    function loadHubScript(file) {
-      return new Promise(function (resolve) {
+    const loadedHubScripts = new Map();
+    function loadHubScript(file, required) {
+      if (loadedHubScripts.has(file)) return loadedHubScripts.get(file);
+      const promise = new Promise(function (resolve, reject) {
         const el = document.createElement("script");
         el.src = file + "?v=" + window.WORDLE_BUILD;
         el.onload = resolve;
         el.onerror = function () {
           console.error("Failed to load", file);
-          resolve();
+          loadedHubScripts.delete(file);
+          if (required) reject(new Error("Failed to load " + file));
+          else resolve();
         };
         document.body.appendChild(el);
       });
+      loadedHubScripts.set(file, promise);
+      return promise;
     }
+
+    const guesswordAssets = {
+      en: {
+        4: ["words-4.js", "dictionary-4.js"],
+        5: ["words.js", "dictionary.js"],
+        6: ["words-6.js", "dictionary-6.js"]
+      },
+      da: {
+        4: ["words-da-4.js", "dictionary-da-4.js"],
+        5: ["words-da.js", "dictionary-da.js"],
+        6: ["words-da-6.js", "dictionary-da-6.js"]
+      },
+      is: {
+        4: ["words-is-4.js", "dictionary-is-4.js"],
+        5: ["words-is.js", "dictionary-is.js"],
+        6: ["words-is-6.js", "dictionary-is-6.js"]
+      }
+    };
+    function ensureGuesswordAssets(lang, length) {
+      const language = guesswordAssets[lang] ? lang : "en";
+      const size = [4, 5, 6].includes(Number(length)) ? Number(length) : 5;
+      return Promise.all(
+        guesswordAssets[language][size].map(function (file) {
+          return loadHubScript(file, true);
+        })
+      );
+    }
+    window.ensureGuesswordAssets = ensureGuesswordAssets;
+
+    function getInitialGuesswordSelection() {
+      try {
+        const savedLang = localStorage.getItem("wordle-lang");
+        const lang = guesswordAssets[savedLang] ? savedLang : "en";
+        const mode = localStorage.getItem("wordle-play-mode");
+        const savedLength = Number(localStorage.getItem("wordle-length"));
+        const today = new Date();
+        const date =
+          today.getFullYear() +
+          "-" +
+          String(today.getMonth() + 1).padStart(2, "0") +
+          "-" +
+          String(today.getDate()).padStart(2, "0");
+        let dailyFinished = false;
+        try {
+          const raw = localStorage.getItem("wordle-game-daily-" + lang + "-5-" + date);
+          const daily = raw ? JSON.parse(raw) : null;
+          dailyFinished = daily && (daily.gameStatus === "won" || daily.gameStatus === "lost");
+        } catch (e) {}
+        const startsInPractice = mode === "practice" || dailyFinished;
+        const length =
+          startsInPractice && [4, 5, 6].includes(savedLength) ? savedLength : 5;
+        return { lang: lang, length: length };
+      } catch (e) {
+        return { lang: "en", length: 5 };
+      }
+    }
+
     async function loadHubPhases() {
       for (const phase of scriptPhases) {
         await Promise.all(phase.map(loadHubScript));
       }
+      const initialGuessword = getInitialGuesswordSelection();
+      await Promise.all([
+        ensureGuesswordAssets(initialGuessword.lang, initialGuessword.length),
+        loadHubScript("wordle-themes.js", true)
+      ]);
+      await loadHubScript("script.js", true);
       // Scripts finished; give init a tick, then drop the loader.
       setTimeout(dismissHubBootLoader, 40);
     }
