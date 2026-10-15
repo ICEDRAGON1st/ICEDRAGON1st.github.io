@@ -342,6 +342,26 @@
     return session?.access_token || "";
   }
 
+  async function adoptSession(tokens) {
+    const access = String(tokens?.access_token || "").trim();
+    const refresh = String(tokens?.refresh_token || "").trim();
+    if (!access) return null;
+    const existing = readSession() || {};
+    sessionPromise = (async function () {
+      const next = writeSession({
+        access_token: access,
+        refresh_token: refresh || existing.refresh_token,
+        user: tokens.user || existing.user || null,
+        profile: existing.profile || null
+      });
+      return next ? attachProfile(next) : null;
+    })().catch(() => {
+      sessionPromise = null;
+      return null;
+    });
+    return sessionPromise;
+  }
+
   function isReady() {
     return true;
   }
@@ -537,6 +557,7 @@
     parseSave,
     resolveBoundPlayerId,
     peekBoundPlayerId,
+    adoptSession,
     getSave,
     upsertSave,
     profile: () => {

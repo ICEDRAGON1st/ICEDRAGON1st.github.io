@@ -1,4 +1,7 @@
 {
+  "20261015am": [
+    "Discord login now upgrades your current guest session instead of creating a second account."
+  ],
   "20261015al": [
     "Guest accounts now keep their local player id when the cloud session starts."
   ],

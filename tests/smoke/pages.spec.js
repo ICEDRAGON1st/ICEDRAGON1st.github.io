@@ -204,6 +204,33 @@ test("hub keeps the seeded player id instead of reminting from Auth", async ({ p
   expect(ids.plays).toBe("p-smoke-test");
 });
 
+test("Discord login upgrades the current guest session instead of minting a second user", async ({
+  page
+}) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(
+    () => !document.documentElement.classList.contains("hub-booting"),
+    null,
+    { timeout: 20_000 }
+  );
+  await page.waitForFunction(
+    () =>
+      typeof window.HubDiscord?.linkAuthorizeUrl === "function" &&
+      typeof window.HubSupabase?.adoptSession === "function",
+    null,
+    { timeout: 10_000 }
+  );
+  const urls = await page.evaluate(() => {
+    const redirect = "https://icedragon1st.github.io/?discord_auth=1";
+    return {
+      link: window.HubDiscord.linkAuthorizeUrl(redirect),
+      signin: window.HubDiscord.signInAuthorizeUrl(redirect)
+    };
+  });
+  expect(urls.link).toContain("/auth/v1/user/identities/authorize?provider=discord");
+  expect(urls.signin).toContain("/auth/v1/authorize?provider=discord");
+});
+
 test("Help answers owner from the extracted GAME_INFO helper", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(

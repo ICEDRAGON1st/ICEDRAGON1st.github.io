@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015al",
+  "build": "20261015am",
   "notes": [
-    "Guest accounts now keep their local player id when the cloud session starts."
+    "Discord login now upgrades your current guest session instead of creating a second account."
   ]
 };

@@ -13,16 +13,16 @@
  *    (Anyone who can read the site JS could spam that URL — use an #announcements
  *     channel and rotate the webhook if needed.)
  */
-(function () {
+(function (root) {
   const SUPABASE_URL =
-    (window.HubSupabase && HubSupabase.url) || "https://uqyhomsydmnglbaemwbu.supabase.co";
+    (root.HubSupabase && root.HubSupabase.url) || "https://uqyhomsydmnglbaemwbu.supabase.co";
   const SUPABASE_ANON_KEY =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxeWhvbXN5ZG1uZ2xiYWVtd2J1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwOTEyODcsImV4cCI6MjEwNzY2NzI4N30.Eht_HnywiURfHKRZu6rmdCatdFiT0TwC0J9Xh-CEp5o";
   const LINK_KEY = "hub-discord-link-v1";
   const DEFAULT_INVITE = "https://discord.gg/6NHYfPwAwg";
 
   function cfg() {
-    const d = (window.SITE_CONFIG && window.SITE_CONFIG.discord) || {};
+    const d = (root.SITE_CONFIG && root.SITE_CONFIG.discord) || {};
     return {
       invite: String(d.invite || DEFAULT_INVITE).trim() || DEFAULT_INVITE,
       webhookUrl: String(d.webhookUrl || "").trim(),
@@ -87,18 +87,37 @@
     };
   }
 
-  function parseAuthCallback() {
-    const hash = String(location.hash || "").replace(/^#/, "");
-    const search = String(location.search || "").replace(/^\?/, "");
+  function parseAuthCallback(href) {
+    let hash = "";
+    let search = "";
+    try {
+      const url = new URL(
+        href || (typeof location !== "undefined" ? location.href : "http://local.test/")
+      );
+      hash = String(url.hash || "").replace(/^#/, "");
+      search = String(url.search || "").replace(/^\?/, "");
+    } catch {
+      hash = "";
+      search = "";
+    }
     const params = new URLSearchParams(hash || search);
     const access = params.get("access_token") || "";
+    const refresh = params.get("refresh_token") || "";
     const error = params.get("error_description") || params.get("error") || "";
     const fromDiscord =
       params.get("provider_token") ||
       params.has("access_token") ||
-      /discord_auth=1/.test(location.search) ||
+      /discord_auth=1/.test(search) ||
       /type=recovery|type=signup|type=magiclink|provider=discord/i.test(hash + search);
-    return { access, error, fromDiscord: !!(access || error || fromDiscord) };
+    return { access, refresh, error, fromDiscord: !!(access || refresh || error || fromDiscord) };
+  }
+
+  function signInAuthorizeUrl(redirectTo) {
+    return `${SUPABASE_URL}/auth/v1/authorize?provider=discord&redirect_to=${encodeURIComponent(redirectTo)}`;
+  }
+
+  function linkAuthorizeUrl(redirectTo) {
+    return `${SUPABASE_URL}/auth/v1/user/identities/authorize?provider=discord&redirect_to=${encodeURIComponent(redirectTo)}`;
   }
 
   function clearAuthParamsFromUrl() {
@@ -139,13 +158,22 @@
     return { discordId, username, globalName, avatar };
   }
 
-  async function applyDiscordSession(accessToken) {
+  async function applyDiscordSession(accessToken, refreshToken) {
     const user = await fetchSupabaseUser(accessToken);
     const ident = discordIdentityFromUser(user);
     if (!ident) throw new Error("No Discord identity on this session");
+    if (root.HubSupabase && typeof root.HubSupabase.adoptSession === "function") {
+      try {
+        await root.HubSupabase.adoptSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+          user
+        });
+      } catch {}
+    }
     const playerId =
-      (typeof window.HubPlays?.getPlayerId === "function" && HubPlays.getPlayerId()) ||
-      localStorage.getItem("hub-player-id") ||
+      (typeof root.HubPlays?.getPlayerId === "function" && root.HubPlays.getPlayerId()) ||
+      (typeof localStorage !== "undefined" ? localStorage.getItem("hub-player-id") : "") ||
       "";
     const link = writeLink({
       ...ident,
@@ -183,19 +211,43 @@
     return u.toString();
   }
 
-  function loginWithDiscord() {
+  async function fetchLinkAuthorizeUrl(accessToken, redirectTo) {
+    const token = String(accessToken || "").trim();
+    if (!token) return "";
+    const res = await fetch(linkAuthorizeUrl(redirectTo), {
+      headers: authHeaders(token),
+      cache: "no-store"
+    });
+    if (!res.ok) return "";
+    const data = await res.json().catch(() => null);
+    return String(data?.url || "").trim();
+  }
+
+  async function loginWithDiscord() {
     if (!cfg().loginEnabled) {
       openInvite();
       return { ok: false, error: "Discord login is disabled right now — opened the server invite." };
     }
-    const redirectTo = encodeURIComponent(loginRedirectUrl());
-    const url = `${SUPABASE_URL}/auth/v1/authorize?provider=discord&redirect_to=${redirectTo}`;
-    location.href = url;
-    return { ok: true, pending: true };
+    const redirectTo = loginRedirectUrl();
+    try {
+      const session =
+        root.HubSupabase && typeof root.HubSupabase.ensureSession === "function"
+          ? await root.HubSupabase.ensureSession()
+          : null;
+      const linkUrl = session?.access_token
+        ? await fetchLinkAuthorizeUrl(session.access_token, redirectTo)
+        : "";
+      if (linkUrl) {
+        location.href = linkUrl;
+        return { ok: true, pending: true, mode: "link" };
+      }
+    } catch {}
+    location.href = signInAuthorizeUrl(redirectTo);
+    return { ok: true, pending: true, mode: "signin" };
   }
 
   async function handleRedirectIfPresent() {
-    const { access, error, fromDiscord } = parseAuthCallback();
+    const { access, refresh, error, fromDiscord } = parseAuthCallback();
     if (!fromDiscord && !access && !error) return null;
     clearAuthParamsFromUrl();
     if (error) {
@@ -212,7 +264,7 @@
       };
     }
     try {
-      const link = await applyDiscordSession(access);
+      const link = await applyDiscordSession(access, refresh);
       return { ok: true, link, name: displayName(link) };
     } catch (err) {
       return {
@@ -393,7 +445,7 @@
     return announceSiteUpdate(id, list);
   }
 
-  window.HubDiscord = {
+  const api = {
     openInvite,
     loginWithDiscord,
     handleRedirectIfPresent,
@@ -406,29 +458,37 @@
     displayName,
     getInvite: () => cfg().invite,
     hasWebhook: () => !!cfg().webhookUrl,
-    hasUpdatesWebhook: () => !!cfg().webhookUpdatesUrl
+    hasUpdatesWebhook: () => !!cfg().webhookUpdatesUrl,
+    parseAuthCallback,
+    discordIdentityFromUser,
+    signInAuthorizeUrl,
+    linkAuthorizeUrl
   };
+  if (root) root.HubDiscord = api;
+  if (typeof module === "object" && module.exports) module.exports = api;
 
   // Finish OAuth return as early as possible
-  if (document.readyState === "loading") {
-    document.addEventListener(
-      "DOMContentLoaded",
-      () => {
-        handleRedirectIfPresent().then((result) => {
-          if (!result) return;
-          try {
-            document.dispatchEvent(new CustomEvent("hub-discord-auth", { detail: result }));
-          } catch {}
-        });
-      },
-      { once: true }
-    );
-  } else {
-    handleRedirectIfPresent().then((result) => {
-      if (!result) return;
-      try {
-        document.dispatchEvent(new CustomEvent("hub-discord-auth", { detail: result }));
-      } catch {}
-    });
+  if (typeof document !== "undefined") {
+    if (document.readyState === "loading") {
+      document.addEventListener(
+        "DOMContentLoaded",
+        () => {
+          handleRedirectIfPresent().then((result) => {
+            if (!result) return;
+            try {
+              document.dispatchEvent(new CustomEvent("hub-discord-auth", { detail: result }));
+            } catch {}
+          });
+        },
+        { once: true }
+      );
+    } else {
+      handleRedirectIfPresent().then((result) => {
+        if (!result) return;
+        try {
+          document.dispatchEvent(new CustomEvent("hub-discord-auth", { detail: result }));
+        } catch {}
+      });
+    }
   }
-})();
+})(typeof window !== "undefined" ? window : typeof globalThis !== "undefined" ? globalThis : null);
