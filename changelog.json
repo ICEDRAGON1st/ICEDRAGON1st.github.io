@@ -1,4 +1,7 @@
 {
+  "20261015ad": [
+    "Player names and codes now use a shared identity helper."
+  ],
   "20261015ac": [
     "Fishing Idle admin events now parse from a separate rules file."
   ],

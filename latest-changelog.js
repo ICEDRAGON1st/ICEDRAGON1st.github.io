@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ac",
+  "build": "20261015ad",
   "notes": [
-    "Fishing Idle admin events now parse from a separate rules file."
+    "Player names and codes now use a shared identity helper."
   ]
 };

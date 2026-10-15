@@ -203,6 +203,9 @@
         return loadManagedScript("hub-account-bag.js", "HubAccountBag");
       })
       .then(function () {
+        return loadManagedScript("hub-identity.js", "HubIdentity");
+      })
+      .then(function () {
         return loadManagedScript("hub-plays.js", "HubPlays");
       })
       .then(function () {
