@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ap",
+  "build": "20261015aq",
   "notes": [
-    "Help and the hub now share one game list, including Sticker Garage, Space Waves, and Cup Flow."
+    "Fishing Idle now prices fish from a separate economy helper."
   ]
 };

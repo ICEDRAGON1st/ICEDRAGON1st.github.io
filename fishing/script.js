@@ -1,6 +1,7 @@
 (function () {
   const fishingSaveApi = window.FishingSave || {};
   const fishingAdminApi = window.FishingAdminEvents || {};
+  const fishingEconomy = window.FishingEconomy || {};
   const SAVE_KEY = fishingSaveApi.SAVE_KEY || "fishing-save-v3";
   const SAVE_BACKUP_KEY = fishingSaveApi.SAVE_BACKUP_KEY || "fishing-save-v3-backup";
   const HIGH_SCORE_KEY = "fishing-best-catch-v2";
@@ -8420,6 +8421,16 @@
     return 1 + (moneyBoostActive() ? CHEST_MONEY_BONUS : 0) + eventMoneyBonus();
   }
 
+  function sellValueBonuses(spot) {
+    return {
+      sellBonus: sellBonus(),
+      spotMastery: spotMasterySellBonus(spot),
+      combo: comboMultiBonus(),
+      perfectBonus: perfectBonus(),
+      treasureMoney: treasureMoneyMult()
+    };
+  }
+
   function treasureLuckMult() {
     return 1 + (luckBoostActive() ? CHEST_LUCK_BONUS : 0) + eventLuckBonus();
   }
@@ -8618,14 +8629,16 @@
   }
 
   function isTreasureItem(fish) {
-    return (
-      fish?.rarity === "treasure" ||
-      fish?.kind === "luckyblock" ||
-      fish?.id === "coin_chest" ||
-      fish?.id === "luck_chest" ||
-      fish?.id === "sunken_chest" ||
-      String(fish?.id || "").startsWith("lucky_block_")
-    );
+    return fishingEconomy.isTreasureItem
+      ? fishingEconomy.isTreasureItem(fish)
+      : !!(
+          fish?.rarity === "treasure" ||
+          fish?.kind === "luckyblock" ||
+          fish?.id === "coin_chest" ||
+          fish?.id === "luck_chest" ||
+          fish?.id === "sunken_chest" ||
+          String(fish?.id || "").startsWith("lucky_block_")
+        );
   }
 
   function treasureByKind(kind) {
@@ -9615,39 +9628,48 @@
     );
   }
 
-  const VARIANT_PRIMARY = ["silver", "gold", "diamond", "rainbow"];
-  const VARIANT_MULT = {
+  const VARIANT_PRIMARY = fishingEconomy.VARIANT_PRIMARY || ["silver", "gold", "diamond", "rainbow"];
+  const VARIANT_MULT = fishingEconomy.VARIANT_MULT || {
     silver: 1.5,
     gold: 2,
     diamond: 2.5,
     rainbow: 3
   };
-  const SHINY_MULT = 3;
+  const SHINY_MULT = fishingEconomy.SHINY_MULT || 3;
   /** Mutations stack with primary variants + shiny. Admin-gated for now. */
-  const MUTATIONS = ["toxic", "lava", "neon"];
-  const MUTATION_MULT = {
+  const MUTATIONS = fishingEconomy.MUTATIONS || ["toxic", "lava", "neon"];
+  const MUTATION_MULT = fishingEconomy.MUTATION_MULT || {
     toxic: 4,
     lava: 5,
     neon: 6
   };
 
   function normalizeMutation(raw) {
-    const m = String(raw || "").toLowerCase();
-    return MUTATIONS.includes(m) ? m : "";
+    return fishingEconomy.normalizeMutation
+      ? fishingEconomy.normalizeMutation(raw)
+      : MUTATIONS.includes(String(raw || "").toLowerCase())
+        ? String(raw).toLowerCase()
+        : "";
   }
 
   function normalizeVariant(raw) {
-    const v = String(raw || "").toLowerCase();
-    return VARIANT_PRIMARY.includes(v) ? v : "";
+    return fishingEconomy.normalizeVariant
+      ? fishingEconomy.normalizeVariant(raw)
+      : VARIANT_PRIMARY.includes(String(raw || "").toLowerCase())
+        ? String(raw).toLowerCase()
+        : "";
   }
 
   function normalizeVariants(raw) {
-    if (!raw || typeof raw !== "object") return { variant: "", shiny: false, mutation: "" };
-    return {
-      variant: normalizeVariant(raw.variant),
-      shiny: !!raw.shiny,
-      mutation: normalizeMutation(raw.mutation)
-    };
+    return fishingEconomy.normalizeVariants
+      ? fishingEconomy.normalizeVariants(raw)
+      : !raw || typeof raw !== "object"
+        ? { variant: "", shiny: false, mutation: "" }
+        : {
+            variant: normalizeVariant(raw.variant),
+            shiny: !!raw.shiny,
+            mutation: normalizeMutation(raw.mutation)
+          };
   }
 
   /** Primary shares; admin variant events bias toward one tag. */
@@ -9748,33 +9770,18 @@
   }
 
   function variantValueMult(variantOrEntry, shinyFlag) {
-    let variant = "";
-    let shiny = false;
-    let mutation = "";
-    if (variantOrEntry && typeof variantOrEntry === "object") {
-      variant = normalizeVariant(variantOrEntry.variant);
-      shiny = !!variantOrEntry.shiny;
-      mutation = normalizeMutation(variantOrEntry.mutation);
-    } else {
-      variant = normalizeVariant(variantOrEntry);
-      shiny = !!shinyFlag;
-    }
-    return (
-      (VARIANT_MULT[variant] || 1) *
-      (shiny ? SHINY_MULT : 1) *
-      (MUTATION_MULT[mutation] || 1)
-    );
+    return fishingEconomy.variantValueMult
+      ? fishingEconomy.variantValueMult(variantOrEntry, shinyFlag)
+      : 1;
   }
 
   /** Catch book display value: base coins × active look (variant / shiny / mutation). */
   function bookLookValue(fish, entry) {
-    if (isExclusiveFish(fish)) {
-      // Prefer lockedValue only — never recompute mirror on every paint (lag).
-      return Math.max(1, Math.floor(Number(entry?.lockedValue) || 2));
-    }
-    const base = Math.max(0, Number(fish?.value) || 0);
-    const mult = entry ? variantValueMult(entry) : 1;
-    return Math.max(1, Math.floor(base * mult));
+    return fishingEconomy.bookLookValue
+      ? fishingEconomy.bookLookValue(fish, entry)
+      : isExclusiveFish(fish)
+        ? Math.max(1, Math.floor(Number(entry?.lockedValue) || 2))
+        : Math.max(1, Math.floor((Number(fish?.value) || 0) * (entry ? variantValueMult(entry) : 1)));
   }
 
   function formatVariantTitle(entry) {
@@ -12859,32 +12866,21 @@
   }
 
   function isExclusiveFish(fishOrId) {
-    if (!fishOrId) return false;
-    if (typeof fishOrId === "string") {
-      const f = fishById(fishOrId);
-      return (
-        fishOrId === SOUL_TWIN_ID ||
-        fishOrId === MYSTERY_FISH_ID ||
-        !!f?.exclusive ||
-        f?.rarity === "exclusive" ||
-        f?.rarity === "mystery"
-      );
-    }
-    return !!(
-      fishOrId.exclusive ||
-      fishOrId.rarity === "exclusive" ||
-      fishOrId.rarity === "mystery" ||
-      fishOrId.id === SOUL_TWIN_ID ||
-      fishOrId.id === MYSTERY_FISH_ID
-    );
+    return fishingEconomy.isExclusiveFish
+      ? fishingEconomy.isExclusiveFish(fishOrId, fishById)
+      : false;
   }
 
   function isUnsellableFish(fish, entry) {
-    return isExclusiveFish(fish) || !!fish?.unsellable || !!entry?.unsellable;
+    return fishingEconomy.isUnsellableFish
+      ? fishingEconomy.isUnsellableFish(fish, entry, fishById)
+      : isExclusiveFish(fish) || !!fish?.unsellable || !!entry?.unsellable;
   }
 
   function isUntradeableFish(fish, entry) {
-    return isExclusiveFish(fish) || !!fish?.untradeable || !!entry?.untradeable;
+    return fishingEconomy.isUntradeableFish
+      ? fishingEconomy.isUntradeableFish(fish, entry, fishById)
+      : isExclusiveFish(fish) || !!fish?.untradeable || !!entry?.untradeable;
   }
 
   let _exclusiveMirrorCache = { at: 0, bestLook: 0, stamp: "" };
@@ -12906,9 +12902,11 @@
   }
 
   function isEggOnlyFish(fishOrId) {
-    if (!fishOrId) return false;
-    if (typeof fishOrId === "string") return !!fishById(fishOrId)?.eggOnly;
-    return !!fishOrId.eggOnly;
+    return fishingEconomy.isEggOnlyFish
+      ? fishingEconomy.isEggOnlyFish(fishOrId, fishById)
+      : typeof fishOrId === "string"
+        ? !!fishById(fishOrId)?.eggOnly
+        : !!fishOrId?.eggOnly;
   }
 
   function isEasterEggFish(fishOrId) {
@@ -12920,7 +12918,9 @@
 
   /** Personal best / leaderboard catch — excludes exclusives, treasure, and easter eggs. */
   function canSetBestCatch(fish) {
-    return !!(fish && !isExclusiveFish(fish) && !isTreasureItem(fish) && !isEasterEggFish(fish));
+    return fishingEconomy.canSetBestCatch
+      ? fishingEconomy.canSetBestCatch(fish, fishById)
+      : !!(fish && !isExclusiveFish(fish) && !isTreasureItem(fish) && !isEasterEggFish(fish));
   }
 
   /** Best non-exclusive catch look (variants included). */
@@ -13051,29 +13051,9 @@
   }
 
   function fishValue(fish, spot, perfectOrEntry) {
-    const entry =
-      perfectOrEntry && typeof perfectOrEntry === "object" ? perfectOrEntry : null;
-    // Hot path: never call exclusiveMirrorBaseValue during render — use lockedValue.
-    const exclusiveBase = isExclusiveFish(fish)
-      ? Math.max(1, Math.floor(Number(entry?.lockedValue) || 2))
-      : 0;
-    const base = Math.max(
-      1,
-      Math.floor((exclusiveBase || fish.value) * (spot?.valueMult || 1))
-    );
-    const perfect =
-      perfectOrEntry === true ||
-      (entry && !!entry.perfect);
-    const variantMult = entry && !isExclusiveFish(fish) ? variantValueMult(entry) : 1;
-    const mult =
-      (1 +
-        sellBonus() +
-        spotMasterySellBonus(spot) +
-        comboMultiBonus() +
-        (perfect ? perfectBonus() : 0)) *
-      treasureMoneyMult() *
-      variantMult;
-    return Math.max(1, Math.floor(base * mult));
+    return fishingEconomy.fishValue
+      ? fishingEconomy.fishValue(fish, spot, perfectOrEntry, sellValueBonuses(spot))
+      : Math.max(1, Math.floor(Number(fish?.value) || 1));
   }
 
   function shouldAutoSell(rarity) {
@@ -13086,12 +13066,17 @@
 
   /** Auto-sell by rarity — mutations skipped unless Mutation auto-sell is on. Easter eggs never auto-sell. */
   function shouldAutoSellFish(fish, entry) {
-    if (!fish || isUnsellableFish(fish, entry) || isExclusiveFish(fish) || isEggOnlyFish(fish)) {
-      return false;
-    }
-    if (!shouldAutoSell(fish.rarity)) return false;
-    if (normalizeMutation(entry?.mutation) && !autoSellMutationsOn()) return false;
-    return true;
+    return fishingEconomy.shouldAutoSellFish
+      ? fishingEconomy.shouldAutoSellFish(
+          fish,
+          entry,
+          {
+            autoSellRarity: shouldAutoSell(fish?.rarity),
+            autoSellMutations: autoSellMutationsOn()
+          },
+          fishById
+        )
+      : false;
   }
 
   function syncAutoSellMutationsBtn() {
