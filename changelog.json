@@ -1,4 +1,7 @@
 {
+  "20261015x": [
+    "Fishing Idle now loads fish, spots, and gear from a separate catalog."
+  ],
   "20261015w": [
     "Online Paper Claim now sends guest steering separately and ends the match if the host drops."
   ],

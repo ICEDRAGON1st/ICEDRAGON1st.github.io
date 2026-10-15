@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015w",
+  "build": "20261015x",
   "notes": [
-    "Online Paper Claim now sends guest steering separately and ends the match if the host drops."
+    "Fishing Idle now loads fish, spots, and gear from a separate catalog."
   ]
 };
