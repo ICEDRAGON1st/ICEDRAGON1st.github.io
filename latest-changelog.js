@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ae",
+  "build": "20261015af",
   "notes": [
-    "Who's online now uses a shared presence helper."
+    "Most-played counts now use a shared popularity helper."
   ]
 };

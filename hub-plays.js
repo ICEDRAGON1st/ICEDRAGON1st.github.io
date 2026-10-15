@@ -6,6 +6,7 @@
 (function () {
   const identity = window.HubIdentity || {};
   const presenceApi = window.HubPresence || {};
+  const popularityApi = window.HubPopularity || {};
   const NAME_KEY = "hub-player-name";
   const PLAYER_ID_KEY = "hub-player-id";
   const PLAYER_CODE_KEY = "hub-player-code";
@@ -232,27 +233,15 @@
   }
 
   function getEffectivePopularity() {
-    const out = { ...(popularityCache || {}) };
-    Object.entries(popularityPending || {}).forEach(([id, raw]) => {
-      const n = Number(raw) || 0;
-      if (n <= 0) return;
-      out[id] = (Number(out[id]) || 0) + n;
-    });
-    return out;
+    return popularityApi.combinePopularity
+      ? popularityApi.combinePopularity(popularityCache, popularityPending)
+      : { ...(popularityCache || {}) };
   }
 
   function parsePopularityPayload(data) {
-    if (!data || typeof data !== "object") return { games: {}, resetAt: 0 };
-    if (data.games && typeof data.games === "object") {
-      return { games: { ...data.games }, resetAt: Number(data.resetAt) || 0 };
-    }
-    const flat = {};
-    Object.entries(data).forEach(([k, v]) => {
-      if (k === "games" || k === "pending" || k === "at" || k === "updated_at" || k === "resetAt" || k === "note")
-        return;
-      if (Number.isFinite(Number(v))) flat[k] = Number(v) || 0;
-    });
-    return { games: flat, resetAt: Number(data.resetAt) || 0 };
+    return popularityApi.parsePopularityPayload
+      ? popularityApi.parsePopularityPayload(data)
+      : { games: {}, resetAt: 0 };
   }
 
   async function fetchPagesPopularitySeed() {
@@ -316,15 +305,9 @@
       }
 
       const pending = { ...(popularityPending || {}) };
-      const merged = { ...remote };
-      Object.entries(pending).forEach(([k, v]) => {
-        const n = Number(v) || 0;
-        if (n <= 0) return;
-        merged[k] = (Number(merged[k]) || 0) + n;
-      });
-      Object.entries(popularityCache || {}).forEach(([k, v]) => {
-        if (merged[k] == null) merged[k] = Number(v) || 0;
-      });
+      const merged = popularityApi.mergePopularityRemote
+        ? popularityApi.mergePopularityRemote(remote, pending, popularityCache)
+        : { ...remote };
 
       popularityCache = merged;
       const hasPending = Object.values(pending).some((v) => (Number(v) || 0) > 0);
@@ -350,20 +333,10 @@
   }
 
   function getMostPopularGameId(allowedIds) {
-    const allow = Array.isArray(allowedIds) && allowedIds.length ? new Set(allowedIds) : null;
-    let bestId = "";
-    let best = 0;
-    Object.entries(getEffectivePopularity()).forEach(([id, raw]) => {
-      if (allow && !allow.has(id)) return;
-      const n = Number(raw) || 0;
-      if (n > best) {
-        best = n;
-        bestId = id;
-      }
-    });
-    // Do not fall back to this device's personal play counts — that made Wing Hop
-    // look "most played" when Mantle/Supabase were down.
-    return best > 0 ? bestId : "";
+    if (popularityApi.mostPopularGameId) {
+      return popularityApi.mostPopularGameId(getEffectivePopularity(), allowedIds);
+    }
+    return "";
   }
 
   function loadAllTimeLocal() {
@@ -1795,19 +1768,9 @@
   }
 
   function mergeLogs(a, b) {
-    const map = new Map();
-    [...(a.plays || []), ...(b.plays || [])].forEach((p) => {
-      if (!p || !p.id) return;
-      map.set(p.id, p);
-    });
-    const plays = [...map.values()]
-      .sort((x, y) => (y.at || 0) - (x.at || 0))
-      .slice(0, MAX_PLAYS);
-    const counts = { ...(a.counts || {}) };
-    Object.entries(b.counts || {}).forEach(([k, v]) => {
-      counts[k] = Math.max(Number(counts[k]) || 0, Number(v) || 0);
-    });
-    return { plays, counts };
+    return popularityApi.mergePlayLogs
+      ? popularityApi.mergePlayLogs(a, b, MAX_PLAYS)
+      : { plays: [], counts: {} };
   }
 
   function mergeNameMaps(a, b) {
