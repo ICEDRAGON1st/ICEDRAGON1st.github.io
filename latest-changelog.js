@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ah",
+  "build": "20261015ai",
   "notes": [
-    "Guest cloud sessions now load your server player profile without changing local progress."
+    "Account clouds now sync to your signed-in save row and still keep the old backup copy."
   ]
 };

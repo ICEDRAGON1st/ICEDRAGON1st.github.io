@@ -212,6 +212,47 @@
     return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
   }
 
+  function bagSaveKey(playerId) {
+    const id = String(playerId || "")
+      .trim()
+      .toLowerCase();
+    const key = `account-bag:${id}`;
+    return /^[a-z0-9][a-z0-9:_-]{0,95}$/.test(key) ? key : "";
+  }
+
+  function asBag(playerId, data) {
+    if (!data || typeof data !== "object") return null;
+    return {
+      playerId: String(playerId || data.playerId || ""),
+      updatedAt: Number(data.updatedAt) || 0,
+      kv: data.kv && typeof data.kv === "object" ? data.kv : {}
+    };
+  }
+
+  async function pushBagCloud(api, playerId, bag) {
+    if (!api || !bag) return false;
+    const key = bagSaveKey(playerId);
+    let ok = false;
+    if (key && typeof api.upsertSave === "function") {
+      try {
+        await api.upsertSave(key, bag, 1);
+        ok = true;
+      } catch (err) {
+        console.warn("[HubAccountBag] player_saves upsert failed", err);
+      }
+    }
+    if (typeof api.upsertDoc === "function") {
+      try {
+        await api.upsertDoc(DOC_PREFIX + playerId, bag);
+        ok = true;
+      } catch (err) {
+        console.warn("[HubAccountBag] hub_docs upsert failed", err);
+      }
+    }
+    if (!ok) throw new Error("account bag push failed");
+    return true;
+  }
+
   function isMineBagKey(key) {
     return /^mine(-depth|-best)?/i.test(String(key || ""));
   }
@@ -271,7 +312,7 @@
       const api = sb();
       if (api) {
         try {
-          await api.upsertDoc(DOC_PREFIX + id, merged);
+          await pushBagCloud(api, id, merged);
         } catch {}
       }
     } catch (err) {
@@ -887,7 +928,7 @@
           localStorage.setItem("fishing-save-v3", String(merged.kv["fishing-save-v3"]));
         } catch {}
       }
-      await api.upsertDoc(DOC_PREFIX + id, merged);
+      await pushBagCloud(api, id, merged);
       return true;
     } catch (err) {
       console.warn("[HubAccountBag] syncUp failed", err);
@@ -901,13 +942,22 @@
     const api = sb();
     if (!api) return null;
     try {
-      const data = await api.getDoc(DOC_PREFIX + id);
-      if (!data || typeof data !== "object") return null;
-      return {
-        playerId: id,
-        updatedAt: Number(data.updatedAt) || 0,
-        kv: data.kv && typeof data.kv === "object" ? data.kv : {}
-      };
+      let owned = null;
+      const key = bagSaveKey(id);
+      if (key && typeof api.getSave === "function") {
+        try {
+          owned = asBag(id, await api.getSave(key));
+        } catch (err) {
+          console.warn("[HubAccountBag] player_saves pull failed", err);
+        }
+      }
+      let shared = null;
+      try {
+        shared = asBag(id, await api.getDoc(DOC_PREFIX + id));
+      } catch (err) {
+        console.warn("[HubAccountBag] hub_docs pull failed", err);
+      }
+      return mergeBags(owned, shared) || owned || shared;
     } catch (err) {
       console.warn("[HubAccountBag] pull failed", err);
       return null;
@@ -983,7 +1033,7 @@
     if (api) {
       try {
         merged.updatedAt = Date.now();
-        await api.upsertDoc(DOC_PREFIX + id, merged);
+        await pushBagCloud(api, id, merged);
         vault[id] = merged;
         saveVault(vault);
       } catch {}
@@ -1140,6 +1190,7 @@
     getBagOwner,
     setBagOwner,
     mergeBags,
+    bagSaveKey,
     loadVault,
     scrubMineProgressAfterWipe,
     stripMineBagKeys

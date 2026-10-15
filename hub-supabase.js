@@ -216,6 +216,75 @@
     return true;
   }
 
+  function parseSave(row) {
+    if (!row || typeof row !== "object") return null;
+    const saveKey = String(row.save_key || "").trim();
+    if (!/^[a-z0-9][a-z0-9:_-]{0,95}$/.test(saveKey)) return null;
+    const payload = row.payload && typeof row.payload === "object" ? row.payload : null;
+    if (!payload) return null;
+    const schemaVersion = Number(row.schema_version);
+    return {
+      saveKey,
+      payload,
+      schemaVersion: schemaVersion >= 1 && schemaVersion <= 100000 ? schemaVersion : 1,
+      updatedAt: row.updated_at || ""
+    };
+  }
+
+  async function getSave(saveKey) {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const key = String(saveKey || "").trim();
+    if (!userId || !session?.access_token || !/^[a-z0-9][a-z0-9:_-]{0,95}$/.test(key)) return null;
+    const url =
+      `${SUPABASE_URL}/rest/v1/player_saves?user_id=eq.${encodeURIComponent(userId)}` +
+      `&save_key=eq.${encodeURIComponent(key)}&select=save_key,payload,schema_version,updated_at`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return parseSave(Array.isArray(rows) ? rows[0] : null)?.payload ?? null;
+  }
+
+  async function upsertSave(saveKey, payload, schemaVersion) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const key = String(saveKey || "").trim();
+    if (!userId || !session?.access_token) throw new Error("supabase save needs a session");
+    if (!/^[a-z0-9][a-z0-9:_-]{0,95}$/.test(key)) throw new Error("bad save key");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/player_saves`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        save_key: key,
+        payload: payload && typeof payload === "object" ? payload : {},
+        schema_version: Number(schemaVersion) >= 1 ? Number(schemaVersion) : 1
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase save ${res.status} ${text}`);
+    }
+  }
+
   async function getDoc(id) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -334,6 +403,9 @@
     pushPrefer,
     ensureSession,
     parseProfile,
+    parseSave,
+    getSave,
+    upsertSave,
     profile: () => parseProfile(readSession()?.profile) || readSession()?.profile || null,
     userId: () => sessionUserId(readSession()),
     ready: true,

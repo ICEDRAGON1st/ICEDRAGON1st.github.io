@@ -13,7 +13,7 @@ function loadFixture(name) {
   return JSON.parse(fs.readFileSync(path.join(FIXTURES, name), "utf8"));
 }
 
-function loadAccountBagApi({ failWrites = false } = {}) {
+function loadAccountBagApi({ failWrites = false, supabase = null } = {}) {
   const values = new Map();
   const localStorage = {
     get length() {
@@ -56,6 +56,7 @@ function loadAccountBagApi({ failWrites = false } = {}) {
   };
   context.window = context;
   context.globalThis = context;
+  if (supabase) context.HubSupabase = supabase;
   vm.createContext(context);
   vm.runInContext(fs.readFileSync(path.join(ROOT, "hub-account-bag.js"), "utf8"), context);
   return { api: context.HubAccountBag, values };
@@ -288,4 +289,46 @@ test("account restore never blends leftover keys or toast queues", () => {
   });
   assert.equal(values.get("snake-high-score"), "90");
   assert.equal(values.get("hub-achievements-pending"), '["session-toast"]');
+});
+
+test("account bags dual-read player_saves and still write the shared document", async () => {
+  const writes = [];
+  const local = loadFixture("account-bag-local.json");
+  const remoteDoc = loadFixture("account-bag-remote.json");
+  const { api } = loadAccountBagApi({
+    supabase: {
+      ready: true,
+      async getSave(key) {
+        assert.equal(key, "account-bag:fixture-player");
+        return local;
+      },
+      async getDoc(id) {
+        assert.equal(id, "account-bag:fixture-player");
+        return remoteDoc;
+      },
+      async upsertSave(key, bag) {
+        writes.push(["save", key, bag.kv["snake-high-score"]]);
+      },
+      async upsertDoc(id, bag) {
+        writes.push(["doc", id, bag.kv["snake-high-score"]]);
+      }
+    }
+  });
+
+  assert.equal(api.bagSaveKey("fixture-player"), "account-bag:fixture-player");
+  assert.equal(api.bagSaveKey("Bad ID!"), "");
+
+  const pulled = await api.pullAndApply("fixture-player", {
+    skipLiveSnapshot: true,
+    replace: true
+  });
+  assert.equal(pulled.kv["snake-high-score"], "1200");
+  assert.equal(
+    writes.some((row) => row[0] === "save" && row[1] === "account-bag:fixture-player"),
+    true
+  );
+  assert.equal(
+    writes.some((row) => row[0] === "doc" && row[1] === "account-bag:fixture-player"),
+    true
+  );
 });

@@ -1,4 +1,7 @@
 {
+  "20261015ai": [
+    "Account clouds now sync to your signed-in save row and still keep the old backup copy."
+  ],
   "20261015ah": [
     "Guest cloud sessions now load your server player profile without changing local progress."
   ],
