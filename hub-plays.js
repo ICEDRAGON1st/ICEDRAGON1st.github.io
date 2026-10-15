@@ -5,6 +5,7 @@
  */
 (function () {
   const identity = window.HubIdentity || {};
+  const presenceApi = window.HubPresence || {};
   const NAME_KEY = "hub-player-name";
   const PLAYER_ID_KEY = "hub-player-id";
   const PLAYER_CODE_KEY = "hub-player-code";
@@ -72,9 +73,9 @@
   const MAX_PLAYS = 60;
   const SYNC_GAP_MS = 4000;
   const HEARTBEAT_MS = 90_000;
-  const ONLINE_TTL_MS = 180_000; // count as online for ~3 min
-  const PRESENCE_KEEP_MS = 10 * 60_000;
-  const MAX_PRESENCE = 120;
+  const ONLINE_TTL_MS = presenceApi.ONLINE_TTL_MS || 180_000;
+  const PRESENCE_KEEP_MS = presenceApi.PRESENCE_KEEP_MS || 10 * 60_000;
+  const MAX_PRESENCE = presenceApi.MAX_PRESENCE || 120;
   const MAX_ALLTIME = 5000;
   const MAX_ONLINE_CREDIT_MS = 90_000; // don't dump hours after AFK reopen
   const LAST_AT_WRITE_GAP_MS = 5 * 60_000; // don't rewrite all-time every heartbeat
@@ -1712,10 +1713,9 @@
   }
 
   function sanitizePresenceGame(game) {
-    const id = String(game || "").trim();
-    if (!id) return "";
-    if (id === "hub") return "hub";
-    return GAME_NAMES[id] ? id : id.slice(0, 32);
+    return presenceApi.sanitizePresenceGame
+      ? presenceApi.sanitizePresenceGame(game, GAME_NAMES)
+      : String(game || "").trim().slice(0, 32);
   }
 
   function netBlocked(url) {
@@ -2814,34 +2814,17 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   function mergePresence(a, b) {
-    const out = { ...(a || {}) };
-    Object.entries(b || {}).forEach(([id, p]) => {
-      if (!p) return;
-      const existing = out[id];
-      if (!existing || (p.at || 0) >= (existing.at || 0)) out[id] = p;
-    });
-    return out;
+    return presenceApi.mergePresence ? presenceApi.mergePresence(a, b) : { ...(a || {}), ...(b || {}) };
   }
 
   function prunePresence(map, now = Date.now()) {
-    const entries = Object.entries(map || {})
-      .filter(([, p]) => p && now - (p.at || 0) < PRESENCE_KEEP_MS)
-      .sort((a, b) => (b[1].at || 0) - (a[1].at || 0))
-      .slice(0, MAX_PRESENCE);
-    const out = {};
-    entries.forEach(([id, p]) => {
-      out[id] = p;
-    });
-    return out;
+    return presenceApi.prunePresence ? presenceApi.prunePresence(map, now) : map || {};
   }
 
   function countOnline(map, now = Date.now()) {
-    return Object.values(map || {}).filter(
-      (p) =>
-        p &&
-        now - (p.at || 0) < ONLINE_TTL_MS &&
-        !isPlaceholderName(p.name)
-    ).length;
+    return presenceApi.countOnline
+      ? presenceApi.countOnline(map, now)
+      : Object.values(map || {}).filter((p) => p && now - (p.at || 0) < ONLINE_TTL_MS).length;
   }
 
   function enrichPresenceNames(map) {
@@ -3229,17 +3212,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   function isPlaceholderName(name) {
-    const n = sanitizeName(name || "").toLowerCase();
-    return (
-      !n ||
-      n === "guest" ||
-      n.startsWith("guest-") ||
-      n === "player" ||
-      n === "undefined" ||
-      n === "null" ||
-      n === "nan" ||
-      n === "unnamed"
-    );
+    return presenceApi.isPlaceholderName ? presenceApi.isPlaceholderName(name) : !sanitizeName(name || "");
   }
 
   function preferPlayerName(a, b) {

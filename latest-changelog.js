@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ad",
+  "build": "20261015ae",
   "notes": [
-    "Player names and codes now use a shared identity helper."
+    "Who's online now uses a shared presence helper."
   ]
 };

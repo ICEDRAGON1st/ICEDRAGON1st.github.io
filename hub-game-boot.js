@@ -206,6 +206,9 @@
         return loadManagedScript("hub-identity.js", "HubIdentity");
       })
       .then(function () {
+        return loadManagedScript("hub-presence.js", "HubPresence");
+      })
+      .then(function () {
         return loadManagedScript("hub-plays.js", "HubPlays");
       })
       .then(function () {
