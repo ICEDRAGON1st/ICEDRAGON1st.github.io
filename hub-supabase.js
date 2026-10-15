@@ -5,7 +5,7 @@
  * Prefer getPrefer / pushPrefer so modules survive Mantle rate limits.
  * Doc ids match former Mantle paths (plays-log, presence, fishing-admin-events, …).
  */
-(function () {
+(function (root) {
   const SUPABASE_URL = "https://uqyhomsydmnglbaemwbu.supabase.co";
   const SUPABASE_ANON_KEY =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxeWhvbXN5ZG1uZ2xiYWVtd2J1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwOTEyODcsImV4cCI6MjEwNzY2NzI4N30.Eht_HnywiURfHKRZu6rmdCatdFiT0TwC0J9Xh-CEp5o";
@@ -91,6 +91,74 @@
     }
   }
 
+  function parseProfile(row) {
+    if (!row || typeof row !== "object") return null;
+    const userId = String(row.user_id || "").trim();
+    const playerId = String(row.player_id || "").trim();
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
+      return null;
+    }
+    if (!/^p-[a-z0-9]{12,64}$/.test(playerId)) return null;
+    const displayName = String(row.display_name || "")
+      .replace(/[<>&"'`]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 32);
+    return { userId, playerId, displayName };
+  }
+
+  function localDisplayName() {
+    try {
+      return String(localStorage.getItem("hub-player-name") || "")
+        .replace(/[<>&"'`]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 32);
+    } catch {
+      return "";
+    }
+  }
+
+  async function fetchOwnProfile(session) {
+    const userId = sessionUserId(session);
+    if (!userId || !session?.access_token) return null;
+    const url = `${SUPABASE_URL}/rest/v1/player_profiles?user_id=eq.${encodeURIComponent(userId)}&select=user_id,player_id,display_name`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return parseProfile(Array.isArray(rows) ? rows[0] : null);
+  }
+
+  async function syncDisplayName(session, profile) {
+    if (!session?.access_token || !profile?.userId || profile.displayName) return profile;
+    const nextName = localDisplayName();
+    if (!nextName) return profile;
+    const url = `${SUPABASE_URL}/rest/v1/player_profiles?user_id=eq.${encodeURIComponent(profile.userId)}`;
+    const res = await fetch(url, {
+      method: "PATCH",
+      headers: headers({ Prefer: "return=representation" }, session.access_token),
+      body: JSON.stringify({ display_name: nextName })
+    });
+    if (!res.ok) return { ...profile, displayName: nextName };
+    const rows = await res.json().catch(() => null);
+    return parseProfile(Array.isArray(rows) ? rows[0] : null) || { ...profile, displayName: nextName };
+  }
+
+  async function attachProfile(session) {
+    if (!session) return session;
+    try {
+      let profile = await fetchOwnProfile(session);
+      if (profile) profile = await syncDisplayName(session, profile);
+      if (profile) session.profile = profile;
+    } catch {
+      /* guest play continues with the local player id */
+    }
+    return writeSession(session) || session;
+  }
+
   async function refreshSession(existing) {
     const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
       method: "POST",
@@ -126,11 +194,12 @@
         try {
           exp = Number(JSON.parse(atob(existing.access_token.split(".")[1] || "e30=")).exp) || 0;
         } catch {}
-        if (exp * 1000 > Date.now() + 60_000) return existing;
+        if (exp * 1000 > Date.now() + 60_000) return attachProfile(existing);
         const refreshed = await refreshSession(existing);
-        if (refreshed) return refreshed;
+        if (refreshed) return attachProfile(refreshed);
       }
-      return signInAnonymously();
+      const created = await signInAnonymously();
+      return created ? attachProfile(created) : null;
     })().catch(() => {
       sessionPromise = null;
       return null;
@@ -256,7 +325,7 @@
     if (!ok) throw new Error("push failed");
   }
 
-  window.HubSupabase = {
+  const api = {
     url: SUPABASE_URL,
     DOCS,
     getDoc,
@@ -264,10 +333,18 @@
     getPrefer,
     pushPrefer,
     ensureSession,
+    parseProfile,
+    profile: () => parseProfile(readSession()?.profile) || readSession()?.profile || null,
     userId: () => sessionUserId(readSession()),
     ready: true,
     isReady
   };
+  if (root) root.HubSupabase = api;
+  if (typeof module === "object" && module.exports) {
+    module.exports = api;
+  }
 
-  ensureSession().catch(() => {});
-})();
+  if (typeof localStorage !== "undefined") {
+    ensureSession().catch(() => {});
+  }
+})(typeof window !== "undefined" ? window : typeof globalThis !== "undefined" ? globalThis : null);

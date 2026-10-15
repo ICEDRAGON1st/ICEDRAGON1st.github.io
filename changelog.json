@@ -1,4 +1,7 @@
 {
+  "20261015ah": [
+    "Guest cloud sessions now load your server player profile without changing local progress."
+  ],
   "20261015ag": [
     "Hub, Guessword, and theme colors now load from separate style files."
   ],

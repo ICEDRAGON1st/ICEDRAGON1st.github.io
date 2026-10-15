@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ag",
+  "build": "20261015ah",
   "notes": [
-    "Hub, Guessword, and theme colors now load from separate style files."
+    "Guest cloud sessions now load your server player profile without changing local progress."
   ]
 };
