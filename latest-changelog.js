@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015v",
+  "build": "20261015w",
   "notes": [
-    "Online Tic Tac Toe and Drop Four now reject illegal or forced moves."
+    "Online Paper Claim now sends guest steering separately and ends the match if the host drops."
   ]
 };

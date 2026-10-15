@@ -24,8 +24,8 @@
   const TRAIL_SOFT_CAP = 640; // compact older points above this (trail stays connected)
   const TRAIL_KEEP_TAIL = 140; // recent tip stays dense for fair cutting
   const MAX_PLAYERS = 8;
-  const NET_POLL_MS = 120;
-  const DOC_PREFIX = "paper-io-room-";
+  const Net = window.PaperClaimNet || {};
+  const NET_POLL_MS = Net.HOST_PUBLISH_MS || 250;
   const LOBBY_DOC = "paper-io-lobbies";
   const CODE_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -852,6 +852,13 @@
   let isHost = false;
   let netPollTimer = 0;
   let netBusy = false;
+  let lastHostPublishAt = 0;
+  let lastGuestInputAt = 0;
+  let lastPublishedGridAt = 0;
+  let lastSentAngle = null;
+  let lastAppliedSnapV = 0;
+  let snapVersion = 0;
+  let netGridDirty = true;
   let lobbyAwaiting = false;
   let lobbyWatch = 0;
 
@@ -1171,6 +1178,7 @@
     landDirty = true;
     landFullDirty = true;
     miniDirty = true;
+    netGridDirty = true;
     dirtyMinX = 0;
     dirtyMinY = 0;
     dirtyMaxX = WORLD - 1;
@@ -3223,49 +3231,118 @@
   }
 
   function roomDocId(code) {
-    return DOC_PREFIX + String(code || "").toUpperCase();
+    return Net.roomDocId
+      ? Net.roomDocId(code)
+      : "paper-io-room-" + String(code || "").toUpperCase();
+  }
+
+  function inputDocId(code, playerId) {
+    return Net.inputDocId
+      ? Net.inputDocId(code, playerId)
+      : `paper-io-input-${String(code || "").toUpperCase()}-${String(playerId || "")}`;
+  }
+
+  function applyRemoteSnap(snap) {
+    if (!snap) return false;
+    if (Net.acceptSnap && !Net.acceptSnap(lastAppliedSnapV, snap)) return false;
+    applySnapshot(snap);
+    lastAppliedSnapV = Number(snap.v) || lastAppliedSnapV;
+    return true;
+  }
+
+  function endOnlineHostLoss() {
+    stopNet();
+    running = false;
+    paused = false;
+    resumeBtn.classList.add("hidden");
+    overlayTitle.textContent = "Match ended";
+    overlayText.textContent = "The host left or lost connection. Local play is still available.";
+    setPlayLabel("Play");
+    overlay.classList.remove("hidden");
+    overlay.dataset.state = "home";
+    onlineStatus.textContent = "Host left. Create a new room or play locally.";
+    if (hudMode) hudMode.textContent = "Online ended";
+  }
+
+  async function readGuestInputs(doc) {
+    for (const p of players) {
+      if (!p.human || p.id === localId) continue;
+      let ang = null;
+      try {
+        const input = await sbGet(inputDocId(roomCode, p.id));
+        if (input && typeof input.angle === "number") ang = input.angle;
+      } catch {}
+      if (ang == null && doc?.inputs && typeof doc.inputs[p.id] === "number") {
+        ang = doc.inputs[p.id];
+      }
+      if (typeof ang === "number" && Number.isFinite(ang)) p.wantAngle = ang;
+    }
   }
 
   async function pushHostState() {
     if (!isHost || !roomCode) return;
+    const now = Date.now();
+    if (Net.shouldPublish && !Net.shouldPublish(now, lastHostPublishAt, NET_POLL_MS)) return;
     const idMapObj = {};
     for (const [k, v] of idMap) idMapObj[k] = v;
     const doc = await sbGet(roomDocId(roomCode));
-    if (!doc) return;
-    const inputs = doc.inputs || {};
-    for (const p of players) {
-      if (!p.human || p.id === localId) continue;
-      const ang = inputs[p.id];
-      if (typeof ang === "number" && Number.isFinite(ang)) {
-        p.wantAngle = ang;
-      }
+    if (!doc || doc.status === "closed") return;
+    await readGuestInputs(doc);
+    const includeGrid = Net.shouldIncludeGrid
+      ? Net.shouldIncludeGrid(now, lastPublishedGridAt, netGridDirty)
+      : true;
+    snapVersion = Net.nextVersion ? Net.nextVersion(snapVersion) : snapVersion + 1;
+    const snap = {
+      v: snapVersion,
+      arena: arenaShape,
+      idMap: idMapObj,
+      players: snapshotPlayers(),
+      t: now
+    };
+    if (includeGrid) {
+      snap.grid = encodeGrid();
+      lastPublishedGridAt = now;
+      netGridDirty = false;
     }
     await sbPut(roomDocId(roomCode), {
       ...doc,
-      updatedAt: Date.now(),
+      updatedAt: now,
       status: "playing",
       hostId: localId,
-      snap: {
-        arena: arenaShape,
-        grid: encodeGrid(),
-        idMap: idMapObj,
-        players: snapshotPlayers(),
-        t: Date.now()
-      },
+      snap,
       inputs: { ...(doc.inputs || {}), [localId]: pendingAngle }
     });
+    lastHostPublishAt = now;
   }
 
   async function pushGuestInput() {
     if (isHost || !roomCode) return;
+    const now = Date.now();
     const doc = await sbGet(roomDocId(roomCode));
-    if (!doc) return;
-    await sbPut(roomDocId(roomCode), {
-      ...doc,
-      updatedAt: Date.now(),
-      inputs: { ...(doc.inputs || {}), [localId]: pendingAngle }
+    if (!doc || doc.status === "closed") {
+      endOnlineHostLoss();
+      return;
+    }
+    if (Net.hostIsStale && Net.hostIsStale(now, doc.snap?.t)) {
+      endOnlineHostLoss();
+      return;
+    }
+    applyRemoteSnap(doc.snap);
+    if (
+      Net.shouldWriteInput &&
+      !Net.shouldWriteInput(now, lastGuestInputAt, lastSentAngle, pendingAngle)
+    ) {
+      return;
+    }
+    const angle = Net.quantizeAngle ? Net.quantizeAngle(pendingAngle) : pendingAngle;
+    await sbPut(inputDocId(roomCode, localId), {
+      room: roomCode,
+      playerId: localId,
+      angle,
+      t: now
     });
-    if (doc.snap) applySnapshot(doc.snap);
+    lastSentAngle = angle;
+    lastGuestInputAt = now;
   }
 
   async function netTick() {
@@ -3381,10 +3458,16 @@
       if (!roomCode || isHost) return;
       const doc = await sbGet(roomDocId(roomCode));
       if (!doc) return;
+      if (doc.status === "closed") {
+        clearInterval(lobbyWatch);
+        endOnlineHostLoss();
+        return;
+      }
       if (doc.status === "playing" && doc.snap) {
         clearInterval(lobbyWatch);
         lobbyAwaiting = false;
-        applySnapshot(doc.snap);
+        lastAppliedSnapV = 0;
+        applyRemoteSnap(doc.snap);
         running = true;
         paused = false;
         lastFrame = 0;
@@ -3432,6 +3515,12 @@
     }
     roomCode = "";
     isHost = false;
+    lastAppliedSnapV = 0;
+    snapVersion = 0;
+    lastHostPublishAt = 0;
+    lastGuestInputAt = 0;
+    lastPublishedGridAt = 0;
+    lastSentAngle = null;
     onlineCode.classList.add("hidden");
     onlineCancelBtn.classList.add("hidden");
     onlineStatus.textContent = "Match with others, or host a room code.";
@@ -3468,12 +3557,17 @@
     lobbyAwaiting = false;
     const idMapObj = {};
     for (const [k, v] of idMap) idMapObj[k] = v;
+    snapVersion = 1;
+    lastAppliedSnapV = 1;
+    lastPublishedGridAt = Date.now();
+    netGridDirty = false;
     await sbPut(roomDocId(roomCode), {
       ...doc,
       status: "playing",
       updatedAt: Date.now(),
       hostId: localId,
       snap: {
+        v: snapVersion,
         arena: arenaShape,
         grid: encodeGrid(),
         idMap: idMapObj,
