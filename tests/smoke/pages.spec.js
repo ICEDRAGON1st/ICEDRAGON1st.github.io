@@ -56,6 +56,15 @@ for (const target of PAGES) {
   });
 }
 
+test("Fishing restores deferred social integrations after its shell", async ({ page }) => {
+  await page.goto("/fishing/", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => !document.documentElement.classList.contains("hub-booting"));
+
+  await expect.poll(() => page.evaluate(() => Boolean(window.HubLeaderboard))).toBe(true);
+  await expect.poll(() => page.evaluate(() => Boolean(window.HubFriends))).toBe(true);
+  await expect.poll(() => page.evaluate(() => Boolean(window.HubDiscord))).toBe(true);
+});
+
 test("Guessword loads only the active dictionary pack", async ({ page }) => {
   const requestedPacks = [];
   page.on("request", (request) => {

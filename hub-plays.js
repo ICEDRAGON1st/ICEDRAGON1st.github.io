@@ -5172,6 +5172,9 @@ body.light .menu-credit .player-name-creator {
         });
       };
       load("hub-leaderboard.js", "HubLeaderboard");
+      if (/\/fishing(\/|$)/i.test(location.pathname || "")) {
+        load("hub-discord.js", "HubDiscord");
+      }
       load("hub-friends.js", "HubFriends").then(() => {
         load("hub-chat.js", "HubChat");
         load("hub-calls.js", "HubCalls");

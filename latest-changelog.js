@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015o",
+  "build": "20261015p",
   "notes": [
-    "Paper Claim now opens before optional social tools finish loading."
+    "Fishing Idle, Mine Depth, and Dudes now open before optional social tools."
   ]
 };
