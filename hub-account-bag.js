@@ -38,6 +38,8 @@
     "hub-played-games",
     "hub-eggs-v1",
     "hub-eggs-pending-flair-v1",
+    // Virtual account key; snapshot/apply maps it to hub-coins-v1:<playerId>.
+    "hub-coins-v1",
     // Fishing
     "fishing-save-v3",
     "fishing-save-v3-backup",
@@ -76,6 +78,7 @@
     "pixletris-high-score",
     "stacker-high-score",
     "flappy-bird-high-score",
+    "flappy-bird-skin",
     "dino-run-high-score",
     "crossy-high-score",
     "ramp-rush-high-score",
@@ -85,7 +88,16 @@
     "cafe-queue-high-score",
     "garden-snap-high-score",
     "lemmings-high-score",
+    "lemmings-max-level-v1",
+    "dudes-skin-v1",
     "paper-io-best-pct",
+    "paper-claim-skin",
+    "cup-flow-best-level",
+    "cup-flow-high-score",
+    "space-waves-best-level",
+    "space-waves-high-score",
+    "sticker-garage-high-score",
+    "sticker-garage-save-v1",
     "2048-best-score",
     "2048-high-score",
     "memory-match-best",
@@ -115,6 +127,63 @@
     "math-sprint-high-score-",
     "wordle-game-"
   ];
+  // Inventory only. Never clear every account's dynamic wallet during an account switch.
+  const BAG_INVENTORY_PATTERNS = ["hub-coins-v1:*"];
+
+  const MAX_NUMERIC_KEYS = new Set([
+    "2048-best-score",
+    "2048-high-score",
+    "block-blast-high-score",
+    "brick-breaker-high-score",
+    "bubble-pop-high-score",
+    "cafe-queue-high-score",
+    "clicker-high-score-v3",
+    "cows-best-tier-v1",
+    "crossy-high-score",
+    "cup-flow-best-level",
+    "cup-flow-high-score",
+    "dino-run-high-score",
+    "fishing-best-catch-v1",
+    "fishing-best-catch-v2",
+    "flappy-bird-high-score",
+    "garden-snap-high-score",
+    "guac-a-mole-high-score",
+    "hangman-wins-count",
+    "lemmings-high-score",
+    "lemmings-max-level-v1",
+    "math-high-score",
+    "memory-best",
+    "memory-match-best",
+    "mine-best-ore-v1",
+    "mine-depth-best-ore-v1",
+    "mine-depth-best-v1",
+    "mine-depth-lifetime-coins",
+    "paper-io-best-pct",
+    "pixletris-high-score",
+    "quiz-high-score",
+    "quizmaster-high-score",
+    "ramp-rush-high-score",
+    "snake-high-score",
+    "space-shooter-high-score",
+    "space-waves-best-level",
+    "space-waves-high-score",
+    "stacker-high-score",
+    "sticker-garage-high-score"
+  ]);
+  const MAX_NUMERIC_PREFIXES = [
+    "math-sprint-high-score-",
+    "quizmaster-high-score-",
+    "space-shooter-high-score-"
+  ];
+
+  function coinWalletKey(playerId) {
+    const suffix = String(playerId || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, "")
+      .slice(0, 48);
+    return `hub-coins-v1:${suffix || "local"}`;
+  }
 
   function isBagKey(key) {
     const k = String(key || "");
@@ -237,7 +306,7 @@
     } catch {}
   }
 
-  function readBagKeys() {
+  function readBagKeys(playerId) {
     const kv = {};
     try {
       for (let i = 0; i < localStorage.length; i++) {
@@ -256,6 +325,10 @@
         } catch {}
       });
     }
+    try {
+      const wallet = localStorage.getItem(coinWalletKey(playerId));
+      if (wallet != null) kv["hub-coins-v1"] = wallet;
+    } catch {}
     return kv;
   }
 
@@ -279,7 +352,7 @@
   function snapshot(playerId) {
     const id = playerIdNow(playerId);
     if (!id) return null;
-    const kv = readBagKeys();
+    const kv = readBagKeys(id);
     // School PC: don't put someone else's fishing save into this account's vault
     try {
       const fishRaw = kv["fishing-save-v3"];
@@ -405,6 +478,41 @@
     } catch {
       return fallback;
     }
+  }
+
+  function mergeCoinWalletStrings(aStr, bStr) {
+    const a = parseJsonSafe(aStr, null);
+    const b = parseJsonSafe(bStr, null);
+    if (!a && !b) return null;
+    if (!a) return typeof bStr === "string" ? bStr : JSON.stringify(b);
+    if (!b) return typeof aStr === "string" ? aStr : JSON.stringify(a);
+
+    const earned = Math.max(0, Number(a.lifetimeEarned) || 0, Number(b.lifetimeEarned) || 0);
+    const spent = Math.max(0, Number(a.lifetimeSpent) || 0, Number(b.lifetimeSpent) || 0);
+    const newer = (Number(b.updatedAt) || 0) >= (Number(a.updatedAt) || 0) ? b : a;
+    const purchases = { ...(a.purchases || {}), ...(b.purchases || {}) };
+    Object.keys(purchases).forEach((key) => {
+      purchases[key] = !!(a.purchases?.[key] || b.purchases?.[key]);
+    });
+    return JSON.stringify({
+      ...a,
+      ...b,
+      ...newer,
+      balance: Math.max(0, earned - spent),
+      lifetimeEarned: earned,
+      lifetimeSpent: spent,
+      lastDailyDay:
+        String(a.lastDailyDay || "") > String(b.lastDailyDay || "")
+          ? String(a.lastDailyDay || "")
+          : String(b.lastDailyDay || ""),
+      lastAiQuestDay:
+        String(a.lastAiQuestDay || "") > String(b.lastAiQuestDay || "")
+          ? String(a.lastAiQuestDay || "")
+          : String(b.lastAiQuestDay || ""),
+      lastPickupAt: Math.max(Number(a.lastPickupAt) || 0, Number(b.lastPickupAt) || 0),
+      purchases,
+      updatedAt: Math.max(Number(a.updatedAt) || 0, Number(b.updatedAt) || 0)
+    });
   }
 
   /** Rough richness score so a fresh/empty school-PC save can't wipe a real one. */
@@ -574,6 +682,22 @@
     const secondary = preferRemote ? localKv : remoteKv;
     const kv = { ...secondary, ...primary };
 
+    // Scores and numeric milestones are monotonic across devices.
+    new Set([...Object.keys(localKv), ...Object.keys(remoteKv)]).forEach((key) => {
+      if (
+        !MAX_NUMERIC_KEYS.has(key) &&
+        !MAX_NUMERIC_PREFIXES.some((prefix) => key.startsWith(prefix))
+      ) {
+        return;
+      }
+      kv[key] = mergeNumericString(localKv[key], remoteKv[key]);
+    });
+
+    try {
+      const wallet = mergeCoinWalletStrings(localKv["hub-coins-v1"], remoteKv["hub-coins-v1"]);
+      if (wallet) kv["hub-coins-v1"] = wallet;
+    } catch {}
+
     // Achievements: always union so nothing is lost across devices
     try {
       const a = JSON.parse(localKv["hub-achievements-v1"] || "{}");
@@ -681,8 +805,9 @@
       // After wipe: never restore mine saves from a bag onto live storage
       if (mineWipeDone() && isMineBagKey(key)) return;
       try {
+        const storageKey = key === "hub-coins-v1" ? coinWalletKey(bagId) : key;
         if (value == null || value === "") {
-          if (opts.replace) localStorage.removeItem(key);
+          if (opts.replace) localStorage.removeItem(storageKey);
           return;
         }
         let out = String(value);
@@ -706,7 +831,7 @@
           }
           out = clean;
         }
-        localStorage.setItem(key, out);
+        localStorage.setItem(storageKey, out);
       } catch {}
     });
     // Soft apply: put back this session's toast queue (bag must not stomp it)
@@ -998,6 +1123,7 @@
   window.HubAccountBag = {
     BAG_KEYS,
     BAG_KEY_PREFIXES,
+    BAG_INVENTORY_PATTERNS,
     isBagKey,
     snapshot,
     apply,

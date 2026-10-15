@@ -1,0 +1,21 @@
+{
+  "playerId": "fixture-player",
+  "updatedAt": 200,
+  "kv": {
+    "snake-high-score": "800",
+    "quizmaster-high-score-hard": "55",
+    "paper-io-best-pct": "18",
+    "cup-flow-best-level": "12",
+    "space-waves-high-score": "300",
+    "sticker-garage-high-score": "700",
+    "paper-claim-skin": "classic",
+    "hub-coins-v1": "{\"balance\":700,\"lifetimeEarned\":1200,\"lifetimeSpent\":500,\"lastDailyDay\":\"2099-12-31\",\"lastAiQuestDay\":\"2099-12-28\",\"lastPickupAt\":200,\"purchases\":{\"goldName\":true},\"updatedAt\":200}",
+    "hub-achievements-v1": "{\"first_win\":300,\"traveler\":400}",
+    "hub-achievements-pending": "[\"traveler\"]",
+    "hub-daily-streak": "{\"streak\":1,\"best\":8,\"lastDate\":\"2099-12-31\",\"lastPlayedAt\":4102444800000}",
+    "hub-look-theme": "classic",
+    "hub-look-set-at": "200",
+    "fishing-best-catch-v2": "7000",
+    "fishing-save-v3": "{\"ownerPlayerId\":\"fixture-player\",\"ownerName\":\"Fixture\",\"coins\":100,\"lifetime\":250,\"catches\":12,\"perfects\":1,\"boatLevel\":1,\"aquariumLevel\":3,\"bestCatchScore\":7000,\"bestCatchId\":\"tuna\",\"caught\":{\"tuna\":{\"any\":true,\"shiny\":true}},\"owned\":{\"proRod\":true},\"unlocked\":{\"lake\":true},\"cooler\":[{\"id\":\"tuna\"},{\"id\":\"carp\"},{\"id\":\"eel\"}],\"lastTick\":200}"
+  }
+}

@@ -33,7 +33,13 @@ test("critical account saves remain in the account-scoped inventory", () => {
     "wordle-game",
     "wordle-stats",
     "hub-achievements-v1",
-    "paper-io-best-pct"
+    "hub-coins-v1",
+    "hub-coins-v1:*",
+    "paper-io-best-pct",
+    "cup-flow-best-level",
+    "dudes-skin-v1",
+    "space-waves-high-score",
+    "sticker-garage-save-v1"
   ]) {
     assert.equal(byValue.get(key)?.scope, "account", `${key} must follow the player account`);
   }

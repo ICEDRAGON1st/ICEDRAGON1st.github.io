@@ -39,6 +39,11 @@ patterns. Generate it with `npm run inventory:storage`, then review every change
 Unresolved calls are counted per file so a new dynamic storage access cannot enter unnoticed.
 The count is a guardrail, not proof that those calls are correctly classified.
 
+Golden account-bag fixtures cover score monotonicity, achievements, streaks, Fishing domain
+merges, coin-wallet account isolation, cosmetic/progress transfer, idempotency, and quota failure.
+Dynamic coin wallets remain stored per player and are mapped to a virtual bag key so switching an
+account never clears or uploads another local wallet.
+
 ## Release and rollback contract
 
 Until isolated staging and automated releases exist:

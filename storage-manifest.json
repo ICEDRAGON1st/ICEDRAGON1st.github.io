@@ -155,7 +155,7 @@
     {
       "type": "exact",
       "value": "cup-flow-best-level",
-      "scope": "device",
+      "scope": "account",
       "merge": "max",
       "schemaVersion": null,
       "owners": [
@@ -165,7 +165,7 @@
     {
       "type": "exact",
       "value": "cup-flow-high-score",
-      "scope": "device",
+      "scope": "account",
       "merge": "max",
       "schemaVersion": null,
       "owners": [
@@ -195,7 +195,7 @@
     {
       "type": "exact",
       "value": "dudes-skin-v1",
-      "scope": "device",
+      "scope": "account",
       "merge": "latest",
       "schemaVersion": 1,
       "owners": [
@@ -441,7 +441,7 @@
     {
       "type": "exact",
       "value": "flappy-bird-skin",
-      "scope": "device",
+      "scope": "account",
       "merge": "latest",
       "schemaVersion": null,
       "owners": [
@@ -773,7 +773,7 @@
     {
       "type": "exact",
       "value": "hub-coins-v1",
-      "scope": "device",
+      "scope": "account",
       "merge": "domain",
       "schemaVersion": 1,
       "owners": [
@@ -1304,7 +1304,7 @@
     {
       "type": "exact",
       "value": "lemmings-max-level-v1",
-      "scope": "device",
+      "scope": "account",
       "merge": "max",
       "schemaVersion": 1,
       "owners": [
@@ -1495,7 +1495,7 @@
     {
       "type": "exact",
       "value": "paper-claim-skin",
-      "scope": "device",
+      "scope": "account",
       "merge": "latest",
       "schemaVersion": null,
       "owners": [
@@ -1666,7 +1666,7 @@
     {
       "type": "exact",
       "value": "space-waves-best-level",
-      "scope": "device",
+      "scope": "account",
       "merge": "max",
       "schemaVersion": null,
       "owners": [
@@ -1676,7 +1676,7 @@
     {
       "type": "exact",
       "value": "space-waves-high-score",
-      "scope": "device",
+      "scope": "account",
       "merge": "max",
       "schemaVersion": null,
       "owners": [
@@ -1706,7 +1706,7 @@
     {
       "type": "exact",
       "value": "sticker-garage-high-score",
-      "scope": "device",
+      "scope": "account",
       "merge": "max",
       "schemaVersion": null,
       "owners": [
@@ -1716,7 +1716,7 @@
     {
       "type": "exact",
       "value": "sticker-garage-save-v1",
-      "scope": "device",
+      "scope": "account",
       "merge": "domain",
       "schemaVersion": 1,
       "owners": [
@@ -1906,6 +1906,16 @@
     },
     {
       "type": "pattern",
+      "value": "hub-coins-v1:*",
+      "scope": "account",
+      "merge": "domain",
+      "schemaVersion": null,
+      "owners": [
+        "hub-account-bag.js"
+      ]
+    },
+    {
+      "type": "pattern",
       "value": "math-sprint-high-score-*",
       "scope": "account",
       "merge": "max",
@@ -1976,7 +1986,7 @@
     },
     {
       "file": "hub-account-bag.js",
-      "count": 11
+      "count": 12
     },
     {
       "file": "hub-audio.js",

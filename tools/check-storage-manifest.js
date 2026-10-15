@@ -79,7 +79,7 @@ function localStorageMethod(callee) {
 function readBagRules() {
   const text = fs.readFileSync(path.join(ROOT, "hub-account-bag.js"), "utf8");
   const ast = acorn.parse(text, { ecmaVersion: "latest", sourceType: "script" });
-  const values = { BAG_KEYS: [], BAG_KEY_PREFIXES: [] };
+  const values = { BAG_KEYS: [], BAG_KEY_PREFIXES: [], BAG_INVENTORY_PATTERNS: [] };
   walk.simple(ast, {
     VariableDeclarator(node) {
       const name = node.id?.type === "Identifier" ? node.id.name : "";
@@ -89,7 +89,11 @@ function readBagRules() {
         .map((element) => element.value);
     }
   });
-  return { keys: new Set(values.BAG_KEYS), prefixes: values.BAG_KEY_PREFIXES };
+  return {
+    keys: new Set(values.BAG_KEYS),
+    prefixes: values.BAG_KEY_PREFIXES,
+    inventoryPatterns: values.BAG_INVENTORY_PATTERNS
+  };
 }
 
 function classify(value, bagRules) {
@@ -170,6 +174,16 @@ function inventory() {
   }
   for (const prefix of bagRules.prefixes) {
     const value = `${prefix}*`;
+    const signature = `pattern:${value}`;
+    if (!found.has(signature)) {
+      found.set(signature, {
+        type: "pattern",
+        value,
+        owners: new Set(["hub-account-bag.js"])
+      });
+    }
+  }
+  for (const value of bagRules.inventoryPatterns) {
     const signature = `pattern:${value}`;
     if (!found.has(signature)) {
       found.set(signature, {

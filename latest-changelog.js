@@ -1,7 +1,7 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015j",
+  "build": "20261015k",
   "notes": [
-    "New versions now wait for confirmation, verify local save data, then perform one controlled reload.",
-    "Open game tabs reload with the activated service worker so old and new scripts do not mix."
+    "Account sync now preserves the highest scores across devices instead of allowing a newer lower score to overwrite them.",
+    "Coins, Sticker Garage progress, Cup Flow progress, Space Waves progress, and selected game skins now follow the player account safely."
   ]
 };
