@@ -146,3 +146,108 @@ test("coin wallets map only to the active account key", () => {
   assert.equal(JSON.parse(snapshot.kv["hub-coins-v1"]).balance, 9);
   assert.equal(values.has("hub-coins-v1:other-player"), true);
 });
+
+test("Fishing merge keeps owners isolated and protects a rich cooler from a weak wipe", () => {
+  const { api } = loadAccountBagApi();
+  const fishBag = (updatedAt, save) => ({
+    playerId: "fixture-player",
+    updatedAt,
+    kv: { "fishing-save-v3": JSON.stringify(save) }
+  });
+
+  const weakOwner = {
+    ownerPlayerId: "owner-a",
+    lifetime: 1,
+    caught: { trout: { any: true } },
+    cooler: []
+  };
+  const richOwner = {
+    ownerPlayerId: "owner-b",
+    lifetime: 500,
+    caught: { salmon: { any: true, gold: true } },
+    cooler: [{ id: "salmon" }]
+  };
+  const isolated = JSON.parse(
+    api.mergeBags(fishBag(100, weakOwner), fishBag(200, richOwner)).kv["fishing-save-v3"]
+  );
+  assert.equal(isolated.ownerPlayerId, "owner-b");
+  assert.equal(isolated.caught.trout, undefined);
+
+  const richCooler = Array.from({ length: 25 }, (_, index) => ({ id: `fish-${index}` }));
+  const older = {
+    ownerPlayerId: "fixture-player",
+    coins: 100,
+    lifetime: 200,
+    caught: { salmon: { any: true, gold: true, looks: { gold: "golden" } } },
+    cooler: richCooler,
+    lastTick: 100
+  };
+  const newerWeak = {
+    ownerPlayerId: "fixture-player",
+    coins: 99,
+    lifetime: 199,
+    caught: { salmon: { any: true, shiny: true, looks: { shiny: "sparkle" } } },
+    cooler: [],
+    lastTick: 200
+  };
+  const protectedSave = JSON.parse(
+    api.mergeBags(fishBag(100, older), fishBag(200, newerWeak)).kv["fishing-save-v3"]
+  );
+  assert.equal(protectedSave.cooler.length, 25);
+  assert.equal(protectedSave.caught.salmon.gold, true);
+  assert.equal(protectedSave.caught.salmon.shiny, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(protectedSave.caught.salmon.looks)), {
+    gold: "golden",
+    shiny: "sparkle"
+  });
+
+  const realSell = { ...newerWeak, coins: 350, lifetime: 450 };
+  const soldSave = JSON.parse(
+    api.mergeBags(fishBag(100, older), fishBag(200, realSell)).kv["fishing-save-v3"]
+  );
+  assert.deepEqual(soldSave.cooler, []);
+});
+
+test("Mine wipe never restores old cloud progress over new local progress", () => {
+  const { api, values } = loadAccountBagApi();
+  values.set("hub-mine-local-wipe-v3", "done");
+  values.set("mine-depth-save-v1", "new-local-progress");
+
+  const merged = JSON.parse(
+    JSON.stringify(
+      api.mergeBags(
+        {
+          playerId: "fixture-player",
+          updatedAt: 100,
+          kv: { "mine-depth-best-v1": "10", "snake-high-score": "50" }
+        },
+        {
+          playerId: "fixture-player",
+          updatedAt: 200,
+          kv: {
+            "mine-depth-save-v1": "old-cloud-progress",
+            "mine-depth-best-v1": "999",
+            "snake-high-score": "75"
+          }
+        }
+      )
+    )
+  );
+
+  assert.equal(merged.kv["mine-depth-save-v1"], "new-local-progress");
+  assert.equal(merged.kv["mine-depth-best-v1"], undefined);
+  assert.equal(merged.kv["snake-high-score"], "75");
+
+  api.apply(
+    {
+      playerId: "fixture-player",
+      kv: {
+        "mine-depth-save-v1": "old-cloud-progress",
+        "snake-high-score": "80"
+      }
+    },
+    { replace: true }
+  );
+  assert.equal(values.get("mine-depth-save-v1"), "new-local-progress");
+  assert.equal(values.get("snake-high-score"), "80");
+});
