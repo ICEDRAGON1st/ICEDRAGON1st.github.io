@@ -1,4 +1,7 @@
 {
+  "20261015bb": [
+    "Feedback you send is also saved on your account, so a bug report or idea still reaches ICE if the shared inbox is busy."
+  ],
   "20261015ba": [
     "Copy transfer keys now parse in a shared helper, so a new device can restore the same account without creating a new player id."
   ],

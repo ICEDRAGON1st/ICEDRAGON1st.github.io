@@ -36,9 +36,41 @@
   let writeQueue = Promise.resolve();
 
   function getPlayerId() {
-    return typeof HubPlays !== "undefined" && HubPlays.getPlayerId
-      ? HubPlays.getPlayerId()
-      : "";
+    return typeof HubPlays !== "undefined" && HubPlays.getPlayerId ? HubPlays.getPlayerId() : "";
+  }
+
+  function mineApi() {
+    return window.HubFeedbackMine || null;
+  }
+
+  async function persistMine() {
+    const helper = mineApi();
+    const api = sb();
+    const me = getPlayerId();
+    if (!helper || !api?.upsertSave || !me) return;
+    const mineItems = (cache.items || []).filter((item) => String(item.fromId || "") === me);
+    try {
+      await api.upsertSave(helper.SAVE_KEY, helper.collectMine(mineItems, loadPendingIds(), me), 1);
+    } catch (err) {
+      console.warn("[HubFeedback] player_saves feedback write failed", err);
+    }
+  }
+
+  async function pullMine() {
+    const helper = mineApi();
+    const api = sb();
+    const me = getPlayerId();
+    if (!helper || !api?.getSave || !me) return;
+    try {
+      const raw = await api.getSave(helper.SAVE_KEY);
+      const mineItems = (cache.items || []).filter((item) => String(item.fromId || "") === me);
+      const next = helper.applyMine(mineItems, loadPendingIds(), helper.readMine(raw));
+      cache = { items: mergeItems(cache.items, next.items) };
+      saveLocal(cache);
+      savePendingIds(next.pendingIds);
+    } catch (err) {
+      console.warn("[HubFeedback] player_saves feedback read failed", err);
+    }
   }
 
   function getPlayerName() {
@@ -286,6 +318,7 @@
       saveLocal(cache);
       await pushRemote(items);
       clearPending(pending);
+      persistMine();
       return true;
     } catch {
       return false;
@@ -301,21 +334,25 @@
     syncing = true;
     try {
       const local = loadLocal();
+      cache = { items: mergeItems(local.items, cache.items) };
+      await pullMine();
       let remote = { items: [] };
       try {
         remote = await fetchRemote();
       } catch (err) {
         cache = { items: mergeItems(local.items, cache.items) };
         saveLocal(cache);
+        persistMine();
         if (err?.code !== 429) {
           /* keep local */
         }
         return cache;
       }
       const items = mergeItems(local.items, remote.items);
-      cache = { items };
+      cache = { items: mergeItems(items, cache.items) };
       saveLocal(cache);
       await flushPending();
+      persistMine();
       return cache;
     } finally {
       syncing = false;
@@ -348,6 +385,7 @@
     cache = { items: mergeItems(cache.items, [item]) };
     saveLocal(cache);
     addPending(item.id);
+    persistMine();
     try {
       localStorage.setItem(LAST_SEND_KEY, String(now));
     } catch {}
@@ -375,9 +413,11 @@
         const items = mergeItems(remote.items, cache.items);
         cache = { items };
         saveLocal(cache);
+        persistMine();
         try {
           await pushRemote(items);
           clearPending([item.id]);
+          persistMine();
         } catch (err) {
           queued = true;
           if (err?.code !== 429) {
@@ -409,6 +449,7 @@
     clearPending([target]);
     cache = { items: mergeItems(cache.items, loadLocal().items) };
     saveLocal(cache);
+    persistMine();
 
     let failed = false;
     writeQueue = writeQueue
