@@ -1,11 +1,12 @@
 (function () {
-  const SAVE_KEY = "fishing-save-v3";
-  const SAVE_BACKUP_KEY = "fishing-save-v3-backup";
+  const fishingSaveApi = window.FishingSave || {};
+  const SAVE_KEY = fishingSaveApi.SAVE_KEY || "fishing-save-v3";
+  const SAVE_BACKUP_KEY = fishingSaveApi.SAVE_BACKUP_KEY || "fishing-save-v3-backup";
   const HIGH_SCORE_KEY = "fishing-best-catch-v2";
   const BEST_CATCH_META_KEY = "fishing-best-catch-meta-v2";
   const CHEST_BOOST_SAVE_KEY = "fishing-chest-boost-v1";
   /** One-time: wipe Echo Charm buys for every save that has not stamped this id. */
-  const ECHO_LUCK_RESET_ID = "echo-luck-reset-v1";
+  const ECHO_LUCK_RESET_ID = fishingSaveApi.ECHO_LUCK_RESET_ID || "echo-luck-reset-v1";
 
   // Drop old Fishing Idle progress keys (full reset — this game only)
   try {
@@ -982,95 +983,31 @@
   ];
 
   function defaultAutoSell() {
-    const map = {};
-    RARITIES.forEach((r) => {
-      map[r] = false;
-    });
-    return map;
+    return fishingSaveApi.defaultAutoSell
+      ? fishingSaveApi.defaultAutoSell(RARITIES)
+      : RARITIES.reduce((map, r) => {
+          map[r] = false;
+          return map;
+        }, {});
   }
 
   function defaultState() {
-    const owned = {};
-    GEAR.forEach((g) => {
-      owned[g.id] = false;
-    });
+    if (fishingSaveApi.defaultState) {
+      return fishingSaveApi.defaultState({
+        gear: GEAR,
+        rarities: RARITIES,
+        echoLuckResetId: ECHO_LUCK_RESET_ID,
+        now: Date.now()
+      });
+    }
     return {
       coins: 25,
       lifetime: 0,
       spotId: "creek",
       unlocked: { creek: true },
-      owned,
-      equippedSpeed: "",
+      owned: {},
       cooler: [],
-      autoSellRarities: defaultAutoSell(),
-      /** When true, mutated fish auto-sell with their rarity; off keeps them in the cooler. */
-      autoSellMutations: false,
-      bestCatchScore: 0,
-      bestCatchId: "",
-      bestCatchVariant: "",
-      bestCatchShiny: false,
-      bestCatchMutation: "",
-      caught: {},
-      boatLevel: 0,
-      aquariumLevel: 0,
-      catches: 0,
-      perfects: 0,
-      lastTick: Date.now(),
-      moneyBoostUntil: 0,
-      luckBoostUntil: 0,
-      moneyBoostPaused: false,
-      luckBoostPaused: false,
-      moneyBoostPausedLeft: 0,
-      luckBoostPausedLeft: 0,
-      moneyChestCount: 0,
-      luckChestCount: 0,
-      luckyBlockCount: 0,
-      astralLuckyBlockCount: 0,
-      zenithLuckyBlockCount: 0,
-      /** Player preference for smarter gear shop (ignored if SMART_GEAR_SHOP is false). */
-      smartShop: true,
-      /** Toast flags for catch-book collection rewards. */
-      collectionLuckTold: false,
-      collectionRainbowTold: false,
-      collectionLbEventTold: false,
-      collectionLbAlwaysTold: false,
-      /** One-time Soul Twin grant for finishing the catch book. */
-      collectionSoulTwinGranted: false,
-      quests: { dailyKey: "", weeklyKey: "", daily: [], weekly: [] },
-      echoLuckLevel: 0,
-      echoLuckReset: ECHO_LUCK_RESET_ID,
-      ownerPlayerId: "",
-      ownerName: "",
-      /** Active luck dial — null means follow max. */
-      luckDial: null,
-      luckDialFollowMax: true,
-      /** Spot mastery: casts per spot id. */
-      spotCasts: {},
-      /** Weather cycle */
-      weatherId: "none",
-      weatherUntil: 0,
-      /** Perfect reel combo */
-      combo: 0,
-      comboBoostUntil: 0,
-      /** Aquarium drip accrual */
-      aquariumBank: 0,
-      aquariumLastTick: Date.now(),
-      /** Cooler list controls */
-      coolerSort: "value",
-      coolerFilter: "all",
-      coolerSearch: "",
-      bookSearch: "",
-      /** Pending offline haul claim */
-      pendingOffline: null,
-      /** Local community contribution toward the current meter */
-      communityWeekKey: "",
-      communityContrib: 0,
-      /** Casts waiting to flush to Mantle while rate-limited / batched */
-      communityPendingAdds: 0,
-      /** Last community meter that granted an Astral LB */
-      communityLbClaimedKey: "",
-      /** Legacy wave id (migrated into claimedKey) */
-      communityLbClaimedWave: 0
+      autoSellRarities: defaultAutoSell()
     };
   }
 
@@ -9898,15 +9835,7 @@
   }
 
   function fishingSaveRichness(raw) {
-    if (!raw || typeof raw !== "object") return 0;
-    const cool = Array.isArray(raw.cooler) ? raw.cooler.length : 0;
-    return (
-      (Number(raw.lifetime) || 0) * 1000 +
-      (Number(raw.coins) || 0) +
-      (Number(raw.catches) || 0) * 25 +
-      cool * 10 +
-      (Number(raw.lastTick) || 0) * 1e-9
-    );
+    return fishingSaveApi.fishingSaveRichness ? fishingSaveApi.fishingSaveRichness(raw) : 0;
   }
 
   function readFishingSaveRaw() {
@@ -9922,12 +9851,52 @@
     } catch {
       backup = null;
     }
-    const mainScore = fishingSaveRichness(main);
-    const backupScore = fishingSaveRichness(backup);
-    if (backupScore > mainScore) return backup;
+    if (fishingSaveApi.pickRicherSave) return fishingSaveApi.pickRicherSave(main, backup);
     if (main && typeof main === "object") return main;
     if (backup && typeof backup === "object") return backup;
     return null;
+  }
+
+  function fishingSaveContext() {
+    let bestCatchMeta = null;
+    try {
+      bestCatchMeta = JSON.parse(localStorage.getItem(BEST_CATCH_META_KEY) || "null");
+    } catch {
+      bestCatchMeta = null;
+    }
+    return {
+      gear: GEAR,
+      rarities: RARITIES,
+      spots: SPOTS,
+      echoLuckResetId: ECHO_LUCK_RESET_ID,
+      now: Date.now(),
+      ownerId: fishingOwnerId(),
+      ownerName: fishingOwnerName(),
+      boatMax: BOAT_MAX_LEVEL,
+      aquaMax: AQUARIUM_MAX_LEVEL,
+      treasureHardMax: TREASURE_STASH_HARD_MAX,
+      luckyBlockMax: LUCKY_BLOCK_STASH_MAX,
+      echoLuckMax: ECHO_LUCK_MAX_LEVEL,
+      variantPrimary: VARIANT_PRIMARY,
+      mutations: MUTATIONS,
+      bestCatchMeta,
+      fishById,
+      normalizeCoolerEntry,
+      normalizeCaughtRecord,
+      normalizeVariant,
+      normalizeMutation,
+      resolveEquippedSpeed,
+      migrateLegacyBoats,
+      migrateLegacyAquarium,
+      coolerMaxFromOwned,
+      restoreChestBoostChannel,
+      readChestBoostBackup,
+      getStoredBest,
+      fishFromCatchScore,
+      sanitizeCatchScore,
+      normalizeQuestsState,
+      caughtLookKey
+    };
   }
 
   function loadState() {
@@ -9951,221 +9920,9 @@
           if (mine) raw = JSON.parse(mine);
         } catch {}
       }
+      if (fishingSaveApi.hydrateState) return fishingSaveApi.hydrateState(raw, fishingSaveContext());
       if (!raw || typeof raw !== "object") return defaultState();
-      const next = defaultState();
-      next.coins = Math.max(0, Number(raw.coins) || 0);
-      next.lifetime = Math.max(0, Number(raw.lifetime) || 0);
-      next.spotId = SPOTS.some((s) => s.id === raw.spotId) ? raw.spotId : "creek";
-      next.autoSellRarities = defaultAutoSell();
-      if (raw.autoSellRarities && typeof raw.autoSellRarities === "object") {
-        RARITIES.forEach((r) => {
-          next.autoSellRarities[r] = !!raw.autoSellRarities[r];
-        });
-      } else if (raw.autoSell) {
-        // Migrate old all-or-nothing toggle
-        RARITIES.forEach((r) => {
-          next.autoSellRarities[r] = true;
-        });
-      }
-      next.autoSellMutations = !!raw.autoSellMutations;
-      next.catches = Math.max(0, Math.floor(Number(raw.catches) || 0));
-      next.perfects = Math.max(0, Math.floor(Number(raw.perfects) || 0));
-      next.bestCatchScore = sanitizeCatchScore(raw.bestCatchScore);
-      next.bestCatchId = typeof raw.bestCatchId === "string" ? raw.bestCatchId : "";
-      next.bestCatchVariant = normalizeVariant(raw.bestCatchVariant);
-      next.bestCatchShiny = !!raw.bestCatchShiny;
-      next.bestCatchMutation = normalizeMutation(raw.bestCatchMutation);
-      if (!next.bestCatchScore) {
-        next.bestCatchScore = getStoredBest();
-      }
-      if (!next.bestCatchId && next.bestCatchScore) {
-        const match = fishFromCatchScore(next.bestCatchScore);
-        if (match) next.bestCatchId = match.id;
-      }
-      try {
-        const meta = JSON.parse(localStorage.getItem(BEST_CATCH_META_KEY) || "null");
-        if (meta && typeof meta === "object") {
-          if (!next.bestCatchId && typeof meta.id === "string" && fishById(meta.id)) {
-            next.bestCatchId = meta.id;
-          }
-          if (meta.id && meta.id === next.bestCatchId) {
-            next.bestCatchVariant = normalizeVariant(meta.variant) || next.bestCatchVariant;
-            next.bestCatchShiny = !!(meta.shiny || next.bestCatchShiny);
-            next.bestCatchMutation =
-              normalizeMutation(meta.mutation) || next.bestCatchMutation;
-          }
-        }
-      } catch {}
-      if (next.bestCatchId && !fishById(next.bestCatchId)) {
-        next.bestCatchId = "";
-        next.bestCatchVariant = "";
-        next.bestCatchShiny = false;
-        next.bestCatchMutation = "";
-      }
-      next.caught = {};
-      if (raw.caught && typeof raw.caught === "object") {
-        Object.keys(raw.caught).forEach((id) => {
-          if (!fishById(id) || !raw.caught[id]) return;
-          next.caught[id] = normalizeCaughtRecord(raw.caught[id]);
-        });
-      }
-      if (next.bestCatchId && fishById(next.bestCatchId)) {
-        next.caught[next.bestCatchId] = normalizeCaughtRecord(
-          next.caught[next.bestCatchId] || true
-        );
-      }
-      next.lastTick = Math.max(0, Number(raw.lastTick) || Date.now());
-      SPOTS.forEach((s) => {
-        next.unlocked[s.id] = s.id === "creek" || !!raw.unlocked?.[s.id];
-      });
-      GEAR.forEach((g) => {
-        next.owned[g.id] = !!raw.owned?.[g.id];
-      });
-      next.equippedSpeed = resolveEquippedSpeed(next.owned, raw.equippedSpeed);
-      const savedBoat = Math.floor(Number(raw.boatLevel) || 0);
-      const legacyBoat = migrateLegacyBoats(raw.owned);
-      next.boatLevel = Math.max(0, Math.min(BOAT_MAX_LEVEL, Math.max(savedBoat, legacyBoat)));
-      const savedAqua = Math.floor(Number(raw.aquariumLevel) || 0);
-      const legacyAqua = migrateLegacyAquarium(raw.owned);
-      next.aquariumLevel = Math.max(
-        0,
-        Math.min(AQUARIUM_MAX_LEVEL, Math.max(savedAqua, legacyAqua))
-      );
-      next.cooler = Array.isArray(raw.cooler)
-        ? raw.cooler
-            .map(normalizeCoolerEntry)
-            .filter(Boolean)
-            .slice(0, coolerMaxFromOwned(next.owned))
-        : [];
-      next.cooler.forEach((entry) => {
-        const id = coolerEntryId(entry);
-        const fish = fishById(id);
-        if (!fish) return;
-        const rec = normalizeCaughtRecord(next.caught[id]);
-        rec.any = true;
-        const variant = normalizeVariant(entry.variant);
-        const shiny = !!entry.shiny;
-        const mutation = normalizeMutation(entry.mutation);
-        if (!variant && !shiny && !mutation) rec.base = true;
-        if (variant && VARIANT_PRIMARY.includes(variant)) rec[variant] = true;
-        if (shiny) rec.shiny = true;
-        if (mutation && MUTATIONS.includes(mutation)) rec[mutation] = true;
-        const look = caughtLookKey(variant, shiny, mutation);
-        if (!rec.looks || typeof rec.looks !== "object") rec.looks = {};
-        rec.looks[look] = true;
-        next.caught[id] = rec;
-      });
-      const now = Date.now();
-      const backup = readChestBoostBackup();
-      const moneyUntil = Math.max(
-        0,
-        Number(raw.moneyBoostUntil) || Number(raw.treasureBoostUntil) || 0
-      );
-      const luckUntil = Math.max(0, Number(raw.luckBoostUntil) || 0);
-      const moneyRestored = restoreChestBoostChannel(
-        !!raw.moneyBoostPaused,
-        raw.moneyBoostPausedLeft,
-        moneyUntil,
-        now,
-        !!backup?.moneyPaused,
-        backup?.moneyLeft
-      );
-      const luckRestored = restoreChestBoostChannel(
-        !!raw.luckBoostPaused,
-        raw.luckBoostPausedLeft,
-        luckUntil,
-        now,
-        !!backup?.luckPaused,
-        backup?.luckLeft
-      );
-      next.moneyBoostPaused = moneyRestored.paused;
-      next.moneyBoostPausedLeft = moneyRestored.leftover;
-      next.moneyBoostUntil = moneyRestored.until;
-      next.luckBoostPaused = luckRestored.paused;
-      next.luckBoostPausedLeft = luckRestored.leftover;
-      next.luckBoostUntil = luckRestored.until;
-      const legacyCount = Math.max(0, Math.floor(Number(raw.treasureCount) || 0));
-      next.moneyChestCount = Math.max(
-        0,
-        Math.min(
-          TREASURE_STASH_HARD_MAX,
-          Math.floor(Number(raw.moneyChestCount) || legacyCount || 0)
-        )
-      );
-      next.luckChestCount = Math.max(
-        0,
-        Math.min(TREASURE_STASH_HARD_MAX, Math.floor(Number(raw.luckChestCount) || 0))
-      );
-      next.luckyBlockCount = Math.max(
-        0,
-        Math.min(LUCKY_BLOCK_STASH_MAX, Math.floor(Number(raw.luckyBlockCount) || 0))
-      );
-      next.astralLuckyBlockCount = Math.max(
-        0,
-        Math.min(LUCKY_BLOCK_STASH_MAX, Math.floor(Number(raw.astralLuckyBlockCount) || 0))
-      );
-      next.zenithLuckyBlockCount = Math.max(
-        0,
-        Math.min(LUCKY_BLOCK_STASH_MAX, Math.floor(Number(raw.zenithLuckyBlockCount) || 0))
-      );
-      next.smartShop = raw.smartShop !== false;
-      next.collectionLuckTold = !!raw.collectionLuckTold;
-      next.collectionRainbowTold = !!raw.collectionRainbowTold;
-      next.collectionLbEventTold = !!raw.collectionLbEventTold;
-      next.collectionLbAlwaysTold = !!raw.collectionLbAlwaysTold;
-      next.collectionSoulTwinGranted = !!raw.collectionSoulTwinGranted;
-      next.quests = normalizeQuestsState(raw.quests);
-      if (raw.echoLuckReset !== ECHO_LUCK_RESET_ID) {
-        next.echoLuckLevel = 0;
-        next.echoLuckReset = ECHO_LUCK_RESET_ID;
-      } else {
-        next.echoLuckLevel = Math.max(
-          0,
-          Math.min(ECHO_LUCK_MAX_LEVEL, Math.floor(Number(raw.echoLuckLevel) || 0))
-        );
-        next.echoLuckReset = ECHO_LUCK_RESET_ID;
-      }
-      if (raw.luckDialFollowMax === false && Number.isFinite(Number(raw.luckDial))) {
-        next.luckDialFollowMax = false;
-        next.luckDial = Math.max(0, Number(raw.luckDial));
-      } else {
-        next.luckDialFollowMax = true;
-        next.luckDial = null;
-      }
-      next.spotCasts = {};
-      if (raw.spotCasts && typeof raw.spotCasts === "object") {
-        Object.keys(raw.spotCasts).forEach((id) => {
-          const n = Math.floor(Number(raw.spotCasts[id]) || 0);
-          if (n > 0) next.spotCasts[id] = n;
-        });
-      }
-      next.weatherId = String(raw.weatherId || "none");
-      if (next.weatherId === "clear" || next.weatherId === "fog" || next.weatherId === "tide") {
-        next.weatherId = "none";
-      }
-      next.weatherUntil = Math.max(0, Number(raw.weatherUntil) || 0);
-      next.combo = Math.max(0, Math.floor(Number(raw.combo) || 0));
-      next.comboBoostUntil = Math.max(0, Number(raw.comboBoostUntil) || 0);
-      next.aquariumBank = Math.max(0, Number(raw.aquariumBank) || 0);
-      next.aquariumLastTick = Math.max(0, Number(raw.aquariumLastTick) || Date.now());
-      next.coolerSort = ["value", "rarity", "shiny", "saved", "name"].includes(raw.coolerSort)
-        ? raw.coolerSort
-        : "value";
-      next.coolerFilter = ["all", "saved", "shiny", "unsaved"].includes(raw.coolerFilter)
-        ? raw.coolerFilter
-        : "all";
-      next.coolerSearch = String(raw.coolerSearch || "").slice(0, 48);
-      next.bookSearch = String(raw.bookSearch || "").slice(0, 48);
-      next.pendingOffline =
-        raw.pendingOffline && typeof raw.pendingOffline === "object" ? raw.pendingOffline : null;
-      next.communityWeekKey = String(raw.communityWeekKey || "");
-      next.communityContrib = Math.max(0, Math.floor(Number(raw.communityContrib) || 0));
-      next.communityPendingAdds = Math.max(0, Math.floor(Number(raw.communityPendingAdds) || 0));
-      next.communityLbClaimedKey = String(raw.communityLbClaimedKey || "");
-      next.communityLbClaimedWave = Math.max(0, Math.floor(Number(raw.communityLbClaimedWave) || 0));
-      next.ownerPlayerId = String(raw.ownerPlayerId || fishingOwnerId() || "");
-      next.ownerName = String(raw.ownerName || fishingOwnerName() || "");
-      return next;
+      return defaultState();
     } catch {
       return defaultState();
     }

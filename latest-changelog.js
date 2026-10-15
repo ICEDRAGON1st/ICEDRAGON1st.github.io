@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015aa",
+  "build": "20261015ab",
   "notes": [
-    "Action games now pause when you switch tabs or leave the page."
+    "Fishing Idle now loads and migrates your save from a separate file."
   ]
 };
