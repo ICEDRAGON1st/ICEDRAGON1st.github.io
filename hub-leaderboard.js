@@ -200,10 +200,45 @@
     return "";
   }
 
+  function pbsApi() {
+    return window.HubLeaderboardPbs || null;
+  }
+
   function isBetter(a, b, lowerBetter) {
+    const helper = pbsApi();
+    if (helper && typeof helper.isBetter === "function") return helper.isBetter(a, b, lowerBetter);
     if (typeof a !== "number" || !Number.isFinite(a)) return false;
     if (typeof b !== "number" || !Number.isFinite(b)) return true;
     return lowerBetter ? a < b : a > b;
+  }
+
+  async function persistMyPbs() {
+    const helper = pbsApi();
+    const api = window.HubSupabase;
+    if (!helper || !api?.upsertSave) return;
+    try {
+      await api.upsertSave(helper.SAVE_KEY, helper.collectMine(cache.games, entryBelongsToMe), 1);
+    } catch (err) {
+      console.warn("[HubLeaderboard] player_saves personal-best write failed", err);
+    }
+  }
+
+  async function pullMyPbs(merged) {
+    const helper = pbsApi();
+    const api = window.HubSupabase;
+    if (!helper || !api?.getSave) return merged;
+    try {
+      const raw = await api.getSave(helper.SAVE_KEY);
+      const pbs = helper.readPbs(raw);
+      if (!pbs || !Object.keys(pbs.games || {}).length) return merged;
+      return applyResets({
+        games: helper.applyPersonalBests(merged.games, pbs, nameKey),
+        resets: { ...(merged.resets || {}) }
+      });
+    } catch (err) {
+      console.warn("[HubLeaderboard] player_saves personal-best read failed", err);
+      return merged;
+    }
   }
 
   function formatSeconds(total) {
@@ -1469,9 +1504,15 @@
       const local = loadLocal();
       let merged = mergeBoards(local, remote);
       try {
+        merged = await pullMyPbs(merged);
+      } catch {}
+      try {
         merged = await hydrateInvitesBoard(merged);
       } catch {}
       saveLocal(merged);
+      try {
+        await persistMyPbs();
+      } catch {}
       try {
         await pushRemote(merged);
       } catch {
@@ -1712,6 +1753,9 @@
       } catch {
         // keep local
       }
+      try {
+        await persistMyPbs();
+      } catch {}
       lastSync = Date.now();
       return true;
     };

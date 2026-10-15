@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015aq",
+  "build": "20261015ar",
   "notes": [
-    "Fishing Idle now prices fish from a separate economy helper."
+    "Your high scores now also save on your cloud account, not only the shared board."
   ]
 };

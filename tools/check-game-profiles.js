@@ -12,6 +12,7 @@ const OPTIONAL_GAME_SCRIPTS = new Set([
   "hub-call-signal.js",
   "hub-canvas-alt.js",
   "hub-leaderboard.js",
+  "hub-leaderboard-pbs.js",
   "hub-discord.js",
   "hub-coins.js",
   "hub-sound.js",

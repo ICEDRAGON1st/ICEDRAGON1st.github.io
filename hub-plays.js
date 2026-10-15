@@ -5060,7 +5060,9 @@ body.light .menu-credit .player-name-creator {
           document.head.appendChild(el);
         });
       };
-      load("hub-leaderboard.js", "HubLeaderboard");
+      load("hub-leaderboard-pbs.js", "HubLeaderboardPbs").then(() =>
+        load("hub-leaderboard.js", "HubLeaderboard")
+      );
       if (/\/fishing(\/|$)/i.test(location.pathname || "")) {
         load("hub-discord.js", "HubDiscord");
       }

@@ -72,6 +72,9 @@ test("hub critical path stays within its script budget", async ({ context, page 
   expect(metrics.scripts.some((entry) => entry.path.endsWith("/hub-admin.js"))).toBe(false);
   expect(metrics.scripts.some((entry) => entry.path.endsWith("/hub-call-signal.js"))).toBe(false);
   expect(metrics.scripts.some((entry) => entry.path.endsWith("/hub-calls.js"))).toBe(false);
+  expect(metrics.scripts.some((entry) => entry.path.endsWith("/hub-leaderboard-pbs.js"))).toBe(
+    false
+  );
 });
 
 test("cold hub reaches its shell within the Fast 3G budget", async ({ context, page }) => {

@@ -177,6 +177,7 @@ test("optional hub helpers load after the interactive shell", async ({ page }) =
       window.HubFishingGifts &&
       window.HubFishingMail &&
       window.HubCoins &&
+      window.HubLeaderboardPbs &&
       window.HubLeaderboard &&
       window.HubFriends &&
       window.HubChat &&
