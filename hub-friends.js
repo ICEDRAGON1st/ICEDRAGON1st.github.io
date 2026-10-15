@@ -26,9 +26,7 @@
   let writeQueue = Promise.resolve();
 
   function getPlayerId() {
-    return typeof HubPlays !== "undefined" && HubPlays.getPlayerId
-      ? HubPlays.getPlayerId()
-      : "";
+    return typeof HubPlays !== "undefined" && HubPlays.getPlayerId ? HubPlays.getPlayerId() : "";
   }
 
   function getPlayerName() {
@@ -176,6 +174,38 @@
     return (data.profiles || {})[me] || null;
   }
 
+  function edgesApi() {
+    return window.HubFriendsEdges || null;
+  }
+
+  async function persistMyEdges() {
+    const helper = edgesApi();
+    const api = sb();
+    const me = getPlayerId();
+    if (!helper || !api?.upsertSave || !me) return;
+    try {
+      await api.upsertSave(helper.SAVE_KEY, helper.collectMine(cache, me), 1);
+    } catch (err) {
+      console.warn("[HubFriends] player_saves friend-edge write failed", err);
+    }
+  }
+
+  async function pullMyEdges(data) {
+    const helper = edgesApi();
+    const api = sb();
+    const me = getPlayerId();
+    if (!helper || !api?.getSave || !me) return data;
+    try {
+      const raw = await api.getSave(helper.SAVE_KEY);
+      const mine = helper.readEdges(raw);
+      if (!mine || (!mine.playerId && helper.isEmptyProfile(mine))) return data;
+      return helper.applyMine(data, mine, me);
+    } catch (err) {
+      console.warn("[HubFriends] player_saves friend-edge read failed", err);
+      return data;
+    }
+  }
+
   async function mutate(updater) {
     const run = async () => {
       let remote = cache;
@@ -184,19 +214,21 @@
       } catch {
         remote = cache;
       }
-      const base = mergeData(cache, remote);
+      const base = await pullMyEdges(mergeData(cache, remote));
       const next = updater(base);
       if (!next) return false;
       saveLocal(next);
       try {
         await pushRemote(next);
       } catch {
+        await persistMyEdges();
         return false;
       }
       try {
         const confirmed = await fetchRemote();
         saveLocal(mergeData(next, confirmed));
       } catch {}
+      await persistMyEdges();
       return true;
     };
     writeQueue = writeQueue.then(run, run);
@@ -212,7 +244,7 @@
       try {
         remote = await fetchRemote();
       } catch {}
-      const merged = mergeData(local, remote);
+      const merged = await pullMyEdges(mergeData(local, remote));
       const me = getPlayerId();
       const name = getPlayerName();
       if (me && name) {
@@ -222,6 +254,7 @@
       try {
         await pushRemote(merged);
       } catch {}
+      await persistMyEdges();
       return cache;
     } finally {
       syncing = false;
@@ -247,9 +280,7 @@
         return { playerId: claim.playerId, name: claim.name || username };
       }
     } catch {}
-    const hit = Object.entries(cache.profiles || {}).find(
-      ([, p]) => nameKey(p?.name) === key
-    );
+    const hit = Object.entries(cache.profiles || {}).find(([, p]) => nameKey(p?.name) === key);
     if (hit) return { playerId: hit[0], name: hit[1].name };
     return null;
   }

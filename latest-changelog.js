@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ar",
+  "build": "20261015as",
   "notes": [
-    "Your high scores now also save on your cloud account, not only the shared board."
+    "Your friends list now also saves on your cloud account, so a new device can restore it."
   ]
 };

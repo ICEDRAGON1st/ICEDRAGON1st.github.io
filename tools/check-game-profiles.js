@@ -7,6 +7,7 @@ const ROOT = path.resolve(__dirname, "..");
 const WRITE = process.argv.includes("--write");
 const OPTIONAL_GAME_SCRIPTS = new Set([
   "hub-friends.js",
+  "hub-friends-edges.js",
   "hub-chat.js",
   "hub-calls.js",
   "hub-call-signal.js",
