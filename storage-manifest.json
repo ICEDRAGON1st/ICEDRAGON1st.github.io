@@ -1152,6 +1152,7 @@
         "hub-fishing-mail.js",
         "hub-plays.js",
         "hub-referrals.js",
+        "paper-io/script.js",
         "script.js"
       ]
     },
@@ -1166,6 +1167,7 @@
         "hub-fishing-gifts.js",
         "hub-fishing-mail.js",
         "hub-plays.js",
+        "paper-io/script.js",
         "script.js"
       ]
     },

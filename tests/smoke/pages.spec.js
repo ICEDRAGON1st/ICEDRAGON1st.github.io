@@ -59,6 +59,27 @@ for (const target of PAGES) {
 
     await expect(page.locator("body")).toBeVisible();
     await expect(page).toHaveTitle(/\S+/);
+    if (target.path !== "/") {
+      await expect
+        .poll(
+          () =>
+            page.evaluate(() => ({
+              net: Boolean(window.HubNet),
+              afk: Boolean(window.HubAfk),
+              coins: Boolean(window.HubCoins),
+              sound: Boolean(window.HubSound),
+              audio: Boolean(window.HubAudio)
+            })),
+          { message: `${target.path} shared boot modules` }
+        )
+        .toEqual({
+          net: true,
+          afk: true,
+          coins: true,
+          sound: true,
+          audio: true
+        });
+    }
     expect(errors, `${target.path} browser errors`).toEqual([]);
   });
 }

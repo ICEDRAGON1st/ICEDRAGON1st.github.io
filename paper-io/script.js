@@ -141,7 +141,13 @@
 
   function hexToRgb(hex) {
     const h = String(hex || "").replace("#", "");
-    const full = h.length === 3 ? h.split("").map((c) => c + c).join("") : h;
+    const full =
+      h.length === 3
+        ? h
+            .split("")
+            .map((c) => c + c)
+            .join("")
+        : h;
     const n = parseInt(full, 16);
     if (!Number.isFinite(n)) return { r: 62, g: 198, b: 255 };
     return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
@@ -176,7 +182,7 @@
     }
     if (head === "rainbow") {
       const cols = RAINBOW_COLS;
-      const f = ((t / 520) % cols.length + cols.length) % cols.length;
+      const f = (((t / 520) % cols.length) + cols.length) % cols.length;
       const i = f | 0;
       return lerpHex(cols[i], cols[(i + 1) % cols.length], f - i);
     }
@@ -1066,7 +1072,14 @@
   }
 
   function playerName() {
-    if (typeof HubPlays === "undefined") return "You";
+    if (typeof HubPlays === "undefined") {
+      try {
+        const localName = String(localStorage.getItem("hub-player-name") || "").trim();
+        return localName && !/^guest-/i.test(localName) ? localName.slice(0, 16) : "You";
+      } catch {
+        return "You";
+      }
+    }
     const name = HubPlays.sanitizeName
       ? HubPlays.sanitizeName(HubPlays.getName() || "")
       : String(HubPlays.getName() || "").trim();
@@ -1075,9 +1088,19 @@
   }
 
   function playerId() {
-    return typeof HubPlays !== "undefined" && HubPlays.getPlayerId
-      ? HubPlays.getPlayerId()
-      : `local-${Math.random().toString(36).slice(2, 8)}`;
+    if (typeof HubPlays !== "undefined" && HubPlays.getPlayerId) {
+      return HubPlays.getPlayerId();
+    }
+    try {
+      let id = String(localStorage.getItem("hub-player-id") || "").trim();
+      if (!id) {
+        id = `p-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+        localStorage.setItem("hub-player-id", id);
+      }
+      return id;
+    } catch {
+      return `p-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`;
+    }
   }
 
   function makeCode() {
@@ -1091,12 +1114,25 @@
     if (overlayBest) overlayBest.innerHTML = `Best claim · <strong>${bestPct}%</strong>`;
   }
 
-  function ensureSession() {
-    if (sessionStarted) return;
-    sessionStarted = true;
-    window.HubPlays?.record?.("paper");
-    window.HubStreak?.recordPlay?.();
+  let sessionRecorded = false;
+  function recordSession() {
+    if (!sessionStarted || sessionRecorded || !window.HubPlays?.record) return;
+    sessionRecorded = true;
+    window.HubPlays.record("paper");
   }
+
+  function ensureSession() {
+    if (!sessionStarted) {
+      sessionStarted = true;
+      window.HubStreak?.recordPlay?.();
+    }
+    recordSession();
+  }
+
+  document.addEventListener("hub-game-profile-ready", () => {
+    refreshMenuProfile();
+    recordSession();
+  });
 
   function maybeSubmit(pct) {
     if (pct > bestPct) {
@@ -1747,9 +1783,7 @@
     if (!trail || trail.length < 1) return false;
 
     // Attacker disk vs trail half-width (matches drawn ribbon)
-    const hitR = ignoreRecent
-      ? PLAYER_R * 0.75 + TRAIL_W * 0.45
-      : PLAYER_R * 0.95 + TRAIL_W * 0.65;
+    const hitR = ignoreRecent ? PLAYER_R * 0.75 + TRAIL_W * 0.45 : PLAYER_R * 0.95 + TRAIL_W * 0.65;
 
     // Overlapping heads = bump, not a cut
     if (!ignoreRecent && Math.hypot(ox - p.x, oy - p.y) < PLAYER_R * 2.05) {
@@ -1958,8 +1992,7 @@
         }
       }
       if (best) {
-        p.botAngle =
-          Math.atan2(best.y - p.y, best.x - p.x) + (Math.random() - 0.5) * 0.75;
+        p.botAngle = Math.atan2(best.y - p.y, best.x - p.x) + (Math.random() - 0.5) * 0.75;
       } else {
         p.botAngle += (Math.random() - 0.5) * 1.1;
       }
@@ -2040,7 +2073,10 @@
     // Only leave a trail once you actually leave your land
     if (wasHome && !nowHome) {
       p.outside = true;
-      p.trail = [{ x: ox, y: oy }, { x: nx, y: ny }];
+      p.trail = [
+        { x: ox, y: oy },
+        { x: nx, y: ny }
+      ];
       p.distAcc = 0;
     } else if (p.outside && !nowHome) {
       p.distAcc += Math.hypot(nx - ox, ny - oy);
@@ -2586,9 +2622,7 @@
         if (!owner) continue;
         const pid = idFromHash(owner);
         const pl = players.find((p) => p.id === pid);
-        const color = pl
-          ? colorFor(pl)
-          : COLORS[(owner - 1) % COLORS.length];
+        const color = pl ? colorFor(pl) : COLORS[(owner - 1) % COLORS.length];
         miniCtx.fillStyle = color.fill;
         miniCtx.fillRect(x, y, 1, 1);
       }
@@ -2962,7 +2996,11 @@
     setPlayLabel(mode === "online" && isHost ? "Start match" : "Play");
     if (hudMode) {
       hudMode.textContent =
-        mode === "online" ? (isHost ? `Online host · ${roomCode}` : `Online · ${roomCode}`) : `vs ${bots} NPC`;
+        mode === "online"
+          ? isHost
+            ? `Online host · ${roomCode}`
+            : `Online · ${roomCode}`
+          : `vs ${bots} NPC`;
     }
     cancelAnimationFrame(animId);
     animId = requestAnimationFrame(loop);
@@ -3198,7 +3236,12 @@
     try {
       const lobbies = (await sbGet(LOBBY_DOC)) || { rooms: {} };
       lobbies.rooms = lobbies.rooms || {};
-      lobbies.rooms[roomCode] = { code: roomCode, hostId: me, status: "waiting", updatedAt: Date.now() };
+      lobbies.rooms[roomCode] = {
+        code: roomCode,
+        hostId: me,
+        status: "waiting",
+        updatedAt: Date.now()
+      };
       const now = Date.now();
       for (const [k, r] of Object.entries(lobbies.rooms)) {
         if (!r || now - (r.updatedAt || 0) > 10 * 60 * 1000) delete lobbies.rooms[k];
@@ -3246,7 +3289,9 @@
     onlineCode.classList.remove("hidden");
     onlineCode.textContent = isHost ? `Room ${roomCode}` : `Joined ${roomCode}`;
     onlineCancelBtn.classList.remove("hidden");
-    onlineStatus.textContent = isHost ? "You are host. Press Play to start." : "Waiting for host to start…";
+    onlineStatus.textContent = isHost
+      ? "You are host. Press Play to start."
+      : "Waiting for host to start…";
     setPlayLabel(isHost ? "Start match" : "Waiting…");
     if (!isHost) watchLobbyStart();
   }
@@ -3299,7 +3344,11 @@
         const lobbies = (await sbGet(LOBBY_DOC)) || { rooms: {} };
         if (lobbies.rooms) delete lobbies.rooms[roomCode];
         await sbPut(LOBBY_DOC, lobbies);
-        await sbPut(roomDocId(roomCode), { code: roomCode, status: "closed", updatedAt: Date.now() });
+        await sbPut(roomDocId(roomCode), {
+          code: roomCode,
+          status: "closed",
+          updatedAt: Date.now()
+        });
       } catch {}
     }
     roomCode = "";

@@ -21,12 +21,34 @@
     (script && script.getAttribute("data-boot-sub")) ||
     html.getAttribute("data-boot-sub") ||
     "Loading game…";
+  var iconBase = "../";
+  var bootVer = "1";
+  var managedScriptPromises = {};
+  var accountProfilePromise = null;
+
+  function loadManagedScript(file, globalName) {
+    if (globalName && window[globalName]) return Promise.resolve(window[globalName]);
+    if (managedScriptPromises[file]) return managedScriptPromises[file];
+    managedScriptPromises[file] = new Promise(function (resolve) {
+      var managed = document.createElement("script");
+      managed.src = iconBase + file + "?v=" + encodeURIComponent(bootVer);
+      managed.async = true;
+      managed.setAttribute("data-hub-game-managed", file);
+      managed.onload = function () {
+        resolve(globalName ? window[globalName] : true);
+      };
+      managed.onerror = function () {
+        resolve(null);
+      };
+      (document.head || html).appendChild(managed);
+    });
+    return managedScriptPromises[file];
+  }
 
   // Same My Games icon on every hub game tab
   try {
     var bootSrc = (script && script.src) || "";
-    var iconBase = bootSrc ? bootSrc.replace(/[^/]+$/, "") : "../";
-    var bootVer = "1";
+    iconBase = bootSrc ? bootSrc.replace(/[^/]+$/, "") : "../";
     try {
       var qm = bootSrc.indexOf("?");
       if (qm >= 0) {
@@ -34,52 +56,20 @@
         bootVer = params.get("v") || bootVer;
       }
     } catch (e) {}
-    // Inject per-tab net gate + AFK early (document.write while parsing).
+    // Start shared game dependencies together. They are ready before window.load,
+    // but no longer serialize five network round trips ahead of the game document.
     try {
-      if (!window.HubNet) {
-        document.write(
-          '<script src="' +
-            iconBase +
-            "hub-net.js?v=" +
-            encodeURIComponent(bootVer) +
-            '"></script>'
-        );
-      }
-      if (!window.HubAfk) {
-        document.write(
-          '<script src="' +
-            iconBase +
-            "hub-afk.js?v=" +
-            encodeURIComponent(bootVer) +
-            '"></script>'
-        );
-      }
-      if (!window.HubCoins) {
-        document.write(
-          '<script src="' +
-            iconBase +
-            "hub-coins.js?v=" +
-            encodeURIComponent(bootVer) +
-            '"></script>'
-        );
-      }
-      if (!window.HubSound) {
-        document.write(
-          '<script src="' +
-            iconBase +
-            "hub-sound.js?v=" +
-            encodeURIComponent(bootVer) +
-            '"></script>'
-        );
-      }
-      if (!window.HubAudio) {
-        document.write(
-          '<script src="' +
-            iconBase +
-            "hub-audio.js?v=" +
-            encodeURIComponent(bootVer) +
-            '"></script>'
-        );
+      var shared = [
+        ["hub-net.js", "HubNet"],
+        ["hub-afk.js", "HubAfk"],
+        ["hub-coins.js", "HubCoins"],
+        ["hub-sound.js", "HubSound"],
+        ["hub-audio.js", "HubAudio"]
+      ];
+      for (var sharedIndex = 0; sharedIndex < shared.length; sharedIndex++) {
+        var file = shared[sharedIndex][0];
+        var globalName = shared[sharedIndex][1];
+        loadManagedScript(file, globalName);
       }
     } catch (e) {}
     // Offline shell for games visited once online.
@@ -189,6 +179,21 @@
   }
 
   window.dismissHubBootLoader = dismissHubBootLoader;
+  window.ensureHubGameAccountProfile = function () {
+    if (accountProfilePromise) return accountProfilePromise;
+    accountProfilePromise = loadManagedScript("hub-supabase.js", "HubSupabase")
+      .then(function () {
+        return loadManagedScript("hub-account-bag.js", "HubAccountBag");
+      })
+      .then(function () {
+        return loadManagedScript("hub-plays.js", "HubPlays");
+      })
+      .then(function () {
+        document.dispatchEvent(new CustomEvent("hub-game-profile-ready"));
+        return window.HubPlays || null;
+      });
+    return accountProfilePromise;
+  };
 
   ensureLoader();
   if (document.readyState === "loading") {
@@ -200,10 +205,21 @@
   function finish() {
     // Let game scripts paint one frame, then drop the cover.
     setTimeout(dismissHubBootLoader, 50);
+    var loadAccountProfile = function () {
+      window.ensureHubGameAccountProfile().catch(function () {});
+    };
+    if (typeof requestIdleCallback === "function") {
+      requestIdleCallback(loadAccountProfile, { timeout: 1000 });
+    } else {
+      setTimeout(loadAccountProfile, 100);
+    }
   }
 
-  if (document.readyState === "complete") finish();
-  else window.addEventListener("load", finish, { once: true });
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", finish, { once: true });
+  } else {
+    finish();
+  }
 
   // Safety: never leave the loader stuck
   setTimeout(dismissHubBootLoader, 15000);

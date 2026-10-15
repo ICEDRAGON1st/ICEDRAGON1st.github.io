@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015q",
+  "build": "20261015r",
   "notes": [
-    "All games now open before optional social tools finish loading."
+    "Games now open faster on slow connections, including Paper Claim."
   ]
 };

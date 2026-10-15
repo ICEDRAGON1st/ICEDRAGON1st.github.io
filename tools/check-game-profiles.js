@@ -10,7 +10,10 @@ const OPTIONAL_GAME_SCRIPTS = new Set([
   "hub-chat.js",
   "hub-calls.js",
   "hub-leaderboard.js",
-  "hub-discord.js"
+  "hub-discord.js",
+  "hub-coins.js",
+  "hub-sound.js",
+  "hub-audio.js"
 ]);
 const SKIP_DIRS = new Set([
   ".git",
@@ -53,7 +56,9 @@ for (const file of gameIndexes()) {
     continue;
   }
   if (!WRITE) {
-    violations.push(`${relative}: ${matches.length} optional scripts block game startup`);
+    violations.push(
+      `${relative}: ${matches.length} shared scripts duplicate the game boot profile`
+    );
     continue;
   }
 
