@@ -183,6 +183,8 @@ test("optional hub helpers load after the interactive shell", async ({ page }) =
       window.HubFriends &&
       window.HubChatMine &&
       window.HubChat &&
+      window.HubOnlineMatchMine &&
+      window.HubOnlineMatch &&
       window.HubCallSignal &&
       window.HubCalls,
     null,

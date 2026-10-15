@@ -186,6 +186,38 @@
     });
   }
 
+  function mineApi() {
+    return window.HubOnlineMatchMine || null;
+  }
+
+  async function persistMyRooms() {
+    const helper = mineApi();
+    const api = sb();
+    const me = getPlayerId();
+    if (!helper || !api?.upsertSave || !me) return;
+    try {
+      await api.upsertSave(helper.SAVE_KEY, helper.collectMine(cache, me), 1);
+    } catch (err) {
+      console.warn("[HubOnlineMatch] player_saves match write failed", err);
+    }
+  }
+
+  async function pullMyRooms(data) {
+    const helper = mineApi();
+    const api = sb();
+    const me = getPlayerId();
+    if (!helper || !api?.getSave || !me) return data;
+    try {
+      const raw = await api.getSave(helper.SAVE_KEY);
+      const mine = helper.readMine(raw);
+      if (!mine || !Object.keys(mine.rooms || {}).length) return data;
+      return helper.applyMine(data, mine, me);
+    } catch (err) {
+      console.warn("[HubOnlineMatch] player_saves match read failed", err);
+      return data;
+    }
+  }
+
   async function mutate(updater) {
     const run = async () => {
       let last = null;
@@ -196,13 +228,14 @@
         } catch {
           remote = cache;
         }
-        const base = { rooms: mergeRooms(cache.rooms, remote.rooms) };
+        const base = await pullMyRooms({ rooms: mergeRooms(cache.rooms, remote.rooms) });
         const next = updater(base);
         if (!next) return null;
         saveLocal(next);
         try {
           await pushRemote(next);
         } catch {
+          await persistMyRooms();
           // Keep local optimistic state; retry merge next loop / poll.
           return next;
         }
@@ -215,13 +248,16 @@
             last = merged;
             continue;
           }
+          await persistMyRooms();
           emit();
           return cache;
         } catch {
+          await persistMyRooms();
           emit();
           return cache;
         }
       }
+      await persistMyRooms();
       emit();
       return last || cache;
     };
@@ -593,7 +629,9 @@
   async function refresh() {
     try {
       const remote = await fetchRemote();
-      saveLocal({ rooms: mergeRooms(cache.rooms, remote.rooms) });
+      const merged = await pullMyRooms({ rooms: mergeRooms(cache.rooms, remote.rooms) });
+      saveLocal(merged);
+      await persistMyRooms();
       if (activeRoomId && !cache.rooms[activeRoomId]) {
         // Room may have been overwritten — try restore from remote after another fetch pass
         activeRoomId = "";

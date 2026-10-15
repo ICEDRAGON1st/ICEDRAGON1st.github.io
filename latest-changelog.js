@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015at",
+  "build": "20261015au",
   "notes": [
-    "Your DMs and group chats now also save on your cloud account, so a new device can restore them."
+    "Your Tic Tac Toe and Drop Four rooms now also save on your cloud account, so a refresh can restore them."
   ]
 };
