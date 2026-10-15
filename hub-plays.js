@@ -8,6 +8,7 @@
   const presenceApi = window.HubPresence || {};
   const popularityApi = window.HubPopularity || {};
   const alltimeApi = window.HubAllTime || {};
+  const namesApi = window.HubNames || {};
   const NAME_KEY = "hub-player-name";
   const PLAYER_ID_KEY = "hub-player-id";
   const PLAYER_CODE_KEY = "hub-player-code";
@@ -393,28 +394,12 @@
   }
 
   function purgeNameRegistry(names) {
-    const out = { ...(names || {}) };
-    let changed = false;
-    Object.keys(out).forEach((key) => {
-      const claim = out[key];
-      if (PURGED_NAME_KEYS.has(key) || isPurgedPlayer(claim?.playerId, claim?.name || key)) {
-        delete out[key];
-        changed = true;
-        return;
-      }
-      if (!claim || typeof claim !== "object") return;
-      const accentTitle = String(claim.accentTitle || "").toLowerCase();
-      const accentColor = String(claim.accentColor || "").toLowerCase();
-      if (accentTitle === "rainbow" || accentColor === "rainbow") {
-        out[key] = {
-          ...claim,
-          accentTitle: accentTitle === "rainbow" ? "" : claim.accentTitle || "",
-          accentColor: accentColor === "rainbow" ? "" : claim.accentColor || ""
-        };
-        changed = true;
-      }
-    });
-    return { names: out, changed };
+    return namesApi.purgeNameRegistry
+      ? namesApi.purgeNameRegistry(names, {
+          isPurgedKey: (key) => PURGED_NAME_KEYS.has(key),
+          isPurgedPlayer
+        })
+      : { names: { ...(names || {}) }, changed: false };
   }
 
   function purgeAllTimePlayers(players) {
@@ -1193,16 +1178,7 @@
   }
 
   function findClaimByPlayerId(names, playerId) {
-    const id = String(playerId || "");
-    if (!id) return null;
-    let found = null;
-    Object.values(names || {}).forEach((claim) => {
-      if (!claim || claim.playerId !== id) return;
-      if (!found || (Number(claim.claimedAt) || 0) < (Number(found.claimedAt) || 0)) {
-        found = claim;
-      }
-    });
-    return found;
+    return namesApi.findClaimByPlayerId ? namesApi.findClaimByPlayerId(names, playerId) : null;
   }
 
   async function ensurePlayerCodeRegistered() {
@@ -1783,13 +1759,8 @@
   async function fetchNamesRemote() {
     const data = await fetchDoc("name-registry", NAMES_API);
     if (!data || typeof data !== "object") return {};
-    const names = data.names && typeof data.names === "object" ? data.names : data;
-    // Ignore accidental non-claim fields
-    const out = {};
-    Object.entries(names).forEach(([k, v]) => {
-      if (v && typeof v === "object" && v.playerId && v.name) out[k] = v;
-    });
-    return purgeNameRegistry(out).names;
+    const parsed = namesApi.parseNameRegistry ? namesApi.parseNameRegistry(data) : {};
+    return purgeNameRegistry(parsed).names;
   }
 
   async function pushNamesRemote(names) {
@@ -1803,56 +1774,7 @@
   }
 
   function mergeNameMaps(a, b) {
-    const out = { ...(a || {}) };
-    Object.entries(b || {}).forEach(([key, claim]) => {
-      if (!claim || !claim.playerId) return;
-      const existing = out[key];
-      if (!existing) {
-        out[key] = claim;
-        return;
-      }
-      if (existing.playerId === claim.playerId) {
-        const existingUpdated = Number(existing.profileUpdatedAt) || 0;
-        const claimUpdated = Number(claim.profileUpdatedAt) || 0;
-        const newer = claimUpdated >= existingUpdated ? claim : existing;
-        const older = newer === claim ? existing : claim;
-        const pickStyle = (field) => {
-          if (newer[field] != null && newer[field] !== "") return newer[field];
-          if (older[field] != null && older[field] !== "") return older[field];
-          if (Object.prototype.hasOwnProperty.call(newer, field)) return newer[field] || "";
-          if (Object.prototype.hasOwnProperty.call(older, field)) return older[field] || "";
-          return "";
-        };
-        out[key] = {
-          ...older,
-          ...newer,
-          legend: !!(existing.legend || claim.legend),
-          legendAt:
-            Math.max(Number(existing.legendAt) || 0, Number(claim.legendAt) || 0) || undefined,
-          masterFisher: !!(existing.masterFisher || claim.masterFisher),
-          masterFisherAt:
-            Math.max(Number(existing.masterFisherAt) || 0, Number(claim.masterFisherAt) || 0) ||
-            undefined,
-          activeTitle: pickStyle("activeTitle"),
-          accentTitle: pickStyle("accentTitle"),
-          accentColor: pickStyle("accentColor"),
-          profileUpdatedAt: Math.max(existingUpdated, claimUpdated) || undefined,
-          claimedAt: Math.min(
-            Number(existing.claimedAt) || Infinity,
-            Number(claim.claimedAt) || Infinity
-          )
-        };
-        if (out[key].claimedAt === Infinity)
-          out[key].claimedAt = newer.claimedAt || older.claimedAt;
-        if (!out[key].legendAt) delete out[key].legendAt;
-        if (!out[key].masterFisherAt) delete out[key].masterFisherAt;
-        if (!out[key].profileUpdatedAt) delete out[key].profileUpdatedAt;
-        return;
-      }
-      // First claimer wins
-      if ((claim.claimedAt || 0) < (existing.claimedAt || 0)) out[key] = claim;
-    });
-    return out;
+    return namesApi.mergeNameMaps ? namesApi.mergeNameMaps(a, b) : { ...(a || {}), ...(b || {}) };
   }
 
   function loadLocalProfileStyle() {

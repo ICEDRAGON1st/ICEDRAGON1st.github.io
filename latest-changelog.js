@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ay",
+  "build": "20261015az",
   "notes": [
-    "Players all-time merge now lives in its own helper so a partial device cannot shrink the shared roster."
+    "Unique nicknames now merge in a shared helper so the first player to claim a name keeps it, and titles still follow that account."
   ]
 };

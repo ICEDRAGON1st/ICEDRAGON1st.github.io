@@ -1,4 +1,7 @@
 {
+  "20261015az": [
+    "Unique nicknames now merge in a shared helper so the first player to claim a name keeps it, and titles still follow that account."
+  ],
   "20261015ay": [
     "Players all-time merge now lives in its own helper so a partial device cannot shrink the shared roster."
   ],

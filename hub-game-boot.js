@@ -215,6 +215,9 @@
         return loadManagedScript("hub-alltime.js", "HubAllTime");
       })
       .then(function () {
+        return loadManagedScript("hub-names.js", "HubNames");
+      })
+      .then(function () {
         return loadManagedScript("hub-plays.js", "HubPlays");
       })
       .then(function () {
