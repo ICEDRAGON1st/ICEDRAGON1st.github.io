@@ -1,4 +1,7 @@
 {
+  "20261015ag": [
+    "Hub, Guessword, and theme colors now load from separate style files."
+  ],
   "20261015af": [
     "Most-played counts now use a shared popularity helper."
   ],

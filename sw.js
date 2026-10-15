@@ -1,11 +1,13 @@
 /* My Games service worker — offline shell + cache-as-you-go for visited games. */
-const BUILD = "20261015af";
+const BUILD = "20261015ag";
 const CACHE = `mygames-v2-${BUILD}`;
 
 const PRECACHE = [
   "./",
   "./index.html",
-  "./styles.css",
+  "./css/themes.css",
+  "./css/guessword.css",
+  "./css/hub.css",
   "./site.webmanifest",
   "./site-config.js",
   "./latest-changelog.js",

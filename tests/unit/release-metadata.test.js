@@ -15,13 +15,17 @@ test("release build and changelog metadata stay aligned", () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, "build-manifest.json"), "utf8"));
 
   const indexBuild = /window\.WORDLE_BUILD = "([^"]+)"/.exec(index)?.[1];
-  const styleBuild = /href=["']styles\.css\?v=([^"']+)/.exec(index)?.[1];
+  const themeBuild = /href=["']css\/themes\.css\?v=([^"']+)/.exec(index)?.[1];
+  const guesswordBuild = /href=["']css\/guessword\.css\?v=([^"']+)/.exec(index)?.[1];
+  const hubCssBuild = /href=["']css\/hub\.css\?v=([^"']+)/.exec(index)?.[1];
   const workerBuild = /const BUILD = "([^"]+)"/.exec(worker)?.[1];
   const latestMatch = /window\.MYGAMES_LATEST_CHANGELOG = (\{[\s\S]*\});\s*$/.exec(latestSource);
 
   assert.ok(indexBuild, "index build is present");
   assert.equal(indexBuild, manifest.build);
-  assert.equal(styleBuild, indexBuild);
+  assert.equal(themeBuild, indexBuild);
+  assert.equal(guesswordBuild, indexBuild);
+  assert.equal(hubCssBuild, indexBuild);
   assert.equal(workerBuild, indexBuild);
   assert.ok(latestMatch, "latest changelog metadata is parseable");
 
@@ -42,7 +46,9 @@ test("service worker install only precaches the offline hub shell", () => {
   const requiredShell = [
     "./",
     "./index.html",
-    "./styles.css",
+    "./css/themes.css",
+    "./css/guessword.css",
+    "./css/hub.css",
     "./site-config.js",
     "./latest-changelog.js",
     "./hub-net.js",
@@ -54,7 +60,7 @@ test("service worker install only precaches the offline hub shell", () => {
   for (const asset of requiredShell) {
     assert.ok(precache.includes(asset), `${asset} remains available in the offline shell`);
   }
-  assert.ok(precache.length <= 20, "worker install stays within the shell asset budget");
+  assert.ok(precache.length <= 22, "worker install stays within the shell asset budget");
   assert.equal(
     precache.some((asset) =>
       /(?:dictionary|words(?:-|\.js)|hub-(?:chat|calls|help|admin))/.test(asset)

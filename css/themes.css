@@ -1,0 +1,323 @@
+/* Shared color tokens, page wash, and reduced-motion. Loaded on the hub and Guessword. */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+:root,
+body[data-guess-colors="ice"] {
+  --bg: #0b1220;
+  --bg-glow-a: rgba(61, 184, 232, 0.42);
+  --bg-glow-b: rgba(167, 139, 250, 0.34);
+  --bg-glow-c: rgba(80, 140, 200, 0.24);
+  --bg-spot: rgba(180, 230, 255, 0.14);
+  --text: #e8f4ff;
+  --tile-border: #2a3a52;
+  --tile-filled: #4a6280;
+  --correct: #3db8e8;
+  --present: #a78bfa;
+  --absent: #3d4f66;
+  --correct-glow: rgba(61, 184, 232, 0.45);
+  --present-glow: rgba(167, 139, 250, 0.4);
+  --absent-glow: rgba(61, 79, 102, 0.35);
+  --key-bg: #4a6178;
+  --key-bg-top: #5c7690;
+  --key-edge: #243446;
+  --key-text: #e8f4ff;
+  --modal-bg: #0f1a2a;
+  --subtitle: #8ba3c0;
+  --message-error: #ff7b8a;
+}
+
+body[data-guess-colors="arcade"] {
+  --bg: #12081c;
+  --bg-glow-a: rgba(46, 230, 166, 0.36);
+  --bg-glow-b: rgba(255, 92, 122, 0.32);
+  --bg-glow-c: rgba(154, 90, 220, 0.28);
+  --bg-spot: rgba(255, 180, 255, 0.14);
+  --text: #f3e8ff;
+  --tile-border: #4a3568;
+  --tile-filled: #6b4f8a;
+  --correct: #2ee6a6;
+  --present: #ff5c7a;
+  --absent: #3a2a4a;
+  --correct-glow: rgba(46, 230, 166, 0.45);
+  --present-glow: rgba(255, 92, 122, 0.42);
+  --absent-glow: rgba(58, 42, 74, 0.4);
+  --key-bg: #56406e;
+  --key-bg-top: #6a5288;
+  --key-edge: #2a1c3a;
+  --key-text: #f3e8ff;
+  --modal-bg: #1a0f28;
+  --subtitle: #b89fd4;
+  --message-error: #ff6b8a;
+}
+
+body[data-guess-colors="warm"] {
+  --bg: #14110e;
+  --bg-glow-a: rgba(42, 157, 143, 0.34);
+  --bg-glow-b: rgba(224, 159, 62, 0.32);
+  --bg-glow-c: rgba(231, 111, 81, 0.24);
+  --bg-spot: rgba(255, 220, 170, 0.12);
+  --text: #fff6ec;
+  --tile-border: #3d342c;
+  --tile-filled: #6a5a4a;
+  --correct: #2a9d8f;
+  --present: #e09f3e;
+  --absent: #3a3530;
+  --correct-glow: rgba(42, 157, 143, 0.42);
+  --present-glow: rgba(224, 159, 62, 0.4);
+  --absent-glow: rgba(58, 53, 48, 0.35);
+  --key-bg: #6a5a4a;
+  --key-bg-top: #7e6c58;
+  --key-edge: #2e2620;
+  --key-text: #fff6ec;
+  --modal-bg: #1c1712;
+  --subtitle: #b8a894;
+  --message-error: #e76f51;
+}
+
+body.light,
+body.light[data-guess-colors="ice"] {
+  --bg: #e8f2fb;
+  --bg-glow-a: rgba(61, 184, 232, 0.45);
+  --bg-glow-b: rgba(167, 139, 250, 0.38);
+  --bg-glow-c: rgba(120, 170, 220, 0.3);
+  --bg-spot: rgba(255, 255, 255, 0.65);
+  --text: #0f1a2a;
+  --tile-border: #c5d4e4;
+  --tile-filled: #7a93ad;
+  --correct: #1a9fc9;
+  --present: #8b6cf0;
+  --absent: #8a9bb0;
+  --correct-glow: rgba(26, 159, 201, 0.35);
+  --present-glow: rgba(139, 108, 240, 0.32);
+  --absent-glow: rgba(138, 155, 176, 0.28);
+  --key-bg: #d5e2ef;
+  --key-bg-top: #eef4fa;
+  --key-edge: #9aafc4;
+  --key-text: #0f1a2a;
+  --modal-bg: #ffffff;
+  --subtitle: #5a7088;
+  --message-error: #d32f2f;
+}
+
+body.light[data-guess-colors="arcade"] {
+  --bg: #f3ebff;
+  --bg-glow-a: rgba(46, 230, 166, 0.38);
+  --bg-glow-b: rgba(255, 92, 122, 0.32);
+  --bg-glow-c: rgba(180, 120, 255, 0.34);
+  --bg-spot: rgba(255, 255, 255, 0.6);
+  --text: #1a0f28;
+  --tile-border: #d8c8ec;
+  --tile-filled: #9a7ab8;
+  --correct: #00b87a;
+  --present: #e83e5c;
+  --absent: #9a8aac;
+  --correct-glow: rgba(0, 184, 122, 0.32);
+  --present-glow: rgba(232, 62, 92, 0.3);
+  --absent-glow: rgba(154, 138, 172, 0.28);
+  --key-bg: #eadff5;
+  --key-bg-top: #f7f1fc;
+  --key-edge: #b09ac8;
+  --key-text: #1a0f28;
+  --modal-bg: #ffffff;
+  --subtitle: #6e5888;
+  --message-error: #c62828;
+}
+
+body.light[data-guess-colors="warm"] {
+  --bg: #f7efe4;
+  --bg-glow-a: rgba(42, 157, 143, 0.36);
+  --bg-glow-b: rgba(224, 159, 62, 0.38);
+  --bg-glow-c: rgba(231, 111, 81, 0.26);
+  --bg-spot: rgba(255, 255, 255, 0.55);
+  --text: #1c1712;
+  --tile-border: #ddd0c0;
+  --tile-filled: #9a8870;
+  --correct: #21867a;
+  --present: #d4891f;
+  --absent: #9a8e82;
+  --correct-glow: rgba(33, 134, 122, 0.32);
+  --present-glow: rgba(212, 137, 31, 0.3);
+  --absent-glow: rgba(154, 142, 130, 0.28);
+  --key-bg: #ebe2d6;
+  --key-bg-top: #f8f3eb;
+  --key-edge: #b8a890;
+  --key-text: #1c1712;
+  --modal-bg: #ffffff;
+  --subtitle: #7a6c5c;
+  --message-error: #c44536;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  position: relative;
+  overflow-x: hidden;
+  transition: background-color 0.55s ease, color 0.35s ease;
+}
+
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: -30%;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Soft drifting color washes — follow Ice / Arcade / Warm */
+body::before {
+  background:
+    radial-gradient(ellipse 55% 45% at 18% 22%, var(--bg-glow-a), transparent 62%),
+    radial-gradient(ellipse 50% 40% at 82% 18%, var(--bg-glow-b), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 50% 88%, var(--bg-glow-c), transparent 65%),
+    radial-gradient(ellipse 40% 35% at 70% 55%, var(--bg-glow-a), transparent 70%),
+    var(--bg);
+  background-size: 120% 120%, 130% 130%, 125% 125%, 140% 140%, 100% 100%;
+  animation:
+    guessBgDrift 12s ease-in-out infinite alternate,
+    guessBgPulse 7s ease-in-out infinite alternate;
+  transition: background 0.55s ease;
+}
+
+/* Subtle shimmer / sparkle layer */
+body::after {
+  background:
+    radial-gradient(circle 2.5px at 12% 22%, var(--bg-spot), transparent 4px),
+    radial-gradient(circle 2px at 28% 58%, var(--bg-spot), transparent 3px),
+    radial-gradient(circle 2.5px at 48% 18%, var(--bg-spot), transparent 4px),
+    radial-gradient(circle 2px at 62% 72%, var(--bg-spot), transparent 3px),
+    radial-gradient(circle 2.5px at 78% 34%, var(--bg-spot), transparent 4px),
+    radial-gradient(circle 2px at 88% 80%, var(--bg-spot), transparent 3px),
+    radial-gradient(circle 2px at 35% 88%, var(--bg-spot), transparent 3px),
+    radial-gradient(circle 2.5px at 55% 44%, var(--bg-spot), transparent 4px);
+  opacity: 0.75;
+  animation: guessBgSparkle 6s ease-in-out infinite alternate;
+}
+
+.guess-bg {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.guess-bg-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.55;
+  will-change: transform;
+}
+
+.guess-bg-orb-a {
+  width: min(48vw, 420px);
+  height: min(48vw, 420px);
+  left: -8%;
+  top: 8%;
+  background: var(--bg-glow-a);
+  animation: guessOrbA 9s ease-in-out infinite alternate;
+}
+
+.guess-bg-orb-b {
+  width: min(42vw, 360px);
+  height: min(42vw, 360px);
+  right: -6%;
+  top: 18%;
+  background: var(--bg-glow-b);
+  animation: guessOrbB 11s ease-in-out infinite alternate;
+}
+
+.guess-bg-orb-c {
+  width: min(55vw, 480px);
+  height: min(55vw, 480px);
+  left: 22%;
+  bottom: -18%;
+  background: var(--bg-glow-c);
+  animation: guessOrbC 10s ease-in-out infinite alternate;
+}
+
+.guess-bg-orb-d {
+  width: min(28vw, 240px);
+  height: min(28vw, 240px);
+  left: 58%;
+  top: 42%;
+  background: var(--bg-glow-a);
+  opacity: 0.4;
+  animation: guessOrbD 8s ease-in-out infinite alternate;
+}
+
+@keyframes guessBgDrift {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(4%, -3%, 0) scale(1.08) rotate(1.2deg);
+  }
+  100% {
+    transform: translate3d(-4%, 3.5%, 0) scale(1.06) rotate(-1deg);
+  }
+}
+
+@keyframes guessBgPulse {
+  0% {
+    opacity: 0.85;
+    filter: saturate(1);
+  }
+  100% {
+    opacity: 1;
+    filter: saturate(1.25);
+  }
+}
+
+@keyframes guessBgSparkle {
+  0% {
+    opacity: 0.25;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    opacity: 0.95;
+    transform: translate3d(-2%, 1.5%, 0) scale(1.05);
+  }
+  100% {
+    opacity: 0.45;
+    transform: translate3d(2%, -2%, 0) scale(1.08);
+  }
+}
+
+@keyframes guessOrbA {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(18vw, 12vh, 0) scale(1.25); }
+}
+
+@keyframes guessOrbB {
+  0% { transform: translate3d(0, 0, 0) scale(1.1); }
+  100% { transform: translate3d(-16vw, 14vh, 0) scale(0.9); }
+}
+
+@keyframes guessOrbC {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(10vw, -16vh, 0) scale(1.2); }
+}
+
+@keyframes guessOrbD {
+  0% { transform: translate3d(0, 0, 0) scale(0.85); opacity: 0.25; }
+  100% { transform: translate3d(-12vw, -10vh, 0) scale(1.35); opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body::before,
+  body::after,
+  .guess-bg-orb,
+  .hub-bg-wash,
+  .hub-bg-sparkle {
+    animation: none !important;
+  }
+}

@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015af",
+  "build": "20261015ag",
   "notes": [
-    "Most-played counts now use a shared popularity helper."
+    "Hub, Guessword, and theme colors now load from separate style files."
   ]
 };
