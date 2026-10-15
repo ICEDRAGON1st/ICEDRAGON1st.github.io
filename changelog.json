@@ -1,4 +1,7 @@
 {
+  "20261015m": [
+    "Made updates and reloads lighter while preserving offline games and saves."
+  ],
   "20261015l": [
     "Fixed Drop Four startup and expanded mobile layout checks."
   ],

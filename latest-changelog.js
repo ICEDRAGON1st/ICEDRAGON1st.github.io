@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015l",
+  "build": "20261015m",
   "notes": [
-    "Fixed Drop Four startup and expanded mobile layout checks."
+    "Made updates and reloads lighter while preserving offline games and saves."
   ]
 };

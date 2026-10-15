@@ -1,5 +1,5 @@
 /* My Games service worker — offline shell + cache-as-you-go for visited games. */
-const BUILD = "20261015l";
+const BUILD = "20261015m";
 const CACHE = `mygames-v2-${BUILD}`;
 
 const PRECACHE = [
@@ -22,33 +22,7 @@ const PRECACHE = [
   "./hub-audio.js",
   "./hub-confetti.js",
   "./hub-account-bag.js",
-  "./hub-leaderboard.js",
-  "./hub-friends.js",
-  "./hub-chat.js",
-  "./hub-calls.js",
-  "./hub-online-overlay.js",
-  "./hub-help.js",
-  "./hub-admin.js",
-  "./hub-help-icons/helper.png",
-  "./hub-help-icons/chip.png",
-  "./hub-help-icons/spark-e.png",
-  "./hub-help-icons/whiskers.png",
-  "./hub-help-icons/glitch.png",
-  "./hub-help-icons/pixel-8.png",
-  "./hub-help-icons/astra.png",
-  "./hub-help-icons/gusto.png",
-  "./hub-help-icons/shadow.png",
-  "./hub-help-icons/barnaby.png",
-  "./hub-help-icons/goldsworth.png",
-  "./hub-game-popularity.json",
-  "./script.js",
-  "./words.js",
-  "./dictionary.js",
-  "./words-4.js",
-  "./dictionary-4.js",
-  "./words-6.js",
-  "./dictionary-6.js",
-  "./wordle-themes.js"
+  "./script.js"
 ];
 
 self.addEventListener("install", (event) => {

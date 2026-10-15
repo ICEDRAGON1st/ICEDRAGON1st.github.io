@@ -30,3 +30,34 @@ test("release build and changelog metadata stay aligned", () => {
   assert.equal(Object.keys(changelog)[0], indexBuild);
   assert.match(worker, /event\.data\?\.type === "SKIP_WAITING"/);
 });
+
+test("service worker install only precaches the offline hub shell", () => {
+  const worker = fs.readFileSync(path.join(ROOT, "sw.js"), "utf8");
+  const precacheMatch = /const PRECACHE = (\[[\s\S]*?\]);/.exec(worker);
+  assert.ok(precacheMatch, "service worker precache is parseable");
+
+  const precache = JSON.parse(precacheMatch[1].replaceAll("'", '"'));
+  const requiredShell = [
+    "./",
+    "./index.html",
+    "./styles.css",
+    "./site-config.js",
+    "./latest-changelog.js",
+    "./hub-net.js",
+    "./hub-afk.js",
+    "./hub-account-bag.js",
+    "./script.js"
+  ];
+
+  for (const asset of requiredShell) {
+    assert.ok(precache.includes(asset), `${asset} remains available in the offline shell`);
+  }
+  assert.ok(precache.length <= 20, "worker install stays within the shell asset budget");
+  assert.equal(
+    precache.some((asset) =>
+      /(?:dictionary|words(?:-|\.js)|hub-(?:chat|calls|help|admin))/.test(asset)
+    ),
+    false,
+    "large dictionaries and optional products load and cache only when requested"
+  );
+});
