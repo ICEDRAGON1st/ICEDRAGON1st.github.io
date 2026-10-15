@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ak",
+  "build": "20261015al",
   "notes": [
-    "Help now reads owner, games, and rules from a smaller GAME_INFO helper."
+    "Guest accounts now keep their local player id when the cloud session starts."
   ]
 };

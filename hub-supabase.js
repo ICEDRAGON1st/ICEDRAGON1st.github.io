@@ -10,6 +10,8 @@
   const SUPABASE_ANON_KEY =
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxeWhvbXN5ZG1uZ2xiYWVtd2J1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwOTEyODcsImV4cCI6MjEwNzY2NzI4N30.Eht_HnywiURfHKRZu6rmdCatdFiT0TwC0J9Xh-CEp5o";
   const SESSION_KEY = "hub-supabase-session-v1";
+  const PLAYER_ID_STORAGE_KEY = "hub-player-id";
+  const IDENTITY_SAVE_KEY = "identity-bind";
   let sessionPromise = null;
 
   function netBlocked() {
@@ -107,6 +109,57 @@
     return { userId, playerId, displayName };
   }
 
+  /** Local hub ids may include hyphens; never treat those as missing. */
+  function parseLocalPlayerId(raw) {
+    const id = String(raw || "").trim();
+    if (!/^p-[a-z0-9][a-z0-9-]{6,80}$/i.test(id)) return "";
+    if (/(?:undefined|null|nan)/i.test(id.replace(/-/g, ""))) return "";
+    return id;
+  }
+
+  function resolveBoundPlayerId({ localId, boundId, metadataId } = {}) {
+    const local = parseLocalPlayerId(localId);
+    if (local) return { playerId: local, source: "local", persist: true };
+    const bound = parseLocalPlayerId(boundId);
+    if (bound) return { playerId: bound, source: "bound", persist: false };
+    const meta = parseLocalPlayerId(metadataId);
+    if (meta) return { playerId: meta, source: "metadata", persist: false };
+    return { playerId: "", source: "", persist: false };
+  }
+
+  function peekBoundPlayerId() {
+    const session = readSession();
+    return (
+      parseLocalPlayerId(session?.profile?.localPlayerId) ||
+      parseLocalPlayerId(session?.user?.user_metadata?.hub_player_id) ||
+      parseLocalPlayerId(session?.user?.raw_user_meta_data?.hub_player_id)
+    );
+  }
+
+  function readStoredPlayerId() {
+    try {
+      return parseLocalPlayerId(localStorage.getItem(PLAYER_ID_STORAGE_KEY));
+    } catch {
+      return "";
+    }
+  }
+
+  function writeStoredPlayerId(playerId) {
+    const id = parseLocalPlayerId(playerId);
+    if (!id) return "";
+    try {
+      localStorage.setItem(PLAYER_ID_STORAGE_KEY, id);
+    } catch {}
+    return id;
+  }
+
+  function metadataPlayerId(session) {
+    return (
+      parseLocalPlayerId(session?.user?.user_metadata?.hub_player_id) ||
+      parseLocalPlayerId(session?.user?.raw_user_meta_data?.hub_player_id)
+    );
+  }
+
   function localDisplayName() {
     try {
       return String(localStorage.getItem("hub-player-name") || "")
@@ -147,12 +200,89 @@
     return parseProfile(Array.isArray(rows) ? rows[0] : null) || { ...profile, displayName: nextName };
   }
 
+  async function fetchIdentityBind(session) {
+    const userId = sessionUserId(session);
+    if (!userId || !session?.access_token) return null;
+    const url =
+      `${SUPABASE_URL}/rest/v1/player_saves?user_id=eq.${encodeURIComponent(userId)}` +
+      `&save_key=eq.${encodeURIComponent(IDENTITY_SAVE_KEY)}&select=save_key,payload,schema_version,updated_at`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (!res.ok) return null;
+    const rows = await res.json();
+    return parseSave(Array.isArray(rows) ? rows[0] : null)?.payload || null;
+  }
+
+  async function persistIdentityBind(session, playerId) {
+    const userId = sessionUserId(session);
+    const id = parseLocalPlayerId(playerId);
+    if (!userId || !session?.access_token || !id) return;
+    await fetch(`${SUPABASE_URL}/rest/v1/player_saves`, {
+      method: "POST",
+      headers: headers(
+        { Prefer: "resolution=merge-duplicates,return=minimal" },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        save_key: IDENTITY_SAVE_KEY,
+        payload: { playerId: id, boundAt: Date.now() },
+        schema_version: 1
+      })
+    });
+  }
+
+  async function persistUserMetadata(session, playerId) {
+    const id = parseLocalPlayerId(playerId);
+    if (!session?.access_token || !id) return;
+    await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      method: "PUT",
+      headers: headers({}, session.access_token),
+      body: JSON.stringify({ data: { hub_player_id: id } })
+    });
+  }
+
+  async function bindLocalPlayerId(session) {
+    const bootLocal = readStoredPlayerId();
+    let boundPayload = null;
+    try {
+      boundPayload = await fetchIdentityBind(session);
+    } catch {
+      boundPayload = null;
+    }
+    const resolved = resolveBoundPlayerId({
+      localId: bootLocal,
+      boundId: boundPayload?.playerId,
+      metadataId: metadataPlayerId(session)
+    });
+    let playerId = resolved.playerId || readStoredPlayerId();
+    if (!bootLocal && playerId) writeStoredPlayerId(playerId);
+    if (playerId && resolved.persist) {
+      const already = parseLocalPlayerId(boundPayload?.playerId);
+      if (!already) {
+        try {
+          await persistIdentityBind(session, playerId);
+        } catch {}
+        persistUserMetadata(session, playerId).catch(() => {});
+      }
+    }
+    return playerId;
+  }
+
   async function attachProfile(session) {
     if (!session) return session;
     try {
       let profile = await fetchOwnProfile(session);
       if (profile) profile = await syncDisplayName(session, profile);
-      if (profile) session.profile = profile;
+      const localPlayerId = await bindLocalPlayerId(session);
+      if (profile || localPlayerId) {
+        session.profile = {
+          ...(profile || {}),
+          localPlayerId: localPlayerId || profile?.playerId || ""
+        };
+      }
     } catch {
       /* guest play continues with the local player id */
     }
@@ -403,10 +533,19 @@
     pushPrefer,
     ensureSession,
     parseProfile,
+    parseLocalPlayerId,
     parseSave,
+    resolveBoundPlayerId,
+    peekBoundPlayerId,
     getSave,
     upsertSave,
-    profile: () => parseProfile(readSession()?.profile) || readSession()?.profile || null,
+    profile: () => {
+      const raw = readSession()?.profile;
+      const parsed = parseProfile(raw);
+      const localPlayerId = parseLocalPlayerId(raw?.localPlayerId);
+      if (!parsed && !localPlayerId) return raw || null;
+      return { ...(parsed || raw || {}), localPlayerId };
+    },
     userId: () => sessionUserId(readSession()),
     ready: true,
     isReady

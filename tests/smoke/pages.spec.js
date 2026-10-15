@@ -186,6 +186,24 @@ test("optional hub helpers load after the interactive shell", async ({ page }) =
   );
 });
 
+test("hub keeps the seeded player id instead of reminting from Auth", async ({ page }) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(
+    () => !document.documentElement.classList.contains("hub-booting"),
+    null,
+    { timeout: 20_000 }
+  );
+  await page.waitForFunction(() => Boolean(window.HubSupabase?.peekBoundPlayerId), null, {
+    timeout: 10_000
+  });
+  const ids = await page.evaluate(() => ({
+    stored: localStorage.getItem("hub-player-id"),
+    plays: window.HubPlays?.getPlayerId?.() || ""
+  }));
+  expect(ids.stored).toBe("p-smoke-test");
+  expect(ids.plays).toBe("p-smoke-test");
+});
+
 test("Help answers owner from the extracted GAME_INFO helper", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(

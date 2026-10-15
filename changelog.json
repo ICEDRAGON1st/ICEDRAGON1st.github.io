@@ -1,4 +1,7 @@
 {
+  "20261015al": [
+    "Guest accounts now keep their local player id when the cloud session starts."
+  ],
   "20261015ak": [
     "Help now reads owner, games, and rules from a smaller GAME_INFO helper."
   ],

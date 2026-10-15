@@ -1558,14 +1558,21 @@
       if (canUseLocalStorage()) {
         let id = localStorage.getItem(PLAYER_ID_KEY);
         if (!id) {
-          id = `p-${makeId()}`;
+          id =
+            (window.HubSupabase && HubSupabase.peekBoundPlayerId && HubSupabase.peekBoundPlayerId()) ||
+            "";
+          if (!id) id = `p-${makeId()}`;
           localStorage.setItem(PLAYER_ID_KEY, id);
         }
         sessionPlayerId = id;
         return id;
       }
     } catch {}
-    if (!sessionPlayerId) sessionPlayerId = `p-${makeId()}`;
+    if (!sessionPlayerId) {
+      sessionPlayerId =
+        (window.HubSupabase && HubSupabase.peekBoundPlayerId && HubSupabase.peekBoundPlayerId()) ||
+        `p-${makeId()}`;
+    }
     return sessionPlayerId;
   }
 
