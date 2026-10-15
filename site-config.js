@@ -2,7 +2,7 @@
 // Also update the CNAME file to match SITE_DOMAIN (or delete CNAME if you stop using a custom domain).
 window.SITE_CONFIG = {
   name: "My Games",
-  domain: "mygames.com",
+  domain: "icedragon1st.github.io",
   /** Windows installer (GitHub Release). Update when you ship a new desktop build. */
   desktopAppDownloadUrl:
     "https://github.com/ICEDRAGON1st/ICEDRAGON1st.github.io/releases/download/v1.0.6/MyGames-Setup-1.0.6.exe",
