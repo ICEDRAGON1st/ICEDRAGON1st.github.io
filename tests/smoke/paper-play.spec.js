@@ -3,9 +3,13 @@
 const { test, expect } = require("@playwright/test");
 
 test("Paper Claim starts and keeps rendering", async ({ context, page }) => {
+  const deferredSocialScripts = /\/hub-(?:friends|chat|calls|leaderboard)\.js$/;
   await context.route("**/*", async (route) => {
     const url = new URL(route.request().url());
     if (url.hostname === "127.0.0.1" || url.hostname === "localhost") {
+      if (deferredSocialScripts.test(url.pathname)) {
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+      }
       await route.continue();
     } else {
       await route.abort("blockedbyclient");
@@ -20,10 +24,17 @@ test("Paper Claim starts and keeps rendering", async ({ context, page }) => {
   });
 
   const pageErrors = [];
+  const socialResponses = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
+  page.on("response", (response) => {
+    if (deferredSocialScripts.test(new URL(response.url()).pathname)) {
+      socialResponses.push(response.url());
+    }
+  });
 
   await page.goto("/paper-io/", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => !document.documentElement.classList.contains("hub-booting"));
+  expect(socialResponses).toEqual([]);
   await page.locator("#start-btn").click();
   await expect(page.locator("#overlay")).toHaveClass(/hidden/);
 
@@ -54,6 +65,10 @@ test("Paper Claim starts and keeps rendering", async ({ context, page }) => {
   // the separate performance profile owns the 55 FPS device target.
   expect(frameMetrics.p75Fps).toBeGreaterThan(25);
   await expect(page.locator("#score")).toContainText("%");
+  await expect.poll(() => page.evaluate(() => Boolean(window.HubLeaderboard))).toBe(true);
+  await expect.poll(() => page.evaluate(() => Boolean(window.HubFriends))).toBe(true);
+  await expect.poll(() => page.evaluate(() => Boolean(window.HubChat))).toBe(true);
+  await expect.poll(() => page.evaluate(() => Boolean(window.HubCalls))).toBe(true);
   expect(pageErrors).toEqual([]);
 });
 

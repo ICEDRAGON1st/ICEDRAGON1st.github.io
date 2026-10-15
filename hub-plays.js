@@ -5143,6 +5143,42 @@ body.light .menu-credit .player-name-creator {
     });
 
   function bootOptionalHubModules() {
+    // Game pages keep social tools available, but they do not compete with gameplay startup.
+    // The main hub owns its separate optional dependency profile.
+    (function bootGameSocialModules() {
+    try {
+      if (document.getElementById("games-screen")) return;
+      const scripts = document.getElementsByTagName("script");
+      let base = "";
+      let v = window.WORDLE_BUILD || "20261015n";
+      for (let i = 0; i < scripts.length; i += 1) {
+        const src = scripts[i].src || "";
+        if (/hub-plays\.js/i.test(src)) {
+          base = src.replace(/hub-plays\.js[^/]*$/i, "");
+          const m = src.match(/[?&]v=([^&]+)/i);
+          if (m && m[1]) v = decodeURIComponent(m[1]);
+          break;
+        }
+      }
+      const load = (file, globalName) => {
+        if (globalName && window[globalName]) return Promise.resolve();
+        return new Promise((resolve) => {
+          const el = document.createElement("script");
+          el.src = `${base}${file}?v=${v}`;
+          el.async = true;
+          el.onload = resolve;
+          el.onerror = resolve;
+          document.head.appendChild(el);
+        });
+      };
+      load("hub-leaderboard.js", "HubLeaderboard");
+      load("hub-friends.js", "HubFriends").then(() => {
+        load("hub-chat.js", "HubChat");
+        load("hub-calls.js", "HubCalls");
+      });
+    } catch {}
+    })();
+
     // Claim Fishing Idle admin gifts while on hub / other games (not on fishing page).
     (function bootFishingGiftClaimer() {
     try {
