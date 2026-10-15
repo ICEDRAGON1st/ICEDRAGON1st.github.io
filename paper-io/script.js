@@ -2257,6 +2257,36 @@
     resolveHeadCollisions();
   }
 
+  function stepGuestPresentation(dt) {
+    const now = performance.now();
+    const blendMs = Net.SNAP_BLEND_MS || 250;
+    const me = localPlayer();
+    if (me && me.alive) {
+      setLocalSteer(me);
+      applyTurn(me, dt);
+      me.x += Math.cos(me.angle) * SPEED * dt;
+      me.y += Math.sin(me.angle) * SPEED * dt;
+    }
+    for (const p of players) {
+      if (!p.netInterp) continue;
+      if (p.id === localId) {
+        const target = { x: p.netInterp.toX, y: p.netInterp.toY };
+        const dist = Net.poseDistance ? Net.poseDistance(p, target) : 0;
+        if (dist > 0.8) {
+          const k = Math.min(1, dt * 8);
+          p.x += (target.x - p.x) * k;
+          p.y += (target.y - p.y) * k;
+        }
+        continue;
+      }
+      const sample = Net.sampleInterp ? Net.sampleInterp(p.netInterp, now, blendMs) : null;
+      if (!sample) continue;
+      p.x = sample.x;
+      p.y = sample.y;
+      p.angle = sample.angle;
+    }
+  }
+
   function worldToScreen(x, y) {
     const s = Math.min(canvas.width, canvas.height) / viewSpan;
     return {
@@ -3060,6 +3090,7 @@
     lastFrame = ts;
     if (dt > 0.05) dt = 0.05;
     if (mode !== "online" || isHost) tick(dt);
+    else stepGuestPresentation(dt);
     updateCamera(dt);
     draw();
     updateHud(ts);
@@ -3188,7 +3219,64 @@
     }));
   }
 
-  function applySnapshot(snap) {
+  function hydratePlayer(raw, prev) {
+    const x = Number(raw.x) || 0;
+    const y = Number(raw.y) || 0;
+    const angle = Number(raw.angle) || 0;
+    return {
+      id: raw.id,
+      name: raw.name || prev?.name || "Player",
+      color: raw.color | 0,
+      x: prev ? prev.x : x,
+      y: prev ? prev.y : y,
+      angle: prev ? prev.angle : angle,
+      wantAngle: raw.id === localId ? pendingAngle || angle : angle,
+      alive: !!raw.alive,
+      human: !!raw.human,
+      outside: !!raw.outside,
+      trail: Array.isArray(raw.trail)
+        ? raw.trail.map((t) => (Array.isArray(t) ? { x: t[0], y: t[1] } : t))
+        : [],
+      distAcc: prev?.distAcc || 0,
+      respawnAt: raw.respawnAt ? performance.now() + Math.max(0, raw.respawnAt - Date.now()) : 0,
+      botThink: 0,
+      botAngle: angle,
+      netInterp: prev?.netInterp || null
+    };
+  }
+
+  function mergeInterpolatedPlayers(raws) {
+    const now = performance.now();
+    const prevById = new Map(players.map((p) => [p.id, p]));
+    players = raws.map((raw) => {
+      const prev = prevById.get(raw.id);
+      const target = {
+        x: Number(raw.x) || 0,
+        y: Number(raw.y) || 0,
+        angle: Number(raw.angle) || 0
+      };
+      const next = hydratePlayer(raw, prev);
+      const hard =
+        !prev ||
+        prev.alive !== next.alive ||
+        (Net.shouldHardSnap ? Net.shouldHardSnap(prev, target) : false);
+      if (hard) {
+        next.x = target.x;
+        next.y = target.y;
+        next.angle = target.angle;
+        next.netInterp = null;
+        return next;
+      }
+      next.x = prev.x;
+      next.y = prev.y;
+      next.angle = raw.id === localId ? prev.angle : prev.angle;
+      next.netInterp = Net.startInterp ? Net.startInterp(prev, target, now) : null;
+      if (raw.id === localId) next.wantAngle = pendingAngle || prev.wantAngle;
+      return next;
+    });
+  }
+
+  function applySnapshot(snap, opts = {}) {
     if (!snap) return;
     if (snap.arena && ARENA_SHAPES.includes(snap.arena)) {
       rebuildArenaMask(snap.arena);
@@ -3207,27 +3295,12 @@
         idSeq = Math.max(idSeq, num + 1);
       }
     }
-    if (Array.isArray(snap.players)) {
-      players = snap.players.map((raw) => ({
-        id: raw.id,
-        name: raw.name,
-        color: raw.color | 0,
-        x: Number(raw.x) || 0,
-        y: Number(raw.y) || 0,
-        angle: Number(raw.angle) || 0,
-        wantAngle: Number(raw.angle) || 0,
-        alive: !!raw.alive,
-        human: !!raw.human,
-        outside: !!raw.outside,
-        trail: Array.isArray(raw.trail)
-          ? raw.trail.map((t) => (Array.isArray(t) ? { x: t[0], y: t[1] } : t))
-          : [],
-        distAcc: 0,
-        respawnAt: raw.respawnAt ? performance.now() + Math.max(0, raw.respawnAt - Date.now()) : 0,
-        botThink: 0,
-        botAngle: Number(raw.angle) || 0
-      }));
+    if (!Array.isArray(snap.players)) return;
+    if (opts.interpolate && players.length) {
+      mergeInterpolatedPlayers(snap.players);
+      return;
     }
+    players = snap.players.map((raw) => hydratePlayer(raw));
   }
 
   function roomDocId(code) {
@@ -3245,7 +3318,7 @@
   function applyRemoteSnap(snap) {
     if (!snap) return false;
     if (Net.acceptSnap && !Net.acceptSnap(lastAppliedSnapV, snap)) return false;
-    applySnapshot(snap);
+    applySnapshot(snap, { interpolate: lastAppliedSnapV > 0 });
     lastAppliedSnapV = Number(snap.v) || lastAppliedSnapV;
     return true;
   }

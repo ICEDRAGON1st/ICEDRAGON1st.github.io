@@ -39,3 +39,18 @@ test("guest input writes only on a turn change or heartbeat", () => {
   assert.equal(net.shouldWriteInput(1000, 700, 1.0, 1.2), true);
   assert.equal(net.shouldWriteInput(2500, 1000, 1.0, 1.0), true);
 });
+
+test("guest snapshots interpolate toward the next pose and hard-snap large jumps", () => {
+  const from = { x: 0, y: 0, angle: 0 };
+  const to = { x: 10, y: 0, angle: Math.PI };
+  assert.equal(net.shouldHardSnap(from, to), true);
+  assert.equal(net.shouldHardSnap(from, { x: 1, y: 0, angle: 0 }), false);
+
+  const interp = net.startInterp(from, { x: 4, y: 0, angle: Math.PI }, 1000);
+  const mid = net.sampleInterp(interp, 1125, 250);
+  assert.ok(Math.abs(mid.x - 2) < 1e-9);
+  assert.ok(Math.abs(mid.t - 0.5) < 1e-9);
+  const end = net.sampleInterp(interp, 1300, 250);
+  assert.equal(end.x, 4);
+  assert.ok(Math.abs(end.angle - Math.PI) < 1e-9);
+});
