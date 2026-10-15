@@ -74,13 +74,17 @@
   function normalize(note) {
     if (!note || typeof note !== "object") return null;
     const id = String(note.id || "");
-    const title = String(note.title || "").trim().slice(0, 80);
+    const title = String(note.title || "")
+      .trim()
+      .slice(0, 80);
     if (!id || !title) return null;
     return {
       id,
       kind: String(note.kind || "info").slice(0, 24),
       title,
-      body: String(note.body || "").trim().slice(0, 180),
+      body: String(note.body || "")
+        .trim()
+        .slice(0, 180),
       href: String(note.href || "").slice(0, 200),
       at: Number(note.at) || Date.now()
     };
@@ -98,6 +102,7 @@
     const newest = items[0]?.at || Date.now();
     seenAt = Math.max(seenAt, newest);
     saveSeenAt(seenAt);
+    persistMyNotes();
     renderBell();
     renderPanel();
   }
@@ -137,6 +142,7 @@
       items = [];
       saveItems();
       markAllRead();
+      persistMyNotes();
       renderPanel();
     });
     root.querySelector("#hub-notify-enable")?.addEventListener("click", () => {
@@ -245,12 +251,50 @@
     } catch {}
   }
 
+  function mineApi() {
+    return window.HubNotificationsMine || null;
+  }
+
+  function getPlayerId() {
+    return typeof HubPlays !== "undefined" && HubPlays.getPlayerId ? HubPlays.getPlayerId() : "";
+  }
+
+  async function persistMyNotes() {
+    const helper = mineApi();
+    const api = window.HubSupabase;
+    if (!helper || !api?.upsertSave) return;
+    try {
+      await api.upsertSave(helper.SAVE_KEY, helper.collectMine(items, seenAt, getPlayerId()), 1);
+    } catch (err) {
+      console.warn("[HubNotifications] player_saves inbox write failed", err);
+    }
+  }
+
+  async function pullMyNotes() {
+    const helper = mineApi();
+    const api = window.HubSupabase;
+    if (!helper || !api?.getSave) return;
+    try {
+      const raw = await api.getSave(helper.SAVE_KEY);
+      const next = helper.applyMine(items, seenAt, helper.readMine(raw));
+      items = next.items;
+      seenAt = next.seenAt;
+      saveItems();
+      saveSeenAt(seenAt);
+      renderBell();
+      if (panelOpen) renderPanel();
+    } catch (err) {
+      console.warn("[HubNotifications] player_saves inbox read failed", err);
+    }
+  }
+
   function push(raw, { silent = false } = {}) {
     const note = normalize(raw);
     if (!note) return null;
     if (items.some((x) => x.id === note.id)) return null;
     items = [note, ...items].slice(0, MAX_ITEMS);
     saveItems();
+    persistMyNotes();
     renderBell();
     if (panelOpen) renderPanel();
     if (!silent) {
@@ -351,9 +395,10 @@
         kind: "chat",
         title: gained === 1 ? "New message" : `${gained} new messages`,
         body: "Open Friends to read your chats.",
-        href: typeof location !== "undefined" && /\/[^/]+\/index\.html/i.test(location.pathname)
-          ? "../index.html#friends"
-          : "index.html#friends",
+        href:
+          typeof location !== "undefined" && /\/[^/]+\/index\.html/i.test(location.pathname)
+            ? "../index.html#friends"
+            : "index.html#friends",
         at: Date.now()
       });
     }
@@ -368,7 +413,8 @@
         id: `feedback-${Date.now()}`,
         kind: "feedback",
         title: "New feedback",
-        body: unread === 1 ? "Someone sent feedback for ICE." : `${unread} feedback messages waiting.`,
+        body:
+          unread === 1 ? "Someone sent feedback for ICE." : `${unread} feedback messages waiting.`,
         href: "index.html#feedback",
         at: Date.now()
       });
@@ -383,13 +429,8 @@
     // Feedback: owner-only, and only every few minutes to avoid Mantle rate limits.
     try {
       const owner = typeof HubFeedback !== "undefined" && HubFeedback.isOwner?.();
-      const cooled =
-        typeof HubFeedback !== "undefined" && HubFeedback.isRateLimited?.();
-      if (
-        owner &&
-        !cooled &&
-        Date.now() - lastFeedbackSyncAt >= FEEDBACK_SYNC_MS
-      ) {
+      const cooled = typeof HubFeedback !== "undefined" && HubFeedback.isRateLimited?.();
+      if (owner && !cooled && Date.now() - lastFeedbackSyncAt >= FEEDBACK_SYNC_MS) {
         lastFeedbackSyncAt = Date.now();
         await HubFeedback.sync();
         await HubFeedback.flushPending?.();
@@ -418,6 +459,7 @@
         lastFeedbackUnread = Number(HubFeedback.unreadCount?.() || 0);
       }
     } catch {}
+    pullMyNotes().then(() => persistMyNotes());
     tick();
     pollTimer = setInterval(tick, POLL_MS);
     document.addEventListener("visibilitychange", () => {

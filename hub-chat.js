@@ -1225,19 +1225,32 @@
     try {
       if (!window.HubNotifications && !window.__hubNotifyLoading) {
         window.__hubNotifyLoading = true;
-        let src = "hub-notifications.js?v=20260908ak";
+        let chatSrc = "";
         const scripts = document.getElementsByTagName("script");
         for (let i = 0; i < scripts.length; i += 1) {
           const s = scripts[i].src || "";
           if (/hub-chat\.js/i.test(s)) {
-            src = s.replace(/hub-chat\.js/i, "hub-notifications.js");
+            chatSrc = s;
             break;
           }
         }
-        const el = document.createElement("script");
-        el.src = src;
-        el.async = true;
-        document.head.appendChild(el);
+        const load = (file) =>
+          new Promise((resolve) => {
+            const el = document.createElement("script");
+            el.src = chatSrc ? chatSrc.replace(/hub-chat\.js/i, file) : `${file}?v=20261015au`;
+            el.async = true;
+            el.onload = resolve;
+            el.onerror = resolve;
+            document.head.appendChild(el);
+          });
+        const ready = window.HubNotificationsMine
+          ? Promise.resolve()
+          : load("hub-notifications-mine.js");
+        ready
+          .then(() => load("hub-notifications.js"))
+          .then(() => {
+            window.HubNotifications?.start?.();
+          });
       } else {
         window.HubNotifications?.start?.();
       }
