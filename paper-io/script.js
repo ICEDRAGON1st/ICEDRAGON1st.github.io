@@ -797,6 +797,11 @@
   let lastFrame = 0;
   let lastHudAt = 0;
   let lastHudMarkup = "";
+  const reducedEffectsMedia = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+  let reducedEffects = !!reducedEffectsMedia?.matches;
+  let frameSampleStartedAt = 0;
+  let frameSampleCount = 0;
+  document.documentElement.dataset.paperEffects = reducedEffects ? "reduced" : "full";
 
   /** Ownership bitmap — same resolution as world for simple mapping */
   /** @type {Int16Array} */
@@ -937,7 +942,7 @@
     playableTotal = Math.max(1, n);
     // Clear ownership on void cells
     for (let i = 0; i < grid.length; i++) {
-      if (!arenaMask[i] && grid[i]) grid[i] = 0;
+      if (!arenaMask[i] && grid[i]) setGridOwner(i, 0);
     }
     voidDirty = true;
     markLandDirty();
@@ -1118,7 +1123,46 @@
   function markLandDirty() {
     landDirty = true;
     miniDirty = true;
-    territoryCountsDirty = true;
+  }
+
+  function setReducedEffects(active, reason = "") {
+    const next = !!active;
+    if (reducedEffects === next) return;
+    reducedEffects = next;
+    document.documentElement.dataset.paperEffects = next ? "reduced" : "full";
+    if (reason) document.documentElement.dataset.paperEffectsReason = reason;
+    landDirty = true;
+  }
+
+  reducedEffectsMedia?.addEventListener?.("change", (event) => {
+    setReducedEffects(event.matches, "preference");
+  });
+
+  function monitorFramePacing(timestamp) {
+    if (reducedEffects || document.hidden) return;
+    if (!frameSampleStartedAt) frameSampleStartedAt = timestamp;
+    frameSampleCount++;
+    const elapsed = timestamp - frameSampleStartedAt;
+    if (elapsed < 3000) return;
+    const fps = (frameSampleCount * 1000) / Math.max(1, elapsed);
+    frameSampleStartedAt = timestamp;
+    frameSampleCount = 0;
+    if (fps < 45) setReducedEffects(true, "frame-rate");
+  }
+
+  function setGridOwner(index, owner) {
+    const previous = grid[index];
+    if (previous === owner) return false;
+    grid[index] = owner;
+    if (!territoryCountsDirty) {
+      if (previous) {
+        const count = (territoryCounts.get(previous) || 0) - 1;
+        if (count > 0) territoryCounts.set(previous, count);
+        else territoryCounts.delete(previous);
+      }
+      if (owner) territoryCounts.set(owner, (territoryCounts.get(owner) || 0) + 1);
+    }
+    return true;
   }
 
   function softToRgba(soft) {
@@ -1147,6 +1191,8 @@
 
   function clearGrid() {
     grid.fill(0);
+    territoryCounts.clear();
+    territoryCountsDirty = false;
     markLandDirty();
   }
 
@@ -1162,7 +1208,7 @@
         if (!arenaMask[i]) continue;
         const dx = x + 0.5 - cx;
         const dy = y + 0.5 - cy;
-        if (dx * dx + dy * dy <= r2) grid[i] = hid;
+        if (dx * dx + dy * dy <= r2) setGridOwner(i, hid);
       }
     }
     if (!deferDirty) markLandDirty();
@@ -1362,7 +1408,7 @@
           grid[idx(x, y - 1)] === hid &&
           grid[idx(x, y + 1)] === hid
         ) {
-          grid[i] = hid;
+          setGridOwner(i, hid);
           filled++;
         }
       }
@@ -1389,7 +1435,7 @@
         if (!arenaMask[i] || grid[i]) continue;
         if (!touchesVoid(x, y)) continue;
         if (hasNeighborOwned(x, y, hid)) {
-          grid[i] = hid;
+          setGridOwner(i, hid);
           filled++;
         }
       }
@@ -1414,7 +1460,7 @@
     }
     if (other > 0 || empty === 0) return false;
     for (let i = 0; i < grid.length; i++) {
-      if (arenaMask[i] && !grid[i]) grid[i] = hid;
+      if (arenaMask[i] && !grid[i]) setGridOwner(i, hid);
     }
     markLandDirty();
     return true;
@@ -1440,7 +1486,9 @@
 
   function clearPlayerCells(p) {
     const hid = idHash(p.id);
-    for (let i = 0; i < grid.length; i++) if (grid[i] === hid) grid[i] = 0;
+    for (let i = 0; i < grid.length; i++) {
+      if (grid[i] === hid) setGridOwner(i, 0);
+    }
     p.trail = [];
     markLandDirty();
   }
@@ -1459,7 +1507,7 @@
     let stolen = 0;
     for (let i = 0; i < grid.length; i++) {
       if (grid[i] === from) {
-        grid[i] = to;
+        setGridOwner(i, to);
         stolen++;
       }
     }
@@ -1612,10 +1660,10 @@
     }
     for (let i = 0; i < grid.length; i++) {
       if (!arenaMask[i]) {
-        grid[i] = 0;
+        setGridOwner(i, 0);
         continue;
       }
-      if (!visited[i] && grid[i] !== hid) grid[i] = hid;
+      if (!visited[i] && grid[i] !== hid) setGridOwner(i, hid);
     }
     markLandDirty();
     finalizeClaim(p);
@@ -2436,7 +2484,7 @@
 
     // Themed props inside your claimed land (arena floor stays classic)
     const head = landSkinHead();
-    if (head !== "classic" && localId) {
+    if (!reducedEffects && head !== "classic" && localId) {
       const hid = idHash(localId);
       const fill = skin()?.fill || COLORS[0].fill;
       const px = LAND_PX;
@@ -2506,7 +2554,7 @@
     }
     landRenderCtx.clearRect(0, 0, size, size);
     landRenderCtx.imageSmoothingEnabled = true;
-    if (typeof landRenderCtx.filter === "string") {
+    if (!reducedEffects && typeof landRenderCtx.filter === "string") {
       landRenderCtx.filter = `blur(${(LAND_PX * 0.32).toFixed(2)}px)`;
       landRenderCtx.drawImage(landLayer, 0, 0);
       landRenderCtx.filter = "none";
@@ -2894,6 +2942,7 @@
     updateCamera(dt);
     draw();
     updateHud(ts);
+    monitorFramePacing(ts);
   }
 
   function startNpc(opts) {
@@ -2994,6 +3043,7 @@
       for (let k = 0; k < n && i < out.length; k++) out[i++] = v;
     }
     grid = out;
+    territoryCountsDirty = true;
     markLandDirty();
   }
 

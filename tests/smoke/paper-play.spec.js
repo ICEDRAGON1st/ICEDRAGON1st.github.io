@@ -56,3 +56,27 @@ test("Paper Claim starts and keeps rendering", async ({ context, page }) => {
   await expect(page.locator("#score")).toContainText("%");
   expect(pageErrors).toEqual([]);
 });
+
+test("Paper Claim honors reduced-effects preference", async ({ context, page }) => {
+  await context.route("**/*", async (route) => {
+    const url = new URL(route.request().url());
+    if (url.hostname === "127.0.0.1" || url.hostname === "localhost") {
+      await route.continue();
+    } else {
+      await route.abort("blockedbyclient");
+    }
+  });
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.addInitScript(() => {
+    localStorage.setItem("hub-player-id", "p-paper-reduced-test");
+    localStorage.setItem("hub-player-name", "PaperReducedTest");
+    localStorage.setItem("hub-player-name-locked", "1");
+    localStorage.setItem("hub-sound-enabled", "0");
+  });
+
+  await page.goto("/paper-io/", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => !document.documentElement.classList.contains("hub-booting"));
+  await expect(page.locator("html")).toHaveAttribute("data-paper-effects", "reduced");
+  await page.locator("#start-btn").click();
+  await expect(page.locator("#score")).toContainText("%");
+});

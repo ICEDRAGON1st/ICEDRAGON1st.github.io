@@ -1,7 +1,7 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015g",
+  "build": "20261015h",
   "notes": [
-    "Update history now loads only when the Updates panel is opened, reducing startup parsing.",
-    "Release metadata and full changelog history now live in validated data files instead of the main hub script."
+    "Paper Claim now updates territory totals incrementally instead of rescanning the full map after every land change.",
+    "Paper Claim automatically disables blur and decorative land motifs for reduced-motion players or sustained low frame rates."
   ]
 };
