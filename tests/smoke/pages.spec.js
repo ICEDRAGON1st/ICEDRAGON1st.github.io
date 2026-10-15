@@ -180,6 +180,7 @@ test("optional hub helpers load after the interactive shell", async ({ page }) =
       window.HubLeaderboard &&
       window.HubFriends &&
       window.HubChat &&
+      window.HubCallSignal &&
       window.HubCalls,
     null,
     { timeout: 10_000 }

@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015am",
+  "build": "20261015an",
   "notes": [
-    "Discord login now upgrades your current guest session instead of creating a second account."
+    "Voice calls now keep room and hang-up rules in a smaller signaling helper."
   ]
 };

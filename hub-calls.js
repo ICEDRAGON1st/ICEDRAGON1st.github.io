@@ -13,9 +13,8 @@
   const API = "https://mantledb.sh/v2/icedragon1st-mygames/hub-calls";
   const TOKEN = "ice-hub-call-9f3a";
   const POLL_MS = 1000;
-  const MAX_PEERS = 6;
-  const SIGNAL_TTL_MS = 90_000;
-  const ROOM_TTL_MS = 2 * 60 * 60_000;
+  const signal = window.HubCallSignal || {};
+  const MAX_PEERS = signal.MAX_PEERS || 6;
   const SESSION_KEY = "hub-call-session-v1";
   const SESSION_MAX_MS = 2 * 60 * 60_000;
   // STUN only — free public TURN credentials are dead and delay ICE gathering.
@@ -49,10 +48,11 @@
   }
 
   function roomKey(kind, channelId) {
-    if (kind === "group") return `group:${channelId}`;
-    const me = playerId();
-    const them = String(channelId || "");
-    return `dm:${[me, them].sort().join(":")}`;
+    return signal.roomKey
+      ? signal.roomKey(kind, channelId, playerId())
+      : kind === "group"
+        ? `group:${channelId}`
+        : `dm:${[playerId(), String(channelId || "")].sort().join(":")}`;
   }
 
   let cache = { rooms: {} };
@@ -281,27 +281,7 @@
   }
 
   function pruneRooms(rooms) {
-    const now = Date.now();
-    const next = {};
-    Object.entries(rooms || {}).forEach(([id, room]) => {
-      if (!room || typeof room !== "object") return;
-      const at = Number(room.updatedAt || room.createdAt) || 0;
-      if (now - at > ROOM_TTL_MS) return;
-      const peers = room.peers && typeof room.peers === "object" ? { ...room.peers } : {};
-      const live = Object.values(peers).filter((p) => p && !p.left);
-      if (!live.length && now - at > 60_000) return;
-      const signals = Array.isArray(room.signals)
-        ? room.signals.filter((s) => now - (Number(s?.at) || 0) < SIGNAL_TTL_MS).slice(-40)
-        : [];
-      const links = room.links && typeof room.links === "object" ? { ...room.links } : {};
-      Object.keys(links).forEach((k) => {
-        const L = links[k];
-        const lat = Math.max(Number(L?.offerAt) || 0, Number(L?.answerAt) || 0);
-        if (now - lat > SIGNAL_TTL_MS) delete links[k];
-      });
-      next[id] = { ...room, peers, signals, links };
-    });
-    return next;
+    return signal.pruneRooms ? signal.pruneRooms(rooms) : rooms || {};
   }
 
   async function postDoc(rooms) {
@@ -329,96 +309,11 @@
   }
 
   function mergeLink(a, b) {
-    if (!a) return b || null;
-    if (!b) return a;
-    const offerAt = Math.max(Number(a.offerAt) || 0, Number(b.offerAt) || 0);
-    const newerOffer = (Number(b.offerAt) || 0) >= (Number(a.offerAt) || 0) ? b : a;
-    let answer = null;
-    let answerAt = 0;
-    [a, b].forEach((L) => {
-      if (L.answer && Number(L.answerFor || L.offerAt) === offerAt) {
-        if ((Number(L.answerAt) || 0) >= answerAt) {
-          answer = L.answer;
-          answerAt = Number(L.answerAt) || 0;
-        }
-      }
-    });
-    return {
-      offerFrom: newerOffer.offerFrom,
-      offer: newerOffer.offer,
-      offerAt,
-      answer,
-      answerAt: answer ? answerAt : 0,
-      answerFor: answer ? offerAt : 0
-    };
+    return signal.mergeLink ? signal.mergeLink(a, b) : b || a || null;
   }
 
   function mergePeer(a, b) {
-    if (!a) return b || null;
-    if (!b) return a;
-    const aJoined = Number(a.joinedAt) || 0;
-    const bJoined = Number(b.joinedAt) || 0;
-    // Older clients may hang up with left:true but no leftAt — treat leave as at least that join.
-    const aLeftAt = Number(a.leftAt) || (a.left ? aJoined || 1 : 0);
-    const bLeftAt = Number(b.leftAt) || (b.left ? bJoined || 1 : 0);
-    const leftAt = Math.max(aLeftAt, bLeftAt);
-
-    // Explicit hang-up / leave wins over a stale "still live" copy, unless they
-    // rejoined afterward (joinedAt newer than leftAt).
-    if (a.left && aLeftAt >= bJoined) {
-      return {
-        ...b,
-        ...a,
-        left: true,
-        ringing: false,
-        sharing: false,
-        leftAt: Math.max(aLeftAt, bLeftAt)
-      };
-    }
-    if (b.left && bLeftAt >= aJoined) {
-      return {
-        ...a,
-        ...b,
-        left: true,
-        ringing: false,
-        sharing: false,
-        leftAt: Math.max(aLeftAt, bLeftAt)
-      };
-    }
-    if (leftAt > 0 && leftAt >= Math.max(aJoined, bJoined)) {
-      const newerLeft = bLeftAt >= aLeftAt ? b : a;
-      const other = newerLeft === b ? a : b;
-      return {
-        ...other,
-        ...newerLeft,
-        left: true,
-        ringing: false,
-        sharing: false,
-        leftAt
-      };
-    }
-
-    const aLive = !a.left && aJoined > 0;
-    const bLive = !b.left && bJoined > 0;
-    // Never let a stale write wipe a live joiner.
-    if (aLive && !bLive) return { ...b, ...a, left: false, ringing: false, leftAt: 0 };
-    if (bLive && !aLive) return { ...a, ...b, left: false, ringing: false, leftAt: 0 };
-    if (aLive && bLive) {
-      const newer = bJoined >= aJoined ? b : a;
-      const older = newer === b ? a : b;
-      return {
-        ...older,
-        ...newer,
-        left: false,
-        ringing: false,
-        leftAt: 0,
-        sharing: !!(a.sharing || b.sharing),
-        name: newer.name || older.name
-      };
-    }
-    const newer = bJoined >= aJoined ? b : a;
-    const older = newer === b ? a : b;
-    return { ...older, ...newer };
+    return signal.mergePeer ? signal.mergePeer(a, b) : b || a || null;
   }
 
   async function mutateRooms(mutator) {
@@ -1183,11 +1078,11 @@
   }
 
   function linkKey(a, b) {
-    return [String(a), String(b)].sort().join(":");
+    return signal.linkKey ? signal.linkKey(a, b) : [String(a), String(b)].sort().join(":");
   }
 
   function peerJoined(p) {
-    return !!(p && !p.left && Number(p.joinedAt) > 0);
+    return signal.peerJoined ? signal.peerJoined(p) : !!(p && !p.left && Number(p.joinedAt) > 0);
   }
 
   function pcLive(pc) {

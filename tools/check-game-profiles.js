@@ -9,6 +9,7 @@ const OPTIONAL_GAME_SCRIPTS = new Set([
   "hub-friends.js",
   "hub-chat.js",
   "hub-calls.js",
+  "hub-call-signal.js",
   "hub-leaderboard.js",
   "hub-discord.js",
   "hub-coins.js",

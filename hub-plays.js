@@ -5066,7 +5066,7 @@ body.light .menu-credit .player-name-creator {
       }
       load("hub-friends.js", "HubFriends").then(() => {
         load("hub-chat.js", "HubChat");
-        load("hub-calls.js", "HubCalls");
+        load("hub-call-signal.js", "HubCallSignal").then(() => load("hub-calls.js", "HubCalls"));
       });
     } catch {}
     })();
