@@ -180,12 +180,11 @@ async function main() {
     notes: notes.slice(0, 12)
   });
   if (!claimed) {
-    console.error("claim failed");
-    process.exit(1);
+    console.warn("claim unavailable — posting Discord without a hub_docs lock");
   }
 
   await postWebhook(webhook, formatMessage(build, notes, roleId, domain), roleId);
-  console.log("ok announced", build, `(${notes.length} notes)`);
+  console.log("ok announced", build, `(${notes.length} notes${claimed ? "" : ", unclaimed"})`);
 }
 
 main().catch((err) => {
