@@ -234,10 +234,19 @@
     var loadAccountProfile = function () {
       window.ensureHubGameAccountProfile().catch(function () {});
     };
+    var loadCanvasAlt = function () {
+      loadManagedScript("hub-canvas-alt.js", "HubCanvasAlt").then(function (api) {
+        try {
+          if (api && api.apply) api.apply(document, location.pathname || "");
+        } catch (e) {}
+      });
+    };
     if (typeof requestIdleCallback === "function") {
       requestIdleCallback(loadAccountProfile, { timeout: 1000 });
+      requestIdleCallback(loadCanvasAlt, { timeout: 1500 });
     } else {
       setTimeout(loadAccountProfile, 100);
+      setTimeout(loadCanvasAlt, 120);
     }
   }
 

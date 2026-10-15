@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015an",
+  "build": "20261015ao",
   "notes": [
-    "Voice calls now keep room and hang-up rules in a smaller signaling helper."
+    "Canvas games now tell screen readers how to play without changing the board."
   ]
 };

@@ -187,6 +187,33 @@ test("optional hub helpers load after the interactive shell", async ({ page }) =
   );
 });
 
+test("canvas games expose a screen-reader control alternative", async ({ page }) => {
+  await page.goto("/snake/", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => !document.documentElement.classList.contains("hub-booting"));
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const canvas = document.querySelector("canvas#game");
+        const alt = document.getElementById("hub-canvas-alt");
+        return Boolean(
+          window.HubCanvasAlt &&
+          canvas &&
+          alt &&
+          canvas.getAttribute("aria-describedby") === "hub-canvas-alt" &&
+          /arrow keys or WASD/i.test(alt.textContent || "")
+        );
+      })
+    )
+    .toBe(true);
+});
+
+test("non-canvas games skip the canvas alternative", async ({ page }) => {
+  await page.goto("/fishing/", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(() => !document.documentElement.classList.contains("hub-booting"));
+  await expect.poll(() => page.evaluate(() => Boolean(window.HubCanvasAlt))).toBe(true);
+  expect(await page.locator("#hub-canvas-alt").count()).toBe(0);
+});
+
 test("hub keeps the seeded player id instead of reminting from Auth", async ({ page }) => {
   await page.goto("/", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(
