@@ -1,0 +1,2046 @@
+{
+  "version": 1,
+  "note": "Generated inventory. Review scope and merge metadata when adding or changing persisted state.",
+  "entries": [
+    {
+      "type": "exact",
+      "value": "__hub_coins_probe__",
+      "scope": "device",
+      "merge": "domain",
+      "schemaVersion": null,
+      "owners": [
+        "hub-coins.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "__hub_ls_probe__",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hub-plays.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "2048-best-score",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "2048/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "2048-high-score",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "hub-account-bag.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "block-blast-high-score",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "block-sweep/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "brick-breaker-high-score",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "breakout/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "bubble-pop-high-score",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "bubble-pop/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "cafe-queue-high-score",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "cafe-queue/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "clicker-high-score-v3",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": 3,
+      "owners": [
+        "clicker/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "clicker-save-v3",
+      "scope": "account",
+      "merge": "domain",
+      "schemaVersion": 3,
+      "owners": [
+        "clicker/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "connect-four-stats",
+      "scope": "account",
+      "merge": "domain",
+      "schemaVersion": null,
+      "owners": [
+        "connect-four/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "connect4-wins-count",
+      "scope": "device",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "connect-four/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "cows-best-tier-v1",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": 1,
+      "owners": [
+        "cows/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "cows-save-v1",
+      "scope": "account",
+      "merge": "domain",
+      "schemaVersion": 1,
+      "owners": [
+        "cows/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "crossy-high-score",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "cross-walk/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "cup-flow-best-level",
+      "scope": "device",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "cup-flow/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "cup-flow-high-score",
+      "scope": "device",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "cup-flow/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "cup-flow-speed-scale",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "cup-flow/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "dino-run-high-score",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "runosaur/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "dudes-skin-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "dudes/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-admin-announce-seen-v1",
+      "scope": "transient-device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "fishing/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-admin-cmd-history-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "fishing/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-admin-mantle-until-v1",
+      "scope": "transient-device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "fishing/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-admin-scope-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "fishing/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-best-catch-meta-v1",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": 1,
+      "owners": [
+        "fishing/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-best-catch-meta-v2",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": 2,
+      "owners": [
+        "fishing/script.js",
+        "script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-best-catch-v1",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": 1,
+      "owners": [
+        "fishing/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-best-catch-v2",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": 2,
+      "owners": [
+        "fishing/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-catch-score-safe-v7",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 7,
+      "owners": [
+        "fishing/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-chest-boost-v1",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "fishing/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-gifts-claimed-v1",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "fishing/script.js",
+        "hub-fishing-gifts.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-ice-dragon-boat-lv1-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "fishing/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-ice-dragon-chests-20-23-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "fishing/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-ice-dragon-coins-1m-v1",
+      "scope": "device",
+      "merge": "domain",
+      "schemaVersion": 1,
+      "owners": [
+        "fishing/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-ice-dragon-primefin-shiny-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "fishing/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-ice-dragon-soultwin-trim-v2",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 2,
+      "owners": [
+        "fishing/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-ice-dragon-ultimate-restore-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "fishing/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-player-mail-claimed-v1",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "fishing/script.js",
+        "hub-fishing-mail.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-prefs-v1",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "fishing/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-save-v2",
+      "scope": "device",
+      "merge": "domain",
+      "schemaVersion": 2,
+      "owners": [
+        "fishing/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-save-v3",
+      "scope": "account",
+      "merge": "domain",
+      "schemaVersion": 3,
+      "owners": [
+        "fishing/script.js",
+        "hub-account-bag.js",
+        "hub-fishing-gifts.js",
+        "hub-fishing-mail.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "fishing-save-v3-backup",
+      "scope": "account",
+      "merge": "domain",
+      "schemaVersion": null,
+      "owners": [
+        "fishing/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "flappy-bird-high-score",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "wing-hop/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "flappy-bird-skin",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "wing-hop/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "garden-snap-high-score",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "garden-snap/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "guac-a-mole-high-score",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "guac-a-mole/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "guessword-color-theme",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hangman-color-theme",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hangman/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hangman-diff",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hub-account-bag.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hangman-difficulty",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hangman/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hangman-lang",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hub-account-bag.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hangman-stats",
+      "scope": "account",
+      "merge": "domain",
+      "schemaVersion": null,
+      "owners": [
+        "hangman/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hangman-theme",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hangman/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hangman-wins-count",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "hangman/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-account-bag-active-id",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hub-account-bag.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-account-bags-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "fishing/script.js",
+        "hub-account-bag.js",
+        "hub-leaderboard.js",
+        "mine/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-accounts-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-plays.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-achievements-announced-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-achievements.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-achievements-pending",
+      "scope": "transient-device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "clicker/script.js",
+        "fishing/script.js",
+        "hub-account-bag.js",
+        "hub-achievements.js",
+        "hub-leaderboard.js",
+        "mine/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-achievements-pending-scrub-v1",
+      "scope": "transient-device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-achievements.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-achievements-v1",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "clicker/script.js",
+        "fishing/script.js",
+        "hub-achievements.js",
+        "hub-leaderboard.js",
+        "mine/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-admin-announce-seen-v1",
+      "scope": "transient-device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-admin.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-admin-grants-local-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-admin.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-admin-grants-seen-v1",
+      "scope": "transient-device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-admin.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-admin-unlocks-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-admin.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-alltime-cache-v3",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 3,
+      "owners": [
+        "hub-plays.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-audio-bgm-muted",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hub-audio.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-audio-bgm-volume",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hub-audio.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-audio-sfx-volume",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hub-audio.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-audio-track",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hub-audio.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-chat-read-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-chat.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-chat-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-chat.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-clicker-ice-dragon-wipe-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "clicker/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-clicker-local-wipe-v2",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 2,
+      "owners": [
+        "clicker/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-codes-local-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-plays.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-coins-v1",
+      "scope": "device",
+      "merge": "domain",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-coins.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-daily-streak",
+      "scope": "account",
+      "merge": "domain",
+      "schemaVersion": null,
+      "owners": [
+        "hub-streak.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-discord-link-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-discord.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-eggs-pending-flair-v1",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-eggs.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-eggs-v1",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-eggs.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-favorites",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-feedback-deleted-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-feedback.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-feedback-last-send-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-feedback.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-feedback-pending-v1",
+      "scope": "transient-device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-feedback.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-feedback-read-at-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-feedback.js",
+        "script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-feedback-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-feedback.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-fishing-ice-dragon-wipe-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "fishing/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-friends-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-friends.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-game-popularity-reset-at",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hub-plays.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-game-popularity-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-plays.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-help-mascot-unlocks-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-help.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-help-mascot-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-help.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-invite-credited-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-referrals.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-invite-status-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-referrals.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-last-game",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-leaderboards-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-leaderboard.js",
+        "mine/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-look-set-at",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hub-account-bag.js",
+        "script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-look-theme",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hub-account-bag.js",
+        "script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-mine-ice-dragon-wipe-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "mine/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-mine-local-wipe-v2",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 2,
+      "owners": [
+        "hub-leaderboard.js",
+        "mine/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-mine-local-wipe-v3",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 3,
+      "owners": [
+        "hub-account-bag.js",
+        "hub-leaderboard.js",
+        "mine/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-notifications-perm-asked-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-notifications.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-notifications-seen-v1",
+      "scope": "transient-device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-notifications.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-notifications-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-notifications.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-online-active-room-v1",
+      "scope": "transient-device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-online-match.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-online-matches-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-online-match.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-online-time-v1",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-plays.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-passwords-local-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-plays.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-pending-invite-v1",
+      "scope": "transient-device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-referrals.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-played-games",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-player-code",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hub-plays.js",
+        "script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-player-id",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "fishing/script.js",
+        "hub-account-bag.js",
+        "hub-discord.js",
+        "hub-fishing-gifts.js",
+        "hub-fishing-mail.js",
+        "hub-plays.js",
+        "hub-referrals.js",
+        "script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-player-name",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "fishing/script.js",
+        "hub-fishing-gifts.js",
+        "hub-fishing-mail.js",
+        "hub-plays.js",
+        "script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-player-name-locked",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hub-plays.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-plays-local-v1",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-plays.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-profile-style-v1",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-plays.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-purge-dragon-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-plays.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-purge-rainbow-color-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-plays.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-ramp-ach-wipe-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-achievements.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-ramp-local-wipe-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-leaderboard.js",
+        "ramp-rush/rr-bg-ak.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-sound",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hub-sound.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-sound-enabled",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hub-account-bag.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-sound-volume",
+      "scope": "account",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hub-audio.js",
+        "hub-sound.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "hub-ttt-draw-streak-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "tic-tac-toe/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "lemmings-current-level-v1",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "dudes/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "lemmings-high-score",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "dudes/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "lemmings-max-level-v1",
+      "scope": "device",
+      "merge": "max",
+      "schemaVersion": 1,
+      "owners": [
+        "dudes/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "lemmings-session-score-v1",
+      "scope": "transient-device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "dudes/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "mantle-rate-limit-until-v1",
+      "scope": "transient-device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-feedback.js",
+        "hub-plays.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "math-high-score",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "hub-account-bag.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "math-rounds-count",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "math/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "math-sprint-difficulty",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "math/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "math-sprint-high-score-easy",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "math/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "math-sprint-high-score-hard",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "math/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "math-sprint-high-score-medium",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "math/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "memory-best",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "hub-account-bag.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "memory-match-best",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "memory-match/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "mine-best-ore-id-v1",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": 1,
+      "owners": [
+        "mine/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "mine-best-ore-v1",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": 1,
+      "owners": [
+        "mine/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "mine-depth-best-ore-id-v1",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-account-bag.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "mine-depth-best-ore-v1",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-account-bag.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "mine-depth-best-v1",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": 1,
+      "owners": [
+        "mine/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "mine-depth-lifetime-coins",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "mine/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "mine-depth-save-v1",
+      "scope": "account",
+      "merge": "domain",
+      "schemaVersion": 1,
+      "owners": [
+        "mine/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "paper-claim-arena",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "paper-io/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "paper-claim-skin",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "paper-io/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "paper-io-best-pct",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "paper-io/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "pixletris-high-score",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "pixel-drop/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "quiz-high-score",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "hub-account-bag.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "quiz-wins-count",
+      "scope": "device",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "quiz/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "quizmaster-difficulty",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "quiz/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "quizmaster-high-score",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "quiz/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "quizmaster-high-score-easy",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "quiz/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "quizmaster-high-score-hard",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "quiz/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "quizmaster-high-score-medium",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "quiz/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "ramp-rush-high-score",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "hub-leaderboard.js",
+        "ramp-rush/canyon.js",
+        "ramp-rush/gorge.js",
+        "ramp-rush/play.js",
+        "ramp-rush/rr-bg-aa.js",
+        "ramp-rush/rr-bg-ab.js",
+        "ramp-rush/rr-bg-ac.js",
+        "ramp-rush/rr-bg-ad.js",
+        "ramp-rush/rr-bg-ae.js",
+        "ramp-rush/rr-bg-af.js",
+        "ramp-rush/rr-bg-ag.js",
+        "ramp-rush/rr-bg-ah.js",
+        "ramp-rush/rr-bg-ai.js",
+        "ramp-rush/rr-bg-aj.js",
+        "ramp-rush/rr-bg-ak.js",
+        "ramp-rush/rr-bg-e.js",
+        "ramp-rush/rr-bg-f.js",
+        "ramp-rush/rr-bg-g.js",
+        "ramp-rush/rr-bg-h.js",
+        "ramp-rush/rr-bg-i.js",
+        "ramp-rush/rr-bg-j.js",
+        "ramp-rush/rr-bg-k.js",
+        "ramp-rush/rr-bg-l.js",
+        "ramp-rush/rr-bg-m.js",
+        "ramp-rush/rr-bg-n.js",
+        "ramp-rush/rr-bg-o.js",
+        "ramp-rush/rr-bg-p.js",
+        "ramp-rush/rr-bg-q.js",
+        "ramp-rush/rr-bg-r.js",
+        "ramp-rush/rr-bg-s.js",
+        "ramp-rush/rr-bg-t.js",
+        "ramp-rush/rr-bg-u.js",
+        "ramp-rush/rr-bg-v.js",
+        "ramp-rush/rr-bg-w.js",
+        "ramp-rush/rr-bg-x.js",
+        "ramp-rush/rr-bg-y.js",
+        "ramp-rush/rr-bg-z.js",
+        "ramp-rush/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "snake-high-score",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "snake/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "space-shooter-difficulty",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "space-shooter/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "space-shooter-high-score",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "space-shooter/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "space-shooter-high-score-easy",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "space-shooter/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "space-shooter-high-score-hard",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "space-shooter/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "space-shooter-high-score-medium",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "space-shooter/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "space-waves-best-level",
+      "scope": "device",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "space-waves/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "space-waves-high-score",
+      "scope": "device",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "space-waves/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "space-waves-view-mode",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "space-waves/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "stacker-high-score",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "stacker/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "sticker-garage-high-score",
+      "scope": "device",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "sticker-garage/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "sticker-garage-save-v1",
+      "scope": "device",
+      "merge": "domain",
+      "schemaVersion": 1,
+      "owners": [
+        "sticker-garage/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "sudoku-best",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "hub-account-bag.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "sudoku-best-times",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "sudoku/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "sudoku-difficulty",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "sudoku/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "tic-tac-toe-stats",
+      "scope": "account",
+      "merge": "domain",
+      "schemaVersion": null,
+      "owners": [
+        "tic-tac-toe/script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "wordle-game",
+      "scope": "account",
+      "merge": "domain",
+      "schemaVersion": null,
+      "owners": [
+        "hub-account-bag.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "wordle-lang",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hangman/script.js",
+        "script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "wordle-length",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "wordle-play-mode",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "wordle-seen-build",
+      "scope": "transient-device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "wordle-sound",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hub-sound.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "wordle-stats",
+      "scope": "account",
+      "merge": "domain",
+      "schemaVersion": null,
+      "owners": [
+        "script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "wordle-theme",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "script.js"
+      ]
+    },
+    {
+      "type": "exact",
+      "value": "wordle-word-theme",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "script.js"
+      ]
+    },
+    {
+      "type": "pattern",
+      "value": "__namehint:*",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hub-leaderboard.js"
+      ]
+    },
+    {
+      "type": "pattern",
+      "value": "*:*",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "hub-coins.js"
+      ]
+    },
+    {
+      "type": "pattern",
+      "value": "*:*:*:*",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "mine/script.js"
+      ]
+    },
+    {
+      "type": "pattern",
+      "value": "*/*/*/*/*",
+      "scope": "device",
+      "merge": "latest",
+      "schemaVersion": null,
+      "owners": [
+        "fishing/script.js"
+      ]
+    },
+    {
+      "type": "pattern",
+      "value": "hangman-stats-*",
+      "scope": "account",
+      "merge": "domain",
+      "schemaVersion": null,
+      "owners": [
+        "hub-account-bag.js"
+      ]
+    },
+    {
+      "type": "pattern",
+      "value": "math-sprint-high-score-*",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "hub-account-bag.js"
+      ]
+    },
+    {
+      "type": "pattern",
+      "value": "quizmaster-high-score-*",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "hub-account-bag.js"
+      ]
+    },
+    {
+      "type": "pattern",
+      "value": "space-shooter-high-score-*",
+      "scope": "account",
+      "merge": "max",
+      "schemaVersion": null,
+      "owners": [
+        "hub-account-bag.js"
+      ]
+    },
+    {
+      "type": "pattern",
+      "value": "wordle-game-*",
+      "scope": "account",
+      "merge": "domain",
+      "schemaVersion": null,
+      "owners": [
+        "hub-account-bag.js"
+      ]
+    },
+    {
+      "type": "pattern",
+      "value": "wordle-game-*-*",
+      "scope": "account",
+      "merge": "domain",
+      "schemaVersion": null,
+      "owners": [
+        "script.js"
+      ]
+    },
+    {
+      "type": "pattern",
+      "value": "wordle-game-daily-*-*-*",
+      "scope": "account",
+      "merge": "domain",
+      "schemaVersion": null,
+      "owners": [
+        "script.js"
+      ]
+    }
+  ],
+  "unresolved": [
+    {
+      "file": "clicker/script.js",
+      "count": 2
+    },
+    {
+      "file": "hangman/script.js",
+      "count": 2
+    },
+    {
+      "file": "hub-account-bag.js",
+      "count": 11
+    },
+    {
+      "file": "hub-audio.js",
+      "count": 1
+    },
+    {
+      "file": "hub-coins.js",
+      "count": 4
+    },
+    {
+      "file": "hub-streak.js",
+      "count": 3
+    },
+    {
+      "file": "math/script.js",
+      "count": 2
+    },
+    {
+      "file": "quiz/script.js",
+      "count": 4
+    },
+    {
+      "file": "script.js",
+      "count": 2
+    },
+    {
+      "file": "space-shooter/script.js",
+      "count": 2
+    }
+  ]
+}
