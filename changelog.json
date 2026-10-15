@@ -1,4 +1,7 @@
 {
+  "20261015ac": [
+    "Fishing Idle admin events now parse from a separate rules file."
+  ],
   "20261015ab": [
     "Fishing Idle now loads and migrates your save from a separate file."
   ],
