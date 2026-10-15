@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015as",
+  "build": "20261015at",
   "notes": [
-    "Your friends list now also saves on your cloud account, so a new device can restore it."
+    "Your DMs and group chats now also save on your cloud account, so a new device can restore them."
   ]
 };

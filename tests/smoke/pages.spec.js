@@ -181,6 +181,7 @@ test("optional hub helpers load after the interactive shell", async ({ page }) =
       window.HubLeaderboard &&
       window.HubFriendsEdges &&
       window.HubFriends &&
+      window.HubChatMine &&
       window.HubChat &&
       window.HubCallSignal &&
       window.HubCalls,

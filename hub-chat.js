@@ -35,9 +35,7 @@
   const pollCallbacks = new Set();
 
   function getPlayerId() {
-    return typeof HubPlays !== "undefined" && HubPlays.getPlayerId
-      ? HubPlays.getPlayerId()
-      : "";
+    return typeof HubPlays !== "undefined" && HubPlays.getPlayerId ? HubPlays.getPlayerId() : "";
   }
 
   function getPlayerName() {
@@ -76,8 +74,7 @@
   }
 
   /** Strong swears + racial slur variants. Client-side; reject on send + censor on show. */
-  const PROFANITY_PATTERN =
-    String.raw`\b(?:shit(?:s|ty|ting)?|fuck(?:s|ed|ing|er|ers)?|bitch(?:es|y|ing)?|nigg(?:a|as|er|ers|ah)?|iseldur)\b`;
+  const PROFANITY_PATTERN = String.raw`\b(?:shit(?:s|ty|ting)?|fuck(?:s|ed|ing|er|ers)?|bitch(?:es|y|ing)?|nigg(?:a|as|er|ers|ah)?|iseldur)\b`;
 
   function profanityRe(flags = "gi") {
     return new RegExp(PROFANITY_PATTERN, flags);
@@ -240,7 +237,8 @@
       const messages = mergeMessages(left.messages, right.messages);
       if (key === GLOBAL_KEY || String(key).startsWith("group:")) {
         const leftMembers = left.members && typeof left.members === "object" ? left.members : {};
-        const rightMembers = right.members && typeof right.members === "object" ? right.members : {};
+        const rightMembers =
+          right.members && typeof right.members === "object" ? right.members : {};
         const members = mergeMembers(leftMembers, rightMembers);
         // Never let an empty remote stub erase a group's members.
         const safeMembers =
@@ -250,9 +248,7 @@
               ? leftMembers
               : rightMembers;
         const name =
-          sanitizeGroupName(right.name || "") ||
-          sanitizeGroupName(left.name || "") ||
-          "Group";
+          sanitizeGroupName(right.name || "") || sanitizeGroupName(left.name || "") || "Group";
         out[key] = {
           type: key === GLOBAL_KEY ? "global" : "group",
           name,
@@ -293,6 +289,38 @@
     return false;
   }
 
+  function mineApi() {
+    return window.HubChatMine || null;
+  }
+
+  async function persistMyChat() {
+    const helper = mineApi();
+    const api = sb();
+    const me = getPlayerId();
+    if (!helper || !api?.upsertSave || !me) return;
+    try {
+      await api.upsertSave(helper.SAVE_KEY, helper.collectMine(cache, me), 1);
+    } catch (err) {
+      console.warn("[HubChat] player_saves chat write failed", err);
+    }
+  }
+
+  async function pullMyChat(data) {
+    const helper = mineApi();
+    const api = sb();
+    const me = getPlayerId();
+    if (!helper || !api?.getSave || !me) return data;
+    try {
+      const raw = await api.getSave(helper.SAVE_KEY);
+      const mine = helper.readMine(raw);
+      if (!mine || !Object.keys(mine.threads || {}).length) return data;
+      return helper.applyMine(data, mine, me);
+    } catch (err) {
+      console.warn("[HubChat] player_saves chat read failed", err);
+      return data;
+    }
+  }
+
   async function mutate(updater) {
     const run = async () => {
       let remote = cache;
@@ -301,13 +329,14 @@
       } catch {
         remote = cache;
       }
-      const base = mergeData(cache, remote);
+      const base = await pullMyChat(mergeData(cache, remote));
       const next = updater(base);
       if (!next) return false;
       saveLocal(next);
       try {
         await pushRemote(next);
       } catch {
+        await persistMyChat();
         // Keep local write even if remote push fails.
         return true;
       }
@@ -315,6 +344,7 @@
         const confirmed = await fetchRemote();
         saveLocal(mergeData(next, confirmed));
       } catch {}
+      await persistMyChat();
       return true;
     };
     writeQueue = writeQueue.then(run, run);
@@ -332,7 +362,9 @@
           remote = await fetchRemote();
         } catch {}
         // Merge onto in-memory cache too so in-flight creates aren't dropped.
-        saveLocal(mergeData(mergeData(local, cache), remote));
+        const merged = await pullMyChat(mergeData(mergeData(local, cache), remote));
+        saveLocal(merged);
+        await persistMyChat();
         return cache;
       } finally {
         syncing = false;
@@ -379,7 +411,13 @@
     const me = getPlayerId();
     if (!me) return 0;
     // Legacy: unreadCount(friendId)
-    if (maybeId === undefined && typeOrFriendId && typeOrFriendId !== "global" && typeOrFriendId !== "dm" && typeOrFriendId !== "group") {
+    if (
+      maybeId === undefined &&
+      typeOrFriendId &&
+      typeOrFriendId !== "global" &&
+      typeOrFriendId !== "dm" &&
+      typeOrFriendId !== "group"
+    ) {
       return unreadForKey(dmKey(me, typeOrFriendId), getMessagesFor("dm", typeOrFriendId), me);
     }
     const type = typeOrFriendId || active?.type;
@@ -400,7 +438,13 @@
     if (!me) return;
     let type;
     let id;
-    if (maybeId === undefined && typeOrFriendId && typeOrFriendId !== "global" && typeOrFriendId !== "dm" && typeOrFriendId !== "group") {
+    if (
+      maybeId === undefined &&
+      typeOrFriendId &&
+      typeOrFriendId !== "global" &&
+      typeOrFriendId !== "dm" &&
+      typeOrFriendId !== "group"
+    ) {
       type = "dm";
       id = typeOrFriendId;
     } else {
@@ -490,9 +534,7 @@
     }
 
     const friends =
-      typeof HubFriends !== "undefined" && HubFriends.getFriends
-        ? HubFriends.getFriends()
-        : [];
+      typeof HubFriends !== "undefined" && HubFriends.getFriends ? HubFriends.getFriends() : [];
     const nameById = { [me]: myName };
     friends.forEach((f) => {
       nameById[f.playerId] = f.name;
@@ -606,9 +648,7 @@
     if (!me) return 0;
     let n = unreadCount("global");
     const friends =
-      typeof HubFriends !== "undefined" && HubFriends.getFriends
-        ? HubFriends.getFriends()
-        : [];
+      typeof HubFriends !== "undefined" && HubFriends.getFriends ? HubFriends.getFriends() : [];
     friends.forEach((f) => {
       n += unreadCount("dm", f.playerId);
     });
@@ -622,9 +662,7 @@
     const me = getPlayerId();
     if (!me) return [];
     const friends =
-      typeof HubFriends !== "undefined" && HubFriends.getFriends
-        ? HubFriends.getFriends()
-        : [];
+      typeof HubFriends !== "undefined" && HubFriends.getFriends ? HubFriends.getFriends() : [];
     const friendNames = {};
     friends.forEach((f) => {
       friendNames[f.playerId] = f.name;
@@ -937,9 +975,7 @@
     }
 
     function badgeHtml(n) {
-      return n
-        ? `<span class="hub-chat-fab-badge">${n > 9 ? "9+" : n}</span>`
-        : "";
+      return n ? `<span class="hub-chat-fab-badge">${n > 9 ? "9+" : n}</span>` : "";
     }
 
     function renderList() {
@@ -954,9 +990,7 @@
       closeThread();
 
       const friends =
-        typeof HubFriends !== "undefined" && HubFriends.getFriends
-          ? HubFriends.getFriends()
-          : [];
+        typeof HubFriends !== "undefined" && HubFriends.getFriends ? HubFriends.getFriends() : [];
       const groups = getGroups();
       const gUnread = unreadCount("global");
 
@@ -1041,9 +1075,7 @@
         if (title) title.textContent = g?.name || "Group";
       } else {
         const friends =
-          typeof HubFriends !== "undefined" && HubFriends.getFriends
-            ? HubFriends.getFriends()
-            : [];
+          typeof HubFriends !== "undefined" && HubFriends.getFriends ? HubFriends.getFriends() : [];
         const friend = friends.find((f) => f.playerId === cur.id);
         if (title) title.textContent = friend?.name || "Chat";
       }
@@ -1059,9 +1091,7 @@
         .map((m) => {
           const mine = m.from === me;
           const when =
-            typeof HubPlays !== "undefined" && HubPlays.formatWhen
-              ? HubPlays.formatWhen(m.at)
-              : "";
+            typeof HubPlays !== "undefined" && HubPlays.formatWhen ? HubPlays.formatWhen(m.at) : "";
           const who = mine ? "You" : escapeHtml(m.name || "Player");
           return `<li class="${mine ? "is-me" : ""}"><span class="hub-chat-meta">${who} · ${escapeHtml(when)}</span><span class="hub-chat-text">${escapeHtml(m.text)}</span></li>`;
         })
