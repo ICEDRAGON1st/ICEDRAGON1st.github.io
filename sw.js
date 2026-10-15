@@ -1,6 +1,6 @@
 /* My Games service worker — offline shell + cache-as-you-go for visited games. */
-const BUILD = new URL(self.location.href).searchParams.get("v") || "1";
-const CACHE = `mygames-v1-${BUILD}`;
+const BUILD = "20261015a";
+const CACHE = `mygames-v2-${BUILD}`;
 
 const PRECACHE = [
   "./",
@@ -55,8 +55,10 @@ self.addEventListener("install", (event) => {
     caches
       .open(CACHE)
       .then((cache) => cache.addAll(PRECACHE.map((p) => new Request(p, { cache: "reload" }))))
-      .then(() => self.skipWaiting())
-      .catch(() => self.skipWaiting())
+      .catch(async (error) => {
+        await caches.delete(CACHE);
+        throw error;
+      })
   );
 });
 

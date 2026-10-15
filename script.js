@@ -45,6 +45,10 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261015a": [
+    "Hub and games load shared files in parallel for much faster refreshes",
+    "One stable offline worker stops cache resets when moving between games"
+  ],
   "20261001ge": [
     "Cup Flow: 100 unique tilted-catcher levels — proven pour wins, no zigzag stacks"
   ],

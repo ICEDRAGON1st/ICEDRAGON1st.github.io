@@ -11,10 +11,11 @@
     "check:secrets": "node tools/check-secrets.js",
     "inventory:storage": "node tools/check-storage-manifest.js --write",
     "lint": "eslint --max-warnings=0",
-    "format:check": "prettier --check package.json eslint.config.js playwright.config.js tests tools/check-js-syntax.js tools/check-local-resources.js tools/check-secrets.js tools/check-storage-manifest.js",
+    "format:check": "prettier --check package.json eslint.config.js playwright.config.js tests tools/check-js-syntax.js tools/check-local-resources.js tools/check-secrets.js tools/check-storage-manifest.js tools/release.js",
     "test": "node --test tests/unit/*.test.js",
     "test:smoke": "playwright test",
     "ci": "npm run check && npm run format:check && npm test && npm run test:smoke",
+    "release": "node tools/release.js",
     "serve": "http-server . -a 127.0.0.1 -p 4173 -c-1 --silent"
   },
   "devDependencies": {

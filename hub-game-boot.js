@@ -85,7 +85,7 @@
     // Offline shell for games visited once online.
     try {
       if ("serviceWorker" in navigator) {
-        var swUrl = iconBase + "sw.js?v=" + encodeURIComponent(bootVer);
+        var swUrl = iconBase + "sw.js";
         navigator.serviceWorker.register(swUrl).catch(function () {});
       }
     } catch (e) {}

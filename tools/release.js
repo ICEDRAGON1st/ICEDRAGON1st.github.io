@@ -1,0 +1,81 @@
+"use strict";
+
+const fs = require("fs");
+const path = require("path");
+
+const ROOT = path.resolve(__dirname, "..");
+const SKIP_DIRS = new Set([".git", "node_modules", "desktop"]);
+
+function parseArgs(argv) {
+  const result = { notes: [] };
+  for (let i = 0; i < argv.length; i += 1) {
+    const arg = argv[i];
+    if (arg === "--build") result.build = argv[++i];
+    else if (arg === "--note") result.notes.push(argv[++i]);
+    else throw new Error(`Unknown argument: ${arg}`);
+  }
+  if (!/^\d{8}[a-z]+$/.test(result.build || "")) {
+    throw new Error("--build must look like 20261015a");
+  }
+  if (!result.notes.length || result.notes.some((note) => !String(note || "").trim())) {
+    throw new Error("Provide at least one non-empty --note");
+  }
+  return result;
+}
+
+function htmlFiles(dir, files = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.isDirectory() && SKIP_DIRS.has(entry.name)) continue;
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) htmlFiles(full, files);
+    else if (entry.isFile() && entry.name.endsWith(".html")) files.push(full);
+  }
+  return files;
+}
+
+function writeIfChanged(file, next, changed) {
+  const previous = fs.readFileSync(file, "utf8");
+  if (next === previous) return;
+  fs.writeFileSync(file, next, "utf8");
+  changed.push(path.relative(ROOT, file).replace(/\\/g, "/"));
+}
+
+const { build, notes } = parseArgs(process.argv.slice(2));
+const indexPath = path.join(ROOT, "index.html");
+const indexBefore = fs.readFileSync(indexPath, "utf8");
+const current = /window\.WORDLE_BUILD = "([^"]+)"/.exec(indexBefore)?.[1];
+if (!current) throw new Error("Could not find WORDLE_BUILD in index.html");
+if (current === build) throw new Error(`Build ${build} is already current`);
+
+const changed = [];
+for (const file of htmlFiles(ROOT)) {
+  const previous = fs.readFileSync(file, "utf8");
+  let next = previous;
+  if (file === indexPath) {
+    next = next.replace(/window\.WORDLE_BUILD = "[^"]+"/, `window.WORDLE_BUILD = "${build}"`);
+  }
+  next = next.replace(/(\.\.\/hub-[a-z-]+\.js)(?:\?v=[^"'\s>]+)?/gi, `$1?v=${build}`);
+  next = next.replace(
+    /((?:src|href)=["'](?:site-config|hub-[a-z-]+)\.js)(?:\?v=[^"'\s>]+)?/gi,
+    `$1?v=${build}`
+  );
+  writeIfChanged(file, next, changed);
+}
+
+const swPath = path.join(ROOT, "sw.js");
+const swBefore = fs.readFileSync(swPath, "utf8");
+const swNext = swBefore.replace(/const BUILD = "[^"]+";/, `const BUILD = "${build}";`);
+if (swNext === swBefore) throw new Error("Could not update BUILD in sw.js");
+writeIfChanged(swPath, swNext, changed);
+
+const scriptPath = path.join(ROOT, "script.js");
+const scriptBefore = fs.readFileSync(scriptPath, "utf8");
+const escapedNotes = notes.map((note) => `    ${JSON.stringify(String(note).trim())}`).join(",\n");
+const changelogEntry = `const CHANGELOG = {\n  "${build}": [\n${escapedNotes}\n  ],`;
+const scriptNext = scriptBefore.replace("const CHANGELOG = {", changelogEntry);
+if (scriptNext === scriptBefore) throw new Error("Could not update CHANGELOG in script.js");
+writeIfChanged(scriptPath, scriptNext, changed);
+
+console.log(`Build ${current} -> ${build}`);
+console.log(`Updated ${changed.length} files:`);
+changed.forEach((file) => console.log(`- ${file}`));

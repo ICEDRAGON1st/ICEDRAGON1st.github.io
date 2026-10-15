@@ -94,13 +94,13 @@
       pointer-events: none !important;
     }
   </style>
-  <script src="site-config.js?v=20261001ge"></script>
+  <script src="site-config.js?v=20261015a"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=20261001ge">
-  <script src="hub-net.js?v=20261001ge"></script>
-  <script src="hub-afk.js?v=20261001ge"></script>
+  <script src="hub-net.js?v=20261015a"></script>
+  <script src="hub-afk.js?v=20261015a"></script>
 </head>
 <body data-guess-colors="ice">
   <div id="hub-boot-loader" aria-live="polite" aria-busy="true">
@@ -940,34 +940,65 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20261001ge";
+    window.WORDLE_BUILD = "20261015a";
     try {
       if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("sw.js?v=" + window.WORDLE_BUILD).catch(function () {});
+        navigator.serviceWorker.register("sw.js").catch(function () {});
       }
     } catch (e) {}
-    const scripts = [
-      "hub-streak.js", "hub-achievements.js", "hub-sound.js", "hub-audio.js", "hub-confetti.js", "hub-supabase.js", "hub-account-bag.js", "hub-eggs.js", "hub-plays.js", "hub-coins.js", "hub-referrals.js", "hub-online-overlay.js", "hub-help.js", "hub-fishing-gifts.js", "hub-fishing-mail.js", "mine-data.js", "hub-leaderboard.js", "hub-friends.js", "hub-chat.js", "hub-calls.js", "hub-feedback.js", "hub-notifications.js", "hub-online-match.js", "hub-discord.js", "hub-admin.js",
-      "words.js",
-      "dictionary.js",
-      "words-4.js",
-      "dictionary-4.js",
-      "words-6.js",
-      "dictionary-6.js",
-      "words-da.js",
-      "dictionary-da.js",
-      "words-da-4.js",
-      "dictionary-da-4.js",
-      "words-da-6.js",
-      "dictionary-da-6.js",
-      "words-is.js",
-      "dictionary-is.js",
-      "words-is-4.js",
-      "dictionary-is-4.js",
-      "words-is-6.js",
-      "dictionary-is-6.js",
-      "wordle-themes.js",
-      "script.js"
+    // Download independent files together, but preserve the few real dependency boundaries.
+    // This avoids making one slow dictionary/module block every request after it.
+    const scriptPhases = [
+      [
+        "hub-streak.js",
+        "hub-achievements.js",
+        "hub-sound.js",
+        "hub-audio.js",
+        "hub-confetti.js",
+        "hub-supabase.js",
+        "hub-eggs.js"
+      ],
+      ["hub-account-bag.js"],
+      ["hub-plays.js"],
+      [
+        "hub-coins.js",
+        "hub-referrals.js",
+        "hub-online-overlay.js",
+        "hub-help.js",
+        "hub-fishing-gifts.js",
+        "hub-fishing-mail.js",
+        "mine-data.js",
+        "hub-leaderboard.js",
+        "hub-friends.js",
+        "hub-feedback.js",
+        "hub-notifications.js",
+        "hub-online-match.js",
+        "hub-discord.js",
+        "hub-admin.js"
+      ],
+      ["hub-chat.js", "hub-calls.js"],
+      [
+        "words.js",
+        "dictionary.js",
+        "words-4.js",
+        "dictionary-4.js",
+        "words-6.js",
+        "dictionary-6.js",
+        "words-da.js",
+        "dictionary-da.js",
+        "words-da-4.js",
+        "dictionary-da-4.js",
+        "words-da-6.js",
+        "dictionary-da-6.js",
+        "words-is.js",
+        "dictionary-is.js",
+        "words-is-4.js",
+        "dictionary-is-4.js",
+        "words-is-6.js",
+        "dictionary-is-6.js",
+        "wordle-themes.js"
+      ],
+      ["script.js"]
     ];
     function dismissHubBootLoader() {
       try {
@@ -981,22 +1012,29 @@
       } catch (e) {}
     }
     window.dismissHubBootLoader = dismissHubBootLoader;
-    function loadNext(i) {
-      if (i >= scripts.length) {
-        // Scripts finished; give init a tick, then drop the loader.
-        setTimeout(dismissHubBootLoader, 40);
-        return;
-      }
-      const el = document.createElement("script");
-      el.src = scripts[i] + "?v=" + window.WORDLE_BUILD;
-      el.onload = function () { loadNext(i + 1); };
-      el.onerror = function () {
-        console.error("Failed to load", scripts[i]);
-        loadNext(i + 1);
-      };
-      document.body.appendChild(el);
+    function loadHubScript(file) {
+      return new Promise(function (resolve) {
+        const el = document.createElement("script");
+        el.src = file + "?v=" + window.WORDLE_BUILD;
+        el.onload = resolve;
+        el.onerror = function () {
+          console.error("Failed to load", file);
+          resolve();
+        };
+        document.body.appendChild(el);
+      });
     }
-    loadNext(0);
+    async function loadHubPhases() {
+      for (const phase of scriptPhases) {
+        await Promise.all(phase.map(loadHubScript));
+      }
+      // Scripts finished; give init a tick, then drop the loader.
+      setTimeout(dismissHubBootLoader, 40);
+    }
+    loadHubPhases().catch(function (err) {
+      console.error("Hub boot failed", err);
+      dismissHubBootLoader();
+    });
     // Safety: never leave the loader stuck
     setTimeout(dismissHubBootLoader, 20000);
   </script>

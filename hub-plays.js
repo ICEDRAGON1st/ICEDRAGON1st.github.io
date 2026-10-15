@@ -5142,8 +5142,9 @@ body.light .menu-credit .player-name-creator {
       refreshCreatorCredits();
     });
 
-  // Claim Fishing Idle admin gifts while on hub / other games (not on fishing page).
-  (function bootFishingGiftClaimer() {
+  function bootOptionalHubModules() {
+    // Claim Fishing Idle admin gifts while on hub / other games (not on fishing page).
+    (function bootFishingGiftClaimer() {
     try {
       if (window.HubFishingGifts) return;
       if (/\/fishing(\/|$)/i.test(location.pathname || "")) return;
@@ -5165,10 +5166,10 @@ body.light .menu-credit .player-name-creator {
         document.head.appendChild(el);
       });
     } catch {}
-  })();
+    })();
 
-  // Hold-Tab online roster on hub and every game page.
-  (function bootOnlineOverlay() {
+    // Hold-Tab online roster on hub and every game page.
+    (function bootOnlineOverlay() {
     try {
       if (window.HubOnlineOverlay) return;
       const scripts = document.getElementsByTagName("script");
@@ -5189,10 +5190,10 @@ body.light .menu-credit .player-name-creator {
       el.async = true;
       document.head.appendChild(el);
     } catch {}
-  })();
+    })();
 
-  // Local Help Assistant (F / F1) on hub and every game page.
-  (function bootHelpAssistant() {
+    // Local Help Assistant (F / F1) on hub and every game page.
+    (function bootHelpAssistant() {
     try {
       if (window.HubHelp) return;
       const scripts = document.getElementsByTagName("script");
@@ -5213,10 +5214,10 @@ body.light .menu-credit .player-name-creator {
       el.async = true;
       document.head.appendChild(el);
     } catch {}
-  })();
+    })();
 
-  // Master Admin (G) for ICE_DRAGON — hub + every game (Help-style float + pause in-game).
-  (function bootMasterAdmin() {
+    // Master Admin (G) for ICE_DRAGON — hub + every game (Help-style float + pause in-game).
+    (function bootMasterAdmin() {
     try {
       if (window.HubAdmin) return;
       const scripts = document.getElementsByTagName("script");
@@ -5237,5 +5238,20 @@ body.light .menu-credit .player-name-creator {
       el.async = true;
       document.head.appendChild(el);
     } catch {}
-  })();
+    })();
+  }
+
+  function scheduleOptionalHubModules() {
+    const run = () => {
+      if (typeof requestIdleCallback === "function") {
+        requestIdleCallback(bootOptionalHubModules, { timeout: 2000 });
+      } else {
+        setTimeout(bootOptionalHubModules, 200);
+      }
+    };
+    if (document.readyState === "complete") run();
+    else window.addEventListener("load", run, { once: true });
+  }
+
+  scheduleOptionalHubModules();
 })();
