@@ -37,7 +37,7 @@ const DIRS = [
 
 const CENTER_ORDER = [3, 2, 4, 1, 5, 0, 6];
 
-let board = [];
+let board = createBoard();
 let current = RED;
 let mode = "two";
 let difficulty = "easy";

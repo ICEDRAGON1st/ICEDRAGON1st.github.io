@@ -5,6 +5,7 @@ const { test, expect } = require("@playwright/test");
 const PAGES = [
   { name: "hub", path: "/" },
   { name: "small game", path: "/snake/" },
+  { name: "canvas/board game", path: "/connect-four/" },
   { name: "Paper Claim", path: "/paper-io/" },
   { name: "Fishing Idle", path: "/fishing/" },
   { name: "Mine Depth", path: "/mine/" },

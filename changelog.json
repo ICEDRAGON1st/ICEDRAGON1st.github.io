@@ -1,4 +1,7 @@
 {
+  "20261015l": [
+    "Fixed Drop Four startup and expanded mobile layout checks."
+  ],
   "20261015k": [
     "Account sync now preserves the highest scores across devices instead of allowing a newer lower score to overwrite them.",
     "Coins, Sticker Garage progress, Cup Flow progress, Space Waves progress, and selected game skins now follow the player account safely."
