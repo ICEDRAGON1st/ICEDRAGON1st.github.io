@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015t",
+  "build": "20261015u",
   "notes": [
-    "Paper Claim now repaints only the land that changed."
+    "Account restore now clears leftover progress and unlock toasts from the previous login."
   ]
 };

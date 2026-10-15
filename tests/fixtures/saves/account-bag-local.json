@@ -15,6 +15,8 @@
     "hub-daily-streak": "{\"streak\":3,\"best\":5,\"lastDate\":\"2099-12-30\",\"lastPlayedAt\":4102444700000}",
     "hub-look-theme": "tide",
     "hub-look-set-at": "100",
+    "clicker-high-score-v3": "4000",
+    "clicker-save-v3": "{\"coins\":80,\"prestige\":1}",
     "fishing-best-catch-v2": "9000",
     "fishing-save-v3": "{\"ownerPlayerId\":\"fixture-player\",\"ownerName\":\"Fixture\",\"coins\":500,\"lifetime\":200,\"catches\":10,\"perfects\":2,\"boatLevel\":2,\"aquariumLevel\":1,\"bestCatchScore\":9000,\"bestCatchId\":\"salmon\",\"caught\":{\"salmon\":{\"any\":true,\"gold\":true}},\"owned\":{\"starter\":true},\"unlocked\":{\"creek\":true},\"cooler\":[{\"id\":\"salmon\"},{\"id\":\"trout\"}],\"lastTick\":100}"
   }

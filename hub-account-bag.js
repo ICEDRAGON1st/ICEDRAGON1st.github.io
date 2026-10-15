@@ -347,6 +347,11 @@
         localStorage.removeItem(key);
       } catch {}
     });
+    // Toast queue is device-session only and is not a bag key, but a full
+    // account switch must not replay the previous identity's unlocks.
+    try {
+      localStorage.removeItem("hub-achievements-pending");
+    } catch {}
   }
 
   function snapshot(playerId) {

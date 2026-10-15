@@ -1,4 +1,7 @@
 {
+  "20261015u": [
+    "Account restore now clears leftover progress and unlock toasts from the previous login."
+  ],
   "20261015t": [
     "Paper Claim now repaints only the land that changed."
   ],

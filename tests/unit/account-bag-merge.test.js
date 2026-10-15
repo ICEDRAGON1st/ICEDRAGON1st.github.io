@@ -76,6 +76,8 @@ test("golden account bags merge progress monotonically", () => {
   assert.equal(merged.kv["cup-flow-best-level"], "12");
   assert.equal(merged.kv["space-waves-high-score"], "450");
   assert.equal(merged.kv["sticker-garage-high-score"], "900");
+  assert.equal(merged.kv["clicker-high-score-v3"], "4000");
+  assert.equal(merged.kv["clicker-save-v3"], '{"coins":20,"prestige":0}');
   assert.equal(merged.kv["paper-claim-skin"], "classic");
   assert.deepEqual(JSON.parse(merged.kv["hub-coins-v1"]), {
     balance: 700,
@@ -250,4 +252,40 @@ test("Mine wipe never restores old cloud progress over new local progress", () =
   );
   assert.equal(values.get("mine-depth-save-v1"), "new-local-progress");
   assert.equal(values.get("snake-high-score"), "80");
+});
+
+test("account restore never blends leftover keys or toast queues", () => {
+  const { api, values } = loadAccountBagApi();
+  values.set("hub-player-name", "Guest");
+  values.set("snake-high-score", "50");
+  values.set("clicker-high-score-v3", "900");
+  values.set("hub-achievements-pending", '["live-toast"]');
+
+  api.apply(
+    {
+      playerId: "restored-player",
+      kv: {
+        "hub-player-name": "undefined",
+        "snake-high-score": "80",
+        "hub-achievements-pending": '["bag-toast"]'
+      }
+    },
+    { replace: true }
+  );
+
+  assert.equal(values.has("hub-player-name"), false);
+  assert.equal(values.get("snake-high-score"), "80");
+  assert.equal(values.has("clicker-high-score-v3"), false);
+  assert.equal(values.has("hub-achievements-pending"), false);
+
+  values.set("hub-achievements-pending", '["session-toast"]');
+  api.apply({
+    playerId: "restored-player",
+    kv: {
+      "snake-high-score": "90",
+      "hub-achievements-pending": '["bag-toast"]'
+    }
+  });
+  assert.equal(values.get("snake-high-score"), "90");
+  assert.equal(values.get("hub-achievements-pending"), '["session-toast"]');
 });

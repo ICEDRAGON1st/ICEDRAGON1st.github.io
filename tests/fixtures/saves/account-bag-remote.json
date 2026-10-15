@@ -15,6 +15,8 @@
     "hub-daily-streak": "{\"streak\":1,\"best\":8,\"lastDate\":\"2099-12-31\",\"lastPlayedAt\":4102444800000}",
     "hub-look-theme": "classic",
     "hub-look-set-at": "200",
+    "clicker-high-score-v3": "2500",
+    "clicker-save-v3": "{\"coins\":20,\"prestige\":0}",
     "fishing-best-catch-v2": "7000",
     "fishing-save-v3": "{\"ownerPlayerId\":\"fixture-player\",\"ownerName\":\"Fixture\",\"coins\":100,\"lifetime\":250,\"catches\":12,\"perfects\":1,\"boatLevel\":1,\"aquariumLevel\":3,\"bestCatchScore\":7000,\"bestCatchId\":\"tuna\",\"caught\":{\"tuna\":{\"any\":true,\"shiny\":true}},\"owned\":{\"proRod\":true},\"unlocked\":{\"lake\":true},\"cooler\":[{\"id\":\"tuna\"},{\"id\":\"carp\"},{\"id\":\"eel\"}],\"lastTick\":200}"
   }
