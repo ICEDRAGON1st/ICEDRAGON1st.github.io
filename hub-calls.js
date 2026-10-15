@@ -37,7 +37,11 @@
   }
 
   function playerName() {
-    return String(window.HubPlays?.getName?.() || "Player").trim().slice(0, 24) || "Player";
+    return (
+      String(window.HubPlays?.getName?.() || "Player")
+        .trim()
+        .slice(0, 24) || "Player"
+    );
   }
 
   function makeId() {
@@ -598,7 +602,10 @@
   }
 
   function isSharing() {
-    return !!(active?.screenStream && active.screenStream.getVideoTracks().some((t) => t.readyState === "live"));
+    return !!(
+      active?.screenStream &&
+      active.screenStream.getVideoTracks().some((t) => t.readyState === "live")
+    );
   }
 
   function syncLocalPreview() {
@@ -664,7 +671,9 @@
     }
 
     const room = cache.rooms?.[active.roomId];
-    const muted = !!(active.localStream && [...active.localStream.getAudioTracks()].every((t) => !t.enabled));
+    const muted = !!(
+      active.localStream && [...active.localStream.getAudioTracks()].every((t) => !t.enabled)
+    );
     const sharing = isSharing();
     bar.hidden = false;
     bar.classList.remove("hidden");
@@ -684,11 +693,7 @@
       peersEl.innerHTML = livePeers
         .map(([id, p]) => {
           const talking = isPeerTalking(id);
-          const cls = [
-            "hub-call-peer",
-            p.sharing ? "is-sharing" : "",
-            talking ? "is-talking" : ""
-          ]
+          const cls = ["hub-call-peer", p.sharing ? "is-sharing" : "", talking ? "is-talking" : ""]
             .filter(Boolean)
             .join(" ");
           return `<span class="${cls}" data-peer-id="${escapeHtml(id)}"><span class="hub-call-talk-bars" aria-hidden="true"><i></i><i></i><i></i></span>${escapeHtml(
@@ -760,9 +765,7 @@
     stopWatch(peerId);
     try {
       const srcStream =
-        streamOrTrack instanceof MediaStream
-          ? streamOrTrack
-          : new MediaStream([streamOrTrack]);
+        streamOrTrack instanceof MediaStream ? streamOrTrack : new MediaStream([streamOrTrack]);
       const tracks = srcStream.getAudioTracks();
       if (!tracks.length) return;
       // Always clone — never stop/own the live WebRTC receiver track.
@@ -796,17 +799,18 @@
   }
 
   function updateSpeakingUi() {
-    callDoc().querySelectorAll(".hub-call-peer[data-peer-id]").forEach((el) => {
-      const id = el.getAttribute("data-peer-id");
-      el.classList.toggle("is-talking", isPeerTalking(id));
-    });
+    callDoc()
+      .querySelectorAll(".hub-call-peer[data-peer-id]")
+      .forEach((el) => {
+        const id = el.getAttribute("data-peer-id");
+        el.classList.toggle("is-talking", isPeerTalking(id));
+      });
   }
 
   function sampleMeters() {
     const me = playerId();
     const localMuted =
-      !!active?.localStream &&
-      [...active.localStream.getAudioTracks()].every((t) => !t.enabled);
+      !!active?.localStream && [...active.localStream.getAudioTracks()].every((t) => !t.enabled);
     const now = Date.now();
     meters.forEach((m, id) => {
       m.analyser.getByteTimeDomainData(m.data);
@@ -1214,7 +1218,8 @@
       pc.iceConnectionState === "checking" ||
       pc.iceConnectionState === "disconnected" ||
       pc.iceConnectionState === "failed" ||
-      (pc.signalingState === "have-local-offer" && Date.now() - (Number(pc._hubOfferAt) || since) > CONNECT_STUCK_MS)
+      (pc.signalingState === "have-local-offer" &&
+        Date.now() - (Number(pc._hubOfferAt) || since) > CONNECT_STUCK_MS)
     );
   }
 
@@ -1288,7 +1293,11 @@
       }
       let conn = active.pcs.get(peerId) || (await ensurePc(peerId));
       if (!conn) return;
-      if (conn.signalingState === "have-local-offer" && conn._hubOfferAt && Date.now() - conn._hubOfferAt < OFFER_RETRY_MS) {
+      if (
+        conn.signalingState === "have-local-offer" &&
+        conn._hubOfferAt &&
+        Date.now() - conn._hubOfferAt < OFFER_RETRY_MS
+      ) {
         return;
       }
       if (conn.signalingState === "have-local-offer") {
@@ -1396,7 +1405,8 @@
       }
     } else if (
       // Higher id: only nudge if lower id never offered (helps late joiners in 3–4 person calls)
-      (!link?.offer || (link.offerAt && Date.now() - Number(link.offerAt) > OFFER_RETRY_MS * 2 && !pcLive(pc))) &&
+      (!link?.offer ||
+        (link.offerAt && Date.now() - Number(link.offerAt) > OFFER_RETRY_MS * 2 && !pcLive(pc))) &&
       (!pc || pc.signalingState === "stable")
     ) {
       await offerToPeer(peerId);
@@ -1457,6 +1467,9 @@
     const me = playerId();
     if (!me) throw new Error("Set a hub name first");
     const stream = await getMic();
+    try {
+      window.HubAudio?.duckForCall?.();
+    } catch {}
     active = {
       roomId,
       kind: "",
@@ -1530,6 +1543,10 @@
       return { ok: false, error: "mic" };
     }
 
+    try {
+      window.HubAudio?.duckForCall?.();
+    } catch {}
+
     active = {
       roomId: id,
       kind,
@@ -1541,7 +1558,8 @@
 
     const ok = await mutateRooms((rooms) => {
       const existing = rooms[id];
-      const peers = existing?.peers && typeof existing.peers === "object" ? { ...existing.peers } : {};
+      const peers =
+        existing?.peers && typeof existing.peers === "object" ? { ...existing.peers } : {};
       // Clear stale left flags for me
       peers[me] = {
         name: playerName(),
@@ -1587,6 +1605,9 @@
     if (!ok) {
       stopLocal();
       active = null;
+      try {
+        window.HubAudio?.unduckForCall?.();
+      } catch {}
       renderCallBar();
       return { ok: false, error: "Could not start call" };
     }
@@ -1773,6 +1794,9 @@
     });
     stopLocal();
     active = null;
+    try {
+      window.HubAudio?.unduckForCall?.();
+    } catch {}
     stopAllMeters();
     clearCallSession();
     document.getElementById("hub-call-videos")?.replaceChildren();

@@ -53,16 +53,18 @@
       "credits"
     ]),
     absTrack("skyline-night", "Distant Skyline — Night Drive", "distant-skyline-night-drive.ogg"),
-    absTrack("skyline-strut", "Distant Skyline — Sidewalk Strut", "distant-skyline-sidewalk-strut.ogg", [
-      "puzzle",
-      "wordle",
-      "sudoku",
-      "memory",
-      "hangman"
-    ]),
+    absTrack(
+      "skyline-strut",
+      "Distant Skyline — Sidewalk Strut",
+      "distant-skyline-sidewalk-strut.ogg",
+      ["puzzle", "wordle", "sudoku", "memory", "hangman"]
+    ),
     absTrack("seaside-waves", "Seaside — Endless Waves", "seaside-endless-waves.ogg", ["fishing"]),
     absTrack("seaside-coral", "Seaside — Coral Reef", "seaside-coral-reef.ogg"),
-    absTrack("sunburn-beach", "Sunburn — Beach House", "sunburn-beach-house.ogg", ["garden", "cafe"]),
+    absTrack("sunburn-beach", "Sunburn — Beach House", "sunburn-beach-house.ogg", [
+      "garden",
+      "cafe"
+    ]),
     absTrack("sunburn-spf", "Sunburn — SPF 3000", "sunburn-spf-3000.ogg"),
     absTrack("vacation-chill", "Vacation Day — Chillout", "vacation-day-chillout.ogg", ["cows"]),
     absTrack("vacation-adventure", "Vacation Day — Adventure", "vacation-day-adventure.ogg", [
@@ -71,18 +73,41 @@
       "guac",
       "bubble"
     ]),
-    absTrack("summer-pool", "Have A Great Summer — Pool Party", "have-a-great-summer-pool-party.ogg"),
-    absTrack("freefall-glide", "Freefall — Glide", "freefall-glide.ogg", ["flappy", "dino", "ramp"]),
+    absTrack(
+      "summer-pool",
+      "Have A Great Summer — Pool Party",
+      "have-a-great-summer-pool-party.ogg"
+    ),
+    absTrack("freefall-glide", "Freefall — Glide", "freefall-glide.ogg", [
+      "flappy",
+      "dino",
+      "ramp"
+    ]),
     absTrack("freefall-view", "Freefall — What A View", "freefall-what-a-view.ogg", ["space"]),
     absTrack("deep-well", "Pull Me Down — Deep Well", "pull-me-down-deep-well.ogg", ["mine"]),
     absTrack("gravity", "Pull Me Down — Gravity", "pull-me-down-gravity.ogg"),
-    absTrack("dark-traveler", "Dark Portents — Mysterious Traveler", "dark-portents-mysterious-traveler.ogg"),
+    absTrack(
+      "dark-traveler",
+      "Dark Portents — Mysterious Traveler",
+      "dark-portents-mysterious-traveler.ogg"
+    ),
     absTrack("dark-future", "Dark Portents — Shrouded Future", "dark-portents-shrouded-future.ogg"),
     absTrack("dust-rain", "Dust Bowl — Hope of Rain", "dust-bowl-hope-of-rain.ogg"),
     absTrack("dust-parched", "Dust Bowl — Parched", "dust-bowl-parched.ogg"),
-    absTrack("dunes-oasis", "The Walking Dunes — Evening Oasis", "the-walking-dunes-evening-oasis.ogg"),
-    absTrack("dunes-sun", "The Walking Dunes — Unblinking Sun", "the-walking-dunes-unblinking-sun.ogg"),
-    absTrack("workshop", "Workshop — Breadboard", "workshop-breadboard.ogg", ["clicker", "stacker"]),
+    absTrack(
+      "dunes-oasis",
+      "The Walking Dunes — Evening Oasis",
+      "the-walking-dunes-evening-oasis.ogg"
+    ),
+    absTrack(
+      "dunes-sun",
+      "The Walking Dunes — Unblinking Sun",
+      "the-walking-dunes-unblinking-sun.ogg"
+    ),
+    absTrack("workshop", "Workshop — Breadboard", "workshop-breadboard.ogg", [
+      "clicker",
+      "stacker"
+    ]),
     absTrack("magnetic-tape", "Magnetic Tape — Scuffed", "magnetic-tape-scuffed.ogg", ["retro"]),
     absTrack("alley-divin", "Alley Cat — Dumpster Divin'", "alley-cat-dumpster-divin.ogg", [
       "snake",
@@ -99,7 +124,10 @@
       "2048"
     ]),
     absTrack("soup-melody", "Primordial Soup — Melody", "primordial-soup-melody.ogg"),
-    absTrack("lift-chorus", "Lift You Up — Chorus", "lift-you-up-chorus.ogg", ["tictactoe", "connect-four"]),
+    absTrack("lift-chorus", "Lift You Up — Chorus", "lift-you-up-chorus.ogg", [
+      "tictactoe",
+      "connect-four"
+    ]),
     absTrack("lift-melody", "Lift You Up — Melody", "lift-you-up-melody.ogg", ["math", "quiz"]),
     {
       id: "hub-lounge",
@@ -248,9 +276,33 @@
     return el;
   }
 
+  let callDucked = false;
+
+  function effectiveBgmVolumeFrom(state) {
+    if (state?.callDucked || state?.muted) return 0;
+    return Math.max(0, Math.min(1, Number(state?.volume) || 0));
+  }
+
   function effectiveBgmVolume() {
-    if (bgmMuted) return 0;
-    return bgmVolume;
+    return effectiveBgmVolumeFrom({
+      callDucked,
+      muted: bgmMuted,
+      volume: bgmVolume
+    });
+  }
+
+  function duckForCall() {
+    if (callDucked) return;
+    callDucked = true;
+    applyLiveVolume();
+    dispatchChanged();
+  }
+
+  function unduckForCall() {
+    if (!callDucked) return;
+    callDucked = false;
+    applyLiveVolume();
+    dispatchChanged();
   }
 
   function persist() {
@@ -656,7 +708,10 @@
   }
 
   function songChoices() {
-    return [{ id: "auto", title: "Auto (by screen)", artist: "Matches each menu / minigame" }, ...TRACKS];
+    return [
+      { id: "auto", title: "Auto (by screen)", artist: "Matches each menu / minigame" },
+      ...TRACKS
+    ];
   }
 
   function filterSongChoices(query) {
@@ -945,11 +1000,21 @@
     }
 
     // Migrate legacy id-only inputs
-    box.querySelectorAll("#hub-audio-bgm").forEach((el) => el.setAttribute("data-hub-audio-bgm", ""));
-    box.querySelectorAll("#hub-audio-sfx").forEach((el) => el.setAttribute("data-hub-audio-sfx", ""));
-    box.querySelectorAll("#hub-audio-open-credits").forEach((el) => el.setAttribute("data-hub-audio-credits", ""));
-    box.querySelectorAll("#hub-audio-song-search").forEach((el) => el.setAttribute("data-hub-audio-song-search", ""));
-    box.querySelectorAll("#hub-audio-song-results").forEach((el) => el.setAttribute("data-hub-audio-song-results", ""));
+    box
+      .querySelectorAll("#hub-audio-bgm")
+      .forEach((el) => el.setAttribute("data-hub-audio-bgm", ""));
+    box
+      .querySelectorAll("#hub-audio-sfx")
+      .forEach((el) => el.setAttribute("data-hub-audio-sfx", ""));
+    box
+      .querySelectorAll("#hub-audio-open-credits")
+      .forEach((el) => el.setAttribute("data-hub-audio-credits", ""));
+    box
+      .querySelectorAll("#hub-audio-song-search")
+      .forEach((el) => el.setAttribute("data-hub-audio-song-search", ""));
+    box
+      .querySelectorAll("#hub-audio-song-results")
+      .forEach((el) => el.setAttribute("data-hub-audio-song-results", ""));
 
     wireSettingsBox(box);
   }
@@ -966,7 +1031,12 @@
     if (!card) return false;
     if (card.querySelector("[data-hub-audio-settings]")) return true;
     const oid = String(ov?.id || "");
-    if (oid === "settings-overlay" || oid === "overlay" || oid === "menu-overlay" || oid === "pause-overlay") {
+    if (
+      oid === "settings-overlay" ||
+      oid === "overlay" ||
+      oid === "menu-overlay" ||
+      oid === "pause-overlay"
+    ) {
       return true;
     }
     return !!(
@@ -1004,9 +1074,7 @@
         if (!overlayIsVisible(ov)) return;
         // Prefer the primary card (first direct child), skip nested guide panels
         const card =
-          ov.querySelector(":scope > .overlay-card") ||
-          ov.querySelector(".overlay-card") ||
-          ov;
+          ov.querySelector(":scope > .overlay-card") || ov.querySelector(".overlay-card") || ov;
         if (!looksLikeGameMenu(card, ov)) return;
         // Avoid stuffing audio into secondary fishing/mine panels without nav actions
         if (
@@ -1217,6 +1285,10 @@
     mountIntoMenuHost,
     scanGameMenus,
     unlock,
+    duckForCall,
+    unduckForCall,
+    isCallDucked: () => callDucked,
+    effectiveBgmVolumeFrom,
     TRACKS
   };
 })();
