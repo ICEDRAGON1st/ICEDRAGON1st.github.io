@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015m",
+  "build": "20261015n",
   "notes": [
-    "Made updates and reloads lighter while preserving offline games and saves."
+    "Centralized release metadata to prevent mixed-version updates."
   ]
 };

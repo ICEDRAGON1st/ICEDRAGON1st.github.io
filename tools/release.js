@@ -41,13 +41,25 @@ function writeIfChanged(file, next, changed) {
 }
 
 const { build, notes } = parseArgs(process.argv.slice(2));
+const manifestPath = path.join(ROOT, "build-manifest.json");
+const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+const current = manifest?.build;
+if (!/^\d{8}[a-z]+$/.test(current || "")) {
+  throw new Error("build-manifest.json must contain a valid build");
+}
+
 const indexPath = path.join(ROOT, "index.html");
 const indexBefore = fs.readFileSync(indexPath, "utf8");
-const current = /window\.WORDLE_BUILD = "([^"]+)"/.exec(indexBefore)?.[1];
-if (!current) throw new Error("Could not find WORDLE_BUILD in index.html");
+const indexBuild = /window\.WORDLE_BUILD = "([^"]+)"/.exec(indexBefore)?.[1];
+if (indexBuild !== current) {
+  throw new Error(
+    `Generated index build ${indexBuild || "(missing)"} does not match manifest ${current}`
+  );
+}
 if (current === build) throw new Error(`Build ${build} is already current`);
 
 const changed = [];
+writeIfChanged(manifestPath, `${JSON.stringify({ ...manifest, build }, null, 2)}\n`, changed);
 for (const file of htmlFiles(ROOT)) {
   const previous = fs.readFileSync(file, "utf8");
   let next = previous;

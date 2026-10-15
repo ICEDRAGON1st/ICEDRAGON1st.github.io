@@ -1,4 +1,7 @@
 {
+  "20261015n": [
+    "Centralized release metadata to prevent mixed-version updates."
+  ],
   "20261015m": [
     "Made updates and reloads lighter while preserving offline games and saves."
   ],

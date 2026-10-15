@@ -12,6 +12,7 @@ test("release build and changelog metadata stay aligned", () => {
   const worker = fs.readFileSync(path.join(ROOT, "sw.js"), "utf8");
   const latestSource = fs.readFileSync(path.join(ROOT, "latest-changelog.js"), "utf8");
   const changelog = JSON.parse(fs.readFileSync(path.join(ROOT, "changelog.json"), "utf8"));
+  const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, "build-manifest.json"), "utf8"));
 
   const indexBuild = /window\.WORDLE_BUILD = "([^"]+)"/.exec(index)?.[1];
   const styleBuild = /href=["']styles\.css\?v=([^"']+)/.exec(index)?.[1];
@@ -19,6 +20,7 @@ test("release build and changelog metadata stay aligned", () => {
   const latestMatch = /window\.MYGAMES_LATEST_CHANGELOG = (\{[\s\S]*\});\s*$/.exec(latestSource);
 
   assert.ok(indexBuild, "index build is present");
+  assert.equal(indexBuild, manifest.build);
   assert.equal(styleBuild, indexBuild);
   assert.equal(workerBuild, indexBuild);
   assert.ok(latestMatch, "latest changelog metadata is parseable");
