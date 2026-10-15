@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015aj",
+  "build": "20261015ak",
   "notes": [
-    "What's new and other hub dialogs now keep keyboard focus inside the box."
+    "Help now reads owner, games, and rules from a smaller GAME_INFO helper."
   ]
 };

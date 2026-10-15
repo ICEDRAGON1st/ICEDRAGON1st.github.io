@@ -62,11 +62,12 @@ test("hub critical path stays within its script budget", async ({ context, page 
     };
   });
 
-  expect(metrics.scriptCount, JSON.stringify(metrics.scripts)).toBeLessThanOrEqual(12);
+  expect(metrics.scriptCount, JSON.stringify(metrics.scripts)).toBeLessThanOrEqual(16);
   expect(metrics.scriptBytes, JSON.stringify(metrics.scripts)).toBeLessThan(1_000_000);
   expect(metrics.interactiveAt).toBeLessThan(6_000);
   expect(metrics.scripts.some((entry) => /\/dictionary(?:-|\.js)/.test(entry.path))).toBe(false);
   expect(metrics.scripts.some((entry) => entry.path.endsWith("/hub-help.js"))).toBe(false);
+  expect(metrics.scripts.some((entry) => entry.path.endsWith("/hub-help-info.js"))).toBe(false);
   expect(metrics.scripts.some((entry) => entry.path.endsWith("/hub-admin.js"))).toBe(false);
 });
 

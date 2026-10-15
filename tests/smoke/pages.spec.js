@@ -171,6 +171,7 @@ test("optional hub helpers load after the interactive shell", async ({ page }) =
   await page.waitForFunction(
     () =>
       window.HubOnlineOverlay &&
+      window.HubHelpInfo &&
       window.HubHelp &&
       window.HubAdmin &&
       window.HubFishingGifts &&
@@ -183,6 +184,31 @@ test("optional hub helpers load after the interactive shell", async ({ page }) =
     null,
     { timeout: 10_000 }
   );
+});
+
+test("Help answers owner from the extracted GAME_INFO helper", async ({ page }) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(
+    () => !document.documentElement.classList.contains("hub-booting"),
+    null,
+    { timeout: 20_000 }
+  );
+  await page.waitForFunction(
+    () =>
+      window.HubHelpInfo &&
+      window.HubHelp &&
+      window.HubHelp.ready &&
+      window.HubHelp.ready() &&
+      window.HubHelp.getGameInfo &&
+      window.HubHelp.getGameInfo().owner,
+    null,
+    { timeout: 10_000 }
+  );
+  await page.evaluate(() => {
+    window.HubHelp.open();
+    window.HubHelp.ask("who is the owner");
+  });
+  await expect(page.locator("#hub-help-root")).toContainText(/ICE_DRAGON/);
 });
 
 test("What's new keeps Tab inside the dialog", async ({ page }) => {

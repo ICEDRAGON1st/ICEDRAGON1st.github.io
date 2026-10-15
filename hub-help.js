@@ -1323,96 +1323,18 @@
     return "https://discord.gg/6NHYfPwAwg";
   }
 
+  const helpInfo = window.HubHelpInfo || {};
+
   function isGameInfoPlaceholder(val) {
-    const s = String(val || "").trim();
-    if (!s) return true;
-    return /^\[insert\b/i.test(s) || /\[insert\b/i.test(s);
+    return helpInfo.isPlaceholder ? helpInfo.isPlaceholder(val) : !String(val || "").trim();
   }
 
   function gameInfoField(key) {
-    if (!gameInfo || !key) return "";
-    const val = gameInfo[key];
-    if (isGameInfoPlaceholder(val)) return "";
-    return String(val).trim();
+    return helpInfo.field ? helpInfo.field(gameInfo, key) : "";
   }
 
-  /** Parse GAME_INFO.txt `Key: value` lines into a flat object. */
   function parseGameInfo(text) {
-    const out = {
-      gameName: "",
-      owner: "",
-      platform: "",
-      releaseDate: "",
-      gameCount: "",
-      gamesList: "",
-      objective: "",
-      controls: "",
-      menus: "",
-      totalPlays: "",
-      peakConcurrent: "",
-      mostPlayedGame: "",
-      achievementsCount: "",
-      liveStatsNote: "",
-      rules: "",
-      supportLinks: "",
-      hubFeatures: "",
-      helpAssistant: "",
-      helpMascots: "",
-      techNotes: "",
-      gamesDetail: []
-    };
-    const map = [
-      [/^\s*game\s*name\s*:/i, "gameName"],
-      [/^\s*owner\s*&\s*developer\s*:/i, "owner"],
-      [/^\s*owner\s*:/i, "owner"],
-      [/^\s*platform\s*:/i, "platform"],
-      [/^\s*release\s*date\s*:/i, "releaseDate"],
-      [/^\s*game\s*count\s*:/i, "gameCount"],
-      [/^\s*games?\s*list\s*:/i, "gamesList"],
-      [/^\s*main\s*objective\s*:/i, "objective"],
-      [/^\s*controls?\s*:/i, "controls"],
-      [/^\s*menus?\s*:/i, "menus"],
-      [/^\s*total\s*plays?(\s*\/\s*visits?)?\s*:/i, "totalPlays"],
-      [/^\s*peak\s*concurrent(\s*players?)?\s*:/i, "peakConcurrent"],
-      [/^\s*most\s*played\s*game\s*:/i, "mostPlayedGame"],
-      [/^\s*achievements?\s*count\s*:/i, "achievementsCount"],
-      [/^\s*live\s*stats?\s*note\s*:/i, "liveStatsNote"],
-      [/^\s*rules?\s*:/i, "rules"],
-      [/^\s*support\s*links?\s*:/i, "supportLinks"],
-      [/^\s*hub\s*features?\s*:/i, "hubFeatures"],
-      [/^\s*help\s*assistant\s*:/i, "helpAssistant"],
-      [/^\s*help\s*mascots?\s*:/i, "helpMascots"],
-      [/^\s*tech\s*notes?\s*:/i, "techNotes"]
-    ];
-    String(text || "")
-      .split(/\r?\n/)
-      .forEach((line) => {
-        let matchedKey = false;
-        for (const [re, key] of map) {
-          if (!re.test(line)) continue;
-          const val = line.replace(re, "").trim();
-          if (val) out[key] = val;
-          matchedKey = true;
-          break;
-        }
-        if (matchedKey) return;
-        // Per-game rows look like `Game wordle: Guessword · …` (not Game Name / Game Count).
-        const gameLine = line.match(/^\s*game\s+([\w-]+)\s*:\s*(.+)$/i);
-        if (!gameLine) return;
-        const id = String(gameLine[1] || "").trim().toLowerCase();
-        if (!id || /^(name|count|list)$/i.test(id)) return;
-        const body = String(gameLine[2] || "").trim();
-        if (!body) return;
-        const title = body.split(/\s*[·|]\s*/)[0].trim();
-        out.gamesDetail.push({ id, title, body });
-      });
-    if (!out.gamesList && out.gamesDetail.length) {
-      out.gamesList = out.gamesDetail.map((g) => g.title).filter(Boolean).join(", ");
-    }
-    if (!out.gameCount && out.gamesDetail.length) {
-      out.gameCount = String(out.gamesDetail.length);
-    }
-    return out;
+    return helpInfo.parse ? helpInfo.parse(text) : { gamesDetail: [] };
   }
 
   function liveStatsLine() {

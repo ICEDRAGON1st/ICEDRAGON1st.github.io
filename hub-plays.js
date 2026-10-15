@@ -5130,10 +5130,23 @@ body.light .menu-credit .player-name-creator {
         }
       }
       if (!base) base = "";
-      const el = document.createElement("script");
-      el.src = `${base}hub-help.js?v=${v}`;
-      el.async = true;
-      document.head.appendChild(el);
+      function appendHelp() {
+        if (window.HubHelp) return;
+        const help = document.createElement("script");
+        help.src = `${base}hub-help.js?v=${v}`;
+        help.async = true;
+        document.head.appendChild(help);
+      }
+      if (window.HubHelpInfo) {
+        appendHelp();
+        return;
+      }
+      const info = document.createElement("script");
+      info.src = `${base}hub-help-info.js?v=${v}`;
+      info.async = true;
+      info.onload = appendHelp;
+      info.onerror = appendHelp;
+      document.head.appendChild(info);
     } catch {}
     })();
 
