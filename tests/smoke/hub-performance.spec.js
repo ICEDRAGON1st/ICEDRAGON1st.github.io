@@ -62,7 +62,8 @@ test("hub critical path stays within its script budget", async ({ context, page 
     };
   });
 
-  expect(metrics.scriptCount, JSON.stringify(metrics.scripts)).toBeLessThanOrEqual(16);
+  expect(metrics.scriptCount, JSON.stringify(metrics.scripts)).toBeLessThanOrEqual(17);
+  expect(metrics.scripts.some((entry) => entry.path.endsWith("/hub-games.js"))).toBe(true);
   expect(metrics.scriptBytes, JSON.stringify(metrics.scripts)).toBeLessThan(1_000_000);
   expect(metrics.interactiveAt).toBeLessThan(6_000);
   expect(metrics.scripts.some((entry) => /\/dictionary(?:-|\.js)/.test(entry.path))).toBe(false);

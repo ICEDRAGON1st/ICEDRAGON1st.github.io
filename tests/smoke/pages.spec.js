@@ -282,6 +282,15 @@ test("Help answers owner from the extracted GAME_INFO helper", async ({ page }) 
     window.HubHelp.ask("who is the owner");
   });
   await expect(page.locator("#hub-help-root")).toContainText(/ICE_DRAGON/);
+
+  await page.evaluate(() => {
+    window.HubHelp.ask("how many games are there");
+  });
+  await expect(page.locator("#hub-help-root")).toContainText(/32/);
+  await page.evaluate(() => {
+    window.HubHelp.ask("how many of them are clicker games");
+  });
+  await expect(page.locator("#hub-help-root")).toContainText(/Crystal Clicker/);
 });
 
 test("What's new keeps Tab inside the dialog", async ({ page }) => {

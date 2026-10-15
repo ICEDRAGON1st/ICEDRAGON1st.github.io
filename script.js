@@ -79,56 +79,16 @@ async function loadChangelogHistory() {
   return changelogHistoryPromise;
 }
 
-const HUB_GAMES = [
-  { id: "wordle", name: "Guessword", path: null },
-  { id: "space", name: "Space Shooter", path: "space-shooter/index.html" },
-  { id: "quiz", name: "Quizmaster", path: "quiz/index.html" },
-  { id: "breakout", name: "Bounce Break", path: "breakout/index.html" },
-  { id: "hangman", name: "Hangman", path: "hangman/index.html" },
-  { id: "2048", name: "Block Merge", path: "2048/index.html" },
-  { id: "snake", name: "Snake", path: "snake/index.html" },
-  { id: "memory", name: "Memory Match", path: "memory-match/index.html" },
-  { id: "connect-four", name: "Drop Four", path: "connect-four/index.html" },
-  { id: "math", name: "Math Sprint", path: "math/index.html" },
-  { id: "sudoku", name: "Sudoku", path: "sudoku/index.html" },
-  { id: "flappy", name: "Wing Hop", path: "wing-hop/index.html" },
-  { id: "tictactoe", name: "Tic Tac Toe", path: "tic-tac-toe/index.html" },
-  { id: "pixletris", name: "Pixel Drop", path: "pixel-drop/index.html" },
-  { id: "clicker", name: "Crystal Clicker", path: "clicker/index.html" },
-  { id: "stacker", name: "Tower Stack 3D", path: "stacker/index.html" },
-  { id: "crossy", name: "Cross Walk", path: "cross-walk/index.html" },
-  { id: "fishing", name: "Fishing Idle", path: "fishing/index.html" },
-  { id: "cows", name: "Cow Merge", path: "cows/index.html" },
-  { id: "dino", name: "Runosaur", path: "runosaur/index.html" },
-  { id: "ramp", name: "Ramp Rush", path: "ramp-rush/run.html" },
-  { id: "guac", name: "Guac-A-Mole", path: "guac-a-mole/index.html" },
-  { id: "bubble", name: "Bubble Pop Relay", path: "bubble-pop/index.html" },
-  { id: "cafe", name: "Cafe Queue", path: "cafe-queue/index.html" },
-  { id: "garden", name: "Garden Snap", path: "garden-snap/index.html" },
-  { id: "mine", name: "Mine Depth", path: "mine/index.html" },
-  { id: "blockblast", name: "Block Sweep", path: "block-sweep/index.html" },
-  { id: "lemmings", name: "Dudes", path: "dudes/index.html" },
-  { id: "paper", name: "Paper Claim", path: "paper-io/index.html" },
-  { id: "stickers", name: "Sticker Garage", path: "sticker-garage/index.html" },
-  { id: "waves", name: "Space Waves", path: "space-waves/index.html" },
-  { id: "cup", name: "Cup Flow", path: "cup-flow/index.html" }
-];
-
-/** Leaderboard tabs = hub points + hub-only boards first, then games (Mine Depth splits into depth + ore). */
-const LEADERBOARD_GAMES = [
-  { id: "hub-points", name: "Hub Points" },
-  { id: "online-time", name: "Time Online" },
-  { id: "day-streak", name: "Day Streak" },
-  { id: "invites", name: "Most Invites" },
-  ...HUB_GAMES.flatMap((game) =>
-    game.id === "mine"
-      ? [
-          { id: "mine", name: "Mine Depth" },
-          { id: "mine-ore", name: "Mine Best Ore" }
-        ]
-      : [game]
-  )
-];
+const HUB_GAMES = window.HubGames && typeof window.HubGames.list === "function" ? window.HubGames.list() : [];
+const LEADERBOARD_GAMES =
+  window.HubGames && typeof window.HubGames.leaderboardTabs === "function"
+    ? window.HubGames.leaderboardTabs()
+    : [
+        { id: "hub-points", name: "Hub Points" },
+        { id: "online-time", name: "Time Online" },
+        { id: "day-streak", name: "Day Streak" },
+        { id: "invites", name: "Most Invites" }
+      ];
 
 const boardEl = document.getElementById("board");
 const keyboardEl = document.getElementById("keyboard");

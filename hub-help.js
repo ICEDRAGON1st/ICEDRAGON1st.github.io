@@ -241,37 +241,14 @@
   const MASCOT_BY_ID = Object.fromEntries(MASCOTS.map((m) => [m.id, m]));
 
   /** Tagged catalog so follow-ups like “how many of them are clicker games” work. */
-  const GAME_CATALOG = [
-    { id: "wordle", title: "Guessword", tags: ["word", "puzzle", "daily"] },
-    { id: "space", title: "Space Shooter", tags: ["action", "arcade", "shooter"] },
-    { id: "quiz", title: "Quizmaster", tags: ["quiz", "trivia", "puzzle"] },
-    { id: "breakout", title: "Bounce Break", tags: ["action", "arcade"] },
-    { id: "hangman", title: "Hangman", tags: ["word", "puzzle"] },
-    { id: "2048", title: "Block Merge", tags: ["puzzle", "merge"] },
-    { id: "snake", title: "Snake", tags: ["action", "arcade"] },
-    { id: "memory", title: "Memory Match", tags: ["puzzle", "memory"] },
-    { id: "connect-four", title: "Drop Four", tags: ["board", "strategy"] },
-    { id: "math", title: "Math Sprint", tags: ["quiz", "math", "puzzle"] },
-    { id: "sudoku", title: "Sudoku", tags: ["puzzle"] },
-    { id: "flappy", title: "Wing Hop", tags: ["action", "arcade", "flyer"] },
-    { id: "tictactoe", title: "Tic Tac Toe", tags: ["board", "strategy"] },
-    { id: "pixletris", title: "Pixel Drop", tags: ["puzzle", "arcade"] },
-    { id: "clicker", title: "Crystal Clicker", tags: ["clicker", "idle", "incremental"] },
-    { id: "stacker", title: "Tower Stack 3D", tags: ["action", "arcade", "timing"] },
-    { id: "crossy", title: "Cross Walk", tags: ["action", "arcade"] },
-    { id: "fishing", title: "Fishing Idle", tags: ["idle", "incremental", "fishing"] },
-    { id: "cows", title: "Cow Merge", tags: ["idle", "incremental", "merge"] },
-    { id: "dino", title: "Runosaur", tags: ["action", "runner"] },
-    { id: "ramp", title: "Ramp Rush", tags: ["action", "runner"] },
-    { id: "guac", title: "Guac-A-Mole", tags: ["action", "arcade", "whack"] },
-    { id: "bubble", title: "Bubble Pop Relay", tags: ["puzzle", "arcade"] },
-    { id: "cafe", title: "Cafe Queue", tags: ["action", "timing"] },
-    { id: "garden", title: "Garden Snap", tags: ["puzzle", "timing"] },
-    { id: "mine", title: "Mine Depth", tags: ["idle", "incremental", "mining"] },
-    { id: "blockblast", title: "Block Sweep", tags: ["puzzle"] },
-    { id: "lemmings", title: "Dudes", tags: ["puzzle", "strategy"] },
-    { id: "paper", title: "Paper Claim", tags: ["action", "online", "io"] }
-  ];
+  function gameCatalog() {
+    try {
+      if (window.HubGames && typeof window.HubGames.catalog === "function") {
+        return window.HubGames.catalog();
+      }
+    } catch {}
+    return [];
+  }
 
   const GAME_CATEGORY_DEFS = [
     {
@@ -413,6 +390,10 @@
     } catch {}
     try {
       const path = String(location.pathname || "").replace(/\\/g, "/").toLowerCase();
+      if (window.HubGames && typeof window.HubGames.idFromPath === "function") {
+        const mapped = window.HubGames.idFromPath(path);
+        if (mapped) return mapped;
+      }
       const segs = path.split("/").filter(Boolean);
       const map = {
         "space-shooter": "space",
@@ -1173,9 +1154,9 @@
     const ids = Array.isArray(memory?.gameIds) ? memory.gameIds : null;
     if (ids && ids.length) {
       const set = new Set(ids.map((id) => String(id)));
-      return GAME_CATALOG.filter((g) => set.has(g.id));
+      return gameCatalog().filter((g) => set.has(g.id));
     }
-    return GAME_CATALOG.slice();
+    return gameCatalog().slice();
   }
 
   function answerGamesCategoryFollowUp(query, memory) {
@@ -1237,7 +1218,7 @@
           answer: `Still ${total} games in that list we talked about.\n\nAsk a follow-up like “how many of them are clicker games” or “which are puzzle games”.`,
           memory: {
             topic: "games-list",
-            gameIds: prev.gameIds || GAME_CATALOG.map((g) => g.id),
+            gameIds: prev.gameIds || gameCatalog().map((g) => g.id),
             count: total
           },
           meant: `how many games in the list (${total})`
@@ -1457,7 +1438,7 @@
               `\n\nTap a card on the hub to play any of them.\n\nYou can also ask follow-ups like “how many of them are clicker games”.`,
           memory: {
             topic: "games-list",
-            gameIds: GAME_CATALOG.map((g) => g.id),
+            gameIds: gameCatalog().map((g) => g.id),
             count: Number(countBit) || names.length
           }
         };
@@ -2213,8 +2194,8 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
     ) {
       const direct = answerGamesCategoryFollowUp(q, {
         topic: "games-list",
-        gameIds: GAME_CATALOG.map((g) => g.id),
-        count: GAME_CATALOG.length
+        gameIds: gameCatalog().map((g) => g.id),
+        count: gameCatalog().length
       });
       if (direct && direct.answer) {
         replyHelp(
@@ -2222,7 +2203,7 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
           direct.title || "Games",
           direct.answer.replace(
             /Of the \d+ games we were talking about/,
-            `Across the ${GAME_CATALOG.length} games in My Games`
+            `Across the ${gameCatalog().length} games in My Games`
           ),
           meant ? { meant } : undefined,
           direct.memory || null
@@ -2262,8 +2243,8 @@ html.hub-help-open #overlay.hub-help-host-pause{visibility:hidden!important;poin
         t.id === "games-list"
           ? {
               topic: "games-list",
-              gameIds: GAME_CATALOG.map((g) => g.id),
-              count: GAME_CATALOG.length
+              gameIds: gameCatalog().map((g) => g.id),
+              count: gameCatalog().length
             }
           : { topic: t.id || "faq" };
       replyHelp(typed, t.title, t.answer, meant ? { meant } : undefined, topicMem);

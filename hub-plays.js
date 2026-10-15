@@ -5144,16 +5144,28 @@ body.light .menu-credit .player-name-creator {
         help.async = true;
         document.head.appendChild(help);
       }
-      if (window.HubHelpInfo) {
-        appendHelp();
+      function appendHelpInfo() {
+        if (window.HubHelpInfo) {
+          appendHelp();
+          return;
+        }
+        const info = document.createElement("script");
+        info.src = `${base}hub-help-info.js?v=${v}`;
+        info.async = true;
+        info.onload = appendHelp;
+        info.onerror = appendHelp;
+        document.head.appendChild(info);
+      }
+      if (window.HubGames) {
+        appendHelpInfo();
         return;
       }
-      const info = document.createElement("script");
-      info.src = `${base}hub-help-info.js?v=${v}`;
-      info.async = true;
-      info.onload = appendHelp;
-      info.onerror = appendHelp;
-      document.head.appendChild(info);
+      const games = document.createElement("script");
+      games.src = `${base}hub-games.js?v=${v}`;
+      games.async = true;
+      games.onload = appendHelpInfo;
+      games.onerror = appendHelpInfo;
+      document.head.appendChild(games);
     } catch {}
     })();
 

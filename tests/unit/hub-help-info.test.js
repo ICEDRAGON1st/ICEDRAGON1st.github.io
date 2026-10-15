@@ -17,6 +17,8 @@ test("GAME_INFO parse lives in the helper, not the chat UI blob", () => {
   assert.match(ui, /helpInfo\.field/);
   assert.doesNotMatch(ui, /\/\^\s\*game\\s\*name\\s\*:\/i/);
   assert.match(plays, /hub-help-info\.js/);
+  assert.match(plays, /hub-games\.js/);
+  assert.match(ui, /window\.HubGames/);
 });
 
 test("GAME_INFO.txt fills owner, lists, and per-game rows", () => {
