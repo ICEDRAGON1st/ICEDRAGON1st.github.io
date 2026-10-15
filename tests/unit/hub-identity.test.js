@@ -27,3 +27,48 @@ test("hub identity sanitizes names and rejects poison player codes", () => {
   assert.equal(identity.hashToCodeParts("player-1", "salt"), hashed);
   assert.notEqual(identity.hashToCodeParts("player-1", "other"), hashed);
 });
+
+test("account transfer keys and player-code maps keep the first owner", () => {
+  const plays = require("node:fs").readFileSync(
+    require("node:path").join(__dirname, "../../hub-plays.js"),
+    "utf8"
+  );
+  assert.match(plays, /identity\.parseAccountTransferKey/);
+  assert.match(plays, /identity\.parseCodesMap/);
+  assert.match(plays, /identity\.reservationAllows/);
+
+  const key = identity.formatAccountTransferKey("AB23-CD45", "p-ada", "Ada");
+  assert.equal(key, "MG1:AB23CD45:p-ada:Ada");
+  assert.deepEqual(identity.parseAccountTransferKey(key), {
+    code: "AB23CD45",
+    playerId: "p-ada",
+    name: "Ada"
+  });
+  assert.equal(identity.parseAccountTransferKey("AB23-CD45"), null);
+  assert.equal(identity.parseAccountTransferKey("MG1:UNDEFNED:p-ada:Ada"), null);
+
+  const codes = identity.parseCodesMap({
+    codes: {
+      "ab23-cd45": { playerId: "p-ada", name: "Ada", at: 9 },
+      UNDEFNED: { playerId: "p-bad", name: "Bad", at: 1 },
+      skip: { name: "no id" }
+    }
+  });
+  assert.equal(codes.AB23CD45.playerId, "p-ada");
+  assert.equal(codes.UNDEFNED, undefined);
+  assert.equal(codes.skip, undefined);
+
+  assert.equal(identity.reservationAllows(null, "p-ada", "AB23CD45"), true);
+  assert.equal(
+    identity.reservationAllows({ playerId: "p-ada", code: "AB23CD45" }, "p-ada", "ZZ99YY88"),
+    true
+  );
+  assert.equal(
+    identity.reservationAllows({ playerId: "p-bea", code: "AB23CD45" }, "p-ada", "ZZ99YY88"),
+    false
+  );
+  assert.equal(
+    identity.reservationAllows({ playerId: "p-bea", code: "AB23CD45" }, "p-ada", "AB23-CD45"),
+    true
+  );
+});

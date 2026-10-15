@@ -88,6 +88,72 @@
     );
   }
 
+  function formatAccountTransferKey(code, playerId, name) {
+    const norm = normalizePlayerCode(code);
+    const id = String(playerId || "").trim();
+    if (norm.length !== 8 || !id || isPoisonPlayerCode(norm)) return "";
+    return `MG1:${norm}:${id}:${sanitizeName(name || "")}`;
+  }
+
+  function parseAccountTransferKey(raw) {
+    const s = String(raw || "").trim();
+    const m = /^MG1:([A-Z0-9]{8}):([^:\s]+):(.*)$/i.exec(s);
+    if (!m) return null;
+    const norm = normalizePlayerCode(m[1]);
+    if (norm.length !== 8 || isPoisonPlayerCode(norm)) return null;
+    const playerId = String(m[2] || "").trim();
+    if (!playerId) return null;
+    return {
+      code: norm,
+      playerId,
+      name: sanitizeName(m[3] || "")
+    };
+  }
+
+  function parseCodesMap(data) {
+    if (!data || typeof data !== "object") return {};
+    const codes = data.codes && typeof data.codes === "object" ? data.codes : data;
+    const out = {};
+    Object.entries(codes).forEach(([k, v]) => {
+      const key = normalizePlayerCode(k);
+      if (key.length !== 8 || isPoisonPlayerCode(key) || !v || typeof v !== "object") return;
+      const playerId = String(v.playerId || "").trim();
+      if (!playerId) return;
+      out[key] = {
+        playerId,
+        name: sanitizeName(v.name || ""),
+        at: Number(v.at) || 0
+      };
+    });
+    return out;
+  }
+
+  function reservationAllows(res, playerId, code) {
+    if (!res?.playerId) return true;
+    if (res.playerId === playerId) return true;
+    const locked = normalizePlayerCode(res.code || "");
+    const mine = normalizePlayerCode(code || "");
+    return !!(locked && mine && locked === mine);
+  }
+
+  function parseReservationsMap(data) {
+    if (!data || typeof data !== "object") return {};
+    const map =
+      data.reservations && typeof data.reservations === "object" ? data.reservations : data;
+    const out = {};
+    Object.entries(map).forEach(([k, v]) => {
+      const key = String(k || "").toLowerCase();
+      if (!key || !v || typeof v !== "object" || !v.playerId) return;
+      out[key] = {
+        playerId: String(v.playerId),
+        code: normalizePlayerCode(v.code || ""),
+        name: sanitizeName(v.name || key),
+        lockedAt: Number(v.lockedAt) || 0
+      };
+    });
+    return out;
+  }
+
   const api = {
     CODE_ALPHABET,
     sanitizeName,
@@ -98,7 +164,12 @@
     formatPlayerCode,
     hashToCodeParts,
     randomCodeParts,
-    looksLikePlayerCode
+    looksLikePlayerCode,
+    formatAccountTransferKey,
+    parseAccountTransferKey,
+    parseCodesMap,
+    reservationAllows,
+    parseReservationsMap
   };
   root.HubIdentity = api;
   if (typeof module === "object" && module.exports) module.exports = api;

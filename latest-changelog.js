@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015az",
+  "build": "20261015ba",
   "notes": [
-    "Unique nicknames now merge in a shared helper so the first player to claim a name keeps it, and titles still follow that account."
+    "Copy transfer keys now parse in a shared helper, so a new device can restore the same account without creating a new player id."
   ]
 };

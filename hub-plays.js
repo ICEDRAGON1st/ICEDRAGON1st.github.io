@@ -627,19 +627,7 @@
       if (!canUseLocalStorage()) return {};
       const raw = JSON.parse(localStorage.getItem(LOCAL_CODES_KEY) || "{}");
       if (!raw || typeof raw !== "object") return {};
-      const out = {};
-      Object.entries(raw).forEach(([k, v]) => {
-        const key = normalizePlayerCode(k);
-        if (key.length !== 8 || isPoisonPlayerCode(key) || !v || typeof v !== "object") return;
-        const playerId = String(v.playerId || "");
-        if (!playerId) return;
-        out[key] = {
-          playerId,
-          name: sanitizeName(v.name || ""),
-          at: Number(v.at) || 0
-        };
-      });
-      return out;
+      return identity.parseCodesMap ? identity.parseCodesMap(raw) : {};
     } catch {
       return {};
     }
@@ -677,21 +665,13 @@
     const norm = normalizePlayerCode(code);
     const playerId = getPlayerId();
     if (norm.length !== 8 || !playerId) return "";
-    const name = sanitizeName(getName() || "");
-    return `MG1:${norm}:${playerId}:${name}`;
+    return identity.formatAccountTransferKey
+      ? identity.formatAccountTransferKey(norm, playerId, getName() || "")
+      : `MG1:${norm}:${playerId}:${sanitizeName(getName() || "")}`;
   }
 
   function parseAccountTransferKey(raw) {
-    const s = String(raw || "").trim();
-    const m = /^MG1:([A-Z0-9]{8}):([^:\s]+):(.*)$/i.exec(s);
-    if (!m) return null;
-    const norm = normalizePlayerCode(m[1]);
-    if (norm.length !== 8) return null;
-    return {
-      code: norm,
-      playerId: String(m[2] || ""),
-      name: sanitizeName(m[3] || "")
-    };
+    return identity.parseAccountTransferKey ? identity.parseAccountTransferKey(raw) : null;
   }
 
   function normalizePasswordInput(raw) {
@@ -1056,19 +1036,7 @@
   async function fetchCodesRemote() {
     const data = await fetchDoc("player-codes", CODES_API);
     if (!data || typeof data !== "object") return {};
-    const codes = data.codes && typeof data.codes === "object" ? data.codes : data;
-    const out = {};
-    Object.entries(codes).forEach(([k, v]) => {
-      const key = normalizePlayerCode(k);
-      if (key.length === 8 && v && typeof v === "object" && v.playerId) {
-        out[key] = {
-          playerId: String(v.playerId),
-          name: sanitizeName(v.name || ""),
-          at: Number(v.at) || 0
-        };
-      }
-    });
-    return out;
+    return identity.parseCodesMap ? identity.parseCodesMap(data) : {};
   }
 
   async function pushCodesRemote(codes) {
@@ -1082,20 +1050,7 @@
   async function fetchReservationsRemote() {
     const data = await fetchDoc("name-reservations", RESERVATIONS_API);
     if (!data || typeof data !== "object") return {};
-    const map =
-      data.reservations && typeof data.reservations === "object" ? data.reservations : data;
-    const out = {};
-    Object.entries(map).forEach(([k, v]) => {
-      const key = String(k || "").toLowerCase();
-      if (!key || !v || typeof v !== "object" || !v.playerId) return;
-      out[key] = {
-        playerId: String(v.playerId),
-        code: normalizePlayerCode(v.code || ""),
-        name: sanitizeName(v.name || key),
-        lockedAt: Number(v.lockedAt) || 0
-      };
-    });
-    return out;
+    return identity.parseReservationsMap ? identity.parseReservationsMap(data) : {};
   }
 
   async function pushReservationsRemote(reservations) {
@@ -1103,11 +1058,7 @@
   }
 
   function reservationAllows(res, playerId, code) {
-    if (!res?.playerId) return true;
-    if (res.playerId === playerId) return true;
-    const locked = normalizePlayerCode(res.code || "");
-    const mine = normalizePlayerCode(code || "");
-    return !!(locked && mine && locked === mine);
+    return identity.reservationAllows ? identity.reservationAllows(res, playerId, code) : true;
   }
 
   async function resolveNameReservation(key) {
