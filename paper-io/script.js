@@ -749,6 +749,8 @@
   const ctx = canvas.getContext("2d", { alpha: false });
   const landLayer = document.createElement("canvas");
   const landCtx = landLayer.getContext("2d");
+  const landRenderLayer = document.createElement("canvas");
+  const landRenderCtx = landRenderLayer.getContext("2d");
   const voidLayer = document.createElement("canvas");
   const voidCtx = voidLayer.getContext("2d");
   const miniLayer = document.createElement("canvas");
@@ -756,6 +758,8 @@
   let landDirty = true;
   let voidDirty = true;
   let miniDirty = true;
+  let territoryCountsDirty = true;
+  const territoryCounts = new Map();
   /** @type {Map<number, string>} */
   const idFromHashMap = new Map();
 
@@ -791,6 +795,8 @@
   let lastSubmitAt = 0;
   let animId = 0;
   let lastFrame = 0;
+  let lastHudAt = 0;
+  let lastHudMarkup = "";
 
   /** Ownership bitmap — same resolution as world for simple mapping */
   /** @type {Int16Array} */
@@ -1112,6 +1118,7 @@
   function markLandDirty() {
     landDirty = true;
     miniDirty = true;
+    territoryCountsDirty = true;
   }
 
   function softToRgba(soft) {
@@ -1308,12 +1315,21 @@
     return players.find((p) => p.id === localId) || players.find((p) => p.human) || null;
   }
 
-  function territoryCount(hash) {
-    let n = 0;
+  function refreshTerritoryCounts() {
+    if (!territoryCountsDirty) return;
+    territoryCounts.clear();
     for (let i = 0; i < grid.length; i++) {
-      if (arenaMask[i] && grid[i] === hash) n++;
+      if (!arenaMask[i]) continue;
+      const owner = grid[i];
+      if (!owner) continue;
+      territoryCounts.set(owner, (territoryCounts.get(owner) || 0) + 1);
     }
-    return n;
+    territoryCountsDirty = false;
+  }
+
+  function territoryCount(hash) {
+    refreshTerritoryCounts();
+    return territoryCounts.get(hash) || 0;
   }
 
   function pctFor(p) {
@@ -1518,7 +1534,7 @@
     overlay.classList.remove("hidden");
     cancelAnimationFrame(animId);
     draw();
-    updateHud();
+    updateHud(performance.now(), true);
   }
 
   function capture(p) {
@@ -2479,6 +2495,27 @@
       }
       landCtx.restore();
     }
+
+    paintLandRenderLayer(W);
+  }
+
+  function paintLandRenderLayer(size) {
+    if (landRenderLayer.width !== size || landRenderLayer.height !== size) {
+      landRenderLayer.width = size;
+      landRenderLayer.height = size;
+    }
+    landRenderCtx.clearRect(0, 0, size, size);
+    landRenderCtx.imageSmoothingEnabled = true;
+    if (typeof landRenderCtx.filter === "string") {
+      landRenderCtx.filter = `blur(${(LAND_PX * 0.32).toFixed(2)}px)`;
+      landRenderCtx.drawImage(landLayer, 0, 0);
+      landRenderCtx.filter = "none";
+      landRenderCtx.globalAlpha = 0.82;
+      landRenderCtx.drawImage(landLayer, 0, 0);
+      landRenderCtx.globalAlpha = 1;
+      return;
+    }
+    landRenderCtx.drawImage(landLayer, 0, 0);
   }
 
   function paintMiniLayer() {
@@ -2758,18 +2795,18 @@
     try {
       ctx.imageSmoothingQuality = "high";
     } catch {}
-    // Soften perimeter so adjacent disks read as one smooth shape
-    if (typeof ctx.filter === "string") {
-      const blurPx = Math.max(0.22, 0.32 * scale).toFixed(2);
-      ctx.filter = `blur(${blurPx}px)`;
-      ctx.drawImage(landLayer, 0, 0, landLayer.width, landLayer.height, 0, 0, WORLD, WORLD);
-      ctx.filter = "none";
-      ctx.globalAlpha = 0.82;
-      ctx.drawImage(landLayer, 0, 0, landLayer.width, landLayer.height, 0, 0, WORLD, WORLD);
-      ctx.globalAlpha = 1;
-    } else {
-      ctx.drawImage(landLayer, 0, 0, landLayer.width, landLayer.height, 0, 0, WORLD, WORLD);
-    }
+    // Soft perimeter is composed only when land changes, not on every animation frame.
+    ctx.drawImage(
+      landRenderLayer,
+      0,
+      0,
+      landRenderLayer.width,
+      landRenderLayer.height,
+      0,
+      0,
+      WORLD,
+      WORLD
+    );
     drawArenaVoid();
     drawArenaBorder();
 
@@ -2812,17 +2849,20 @@
       .replace(/"/g, "&quot;");
   }
 
-  function updateHud() {
+  function updateHud(now = performance.now(), force = false) {
+    if (!force && now - lastHudAt < 250) return;
+    lastHudAt = now;
     const me = localPlayer();
     const pct = me ? pctFor(me) : 0;
-    if (scoreEl) scoreEl.textContent = `${pct}%`;
+    const scoreText = `${pct}%`;
+    if (scoreEl && scoreEl.textContent !== scoreText) scoreEl.textContent = scoreText;
     maybeSubmit(pct);
     if (liveBoard) {
       const ranked = players
         .map((p) => ({ p, pct: pctFor(p) }))
         .sort((a, b) => b.pct - a.pct)
         .slice(0, 6);
-      liveBoard.innerHTML = ranked
+      const markup = ranked
         .map(({ p, pct: v }) => {
           const c = colorFor(p).fill;
           const mark = p.id === localId ? "★ " : "";
@@ -2832,6 +2872,10 @@
           )} ${v}%${dead}</span>`;
         })
         .join("");
+      if (markup !== lastHudMarkup) {
+        lastHudMarkup = markup;
+        liveBoard.innerHTML = markup;
+      }
     }
   }
 
@@ -2849,7 +2893,7 @@
     if (mode !== "online" || isHost) tick(dt);
     updateCamera(dt);
     draw();
-    updateHud();
+    updateHud(ts);
   }
 
   function startNpc(opts) {

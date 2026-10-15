@@ -11,7 +11,9 @@ module.exports = defineConfig({
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 2 : undefined,
+  // These pages parse several large standalone game bundles; too many parallel
+  // browsers turn a smoke check into an artificial CPU-starvation test.
+  workers: 2,
   reporter: process.env.CI ? [["github"], ["list"]] : "list",
   use: {
     baseURL: "http://127.0.0.1:4173",

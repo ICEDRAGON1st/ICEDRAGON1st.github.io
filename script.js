@@ -45,6 +45,10 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261015b": [
+    "Paper Claim runs smoother with cached territory scores and throttled HUD updates",
+    "Paper Claim now pre-renders soft land edges instead of blurring the full map every frame"
+  ],
   "20261015a": [
     "Hub and games load shared files in parallel for much faster refreshes",
     "One stable offline worker stops cache resets when moving between games"
