@@ -1,5 +1,5 @@
 /* My Games service worker — offline shell + cache-as-you-go for visited games. */
-const BUILD = "20261015ai";
+const BUILD = "20261015aj";
 const CACHE = `mygames-v2-${BUILD}`;
 
 const PRECACHE = [
@@ -15,6 +15,7 @@ const PRECACHE = [
   "./apple-touch-icon.png",
   "./hub-net.js",
   "./hub-afk.js",
+  "./hub-a11y.js",
   "./hub-game-boot.js",
   "./hub-supabase.js",
   "./hub-plays.js",

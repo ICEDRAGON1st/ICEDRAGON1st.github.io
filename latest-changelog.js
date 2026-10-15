@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ai",
+  "build": "20261015aj",
   "notes": [
-    "Account clouds now sync to your signed-in save row and still keep the old backup copy."
+    "What's new and other hub dialogs now keep keyboard focus inside the box."
   ]
 };

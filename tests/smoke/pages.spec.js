@@ -185,6 +185,31 @@ test("optional hub helpers load after the interactive shell", async ({ page }) =
   );
 });
 
+test("What's new keeps Tab inside the dialog", async ({ page }) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(
+    () => !document.documentElement.classList.contains("hub-booting"),
+    null,
+    { timeout: 20_000 }
+  );
+  await page.waitForFunction(() => Boolean(window.HubA11y?.nextFocus));
+  await page.evaluate(() => {
+    document.getElementById("whats-new-modal")?.classList.remove("hidden");
+  });
+  const modal = page.locator("#whats-new-modal");
+  await expect(modal).toBeVisible();
+  await page.locator("#whats-new-ok").focus();
+  await page.keyboard.press("Tab");
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const root = document.getElementById("whats-new-modal");
+        return !!(root && root.contains(document.activeElement));
+      })
+    )
+    .toBe(true);
+});
+
 test("update history loads only when opened", async ({ page }) => {
   const historyRequests = [];
   page.on("request", (request) => {

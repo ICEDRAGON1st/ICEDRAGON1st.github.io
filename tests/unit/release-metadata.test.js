@@ -53,6 +53,7 @@ test("service worker install only precaches the offline hub shell", () => {
     "./latest-changelog.js",
     "./hub-net.js",
     "./hub-afk.js",
+    "./hub-a11y.js",
     "./hub-account-bag.js",
     "./script.js"
   ];
@@ -60,7 +61,7 @@ test("service worker install only precaches the offline hub shell", () => {
   for (const asset of requiredShell) {
     assert.ok(precache.includes(asset), `${asset} remains available in the offline shell`);
   }
-  assert.ok(precache.length <= 22, "worker install stays within the shell asset budget");
+  assert.ok(precache.length <= 23, "worker install stays within the shell asset budget");
   assert.equal(
     precache.some((asset) =>
       /(?:dictionary|words(?:-|\.js)|hub-(?:chat|calls|help|admin))/.test(asset)
