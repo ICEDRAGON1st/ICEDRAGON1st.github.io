@@ -7,6 +7,7 @@
   const identity = window.HubIdentity || {};
   const presenceApi = window.HubPresence || {};
   const popularityApi = window.HubPopularity || {};
+  const alltimeApi = window.HubAllTime || {};
   const NAME_KEY = "hub-player-name";
   const PLAYER_ID_KEY = "hub-player-id";
   const PLAYER_CODE_KEY = "hub-player-code";
@@ -100,7 +101,7 @@
     quiz: "Quizmaster",
     breakout: "Bounce Break",
     hangman: "Hangman",
-    "2048": "Block Merge",
+    2048: "Block Merge",
     snake: "Snake",
     memory: "Memory Match",
     "connect-four": "Drop Four",
@@ -160,7 +161,7 @@
     quiz: "quiz",
     breakout: "breakout",
     hangman: "hangman",
-    "2048": "2048",
+    2048: "2048",
     snake: "snake",
     "connect-four": "connect-four",
     math: "math",
@@ -396,10 +397,7 @@
     let changed = false;
     Object.keys(out).forEach((key) => {
       const claim = out[key];
-      if (
-        PURGED_NAME_KEYS.has(key) ||
-        isPurgedPlayer(claim?.playerId, claim?.name || key)
-      ) {
+      if (PURGED_NAME_KEYS.has(key) || isPurgedPlayer(claim?.playerId, claim?.name || key)) {
         delete out[key];
         changed = true;
         return;
@@ -458,9 +456,9 @@
       const purged = purgeNameRegistry(cleaned);
       namesCache = purgeNameRegistry(mergeNameMaps(namesCache, purged.names)).names;
       if (purged.changed) await pushNamesRemote(purged.names);
-      verifiedClean = !purged.names.dragon && !Object.values(purged.names).some((c) =>
-        isPurgedPlayer(c?.playerId, c?.name)
-      );
+      verifiedClean =
+        !purged.names.dragon &&
+        !Object.values(purged.names).some((c) => isPurgedPlayer(c?.playerId, c?.name));
     } catch {}
     try {
       const data = await fetchDoc("players-alltime", ALLTIME_API);
@@ -561,7 +559,9 @@
   }
 
   function makeId() {
-    return identity.makeId ? identity.makeId() : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    return identity.makeId
+      ? identity.makeId()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
   function normalizePlayerCode(raw) {
@@ -821,9 +821,7 @@
       return { ok: false, error: "Wrong password or code" };
     }
     const code =
-      normalizePlayerCode(entry.code).length === 8
-        ? normalizePlayerCode(entry.code)
-        : "";
+      normalizePlayerCode(entry.code).length === 8 ? normalizePlayerCode(entry.code) : "";
     return {
       ok: true,
       playerId: entry.playerId,
@@ -906,7 +904,11 @@
         message: "Password saved on this device (cloud sync later)"
       };
     }
-    return { ok: true, keptProgress: true, message: "Password set — same account, all progress kept" };
+    return {
+      ok: true,
+      keptProgress: true,
+      message: "Password set — same account, all progress kept"
+    };
   }
 
   async function clearAccountPassword() {
@@ -926,7 +928,11 @@
       });
       await pushPasswordsRemote(remote);
     } catch {}
-    return { ok: true, keptProgress: true, message: "Password cleared — use your player code to log in" };
+    return {
+      ok: true,
+      keptProgress: true,
+      message: "Password cleared — use your player code to log in"
+    };
   }
 
   function loadAccountVault() {
@@ -944,9 +950,7 @@
         }))
         .filter(
           (a) =>
-            normalizePlayerCode(a.code).length === 8 &&
-            a.playerId &&
-            !isPoisonPlayerCode(a.code)
+            normalizePlayerCode(a.code).length === 8 && a.playerId && !isPoisonPlayerCode(a.code)
         )
         .slice(0, MAX_SAVED_ACCOUNTS);
       // Persist scrub if we dropped UNDE-FNED / poison entries
@@ -979,7 +983,9 @@
     rememberLocalCode(norm, playerId, name);
     const prev = loadAccountVault().find((a) => normalizePlayerCode(a.code) === norm);
     const hasPassword =
-      extra.hasPassword != null ? !!extra.hasPassword : !!(prev?.hasPassword || accountHasPassword(playerId));
+      extra.hasPassword != null
+        ? !!extra.hasPassword
+        : !!(prev?.hasPassword || accountHasPassword(playerId));
     const list = loadAccountVault().filter((a) => normalizePlayerCode(a.code) !== norm);
     list.unshift({
       code: formatPlayerCode(norm),
@@ -1091,7 +1097,8 @@
   async function fetchReservationsRemote() {
     const data = await fetchDoc("name-reservations", RESERVATIONS_API);
     if (!data || typeof data !== "object") return {};
-    const map = data.reservations && typeof data.reservations === "object" ? data.reservations : data;
+    const map =
+      data.reservations && typeof data.reservations === "object" ? data.reservations : data;
     const out = {};
     Object.entries(map).forEach(([k, v]) => {
       const key = String(k || "").toLowerCase();
@@ -1256,7 +1263,8 @@
     if (isPoisonPlayerCode(raw) && !raw.includes(":")) {
       return {
         ok: false,
-        error: "That code isn't valid (UNDE-FNED was a bug). Use your real player code from another device, or create a new account."
+        error:
+          "That code isn't valid (UNDE-FNED was a bug). Use your real player code from another device, or create a new account."
       };
     }
     let transfer = parseAccountTransferKey(raw);
@@ -1460,7 +1468,9 @@
     } catch {}
 
     const claim = findClaimByPlayerId(names, entry.playerId);
-    const restoredName = sanitizeName(claim?.name || entry.name || localHit?.name || localCode?.name || "");
+    const restoredName = sanitizeName(
+      claim?.name || entry.name || localHit?.name || localCode?.name || ""
+    );
 
     clearAccountLocalIdentity();
     try {
@@ -1494,13 +1504,19 @@
     } catch {}
 
     try {
-      if (typeof HubLeaderboard !== "undefined" && HubLeaderboard.rebindPlayerName && restoredName) {
+      if (
+        typeof HubLeaderboard !== "undefined" &&
+        HubLeaderboard.rebindPlayerName &&
+        restoredName
+      ) {
         HubLeaderboard.rebindPlayerName(entry.playerId, restoredName).catch(() => {});
       }
     } catch {}
 
     if (isCodeLockedName(nameKey(restoredName))) {
-      lockNameToPlayerCode(nameKey(restoredName), entry.playerId, norm, restoredName).catch(() => {});
+      lockNameToPlayerCode(nameKey(restoredName), entry.playerId, norm, restoredName).catch(
+        () => {}
+      );
     }
 
     rememberCurrentAccount({
@@ -1559,7 +1575,9 @@
         let id = localStorage.getItem(PLAYER_ID_KEY);
         if (!id) {
           id =
-            (window.HubSupabase && HubSupabase.peekBoundPlayerId && HubSupabase.peekBoundPlayerId()) ||
+            (window.HubSupabase &&
+              HubSupabase.peekBoundPlayerId &&
+              HubSupabase.peekBoundPlayerId()) ||
             "";
           if (!id) id = `p-${makeId()}`;
           localStorage.setItem(PLAYER_ID_KEY, id);
@@ -1651,7 +1669,9 @@
 
   function detectGameFromPath() {
     try {
-      const path = String(location.pathname || "").replace(/\\/g, "/").toLowerCase();
+      const path = String(location.pathname || "")
+        .replace(/\\/g, "/")
+        .toLowerCase();
       const segs = path.split("/").filter(Boolean);
       for (let i = segs.length - 1; i >= 0; i -= 1) {
         let seg = segs[i];
@@ -1695,7 +1715,9 @@
   function sanitizePresenceGame(game) {
     return presenceApi.sanitizePresenceGame
       ? presenceApi.sanitizePresenceGame(game, GAME_NAMES)
-      : String(game || "").trim().slice(0, 32);
+      : String(game || "")
+          .trim()
+          .slice(0, 32);
   }
 
   function netBlocked(url) {
@@ -1805,7 +1827,8 @@
           ...older,
           ...newer,
           legend: !!(existing.legend || claim.legend),
-          legendAt: Math.max(Number(existing.legendAt) || 0, Number(claim.legendAt) || 0) || undefined,
+          legendAt:
+            Math.max(Number(existing.legendAt) || 0, Number(claim.legendAt) || 0) || undefined,
           masterFisher: !!(existing.masterFisher || claim.masterFisher),
           masterFisherAt:
             Math.max(Number(existing.masterFisherAt) || 0, Number(claim.masterFisherAt) || 0) ||
@@ -1819,7 +1842,8 @@
             Number(claim.claimedAt) || Infinity
           )
         };
-        if (out[key].claimedAt === Infinity) out[key].claimedAt = newer.claimedAt || older.claimedAt;
+        if (out[key].claimedAt === Infinity)
+          out[key].claimedAt = newer.claimedAt || older.claimedAt;
         if (!out[key].legendAt) delete out[key].legendAt;
         if (!out[key].masterFisherAt) delete out[key].masterFisherAt;
         if (!out[key].profileUpdatedAt) delete out[key].profileUpdatedAt;
@@ -2530,11 +2554,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
             return `<li data-code="${code}">
               <span><strong>${label}${activeNow ? " · active" : ""}${lock}</strong><br><span class="gate-account-code is-masked" data-gate-code="${code}">••••-••••</span></span>
               <button type="button" data-reveal="${code}">Show</button>
-              ${
-                activeNow
-                  ? ""
-                  : `<button type="button" data-switch="${code}">Switch</button>`
-              }
+              ${activeNow ? "" : `<button type="button" data-switch="${code}">Switch</button>`}
             </li>`;
           })
           .join("");
@@ -2682,11 +2702,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
               return `<li data-code="${code}">
                 <span><strong>${label}${activeNow ? " · active" : ""}${lock}</strong><br><span class="gate-account-code is-masked" data-gate-code="${code}">••••-••••</span></span>
                 <button type="button" data-reveal="${code}">Show</button>
-                ${
-                  activeNow
-                    ? ""
-                    : `<button type="button" data-switch="${code}">Switch</button>`
-                }
+                ${activeNow ? "" : `<button type="button" data-switch="${code}">Switch</button>`}
               </li>`;
             })
             .join("");
@@ -2784,7 +2800,9 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   function mergePresence(a, b) {
-    return presenceApi.mergePresence ? presenceApi.mergePresence(a, b) : { ...(a || {}), ...(b || {}) };
+    return presenceApi.mergePresence
+      ? presenceApi.mergePresence(a, b)
+      : { ...(a || {}), ...(b || {}) };
   }
 
   function prunePresence(map, now = Date.now()) {
@@ -2931,11 +2949,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     saveOnlineSeconds(total);
     if (typeof HubLeaderboard !== "undefined") {
       HubLeaderboard.bumpLocal?.("online-time", total);
-      if (
-        forceSubmit ||
-        !lastOnlineSubmitAt ||
-        now - lastOnlineSubmitAt >= ONLINE_SUBMIT_GAP_MS
-      ) {
+      if (forceSubmit || !lastOnlineSubmitAt || now - lastOnlineSubmitAt >= ONLINE_SUBMIT_GAP_MS) {
         lastOnlineSubmitAt = now;
         HubLeaderboard.submit?.("online-time", total).catch(() => {});
       }
@@ -3083,49 +3097,16 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   async function fetchAllTimeRemote() {
     const data = await fetchDoc("players-alltime", ALLTIME_API);
     if (!data || typeof data !== "object") return {};
-    const players = data.players && typeof data.players === "object" ? data.players : data;
-    const out = {};
-    Object.entries(players).forEach(([id, p]) => {
-      if (!id || id === "players" || id === "total") return;
-      if (!p || typeof p !== "object") return;
-      const firstAt = Number(p.firstAt) || Number(p.at) || 0;
-      if (!firstAt) return;
-      const lastAt = Math.max(
-        Number(p.lastAt) || 0,
-        Number(p.at) || 0,
-        firstAt
-      );
-      out[id] = {
-        firstAt,
-        lastAt,
-        name: sanitizeName(p.name || "") || "Guest"
-      };
-    });
-    return purgeAllTimePlayers(out).players;
+    const parsed = alltimeApi.parseRemotePlayers
+      ? alltimeApi.parseRemotePlayers(data, { sanitizeName, isPurgedPlayer })
+      : {};
+    return purgeAllTimePlayers(parsed).players;
   }
 
   async function pushAllTimeRemote(players) {
-    const cleaned = {};
-    const stampCounts = new Map();
-    Object.entries(players || {}).forEach(([id, p]) => {
-      if (!p) return;
-      const lastAt = Number(p.lastAt) || 0;
-      if (lastAt) stampCounts.set(lastAt, (stampCounts.get(lastAt) || 0) + 1);
-      cleaned[id] = p;
-    });
-    const mass = new Set();
-    stampCounts.forEach((n, t) => {
-      if (n >= 5) mass.add(t);
-    });
-    if (mass.size) {
-      Object.keys(cleaned).forEach((id) => {
-        const p = cleaned[id];
-        const lastAt = Number(p.lastAt) || 0;
-        if (!mass.has(lastAt)) return;
-        const firstAt = Number(p.firstAt) || lastAt;
-        cleaned[id] = { ...p, lastAt: firstAt };
-      });
-    }
+    const cleaned = alltimeApi.repairMassStampedLastAt
+      ? alltimeApi.repairMassStampedLastAt(players)
+      : { ...(players || {}) };
     await pushDoc(
       "players-alltime",
       {
@@ -3169,11 +3150,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     if (isRateLimited() && !sb()) return;
     try {
       const remote = await fetchAllTimeRemote();
-      const merged = clampLastAtForWrite(
-        remote,
-        mergeAllTime(remote, { [me]: nextRow }),
-        me
-      );
+      const merged = clampLastAtForWrite(remote, mergeAllTime(remote, { [me]: nextRow }), me);
       await pushAllTimeRemote(merged);
       rememberAllTime(merged);
     } catch {
@@ -3182,7 +3159,9 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   function isPlaceholderName(name) {
-    return presenceApi.isPlaceholderName ? presenceApi.isPlaceholderName(name) : !sanitizeName(name || "");
+    return presenceApi.isPlaceholderName
+      ? presenceApi.isPlaceholderName(name)
+      : !sanitizeName(name || "");
   }
 
   function preferPlayerName(a, b) {
@@ -3194,61 +3173,16 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   function mergeAllTime(a, b) {
-    const out = { ...(a || {}) };
-    Object.entries(b || {}).forEach(([id, p]) => {
-      if (!p) return;
-      const existing = out[id];
-      const incomingFirst = Number(p.firstAt) || Number(p.at) || 0;
-      const incomingLast = Math.max(
-        Number(p.lastAt) || 0,
-        Number(p.at) || 0,
-        incomingFirst
-      );
-      if (!existing) {
-        out[id] = {
-          firstAt: incomingFirst || Date.now(),
-          lastAt: incomingLast || incomingFirst || Date.now(),
-          name: preferPlayerName(p.name, "")
-        };
-        return;
-      }
-      const firstAt = Math.min(
-        existing.firstAt || Infinity,
-        incomingFirst || Infinity
-      );
-      const lastAt = Math.max(
-        Number(existing.lastAt) || 0,
-        incomingLast || 0,
-        Number(existing.firstAt) || 0
-      );
-      out[id] = {
-        firstAt: firstAt === Infinity ? Date.now() : firstAt,
-        lastAt: lastAt || (firstAt === Infinity ? Date.now() : firstAt),
-        name: preferPlayerName(existing.name, p.name)
-      };
-    });
-    return out;
+    return alltimeApi.mergeAllTime
+      ? alltimeApi.mergeAllTime(a, b, preferPlayerName)
+      : { ...(a || {}), ...(b || {}) };
   }
 
   /** Merge rosters but keep remote lastAt so repairs beat polluted local caches. */
   function mergeAllTimePreferRemoteLast(remote, local) {
-    const merged = mergeAllTime(remote || {}, local || {});
-    Object.entries(remote || {}).forEach(([id, p]) => {
-      if (!merged[id] || !p) return;
-      const remoteFirst = Number(p.firstAt) || 0;
-      const remoteLast = Math.max(Number(p.lastAt) || 0, remoteFirst);
-      const localFirst = Number(merged[id].firstAt) || remoteFirst;
-      merged[id] = {
-        ...merged[id],
-        firstAt:
-          Math.min(localFirst || remoteFirst, remoteFirst || localFirst) ||
-          remoteFirst ||
-          localFirst,
-        lastAt: remoteLast || Number(merged[id].lastAt) || remoteFirst || localFirst,
-        name: preferPlayerName(p.name, merged[id].name)
-      };
-    });
-    return merged;
+    return alltimeApi.mergeAllTimePreferRemoteLast
+      ? alltimeApi.mergeAllTimePreferRemoteLast(remote, local, preferPlayerName)
+      : mergeAllTime(remote, local);
   }
 
   /**
@@ -3256,38 +3190,9 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
    * whatever remote already has (stops heartbeat-polluted locals from mass-stamping).
    */
   function clampLastAtForWrite(remote, next, myId) {
-    const out = {};
-    const me = String(myId || "");
-    Object.entries(next || {}).forEach(([id, p]) => {
-      if (!p) return;
-      const r = remote?.[id];
-      const firstAt =
-        Math.min(
-          Number(r?.firstAt) || Infinity,
-          Number(p.firstAt) || Infinity
-        ) === Infinity
-          ? Number(p.firstAt) || Number(r?.firstAt) || Date.now()
-          : Math.min(Number(r?.firstAt) || Date.now(), Number(p.firstAt) || Date.now());
-      let lastAt;
-      if (id === me) {
-        lastAt = Math.max(
-          Number(r?.lastAt) || 0,
-          Number(p.lastAt) || 0,
-          firstAt
-        );
-      } else if (r) {
-        lastAt = Math.max(Number(r.lastAt) || 0, Number(r.firstAt) || 0) || firstAt;
-      } else {
-        // Brand-new id from this client — use discovery time, not "now" spam.
-        lastAt = Math.max(Number(p.lastAt) || 0, firstAt) || firstAt;
-      }
-      out[id] = {
-        firstAt,
-        lastAt,
-        name: preferPlayerName(p.name, r?.name)
-      };
-    });
-    return out;
+    return alltimeApi.clampLastAtForWrite
+      ? alltimeApi.clampLastAtForWrite(remote, next, myId, preferPlayerName)
+      : { ...(next || {}) };
   }
 
   /** @deprecated Presence must never rewrite persisted lastAt. */
@@ -3296,50 +3201,21 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   function trimAllTime(map) {
-    const entries = Object.entries(map || {});
-    if (entries.length <= MAX_ALLTIME) return map || {};
-    entries.sort((a, b) => (a[1].firstAt || 0) - (b[1].firstAt || 0));
-    const out = {};
-    entries.slice(0, MAX_ALLTIME).forEach(([id, p]) => {
-      out[id] = p;
-    });
-    return out;
+    return alltimeApi.trimAllTime ? alltimeApi.trimAllTime(map, MAX_ALLTIME) : map || {};
   }
 
   function namesFromPlays(plays) {
-    const fromPlays = {};
-    (plays || []).forEach((p) => {
-      if (!p || !p.playerId) return;
-      const prev = fromPlays[p.playerId];
-      const at = Number(p.at) || Date.now();
-      const firstAt = Math.min(prev?.firstAt || Infinity, at);
-      const lastAt = Math.max(prev?.lastAt || 0, at);
-      fromPlays[p.playerId] = {
-        firstAt: firstAt === Infinity ? at : firstAt,
-        lastAt: lastAt || at,
-        name: preferPlayerName(prev?.name, p.name)
-      };
-    });
-    return fromPlays;
+    return alltimeApi.namesFromPlays ? alltimeApi.namesFromPlays(plays, preferPlayerName) : {};
   }
 
   function namesFromRegistry(names) {
-    const out = {};
-    Object.values(names || {}).forEach((claim) => {
-      if (!claim || !claim.playerId) return;
-      const name = sanitizeName(claim.name || "");
-      if (isPlaceholderName(name)) return;
-      const prev = out[claim.playerId];
-      const claimedAt = Number(claim.claimedAt) || Date.now();
-      const firstAt = Math.min(prev?.firstAt || Infinity, claimedAt);
-      const lastAt = Math.max(prev?.lastAt || 0, claimedAt);
-      out[claim.playerId] = {
-        firstAt: firstAt === Infinity ? claimedAt : firstAt,
-        lastAt: lastAt || claimedAt,
-        name: preferPlayerName(prev?.name, name)
-      };
-    });
-    return out;
+    return alltimeApi.namesFromRegistry
+      ? alltimeApi.namesFromRegistry(names, {
+          preferPlayerName,
+          sanitizeName,
+          isPlaceholderName
+        })
+      : {};
   }
 
   function buildAllTimeMap(remote, plays, names, meEntry) {
@@ -3360,28 +3236,9 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   function allTimeNeedsWrite(remote, next, myId) {
-    const remoteKeys = Object.keys(remote || {});
-    const nextKeys = Object.keys(next || {});
-    const me = String(myId || "");
-    // Never shrink the shared roster from a partial client view
-    if (nextKeys.length < remoteKeys.length) return false;
-    if (nextKeys.length !== remoteKeys.length) return true;
-    for (const id of nextKeys) {
-      if (!remote[id]) return true;
-      if (preferPlayerName(remote[id].name, "") !== preferPlayerName(next[id].name, "")) {
-        return true;
-      }
-      const remoteFirst = Number(remote[id].firstAt) || 0;
-      const nextFirst = Number(next[id].firstAt) || 0;
-      if (nextFirst && remoteFirst && nextFirst < remoteFirst) return true;
-      // Only your own lastAt bumps may trigger a write — foreign bumps are clamped away.
-      if (id === me) {
-        const remoteLast = Number(remote[id].lastAt) || 0;
-        const nextLast = Number(next[id].lastAt) || 0;
-        if (nextLast - remoteLast >= LAST_AT_WRITE_GAP_MS) return true;
-      }
-    }
-    return false;
+    return alltimeApi.allTimeNeedsWrite
+      ? alltimeApi.allTimeNeedsWrite(remote, next, myId, preferPlayerName, LAST_AT_WRITE_GAP_MS)
+      : false;
   }
 
   async function fetchPagesAlltimeSeed() {
@@ -3396,13 +3253,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       if (!res.ok) return null;
       const data = await res.json();
       if (!data || typeof data !== "object") return null;
-      return {
-        count: Math.max(0, Math.floor(Number(data.count) || 0)),
-        games: Math.max(0, Math.floor(Number(data.games) || 0)),
-        mostPlayed: String(data.mostPlayed || "").trim(),
-        achievements: Math.max(0, Math.floor(Number(data.achievements) || 0)),
-        note: String(data.note || "").trim()
-      };
+      return alltimeApi.parseMilestoneSeed ? alltimeApi.parseMilestoneSeed(data) : null;
     } catch {
       return null;
     }
@@ -3580,9 +3431,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 
     if (presenceCache[raw] || allTimeCache[raw] || /^p-/i.test(raw)) {
       playerId = raw;
-      name =
-        sanitizeName(presenceCache[raw]?.name || allTimeCache[raw]?.name || "") ||
-        "";
+      name = sanitizeName(presenceCache[raw]?.name || allTimeCache[raw]?.name || "") || "";
     }
 
     if (!name) {
@@ -3617,8 +3466,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     let storedLast = persistedLastAt(playerId);
     if (!firstAt || !storedLast) {
       const roster = getAllTimePlayers().find(
-        (p) =>
-          (playerId && p.playerId === playerId) || nameKey(p.name) === nameKey(name)
+        (p) => (playerId && p.playerId === playerId) || nameKey(p.name) === nameKey(name)
       );
       if (roster) {
         firstAt = firstAt || Number(roster.firstAt) || 0;
@@ -3653,8 +3501,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       name,
       online,
       game,
-      gameName:
-        game && game !== "hub" ? gameLabel(game) : game === "hub" ? "Hub" : "",
+      gameName: game && game !== "hub" ? gameLabel(game) : game === "hub" ? "Hub" : "",
       firstAt,
       lastAt,
       titleBadge: titleBadge || null,
@@ -3744,10 +3591,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
               [me]: {
                 firstAt: Number(remote[me]?.firstAt) || now,
                 lastAt:
-                  Math.max(
-                    Number(remote[me]?.lastAt) || 0,
-                    Number(remote[me]?.firstAt) || 0
-                  ) || now,
+                  Math.max(Number(remote[me]?.lastAt) || 0, Number(remote[me]?.firstAt) || 0) ||
+                  now,
                 name: myName
               }
             }
@@ -3775,12 +3620,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
         const fetched = await fetchAllTimeRemote();
         confirmed = clampLastAtForWrite(
           fetched,
-          buildAllTimeMap(
-            mergeAllTimePreferRemoteLast(fetched, next),
-            plays,
-            namesCache,
-            meEntry
-          ),
+          buildAllTimeMap(mergeAllTimePreferRemoteLast(fetched, next), plays, namesCache, meEntry),
           me
         );
         // Only rewrite if we didn't shrink
@@ -4317,7 +4157,9 @@ body.light .menu-credit .player-name-creator {
   ];
 
   function sanitizeColor(raw) {
-    const value = String(raw || "").trim().toLowerCase();
+    const value = String(raw || "")
+      .trim()
+      .toLowerCase();
     if (!value) return "";
     if (/^#[0-9a-f]{6}$/.test(value)) return value;
     return "";
@@ -4366,10 +4208,7 @@ body.light .menu-credit .player-name-creator {
   const CHEESY_NAME_KEYS = new Set(["oscarvr29"]);
 
   function selfHasMasterFisher() {
-    return (
-      typeof HubAchievements !== "undefined" &&
-      !!HubAchievements.isUnlocked?.("fishing_all")
-    );
+    return typeof HubAchievements !== "undefined" && !!HubAchievements.isUnlocked?.("fishing_all");
   }
 
   function selfHasInviter() {
@@ -4457,17 +4296,19 @@ body.light .menu-credit .player-name-creator {
     if (!unlocked.has("legend")) ids.push("legend");
     if (!unlocked.has("master_fisher")) ids.push("master_fisher");
     if (!unlocked.has("inviter")) ids.push("inviter");
-    return ids.map((id) => {
-      const def = TITLE_DEFS[id];
-      if (!def) return null;
-      return {
-        id,
-        label: def.label,
-        className: def.className,
-        unlocked: unlocked.has(id),
-        color: TITLE_COLORS[id] || "#888888"
-      };
-    }).filter(Boolean);
+    return ids
+      .map((id) => {
+        const def = TITLE_DEFS[id];
+        if (!def) return null;
+        return {
+          id,
+          label: def.label,
+          className: def.className,
+          unlocked: unlocked.has(id),
+          color: TITLE_COLORS[id] || "#888888"
+        };
+      })
+      .filter(Boolean);
   }
 
   function getActiveTitleId(name = getName()) {
@@ -4492,9 +4333,7 @@ body.light .menu-credit .player-name-creator {
 
   function getExtraColorIds(name = getName()) {
     const key = nameKey(name);
-    const ids = Object.keys(EXTRA_COLOR_GRANTS).filter((id) =>
-      EXTRA_COLOR_GRANTS[id].has(key)
-    );
+    const ids = Object.keys(EXTRA_COLOR_GRANTS).filter((id) => EXTRA_COLOR_GRANTS[id].has(key));
     try {
       (window.HubAdmin?.getUnlocksFor?.(name)?.colors || []).forEach((id) => {
         const c = String(id || "").toLowerCase();
@@ -4533,7 +4372,9 @@ body.light .menu-credit .player-name-creator {
   }
 
   function isCheeseAccent(color) {
-    const value = String(color || "").trim().toLowerCase();
+    const value = String(color || "")
+      .trim()
+      .toLowerCase();
     return value === TITLE_COLORS.cheesy || value === "#f0b429";
   }
 
@@ -4598,9 +4439,7 @@ body.light .menu-credit .player-name-creator {
 
     const available = getAvailableTitleIds(name);
     if (!available.length) return "";
-    const unlockedColors = new Set(
-      available.map((id) => TITLE_COLORS[id]).filter(Boolean)
-    );
+    const unlockedColors = new Set(available.map((id) => TITLE_COLORS[id]).filter(Boolean));
 
     if (accentTitle && available.includes(accentTitle) && TITLE_COLORS[accentTitle]) {
       return TITLE_COLORS[accentTitle];
@@ -4720,7 +4559,10 @@ body.light .menu-credit .player-name-creator {
         // Same nickname on a new device id: keep style locally; try reclaim once.
         finishLocal(existing);
         const nextClaim = namesCache[key];
-        const nextNames = { ...remoteNames, [key]: { ...existing, ...nextClaim, playerId: me, name: current } };
+        const nextNames = {
+          ...remoteNames,
+          [key]: { ...existing, ...nextClaim, playerId: me, name: current }
+        };
         try {
           await pushNamesRemote(nextNames);
           namesCache = applyLocalProfileStyle(nextNames);
@@ -4791,7 +4633,10 @@ body.light .menu-credit .player-name-creator {
       if (next.activeTitle === "master_fisher") next.activeTitle = "none";
       if (next.accentTitle === "master_fisher") {
         next.accentTitle = "";
-        if (String(next.accentColor || "").toLowerCase() === String(TITLE_COLORS.master_fisher).toLowerCase()) {
+        if (
+          String(next.accentColor || "").toLowerCase() ===
+          String(TITLE_COLORS.master_fisher).toLowerCase()
+        ) {
           next.accentColor = "";
         }
       }
@@ -4920,7 +4765,9 @@ body.light .menu-credit .player-name-creator {
   }
 
   async function setAccentColor(colorIdOrHex) {
-    const raw = String(colorIdOrHex || "").trim().toLowerCase();
+    const raw = String(colorIdOrHex || "")
+      .trim()
+      .toLowerCase();
     if (isExtraAccentId(raw)) return setAccentFromTitle(raw);
     const fromTitle = getAvailableTitleIds().find(
       (id) => id === raw || TITLE_COLORS[id] === sanitizeColor(raw)
@@ -5035,166 +4882,168 @@ body.light .menu-credit .player-name-creator {
     // Game pages keep social tools available, but they do not compete with gameplay startup.
     // The main hub owns its separate optional dependency profile.
     (function bootGameSocialModules() {
-    try {
-      if (document.getElementById("games-screen")) return;
-      const scripts = document.getElementsByTagName("script");
-      let base = "";
-      let v = window.WORDLE_BUILD || "20261015n";
-      for (let i = 0; i < scripts.length; i += 1) {
-        const src = scripts[i].src || "";
-        if (/hub-plays\.js/i.test(src)) {
-          base = src.replace(/hub-plays\.js[^/]*$/i, "");
-          const m = src.match(/[?&]v=([^&]+)/i);
-          if (m && m[1]) v = decodeURIComponent(m[1]);
-          break;
+      try {
+        if (document.getElementById("games-screen")) return;
+        const scripts = document.getElementsByTagName("script");
+        let base = "";
+        let v = window.WORDLE_BUILD || "20261015n";
+        for (let i = 0; i < scripts.length; i += 1) {
+          const src = scripts[i].src || "";
+          if (/hub-plays\.js/i.test(src)) {
+            base = src.replace(/hub-plays\.js[^/]*$/i, "");
+            const m = src.match(/[?&]v=([^&]+)/i);
+            if (m && m[1]) v = decodeURIComponent(m[1]);
+            break;
+          }
         }
-      }
-      const load = (file, globalName) => {
-        if (globalName && window[globalName]) return Promise.resolve();
-        return new Promise((resolve) => {
-          const el = document.createElement("script");
-          el.src = `${base}${file}?v=${v}`;
-          el.async = true;
-          el.onload = resolve;
-          el.onerror = resolve;
-          document.head.appendChild(el);
+        const load = (file, globalName) => {
+          if (globalName && window[globalName]) return Promise.resolve();
+          return new Promise((resolve) => {
+            const el = document.createElement("script");
+            el.src = `${base}${file}?v=${v}`;
+            el.async = true;
+            el.onload = resolve;
+            el.onerror = resolve;
+            document.head.appendChild(el);
+          });
+        };
+        load("hub-leaderboard-pbs.js", "HubLeaderboardPbs").then(() =>
+          load("hub-leaderboard.js", "HubLeaderboard")
+        );
+        if (/\/fishing(\/|$)/i.test(location.pathname || "")) {
+          load("hub-discord.js", "HubDiscord");
+        }
+        load("hub-friends-edges.js", "HubFriendsEdges").then(() => {
+          load("hub-friends.js", "HubFriends").then(() => {
+            load("hub-chat-mine.js", "HubChatMine").then(() => load("hub-chat.js", "HubChat"));
+            load("hub-call-signal.js", "HubCallSignal").then(() =>
+              load("hub-calls.js", "HubCalls")
+            );
+          });
         });
-      };
-      load("hub-leaderboard-pbs.js", "HubLeaderboardPbs").then(() =>
-        load("hub-leaderboard.js", "HubLeaderboard")
-      );
-      if (/\/fishing(\/|$)/i.test(location.pathname || "")) {
-        load("hub-discord.js", "HubDiscord");
-      }
-      load("hub-friends-edges.js", "HubFriendsEdges").then(() => {
-        load("hub-friends.js", "HubFriends").then(() => {
-          load("hub-chat-mine.js", "HubChatMine").then(() => load("hub-chat.js", "HubChat"));
-          load("hub-call-signal.js", "HubCallSignal").then(() => load("hub-calls.js", "HubCalls"));
-        });
-      });
-    } catch {}
+      } catch {}
     })();
 
     // Claim Fishing Idle admin gifts while on hub / other games (not on fishing page).
     (function bootFishingGiftClaimer() {
-    try {
-      if (window.HubFishingGifts) return;
-      if (/\/fishing(\/|$)/i.test(location.pathname || "")) return;
-      const scripts = document.getElementsByTagName("script");
-      let base = "";
-      for (let i = 0; i < scripts.length; i += 1) {
-        const src = scripts[i].src || "";
-        if (/hub-plays\.js/i.test(src)) {
-          base = src.replace(/hub-plays\.js[^/]*$/i, "");
-          break;
+      try {
+        if (window.HubFishingGifts) return;
+        if (/\/fishing(\/|$)/i.test(location.pathname || "")) return;
+        const scripts = document.getElementsByTagName("script");
+        let base = "";
+        for (let i = 0; i < scripts.length; i += 1) {
+          const src = scripts[i].src || "";
+          if (/hub-plays\.js/i.test(src)) {
+            base = src.replace(/hub-plays\.js[^/]*$/i, "");
+            break;
+          }
         }
-      }
-      if (!base) return;
-      const v = window.WORDLE_BUILD || "20260917bt";
-      ["hub-fishing-gifts.js", "hub-fishing-mail.js"].forEach((file) => {
-        const el = document.createElement("script");
-        el.src = `${base}${file}?v=${v}`;
-        el.async = true;
-        document.head.appendChild(el);
-      });
-    } catch {}
+        if (!base) return;
+        const v = window.WORDLE_BUILD || "20260917bt";
+        ["hub-fishing-gifts.js", "hub-fishing-mail.js"].forEach((file) => {
+          const el = document.createElement("script");
+          el.src = `${base}${file}?v=${v}`;
+          el.async = true;
+          document.head.appendChild(el);
+        });
+      } catch {}
     })();
 
     // Hold-Tab online roster on hub and every game page.
     (function bootOnlineOverlay() {
-    try {
-      if (window.HubOnlineOverlay) return;
-      const scripts = document.getElementsByTagName("script");
-      let base = "";
-      let v = window.WORDLE_BUILD || "20260927k";
-      for (let i = 0; i < scripts.length; i += 1) {
-        const src = scripts[i].src || "";
-        if (/hub-plays\.js/i.test(src)) {
-          base = src.replace(/hub-plays\.js[^/]*$/i, "");
-          const m = src.match(/[?&]v=([^&]+)/i);
-          if (m && m[1]) v = decodeURIComponent(m[1]);
-          break;
+      try {
+        if (window.HubOnlineOverlay) return;
+        const scripts = document.getElementsByTagName("script");
+        let base = "";
+        let v = window.WORDLE_BUILD || "20260927k";
+        for (let i = 0; i < scripts.length; i += 1) {
+          const src = scripts[i].src || "";
+          if (/hub-plays\.js/i.test(src)) {
+            base = src.replace(/hub-plays\.js[^/]*$/i, "");
+            const m = src.match(/[?&]v=([^&]+)/i);
+            if (m && m[1]) v = decodeURIComponent(m[1]);
+            break;
+          }
         }
-      }
-      if (!base) base = "";
-      const el = document.createElement("script");
-      el.src = `${base}hub-online-overlay.js?v=${v}`;
-      el.async = true;
-      document.head.appendChild(el);
-    } catch {}
+        if (!base) base = "";
+        const el = document.createElement("script");
+        el.src = `${base}hub-online-overlay.js?v=${v}`;
+        el.async = true;
+        document.head.appendChild(el);
+      } catch {}
     })();
 
     // Local Help Assistant (F / F1) on hub and every game page.
     (function bootHelpAssistant() {
-    try {
-      if (window.HubHelp) return;
-      const scripts = document.getElementsByTagName("script");
-      let base = "";
-      let v = window.WORDLE_BUILD || "20261001ah";
-      for (let i = 0; i < scripts.length; i += 1) {
-        const src = scripts[i].src || "";
-        if (/hub-plays\.js/i.test(src)) {
-          base = src.replace(/hub-plays\.js[^/]*$/i, "");
-          const m = src.match(/[?&]v=([^&]+)/i);
-          if (m && m[1]) v = decodeURIComponent(m[1]);
-          break;
-        }
-      }
-      if (!base) base = "";
-      function appendHelp() {
+      try {
         if (window.HubHelp) return;
-        const help = document.createElement("script");
-        help.src = `${base}hub-help.js?v=${v}`;
-        help.async = true;
-        document.head.appendChild(help);
-      }
-      function appendHelpInfo() {
-        if (window.HubHelpInfo) {
-          appendHelp();
+        const scripts = document.getElementsByTagName("script");
+        let base = "";
+        let v = window.WORDLE_BUILD || "20261001ah";
+        for (let i = 0; i < scripts.length; i += 1) {
+          const src = scripts[i].src || "";
+          if (/hub-plays\.js/i.test(src)) {
+            base = src.replace(/hub-plays\.js[^/]*$/i, "");
+            const m = src.match(/[?&]v=([^&]+)/i);
+            if (m && m[1]) v = decodeURIComponent(m[1]);
+            break;
+          }
+        }
+        if (!base) base = "";
+        function appendHelp() {
+          if (window.HubHelp) return;
+          const help = document.createElement("script");
+          help.src = `${base}hub-help.js?v=${v}`;
+          help.async = true;
+          document.head.appendChild(help);
+        }
+        function appendHelpInfo() {
+          if (window.HubHelpInfo) {
+            appendHelp();
+            return;
+          }
+          const info = document.createElement("script");
+          info.src = `${base}hub-help-info.js?v=${v}`;
+          info.async = true;
+          info.onload = appendHelp;
+          info.onerror = appendHelp;
+          document.head.appendChild(info);
+        }
+        if (window.HubGames) {
+          appendHelpInfo();
           return;
         }
-        const info = document.createElement("script");
-        info.src = `${base}hub-help-info.js?v=${v}`;
-        info.async = true;
-        info.onload = appendHelp;
-        info.onerror = appendHelp;
-        document.head.appendChild(info);
-      }
-      if (window.HubGames) {
-        appendHelpInfo();
-        return;
-      }
-      const games = document.createElement("script");
-      games.src = `${base}hub-games.js?v=${v}`;
-      games.async = true;
-      games.onload = appendHelpInfo;
-      games.onerror = appendHelpInfo;
-      document.head.appendChild(games);
-    } catch {}
+        const games = document.createElement("script");
+        games.src = `${base}hub-games.js?v=${v}`;
+        games.async = true;
+        games.onload = appendHelpInfo;
+        games.onerror = appendHelpInfo;
+        document.head.appendChild(games);
+      } catch {}
     })();
 
     // Master Admin (G) for ICE_DRAGON — hub + every game (Help-style float + pause in-game).
     (function bootMasterAdmin() {
-    try {
-      if (window.HubAdmin) return;
-      const scripts = document.getElementsByTagName("script");
-      let base = "";
-      let v = window.WORDLE_BUILD || "20261001ah";
-      for (let i = 0; i < scripts.length; i += 1) {
-        const src = scripts[i].src || "";
-        if (/hub-plays\.js/i.test(src)) {
-          base = src.replace(/hub-plays\.js[^/]*$/i, "");
-          const m = src.match(/[?&]v=([^&]+)/i);
-          if (m && m[1]) v = decodeURIComponent(m[1]);
-          break;
+      try {
+        if (window.HubAdmin) return;
+        const scripts = document.getElementsByTagName("script");
+        let base = "";
+        let v = window.WORDLE_BUILD || "20261001ah";
+        for (let i = 0; i < scripts.length; i += 1) {
+          const src = scripts[i].src || "";
+          if (/hub-plays\.js/i.test(src)) {
+            base = src.replace(/hub-plays\.js[^/]*$/i, "");
+            const m = src.match(/[?&]v=([^&]+)/i);
+            if (m && m[1]) v = decodeURIComponent(m[1]);
+            break;
+          }
         }
-      }
-      if (!base) base = "";
-      const el = document.createElement("script");
-      el.src = `${base}hub-admin.js?v=${v}`;
-      el.async = true;
-      document.head.appendChild(el);
-    } catch {}
+        if (!base) base = "";
+        const el = document.createElement("script");
+        el.src = `${base}hub-admin.js?v=${v}`;
+        el.async = true;
+        document.head.appendChild(el);
+      } catch {}
     })();
   }
 

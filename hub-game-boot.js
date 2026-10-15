@@ -212,6 +212,9 @@
         return loadManagedScript("hub-popularity.js", "HubPopularity");
       })
       .then(function () {
+        return loadManagedScript("hub-alltime.js", "HubAllTime");
+      })
+      .then(function () {
         return loadManagedScript("hub-plays.js", "HubPlays");
       })
       .then(function () {

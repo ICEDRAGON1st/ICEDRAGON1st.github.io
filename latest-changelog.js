@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ax",
+  "build": "20261015ay",
   "notes": [
-    "Your invite count and INVITER unlock now also save on your cloud account, so a new device can restore them."
+    "Players all-time merge now lives in its own helper so a partial device cannot shrink the shared roster."
   ]
 };
