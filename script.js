@@ -45,6 +45,11 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261015f": [
+    "The games grid no longer downloads any Guessword dictionary until Guessword is opened.",
+    "Direct Guessword links and saved language/length choices still preload the correct pack.",
+    "Coins, leaderboards, social, chat, calls, and other optional tools now load after the games grid is ready."
+  ],
   "20261015e": [
     "Windows app refresh now reuses cached files for much faster reloads; Ctrl+Shift+R remains the explicit hard refresh.",
     "The hub download now points to Windows app 1.0.7."
@@ -2122,7 +2127,7 @@ if (playMode === "daily") {
   currentLength = DAILY_LENGTH;
 }
 let COLS = currentLength;
-let state = loadState();
+let state = window.__guesswordAssetsReady ? loadState() : null;
 let submitting = false;
 
 function getKeyboardRows() {
@@ -3992,7 +3997,7 @@ function backFromGames() {
   showMenu();
 }
 
-function selectGame(gameId) {
+async function selectGame(gameId) {
   if (!requirePlayerName()) return;
   try {
     if (window.HubAdmin?.isSoftLocked?.()) {
@@ -4030,7 +4035,16 @@ function selectGame(gameId) {
   } catch {}
 
   if (!game.path) {
-    setPlayMode(isTodayDailyFinished() ? "practice" : "daily");
+    const nextMode = isTodayDailyFinished() ? "practice" : "daily";
+    const savedPracticeLength = Number(localStorage.getItem(LENGTH_KEY));
+    const nextLength =
+      nextMode === "daily"
+        ? DAILY_LENGTH
+        : LENGTHS.includes(savedPracticeLength)
+          ? savedPracticeLength
+          : DAILY_LENGTH;
+    if (!(await ensureWordAssets(currentLang, nextLength))) return;
+    setPlayMode(nextMode);
     reloadBoard();
     hideMenu();
     hideGamesScreen();
@@ -4603,7 +4617,7 @@ updateModeButton();
 applyTheme(localStorage.getItem(THEME_KEY) || "dark");
 applyGuessColorTheme();
 applyHubTheme();
-render();
+if (state) render();
 document.addEventListener("keydown", handlePhysicalKeyboard);
 menuBtn.addEventListener("click", () => showMenu());
 menuResumeBtn.addEventListener("click", () => {
@@ -7329,6 +7343,15 @@ const sixCount = typeof WORDS_6 !== "undefined" ? WORDS_6.length : 0;
 applySiteConfig();
 showMessage(`Loaded · ${sixCount} six-letter words`);
 
+function markHubInteractive(route) {
+  if (window.__myGamesInteractiveAt != null) return;
+  window.__myGamesInteractiveAt = performance.now();
+  window.__myGamesInteractiveRoute = route;
+  try {
+    performance.mark("mygames-interactive");
+  } catch {}
+}
+
 function bootAfterUsername() {
   // Land on My Games first so What's new never sits on the Guessword board.
   announceHubBuildOnBoot();
@@ -7342,11 +7365,13 @@ function bootAfterUsername() {
       showMenu();
     }
     window.dismissHubBootLoader?.();
+    markHubInteractive("guessword");
     return;
   }
 
   showGamesScreen();
   window.dismissHubBootLoader?.();
+  markHubInteractive("hub");
   try {
     const flair = window.HubEggs?.consumePendingHubFlair?.();
     if (flair) {

@@ -60,9 +60,13 @@ Until isolated staging and automated releases exist:
 ## Current measurements after the first performance slices
 
 - Hub scripts load in dependency-aware parallel phases and use one stable service-worker URL.
-- Guessword startup loads one active language/length pack (168,142 bytes for English 5-letter)
-  instead of all 18 word/dictionary files (2,264,199 bytes), saving 2,096,057 uncompressed
-  bytes on the default route. Other packs load on demand and are retained for the page session.
+- The games-grid critical path is capped by CI at 12 scripts and under 1 MB of decoded
+  JavaScript; social, chat/calls, leaderboard, coins, Help, admin, and Fishing helpers load
+  after the shell becomes interactive.
+- The games-grid route loads no Guessword dictionaries. Opening Guessword loads one active
+  language/length pack (168,142 bytes for English 5-letter) instead of all 18 word/dictionary
+  files (2,264,199 bytes), saving the full 2,264,199 uncompressed bytes on the hub route. Other
+  packs load on demand and are retained for the page session.
 - The isolated local hub smoke test reaches its interactive shell in about 2–3 seconds.
 - The headless Paper Claim smoke test sustains at least 25 FPS while recording video. This is a
   CI regression guard, not proof of the roadmap's 55 FPS real-device target.

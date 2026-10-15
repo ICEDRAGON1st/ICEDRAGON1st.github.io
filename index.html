@@ -94,13 +94,13 @@
       pointer-events: none !important;
     }
   </style>
-  <script src="site-config.js?v=20261015e"></script>
+  <script src="site-config.js?v=20261015f"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=20261001ge">
-  <script src="hub-net.js?v=20261015e"></script>
-  <script src="hub-afk.js?v=20261015e"></script>
+  <script src="hub-net.js?v=20261015f"></script>
+  <script src="hub-afk.js?v=20261015f"></script>
 </head>
 <body data-guess-colors="ice">
   <div id="hub-boot-loader" aria-live="polite" aria-busy="true">
@@ -940,7 +940,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20261015e";
+    window.WORDLE_BUILD = "20261015f";
     try {
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("sw.js").catch(function () {});
@@ -954,13 +954,15 @@
         "hub-achievements.js",
         "hub-sound.js",
         "hub-audio.js",
-        "hub-confetti.js",
-        "hub-supabase.js",
-        "hub-eggs.js"
+        "hub-supabase.js"
       ],
       ["hub-account-bag.js"],
-      ["hub-plays.js"],
+      ["hub-plays.js"]
+    ];
+    const optionalScriptPhases = [
       [
+        "hub-confetti.js",
+        "hub-eggs.js",
         "hub-coins.js",
         "hub-referrals.js",
         "mine-data.js",
@@ -1028,9 +1030,43 @@
         guesswordAssets[language][size].map(function (file) {
           return loadHubScript(file, true);
         })
-      );
+      ).then(function () {
+        window.__guesswordAssetsReady = true;
+      });
     }
     window.ensureGuesswordAssets = ensureGuesswordAssets;
+
+    let optionalHubProfilePromise = null;
+    function loadOptionalHubProfile() {
+      if (optionalHubProfilePromise) return optionalHubProfilePromise;
+      optionalHubProfilePromise = (async function () {
+        for (const phase of optionalScriptPhases) {
+          await Promise.all(phase.map(loadHubScript));
+        }
+        try {
+          window.refreshGamesHub?.();
+          window.HubFeedback?.sync?.().catch?.(() => {});
+          window.HubNotifications?.start?.();
+        } catch (e) {}
+      })().catch(function (error) {
+        optionalHubProfilePromise = null;
+        console.error("Optional hub profile failed", error);
+      });
+      return optionalHubProfilePromise;
+    }
+    window.loadOptionalHubProfile = loadOptionalHubProfile;
+
+    function scheduleOptionalHubProfile() {
+      const run = function () {
+        if (typeof requestIdleCallback === "function") {
+          requestIdleCallback(loadOptionalHubProfile, { timeout: 1200 });
+        } else {
+          setTimeout(loadOptionalHubProfile, 100);
+        }
+      };
+      if (document.readyState === "complete") run();
+      else window.addEventListener("load", run, { once: true });
+    }
 
     function getInitialGuesswordSelection() {
       try {
@@ -1065,11 +1101,15 @@
         await Promise.all(phase.map(loadHubScript));
       }
       const initialGuessword = getInitialGuesswordSelection();
+      const wordleDeepLink = location.hash === "#wordle";
       await Promise.all([
-        ensureGuesswordAssets(initialGuessword.lang, initialGuessword.length),
+        wordleDeepLink
+          ? ensureGuesswordAssets(initialGuessword.lang, initialGuessword.length)
+          : Promise.resolve(),
         loadHubScript("wordle-themes.js", true)
       ]);
       await loadHubScript("script.js", true);
+      scheduleOptionalHubProfile();
       // Scripts finished; give init a tick, then drop the loader.
       setTimeout(dismissHubBootLoader, 40);
     }

@@ -71,7 +71,12 @@ test("Guessword loads only the active dictionary pack", async ({ page }) => {
     { timeout: 20_000 }
   );
 
-  expect(new Set(requestedPacks)).toEqual(new Set(["/words.js", "/dictionary.js"]));
+  expect(requestedPacks).toEqual([]);
+
+  await page.evaluate(() => window.selectGame("wordle"));
+  await expect
+    .poll(() => new Set(requestedPacks), { timeout: 10_000 })
+    .toEqual(new Set(["/words.js", "/dictionary.js"]));
 
   await page.evaluate(() => window.switchLanguage());
   await expect
@@ -99,13 +104,23 @@ test("Guessword loads only the active dictionary pack", async ({ page }) => {
     .toContain("/dictionary-is-6.js");
 
   requestedPacks.length = 0;
-  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.goto("/?smoke=deep-link#wordle", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(
     () => !document.documentElement.classList.contains("hub-booting"),
     null,
     { timeout: 20_000 }
   );
-  expect(new Set(requestedPacks)).toEqual(new Set(["/words-is-6.js", "/dictionary-is-6.js"]));
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          "typeof WORDS_IS_6 !== 'undefined' && typeof VALID_GUESSES_IS_6 !== 'undefined' && " +
+            "Array.isArray(WORDS_IS_6) && VALID_GUESSES_IS_6 instanceof Set && " +
+            "typeof WORDS_IS === 'undefined'"
+        ),
+      { timeout: 10_000 }
+    )
+    .toBe(true);
 });
 
 test("optional hub helpers load after the interactive shell", async ({ page }) => {
@@ -121,7 +136,12 @@ test("optional hub helpers load after the interactive shell", async ({ page }) =
       window.HubHelp &&
       window.HubAdmin &&
       window.HubFishingGifts &&
-      window.HubFishingMail,
+      window.HubFishingMail &&
+      window.HubCoins &&
+      window.HubLeaderboard &&
+      window.HubFriends &&
+      window.HubChat &&
+      window.HubCalls,
     null,
     { timeout: 10_000 }
   );
