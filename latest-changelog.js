@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015av",
+  "build": "20261015aw",
   "notes": [
-    "Your notification inbox now also saves on your cloud account, so a new device can restore it."
+    "Players and Help now say there are 32 games, including Sticker Garage, Space Waves, and Cup Flow."
   ]
 };

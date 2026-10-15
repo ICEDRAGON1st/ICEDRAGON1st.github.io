@@ -4024,7 +4024,8 @@ function updatePlayersMilestonesLine() {
   if (!el || typeof HubPlays === "undefined") return;
   const m = HubPlays.getAllTimeMilestone?.();
   const total = HubPlays.getAllTimeCount?.() || 0;
-  const games = Math.max(0, Number(m?.games) || 29);
+  const catalogGames = Array.isArray(HUB_GAMES) ? HUB_GAMES.length : 0;
+  const games = Math.max(catalogGames, Number(m?.games) || 0);
   const most = String(m?.mostPlayed || "Fishing Idle").trim() || "Fishing Idle";
   const badges = Math.max(0, Number(m?.achievements) || 100);
   el.textContent = `Hub milestones: ${total} all-time players · ${games} games · ${most} most played · ~${badges} achievements`;

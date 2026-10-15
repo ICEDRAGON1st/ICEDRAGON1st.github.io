@@ -1427,7 +1427,8 @@
               .map((s) => s.trim())
               .filter(Boolean)
           : details.map((g) => g.title).filter(Boolean);
-        const countBit = gameCount || String(names.length);
+        const catalogCount = gameCatalog().length;
+        const countBit = catalogCount || gameCount || String(names.length);
         const countOnly = /\b(how\s+many|count|number\s+of)\b/i.test(q) && !/\b(list|which|what\s+are)\b/i.test(q);
         return {
           title: countOnly ? "Games count" : "Games list",

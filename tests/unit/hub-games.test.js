@@ -46,3 +46,23 @@ test("catalog includes every hub card and the newest three games", () => {
   assert.ok(tabs.some((tab) => tab.id === "cup"));
   assert.equal(uniqueCards.length, 32);
 });
+
+test("Players and Help fall back to the shared 32-game catalog", () => {
+  const script = fs.readFileSync(path.join(ROOT, "script.js"), "utf8");
+  const index = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  const help = fs.readFileSync(path.join(ROOT, "hub-help.js"), "utf8");
+  const faq = JSON.parse(fs.readFileSync(path.join(ROOT, "help-data.json"), "utf8"));
+  const seed = JSON.parse(fs.readFileSync(path.join(ROOT, "players-alltime.json"), "utf8"));
+  const gamesTopic = (faq.topics || []).find((topic) => topic.id === "games-list");
+
+  assert.match(script, /HUB_GAMES\.length/);
+  assert.doesNotMatch(script, /\|\| 29\)/);
+  assert.match(index, /32 games/);
+  assert.doesNotMatch(index, /29 games/);
+  assert.match(help, /catalogCount/);
+  assert.equal(seed.games, 32);
+  assert.match(String(gamesTopic?.answer || ""), /32 minigames/);
+  assert.match(String(gamesTopic?.answer || ""), /Sticker Garage/);
+  assert.match(String(gamesTopic?.answer || ""), /Space Waves/);
+  assert.match(String(gamesTopic?.answer || ""), /Cup Flow/);
+});
