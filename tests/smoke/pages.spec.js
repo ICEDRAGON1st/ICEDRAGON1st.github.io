@@ -1,16 +1,23 @@
 "use strict";
 
+const fs = require("node:fs");
+const path = require("node:path");
 const { test, expect } = require("@playwright/test");
 
+const ROOT = path.resolve(__dirname, "../..");
 const PAGES = [
   { name: "hub", path: "/" },
-  { name: "small game", path: "/snake/" },
-  { name: "canvas/board game", path: "/connect-four/" },
-  { name: "Paper Claim", path: "/paper-io/" },
-  { name: "Fishing Idle", path: "/fishing/" },
-  { name: "Mine Depth", path: "/mine/" },
-  { name: "Dudes", path: "/dudes/" },
-  { name: "Ramp Rush", path: "/ramp-rush/" }
+  ...fs
+    .readdirSync(ROOT, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => ({
+      name: entry.name,
+      file: path.join(ROOT, entry.name, "index.html"),
+      path: `/${entry.name}/`
+    }))
+    .filter((target) => fs.existsSync(target.file))
+    .filter((target) => /hub-game-boot\.js/i.test(fs.readFileSync(target.file, "utf8")))
+    .map(({ name, path: route }) => ({ name, path: route }))
 ];
 
 test.beforeEach(async ({ context, page }) => {

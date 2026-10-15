@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015p",
+  "build": "20261015q",
   "notes": [
-    "Fishing Idle, Mine Depth, and Dudes now open before optional social tools."
+    "All games now open before optional social tools finish loading."
   ]
 };
