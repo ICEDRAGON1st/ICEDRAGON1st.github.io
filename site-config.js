@@ -8,9 +8,9 @@ window.SITE_CONFIG = {
     "https://github.com/ICEDRAGON1st/ICEDRAGON1st.github.io/releases/download/v1.0.6/MyGames-Setup-1.0.6.exe",
   discord: {
     invite: "https://discord.gg/6NHYfPwAwg",
-    // Channel webhook for admin abuse / announcements
-    webhookUrl:
-      "https://discord.com/api/webhooks/1554593207927709728/aP4OsrIQcBF_qeZ301F9y09GraridUsCaoCQyIR8gmSVqO4PUCekT2D8rnqPcx-g1kcv",
+    // Never put webhooks in browser code. Admin announcements stay disabled
+    // until they are sent by an authenticated server-side function.
+    webhookUrl: "",
     // #updates — kept EMPTY on purpose (public repo). Announce tool reads
     // tools/discord-secrets.local.js or DISCORD_UPDATES_WEBHOOK instead.
     webhookUpdatesUrl: "",
