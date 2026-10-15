@@ -5,7 +5,7 @@ window.SITE_CONFIG = {
   domain: "icedragon1st.github.io",
   /** Windows installer (GitHub Release). Update when you ship a new desktop build. */
   desktopAppDownloadUrl:
-    "https://github.com/ICEDRAGON1st/ICEDRAGON1st.github.io/releases/download/v1.0.6/MyGames-Setup-1.0.6.exe",
+    "https://github.com/ICEDRAGON1st/ICEDRAGON1st.github.io/releases/download/v1.0.7/MyGames-Setup-1.0.7.exe",
   discord: {
     invite: "https://discord.gg/6NHYfPwAwg",
     // Never put webhooks in browser code. Admin announcements stay disabled

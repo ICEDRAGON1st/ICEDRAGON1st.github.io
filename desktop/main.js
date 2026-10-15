@@ -45,7 +45,7 @@ function isHubUrl(url) {
   }
 }
 
-function refreshHub({ home = false } = {}) {
+function refreshHub({ home = false, hard = false } = {}) {
   if (!mainWindow || mainWindow.isDestroyed()) return;
   if (home) {
     mainWindow.loadURL(HUB_URL);
@@ -56,7 +56,11 @@ function refreshHub({ home = false } = {}) {
     mainWindow.loadURL(HUB_URL);
     return;
   }
-  mainWindow.webContents.reloadIgnoringCache();
+  if (hard) {
+    mainWindow.webContents.reloadIgnoringCache();
+    return;
+  }
+  mainWindow.webContents.reload();
 }
 
 function createWindow() {
@@ -135,7 +139,7 @@ function buildMenu() {
         {
           label: "Hard refresh",
           accelerator: "CmdOrCtrl+Shift+R",
-          click: () => refreshHub()
+          click: () => refreshHub({ hard: true })
         },
         {
           label: "Home",

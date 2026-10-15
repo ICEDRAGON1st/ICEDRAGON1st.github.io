@@ -45,6 +45,10 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261015e": [
+    "Windows app refresh now reuses cached files for much faster reloads; Ctrl+Shift+R remains the explicit hard refresh.",
+    "The hub download now points to Windows app 1.0.7."
+  ],
   "20261015d": [
     "The hub becomes interactive before optional Help, admin, online overlay, and Fishing background helpers finish loading."
   ],
