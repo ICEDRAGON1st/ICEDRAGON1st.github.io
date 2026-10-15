@@ -70,9 +70,9 @@ for (const file of htmlFiles(ROOT)) {
       `$1?v=${build}`
     );
   }
-  next = next.replace(/(\.\.\/hub-[a-z-]+\.js)(?:\?v=[^"'\s>]+)?/gi, `$1?v=${build}`);
+  next = next.replace(/(\.\.\/hub-[a-z0-9-]+\.js)(?:\?v=[^"'\s>]+)?/gi, `$1?v=${build}`);
   next = next.replace(
-    /((?:src|href)=["'](?:site-config|hub-[a-z-]+)\.js)(?:\?v=[^"'\s>]+)?/gi,
+    /((?:src|href)=["'](?:site-config|hub-[a-z0-9-]+)\.js)(?:\?v=[^"'\s>]+)?/gi,
     `$1?v=${build}`
   );
   writeIfChanged(file, next, changed);

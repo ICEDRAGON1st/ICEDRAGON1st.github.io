@@ -18,6 +18,7 @@ test("release build and changelog metadata stay aligned", () => {
   const themeBuild = /href=["']css\/themes\.css\?v=([^"']+)/.exec(index)?.[1];
   const guesswordBuild = /href=["']css\/guessword\.css\?v=([^"']+)/.exec(index)?.[1];
   const hubCssBuild = /href=["']css\/hub\.css\?v=([^"']+)/.exec(index)?.[1];
+  const a11yBuild = /src=["']hub-a11y\.js\?v=([^"']+)/.exec(index)?.[1];
   const workerBuild = /const BUILD = "([^"]+)"/.exec(worker)?.[1];
   const latestMatch = /window\.MYGAMES_LATEST_CHANGELOG = (\{[\s\S]*\});\s*$/.exec(latestSource);
 
@@ -26,6 +27,7 @@ test("release build and changelog metadata stay aligned", () => {
   assert.equal(themeBuild, indexBuild);
   assert.equal(guesswordBuild, indexBuild);
   assert.equal(hubCssBuild, indexBuild);
+  assert.equal(a11yBuild, indexBuild);
   assert.equal(workerBuild, indexBuild);
   assert.ok(latestMatch, "latest changelog metadata is parseable");
 
