@@ -39,7 +39,9 @@
 
   function myPlayerId() {
     try {
-      return String(window.HubPlays?.getPlayerId?.() || localStorage.getItem("hub-player-id") || "");
+      return String(
+        window.HubPlays?.getPlayerId?.() || localStorage.getItem("hub-player-id") || ""
+      );
     } catch {
       return "";
     }
@@ -101,6 +103,7 @@
     try {
       localStorage.setItem(CREDITED_KEY, "1");
     } catch {}
+    persistMine();
   }
 
   function readLocalStatus() {
@@ -127,6 +130,47 @@
         })
       );
     } catch {}
+    persistMine();
+  }
+
+  function mineApi() {
+    return window.HubReferralsMine || null;
+  }
+
+  async function persistMine() {
+    const helper = mineApi();
+    const api = sb();
+    const me = myPlayerId();
+    if (!helper || !api?.upsertSave || !me) return;
+    const local = readLocalStatus();
+    try {
+      await api.upsertSave(
+        helper.SAVE_KEY,
+        helper.collectMine({ ...local, credited: alreadyCreditedSelf() }, me),
+        1
+      );
+    } catch (err) {
+      console.warn("[HubReferrals] player_saves invite write failed", err);
+    }
+  }
+
+  async function pullMine() {
+    const helper = mineApi();
+    const api = sb();
+    const me = myPlayerId();
+    if (!helper || !api?.getSave || !me) return;
+    try {
+      const raw = await api.getSave(helper.SAVE_KEY);
+      const local = readLocalStatus();
+      const next = helper.applyMine(
+        { ...local, credited: alreadyCreditedSelf() },
+        helper.readMine(raw)
+      );
+      if (next.credited) markCreditedSelf();
+      writeLocalStatus(next);
+    } catch (err) {
+      console.warn("[HubReferrals] player_saves invite read failed", err);
+    }
   }
 
   function captureFromUrl() {
@@ -172,10 +216,8 @@
       const data = await api.getDoc(DOC_ID);
       if (!data || typeof data !== "object") return emptyDoc();
       return {
-        byInviter:
-          data.byInviter && typeof data.byInviter === "object" ? data.byInviter : {},
-        byInvitee:
-          data.byInvitee && typeof data.byInvitee === "object" ? data.byInvitee : {}
+        byInviter: data.byInviter && typeof data.byInviter === "object" ? data.byInviter : {},
+        byInvitee: data.byInvitee && typeof data.byInvitee === "object" ? data.byInvitee : {}
       };
     } catch {
       return emptyDoc();
@@ -226,9 +268,7 @@
       await window.HubPlays?.markInviter?.(count);
     } catch {}
     try {
-      document.dispatchEvent(
-        new CustomEvent("hub-inviter-unlocked", { detail: { count } })
-      );
+      document.dispatchEvent(new CustomEvent("hub-inviter-unlocked", { detail: { count } }));
     } catch {}
     return true;
   }
@@ -243,6 +283,7 @@
   async function refreshMyStatus() {
     const me = myPlayerId();
     if (!me) return getStatus();
+    await pullMine();
     const doc = await pullDoc();
     const count = countFor(me, doc);
     const unlocked = count >= NEED || !!doc.byInviter?.[me]?.unlockedAt;
@@ -345,7 +386,10 @@
     if (!doc.byInviter[inviterId] || typeof doc.byInviter[inviterId] !== "object") {
       doc.byInviter[inviterId] = { invitees: {}, unlockedAt: 0 };
     }
-    if (!doc.byInviter[inviterId].invitees || typeof doc.byInviter[inviterId].invitees !== "object") {
+    if (
+      !doc.byInviter[inviterId].invitees ||
+      typeof doc.byInviter[inviterId].invitees !== "object"
+    ) {
       doc.byInviter[inviterId].invitees = {};
     }
 

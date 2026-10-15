@@ -1,5 +1,5 @@
 /* My Games service worker — offline shell + cache-as-you-go for visited games. */
-const BUILD = "20261015aw";
+const BUILD = "20261015ax";
 const CACHE = `mygames-v2-${BUILD}`;
 
 const PRECACHE = [
