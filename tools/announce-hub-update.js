@@ -47,11 +47,9 @@ function readBuild() {
 }
 
 function readChangelog() {
-  const src = fs.readFileSync(path.join(ROOT, "script.js"), "utf8");
-  const m = src.match(/const CHANGELOG = (\{\r?\n[\s\S]*?\r?\n\});/);
-  if (!m) return {};
   try {
-    return Function(`"use strict"; return (${m[1]});`)();
+    const data = JSON.parse(fs.readFileSync(path.join(ROOT, "changelog.json"), "utf8"));
+    return data && typeof data === "object" && !Array.isArray(data) ? data : {};
   } catch {
     return {};
   }
