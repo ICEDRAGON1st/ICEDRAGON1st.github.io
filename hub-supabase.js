@@ -6,9 +6,11 @@
  * Doc ids match former Mantle paths (plays-log, presence, fishing-admin-events, …).
  */
 (function () {
-  const SUPABASE_URL = "https://clkamsflzyvdcepvelks.supabase.co";
+  const SUPABASE_URL = "https://uqyhomsydmnglbaemwbu.supabase.co";
   const SUPABASE_ANON_KEY =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Ftc2Zsenl2ZGNlcHZlbGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNjE3ODEsImV4cCI6MjEwNTczNzc4MX0.s-k2d37X0gByK2-SLnsLWhkbQb15_sDuKpvZs7ABM3g";
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxeWhvbXN5ZG1uZ2xiYWVtd2J1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwOTEyODcsImV4cCI6MjEwNzY2NzI4N30.Eht_HnywiURfHKRZu6rmdCatdFiT0TwC0J9Xh-CEp5o";
+  const SESSION_KEY = "hub-supabase-session-v1";
+  let sessionPromise = null;
 
   function netBlocked() {
     try {
@@ -44,14 +46,101 @@
     hubAdminGrants: "hub-admin-grants"
   };
 
-  function headers(extra) {
+  function headers(extra, accessToken) {
     return {
       apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      Authorization: `Bearer ${accessToken || SUPABASE_ANON_KEY}`,
       Accept: "application/json",
       "Content-Type": "application/json",
       ...(extra || {})
     };
+  }
+
+  function readSession() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+      if (!raw || typeof raw !== "object") return null;
+      const accessToken = String(raw.access_token || "");
+      const refreshToken = String(raw.refresh_token || "");
+      if (!accessToken || !refreshToken) return null;
+      return raw;
+    } catch {
+      return null;
+    }
+  }
+
+  function writeSession(data) {
+    try {
+      if (!data?.access_token || !data?.refresh_token) {
+        localStorage.removeItem(SESSION_KEY);
+        return null;
+      }
+      localStorage.setItem(SESSION_KEY, JSON.stringify(data));
+      return data;
+    } catch {
+      return data || null;
+    }
+  }
+
+  function sessionUserId(session) {
+    try {
+      const payload = JSON.parse(atob(String(session?.access_token || "").split(".")[1] || ""));
+      return String(payload.sub || "").trim();
+    } catch {
+      return "";
+    }
+  }
+
+  async function refreshSession(existing) {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ refresh_token: existing.refresh_token })
+    });
+    if (!res.ok) return null;
+    const next = await res.json();
+    return writeSession(next);
+  }
+
+  async function signInAnonymously() {
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ data: {} })
+    });
+    if (!res.ok) return null;
+    const next = await res.json();
+    return writeSession({
+      access_token: next.access_token,
+      refresh_token: next.refresh_token,
+      user: next.user || null
+    });
+  }
+
+  async function ensureSession() {
+    if (sessionPromise) return sessionPromise;
+    sessionPromise = (async function () {
+      const existing = readSession();
+      if (existing) {
+        let exp = 0;
+        try {
+          exp = Number(JSON.parse(atob(existing.access_token.split(".")[1] || "e30=")).exp) || 0;
+        } catch {}
+        if (exp * 1000 > Date.now() + 60_000) return existing;
+        const refreshed = await refreshSession(existing);
+        if (refreshed) return refreshed;
+      }
+      return signInAnonymously();
+    })().catch(() => {
+      sessionPromise = null;
+      return null;
+    });
+    return sessionPromise;
+  }
+
+  async function accessToken() {
+    const session = await ensureSession();
+    return session?.access_token || "";
   }
 
   function isReady() {
@@ -65,7 +154,7 @@
       throw err;
     }
     const url = `${SUPABASE_URL}/rest/v1/hub_docs?id=eq.${encodeURIComponent(id)}&select=data`;
-    const res = await fetch(url, { headers: headers(), cache: "no-store" });
+    const res = await fetch(url, { headers: headers({}, await accessToken()), cache: "no-store" });
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`supabase get ${res.status}`);
     const rows = await res.json();
@@ -82,9 +171,12 @@
     const url = `${SUPABASE_URL}/rest/v1/hub_docs`;
     const res = await fetch(url, {
       method: "POST",
-      headers: headers({
-        Prefer: "resolution=merge-duplicates,return=minimal"
-      }),
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        await accessToken()
+      ),
       body: JSON.stringify({
         id,
         data,
@@ -171,7 +263,11 @@
     upsertDoc,
     getPrefer,
     pushPrefer,
+    ensureSession,
+    userId: () => sessionUserId(readSession()),
     ready: true,
     isReady
   };
+
+  ensureSession().catch(() => {});
 })();

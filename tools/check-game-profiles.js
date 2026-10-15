@@ -13,7 +13,10 @@ const OPTIONAL_GAME_SCRIPTS = new Set([
   "hub-discord.js",
   "hub-coins.js",
   "hub-sound.js",
-  "hub-audio.js"
+  "hub-audio.js",
+  "hub-supabase.js",
+  "hub-account-bag.js",
+  "hub-plays.js"
 ]);
 const SKIP_DIRS = new Set([
   ".git",
@@ -51,8 +54,8 @@ for (const file of gameIndexes()) {
   if (!matches.length) continue;
 
   const relative = path.relative(ROOT, file).replaceAll("\\", "/");
-  if (!/hub-plays\.js/i.test(source)) {
-    violations.push(`${relative}: cannot defer social scripts without hub-plays.js`);
+  if (!/hub-game-boot\.js/i.test(source)) {
+    violations.push(`${relative}: cannot defer shared scripts without hub-game-boot.js`);
     continue;
   }
   if (!WRITE) {

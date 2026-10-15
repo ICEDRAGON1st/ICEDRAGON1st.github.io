@@ -1,9 +1,9 @@
 /**
  * Force-apply Mine Depth leaderboard wipe on Supabase immediately.
  */
-const SUPABASE_URL = "https://clkamsflzyvdcepvelks.supabase.co";
+const SUPABASE_URL = "https://uqyhomsydmnglbaemwbu.supabase.co";
 const SUPABASE_ANON_KEY =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Ftc2Zsenl2ZGNlcHZlbGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNjE3ODEsImV4cCI6MjEwNTczNzc4MX0.s-k2d37X0gByK2-SLnsLWhkbQb15_sDuKpvZs7ABM3g";
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxeWhvbXN5ZG1uZ2xiYWVtd2J1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwOTEyODcsImV4cCI6MjEwNzY2NzI4N30.Eht_HnywiURfHKRZu6rmdCatdFiT0TwC0J9Xh-CEp5o";
 const DOC = "leaderboards";
 const WIPE_KEY = "mine:full-reset-20261001b";
 const WIPE_AT = Date.UTC(2026, 9, 1, 14, 20, 0);

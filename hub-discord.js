@@ -4,7 +4,7 @@
  * Setup (ICE):
  * 1. Invite is live: SITE_CONFIG.discord.invite
  * 2. Login: Discord Developer Portal → New Application → OAuth2
- *    - Redirect URL: https://clkamsflzyvdcepvelks.supabase.co/auth/v1/callback
+ *    - Redirect URL: https://uqyhomsydmnglbaemwbu.supabase.co/auth/v1/callback
  *    - Also add your site URL under Supabase Auth → URL config
  *    - Supabase Dashboard → Authentication → Providers → Discord → enable,
  *      paste Client ID + Client Secret
@@ -14,9 +14,10 @@
  *     channel and rotate the webhook if needed.)
  */
 (function () {
-  const SUPABASE_URL = "https://clkamsflzyvdcepvelks.supabase.co";
+  const SUPABASE_URL =
+    (window.HubSupabase && HubSupabase.url) || "https://uqyhomsydmnglbaemwbu.supabase.co";
   const SUPABASE_ANON_KEY =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNsa2Ftc2Zsenl2ZGNlcHZlbGtzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAxNjE3ODEsImV4cCI6MjEwNTczNzc4MX0.s-k2d37X0gByK2-SLnsLWhkbQb15_sDuKpvZs7ABM3g";
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVxeWhvbXN5ZG1uZ2xiYWVtd2J1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTIwOTEyODcsImV4cCI6MjEwNzY2NzI4N30.Eht_HnywiURfHKRZu6rmdCatdFiT0TwC0J9Xh-CEp5o";
   const LINK_KEY = "hub-discord-link-v1";
   const DEFAULT_INVITE = "https://discord.gg/6NHYfPwAwg";
 

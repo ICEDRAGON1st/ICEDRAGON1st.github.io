@@ -1,4 +1,7 @@
 {
+  "20261015s": [
+    "Pointed the hub at the new Supabase project and locked public admin writes."
+  ],
   "20261015r": [
     "Games now open faster on slow connections, including Paper Claim."
   ],

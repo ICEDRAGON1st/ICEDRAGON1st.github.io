@@ -1275,6 +1275,16 @@
     },
     {
       "type": "exact",
+      "value": "hub-supabase-session-v1",
+      "scope": "transient-device",
+      "merge": "latest",
+      "schemaVersion": 1,
+      "owners": [
+        "hub-supabase.js"
+      ]
+    },
+    {
+      "type": "exact",
       "value": "hub-ttt-draw-streak-v1",
       "scope": "device",
       "merge": "latest",

@@ -16,7 +16,7 @@
     return (
       s.includes("mantledb.sh") ||
       s.includes("supabase.co") ||
-      s.includes("clkamsflzyvdcepvelks")
+      s.includes("uqyhomsydmnglbaemwbu")
     );
   }
 

@@ -13,7 +13,7 @@ const IN_APP_HOSTS = new Set([
   "www.discord.com",
   "discordapp.com",
   "cdn.discordapp.com",
-  "clkamsflzyvdcepvelks.supabase.co",
+  "uqyhomsydmnglbaemwbu.supabase.co",
   "accounts.google.com",
   "github.com",
   "githubusercontent.com"

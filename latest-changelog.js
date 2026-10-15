@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015r",
+  "build": "20261015s",
   "notes": [
-    "Games now open faster on slow connections, including Paper Claim."
+    "Pointed the hub at the new Supabase project and locked public admin writes."
   ]
 };

@@ -17,10 +17,12 @@ Luck/sell, variant, mutation, chests, luckyblock, weather, and **speed** (cast c
 
 2. Also upsert the **same bundle** to Supabase (hits all players even when Mantle is 429):
 
-`POST https://clkamsflzyvdcepvelks.supabase.co/rest/v1/hub_docs` with headers:
+`POST https://uqyhomsydmnglbaemwbu.supabase.co/rest/v1/hub_docs` with headers:
 - `apikey` + `Authorization: Bearer` = the anon key from `hub-supabase.js`
 - `Prefer: resolution=merge-duplicates,return=minimal`
 - body: `{ "id": "fishing-admin-events", "data": <bundle>, "updated_at": <ISO now> }`
+
+After the locked RLS migrations are applied, anonymous REST cannot write this admin document. Prefer `fishing/admin-event.json` until a trusted Edge Function exists. If a dashboard SQL update is required, update `hub_docs` where `id = 'fishing-admin-events'` in the SQL Editor.
 
 Include `"token": "ice-fish-evt-9f3a"` inside the bundle data when writing.
 
