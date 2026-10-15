@@ -370,3 +370,6 @@ showMenu(
   "Snake",
   "Use arrow keys or WASD to move. Eat the apples, grow longer, and don't hit the walls or yourself."
 );
+window.HubLifecycle?.onHiddenPause?.(() => {
+  if (running && menuMode === "playing") openPauseMenu();
+});

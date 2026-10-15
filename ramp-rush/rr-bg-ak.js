@@ -1699,4 +1699,7 @@
   updateHud();
   raf = requestAnimationFrame(frame);
   maybeSubmit(true);
+  window.HubLifecycle?.onHiddenPause?.(() => {
+    if (running && !paused && !dead) pauseGame();
+  });
 })();

@@ -622,3 +622,6 @@ showMenu(
   "Tower Stack 3D",
   "Tap, click, or press Space to drop each slab. Layers slide on X then Z — stack as high as you can."
 );
+window.HubLifecycle?.onHiddenPause?.(() => {
+  if (running) openMenu();
+});

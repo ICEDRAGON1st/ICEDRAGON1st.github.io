@@ -1475,3 +1475,6 @@ showMenu(
   "Wing Hop",
   "Tap, click, or press Space to flap. Fly your dragon through the castle towers."
 );
+window.HubLifecycle?.onHiddenPause?.(() => {
+  if (running) openPauseMenu();
+});

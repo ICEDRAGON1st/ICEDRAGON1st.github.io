@@ -15,6 +15,18 @@
   let afkFab = null;
   const pauseHooks = new Set();
   const resumeHooks = new Set();
+  const hiddenPauseHooks = new Set();
+  const queuedHiddenPause = Array.isArray(window.HubLifecycle?._q)
+    ? window.HubLifecycle._q.slice()
+    : [];
+
+  function runHiddenPauseHooks() {
+    hiddenPauseHooks.forEach((fn) => {
+      try {
+        fn();
+      } catch {}
+    });
+  }
 
   function net() {
     return window.HubNet || null;
@@ -228,13 +240,6 @@
     window.addEventListener("pointermove", onActivity, opts);
     // Esc must resume even while AFK (capture so games don't swallow it).
     window.addEventListener("keydown", onAfkKeyDown, true);
-    document.addEventListener(
-      "visibilitychange",
-      () => {
-        if (!document.hidden && !afk) markActivity(false);
-      },
-      false
-    );
     checkTimer = window.setInterval(tick, 15_000);
     markActivity(false);
     ensureAfkFab();
@@ -259,6 +264,37 @@
     },
     IDLE_MS
   };
+
+  queuedHiddenPause.forEach((fn) => {
+    if (typeof fn === "function") hiddenPauseHooks.add(fn);
+  });
+
+  window.HubLifecycle = {
+    onHiddenPause(fn) {
+      if (typeof fn === "function") hiddenPauseHooks.add(fn);
+      return () => hiddenPauseHooks.delete(fn);
+    },
+    isHidden() {
+      try {
+        return !!document.hidden;
+      } catch {
+        return false;
+      }
+    }
+  };
+
+  document.addEventListener(
+    "visibilitychange",
+    () => {
+      if (document.hidden) {
+        runHiddenPauseHooks();
+        return;
+      }
+      if (!afk) markActivity(false);
+    },
+    false
+  );
+  window.addEventListener("pagehide", runHiddenPauseHooks, false);
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", start, { once: true });

@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015z",
+  "build": "20261015aa",
   "notes": [
-    "Online Paper Claim now steers immediately and slides other players instead of jumping."
+    "Action games now pause when you switch tabs or leave the page."
   ]
 };

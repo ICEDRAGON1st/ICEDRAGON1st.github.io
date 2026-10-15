@@ -961,3 +961,6 @@ showMenu(
   "Space Shooter",
   "Pick a difficulty, then move with mouse or WASD. Shoot with Space or click."
 );
+window.HubLifecycle?.onHiddenPause?.(() => {
+  if (running && !paused) openPauseMenu();
+});

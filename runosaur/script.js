@@ -994,4 +994,7 @@
   openMenu(false);
   raf = requestAnimationFrame(frame);
   window.addEventListener("beforeunload", () => maybeSubmit(true));
+  window.HubLifecycle?.onHiddenPause?.(() => {
+    if (running && !paused && !dead) pauseGame();
+  });
 })();

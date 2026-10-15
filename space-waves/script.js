@@ -1293,4 +1293,7 @@
   paintHud();
   showOverlay("menu");
   raf = requestAnimationFrame(loop);
+  window.HubLifecycle?.onHiddenPause?.(() => {
+    if (running && !paused && !dead) showOverlay("pause");
+  });
 })();

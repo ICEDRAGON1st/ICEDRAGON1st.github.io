@@ -1954,4 +1954,7 @@
     if (isCoinSkin(skinId) && !ownsSkin(skinId)) skinId = "classic";
     updateSkinPicker();
   });
+  window.HubLifecycle?.onHiddenPause?.(() => {
+    if (playing && !paused && !levelDone) showMenu(true);
+  });
 })();

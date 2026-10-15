@@ -750,3 +750,6 @@ showMenu(
   "Cross Walk",
   "Hop across lava rails, ice rivers, and crystal meadows. Tap / ↑ forward · ← → sideways. Avoid carts and thin ice!"
 );
+window.HubLifecycle?.onHiddenPause?.(() => {
+  if (running) openMenu();
+});

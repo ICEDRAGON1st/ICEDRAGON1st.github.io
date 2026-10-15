@@ -8,6 +8,23 @@
   if (window.__hubGameBoot) return;
   window.__hubGameBoot = true;
 
+  if (!window.HubLifecycle) {
+    window.HubLifecycle = {
+      _q: [],
+      onHiddenPause: function (fn) {
+        if (typeof fn === "function") this._q.push(fn);
+        return function () {};
+      },
+      isHidden: function () {
+        try {
+          return !!document.hidden;
+        } catch (e) {
+          return false;
+        }
+      }
+    };
+  }
+
   var html = document.documentElement;
   html.classList.add("hub-booting");
 
