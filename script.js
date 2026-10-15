@@ -45,6 +45,9 @@ const SPECIAL_PLAYER_NAMES = {
 };
 
 const CHANGELOG = {
+  "20261015d": [
+    "The hub becomes interactive before optional Help, admin, online overlay, and Fishing background helpers finish loading."
+  ],
   "20261015c": [
     "Faster hub startup: Guessword now loads only the active language and word-length dictionary.",
     "Language, mode, and word-length changes load their dictionary safely on demand."

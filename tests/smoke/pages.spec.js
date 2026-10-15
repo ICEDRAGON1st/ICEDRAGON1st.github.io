@@ -107,3 +107,22 @@ test("Guessword loads only the active dictionary pack", async ({ page }) => {
   );
   expect(new Set(requestedPacks)).toEqual(new Set(["/words-is-6.js", "/dictionary-is-6.js"]));
 });
+
+test("optional hub helpers load after the interactive shell", async ({ page }) => {
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(
+    () => !document.documentElement.classList.contains("hub-booting"),
+    null,
+    { timeout: 20_000 }
+  );
+  await page.waitForFunction(
+    () =>
+      window.HubOnlineOverlay &&
+      window.HubHelp &&
+      window.HubAdmin &&
+      window.HubFishingGifts &&
+      window.HubFishingMail,
+    null,
+    { timeout: 10_000 }
+  );
+});

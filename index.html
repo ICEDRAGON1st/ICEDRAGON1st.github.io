@@ -94,13 +94,13 @@
       pointer-events: none !important;
     }
   </style>
-  <script src="site-config.js?v=20261015c"></script>
+  <script src="site-config.js?v=20261015d"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=20261001ge">
-  <script src="hub-net.js?v=20261015c"></script>
-  <script src="hub-afk.js?v=20261015c"></script>
+  <script src="hub-net.js?v=20261015d"></script>
+  <script src="hub-afk.js?v=20261015d"></script>
 </head>
 <body data-guess-colors="ice">
   <div id="hub-boot-loader" aria-live="polite" aria-busy="true">
@@ -940,7 +940,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20261015c";
+    window.WORDLE_BUILD = "20261015d";
     try {
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("sw.js").catch(function () {});
@@ -963,18 +963,13 @@
       [
         "hub-coins.js",
         "hub-referrals.js",
-        "hub-online-overlay.js",
-        "hub-help.js",
-        "hub-fishing-gifts.js",
-        "hub-fishing-mail.js",
         "mine-data.js",
         "hub-leaderboard.js",
         "hub-friends.js",
         "hub-feedback.js",
         "hub-notifications.js",
         "hub-online-match.js",
-        "hub-discord.js",
-        "hub-admin.js"
+        "hub-discord.js"
       ],
       ["hub-chat.js", "hub-calls.js"]
     ];
