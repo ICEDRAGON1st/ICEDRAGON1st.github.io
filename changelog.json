@@ -1,0 +1,1892 @@
+{
+  "20261015g": [
+    "Update history now loads only when the Updates panel is opened, reducing startup parsing.",
+    "Release metadata and full changelog history now live in validated data files instead of the main hub script."
+  ],
+  "20261015f": [
+    "The games grid no longer downloads any Guessword dictionary until Guessword is opened.",
+    "Direct Guessword links and saved language/length choices still preload the correct pack.",
+    "Coins, leaderboards, social, chat, calls, and other optional tools now load after the games grid is ready."
+  ],
+  "20261015e": [
+    "Windows app refresh now reuses cached files for much faster reloads; Ctrl+Shift+R remains the explicit hard refresh.",
+    "The hub download now points to Windows app 1.0.7."
+  ],
+  "20261015d": [
+    "The hub becomes interactive before optional Help, admin, online overlay, and Fishing background helpers finish loading."
+  ],
+  "20261015c": [
+    "Faster hub startup: Guessword now loads only the active language and word-length dictionary.",
+    "Language, mode, and word-length changes load their dictionary safely on demand."
+  ],
+  "20261015b": [
+    "Paper Claim runs smoother with cached territory scores and throttled HUD updates",
+    "Paper Claim now pre-renders soft land edges instead of blurring the full map every frame"
+  ],
+  "20261015a": [
+    "Hub and games load shared files in parallel for much faster refreshes",
+    "One stable offline worker stops cache resets when moving between games"
+  ],
+  "20261001ge": [
+    "Cup Flow: 100 unique tilted-catcher levels — proven pour wins, no zigzag stacks"
+  ],
+  "20261001gd": [
+    "Cup Flow: 100 distinct playable layouts (varied block counts) — cups stay open, no copy-paste zigzags"
+  ],
+  "20261001gc": [
+    "Cup Flow: 100 unique playable levels — different shapes, not zigzag copies"
+  ],
+  "20261001gb": [
+    "Cup Flow: zigzag shelves force the route — no more bypassable decoration piles"
+  ],
+  "20261001ga": [
+    "Cup Flow: 100 unique denser blueprints that get harder; shelves catch water properly"
+  ],
+  "20261001fz": [
+    "Cup Flow: water no longer slips under shelves; 100 unique rising-difficulty layouts"
+  ],
+  "20261001fy": [
+    "Cup Flow: denser unique layouts (no more empty 2-shelf levels) + clearer platforms"
+  ],
+  "20261001fx": [
+    "Cup Flow: tighter ink budgets — less drawing room, plan your paths"
+  ],
+  "20261001fw": [
+    "Cup Flow: reworked 100 levels — rising difficulty, real obstacles, no free wins without drawing"
+  ],
+  "20261001fv": [
+    "Cup Flow: 100 verified levels + unlock the next only after you clear the previous"
+  ],
+  "20261001fu": [
+    "Cup Flow: Stop clears the pour and resets fill (keeps your drawing)"
+  ],
+  "20261001ft": [
+    "Cup Flow: 1× / 2× slow / 3× slow water speed buttons"
+  ],
+  "20261001fs": [
+    "Cup Flow: faster water with real momentum — crest small uphills without launching"
+  ],
+  "20261001fr": [
+    "Cup Flow: calm water physics — no more launching off corners"
+  ],
+  "20261001fq": [
+    "Cup Flow: stop water sticking on block corners — solid boxes + unstick nudge"
+  ],
+  "20261001fp": [
+    "Cup Flow: fix water tunneling through drawn lines (thicker collision + sub-steps)"
+  ],
+  "20261001fo": [
+    "Cup Flow: add hub game card so it shows in My Games"
+  ],
+  "20261001fn": [
+    "New game: Cup Flow — draw lines to guide water from the tap into the cup"
+  ],
+  "20261001fm": [
+    "Space Waves: Win/Full toggle for windowed vs fullscreen layout"
+  ],
+  "20261001fl": [
+    "Space Waves: clearer menu + fixed level select / next / retry flow"
+  ],
+  "20261001fk": [
+    "Space Waves: fix phantom deaths — tighter hitbox, fairer doors/gems, hazards match what you see"
+  ],
+  "20261001fj": [
+    "Space Waves: fully unique levels (Glide→Core) — doors, ridges, needles; late stages hard but beatable"
+  ],
+  "20261001fi": [
+    "Space Waves: unique levels with teeth, gates, diamonds, shelves — fair but not trivial"
+  ],
+  "20261001fh": [
+    "Space Waves: slightly smaller player arrow"
+  ],
+  "20261001fg": [
+    "Space Waves: levels 3–12 widened and slowed so they are beatable"
+  ],
+  "20261001ff": [
+    "Space Waves: faster up/down movement"
+  ],
+  "20261001fe": [
+    "Space Waves: tone down player arrow size"
+  ],
+  "20261001fd": [
+    "Space Waves: bigger player arrow"
+  ],
+  "20261001fc": [
+    "Sticker Garage + Space Waves: bigger near-fullscreen layouts"
+  ],
+  "20261001fb": [
+    "Space Waves: tighter, less slippery controls + slightly slower scroll"
+  ],
+  "20261001fa": [
+    "Space Waves: Spacebar reliably rises (and starts / retries)"
+  ],
+  "20261001ez": [
+    "New game: Space Waves — hold to rise through neon tunnels (classic levels + endless)"
+  ],
+  "20261001ey": [
+    "Sticker Garage shop shows job pay per sticker and paint color"
+  ],
+  "20261001ex": [
+    "Sticker Garage: customers request paint colors — spray the car, unlock more paints in shop"
+  ],
+  "20261001ew": [
+    "Sticker Garage: fix shop category bar scrollbar covering the tabs"
+  ],
+  "20261001ev": [
+    "Sticker Garage shop: Fishing-style categories (packs, tips, pay boost)"
+  ],
+  "20261001eu": [
+    "Sticker Garage: no patience timer — take your time on each wrap"
+  ],
+  "20261001et": [
+    "New game: Sticker Garage — wrap cars for customers, earn cash, unlock sticker packs"
+  ],
+  "20261001es": [
+    "Esc on the hub opens Settings instead of leaving My Games"
+  ],
+  "20261001er": [
+    "AFK: only click or Esc wakes you — mouse move no longer leaves AFK"
+  ],
+  "20261001eq": [
+    "Hub: AFK button — go AFK anytime (pauses cloud sync on this device)"
+  ],
+  "20261001ep": [
+    "Coin shop: remove stuck scale animation that blocked scrolling"
+  ],
+  "20261001eo": [
+    "Coin shop: fix scroll so the full skin list can be browsed"
+  ],
+  "20261001en": [
+    "Coin shop: unique Dudes walker icons (no Wing Hop ghost/rainbow copies)"
+  ],
+  "20261001em": [
+    "Dudes: 21 walker skins (free Classic/Blue + coin unlocks)"
+  ],
+  "20261001el": [
+    "Hub: grant Hjalte +1000 coins (one-time when logged in as Hjalte)"
+  ],
+  "20261001ek": [
+    "Admin: press G (ICE_DRAGON) in any game — Help-style window that pauses play"
+  ],
+  "20261001ej": [
+    "Paper Claim: claimed land merges into smooth blobs (no stacked circles)"
+  ],
+  "20261001ei": [
+    "Paper Claim: themed land props back on soft circle land"
+  ],
+  "20261001eh": [
+    "Paper Claim: soft circle land back; animated land tint and props stay off (lag)"
+  ],
+  "20261001eg": [
+    "Paper Claim: major lag fix — fast land rendering, lighter trails"
+  ],
+  "20261001ef": [
+    "Paper Claim: big performance fix (less lag while claiming / with skins)"
+  ],
+  "20261001ee": [
+    "Paper Claim: arena shapes — Box, Circle, Star, Hex, Diamond, Triangle"
+  ],
+  "20261001ed": [
+    "Paper Claim: fix Online and Games dock buttons not working reliably"
+  ],
+  "20261001ec": [
+    "Paper Claim: cleaner menu dock icons (no glitchy unicode)"
+  ],
+  "20261001eb": [
+    "Paper Claim: Neon land pulses cyan/pink only (not a rainbow cycle)"
+  ],
+  "20261001ea": [
+    "Paper Claim: Rainbow and Neon claimed land cycles through colors"
+  ],
+  "20261001dz": [
+    "Paper Claim: fewer themed props inside claimed land"
+  ],
+  "20261001dy": [
+    "Paper Claim: full-map clears can reach 100% (was stuck around 98.9% on the rim)"
+  ],
+  "20261001dx": [
+    "Paper Claim: bigger themed props inside claimed land"
+  ],
+  "20261001dw": [
+    "Paper Claim: claimed land shows skin props (trees, waves, hexes, bolts, …)"
+  ],
+  "20261001dv": [
+    "Paper Claim: remove white ring around skin preview and blob"
+  ],
+  "20261001du": [
+    "Paper Claim: skins have unique shapes and trail styles (not just recolors)"
+  ],
+  "20261001dt": [
+    "Paper Claim: Paper.io-style home menu (sky backdrop, big Play, skins dock)"
+  ],
+  "20261001ds": [
+    "Paper Claim: skins no longer change the arena ground — only your blob and trail"
+  ],
+  "20261001dr": [
+    "Paper Claim: 15 coin skins (Ink, Neon, Honey, Lava, Ice, Pixel, Shadow, Rainbow, Gold, Ocean, Graffiti, Forest, Storm, Candy, Blueprint)"
+  ],
+  "20261001dq": [
+    "Wing Hop: remove trail lines from Ghost and Shadow skins"
+  ],
+  "20261001dp": [
+    "Wing Hop: richer pack worlds — Sub is underwater (rays, bubbles, seabed); UFO/Dragon unchanged"
+  ],
+  "20261001do": [
+    "Wing Hop: fix broken coin-pack skin drawing (empty rect crash)"
+  ],
+  "20261001dn": [
+    "Wing Hop: richer coin-pack skins in-game and in the shop (UFO + Dragon unchanged)"
+  ],
+  "20261001dm": [
+    "Coin shop: Help mascot portraits and Wing Hop skin pack previews on each item"
+  ],
+  "20261001dl": [
+    "Admin: Grant local applies coins/titles/colors on this device when cloud is down"
+  ],
+  "20261001dk": [
+    "Hub: ICE_DRAGON Master Admin panel (announce, maintenance, players, ban/mute, grants, leaderboard wipe, Discord, diagnostics)"
+  ],
+  "20261001dj": [
+    "Players: saved-account codes stay hidden until you tap Show"
+  ],
+  "20261001di": [
+    "Players: player code is hidden by default — tap Show code to reveal"
+  ],
+  "20261001dh": [
+    "Fishing Idle: hide player name/code from the in-game HUD (use hub Players instead)"
+  ],
+  "20261001dg": [
+    "Wing Hop: pipe hitboxes match skinny skins (bee stalks, ice spires, etc.)"
+  ],
+  "20261001df": [
+    "Wing Hop: each coin skin has its own pipes/walls (not just castle towers)"
+  ],
+  "20261001de": [
+    "Wing Hop: Neon, Ice Fortress, Rainbow, and other packs now have their own characters (not recolored dragons)"
+  ],
+  "20261001dd": [
+    "Wing Hop: removed free color themes — only Dragon + coin skins remain"
+  ],
+  "20261001dc": [
+    "Wing Hop: 14 new coin theme skins (Bee, Neon City, Rainbow Trail, and more)"
+  ],
+  "20261001db": [
+    "Hub: Download app button for the Windows installer"
+  ],
+  "20261001da": [
+    "Desktop app: hide the white system scrollbar so the hub doesn’t glitch"
+  ],
+  "20261001cz": [
+    "Desktop app: Coin shop opens again (fixed off-screen layout under Refresh bar)"
+  ],
+  "20261001cy": [
+    "Desktop app: Coin shop sits below the Refresh bar so Games isn’t covered"
+  ],
+  "20261001cx": [
+    "Coin shop: stronger full-screen takeover (covers hub chrome; clearer Games exit)"
+  ],
+  "20261001cw": [
+    "Coin shop opens full-screen like the Help assistant"
+  ],
+  "20261001cv": [
+    "Coin shop: full overlay over the game grid — buy Help mascots and skins with hub coins"
+  ],
+  "20261001cu": [
+    "Hub milestones: 45 all-time players, 29 games, Fishing Idle most played (shown when cloud is down)"
+  ],
+  "20261001ct": [
+    "Day streak: desktop keeps the higher streak when syncing (ICE_DRAGON restored to 38)"
+  ],
+  "20261001cs": [
+    "My Games icon: transparent corners (no black edges)"
+  ],
+  "20261001cr": [
+    "What's new popup only shows the latest update (one Got it)"
+  ],
+  "20261001cq": [
+    "Account login: clearer message when short player code needs Copy transfer (server down)"
+  ],
+  "20261001cp": [
+    "Fishing Idle: multi-catch cutscenes always feature the best fish"
+  ],
+  "20261001co": [
+    "Fishing Idle: auto boat catches can trigger rarity cutscenes"
+  ],
+  "20261001cn": [
+    "Fishing Idle: cutscene settings list every rarity individually"
+  ],
+  "20261001cm": [
+    "Fishing Idle: Settings → choose which rarities get catch cutscenes (shiny/mutation off by default)"
+  ],
+  "20261001cl": [
+    "Fishing Idle: rare catches play a full-screen cutscene (legendary+, shiny, mutations)"
+  ],
+  "20261001ck": [
+    "Music: Mute / Unmute button in Settings and every game Esc menu"
+  ],
+  "20261001cj": [
+    "Fishing Idle: Esc while playing opens the Menu (same as ☰)"
+  ],
+  "20261001ci": [
+    "Esc while playing opens the game Menu (with Music / SFX / song search) in every minigame"
+  ],
+  "20261001ch": [
+    "Press Esc / Menu in any game to change Music, SFX, and song (searchable)"
+  ],
+  "20261001cg": [
+    "Settings song picker: type to search tracks by name or artist"
+  ],
+  "20261001cf": [
+    "Music library: added Abstraction Music Loop Bundle (29 CC0 OGG loops) to the song picker"
+  ],
+  "20261001ce": [
+    "Audio Manager: background music with crossfades, Music/SFX volume sliders, song picker, and Credits"
+  ],
+  "20261001cd": [
+    "Help Assistant: change your mascot right inside the Help menu"
+  ],
+  "20261001cc": [
+    "Wing Hop UFO: towers look more alien — organic trunks, eye pods, tendrils, and glowing maws"
+  ],
+  "20261001cb": [
+    "Wing Hop UFO skin: space background, alien pillars, and moon ground when equipped"
+  ],
+  "20261001bz": [
+    "Wing Hop: buy a UFO skin with hub coins (350) from the Coins shop or in-game skin picker"
+  ],
+  "20261001by": [
+    "Coins: Pick up coin gives +25, but only once every hour"
+  ],
+  "20261001bx": [
+    "Coins shop: Help mascots cost more (250–500 coins)"
+  ],
+  "20261001bw": [
+    "Hub coins: earn from wins, daily login, pickups, and Help — spend on Help mascots in the Coins shop"
+  ],
+  "20261001bv": [
+    "My Games: Titles & colors moved to their own Titles menu — no longer inside Players"
+  ],
+  "20261001bu": [
+    "Help: if it doesn’t know (e.g. “what is the game made with”), it just says “I can’t answer that.”"
+  ],
+  "20261001bt": [
+    "Help remembers your chat — ask “how many games?” then “how many of them are clicker games?”"
+  ],
+  "20261001bs": [
+    "Help answers are clearer — short paragraphs and bullet lists instead of one long wall of text"
+  ],
+  "20261001br": [
+    "Help Assistant on the hub opens full-screen like a game — Esc / Games returns to the grid"
+  ],
+  "20261001bq": [
+    "Help GAME_INFO parser: Game Name / Game Count no longer get mixed into the minigame list"
+  ],
+  "20261001bp": [
+    "Help: ask “what games are in this” for the full 29-game list — GAME_INFO also covers features, controls, and local Help AI"
+  ],
+  "20261001bo": [
+    "Help typos: misspellings still auto-correct, but “games” no longer becomes “name”"
+  ],
+  "20261001bn": [
+    "Help GAME_INFO.txt enriched with Guessword Daily/Practice details, Hub Points titles, and nickname rules"
+  ],
+  "20261001bm": [
+    "Help knowledge base filled from the live hub — GAME_INFO.txt lists every game, controls, and the local Help mascots"
+  ],
+  "20261001bl": [
+    "Help Assistant: Barnaby and Sir Goldsworth now have matching portrait icons too"
+  ],
+  "20261001bk": [
+    "Help Assistant: real portrait icons for Helper, Chip, SPARK-E, Whiskers, Glitch, Pixel-8, Astra, Chef Gusto, and Shadow"
+  ],
+  "20261001bj": [
+    "My Games: play offline after one visit, and after 10m AFK this tab pauses cloud sync (other players unaffected)"
+  ],
+  "20261001bi": [
+    "My Games: Most played badge uses real hub ranks again — Fishing Idle on top (Wing Hop was a stale local count)"
+  ],
+  "20261001bh": [
+    "My Games: badge says Most played (not Most popular) and sits on the thumbnail — no longer pinned to the top of the list"
+  ],
+  "20261001bg": [
+    "My Games: put Mine Depth hub card back where it was"
+  ],
+  "20261001be": [
+    "Help Assistant UI polish — cleaner panel, smoother open, nicer chat bubbles"
+  ],
+  "20261001bd": [
+    "Help typo fix: “players have played” no longer becomes “player have player”"
+  ],
+  "20261001bc": [
+    "Help reads GAME_INFO.txt for ownership, controls, gameplay, rules, and player-stat milestones"
+  ],
+  "20261001bb": [
+    "Help: live player-count asks get a friendly “check hub/Discord” answer — not a forbidden wall"
+  ],
+  "20261001ba": [
+    "Help is a full My Games assistant — owner/lore/updates OK; only real-world asks are turned away"
+  ],
+  "20261001az": [
+    "Help: “who is the owner?” answers ICE_DRAGON"
+  ],
+  "20261001ay": [
+    "Help: new plain Helper option — normal answers with no character voice"
+  ],
+  "20261001ax": [
+    "Help: “can you help me?” gets a friendly yes — here’s what I can help with"
+  ],
+  "20261001aw": [
+    "Help: other players’ codes stay private; “not in game” only for real-world trivia"
+  ],
+  "20261001av": [
+    "Help menu clearer for kids — bigger buttons, plain labels, easier chat"
+  ],
+  "20261001au": [
+    "Help: kid typos like “what is me user” → your username (not Friends/chat)"
+  ],
+  "20261001at": [
+    "Help Assistant typos: “what is my ser” understands as “user”"
+  ],
+  "20261001as": [
+    "Help only mentions passwords when you ask about passwords"
+  ],
+  "20261001ar": [
+    "Help can tell your username / player code — never your password"
+  ],
+  "20261001aq": [
+    "Help Assistant: say hi — still refuses trivia like “what is 5+5”"
+  ],
+  "20261001ap": [
+    "Help Assistant: one answer per question (no more triple tip dump)"
+  ],
+  "20261001ao": [
+    "Help Assistant: mascot catchphrase only once per reply (not on every tip card)"
+  ],
+  "20261001an": [
+    "Help button sits beside Chat instead of covering it"
+  ],
+  "20261001am": [
+    "Help Assistant: fair-play guardrails — no spoilers or off-topic answers, mascot refusals"
+  ],
+  "20261001al": [
+    "Help hotkey: F most places, F1 in letter games (Guessword, Hangman, Quiz, Sudoku)"
+  ],
+  "20261001ak": [
+    "Help Assistant hotkey is now F (instead of F1)"
+  ],
+  "20261001aj": [
+    "Help (F1): stay on My Games — no more jumping into Guessword"
+  ],
+  "20261001ai": [
+    "Help Assistant mascots: pick Chip, SPARK-E, and more in Settings — same tips, different personality"
+  ],
+  "20261001ah": [
+    "Help Assistant: tap ? or press F1 — local how-to answers for the hub and every minigame"
+  ],
+  "20261001ag": [
+    "Mine Depth: Sync is buy-once, Crit gear is equippable, and Yield actually dumps more ore"
+  ],
+  "20261001af": [
+    "Mine Depth: more gear plus new kinds — Sync, Crit digs, Yield, and Scout"
+  ],
+  "20261001ae": [
+    "Mine Depth: each deeper layer is clearly longer (~16% thicker than the last — no more near-twin sizes)"
+  ],
+  "20261001ad": [
+    "Mine Depth: clear Layer size chip plus how much of the layer is left"
+  ],
+  "20261001ac": [
+    "Mine Depth: Dig down stays put like Fishing’s Cast — sticky dock, no bounce on tap"
+  ],
+  "20261001ab": [
+    "Mine Depth: see layer thickness clearly, plus Numbers and Depth menus (km, Bm, Dc, and what they mean)"
+  ],
+  "20261001aa": [
+    "Mine Depth: coin/depth numbers use the same short suffixes as Fishing Idle (K, M, … Dc, UDc, …)"
+  ],
+  "20261001z": [
+    "Mine Depth: selling ore pays out again — late-game coin totals no longer lose small sells to float rounding"
+  ],
+  "20261001y": [
+    "Mine Depth: more late-game gear — extra picks, drills, luck, sell, offline, and cart upgrades"
+  ],
+  "20261001x": [
+    "Mine Depth: deeper layers stretch much longer — digs only clear a small bite, so bands take real time"
+  ],
+  "20261001w": [
+    "Mine Depth: auto digs catch up through lag and redraw less often so m/s stays real"
+  ],
+  "20261001v": [
+    "Mine Depth: auto dig keeps true m/s even when the UI is busy — no more feeling slower than the label"
+  ],
+  "20261001u": [
+    "Mine Depth: auto status shows real m/s (995m each tick was 1/10 of a second, not a slow dig)"
+  ],
+  "20261001t": [
+    "My Games: Most popular is Fishing Idle again — Mine Depth’s play count was inflated"
+  ],
+  "20261001s": [
+    "Mine Depth: auto digs run in real m/s now — the Auto readout matches how fast you go"
+  ],
+  "20261001r": [
+    "My Games: Most popular badge tracks real play counts (no double-counting) and sits on the top game"
+  ],
+  "20261001q": [
+    "Mine Depth: auto dig speed shows as m/s so you can see how fast you’re going"
+  ],
+  "20261001p": [
+    "Mine Depth: gear shop uses Fishing-style categories, and the mine guide is clearer (layers / found / upcoming)"
+  ],
+  "20261001o": [
+    "Mine Depth: drop the confusing “5” on layer names, and show which layer you’re on clearly"
+  ],
+  "20261001n": [
+    "Mine Depth: ores drop from depth dug (not 1 ore per meter) — auto drills find ore much less often"
+  ],
+  "20261001m": [
+    "Mine Depth: shaft view scrolls with every dig again (no more stuck in giant deep layers)"
+  ],
+  "20261001k": [
+    "Mine Depth: each layer is longer than the one above — first is shortest, deepest is longest"
+  ],
+  "20261001j": [
+    "Mine Depth: pick “+m per dig” upgrades only boost manual digs — auto drills stay 1m each"
+  ],
+  "20261001i": [
+    "Mine Depth: auto dig ores show in the cart and shaft again"
+  ],
+  "20261001h": [
+    "Mine Depth: fix progress vanishing on refresh after the wipe, and digs matching dig power again"
+  ],
+  "20261001g": [
+    "Discord: hub update posts go to #updates as soon as they’re published (no refresh needed)"
+  ],
+  "20261001f": [
+    "My Games: What’s new pops for each update when it ships (one at a time — no more skipped then all at once)"
+  ],
+  "20261001e": [
+    "My Games: What’s new shows only the latest update (not a stack of older ones)"
+  ],
+  "20261001d": [
+    "Mine Depth: hold empty boards longer so stale tabs can’t re-upload the old Best depth"
+  ],
+  "20261001c": [
+    "Mine Depth: hard-clear leaderboards + local cache so old depth scores can’t come back"
+  ],
+  "20261001b": [
+    "Mine Depth: re-run full reset so cloud saves can’t restore wiped progress"
+  ],
+  "20261001a": [
+    "Mine Depth: full reset — everyone’s progress and Mine Depth / best-ore leaderboards wiped (other games untouched)"
+  ],
+  "20260930w": [
+    "Mine Depth: thicker layers and dig caps so late digs don’t rocket through the shaft"
+  ],
+  "20260930v": [
+    "Fishing Idle: catch book % ignores exclusive, ???, and easter egg fish (still catchable as bonuses)",
+    "Fishing Idle: Hjalte can’t give exclusive / ??? / easter egg fish",
+    "Fishing Idle: admin talk shows the speaker’s name (ICE_DRAGON or Hjalte) in-game and on Discord",
+    "Discord: Admin Abuse role gets pinged when fishing admin abuse posts"
+  ],
+  "20260930r": [
+    "My Games: game cards show your leaderboard personal best when it’s higher than (or missing from) local"
+  ],
+  "20260930q": [
+    "Discord: members with the Updates role get pinged when a hub update posts in #updates"
+  ],
+  "20260930p": [
+    "My Games: stop achievement unlock toasts from popping again on every refresh",
+    "My Games: fix garbled hub icons (streak 🔥, sound, menu, favorites, and more)",
+    "My Games: game cards use your active account scores — no more alt leftovers on the hub",
+    "My Games: day streak merge + leaderboard search no longer fight while you type",
+    "Leaderboards: (you) marks by player id so same-name friends stay separate"
+  ],
+  "20260930b": [
+    "Fix ICE_DRAGON streak restore so account sync can't wipe it back to 0"
+  ],
+  "20260930a": [
+    "Restored ICE_DRAGON daily streak to 28"
+  ],
+  "20260929h": [
+    "Discord #updates channel connected for hub/site changelog posts"
+  ],
+  "20260929g": [
+    "Discord #updates: hub/site changelog posts when a new build goes live (opt-in role)"
+  ],
+  "20260928ae": [
+    "My Games: fix switching accounts — full bag swap + password switch uses the account code"
+  ],
+  "20260928ad": [
+    "Fishing Idle: stop faking 2× on old Hjalte logs — show real form mult going forward"
+  ],
+  "20260928ac": [
+    "Fishing Idle: Hjalte log shows clear ×mult / type / duration badges plus a boost summary"
+  ],
+  "20260928ab": [
+    "Fishing Idle: Hjalte admin log shows ×mult, duration, and boost type"
+  ],
+  "20260928aa": [
+    "Fishing Idle: Hjalte admin log grouped by category (weather, boosts, gifts…)"
+  ],
+  "20260928z": [
+    "Fishing Idle: fix sells getting undone by cloud cooler restore"
+  ],
+  "20260928y": [
+    "Fishing Idle: MASTER FISHER moves to 90% catch book — under 90% loses the title"
+  ],
+  "20260928x": [
+    "Paper Claim: walls and heads block/slide with no bounce"
+  ],
+  "20260928w": [
+    "Paper Claim: fix head collision so bumps actually block instead of tunneling through"
+  ],
+  "20260928v": [
+    "Paper Claim: heads are solid and bump (still no kill); trails still cut"
+  ],
+  "20260928u": [
+    "Paper Claim: removed spawn protection"
+  ],
+  "20260928t": [
+    "Paper Claim: trail cuts register properly; head bumps still do nothing"
+  ],
+  "20260928s": [
+    "Paper Claim: head bumps do nothing; only touching a trail kills"
+  ],
+  "20260928r": [
+    "Paper Claim: heads no longer kill on collision — only cutting trails eliminates"
+  ],
+  "20260928q": [
+    "Paper Claim: head-on collisions kill again (players + NPCs no longer overlap forever)"
+  ],
+  "20260928p": [
+    "Fishing Idle: fix stuck Play menu (broken combo HUD syntax)"
+  ],
+  "20260928o": [
+    "Fishing Idle: perfect combo has no cap — keep stacking forever"
+  ],
+  "20260928n": [
+    "Fishing Idle: perfect combo can go past ×99 (up to ×9999) and keeps scaling luck/sell"
+  ],
+  "20260928m": [
+    "Fishing Idle: Eternal Cadence shop upgrade — infinite combo hold (shows ×N · ∞)"
+  ],
+  "20260928l": [
+    "Fishing Idle: fix Best catch label (no more zenith · Shiny The Zenith) and rebuild best from real cooler scores"
+  ],
+  "20260928k": [
+    "Fishing Idle: admin give fish/chests/lucky blocks to everyone only hits players online right now"
+  ],
+  "20260928j": [
+    "Fishing Idle: restored ICE_DRAGON The Ultimate, Omni Ray, Soul Twin, and The Absolute to the cooler"
+  ],
+  "20260928i": [
+    "Fishing Idle: auto-restore wiped coolers from cloud; block empty saves from erasing a full cooler"
+  ],
+  "20260928h": [
+    "My Games: password login works even when the password looks like a player code"
+  ],
+  "20260928g": [
+    "Fishing Idle: light autosave every second without lag (skips unchanged / heavy sync)"
+  ],
+  "20260928f": [
+    "Fishing Idle: autosaves every second + backup save so refresh keeps your progress"
+  ],
+  "20260928e": [
+    "Fishing Idle: fix progress not saving on refresh (cloud sync was wiping the local save)"
+  ],
+  "20260928d": [
+    "Fishing Idle: sold fish stay sold after refresh (cloud sync no longer brings them back)"
+  ],
+  "20260928c": [
+    "My Games: shows clearly when your account has a login password set"
+  ],
+  "20260928b": [
+    "My Games: set your own login password on your current account — Fishing and all progress stay; password or player code both work"
+  ],
+  "20260928a": [
+    "Fishing Idle: shared / school PCs no longer wipe another player's progress when switching accounts"
+  ],
+  "20260927f": [
+    "Hub: search boxes for games and leaderboard boards/players"
+  ],
+  "20260926r": [
+    "New game: Paper Claim — paper.io-style territory battles vs NPCs or online rooms"
+  ],
+  "20260926q": [
+    "My Games: secret easter eggs across Runosaur, Snake, Block Merge, Clicker, Hangman, Quiz, Tic Tac Toe, Space, Bounce Break, Guac"
+  ],
+  "20260926p": [
+    "Fishing Idle: Old Boot base sell value is 1B"
+  ],
+  "20260926o": [
+    "Fishing Idle: Old Boot stays secret (no guide row, no auto-sell)"
+  ],
+  "20260926n": [
+    "Fishing Idle: Old Boot looks like a boot, easter egg rarity, own auto-sell toggle"
+  ],
+  "20260926m": [
+    "Fishing Idle: secret Old Boot easter egg (find it…)"
+  ],
+  "20260926l": [
+    "Fishing Idle: ??? locks at 5× your best fish (Soul Twin stays 2×)"
+  ],
+  "20260926k": [
+    "Fishing Idle: boats can catch Soul Twin and ??? (same luck-immune odds)"
+  ],
+  "20260926j": [
+    "Fishing Idle: ??? rarity fish (1 in 999M, luck ignored, exclusive rules)"
+  ],
+  "20260926i": [
+    "Fishing Idle: ICE-only Hjalte admin log (what he ran and when)"
+  ],
+  "20260926h": [
+    "Fishing Idle: smart shop Faster bites shows the best bait you can buy (skip the ladder)"
+  ],
+  "20260926g": [
+    "Fishing Idle: 10 new endgame spots + more upgrades across every gear line"
+  ],
+  "20260926d": [
+    "Runosaur: side-view 2D chase with shaded 3D-looking art (no more tunnel cam)"
+  ],
+  "20260926c": [
+    "Players: fix last-online stuck on “just now” (clear bad cache, stop mass-stamps)"
+  ],
+  "20260926b": [
+    "Players: last online uses real play/chat activity — not tab heartbeats"
+  ],
+  "20260917bd": [
+    "My Games: no more Guessword flash on load"
+  ],
+  "20260917bc": [
+    "What's new opens over My Games instead of Guessword"
+  ],
+  "20260917bb": [
+    "Garden Snap: force cache refresh so planting fix loads"
+  ],
+  "20260917ba": [
+    "Garden Snap: fix planting glitch (board no longer rebuilds every tick)"
+  ],
+  "20260917az": [
+    "Cafe Queue: guests arrive faster"
+  ],
+  "20260917ay": [
+    "Cafe Queue: guest patience timers run faster"
+  ],
+  "20260917ax": [
+    "Bubble Pop Relay: bubbles spawn faster"
+  ],
+  "20260917aw": [
+    "New games: Bubble Pop Relay, Cafe Queue, and Garden Snap"
+  ],
+  "20260917av": [
+    "Fishing Idle: :00/:30 events roll 1.5×, 2×, 3×, or 4×"
+  ],
+  "20260917au": [
+    "Fishing Idle: show countdown timers while chests are active"
+  ],
+  "20260917at": [
+    "Guac-A-Mole: avocados stay up about 0.5 seconds"
+  ],
+  "20260917as": [
+    "Guac-A-Mole: avocados duck back into holes faster"
+  ],
+  "20260917ar": [
+    "Guac-A-Mole: slightly faster spawn pace"
+  ],
+  "20260917aq": [
+    "Guac-A-Mole: lower peeks and slower, calmer spawn pace"
+  ],
+  "20260917ap": [
+    "Guac-A-Mole: hide avocados in holes; fewer popups at once"
+  ],
+  "20260917ao": [
+    "New game: Guac-A-Mole — smash ripe avocados, skip the rotten ones"
+  ],
+  "20260917an": [
+    "Ramp Rush: cleaner public notes and internal code names"
+  ],
+  "20260917am": [
+    "Ramp Rush: easier achievements (5 / 12 / 25 / 40)"
+  ],
+  "20260917al": [
+    "Ramp Rush: reset all high scores, leaderboard, and achievements for everyone"
+  ],
+  "20260917ak": [
+    "Ramp Rush: +1 per kill-block group; spawn gaps use old 15-point distance"
+  ],
+  "20260917aj": [
+    "Ramp Rush: scoring — 1 point per track section"
+  ],
+  "20260917ai": [
+    "Ramp Rush: kill blocks every 15 points"
+  ],
+  "20260917ah": [
+    "Ramp Rush: faster downhill speed"
+  ],
+  "20260917ag": [
+    "Ramp Rush: rarer arches, smoother climbs, no height teleports"
+  ],
+  "20260917af": [
+    "Ramp Rush: curved neon tunnels and city towers, in blue"
+  ],
+  "20260917ae": [
+    "Ramp Rush: square tunnels with blue neon grid"
+  ],
+  "20260917ad": [
+    "Ramp Rush: green grid arches you can drive through or ride on top"
+  ],
+  "20260917ac": [
+    "Ramp Rush: killer blocks spawn in patterns, spaced 15–30 points apart"
+  ],
+  "20260917ab": [
+    "Ramp Rush: slightly wider road"
+  ],
+  "20260917aa": [
+    "Ramp Rush: realistic full-canvas space backdrop with Milky Way and planets"
+  ],
+  "20260917z": [
+    "Ramp Rush: denser starfield with planets, moons, nebulae, and comets"
+  ],
+  "20260917y": [
+    "Ramp Rush: softer edge hangs — recover before tipping off"
+  ],
+  "20260917x": [
+    "Ramp Rush: locked 1× speed, snappier sideways steer, speed boosts on ramps"
+  ],
+  "20260917w": [
+    "Ramp Rush: sideways carving now clearly boosts downhill speed"
+  ],
+  "20260917v": [
+    "Ramp Rush: carving sideways boosts your downhill speed"
+  ],
+  "20260917u": [
+    "Ramp Rush: chase camera that follows the ball sideways and on falls"
+  ],
+  "20260917t": [
+    "Ramp Rush: watch yourself fall off the road before the wipeout screen"
+  ],
+  "20260917s": [
+    "Ramp Rush: cyan/magenta neon rails, lamps, and glowing ball"
+  ],
+  "20260917r": [
+    "Ramp Rush: street lamps with cones and road light pools"
+  ],
+  "20260917q": [
+    "Ramp Rush: replace canyon with night highway scenery and guardrails"
+  ],
+  "20260917p": [
+    "Ramp Rush: fix glitchy rock strips; keep solid walls with light grit texture"
+  ],
+  "20260917o": [
+    "Ramp Rush: mottled rock walls with grain, cracks, and weathered strata"
+  ],
+  "20260917n": [
+    "Ramp Rush: more realistic asphalt road and muted canyon scenery"
+  ],
+  "20260917m": [
+    "Ramp Rush: dusk canyon scenery with layered cliffs and warmer depth"
+  ],
+  "20260917l": [
+    "Ramp Rush: fix broken camera pitch so track and canyon render again"
+  ],
+  "20260917k": [
+    "Ramp Rush: opaque sealed canyon walls + downhill camera that keeps the track readable"
+  ],
+  "20260917j": [
+    "Ramp Rush: opaque canyon walls + downhill view that keeps the track visible"
+  ],
+  "20260917i": [
+    "Ramp Rush: sealed opaque canyon walls + stronger downhill camera"
+  ],
+  "20260917h": [
+    "Ramp Rush: solid walls sealed to the track + readable downhill pitch"
+  ],
+  "20260917g": [
+    "Ramp Rush: solid canyon walls + clearer downhill camera pitch"
+  ],
+  "20260917f": [
+    "Ramp Rush: continuous jagged sandstone gorge walls in 3D"
+  ],
+  "20260917e": [
+    "Ramp Rush: real 3D perspective canyon cliffs beside the track"
+  ],
+  "20260917d": [
+    "Ramp Rush: real sandstone canyon walls instead of soft hills"
+  ],
+  "20260917c": [
+    "Ramp Rush: punchier canyon terraces, walls, and descent cues"
+  ],
+  "20260917b": [
+    "Ramp Rush: clearer downhill canyon background"
+  ],
+  "20260917a": [
+    "Ramp Rush: floating red blocks only appear on jump ramps"
+  ],
+  "20260916z": [
+    "Ramp Rush: downhill canyon scenery in the background"
+  ],
+  "20260916y": [
+    "Ramp Rush: first jump or red hazard around 20 points"
+  ],
+  "20260916x": [
+    "Ramp Rush: fewer jumps, floating red hazards in the air"
+  ],
+  "20260916w": [
+    "Ramp Rush: launch ramps over void gaps you have to jump"
+  ],
+  "20260916v": [
+    "Ramp Rush: fix chase camera so the downhill track reads clearly"
+  ],
+  "20260916u": [
+    "Ramp Rush: steeper downhill plunge"
+  ],
+  "20260916t": [
+    "Ramp Rush: steeper downhill hill view with gravity pull"
+  ],
+  "20260916s": [
+    "New game: Ramp Rush — original downhill ball runner"
+  ],
+  "20260916r": [
+    "Fishing Idle: ICE_DRAGON best catch set to Shiny Primefin (still updates if you beat it)"
+  ],
+  "20260916q": [
+    "Fishing Idle: best catch + leaderboard show Silver/Gold/Diamond/Rainbow/Shiny mutations (variants rank higher)"
+  ],
+  "20260916p": [
+    "Fishing Idle: catch book Shiny is a toggle you can combine with Normal/Silver/Gold/Diamond/Rainbow"
+  ],
+  "20260916o": [
+    "Fishing Idle: spot sell multipliers nerfed (late spots especially)"
+  ],
+  "20260916n": [
+    "Fishing Idle: 4 new spots and more endgame upgrades (no boat changes)"
+  ],
+  "20260916m": [
+    "Fishing Idle: catch book shows discovery percentage"
+  ],
+  "20260916l": [
+    "Fishing Idle: MASTER FISHER unlocks at 70% of the catch book"
+  ],
+  "20260916k": [
+    "Fishing Idle: MASTER FISHER title for catching every fish"
+  ],
+  "20260916j": [
+    "Fishing Idle: catch book filter buttons for All, Normal, and each variant"
+  ],
+  "20260916i": [
+    "Fishing Idle: +1 fish each in Divine through Absolute (10 new fish)"
+  ],
+  "20260916h": [
+    "Fishing Idle: catch book shows which fish you’ve discovered vs still missing"
+  ],
+  "20260916g": [
+    "Fishing Idle: luck/sell and variant admin events can run at the same time"
+  ],
+  "20260916f": [
+    "Fishing Idle: admin variant combos like shiny + gold in one event"
+  ],
+  "20260916e": [
+    "Fishing Idle: admin variant events (e.g. 5× gold / shiny) boost those catch odds"
+  ],
+  "20260916d": [
+    "Fishing Idle: rare and higher fish are more common (odds + early spots softened)"
+  ],
+  "20260916c": [
+    "Fishing Idle: fish guide scrolls itself instead of the page behind it"
+  ],
+  "20260916b": [
+    "Fishing Idle: rarer variants; fish guide scrolls past the variants table again"
+  ],
+  "20260916a": [
+    "Fishing Idle: fish guide shows live cast/boat odds for each value variant"
+  ],
+  "20260915z": [
+    "Fishing Idle: silver/gold/diamond/rainbow value variants (+ shiny that can stack)"
+  ],
+  "20260915y": [
+    "Fishing Idle: admin luck/sell mults allow up to 1000× (1.5× still works)"
+  ],
+  "20260915x": [
+    "Fishing Idle: four new rarities beyond Omega — Genesis, Paradox, Infinity, Absolute (12 new fish)"
+  ],
+  "20260915w": [
+    "Fishing Idle: luck HUD uses k/m/b shorthand like sell boost"
+  ],
+  "20260915v": [
+    "Fishing Idle: sell boost % uses k/m/b shorthand (e.g. +37.7k%)"
+  ],
+  "20260915u": [
+    "Fishing Idle: luck mults now scale top-fish odds for real (100× luck ≈ 100× better omega odds)"
+  ],
+  "20260915t": [
+    "Fishing Idle: luck boosts multiply gear luck + spot luck together"
+  ],
+  "20260915s": [
+    "Fishing Idle: luck events (2×–100×) correctly boost catch odds; fish guide shows active boosts"
+  ],
+  "20260915r": [
+    "Fishing Idle: admin Local vs Global toggle (only you, or all players)"
+  ],
+  "20260915q": [
+    "Fishing Idle: admin commands work even when Mantle is busy (apply now, sync later)"
+  ],
+  "20260915p": [
+    "Fishing Idle: admin events support custom mult + duration (e.g. 5x sell 10m)"
+  ],
+  "20260915o": [
+    "Fishing Idle: ICE_DRAGON Admin button in the top bar (next to Fish guide)"
+  ],
+  "20260915n": [
+    "Fishing Idle: ICE_DRAGON-only admin panel (2× sell / 2× luck / clear) for global events"
+  ],
+  "20260915m": [
+    "Fishing Idle: ICE can trigger global 2× luck / 2× sell admin events for everyone"
+  ],
+  "20260915l": [
+    "Fishing Idle: more realistic fish art (gradients, belly shading, fins, eyes)"
+  ],
+  "20260915k": [
+    "Fishing Idle: cast pond shows the fish you caught (best fish if you land 2–3)"
+  ],
+  "20260915j": [
+    "My Games: rename trademarked game URLs to match public titles; Block Sweep no longer says Blast"
+  ],
+  "20260915i": [
+    "Fishing Idle: Third catch gear — chance for a 3rd fish on cast after a 2nd catch lands"
+  ],
+  "20260915h": [
+    "Fishing Idle: 5 new late spots (Prism Reef → Absolution Sea), more gear in every category, and 2 new boat tiers"
+  ],
+  "20260915g": [
+    "Fishing Idle: sell and luck events now strictly alternate every half-hour (no long luck-only streaks)"
+  ],
+  "20260915f": [
+    "Hub: OscarVR29 can use the Tide hub look"
+  ],
+  "20260915e": [
+    "My Games: accounts work without the account server — log in by code offline; Copy transfer to move an account to another device"
+  ],
+  "20260915d": [
+    "My Games: clearer message when logging in with a code that isn't saved on this device yet"
+  ],
+  "20260915c": [
+    "My Games: username screen now shows Log in / New account / saved accounts (was hidden behind a bare popup)"
+  ],
+  "20260915b": [
+    "My Games: fix multi-account login — works from the username screen; saved accounts switch offline"
+  ],
+  "20260915a": [
+    "My Games: save multiple accounts on this device — create new, log in with a code, switch between them"
+  ],
+  "20260914z": [
+    "Fishing Idle: big LIVE event banner above the cast area so active events are obvious"
+  ],
+  "20260914y": [
+    "Fishing Idle: events only run for 5 minutes at :00/:30, then turn off until the next one"
+  ],
+  "20260914x": [
+    "Fishing Idle: clarify that half-hour events last the full half hour (not 5 minutes)"
+  ],
+  "20260914w": [
+    "Fishing Idle: half-hour 2× sell or 2× luck events (:00/:30); stacks with chests (2.5× luck / 3× sell)"
+  ],
+  "20260914v": [
+    "Fishing Idle: clearly higher rare-fish odds (hard refresh if the guide looks unchanged)"
+  ],
+  "20260914u": [
+    "Fishing Idle: rare fish odds nudged up a bit more"
+  ],
+  "20260914t": [
+    "Fishing Idle: boat uses full luck for fish; chest luck on boats stays at 35%"
+  ],
+  "20260914s": [
+    "Fishing Idle: better fish are much more common (rare through endgame odds raised)"
+  ],
+  "20260914r": [
+    "Fishing Idle: offline boat progress can find chests (half as often as a live boat)"
+  ],
+  "20260914q": [
+    "Fishing Idle: luck gear now raises Coin/Luck Chest odds (Fish guide updates with your luck)"
+  ],
+  "20260914p": [
+    "Fishing Idle: Coin Chest (2× sell) and Luck Chest (1.5× luck) are separate treasures"
+  ],
+  "20260914o": [
+    "Fishing Idle: Sunken Chests rarer again; also grant 1.5× luck for 5 minutes"
+  ],
+  "20260914n": [
+    "Fishing Idle: Sunken Chests are rarer; stacking boosts only adds time (stays 2×)"
+  ],
+  "20260914m": [
+    "Fishing Idle: Sunken Chests go in a stash (use anytime); Fish guide shows chest odds"
+  ],
+  "20260914l": [
+    "Fishing Idle: rare Sunken Chests grant 2× sell value for 5 minutes"
+  ],
+  "20260914k": [
+    "Fishing Idle: cast view is a shore scene so each spot feels like you’re there"
+  ],
+  "20260914j": [
+    "Fishing Idle: spot waters are much more distinct (Creek green, River blue, etc.)"
+  ],
+  "20260914i": [
+    "Fishing Idle: richer, more realistic water on every fishing spot"
+  ],
+  "20260914h": [
+    "Fishing Idle: each fishing spot has its own water look and mood"
+  ],
+  "20260914f": [
+    "Fishing Idle: Luck and Sell boost stats include your current spot"
+  ],
+  "20260914e": [
+    "Dudes: fix Bash/Dig so skills keep working; repair broken level maps; bombers explode in place"
+  ],
+  "20260914d": [
+    "Guessword: move notification bell so the Menu button isn’t covered on phones",
+    "Runosaur: add on-screen Jump / Duck buttons for phones"
+  ],
+  "20260914c": [
+    "Mobile GUI pass: stack Fishing on phones; fix Math/Space/Cows/Dino/canvas HUDs so layouts fit"
+  ],
+  "20260914b": [
+    "Fishing Idle: show live totals for wait, luck, sell boost, 2nd catch, perfect pay, cooler"
+  ],
+  "20260914a": [
+    "Fishing Idle: +24 late upgrades (rods, luck, cooler, sell, nets, perfect pay)"
+  ],
+  "20260913z": [
+    "Fishing Idle: grant ICE_DRAGON auto boat Lv1"
+  ],
+  "20260913y": [
+    "Fishing Idle: list cheap Faster bites baits above Worms"
+  ],
+  "20260913x": [
+    "Fishing Idle: reprice Faster bites — weak baits cheap under Worms; stronger baits cost more"
+  ],
+  "20260913w": [
+    "Fishing Idle: Faster bites bait — own many, equip only one at a time"
+  ],
+  "20260913v": [
+    "Fishing Idle: Your catch bay shows both fish when a Second catch net lands"
+  ],
+  "20260913u": [
+    "Fishing Idle: stop auto boat haul from widening the column and shifting Cast sideways"
+  ],
+  "20260913t": [
+    "Fishing Idle: lock Cast / catch / cooler heights so casting never shifts the page"
+  ],
+  "20260913s": [
+    "Fishing Idle: fixed Your catch bay for player fish (same layout idea as Boat catch)"
+  ],
+  "20260913r": [
+    "Fishing Idle: Cast stays put — boat timer + catch bay use fixed reserved space"
+  ],
+  "20260913q": [
+    "Fishing Idle: dedicated Boat catch bay under the auto boat timer"
+  ],
+  "20260913p": [
+    "Fishing Idle: boat catch toast no longer shifts the Cast button"
+  ],
+  "20260913o": [
+    "Fishing Idle: fix glitchy auto boat catch display (no more flicker)"
+  ],
+  "20260913n": [
+    "Hub Feedback: fix send when Mantle is rate-limited — saves locally and queues sync; less API spam"
+  ],
+  "20260913m": [
+    "Fishing Idle: fix auto boat catch feedback — fish show under the boat timer every haul"
+  ],
+  "20260913l": [
+    "Fishing Idle: auto boat catches show fish art, name, and value"
+  ],
+  "20260913k": [
+    "Fishing Idle: different fish shapes per species (catfish whiskers, snapper, eel, shark, ray…)"
+  ],
+  "20260913j": [
+    "Fishing Idle: catch card + cooler chips show fish art with star, name, and value"
+  ],
+  "20260913i": [
+    "Fishing Idle: more realistic cast pond — water, line, bobber dunk/splash, fish breach on catch"
+  ],
+  "20260913h": [
+    "Fishing Idle: high rarities even rarer (another odds nerf)"
+  ],
+  "20260913g": [
+    "Fishing Idle: higher rarities are rarer again (base odds, luck, and spot scaling)"
+  ],
+  "20260913f": [
+    "Fishing Idle: more late gear + Perfect pay upgrades (bonus sell on perfect reels) — no new boats"
+  ],
+  "20260913e": [
+    "Fishing Idle: more gear (rods, bait, luck, cooler, sell) plus Second catch nets — no new boats"
+  ],
+  "20260913d": [
+    "Fishing Idle: remove Deep Yacht — Harbor Boat is the max boat again"
+  ],
+  "20260913c": [
+    "Fishing Idle: more gear — late rods/luck/cooler, Sell boost line, Deep Yacht boat"
+  ],
+  "20260913b": [
+    "ICE_DRAGON username is locked to its owner player code — nobody else can take it"
+  ],
+  "20260913a": [
+    "Hub: all game cards use the same theme accent (no different middle-column color)"
+  ],
+  "20260912z": [
+    "Hub: game cards tint and accent bars follow each hub look / theme"
+  ],
+  "20260912y": [
+    "Fix Guessword stuck blank screen (hub theme init crash)"
+  ],
+  "20260912x": [
+    "Players: each person gets a player code — rename keeps leaderboards/friends; restore on another device"
+  ],
+  "20260912w": [
+    "Hub: ICE_DRAGON-only Aurora / Mono / Tide looks (same colors as animated titles)"
+  ],
+  "20260912v": [
+    "Hub Ice look: cooler dark blue instead of bright white"
+  ],
+  "20260912u": [
+    "My Games hub: same drifting glow / orb / sparkle background animation as Guessword"
+  ],
+  "20260912t": [
+    "Hangman: same creamy keyboard thock as Guessword when guessing letters"
+  ],
+  "20260912s": [
+    "Hangman: Guessword-style 3D QWERTY keyboard"
+  ],
+  "20260912r": [
+    "Hangman: Ice / Arcade / Warm board colors + same animated backgrounds as Guessword"
+  ],
+  "20260912q": [
+    "Guessword: stronger animated theme backgrounds (drifting orbs + sparkle)"
+  ],
+  "20260912p": [
+    "Guessword: animated backgrounds that match Ice / Arcade / Warm themes"
+  ],
+  "20260912o": [
+    "Guessword: quieter creamy key sounds"
+  ],
+  "20260912n": [
+    "Guessword: typing uses your creamy keyboard recording"
+  ],
+  "20260912m": [
+    "Guessword: real honey-key samples instead of beeps for typing ASMR"
+  ],
+  "20260912l": [
+    "Guessword: creamy honey-keyboard ASMR key sound"
+  ],
+  "20260912k": [
+    "Guessword: key ASMR sound less deep / less bassy"
+  ],
+  "20260912j": [
+    "Guessword: softer ASMR-style key thock when typing"
+  ],
+  "20260912i": [
+    "Guessword: chunkier mechanical key sound when typing"
+  ],
+  "20260912h": [
+    "Guessword: more 3D keyboard keys (depth, press-in, themed edges)"
+  ],
+  "20260912g": [
+    "What's new: old notes renamed to current game titles"
+  ],
+  "20260912f": [
+    "Players: you stay listed as online when the shared DB is rate-limited"
+  ],
+  "20260912e": [
+    "Players: title/color save works offline when the shared DB is rate-limited"
+  ],
+  "20260912d": [
+    "Fishing Idle: rare+ fish are less rare (weights up, spot suppression softened)"
+  ],
+  "20260912c": [
+    "Fishing Idle: fish guide odds are exact per fish (no more identical ultra-rare %)"
+  ],
+  "20260912b": [
+    "Fishing Idle: new rarities Astral, Singularity, Omega (+ fish & late spots)"
+  ],
+  "20260912a": [
+    "Fishing Idle: auto boat hire and upgrades cost much more"
+  ],
+  "20260911z": [
+    "Fishing Idle: gear shop split into categories (Rods, Faster bites, Luck, Cooler, Auto boat)"
+  ],
+  "20260911y": [
+    "Fishing Idle: full reset — progress + catch leaderboard wiped (other games untouched)"
+  ],
+  "20260911x": [
+    "Fishing Idle: boat max speed 7.5s; upgrades add multi-catch chances"
+  ],
+  "20260911w": [
+    "Fishing Idle: one upgradable auto boat instead of buying many boats"
+  ],
+  "20260911v": [
+    "Fishing Idle: fish guide shows precise odds (and 1-in-N for ultra-rares)"
+  ],
+  "20260911u": [
+    "Fishing Idle: leaderboard no longer resets ICE_DRAGON below a better-than-mythic catch"
+  ],
+  "20260911t": [
+    "Cross Walk: smoother ice riding (sticky floe, no hop/snap jitter)"
+  ],
+  "20260911s": [
+    "Cross Walk: more precise hops; ice floes no longer kill you in tiny gaps; fairer cart hits"
+  ],
+  "20260911r": [
+    "Runosaur: low crystal bats require holding ↓ / S (or swipe down) to duck under"
+  ],
+  "20260911q": [
+    "Guessword: ice-melt tile reveal + Flex 4/5/6 signature",
+    "Runosaur: ice caves, frost spikes, crystal bats, dragon chase",
+    "Cross Walk: fantasy lanes — lava carts, ice floes, crystal meadows"
+  ],
+  "20260911p": [
+    "Wing Hop: fix crashed dragon draw (invalid colors broke body/wings)"
+  ],
+  "20260911o": [
+    "Wing Hop: fix invisible dragon — body no longer blends into sky (Ember etc.)"
+  ],
+  "20260911n": [
+    "Wing Hop: more realistic dragon — scales, bat wings, reptile head"
+  ],
+  "20260911m": [
+    "Wing Hop: wings flap forward/back instead of mostly up/down"
+  ],
+  "20260911k": [
+    "Wing Hop: slow the dragon wing flap to a calmer beat"
+  ],
+  "20260911j": [
+    "Wing Hop: much flappier dragon wings (faster beat + big flap on tap)"
+  ],
+  "20260911i": [
+    "Wing Hop: dragon redraw — gradients, bigger eye, cleaner silhouette"
+  ],
+  "20260911h": [
+    "Wing Hop: prettier little dragon (wings, eye, horns, smile)"
+  ],
+  "20260911g": [
+    "Wing Hop: little dragon + castle towers (no more bird/pipes look)"
+  ],
+  "20260911f": [
+    "Guessword: keyboard keys use the same Ice/Arcade/Warm colors as the tiles"
+  ],
+  "20260911e": [
+    "Guessword: stronger stamp reveal (manual animation — can’t be blocked by CSS)"
+  ],
+  "20260911d": [
+    "Guessword: stamp reveal via Web Animations so the skew actually shows"
+  ],
+  "20260911c": [
+    "Guessword: fix stamp reveal — transform transition was canceling the skew"
+  ],
+  "20260911b": [
+    "Guessword: try stamp/skew tile reveal instead of classic 3D flip"
+  ],
+  "20260911a": [
+    "Guessword: Ice / Arcade / Warm board colors, rounded glowing tiles, color picker in Menu"
+  ],
+  "20260910f": [
+    "Safer names: Block Merge, Bounce Break, Cross Walk, Runosaur"
+  ],
+  "20260910e": [
+    "Safer game names: Guessword, Drop Four, Wing Hop, Pixel Drop, Block Sweep"
+  ],
+  "20260910d": [
+    "Rename Lemmings to Dudes"
+  ],
+  "20260910c": [
+    "Players count: cut MantleDB rate-limit spam so the shared roster can load again"
+  ],
+  "20260910b": [
+    "Stop forcing username changes — once your name is saved here, it stays"
+  ],
+  "20260910a": [
+    "Fix school/offline username gate: don’t wipe names when the name server is blocked; allow local play"
+  ],
+  "20260909r": [
+    "Lemmings: clear the level when the save goal is met even if a Blocker is left behind"
+  ],
+  "20260909q": [
+    "Lemmings: fix Turn Around — IN was over water so the level was unwinnable"
+  ],
+  "20260909p": [
+    "Remove Rainbow name color for all players"
+  ],
+  "20260909o": [
+    "Lemmings: 6 new levels (12 total) — Block, Build, Bomb, Dig+Float, Bash, Climb+Build"
+  ],
+  "20260909n": [
+    "Lemmings: pick any unlocked level from the Levels menu"
+  ],
+  "20260909m": [
+    "Lemmings: clarify Climb is an ability (not ladders); enough Climb for every walker"
+  ],
+  "20260909k": [
+    "Lemmings: fix Climb (and harden Bash/Dig) so skills actually work"
+  ],
+  "20260909j": [
+    "Lemmings: Build bridge is walkable (same floor height, not a wall)"
+  ],
+  "20260909i": [
+    "Lemmings: Build makes a real bridge across gaps (not stairs into the sky)"
+  ],
+  "20260909h": [
+    "Lemmings: clearer IN / OUT doors so they don’t look like broken terrain"
+  ],
+  "20260909g": [
+    "Lemmings: fix Block skill jitter / flip-flopping"
+  ],
+  "20260909f": [
+    "Lemmings: clearer how-to, level tips, and How to play button"
+  ],
+  "20260909e": [
+    "Lemmings: save level progress and continue where you left off"
+  ],
+  "20260909d": [
+    "Lemmings: restart current level (button or R)"
+  ],
+  "20260909c": [
+    "Lemmings: fix levels and physics so walkers can reach the exit"
+  ],
+  "20260909b": [
+    "New game: Lemmings — assign skills and save the crew"
+  ],
+  "20260909a": [
+    "Remove unused player nickname dragon from the players list"
+  ],
+  "20260908az": [
+    "Block Sweep: cleared rows/columns can be used again"
+  ],
+  "20260908ay": [
+    "Block Sweep: drag-and-drop, combos, and closer scoring feel"
+  ],
+  "20260908ax": [
+    "New game: Block Sweep — place blocks, clear rows and columns"
+  ],
+  "20260908aw": [
+    "Mine Depth: reset ICE_DRAGON dig stats only"
+  ],
+  "20260908av": [
+    "Mine Depth: 1000 layers and 1000 ores"
+  ],
+  "20260908au": [
+    "Mine Depth: fix gear upgrades not applying / hard to buy"
+  ],
+  "20260908at": [
+    "Mine Depth: many more layers and ores (to Absolute Zero)"
+  ],
+  "20260908as": [
+    "Mine Depth: more layers and ores (down to Singularity)"
+  ],
+  "20260908ar": [
+    "Mine Depth: leaderboards for best depth and best ore"
+  ],
+  "20260908aq": [
+    "Mine Depth: dig clicks capped at 75ms"
+  ],
+  "20260908ap": [
+    "Mine Depth: dig feels like going down a shaft"
+  ],
+  "20260908ao": [
+    "New game: Mine Depth — dig down, sell ore, upgrade drills"
+  ],
+  "20260908an": [
+    "Runosaur: larger playfield"
+  ],
+  "20260908am": [
+    "Runosaur: W jumps, S ducks"
+  ],
+  "20260908al": [
+    "New game: Runosaur — jump spikes, duck bats, chase a high score"
+  ],
+  "20260908ak": [
+    "Fix online Quick Play: waiting rooms now find each other instead of getting stuck",
+    "Notifications for new chat messages and when your streak is about to die"
+  ],
+  "20260908aj": [
+    "Feedback: send bug reports and ideas to ICE from My Games"
+  ],
+  "20260908aa": [
+    "New game: Cow Merge — buy calves, merge to evolve, milk idle income"
+  ],
+  "20260908z": [
+    "Fishing Idle: save (pin) cooler fish so they won't sell until you unsaved them"
+  ],
+  "20260908y": [
+    "Fishing Idle: Divine / Eternal / Cosmic rarities, more gear, late-game spots"
+  ],
+  "20260908u": [
+    "Fishing Idle: rarer high-tier fish + new Secret rarity (extremely rare)"
+  ],
+  "20260908r": [
+    "Fishing Idle: set ICE_DRAGON best catch to Abyss King on the leaderboard"
+  ],
+  "20260908q": [
+    "Fishing Idle leaderboard is now best fish caught (rarity), not lifetime coins"
+  ],
+  "20260908j": [
+    "Fishing Idle remade: cast, reel on the bite, cooler, spots — not a clicker clone"
+  ],
+  "20260908i": [
+    "New game: Fishing Idle — cast for coins, buy boats, set sail for bigger voyages"
+  ],
+  "20260908h": [
+    "New game: Cross Walk — hop across meadows, lava carts, and ice floes"
+  ],
+  "20260908g": [
+    "New game: Tower Stack — drop blocks and climb the leaderboard"
+  ],
+  "20260908f": [
+    "Quizmaster: removed math questions from the question bank"
+  ],
+  "20260908e": [
+    "Show LEGEND title and yellow color to everyone (locked until earned)"
+  ],
+  "20260908d": [
+    "Hide locked titles/colors (Tester, red, Aurora, Mono, Tide, Rainbow)"
+  ],
+  "20260908c": [
+    "Fix online vs Time Online mismatch (hidden tabs drop presence; sync clocks)"
+  ],
+  "20260908b": [
+    "Hangman: more misses on Easy / Medium / Hard"
+  ],
+  "20260908a": [
+    "Rainbow color also available to ICE_DRAGON for testing"
+  ],
+  "20260907z": [
+    "Rainbow name color unlocked for Oskar"
+  ],
+  "20260907y": [
+    "Fix Time Online leaderboard freezing (sync was wiping live ticks)"
+  ],
+  "20260907x": [
+    "Crystal Clicker: +100 click and +100 idle upgrades"
+  ],
+  "20260907w": [
+    "Crystal Clicker: number labels past Dc (UDc…C) + scientific fallback"
+  ],
+  "20260907v": [
+    "Crystal Clicker: more Sp–No tier click + idle upgrades"
+  ],
+  "20260907u": [
+    "Crystal Clicker: rebirths cost ×100 from Qa onward"
+  ],
+  "20260907t": [
+    "Crystal Clicker: matching idle pack + more click upgrades"
+  ],
+  "20260907s": [
+    "Crystal Clicker: another wave of late-game upgrades"
+  ],
+  "20260907r": [
+    "Crystal Clicker: more late-game click + idle upgrades"
+  ],
+  "20260907q": [
+    "Fix garbled Menu / × / · text on game pages (UTF-8 encoding)"
+  ],
+  "20260907p": [
+    "Fix group chat create glitch (polling race + form reset)"
+  ],
+  "20260907o": [
+    "Chat: Global channel for everyone + friend group chats"
+  ],
+  "20260907n": [
+    "Friend chat works in-game: floating Chat button + message toasts"
+  ],
+  "20260907m": [
+    "Friends chat: message friends from the Friends panel"
+  ],
+  "20260907l": [
+    "Wing Hop: character skins (Classic, Sky, Rose, Ember, Mint, Ice, Midnight, Gold)"
+  ],
+  "20260907k": [
+    "Players: show last online time on all-time roster and friends list"
+  ],
+  "20260907j": [
+    "Guessword themes like Hangman (Animals, Food, Flags, Sports, Nature, Space, Music, Movies) — Practice mode"
+  ],
+  "20260907i": [
+    "Fix Crystal Clicker leaderboard: ICE_DRAGON wipe was blocking new scores"
+  ],
+  "20260907h": [
+    "Crystal Clicker: reset ICE_DRAGON leaderboard + local progress"
+  ],
+  "20260907g": [
+    "Crystal Clicker: lots more click power upgrades (through Source Strike)"
+  ],
+  "20260907f": [
+    "Crystal Clicker: rebirth 3M → 30M → ×10 each"
+  ],
+  "20260907e": [
+    "Crystal Clicker: rebirth 3M → 9M → ×3 each"
+  ],
+  "20260907d": [
+    "Crystal Clicker: rebirth scale ×3 (1st 100M, 2nd 300M, …)"
+  ],
+  "20260907c": [
+    "Crystal Clicker: rebirth costs ×100 (1st 100M, then ×10 each)"
+  ],
+  "20260907b": [
+    "Crystal Clicker: huge upgrade pack (~70 total click + idle)"
+  ],
+  "20260907a": [
+    "Crystal Clicker: even more upgrades (Nova Punch through Absolute Crystal)"
+  ],
+  "20260906z": [
+    "Crystal Clicker: more click & idle upgrades (up to Infinity Vein)"
+  ],
+  "20260906y": [
+    "Crystal Clicker: click upgrades back to earlier prices"
+  ],
+  "20260906x": [
+    "Removed Back button from My Games hub (Esc still leaves)"
+  ],
+  "20260906w": [
+    "Hub Settings moved to the top-left header button (Back is in the toolbar)"
+  ],
+  "20260906v": [
+    "Hub Settings: switch looks — Classic, Arcade, Ice, Retro, Workshop, Poster wall"
+  ],
+  "20260906u": [
+    "Hub My Games tries an arcade cabinet look (easy to switch off)"
+  ],
+  "20260906t": [
+    "Crystal Clicker leaderboard uses K / M / B shorthand"
+  ],
+  "20260906s": [
+    "Crystal Clicker shows next rebirth multiplier (Now ×1 → after ×2)"
+  ],
+  "20260906r": [
+    "Crystal Clicker: max click speed capped at once per 50ms"
+  ],
+  "20260906q": [
+    "Crystal Clicker: forced local save wipe (progress starts over for everyone)"
+  ],
+  "20260906p": [
+    "Crystal Clicker progress & leaderboard reset for everyone (other games unchanged)"
+  ],
+  "20260906o": [
+    "Crystal Clicker numbers use K / M / B / T shorthand"
+  ],
+  "20260906n": [
+    "Crystal Clicker: click-power upgrades cost more"
+  ],
+  "20260906m": [
+    "Crystal Clicker shop organized into Click power and Idle income"
+  ],
+  "20260906l": [
+    "Crystal Clicker: more upgrades (cart, gloves, vault, singularity, and more)"
+  ],
+  "20260906k": [
+    "Crystal Clicker shows your earnings multiplier on screen"
+  ],
+  "20260906j": [
+    "Crystal Clicker: fixed Buy buttons not working while income was running"
+  ],
+  "20260906i": [
+    "Crystal Clicker: 2nd rebirth costs 10M (then ×10 each time)"
+  ],
+  "20260906h": [
+    "Crystal Clicker: Rebirth at 1M crystals for ×2 earnings (stacks each rebirth)"
+  ],
+  "20260906g": [
+    "New game: Crystal Clicker — tap, buy upgrades, climb the lifetime crystal board"
+  ],
+  "20260906f": [
+    "Leaderboards refresh every second while open"
+  ],
+  "20260906e": [
+    "Time Online leaderboard — see who spent the most time on the site (#1, #2, #3…)"
+  ],
+  "20260906d": [
+    "Friends has its own hub button (no longer inside Players)"
+  ],
+  "20260906c": [
+    "CHEESY LIL GUY holes are small round dots again (not dark blobs)"
+  ],
+  "20260906b": [
+    "CHEESY LIL GUY holes are clearer (fixed flat cheese override)"
+  ],
+  "20260906a": [
+    "CHEESY LIL GUY color now looks like cheese with holes"
+  ],
+  "20260905z": [
+    "New title CHEESY LIL GUY (cheese color) for OscarVR29"
+  ],
+  "20260905y": [
+    "New Tide color (green↔blue) for ICE_DRAGON and OscarVR29"
+  ],
+  "20260905x": [
+    "Hjalte streak set to 2 days (7/14/30 streak achievements kept)"
+  ],
+  "20260905w": [
+    "See how long until your daily streak dies on the Games badge and in the menu"
+  ],
+  "20260905v": [
+    "Hjalte: 30-day streak plus 7/14/30 streak achievements"
+  ],
+  "20260905u": [
+    "Guessword Daily is always 5 letters — 4/6 lengths stay in Practice only"
+  ],
+  "20260905t": [
+    "Creator OWNER badge follows your chosen color again (not stuck on blue)",
+    "Mobile Guessword: credit no longer covers the keyboard"
+  ],
+  "20260905s": [
+    "Creator credit text is white (not gray) on PC and phone",
+    "OWNER badge stays upright on mobile"
+  ],
+  "20260905r": [
+    "Hangman themes: Animals, Food, Flags, Sports, Nature, Space, Music, Movies"
+  ],
+  "20260905q": [
+    "Friends: add by username, accept requests, and invite to play",
+    "Online Tic Tac Toe & Connect Four: Quick Play, room codes, friend invites"
+  ],
+  "20260904s": [
+    "Choose your name/title color in Players",
+    "Color picker only appears if you have a title"
+  ],
+  "20260904r": [
+    "Choose which title to show if you have more than one"
+  ],
+  "20260904q": [
+    "Player titles: blue OWNER, green OG, yellow LEGEND for all achievements"
+  ],
+  "20260904p": [
+    "All-time players now includes everyone with a claimed username (like OscarVR29)"
+  ],
+  "20260904o": [
+    "Hints disabled for now in Guessword and Sudoku"
+  ],
+  "20260904n": [
+    "Reset Sudoku stats for player hjalte (other games unchanged)"
+  ],
+  "20260904m": [
+    "Tic Tac Toe Hard mode is tough but beatable now",
+    "Leaderboards auto-refresh every 30 seconds while open"
+  ],
+  "20260904l": [
+    "Online leaderboards for every game — compete for #1"
+  ],
+  "20260904k": [
+    "View board after a win or loss in every game"
+  ],
+  "20260904j": [
+    "Achievements list ordered from easy (top) to hard (bottom)"
+  ],
+  "20260904i": [
+    "2048: View board after game over"
+  ],
+  "20260904h": [
+    "Connect Four and Tic Tac Toe: View board after a win or loss"
+  ],
+  "20260904g": [
+    "Online count now matches the visible online name list"
+  ],
+  "20260904f": [
+    "2048 tiles now slide so you can see them move"
+  ],
+  "20260904e": [
+    "OscarVR29 shows in green on the Players board"
+  ],
+  "20260904d": [
+    "Fix username popup so Backspace and typing work in the name field"
+  ],
+  "20260904c": [
+    "Username popup is required before you can play on the hub or any game"
+  ],
+  "20260904b": [
+    "All-time players list now shows real nicknames instead of stuck Guest entries"
+  ],
+  "20260904a": [
+    "Lots of new achievements across every game",
+    "Space Shooter, Brick Breaker, Tic Tac Toe, and Pixletris now have achievements too"
+  ],
+  "20260903u": [
+    "Hide old Guest placeholder names from the Players board"
+  ],
+  "20260903t": [
+    "Updates list in the Games menu — tap a version to see what changed"
+  ],
+  "20260903s": [
+    "Lock your username so it can’t be changed until you unlock it"
+  ],
+  "20260903r": [
+    "Tap online or all-time on the Players board to see name lists"
+  ],
+  "20260903q": [
+    "Username required to play — no more skipping"
+  ],
+  "20260903p": [
+    "Guessword opens in Practice after you finish today's Daily"
+  ],
+  "20260903o": [
+    "Bigger created-by credit on computer screens",
+    "Created by ICE_DRAGON also shows in the menu"
+  ],
+  "20260903n": [
+    "Side credit: created by ICE_DRAGON"
+  ],
+  "20260903m": [
+    "ICE_DRAGON shows in blue on the Players board as the site creator"
+  ],
+  "20260903l": [
+    "All-time player count — each person only adds +1 once",
+    "Coming back online later does not increase the total again"
+  ],
+  "20260903k": [
+    "See how many players are online right now",
+    "Online count refreshes every minute"
+  ],
+  "20260903j": [
+    "Player nicknames are unique — once taken, nobody else can use that name",
+    "Case does not matter (ICE_DRAGON and ice_dragon are the same)"
+  ],
+  "20260903i": [
+    "Players board — see recent nicknames and which games they opened",
+    "Pick a player name once; it syncs across visitors"
+  ],
+  "20260903h": [
+    "Confetti on wins in every game",
+    "New high scores also get a confetti burst"
+  ],
+  "20260903g": [
+    "Sound effects in every game — shared mute button",
+    "Mute choice is remembered across the whole site"
+  ],
+  "20260903f": [
+    "Sound effects in Guessword — keys, flips, win, and lose",
+    "Mute button next to the theme toggle"
+  ],
+  "20260903e": [
+    "Daily Guessword — everyone gets the same word each day",
+    "Practice mode still lets you play extra random words",
+    "Share today's colored-square result from the menu"
+  ],
+  "20260903d": [
+    "Achievements across all games — unlock badges as you play",
+    "New Achievements button in the games hub",
+    "Toast popup when you unlock a badge"
+  ],
+  "20260903a": [
+    "New Share moment button in the games hub",
+    "Share sheet support on phone and copy fallback on desktop"
+  ],
+  "20260902h": [
+    "Site ready for mygames.com hosting",
+    "Site name and domain live in site-config.js — easy to change later"
+  ],
+  "20260902g": [
+    "Menu reminder when your daily streak needs a play today",
+    "What's new popup after updates",
+    "Daily streak now resets after 48 hours without playing"
+  ],
+  "20260902f": [
+    "Daily play streak across all games",
+    "High scores, favorites, and continue last game",
+    "Snake: slower speed and 4 apples"
+  ]
+}

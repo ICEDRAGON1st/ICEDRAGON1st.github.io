@@ -68,13 +68,25 @@ const swNext = swBefore.replace(/const BUILD = "[^"]+";/, `const BUILD = "${buil
 if (swNext === swBefore) throw new Error("Could not update BUILD in sw.js");
 writeIfChanged(swPath, swNext, changed);
 
-const scriptPath = path.join(ROOT, "script.js");
-const scriptBefore = fs.readFileSync(scriptPath, "utf8");
-const escapedNotes = notes.map((note) => `    ${JSON.stringify(String(note).trim())}`).join(",\n");
-const changelogEntry = `const CHANGELOG = {\n  "${build}": [\n${escapedNotes}\n  ],`;
-const scriptNext = scriptBefore.replace("const CHANGELOG = {", changelogEntry);
-if (scriptNext === scriptBefore) throw new Error("Could not update CHANGELOG in script.js");
-writeIfChanged(scriptPath, scriptNext, changed);
+const changelogPath = path.join(ROOT, "changelog.json");
+const changelog = JSON.parse(fs.readFileSync(changelogPath, "utf8"));
+if (!changelog || typeof changelog !== "object" || Array.isArray(changelog)) {
+  throw new Error("changelog.json must contain an object");
+}
+if (Object.prototype.hasOwnProperty.call(changelog, build)) {
+  throw new Error(`Changelog already contains ${build}`);
+}
+const cleanNotes = notes.map((note) => String(note).trim());
+const nextChangelog = { [build]: cleanNotes, ...changelog };
+writeIfChanged(changelogPath, `${JSON.stringify(nextChangelog, null, 2)}\n`, changed);
+
+const latestPath = path.join(ROOT, "latest-changelog.js");
+const latestSource = `window.MYGAMES_LATEST_CHANGELOG = ${JSON.stringify(
+  { build, notes: cleanNotes },
+  null,
+  2
+)};\n`;
+writeIfChanged(latestPath, latestSource, changed);
 
 console.log(`Build ${current} -> ${build}`);
 console.log(`Updated ${changed.length} files:`);

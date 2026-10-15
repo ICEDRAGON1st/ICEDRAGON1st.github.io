@@ -63,6 +63,8 @@ Until isolated staging and automated releases exist:
 - The games-grid critical path is capped by CI at 12 scripts and under 1 MB of decoded
   JavaScript; social, chat/calls, leaderboard, coins, Help, admin, and Fishing helpers load
   after the shell becomes interactive.
+- The 64,796-byte update history is fetched only when Updates opens; startup loads a 292-byte
+  latest-build record. Extracting it reduced `script.js` by roughly 72 KB.
 - The games-grid route loads no Guessword dictionaries. Opening Guessword loads one active
   language/length pack (168,142 bytes for English 5-letter) instead of all 18 word/dictionary
   files (2,264,199 bytes), saving the full 2,264,199 uncompressed bytes on the hub route. Other

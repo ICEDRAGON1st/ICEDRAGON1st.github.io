@@ -94,13 +94,13 @@
       pointer-events: none !important;
     }
   </style>
-  <script src="site-config.js?v=20261015f"></script>
+  <script src="site-config.js?v=20261015g"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css?v=20261001ge">
-  <script src="hub-net.js?v=20261015f"></script>
-  <script src="hub-afk.js?v=20261015f"></script>
+  <script src="hub-net.js?v=20261015g"></script>
+  <script src="hub-afk.js?v=20261015g"></script>
 </head>
 <body data-guess-colors="ice">
   <div id="hub-boot-loader" aria-live="polite" aria-busy="true">
@@ -940,7 +940,7 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20261015f";
+    window.WORDLE_BUILD = "20261015g";
     try {
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.register("sw.js").catch(function () {});
@@ -950,6 +950,7 @@
     // This avoids making one slow dictionary/module block every request after it.
     const scriptPhases = [
       [
+        "latest-changelog.js",
         "hub-streak.js",
         "hub-achievements.js",
         "hub-sound.js",
@@ -1027,7 +1028,7 @@
       const language = guesswordAssets[lang] ? lang : "en";
       const size = [4, 5, 6].includes(Number(length)) ? Number(length) : 5;
       return Promise.all(
-        guesswordAssets[language][size].map(function (file) {
+        [...guesswordAssets[language][size], "wordle-themes.js"].map(function (file) {
           return loadHubScript(file, true);
         })
       ).then(function () {
@@ -1102,12 +1103,9 @@
       }
       const initialGuessword = getInitialGuesswordSelection();
       const wordleDeepLink = location.hash === "#wordle";
-      await Promise.all([
-        wordleDeepLink
-          ? ensureGuesswordAssets(initialGuessword.lang, initialGuessword.length)
-          : Promise.resolve(),
-        loadHubScript("wordle-themes.js", true)
-      ]);
+      if (wordleDeepLink) {
+        await ensureGuesswordAssets(initialGuessword.lang, initialGuessword.length);
+      }
       await loadHubScript("script.js", true);
       scheduleOptionalHubProfile();
       // Scripts finished; give init a tick, then drop the loader.

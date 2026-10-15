@@ -146,3 +146,26 @@ test("optional hub helpers load after the interactive shell", async ({ page }) =
     { timeout: 10_000 }
   );
 });
+
+test("update history loads only when opened", async ({ page }) => {
+  const historyRequests = [];
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname.endsWith("/changelog.json")) {
+      historyRequests.push(request.url());
+    }
+  });
+
+  await page.goto("/", { waitUntil: "domcontentloaded" });
+  await page.waitForFunction(
+    () => !document.documentElement.classList.contains("hub-booting"),
+    null,
+    { timeout: 20_000 }
+  );
+  expect(historyRequests).toEqual([]);
+
+  const whatsNew = page.locator("#whats-new-ok");
+  if (await whatsNew.isVisible()) await whatsNew.click();
+  await page.locator("#toggle-updates-btn").click();
+  await expect(page.locator("#updates-list .updates-item").first()).toBeVisible();
+  expect(historyRequests).toHaveLength(1);
+});
