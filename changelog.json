@@ -1,4 +1,7 @@
 {
+  "20261015t": [
+    "Paper Claim now repaints only the land that changed."
+  ],
   "20261015s": [
     "Pointed the hub at the new Supabase project and locked public admin writes."
   ],

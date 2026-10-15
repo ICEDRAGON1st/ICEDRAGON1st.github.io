@@ -762,8 +762,19 @@
   const miniLayer = document.createElement("canvas");
   const miniCtx = miniLayer.getContext("2d", { alpha: false });
   let landDirty = true;
+  let landFullDirty = true;
   let voidDirty = true;
   let miniDirty = true;
+  let dirtyMinX = 0;
+  let dirtyMinY = 0;
+  let dirtyMaxX = WORLD - 1;
+  let dirtyMaxY = WORLD - 1;
+  let dirtyCount = WORLD * WORLD;
+  let lastPaintFull = true;
+  let lastPaintX0 = 0;
+  let lastPaintY0 = 0;
+  let lastPaintX1 = WORLD - 1;
+  let lastPaintY1 = WORLD - 1;
   let territoryCountsDirty = true;
   const territoryCounts = new Map();
   /** @type {Map<number, string>} */
@@ -1158,6 +1169,30 @@
 
   function markLandDirty() {
     landDirty = true;
+    landFullDirty = true;
+    miniDirty = true;
+    dirtyMinX = 0;
+    dirtyMinY = 0;
+    dirtyMaxX = WORLD - 1;
+    dirtyMaxY = WORLD - 1;
+    dirtyCount = WORLD * WORLD;
+  }
+
+  function markCellDirty(index) {
+    const x = index % WORLD;
+    const y = (index / WORLD) | 0;
+    if (!landDirty) {
+      dirtyMinX = dirtyMaxX = x;
+      dirtyMinY = dirtyMaxY = y;
+      dirtyCount = 1;
+    } else if (!landFullDirty) {
+      if (x < dirtyMinX) dirtyMinX = x;
+      if (y < dirtyMinY) dirtyMinY = y;
+      if (x > dirtyMaxX) dirtyMaxX = x;
+      if (y > dirtyMaxY) dirtyMaxY = y;
+      dirtyCount += 1;
+    }
+    landDirty = true;
     miniDirty = true;
   }
 
@@ -1167,7 +1202,7 @@
     reducedEffects = next;
     document.documentElement.dataset.paperEffects = next ? "reduced" : "full";
     if (reason) document.documentElement.dataset.paperEffectsReason = reason;
-    landDirty = true;
+    markLandDirty();
   }
 
   reducedEffectsMedia?.addEventListener?.("change", (event) => {
@@ -1198,6 +1233,7 @@
       }
       if (owner) territoryCounts.set(owner, (territoryCounts.get(owner) || 0) + 1);
     }
+    markCellDirty(index);
     return true;
   }
 
@@ -2470,11 +2506,31 @@
     if (landLayer.width !== W || landLayer.height !== W) {
       landLayer.width = W;
       landLayer.height = W;
-      landDirty = true;
+      markLandDirty();
     }
     if (!landDirty) return;
+    const fullPaint = landFullDirty || dirtyCount > 16000;
+    const pad = 2;
+    const x0 = fullPaint ? 0 : Math.max(0, dirtyMinX - pad);
+    const y0 = fullPaint ? 0 : Math.max(0, dirtyMinY - pad);
+    const x1 = fullPaint ? WORLD - 1 : Math.min(WORLD - 1, dirtyMaxX + pad);
+    const y1 = fullPaint ? WORLD - 1 : Math.min(WORLD - 1, dirtyMaxY + pad);
+    lastPaintFull = fullPaint;
+    lastPaintX0 = x0;
+    lastPaintY0 = y0;
+    lastPaintX1 = x1;
+    lastPaintY1 = y1;
     landDirty = false;
-    landCtx.clearRect(0, 0, W, W);
+    landFullDirty = false;
+    dirtyCount = 0;
+    if (fullPaint) landCtx.clearRect(0, 0, W, W);
+    else
+      landCtx.clearRect(
+        x0 * LAND_PX,
+        y0 * LAND_PX,
+        (x1 - x0 + 1) * LAND_PX,
+        (y1 - y0 + 1) * LAND_PX
+      );
     landCtx.imageSmoothingEnabled = true;
 
     // Batch by owner so fillStyle isn't set per cell
@@ -2484,8 +2540,8 @@
     for (const pl of players) {
       softByOwner.set(idHash(pl.id), colorFor(pl).soft);
     }
-    for (let y = 0; y < WORLD; y++) {
-      for (let x = 0; x < WORLD; x++) {
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
         const i = idx(x, y);
         if (!arenaMask[i]) continue;
         const owner = grid[i];
@@ -2527,8 +2583,8 @@
       landCtx.save();
       landCtx.lineCap = "round";
       landCtx.lineJoin = "round";
-      for (let y = 0; y < WORLD; y++) {
-        for (let x = 0; x < WORLD; x++) {
+      for (let y = y0; y <= y1; y++) {
+        for (let x = x0; x <= x1; x++) {
           if (grid[idx(x, y)] !== hid) continue;
           const seed = cellSeed(x, y);
           const cx = (x + 0.5) * px;
@@ -2580,26 +2636,36 @@
       landCtx.restore();
     }
 
-    paintLandRenderLayer(W);
+    paintLandRenderLayer(W, fullPaint ? null : { x0, y0, x1, y1 });
   }
 
-  function paintLandRenderLayer(size) {
+  function paintLandRenderLayer(size, region) {
     if (landRenderLayer.width !== size || landRenderLayer.height !== size) {
       landRenderLayer.width = size;
       landRenderLayer.height = size;
+      region = null;
     }
-    landRenderCtx.clearRect(0, 0, size, size);
+    const blurPad = reducedEffects ? 0 : Math.ceil(LAND_PX);
+    const sx = region ? Math.max(0, region.x0 * LAND_PX - blurPad) : 0;
+    const sy = region ? Math.max(0, region.y0 * LAND_PX - blurPad) : 0;
+    const sw = region
+      ? Math.min(size - sx, (region.x1 - region.x0 + 1) * LAND_PX + blurPad * 2)
+      : size;
+    const sh = region
+      ? Math.min(size - sy, (region.y1 - region.y0 + 1) * LAND_PX + blurPad * 2)
+      : size;
+    landRenderCtx.clearRect(sx, sy, sw, sh);
     landRenderCtx.imageSmoothingEnabled = true;
     if (!reducedEffects && typeof landRenderCtx.filter === "string") {
       landRenderCtx.filter = `blur(${(LAND_PX * 0.32).toFixed(2)}px)`;
-      landRenderCtx.drawImage(landLayer, 0, 0);
+      landRenderCtx.drawImage(landLayer, sx, sy, sw, sh, sx, sy, sw, sh);
       landRenderCtx.filter = "none";
       landRenderCtx.globalAlpha = 0.82;
-      landRenderCtx.drawImage(landLayer, 0, 0);
+      landRenderCtx.drawImage(landLayer, sx, sy, sw, sh, sx, sy, sw, sh);
       landRenderCtx.globalAlpha = 1;
       return;
     }
-    landRenderCtx.drawImage(landLayer, 0, 0);
+    landRenderCtx.drawImage(landLayer, sx, sy, sw, sh, sx, sy, sw, sh);
   }
 
   function paintMiniLayer() {
@@ -2609,13 +2675,26 @@
       miniDirty = true;
     }
     if (!miniDirty) return;
+    const fullMini = lastPaintFull;
+    const x0 = fullMini ? 0 : lastPaintX0;
+    const y0 = fullMini ? 0 : lastPaintY0;
+    const x1 = fullMini ? WORLD - 1 : lastPaintX1;
+    const y1 = fullMini ? WORLD - 1 : lastPaintY1;
     miniDirty = false;
-    miniCtx.fillStyle = "#050a12";
-    miniCtx.fillRect(0, 0, WORLD, WORLD);
-    for (let y = 0; y < WORLD; y++) {
-      for (let x = 0; x < WORLD; x++) {
+    if (fullMini) {
+      miniCtx.fillStyle = "#050a12";
+      miniCtx.fillRect(0, 0, WORLD, WORLD);
+    }
+    for (let y = y0; y <= y1; y++) {
+      for (let x = x0; x <= x1; x++) {
         const i = idx(x, y);
-        if (!arenaMask[i]) continue;
+        if (!arenaMask[i]) {
+          if (!fullMini) {
+            miniCtx.fillStyle = "#050a12";
+            miniCtx.fillRect(x, y, 1, 1);
+          }
+          continue;
+        }
         miniCtx.fillStyle = "#0c1a2a";
         miniCtx.fillRect(x, y, 1, 1);
         const owner = grid[i];

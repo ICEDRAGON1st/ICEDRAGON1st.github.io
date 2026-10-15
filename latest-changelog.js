@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015s",
+  "build": "20261015t",
   "notes": [
-    "Pointed the hub at the new Supabase project and locked public admin writes."
+    "Paper Claim now repaints only the land that changed."
   ]
 };
