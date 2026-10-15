@@ -86,6 +86,13 @@
     try {
       if ("serviceWorker" in navigator) {
         var swUrl = iconBase + "sw.js";
+        var controlledAtBoot = !!navigator.serviceWorker.controller;
+        var updateReloaded = false;
+        navigator.serviceWorker.addEventListener("controllerchange", function () {
+          if (!controlledAtBoot || updateReloaded) return;
+          updateReloaded = true;
+          window.location.reload();
+        });
         navigator.serviceWorker.register(swUrl).catch(function () {});
       }
     } catch (e) {}

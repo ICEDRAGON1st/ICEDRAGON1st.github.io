@@ -94,20 +94,25 @@
       pointer-events: none !important;
     }
   </style>
-  <script src="site-config.js?v=20261015i"></script>
+  <script src="site-config.js?v=20261015j"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=optional" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&display=optional" rel="stylesheet"></noscript>
-  <link rel="stylesheet" href="styles.css?v=20261001ge">
-  <script src="hub-net.js?v=20261015i"></script>
-  <script src="hub-afk.js?v=20261015i"></script>
+  <link rel="stylesheet" href="styles.css?v=20261015j">
+  <script src="hub-net.js?v=20261015j"></script>
+  <script src="hub-afk.js?v=20261015j"></script>
 </head>
 <body data-guess-colors="ice">
   <div id="hub-boot-loader" aria-live="polite" aria-busy="true">
     <p class="hub-boot-mark">My Games</p>
     <p class="hub-boot-sub">Loading hub…</p>
     <div class="hub-boot-spin" aria-hidden="true"></div>
+  </div>
+  <div id="hub-update-ready" class="hub-update-ready" role="status" aria-live="polite" hidden>
+    <span>A new version is ready.</span>
+    <button id="hub-update-reload" type="button">Update now</button>
+    <button id="hub-update-later" type="button">Later</button>
   </div>
   <div class="guess-bg" aria-hidden="true">
     <span class="guess-bg-orb guess-bg-orb-a"></span>
@@ -941,12 +946,105 @@
 
 <script>
     // Bust stubborn browser / OneDrive caches by loading scripts with a build stamp.
-    window.WORDLE_BUILD = "20261015i";
-    try {
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("sw.js").catch(function () {});
+    window.WORDLE_BUILD = "20261015j";
+    (function manageHubUpdates() {
+      if (!("serviceWorker" in navigator)) return;
+      let reloadRequested = false;
+      let waitingRegistration = null;
+
+      function saveChecksum() {
+        try {
+          let hash = 2166136261;
+          const keys = [];
+          for (let i = 0; i < localStorage.length; i++) keys.push(localStorage.key(i) || "");
+          keys.sort();
+          for (const key of keys) {
+            const text = key + "\u0000" + (localStorage.getItem(key) || "") + "\u0001";
+            for (let i = 0; i < text.length; i++) {
+              hash ^= text.charCodeAt(i);
+              hash = Math.imul(hash, 16777619);
+            }
+          }
+          return (hash >>> 0).toString(16);
+        } catch (e) {
+          return "";
+        }
       }
-    } catch (e) {}
+
+      try {
+        const expected = sessionStorage.getItem("hub-update-save-checksum");
+        if (expected) {
+          sessionStorage.removeItem("hub-update-save-checksum");
+          const actual = saveChecksum();
+          if (actual && actual !== expected) {
+            window.__hubSaveChecksumMismatch = true;
+            console.error("Save checksum changed during the app update reload");
+          }
+        }
+      } catch (e) {}
+
+      function bindUpdatePrompt() {
+        const prompt = document.getElementById("hub-update-ready");
+        const reloadBtn = document.getElementById("hub-update-reload");
+        const laterBtn = document.getElementById("hub-update-later");
+        if (!prompt || !reloadBtn || !laterBtn) return;
+        if (window.__hubSaveChecksumMismatch) {
+          prompt.querySelector("span").textContent =
+            "Update loaded, but the save check changed. Your local saves were not cleared.";
+          prompt.hidden = false;
+        } else if (waitingRegistration) {
+          prompt.hidden = false;
+        }
+        if (prompt.dataset.bound === "1") return;
+        prompt.dataset.bound = "1";
+        laterBtn.addEventListener("click", function () {
+          prompt.hidden = true;
+        });
+        reloadBtn.addEventListener("click", function () {
+          const worker = waitingRegistration?.waiting;
+          if (!worker) {
+            prompt.hidden = true;
+            return;
+          }
+          try {
+            sessionStorage.setItem("hub-update-save-checksum", saveChecksum());
+          } catch (e) {}
+          reloadRequested = true;
+          reloadBtn.disabled = true;
+          reloadBtn.textContent = "Updating…";
+          worker.postMessage({ type: "SKIP_WAITING" });
+        });
+      }
+
+      function offerUpdate(registration) {
+        if (!registration?.waiting || !navigator.serviceWorker.controller) return;
+        waitingRegistration = registration;
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", bindUpdatePrompt, { once: true });
+        } else {
+          bindUpdatePrompt();
+        }
+      }
+
+      navigator.serviceWorker.addEventListener("controllerchange", function () {
+        if (!reloadRequested) return;
+        reloadRequested = false;
+        location.reload();
+      });
+
+      navigator.serviceWorker
+        .register("sw.js")
+        .then(function (registration) {
+          offerUpdate(registration);
+          registration.addEventListener("updatefound", function () {
+            const worker = registration.installing;
+            worker?.addEventListener("statechange", function () {
+              if (worker.state === "installed") offerUpdate(registration);
+            });
+          });
+        })
+        .catch(function () {});
+    })();
     // Download independent files together, but preserve the few real dependency boundaries.
     // This avoids making one slow dictionary/module block every request after it.
     const scriptPhases = [

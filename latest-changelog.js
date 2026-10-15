@@ -1,6 +1,7 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015i",
+  "build": "20261015j",
   "notes": [
-    "The hub font now loads without blocking the games grid, with system-font fallback on slow connections."
+    "New versions now wait for confirmation, verify local save data, then perform one controlled reload.",
+    "Open game tabs reload with the activated service worker so old and new scripts do not mix."
   ]
 };

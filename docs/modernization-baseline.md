@@ -72,6 +72,9 @@ Until isolated staging and automated releases exist:
 - The isolated local hub smoke test reaches its interactive shell in about 2–3 seconds.
 - The headless Paper Claim smoke test sustains at least 25 FPS while recording video. This is a
   CI regression guard, not proof of the roadmap's 55 FPS real-device target.
+- Service-worker updates remain waiting until the player confirms, checksum local saves, activate,
+  and reload controlled hub/game tabs once. The release metadata test keeps the hub, CSS, worker,
+  and changelog build IDs aligned.
 
 Future performance tickets must continue comparing cold/warm load, long-task, FPS,
 request-rate, and payload measurements rather than relying only on visual impressions.

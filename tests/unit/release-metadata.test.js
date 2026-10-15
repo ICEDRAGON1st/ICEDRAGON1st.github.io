@@ -14,10 +14,12 @@ test("release build and changelog metadata stay aligned", () => {
   const changelog = JSON.parse(fs.readFileSync(path.join(ROOT, "changelog.json"), "utf8"));
 
   const indexBuild = /window\.WORDLE_BUILD = "([^"]+)"/.exec(index)?.[1];
+  const styleBuild = /href=["']styles\.css\?v=([^"']+)/.exec(index)?.[1];
   const workerBuild = /const BUILD = "([^"]+)"/.exec(worker)?.[1];
   const latestMatch = /window\.MYGAMES_LATEST_CHANGELOG = (\{[\s\S]*\});\s*$/.exec(latestSource);
 
   assert.ok(indexBuild, "index build is present");
+  assert.equal(styleBuild, indexBuild);
   assert.equal(workerBuild, indexBuild);
   assert.ok(latestMatch, "latest changelog metadata is parseable");
 
@@ -26,4 +28,5 @@ test("release build and changelog metadata stay aligned", () => {
   assert.deepEqual(latest.notes, changelog[indexBuild]);
   assert.ok(Array.isArray(latest.notes) && latest.notes.length > 0);
   assert.equal(Object.keys(changelog)[0], indexBuild);
+  assert.match(worker, /event\.data\?\.type === "SKIP_WAITING"/);
 });

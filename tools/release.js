@@ -53,6 +53,7 @@ for (const file of htmlFiles(ROOT)) {
   let next = previous;
   if (file === indexPath) {
     next = next.replace(/window\.WORDLE_BUILD = "[^"]+"/, `window.WORDLE_BUILD = "${build}"`);
+    next = next.replace(/(href=["']styles\.css)(?:\?v=[^"']+)?/i, `$1?v=${build}`);
   }
   next = next.replace(/(\.\.\/hub-[a-z-]+\.js)(?:\?v=[^"'\s>]+)?/gi, `$1?v=${build}`);
   next = next.replace(

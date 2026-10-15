@@ -1,5 +1,5 @@
 /* My Games service worker — offline shell + cache-as-you-go for visited games. */
-const BUILD = "20261015i";
+const BUILD = "20261015j";
 const CACHE = `mygames-v2-${BUILD}`;
 
 const PRECACHE = [
@@ -61,6 +61,12 @@ self.addEventListener("install", (event) => {
         throw error;
       })
   );
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("activate", (event) => {
