@@ -1,4 +1,7 @@
 {
+  "20261015v": [
+    "Online Tic Tac Toe and Drop Four now reject illegal or forced moves."
+  ],
   "20261015u": [
     "Account restore now clears leftover progress and unlock toasts from the previous login."
   ],

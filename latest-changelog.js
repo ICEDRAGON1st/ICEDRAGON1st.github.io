@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015u",
+  "build": "20261015v",
   "notes": [
-    "Account restore now clears leftover progress and unlock toasts from the previous login."
+    "Online Tic Tac Toe and Drop Four now reject illegal or forced moves."
   ]
 };

@@ -48,9 +48,7 @@
   let writeQueue = Promise.resolve();
 
   function getPlayerId() {
-    return typeof HubPlays !== "undefined" && HubPlays.getPlayerId
-      ? HubPlays.getPlayerId()
-      : "";
+    return typeof HubPlays !== "undefined" && HubPlays.getPlayerId ? HubPlays.getPlayerId() : "";
   }
 
   function getPlayerName() {
@@ -149,14 +147,32 @@
     return out;
   }
 
+  function matchRules() {
+    return (typeof window !== "undefined" && window.HubMatchRules) || null;
+  }
+
+  function preferRoom(existing, incoming) {
+    if (!incoming) return existing || null;
+    if (!existing) return incoming;
+    if ((Number(incoming.updatedAt) || 0) < (Number(existing.updatedAt) || 0)) return existing;
+    const rules = matchRules();
+    if (
+      rules?.acceptRemote &&
+      existing.status === "playing" &&
+      incoming.status === "playing" &&
+      existing.game === incoming.game
+    ) {
+      return rules.acceptRemote(existing.game, existing, incoming) || existing;
+    }
+    return incoming;
+  }
+
   function mergeRooms(a, b) {
     const out = { ...(a || {}) };
     Object.entries(b || {}).forEach(([id, room]) => {
       if (!room) return;
       const existing = out[id];
-      if (!existing || (Number(room.updatedAt) || 0) >= (Number(existing.updatedAt) || 0)) {
-        out[id] = room;
-      }
+      out[id] = preferRoom(existing, room);
     });
     return pruneRooms(out);
   }
@@ -483,15 +499,19 @@
     const amGuest = room.guest?.playerId === id.playerId;
     if (!amHost && !amGuest) return { ok: false, error: "Not in this room" };
     const mySeat = amHost ? 1 : 2;
-    if (room.turn !== mySeat && !patch.force) {
-      return { ok: false, error: "Not your turn" };
+    const rules = matchRules();
+    if (!rules?.validateSubmit) {
+      return { ok: false, error: "Match rules unavailable" };
     }
+    const legal = rules.validateSubmit(room.game, room, patch, mySeat);
+    if (!legal.ok) return legal;
 
     const updated = await mutate((data) => {
       const rooms = { ...data.rooms };
       const current = rooms[room.id];
       if (!current || current.status !== "playing") return null;
-      if (current.turn !== mySeat && !patch.force) return null;
+      const stillLegal = rules.validateSubmit(current.game, current, patch, mySeat);
+      if (!stillLegal.ok) return null;
       const next = {
         ...current,
         state: patch.state != null ? patch.state : current.state,
