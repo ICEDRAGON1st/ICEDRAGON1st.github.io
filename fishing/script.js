@@ -2566,25 +2566,64 @@
     };
   }
 
-  async function fetchAquaShareDoc() {
+  async function fetchAquaShareTableRemote() {
     const api = fishingSb();
+    if (!api?.listAquariumTankContributions) return null;
     try {
-      let data = null;
-      if (api) data = await api.getPrefer(AQUA_SHARE_DOC, AQUA_SHARE_API);
-      else {
-        const res = await fetch(`${AQUA_SHARE_API}?t=${Date.now()}`, { cache: "no-store" });
-        if (res.status === 404) return { token: AQUA_SHARE_TOKEN, tanks: {} };
-        if (!res.ok) return null;
-        data = await res.json();
-      }
-      if (!data || typeof data !== "object") return { token: AQUA_SHARE_TOKEN, tanks: {} };
-      return {
-        token: data.token || AQUA_SHARE_TOKEN,
-        tanks: data.tanks && typeof data.tanks === "object" ? data.tanks : {}
-      };
+      const rows = await api.listAquariumTankContributions();
+      if (!rows) return null;
+      return Array.isArray(rows) ? rows : [];
     } catch {
       return null;
     }
+  }
+
+  async function persistAquaTankContribution(tank) {
+    const api = fishingSb();
+    if (!api?.upsertAquariumTankContribution || !fishingSaveApi.collectAquaMine) return false;
+    const me = api.parseLocalPlayerId
+      ? api.parseLocalPlayerId(tank?.playerId || mailMyId())
+      : "";
+    if (!me) return false;
+    const mine = fishingSaveApi.collectAquaMine(tank, me);
+    if (!mine) return false;
+    try {
+      await api.upsertAquariumTankContribution({ playerId: me, tank: mine });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function fetchAquaShareDoc() {
+    const api = fishingSb();
+    let data = null;
+    try {
+      if (api) data = await api.getPrefer(AQUA_SHARE_DOC, AQUA_SHARE_API);
+      else {
+        const res = await fetch(`${AQUA_SHARE_API}?t=${Date.now()}`, { cache: "no-store" });
+        if (res.status === 404) data = { token: AQUA_SHARE_TOKEN, tanks: {} };
+        else if (!res.ok) data = null;
+        else data = await res.json();
+      }
+      if (!data || typeof data !== "object") data = { token: AQUA_SHARE_TOKEN, tanks: {} };
+      else {
+        data = {
+          token: data.token || AQUA_SHARE_TOKEN,
+          tanks: data.tanks && typeof data.tanks === "object" ? data.tanks : {}
+        };
+      }
+    } catch {
+      data = null;
+    }
+    const tableRows = await fetchAquaShareTableRemote();
+    if (Array.isArray(tableRows) && fishingSaveApi.overlayAquaTanks) {
+      data = fishingSaveApi.overlayAquaTanks(
+        data || { token: AQUA_SHARE_TOKEN, tanks: {} },
+        tableRows
+      );
+    }
+    return data;
   }
 
   function pruneAquaShareTanks(tanks) {
@@ -2602,7 +2641,11 @@
     return next;
   }
 
-  async function postAquaShareDoc(tanks) {
+  async function postAquaShareDoc(tanks, { rewriteShared = false } = {}) {
+    const me = String(mailMyId() || "").trim();
+    const mineTank = me && tanks && typeof tanks === "object" ? tanks[me] : null;
+    const tableWrote = mineTank ? await persistAquaTankContribution(mineTank) : false;
+    if (tableWrote && !rewriteShared) return true;
     const payload = {
       token: AQUA_SHARE_TOKEN,
       tanks: pruneAquaShareTanks(tanks)
@@ -2643,14 +2686,22 @@
     ].join("|");
     if (!force && key === aquaShareLastKey) return;
     persistAquaMine(snap);
+    const tableWrote = await persistAquaTankContribution(snap);
     const remote = await fetchAquaShareDoc();
+    const id = snap.playerId || String(snap.name || "").toLowerCase();
+    if (!id) return;
+    if (tableWrote) {
+      const tanks = { ...((remote && remote.tanks) || aquaShareCache.tanks || {}) };
+      tanks[id] = snap;
+      aquaShareLastKey = key;
+      aquaShareCache.tanks = pruneAquaShareTanks(tanks);
+      return;
+    }
     const canPost = fishingSaveApi.canPostSharedAqua
       ? fishingSaveApi.canPostSharedAqua(remote)
       : !!(remote && typeof remote === "object");
     if (!canPost) return;
     const tanks = { ...(remote.tanks || {}) };
-    const id = snap.playerId || String(snap.name || "").toLowerCase();
-    if (!id) return;
     tanks[id] = snap;
     let ok = await postAquaShareDoc(tanks);
     if (!ok) {

@@ -2089,6 +2089,91 @@
     }
   }
 
+  function sanitizeAquariumTank(tank, playerId) {
+    const me = String(playerId || "");
+    if (!me || !tank || typeof tank !== "object" || Array.isArray(tank)) return {};
+    const tankId = String(tank.playerId || me).trim();
+    if (tankId !== me) return {};
+    const fish = [];
+    (Array.isArray(tank.fish) ? tank.fish : []).forEach((raw) => {
+      if (fish.length >= 80) return;
+      if (!raw || typeof raw !== "object") return;
+      const id = String(raw.id || "")
+        .trim()
+        .slice(0, 32);
+      if (!id) return;
+      fish.push({
+        id,
+        variant: String(raw.variant || "").slice(0, 16),
+        shiny: !!raw.shiny,
+        mutation: String(raw.mutation || "").slice(0, 16)
+      });
+    });
+    return {
+      playerId: me,
+      name:
+        String(tank.name || "Player")
+          .trim()
+          .slice(0, 48) || "Player",
+      updatedAt: Math.max(0, Number(tank.updatedAt) || Date.now()),
+      level: Math.max(0, Math.floor(Number(tank.level) || 0)),
+      fish,
+      base: tank.base && typeof tank.base === "object" && !Array.isArray(tank.base) ? tank.base : null
+    };
+  }
+
+  async function listAquariumTankContributions() {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const url = `${SUPABASE_URL}/rest/v1/aquarium_tank_contributions?select=player_id,tank,updated_at`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase aquarium list ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function upsertAquariumTankContribution(row) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const playerId = parseLocalPlayerId(row?.playerId);
+    if (!userId || !session?.access_token) throw new Error("supabase aquarium needs a session");
+    if (!playerId) throw new Error("bad aquarium player id");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const tank = sanitizeAquariumTank(row?.tank, playerId);
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/aquarium_tank_contributions`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        player_id: playerId,
+        tank,
+        updated_at: new Date().toISOString()
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase aquarium upsert ${res.status} ${text}`);
+    }
+  }
+
   async function getDoc(id) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -2303,6 +2388,8 @@
     upsertFishingMailContribution,
     listFishingGiftContributions,
     upsertFishingGiftContribution,
+    listAquariumTankContributions,
+    upsertAquariumTankContribution,
     profile: () => {
       const raw = readSession()?.profile;
       const parsed = parseProfile(raw);

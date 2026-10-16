@@ -145,6 +145,40 @@ test("owned aquarium row dual-writes without copying others or shrinking shared 
   const older = save.applyAquaMine(kept, { ...snapshot, updatedAt: 10, level: 99 }, "p-ada");
   assert.equal(older["p-ada"].level, 3);
   assert.equal(older["p-bea"].level, 8);
+
+  assert.match(script, /persistAquaTankContribution/);
+  assert.match(script, /fetchAquaShareTableRemote/);
+  assert.match(script, /overlayAquaTanks/);
+  assert.match(script, /if \(tableWrote && !rewriteShared\) return true/);
+
+  const now = Date.now();
+  const overlaid = save.overlayAquaTanks(
+    {
+      tanks: {
+        "p-adaxxxxx": { playerId: "p-adaxxxxx", updatedAt: now - 100, level: 1, fish: [] },
+        "p-guestxxx": { playerId: "p-guestxxx", updatedAt: now, level: 9, fish: [] }
+      }
+    },
+    [
+      {
+        player_id: "p-adaxxxxx",
+        tank: { playerId: "p-adaxxxxx", updatedAt: now, level: 4, fish: [{ id: "minnow" }] }
+      },
+      {
+        player_id: "p-beaxxxxx",
+        tank: { playerId: "p-beaxxxxx", updatedAt: now, level: 7, fish: [] }
+      },
+      {
+        player_id: "",
+        tank: { playerId: "p-skipxxxx", updatedAt: now, level: 99, fish: [] }
+      }
+    ],
+    now
+  );
+  assert.equal(overlaid.tanks["p-adaxxxxx"].level, 4);
+  assert.equal(overlaid.tanks["p-beaxxxxx"].level, 7);
+  assert.equal(overlaid.tanks["p-guestxxx"].level, 9);
+  assert.equal(overlaid.tanks["p-skipxxxx"], undefined);
 });
 
 test("fishing community uses account-server prefer and skips the old backup write after success", () => {

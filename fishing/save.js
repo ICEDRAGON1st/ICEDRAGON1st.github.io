@@ -421,6 +421,38 @@
     return !!(remote && typeof remote === "object");
   }
 
+  const AQUA_SHARE_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+  const AQUA_SHARE_MAX_TANKS = 120;
+
+  function overlayAquaTanks(hub, rows, now = Date.now()) {
+    const tanks = {
+      ...((hub && hub.tanks && typeof hub.tanks === "object" && !Array.isArray(hub.tanks)
+        ? hub.tanks
+        : {}) || {})
+    };
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const pid = String(row?.player_id || row?.playerId || "").trim();
+      if (!pid) return;
+      const tank = collectAquaMine(row?.tank || row, pid);
+      if (!tank) return;
+      const existing = tanks[pid];
+      if (!existing || (Number(tank.updatedAt) || 0) >= (Number(existing.updatedAt) || 0)) {
+        tanks[pid] = tank;
+      }
+    });
+    const entries = Object.entries(tanks).filter(([, tank]) => {
+      if (!tank || typeof tank !== "object") return false;
+      const at = Number(tank.updatedAt) || 0;
+      return !at || now - at < AQUA_SHARE_TTL_MS;
+    });
+    entries.sort((a, b) => (Number(b[1].updatedAt) || 0) - (Number(a[1].updatedAt) || 0));
+    const next = {};
+    entries.slice(0, AQUA_SHARE_MAX_TANKS).forEach(([id, tank]) => {
+      next[id] = tank;
+    });
+    return { token: hub?.token, tanks: next };
+  }
+
   const COMMUNITY_CASTS_CAP = 10000;
   const MAIL_GIFT_CAP = 40;
   const MAIL_TRADE_CAP = 20;
@@ -849,6 +881,7 @@
     readAquaMine,
     applyAquaMine,
     canPostSharedAqua,
+    overlayAquaTanks,
     COMMUNITY_CASTS_CAP,
     overlayCommunityCasts,
     MAIL_GIFT_CAP,

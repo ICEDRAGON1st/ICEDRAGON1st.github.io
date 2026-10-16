@@ -357,6 +357,24 @@ test("feedback item contributions are readable by signed-in players and only wri
   assert.match(sql, /revoke all on table public\.feedback_item_contributions from anon, authenticated/);
 });
 
+test("aquarium tank contributions are readable by signed-in players and only writable by the owner", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160019_aquarium_tank_contributions.sql"),
+    "utf8"
+  );
+  assert.match(sql, /create table if not exists public\.aquarium_tank_contributions/);
+  assert.match(sql, /enable row level security/i);
+  assert.match(sql, /force row level security/i);
+  assert.match(sql, /aquarium_tank_contributions_read_authenticated/);
+  assert.match(sql, /aquarium_tank_contributions_insert_own/);
+  assert.match(sql, /aquarium_tank_contributions_update_own/);
+  assert.match(
+    sql,
+    /grant select, insert, update, delete on table public\.aquarium_tank_contributions to authenticated/
+  );
+  assert.match(sql, /revoke all on table public\.aquarium_tank_contributions from anon, authenticated/);
+});
+
 test("fishing gift contributions are readable by signed-in players and only writable by the owner", () => {
   const sql = fs.readFileSync(
     path.join(ROOT, "supabase/migrations/202610160018_fishing_gift_contributions.sql"),

@@ -266,3 +266,11 @@ test("fishing admin gifts use auth-owned rows instead of rewriting the shared gi
   assert.match(src, /async function upsertFishingGiftContribution/);
   assert.match(src, /fishing_gift_contributions/);
 });
+
+test("fishing aquariums use auth-owned rows instead of rewriting the shared tank board", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.match(src, /async function listAquariumTankContributions/);
+  assert.match(src, /async function upsertAquariumTankContribution/);
+  assert.match(src, /aquarium_tank_contributions/);
+});
