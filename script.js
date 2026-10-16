@@ -4755,9 +4755,9 @@ document.getElementById("player-code-copy-btn")?.addEventListener("click", async
   if (!code) return;
   try {
     await navigator.clipboard.writeText(code);
-    setPlayerCodeStatus(`Copied ${code}`, false);
+    setPlayerCodeStatus("Copied your player code — keep it private", false);
   } catch {
-    setPlayerCodeStatus(`Your code is ${code}`, false);
+    setPlayerCodeStatus("Couldn't copy — tap Show code instead", false);
   }
 });
 

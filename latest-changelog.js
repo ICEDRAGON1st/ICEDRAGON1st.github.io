@@ -1,6 +1,7 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015bg",
+  "build": "20261015bh",
   "notes": [
-    "If you set a login password, it now also follows your signed-in account to another device. The hub still never stores the password itself."
+    "Locked nicknames you own now also save on your signed-in account, so another device can keep them without taking someone else's name.",
+    "Copying your player code no longer shows the code on screen."
   ]
 };

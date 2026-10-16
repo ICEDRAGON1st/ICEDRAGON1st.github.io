@@ -192,3 +192,51 @@ test("owned password hashes dual-write without plaintext or other players' login
   assert.equal(cleared[adaHash], undefined);
   assert.equal(cleared[beaHash].playerId, "p-bea");
 });
+
+test("owned name reservations dual-write without stealing another player's lock", () => {
+  const fs = require("node:fs");
+  const plays = fs.readFileSync(path.join(__dirname, "../../hub-plays.js"), "utf8");
+  const script = fs.readFileSync(path.join(__dirname, "../../script.js"), "utf8");
+  assert.match(plays, /persistReservationsMine/);
+  assert.match(plays, /pullReservationsMine/);
+  assert.equal(identity.RESERVATIONS_MINE_KEY, "reservations-mine");
+  assert.doesNotMatch(script, /Copied \$\{code\}/);
+  assert.doesNotMatch(script, /Your code is \$\{code\}/);
+  assert.match(script, /Copied your player code — keep it private/);
+
+  const snapshot = identity.collectReservationsMine(
+    {
+      ice_dragon: { playerId: "p-ada", code: "AB23-CD45", name: "ICE_DRAGON", lockedAt: 20 },
+      bea: { playerId: "p-bea", code: "ZZ99YY88", name: "Bea", lockedAt: 9 }
+    },
+    "p-ada"
+  );
+  assert.equal(snapshot.playerId, "p-ada");
+  assert.equal(Object.keys(snapshot.reservations).length, 1);
+  assert.equal(snapshot.reservations.ice_dragon.playerId, "p-ada");
+  assert.equal(snapshot.reservations.ice_dragon.code, "AB23CD45");
+  assert.equal(snapshot.reservations.bea, undefined);
+
+  const restored = identity.applyReservationsMine({}, snapshot, "p-ada");
+  assert.equal(restored.ice_dragon.playerId, "p-ada");
+  assert.equal(Object.keys(restored).length, 1);
+
+  const richer = identity.applyReservationsMine(
+    {
+      ice_dragon: { playerId: "p-ada", code: "AB23CD45", name: "ICE_DRAGON", lockedAt: 50 },
+      bea: { playerId: "p-bea", code: "ZZ99YY88", name: "Bea", lockedAt: 9 }
+    },
+    snapshot,
+    "p-ada"
+  );
+  assert.equal(richer.ice_dragon.lockedAt, 20);
+  assert.equal(richer.bea.playerId, "p-bea");
+  assert.equal(Object.keys(richer).length, 2);
+
+  const blocked = identity.applyReservationsMine(
+    { ice_dragon: { playerId: "p-bea", code: "ZZ99YY88", name: "ICE_DRAGON", lockedAt: 1 } },
+    snapshot,
+    "p-ada"
+  );
+  assert.equal(blocked.ice_dragon.playerId, "p-bea");
+});

@@ -288,6 +288,83 @@
     return local;
   }
 
+  const RESERVATIONS_MINE_KEY = "reservations-mine";
+
+  function cleanReservation(raw, playerId) {
+    if (!raw || typeof raw !== "object") return null;
+    const me = String(playerId || "").trim();
+    const owner = String(raw.playerId || "").trim();
+    if (!me || owner !== me) return null;
+    const name = sanitizeName(raw.name || "");
+    const code = normalizePlayerCode(raw.code || "");
+    if (!name || code.length !== 8 || isPoisonPlayerCode(code)) return null;
+    return {
+      playerId: me,
+      code,
+      name,
+      lockedAt: Number(raw.lockedAt) || 0
+    };
+  }
+
+  function cleanReservationMap(map, playerId) {
+    const me = String(playerId || "").trim();
+    const out = {};
+    if (!me || !map || typeof map !== "object") return out;
+    Object.entries(map).forEach(([rawKey, raw]) => {
+      const entry = cleanReservation(raw, me);
+      const key = nameKey(rawKey || entry?.name || "");
+      if (!key || !entry) return;
+      out[key] = entry;
+    });
+    return out;
+  }
+
+  function readReservationsMine(payload) {
+    const playerId = String(payload?.playerId || "").trim();
+    return {
+      playerId,
+      reservations: cleanReservationMap(payload?.reservations, playerId),
+      updatedAt: Number(payload?.updatedAt) || 0
+    };
+  }
+
+  function collectReservationsMine(reservations, playerId) {
+    const me = String(playerId || "").trim();
+    return {
+      playerId: me,
+      reservations: cleanReservationMap(reservations, me),
+      updatedAt: Date.now()
+    };
+  }
+
+  function applyReservationsMine(localMap, mine, playerId) {
+    const owned = readReservationsMine(mine);
+    const me = String(playerId || owned.playerId || "").trim();
+    const local = { ...(localMap && typeof localMap === "object" ? localMap : {}) };
+    if (!me || owned.playerId !== me) return local;
+    Object.entries(owned.reservations).forEach(([key, entry]) => {
+      const existing = local[key];
+      if (
+        existing?.playerId &&
+        existing.playerId !== me &&
+        !reservationAllows(existing, me, entry.code)
+      ) {
+        return;
+      }
+      if (existing?.playerId === me) {
+        const left = Number(existing.lockedAt) || 0;
+        const right = Number(entry.lockedAt) || 0;
+        local[key] = {
+          ...entry,
+          lockedAt: left && right ? Math.min(left, right) : left || right
+        };
+        return;
+      }
+      local[key] = entry;
+    });
+    return local;
+  }
+
   const api = {
     CODE_ALPHABET,
     sanitizeName,
@@ -313,7 +390,12 @@
     cleanPasswordEntry,
     readPasswordMine,
     collectPasswordMine,
-    applyPasswordMine
+    applyPasswordMine,
+    RESERVATIONS_MINE_KEY,
+    cleanReservation,
+    readReservationsMine,
+    collectReservationsMine,
+    applyReservationsMine
   };
   root.HubIdentity = api;
   if (typeof module === "object" && module.exports) module.exports = api;

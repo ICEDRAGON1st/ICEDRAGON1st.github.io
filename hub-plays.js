@@ -181,6 +181,7 @@
   let popularityPending = {};
   let popularityBusy = false;
   let namesCache = {};
+  let reservationsCache = {};
   let presenceCache = {};
   let allTimeCache = {};
   let presenceTimer = null;
@@ -835,6 +836,36 @@
     }
   }
 
+  async function persistReservationsMine() {
+    const api = sb();
+    const me = getPlayerId();
+    if (!identity.collectReservationsMine || !api?.upsertSave || !me) return;
+    const snapshot = identity.collectReservationsMine(reservationsCache, me);
+    if (!Object.keys(snapshot.reservations || {}).length) return;
+    try {
+      await api.upsertSave(identity.RESERVATIONS_MINE_KEY, snapshot, 1);
+    } catch (err) {
+      console.warn("[HubPlays] player_saves reservations write failed", err);
+    }
+  }
+
+  async function pullReservationsMine() {
+    const api = sb();
+    const me = getPlayerId();
+    if (!identity.applyReservationsMine || !api?.getSave || !me) return;
+    try {
+      const raw = await api.getSave(identity.RESERVATIONS_MINE_KEY);
+      const owned = identity.readReservationsMine(raw);
+      if (!owned.playerId || owned.playerId !== me) return;
+      const localCount = Object.keys(reservationsCache || {}).length;
+      const next = identity.applyReservationsMine(reservationsCache, owned, me);
+      if (Object.keys(next).length < localCount) return;
+      reservationsCache = next;
+    } catch (err) {
+      console.warn("[HubPlays] player_saves reservations read failed", err);
+    }
+  }
+
   function normalizePasswordInput(raw) {
     return String(raw || "").trim();
   }
@@ -1216,8 +1247,10 @@
 
   async function fetchReservationsRemote() {
     const data = await fetchDoc("name-reservations", RESERVATIONS_API);
-    if (!data || typeof data !== "object") return {};
-    return identity.parseReservationsMap ? identity.parseReservationsMap(data) : {};
+    if (!data || typeof data !== "object") return reservationsCache || {};
+    const parsed = identity.parseReservationsMap ? identity.parseReservationsMap(data) : {};
+    reservationsCache = parsed;
+    return parsed;
   }
 
   async function pushReservationsRemote(reservations) {
@@ -1235,8 +1268,10 @@
     try {
       remote = await fetchReservationsRemote();
     } catch {
-      remote = {};
+      remote = { ...(reservationsCache || {}) };
     }
+    await pullReservationsMine();
+    remote = reservationsCache || remote;
     let res = remote[name] || null;
     if (res?.playerId && normalizePlayerCode(res.code).length === 8) return res;
 
@@ -1272,10 +1307,12 @@
     const norm = normalizePlayerCode(code);
     if (!name || !playerId || norm.length !== 8) return false;
     let remote = {};
+    let fetchedOk = false;
     try {
       remote = await fetchReservationsRemote();
+      fetchedOk = true;
     } catch {
-      remote = {};
+      remote = { ...(reservationsCache || {}) };
     }
     const existing = remote[name];
     if (existing?.playerId && existing.playerId !== playerId) {
@@ -1287,6 +1324,9 @@
       name: sanitizeName(displayName || name),
       lockedAt: existing?.lockedAt || Date.now()
     };
+    reservationsCache = remote;
+    persistReservationsMine();
+    if (!fetchedOk) return false;
     try {
       await pushReservationsRemote(remote);
       return true;
@@ -4922,11 +4962,13 @@ body.light .menu-credit .player-name-creator {
     .catch(() => {})
     .then(() => pullAllTimeMine().catch(() => {}))
     .then(() => pullPasswordMine().catch(() => {}))
+    .then(() => pullReservationsMine().catch(() => {}))
     .then(() => {
       getPlayerCode();
       rememberCurrentAccount();
       persistAllTimeMine();
       persistPasswordMine();
+      persistReservationsMine();
       return ensurePlayerCodeRegistered();
     })
     .catch(() => {
