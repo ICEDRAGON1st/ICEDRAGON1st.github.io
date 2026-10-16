@@ -3866,10 +3866,13 @@
       const entries = Array.isArray(data.entries) ? data.entries.slice() : [];
       entries.push(entry);
       while (entries.length > ADMIN_AUDIT_MAX) entries.shift();
-      await api.upsertDoc(ADMIN_AUDIT_DOC, {
+      const auditPayload = {
+        token: ADMIN_EVENT_TOKEN,
         entries,
         updatedAt: Date.now()
-      });
+      };
+      if (api.upsertAdminDoc) await api.upsertAdminDoc(ADMIN_AUDIT_DOC, auditPayload);
+      else await api.upsertDoc(ADMIN_AUDIT_DOC, auditPayload);
     } catch (err) {
       console.warn("[admin-audit] write failed", err);
     }
@@ -4696,30 +4699,33 @@
   }
 
   async function fetchAdminAnnounceRemote() {
-    // Supabase first — exit as soon as we have a live message (skip Mantle/file lag).
+    // Account server first — exit as soon as we have a live message.
     const api = fishingSb();
-    if (api) {
+    if (api?.getPrefer) {
       try {
-        const data = await api.getDoc(ADMIN_ANNOUNCE_DOC);
+        const data = await api.getPrefer(
+          ADMIN_ANNOUNCE_DOC,
+          adminEventRateLimited() ? "" : ADMIN_ANNOUNCE_API
+        );
         const fromSb = parseAnnouncePayload(data);
         if (fromSb) return fromSb;
-      } catch {
-        /* fall through */
+      } catch (err) {
+        if (err && err.rateLimited) markAdminEventRateLimited();
       }
-    }
-    let best = null;
-    if (!adminEventRateLimited()) {
+    } else if (!adminEventRateLimited()) {
       try {
         const res = await fetch(`${ADMIN_ANNOUNCE_API}?t=${Date.now()}`, { cache: "no-store" });
         if (res.status === 429) markAdminEventRateLimited();
         else if (res.ok) {
           clearAdminEventRateLimited();
-          best = parseAnnouncePayload(await res.json()) || best;
+          const fromMantle = parseAnnouncePayload(await res.json());
+          if (fromMantle) return fromMantle;
         }
       } catch {
         /* file */
       }
     }
+    let best = null;
     try {
       const res = await fetch(`${ADMIN_ANNOUNCE_URL}?t=${Date.now()}`, { cache: "no-store" });
       if (res.ok) {
@@ -4746,33 +4752,36 @@
   }
 
   async function pushAdminAnnounceRemote(payload) {
-    let ok = false;
     const api = fishingSb();
-    if (api) {
+    if (api?.pushPrefer) {
       try {
-        await api.upsertDoc(ADMIN_ANNOUNCE_DOC, payload);
-        ok = true;
+        await api.pushPrefer(
+          ADMIN_ANNOUNCE_DOC,
+          payload,
+          adminEventRateLimited() ? "" : ADMIN_ANNOUNCE_API
+        );
+        return true;
       } catch {
-        /* Mantle */
+        return false;
       }
     }
-    if (!adminEventRateLimited()) {
-      try {
-        const res = await fetch(ADMIN_ANNOUNCE_API, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-        if (res.status === 429) markAdminEventRateLimited();
-        else if (res.ok) {
-          clearAdminEventRateLimited();
-          ok = true;
-        }
-      } catch {
-        /* ignore */
+    if (adminEventRateLimited()) return false;
+    try {
+      const res = await fetch(ADMIN_ANNOUNCE_API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (res.status === 429) {
+        markAdminEventRateLimited();
+        return false;
       }
+      if (!res.ok) return false;
+      clearAdminEventRateLimited();
+      return true;
+    } catch {
+      return false;
     }
-    return ok;
   }
 
   async function publishAdminAnnounce(text) {
@@ -4903,7 +4912,14 @@
   async function pushAdminBundleRemote(payload) {
     let ok = false;
     const api = fishingSb();
-    if (api) {
+    if (api?.upsertAdminDoc) {
+      try {
+        await api.upsertAdminDoc(ADMIN_EVENT_DOC, payload);
+        ok = true;
+      } catch {
+        /* Mantle fallback if the trusted RPC is not live yet */
+      }
+    } else if (api) {
       try {
         await api.upsertDoc(ADMIN_EVENT_DOC, payload);
         ok = true;
@@ -4911,8 +4927,9 @@
         /* Mantle / retry */
       }
     }
+    if (ok) return { ok: true, rateLimited: false };
     if (adminEventRateLimited()) {
-      return { ok, rateLimited: !ok };
+      return { ok: false, rateLimited: true };
     }
     try {
       const res = await fetch(ADMIN_EVENT_API, {
@@ -4922,13 +4939,13 @@
       });
       if (res.status === 429) {
         markAdminEventRateLimited();
-        return { ok, rateLimited: true };
+        return { ok: false, rateLimited: true };
       }
-      if (!res.ok) return { ok, rateLimited: false };
+      if (!res.ok) return { ok: false, rateLimited: false };
       clearAdminEventRateLimited();
       return { ok: true, rateLimited: false };
     } catch {
-      return { ok, rateLimited: false };
+      return { ok: false, rateLimited: false };
     }
   }
 

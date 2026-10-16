@@ -1,4 +1,7 @@
 {
+  "20261015bl": [
+    "Fishing admin events now try a trusted account-server save first. The old backup path is only used if that save isn't ready yet."
+  ],
   "20261015bk": [
     "The fishing community goal now saves to the account server first. The old backup path is only used if that save fails, which should mean fewer too-many-requests pauses."
   ],

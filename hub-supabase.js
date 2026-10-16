@@ -48,6 +48,20 @@
     hubAdminGrants: "hub-admin-grants"
   };
 
+  const ADMIN_DOC_IDS = [
+    "fishing-admin-events",
+    "fishing-admin-audit",
+    "hub-admin-announce",
+    "hub-admin-maintenance",
+    "hub-admin-moderation",
+    "hub-admin-grants",
+    "hub-discord-site-updates"
+  ];
+
+  function isAdminDoc(id) {
+    return ADMIN_DOC_IDS.includes(String(id || "").trim());
+  }
+
   function headers(extra, accessToken) {
     return {
       apikey: SUPABASE_ANON_KEY,
@@ -480,6 +494,35 @@
   }
 
   /**
+   * Write RLS-locked admin hub_docs through the trusted RPC.
+   * Direct REST upserts on those ids are rejected after the locked migration.
+   */
+  async function upsertAdminDoc(id, data) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const key = String(id || "").trim();
+    if (!userId || !session?.access_token) throw new Error("supabase admin doc needs a session");
+    if (!isAdminDoc(key)) throw new Error("not an admin doc");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/upsert_admin_hub_doc`, {
+      method: "POST",
+      headers: headers({}, session.access_token),
+      body: JSON.stringify({
+        doc_id: key,
+        doc_data: data && typeof data === "object" ? data : {}
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase admin upsert ${res.status} ${text}`);
+    }
+  }
+
+  /**
    * Read Supabase first. Falls back to Mantle only if Supabase fails or the row is missing.
    * Empty objects from Supabase count as a hit (no Mantle round-trip).
    */
@@ -558,8 +601,11 @@
   const api = {
     url: SUPABASE_URL,
     DOCS,
+    ADMIN_DOC_IDS,
+    isAdminDoc,
     getDoc,
     upsertDoc,
+    upsertAdminDoc,
     getPrefer,
     pushPrefer,
     shouldWriteMantleBackup,

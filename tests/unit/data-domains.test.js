@@ -82,3 +82,26 @@ test("locked migrations keep admin hub_docs writes off the anon role", () => {
   assert.match(locked, /authenticated/i);
   assert.doesNotMatch(locked, /to anon/i);
 });
+
+test("admin hub_docs RPC stays authenticated and locked to admin document ids", () => {
+  const rpc = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160001_admin_hub_doc_rpc.sql"),
+    "utf8"
+  );
+  assert.match(rpc, /security definer/i);
+  assert.match(rpc, /grant execute on function public\.upsert_admin_hub_doc/);
+  assert.match(rpc, /to authenticated/i);
+  assert.match(rpc, /revoke all on function public\.upsert_admin_hub_doc[\s\S]*from public, anon/i);
+  for (const id of [
+    "fishing-admin-events",
+    "fishing-admin-audit",
+    "hub-admin-announce",
+    "hub-admin-maintenance",
+    "hub-admin-moderation",
+    "hub-admin-grants",
+    "hub-discord-site-updates"
+  ]) {
+    assert.match(rpc, new RegExp(id.replaceAll("-", "\\-")));
+  }
+  assert.doesNotMatch(rpc, /to anon/i);
+});

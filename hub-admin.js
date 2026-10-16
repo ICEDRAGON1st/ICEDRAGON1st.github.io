@@ -104,6 +104,10 @@
   async function upsertDoc(id, data) {
     const api = sb();
     if (!api) throw new Error("Cloud sync unavailable");
+    if (api.upsertAdminDoc && api.isAdminDoc?.(id)) {
+      await api.upsertAdminDoc(id, data);
+      return;
+    }
     await api.upsertDoc(id, data);
   }
 
