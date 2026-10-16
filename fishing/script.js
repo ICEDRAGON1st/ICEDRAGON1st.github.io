@@ -1669,34 +1669,40 @@
   /** @returns {{ found: boolean, data?: object } | null} null = request failed (do not treat as empty). */
   async function fetchCommunityDoc() {
     const pages = await fetchCommunityJson(COMMUNITY_PAGES_URL, { trackRate: false });
-    let sbDoc = null;
-    const api = fishingSb();
-    if (api) {
-      try {
-        const raw = await api.getDoc(COMMUNITY_DOC);
-        if (raw && typeof raw === "object") sbDoc = normalizeCommunityDoc(raw);
-      } catch {
-        /* fall through */
-      }
-    }
-    let mantle = { rateLimited: false, found: false, data: null, ok: false };
-    if (!sbDoc && !communityRateLimited()) {
-      mantle = await fetchCommunityJson(COMMUNITY_API, { trackRate: true });
-      if (mantle.ok && !mantle.rateLimited) clearCommunityRateLimited();
-    }
     const pagesDoc = pages.found ? normalizeCommunityDoc(pages.data) : null;
-    const mantleDoc = mantle.found ? normalizeCommunityDoc(mantle.data) : null;
+    const api = fishingSb();
+    let remote = null;
+    let remoteOk = false;
+    let rateLimited = false;
 
-    if (sbDoc) {
-      return { found: true, data: pickBetterCommunityDoc(sbDoc, pagesDoc) || sbDoc };
+    if (api?.getPrefer) {
+      try {
+        const raw = await api.getPrefer(
+          COMMUNITY_DOC,
+          communityRateLimited() ? "" : COMMUNITY_API
+        );
+        remoteOk = true;
+        if (raw && typeof raw === "object") remote = normalizeCommunityDoc(raw);
+      } catch (err) {
+        if (err && err.rateLimited) {
+          rateLimited = true;
+          markCommunityRateLimited();
+        }
+      }
+    } else if (!communityRateLimited()) {
+      const mantle = await fetchCommunityJson(COMMUNITY_API, { trackRate: true });
+      rateLimited = !!mantle.rateLimited;
+      remoteOk = !!mantle.ok;
+      if (mantle.ok && !mantle.rateLimited) clearCommunityRateLimited();
+      if (mantle.found) remote = normalizeCommunityDoc(mantle.data);
     }
 
-    if (mantleDoc) {
-      return { found: true, data: pickBetterCommunityDoc(mantleDoc, pagesDoc) || mantleDoc };
+    if (remote) {
+      return { found: true, data: pickBetterCommunityDoc(remote, pagesDoc) || remote };
     }
 
-    // Mantle down / rate-limited: keep the last good cache so Pages can't wipe progress.
-    if (mantle.rateLimited || !mantle.ok) {
+    // Shared server down / rate-limited: keep the last good cache so Pages can't wipe progress.
+    if (rateLimited || !remoteOk) {
       if (communityCache.weekKey || communityCache.total || communityCache.lbWave) {
         return {
           found: true,
@@ -1707,26 +1713,27 @@
       return null;
     }
 
-    // Mantle reachable but empty
     if (pagesDoc) return { found: true, data: pagesDoc };
-    if (pages.ok || mantle.ok) return { found: false };
+    if (pages.ok || remoteOk) return { found: false };
     return null;
   }
 
   async function pushCommunityDoc(doc) {
     const payload = { ...doc, token: COMMUNITY_TOKEN };
-    let ok = false;
     const api = fishingSb();
-    if (api) {
+    if (api?.pushPrefer) {
       try {
-        await api.upsertDoc(COMMUNITY_DOC, payload);
-        ok = true;
+        await api.pushPrefer(
+          COMMUNITY_DOC,
+          payload,
+          communityRateLimited() ? "" : COMMUNITY_API
+        );
+        return true;
       } catch {
-        /* try Mantle */
+        return false;
       }
     }
-    if (communityRateLimited() && ok) return true;
-    if (communityRateLimited()) return ok;
+    if (communityRateLimited()) return false;
     try {
       const res = await fetch(COMMUNITY_API, {
         method: "POST",
@@ -1735,13 +1742,13 @@
       });
       if (res.status === 429) {
         markCommunityRateLimited();
-        return ok;
+        return false;
       }
-      if (!res.ok) return ok;
+      if (!res.ok) return false;
       clearCommunityRateLimited();
       return true;
     } catch {
-      return ok;
+      return false;
     }
   }
 

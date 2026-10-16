@@ -146,3 +146,12 @@ test("owned aquarium row dual-writes without copying others or shrinking shared 
   assert.equal(older["p-ada"].level, 3);
   assert.equal(older["p-bea"].level, 8);
 });
+
+test("fishing community uses account-server prefer and skips the old backup write after success", () => {
+  const fs = require("node:fs");
+  const script = fs.readFileSync(path.resolve(__dirname, "../../fishing/script.js"), "utf8");
+  assert.match(script, /api\.getPrefer\(\s*COMMUNITY_DOC/);
+  assert.match(script, /api\.pushPrefer\(\s*COMMUNITY_DOC/);
+  assert.equal(script.includes("await api.upsertDoc(COMMUNITY_DOC"), false);
+  assert.match(script, /communityRateLimited\(\) \? "" : COMMUNITY_API/);
+});

@@ -1,4 +1,7 @@
 {
+  "20261015bk": [
+    "The fishing community goal now saves to the account server first. The old backup path is only used if that save fails, which should mean fewer too-many-requests pauses."
+  ],
   "20261015bj": [
     "Your aquarium tank now also saves on your account, so another signed-in device can keep it without wiping other players' tanks."
   ],

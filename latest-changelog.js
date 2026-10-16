@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015bj",
+  "build": "20261015bk",
   "notes": [
-    "Your aquarium tank now also saves on your account, so another signed-in device can keep it without wiping other players' tanks."
+    "The fishing community goal now saves to the account server first. The old backup path is only used if that save fails, which should mean fewer too-many-requests pauses."
   ]
 };
