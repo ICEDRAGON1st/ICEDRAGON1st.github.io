@@ -174,4 +174,71 @@ test("owned nickname claims dual-write without stealing another player's name", 
   assert.equal(fromRows.ada.playerId, "p-ada");
   assert.equal(fromRows.ada.legend, true);
   assert.equal(fromRows.skip, undefined);
+
+  const liveRow = names.applyChange(
+    { names: { ada: { playerId: "p-ada", name: "Ada", claimedAt: 10 } } },
+    {
+      type: "UPDATE",
+      new: {
+        player_id: "p-cal",
+        name_key: "cal",
+        claim: { playerId: "p-cal", name: "Cal", claimedAt: 40 }
+      }
+    },
+    [
+      {
+        player_id: "p-ada",
+        name_key: "ada",
+        claim: { playerId: "p-ada", name: "Ada", claimedAt: 10 }
+      }
+    ]
+  );
+  assert.equal(liveRow.names.ada.playerId, "p-ada");
+  assert.equal(liveRow.names.cal.playerId, "p-cal");
+  assert.equal(liveRow.rows.length, 2);
+
+  const stolenLive = names.applyChange(
+    liveRow,
+    {
+      type: "UPDATE",
+      new: {
+        player_id: "p-eve",
+        name_key: "ada",
+        claim: { playerId: "p-eve", name: "Ada", claimedAt: 99 }
+      }
+    },
+    liveRow.rows
+  );
+  assert.equal(stolenLive.names.ada.playerId, "p-ada");
+
+  const afterDelete = names.applyChange(
+    stolenLive,
+    { type: "DELETE", old_record: { player_id: "p-cal" } },
+    stolenLive.rows
+  );
+  assert.equal(afterDelete.names.cal.playerId, "p-cal");
+  assert.equal(afterDelete.rows.length, 3);
+});
+
+test("nickname live rows subscribe without rewriting the shared name registry", () => {
+  const plays = fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8");
+  const supabase = fs.readFileSync(path.join(ROOT, "hub-supabase.js"), "utf8");
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160033_nickname_claims_realtime.sql"),
+    "utf8"
+  );
+  assert.match(plays, /ensureNamesRealtime/);
+  assert.match(plays, /applyNamesRealtime/);
+  assert.match(plays, /subscribeNicknameClaims/);
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("function applyNamesRealtime"),
+      plays.indexOf("function stopNamesRealtime")
+    ),
+    /pushNamesRemote|pushDoc/
+  );
+  assert.match(supabase, /function subscribeNicknameClaims/);
+  assert.match(sql, /alter table public\.nickname_claims replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.nickname_claims/i);
+  assert.doesNotMatch(sql, /to anon/i);
 });

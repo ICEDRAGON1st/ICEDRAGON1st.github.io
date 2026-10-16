@@ -163,6 +163,8 @@ test("presence pings use auth-owned rows instead of rewriting the shared presenc
   assert.match(src, /function subscribeLeaderboardPbContributions/);
   assert.match(src, /function subscribePopularityContributions/);
   assert.match(src, /function subscribePlayLogContributions/);
+  assert.match(src, /function subscribeNicknameClaims/);
+  assert.match(src, /function subscribeAlltimeRoster/);
   assert.match(src, /realtime\/v1\/websocket/);
   assert.match(src, /presence_pings/);
   assert.match(src, /chat_thread_contributions/);
@@ -201,6 +203,7 @@ test("nickname claims use auth-owned rows instead of rewriting the shared name r
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
   assert.match(src, /async function listNicknameClaims/);
   assert.match(src, /async function upsertNicknameClaim/);
+  assert.match(src, /function subscribeNicknameClaims/);
   assert.match(src, /nickname_claims/);
 });
 
@@ -248,6 +251,7 @@ test("all-time roster uses auth-owned rows instead of rewriting the shared playe
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
   assert.match(src, /async function listAlltimeRoster/);
   assert.match(src, /async function upsertAlltimeRoster/);
+  assert.match(src, /function subscribeAlltimeRoster/);
   assert.match(src, /alltime_roster/);
 });
 

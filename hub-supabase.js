@@ -894,6 +894,14 @@
     return subscribePostgresChanges("play_log_contributions", onChange);
   }
 
+  function subscribeNicknameClaims(onChange) {
+    return subscribePostgresChanges("nickname_claims", onChange);
+  }
+
+  function subscribeAlltimeRoster(onChange) {
+    return subscribePostgresChanges("alltime_roster", onChange);
+  }
+
   async function listPopularityContributions(resetAt) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -2702,6 +2710,8 @@
     subscribeLeaderboardPbContributions,
     subscribePopularityContributions,
     subscribePlayLogContributions,
+    subscribeNicknameClaims,
+    subscribeAlltimeRoster,
     stopPresenceRealtime,
     listPopularityContributions,
     upsertPopularityContribution,

@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015cv",
+  "build": "20261015cw",
   "notes": [
-    "Play counts and recent plays now update from your signed-in account as they happen, so a new game doesn't wait on the next poll."
+    "Nicknames and the all-time player list now update from your signed-in account as they happen, so a new name doesn't wait on the next poll."
   ]
 };

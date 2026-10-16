@@ -287,6 +287,50 @@
     return mergeAllTime(local, { [me]: owned.row });
   }
 
+  function contributionRowKey(row) {
+    return String(row?.player_id || row?.playerId || "").trim();
+  }
+
+  function unwrapChange(change) {
+    const payload = change && typeof change === "object" ? change : {};
+    if (payload.data && typeof payload.data === "object") return payload.data;
+    if (payload.payload && typeof payload.payload === "object") {
+      const inner = payload.payload;
+      if (inner.data && typeof inner.data === "object") return inner.data;
+      return inner;
+    }
+    return payload;
+  }
+
+  function mergeContributionRows(rows, change) {
+    const data = unwrapChange(change);
+    const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
+    const list = Array.isArray(rows) ? rows.slice() : [];
+    if (type === "DELETE") return list;
+    const record = data.record || data.new || {};
+    if (!record || typeof record !== "object") return list;
+    const pid = contributionRowKey(record);
+    if (!pid) return list;
+    const idx = list.findIndex((row) => contributionRowKey(row) === pid);
+    if (idx >= 0) list[idx] = record;
+    else list.push(record);
+    return list;
+  }
+
+  function applyChange(hub, change, rows, preferPlayerName) {
+    const nextRows = mergeContributionRows(rows, change);
+    const current =
+      hub && typeof hub === "object" && !Array.isArray(hub)
+        ? hub.players && typeof hub.players === "object"
+          ? hub.players
+          : hub
+        : {};
+    return {
+      players: mergeAllTime(current, rowsToMap(nextRows), preferPlayerName),
+      rows: nextRows
+    };
+  }
+
   const api = {
     MAX_ALLTIME,
     LAST_AT_WRITE_GAP_MS,
@@ -305,7 +349,8 @@
     readMine,
     collectMine,
     applyMine,
-    rowsToMap
+    rowsToMap,
+    applyChange
   };
   if (root) root.HubAllTime = api;
   if (typeof module === "object" && module.exports) module.exports = api;

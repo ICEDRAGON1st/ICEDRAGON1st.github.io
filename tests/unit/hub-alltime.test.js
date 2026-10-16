@@ -169,4 +169,56 @@ test("owned all-time row dual-writes without copying others or shrinking the ros
   assert.equal(fromRows["p-ada"].lastAt, 250);
   assert.equal(fromRows["p-ada"].name, "Ada");
   assert.equal(fromRows["p-bea"], undefined);
+
+  const liveRow = alltime.applyChange(
+    {
+      players: {
+        "p-ada": { firstAt: 100, lastAt: 200, name: "Ada" },
+        "p-bea": { firstAt: 90, lastAt: 90, name: "Bea" }
+      }
+    },
+    {
+      type: "UPDATE",
+      new: { player_id: "p-cal", display_name: "Cal", first_at: 70, last_at: 80 }
+    },
+    [
+      { player_id: "p-ada", display_name: "Ada", first_at: 80, last_at: 250 },
+      { player_id: "p-bea", display_name: "Bea", first_at: 90, last_at: 90 }
+    ]
+  );
+  assert.equal(liveRow.players["p-ada"].firstAt, 80);
+  assert.equal(liveRow.players["p-ada"].lastAt, 250);
+  assert.equal(liveRow.players["p-cal"].name, "Cal");
+  assert.equal(Object.keys(liveRow.players).length, 3);
+
+  const afterDelete = alltime.applyChange(
+    liveRow,
+    { type: "DELETE", old_record: { player_id: "p-cal" } },
+    liveRow.rows
+  );
+  assert.equal(afterDelete.players["p-cal"].name, "Cal");
+  assert.equal(Object.keys(afterDelete.players).length, 3);
+});
+
+test("all-time live rows subscribe without rewriting the shared player list", () => {
+  const plays = fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8");
+  const supabase = fs.readFileSync(path.join(ROOT, "hub-supabase.js"), "utf8");
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160034_alltime_roster_realtime.sql"),
+    "utf8"
+  );
+  assert.match(plays, /ensureAllTimeRealtime/);
+  assert.match(plays, /applyAllTimeRealtime/);
+  assert.match(plays, /subscribeAlltimeRoster/);
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("function applyAllTimeRealtime"),
+      plays.indexOf("function stopAllTimeRealtime")
+    ),
+    /pushAllTimeRemote|pushDoc/
+  );
+  assert.match(supabase, /function subscribeAlltimeRoster/);
+  assert.match(sql, /alter table public\.alltime_roster replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.alltime_roster/i);
+  assert.doesNotMatch(sql, /to anon/i);
 });
