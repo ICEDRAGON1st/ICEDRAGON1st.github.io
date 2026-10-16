@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015br",
+  "build": "20261015bs",
   "notes": [
-    "Shared lists now stay on the account server when that server is busy, instead of mixing in an older backup that could wipe names or scores."
+    "Locked nicknames you own now also register on the account server as your own row, so a busy device can't wipe someone else's name lock."
   ]
 };

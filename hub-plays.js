@@ -1340,15 +1340,87 @@
     return CODE_LOCKED_NAMES.has(String(key || "").toLowerCase());
   }
 
+  async function fetchReservationsTableRemote() {
+    const api = sb();
+    if (!api?.listNameReservationLocks || !identity.rowsToReservationsMap) return null;
+    try {
+      const rows = await api.listNameReservationLocks();
+      if (!rows) return null;
+      return identity.rowsToReservationsMap(rows);
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistNameReservationLock(key, entry) {
+    const api = sb();
+    const me = getPlayerId();
+    if (!api?.upsertNameReservationLock || !me || !entry) return false;
+    const cleaned = identity.cleanReservation
+      ? identity.cleanReservation(entry, me)
+      : entry;
+    if (!cleaned?.code || !cleaned?.name) return false;
+    try {
+      await api.upsertNameReservationLock({
+        playerId: me,
+        nameKey: String(key || nameKey(cleaned.name) || "").toLowerCase(),
+        code: cleaned.code,
+        displayName: cleaned.name,
+        lockedAt: cleaned.lockedAt
+      });
+      return true;
+    } catch (err) {
+      if (err && err.nameTaken) return "taken";
+      return false;
+    }
+  }
+
   async function fetchReservationsRemote() {
-    const data = await fetchDoc("name-reservations", RESERVATIONS_API);
-    if (!data || typeof data !== "object") return reservationsCache || {};
-    const parsed = identity.parseReservationsMap ? identity.parseReservationsMap(data) : {};
+    let parsed = {};
+    let fetched = false;
+    try {
+      const data = await fetchDoc("name-reservations", RESERVATIONS_API);
+      if (data && typeof data === "object") {
+        parsed = identity.parseReservationsMap ? identity.parseReservationsMap(data) : {};
+        fetched = true;
+      }
+    } catch {
+      parsed = {};
+    }
+    const tableRemote = await fetchReservationsTableRemote();
+    if (tableRemote) {
+      parsed = { ...parsed };
+      Object.entries(tableRemote).forEach(([key, entry]) => {
+        const existing = parsed[key];
+        if (!existing) {
+          parsed[key] = entry;
+          return;
+        }
+        if (reservationAllows(existing, entry.playerId, entry.code)) parsed[key] = entry;
+      });
+    }
+    if (!fetched && !tableRemote) {
+      if (reservationsCache && typeof reservationsCache === "object") return reservationsCache;
+      throw new Error("reservations-unavailable");
+    }
     reservationsCache = parsed;
     return parsed;
   }
 
   async function pushReservationsRemote(reservations) {
+    const me = getPlayerId();
+    let tableWrote = false;
+    const mine = Object.entries(reservations || {}).filter(([, entry]) => entry?.playerId === me);
+    for (const [key, entry] of mine) {
+      const result = await persistNameReservationLock(key, entry);
+      if (result === "taken") {
+        const err = new Error("reservation taken");
+        err.nameTaken = true;
+        throw err;
+      }
+      if (result === true) tableWrote = true;
+    }
+    if (tableWrote) return;
     await pushDoc("name-reservations", { reservations }, RESERVATIONS_API);
   }
 

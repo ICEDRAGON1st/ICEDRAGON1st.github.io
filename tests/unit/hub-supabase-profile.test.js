@@ -161,3 +161,11 @@ test("nickname claims use auth-owned rows instead of rewriting the shared name r
   assert.match(src, /async function upsertNicknameClaim/);
   assert.match(src, /nickname_claims/);
 });
+
+test("name reservation locks use auth-owned rows instead of rewriting the shared lock document", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.match(src, /async function listNameReservationLocks/);
+  assert.match(src, /async function upsertNameReservationLock/);
+  assert.match(src, /name_reservation_locks/);
+});

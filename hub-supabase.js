@@ -747,6 +747,81 @@
     }
   }
 
+  async function listNameReservationLocks() {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const url =
+      `${SUPABASE_URL}/rest/v1/name_reservation_locks?select=player_id,name_key,code,display_name,locked_at`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase reservation list ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function upsertNameReservationLock(row) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const playerId = parseLocalPlayerId(row?.playerId);
+    const nameKey = String(row?.nameKey || "")
+      .toLowerCase()
+      .trim()
+      .slice(0, 16);
+    const code = String(row?.code || "")
+      .toUpperCase()
+      .replace(/[^23456789ABCDEFGHJKLMNPQRSTUVWXYZ]/g, "")
+      .slice(0, 8);
+    if (!userId || !session?.access_token) throw new Error("supabase reservation needs a session");
+    if (!playerId) throw new Error("bad reservation player id");
+    if (!nameKey) throw new Error("bad reservation name");
+    if (code.length !== 8) throw new Error("bad reservation code");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/name_reservation_locks`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        player_id: playerId,
+        name_key: nameKey,
+        code,
+        display_name: String(row?.displayName || "")
+          .replace(/[<>&"'`]/g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 32),
+        locked_at: row?.lockedAt
+          ? new Date(Number(row.lockedAt) || Date.now()).toISOString()
+          : new Date().toISOString()
+      })
+    });
+    if (res.status === 409) {
+      const err = new Error("reservation taken");
+      err.nameTaken = true;
+      throw err;
+    }
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase reservation upsert ${res.status} ${text}`);
+    }
+  }
+
   async function getDoc(id) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -935,6 +1010,8 @@
     upsertPlayerCodeClaim,
     listNicknameClaims,
     upsertNicknameClaim,
+    listNameReservationLocks,
+    upsertNameReservationLock,
     profile: () => {
       const raw = readSession()?.profile;
       const parsed = parseProfile(raw);

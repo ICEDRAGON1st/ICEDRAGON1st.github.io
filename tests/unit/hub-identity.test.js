@@ -226,6 +226,9 @@ test("owned name reservations dual-write without stealing another player's lock"
   const script = fs.readFileSync(path.join(__dirname, "../../script.js"), "utf8");
   assert.match(plays, /persistReservationsMine/);
   assert.match(plays, /pullReservationsMine/);
+  assert.match(plays, /persistNameReservationLock/);
+  assert.match(plays, /fetchReservationsTableRemote/);
+  assert.match(plays, /if \(tableWrote\) return/);
   assert.equal(identity.RESERVATIONS_MINE_KEY, "reservations-mine");
   assert.doesNotMatch(script, /Copied \$\{code\}/);
   assert.doesNotMatch(script, /Your code is \$\{code\}/);
@@ -266,4 +269,18 @@ test("owned name reservations dual-write without stealing another player's lock"
     "p-ada"
   );
   assert.equal(blocked.ice_dragon.playerId, "p-bea");
+
+  const fromRows = identity.rowsToReservationsMap([
+    {
+      player_id: "p-ada",
+      name_key: "ice_dragon",
+      code: "AB23CD45",
+      display_name: "ICE_DRAGON",
+      locked_at: "2023-11-14T22:13:20.000Z"
+    },
+    { player_id: "p-bea", name_key: "bea", code: "UNDEFNED", display_name: "Bea" }
+  ]);
+  assert.equal(fromRows.ice_dragon.playerId, "p-ada");
+  assert.equal(fromRows.ice_dragon.code, "AB23CD45");
+  assert.equal(fromRows.bea, undefined);
 });

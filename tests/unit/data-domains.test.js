@@ -174,3 +174,21 @@ test("nickname claims are readable by signed-in players and only writable by the
   );
   assert.match(sql, /revoke all on table public\.nickname_claims from anon, authenticated/);
 });
+
+test("name reservation locks are readable by signed-in players and only writable by the owner", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160006_name_reservation_locks.sql"),
+    "utf8"
+  );
+  assert.match(sql, /create table if not exists public\.name_reservation_locks/);
+  assert.match(sql, /enable row level security/i);
+  assert.match(sql, /force row level security/i);
+  assert.match(sql, /name_reservation_locks_read_authenticated/);
+  assert.match(sql, /name_reservation_locks_insert_own/);
+  assert.match(sql, /name_reservation_locks_update_own/);
+  assert.match(
+    sql,
+    /grant select, insert, update, delete on table public\.name_reservation_locks to authenticated/
+  );
+  assert.match(sql, /revoke all on table public\.name_reservation_locks from anon, authenticated/);
+});

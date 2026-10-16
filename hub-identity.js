@@ -375,6 +375,31 @@
     };
   }
 
+  function rowsToReservationsMap(rows) {
+    const out = {};
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      if (!row || typeof row !== "object") return;
+      const playerId = String(row.player_id || row.playerId || "").trim();
+      const entry = cleanReservation(
+        {
+          playerId,
+          code: row.code || "",
+          name: row.display_name || row.name || "",
+          lockedAt: Date.parse(row.locked_at || row.lockedAt || "") || Number(row.lockedAt) || 0
+        },
+        playerId
+      );
+      const key = String(row.name_key || row.nameKey || "")
+        .toLowerCase()
+        .trim()
+        .slice(0, 16);
+      const mappedKey = key || (entry ? nameKey(entry.name) : "");
+      if (!mappedKey || !entry) return;
+      out[mappedKey] = entry;
+    });
+    return out;
+  }
+
   function applyReservationsMine(localMap, mine, playerId) {
     const owned = readReservationsMine(mine);
     const me = String(playerId || owned.playerId || "").trim();
@@ -435,7 +460,8 @@
     cleanReservation,
     readReservationsMine,
     collectReservationsMine,
-    applyReservationsMine
+    applyReservationsMine,
+    rowsToReservationsMap
   };
   root.HubIdentity = api;
   if (typeof module === "object" && module.exports) module.exports = api;
