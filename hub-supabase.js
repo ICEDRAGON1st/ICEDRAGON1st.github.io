@@ -804,6 +804,10 @@
     return subscribePostgresChanges("call_signal_contributions", onChange);
   }
 
+  function subscribeMatchRoomContributions(onChange) {
+    return subscribePostgresChanges("match_room_contributions", onChange);
+  }
+
   async function listPopularityContributions(resetAt) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -2600,6 +2604,7 @@
     subscribeChatThreadContributions,
     subscribeFriendEdgeContributions,
     subscribeCallSignalContributions,
+    subscribeMatchRoomContributions,
     stopPresenceRealtime,
     listPopularityContributions,
     upsertPopularityContribution,

@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015cm",
+  "build": "20261015cn",
   "notes": [
-    "Voice calls now update from your signed-in account as they happen, so a ring or answer doesn't wait on the next poll."
+    "Online matches now update from your signed-in account as they happen, so an opponent's move doesn't wait on the next poll."
   ]
 };

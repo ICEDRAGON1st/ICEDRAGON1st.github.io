@@ -41,6 +41,7 @@
   let cache = { rooms: {} };
   let activeRoomId = "";
   let pollTimer = null;
+  let matchRealtimeUnsub = null;
   let listeners = new Set();
   let writeQueue = Promise.resolve();
 
@@ -654,8 +655,52 @@
     return getRoom();
   }
 
+  function matchCloudQuiet() {
+    if (activeRoomId) return false;
+    try {
+      if (window.HubAfk?.isAfk?.()) return true;
+      if (window.HubNet?.isPaused?.()) return true;
+      if (window.HubNet && HubNet.isOnline && !HubNet.isOnline()) return true;
+    } catch {}
+    return false;
+  }
+
+  function applyMatchRealtime(change) {
+    const helper = mineApi();
+    if (!helper?.applyChange) return;
+    const next = helper.applyChange(cache, change);
+    const rooms =
+      next?.rooms && typeof next.rooms === "object" && !Array.isArray(next.rooms)
+        ? next.rooms
+        : cache.rooms;
+    saveLocal({ rooms: mergeRooms(cache.rooms, rooms) });
+    emit();
+  }
+
+  function stopMatchRealtime() {
+    try {
+      matchRealtimeUnsub?.();
+    } catch {}
+    matchRealtimeUnsub = null;
+  }
+
+  function ensureMatchRealtime() {
+    const api = sb();
+    if (!api?.subscribeMatchRoomContributions) return;
+    if (matchRealtimeUnsub) return;
+    if (matchCloudQuiet()) return;
+    matchRealtimeUnsub = api.subscribeMatchRoomContributions((change) => {
+      applyMatchRealtime(change);
+    });
+  }
+
   async function refresh() {
     try {
+      if (matchCloudQuiet()) {
+        if (!activeRoomId) stopMatchRealtime();
+      } else {
+        ensureMatchRealtime();
+      }
       const remote = await fetchRemote();
       const merged = await pullMyRooms({ rooms: mergeRooms(cache.rooms, remote.rooms) });
       saveLocal(merged);
@@ -677,6 +722,7 @@
 
   function startPolling() {
     stopPolling();
+    ensureMatchRealtime();
     const tick = async () => {
       await refresh();
     };
@@ -687,6 +733,7 @@
   function stopPolling() {
     if (pollTimer) clearInterval(pollTimer);
     pollTimer = null;
+    stopMatchRealtime();
   }
 
   cache = loadLocal();

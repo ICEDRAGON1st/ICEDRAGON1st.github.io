@@ -90,4 +90,41 @@ test("owned match rooms restore only when I have no live rooms", () => {
   assert.equal(overlaid.rooms["room-1"].turn, 1);
   assert.equal(overlaid.rooms["room-2"].host.playerId, "p-other");
   assert.equal(overlaid.rooms["room-skip"], undefined);
+
+  const liveRow = mine.applyChange(
+    { rooms: { "room-1": mineRoom } },
+    {
+      type: "UPDATE",
+      new: { player_id: "p-pal", rooms: { "room-1": newer } }
+    }
+  );
+  assert.equal(liveRow.rooms["room-1"].turn, 1);
+
+  const afterDelete = mine.applyChange(liveRow, {
+    type: "DELETE",
+    old_record: { player_id: "p-pal" }
+  });
+  assert.equal(afterDelete.rooms["room-1"].turn, 1);
+  assert.equal(afterDelete.rooms["room-1"].guest.playerId, "p-pal");
+});
+
+test("match live rows subscribe without rewriting the shared board", () => {
+  const ui = fs.readFileSync(path.join(ROOT, "hub-online-match.js"), "utf8");
+  const supabase = fs.readFileSync(path.join(ROOT, "hub-supabase.js"), "utf8");
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160024_match_room_contributions_realtime.sql"),
+    "utf8"
+  );
+  assert.match(ui, /ensureMatchRealtime/);
+  assert.match(ui, /applyMatchRealtime/);
+  assert.match(ui, /subscribeMatchRoomContributions/);
+  assert.doesNotMatch(
+    ui.slice(ui.indexOf("function applyMatchRealtime"), ui.indexOf("function stopMatchRealtime")),
+    /persistMatchRoomContribution|pushPrefer|fetchRemote/
+  );
+  assert.match(supabase, /function subscribeMatchRoomContributions/);
+  assert.match(supabase, /match_room_contributions/);
+  assert.match(sql, /alter table public\.match_room_contributions replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.match_room_contributions/i);
+  assert.doesNotMatch(sql, /to anon/i);
 });
