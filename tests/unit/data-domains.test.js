@@ -248,3 +248,21 @@ test("play log contributions are readable by signed-in players and only writable
   );
   assert.match(sql, /revoke all on table public\.play_log_contributions from anon, authenticated/);
 });
+
+test("call signal contributions are readable by signed-in players and only writable by the owner", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160010_call_signal_contributions.sql"),
+    "utf8"
+  );
+  assert.match(sql, /create table if not exists public\.call_signal_contributions/);
+  assert.match(sql, /enable row level security/i);
+  assert.match(sql, /force row level security/i);
+  assert.match(sql, /call_signal_contributions_read_authenticated/);
+  assert.match(sql, /call_signal_contributions_insert_own/);
+  assert.match(sql, /call_signal_contributions_update_own/);
+  assert.match(
+    sql,
+    /grant select, insert, update, delete on table public\.call_signal_contributions to authenticated/
+  );
+  assert.match(sql, /revoke all on table public\.call_signal_contributions from anon, authenticated/);
+});

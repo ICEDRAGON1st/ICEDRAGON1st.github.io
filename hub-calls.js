@@ -259,25 +259,66 @@
     }, 500);
   }
 
-  async function fetchDoc() {
+  async function fetchCallTableRemote() {
+    const api = sb();
+    if (!api?.listCallSignalContributions || !signal.rowsToRooms) return null;
     try {
-      const api = sb();
-      let data = null;
-      if (api) data = await api.getPrefer(DOC_ID, API);
-      else {
-        const res = await fetch(`${API}?t=${Date.now()}`, { cache: "no-store" });
-        if (res.status === 404) return { token: TOKEN, rooms: {} };
-        if (!res.ok) return null;
-        data = await res.json();
-      }
-      if (!data || typeof data !== "object") return { token: TOKEN, rooms: {} };
-      return {
-        token: data.token || TOKEN,
-        rooms: data.rooms && typeof data.rooms === "object" ? data.rooms : {}
-      };
+      const rows = await api.listCallSignalContributions();
+      if (!rows) return null;
+      return signal.rowsToRooms(rows);
     } catch {
       return null;
     }
+  }
+
+  async function persistCallSignalContribution(rooms) {
+    const api = sb();
+    const me = playerId();
+    if (!api?.upsertCallSignalContribution || !me) return false;
+    const snapshot = signal.collectMine ? signal.collectMine(rooms, me) : { rooms: {} };
+    try {
+      await api.upsertCallSignalContribution({
+        playerId: me,
+        rooms: snapshot.rooms || {}
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function fetchDoc() {
+    let data = null;
+    let fetched = false;
+    try {
+      const api = sb();
+      if (api) data = await api.getPrefer(DOC_ID, API);
+      else {
+        const res = await fetch(`${API}?t=${Date.now()}`, { cache: "no-store" });
+        if (res.status === 404) {
+          data = { token: TOKEN, rooms: {} };
+        } else if (res.ok) {
+          data = await res.json();
+        }
+      }
+      if (data && typeof data === "object") fetched = true;
+    } catch {
+      data = null;
+    }
+    let rooms =
+      fetched && data.rooms && typeof data.rooms === "object" && !Array.isArray(data.rooms)
+        ? data.rooms
+        : {};
+    const tableRooms = await fetchCallTableRemote();
+    if (tableRooms) {
+      rooms = signal.mergeRooms ? signal.mergeRooms(rooms, tableRooms) : { ...rooms, ...tableRooms };
+      fetched = true;
+    }
+    if (!fetched) return null;
+    return {
+      token: (data && data.token) || TOKEN,
+      rooms
+    };
   }
 
   function pruneRooms(rooms) {
@@ -286,6 +327,8 @@
 
   async function postDoc(rooms) {
     const payload = { token: TOKEN, rooms: pruneRooms(rooms) };
+    const tableWrote = await persistCallSignalContribution(payload.rooms);
+    if (tableWrote) return true;
     try {
       const api = sb();
       if (api) {

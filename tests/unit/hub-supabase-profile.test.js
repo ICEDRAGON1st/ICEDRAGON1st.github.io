@@ -194,3 +194,11 @@ test("all-time roster uses auth-owned rows instead of rewriting the shared playe
   assert.match(src, /async function upsertAlltimeRoster/);
   assert.match(src, /alltime_roster/);
 });
+
+test("call signaling uses auth-owned rows instead of rewriting the shared call board", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.match(src, /async function listCallSignalContributions/);
+  assert.match(src, /async function upsertCallSignalContribution/);
+  assert.match(src, /call_signal_contributions/);
+});

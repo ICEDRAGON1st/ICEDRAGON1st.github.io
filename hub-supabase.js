@@ -1049,6 +1049,87 @@
     }
   }
 
+  function sanitizeCallRooms(rooms, playerId) {
+    const me = String(playerId || "");
+    const out = {};
+    if (!me || !rooms || typeof rooms !== "object" || Array.isArray(rooms)) return out;
+    Object.entries(rooms).forEach(([id, room]) => {
+      if (Object.keys(out).length >= 20) return;
+      const key = String(id || "")
+        .trim()
+        .slice(0, 96);
+      if (!key || !room || typeof room !== "object" || Array.isArray(room)) return;
+      const peers = room.peers && typeof room.peers === "object" && !Array.isArray(room.peers)
+        ? room.peers
+        : {};
+      if (!Object.prototype.hasOwnProperty.call(peers, me)) return;
+      out[key] = {
+        kind: String(room.kind || "").slice(0, 16),
+        channelId: String(room.channelId || "").slice(0, 80),
+        createdAt: Number(room.createdAt) || 0,
+        updatedAt: Number(room.updatedAt) || 0,
+        peers,
+        signals: Array.isArray(room.signals) ? room.signals.slice(-40) : [],
+        links: room.links && typeof room.links === "object" && !Array.isArray(room.links)
+          ? room.links
+          : {}
+      };
+    });
+    return out;
+  }
+
+  async function listCallSignalContributions() {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const url = `${SUPABASE_URL}/rest/v1/call_signal_contributions?select=player_id,rooms`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase call list ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function upsertCallSignalContribution(row) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const playerId = parseLocalPlayerId(row?.playerId);
+    if (!userId || !session?.access_token) throw new Error("supabase call needs a session");
+    if (!playerId) throw new Error("bad call player id");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const rooms = sanitizeCallRooms(row?.rooms, playerId);
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/call_signal_contributions`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        player_id: playerId,
+        rooms,
+        updated_at: new Date().toISOString()
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase call upsert ${res.status} ${text}`);
+    }
+  }
+
   async function getDoc(id) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -1245,6 +1326,8 @@
     upsertPlayerPasswordHash,
     listAlltimeRoster,
     upsertAlltimeRoster,
+    listCallSignalContributions,
+    upsertCallSignalContribution,
     profile: () => {
       const raw = readSession()?.profile;
       const parsed = parseProfile(raw);

@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015bv",
+  "build": "20261015bw",
   "notes": [
-    "Recent games now also save from your signed-in account as your own row, so a busy device can't wipe someone else's play history."
+    "Voice calls now also signal from your signed-in account as your own row, so a busy device can't wipe someone else's call."
   ]
 };

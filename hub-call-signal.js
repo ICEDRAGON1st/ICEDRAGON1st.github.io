@@ -149,6 +149,74 @@
     return Object.prototype.hasOwnProperty.call(peers, me);
   }
 
+  function mergeRooms(a, b) {
+    const out = {};
+    const left = a && typeof a === "object" && !Array.isArray(a) ? a : {};
+    const right = b && typeof b === "object" && !Array.isArray(b) ? b : {};
+    const ids = new Set([...Object.keys(left), ...Object.keys(right)]);
+    ids.forEach((id) => {
+      const local = left[id];
+      const remote = right[id];
+      if (!local && remote) {
+        out[id] = remote;
+        return;
+      }
+      if (local && !remote) {
+        out[id] = local;
+        return;
+      }
+      if (!local || !remote) return;
+      const byId = new Map();
+      (Array.isArray(remote.signals) ? remote.signals : []).forEach((s) => {
+        if (s?.id) byId.set(s.id, s);
+      });
+      (Array.isArray(local.signals) ? local.signals : []).forEach((s) => {
+        if (s?.id) byId.set(s.id, s);
+      });
+      const rLinks = remote.links && typeof remote.links === "object" ? remote.links : {};
+      const lLinks = local.links && typeof local.links === "object" ? local.links : {};
+      const linkKeys = new Set([...Object.keys(rLinks), ...Object.keys(lLinks)]);
+      const links = {};
+      linkKeys.forEach((key) => {
+        const merged = mergeLink(rLinks[key], lLinks[key]);
+        if (merged) links[key] = merged;
+      });
+      const rPeers = remote.peers && typeof remote.peers === "object" ? remote.peers : {};
+      const lPeers = local.peers && typeof local.peers === "object" ? local.peers : {};
+      const peerKeys = new Set([...Object.keys(rPeers), ...Object.keys(lPeers)]);
+      const peers = {};
+      peerKeys.forEach((key) => {
+        const merged = mergePeer(rPeers[key], lPeers[key]);
+        if (merged) peers[key] = merged;
+      });
+      out[id] = {
+        ...remote,
+        ...local,
+        signals: [...byId.values()].sort((x, y) => (Number(x.at) || 0) - (Number(y.at) || 0)).slice(-40),
+        links,
+        peers,
+        updatedAt: Math.max(Number(local.updatedAt) || 0, Number(remote.updatedAt) || 0)
+      };
+    });
+    return out;
+  }
+
+  function rowsToRooms(rows) {
+    let rooms = {};
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const playerId = String(row?.player_id || row?.playerId || "").trim();
+      if (!playerId) return;
+      const owned = {};
+      Object.entries(row?.rooms && typeof row.rooms === "object" ? row.rooms : {}).forEach(
+        ([id, room]) => {
+          if (roomIncludesPlayer(room, playerId)) owned[id] = room;
+        }
+      );
+      rooms = mergeRooms(rooms, owned);
+    });
+    return pruneRooms(rooms);
+  }
+
   function collectMine(rooms, playerId) {
     const me = String(playerId || "").trim();
     const owned = {};
@@ -201,7 +269,9 @@
     canPostSharedCalls,
     collectMine,
     readMine,
-    applyMine
+    applyMine,
+    mergeRooms,
+    rowsToRooms
   };
   if (root) root.HubCallSignal = api;
   if (typeof module === "object" && module.exports) module.exports = api;

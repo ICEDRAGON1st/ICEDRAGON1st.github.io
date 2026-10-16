@@ -64,6 +64,9 @@ test("owned call rooms dual-write without copying others or shrinking the shared
   const ui = fs.readFileSync(path.join(ROOT, "hub-calls.js"), "utf8");
   assert.match(ui, /persistCallsMine/);
   assert.match(ui, /pullCallsMine/);
+  assert.match(ui, /persistCallSignalContribution/);
+  assert.match(ui, /fetchCallTableRemote/);
+  assert.match(ui, /if \(tableWrote\) return true/);
   assert.match(ui, /canPostSharedCalls/);
   assert.match(ui, /if \(!canPost\)/);
   assert.equal(signal.SAVE_KEY, "calls-mine");
@@ -107,4 +110,50 @@ test("owned call rooms dual-write without copying others or shrinking the shared
   );
   assert.equal(kept["dm:p-ada:p-bea"].updatedAt, 80);
   assert.equal(kept["dm:p-bea:p-cam"].updatedAt, 90);
+
+  const merged = signal.mergeRooms(
+    {
+      "dm:p-ada:p-bea": {
+        updatedAt: 50,
+        peers: { "p-ada": { joinedAt: 50, left: false, name: "Ada" } },
+        signals: [{ id: "s1", at: 1 }],
+        links: {}
+      }
+    },
+    {
+      "dm:p-ada:p-bea": {
+        updatedAt: 80,
+        peers: { "p-bea": { joinedAt: 80, left: false, name: "Bea" } },
+        signals: [{ id: "s2", at: 2 }],
+        links: {}
+      },
+      "dm:p-bea:p-cam": {
+        updatedAt: 90,
+        peers: { "p-bea": { joinedAt: 90, left: false, name: "Bea" } }
+      }
+    }
+  );
+  assert.equal(merged["dm:p-ada:p-bea"].updatedAt, 80);
+  assert.ok(merged["dm:p-ada:p-bea"].peers["p-ada"]);
+  assert.ok(merged["dm:p-ada:p-bea"].peers["p-bea"]);
+  assert.equal(merged["dm:p-ada:p-bea"].signals.length, 2);
+  assert.ok(merged["dm:p-bea:p-cam"]);
+
+  const fromRows = signal.rowsToRooms([
+    {
+      player_id: "p-ada",
+      rooms: {
+        "dm:p-ada:p-bea": {
+          updatedAt: Date.now(),
+          peers: { "p-ada": { joinedAt: Date.now(), left: false, name: "Ada" } }
+        },
+        "dm:p-bea:p-cam": {
+          updatedAt: Date.now(),
+          peers: { "p-bea": { joinedAt: Date.now(), left: false, name: "Bea" } }
+        }
+      }
+    }
+  ]);
+  assert.ok(fromRows["dm:p-ada:p-bea"]);
+  assert.equal(fromRows["dm:p-bea:p-cam"], undefined);
 });
