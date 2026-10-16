@@ -2055,14 +2055,65 @@
     );
   }
 
+  async function fetchNamesTableRemote() {
+    const api = sb();
+    if (!api?.listNicknameClaims || !namesApi.rowsToNameMap) return null;
+    try {
+      const rows = await api.listNicknameClaims();
+      if (!rows) return null;
+      return namesApi.rowsToNameMap(rows);
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistNicknameClaim(claim) {
+    const api = sb();
+    const me = getPlayerId();
+    if (!api?.upsertNicknameClaim || !me) return false;
+    const cleaned = namesApi.cleanClaim ? namesApi.cleanClaim(claim, me) : claim;
+    if (!cleaned?.name) return false;
+    try {
+      await api.upsertNicknameClaim({
+        playerId: me,
+        nameKey: nameKey(cleaned.name),
+        claim: cleaned
+      });
+      return true;
+    } catch (err) {
+      if (err && err.nameTaken) return "taken";
+      return false;
+    }
+  }
+
   async function fetchNamesRemote() {
-    const data = await fetchDoc("name-registry", NAMES_API);
-    if (!data || typeof data !== "object") return {};
-    const parsed = namesApi.parseNameRegistry ? namesApi.parseNameRegistry(data) : {};
+    let parsed = {};
+    let fetched = false;
+    try {
+      const data = await fetchDoc("name-registry", NAMES_API);
+      if (data && typeof data === "object") {
+        parsed = namesApi.parseNameRegistry ? namesApi.parseNameRegistry(data) : {};
+        fetched = true;
+      }
+    } catch {
+      parsed = {};
+    }
+    const tableRemote = await fetchNamesTableRemote();
+    if (tableRemote) parsed = mergeNameMaps(parsed, tableRemote);
+    if (!fetched && !tableRemote) throw new Error("names-unavailable");
     return purgeNameRegistry(parsed).names;
   }
 
   async function pushNamesRemote(names) {
+    const me = getPlayerId();
+    const mine = namesApi.findClaimByPlayerId ? namesApi.findClaimByPlayerId(names, me) : null;
+    const tableResult = mine ? await persistNicknameClaim(mine) : false;
+    if (tableResult === "taken") {
+      const err = new Error("nickname taken");
+      err.nameTaken = true;
+      throw err;
+    }
+    if (tableResult === true) return;
     await pushDoc("name-registry", { names }, NAMES_API);
   }
 
@@ -2367,7 +2418,15 @@
 
       try {
         await pushNamesRemote(nextNames);
-      } catch {
+      } catch (err) {
+        if (err && err.nameTaken) {
+          namesCache = remoteNames;
+          if (keepingOwnName) {
+            storeLocalName(next);
+            return { ok: true, name: next, keptLocal: true };
+          }
+          return { ok: false, error: `"${next}" is already taken` };
+        }
         // Save locally anyway so school filters don't brick the gate
         storeLocalName(next);
         namesCache = nextNames;

@@ -156,3 +156,21 @@ test("player code claims are readable by signed-in players and only writable by 
   );
   assert.match(sql, /revoke all on table public\.player_code_claims from anon, authenticated/);
 });
+
+test("nickname claims are readable by signed-in players and only writable by the owner", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160005_nickname_claims.sql"),
+    "utf8"
+  );
+  assert.match(sql, /create table if not exists public\.nickname_claims/);
+  assert.match(sql, /enable row level security/i);
+  assert.match(sql, /force row level security/i);
+  assert.match(sql, /nickname_claims_read_authenticated/);
+  assert.match(sql, /nickname_claims_insert_own/);
+  assert.match(sql, /nickname_claims_update_own/);
+  assert.match(
+    sql,
+    /grant select, insert, update, delete on table public\.nickname_claims to authenticated/
+  );
+  assert.match(sql, /revoke all on table public\.nickname_claims from anon, authenticated/);
+});

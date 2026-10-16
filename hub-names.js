@@ -192,6 +192,23 @@
     };
   }
 
+  function rowsToNameMap(rows) {
+    const out = {};
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      if (!row || typeof row !== "object") return;
+      const playerId = String(row.player_id || row.playerId || "").trim();
+      const claim = cleanClaim(row.claim, playerId);
+      const key = String(row.name_key || row.nameKey || "")
+        .toLowerCase()
+        .trim()
+        .slice(0, 16);
+      const mappedKey = key || (claim ? nameKey(claim.name) : "");
+      if (!mappedKey || !claim) return;
+      out[mappedKey] = claim;
+    });
+    return out;
+  }
+
   function applyMine(names, mine, playerId) {
     const owned = readMine(mine);
     const me = String(playerId || owned.playerId || "").trim();
@@ -212,7 +229,8 @@
     cleanClaim,
     readMine,
     collectMine,
-    applyMine
+    applyMine,
+    rowsToNameMap
   };
   if (root) root.HubNames = api;
   if (typeof module === "object" && module.exports) module.exports = api;

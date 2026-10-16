@@ -101,6 +101,9 @@ test("owned nickname claims dual-write without stealing another player's name", 
   const plays = fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8");
   assert.match(plays, /persistNamesMine/);
   assert.match(plays, /pullNamesMine/);
+  assert.match(plays, /persistNicknameClaim/);
+  assert.match(plays, /fetchNamesTableRemote/);
+  assert.match(plays, /if \(tableResult === true\) return/);
   assert.equal(names.SAVE_KEY, "names-mine");
 
   const snapshot = names.collectMine(
@@ -155,4 +158,20 @@ test("owned nickname claims dual-write without stealing another player's name", 
   assert.equal(richer.ada.legend, true);
   assert.equal(richer.ada.masterFisher, true);
   assert.equal(richer.ada.activeTitle, "ACE");
+
+  const fromRows = names.rowsToNameMap([
+    {
+      player_id: "p-ada",
+      name_key: "ada",
+      claim: { playerId: "p-ada", name: "Ada", claimedAt: 10, legend: true }
+    },
+    {
+      player_id: "p-eve",
+      name_key: "ada",
+      claim: { playerId: "p-bea", name: "Ada", claimedAt: 1 }
+    }
+  ]);
+  assert.equal(fromRows.ada.playerId, "p-ada");
+  assert.equal(fromRows.ada.legend, true);
+  assert.equal(fromRows.skip, undefined);
 });

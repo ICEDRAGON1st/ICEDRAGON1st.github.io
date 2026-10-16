@@ -144,3 +144,11 @@ test("player code claims use auth-owned rows instead of rewriting the shared cod
   assert.match(src, /async function upsertPlayerCodeClaim/);
   assert.match(src, /player_code_claims/);
 });
+
+test("nickname claims use auth-owned rows instead of rewriting the shared name registry", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.match(src, /async function listNicknameClaims/);
+  assert.match(src, /async function upsertNicknameClaim/);
+  assert.match(src, /nickname_claims/);
+});

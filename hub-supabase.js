@@ -683,6 +683,70 @@
     }
   }
 
+  async function listNicknameClaims() {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const url = `${SUPABASE_URL}/rest/v1/nickname_claims?select=player_id,name_key,claim`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase nickname list ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function upsertNicknameClaim(row) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const playerId = parseLocalPlayerId(row?.playerId);
+    const nameKey = String(row?.nameKey || "")
+      .toLowerCase()
+      .trim()
+      .slice(0, 16);
+    if (!userId || !session?.access_token) throw new Error("supabase nickname needs a session");
+    if (!playerId) throw new Error("bad nickname player id");
+    if (!nameKey) throw new Error("bad nickname key");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const claim =
+      row?.claim && typeof row.claim === "object" && !Array.isArray(row.claim) ? row.claim : {};
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/nickname_claims`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        player_id: playerId,
+        name_key: nameKey,
+        claim,
+        updated_at: new Date().toISOString()
+      })
+    });
+    if (res.status === 409) {
+      const err = new Error("nickname taken");
+      err.nameTaken = true;
+      throw err;
+    }
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase nickname upsert ${res.status} ${text}`);
+    }
+  }
+
   async function getDoc(id) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -858,6 +922,8 @@
     listPlayerCodeClaims,
     getPlayerCodeClaim,
     upsertPlayerCodeClaim,
+    listNicknameClaims,
+    upsertNicknameClaim,
     profile: () => {
       const raw = readSession()?.profile;
       const parsed = parseProfile(raw);
