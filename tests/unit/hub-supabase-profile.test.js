@@ -159,6 +159,7 @@ test("presence pings use auth-owned rows instead of rewriting the shared presenc
   assert.match(src, /function subscribeFishingGiftContributions/);
   assert.match(src, /function subscribeAquariumTankContributions/);
   assert.match(src, /function subscribeCommunityCastContributions/);
+  assert.match(src, /function subscribeFeedbackItemContributions/);
   assert.match(src, /realtime\/v1\/websocket/);
   assert.match(src, /presence_pings/);
   assert.match(src, /chat_thread_contributions/);
@@ -294,6 +295,7 @@ test("feedback tickets use auth-owned rows instead of rewriting the shared inbox
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
   assert.match(src, /async function listFeedbackItemContributions/);
   assert.match(src, /async function upsertFeedbackItemContribution/);
+  assert.match(src, /function subscribeFeedbackItemContributions/);
   assert.match(src, /feedback_item_contributions/);
 });
 

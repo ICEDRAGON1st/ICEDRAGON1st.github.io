@@ -147,6 +147,29 @@
     };
   }
 
+  function unwrapChange(change) {
+    const payload = change && typeof change === "object" ? change : {};
+    if (payload.data && typeof payload.data === "object") return payload.data;
+    if (payload.payload && typeof payload.payload === "object") {
+      const inner = payload.payload;
+      if (inner.data && typeof inner.data === "object") return inner.data;
+      return inner;
+    }
+    return payload;
+  }
+
+  function applyChange(hub, change) {
+    const data = unwrapChange(change);
+    const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
+    const current = {
+      items: Array.isArray(hub?.items) ? hub.items.slice() : []
+    };
+    if (type === "DELETE") return current;
+    const record = data.record || data.new || {};
+    if (!record || typeof record !== "object") return current;
+    return overlayFeedbackItems(current, [record]);
+  }
+
   const api = {
     SAVE_KEY,
     MAX_ITEMS,
@@ -155,7 +178,8 @@
     readMine,
     collectMine,
     applyMine,
-    overlayFeedbackItems
+    overlayFeedbackItems,
+    applyChange
   };
   if (root) root.HubFeedbackMine = api;
   if (typeof module === "object" && module.exports) module.exports = api;

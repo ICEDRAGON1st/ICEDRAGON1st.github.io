@@ -131,4 +131,53 @@ test("owned feedback keeps only this player's tickets and never shrinks a richer
   assert.equal(overlaid.items.some((item) => item.id === "f1"), true);
   assert.equal(overlaid.items.some((item) => item.id === "f3"), true);
   assert.equal(overlaid.items.some((item) => item.id === "skip"), false);
+
+  const liveRow = mine.applyChange(
+    { items: [{ id: "hub", fromId: "p-hub", fromName: "Hub", type: "idea", game: "Hub", text: "Already on the board", at: 5 }] },
+    {
+      type: "UPDATE",
+      new: {
+        player_id: "p-pal",
+        items: [
+          {
+            id: "f3",
+            fromId: "p-pal",
+            fromName: "Pal",
+            type: "idea",
+            game: "Quiz",
+            text: "More categories",
+            at: 21
+          }
+        ]
+      }
+    }
+  );
+  assert.equal(liveRow.items.some((item) => item.id === "hub"), true);
+  assert.equal(liveRow.items.some((item) => item.id === "f3"), true);
+
+  const afterDelete = mine.applyChange(liveRow, {
+    type: "DELETE",
+    old_record: { player_id: "p-pal" }
+  });
+  assert.equal(afterDelete.items.some((item) => item.id === "f3"), true);
+});
+
+test("feedback live rows subscribe without rewriting the shared inbox", () => {
+  const ui = fs.readFileSync(path.join(ROOT, "hub-feedback.js"), "utf8");
+  const supabase = fs.readFileSync(path.join(ROOT, "hub-supabase.js"), "utf8");
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160029_feedback_item_contributions_realtime.sql"),
+    "utf8"
+  );
+  assert.match(ui, /ensureFeedbackRealtime/);
+  assert.match(ui, /applyFeedbackRealtime/);
+  assert.match(ui, /subscribeFeedbackItemContributions/);
+  assert.doesNotMatch(
+    ui.slice(ui.indexOf("function applyFeedbackRealtime"), ui.indexOf("function stopFeedbackRealtime")),
+    /pushRemote/
+  );
+  assert.match(supabase, /function subscribeFeedbackItemContributions/);
+  assert.match(sql, /alter table public\.feedback_item_contributions replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.feedback_item_contributions/i);
+  assert.doesNotMatch(sql, /to anon/i);
 });

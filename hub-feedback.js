@@ -31,6 +31,7 @@
   let cache = { items: [] };
   let syncing = false;
   let writeQueue = Promise.resolve();
+  let feedbackRealtimeUnsub = null;
 
   function getPlayerId() {
     return typeof HubPlays !== "undefined" && HubPlays.getPlayerId ? HubPlays.getPlayerId() : "";
@@ -341,7 +342,49 @@
     }
   }
 
+  function feedbackCloudQuiet() {
+    try {
+      if (window.HubAfk?.isAfk?.()) return true;
+      if (window.HubNet?.isPaused?.()) return true;
+      if (window.HubNet && HubNet.isOnline && !HubNet.isOnline()) return true;
+    } catch {}
+    try {
+      if (document.hidden) return true;
+    } catch {}
+    return false;
+  }
+
+  function applyFeedbackRealtime(change) {
+    const helper = mineApi();
+    if (!helper?.applyChange) return;
+    const next = helper.applyChange(cache, change);
+    cache = { items: mergeItems(cache.items, next.items) };
+    saveLocal(cache);
+  }
+
+  function stopFeedbackRealtime() {
+    try {
+      feedbackRealtimeUnsub?.();
+    } catch {}
+    feedbackRealtimeUnsub = null;
+  }
+
+  function ensureFeedbackRealtime() {
+    const api = sb();
+    if (!api?.subscribeFeedbackItemContributions) return;
+    if (feedbackRealtimeUnsub) return;
+    if (feedbackCloudQuiet()) return;
+    feedbackRealtimeUnsub = api.subscribeFeedbackItemContributions((change) => {
+      applyFeedbackRealtime(change);
+    });
+  }
+
   async function sync(force = false) {
+    if (feedbackCloudQuiet()) {
+      stopFeedbackRealtime();
+    } else {
+      ensureFeedbackRealtime();
+    }
     if (syncing && !force) return cache;
     if (isRateLimited() && !sb() && !force) {
       cache = loadLocal();
@@ -507,8 +550,16 @@
   cache = loadLocal();
   // Soft sync on load — skip only if the account server is cooling down and unavailable
   if (!isRateLimited() || sb()) {
+    ensureFeedbackRealtime();
     sync().catch(() => {});
   }
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      stopFeedbackRealtime();
+      return;
+    }
+    ensureFeedbackRealtime();
+  });
 
   window.HubFeedback = {
     submit,
