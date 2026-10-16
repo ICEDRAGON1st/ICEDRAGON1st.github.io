@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015bu",
+  "build": "20261015bv",
   "notes": [
-    "Who's played My Games now also counts from each signed-in account's own row, so a busy device can't wipe the all-time player list."
+    "Recent games now also save from your signed-in account as your own row, so a busy device can't wipe someone else's play history."
   ]
 };

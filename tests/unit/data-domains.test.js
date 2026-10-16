@@ -230,3 +230,21 @@ test("all-time roster rows are readable by signed-in players and only writable b
   );
   assert.match(sql, /revoke all on table public\.alltime_roster from anon, authenticated/);
 });
+
+test("play log contributions are readable by signed-in players and only writable by the owner", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160009_play_log_contributions.sql"),
+    "utf8"
+  );
+  assert.match(sql, /create table if not exists public\.play_log_contributions/);
+  assert.match(sql, /enable row level security/i);
+  assert.match(sql, /force row level security/i);
+  assert.match(sql, /play_log_contributions_read_authenticated/);
+  assert.match(sql, /play_log_contributions_insert_own/);
+  assert.match(sql, /play_log_contributions_update_own/);
+  assert.match(
+    sql,
+    /grant select, insert, update, delete on table public\.play_log_contributions to authenticated/
+  );
+  assert.match(sql, /revoke all on table public\.play_log_contributions from anon, authenticated/);
+});

@@ -166,6 +166,16 @@
     return sanitizeContributionGames(row?.games);
   }
 
+  function rowsToPlayLogs(rows, maxPlays = MAX_PLAYS) {
+    const plays = [];
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const playerId = String(row?.player_id || row?.playerId || "").trim();
+      if (!playerId) return;
+      plays.push(...cleanPlays(row?.plays, playerId));
+    });
+    return mergePlayLogs({ plays: [] }, { plays }, maxPlays);
+  }
+
   function rowsToCounts(rows) {
     const out = {};
     (Array.isArray(rows) ? rows : []).forEach((row) => {
@@ -200,6 +210,7 @@
     addContributionGames,
     readOwnContribution,
     rowsToCounts,
+    rowsToPlayLogs,
     mergePlayLogs,
     SAVE_KEY,
     MAX_MINE,

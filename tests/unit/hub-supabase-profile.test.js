@@ -145,6 +145,14 @@ test("popularity contributions use auth-owned rows instead of rewriting the shar
   assert.match(src, /popularity_contributions/);
 });
 
+test("play log contributions use auth-owned rows instead of rewriting the shared plays document", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.match(src, /async function listPlayLogContributions/);
+  assert.match(src, /async function upsertPlayLogContribution/);
+  assert.match(src, /play_log_contributions/);
+});
+
 test("player code claims use auth-owned rows instead of rewriting the shared code document", () => {
   const fs = require("node:fs");
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");

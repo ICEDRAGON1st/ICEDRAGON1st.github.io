@@ -59,6 +59,9 @@ test("owned play logs dual-write without copying other players or shrinking a ri
   const plays = fs.readFileSync(path.resolve(__dirname, "../../hub-plays.js"), "utf8");
   assert.match(plays, /persistPlaysMine/);
   assert.match(plays, /pullPlaysMine/);
+  assert.match(plays, /persistPlayLogContribution/);
+  assert.match(plays, /fetchPlaysTableRemote/);
+  assert.match(plays, /skipShared: !fetched/);
   assert.equal(popularity.SAVE_KEY, "plays-mine");
 
   const snapshot = popularity.collectMine(
@@ -149,4 +152,33 @@ test("popularity contributions sum owned rows without copying another player's p
     snake: 3,
     fishing: 4
   });
+});
+
+test("play log contributions flatten owned rows without copying another player's events", () => {
+  const fromRows = popularity.rowsToPlayLogs(
+    [
+      {
+        player_id: "p-ada",
+        plays: [
+          { id: "mine-1", playerId: "p-ada", name: "Ada", game: "snake", gameName: "Snake", at: 20 },
+          { id: "stolen", playerId: "p-bea", name: "Bea", game: "fishing", at: 21 }
+        ]
+      },
+      {
+        player_id: "p-bea",
+        plays: [
+          { id: "theirs", playerId: "p-bea", name: "Bea", game: "fishing", gameName: "Fishing Idle", at: 9 }
+        ]
+      },
+      { player_id: "", plays: [{ id: "skip", playerId: "p-ada", game: "hub", at: 1 }] }
+    ],
+    10
+  );
+  assert.equal(fromRows.plays.length, 2);
+  assert.ok(fromRows.plays.some((play) => play.id === "mine-1" && play.playerId === "p-ada"));
+  assert.ok(fromRows.plays.some((play) => play.id === "theirs" && play.playerId === "p-bea"));
+  assert.equal(
+    fromRows.plays.some((play) => play.id === "stolen"),
+    false
+  );
 });

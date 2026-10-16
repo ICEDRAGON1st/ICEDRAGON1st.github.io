@@ -2209,16 +2209,63 @@
     if (!res.ok) throw new Error("push failed");
   }
 
-  async function fetchPlaysRemote() {
-    const data = await fetchDoc("plays-log", PLAYS_API);
-    if (!data) return { plays: [], counts: {} };
-    return {
-      plays: Array.isArray(data.plays) ? data.plays : [],
-      counts: data.counts && typeof data.counts === "object" ? data.counts : {}
-    };
+  async function fetchPlaysTableRemote() {
+    const api = sb();
+    if (!api?.listPlayLogContributions || !popularityApi.rowsToPlayLogs) return null;
+    try {
+      const rows = await api.listPlayLogContributions();
+      if (!rows) return null;
+      return popularityApi.rowsToPlayLogs(rows, MAX_PLAYS);
+    } catch {
+      return null;
+    }
   }
 
-  async function pushPlaysRemote(data) {
+  async function persistPlayLogContribution(plays) {
+    const api = sb();
+    const me = getPlayerId();
+    if (!api?.upsertPlayLogContribution || !me) return false;
+    const mine = popularityApi.collectMine ? popularityApi.collectMine(plays, me) : null;
+    if (!mine) return false;
+    try {
+      await api.upsertPlayLogContribution({
+        playerId: me,
+        plays: mine.plays
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function fetchPlaysRemote() {
+    let parsed = { plays: [], counts: {} };
+    let fetched = false;
+    try {
+      const data = await fetchDoc("plays-log", PLAYS_API);
+      if (data && typeof data === "object") {
+        parsed = {
+          plays: Array.isArray(data.plays) ? data.plays : [],
+          counts: data.counts && typeof data.counts === "object" ? data.counts : {}
+        };
+        fetched = true;
+      }
+    } catch {
+      parsed = { plays: [], counts: {} };
+    }
+    const tableRemote = await fetchPlaysTableRemote();
+    if (tableRemote) {
+      parsed = mergeLogs(parsed, tableRemote);
+      fetched = true;
+    }
+    if (!fetched) throw new Error("plays-unavailable");
+    return parsed;
+  }
+
+  async function pushPlaysRemote(data, opts) {
+    const tableWrote = await persistPlayLogContribution(data?.plays);
+    if (tableWrote && !(opts && opts.rewriteShared)) return;
+    if (opts && opts.skipShared) return;
     await pushDoc(
       "plays-log",
       {
@@ -2370,10 +2417,12 @@
       await pullPlaysMine();
       const withMine = loadLocal();
       let remote = { plays: [], counts: {} };
+      let fetched = true;
       try {
         remote = await fetchPlaysRemote();
       } catch {
         remote = { plays: [], counts: {} };
+        fetched = false;
       }
       const mergedRaw = mergeLogs(withMine.plays.length ? withMine : local, remote);
       const purgedPlays = purgePlaysList(mergedRaw.plays);
@@ -2381,7 +2430,7 @@
       saveLocal(merged);
       persistPlaysMine();
       try {
-        await pushPlaysRemote(merged);
+        await pushPlaysRemote(merged, { skipShared: !fetched });
       } catch {
         // offline — local still works
       }

@@ -591,6 +591,93 @@
     }
   }
 
+  function sanitizePlayLog(plays, playerId) {
+    const out = [];
+    const seen = new Set();
+    (Array.isArray(plays) ? plays : []).forEach((raw) => {
+      if (!raw || typeof raw !== "object") return;
+      const id = String(raw.id || "")
+        .trim()
+        .slice(0, 64);
+      const fromId = String(raw.playerId || "").trim();
+      const at = Math.floor(Number(raw.at) || 0);
+      const game = String(raw.game || "")
+        .trim()
+        .slice(0, 32);
+      if (!id || !at || !game) return;
+      if (fromId && fromId !== playerId) return;
+      if (seen.has(id)) return;
+      seen.add(id);
+      out.push({
+        id,
+        playerId,
+        name: String(raw.name || "")
+          .replace(/[<>&"'`]/g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 16) || "Player",
+        game,
+        gameName: String(raw.gameName || game)
+          .trim()
+          .slice(0, 48) || game,
+        at
+      });
+    });
+    return out.sort((a, b) => b.at - a.at).slice(0, 40);
+  }
+
+  async function listPlayLogContributions() {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const url = `${SUPABASE_URL}/rest/v1/play_log_contributions?select=player_id,plays`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase play log list ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function upsertPlayLogContribution(row) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const playerId = parseLocalPlayerId(row?.playerId);
+    if (!userId || !session?.access_token) throw new Error("supabase play log needs a session");
+    if (!playerId) throw new Error("bad play log player id");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const plays = sanitizePlayLog(row?.plays, playerId);
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/play_log_contributions`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        player_id: playerId,
+        plays,
+        updated_at: new Date().toISOString()
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase play log upsert ${res.status} ${text}`);
+    }
+  }
+
   async function listPlayerCodeClaims() {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -1145,6 +1232,8 @@
     deletePresencePing,
     listPopularityContributions,
     upsertPopularityContribution,
+    listPlayLogContributions,
+    upsertPlayLogContribution,
     listPlayerCodeClaims,
     getPlayerCodeClaim,
     upsertPlayerCodeClaim,
