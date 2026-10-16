@@ -1108,6 +1108,9 @@
     if (!entry?.playerId) {
       return { ok: false, error: "Wrong password or code" };
     }
+    try {
+      await sb()?.signInWithPasswordAccount?.({ playerId: entry.playerId, password: pw });
+    } catch {}
     const code =
       normalizePlayerCode(entry.code).length === 8 ? normalizePlayerCode(entry.code) : "";
     return {
@@ -1186,6 +1189,9 @@
     markVaultHasPassword(me, true);
     rememberCurrentAccount({ hasPassword: true });
     persistPasswordMine();
+    try {
+      await sb()?.upgradeAnonymousPassword?.({ playerId: me, password: pw });
+    } catch {}
 
     if (persistResult === true) {
       return {

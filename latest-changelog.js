@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015cq",
+  "build": "20261015cr",
   "notes": [
-    "Fishing aquariums now update from your signed-in account as they happen, so a friend's base doesn't wait on the next poll."
+    "Signing in with your password now uses your signed-in account, so another device keeps the same progress."
   ]
 };

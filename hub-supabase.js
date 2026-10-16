@@ -131,6 +131,13 @@
     return id;
   }
 
+  /** Stable Auth email derived from the local player id — never a player-typed address. */
+  function playerAuthEmail(playerId) {
+    const id = parseLocalPlayerId(playerId);
+    if (!id) return "";
+    return `${id.toLowerCase()}@players.icedragon1st.github.io`;
+  }
+
   function resolveBoundPlayerId({ localId, boundId, metadataId } = {}) {
     const local = parseLocalPlayerId(localId);
     if (local) return { playerId: local, source: "local", persist: true };
@@ -376,6 +383,53 @@
       return null;
     });
     return sessionPromise;
+  }
+
+  async function signInWithPasswordAccount({ playerId, password } = {}) {
+    const email = playerAuthEmail(playerId);
+    const pw = String(password || "");
+    if (!email || pw.length < 4 || pw.length > 48) return null;
+    if (netBlocked()) return null;
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ email, password: pw })
+    });
+    if (!res.ok) return null;
+    const next = await res.json().catch(() => null);
+    if (!next?.access_token) return null;
+    return adoptSession({
+      access_token: next.access_token,
+      refresh_token: next.refresh_token,
+      user: next.user || null
+    });
+  }
+
+  async function upgradeAnonymousPassword({ playerId, password } = {}) {
+    const email = playerAuthEmail(playerId);
+    const pw = String(password || "");
+    const id = parseLocalPlayerId(playerId);
+    if (!email || !id || pw.length < 4 || pw.length > 48) return null;
+    if (netBlocked()) return null;
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+      method: "PUT",
+      headers: headers({}, session.access_token),
+      body: JSON.stringify({
+        email,
+        password: pw,
+        data: { hub_player_id: id }
+      })
+    });
+    if (res.ok) {
+      const signed = await signInWithPasswordAccount({ playerId: id, password: pw });
+      return signed || session;
+    }
+    if (res.status === 400 || res.status === 422) {
+      return signInWithPasswordAccount({ playerId: id, password: pw });
+    }
+    return null;
   }
 
   function isReady() {
@@ -2603,10 +2657,13 @@
     ensureSession,
     parseProfile,
     parseLocalPlayerId,
+    playerAuthEmail,
     parseSave,
     resolveBoundPlayerId,
     peekBoundPlayerId,
     adoptSession,
+    signInWithPasswordAccount,
+    upgradeAnonymousPassword,
     getSave,
     upsertSave,
     listPresencePings,

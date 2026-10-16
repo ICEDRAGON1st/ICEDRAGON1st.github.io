@@ -160,6 +160,9 @@ test("owned password hashes dual-write without plaintext or other players' login
   assert.match(plays, /fetchPasswordsTableRemote/);
   assert.match(plays, /if \(tableWrote\) return/);
   assert.equal(identity.PASSWORD_MINE_KEY, "password-mine");
+  assert.match(plays, /upgradeAnonymousPassword/);
+  assert.match(plays, /signInWithPasswordAccount/);
+  assert.doesNotMatch(plays, /password: "secret"/);
 
   const adaHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
   const oldHash = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";

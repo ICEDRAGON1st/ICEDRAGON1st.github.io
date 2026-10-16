@@ -214,6 +214,28 @@ test("player password hashes use auth-owned rows instead of rewriting the shared
   assert.doesNotMatch(src, /password_hash: String\(row\?\.password\)/);
 });
 
+test("password Auth uses a derived email and never stores the typed password", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  const plays = fs.readFileSync(path.join(__dirname, "../../hub-plays.js"), "utf8");
+  assert.equal(
+    supabase.playerAuthEmail("p-0123456789abcd"),
+    "p-0123456789abcd@players.icedragon1st.github.io"
+  );
+  assert.equal(supabase.playerAuthEmail("p-abc"), "");
+  assert.equal(supabase.playerAuthEmail(""), "");
+  assert.match(src, /function playerAuthEmail/);
+  assert.match(src, /async function signInWithPasswordAccount/);
+  assert.match(src, /async function upgradeAnonymousPassword/);
+  assert.match(src, /grant_type=password/);
+  assert.match(src, /players\.icedragon1st\.github\.io/);
+  assert.doesNotMatch(src, /password_hash: pw/);
+  assert.doesNotMatch(src, /payload: \{[^}]*password: pw/);
+  assert.match(plays, /upgradeAnonymousPassword/);
+  assert.match(plays, /signInWithPasswordAccount/);
+  assert.doesNotMatch(plays, /localStorage\.setItem\([^)]*password: pw/);
+});
+
 test("all-time roster uses auth-owned rows instead of rewriting the shared player list", () => {
   const fs = require("node:fs");
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
