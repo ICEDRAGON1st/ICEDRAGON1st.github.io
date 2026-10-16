@@ -132,4 +132,55 @@ test("owned chat restores missing DMs and groups but never global", () => {
   assert.equal(overlaid.threads.global.messages.map((m) => m.id).join(","), "g0,g1");
   assert.equal(overlaid.threads["p-me:p-pal"].messages.map((m) => m.id).join(","), "d1,d2");
   assert.equal(overlaid.threads["p-skip:p-x"], undefined);
+
+  const liveRow = mine.applyChange(
+    {
+      threads: {
+        "p-me:p-pal": {
+          messages: [{ id: "d1", from: "p-me", name: "Ada", text: "hey", at: 2 }]
+        }
+      }
+    },
+    {
+      type: "UPDATE",
+      record: {
+        player_id: "p-pal",
+        threads: {
+          "p-me:p-pal": {
+            messages: [{ id: "d2", from: "p-pal", name: "Pal", text: "yo", at: 3 }]
+          }
+        }
+      }
+    }
+  );
+  assert.equal(liveRow.threads["p-me:p-pal"].messages.map((m) => m.id).join(","), "d1,d2");
+
+  const afterDelete = mine.applyChange(liveRow, {
+    type: "DELETE",
+    old_record: { player_id: "p-pal" }
+  });
+  assert.equal(afterDelete.threads["p-me:p-pal"].messages.map((m) => m.id).join(","), "d1,d2");
+});
+
+test("chat live rows merge without dropping other players' messages", () => {
+  const fs = require("node:fs");
+  const ui = fs.readFileSync(path.join(ROOT, "hub-chat.js"), "utf8");
+  const supabase = fs.readFileSync(path.join(ROOT, "hub-supabase.js"), "utf8");
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160021_chat_thread_contributions_realtime.sql"),
+    "utf8"
+  );
+  assert.match(ui, /ensureChatRealtime/);
+  assert.match(ui, /applyChatRealtime/);
+  assert.match(ui, /subscribeChatThreadContributions/);
+  assert.doesNotMatch(
+    ui.slice(ui.indexOf("function applyChatRealtime"), ui.indexOf("function stopChatRealtime")),
+    /pushRemote/
+  );
+  assert.match(supabase, /function subscribeChatThreadContributions/);
+  assert.match(supabase, /chat_thread_contributions/);
+  assert.match(supabase, /realtime\/v1\/websocket/);
+  assert.match(sql, /alter table public\.chat_thread_contributions replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.chat_thread_contributions/i);
+  assert.doesNotMatch(sql, /to anon/i);
 });

@@ -534,41 +534,59 @@
     }
   }
 
-  let presenceSocket = null;
-  let presenceHeartbeatTimer = null;
-  let presenceReconnectTimer = null;
-  let presenceListeners = new Set();
-  let presenceRef = 0;
-  let presenceWanted = false;
-  let presenceBackoffMs = 1000;
-  let presenceConnecting = false;
+  const realtimeChannels = new Map();
+  let realtimeSocket = null;
+  let realtimeHeartbeatTimer = null;
+  let realtimeReconnectTimer = null;
+  let realtimeRef = 0;
+  let realtimeWanted = false;
+  let realtimeBackoffMs = 1000;
+  let realtimeConnecting = false;
+  let realtimeAccessToken = "";
 
-  function presenceWsUrl() {
+  function realtimeTopic(table) {
+    return `realtime:${String(table || "").replace(/_/g, "-")}`;
+  }
+
+  function realtimeHasListeners() {
+    for (const ch of realtimeChannels.values()) {
+      if (ch.listeners.size) return true;
+    }
+    return false;
+  }
+
+  function realtimeWsUrl() {
     return (
       `${SUPABASE_URL.replace(/^http/i, "ws")}/realtime/v1/websocket` +
       `?apikey=${encodeURIComponent(SUPABASE_ANON_KEY)}&vsn=1.0.0`
     );
   }
 
-  function stopPresenceRealtime() {
-    presenceWanted = false;
-    presenceConnecting = false;
-    if (presenceHeartbeatTimer) {
-      clearInterval(presenceHeartbeatTimer);
-      presenceHeartbeatTimer = null;
+  function stopRealtimeSocket() {
+    realtimeWanted = false;
+    realtimeConnecting = false;
+    realtimeAccessToken = "";
+    if (realtimeHeartbeatTimer) {
+      clearInterval(realtimeHeartbeatTimer);
+      realtimeHeartbeatTimer = null;
     }
-    if (presenceReconnectTimer) {
-      clearTimeout(presenceReconnectTimer);
-      presenceReconnectTimer = null;
+    if (realtimeReconnectTimer) {
+      clearTimeout(realtimeReconnectTimer);
+      realtimeReconnectTimer = null;
     }
-    const ws = presenceSocket;
-    presenceSocket = null;
+    const ws = realtimeSocket;
+    realtimeSocket = null;
     try {
       ws?.close?.();
     } catch {}
   }
 
-  function parsePresenceRealtimeMessage(raw) {
+  function stopPresenceRealtime() {
+    if (realtimeHasListeners()) return;
+    stopRealtimeSocket();
+  }
+
+  function parseRealtimeEnvelope(raw) {
     let msg = raw;
     if (typeof raw === "string") {
       try {
@@ -578,124 +596,149 @@
       }
     }
     if (!msg || typeof msg !== "object") return null;
+    const topic = String(msg.topic || "");
     const event = String(msg.event || "");
     const payload = msg.payload && typeof msg.payload === "object" ? msg.payload : {};
+    let change = null;
     if (event === "postgres_changes") {
-      return payload.data && typeof payload.data === "object" ? payload.data : payload;
-    }
-    if (event === "INSERT" || event === "UPDATE" || event === "DELETE") {
-      return {
+      change = payload.data && typeof payload.data === "object" ? payload.data : payload;
+    } else if (event === "INSERT" || event === "UPDATE" || event === "DELETE") {
+      change = {
         type: event,
         record: payload.record || payload.new || {},
         old_record: payload.old_record || payload.old || {}
       };
     }
-    return null;
+    if (!change || typeof change !== "object") return null;
+    return { topic, change };
   }
 
-  function notifyPresenceChange(change) {
-    presenceListeners.forEach((fn) => {
+  function notifyRealtimeChange(topic, change) {
+    const ch = realtimeChannels.get(topic);
+    if (!ch) return;
+    ch.listeners.forEach((fn) => {
       try {
         fn(change);
       } catch {}
     });
   }
 
-  function schedulePresenceReconnect() {
-    if (!presenceWanted || !presenceListeners.size) return;
-    if (presenceReconnectTimer) return;
-    const wait = presenceBackoffMs;
-    presenceBackoffMs = Math.min(30_000, presenceBackoffMs * 2);
-    presenceReconnectTimer = setTimeout(() => {
-      presenceReconnectTimer = null;
-      startPresenceSocket();
+  function joinRealtimeChannel(ws, table, token) {
+    if (!ws || ws.readyState !== 1 || !table || !token) return;
+    realtimeRef += 1;
+    try {
+      ws.send(
+        JSON.stringify({
+          topic: realtimeTopic(table),
+          event: "phx_join",
+          payload: {
+            config: {
+              broadcast: { ack: false, self: false },
+              presence: { key: "" },
+              postgres_changes: [{ event: "*", schema: "public", table }]
+            },
+            access_token: token
+          },
+          ref: String(realtimeRef)
+        })
+      );
+    } catch {
+      try {
+        ws.close();
+      } catch {}
+    }
+  }
+
+  function leaveRealtimeChannel(table) {
+    const ws = realtimeSocket;
+    if (!ws || ws.readyState !== 1 || !table) return;
+    realtimeRef += 1;
+    try {
+      ws.send(
+        JSON.stringify({
+          topic: realtimeTopic(table),
+          event: "phx_leave",
+          payload: {},
+          ref: String(realtimeRef)
+        })
+      );
+    } catch {}
+  }
+
+  function scheduleRealtimeReconnect() {
+    if (!realtimeWanted || !realtimeHasListeners()) return;
+    if (realtimeReconnectTimer) return;
+    const wait = realtimeBackoffMs;
+    realtimeBackoffMs = Math.min(30_000, realtimeBackoffMs * 2);
+    realtimeReconnectTimer = setTimeout(() => {
+      realtimeReconnectTimer = null;
+      startRealtimeSocket();
     }, wait);
   }
 
-  function startPresenceSocket() {
-    if (presenceSocket || presenceConnecting || !presenceWanted || !presenceListeners.size) return;
+  function startRealtimeSocket() {
+    if (realtimeSocket || realtimeConnecting || !realtimeWanted || !realtimeHasListeners()) return;
     if (typeof WebSocket === "undefined") return;
     if (netBlocked()) return;
-    presenceConnecting = true;
+    realtimeConnecting = true;
     Promise.resolve(ensureSession())
       .then((session) => {
-        if (!presenceWanted || !presenceListeners.size) {
-          presenceConnecting = false;
+        if (!realtimeWanted || !realtimeHasListeners()) {
+          realtimeConnecting = false;
           return;
         }
         const token = session?.access_token;
         if (!token || netBlocked()) {
-          presenceConnecting = false;
-          schedulePresenceReconnect();
+          realtimeConnecting = false;
+          scheduleRealtimeReconnect();
           return;
         }
         let ws;
         try {
-          ws = new WebSocket(presenceWsUrl());
+          ws = new WebSocket(realtimeWsUrl());
         } catch {
-          presenceConnecting = false;
-          schedulePresenceReconnect();
+          realtimeConnecting = false;
+          scheduleRealtimeReconnect();
           return;
         }
-        presenceSocket = ws;
-        const channel = "realtime:presence-pings";
+        realtimeSocket = ws;
+        realtimeAccessToken = token;
         ws.onopen = () => {
-          presenceConnecting = false;
-          presenceBackoffMs = 1000;
-          presenceRef += 1;
-          try {
-            ws.send(
-              JSON.stringify({
-                topic: channel,
-                event: "phx_join",
-                payload: {
-                  config: {
-                    broadcast: { ack: false, self: false },
-                    presence: { key: "" },
-                    postgres_changes: [
-                      { event: "*", schema: "public", table: "presence_pings" }
-                    ]
-                  },
-                  access_token: token
-                },
-                ref: String(presenceRef)
-              })
-            );
-          } catch {
+          realtimeConnecting = false;
+          realtimeBackoffMs = 1000;
+          realtimeChannels.forEach((ch) => {
+            if (ch.listeners.size) joinRealtimeChannel(ws, ch.table, token);
+          });
+          if (realtimeHeartbeatTimer) clearInterval(realtimeHeartbeatTimer);
+          realtimeHeartbeatTimer = setInterval(() => {
+            if (!realtimeSocket || realtimeSocket.readyState !== 1) return;
+            realtimeRef += 1;
             try {
-              ws.close();
-            } catch {}
-            return;
-          }
-          if (presenceHeartbeatTimer) clearInterval(presenceHeartbeatTimer);
-          presenceHeartbeatTimer = setInterval(() => {
-            if (!presenceSocket || presenceSocket.readyState !== 1) return;
-            presenceRef += 1;
-            try {
-              presenceSocket.send(
+              realtimeSocket.send(
                 JSON.stringify({
                   topic: "phoenix",
                   event: "heartbeat",
                   payload: {},
-                  ref: String(presenceRef)
+                  ref: String(realtimeRef)
                 })
               );
             } catch {}
           }, 25_000);
         };
         ws.onmessage = (ev) => {
-          const change = parsePresenceRealtimeMessage(ev && ev.data);
-          if (!change) return;
-          notifyPresenceChange(change);
+          const parsed = parseRealtimeEnvelope(ev && ev.data);
+          if (!parsed) return;
+          notifyRealtimeChange(parsed.topic, parsed.change);
         };
         ws.onclose = () => {
-          if (presenceSocket === ws) presenceSocket = null;
-          presenceConnecting = false;
-          if (presenceHeartbeatTimer) {
-            clearInterval(presenceHeartbeatTimer);
-            presenceHeartbeatTimer = null;
+          if (realtimeSocket === ws) realtimeSocket = null;
+          realtimeConnecting = false;
+          realtimeAccessToken = "";
+          if (realtimeHeartbeatTimer) {
+            clearInterval(realtimeHeartbeatTimer);
+            realtimeHeartbeatTimer = null;
           }
-          schedulePresenceReconnect();
+          scheduleRealtimeReconnect();
         };
         ws.onerror = () => {
           try {
@@ -704,20 +747,53 @@
         };
       })
       .catch(() => {
-        presenceConnecting = false;
-        schedulePresenceReconnect();
+        realtimeConnecting = false;
+        scheduleRealtimeReconnect();
       });
   }
 
-  function subscribePresencePings(onChange) {
-    if (typeof onChange !== "function") return () => {};
-    presenceListeners.add(onChange);
-    presenceWanted = true;
-    startPresenceSocket();
+  function subscribePostgresChanges(table, onChange) {
+    const name = String(table || "").trim();
+    if (!name || typeof onChange !== "function") return () => {};
+    const topic = realtimeTopic(name);
+    let ch = realtimeChannels.get(topic);
+    if (!ch) {
+      ch = { table: name, listeners: new Set() };
+      realtimeChannels.set(topic, ch);
+    }
+    const first = ch.listeners.size === 0;
+    ch.listeners.add(onChange);
+    realtimeWanted = true;
+    if (realtimeSocket && realtimeSocket.readyState === 1 && first) {
+      const token = realtimeAccessToken;
+      if (token) joinRealtimeChannel(realtimeSocket, name, token);
+      else {
+        Promise.resolve(ensureSession())
+          .then((session) => {
+            realtimeAccessToken = session?.access_token || realtimeAccessToken;
+            joinRealtimeChannel(realtimeSocket, name, realtimeAccessToken);
+          })
+          .catch(() => {});
+      }
+    } else {
+      startRealtimeSocket();
+    }
     return () => {
-      presenceListeners.delete(onChange);
-      if (!presenceListeners.size) stopPresenceRealtime();
+      ch.listeners.delete(onChange);
+      if (!ch.listeners.size) {
+        leaveRealtimeChannel(name);
+        realtimeChannels.delete(topic);
+      }
+      if (!realtimeHasListeners()) stopRealtimeSocket();
     };
+  }
+
+  function subscribePresencePings(onChange) {
+    return subscribePostgresChanges("presence_pings", onChange);
+  }
+
+  function subscribeChatThreadContributions(onChange) {
+    return subscribePostgresChanges("chat_thread_contributions", onChange);
   }
 
   async function listPopularityContributions(resetAt) {
@@ -2513,6 +2589,7 @@
     upsertPresencePing,
     deletePresencePing,
     subscribePresencePings,
+    subscribeChatThreadContributions,
     stopPresenceRealtime,
     listPopularityContributions,
     upsertPopularityContribution,

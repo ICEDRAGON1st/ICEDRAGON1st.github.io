@@ -244,6 +244,27 @@
     return { threads };
   }
 
+  function unwrapChange(change) {
+    const payload = change && typeof change === "object" ? change : {};
+    if (payload.data && typeof payload.data === "object") return payload.data;
+    if (payload.payload && typeof payload.payload === "object") {
+      const inner = payload.payload;
+      if (inner.data && typeof inner.data === "object") return inner.data;
+      return inner;
+    }
+    return payload;
+  }
+
+  function applyChange(hub, change) {
+    const data = unwrapChange(change);
+    const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
+    const current = hub && typeof hub === "object" ? hub : { threads: {} };
+    if (type === "DELETE") return { threads: { ...(current.threads || {}) } };
+    const record = data.record || data.new || {};
+    if (!record || typeof record !== "object") return { threads: { ...(current.threads || {}) } };
+    return overlayChatData(current, [record]);
+  }
+
   function applyMine(data, mine, playerId) {
     const me = String(playerId || mine?.playerId || "").trim();
     const owned = readMine(mine);
@@ -268,6 +289,7 @@
     collectMine,
     collectTableMine,
     overlayChatData,
+    applyChange,
     applyMine
   };
   if (root) root.HubChatMine = api;

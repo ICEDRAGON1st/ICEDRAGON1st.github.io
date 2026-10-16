@@ -8,6 +8,7 @@
  *   createGroup(name, memberIds), getGroups()
  *   unreadCount(type?, id?), totalUnread(), markRead()
  *   sync(), startPolling(cb), stopPolling(cb), mountInGameChat()
+ * Chat rows also update live from the signed-in account.
  */
 (function () {
   const DOC_ID = "friend-chat";
@@ -26,6 +27,7 @@
   let cache = { threads: {} };
   let syncing = false;
   let pollTimer = null;
+  let chatRealtimeUnsub = null;
   let writeQueue = Promise.resolve();
   /** @type {{ type: "dm"|"global"|"group", id: string } | null} */
   let active = null;
@@ -317,6 +319,49 @@
 
   function mineApi() {
     return window.HubChatMine || null;
+  }
+
+  function chatCloudQuiet() {
+    try {
+      if (window.HubAfk?.isAfk?.()) return true;
+      if (window.HubNet?.isPaused?.()) return true;
+      if (window.HubNet && HubNet.isOnline && !HubNet.isOnline()) return true;
+    } catch {}
+    try {
+      if (document.hidden) return true;
+    } catch {}
+    return false;
+  }
+
+  function applyChatRealtime(change) {
+    const helper = mineApi();
+    if (!helper?.applyChange) return;
+    const next = helper.applyChange(cache, change);
+    cache = { threads: next?.threads && typeof next.threads === "object" ? next.threads : {} };
+    saveLocal(cache);
+    if (active) markRead(active.type, active.id);
+    pollCallbacks.forEach((fn) => {
+      try {
+        fn();
+      } catch {}
+    });
+  }
+
+  function stopChatRealtime() {
+    try {
+      chatRealtimeUnsub?.();
+    } catch {}
+    chatRealtimeUnsub = null;
+  }
+
+  function ensureChatRealtime() {
+    const api = sb();
+    if (!api?.subscribeChatThreadContributions) return;
+    if (chatRealtimeUnsub) return;
+    if (chatCloudQuiet()) return;
+    chatRealtimeUnsub = api.subscribeChatThreadContributions((change) => {
+      applyChatRealtime(change);
+    });
   }
 
   async function persistMyChat() {
@@ -751,9 +796,15 @@
 
   function startPolling(cb) {
     if (typeof cb === "function") pollCallbacks.add(cb);
+    ensureChatRealtime();
     if (pollTimer) return;
     const tick = async () => {
       try {
+        if (chatCloudQuiet()) {
+          stopChatRealtime();
+          return;
+        }
+        ensureChatRealtime();
         await sync();
         if (active) markRead(active.type, active.id);
         pollCallbacks.forEach((fn) => {
@@ -773,6 +824,7 @@
     if (pollCallbacks.size === 0 && pollTimer) {
       clearInterval(pollTimer);
       pollTimer = null;
+      stopChatRealtime();
     }
   }
 

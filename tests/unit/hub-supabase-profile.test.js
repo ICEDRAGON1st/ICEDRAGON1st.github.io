@@ -151,8 +151,10 @@ test("presence pings use auth-owned rows instead of rewriting the shared presenc
   assert.match(src, /async function upsertPresencePing/);
   assert.match(src, /async function deletePresencePing/);
   assert.match(src, /function subscribePresencePings/);
+  assert.match(src, /function subscribeChatThreadContributions/);
   assert.match(src, /realtime\/v1\/websocket/);
   assert.match(src, /presence_pings/);
+  assert.match(src, /chat_thread_contributions/);
 });
 
 test("popularity contributions use auth-owned rows instead of rewriting the shared play-count document", () => {
@@ -234,6 +236,7 @@ test("friend chat uses auth-owned rows instead of rewriting the shared chat boar
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
   assert.match(src, /async function listChatThreadContributions/);
   assert.match(src, /async function upsertChatThreadContribution/);
+  assert.match(src, /function subscribeChatThreadContributions/);
   assert.match(src, /chat_thread_contributions/);
 });
 

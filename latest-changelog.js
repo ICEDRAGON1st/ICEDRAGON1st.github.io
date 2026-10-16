@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015cj",
+  "build": "20261015ck",
   "notes": [
-    "Shared boards no longer talk to the old backup even if the account-server script didn't load."
+    "Chat now updates from your signed-in account as it happens, so a new message doesn't wait on the next poll."
   ]
 };
