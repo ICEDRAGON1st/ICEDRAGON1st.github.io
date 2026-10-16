@@ -107,11 +107,112 @@
     return { names: out, changed };
   }
 
+  const SAVE_KEY = "names-mine";
+
+  function sanitizeName(raw) {
+    return root.HubIdentity?.sanitizeName
+      ? root.HubIdentity.sanitizeName(raw)
+      : String(raw || "")
+          .replace(/[<>&"'`]/g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 16);
+  }
+
+  function nameKey(name) {
+    return root.HubIdentity?.nameKey
+      ? root.HubIdentity.nameKey(name)
+      : sanitizeName(name).toLowerCase();
+  }
+
+  function normalizePlayerCode(raw) {
+    return root.HubIdentity?.normalizePlayerCode
+      ? root.HubIdentity.normalizePlayerCode(raw)
+      : String(raw || "")
+          .toUpperCase()
+          .replace(/[^23456789ABCDEFGHJKLMNPQRSTUVWXYZ]/g, "")
+          .slice(0, 8);
+  }
+
+  function isPoisonPlayerCode(raw) {
+    return root.HubIdentity?.isPoisonPlayerCode ? root.HubIdentity.isPoisonPlayerCode(raw) : false;
+  }
+
+  function cleanClaim(raw, playerId) {
+    if (!raw || typeof raw !== "object") return null;
+    const me = String(playerId || raw.playerId || "").trim();
+    const name = sanitizeName(raw.name || "");
+    if (!me || !name || (raw.playerId && String(raw.playerId) !== me)) return null;
+    const code = normalizePlayerCode(raw.playerCode || "");
+    const claim = {
+      playerId: me,
+      name,
+      claimedAt: Number(raw.claimedAt) || 0,
+      legend: !!raw.legend,
+      masterFisher: !!raw.masterFisher,
+      inviter: !!raw.inviter,
+      inviteCount: Math.max(0, Math.floor(Number(raw.inviteCount) || 0)),
+      activeTitle: String(raw.activeTitle || "").slice(0, 32),
+      accentTitle: String(raw.accentTitle || "").slice(0, 32),
+      accentColor: String(raw.accentColor || "").slice(0, 32),
+      profileUpdatedAt: Number(raw.profileUpdatedAt) || 0,
+      playerCode: me && code.length === 8 && !isPoisonPlayerCode(code) ? code : ""
+    };
+    if (raw.legendAt) claim.legendAt = Number(raw.legendAt) || 0;
+    if (raw.masterFisherAt) claim.masterFisherAt = Number(raw.masterFisherAt) || 0;
+    if (raw.inviterAt) claim.inviterAt = Number(raw.inviterAt) || 0;
+    if (!claim.inviteCount) delete claim.inviteCount;
+    if (!claim.playerCode) delete claim.playerCode;
+    if (!claim.legendAt) delete claim.legendAt;
+    if (!claim.masterFisherAt) delete claim.masterFisherAt;
+    if (!claim.inviterAt) delete claim.inviterAt;
+    if (!claim.profileUpdatedAt) delete claim.profileUpdatedAt;
+    return claim;
+  }
+
+  function readMine(payload) {
+    const playerId = String(payload?.playerId || "").trim();
+    const claim = cleanClaim(payload?.claim, playerId);
+    return {
+      playerId,
+      key: claim ? nameKey(claim.name) : String(payload?.key || "").toLowerCase(),
+      claim,
+      updatedAt: Number(payload?.updatedAt) || 0
+    };
+  }
+
+  function collectMine(claim, playerId) {
+    const cleaned = cleanClaim(claim, playerId);
+    const me = String(playerId || cleaned?.playerId || "").trim();
+    return {
+      playerId: me,
+      key: cleaned ? nameKey(cleaned.name) : "",
+      claim: cleaned,
+      updatedAt: Date.now()
+    };
+  }
+
+  function applyMine(names, mine, playerId) {
+    const owned = readMine(mine);
+    const me = String(playerId || owned.playerId || "").trim();
+    if (!owned.claim || !me || owned.playerId !== me) return names || {};
+    const key = owned.key || nameKey(owned.claim.name);
+    if (!key) return names || {};
+    const existing = (names || {})[key];
+    if (existing?.playerId && existing.playerId !== me) return names || {};
+    return mergeNameMaps(names || {}, { [key]: owned.claim });
+  }
+
   const api = {
     parseNameRegistry,
     findClaimByPlayerId,
     mergeNameMaps,
-    purgeNameRegistry
+    purgeNameRegistry,
+    SAVE_KEY,
+    cleanClaim,
+    readMine,
+    collectMine,
+    applyMine
   };
   if (root) root.HubNames = api;
   if (typeof module === "object" && module.exports) module.exports = api;

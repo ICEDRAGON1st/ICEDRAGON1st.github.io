@@ -6,6 +6,7 @@ const path = require("node:path");
 const test = require("node:test");
 
 const ROOT = path.join(__dirname, "../..");
+require(path.join(ROOT, "hub-identity.js"));
 const names = require(path.join(ROOT, "hub-names.js"));
 
 test("unique nickname claims live outside hub-plays and load before it", () => {
@@ -94,4 +95,64 @@ test("first claimer keeps a nickname and same-player titles merge", () => {
   assert.equal(purged.names.ada.accentTitle, "");
   assert.equal(purged.names.ada.accentColor, "#0ff");
   assert.equal(purged.changed, true);
+});
+
+test("owned nickname claims dual-write without stealing another player's name", () => {
+  const plays = fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8");
+  assert.match(plays, /persistNamesMine/);
+  assert.match(plays, /pullNamesMine/);
+  assert.equal(names.SAVE_KEY, "names-mine");
+
+  const snapshot = names.collectMine(
+    {
+      playerId: "p-ada",
+      name: "Ada",
+      claimedAt: 10,
+      legend: true,
+      legendAt: 20,
+      activeTitle: "legend",
+      accentColor: "#0ff",
+      playerCode: "AB23-CD45"
+    },
+    "p-ada"
+  );
+  assert.equal(snapshot.playerId, "p-ada");
+  assert.equal(snapshot.key, "ada");
+  assert.equal(snapshot.claim.legend, true);
+  assert.equal(snapshot.claim.playerCode, "AB23CD45");
+
+  const stolen = names.collectMine(
+    { playerId: "p-eve", name: "Ada", claimedAt: 1, legend: true },
+    "p-ada"
+  );
+  assert.equal(stolen.claim, null);
+
+  const restored = names.applyMine({}, snapshot, "p-ada");
+  assert.equal(restored.ada.playerId, "p-ada");
+  assert.equal(restored.ada.legend, true);
+
+  const keepFirst = names.applyMine(
+    { ada: { playerId: "p-bea", name: "Ada", claimedAt: 5 } },
+    snapshot,
+    "p-ada"
+  );
+  assert.equal(keepFirst.ada.playerId, "p-bea");
+
+  const richer = names.applyMine(
+    {
+      ada: {
+        playerId: "p-ada",
+        name: "Ada",
+        claimedAt: 10,
+        masterFisher: true,
+        activeTitle: "ACE",
+        profileUpdatedAt: 50
+      }
+    },
+    snapshot,
+    "p-ada"
+  );
+  assert.equal(richer.ada.legend, true);
+  assert.equal(richer.ada.masterFisher, true);
+  assert.equal(richer.ada.activeTitle, "ACE");
 });
