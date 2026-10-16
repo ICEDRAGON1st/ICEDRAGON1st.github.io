@@ -696,6 +696,31 @@
     };
   }
 
+  function unwrapMailChange(change) {
+    const payload = change && typeof change === "object" ? change : {};
+    if (payload.data && typeof payload.data === "object") return payload.data;
+    if (payload.payload && typeof payload.payload === "object") {
+      const inner = payload.payload;
+      if (inner.data && typeof inner.data === "object") return inner.data;
+      return inner;
+    }
+    return payload;
+  }
+
+  function applyPlayerMailChange(hub, change, now = Date.now()) {
+    const data = unwrapMailChange(change);
+    const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
+    const current = {
+      token: hub?.token,
+      gifts: { ...((hub && hub.gifts && typeof hub.gifts === "object" ? hub.gifts : {}) || {}) },
+      trades: { ...((hub && hub.trades && typeof hub.trades === "object" ? hub.trades : {}) || {}) }
+    };
+    if (type === "DELETE") return current;
+    const record = data.record || data.new || {};
+    if (!record || typeof record !== "object") return current;
+    return overlayPlayerMail(current, [record], now);
+  }
+
   const ADMIN_GIFT_CAP = 40;
   const ADMIN_BROADCAST_NAMES = new Set([
     "*",
@@ -888,6 +913,7 @@
     MAIL_TRADE_CAP,
     collectPlayerMailMine,
     overlayPlayerMail,
+    applyPlayerMailChange,
     ADMIN_GIFT_CAP,
     collectAdminFishGiftsMine,
     overlayAdminFishGifts

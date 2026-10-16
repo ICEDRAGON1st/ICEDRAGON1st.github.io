@@ -808,6 +808,10 @@
     return subscribePostgresChanges("match_room_contributions", onChange);
   }
 
+  function subscribeFishingMailContributions(onChange) {
+    return subscribePostgresChanges("fishing_mail_contributions", onChange);
+  }
+
   async function listPopularityContributions(resetAt) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -2605,6 +2609,7 @@
     subscribeFriendEdgeContributions,
     subscribeCallSignalContributions,
     subscribeMatchRoomContributions,
+    subscribeFishingMailContributions,
     stopPresenceRealtime,
     listPopularityContributions,
     upsertPopularityContribution,

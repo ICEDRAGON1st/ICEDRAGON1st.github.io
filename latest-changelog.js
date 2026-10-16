@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015cn",
+  "build": "20261015co",
   "notes": [
-    "Online matches now update from your signed-in account as they happen, so an opponent's move doesn't wait on the next poll."
+    "Fishing gifts and trades now update from your signed-in account as they happen, so a new gift doesn't wait on the next poll."
   ]
 };

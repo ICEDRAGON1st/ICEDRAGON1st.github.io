@@ -6613,6 +6613,7 @@
   /* ========== PLAYER MAIL: gifts + trades (friends) ========== */
   let playerMailPollTimer = 0;
   let playerMailFetchedAt = 0;
+  let playerMailRealtimeUnsub = null;
   let playerMailCache = { gifts: {}, trades: {} };
   let lastPlayerGiftAt = 0;
   let mailCompose = null; // { mode:'gift'|'trade', friendId, friendName, items:[], tradeId }
@@ -7435,17 +7436,12 @@
     saveState();
   }
 
-  async function pollPlayerMail(force = false) {
-    if (fishingCloudQuiet()) return;
-    const now = Date.now();
-    if (!force && now - playerMailFetchedAt < PLAYER_MAIL_POLL_MS) return;
-    playerMailFetchedAt = now;
-    const doc = await fetchPlayerMailDoc();
-    if (!doc) return;
-    playerMailCache = { gifts: doc.gifts || {}, trades: doc.trades || {} };
+  async function ingestPlayerMailDoc(doc) {
+    playerMailCache = { gifts: doc?.gifts || {}, trades: doc?.trades || {} };
     const myId = mailMyId();
     const me = playerNameLower();
     const claimed = readPlayerMailClaimed();
+    const now = Date.now();
 
     // Auto-notify new gifts (don't auto-claim fish if cooler full — manual claim in inbox)
     let newGifts = 0;
@@ -7476,6 +7472,43 @@
     updateMailBadge(newGifts);
     const overlay = document.getElementById("mail-overlay");
     if (overlay && !overlay.classList.contains("hidden")) renderMailOverlay();
+  }
+
+  function applyPlayerMailRealtime(change) {
+    if (!fishingSaveApi.applyPlayerMailChange) return;
+    const next = fishingSaveApi.applyPlayerMailChange(playerMailCache, change);
+    ingestPlayerMailDoc(next).catch(() => {});
+  }
+
+  function stopPlayerMailRealtime() {
+    try {
+      playerMailRealtimeUnsub?.();
+    } catch {}
+    playerMailRealtimeUnsub = null;
+  }
+
+  function ensurePlayerMailRealtime() {
+    const api = window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
+    if (!api?.subscribeFishingMailContributions) return;
+    if (playerMailRealtimeUnsub) return;
+    if (fishingCloudQuiet()) return;
+    playerMailRealtimeUnsub = api.subscribeFishingMailContributions((change) => {
+      applyPlayerMailRealtime(change);
+    });
+  }
+
+  async function pollPlayerMail(force = false) {
+    if (fishingCloudQuiet()) {
+      stopPlayerMailRealtime();
+      return;
+    }
+    ensurePlayerMailRealtime();
+    const now = Date.now();
+    if (!force && now - playerMailFetchedAt < PLAYER_MAIL_POLL_MS) return;
+    playerMailFetchedAt = now;
+    const doc = await fetchPlayerMailDoc();
+    if (!doc) return;
+    await ingestPlayerMailDoc(doc);
   }
 
   function updateMailBadge(count) {
@@ -7793,6 +7826,7 @@
   }
 
   function startPlayerMailPolling() {
+    ensurePlayerMailRealtime();
     pollPlayerMail(true);
     if (playerMailPollTimer) clearInterval(playerMailPollTimer);
     playerMailPollTimer = setInterval(() => pollPlayerMail(false), PLAYER_MAIL_POLL_MS);

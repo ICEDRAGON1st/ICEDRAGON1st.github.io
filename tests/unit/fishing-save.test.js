@@ -241,6 +241,16 @@ test("fishing player mail uses account-owned rows and skips the shared rewrite a
   assert.match(mail, /listFishingMailContributions/);
   assert.match(mail, /if \(tableWrote && !rewriteShared\) return true/);
   assert.match(mail, /if \(!fetched\) return null;/);
+  assert.match(mail, /ensureMailRealtime/);
+  assert.match(mail, /applyMailRealtime/);
+  assert.match(mail, /subscribeFishingMailContributions/);
+  assert.match(script, /ensurePlayerMailRealtime/);
+  assert.match(script, /applyPlayerMailRealtime/);
+  assert.match(script, /subscribeFishingMailContributions/);
+  assert.doesNotMatch(
+    mail.slice(mail.indexOf("function applyMailRealtime"), mail.indexOf("function stopMailRealtime")),
+    /persistMailContribution|pushPrefer|fetchDoc/
+  );
   assert.match(plays, /fishing\/save\.js/);
 });
 
@@ -334,6 +344,57 @@ test("player mail overlay merges owned gifts and trades without copying others o
   assert.equal(mine.gifts["pg-hub"].id, "pg-hub");
   assert.equal(mine.trades["tr-1"].id, "tr-1");
   assert.equal(save.collectPlayerMailMine(overlaid.gifts, overlaid.trades, "p-calxxxxx").gifts["pg-1"], undefined);
+
+  const liveRow = save.applyPlayerMailChange(
+    hub,
+    {
+      type: "UPDATE",
+      new: {
+        player_id: "p-beaxxxxx",
+        gifts: {
+          "pg-1": {
+            id: "pg-1",
+            fromId: "p-adaxxxxx",
+            toPlayerId: "p-beaxxxxx",
+            items: [{ kind: "fish", fishId: "minnow" }],
+            at: now,
+            claimed: true,
+            claimedAt: now + 5
+          }
+        },
+        trades: {}
+      }
+    },
+    now
+  );
+  assert.equal(liveRow.gifts["pg-hub"].claimed, false);
+  assert.equal(liveRow.gifts["pg-1"].claimed, true);
+
+  const afterDelete = save.applyPlayerMailChange(
+    liveRow,
+    { type: "DELETE", old_record: { player_id: "p-beaxxxxx" } },
+    now
+  );
+  assert.equal(afterDelete.gifts["pg-1"].claimed, true);
+  assert.equal(afterDelete.gifts["pg-hub"].claimed, false);
+});
+
+test("fishing mail live rows subscribe without rewriting the shared board", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const mail = fs.readFileSync(path.resolve(__dirname, "../../hub-fishing-mail.js"), "utf8");
+  const script = fs.readFileSync(path.resolve(__dirname, "../../fishing/script.js"), "utf8");
+  const supabase = fs.readFileSync(path.resolve(__dirname, "../../hub-supabase.js"), "utf8");
+  const sql = fs.readFileSync(
+    path.resolve(__dirname, "../../supabase/migrations/202610160025_fishing_mail_contributions_realtime.sql"),
+    "utf8"
+  );
+  assert.match(mail, /ensureMailRealtime/);
+  assert.match(script, /ensurePlayerMailRealtime/);
+  assert.match(supabase, /function subscribeFishingMailContributions/);
+  assert.match(sql, /alter table public\.fishing_mail_contributions replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.fishing_mail_contributions/i);
+  assert.doesNotMatch(sql, /to anon/i);
 });
 
 test("fishing admin gifts use account-owned claim rows and skip the shared rewrite after success", () => {

@@ -23,6 +23,8 @@
   let timer = 0;
   let lastFetch = 0;
   let started = false;
+  let mailRealtimeUnsub = null;
+  let mailCache = { gifts: {}, trades: {} };
 
   function isFishingPage() {
     return /\/fishing(\/|$)/i.test(location.pathname || "");
@@ -272,13 +274,16 @@
     }
   }
 
-  async function poll() {
-    if (isFishingPage()) return;
-    const now = Date.now();
-    if (now - lastFetch < POLL_MS) return;
-    lastFetch = now;
-    const doc = await fetchDoc();
-    if (!doc) return;
+  function mailCloudQuiet() {
+    try {
+      if (window.HubAfk?.isAfk?.()) return true;
+      if (window.HubNet?.isPaused?.()) return true;
+      if (window.HubNet && HubNet.isOnline && !HubNet.isOnline()) return true;
+    } catch {}
+    return false;
+  }
+
+  async function applyIncomingClaims(doc) {
     const me = playerNameLower();
     const myId = playerId();
     if (!me && !myId) return;
@@ -324,7 +329,8 @@
         claimedAt: Date.now()
       };
     });
-    await postDoc({ gifts, trades: doc.trades || {} });
+    mailCache = { gifts, trades: doc.trades || {} };
+    await postDoc(mailCache);
 
     try {
       window.HubNotifications?.push?.({
@@ -335,9 +341,54 @@
     } catch {}
   }
 
+  function applyMailRealtime(change) {
+    const helper = mailSaveApi();
+    if (!helper?.applyPlayerMailChange) return;
+    const next = helper.applyPlayerMailChange(mailCache, change);
+    mailCache = {
+      gifts: next?.gifts && typeof next.gifts === "object" ? next.gifts : mailCache.gifts,
+      trades: next?.trades && typeof next.trades === "object" ? next.trades : mailCache.trades
+    };
+    applyIncomingClaims(mailCache).catch(() => {});
+  }
+
+  function stopMailRealtime() {
+    try {
+      mailRealtimeUnsub?.();
+    } catch {}
+    mailRealtimeUnsub = null;
+  }
+
+  function ensureMailRealtime() {
+    const api = sb();
+    if (!api?.subscribeFishingMailContributions) return;
+    if (mailRealtimeUnsub) return;
+    if (isFishingPage() || mailCloudQuiet()) return;
+    mailRealtimeUnsub = api.subscribeFishingMailContributions((change) => {
+      applyMailRealtime(change);
+    });
+  }
+
+  async function poll() {
+    if (isFishingPage()) return;
+    if (mailCloudQuiet()) {
+      stopMailRealtime();
+    } else {
+      ensureMailRealtime();
+    }
+    const now = Date.now();
+    if (now - lastFetch < POLL_MS) return;
+    lastFetch = now;
+    const doc = await fetchDoc();
+    if (!doc) return;
+    mailCache = { gifts: doc.gifts || {}, trades: doc.trades || {} };
+    await applyIncomingClaims(mailCache);
+  }
+
   function start() {
     if (started || isFishingPage()) return;
     started = true;
+    ensureMailRealtime();
     poll();
     if (timer) clearInterval(timer);
     timer = setInterval(poll, POLL_MS);
@@ -347,6 +398,7 @@
     started = false;
     if (timer) clearInterval(timer);
     timer = 0;
+    stopMailRealtime();
   }
 
   window.HubFishingMail = { start, stop, poll };
