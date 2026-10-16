@@ -94,3 +94,12 @@ test("hub supabase accepts only well-formed player_saves rows", () => {
     }
   );
 });
+
+test("shared docs skip the old backup write after a successful account-server save", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.equal(supabase.shouldWriteMantleBackup(true), false);
+  assert.equal(supabase.shouldWriteMantleBackup(false), true);
+  assert.match(src, /if \(wrote\) return/);
+  assert.match(src, /shouldWriteMantleBackup\(wrote\)/);
+});

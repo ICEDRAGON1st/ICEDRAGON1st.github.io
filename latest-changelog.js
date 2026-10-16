@@ -1,7 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015bh",
+  "build": "20261015bi",
   "notes": [
-    "Locked nicknames you own now also save on your signed-in account, so another device can keep them without taking someone else's name.",
-    "Copying your player code no longer shows the code on screen."
+    "Shared lists now save to the account server first. The old backup path is only used if that save fails, which should mean fewer too-many-requests pauses."
   ]
 };

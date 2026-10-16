@@ -197,7 +197,9 @@
     });
     if (!res.ok) return { ...profile, displayName: nextName };
     const rows = await res.json().catch(() => null);
-    return parseProfile(Array.isArray(rows) ? rows[0] : null) || { ...profile, displayName: nextName };
+    return (
+      parseProfile(Array.isArray(rows) ? rows[0] : null) || { ...profile, displayName: nextName }
+    );
   }
 
   async function fetchIdentityBind(session) {
@@ -512,7 +514,15 @@
   }
 
   /**
-   * Write Supabase first (source of truth). Best-effort Mantle backup while migrating.
+   * After a successful account-server write, skip the old backup POST.
+   * Keep that backup write only when the account-server write failed.
+   */
+  function shouldWriteMantleBackup(supabaseWrote) {
+    return !supabaseWrote;
+  }
+
+  /**
+   * Write Supabase first (source of truth). Mantle is write-fallback only.
    */
   async function pushPrefer(docId, data, mantleUrl) {
     if (netBlocked()) {
@@ -520,15 +530,16 @@
       err.hubNetBlocked = true;
       throw err;
     }
-    let ok = false;
+    let wrote = false;
     try {
       await upsertDoc(docId, data);
-      ok = true;
+      wrote = true;
     } catch (err) {
       if (err && err.hubNetBlocked) throw err;
       console.warn("[HubSupabase] pushPrefer", docId, err);
     }
-    if (mantleUrl) {
+    if (wrote) return;
+    if (shouldWriteMantleBackup(wrote) && mantleUrl) {
       try {
         if (netBlocked()) throw new Error("hub-net-blocked");
         const res = await fetch(mantleUrl, {
@@ -536,12 +547,12 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(data)
         });
-        if (res.ok) ok = true;
+        if (res.ok) return;
       } catch {
         /* Mantle optional */
       }
     }
-    if (!ok) throw new Error("push failed");
+    throw new Error("push failed");
   }
 
   const api = {
@@ -551,6 +562,7 @@
     upsertDoc,
     getPrefer,
     pushPrefer,
+    shouldWriteMantleBackup,
     ensureSession,
     parseProfile,
     parseLocalPlayerId,
