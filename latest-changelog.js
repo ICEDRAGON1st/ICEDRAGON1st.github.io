@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015bd",
+  "build": "20261015be",
   "notes": [
-    "Your nickname claim and titles now also save on your account, so another signed-in device keeps the same name and colors without taking someone else's nickname."
+    "Games you play now also save on your account, so another signed-in device can keep your recent games without copying someone else's play history."
   ]
 };

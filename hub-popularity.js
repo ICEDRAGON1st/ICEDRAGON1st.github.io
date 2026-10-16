@@ -64,6 +64,81 @@
     return best > 0 ? bestId : "";
   }
 
+  const SAVE_KEY = "plays-mine";
+  const MAX_MINE = 40;
+
+  function sanitizeName(raw) {
+    return root.HubIdentity?.sanitizeName
+      ? root.HubIdentity.sanitizeName(raw)
+      : String(raw || "")
+          .replace(/[<>&"'`]/g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 16);
+  }
+
+  function cleanPlay(raw, playerId) {
+    if (!raw || typeof raw !== "object") return null;
+    const id = String(raw.id || "").trim();
+    const fromId = String(raw.playerId || "").trim();
+    const at = Number(raw.at) || 0;
+    const game = String(raw.game || "")
+      .trim()
+      .slice(0, 32);
+    if (!id || !fromId || !at || !game) return null;
+    if (playerId && fromId !== playerId) return null;
+    return {
+      id,
+      playerId: fromId,
+      name: sanitizeName(raw.name || "") || "Player",
+      game,
+      gameName:
+        String(raw.gameName || game)
+          .trim()
+          .slice(0, 48) || game,
+      at
+    };
+  }
+
+  function cleanPlays(list, playerId) {
+    const out = [];
+    const seen = new Set();
+    (Array.isArray(list) ? list : []).forEach((raw) => {
+      const play = cleanPlay(raw, playerId);
+      if (!play || seen.has(play.id)) return;
+      seen.add(play.id);
+      out.push(play);
+    });
+    return out.sort((a, b) => b.at - a.at).slice(0, MAX_MINE);
+  }
+
+  function readMine(payload) {
+    const playerId = String(payload?.playerId || "").trim();
+    return {
+      playerId,
+      plays: cleanPlays(payload?.plays, playerId),
+      updatedAt: Number(payload?.updatedAt) || 0
+    };
+  }
+
+  function collectMine(plays, playerId) {
+    const me = String(playerId || "").trim();
+    return {
+      playerId: me,
+      plays: cleanPlays(plays, me),
+      updatedAt: Date.now()
+    };
+  }
+
+  function applyMine(localPlays, mine, playerId) {
+    const owned = readMine(mine);
+    const me = String(playerId || owned.playerId || "").trim();
+    if (!me || !owned.playerId || owned.playerId !== me) {
+      return Array.isArray(localPlays) ? localPlays : [];
+    }
+    return mergePlayLogs({ plays: localPlays || [] }, { plays: owned.plays }, MAX_PLAYS).plays;
+  }
+
   function mergePlayLogs(a, b, maxPlays = MAX_PLAYS) {
     const map = new Map();
     [...(a?.plays || []), ...(b?.plays || [])].forEach((p) => {
@@ -84,7 +159,13 @@
     combinePopularity,
     mergePopularityRemote,
     mostPopularGameId,
-    mergePlayLogs
+    mergePlayLogs,
+    SAVE_KEY,
+    MAX_MINE,
+    cleanPlay,
+    readMine,
+    collectMine,
+    applyMine
   };
   root.HubPopularity = api;
   if (typeof module === "object" && module.exports) module.exports = api;

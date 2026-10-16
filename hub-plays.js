@@ -674,6 +674,32 @@
     return identity.parseAccountTransferKey ? identity.parseAccountTransferKey(raw) : null;
   }
 
+  async function persistPlaysMine() {
+    const api = sb();
+    const me = getPlayerId();
+    if (!popularityApi.collectMine || !api?.upsertSave || !me) return;
+    const plays = (cache.plays && cache.plays.length ? cache.plays : loadLocal().plays) || [];
+    try {
+      await api.upsertSave(popularityApi.SAVE_KEY, popularityApi.collectMine(plays, me), 1);
+    } catch (err) {
+      console.warn("[HubPlays] player_saves plays write failed", err);
+    }
+  }
+
+  async function pullPlaysMine() {
+    const api = sb();
+    const me = getPlayerId();
+    if (!popularityApi.applyMine || !api?.getSave || !me) return;
+    try {
+      const raw = await api.getSave(popularityApi.SAVE_KEY);
+      const local = loadLocal();
+      const plays = popularityApi.applyMine(local.plays, popularityApi.readMine(raw), me);
+      saveLocal({ plays, counts: local.counts || {} });
+    } catch (err) {
+      console.warn("[HubPlays] player_saves plays read failed", err);
+    }
+  }
+
   async function persistNamesMine() {
     const api = sb();
     const me = getPlayerId();
@@ -1867,16 +1893,19 @@
     syncing = true;
     try {
       const local = loadLocal();
+      await pullPlaysMine();
+      const withMine = loadLocal();
       let remote = { plays: [], counts: {} };
       try {
         remote = await fetchPlaysRemote();
       } catch {
         remote = { plays: [], counts: {} };
       }
-      const mergedRaw = mergeLogs(local, remote);
+      const mergedRaw = mergeLogs(withMine.plays.length ? withMine : local, remote);
       const purgedPlays = purgePlaysList(mergedRaw.plays);
       const merged = { plays: purgedPlays.plays, counts: mergedRaw.counts };
       saveLocal(merged);
+      persistPlaysMine();
       try {
         await pushPlaysRemote(merged);
       } catch {
@@ -2689,6 +2718,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     local.plays = [entry, ...local.plays].slice(0, MAX_PLAYS);
     local.counts[id] = (Number(local.counts[id]) || 0) + 1;
     saveLocal(local);
+    persistPlaysMine();
     bumpPopularityLocal(id);
     markSelfOnlineLocal(entry.at);
     sync().catch(() => {});
