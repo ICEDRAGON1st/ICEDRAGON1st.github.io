@@ -158,6 +158,7 @@ test("presence pings use auth-owned rows instead of rewriting the shared presenc
   assert.match(src, /function subscribeFishingMailContributions/);
   assert.match(src, /function subscribeFishingGiftContributions/);
   assert.match(src, /function subscribeAquariumTankContributions/);
+  assert.match(src, /function subscribeCommunityCastContributions/);
   assert.match(src, /realtime\/v1\/websocket/);
   assert.match(src, /presence_pings/);
   assert.match(src, /chat_thread_contributions/);
@@ -301,6 +302,7 @@ test("fishing community casts use auth-owned rows instead of rewriting the share
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
   assert.match(src, /async function listCommunityCastContributions/);
   assert.match(src, /async function upsertCommunityCastContribution/);
+  assert.match(src, /function subscribeCommunityCastContributions/);
   assert.match(src, /community_cast_contributions/);
 });
 

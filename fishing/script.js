@@ -1356,6 +1356,8 @@
     rewardMult: COMMUNITY_REWARD_MULT,
     lbWave: 0
   };
+  let communityCastRows = [];
+  let communityRealtimeUnsub = null;
   let communityFetchAt = 0;
   let communityRateLimitedUntil = 0;
   let communitySyncTimer = 0;
@@ -1686,7 +1688,10 @@
 
     const tableRows = await fetchCommunityTableRemote();
     const tableFetched = Array.isArray(tableRows);
-    if (tableFetched) remoteOk = true;
+    if (tableFetched) {
+      remoteOk = true;
+      communityCastRows = tableRows;
+    }
 
     let data = null;
     if (remote) {
@@ -1820,8 +1825,48 @@
     }, Math.min(COMMUNITY_SYNC_GAP_MS, 45_000));
   }
 
+  function applyCommunityCastRealtime(change) {
+    if (!fishingSaveApi.applyCommunityCastChange) return;
+    const next = fishingSaveApi.applyCommunityCastChange(
+      communityCache,
+      change,
+      communityCache.weekKey || communityWeekKey(),
+      communityCastRows
+    );
+    communityCastRows = Array.isArray(next.rows) ? next.rows : communityCastRows;
+    communityCache = {
+      weekKey: next.weekKey || communityCache.weekKey,
+      total: Math.max(Number(communityCache.total) || 0, Number(next.total) || 0),
+      goal: Math.max(500, Number(next.goal) || Number(communityCache.goal) || COMMUNITY_GOAL),
+      rewardUntil: communityCache.rewardUntil,
+      rewardMult: clampCommunityRewardMult(next.rewardMult || communityCache.rewardMult),
+      lbWave: communityCache.lbWave
+    };
+  }
+
+  function stopCommunityRealtime() {
+    try {
+      communityRealtimeUnsub?.();
+    } catch {}
+    communityRealtimeUnsub = null;
+  }
+
+  function ensureCommunityRealtime() {
+    const api = window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
+    if (!api?.subscribeCommunityCastContributions) return;
+    if (communityRealtimeUnsub) return;
+    if (fishingCloudQuiet()) return;
+    communityRealtimeUnsub = api.subscribeCommunityCastContributions((change) => {
+      applyCommunityCastRealtime(change);
+    });
+  }
+
   async function syncCommunity(force = false) {
-    if (fishingCloudQuiet()) return communityCache;
+    if (fishingCloudQuiet()) {
+      stopCommunityRealtime();
+      return communityCache;
+    }
+    ensureCommunityRealtime();
     if (communitySyncInFlight) {
       if (force) scheduleCommunitySync();
       return communityCache;

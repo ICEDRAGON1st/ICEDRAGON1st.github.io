@@ -80,6 +80,16 @@ test("admin hub_docs RPC stays authenticated and locked to admin document ids", 
   assert.doesNotMatch(rpc, /to anon/i);
 });
 
+test("community cast realtime publication stays authenticated and replica-identity full", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160028_community_cast_contributions_realtime.sql"),
+    "utf8"
+  );
+  assert.match(sql, /alter table public\.community_cast_contributions replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.community_cast_contributions/i);
+  assert.doesNotMatch(sql, /to anon/i);
+});
+
 test("aquarium tank realtime publication stays authenticated and replica-identity full", () => {
   const sql = fs.readFileSync(
     path.join(ROOT, "supabase/migrations/202610160027_aquarium_tank_contributions_realtime.sql"),

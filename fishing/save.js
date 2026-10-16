@@ -921,6 +921,33 @@
     return base;
   }
 
+  function communityCastRowKey(row) {
+    return String(row?.player_id || row?.playerId || "").trim();
+  }
+
+  function mergeCommunityCastRows(rows, change) {
+    const data = unwrapMailChange(change);
+    const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
+    const list = Array.isArray(rows) ? rows.slice() : [];
+    if (type === "DELETE") return list;
+    const record = data.record || data.new || {};
+    if (!record || typeof record !== "object") return list;
+    const pid = communityCastRowKey(record);
+    if (!pid) return list;
+    const idx = list.findIndex((row) => communityCastRowKey(row) === pid);
+    if (idx >= 0) list[idx] = record;
+    else list.push(record);
+    return list;
+  }
+
+  function applyCommunityCastChange(hub, change, weekKey, rows) {
+    const nextRows = mergeCommunityCastRows(rows, change);
+    return {
+      ...overlayCommunityCasts(hub, nextRows, weekKey),
+      rows: nextRows
+    };
+  }
+
   const api = {
     SAVE_KEY,
     SAVE_BACKUP_KEY,
@@ -940,6 +967,7 @@
     applyAquaTankChange,
     COMMUNITY_CASTS_CAP,
     overlayCommunityCasts,
+    applyCommunityCastChange,
     MAIL_GIFT_CAP,
     MAIL_TRADE_CAP,
     collectPlayerMailMine,

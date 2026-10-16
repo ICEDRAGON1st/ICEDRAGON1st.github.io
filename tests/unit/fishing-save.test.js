@@ -253,6 +253,27 @@ test("community cast overlay sums this week's rows without shrinking a richer sh
   assert.equal(kept.total, 500);
 
   assert.equal(save.overlayCommunityCasts(hub, rows, "2026-10-9").total, 999);
+
+  const liveRow = save.applyCommunityCastChange(
+    hub,
+    {
+      type: "UPDATE",
+      new: { player_id: "p-cal", week_key: "2026-10-16", casts: 30 }
+    },
+    "2026-10-16",
+    rows
+  );
+  assert.equal(liveRow.total, 155);
+  assert.equal(liveRow.rows.length, 5);
+
+  const afterDelete = save.applyCommunityCastChange(
+    liveRow,
+    { type: "DELETE", old_record: { player_id: "p-cal" } },
+    "2026-10-16",
+    liveRow.rows
+  );
+  assert.equal(afterDelete.total, 155);
+  assert.equal(afterDelete.rows.length, 5);
 });
 
 test("fishing player mail uses account-owned rows and skips the shared rewrite after success", () => {
@@ -598,5 +619,26 @@ test("fishing aquarium live rows subscribe without rewriting the shared board", 
   assert.match(supabase, /function subscribeAquariumTankContributions/);
   assert.match(sql, /alter table public\.aquarium_tank_contributions replica identity full/i);
   assert.match(sql, /alter publication supabase_realtime add table public\.aquarium_tank_contributions/i);
+  assert.doesNotMatch(sql, /to anon/i);
+});
+
+test("fishing community live rows subscribe without rewriting the shared meter", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const script = fs.readFileSync(path.resolve(__dirname, "../../fishing/script.js"), "utf8");
+  const supabase = fs.readFileSync(path.resolve(__dirname, "../../hub-supabase.js"), "utf8");
+  const sql = fs.readFileSync(
+    path.resolve(
+      __dirname,
+      "../../supabase/migrations/202610160028_community_cast_contributions_realtime.sql"
+    ),
+    "utf8"
+  );
+  assert.match(script, /ensureCommunityRealtime/);
+  assert.match(script, /applyCommunityCastRealtime/);
+  assert.match(script, /subscribeCommunityCastContributions/);
+  assert.match(supabase, /function subscribeCommunityCastContributions/);
+  assert.match(sql, /alter table public\.community_cast_contributions replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.community_cast_contributions/i);
   assert.doesNotMatch(sql, /to anon/i);
 });
