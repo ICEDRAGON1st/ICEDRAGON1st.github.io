@@ -121,6 +121,40 @@
     };
   }
 
+  function overlayFriendsData(hub, rows) {
+    const out = {
+      profiles: { ...((hub && hub.profiles) || {}) },
+      invites: { ...((hub && hub.invites) || {}) }
+    };
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const owned = readEdges({
+        playerId: row?.player_id || row?.playerId,
+        name: row?.display_name || row?.name,
+        friends: row?.friends,
+        outgoing: row?.outgoing,
+        incoming: row?.incoming,
+        invites: row?.invites,
+        updatedAt: Date.parse(row?.updated_at || "") || Number(row?.updatedAt) || 0
+      });
+      if (!owned.playerId) return;
+      const existing = out.profiles[owned.playerId] || {};
+      out.profiles[owned.playerId] = {
+        name: owned.name || existing.name || "Player",
+        friends: { ...(existing.friends || {}), ...owned.friends },
+        outgoing: { ...(existing.outgoing || {}), ...owned.outgoing },
+        incoming: { ...(existing.incoming || {}), ...owned.incoming },
+        updatedAt: Math.max(Number(existing.updatedAt) || 0, owned.updatedAt || 0)
+      };
+      Object.entries(owned.invites || {}).forEach(([id, inv]) => {
+        const existingInv = out.invites[id];
+        if (!existingInv || (Number(inv.at) || 0) >= (Number(existingInv.at) || 0)) {
+          out.invites[id] = inv;
+        }
+      });
+    });
+    return out;
+  }
+
   function applyMine(data, mine, playerId) {
     const me = String(playerId || mine?.playerId || "").trim();
     const owned = readEdges(mine);
@@ -154,7 +188,8 @@
     isEmptyProfile,
     readEdges,
     collectMine,
-    applyMine
+    applyMine,
+    overlayFriendsData
   };
   if (root) root.HubFriendsEdges = api;
   if (typeof module === "object" && module.exports) module.exports = api;

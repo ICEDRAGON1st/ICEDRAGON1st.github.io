@@ -88,17 +88,69 @@
     if (!res.ok) throw new Error("push failed");
   }
 
-  async function fetchRemote() {
+  async function fetchFriendsTableRemote() {
     const api = sb();
-    const data = api ? await api.getPrefer(DOC_ID, API) : await fetchJson(API);
-    if (!data || typeof data !== "object") return { profiles: {}, invites: {} };
-    return {
-      profiles: data.profiles && typeof data.profiles === "object" ? data.profiles : {},
-      invites: data.invites && typeof data.invites === "object" ? data.invites : {}
-    };
+    const helper = edgesApi();
+    if (!api?.listFriendEdgeContributions || !helper?.overlayFriendsData) return null;
+    try {
+      const rows = await api.listFriendEdgeContributions();
+      if (!rows) return null;
+      return helper.overlayFriendsData({ profiles: {}, invites: {} }, rows);
+    } catch {
+      return null;
+    }
   }
 
-  async function pushRemote(next) {
+  async function persistFriendEdgeContribution(data) {
+    const api = sb();
+    const helper = edgesApi();
+    const me = getPlayerId();
+    if (!api?.upsertFriendEdgeContribution || !helper?.collectMine || !me) return false;
+    const snapshot = helper.collectMine(data, me);
+    try {
+      await api.upsertFriendEdgeContribution({
+        playerId: me,
+        displayName: snapshot.name || getPlayerName() || "",
+        friends: snapshot.friends,
+        outgoing: snapshot.outgoing,
+        incoming: snapshot.incoming,
+        invites: snapshot.invites
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function fetchRemote() {
+    let parsed = { profiles: {}, invites: {} };
+    let fetched = false;
+    try {
+      const api = sb();
+      const data = api ? await api.getPrefer(DOC_ID, API) : await fetchJson(API);
+      if (data && typeof data === "object") {
+        parsed = {
+          profiles: data.profiles && typeof data.profiles === "object" ? data.profiles : {},
+          invites: data.invites && typeof data.invites === "object" ? data.invites : {}
+        };
+        fetched = true;
+      }
+    } catch {
+      parsed = { profiles: {}, invites: {} };
+    }
+    const tableRemote = await fetchFriendsTableRemote();
+    if (tableRemote) {
+      parsed = mergeData(parsed, tableRemote);
+      fetched = true;
+    }
+    if (!fetched) throw new Error("friends-unavailable");
+    return parsed;
+  }
+
+  async function pushRemote(next, opts) {
+    const tableWrote = await persistFriendEdgeContribution(next);
+    if (tableWrote && !(opts && opts.rewriteShared)) return;
+    if (opts && opts.skipShared) return;
     const api = sb();
     if (api) {
       await api.pushPrefer(DOC_ID, next, API);
@@ -209,17 +261,19 @@
   async function mutate(updater) {
     const run = async () => {
       let remote = cache;
+      let fetched = true;
       try {
         remote = await fetchRemote();
       } catch {
         remote = cache;
+        fetched = false;
       }
       const base = await pullMyEdges(mergeData(cache, remote));
       const next = updater(base);
       if (!next) return false;
       saveLocal(next);
       try {
-        await pushRemote(next);
+        await pushRemote(next, { skipShared: !fetched });
       } catch {
         await persistMyEdges();
         return false;
@@ -241,9 +295,12 @@
     try {
       const local = loadLocal();
       let remote = { profiles: {}, invites: {} };
+      let fetched = true;
       try {
         remote = await fetchRemote();
-      } catch {}
+      } catch {
+        fetched = false;
+      }
       const merged = await pullMyEdges(mergeData(local, remote));
       const me = getPlayerId();
       const name = getPlayerName();
@@ -252,7 +309,7 @@
       }
       saveLocal(merged);
       try {
-        await pushRemote(merged);
+        await pushRemote(merged, { skipShared: !fetched });
       } catch {}
       await persistMyEdges();
       return cache;

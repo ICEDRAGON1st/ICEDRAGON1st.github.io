@@ -202,3 +202,11 @@ test("call signaling uses auth-owned rows instead of rewriting the shared call b
   assert.match(src, /async function upsertCallSignalContribution/);
   assert.match(src, /call_signal_contributions/);
 });
+
+test("friend edges use auth-owned rows instead of rewriting the shared friends board", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.match(src, /async function listFriendEdgeContributions/);
+  assert.match(src, /async function upsertFriendEdgeContribution/);
+  assert.match(src, /friend_edge_contributions/);
+});

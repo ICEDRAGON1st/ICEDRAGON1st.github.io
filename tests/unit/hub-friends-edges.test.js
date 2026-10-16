@@ -15,6 +15,9 @@ test("friend edges live in a helper used by the shared friends board", () => {
   assert.match(ui, /window\.HubFriendsEdges/);
   assert.match(ui, /persistMyEdges/);
   assert.match(ui, /pullMyEdges/);
+  assert.match(ui, /persistFriendEdgeContribution/);
+  assert.match(ui, /fetchFriendsTableRemote/);
+  assert.match(ui, /skipShared: !fetched/);
   assert.match(plays, /hub-friends-edges\.js/);
   assert.match(index, /hub-friends-edges\.js/);
   assert.equal(edges.SAVE_KEY, "friends-edges");
@@ -91,4 +94,38 @@ test("owned friend edges restore only when the shared profile is empty", () => {
   assert.equal(live.profiles["p-me"].friends["p-pal"], undefined);
   assert.equal(live.profiles["p-me"].incoming["p-new"].name, "New");
   assert.equal(live.invites["inv-1"].id, "inv-1");
+
+  const overlaid = edges.overlayFriendsData(
+    {
+      profiles: {
+        "p-other": { name: "Other", friends: { "p-me": { name: "Ada" } }, outgoing: {}, incoming: {} }
+      },
+      invites: {}
+    },
+    [
+      {
+        player_id: "p-me",
+        display_name: "Ada",
+        friends: { "p-pal": { name: "Pal", since: 10 } },
+        outgoing: {},
+        incoming: {},
+        invites: {
+          "inv-1": {
+            id: "inv-1",
+            fromId: "p-me",
+            toId: "p-pal",
+            fromName: "Ada",
+            toName: "Pal",
+            game: "snake",
+            at: 30
+          }
+        }
+      },
+      { player_id: "", friends: { "p-skip": { name: "Skip" } } }
+    ]
+  );
+  assert.equal(overlaid.profiles["p-me"].friends["p-pal"].name, "Pal");
+  assert.equal(overlaid.profiles["p-other"].friends["p-me"].name, "Ada");
+  assert.equal(overlaid.invites["inv-1"].game, "snake");
+  assert.equal(overlaid.profiles["p-skip"], undefined);
 });

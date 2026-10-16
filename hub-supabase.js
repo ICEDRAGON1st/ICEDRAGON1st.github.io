@@ -1130,6 +1130,131 @@
     }
   }
 
+  function sanitizeFriendMap(map) {
+    const out = {};
+    Object.entries(map && typeof map === "object" && !Array.isArray(map) ? map : {}).forEach(
+      ([id, raw]) => {
+        if (Object.keys(out).length >= 200) return;
+        const playerId = String(id || "")
+          .trim()
+          .slice(0, 96);
+        if (!playerId || !raw || typeof raw !== "object") return;
+        const edge = {
+          name: String(raw.name || "Player")
+            .replace(/[<>&"'`]/g, "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 32) || "Player"
+        };
+        const at = Number(raw.at) || 0;
+        const since = Number(raw.since) || 0;
+        if (at) edge.at = at;
+        if (since) edge.since = since;
+        out[playerId] = edge;
+      }
+    );
+    return out;
+  }
+
+  function sanitizeFriendInvites(map, playerId) {
+    const out = {};
+    Object.entries(map && typeof map === "object" && !Array.isArray(map) ? map : {}).forEach(
+      ([id, raw]) => {
+        if (Object.keys(out).length >= 80) return;
+        if (!raw || typeof raw !== "object") return;
+        const inviteId = String(raw.id || id || "")
+          .trim()
+          .slice(0, 64);
+        const fromId = String(raw.fromId || "").trim();
+        const toId = String(raw.toId || "").trim();
+        if (!inviteId || !fromId || !toId) return;
+        if (fromId !== playerId && toId !== playerId) return;
+        out[inviteId] = {
+          id: inviteId,
+          fromId,
+          fromName: String(raw.fromName || "Player")
+            .replace(/[<>&"'`]/g, "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 32) || "Player",
+          toId,
+          toName: String(raw.toName || "Player")
+            .replace(/[<>&"'`]/g, "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 32) || "Player",
+          game: String(raw.game || "").trim().slice(0, 32),
+          roomId: String(raw.roomId || "").trim().slice(0, 64),
+          code: String(raw.code || "").trim().slice(0, 32),
+          status: String(raw.status || "pending").trim().slice(0, 16) || "pending",
+          at: Number(raw.at) || 0,
+          respondedAt: Number(raw.respondedAt) || 0
+        };
+      }
+    );
+    return out;
+  }
+
+  async function listFriendEdgeContributions() {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const url =
+      `${SUPABASE_URL}/rest/v1/friend_edge_contributions?select=player_id,display_name,friends,outgoing,incoming,invites,updated_at`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase friends list ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function upsertFriendEdgeContribution(row) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const playerId = parseLocalPlayerId(row?.playerId);
+    if (!userId || !session?.access_token) throw new Error("supabase friends needs a session");
+    if (!playerId) throw new Error("bad friends player id");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/friend_edge_contributions`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        player_id: playerId,
+        display_name: String(row?.displayName || row?.name || "")
+          .replace(/[<>&"'`]/g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 32),
+        friends: sanitizeFriendMap(row?.friends),
+        outgoing: sanitizeFriendMap(row?.outgoing),
+        incoming: sanitizeFriendMap(row?.incoming),
+        invites: sanitizeFriendInvites(row?.invites, playerId),
+        updated_at: new Date().toISOString()
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase friends upsert ${res.status} ${text}`);
+    }
+  }
+
   async function getDoc(id) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -1328,6 +1453,8 @@
     upsertAlltimeRoster,
     listCallSignalContributions,
     upsertCallSignalContribution,
+    listFriendEdgeContributions,
+    upsertFriendEdgeContribution,
     profile: () => {
       const raw = readSession()?.profile;
       const parsed = parseProfile(raw);

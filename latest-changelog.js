@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015bw",
+  "build": "20261015bx",
   "notes": [
-    "Voice calls now also signal from your signed-in account as your own row, so a busy device can't wipe someone else's call."
+    "Friends now also live on your signed-in account as your own row, so a busy device can't wipe someone else's friend list."
   ]
 };
