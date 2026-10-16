@@ -128,4 +128,65 @@ test("owned friend edges restore only when the shared profile is empty", () => {
   assert.equal(overlaid.profiles["p-other"].friends["p-me"].name, "Ada");
   assert.equal(overlaid.invites["inv-1"].game, "snake");
   assert.equal(overlaid.profiles["p-skip"], undefined);
+
+  const liveRow = edges.applyChange(
+    {
+      profiles: {
+        "p-other": { name: "Other", friends: { "p-me": { name: "Ada" } }, outgoing: {}, incoming: {} }
+      },
+      invites: {}
+    },
+    {
+      type: "UPDATE",
+      record: {
+        player_id: "p-me",
+        display_name: "Ada",
+        friends: { "p-pal": { name: "Pal", since: 10 } },
+        outgoing: {},
+        incoming: {},
+        invites: {
+          "inv-2": {
+            id: "inv-2",
+            fromId: "p-me",
+            toId: "p-pal",
+            fromName: "Ada",
+            toName: "Pal",
+            game: "snake",
+            at: 40
+          }
+        }
+      }
+    }
+  );
+  assert.equal(liveRow.profiles["p-me"].friends["p-pal"].name, "Pal");
+  assert.equal(liveRow.profiles["p-other"].friends["p-me"].name, "Ada");
+  assert.equal(liveRow.invites["inv-2"].game, "snake");
+
+  const afterDelete = edges.applyChange(liveRow, {
+    type: "DELETE",
+    old_record: { player_id: "p-me" }
+  });
+  assert.equal(afterDelete.profiles["p-other"].friends["p-me"].name, "Ada");
+  assert.equal(afterDelete.invites["inv-2"].game, "snake");
+});
+
+test("friend live rows merge without dropping other players' edges", () => {
+  const ui = fs.readFileSync(path.join(ROOT, "hub-friends.js"), "utf8");
+  const supabase = fs.readFileSync(path.join(ROOT, "hub-supabase.js"), "utf8");
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160022_friend_edge_contributions_realtime.sql"),
+    "utf8"
+  );
+  assert.match(ui, /ensureFriendsRealtime/);
+  assert.match(ui, /applyFriendsRealtime/);
+  assert.match(ui, /subscribeFriendEdgeContributions/);
+  assert.doesNotMatch(
+    ui.slice(ui.indexOf("function applyFriendsRealtime"), ui.indexOf("function stopFriendsRealtime")),
+    /pushRemote/
+  );
+  assert.match(supabase, /function subscribeFriendEdgeContributions/);
+  assert.match(supabase, /friend_edge_contributions/);
+  assert.match(sql, /alter table public\.friend_edge_contributions replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.friend_edge_contributions/i);
+  assert.doesNotMatch(sql, /to anon/i);
 });

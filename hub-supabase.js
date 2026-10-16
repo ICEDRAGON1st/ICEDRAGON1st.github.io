@@ -796,6 +796,10 @@
     return subscribePostgresChanges("chat_thread_contributions", onChange);
   }
 
+  function subscribeFriendEdgeContributions(onChange) {
+    return subscribePostgresChanges("friend_edge_contributions", onChange);
+  }
+
   async function listPopularityContributions(resetAt) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -2590,6 +2594,7 @@
     deletePresencePing,
     subscribePresencePings,
     subscribeChatThreadContributions,
+    subscribeFriendEdgeContributions,
     stopPresenceRealtime,
     listPopularityContributions,
     upsertPopularityContribution,

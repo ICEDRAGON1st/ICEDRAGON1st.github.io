@@ -6,6 +6,7 @@
  *   getFriends(), getIncoming(), getOutgoing()
  *   inviteToGame(friendId, { game, roomId, code }), getInvites(), respondInvite(id, accept)
  *   sync(), startPolling(), stopPolling()
+ * Friend rows also update live from the signed-in account.
  */
 (function () {
   const DOC_ID = "friends";
@@ -20,6 +21,8 @@
   let cache = { profiles: {}, invites: {} };
   let syncing = false;
   let pollTimer = null;
+  let friendsRealtimeUnsub = null;
+  let pollOnTick = null;
   let writeQueue = Promise.resolve();
 
   function getPlayerId() {
@@ -206,6 +209,48 @@
 
   function edgesApi() {
     return window.HubFriendsEdges || null;
+  }
+
+  function friendsCloudQuiet() {
+    try {
+      if (window.HubAfk?.isAfk?.()) return true;
+      if (window.HubNet?.isPaused?.()) return true;
+      if (window.HubNet && HubNet.isOnline && !HubNet.isOnline()) return true;
+    } catch {}
+    try {
+      if (document.hidden) return true;
+    } catch {}
+    return false;
+  }
+
+  function applyFriendsRealtime(change) {
+    const helper = edgesApi();
+    if (!helper?.applyChange) return;
+    const next = helper.applyChange(cache, change);
+    saveLocal({
+      profiles: next?.profiles && typeof next.profiles === "object" ? next.profiles : {},
+      invites: next?.invites && typeof next.invites === "object" ? next.invites : {}
+    });
+    try {
+      pollOnTick?.(cache);
+    } catch {}
+  }
+
+  function stopFriendsRealtime() {
+    try {
+      friendsRealtimeUnsub?.();
+    } catch {}
+    friendsRealtimeUnsub = null;
+  }
+
+  function ensureFriendsRealtime() {
+    const api = sb();
+    if (!api?.subscribeFriendEdgeContributions) return;
+    if (friendsRealtimeUnsub) return;
+    if (friendsCloudQuiet()) return;
+    friendsRealtimeUnsub = api.subscribeFriendEdgeContributions((change) => {
+      applyFriendsRealtime(change);
+    });
   }
 
   async function persistMyEdges() {
@@ -504,10 +549,17 @@
 
   function startPolling(onTick) {
     stopPolling();
+    pollOnTick = typeof onTick === "function" ? onTick : null;
+    ensureFriendsRealtime();
     const tick = async () => {
       try {
+        if (friendsCloudQuiet()) {
+          stopFriendsRealtime();
+          return;
+        }
+        ensureFriendsRealtime();
         await sync();
-        onTick?.(cache);
+        pollOnTick?.(cache);
       } catch {}
     };
     tick();
@@ -517,10 +569,12 @@
   function stopPolling() {
     if (pollTimer) clearInterval(pollTimer);
     pollTimer = null;
+    stopFriendsRealtime();
   }
 
   cache = loadLocal();
   sync().catch(() => {});
+  ensureFriendsRealtime();
 
   window.HubFriends = {
     sendRequest,

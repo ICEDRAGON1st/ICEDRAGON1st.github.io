@@ -155,6 +155,31 @@
     return out;
   }
 
+  function unwrapChange(change) {
+    const payload = change && typeof change === "object" ? change : {};
+    if (payload.data && typeof payload.data === "object") return payload.data;
+    if (payload.payload && typeof payload.payload === "object") {
+      const inner = payload.payload;
+      if (inner.data && typeof inner.data === "object") return inner.data;
+      return inner;
+    }
+    return payload;
+  }
+
+  function applyChange(hub, change) {
+    const data = unwrapChange(change);
+    const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
+    const current = hub && typeof hub === "object" ? hub : { profiles: {}, invites: {} };
+    const base = {
+      profiles: { ...(current.profiles || {}) },
+      invites: { ...(current.invites || {}) }
+    };
+    if (type === "DELETE") return base;
+    const record = data.record || data.new || {};
+    if (!record || typeof record !== "object") return base;
+    return overlayFriendsData(base, [record]);
+  }
+
   function applyMine(data, mine, playerId) {
     const me = String(playerId || mine?.playerId || "").trim();
     const owned = readEdges(mine);
@@ -189,7 +214,8 @@
     readEdges,
     collectMine,
     applyMine,
-    overlayFriendsData
+    overlayFriendsData,
+    applyChange
   };
   if (root) root.HubFriendsEdges = api;
   if (typeof module === "object" && module.exports) module.exports = api;

@@ -80,6 +80,16 @@ test("admin hub_docs RPC stays authenticated and locked to admin document ids", 
   assert.doesNotMatch(rpc, /to anon/i);
 });
 
+test("friend edge realtime publication stays authenticated and replica-identity full", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160022_friend_edge_contributions_realtime.sql"),
+    "utf8"
+  );
+  assert.match(sql, /alter table public\.friend_edge_contributions replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.friend_edge_contributions/i);
+  assert.doesNotMatch(sql, /to anon/i);
+});
+
 test("chat thread realtime publication stays authenticated and replica-identity full", () => {
   const sql = fs.readFileSync(
     path.join(ROOT, "supabase/migrations/202610160021_chat_thread_contributions_realtime.sql"),

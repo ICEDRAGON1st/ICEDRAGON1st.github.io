@@ -152,9 +152,11 @@ test("presence pings use auth-owned rows instead of rewriting the shared presenc
   assert.match(src, /async function deletePresencePing/);
   assert.match(src, /function subscribePresencePings/);
   assert.match(src, /function subscribeChatThreadContributions/);
+  assert.match(src, /function subscribeFriendEdgeContributions/);
   assert.match(src, /realtime\/v1\/websocket/);
   assert.match(src, /presence_pings/);
   assert.match(src, /chat_thread_contributions/);
+  assert.match(src, /friend_edge_contributions/);
 });
 
 test("popularity contributions use auth-owned rows instead of rewriting the shared play-count document", () => {
@@ -228,6 +230,7 @@ test("friend edges use auth-owned rows instead of rewriting the shared friends b
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
   assert.match(src, /async function listFriendEdgeContributions/);
   assert.match(src, /async function upsertFriendEdgeContribution/);
+  assert.match(src, /function subscribeFriendEdgeContributions/);
   assert.match(src, /friend_edge_contributions/);
 });
 
