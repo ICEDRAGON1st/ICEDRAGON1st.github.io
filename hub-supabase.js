@@ -1255,6 +1255,161 @@
     }
   }
 
+  function sanitizeChatMessage(raw) {
+    if (!raw || typeof raw !== "object") return null;
+    const id = String(raw.id || "")
+      .trim()
+      .slice(0, 64);
+    const from = String(raw.from || "").trim();
+    const text = String(raw.text || "")
+      .replace(/[<>&"'`]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 200);
+    const at = Number(raw.at) || 0;
+    if (!id || !from || !text || !at) return null;
+    return {
+      id,
+      from,
+      name: String(raw.name || "")
+        .replace(/[<>&"'`]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 16),
+      text,
+      at
+    };
+  }
+
+  function sanitizeChatThreads(threads, playerId) {
+    const me = String(playerId || "");
+    const out = {};
+    if (!me || !threads || typeof threads !== "object" || Array.isArray(threads)) return out;
+    const entries = Object.entries(threads);
+    const scored = entries
+      .map(([key, thread]) => {
+        const id = String(key || "")
+          .trim()
+          .slice(0, 96);
+        if (!id || !thread || typeof thread !== "object" || Array.isArray(thread)) return null;
+        const messages = (Array.isArray(thread.messages) ? thread.messages : [])
+          .map(sanitizeChatMessage)
+          .filter(Boolean)
+          .sort((a, b) => a.at - b.at)
+          .slice(-100);
+        if (id === "global") {
+          if (!messages.length) return null;
+          return { key: id, activity: messages[messages.length - 1].at, value: { type: "global", messages } };
+        }
+        if (id.startsWith("group:")) {
+          const members = {};
+          Object.entries(
+            thread.members && typeof thread.members === "object" && !Array.isArray(thread.members)
+              ? thread.members
+              : {}
+          ).forEach(([memberId, name]) => {
+            const pid = String(memberId || "").trim();
+            if (!pid) return;
+            members[pid] = String(name || "Player")
+              .replace(/[<>&"'`]/g, "")
+              .replace(/\s+/g, " ")
+              .trim()
+              .slice(0, 16) || "Player";
+          });
+          if (!Object.prototype.hasOwnProperty.call(members, me)) return null;
+          if (!messages.length && !Object.keys(members).length) return null;
+          return {
+            key: id,
+            activity: messages.length ? messages[messages.length - 1].at : Number(thread.createdAt) || 0,
+            value: {
+              type: "group",
+              name:
+                String(thread.name || "Group")
+                  .replace(/[<>&"'`]/g, "")
+                  .replace(/\s+/g, " ")
+                  .trim()
+                  .slice(0, 24) || "Group",
+              members,
+              createdBy: String(thread.createdBy || "").slice(0, 96),
+              createdAt: Number(thread.createdAt) || 0,
+              messages
+            }
+          };
+        }
+        const parts = id.split(":");
+        if (parts.length !== 2 || (parts[0] !== me && parts[1] !== me)) return null;
+        if (!messages.length) return null;
+        return {
+          key: id,
+          activity: messages[messages.length - 1].at,
+          value: { messages }
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => {
+        if (a.key === "global") return -1;
+        if (b.key === "global") return 1;
+        return b.activity - a.activity;
+      })
+      .slice(0, 40);
+    scored.forEach((item) => {
+      out[item.key] = item.value;
+    });
+    return out;
+  }
+
+  async function listChatThreadContributions() {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const url = `${SUPABASE_URL}/rest/v1/chat_thread_contributions?select=player_id,threads,updated_at`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase chat list ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function upsertChatThreadContribution(row) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const playerId = parseLocalPlayerId(row?.playerId);
+    if (!userId || !session?.access_token) throw new Error("supabase chat needs a session");
+    if (!playerId) throw new Error("bad chat player id");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const threads = sanitizeChatThreads(row?.threads, playerId);
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/chat_thread_contributions`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        player_id: playerId,
+        threads,
+        updated_at: new Date().toISOString()
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase chat upsert ${res.status} ${text}`);
+    }
+  }
+
   async function getDoc(id) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -1455,6 +1610,8 @@
     upsertCallSignalContribution,
     listFriendEdgeContributions,
     upsertFriendEdgeContribution,
+    listChatThreadContributions,
+    upsertChatThreadContribution,
     profile: () => {
       const raw = readSession()?.profile;
       const parsed = parseProfile(raw);

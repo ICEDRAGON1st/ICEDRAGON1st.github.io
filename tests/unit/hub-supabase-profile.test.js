@@ -210,3 +210,11 @@ test("friend edges use auth-owned rows instead of rewriting the shared friends b
   assert.match(src, /async function upsertFriendEdgeContribution/);
   assert.match(src, /friend_edge_contributions/);
 });
+
+test("friend chat uses auth-owned rows instead of rewriting the shared chat board", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.match(src, /async function listChatThreadContributions/);
+  assert.match(src, /async function upsertChatThreadContribution/);
+  assert.match(src, /chat_thread_contributions/);
+});

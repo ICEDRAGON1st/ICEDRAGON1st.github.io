@@ -67,8 +67,14 @@
     return messages.length === 0 && Object.keys(members).length === 0;
   }
 
-  function cleanThread(key, thread) {
-    if (!thread || typeof thread !== "object" || key === "global") return null;
+  function cleanThread(key, thread, opts) {
+    if (!thread || typeof thread !== "object") return null;
+    if (key === "global") {
+      if (!(opts && opts.includeGlobal)) return null;
+      const messages = cleanMessages(thread.messages);
+      if (!messages.length) return null;
+      return { type: "global", messages };
+    }
     const messages = cleanMessages(thread.messages);
     if (isGroupKey(key)) {
       const members = cleanMembers(thread.members);
@@ -89,12 +95,105 @@
     return { messages };
   }
 
-  function readMine(payload) {
+  function mergeMessages(a, b) {
+    const map = {};
+    [...(a || []), ...(b || [])].forEach((raw) => {
+      const msg = cleanMessage(raw);
+      if (!msg) return;
+      const prev = map[msg.id];
+      if (!prev || msg.at >= prev.at) map[msg.id] = msg;
+    });
+    return Object.values(map)
+      .sort((x, y) => x.at - y.at)
+      .slice(-MAX_MESSAGES);
+  }
+
+  function mergeMembers(a, b) {
+    const out = { ...(a || {}) };
+    Object.entries(b || {}).forEach(([id, name]) => {
+      if (!id) return;
+      out[id] = String(name || out[id] || "Player").slice(0, 16);
+    });
+    return out;
+  }
+
+  function mergeThreads(a, b) {
+    const out = { ...(a || {}) };
+    Object.entries(b || {}).forEach(([key, thread]) => {
+      if (!thread || typeof thread !== "object") return;
+      const left = out[key] || {};
+      const right = thread;
+      const messages = mergeMessages(left.messages, right.messages);
+      if (key === "global") {
+        out[key] = { type: "global", messages };
+        return;
+      }
+      if (isGroupKey(key)) {
+        const leftMembers = left.members && typeof left.members === "object" ? left.members : {};
+        const rightMembers =
+          right.members && typeof right.members === "object" ? right.members : {};
+        const members = mergeMembers(leftMembers, rightMembers);
+        const safeMembers =
+          Object.keys(members).length > 0
+            ? members
+            : Object.keys(leftMembers).length
+              ? leftMembers
+              : rightMembers;
+        const name =
+          String(right.name || "")
+            .trim()
+            .slice(0, 24) ||
+          String(left.name || "")
+            .trim()
+            .slice(0, 24) ||
+          "Group";
+        out[key] = {
+          type: "group",
+          name,
+          members: safeMembers,
+          createdBy: String(right.createdBy || left.createdBy || ""),
+          createdAt: Math.min(
+            Number(right.createdAt) || Infinity,
+            Number(left.createdAt) || Infinity
+          ),
+          messages
+        };
+        if (!Number.isFinite(out[key].createdAt)) out[key].createdAt = Date.now();
+        return;
+      }
+      out[key] = { messages };
+    });
+    return out;
+  }
+
+  function threadActivity(thread) {
+    const list = Array.isArray(thread?.messages) ? thread.messages : [];
+    if (!list.length) return Number(thread?.createdAt) || 0;
+    return Number(list[list.length - 1]?.at) || 0;
+  }
+
+  function capThreads(threads) {
+    const src = threads && typeof threads === "object" ? threads : {};
+    const keys = Object.keys(src);
+    if (keys.length <= 40) return src;
+    const kept = {};
+    if (src.global) kept.global = src.global;
+    keys
+      .filter((key) => key !== "global")
+      .sort((a, b) => threadActivity(src[b]) - threadActivity(src[a]))
+      .slice(0, src.global ? 39 : 40)
+      .forEach((key) => {
+        kept[key] = src[key];
+      });
+    return kept;
+  }
+
+  function readMine(payload, opts) {
     const threads = {};
     Object.entries(
       payload?.threads && typeof payload.threads === "object" ? payload.threads : {}
     ).forEach(([key, raw]) => {
-      const thread = cleanThread(key, raw);
+      const thread = cleanThread(key, raw, opts);
       if (thread) threads[key] = thread;
     });
     return {
@@ -104,21 +203,45 @@
     };
   }
 
-  function collectMine(data, playerId) {
+  function collectMine(data, playerId, opts) {
     const me = String(playerId || "").trim();
+    const includeGlobal = !!(opts && opts.includeGlobal);
     const threads = {};
     Object.entries(
       data && data.threads && typeof data.threads === "object" ? data.threads : {}
     ).forEach(([key, raw]) => {
-      if (!involvesMe(key, raw, me)) return;
-      const thread = cleanThread(key, raw);
+      if (key === "global") {
+        if (!includeGlobal) return;
+      } else if (!involvesMe(key, raw, me)) return;
+      const thread = cleanThread(key, raw, { includeGlobal });
       if (thread) threads[key] = thread;
     });
     return {
       playerId: me,
-      threads,
+      threads: includeGlobal ? capThreads(threads) : threads,
       updatedAt: Date.now()
     };
+  }
+
+  function collectTableMine(data, playerId) {
+    return collectMine(data, playerId, { includeGlobal: true });
+  }
+
+  function overlayChatData(hub, rows) {
+    let threads = { ...((hub && hub.threads) || {}) };
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const owned = readMine(
+        {
+          playerId: row?.player_id || row?.playerId,
+          threads: row?.threads,
+          updatedAt: Date.parse(row?.updated_at || "") || Number(row?.updatedAt) || 0
+        },
+        { includeGlobal: true }
+      );
+      if (!owned.playerId) return;
+      threads = mergeThreads(threads, owned.threads);
+    });
+    return { threads };
   }
 
   function applyMine(data, mine, playerId) {
@@ -139,8 +262,12 @@
     cleanMessage,
     involvesMe,
     isEmptyThread,
+    mergeMessages,
+    mergeThreads,
     readMine,
     collectMine,
+    collectTableMine,
+    overlayChatData,
     applyMine
   };
   if (root) root.HubChatMine = api;

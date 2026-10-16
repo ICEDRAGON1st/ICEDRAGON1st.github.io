@@ -172,16 +172,64 @@
     if (!res.ok) throw new Error("push failed");
   }
 
-  async function fetchRemote() {
+  async function fetchChatTableRemote() {
     const api = sb();
-    const data = api ? await api.getPrefer(DOC_ID, API) : await fetchJson(API);
-    if (!data || typeof data !== "object") return { threads: {} };
-    return {
-      threads: data.threads && typeof data.threads === "object" ? data.threads : {}
-    };
+    const helper = mineApi();
+    if (!api?.listChatThreadContributions || !helper?.overlayChatData) return null;
+    try {
+      const rows = await api.listChatThreadContributions();
+      if (!rows) return null;
+      return helper.overlayChatData({ threads: {} }, rows);
+    } catch {
+      return null;
+    }
   }
 
-  async function pushRemote(next) {
+  async function persistChatThreadContribution(data) {
+    const api = sb();
+    const helper = mineApi();
+    const me = getPlayerId();
+    if (!api?.upsertChatThreadContribution || !helper?.collectTableMine || !me) return false;
+    const snapshot = helper.collectTableMine(data, me);
+    try {
+      await api.upsertChatThreadContribution({
+        playerId: me,
+        threads: snapshot.threads
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function fetchRemote() {
+    let parsed = { threads: {} };
+    let fetched = false;
+    try {
+      const api = sb();
+      const data = api ? await api.getPrefer(DOC_ID, API) : await fetchJson(API);
+      if (data && typeof data === "object") {
+        parsed = {
+          threads: data.threads && typeof data.threads === "object" ? data.threads : {}
+        };
+        fetched = true;
+      }
+    } catch {
+      parsed = { threads: {} };
+    }
+    const tableRemote = await fetchChatTableRemote();
+    if (tableRemote) {
+      parsed = mergeData(parsed, tableRemote);
+      fetched = true;
+    }
+    if (!fetched) throw new Error("chat-unavailable");
+    return parsed;
+  }
+
+  async function pushRemote(next, opts) {
+    const tableWrote = await persistChatThreadContribution(next);
+    if (tableWrote && !(opts && opts.rewriteShared)) return;
+    if (opts && opts.skipShared) return;
     const api = sb();
     if (api) {
       await api.pushPrefer(DOC_ID, next, API);
@@ -324,17 +372,19 @@
   async function mutate(updater) {
     const run = async () => {
       let remote = cache;
+      let fetched = true;
       try {
         remote = await fetchRemote();
       } catch {
         remote = cache;
+        fetched = false;
       }
       const base = await pullMyChat(mergeData(cache, remote));
       const next = updater(base);
       if (!next) return false;
       saveLocal(next);
       try {
-        await pushRemote(next);
+        await pushRemote(next, { skipShared: !fetched });
       } catch {
         await persistMyChat();
         // Keep local write even if remote push fails.
@@ -358,12 +408,18 @@
       try {
         const local = loadLocal();
         let remote = { threads: {} };
+        let fetched = true;
         try {
           remote = await fetchRemote();
-        } catch {}
+        } catch {
+          fetched = false;
+        }
         // Merge onto in-memory cache too so in-flight creates aren't dropped.
         const merged = await pullMyChat(mergeData(mergeData(local, cache), remote));
         saveLocal(merged);
+        try {
+          await pushRemote(merged, { skipShared: !fetched });
+        } catch {}
         await persistMyChat();
         return cache;
       } finally {
