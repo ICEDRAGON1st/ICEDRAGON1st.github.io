@@ -982,14 +982,15 @@
     } catch {}
   }
 
-  async function fetchPasswordsRemote() {
-    const data = await fetchDoc(PASSWORDS_PATH, PASSWORDS_API);
+  function parsePasswordsMap(data) {
     if (!data || typeof data !== "object") return {};
     const passwords = data.passwords && typeof data.passwords === "object" ? data.passwords : data;
     const out = {};
     Object.entries(passwords).forEach(([hash, v]) => {
       if (!hash || !v || typeof v !== "object" || !v.playerId) return;
-      out[String(hash)] = {
+      const key = identity.normalizePasswordHash ? identity.normalizePasswordHash(hash) : String(hash);
+      if (!key) return;
+      out[key] = {
         playerId: String(v.playerId),
         code: normalizePlayerCode(v.code || ""),
         name: sanitizeName(v.name || ""),
@@ -999,7 +1000,81 @@
     return out;
   }
 
+  async function fetchPasswordsTableRemote() {
+    const api = sb();
+    if (!api?.listPlayerPasswordHashes || !identity.rowsToPasswordMap) return null;
+    try {
+      const rows = await api.listPlayerPasswordHashes();
+      if (!rows) return null;
+      return rows;
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistPlayerPasswordHash(hash, entry, opts) {
+    const api = sb();
+    const me = getPlayerId();
+    if (!api?.upsertPlayerPasswordHash || !me) return false;
+    const cleared = !!(opts && opts.cleared);
+    const cleaned = !cleared && identity.cleanPasswordEntry ? identity.cleanPasswordEntry(entry, me) : null;
+    const norm = identity.normalizePasswordHash ? identity.normalizePasswordHash(hash) : String(hash || "");
+    if (!cleared && (!norm || !cleaned)) return false;
+    try {
+      await api.upsertPlayerPasswordHash({
+        playerId: me,
+        passwordHash: cleared ? "" : norm,
+        code: cleaned?.code || "",
+        displayName: cleaned?.name || "",
+        hashedAt: cleaned?.at || Date.now(),
+        cleared
+      });
+      return true;
+    } catch (err) {
+      if (err && err.hashTaken) return "taken";
+      return false;
+    }
+  }
+
+  async function fetchPasswordsRemote() {
+    let parsed = {};
+    let fetched = false;
+    try {
+      const data = await fetchDoc(PASSWORDS_PATH, PASSWORDS_API);
+      if (data && typeof data === "object") {
+        parsed = parsePasswordsMap(data);
+        fetched = true;
+      }
+    } catch {
+      parsed = {};
+    }
+    const tableRows = await fetchPasswordsTableRemote();
+    if (tableRows) {
+      parsed = identity.overlayPasswordMaps
+        ? identity.overlayPasswordMaps(parsed, tableRows)
+        : identity.mergePasswordMaps
+          ? identity.mergePasswordMaps(parsed, identity.rowsToPasswordMap(tableRows))
+          : parsed;
+      fetched = true;
+    }
+    if (!fetched) throw new Error("passwords-unavailable");
+    return parsed;
+  }
+
   async function pushPasswordsRemote(passwords) {
+    const me = getPlayerId();
+    let tableWrote = false;
+    const mine = Object.entries(passwords || {}).filter(([, entry]) => entry?.playerId === me);
+    for (const [hash, entry] of mine) {
+      const result = await persistPlayerPasswordHash(hash, entry);
+      if (result === "taken") {
+        const err = new Error("password hash taken");
+        err.hashTaken = true;
+        throw err;
+      }
+      if (result === true) tableWrote = true;
+    }
+    if (tableWrote) return;
     await pushDoc(PASSWORDS_PATH, { passwords }, PASSWORDS_API);
   }
 
@@ -1082,11 +1157,19 @@
     // Don't let password collide with looking like someone else's login path awkwardly —
     // codes still take priority in restore when input is exactly 8 code chars.
     const hash = await hashPassword(pw);
+    const entry = {
+      playerId: me,
+      code,
+      name: sanitizeName(getName() || ""),
+      at: Date.now()
+    };
     let remote = {};
+    let remoteFetched = true;
     try {
       remote = await fetchPasswordsRemote();
     } catch {
       remote = {};
+      remoteFetched = false;
     }
     const taken = remote[hash];
     if (taken?.playerId && taken.playerId !== me) {
@@ -1098,6 +1181,11 @@
       return { ok: false, error: "That password is already used — pick another" };
     }
 
+    const persistResult = await persistPlayerPasswordHash(hash, entry);
+    if (persistResult === "taken") {
+      return { ok: false, error: "That password is already used — pick another" };
+    }
+
     // Drop previous passwords for this player (change password)
     Object.keys(remote).forEach((h) => {
       if (remote[h]?.playerId === me) delete remote[h];
@@ -1106,12 +1194,6 @@
       if (local[h]?.playerId === me) delete local[h];
     });
 
-    const entry = {
-      playerId: me,
-      code,
-      name: sanitizeName(getName() || ""),
-      at: Date.now()
-    };
     remote[hash] = entry;
     local[hash] = entry;
     saveLocalPasswords(local);
@@ -1119,9 +1201,21 @@
     rememberCurrentAccount({ hasPassword: true });
     persistPasswordMine();
 
+    if (persistResult === true) {
+      return {
+        ok: true,
+        keptProgress: true,
+        message: "Password set — same account, all progress kept"
+      };
+    }
+
     try {
+      if (!remoteFetched) throw new Error("passwords-unavailable");
       await pushPasswordsRemote(remote);
     } catch (err) {
+      if (err && err.hashTaken) {
+        return { ok: false, error: "That password is already used — pick another" };
+      }
       // Local password still works on this device; remote sync can retry later
       console.warn("[HubPlays] password sync failed", err);
       return {
@@ -1150,6 +1244,14 @@
     markVaultHasPassword(me, false);
     rememberCurrentAccount({ hasPassword: false });
     persistPasswordMine({ cleared: true });
+    const persistResult = await persistPlayerPasswordHash("", null, { cleared: true });
+    if (persistResult === true) {
+      return {
+        ok: true,
+        keptProgress: true,
+        message: "Password cleared — use your player code to log in"
+      };
+    }
     try {
       const remote = await fetchPasswordsRemote();
       Object.keys(remote).forEach((h) => {

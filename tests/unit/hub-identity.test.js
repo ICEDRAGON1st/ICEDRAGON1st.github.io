@@ -156,6 +156,9 @@ test("owned password hashes dual-write without plaintext or other players' login
   const plays = fs.readFileSync(path.join(__dirname, "../../hub-plays.js"), "utf8");
   assert.match(plays, /persistPasswordMine/);
   assert.match(plays, /pullPasswordMine/);
+  assert.match(plays, /persistPlayerPasswordHash/);
+  assert.match(plays, /fetchPasswordsTableRemote/);
+  assert.match(plays, /if \(tableWrote\) return/);
   assert.equal(identity.PASSWORD_MINE_KEY, "password-mine");
 
   const adaHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -218,6 +221,57 @@ test("owned password hashes dual-write without plaintext or other players' login
   );
   assert.equal(cleared[adaHash], undefined);
   assert.equal(cleared[beaHash].playerId, "p-bea");
+
+  const fromRows = identity.rowsToPasswordMap([
+    {
+      player_id: "p-ada",
+      password_hash: adaHash,
+      code: "AB23CD45",
+      display_name: "Ada",
+      hashed_at: "2023-11-14T22:13:20.000Z"
+    },
+    {
+      player_id: "p-bea",
+      password_hash: beaHash,
+      code: "ZZ99YY88",
+      display_name: "Bea",
+      cleared: true
+    },
+    { player_id: "p-ada", password_hash: "swordfish", display_name: "Skip" }
+  ]);
+  assert.equal(fromRows[adaHash].playerId, "p-ada");
+  assert.equal(fromRows[adaHash].password, undefined);
+  assert.equal(fromRows[beaHash], undefined);
+  assert.equal(fromRows.swordfish, undefined);
+
+  const overlaid = identity.overlayPasswordMaps(
+    {
+      [oldHash]: { playerId: "p-ada", code: "AB23CD45", name: "Ada", at: 1 },
+      [beaHash]: { playerId: "p-bea", code: "ZZ99YY88", name: "Bea", at: 9 }
+    },
+    [
+      {
+        player_id: "p-ada",
+        password_hash: adaHash,
+        code: "AB23CD45",
+        display_name: "Ada",
+        hashed_at: "2023-11-14T22:13:20.000Z"
+      }
+    ]
+  );
+  assert.equal(overlaid[adaHash].playerId, "p-ada");
+  assert.equal(overlaid[oldHash], undefined);
+  assert.equal(overlaid[beaHash].playerId, "p-bea");
+
+  const clearedOverlay = identity.overlayPasswordMaps(
+    {
+      [adaHash]: { playerId: "p-ada", code: "AB23CD45", name: "Ada", at: 20 },
+      [beaHash]: { playerId: "p-bea", code: "ZZ99YY88", name: "Bea", at: 9 }
+    },
+    [{ player_id: "p-ada", password_hash: null, cleared: true }]
+  );
+  assert.equal(clearedOverlay[adaHash], undefined);
+  assert.equal(clearedOverlay[beaHash].playerId, "p-bea");
 });
 
 test("owned name reservations dual-write without stealing another player's lock", () => {

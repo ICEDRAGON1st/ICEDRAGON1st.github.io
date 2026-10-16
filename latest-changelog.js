@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015bs",
+  "build": "20261015bt",
   "notes": [
-    "Locked nicknames you own now also register on the account server as your own row, so a busy device can't wipe someone else's name lock."
+    "Your login password now also lives on your signed-in account as your own row, so a busy device can't overwrite someone else's login."
   ]
 };

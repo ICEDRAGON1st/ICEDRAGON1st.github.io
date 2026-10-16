@@ -298,6 +298,53 @@
     };
   }
 
+  function rowsToPasswordMap(rows) {
+    const out = {};
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      if (!row || typeof row !== "object" || row.cleared) return;
+      const playerId = String(row.player_id || row.playerId || "").trim();
+      const hash = normalizePasswordHash(row.password_hash || row.passwordHash || row.hash || "");
+      const entry = cleanPasswordEntry(
+        {
+          playerId,
+          code: row.code || "",
+          name: row.display_name || row.name || "",
+          at: Date.parse(row.hashed_at || row.hashedAt || "") || Number(row.at) || 0
+        },
+        playerId
+      );
+      if (!hash || !entry) return;
+      out[hash] = entry;
+    });
+    return out;
+  }
+
+  function mergePasswordMaps(a, b) {
+    const out = { ...(a && typeof a === "object" ? a : {}) };
+    Object.entries(b && typeof b === "object" ? b : {}).forEach(([hash, entry]) => {
+      const key = normalizePasswordHash(hash) || String(hash || "");
+      if (!key || !entry || typeof entry !== "object" || !entry.playerId) return;
+      if (out[key]?.playerId) return;
+      out[key] = entry;
+    });
+    return out;
+  }
+
+  function overlayPasswordMaps(hubMap, rows) {
+    const claimed = new Set();
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const playerId = String(row?.player_id || row?.playerId || "").trim();
+      if (playerId) claimed.add(playerId);
+    });
+    const kept = {};
+    Object.entries(hubMap && typeof hubMap === "object" ? hubMap : {}).forEach(([hash, entry]) => {
+      if (!entry || typeof entry !== "object" || !entry.playerId) return;
+      if (claimed.has(String(entry.playerId))) return;
+      kept[String(hash)] = entry;
+    });
+    return mergePasswordMaps(kept, rowsToPasswordMap(rows));
+  }
+
   function applyPasswordMine(localPasswords, mine, playerId) {
     const owned = readPasswordMine(mine);
     const me = String(playerId || owned.playerId || "").trim();
@@ -456,6 +503,9 @@
     readPasswordMine,
     collectPasswordMine,
     applyPasswordMine,
+    rowsToPasswordMap,
+    mergePasswordMaps,
+    overlayPasswordMaps,
     RESERVATIONS_MINE_KEY,
     cleanReservation,
     readReservationsMine,

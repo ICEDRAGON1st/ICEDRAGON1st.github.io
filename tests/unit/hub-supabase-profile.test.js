@@ -169,3 +169,12 @@ test("name reservation locks use auth-owned rows instead of rewriting the shared
   assert.match(src, /async function upsertNameReservationLock/);
   assert.match(src, /name_reservation_locks/);
 });
+
+test("player password hashes use auth-owned rows instead of rewriting the shared password document", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.match(src, /async function listPlayerPasswordHashes/);
+  assert.match(src, /async function upsertPlayerPasswordHash/);
+  assert.match(src, /player_password_hashes/);
+  assert.doesNotMatch(src, /password_hash: String\(row\?\.password\)/);
+});

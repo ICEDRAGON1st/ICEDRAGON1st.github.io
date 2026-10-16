@@ -822,6 +822,86 @@
     }
   }
 
+  async function listPlayerPasswordHashes() {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const url =
+      `${SUPABASE_URL}/rest/v1/player_password_hashes?select=player_id,password_hash,code,display_name,hashed_at,cleared`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase password list ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  function normalizeStoredPasswordHash(raw) {
+    const hash = String(raw || "").trim();
+    if (/^[0-9a-f]{64}$/i.test(hash)) return hash.toLowerCase();
+    if (/^f:[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{16}$/.test(hash)) return hash;
+    return "";
+  }
+
+  async function upsertPlayerPasswordHash(row) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const playerId = parseLocalPlayerId(row?.playerId);
+    const cleared = !!row?.cleared;
+    const passwordHash = cleared ? null : normalizeStoredPasswordHash(row?.passwordHash);
+    if (!userId || !session?.access_token) throw new Error("supabase password needs a session");
+    if (!playerId) throw new Error("bad password player id");
+    if (!cleared && !passwordHash) throw new Error("bad password hash");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const code = String(row?.code || "")
+      .toUpperCase()
+      .replace(/[^23456789ABCDEFGHJKLMNPQRSTUVWXYZ]/g, "")
+      .slice(0, 8);
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/player_password_hashes`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        player_id: playerId,
+        password_hash: passwordHash,
+        code: code.length === 8 ? code : "",
+        display_name: String(row?.displayName || "")
+          .replace(/[<>&"'`]/g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 32),
+        cleared,
+        hashed_at: row?.hashedAt
+          ? new Date(Number(row.hashedAt) || Date.now()).toISOString()
+          : new Date().toISOString()
+      })
+    });
+    if (res.status === 409) {
+      const err = new Error("password hash taken");
+      err.hashTaken = true;
+      throw err;
+    }
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase password upsert ${res.status} ${text}`);
+    }
+  }
+
   async function getDoc(id) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -1012,6 +1092,8 @@
     upsertNicknameClaim,
     listNameReservationLocks,
     upsertNameReservationLock,
+    listPlayerPasswordHashes,
+    upsertPlayerPasswordHash,
     profile: () => {
       const raw = readSession()?.profile;
       const parsed = parseProfile(raw);

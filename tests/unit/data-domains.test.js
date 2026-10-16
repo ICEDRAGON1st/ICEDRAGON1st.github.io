@@ -192,3 +192,23 @@ test("name reservation locks are readable by signed-in players and only writable
   );
   assert.match(sql, /revoke all on table public\.name_reservation_locks from anon, authenticated/);
 });
+
+test("player password hashes are readable by signed-in players and only writable by the owner", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160007_player_password_hashes.sql"),
+    "utf8"
+  );
+  assert.match(sql, /create table if not exists public\.player_password_hashes/);
+  assert.match(sql, /enable row level security/i);
+  assert.match(sql, /force row level security/i);
+  assert.match(sql, /player_password_hashes_read_authenticated/);
+  assert.match(sql, /player_password_hashes_insert_own/);
+  assert.match(sql, /player_password_hashes_update_own/);
+  assert.match(
+    sql,
+    /grant select, insert, update, delete on table public\.player_password_hashes to authenticated/
+  );
+  assert.match(sql, /revoke all on table public\.player_password_hashes from anon, authenticated/);
+  assert.match(sql, /never plaintext/i);
+  assert.doesNotMatch(sql, /plaintext_password/);
+});
