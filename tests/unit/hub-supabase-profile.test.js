@@ -134,6 +134,8 @@ test("presence pings use auth-owned rows instead of rewriting the shared presenc
   assert.match(src, /async function listPresencePings/);
   assert.match(src, /async function upsertPresencePing/);
   assert.match(src, /async function deletePresencePing/);
+  assert.match(src, /function subscribePresencePings/);
+  assert.match(src, /realtime\/v1\/websocket/);
   assert.match(src, /presence_pings/);
 });
 

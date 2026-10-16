@@ -534,6 +534,192 @@
     }
   }
 
+  let presenceSocket = null;
+  let presenceHeartbeatTimer = null;
+  let presenceReconnectTimer = null;
+  let presenceListeners = new Set();
+  let presenceRef = 0;
+  let presenceWanted = false;
+  let presenceBackoffMs = 1000;
+  let presenceConnecting = false;
+
+  function presenceWsUrl() {
+    return (
+      `${SUPABASE_URL.replace(/^http/i, "ws")}/realtime/v1/websocket` +
+      `?apikey=${encodeURIComponent(SUPABASE_ANON_KEY)}&vsn=1.0.0`
+    );
+  }
+
+  function stopPresenceRealtime() {
+    presenceWanted = false;
+    presenceConnecting = false;
+    if (presenceHeartbeatTimer) {
+      clearInterval(presenceHeartbeatTimer);
+      presenceHeartbeatTimer = null;
+    }
+    if (presenceReconnectTimer) {
+      clearTimeout(presenceReconnectTimer);
+      presenceReconnectTimer = null;
+    }
+    const ws = presenceSocket;
+    presenceSocket = null;
+    try {
+      ws?.close?.();
+    } catch {}
+  }
+
+  function parsePresenceRealtimeMessage(raw) {
+    let msg = raw;
+    if (typeof raw === "string") {
+      try {
+        msg = JSON.parse(raw);
+      } catch {
+        return null;
+      }
+    }
+    if (!msg || typeof msg !== "object") return null;
+    const event = String(msg.event || "");
+    const payload = msg.payload && typeof msg.payload === "object" ? msg.payload : {};
+    if (event === "postgres_changes") {
+      return payload.data && typeof payload.data === "object" ? payload.data : payload;
+    }
+    if (event === "INSERT" || event === "UPDATE" || event === "DELETE") {
+      return {
+        type: event,
+        record: payload.record || payload.new || {},
+        old_record: payload.old_record || payload.old || {}
+      };
+    }
+    return null;
+  }
+
+  function notifyPresenceChange(change) {
+    presenceListeners.forEach((fn) => {
+      try {
+        fn(change);
+      } catch {}
+    });
+  }
+
+  function schedulePresenceReconnect() {
+    if (!presenceWanted || !presenceListeners.size) return;
+    if (presenceReconnectTimer) return;
+    const wait = presenceBackoffMs;
+    presenceBackoffMs = Math.min(30_000, presenceBackoffMs * 2);
+    presenceReconnectTimer = setTimeout(() => {
+      presenceReconnectTimer = null;
+      startPresenceSocket();
+    }, wait);
+  }
+
+  function startPresenceSocket() {
+    if (presenceSocket || presenceConnecting || !presenceWanted || !presenceListeners.size) return;
+    if (typeof WebSocket === "undefined") return;
+    if (netBlocked()) return;
+    presenceConnecting = true;
+    Promise.resolve(ensureSession())
+      .then((session) => {
+        if (!presenceWanted || !presenceListeners.size) {
+          presenceConnecting = false;
+          return;
+        }
+        const token = session?.access_token;
+        if (!token || netBlocked()) {
+          presenceConnecting = false;
+          schedulePresenceReconnect();
+          return;
+        }
+        let ws;
+        try {
+          ws = new WebSocket(presenceWsUrl());
+        } catch {
+          presenceConnecting = false;
+          schedulePresenceReconnect();
+          return;
+        }
+        presenceSocket = ws;
+        const channel = "realtime:presence-pings";
+        ws.onopen = () => {
+          presenceConnecting = false;
+          presenceBackoffMs = 1000;
+          presenceRef += 1;
+          try {
+            ws.send(
+              JSON.stringify({
+                topic: channel,
+                event: "phx_join",
+                payload: {
+                  config: {
+                    broadcast: { ack: false, self: false },
+                    presence: { key: "" },
+                    postgres_changes: [
+                      { event: "*", schema: "public", table: "presence_pings" }
+                    ]
+                  },
+                  access_token: token
+                },
+                ref: String(presenceRef)
+              })
+            );
+          } catch {
+            try {
+              ws.close();
+            } catch {}
+            return;
+          }
+          if (presenceHeartbeatTimer) clearInterval(presenceHeartbeatTimer);
+          presenceHeartbeatTimer = setInterval(() => {
+            if (!presenceSocket || presenceSocket.readyState !== 1) return;
+            presenceRef += 1;
+            try {
+              presenceSocket.send(
+                JSON.stringify({
+                  topic: "phoenix",
+                  event: "heartbeat",
+                  payload: {},
+                  ref: String(presenceRef)
+                })
+              );
+            } catch {}
+          }, 25_000);
+        };
+        ws.onmessage = (ev) => {
+          const change = parsePresenceRealtimeMessage(ev && ev.data);
+          if (!change) return;
+          notifyPresenceChange(change);
+        };
+        ws.onclose = () => {
+          if (presenceSocket === ws) presenceSocket = null;
+          presenceConnecting = false;
+          if (presenceHeartbeatTimer) {
+            clearInterval(presenceHeartbeatTimer);
+            presenceHeartbeatTimer = null;
+          }
+          schedulePresenceReconnect();
+        };
+        ws.onerror = () => {
+          try {
+            ws.close();
+          } catch {}
+        };
+      })
+      .catch(() => {
+        presenceConnecting = false;
+        schedulePresenceReconnect();
+      });
+  }
+
+  function subscribePresencePings(onChange) {
+    if (typeof onChange !== "function") return () => {};
+    presenceListeners.add(onChange);
+    presenceWanted = true;
+    startPresenceSocket();
+    return () => {
+      presenceListeners.delete(onChange);
+      if (!presenceListeners.size) stopPresenceRealtime();
+    };
+  }
+
   async function listPopularityContributions(resetAt) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -2355,6 +2541,8 @@
     listPresencePings,
     upsertPresencePing,
     deletePresencePing,
+    subscribePresencePings,
+    stopPresenceRealtime,
     listPopularityContributions,
     upsertPopularityContribution,
     listPlayLogContributions,

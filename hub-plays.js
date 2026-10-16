@@ -3333,6 +3333,45 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     }
   }
 
+  let presenceRealtimeUnsub = null;
+
+  function notifyPresenceUi() {
+    try {
+      window.dispatchEvent(new CustomEvent("hub-plays-presence"));
+    } catch {}
+  }
+
+  function applyPresenceRealtime(change) {
+    if (!presenceApi.applyChange) return;
+    const now = Date.now();
+    presenceCache = enrichPresenceNames(presenceApi.applyChange(presenceCache, change, now));
+    markSelfOnlineLocal(now);
+    notifyPresenceUi();
+  }
+
+  function stopPresenceRealtime() {
+    try {
+      presenceRealtimeUnsub?.();
+    } catch {}
+    presenceRealtimeUnsub = null;
+    try {
+      sb()?.stopPresenceRealtime?.();
+    } catch {}
+  }
+
+  function ensurePresenceRealtime() {
+    const api = sb();
+    if (!api?.subscribePresencePings) return;
+    if (presenceRealtimeUnsub) return;
+    if (netBlocked(PRESENCE_API) || window.HubAfk?.isAfk?.()) return;
+    try {
+      if (document.hidden) return;
+    } catch {}
+    presenceRealtimeUnsub = api.subscribePresencePings((change) => {
+      applyPresenceRealtime(change);
+    });
+  }
+
   async function pushPresenceRemote(players) {
     await pushDoc("presence", { players }, PRESENCE_API);
   }
@@ -3527,6 +3566,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 
   /** Drop ourselves from presence so "online" matches a visible tab. */
   async function goOffline() {
+    stopPresenceRealtime();
     lastOnlineTickAt = 0;
     const total = reconcileOnlineSeconds();
     if (hasRequiredName() && total > 0 && typeof HubLeaderboard !== "undefined") {
@@ -3630,8 +3670,10 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
         presenceCache = enrichPresenceNames(next);
       } catch {
         presenceCache = enrichPresenceNames(mergePresence(presenceCache, next));
+        ensurePresenceRealtime();
         return countOnline(presenceCache, now);
       }
+      ensurePresenceRealtime();
 
       // Register all-time at most every 10 minutes (not every heartbeat)
       if (Date.now() - lastAllTimeRegisterAt > 10 * 60_000) {
@@ -4245,6 +4287,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 
   function startPresence() {
     if (presenceTimer) return;
+    ensurePresenceRealtime();
     heartbeat().catch(() => {});
     // Pull repaired all-time lastAt immediately (don't wait 10 min).
     registerAllTime().catch(() => {});

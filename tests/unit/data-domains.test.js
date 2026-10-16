@@ -106,6 +106,16 @@ test("admin hub_docs RPC stays authenticated and locked to admin document ids", 
   assert.doesNotMatch(rpc, /to anon/i);
 });
 
+test("presence pings realtime publication stays authenticated and replica-identity full", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160020_presence_pings_realtime.sql"),
+    "utf8"
+  );
+  assert.match(sql, /alter table public\.presence_pings replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.presence_pings/i);
+  assert.doesNotMatch(sql, /to anon/i);
+});
+
 test("presence pings are readable by signed-in players and only writable by the owner", () => {
   const sql = fs.readFileSync(
     path.join(ROOT, "supabase/migrations/202610160002_presence_pings.sql"),

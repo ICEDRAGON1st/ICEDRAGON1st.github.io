@@ -79,6 +79,35 @@
     return out;
   }
 
+  function unwrapChange(change) {
+    const payload = change && typeof change === "object" ? change : {};
+    if (payload.data && typeof payload.data === "object") return payload.data;
+    if (payload.payload && typeof payload.payload === "object") {
+      const inner = payload.payload;
+      if (inner.data && typeof inner.data === "object") return inner.data;
+      return inner;
+    }
+    return payload;
+  }
+
+  function applyChange(map, change, now = Date.now()) {
+    const data = unwrapChange(change);
+    const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
+    const record = data.record || data.new || {};
+    const old = data.old_record || data.old || {};
+    const next = { ...(map || {}) };
+    if (type === "DELETE") {
+      const id = String(
+        old.player_id || old.playerId || record.player_id || record.playerId || ""
+      ).trim();
+      if (id) delete next[id];
+      return prunePresence(next, now);
+    }
+    const mapped = rowsToMap([record]);
+    if (!Object.keys(mapped).length) return prunePresence(next, now);
+    return prunePresence(mergePresence(next, mapped), now);
+  }
+
   const api = {
     ONLINE_TTL_MS,
     PRESENCE_KEEP_MS,
@@ -88,7 +117,8 @@
     mergePresence,
     prunePresence,
     countOnline,
-    rowsToMap
+    rowsToMap,
+    applyChange
   };
   root.HubPresence = api;
   if (typeof module === "object" && module.exports) module.exports = api;

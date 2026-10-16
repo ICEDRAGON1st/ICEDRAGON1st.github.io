@@ -4276,6 +4276,15 @@ window.addEventListener("hub-plays-alltime", () => {
   } catch {}
 });
 
+window.addEventListener("hub-plays-presence", () => {
+  try {
+    updateOnlineCountDisplay(HubPlays.getOnlineCount(), HubPlays.getAllTimeCount());
+    if (playersPanel && !playersPanel.classList.contains("hidden")) {
+      paintPlayersPanelLists();
+    }
+  } catch {}
+});
+
 function paintPlayersPanelLists() {
   if (!playersList || typeof HubPlays === "undefined") return;
   renderTitlePicker();

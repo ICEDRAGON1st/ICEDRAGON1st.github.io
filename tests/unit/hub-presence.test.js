@@ -72,3 +72,67 @@ test("presence table rows map to the shared online list without dropping other p
   assert.equal(mapped["p-bea"].name, "Bea");
   assert.equal(Object.keys(mapped).length, 2);
 });
+
+test("presence realtime merges a live ping without dropping other players", () => {
+  const fs = require("node:fs");
+  const plays = fs.readFileSync(path.resolve(__dirname, "../../hub-plays.js"), "utf8");
+  const supabase = fs.readFileSync(path.resolve(__dirname, "../../hub-supabase.js"), "utf8");
+  const hub = fs.readFileSync(path.resolve(__dirname, "../../script.js"), "utf8");
+  assert.match(plays, /ensurePresenceRealtime/);
+  assert.match(plays, /applyPresenceRealtime/);
+  assert.match(plays, /hub-plays-presence/);
+  assert.match(plays, /stopPresenceRealtime\(\);/);
+  assert.doesNotMatch(
+    plays.slice(plays.indexOf("function applyPresenceRealtime"), plays.indexOf("function stopPresenceRealtime")),
+    /pushPresenceRemote/
+  );
+  assert.match(supabase, /function subscribePresencePings/);
+  assert.match(supabase, /realtime\/v1\/websocket/);
+  assert.match(supabase, /postgres_changes/);
+  assert.match(supabase, /presence_pings/);
+  assert.match(hub, /hub-plays-presence/);
+  assert.equal(typeof presence.applyChange, "function");
+
+  const now = 1_700_000_000_000;
+  const merged = presence.applyChange(
+    {
+      "p-adaxxxx": { at: now - 1000, name: "Ada", game: "hub" },
+      "p-guestxxx": { at: now - 500, name: "Bea", game: "snake" }
+    },
+    {
+      type: "UPDATE",
+      record: {
+        player_id: "p-adaxxxx",
+        display_name: "Ada",
+        game: "fishing",
+        pinged_at: new Date(now).toISOString()
+      }
+    },
+    now
+  );
+  assert.equal(merged["p-adaxxxx"].game, "fishing");
+  assert.equal(merged["p-guestxxx"].name, "Bea");
+
+  const afterDelete = presence.applyChange(
+    merged,
+    {
+      event: "postgres_changes",
+      payload: {
+        data: {
+          type: "DELETE",
+          old_record: { player_id: "p-guestxxx" }
+        }
+      }
+    },
+    now
+  );
+  assert.equal(afterDelete["p-guestxxx"], undefined);
+  assert.equal(afterDelete["p-adaxxxx"].name, "Ada");
+
+  const skipped = presence.applyChange(
+    { "p-keepxxxx": { at: now, name: "Cee", game: "hub" } },
+    { type: "DELETE", old_record: { player_id: "" } },
+    now
+  );
+  assert.equal(skipped["p-keepxxxx"].name, "Cee");
+});

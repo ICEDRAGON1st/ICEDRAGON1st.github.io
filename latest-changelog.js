@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015cf",
+  "build": "20261015cg",
   "notes": [
-    "Fishing bases now also live on your signed-in account as your own row, so a busy device can't wipe someone else's aquarium."
+    "Who's online now updates from your signed-in account as it happens, so the player list doesn't wait on a slow poll."
   ]
 };
