@@ -178,3 +178,11 @@ test("player password hashes use auth-owned rows instead of rewriting the shared
   assert.match(src, /player_password_hashes/);
   assert.doesNotMatch(src, /password_hash: String\(row\?\.password\)/);
 });
+
+test("all-time roster uses auth-owned rows instead of rewriting the shared player list", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.match(src, /async function listAlltimeRoster/);
+  assert.match(src, /async function upsertAlltimeRoster/);
+  assert.match(src, /alltime_roster/);
+});

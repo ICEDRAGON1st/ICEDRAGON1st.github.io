@@ -902,6 +902,66 @@
     }
   }
 
+  async function listAlltimeRoster() {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const url =
+      `${SUPABASE_URL}/rest/v1/alltime_roster?select=player_id,display_name,first_at,last_at`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase alltime list ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function upsertAlltimeRoster(row) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const playerId = parseLocalPlayerId(row?.playerId);
+    const firstAt = Math.floor(Number(row?.firstAt) || 0);
+    const lastAt = Math.max(Math.floor(Number(row?.lastAt) || 0), firstAt);
+    if (!userId || !session?.access_token) throw new Error("supabase alltime needs a session");
+    if (!playerId) throw new Error("bad alltime player id");
+    if (!firstAt) throw new Error("bad alltime first_at");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/alltime_roster`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        player_id: playerId,
+        display_name: String(row?.displayName || "")
+          .replace(/[<>&"'`]/g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 32),
+        first_at: firstAt,
+        last_at: lastAt
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase alltime upsert ${res.status} ${text}`);
+    }
+  }
+
   async function getDoc(id) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -1094,6 +1154,8 @@
     upsertNameReservationLock,
     listPlayerPasswordHashes,
     upsertPlayerPasswordHash,
+    listAlltimeRoster,
+    upsertAlltimeRoster,
     profile: () => {
       const raw = readSession()?.profile;
       const parsed = parseProfile(raw);

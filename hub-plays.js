@@ -539,7 +539,7 @@
         mergeAllTimePreferRemoteLast(purged.players, allTimeCache)
       ).players;
       saveAllTimeLocal(allTimeCache);
-      if (purged.changed) await pushAllTimeRemote(purged.players);
+      if (purged.changed) await pushAllTimeRemote(purged.players, { rewriteShared: true });
       const allClean = !Object.entries(purged.players).some(([id, p]) =>
         isPurgedPlayer(id, p?.name)
       );
@@ -3595,16 +3595,69 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     }
   }
 
+  async function fetchAllTimeTableRemote() {
+    const api = sb();
+    if (!api?.listAlltimeRoster || !alltimeApi.rowsToMap) return null;
+    try {
+      const rows = await api.listAlltimeRoster();
+      if (!rows) return null;
+      return alltimeApi.rowsToMap(rows);
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistAllTimeRoster(entry) {
+    const api = sb();
+    const me = getPlayerId();
+    if (!api?.upsertAlltimeRoster || !me || !entry) return false;
+    const cleaned = alltimeApi.cleanRow ? alltimeApi.cleanRow(entry, me) : entry;
+    if (!cleaned || isPlaceholderName(cleaned.name)) return false;
+    try {
+      await api.upsertAlltimeRoster({
+        playerId: me,
+        displayName: cleaned.name,
+        firstAt: cleaned.firstAt,
+        lastAt: cleaned.lastAt
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async function fetchAllTimeRemote() {
-    const data = await fetchDoc("players-alltime", ALLTIME_API);
-    if (!data || typeof data !== "object") return {};
-    const parsed = alltimeApi.parseRemotePlayers
-      ? alltimeApi.parseRemotePlayers(data, { sanitizeName, isPurgedPlayer })
-      : {};
+    let parsed = {};
+    let fetched = false;
+    try {
+      const data = await fetchDoc("players-alltime", ALLTIME_API);
+      if (data && typeof data === "object") {
+        parsed = alltimeApi.parseRemotePlayers
+          ? alltimeApi.parseRemotePlayers(data, { sanitizeName, isPurgedPlayer })
+          : {};
+        fetched = true;
+      }
+    } catch {
+      parsed = {};
+    }
+    const tableRemote = await fetchAllTimeTableRemote();
+    if (tableRemote) {
+      parsed = mergeAllTime(parsed, tableRemote);
+      fetched = true;
+    }
+    if (!fetched) throw new Error("alltime-unavailable");
     return purgeAllTimePlayers(parsed).players;
   }
 
-  async function pushAllTimeRemote(players) {
+  async function pushAllTimeRemote(players, opts) {
+    const me = getPlayerId();
+    let tableWrote = false;
+    const mine = players?.[me];
+    if (mine) {
+      const result = await persistAllTimeRoster(mine);
+      if (result) tableWrote = true;
+    }
+    if (tableWrote && !(opts && opts.rewriteShared)) return;
     const cleaned = alltimeApi.repairMassStampedLastAt
       ? alltimeApi.repairMassStampedLastAt(players)
       : { ...(players || {}) };

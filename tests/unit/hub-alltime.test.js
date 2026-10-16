@@ -97,6 +97,9 @@ test("owned all-time row dual-writes without copying others or shrinking the ros
   const plays = fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8");
   assert.match(plays, /persistAllTimeMine/);
   assert.match(plays, /pullAllTimeMine/);
+  assert.match(plays, /persistAllTimeRoster/);
+  assert.match(plays, /fetchAllTimeTableRemote/);
+  assert.match(plays, /if \(tableWrote && !\(opts && opts\.rewriteShared\)\) return/);
   assert.equal(alltime.SAVE_KEY, "alltime-mine");
 
   const snapshot = alltime.collectMine(
@@ -151,4 +154,19 @@ test("owned all-time row dual-writes without copying others or shrinking the ros
   );
   assert.equal(leaked["p-eve"], undefined);
   assert.equal(leaked["p-ada"].firstAt, 5);
+
+  const fromRows = alltime.rowsToMap([
+    {
+      player_id: "p-ada",
+      display_name: "Ada",
+      first_at: 80,
+      last_at: 250
+    },
+    { player_id: "p-bea", display_name: "Bea", first_at: 0, last_at: 9 },
+    { player_id: "", display_name: "Skip", first_at: 1, last_at: 2 }
+  ]);
+  assert.equal(fromRows["p-ada"].firstAt, 80);
+  assert.equal(fromRows["p-ada"].lastAt, 250);
+  assert.equal(fromRows["p-ada"].name, "Ada");
+  assert.equal(fromRows["p-bea"], undefined);
 });

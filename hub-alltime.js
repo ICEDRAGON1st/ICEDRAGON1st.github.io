@@ -251,6 +251,25 @@
     };
   }
 
+  function rowsToMap(rows) {
+    const out = {};
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      if (!row || typeof row !== "object") return;
+      const id = String(row.player_id || row.playerId || "").trim();
+      const cleaned = cleanRow(
+        {
+          firstAt: Number(row.first_at) || Number(row.firstAt) || 0,
+          lastAt: Number(row.last_at) || Number(row.lastAt) || 0,
+          name: row.display_name || row.name || ""
+        },
+        id
+      );
+      if (!id || !cleaned) return;
+      out[id] = cleaned;
+    });
+    return out;
+  }
+
   function collectMine(players, playerId) {
     const me = String(playerId || "").trim();
     return {
@@ -285,7 +304,8 @@
     cleanRow,
     readMine,
     collectMine,
-    applyMine
+    applyMine,
+    rowsToMap
   };
   if (root) root.HubAllTime = api;
   if (typeof module === "object" && module.exports) module.exports = api;

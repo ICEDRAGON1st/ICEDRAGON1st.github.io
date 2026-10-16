@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015bt",
+  "build": "20261015bu",
   "notes": [
-    "Your login password now also lives on your signed-in account as your own row, so a busy device can't overwrite someone else's login."
+    "Who's played My Games now also counts from each signed-in account's own row, so a busy device can't wipe the all-time player list."
   ]
 };
