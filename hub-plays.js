@@ -5563,10 +5563,10 @@ body.light .menu-credit .player-name-creator {
         }
         if (!base) return;
         const v = window.WORDLE_BUILD || "20260917bt";
-        ["hub-fishing-gifts.js", "hub-fishing-mail.js"].forEach((file) => {
+        ["fishing/save.js", "hub-fishing-gifts.js", "hub-fishing-mail.js"].forEach((file) => {
           const el = document.createElement("script");
           el.src = `${base}${file}?v=${v}`;
-          el.async = true;
+          el.async = false;
           document.head.appendChild(el);
         });
       } catch {}

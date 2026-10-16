@@ -250,3 +250,11 @@ test("fishing community casts use auth-owned rows instead of rewriting the share
   assert.match(src, /async function upsertCommunityCastContribution/);
   assert.match(src, /community_cast_contributions/);
 });
+
+test("fishing player mail uses auth-owned rows instead of rewriting the shared mail board", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.match(src, /async function listFishingMailContributions/);
+  assert.match(src, /async function upsertFishingMailContribution/);
+  assert.match(src, /fishing_mail_contributions/);
+});

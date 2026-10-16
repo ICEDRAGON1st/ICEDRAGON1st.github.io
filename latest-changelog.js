@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015cc",
+  "build": "20261015cd",
   "notes": [
-    "The Fishing weekend meter now also counts from your signed-in account as your own row, so a busy device can't wipe everyone else's casts."
+    "Fishing gifts and trades now also live on your signed-in account as your own row, so a busy device can't wipe someone else's mail."
   ]
 };

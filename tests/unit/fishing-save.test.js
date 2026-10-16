@@ -189,3 +189,110 @@ test("community cast overlay sums this week's rows without shrinking a richer sh
 
   assert.equal(save.overlayCommunityCasts(hub, rows, "2026-10-9").total, 999);
 });
+
+test("fishing player mail uses account-owned rows and skips the shared rewrite after success", () => {
+  const fs = require("node:fs");
+  const script = fs.readFileSync(path.resolve(__dirname, "../../fishing/script.js"), "utf8");
+  const mail = fs.readFileSync(path.resolve(__dirname, "../../hub-fishing-mail.js"), "utf8");
+  const plays = fs.readFileSync(path.resolve(__dirname, "../../hub-plays.js"), "utf8");
+  assert.match(script, /persistFishingMailContribution/);
+  assert.match(script, /fetchPlayerMailTableRemote/);
+  assert.match(script, /overlayPlayerMail/);
+  assert.match(script, /if \(tableWrote && !rewriteShared\) return true/);
+  assert.match(mail, /persistMailContribution/);
+  assert.match(mail, /listFishingMailContributions/);
+  assert.match(mail, /if \(tableWrote && !rewriteShared\) return true/);
+  assert.match(plays, /fishing\/save\.js/);
+});
+
+test("player mail overlay merges owned gifts and trades without copying others or un-claiming", () => {
+  const now = 1_700_000_000_000;
+  const hub = {
+    gifts: {
+      "pg-hub": {
+        id: "pg-hub",
+        fromId: "p-guestxxxx",
+        toPlayerId: "p-adaxxxxx",
+        items: [{ kind: "chest", chestKind: "money", count: 1 }],
+        at: now,
+        claimed: false
+      }
+    },
+    trades: {}
+  };
+  const rows = [
+    {
+      player_id: "p-adaxxxxx",
+      gifts: {
+        "pg-1": {
+          id: "pg-1",
+          fromId: "p-adaxxxxx",
+          toPlayerId: "p-beaxxxxx",
+          items: [{ kind: "fish", fishId: "minnow" }],
+          at: now,
+          claimed: false
+        }
+      },
+      trades: {
+        "tr-1": {
+          id: "tr-1",
+          aId: "p-adaxxxxx",
+          bId: "p-beaxxxxx",
+          aItems: [],
+          bItems: [],
+          status: "open",
+          at: now,
+          updatedAt: now
+        }
+      }
+    },
+    {
+      player_id: "p-beaxxxxx",
+      gifts: {
+        "pg-1": {
+          id: "pg-1",
+          fromId: "p-adaxxxxx",
+          toPlayerId: "p-beaxxxxx",
+          items: [{ kind: "fish", fishId: "minnow" }],
+          at: now,
+          claimed: true,
+          claimedAt: now + 5
+        }
+      },
+      trades: {
+        "tr-1": {
+          id: "tr-1",
+          aId: "p-adaxxxxx",
+          bId: "p-beaxxxxx",
+          status: "done",
+          updatedAt: now + 8,
+          appliedBy: { "p-beaxxxxx": now + 8 }
+        }
+      }
+    },
+    {
+      player_id: "",
+      gifts: {
+        "pg-skip": {
+          id: "pg-skip",
+          fromId: "p-calxxxxx",
+          toPlayerId: "p-adaxxxxx",
+          items: [{ kind: "fish", fishId: "shark" }],
+          at: now
+        }
+      }
+    }
+  ];
+  const overlaid = save.overlayPlayerMail(hub, rows, now);
+  assert.equal(overlaid.gifts["pg-hub"].claimed, false);
+  assert.equal(overlaid.gifts["pg-1"].claimed, true);
+  assert.equal(overlaid.gifts["pg-skip"], undefined);
+  assert.equal(overlaid.trades["tr-1"].status, "done");
+  assert.equal(overlaid.trades["tr-1"].appliedBy["p-beaxxxxx"], now + 8);
+
+  const mine = save.collectPlayerMailMine(overlaid.gifts, overlaid.trades, "p-adaxxxxx");
+  assert.equal(mine.gifts["pg-1"].id, "pg-1");
+  assert.equal(mine.gifts["pg-hub"].id, "pg-hub");
+  assert.equal(mine.trades["tr-1"].id, "tr-1");
+  assert.equal(save.collectPlayerMailMine(overlaid.gifts, overlaid.trades, "p-calxxxxx").gifts["pg-1"], undefined);
+});

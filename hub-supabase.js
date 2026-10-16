@@ -1776,6 +1776,187 @@
     }
   }
 
+  function sanitizeFishingMailItem(raw) {
+    if (!raw || typeof raw !== "object") return null;
+    const kind = String(raw.kind || "").toLowerCase();
+    if (kind === "fish") {
+      const fishId = String(raw.fishId || "")
+        .trim()
+        .slice(0, 32);
+      if (!fishId) return null;
+      return {
+        kind: "fish",
+        fishId,
+        variant: String(raw.variant || "")
+          .toLowerCase()
+          .slice(0, 16),
+        shiny: !!raw.shiny,
+        mutation: String(raw.mutation || "")
+          .toLowerCase()
+          .slice(0, 16),
+        perfect: !!raw.perfect
+      };
+    }
+    if (kind === "chest") {
+      return {
+        kind: "chest",
+        chestKind: String(raw.chestKind || "money") === "luck" ? "luck" : "money",
+        count: Math.min(50, Math.max(1, Math.floor(Number(raw.count) || 1)))
+      };
+    }
+    if (kind === "luckyblock") {
+      const t = String(raw.lbType || "absolute").toLowerCase();
+      return {
+        kind: "luckyblock",
+        lbType: t === "zenith" || t === "astral" ? t : "absolute",
+        count: Math.min(50, Math.max(1, Math.floor(Number(raw.count) || 1)))
+      };
+    }
+    return null;
+  }
+
+  function sanitizeFishingMailGifts(gifts, playerId) {
+    const me = String(playerId || "");
+    const out = {};
+    if (!me) return out;
+    Object.entries(gifts && typeof gifts === "object" && !Array.isArray(gifts) ? gifts : {}).forEach(
+      ([key, raw]) => {
+        if (Object.keys(out).length >= 40) return;
+        if (!raw || typeof raw !== "object") return;
+        const id = String(raw.id || key || "")
+          .trim()
+          .slice(0, 64);
+        const fromId = String(raw.fromId || "").trim();
+        const toPlayerId = String(raw.toPlayerId || "").trim();
+        if (!id || (fromId !== me && toPlayerId !== me)) return;
+        const items = (Array.isArray(raw.items) ? raw.items : [])
+          .map(sanitizeFishingMailItem)
+          .filter(Boolean)
+          .slice(0, 8);
+        if (!items.length) return;
+        out[id] = {
+          id,
+          fromId,
+          fromName: String(raw.fromName || "").slice(0, 48),
+          toPlayerId,
+          toName: String(raw.toName || "")
+            .toLowerCase()
+            .slice(0, 48),
+          toDisplay: String(raw.toDisplay || "").slice(0, 48),
+          items,
+          at: Math.max(0, Number(raw.at) || 0),
+          claimed: !!raw.claimed,
+          claimedBy: String(raw.claimedBy || "").slice(0, 64),
+          claimedAt: Math.max(0, Number(raw.claimedAt) || 0)
+        };
+      }
+    );
+    return out;
+  }
+
+  function sanitizeFishingMailTrades(trades, playerId) {
+    const me = String(playerId || "");
+    const out = {};
+    if (!me) return out;
+    Object.entries(trades && typeof trades === "object" && !Array.isArray(trades) ? trades : {}).forEach(
+      ([key, raw]) => {
+        if (Object.keys(out).length >= 20) return;
+        if (!raw || typeof raw !== "object") return;
+        const id = String(raw.id || key || "")
+          .trim()
+          .slice(0, 64);
+        const aId = String(raw.aId || "").trim();
+        const bId = String(raw.bId || "").trim();
+        if (!id || !aId || !bId || (aId !== me && bId !== me)) return;
+        const statusRaw = String(raw.status || "open");
+        out[id] = {
+          id,
+          aId,
+          aName: String(raw.aName || "").slice(0, 48),
+          bId,
+          bName: String(raw.bName || "").slice(0, 48),
+          aItems: (Array.isArray(raw.aItems) ? raw.aItems : [])
+            .map(sanitizeFishingMailItem)
+            .filter(Boolean)
+            .slice(0, 8),
+          bItems: (Array.isArray(raw.bItems) ? raw.bItems : [])
+            .map(sanitizeFishingMailItem)
+            .filter(Boolean)
+            .slice(0, 8),
+          aAccept: !!raw.aAccept,
+          bAccept: !!raw.bAccept,
+          status: statusRaw === "done" || statusRaw === "cancelled" ? statusRaw : "open",
+          at: Math.max(0, Number(raw.at) || 0),
+          updatedAt: Math.max(0, Number(raw.updatedAt) || Number(raw.at) || 0),
+          appliedBy:
+            raw.appliedBy && typeof raw.appliedBy === "object" && !Array.isArray(raw.appliedBy)
+              ? raw.appliedBy
+              : {},
+          restoredBy:
+            raw.restoredBy && typeof raw.restoredBy === "object" && !Array.isArray(raw.restoredBy)
+              ? raw.restoredBy
+              : {},
+          note: String(raw.note || "").slice(0, 32)
+        };
+      }
+    );
+    return out;
+  }
+
+  async function listFishingMailContributions() {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const url = `${SUPABASE_URL}/rest/v1/fishing_mail_contributions?select=player_id,gifts,trades,updated_at`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase fishing mail list ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function upsertFishingMailContribution(row) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const playerId = parseLocalPlayerId(row?.playerId);
+    if (!userId || !session?.access_token) throw new Error("supabase fishing mail needs a session");
+    if (!playerId) throw new Error("bad fishing mail player id");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const gifts = sanitizeFishingMailGifts(row?.gifts, playerId);
+    const trades = sanitizeFishingMailTrades(row?.trades, playerId);
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/fishing_mail_contributions`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        player_id: playerId,
+        gifts,
+        trades,
+        updated_at: new Date().toISOString()
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase fishing mail upsert ${res.status} ${text}`);
+    }
+  }
+
   async function getDoc(id) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -1986,6 +2167,8 @@
     upsertFeedbackItemContribution,
     listCommunityCastContributions,
     upsertCommunityCastContribution,
+    listFishingMailContributions,
+    upsertFishingMailContribution,
     profile: () => {
       const raw = readSession()?.profile;
       const parsed = parseProfile(raw);

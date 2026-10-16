@@ -422,6 +422,247 @@
   }
 
   const COMMUNITY_CASTS_CAP = 10000;
+  const MAIL_GIFT_CAP = 40;
+  const MAIL_TRADE_CAP = 20;
+  const MAIL_ITEM_CAP = 8;
+  const MAIL_CLAIMED_TTL_MS = 3 * 24 * 60 * 60 * 1000;
+  const MAIL_GIFT_TTL_MS = 14 * 24 * 60 * 60 * 1000;
+  const MAIL_TRADE_DONE_TTL_MS = 2 * 24 * 60 * 60 * 1000;
+
+  function mailInvolvesPlayer(entry, playerId, kind) {
+    const me = String(playerId || "").trim();
+    if (!me || !entry || typeof entry !== "object") return false;
+    if (kind === "gift") {
+      return String(entry.fromId || "") === me || String(entry.toPlayerId || "") === me;
+    }
+    return String(entry.aId || "") === me || String(entry.bId || "") === me;
+  }
+
+  function sanitizeMailItem(raw) {
+    if (!raw || typeof raw !== "object") return null;
+    const kind = String(raw.kind || "").toLowerCase();
+    if (kind === "fish") {
+      const fishId = String(raw.fishId || "")
+        .trim()
+        .slice(0, 32);
+      if (!fishId) return null;
+      return {
+        kind: "fish",
+        fishId,
+        variant: String(raw.variant || "")
+          .toLowerCase()
+          .slice(0, 16),
+        shiny: !!raw.shiny,
+        mutation: String(raw.mutation || "")
+          .toLowerCase()
+          .slice(0, 16),
+        perfect: !!raw.perfect
+      };
+    }
+    if (kind === "chest") {
+      return {
+        kind: "chest",
+        chestKind: String(raw.chestKind || "money") === "luck" ? "luck" : "money",
+        count: Math.min(50, Math.max(1, Math.floor(Number(raw.count) || 1)))
+      };
+    }
+    if (kind === "luckyblock") {
+      const t = String(raw.lbType || "absolute").toLowerCase();
+      const lbType = t === "zenith" || t === "astral" ? t : "absolute";
+      return {
+        kind: "luckyblock",
+        lbType,
+        count: Math.min(50, Math.max(1, Math.floor(Number(raw.count) || 1)))
+      };
+    }
+    return null;
+  }
+
+  function cleanMailGift(raw) {
+    if (!raw || typeof raw !== "object") return null;
+    const id = String(raw.id || "")
+      .trim()
+      .slice(0, 64);
+    if (!id) return null;
+    const items = (Array.isArray(raw.items) ? raw.items : [])
+      .map(sanitizeMailItem)
+      .filter(Boolean)
+      .slice(0, MAIL_ITEM_CAP);
+    if (!items.length) return null;
+    const fromId = String(raw.fromId || "").trim();
+    const toPlayerId = String(raw.toPlayerId || "").trim();
+    if (!fromId && !toPlayerId) return null;
+    return {
+      id,
+      fromId,
+      fromName: String(raw.fromName || "").slice(0, 48),
+      toPlayerId,
+      toName: String(raw.toName || "")
+        .toLowerCase()
+        .slice(0, 48),
+      toDisplay: String(raw.toDisplay || "").slice(0, 48),
+      items,
+      at: Math.max(0, Number(raw.at) || 0),
+      claimed: !!raw.claimed,
+      claimedBy: String(raw.claimedBy || "").slice(0, 64),
+      claimedAt: Math.max(0, Number(raw.claimedAt) || 0)
+    };
+  }
+
+  function cleanMailTrade(raw) {
+    if (!raw || typeof raw !== "object") return null;
+    const id = String(raw.id || "")
+      .trim()
+      .slice(0, 64);
+    const aId = String(raw.aId || "").trim();
+    const bId = String(raw.bId || "").trim();
+    if (!id || !aId || !bId) return null;
+    const statusRaw = String(raw.status || "open");
+    const status = statusRaw === "done" || statusRaw === "cancelled" ? statusRaw : "open";
+    return {
+      id,
+      aId,
+      aName: String(raw.aName || "").slice(0, 48),
+      bId,
+      bName: String(raw.bName || "").slice(0, 48),
+      aItems: (Array.isArray(raw.aItems) ? raw.aItems : [])
+        .map(sanitizeMailItem)
+        .filter(Boolean)
+        .slice(0, MAIL_ITEM_CAP),
+      bItems: (Array.isArray(raw.bItems) ? raw.bItems : [])
+        .map(sanitizeMailItem)
+        .filter(Boolean)
+        .slice(0, MAIL_ITEM_CAP),
+      aAccept: !!raw.aAccept,
+      bAccept: !!raw.bAccept,
+      status,
+      at: Math.max(0, Number(raw.at) || 0),
+      updatedAt: Math.max(0, Number(raw.updatedAt) || Number(raw.at) || 0),
+      appliedBy:
+        raw.appliedBy && typeof raw.appliedBy === "object" && !Array.isArray(raw.appliedBy)
+          ? { ...raw.appliedBy }
+          : {},
+      restoredBy:
+        raw.restoredBy && typeof raw.restoredBy === "object" && !Array.isArray(raw.restoredBy)
+          ? { ...raw.restoredBy }
+          : {},
+      note: String(raw.note || "").slice(0, 32)
+    };
+  }
+
+  function mergeMailGift(a, b) {
+    if (!a) return b || null;
+    if (!b) return a;
+    if (a.claimed !== b.claimed) return a.claimed ? a : b;
+    if (a.claimed && b.claimed) {
+      return (Number(a.claimedAt) || 0) >= (Number(b.claimedAt) || 0) ? a : b;
+    }
+    const aN = (a.items || []).length;
+    const bN = (b.items || []).length;
+    if (aN !== bN) return aN < bN ? a : b;
+    return (Number(a.at) || 0) >= (Number(b.at) || 0) ? a : b;
+  }
+
+  function mergeFlagMap(a, b) {
+    return { ...(a || {}), ...(b || {}) };
+  }
+
+  function mergeMailTrade(a, b) {
+    if (!a) return b || null;
+    if (!b) return a;
+    const aDone = a.status === "done" || a.status === "cancelled";
+    const bDone = b.status === "done" || b.status === "cancelled";
+    const winner = aDone !== bDone ? (aDone ? a : b) : (Number(a.updatedAt) || 0) >= (Number(b.updatedAt) || 0) ? a : b;
+    return {
+      ...winner,
+      appliedBy: mergeFlagMap(a.appliedBy, b.appliedBy),
+      restoredBy: mergeFlagMap(a.restoredBy, b.restoredBy)
+    };
+  }
+
+  function capMailMap(map, cap) {
+    const entries = Object.entries(map && typeof map === "object" ? map : {});
+    if (entries.length <= cap) {
+      const out = {};
+      entries.forEach(([id, val]) => {
+        if (val) out[id] = val;
+      });
+      return out;
+    }
+    entries.sort(
+      (left, right) =>
+        (Number(right[1]?.updatedAt || right[1]?.claimedAt || right[1]?.at) || 0) -
+        (Number(left[1]?.updatedAt || left[1]?.claimedAt || left[1]?.at) || 0)
+    );
+    const out = {};
+    entries.slice(0, cap).forEach(([id, val]) => {
+      if (val) out[id] = val;
+    });
+    return out;
+  }
+
+  function collectPlayerMailMine(gifts, trades, playerId) {
+    const me = String(playerId || "").trim();
+    const mineGifts = {};
+    const mineTrades = {};
+    if (!me) return { playerId: "", gifts: {}, trades: {} };
+    Object.entries(gifts && typeof gifts === "object" && !Array.isArray(gifts) ? gifts : {}).forEach(
+      ([id, raw]) => {
+        const gift = cleanMailGift({ ...(raw || {}), id: raw?.id || id });
+        if (!gift || !mailInvolvesPlayer(gift, me, "gift")) return;
+        mineGifts[gift.id] = gift;
+      }
+    );
+    Object.entries(trades && typeof trades === "object" && !Array.isArray(trades) ? trades : {}).forEach(
+      ([id, raw]) => {
+        const trade = cleanMailTrade({ ...(raw || {}), id: raw?.id || id });
+        if (!trade || !mailInvolvesPlayer(trade, me, "trade")) return;
+        mineTrades[trade.id] = trade;
+      }
+    );
+    return {
+      playerId: me,
+      gifts: capMailMap(mineGifts, MAIL_GIFT_CAP),
+      trades: capMailMap(mineTrades, MAIL_TRADE_CAP)
+    };
+  }
+
+  function overlayPlayerMail(hub, rows, now = Date.now()) {
+    let gifts = { ...((hub && hub.gifts && typeof hub.gifts === "object" ? hub.gifts : {}) || {}) };
+    let trades = { ...((hub && hub.trades && typeof hub.trades === "object" ? hub.trades : {}) || {}) };
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const pid = String(row?.player_id || row?.playerId || "").trim();
+      if (!pid) return;
+      const owned = collectPlayerMailMine(row?.gifts, row?.trades, pid);
+      Object.entries(owned.gifts || {}).forEach(([id, gift]) => {
+        gifts[id] = mergeMailGift(gifts[id], gift);
+      });
+      Object.entries(owned.trades || {}).forEach(([id, trade]) => {
+        trades[id] = mergeMailTrade(trades[id], trade);
+      });
+    });
+    const nextGifts = {};
+    Object.entries(gifts).forEach(([id, gift]) => {
+      if (!gift) return;
+      const at = Number(gift.at) || 0;
+      if (gift.claimed && now - (Number(gift.claimedAt) || at) > MAIL_CLAIMED_TTL_MS) return;
+      if (!gift.claimed && at && now - at > MAIL_GIFT_TTL_MS) return;
+      nextGifts[id] = gift;
+    });
+    const nextTrades = {};
+    Object.entries(trades).forEach(([id, trade]) => {
+      if (!trade) return;
+      const at = Number(trade.updatedAt || trade.at) || 0;
+      const done = trade.status === "done" || trade.status === "cancelled";
+      if (done && at && now - at > MAIL_TRADE_DONE_TTL_MS) return;
+      nextTrades[id] = trade;
+    });
+    return {
+      token: hub?.token,
+      gifts: nextGifts,
+      trades: nextTrades
+    };
+  }
 
   function overlayCommunityCasts(hub, rows, weekKey) {
     const base = hub && typeof hub === "object" && !Array.isArray(hub) ? { ...hub } : {};
@@ -459,7 +700,11 @@
     applyAquaMine,
     canPostSharedAqua,
     COMMUNITY_CASTS_CAP,
-    overlayCommunityCasts
+    overlayCommunityCasts,
+    MAIL_GIFT_CAP,
+    MAIL_TRADE_CAP,
+    collectPlayerMailMine,
+    overlayPlayerMail
   };
   root.FishingSave = api;
   if (typeof module === "object" && module.exports) module.exports = api;

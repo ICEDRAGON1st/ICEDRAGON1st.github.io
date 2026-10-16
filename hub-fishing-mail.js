@@ -183,6 +183,43 @@
     return 0;
   }
 
+  function mailSaveApi() {
+    return window.FishingSave && typeof FishingSave.overlayPlayerMail === "function"
+      ? FishingSave
+      : null;
+  }
+
+  async function fetchMailTableRemote() {
+    const api = sb();
+    if (!api?.listFishingMailContributions) return null;
+    try {
+      const rows = await api.listFishingMailContributions();
+      if (!rows) return null;
+      return Array.isArray(rows) ? rows : [];
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistMailContribution(doc) {
+    const api = sb();
+    const helper = mailSaveApi();
+    if (!api?.upsertFishingMailContribution || !helper?.collectPlayerMailMine) return false;
+    const me = api.parseLocalPlayerId ? api.parseLocalPlayerId(playerId()) : "";
+    if (!me) return false;
+    try {
+      const mine = helper.collectPlayerMailMine(doc?.gifts, doc?.trades, me);
+      await api.upsertFishingMailContribution({
+        playerId: me,
+        gifts: mine.gifts,
+        trades: mine.trades
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async function fetchDoc() {
     try {
       const api = sb();
@@ -195,27 +232,37 @@
         }
       } else {
         const res = await fetch(`${API}?t=${Date.now()}`, { cache: "no-store" });
-        if (res.status === 404) return { token: TOKEN, gifts: {}, trades: {} };
-        if (!res.ok) return null;
-        data = await res.json();
+        if (res.status === 404) data = { token: TOKEN, gifts: {}, trades: {} };
+        else if (!res.ok) return null;
+        else data = await res.json();
       }
-      if (!data || typeof data !== "object") return { token: TOKEN, gifts: {}, trades: {} };
-      return {
-        token: data.token || TOKEN,
-        gifts: data.gifts && typeof data.gifts === "object" ? data.gifts : {},
-        trades: data.trades && typeof data.trades === "object" ? data.trades : {}
-      };
+      if (!data || typeof data !== "object") data = { token: TOKEN, gifts: {}, trades: {} };
+      else {
+        data = {
+          token: data.token || TOKEN,
+          gifts: data.gifts && typeof data.gifts === "object" ? data.gifts : {},
+          trades: data.trades && typeof data.trades === "object" ? data.trades : {}
+        };
+      }
+      const tableRows = await fetchMailTableRemote();
+      const helper = mailSaveApi();
+      if (Array.isArray(tableRows) && helper?.overlayPlayerMail) {
+        data = helper.overlayPlayerMail(data, tableRows);
+      }
+      return data;
     } catch {
       return null;
     }
   }
 
-  async function postDoc(doc) {
+  async function postDoc(doc, { rewriteShared = false } = {}) {
     const payload = {
       token: TOKEN,
       gifts: doc.gifts || {},
       trades: doc.trades || {}
     };
+    const tableWrote = await persistMailContribution(payload);
+    if (tableWrote && !rewriteShared) return true;
     try {
       const api = sb();
       if (api) {
