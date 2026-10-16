@@ -263,15 +263,73 @@
     if (!res.ok) throw new Error("push failed");
   }
 
-  async function fetchRemote() {
+  async function fetchFeedbackTableRemote() {
     const api = sb();
-    const data = api ? await api.getPrefer(DOC_ID, API) : await fetchJson(API);
-    if (!data || typeof data !== "object") return { items: [] };
-    return { items: Array.isArray(data.items) ? data.items : [] };
+    const helper = mineApi();
+    if (!api?.listFeedbackItemContributions || !helper?.overlayFeedbackItems) return null;
+    try {
+      const rows = await api.listFeedbackItemContributions();
+      if (!rows) return null;
+      return helper.overlayFeedbackItems({ items: [] }, rows);
+    } catch {
+      return null;
+    }
   }
 
-  async function pushRemote(items) {
-    const payload = { items: items.slice(0, MAX_ITEMS) };
+  async function persistFeedbackItemContribution(items) {
+    const api = sb();
+    const helper = mineApi();
+    const me = getPlayerId();
+    if (!api?.upsertFeedbackItemContribution || !helper?.collectMine || !me) return false;
+    const snapshot = helper.collectMine(items, loadPendingIds(), me);
+    try {
+      await api.upsertFeedbackItemContribution({
+        playerId: me,
+        items: snapshot.items
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function fetchRemote() {
+    let parsed = { items: [], deletedIds: [] };
+    let fetched = false;
+    try {
+      const api = sb();
+      const data = api ? await api.getPrefer(DOC_ID, API) : await fetchJson(API);
+      if (data && typeof data === "object") {
+        parsed = {
+          items: Array.isArray(data.items) ? data.items : [],
+          deletedIds: Array.isArray(data.deletedIds) ? data.deletedIds.map(String) : []
+        };
+        fetched = true;
+      }
+    } catch (err) {
+      if (err?.code === 429) throw err;
+      parsed = { items: [], deletedIds: [] };
+    }
+    const tableRemote = await fetchFeedbackTableRemote();
+    if (tableRemote) {
+      parsed.items = mergeItems(parsed.items, tableRemote.items);
+      fetched = true;
+    }
+    if (parsed.deletedIds.length) {
+      saveDeletedIds([...new Set([...loadDeletedIds(), ...parsed.deletedIds])].slice(0, MAX_DELETED));
+    }
+    if (!fetched) throw new Error("feedback-unavailable");
+    return parsed;
+  }
+
+  async function pushRemote(items, opts) {
+    const tableWrote = await persistFeedbackItemContribution(items);
+    if (tableWrote && !(opts && opts.rewriteShared)) return;
+    if (opts && opts.skipShared) return;
+    const payload = {
+      items: items.slice(0, MAX_ITEMS),
+      deletedIds: loadDeletedIds()
+    };
     const api = sb();
     if (api) {
       await api.pushPrefer(DOC_ID, payload, API);
@@ -308,15 +366,17 @@
     }
     try {
       let remote = { items: [] };
+      let fetched = true;
       try {
         remote = await fetchRemote();
       } catch (err) {
+        fetched = false;
         if (err?.code === 429) return false;
       }
       const items = mergeItems(remote.items, localItems);
       cache = { items };
       saveLocal(cache);
-      await pushRemote(items);
+      await pushRemote(items, { skipShared: !fetched });
       clearPending(pending);
       persistMine();
       return true;
@@ -402,9 +462,11 @@
     writeQueue = writeQueue
       .then(async () => {
         let remote = { items: [] };
+        let fetched = true;
         try {
           remote = await fetchRemote();
         } catch (err) {
+          fetched = false;
           if (err?.code === 429) {
             queued = true;
             return;
@@ -415,7 +477,7 @@
         saveLocal(cache);
         persistMine();
         try {
-          await pushRemote(items);
+          await pushRemote(items, { skipShared: !fetched });
           clearPending([item.id]);
           persistMine();
         } catch (err) {
@@ -467,7 +529,7 @@
         cache = { items };
         saveLocal(cache);
         try {
-          await pushRemote(items);
+          await pushRemote(items, { rewriteShared: true });
         } catch {
           failed = true;
         }

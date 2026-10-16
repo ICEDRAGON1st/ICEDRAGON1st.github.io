@@ -124,6 +124,29 @@
     };
   }
 
+  function overlayFeedbackItems(hub, rows) {
+    const map = {};
+    const take = (list, playerId) => {
+      (Array.isArray(list) ? list : []).forEach((raw) => {
+        const item = cleanItem(raw, playerId || undefined);
+        if (!item) return;
+        const prev = map[item.id];
+        if (!prev || item.at >= prev.at) map[item.id] = item;
+      });
+    };
+    take(hub && hub.items, "");
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const playerId = String(row?.player_id || row?.playerId || "").trim();
+      if (!playerId) return;
+      take(row.items, playerId);
+    });
+    return {
+      items: Object.values(map)
+        .sort((a, b) => b.at - a.at)
+        .slice(0, 120)
+    };
+  }
+
   const api = {
     SAVE_KEY,
     MAX_ITEMS,
@@ -131,7 +154,8 @@
     cleanItems,
     readMine,
     collectMine,
-    applyMine
+    applyMine,
+    overlayFeedbackItems
   };
   if (root) root.HubFeedbackMine = api;
   if (typeof module === "object" && module.exports) module.exports = api;

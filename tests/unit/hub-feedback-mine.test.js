@@ -14,6 +14,9 @@ test("owned feedback lives in a helper used by the Feedback panel", () => {
   assert.match(ui, /window\.HubFeedbackMine/);
   assert.match(ui, /persistMine/);
   assert.match(ui, /pullMine/);
+  assert.match(ui, /persistFeedbackItemContribution/);
+  assert.match(ui, /fetchFeedbackTableRemote/);
+  assert.match(ui, /skipShared: !fetched/);
   assert.match(index, /hub-feedback-mine\.js/);
   assert.equal(mine.SAVE_KEY, "feedback-mine");
 });
@@ -74,4 +77,58 @@ test("owned feedback keeps only this player's tickets and never shrinks a richer
   assert.ok(richer.items.some((item) => item.id === "f1"));
   assert.ok(richer.pendingIds.includes("local"));
   assert.ok(richer.pendingIds.includes("f1"));
+
+  const overlaid = mine.overlayFeedbackItems(
+    {
+      items: [
+        {
+          id: "hub",
+          fromId: "p-hub",
+          fromName: "Hub",
+          type: "idea",
+          game: "Hub",
+          text: "Already on the board",
+          at: 5
+        }
+      ]
+    },
+    [
+      {
+        player_id: "p-me",
+        items: [
+          {
+            id: "f1",
+            fromId: "p-me",
+            fromName: "Ada",
+            type: "bug",
+            game: "Snake",
+            text: "Walls eat the tail",
+            at: 20
+          }
+        ]
+      },
+      {
+        player_id: "p-pal",
+        items: [
+          {
+            id: "f3",
+            fromId: "p-pal",
+            fromName: "Pal",
+            type: "idea",
+            game: "Quiz",
+            text: "More categories",
+            at: 21
+          }
+        ]
+      },
+      {
+        player_id: "",
+        items: [{ id: "skip", fromId: "p-skip", fromName: "Skip", type: "idea", text: "nope", at: 22 }]
+      }
+    ]
+  );
+  assert.equal(overlaid.items.some((item) => item.id === "hub"), true);
+  assert.equal(overlaid.items.some((item) => item.id === "f1"), true);
+  assert.equal(overlaid.items.some((item) => item.id === "f3"), true);
+  assert.equal(overlaid.items.some((item) => item.id === "skip"), false);
 });

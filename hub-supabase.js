@@ -1614,6 +1614,101 @@
     }
   }
 
+  function sanitizeFeedbackItems(items, playerId) {
+    const me = String(playerId || "");
+    const out = [];
+    const seen = new Set();
+    if (!me) return out;
+    (Array.isArray(items) ? items : []).forEach((raw) => {
+      if (out.length >= 40) return;
+      if (!raw || typeof raw !== "object") return;
+      const id = String(raw.id || "")
+        .trim()
+        .slice(0, 64);
+      const fromId = String(raw.fromId || me).trim();
+      const text = String(raw.text || "")
+        .replace(/[<>&"'`]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 400);
+      const at = Number(raw.at) || 0;
+      if (!id || !text || !at || fromId !== me || seen.has(id)) return;
+      seen.add(id);
+      const type = String(raw.type || "idea").toLowerCase();
+      out.push({
+        id,
+        fromId: me,
+        fromName:
+          String(raw.fromName || "Player")
+            .replace(/[<>&"'`]/g, "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 16) || "Player",
+        type: type === "bug" || type === "idea" || type === "other" ? type : "idea",
+        game: String(raw.game || "")
+          .replace(/[<>&"'`]/g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 32),
+        text,
+        at
+      });
+    });
+    return out.sort((a, b) => b.at - a.at).slice(0, 40);
+  }
+
+  async function listFeedbackItemContributions() {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const url = `${SUPABASE_URL}/rest/v1/feedback_item_contributions?select=player_id,items,updated_at`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase feedback list ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function upsertFeedbackItemContribution(row) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const playerId = parseLocalPlayerId(row?.playerId);
+    if (!userId || !session?.access_token) throw new Error("supabase feedback needs a session");
+    if (!playerId) throw new Error("bad feedback player id");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const items = sanitizeFeedbackItems(row?.items, playerId);
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/feedback_item_contributions`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        player_id: playerId,
+        items,
+        updated_at: new Date().toISOString()
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase feedback upsert ${res.status} ${text}`);
+    }
+  }
+
   async function getDoc(id) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -1820,6 +1915,8 @@
     upsertLeaderboardPbContribution,
     listMatchRoomContributions,
     upsertMatchRoomContribution,
+    listFeedbackItemContributions,
+    upsertFeedbackItemContribution,
     profile: () => {
       const raw = readSession()?.profile;
       const parsed = parseProfile(raw);

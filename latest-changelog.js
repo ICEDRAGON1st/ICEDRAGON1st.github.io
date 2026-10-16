@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ca",
+  "build": "20261015cb",
   "notes": [
-    "Online matches now also live on your signed-in account as your own row, so a busy device can't wipe someone else's game."
+    "Feedback now also lives on your signed-in account as your own row, so a busy device can't wipe someone else's tickets."
   ]
 };

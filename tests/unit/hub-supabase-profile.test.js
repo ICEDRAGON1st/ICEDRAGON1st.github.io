@@ -234,3 +234,11 @@ test("online match rooms use auth-owned rows instead of rewriting the shared mat
   assert.match(src, /async function upsertMatchRoomContribution/);
   assert.match(src, /match_room_contributions/);
 });
+
+test("feedback tickets use auth-owned rows instead of rewriting the shared inbox", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.match(src, /async function listFeedbackItemContributions/);
+  assert.match(src, /async function upsertFeedbackItemContribution/);
+  assert.match(src, /feedback_item_contributions/);
+});
