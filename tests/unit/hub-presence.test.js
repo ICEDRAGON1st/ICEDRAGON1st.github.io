@@ -43,3 +43,32 @@ test("hub presence merges newer pings and drops stale guests", () => {
   assert.equal(presence.sanitizePresenceGame("hub"), "hub");
   assert.equal(presence.sanitizePresenceGame("snake", { snake: "Snake" }), "snake");
 });
+
+test("presence table rows map to the shared online list without dropping other players", () => {
+  const fs = require("node:fs");
+  const plays = fs.readFileSync(path.resolve(__dirname, "../../hub-plays.js"), "utf8");
+  assert.match(plays, /persistPresencePing/);
+  assert.match(plays, /fetchPresenceTableRemote/);
+  assert.match(plays, /if \(!tableWrote\) await pushPresenceRemote/);
+  assert.equal(typeof presence.rowsToMap, "function");
+
+  const mapped = presence.rowsToMap([
+    {
+      player_id: "p-ada",
+      display_name: "Ada",
+      game: "snake",
+      pinged_at: "2023-11-14T22:13:20.000Z"
+    },
+    {
+      player_id: "p-bea",
+      display_name: "Bea",
+      game: "hub",
+      pinged_at: "2023-11-14T22:13:25.000Z"
+    },
+    { player_id: "", display_name: "Skip" }
+  ]);
+  assert.equal(mapped["p-ada"].name, "Ada");
+  assert.equal(mapped["p-ada"].game, "snake");
+  assert.equal(mapped["p-bea"].name, "Bea");
+  assert.equal(Object.keys(mapped).length, 2);
+});

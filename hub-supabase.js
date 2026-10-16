@@ -451,6 +451,89 @@
     }
   }
 
+  async function listPresencePings() {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+    const url =
+      `${SUPABASE_URL}/rest/v1/presence_pings?pinged_at=gte.${encodeURIComponent(since)}` +
+      `&select=player_id,display_name,game,pinged_at`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase presence list ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function upsertPresencePing(row) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const playerId = parseLocalPlayerId(row?.playerId);
+    if (!userId || !session?.access_token) throw new Error("supabase presence needs a session");
+    if (!playerId) throw new Error("bad presence player id");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/presence_pings`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        player_id: playerId,
+        display_name: String(row?.displayName || "")
+          .replace(/[<>&"'`]/g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 32),
+        game: String(row?.game || "hub")
+          .trim()
+          .slice(0, 32),
+        pinged_at: new Date().toISOString()
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase presence upsert ${res.status} ${text}`);
+    }
+  }
+
+  async function deletePresencePing() {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    if (!userId || !session?.access_token) return;
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/presence_pings?user_id=eq.${encodeURIComponent(userId)}`,
+      {
+        method: "DELETE",
+        headers: headers({}, session.access_token)
+      }
+    );
+    if (!res.ok && res.status !== 404) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase presence delete ${res.status} ${text}`);
+    }
+  }
+
   async function getDoc(id) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -618,6 +701,9 @@
     adoptSession,
     getSave,
     upsertSave,
+    listPresencePings,
+    upsertPresencePing,
+    deletePresencePing,
     profile: () => {
       const raw = readSession()?.profile;
       const parsed = parseProfile(raw);

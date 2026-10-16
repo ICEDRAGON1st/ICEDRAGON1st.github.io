@@ -118,3 +118,12 @@ test("locked admin docs use the trusted RPC instead of a direct hub_docs upsert"
   assert.match(fishing, /if \(ok\) return \{ ok: true, rateLimited: false \}/);
   assert.match(fishing, /pushPrefer\(\s*ADMIN_ANNOUNCE_DOC/);
 });
+
+test("presence pings use auth-owned rows instead of rewriting the shared presence document", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.match(src, /async function listPresencePings/);
+  assert.match(src, /async function upsertPresencePing/);
+  assert.match(src, /async function deletePresencePing/);
+  assert.match(src, /presence_pings/);
+});

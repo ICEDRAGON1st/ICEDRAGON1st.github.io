@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015bm",
+  "build": "20261015bn",
   "notes": [
-    "Voice calls now keep your room on your account, and they won't wipe other people's live calls if the shared list fails to load."
+    "Who's online now updates from each signed-in account's own ping, so one busy device can't wipe everyone else off the list."
   ]
 };

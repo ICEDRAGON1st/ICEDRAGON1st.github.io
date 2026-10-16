@@ -2883,6 +2883,35 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     return out;
   }
 
+  async function fetchPresenceTableRemote() {
+    const api = sb();
+    if (!api?.listPresencePings || !presenceApi.rowsToMap) return null;
+    try {
+      const rows = await api.listPresencePings();
+      if (!rows) return null;
+      return presenceApi.rowsToMap(rows);
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistPresencePing() {
+    const api = sb();
+    const me = getPlayerId();
+    if (!api?.upsertPresencePing || !me || !hasRequiredName()) return false;
+    try {
+      const self = presenceSelfPayload();
+      await api.upsertPresencePing({
+        playerId: me,
+        displayName: self.name,
+        game: self.game
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async function pushPresenceRemote(players) {
     await pushDoc("presence", { players }, PRESENCE_API);
   }
@@ -3054,7 +3083,10 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       try {
         remote = await fetchPresenceRemote();
       } catch {
-        remote = { ...(presenceCache || {}) };
+        const next = { ...(presenceCache || {}) };
+        delete next[id];
+        presenceCache = enrichPresenceNames(prunePresence(next, Date.now()));
+        return true;
       }
       if (!remote[id]) {
         presenceCache = enrichPresenceNames(prunePresence({ ...remote }, Date.now()));
@@ -3083,11 +3115,17 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     const me = getPlayerId();
     if (!me) return;
     try {
+      try {
+        await sb()?.deletePresencePing?.();
+      } catch {}
       let remote = {};
       try {
         remote = await fetchPresenceRemote();
       } catch {
-        remote = { ...(presenceCache || {}) };
+        const next = { ...(presenceCache || {}) };
+        delete next[me];
+        presenceCache = enrichPresenceNames(next);
+        return;
       }
       delete remote[me];
       const next = prunePresence(remote, Date.now());
@@ -3138,12 +3176,15 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       }
 
       const me = getPlayerId();
+      const tableWrote = await persistPresencePing();
+      const tableRemote = await fetchPresenceTableRemote();
       let remote = {};
       try {
         remote = await fetchPresenceRemote();
       } catch {
-        return getOnlineCount();
+        if (!tableRemote) return getOnlineCount();
       }
+      if (tableRemote) remote = mergePresence(remote, tableRemote);
 
       // Don't publish Guest placeholders — they inflate the online count
       let next = prunePresence(remote, now);
@@ -3164,7 +3205,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       });
 
       try {
-        await pushPresenceRemote(next);
+        if (!tableWrote) await pushPresenceRemote(next);
         presenceCache = enrichPresenceNames(next);
       } catch {
         presenceCache = enrichPresenceNames(mergePresence(presenceCache, next));

@@ -62,6 +62,23 @@
     ).length;
   }
 
+  function rowsToMap(rows) {
+    const out = {};
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      if (!row || typeof row !== "object") return;
+      const id = String(row.player_id || row.playerId || "").trim();
+      if (!id) return;
+      const at = Date.parse(row.pinged_at || row.pingedAt || "") || Number(row.at) || 0;
+      if (!at) return;
+      out[id] = {
+        at,
+        name: sanitizeName(row.display_name || row.name || "") || "Guest",
+        game: sanitizePresenceGame(row.game)
+      };
+    });
+    return out;
+  }
+
   const api = {
     ONLINE_TTL_MS,
     PRESENCE_KEEP_MS,
@@ -70,7 +87,8 @@
     sanitizePresenceGame,
     mergePresence,
     prunePresence,
-    countOnline
+    countOnline,
+    rowsToMap
   };
   root.HubPresence = api;
   if (typeof module === "object" && module.exports) module.exports = api;

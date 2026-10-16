@@ -105,3 +105,18 @@ test("admin hub_docs RPC stays authenticated and locked to admin document ids", 
   }
   assert.doesNotMatch(rpc, /to anon/i);
 });
+
+test("presence pings are readable by signed-in players and only writable by the owner", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160002_presence_pings.sql"),
+    "utf8"
+  );
+  assert.match(sql, /create table if not exists public\.presence_pings/);
+  assert.match(sql, /enable row level security/i);
+  assert.match(sql, /force row level security/i);
+  assert.match(sql, /presence_pings_read_authenticated/);
+  assert.match(sql, /presence_pings_insert_own/);
+  assert.match(sql, /presence_pings_update_own/);
+  assert.match(sql, /grant select, insert, update, delete on table public\.presence_pings to authenticated/);
+  assert.match(sql, /revoke all on table public\.presence_pings from anon, authenticated/);
+});
