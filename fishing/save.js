@@ -453,6 +453,23 @@
     return { token: hub?.token, tanks: next };
   }
 
+  function applyAquaTankChange(hub, change, now = Date.now()) {
+    const data = unwrapMailChange(change);
+    const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
+    const current = {
+      token: hub?.token,
+      tanks: {
+        ...((hub && hub.tanks && typeof hub.tanks === "object" && !Array.isArray(hub.tanks)
+          ? hub.tanks
+          : {}) || {})
+      }
+    };
+    if (type === "DELETE") return current;
+    const record = data.record || data.new || {};
+    if (!record || typeof record !== "object") return current;
+    return overlayAquaTanks(current, [record], now);
+  }
+
   const COMMUNITY_CASTS_CAP = 10000;
   const MAIL_GIFT_CAP = 40;
   const MAIL_TRADE_CAP = 20;
@@ -920,6 +937,7 @@
     applyAquaMine,
     canPostSharedAqua,
     overlayAquaTanks,
+    applyAquaTankChange,
     COMMUNITY_CASTS_CAP,
     overlayCommunityCasts,
     MAIL_GIFT_CAP,

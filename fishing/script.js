@@ -2381,6 +2381,7 @@
   let aquaShareFetchedAt = 0;
   let aquaShareLastKey = "";
   let aquaShareTimer = 0;
+  let aquaShareRealtimeUnsub = null;
   let visitAquaSwimState = [];
   let visitAquaRaf = 0;
   let visitAquaLastTs = 0;
@@ -2704,8 +2705,48 @@
     }
   }
 
+  function visitAquaOverlayOpen() {
+    const overlay = document.getElementById("visit-aqua-overlay");
+    return !!(overlay && !overlay.classList.contains("hidden"));
+  }
+
+  function applyAquaShareRealtime(change) {
+    if (!fishingSaveApi.applyAquaTankChange) return;
+    const next = fishingSaveApi.applyAquaTankChange(aquaShareCache, change);
+    aquaShareCache = { tanks: pruneAquaShareTanks(next.tanks || {}) };
+    if (!visitAquaOverlayOpen()) return;
+    if (visitAquaCurrent) {
+      const id = String(visitAquaCurrent.playerId || "");
+      const tank = aquaShareCache.tanks[id];
+      if (tank) renderVisitAquaTank(tank);
+      return;
+    }
+    renderVisitAquaBrowse();
+  }
+
+  function stopAquaShareRealtime() {
+    try {
+      aquaShareRealtimeUnsub?.();
+    } catch {}
+    aquaShareRealtimeUnsub = null;
+  }
+
+  function ensureAquaShareRealtime() {
+    const api = window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
+    if (!api?.subscribeAquariumTankContributions) return;
+    if (aquaShareRealtimeUnsub) return;
+    if (fishingCloudQuiet()) return;
+    aquaShareRealtimeUnsub = api.subscribeAquariumTankContributions((change) => {
+      applyAquaShareRealtime(change);
+    });
+  }
+
   async function refreshAquaShareCache(force = false) {
-    if (fishingCloudQuiet()) return aquaShareCache;
+    if (fishingCloudQuiet()) {
+      stopAquaShareRealtime();
+      return aquaShareCache;
+    }
+    ensureAquaShareRealtime();
     const now = Date.now();
     if (!force && now - aquaShareFetchedAt < AQUA_SHARE_POLL_MS) return aquaShareCache;
     aquaShareFetchedAt = now;
@@ -3170,11 +3211,24 @@
   }
 
   function startAquariumSharing() {
+    ensureAquaShareRealtime();
     publishAquariumShare(true).catch(() => {});
+    refreshAquaShareCache(true).catch(() => {});
     setTimeout(() => publishAquariumShare(true).catch(() => {}), 2500);
     setTimeout(() => publishAquariumShare(true).catch(() => {}), 8000);
     if (aquaShareTimer) clearInterval(aquaShareTimer);
     aquaShareTimer = setInterval(() => {
+      if (fishingCloudQuiet()) {
+        stopAquaShareRealtime();
+      } else {
+        ensureAquaShareRealtime();
+        refreshAquaShareCache(false)
+          .then(() => {
+            if (!visitAquaOverlayOpen() || visitAquaCurrent) return;
+            renderVisitAquaBrowse();
+          })
+          .catch(() => {});
+      }
       publishAquariumShare(true).catch(() => {});
     }, AQUA_SHARE_POLL_MS);
   }

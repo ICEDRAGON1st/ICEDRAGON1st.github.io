@@ -180,6 +180,33 @@ test("owned aquarium row dual-writes without copying others or shrinking shared 
   assert.equal(overlaid.tanks["p-beaxxxxx"].level, 7);
   assert.equal(overlaid.tanks["p-guestxxx"].level, 9);
   assert.equal(overlaid.tanks["p-skipxxxx"], undefined);
+
+  const liveRow = save.applyAquaTankChange(
+    {
+      tanks: {
+        "p-adaxxxxx": { playerId: "p-adaxxxxx", updatedAt: now - 100, level: 1, fish: [] },
+        "p-guestxxx": { playerId: "p-guestxxx", updatedAt: now, level: 9, fish: [] }
+      }
+    },
+    {
+      type: "UPDATE",
+      new: {
+        player_id: "p-adaxxxxx",
+        tank: { playerId: "p-adaxxxxx", updatedAt: now, level: 4, fish: [{ id: "minnow" }] }
+      }
+    },
+    now
+  );
+  assert.equal(liveRow.tanks["p-adaxxxxx"].level, 4);
+  assert.equal(liveRow.tanks["p-guestxxx"].level, 9);
+
+  const afterDelete = save.applyAquaTankChange(
+    liveRow,
+    { type: "DELETE", old_record: { player_id: "p-adaxxxxx" } },
+    now
+  );
+  assert.equal(afterDelete.tanks["p-adaxxxxx"].level, 4);
+  assert.equal(afterDelete.tanks["p-guestxxx"].level, 9);
 });
 
 test("fishing community uses account-server prefer and skips the old backup write after success", () => {
@@ -550,5 +577,26 @@ test("fishing admin gift live rows subscribe without rewriting the shared board"
   assert.match(supabase, /function subscribeFishingGiftContributions/);
   assert.match(sql, /alter table public\.fishing_gift_contributions replica identity full/i);
   assert.match(sql, /alter publication supabase_realtime add table public\.fishing_gift_contributions/i);
+  assert.doesNotMatch(sql, /to anon/i);
+});
+
+test("fishing aquarium live rows subscribe without rewriting the shared board", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const script = fs.readFileSync(path.resolve(__dirname, "../../fishing/script.js"), "utf8");
+  const supabase = fs.readFileSync(path.resolve(__dirname, "../../hub-supabase.js"), "utf8");
+  const sql = fs.readFileSync(
+    path.resolve(
+      __dirname,
+      "../../supabase/migrations/202610160027_aquarium_tank_contributions_realtime.sql"
+    ),
+    "utf8"
+  );
+  assert.match(script, /ensureAquaShareRealtime/);
+  assert.match(script, /applyAquaShareRealtime/);
+  assert.match(script, /subscribeAquariumTankContributions/);
+  assert.match(supabase, /function subscribeAquariumTankContributions/);
+  assert.match(sql, /alter table public\.aquarium_tank_contributions replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.aquarium_tank_contributions/i);
   assert.doesNotMatch(sql, /to anon/i);
 });
