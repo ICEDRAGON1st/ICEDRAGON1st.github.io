@@ -99,9 +99,13 @@ test("shared docs skip the old backup write after a successful account-server sa
   const fs = require("node:fs");
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
   assert.equal(supabase.shouldWriteMantleBackup(true), false);
-  assert.equal(supabase.shouldWriteMantleBackup(false), true);
-  assert.match(src, /if \(wrote\) return/);
-  assert.match(src, /shouldWriteMantleBackup\(wrote\)/);
+  assert.equal(supabase.shouldWriteMantleBackup(false), false);
+  const pushPreferSrc = src.slice(
+    src.indexOf("async function pushPrefer"),
+    src.indexOf("const api = {")
+  );
+  assert.doesNotMatch(pushPreferSrc, /fetch\(_?mantleUrl/);
+  assert.match(pushPreferSrc, /throw new Error\("push failed"\)/);
 });
 
 test("shared docs skip the old backup read when the account server errors", () => {

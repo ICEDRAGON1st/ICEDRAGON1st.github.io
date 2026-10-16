@@ -2,7 +2,7 @@
  * hub-supabase.js — shared Supabase REST helpers for the hub.
  * Uses the public anon key (safe in the browser when RLS is enabled).
  *
- * Prefer getPrefer / pushPrefer so modules survive Mantle rate limits.
+ * Prefer getPrefer / pushPrefer. The old backup is not read or written.
  * Doc ids match former Mantle paths (plays-log, presence, fishing-admin-events, …).
  */
 (function (root) {
@@ -2462,45 +2462,30 @@
   }
 
   /**
-   * After a successful account-server write, skip the old backup POST.
-   * Keep that backup write only when the account-server write failed.
+   * Never POST the old backup. A failed account-server save must not park a
+   * partial map on the leftover store for a later mix-in.
    */
-  function shouldWriteMantleBackup(supabaseWrote) {
-    return !supabaseWrote;
+  function shouldWriteMantleBackup(_supabaseWrote) {
+    return false;
   }
 
   /**
-   * Write Supabase first (source of truth). Mantle is write-fallback only.
+   * Write the account server only. Callers already skip the shared rewrite
+   * after a table row succeeds, so a failed upsert stays local.
    */
-  async function pushPrefer(docId, data, mantleUrl) {
+  async function pushPrefer(docId, data, _mantleUrl) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
       err.hubNetBlocked = true;
       throw err;
     }
-    let wrote = false;
     try {
       await upsertDoc(docId, data);
-      wrote = true;
     } catch (err) {
       if (err && err.hubNetBlocked) throw err;
       console.warn("[HubSupabase] pushPrefer", docId, err);
+      throw new Error("push failed");
     }
-    if (wrote) return;
-    if (shouldWriteMantleBackup(wrote) && mantleUrl) {
-      try {
-        if (netBlocked()) throw new Error("hub-net-blocked");
-        const res = await fetch(mantleUrl, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(data)
-        });
-        if (res.ok) return;
-      } catch {
-        /* Mantle optional */
-      }
-    }
-    throw new Error("push failed");
   }
 
   const api = {
