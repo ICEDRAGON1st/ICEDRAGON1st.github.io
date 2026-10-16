@@ -139,6 +139,43 @@
     return mergePlayLogs({ plays: localPlays || [] }, { plays: owned.plays }, MAX_PLAYS).plays;
   }
 
+  function sanitizeContributionGames(games) {
+    const out = {};
+    Object.entries(games && typeof games === "object" ? games : {}).forEach(([id, raw]) => {
+      const key = String(id || "")
+        .trim()
+        .slice(0, 32);
+      if (!/^[a-z0-9][a-z0-9-]{0,31}$/i.test(key)) return;
+      const n = Math.floor(Number(raw) || 0);
+      if (n <= 0) return;
+      out[key] = Math.min(n, 1_000_000);
+    });
+    return out;
+  }
+
+  function addContributionGames(a, b) {
+    return combinePopularity(sanitizeContributionGames(a), sanitizeContributionGames(b));
+  }
+
+  function readOwnContribution(rows, playerId) {
+    const me = String(playerId || "").trim();
+    if (!me) return {};
+    const row = (Array.isArray(rows) ? rows : []).find(
+      (item) => String(item?.player_id || item?.playerId || "").trim() === me
+    );
+    return sanitizeContributionGames(row?.games);
+  }
+
+  function rowsToCounts(rows) {
+    const out = {};
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      Object.entries(sanitizeContributionGames(row?.games)).forEach(([id, n]) => {
+        out[id] = (Number(out[id]) || 0) + n;
+      });
+    });
+    return out;
+  }
+
   function mergePlayLogs(a, b, maxPlays = MAX_PLAYS) {
     const map = new Map();
     [...(a?.plays || []), ...(b?.plays || [])].forEach((p) => {
@@ -159,6 +196,10 @@
     combinePopularity,
     mergePopularityRemote,
     mostPopularGameId,
+    sanitizeContributionGames,
+    addContributionGames,
+    readOwnContribution,
+    rowsToCounts,
     mergePlayLogs,
     SAVE_KEY,
     MAX_MINE,

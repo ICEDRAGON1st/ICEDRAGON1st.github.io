@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015bn",
+  "build": "20261015bo",
   "notes": [
-    "Who's online now updates from each signed-in account's own ping, so one busy device can't wipe everyone else off the list."
+    "How often each game is played now also counts from your signed-in account, so a busy device can't wipe everyone else's play totals."
   ]
 };

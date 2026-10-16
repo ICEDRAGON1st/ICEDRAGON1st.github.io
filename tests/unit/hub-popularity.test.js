@@ -112,3 +112,41 @@ test("owned play logs dual-write without copying other players or shrinking a ri
   assert.equal(blocked.length, 1);
   assert.equal(blocked[0].id, "keep");
 });
+
+test("popularity contributions sum owned rows without copying another player's pending", () => {
+  const fs = require("node:fs");
+  const plays = fs.readFileSync(path.resolve(__dirname, "../../hub-plays.js"), "utf8");
+  assert.match(plays, /persistPopularityContribution/);
+  assert.match(plays, /fetchPopularityTableRemote/);
+  assert.match(plays, /if \(fetched && !tableWrote\)/);
+  assert.match(plays, /if \(fetched && \(hasPending \|\| force\)\)/);
+  assert.equal(typeof popularity.rowsToCounts, "function");
+
+  assert.deepEqual(popularity.sanitizeContributionGames({ "snake!": 2, snake: 3.9, fishing: -1 }), {
+    snake: 3
+  });
+  const summed = popularity.rowsToCounts([
+    { player_id: "p-ada", games: { snake: 2, fishing: 1 } },
+    { player_id: "p-bea", games: { snake: 5, mine: 4 } },
+    { player_id: "p-skip", games: { "bad id": 9 } }
+  ]);
+  assert.equal(summed.snake, 7);
+  assert.equal(summed.fishing, 1);
+  assert.equal(summed.mine, 4);
+  assert.equal(summed["bad id"], undefined);
+  assert.deepEqual(popularity.readOwnContribution(summed, "p-ada"), {});
+  assert.deepEqual(
+    popularity.readOwnContribution(
+      [
+        { player_id: "p-ada", games: { snake: 2 } },
+        { player_id: "p-bea", games: { snake: 9 } }
+      ],
+      "p-ada"
+    ),
+    { snake: 2 }
+  );
+  assert.deepEqual(popularity.addContributionGames({ snake: 2 }, { snake: 1, fishing: 4 }), {
+    snake: 3,
+    fishing: 4
+  });
+});

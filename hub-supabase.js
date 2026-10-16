@@ -534,6 +534,63 @@
     }
   }
 
+  async function listPopularityContributions(resetAt) {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const reset = Number(resetAt) || 0;
+    let url =
+      `${SUPABASE_URL}/rest/v1/popularity_contributions?select=player_id,games,reset_at`;
+    if (reset > 0) url += `&reset_at=eq.${encodeURIComponent(String(reset))}`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase popularity list ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function upsertPopularityContribution(row) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const playerId = parseLocalPlayerId(row?.playerId);
+    if (!userId || !session?.access_token) throw new Error("supabase popularity needs a session");
+    if (!playerId) throw new Error("bad popularity player id");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const games =
+      row?.games && typeof row.games === "object" && !Array.isArray(row.games) ? row.games : {};
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/popularity_contributions`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        player_id: playerId,
+        games,
+        reset_at: Number(row?.resetAt) >= 0 ? Math.floor(Number(row.resetAt)) : 0,
+        updated_at: new Date().toISOString()
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase popularity upsert ${res.status} ${text}`);
+    }
+  }
+
   async function getDoc(id) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -704,6 +761,8 @@
     listPresencePings,
     upsertPresencePing,
     deletePresencePing,
+    listPopularityContributions,
+    upsertPopularityContribution,
     profile: () => {
       const raw = readSession()?.profile;
       const parsed = parseProfile(raw);

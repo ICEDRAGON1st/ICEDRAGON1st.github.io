@@ -120,3 +120,21 @@ test("presence pings are readable by signed-in players and only writable by the 
   assert.match(sql, /grant select, insert, update, delete on table public\.presence_pings to authenticated/);
   assert.match(sql, /revoke all on table public\.presence_pings from anon, authenticated/);
 });
+
+test("popularity contributions are readable by signed-in players and only writable by the owner", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160003_popularity_contributions.sql"),
+    "utf8"
+  );
+  assert.match(sql, /create table if not exists public\.popularity_contributions/);
+  assert.match(sql, /enable row level security/i);
+  assert.match(sql, /force row level security/i);
+  assert.match(sql, /popularity_contributions_read_authenticated/);
+  assert.match(sql, /popularity_contributions_insert_own/);
+  assert.match(sql, /popularity_contributions_update_own/);
+  assert.match(
+    sql,
+    /grant select, insert, update, delete on table public\.popularity_contributions to authenticated/
+  );
+  assert.match(sql, /revoke all on table public\.popularity_contributions from anon, authenticated/);
+});

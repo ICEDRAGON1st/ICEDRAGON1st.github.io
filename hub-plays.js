@@ -263,16 +263,57 @@
     }
   }
 
+  async function persistPopularityContribution(resetAt, replace = false) {
+    const api = sb();
+    const me = getPlayerId();
+    if (!api?.upsertPopularityContribution || !me || !hasRequiredName()) return false;
+    const pending = { ...(popularityPending || {}) };
+    try {
+      let mine = {};
+      if (!replace && api.listPopularityContributions && popularityApi.readOwnContribution) {
+        try {
+          const rows = await api.listPopularityContributions(resetAt);
+          if (rows) mine = popularityApi.readOwnContribution(rows, me);
+        } catch {}
+      }
+      const games = popularityApi.addContributionGames
+        ? popularityApi.addContributionGames(mine, pending)
+        : { ...pending };
+      await api.upsertPopularityContribution({
+        playerId: me,
+        games,
+        resetAt: Number(resetAt) || 0
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function fetchPopularityTableRemote(resetAt) {
+    const api = sb();
+    if (!api?.listPopularityContributions || !popularityApi.rowsToCounts) return null;
+    try {
+      const rows = await api.listPopularityContributions(resetAt);
+      if (!rows) return null;
+      return popularityApi.rowsToCounts(rows);
+    } catch {
+      return null;
+    }
+  }
+
   async function syncPopularity(force = false) {
     if (popularityBusy) return getEffectivePopularity();
     popularityBusy = true;
     try {
       let remote = {};
       let remoteResetAt = 0;
+      let fetched = false;
       try {
         const parsed = parsePopularityPayload(await fetchDoc(POPULARITY_DOC, POPULARITY_API));
         remote = parsed.games;
         remoteResetAt = parsed.resetAt;
+        fetched = true;
       } catch {}
 
       // Mantle/Supabase often 429/402 — Pages seed keeps Fishing Idle as most played.
@@ -289,32 +330,57 @@
         localResetAt = Number(localStorage.getItem("hub-game-popularity-reset-at") || 0);
       } catch {}
 
+      const epochReset = remoteResetAt > localResetAt;
+      const resetAt = epochReset ? remoteResetAt : remoteResetAt || localResetAt || 0;
+      const tableWrote = await persistPopularityContribution(resetAt, epochReset);
+      const tableCounts = await fetchPopularityTableRemote(resetAt);
+
       // Server rebalance / wipe of inflated counts — replace local cache instead of merging up.
-      if (remoteResetAt > localResetAt) {
+      if (epochReset) {
         popularityCache = { ...remote };
         popularityPending = {};
         try {
           localStorage.setItem("hub-game-popularity-reset-at", String(remoteResetAt));
         } catch {}
+        if (tableCounts) {
+          popularityCache = popularityApi.combinePopularity
+            ? popularityApi.combinePopularity(popularityCache, tableCounts)
+            : { ...popularityCache, ...tableCounts };
+        }
         savePopularityLocal();
         try {
-          await pushDoc(
-            POPULARITY_DOC,
-            { games: popularityCache, resetAt: remoteResetAt, updated_at: Date.now() },
-            POPULARITY_API
-          );
+          if (fetched && !tableWrote) {
+            await pushDoc(
+              POPULARITY_DOC,
+              { games: remote, resetAt: remoteResetAt, updated_at: Date.now() },
+              POPULARITY_API
+            );
+          }
         } catch {}
         return getEffectivePopularity();
       }
 
       const pending = { ...(popularityPending || {}) };
-      const merged = popularityApi.mergePopularityRemote
-        ? popularityApi.mergePopularityRemote(remote, pending, popularityCache)
+      let merged = popularityApi.mergePopularityRemote
+        ? popularityApi.mergePopularityRemote(
+            remote,
+            tableWrote ? {} : pending,
+            tableWrote || !fetched ? remote : popularityCache
+          )
         : { ...remote };
+      if (tableCounts && popularityApi.combinePopularity) {
+        merged = popularityApi.combinePopularity(merged, tableCounts);
+      } else if (!fetched) {
+        merged = popularityApi.mergePopularityRemote
+          ? popularityApi.mergePopularityRemote(popularityCache, pending, popularityCache)
+          : getEffectivePopularity();
+      }
 
       popularityCache = merged;
       const hasPending = Object.values(pending).some((v) => (Number(v) || 0) > 0);
-      if (hasPending || force) {
+      if (tableWrote) {
+        popularityPending = {};
+      } else if (fetched && (hasPending || force)) {
         try {
           await pushDoc(
             POPULARITY_DOC,

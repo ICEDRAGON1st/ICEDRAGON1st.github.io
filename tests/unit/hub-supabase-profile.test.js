@@ -127,3 +127,11 @@ test("presence pings use auth-owned rows instead of rewriting the shared presenc
   assert.match(src, /async function deletePresencePing/);
   assert.match(src, /presence_pings/);
 });
+
+test("popularity contributions use auth-owned rows instead of rewriting the shared play-count document", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.match(src, /async function listPopularityContributions/);
+  assert.match(src, /async function upsertPopularityContribution/);
+  assert.match(src, /popularity_contributions/);
+});
