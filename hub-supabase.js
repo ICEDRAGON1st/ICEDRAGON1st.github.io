@@ -886,6 +886,14 @@
     return subscribePostgresChanges("leaderboard_pb_contributions", onChange);
   }
 
+  function subscribePopularityContributions(onChange) {
+    return subscribePostgresChanges("popularity_contributions", onChange);
+  }
+
+  function subscribePlayLogContributions(onChange) {
+    return subscribePostgresChanges("play_log_contributions", onChange);
+  }
+
   async function listPopularityContributions(resetAt) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -2692,6 +2700,8 @@
     subscribeCommunityCastContributions,
     subscribeFeedbackItemContributions,
     subscribeLeaderboardPbContributions,
+    subscribePopularityContributions,
+    subscribePlayLogContributions,
     stopPresenceRealtime,
     listPopularityContributions,
     upsertPopularityContribution,

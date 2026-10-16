@@ -200,6 +200,65 @@
     return { plays, counts };
   }
 
+  function contributionRowKey(row) {
+    return String(row?.player_id || row?.playerId || "").trim();
+  }
+
+  function unwrapChange(change) {
+    const payload = change && typeof change === "object" ? change : {};
+    if (payload.data && typeof payload.data === "object") return payload.data;
+    if (payload.payload && typeof payload.payload === "object") {
+      const inner = payload.payload;
+      if (inner.data && typeof inner.data === "object") return inner.data;
+      return inner;
+    }
+    return payload;
+  }
+
+  function mergeContributionRows(rows, change) {
+    const data = unwrapChange(change);
+    const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
+    const list = Array.isArray(rows) ? rows.slice() : [];
+    if (type === "DELETE") return list;
+    const record = data.record || data.new || {};
+    if (!record || typeof record !== "object") return list;
+    const pid = contributionRowKey(record);
+    if (!pid) return list;
+    const idx = list.findIndex((row) => contributionRowKey(row) === pid);
+    if (idx >= 0) list[idx] = record;
+    else list.push(record);
+    return list;
+  }
+
+  function maxCounts(a, b) {
+    const out = { ...(a || {}) };
+    Object.entries(b || {}).forEach(([k, v]) => {
+      const n = Number(v) || 0;
+      out[k] = Math.max(Number(out[k]) || 0, n);
+    });
+    return out;
+  }
+
+  function applyPopularityChange(hub, change, rows) {
+    const nextRows = mergeContributionRows(rows, change);
+    const current =
+      hub && typeof hub === "object" && !Array.isArray(hub)
+        ? hub.games && typeof hub.games === "object"
+          ? hub.games
+          : hub
+        : {};
+    return {
+      games: maxCounts(current, rowsToCounts(nextRows)),
+      rows: nextRows
+    };
+  }
+
+  function applyPlayLogChange(hub, change, rows, maxPlays = MAX_PLAYS) {
+    const nextRows = mergeContributionRows(rows, change);
+    const fromRows = rowsToPlayLogs(nextRows, maxPlays);
+    return { ...mergePlayLogs(hub, fromRows, maxPlays), rows: nextRows };
+  }
+
   const api = {
     MAX_PLAYS,
     parsePopularityPayload,
@@ -212,6 +271,8 @@
     rowsToCounts,
     rowsToPlayLogs,
     mergePlayLogs,
+    applyPopularityChange,
+    applyPlayLogChange,
     SAVE_KEY,
     MAX_MINE,
     cleanPlay,

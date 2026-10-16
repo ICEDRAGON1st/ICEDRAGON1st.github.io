@@ -181,4 +181,124 @@ test("play log contributions flatten owned rows without copying another player's
     fromRows.plays.some((play) => play.id === "stolen"),
     false
   );
+
+  const livePop = popularity.applyPopularityChange(
+    { games: { fishing: 100, snake: 7 } },
+    {
+      type: "UPDATE",
+      new: { player_id: "p-bea", games: { snake: 8 } }
+    },
+    [
+      { player_id: "p-ada", games: { snake: 2, fishing: 1 } },
+      { player_id: "p-bea", games: { snake: 5 } }
+    ]
+  );
+  assert.equal(livePop.games.fishing, 100);
+  assert.equal(livePop.games.snake, 10);
+  assert.equal(livePop.rows.length, 2);
+
+  const afterPopDelete = popularity.applyPopularityChange(
+    livePop,
+    { type: "DELETE", old_record: { player_id: "p-bea" } },
+    livePop.rows
+  );
+  assert.equal(afterPopDelete.games.snake, 10);
+  assert.equal(afterPopDelete.rows.length, 2);
+
+  const livePlays = popularity.applyPlayLogChange(
+    {
+      plays: [
+        { id: "old", playerId: "p-ada", name: "Ada", game: "snake", gameName: "Snake", at: 5 }
+      ],
+      counts: { snake: 1 }
+    },
+    {
+      type: "UPDATE",
+      new: {
+        player_id: "p-cal",
+        plays: [
+          { id: "fresh", playerId: "p-cal", name: "Cal", game: "mine", gameName: "Mine Depth", at: 30 }
+        ]
+      }
+    },
+    [
+      {
+        player_id: "p-ada",
+        plays: [
+          { id: "mine-1", playerId: "p-ada", name: "Ada", game: "snake", gameName: "Snake", at: 20 }
+        ]
+      },
+      {
+        player_id: "p-bea",
+        plays: [
+          { id: "theirs", playerId: "p-bea", name: "Bea", game: "fishing", gameName: "Fishing Idle", at: 9 }
+        ]
+      }
+    ]
+  );
+  assert.ok(livePlays.plays.some((play) => play.id === "fresh" && play.playerId === "p-cal"));
+  assert.ok(livePlays.plays.some((play) => play.id === "mine-1"));
+  assert.ok(livePlays.plays.some((play) => play.id === "theirs"));
+  assert.ok(livePlays.plays.some((play) => play.id === "old"));
+  assert.equal(livePlays.rows.length, 3);
+
+  const afterPlayDelete = popularity.applyPlayLogChange(
+    livePlays,
+    { type: "DELETE", old_record: { player_id: "p-cal" } },
+    livePlays.rows
+  );
+  assert.ok(afterPlayDelete.plays.some((play) => play.id === "fresh"));
+  assert.equal(afterPlayDelete.rows.length, 3);
+});
+
+test("popularity live rows subscribe without rewriting the shared play-count document", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const ROOT = path.resolve(__dirname, "../..");
+  const plays = fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8");
+  const supabase = fs.readFileSync(path.join(ROOT, "hub-supabase.js"), "utf8");
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160031_popularity_contributions_realtime.sql"),
+    "utf8"
+  );
+  assert.match(plays, /ensurePopularityRealtime/);
+  assert.match(plays, /applyPopularityRealtime/);
+  assert.match(plays, /subscribePopularityContributions/);
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("function applyPopularityRealtime"),
+      plays.indexOf("function stopPopularityRealtime")
+    ),
+    /pushDoc/
+  );
+  assert.match(supabase, /function subscribePopularityContributions/);
+  assert.match(sql, /alter table public\.popularity_contributions replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.popularity_contributions/i);
+  assert.doesNotMatch(sql, /to anon/i);
+});
+
+test("play log live rows subscribe without rewriting the shared plays document", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const ROOT = path.resolve(__dirname, "../..");
+  const plays = fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8");
+  const supabase = fs.readFileSync(path.join(ROOT, "hub-supabase.js"), "utf8");
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160032_play_log_contributions_realtime.sql"),
+    "utf8"
+  );
+  assert.match(plays, /ensurePlayLogRealtime/);
+  assert.match(plays, /applyPlayLogRealtime/);
+  assert.match(plays, /subscribePlayLogContributions/);
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("function applyPlayLogRealtime"),
+      plays.indexOf("function stopPlayLogRealtime")
+    ),
+    /pushPlaysRemote|pushDoc/
+  );
+  assert.match(supabase, /function subscribePlayLogContributions/);
+  assert.match(sql, /alter table public\.play_log_contributions replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.play_log_contributions/i);
+  assert.doesNotMatch(sql, /to anon/i);
 });

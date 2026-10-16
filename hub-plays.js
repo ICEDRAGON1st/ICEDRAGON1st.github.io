@@ -166,6 +166,10 @@
   let popularityCache = {};
   let popularityPending = {};
   let popularityBusy = false;
+  let popularityRows = [];
+  let playLogRows = [];
+  let popularityRealtimeUnsub = null;
+  let playLogRealtimeUnsub = null;
   let namesCache = {};
   let reservationsCache = {};
   let presenceCache = {};
@@ -282,13 +286,88 @@
     try {
       const rows = await api.listPopularityContributions(resetAt);
       if (!rows) return null;
+      popularityRows = Array.isArray(rows) ? rows : [];
       return popularityApi.rowsToCounts(rows);
     } catch {
       return null;
     }
   }
 
+  function playsCloudQuiet() {
+    try {
+      if (window.HubAfk?.isAfk?.()) return true;
+      if (window.HubNet?.isPaused?.()) return true;
+      if (window.HubNet && HubNet.isOnline && !HubNet.isOnline()) return true;
+    } catch {}
+    try {
+      if (document.hidden) return true;
+    } catch {}
+    return false;
+  }
+
+  function applyPopularityRealtime(change) {
+    if (!popularityApi.applyPopularityChange) return;
+    const next = popularityApi.applyPopularityChange(
+      { games: popularityCache },
+      change,
+      popularityRows
+    );
+    popularityRows = Array.isArray(next.rows) ? next.rows : popularityRows;
+    popularityCache = next.games && typeof next.games === "object" ? next.games : popularityCache;
+    savePopularityLocal();
+  }
+
+  function stopPopularityRealtime() {
+    try {
+      popularityRealtimeUnsub?.();
+    } catch {}
+    popularityRealtimeUnsub = null;
+  }
+
+  function ensurePopularityRealtime() {
+    const api = sb();
+    if (!api?.subscribePopularityContributions) return;
+    if (popularityRealtimeUnsub) return;
+    if (playsCloudQuiet()) return;
+    popularityRealtimeUnsub = api.subscribePopularityContributions((change) => {
+      applyPopularityRealtime(change);
+    });
+  }
+
+  function applyPlayLogRealtime(change) {
+    if (!popularityApi.applyPlayLogChange) return;
+    const next = popularityApi.applyPlayLogChange(cache, change, playLogRows, MAX_PLAYS);
+    playLogRows = Array.isArray(next.rows) ? next.rows : playLogRows;
+    saveLocal({
+      plays: next.plays || cache.plays,
+      counts: { ...(cache.counts || {}), ...(next.counts || {}) }
+    });
+    notifyPresenceUi();
+  }
+
+  function stopPlayLogRealtime() {
+    try {
+      playLogRealtimeUnsub?.();
+    } catch {}
+    playLogRealtimeUnsub = null;
+  }
+
+  function ensurePlayLogRealtime() {
+    const api = sb();
+    if (!api?.subscribePlayLogContributions) return;
+    if (playLogRealtimeUnsub) return;
+    if (playsCloudQuiet()) return;
+    playLogRealtimeUnsub = api.subscribePlayLogContributions((change) => {
+      applyPlayLogRealtime(change);
+    });
+  }
+
   async function syncPopularity(force = false) {
+    if (playsCloudQuiet()) {
+      stopPopularityRealtime();
+    } else {
+      ensurePopularityRealtime();
+    }
     if (popularityBusy) return getEffectivePopularity();
     popularityBusy = true;
     try {
@@ -2179,6 +2258,7 @@
     try {
       const rows = await api.listPlayLogContributions();
       if (!rows) return null;
+      playLogRows = Array.isArray(rows) ? rows : [];
       return popularityApi.rowsToPlayLogs(rows, MAX_PLAYS);
     } catch {
       return null;
@@ -2369,6 +2449,11 @@
   }
 
   async function sync(force = false) {
+    if (playsCloudQuiet()) {
+      stopPlayLogRealtime();
+    } else {
+      ensurePlayLogRealtime();
+    }
     if (syncing) return cache;
     if (!force && Date.now() - lastSync < SYNC_GAP_MS) return cache;
     syncing = true;
@@ -4245,6 +4330,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   function startPresence() {
     if (presenceTimer) return;
     ensurePresenceRealtime();
+    ensurePopularityRealtime();
+    ensurePlayLogRealtime();
     heartbeat().catch(() => {});
     // Pull repaired all-time lastAt immediately (don't wait 10 min).
     registerAllTime().catch(() => {});
@@ -4259,12 +4346,16 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     }, 10_000);
     document.addEventListener("visibilitychange", () => {
       if (document.hidden) {
+        stopPopularityRealtime();
+        stopPlayLogRealtime();
         goOffline().catch(() => {});
         return;
       }
       lastOnlineTickAt = Date.now();
       reconcileOnlineSeconds();
       heartbeat().catch(() => {});
+      ensurePopularityRealtime();
+      ensurePlayLogRealtime();
     });
     // Resume light presence when WiFi returns (this tab only).
     window.addEventListener("online", () => {

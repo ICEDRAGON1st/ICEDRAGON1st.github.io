@@ -161,6 +161,8 @@ test("presence pings use auth-owned rows instead of rewriting the shared presenc
   assert.match(src, /function subscribeCommunityCastContributions/);
   assert.match(src, /function subscribeFeedbackItemContributions/);
   assert.match(src, /function subscribeLeaderboardPbContributions/);
+  assert.match(src, /function subscribePopularityContributions/);
+  assert.match(src, /function subscribePlayLogContributions/);
   assert.match(src, /realtime\/v1\/websocket/);
   assert.match(src, /presence_pings/);
   assert.match(src, /chat_thread_contributions/);
@@ -172,6 +174,7 @@ test("popularity contributions use auth-owned rows instead of rewriting the shar
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
   assert.match(src, /async function listPopularityContributions/);
   assert.match(src, /async function upsertPopularityContribution/);
+  assert.match(src, /function subscribePopularityContributions/);
   assert.match(src, /popularity_contributions/);
 });
 
@@ -180,6 +183,7 @@ test("play log contributions use auth-owned rows instead of rewriting the shared
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
   assert.match(src, /async function listPlayLogContributions/);
   assert.match(src, /async function upsertPlayLogContribution/);
+  assert.match(src, /function subscribePlayLogContributions/);
   assert.match(src, /play_log_contributions/);
 });
 
