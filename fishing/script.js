@@ -1681,8 +1681,10 @@
           COMMUNITY_DOC,
           communityRateLimited() ? "" : COMMUNITY_API
         );
-        remoteOk = true;
-        if (raw && typeof raw === "object") remote = normalizeCommunityDoc(raw);
+        if (raw && typeof raw === "object") {
+          remote = normalizeCommunityDoc(raw);
+          remoteOk = true;
+        }
       } catch (err) {
         if (err && err.rateLimited) {
           rateLimited = true;
@@ -2598,6 +2600,7 @@
   async function fetchAquaShareDoc() {
     const api = fishingSb();
     let data = null;
+    let fetched = false;
     try {
       if (api) data = await api.getPrefer(AQUA_SHARE_DOC, AQUA_SHARE_API);
       else {
@@ -2606,15 +2609,18 @@
         else if (!res.ok) data = null;
         else data = await res.json();
       }
-      if (!data || typeof data !== "object") data = { token: AQUA_SHARE_TOKEN, tanks: {} };
-      else {
+      if (data && typeof data === "object") {
+        fetched = true;
         data = {
           token: data.token || AQUA_SHARE_TOKEN,
           tanks: data.tanks && typeof data.tanks === "object" ? data.tanks : {}
         };
+      } else {
+        data = null;
       }
     } catch {
       data = null;
+      fetched = false;
     }
     const tableRows = await fetchAquaShareTableRemote();
     if (Array.isArray(tableRows) && fishingSaveApi.overlayAquaTanks) {
@@ -2622,7 +2628,9 @@
         data || { token: AQUA_SHARE_TOKEN, tanks: {} },
         tableRows
       );
+      fetched = true;
     }
+    if (!fetched) return null;
     return data;
   }
 
@@ -6459,6 +6467,7 @@
     try {
       const api = fishingSb();
       let data = null;
+      let fetched = false;
       if (api) {
         try {
           data = await api.getPrefer(FISH_GIFTS_DOC, FISH_GIFTS_API);
@@ -6471,17 +6480,24 @@
         else if (!res.ok) data = null;
         else data = await res.json();
       }
-      if (!data || typeof data !== "object") data = { token: FISH_GIFTS_TOKEN, gifts: {} };
-      else {
+      if (data && typeof data === "object") {
+        fetched = true;
         data = {
           token: data.token || FISH_GIFTS_TOKEN,
           gifts: data.gifts && typeof data.gifts === "object" ? data.gifts : {}
         };
+      } else {
+        data = null;
       }
       const tableRows = await fetchFishGiftsTableRemote();
       if (Array.isArray(tableRows) && fishingSaveApi.overlayAdminFishGifts) {
-        data = fishingSaveApi.overlayAdminFishGifts(data, tableRows);
+        data = fishingSaveApi.overlayAdminFishGifts(
+          data || { token: FISH_GIFTS_TOKEN, gifts: {} },
+          tableRows
+        );
+        fetched = true;
       }
+      if (!fetched) return null;
       return data;
     } catch {
       return null;
@@ -6549,7 +6565,8 @@
   }
 
   async function queueFishGift(payload) {
-    const remote = (await fetchFishGiftsDoc()) || { token: FISH_GIFTS_TOKEN, gifts: {} };
+    const remote = await fetchFishGiftsDoc();
+    if (!remote || typeof remote !== "object") return false;
     const id = `g-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
     const gifts = { ...(remote.gifts || {}) };
     // Drop very old claimed gifts to keep the doc small
@@ -7031,6 +7048,7 @@
   async function fetchPlayerMailDoc() {
     const api = fishingSb();
     let data = null;
+    let fetched = false;
     try {
       if (api) {
         data = await api.getPrefer(PLAYER_MAIL_DOC, PLAYER_MAIL_API);
@@ -7040,17 +7058,19 @@
         else if (!res.ok) data = null;
         else data = await res.json();
       }
-      if (!data || typeof data !== "object") {
-        data = { token: PLAYER_MAIL_TOKEN, gifts: {}, trades: {} };
-      } else {
+      if (data && typeof data === "object") {
+        fetched = true;
         data = {
           token: data.token || PLAYER_MAIL_TOKEN,
           gifts: data.gifts && typeof data.gifts === "object" ? data.gifts : {},
           trades: data.trades && typeof data.trades === "object" ? data.trades : {}
         };
+      } else {
+        data = null;
       }
     } catch {
       data = null;
+      fetched = false;
     }
     const tableRows = await fetchPlayerMailTableRemote();
     if (Array.isArray(tableRows) && fishingSaveApi.overlayPlayerMail) {
@@ -7058,7 +7078,9 @@
         data || { token: PLAYER_MAIL_TOKEN, gifts: {}, trades: {} },
         tableRows
       );
+      fetched = true;
     }
+    if (!fetched) return null;
     return data;
   }
 
@@ -7164,7 +7186,15 @@
       return copy;
     });
     setCatchLine("Sending gift…", "");
-    const remote = (await fetchPlayerMailDoc()) || { gifts: {}, trades: {} };
+    const remote = await fetchPlayerMailDoc();
+    if (!remote || typeof remote !== "object") {
+      grantMailItemsLocal(items, { softChests: false });
+      setCatchLine("Gift failed — items returned", "miss");
+      playSfx("miss");
+      render(true);
+      saveState();
+      return;
+    }
     const id = `pg-${now.toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
     const gifts = { ...(remote.gifts || {}) };
     gifts[id] = {
@@ -7255,7 +7285,12 @@
       playSfx("miss");
       return;
     }
-    const remote = (await fetchPlayerMailDoc()) || { gifts: {}, trades: {} };
+    const remote = await fetchPlayerMailDoc();
+    if (!remote || typeof remote !== "object") {
+      setCatchLine("Couldn't start trade", "miss");
+      playSfx("miss");
+      return;
+    }
     const openMine = Object.values(remote.trades || {}).find(
       (t) =>
         t &&

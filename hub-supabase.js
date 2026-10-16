@@ -2432,19 +2432,19 @@
   }
 
   /**
-   * After a successful account-server read, skip the old backup GET.
-   * Keep that backup read only when the account-server row is missing.
-   * Account-server errors must not mix a stale backup map into a later save.
+   * Never GET the old backup. A missing account-server row is "not fetched"
+   * (null), not an empty map — callers must skip the shared rewrite.
+   * Empty objects from an existing row still count as a hit.
    */
-  function shouldReadMantleBackup(supabaseHit) {
-    return !supabaseHit;
+  function shouldReadMantleBackup(_supabaseHit) {
+    return false;
   }
 
   /**
-   * Read Supabase first. Falls back to Mantle only if the row is missing.
-   * Empty objects from Supabase count as a hit (no Mantle round-trip).
+   * Read the account server only. Missing rows return null (do not seed from
+   * the old backup). Errors still throw so a later save cannot mix a stale map.
    */
-  async function getPrefer(docId, mantleUrl) {
+  async function getPrefer(docId, _mantleUrl) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
       err.hubNetBlocked = true;
@@ -2458,21 +2458,7 @@
       console.warn("[HubSupabase] getPrefer", docId, err);
       throw err;
     }
-    if (!shouldReadMantleBackup(false) || !mantleUrl) return null;
-    if (netBlocked()) {
-      const err = new Error("hub-net-blocked");
-      err.hubNetBlocked = true;
-      throw err;
-    }
-    const res = await fetch(mantleUrl, { cache: "no-store" });
-    if (res.status === 404) return null;
-    if (res.status === 429) {
-      const err = new Error("rate limited");
-      err.rateLimited = true;
-      throw err;
-    }
-    if (!res.ok) throw new Error("fetch failed");
-    return res.json();
+    return null;
   }
 
   /**

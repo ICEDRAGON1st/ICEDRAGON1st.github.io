@@ -310,7 +310,9 @@
       let remoteResetAt = 0;
       let fetched = false;
       try {
-        const parsed = parsePopularityPayload(await fetchDoc(POPULARITY_DOC, POPULARITY_API));
+        const raw = await fetchDoc(POPULARITY_DOC, POPULARITY_API);
+        if (raw == null || typeof raw !== "object") throw new Error("popularity-unavailable");
+        const parsed = parsePopularityPayload(raw);
         remote = parsed.games;
         remoteResetAt = parsed.resetAt;
         fetched = true;
@@ -1401,6 +1403,7 @@
 
   async function fetchCodesRemote() {
     const data = await fetchDoc("player-codes", CODES_API);
+    if (data == null) throw new Error("codes-unavailable");
     if (!data || typeof data !== "object") return {};
     return identity.parseCodesMap ? identity.parseCodesMap(data) : {};
   }
@@ -3288,7 +3291,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 
   async function fetchPresenceRemote() {
     const data = await fetchDoc("presence", PRESENCE_API);
-    if (!data || typeof data !== "object") return {};
+    if (data == null) throw new Error("presence-unavailable");
+    if (typeof data !== "object") return {};
     const players = data.players && typeof data.players === "object" ? data.players : data;
     const out = {};
     Object.entries(players).forEach(([id, p]) => {

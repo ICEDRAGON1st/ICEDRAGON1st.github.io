@@ -1,4 +1,7 @@
 {
+  "20261015ch": [
+    "Shared boards no longer read the old backup when the account-server row is missing, so a busy device can't replace everyone else's map with an empty one."
+  ],
   "20261015cg": [
     "Who's online now updates from your signed-in account as it happens, so the player list doesn't wait on a slow poll."
   ],

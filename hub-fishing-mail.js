@@ -224,6 +224,7 @@
     try {
       const api = sb();
       let data = null;
+      let fetched = false;
       if (api) {
         try {
           data = await api.getPrefer(DOC_ID, API);
@@ -236,19 +237,23 @@
         else if (!res.ok) return null;
         else data = await res.json();
       }
-      if (!data || typeof data !== "object") data = { token: TOKEN, gifts: {}, trades: {} };
-      else {
+      if (data && typeof data === "object") {
+        fetched = true;
         data = {
           token: data.token || TOKEN,
           gifts: data.gifts && typeof data.gifts === "object" ? data.gifts : {},
           trades: data.trades && typeof data.trades === "object" ? data.trades : {}
         };
+      } else {
+        data = null;
       }
       const tableRows = await fetchMailTableRemote();
       const helper = mailSaveApi();
       if (Array.isArray(tableRows) && helper?.overlayPlayerMail) {
-        data = helper.overlayPlayerMail(data, tableRows);
+        data = helper.overlayPlayerMail(data || { token: TOKEN, gifts: {}, trades: {} }, tableRows);
+        fetched = true;
       }
+      if (!fetched) return null;
       return data;
     } catch {
       return null;

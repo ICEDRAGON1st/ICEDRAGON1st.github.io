@@ -107,10 +107,22 @@ test("shared docs skip the old backup write after a successful account-server sa
 test("shared docs skip the old backup read when the account server errors", () => {
   const fs = require("node:fs");
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  const plays = fs.readFileSync(path.join(__dirname, "../../hub-plays.js"), "utf8");
   assert.equal(supabase.shouldReadMantleBackup(true), false);
-  assert.equal(supabase.shouldReadMantleBackup(false), true);
-  assert.match(src, /shouldReadMantleBackup\(false\)/);
+  assert.equal(supabase.shouldReadMantleBackup(false), false);
+  const getPreferSrc = src.slice(
+    src.indexOf("async function getPrefer"),
+    src.indexOf("function shouldWriteMantleBackup")
+  );
+  assert.doesNotMatch(getPreferSrc, /fetch\(_?mantleUrl/);
+  assert.match(getPreferSrc, /return null;/);
   assert.match(src, /console\.warn\("\[HubSupabase\] getPrefer", docId, err\);\s*throw err;/);
+  assert.match(plays, /if \(data == null\) throw new Error\("presence-unavailable"\)/);
+  assert.match(plays, /if \(data == null\) throw new Error\("codes-unavailable"\)/);
+  assert.match(
+    plays,
+    /if \(raw == null \|\| typeof raw !== "object"\) throw new Error\("popularity-unavailable"\)/
+  );
 });
 
 test("locked admin docs use the trusted RPC instead of a direct hub_docs upsert", () => {

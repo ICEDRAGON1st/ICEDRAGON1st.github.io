@@ -107,6 +107,7 @@ test("owned aquarium row dual-writes without copying others or shrinking shared 
   assert.match(script, /pullAquaMine/);
   assert.match(script, /canPostSharedAqua/);
   assert.match(script, /if \(!canPost\) return;/);
+  assert.match(script, /if \(!fetched\) return null;/);
   assert.equal(save.AQUA_MINE_KEY, "aqua-mine");
   assert.equal(save.canPostSharedAqua(null), false);
   assert.equal(save.canPostSharedAqua({ tanks: {} }), true);
@@ -185,6 +186,8 @@ test("fishing community uses account-server prefer and skips the old backup writ
   const fs = require("node:fs");
   const script = fs.readFileSync(path.resolve(__dirname, "../../fishing/script.js"), "utf8");
   assert.match(script, /api\.getPrefer\(\s*COMMUNITY_DOC/);
+  assert.match(script, /if \(raw && typeof raw === "object"\) \{/);
+  assert.match(script, /remoteOk = true;/);
   assert.match(script, /api\.pushPrefer\(\s*COMMUNITY_DOC/);
   assert.equal(script.includes("await api.upsertDoc(COMMUNITY_DOC"), false);
   assert.match(script, /communityRateLimited\(\) \? "" : COMMUNITY_API/);
@@ -236,6 +239,7 @@ test("fishing player mail uses account-owned rows and skips the shared rewrite a
   assert.match(mail, /persistMailContribution/);
   assert.match(mail, /listFishingMailContributions/);
   assert.match(mail, /if \(tableWrote && !rewriteShared\) return true/);
+  assert.match(mail, /if \(!fetched\) return null;/);
   assert.match(plays, /fishing\/save\.js/);
 });
 
@@ -339,6 +343,8 @@ test("fishing admin gifts use account-owned claim rows and skip the shared rewri
   assert.match(script, /fetchFishGiftsTableRemote/);
   assert.match(script, /overlayAdminFishGifts/);
   assert.match(script, /postFishGiftsDoc\(\{ gifts \}, \{ rewriteShared: true \}\)/);
+  assert.match(script, /if \(!remote \|\| typeof remote !== "object"\) return false;/);
+  assert.match(gifts, /if \(!fetched\) return null;/);
   assert.match(gifts, /persistGiftContribution/);
   assert.match(gifts, /listFishingGiftContributions/);
   assert.match(gifts, /if \(tableWrote && !rewriteShared\) return true/);

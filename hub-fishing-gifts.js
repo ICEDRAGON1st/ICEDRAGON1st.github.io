@@ -253,6 +253,7 @@
     try {
       const api = sb();
       let data = null;
+      let fetched = false;
       if (api) {
         try {
           data = await api.getPrefer(DOC_ID, API);
@@ -265,18 +266,22 @@
         else if (!res.ok) return null;
         else data = await res.json();
       }
-      if (!data || typeof data !== "object") data = { token: TOKEN, gifts: {} };
-      else {
+      if (data && typeof data === "object") {
+        fetched = true;
         data = {
           token: data.token || TOKEN,
           gifts: data.gifts && typeof data.gifts === "object" ? data.gifts : {}
         };
+      } else {
+        data = null;
       }
       const tableRows = await fetchGiftTableRemote();
       const helper = giftSaveApi();
       if (Array.isArray(tableRows) && helper?.overlayAdminFishGifts) {
-        data = helper.overlayAdminFishGifts(data, tableRows);
+        data = helper.overlayAdminFishGifts(data || { token: TOKEN, gifts: {} }, tableRows);
+        fetched = true;
       }
+      if (!fetched) return null;
       return data;
     } catch {
       return null;
@@ -331,7 +336,8 @@
   }
 
   async function markClaimedRemote(giftId) {
-    const doc = (await fetchDoc()) || { gifts: {} };
+    const doc = await fetchDoc();
+    if (!doc || typeof doc !== "object") return false;
     const gifts = { ...(doc.gifts || {}) };
     const g = gifts[giftId];
     if (!g) return true;
