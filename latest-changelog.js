@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015bi",
+  "build": "20261015bj",
   "notes": [
-    "Shared lists now save to the account server first. The old backup path is only used if that save fails, which should mean fewer too-many-requests pauses."
+    "Your aquarium tank now also saves on your account, so another signed-in device can keep it without wiping other players' tanks."
   ]
 };

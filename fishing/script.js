@@ -2570,7 +2570,12 @@
         .join(",")
     ].join("|");
     if (!force && key === aquaShareLastKey) return;
-    const remote = (await fetchAquaShareDoc()) || { tanks: {} };
+    persistAquaMine(snap);
+    const remote = await fetchAquaShareDoc();
+    const canPost = fishingSaveApi.canPostSharedAqua
+      ? fishingSaveApi.canPostSharedAqua(remote)
+      : !!(remote && typeof remote === "object");
+    if (!canPost) return;
     const tanks = { ...(remote.tanks || {}) };
     const id = snap.playerId || String(snap.name || "").toLowerCase();
     if (!id) return;
@@ -2581,12 +2586,40 @@
       snap = buildAquariumShareSnapshot(true);
       if (snap) {
         tanks[id] = snap;
+        persistAquaMine(snap);
         ok = await postAquaShareDoc(tanks);
       }
     }
     if (ok) {
       aquaShareLastKey = key;
       aquaShareCache.tanks = pruneAquaShareTanks(tanks);
+    }
+  }
+
+  async function persistAquaMine(tank) {
+    const api = fishingSb();
+    if (!api?.upsertSave || !fishingSaveApi.collectAquaMine) return;
+    const id = String(tank?.playerId || mailMyId() || "").trim();
+    const mine = fishingSaveApi.collectAquaMine(tank, id);
+    if (!mine) return;
+    try {
+      await api.upsertSave(fishingSaveApi.AQUA_MINE_KEY || "aqua-mine", mine, 1);
+    } catch (err) {
+      console.warn("[aqua-mine] player_saves write failed", err);
+    }
+  }
+
+  async function pullAquaMine() {
+    const api = fishingSb();
+    const me = String(mailMyId() || "").trim();
+    if (!api?.getSave || !fishingSaveApi.readAquaMine || !me) return null;
+    try {
+      return fishingSaveApi.readAquaMine(
+        await api.getSave(fishingSaveApi.AQUA_MINE_KEY || "aqua-mine")
+      );
+    } catch (err) {
+      console.warn("[aqua-mine] player_saves read failed", err);
+      return null;
     }
   }
 
@@ -2597,6 +2630,14 @@
     aquaShareFetchedAt = now;
     const doc = await fetchAquaShareDoc();
     if (doc) aquaShareCache = { tanks: pruneAquaShareTanks(doc.tanks || {}) };
+    const mine = await pullAquaMine();
+    if (mine && fishingSaveApi.applyAquaMine) {
+      const before = Object.keys(aquaShareCache.tanks || {}).length;
+      const next = fishingSaveApi.applyAquaMine(aquaShareCache.tanks, mine, mailMyId());
+      if (Object.keys(next).length >= before) {
+        aquaShareCache = { tanks: pruneAquaShareTanks(next) };
+      }
+    }
     return aquaShareCache;
   }
 

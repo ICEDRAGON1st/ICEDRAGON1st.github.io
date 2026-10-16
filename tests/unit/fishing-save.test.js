@@ -99,3 +99,50 @@ test("Fishing save hydrate keeps progress and migrates old flags", () => {
   assert.equal(hydrated.moneyChestCount, 4);
   assert.equal(hydrated.unlocked.creek, true);
 });
+
+test("owned aquarium row dual-writes without copying others or shrinking shared tanks", () => {
+  const fs = require("node:fs");
+  const script = fs.readFileSync(path.resolve(__dirname, "../../fishing/script.js"), "utf8");
+  assert.match(script, /persistAquaMine/);
+  assert.match(script, /pullAquaMine/);
+  assert.match(script, /canPostSharedAqua/);
+  assert.match(script, /if \(!canPost\) return;/);
+  assert.equal(save.AQUA_MINE_KEY, "aqua-mine");
+  assert.equal(save.canPostSharedAqua(null), false);
+  assert.equal(save.canPostSharedAqua({ tanks: {} }), true);
+
+  const snapshot = save.collectAquaMine(
+    {
+      playerId: "p-ada",
+      name: "Ada",
+      updatedAt: 80,
+      level: 3,
+      fish: [{ id: "minnow", variant: "gold", shiny: true, mutation: "neon" }],
+      extraOthers: true
+    },
+    "p-ada"
+  );
+  assert.equal(snapshot.playerId, "p-ada");
+  assert.equal(snapshot.fish[0].id, "minnow");
+  assert.equal(snapshot.extraOthers, undefined);
+  assert.equal(save.collectAquaMine({ playerId: "p-bea", name: "Bea" }, "p-ada"), null);
+
+  const restored = save.applyAquaMine({}, snapshot, "p-ada");
+  assert.equal(restored["p-ada"].level, 3);
+  assert.equal(Object.keys(restored).length, 1);
+
+  const kept = save.applyAquaMine(
+    {
+      "p-ada": { playerId: "p-ada", updatedAt: 50, level: 1, fish: [] },
+      "p-bea": { playerId: "p-bea", updatedAt: 90, level: 8, fish: [] }
+    },
+    snapshot,
+    "p-ada"
+  );
+  assert.equal(kept["p-ada"].level, 3);
+  assert.equal(kept["p-bea"].level, 8);
+
+  const older = save.applyAquaMine(kept, { ...snapshot, updatedAt: 10, level: 99 }, "p-ada");
+  assert.equal(older["p-ada"].level, 3);
+  assert.equal(older["p-bea"].level, 8);
+});

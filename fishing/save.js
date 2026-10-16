@@ -357,6 +357,70 @@
     return next;
   }
 
+  const AQUA_MINE_KEY = "aqua-mine";
+  const AQUA_MINE_FISH_MAX = 80;
+
+  function sanitizeAquaMineFish(entry) {
+    if (!entry || typeof entry !== "object") return null;
+    const id = String(entry.id || "")
+      .trim()
+      .slice(0, 32);
+    if (!id) return null;
+    return {
+      id,
+      variant: String(entry.variant || "").slice(0, 16),
+      shiny: !!entry.shiny,
+      mutation: String(entry.mutation || "").slice(0, 16)
+    };
+  }
+
+  function collectAquaMine(tank, playerId) {
+    const me = String(playerId || "").trim();
+    if (!me || !tank || typeof tank !== "object") return null;
+    const tankId = String(tank.playerId || me).trim();
+    if (tankId !== me) return null;
+    const fish = Array.isArray(tank.fish)
+      ? tank.fish.map(sanitizeAquaMineFish).filter(Boolean).slice(0, AQUA_MINE_FISH_MAX)
+      : [];
+    const base = tank.base && typeof tank.base === "object" ? tank.base : null;
+    return {
+      playerId: me,
+      name:
+        String(tank.name || "Player")
+          .trim()
+          .slice(0, 48) || "Player",
+      updatedAt: Math.max(0, Number(tank.updatedAt) || Date.now()),
+      level: Math.max(0, Math.floor(Number(tank.level) || 0)),
+      fish,
+      base
+    };
+  }
+
+  function readAquaMine(payload) {
+    if (!payload || typeof payload !== "object") return null;
+    const playerId = String(payload.playerId || "").trim();
+    if (!playerId) return null;
+    return collectAquaMine(payload, playerId);
+  }
+
+  function applyAquaMine(tanks, mine, playerId) {
+    const local = tanks && typeof tanks === "object" && !Array.isArray(tanks) ? { ...tanks } : {};
+    const row = readAquaMine(mine);
+    const me = String(playerId || row?.playerId || "").trim();
+    if (!row || !me || row.playerId !== me) return local;
+    const existing = local[me];
+    const existAt = Number(existing?.updatedAt) || 0;
+    const mineAt = Number(row.updatedAt) || 0;
+    if (existing && existAt > mineAt) return local;
+    local[me] = row;
+    return local;
+  }
+
+  /** Shared fishing-aquariums POST is safe only when the fetch succeeded (even if tanks is empty). */
+  function canPostSharedAqua(remote) {
+    return !!(remote && typeof remote === "object");
+  }
+
   const api = {
     SAVE_KEY,
     SAVE_BACKUP_KEY,
@@ -365,7 +429,13 @@
     pickRicherSave,
     defaultAutoSell,
     defaultState,
-    hydrateState
+    hydrateState,
+    AQUA_MINE_KEY,
+    AQUA_MINE_FISH_MAX,
+    collectAquaMine,
+    readAquaMine,
+    applyAquaMine,
+    canPostSharedAqua
   };
   root.FishingSave = api;
   if (typeof module === "object" && module.exports) module.exports = api;
