@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ct",
+  "build": "20261015cu",
   "notes": [
-    "Feedback now updates from your signed-in account as it happens, so a new ticket doesn't wait on the next poll."
+    "Leaderboards now update from your signed-in account as they happen, so a new high score doesn't wait on the next poll."
   ]
 };

@@ -158,6 +158,7 @@
   let lastSync = 0;
   let submitQueue = Promise.resolve();
   let syncQueue = Promise.resolve();
+  let leaderboardRealtimeUnsub = null;
 
   function meta(gameId) {
     return GAME_META[gameId] || { label: gameId, lowerBetter: false, unit: "score" };
@@ -1497,7 +1498,51 @@
     return submitQueue;
   }
 
+  function leaderboardCloudQuiet() {
+    try {
+      if (window.HubAfk?.isAfk?.()) return true;
+      if (window.HubNet?.isPaused?.()) return true;
+      if (window.HubNet && HubNet.isOnline && !HubNet.isOnline()) return true;
+    } catch {}
+    try {
+      if (document.hidden) return true;
+    } catch {}
+    return false;
+  }
+
+  function applyLeaderboardRealtime(change) {
+    const helper = pbsApi();
+    if (!helper?.applyChange) return;
+    const next = helper.applyChange(cache, change, nameKey);
+    saveLocal({
+      games: next.games || cache.games,
+      resets: { ...(cache.resets || {}), ...(next.resets || {}) }
+    });
+  }
+
+  function stopLeaderboardRealtime() {
+    try {
+      leaderboardRealtimeUnsub?.();
+    } catch {}
+    leaderboardRealtimeUnsub = null;
+  }
+
+  function ensureLeaderboardRealtime() {
+    const api = window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
+    if (!api?.subscribeLeaderboardPbContributions) return;
+    if (leaderboardRealtimeUnsub) return;
+    if (leaderboardCloudQuiet()) return;
+    leaderboardRealtimeUnsub = api.subscribeLeaderboardPbContributions((change) => {
+      applyLeaderboardRealtime(change);
+    });
+  }
+
   async function sync(force = false) {
+    if (leaderboardCloudQuiet()) {
+      stopLeaderboardRealtime();
+    } else {
+      ensureLeaderboardRealtime();
+    }
     if (!force && Date.now() - lastSync < SYNC_GAP_MS) return cache;
     const run = async () => {
       let remote = { games: {}, resets: {} };
@@ -1869,7 +1914,15 @@
   // Seed cache from local on load, then sync so the Sudoku Hjalte wipe is pushed once.
   cache = applyResets(loadLocal());
   saveLocal(cache);
+  ensureLeaderboardRealtime();
   sync(true).catch(() => {});
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      stopLeaderboardRealtime();
+      return;
+    }
+    ensureLeaderboardRealtime();
+  });
 
   window.HubLeaderboard = {
     submit,

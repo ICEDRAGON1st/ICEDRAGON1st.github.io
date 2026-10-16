@@ -73,4 +73,46 @@ test("personal-best merge keeps the better score and restores a missing row", ()
   assert.equal(overlaid.games.snake.you.score, 40);
   assert.equal(overlaid.games.snake.them.score, 120);
   assert.equal(overlaid.games.snake.skip, undefined);
+
+  const liveRow = pbs.applyChange(
+    { games: { snake: { them: { name: "Them", score: 90, at: 10, playerId: "p-other" } } } },
+    {
+      type: "UPDATE",
+      new: {
+        player_id: "p-other",
+        games: { snake: { name: "Them", score: 120, at: 30, playerId: "p-other" } }
+      }
+    },
+    (name) => String(name || "").toLowerCase()
+  );
+  assert.equal(liveRow.games.snake.them.score, 120);
+
+  const afterDelete = pbs.applyChange(liveRow, {
+    type: "DELETE",
+    old_record: { player_id: "p-other" }
+  });
+  assert.equal(afterDelete.games.snake.them.score, 120);
+});
+
+test("leaderboard live rows subscribe without rewriting the shared board", () => {
+  const ui = fs.readFileSync(path.join(ROOT, "hub-leaderboard.js"), "utf8");
+  const supabase = fs.readFileSync(path.join(ROOT, "hub-supabase.js"), "utf8");
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160030_leaderboard_pb_contributions_realtime.sql"),
+    "utf8"
+  );
+  assert.match(ui, /ensureLeaderboardRealtime/);
+  assert.match(ui, /applyLeaderboardRealtime/);
+  assert.match(ui, /subscribeLeaderboardPbContributions/);
+  assert.doesNotMatch(
+    ui.slice(
+      ui.indexOf("function applyLeaderboardRealtime"),
+      ui.indexOf("function stopLeaderboardRealtime")
+    ),
+    /pushRemote/
+  );
+  assert.match(supabase, /function subscribeLeaderboardPbContributions/);
+  assert.match(sql, /alter table public\.leaderboard_pb_contributions replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.leaderboard_pb_contributions/i);
+  assert.doesNotMatch(sql, /to anon/i);
 });

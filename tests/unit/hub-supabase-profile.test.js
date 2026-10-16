@@ -160,6 +160,7 @@ test("presence pings use auth-owned rows instead of rewriting the shared presenc
   assert.match(src, /function subscribeAquariumTankContributions/);
   assert.match(src, /function subscribeCommunityCastContributions/);
   assert.match(src, /function subscribeFeedbackItemContributions/);
+  assert.match(src, /function subscribeLeaderboardPbContributions/);
   assert.match(src, /realtime\/v1\/websocket/);
   assert.match(src, /presence_pings/);
   assert.match(src, /chat_thread_contributions/);
@@ -278,6 +279,7 @@ test("leaderboard personal bests use auth-owned rows instead of rewriting the sh
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
   assert.match(src, /async function listLeaderboardPbContributions/);
   assert.match(src, /async function upsertLeaderboardPbContribution/);
+  assert.match(src, /function subscribeLeaderboardPbContributions/);
   assert.match(src, /leaderboard_pb_contributions/);
 });
 

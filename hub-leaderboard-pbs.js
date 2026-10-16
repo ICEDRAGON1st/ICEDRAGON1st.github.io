@@ -109,6 +109,30 @@
     return { games, resets };
   }
 
+  function unwrapChange(change) {
+    const payload = change && typeof change === "object" ? change : {};
+    if (payload.data && typeof payload.data === "object") return payload.data;
+    if (payload.payload && typeof payload.payload === "object") {
+      const inner = payload.payload;
+      if (inner.data && typeof inner.data === "object") return inner.data;
+      return inner;
+    }
+    return payload;
+  }
+
+  function applyChange(hub, change, nameKeyFn) {
+    const data = unwrapChange(change);
+    const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
+    const current = {
+      games: { ...((hub && hub.games) || {}) },
+      resets: { ...((hub && hub.resets) || {}) }
+    };
+    if (type === "DELETE") return current;
+    const record = data.record || data.new || {};
+    if (!record || typeof record !== "object") return current;
+    return overlayLeaderboardGames(current, [record], nameKeyFn);
+  }
+
   const api = {
     SAVE_KEY,
     isBetter,
@@ -117,7 +141,8 @@
     readPbs,
     collectMine,
     applyPersonalBests,
-    overlayLeaderboardGames
+    overlayLeaderboardGames,
+    applyChange
   };
   if (root) root.HubLeaderboardPbs = api;
   if (typeof module === "object" && module.exports) module.exports = api;
