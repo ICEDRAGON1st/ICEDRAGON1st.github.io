@@ -123,3 +123,72 @@ test("owned identity mine restores code and name without reminting a different p
   assert.equal(otherAccount.code, "");
   assert.equal(otherAccount.name, "");
 });
+
+test("owned password hashes dual-write without plaintext or other players' logins", () => {
+  const fs = require("node:fs");
+  const plays = fs.readFileSync(path.join(__dirname, "../../hub-plays.js"), "utf8");
+  assert.match(plays, /persistPasswordMine/);
+  assert.match(plays, /pullPasswordMine/);
+  assert.equal(identity.PASSWORD_MINE_KEY, "password-mine");
+
+  const adaHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  const oldHash = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+  const beaHash = "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc";
+  const snapshot = identity.collectPasswordMine(
+    {
+      [adaHash]: {
+        playerId: "p-ada",
+        code: "AB23-CD45",
+        name: "Ada",
+        at: 20,
+        password: "secret"
+      },
+      swordfish: { playerId: "p-ada", code: "AB23CD45", name: "Ada", at: 1 },
+      [beaHash]: { playerId: "p-bea", code: "ZZ99YY88", name: "Bea", at: 9 }
+    },
+    "p-ada"
+  );
+  assert.equal(snapshot.playerId, "p-ada");
+  assert.equal(snapshot.cleared, false);
+  assert.equal(Object.keys(snapshot.hashes).length, 1);
+  assert.equal(snapshot.hashes[adaHash].playerId, "p-ada");
+  assert.equal(snapshot.hashes[adaHash].code, "AB23CD45");
+  assert.equal(snapshot.hashes[adaHash].password, undefined);
+  assert.equal(snapshot.hashes[beaHash], undefined);
+  assert.equal(snapshot.hashes.swordfish, undefined);
+
+  const restored = identity.applyPasswordMine({}, snapshot, "p-ada");
+  assert.equal(restored[adaHash].playerId, "p-ada");
+  assert.equal(Object.keys(restored).length, 1);
+
+  const richer = identity.applyPasswordMine(
+    {
+      [oldHash]: { playerId: "p-ada", code: "AB23CD45", name: "Ada", at: 1 },
+      [beaHash]: { playerId: "p-bea", code: "ZZ99YY88", name: "Bea", at: 9 }
+    },
+    snapshot,
+    "p-ada"
+  );
+  assert.equal(richer[adaHash].playerId, "p-ada");
+  assert.equal(richer[oldHash], undefined);
+  assert.equal(richer[beaHash].playerId, "p-bea");
+
+  const blocked = identity.applyPasswordMine(
+    { [beaHash]: { playerId: "p-bea", code: "ZZ99YY88", name: "Bea", at: 9 } },
+    snapshot,
+    "p-bea"
+  );
+  assert.equal(blocked[adaHash], undefined);
+  assert.equal(blocked[beaHash].playerId, "p-bea");
+
+  const cleared = identity.applyPasswordMine(
+    {
+      [adaHash]: { playerId: "p-ada", code: "AB23CD45", name: "Ada", at: 20 },
+      [beaHash]: { playerId: "p-bea", code: "ZZ99YY88", name: "Bea", at: 9 }
+    },
+    identity.collectPasswordMine({}, "p-ada", { cleared: true }),
+    "p-ada"
+  );
+  assert.equal(cleared[adaHash], undefined);
+  assert.equal(cleared[beaHash].playerId, "p-bea");
+});

@@ -202,6 +202,92 @@
     return out;
   }
 
+  const PASSWORD_MINE_KEY = "password-mine";
+
+  function normalizePasswordHash(raw) {
+    const hash = String(raw || "").trim();
+    if (/^[0-9a-f]{64}$/i.test(hash)) return hash.toLowerCase();
+    if (/^f:[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{16}$/.test(hash)) return hash;
+    return "";
+  }
+
+  function cleanPasswordEntry(raw, playerId) {
+    if (!raw || typeof raw !== "object") return null;
+    const me = String(playerId || "").trim();
+    const owner = String(raw.playerId || "").trim();
+    if (!me || owner !== me) return null;
+    const code = normalizePlayerCode(raw.code || "");
+    return {
+      playerId: me,
+      code: code.length === 8 && !isPoisonPlayerCode(code) ? code : "",
+      name: sanitizeName(raw.name || ""),
+      at: Number(raw.at) || 0
+    };
+  }
+
+  function cleanPasswordMap(map, playerId) {
+    const me = String(playerId || "").trim();
+    const out = {};
+    if (!me || !map || typeof map !== "object") return out;
+    Object.entries(map).forEach(([rawHash, raw]) => {
+      const hash = normalizePasswordHash(rawHash);
+      const entry = cleanPasswordEntry(raw, me);
+      if (!hash || !entry) return;
+      out[hash] = entry;
+    });
+    return out;
+  }
+
+  function readPasswordMine(payload) {
+    const playerId = String(payload?.playerId || "").trim();
+    return {
+      playerId,
+      hashes: cleanPasswordMap(payload?.hashes, playerId),
+      cleared: !!(playerId && payload?.cleared),
+      updatedAt: Number(payload?.updatedAt) || 0
+    };
+  }
+
+  function collectPasswordMine(passwords, playerId, opts) {
+    const me = String(playerId || "").trim();
+    const hashes = cleanPasswordMap(passwords, me);
+    const cleared = !!(opts && opts.cleared);
+    return {
+      playerId: me,
+      hashes: cleared ? {} : hashes,
+      cleared,
+      updatedAt: Date.now()
+    };
+  }
+
+  function applyPasswordMine(localPasswords, mine, playerId) {
+    const owned = readPasswordMine(mine);
+    const me = String(playerId || owned.playerId || "").trim();
+    const local = {};
+    Object.entries(
+      localPasswords && typeof localPasswords === "object" ? localPasswords : {}
+    ).forEach(([hash, raw]) => {
+      if (!raw || typeof raw !== "object" || !raw.playerId) return;
+      local[String(hash)] = raw;
+    });
+    if (!me || owned.playerId !== me) return local;
+    if (owned.cleared) {
+      Object.keys(local).forEach((hash) => {
+        if (local[hash]?.playerId === me) delete local[hash];
+      });
+      return local;
+    }
+    if (!Object.keys(owned.hashes).length) return local;
+    Object.keys(local).forEach((hash) => {
+      if (local[hash]?.playerId === me) delete local[hash];
+    });
+    Object.entries(owned.hashes).forEach(([hash, entry]) => {
+      if (local[hash]?.playerId && local[hash].playerId !== me) return;
+      local[hash] = entry;
+    });
+    return local;
+  }
+
   const api = {
     CODE_ALPHABET,
     sanitizeName,
@@ -221,7 +307,13 @@
     IDENTITY_MINE_KEY,
     readIdentityMine,
     collectIdentityMine,
-    applyIdentityMine
+    applyIdentityMine,
+    PASSWORD_MINE_KEY,
+    normalizePasswordHash,
+    cleanPasswordEntry,
+    readPasswordMine,
+    collectPasswordMine,
+    applyPasswordMine
   };
   root.HubIdentity = api;
   if (typeof module === "object" && module.exports) module.exports = api;

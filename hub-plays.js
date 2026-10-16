@@ -801,6 +801,40 @@
     }
   }
 
+  async function persistPasswordMine(opts) {
+    const api = sb();
+    const me = getPlayerId();
+    if (!identity.collectPasswordMine || !api?.upsertSave || !me) return;
+    const snapshot = identity.collectPasswordMine(loadLocalPasswords(), me, opts);
+    if (!Object.keys(snapshot.hashes || {}).length && !snapshot.cleared) return;
+    try {
+      await api.upsertSave(identity.PASSWORD_MINE_KEY, snapshot, 1);
+    } catch (err) {
+      console.warn("[HubPlays] player_saves password write failed", err);
+    }
+  }
+
+  async function pullPasswordMine() {
+    const api = sb();
+    const me = getPlayerId();
+    if (!identity.applyPasswordMine || !api?.getSave || !me) return;
+    try {
+      const raw = await api.getSave(identity.PASSWORD_MINE_KEY);
+      const owned = identity.readPasswordMine(raw);
+      if (!owned.playerId || owned.playerId !== me) return;
+      const local = loadLocalPasswords();
+      const next = identity.applyPasswordMine(local, owned, me);
+      saveLocalPasswords(next);
+      if (Object.values(next).some((entry) => entry?.playerId === me)) {
+        markVaultHasPassword(me, true);
+      } else if (owned.cleared) {
+        markVaultHasPassword(me, false);
+      }
+    } catch (err) {
+      console.warn("[HubPlays] player_saves password read failed", err);
+    }
+  }
+
   function normalizePasswordInput(raw) {
     return String(raw || "").trim();
   }
@@ -897,6 +931,10 @@
     const hash = await hashPassword(pw);
     let entry = loadLocalPasswords()[hash] || null;
     if (!entry?.playerId) {
+      await pullPasswordMine();
+      entry = loadLocalPasswords()[hash] || null;
+    }
+    if (!entry?.playerId) {
       try {
         const remote = await fetchPasswordsRemote();
         entry = remote[hash] || null;
@@ -982,6 +1020,7 @@
     saveLocalPasswords(local);
     markVaultHasPassword(me, true);
     rememberCurrentAccount({ hasPassword: true });
+    persistPasswordMine();
 
     try {
       await pushPasswordsRemote(remote);
@@ -1013,6 +1052,7 @@
     saveLocalPasswords(local);
     markVaultHasPassword(me, false);
     rememberCurrentAccount({ hasPassword: false });
+    persistPasswordMine({ cleared: true });
     try {
       const remote = await fetchPasswordsRemote();
       Object.keys(remote).forEach((h) => {
@@ -4881,10 +4921,12 @@ body.light .menu-credit .player-name-creator {
   pullIdentityMine()
     .catch(() => {})
     .then(() => pullAllTimeMine().catch(() => {}))
+    .then(() => pullPasswordMine().catch(() => {}))
     .then(() => {
       getPlayerCode();
       rememberCurrentAccount();
       persistAllTimeMine();
+      persistPasswordMine();
       return ensurePlayerCodeRegistered();
     })
     .catch(() => {
