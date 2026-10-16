@@ -71,6 +71,30 @@ test("account transfer keys and player-code maps keep the first owner", () => {
     identity.reservationAllows({ playerId: "p-bea", code: "AB23CD45" }, "p-ada", "AB23-CD45"),
     true
   );
+
+  const fromRows = identity.rowsToCodesMap([
+    {
+      player_id: "p-ada",
+      code: "AB23CD45",
+      display_name: "Ada",
+      claimed_at: "2023-11-14T22:13:20.000Z"
+    },
+    { player_id: "p-bea", code: "UNDEFNED", display_name: "Bad" },
+    { player_id: "", code: "ZZ99YY88", display_name: "Skip" }
+  ]);
+  assert.equal(fromRows.AB23CD45.playerId, "p-ada");
+  assert.equal(fromRows.UNDEFNED, undefined);
+  assert.equal(fromRows.ZZ99YY88, undefined);
+
+  const merged = identity.mergeCodesMaps(
+    { AB23CD45: { playerId: "p-ada", name: "Ada", at: 10 } },
+    {
+      AB23CD45: { playerId: "p-bea", name: "Bea", at: 1 },
+      CD45AB23: { playerId: "p-bea", name: "Bea", at: 2 }
+    }
+  );
+  assert.equal(merged.AB23CD45.playerId, "p-ada");
+  assert.equal(merged.CD45AB23.playerId, "p-bea");
 });
 
 test("owned identity mine restores code and name without reminting a different player id", () => {
@@ -80,6 +104,9 @@ test("owned identity mine restores code and name without reminting a different p
   );
   assert.match(plays, /persistIdentityMine/);
   assert.match(plays, /pullIdentityMine/);
+  assert.match(plays, /persistPlayerCodeClaim/);
+  assert.match(plays, /fetchCodesTableRemote/);
+  assert.match(plays, /if \(!tableWrote && fetched\) await pushCodesRemote/);
   assert.equal(identity.IDENTITY_MINE_KEY, "identity-mine");
 
   const snapshot = identity.collectIdentityMine(

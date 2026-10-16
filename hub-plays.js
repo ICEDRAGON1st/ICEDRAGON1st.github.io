@@ -1307,6 +1307,35 @@
     await pushDoc("player-codes", { codes }, CODES_API);
   }
 
+  async function persistPlayerCodeClaim(norm, name) {
+    const api = sb();
+    const me = getPlayerId();
+    if (!api?.upsertPlayerCodeClaim || !me) return false;
+    try {
+      await api.upsertPlayerCodeClaim({
+        playerId: me,
+        code: norm,
+        displayName: name || ""
+      });
+      return true;
+    } catch (err) {
+      if (err && err.codeTaken) return "taken";
+      return false;
+    }
+  }
+
+  async function fetchCodesTableRemote() {
+    const api = sb();
+    if (!api?.listPlayerCodeClaims || !identity.rowsToCodesMap) return null;
+    try {
+      const rows = await api.listPlayerCodeClaims();
+      if (!rows) return null;
+      return identity.rowsToCodesMap(rows);
+    } catch {
+      return null;
+    }
+  }
+
   function isCodeLockedName(key) {
     return CODE_LOCKED_NAMES.has(String(key || "").toLowerCase());
   }
@@ -1414,8 +1443,38 @@
       formatted = storePlayerCode(norm);
     }
 
+    let tableWrote = false;
+    for (let i = 0; i < 7; i += 1) {
+      const result = await persistPlayerCodeClaim(norm, getName());
+      if (result === true) {
+        tableWrote = true;
+        break;
+      }
+      if (result !== "taken") break;
+      const next = i === 0 ? hashToCodeParts(me, "alt") : randomCodeParts();
+      if (isPoisonPlayerCode(next)) continue;
+      norm = next;
+      formatted = storePlayerCode(next);
+    }
+
     try {
-      let remote = await fetchCodesRemote();
+      let remote = {};
+      let fetched = false;
+      try {
+        remote = await fetchCodesRemote();
+        fetched = true;
+      } catch {
+        remote = {};
+      }
+      const tableRemote = await fetchCodesTableRemote();
+      if (tableRemote && identity.mergeCodesMaps) {
+        remote = identity.mergeCodesMaps(remote, tableRemote);
+      } else if (tableRemote) {
+        remote = { ...remote, ...tableRemote };
+      }
+      if (!fetched && !tableWrote && !tableRemote) {
+        throw new Error("codes-unavailable");
+      }
       // Never keep the UNDE-FNED poison code in the shared registry
       Object.keys(remote).forEach((k) => {
         if (isPoisonPlayerCode(k)) delete remote[k];
@@ -1427,6 +1486,11 @@
           const next = i === 0 ? hashToCodeParts(me, "alt") : randomCodeParts();
           if (isPoisonPlayerCode(next)) continue;
           if (!remote[next] || remote[next].playerId === me) {
+            if (tableWrote) {
+              const retried = await persistPlayerCodeClaim(next, getName());
+              if (retried !== true && retried === "taken") continue;
+              if (retried === true) tableWrote = true;
+            }
             norm = next;
             formatted = storePlayerCode(next);
             entry = remote[next];
@@ -1445,7 +1509,7 @@
         name: getName() || entry?.name || "",
         at: entry?.at || Date.now()
       };
-      await pushCodesRemote(remote);
+      if (!tableWrote && fetched) await pushCodesRemote(remote);
       if (isCodeLockedName(nameKey(getName()))) {
         lockNameToPlayerCode(nameKey(getName()), me, norm, getName()).catch(() => {});
       }
@@ -1537,6 +1601,15 @@
     } catch {
       remote = null;
     }
+    try {
+      const row = await sb()?.getPlayerCodeClaim?.(norm);
+      if (row && identity.rowsToCodesMap) {
+        const extra = identity.rowsToCodesMap([row]);
+        remote = identity.mergeCodesMaps
+          ? identity.mergeCodesMaps(remote || {}, extra)
+          : { ...(remote || {}), ...extra };
+      }
+    } catch {}
 
     // Local vault / local code map always win — no account server required
     let entry = null;

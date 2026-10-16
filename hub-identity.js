@@ -128,6 +128,44 @@
     return out;
   }
 
+  function rowsToCodesMap(rows) {
+    const out = {};
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      if (!row || typeof row !== "object") return;
+      const key = normalizePlayerCode(row.code || "");
+      if (key.length !== 8 || isPoisonPlayerCode(key)) return;
+      const playerId = String(row.player_id || row.playerId || "").trim();
+      if (!playerId) return;
+      out[key] = {
+        playerId,
+        name: sanitizeName(row.display_name || row.name || ""),
+        at: Date.parse(row.claimed_at || row.claimedAt || "") || Number(row.at) || 0
+      };
+    });
+    return out;
+  }
+
+  function mergeCodesMaps(a, b) {
+    const out = { ...(a || {}) };
+    Object.entries(b || {}).forEach(([code, entry]) => {
+      if (!entry?.playerId) return;
+      const existing = out[code];
+      if (!existing) {
+        out[code] = entry;
+        return;
+      }
+      if (existing.playerId !== entry.playerId) return;
+      const left = Number(existing.at) || 0;
+      const right = Number(entry.at) || 0;
+      out[code] = {
+        playerId: existing.playerId,
+        name: sanitizeName(entry.name || existing.name || ""),
+        at: left && right ? Math.min(left, right) : left || right
+      };
+    });
+    return out;
+  }
+
   function reservationAllows(res, playerId, code) {
     if (!res?.playerId) return true;
     if (res.playerId === playerId) return true;
@@ -379,6 +417,8 @@
     formatAccountTransferKey,
     parseAccountTransferKey,
     parseCodesMap,
+    rowsToCodesMap,
+    mergeCodesMaps,
     reservationAllows,
     parseReservationsMap,
     IDENTITY_MINE_KEY,

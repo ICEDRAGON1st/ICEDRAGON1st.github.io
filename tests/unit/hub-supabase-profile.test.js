@@ -135,3 +135,12 @@ test("popularity contributions use auth-owned rows instead of rewriting the shar
   assert.match(src, /async function upsertPopularityContribution/);
   assert.match(src, /popularity_contributions/);
 });
+
+test("player code claims use auth-owned rows instead of rewriting the shared code document", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.match(src, /async function listPlayerCodeClaims/);
+  assert.match(src, /async function getPlayerCodeClaim/);
+  assert.match(src, /async function upsertPlayerCodeClaim/);
+  assert.match(src, /player_code_claims/);
+});

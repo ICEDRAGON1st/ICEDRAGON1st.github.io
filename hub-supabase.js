@@ -591,6 +591,98 @@
     }
   }
 
+  async function listPlayerCodeClaims() {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const url = `${SUPABASE_URL}/rest/v1/player_code_claims?select=player_id,code,display_name,claimed_at`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase player code list ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function getPlayerCodeClaim(code) {
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const norm = String(code || "")
+      .toUpperCase()
+      .replace(/[^23456789ABCDEFGHJKLMNPQRSTUVWXYZ]/g, "")
+      .slice(0, 8);
+    if (norm.length !== 8) return null;
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const url =
+      `${SUPABASE_URL}/rest/v1/player_code_claims?code=eq.${encodeURIComponent(norm)}` +
+      `&select=player_id,code,display_name,claimed_at`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase player code get ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) && rows[0] ? rows[0] : null;
+  }
+
+  async function upsertPlayerCodeClaim(row) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const playerId = parseLocalPlayerId(row?.playerId);
+    const code = String(row?.code || "")
+      .toUpperCase()
+      .replace(/[^23456789ABCDEFGHJKLMNPQRSTUVWXYZ]/g, "")
+      .slice(0, 8);
+    if (!userId || !session?.access_token) throw new Error("supabase player code needs a session");
+    if (!playerId) throw new Error("bad player code player id");
+    if (code.length !== 8) throw new Error("bad player code");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/player_code_claims`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        player_id: playerId,
+        code,
+        display_name: String(row?.displayName || "")
+          .replace(/[<>&"'`]/g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 32),
+        claimed_at: new Date().toISOString()
+      })
+    });
+    if (res.status === 409) {
+      const err = new Error("player code taken");
+      err.codeTaken = true;
+      throw err;
+    }
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase player code upsert ${res.status} ${text}`);
+    }
+  }
+
   async function getDoc(id) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -763,6 +855,9 @@
     deletePresencePing,
     listPopularityContributions,
     upsertPopularityContribution,
+    listPlayerCodeClaims,
+    getPlayerCodeClaim,
+    upsertPlayerCodeClaim,
     profile: () => {
       const raw = readSession()?.profile;
       const parsed = parseProfile(raw);
