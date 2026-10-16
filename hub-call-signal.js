@@ -217,6 +217,33 @@
     return pruneRooms(rooms);
   }
 
+  function unwrapChange(change) {
+    const payload = change && typeof change === "object" ? change : {};
+    if (payload.data && typeof payload.data === "object") return payload.data;
+    if (payload.payload && typeof payload.payload === "object") {
+      const inner = payload.payload;
+      if (inner.data && typeof inner.data === "object") return inner.data;
+      return inner;
+    }
+    return payload;
+  }
+
+  function applyChange(hub, change) {
+    const data = unwrapChange(change);
+    const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
+    const current =
+      hub && hub.rooms && typeof hub.rooms === "object" && !Array.isArray(hub.rooms)
+        ? hub.rooms
+        : hub && typeof hub === "object" && !Array.isArray(hub) && !hub.rooms
+          ? hub
+          : {};
+    const rooms = { ...current };
+    if (type === "DELETE") return { rooms };
+    const record = data.record || data.new || {};
+    if (!record || typeof record !== "object") return { rooms };
+    return { rooms: pruneRooms(mergeRooms(rooms, rowsToRooms([record]))) };
+  }
+
   function collectMine(rooms, playerId) {
     const me = String(playerId || "").trim();
     const owned = {};
@@ -271,7 +298,8 @@
     readMine,
     applyMine,
     mergeRooms,
-    rowsToRooms
+    rowsToRooms,
+    applyChange
   };
   if (root) root.HubCallSignal = api;
   if (typeof module === "object" && module.exports) module.exports = api;

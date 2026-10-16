@@ -800,6 +800,10 @@
     return subscribePostgresChanges("friend_edge_contributions", onChange);
   }
 
+  function subscribeCallSignalContributions(onChange) {
+    return subscribePostgresChanges("call_signal_contributions", onChange);
+  }
+
   async function listPopularityContributions(resetAt) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -2595,6 +2599,7 @@
     subscribePresencePings,
     subscribeChatThreadContributions,
     subscribeFriendEdgeContributions,
+    subscribeCallSignalContributions,
     stopPresenceRealtime,
     listPopularityContributions,
     upsertPopularityContribution,

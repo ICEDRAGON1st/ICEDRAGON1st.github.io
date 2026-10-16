@@ -156,4 +156,66 @@ test("owned call rooms dual-write without copying others or shrinking the shared
   ]);
   assert.ok(fromRows["dm:p-ada:p-bea"]);
   assert.equal(fromRows["dm:p-bea:p-cam"], undefined);
+
+  const now = Date.now();
+  const live = {
+    rooms: {
+      "dm:p-ada:p-bea": {
+        id: "dm:p-ada:p-bea",
+        updatedAt: now,
+        peers: { "p-ada": { joinedAt: now, left: false, name: "Ada" } },
+        signals: [{ id: "s1", at: now }],
+        links: {}
+      }
+    }
+  };
+  const liveRow = signal.applyChange(live, {
+    type: "INSERT",
+    new: {
+      player_id: "p-bea",
+      rooms: {
+        "dm:p-ada:p-bea": {
+          id: "dm:p-ada:p-bea",
+          updatedAt: now + 10,
+          peers: {
+            "p-ada": { joinedAt: now, left: false, name: "Ada" },
+            "p-bea": { joinedAt: 0, left: false, ringing: true, name: "Bea" }
+          },
+          signals: [{ id: "s2", at: now + 10 }],
+          links: {}
+        }
+      }
+    }
+  });
+  assert.ok(liveRow.rooms["dm:p-ada:p-bea"].peers["p-ada"]);
+  assert.equal(liveRow.rooms["dm:p-ada:p-bea"].peers["p-bea"].ringing, true);
+  assert.equal(liveRow.rooms["dm:p-ada:p-bea"].signals.length, 2);
+
+  const afterDelete = signal.applyChange(liveRow, {
+    type: "DELETE",
+    old_record: { player_id: "p-bea" }
+  });
+  assert.ok(afterDelete.rooms["dm:p-ada:p-bea"].peers["p-bea"]);
+  assert.equal(afterDelete.rooms["dm:p-ada:p-bea"].signals.length, 2);
+});
+
+test("call live rows subscribe without rewriting the shared board", () => {
+  const ui = fs.readFileSync(path.join(ROOT, "hub-calls.js"), "utf8");
+  const supabase = fs.readFileSync(path.join(ROOT, "hub-supabase.js"), "utf8");
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160023_call_signal_contributions_realtime.sql"),
+    "utf8"
+  );
+  assert.match(ui, /ensureCallsRealtime/);
+  assert.match(ui, /applyCallsRealtime/);
+  assert.match(ui, /subscribeCallSignalContributions/);
+  assert.doesNotMatch(
+    ui.slice(ui.indexOf("function applyCallsRealtime"), ui.indexOf("function stopCallsRealtime")),
+    /postDoc/
+  );
+  assert.match(supabase, /function subscribeCallSignalContributions/);
+  assert.match(supabase, /call_signal_contributions/);
+  assert.match(sql, /alter table public\.call_signal_contributions replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.call_signal_contributions/i);
+  assert.doesNotMatch(sql, /to anon/i);
 });

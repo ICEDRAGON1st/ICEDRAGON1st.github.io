@@ -56,6 +56,7 @@
 
   let cache = { rooms: {} };
   let pollTimer = 0;
+  let callsRealtimeUnsub = null;
   let active = null; // { roomId, kind, channelId, localStream, screenStream, pcs: Map }
   let seenSignals = new Set();
   let ringingRoomId = "";
@@ -1779,11 +1780,69 @@
   }
 
   let pollBusy = false;
+
+  function callsCloudQuiet() {
+    if (active) return false;
+    try {
+      if (window.HubAfk?.isAfk?.()) return true;
+      if (window.HubNet?.isPaused?.()) return true;
+      if (window.HubNet && HubNet.isOnline && !HubNet.isOnline()) return true;
+    } catch {}
+    return false;
+  }
+
+  function applyCallsRealtime(change) {
+    if (!signal.applyChange) return;
+    const next = signal.applyChange({ rooms: cache.rooms }, change);
+    const rooms =
+      next?.rooms && typeof next.rooms === "object" && !Array.isArray(next.rooms)
+        ? next.rooms
+        : cache.rooms;
+    cache.rooms = pruneRooms(rooms);
+    const me = playerId();
+    if (!active && me) {
+      const ring = Object.values(cache.rooms).find((room) => {
+        const p = room?.peers?.[me];
+        return p && p.ringing && !p.left && !p.joinedAt;
+      });
+      ringingRoomId = ring?.id || ringingRoomId || "";
+    }
+    renderCallBar();
+    syncCallButtons();
+    if (active && cache.rooms?.[active.roomId]) {
+      connectMesh(cache.rooms[active.roomId]).catch((err) => {
+        console.warn("[HubCalls] connectMesh realtime", err);
+      });
+    }
+  }
+
+  function stopCallsRealtime() {
+    try {
+      callsRealtimeUnsub?.();
+    } catch {}
+    callsRealtimeUnsub = null;
+  }
+
+  function ensureCallsRealtime() {
+    const api = sb();
+    if (!api?.subscribeCallSignalContributions) return;
+    if (callsRealtimeUnsub) return;
+    if (callsCloudQuiet()) return;
+    callsRealtimeUnsub = api.subscribeCallSignalContributions((change) => {
+      applyCallsRealtime(change);
+    });
+  }
+
   async function poll() {
     if (pollBusy) return;
     pollBusy = true;
     let roomForMesh = null;
     try {
+      if (callsCloudQuiet()) {
+        if (!active) stopCallsRealtime();
+      } else {
+        ensureCallsRealtime();
+      }
       const doc = await fetchDoc();
       if (doc) cache.rooms = pruneRooms(doc.rooms || {});
       await pullCallsMine();
@@ -1998,6 +2057,7 @@
   }
 
   function startPolling() {
+    ensureCallsRealtime();
     poll();
     if (pollTimer) clearInterval(pollTimer);
     pollTimer = setInterval(poll, POLL_MS);
@@ -2006,6 +2066,7 @@
   function stopPolling() {
     if (pollTimer) clearInterval(pollTimer);
     pollTimer = 0;
+    stopCallsRealtime();
   }
 
   window.HubCalls = {

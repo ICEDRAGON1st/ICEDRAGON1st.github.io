@@ -153,6 +153,7 @@ test("presence pings use auth-owned rows instead of rewriting the shared presenc
   assert.match(src, /function subscribePresencePings/);
   assert.match(src, /function subscribeChatThreadContributions/);
   assert.match(src, /function subscribeFriendEdgeContributions/);
+  assert.match(src, /function subscribeCallSignalContributions/);
   assert.match(src, /realtime\/v1\/websocket/);
   assert.match(src, /presence_pings/);
   assert.match(src, /chat_thread_contributions/);
@@ -222,6 +223,7 @@ test("call signaling uses auth-owned rows instead of rewriting the shared call b
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
   assert.match(src, /async function listCallSignalContributions/);
   assert.match(src, /async function upsertCallSignalContribution/);
+  assert.match(src, /function subscribeCallSignalContributions/);
   assert.match(src, /call_signal_contributions/);
 });
 
