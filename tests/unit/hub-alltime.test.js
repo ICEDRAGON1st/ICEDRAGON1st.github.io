@@ -92,3 +92,63 @@ test("all-time merge keeps earlier firstAt and later lastAt without shrinking", 
     false
   );
 });
+
+test("owned all-time row dual-writes without copying others or shrinking the roster", () => {
+  const plays = fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8");
+  assert.match(plays, /persistAllTimeMine/);
+  assert.match(plays, /pullAllTimeMine/);
+  assert.equal(alltime.SAVE_KEY, "alltime-mine");
+
+  const snapshot = alltime.collectMine(
+    {
+      "p-ada": { firstAt: 80, lastAt: 250, name: "Ada" },
+      "p-bea": { firstAt: 90, lastAt: 90, name: "Bea" }
+    },
+    "p-ada"
+  );
+  assert.equal(snapshot.playerId, "p-ada");
+  assert.equal(snapshot.row.firstAt, 80);
+  assert.equal(snapshot.row.lastAt, 250);
+  assert.equal(snapshot.row.name, "Ada");
+  assert.equal(snapshot.players, undefined);
+
+  const restored = alltime.applyMine({}, snapshot, "p-ada");
+  assert.equal(restored["p-ada"].firstAt, 80);
+  assert.equal(Object.keys(restored).length, 1);
+
+  const richer = alltime.applyMine(
+    {
+      "p-ada": { firstAt: 100, lastAt: 120, name: "Ada" },
+      "p-bea": { firstAt: 90, lastAt: 90, name: "Bea" },
+      "p-cal": { firstAt: 70, lastAt: 70, name: "Cal" }
+    },
+    snapshot,
+    "p-ada"
+  );
+  assert.equal(richer["p-ada"].firstAt, 80);
+  assert.equal(richer["p-ada"].lastAt, 250);
+  assert.equal(richer["p-bea"].name, "Bea");
+  assert.equal(richer["p-cal"].name, "Cal");
+  assert.equal(Object.keys(richer).length, 3);
+
+  const blocked = alltime.applyMine(
+    { "p-bea": { firstAt: 1, lastAt: 2, name: "Bea" } },
+    snapshot,
+    "p-bea"
+  );
+  assert.equal(Object.keys(blocked).length, 1);
+  assert.equal(blocked["p-bea"].name, "Bea");
+  assert.equal(blocked["p-ada"], undefined);
+
+  const leaked = alltime.applyMine(
+    { "p-ada": { firstAt: 10, lastAt: 10, name: "Ada" } },
+    {
+      playerId: "p-ada",
+      row: { firstAt: 5, lastAt: 20, name: "Ada" },
+      players: { "p-eve": { firstAt: 1, lastAt: 1, name: "Eve" } }
+    },
+    "p-ada"
+  );
+  assert.equal(leaked["p-eve"], undefined);
+  assert.equal(leaked["p-ada"].firstAt, 5);
+});

@@ -226,6 +226,48 @@
     return cleaned;
   }
 
+  const SAVE_KEY = "alltime-mine";
+
+  function cleanRow(raw, playerId) {
+    if (!raw || typeof raw !== "object") return null;
+    const me = String(playerId || "").trim();
+    if (!me) return null;
+    const firstAt = Number(raw.firstAt) || Number(raw.at) || 0;
+    if (!firstAt) return null;
+    const lastAt = Math.max(Number(raw.lastAt) || 0, Number(raw.at) || 0, firstAt);
+    const name =
+      String(raw.name || "")
+        .trim()
+        .slice(0, 16) || "Guest";
+    return { firstAt, lastAt, name };
+  }
+
+  function readMine(payload) {
+    const playerId = String(payload?.playerId || "").trim();
+    return {
+      playerId,
+      row: cleanRow(payload?.row, playerId),
+      updatedAt: Number(payload?.updatedAt) || 0
+    };
+  }
+
+  function collectMine(players, playerId) {
+    const me = String(playerId || "").trim();
+    return {
+      playerId: me,
+      row: me ? cleanRow(players?.[me], me) : null,
+      updatedAt: Date.now()
+    };
+  }
+
+  function applyMine(localPlayers, mine, playerId) {
+    const owned = readMine(mine);
+    const me = String(playerId || owned.playerId || "").trim();
+    const local = localPlayers && typeof localPlayers === "object" ? localPlayers : {};
+    if (!owned.row || !me || owned.playerId !== me) return local;
+    return mergeAllTime(local, { [me]: owned.row });
+  }
+
   const api = {
     MAX_ALLTIME,
     LAST_AT_WRITE_GAP_MS,
@@ -238,7 +280,12 @@
     allTimeNeedsWrite,
     namesFromPlays,
     namesFromRegistry,
-    repairMassStampedLastAt
+    repairMassStampedLastAt,
+    SAVE_KEY,
+    cleanRow,
+    readMine,
+    collectMine,
+    applyMine
   };
   if (root) root.HubAllTime = api;
   if (typeof module === "object" && module.exports) module.exports = api;

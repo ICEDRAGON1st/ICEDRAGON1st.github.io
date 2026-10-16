@@ -771,6 +771,36 @@
     }
   }
 
+  async function persistAllTimeMine() {
+    const api = sb();
+    const me = getPlayerId();
+    if (!alltimeApi.collectMine || !api?.upsertSave || !me) return;
+    const snapshot = alltimeApi.collectMine(allTimeCache, me);
+    if (!snapshot?.row) return;
+    try {
+      await api.upsertSave(alltimeApi.SAVE_KEY, snapshot, 1);
+    } catch (err) {
+      console.warn("[HubPlays] player_saves alltime write failed", err);
+    }
+  }
+
+  async function pullAllTimeMine() {
+    const api = sb();
+    const me = getPlayerId();
+    if (!alltimeApi.applyMine || !api?.getSave || !me) return;
+    try {
+      const raw = await api.getSave(alltimeApi.SAVE_KEY);
+      const owned = alltimeApi.readMine(raw);
+      if (!owned.row || owned.playerId !== me) return;
+      const localCount = Object.keys(allTimeCache || {}).length;
+      const next = alltimeApi.applyMine(allTimeCache, owned, me);
+      if (Object.keys(next).length < localCount) return;
+      rememberAllTime(next);
+    } catch (err) {
+      console.warn("[HubPlays] player_saves alltime read failed", err);
+    }
+  }
+
   function normalizePasswordInput(raw) {
     return String(raw || "").trim();
   }
@@ -3098,6 +3128,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   function rememberAllTime(players) {
     allTimeCache = players || {};
     saveAllTimeLocal(allTimeCache);
+    persistAllTimeMine();
     try {
       document.dispatchEvent(new CustomEvent("hub-plays-alltime"));
     } catch {
@@ -3530,6 +3561,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     if (isRateLimited() && !sb()) return getAllTimeCount();
     allTimeBusy = true;
     try {
+      await pullAllTimeMine();
       await ensureDragonPurged();
       await ensureRainbowPurged();
       const me = getPlayerId();
@@ -4848,9 +4880,11 @@ body.light .menu-credit .player-name-creator {
   injectCreatorCredit();
   pullIdentityMine()
     .catch(() => {})
+    .then(() => pullAllTimeMine().catch(() => {}))
     .then(() => {
       getPlayerCode();
       rememberCurrentAccount();
+      persistAllTimeMine();
       return ensurePlayerCodeRegistered();
     })
     .catch(() => {
