@@ -135,16 +135,73 @@
     return { ...older, ...newer };
   }
 
+  const SAVE_KEY = "calls-mine";
+
+  /** Shared hub-calls POST is safe only when the fetch succeeded (even if rooms is empty). */
+  function canPostSharedCalls(remote) {
+    return !!(remote && typeof remote === "object");
+  }
+
+  function roomIncludesPlayer(room, playerId) {
+    const me = String(playerId || "").trim();
+    if (!me || !room || typeof room !== "object") return false;
+    const peers = room.peers && typeof room.peers === "object" ? room.peers : {};
+    return Object.prototype.hasOwnProperty.call(peers, me);
+  }
+
+  function collectMine(rooms, playerId) {
+    const me = String(playerId || "").trim();
+    const owned = {};
+    Object.entries(rooms && typeof rooms === "object" ? rooms : {}).forEach(([id, room]) => {
+      if (roomIncludesPlayer(room, me)) owned[id] = room;
+    });
+    return { playerId: me, rooms: owned, updatedAt: Date.now() };
+  }
+
+  function readMine(payload) {
+    if (!payload || typeof payload !== "object") return null;
+    const playerId = String(payload.playerId || "").trim();
+    if (!playerId) return null;
+    const rooms = payload.rooms && typeof payload.rooms === "object" ? payload.rooms : {};
+    const owned = {};
+    Object.entries(rooms).forEach(([id, room]) => {
+      if (roomIncludesPlayer(room, playerId)) owned[id] = room;
+    });
+    return { playerId, rooms: owned, updatedAt: Number(payload.updatedAt) || 0 };
+  }
+
+  function applyMine(localRooms, mine, playerId) {
+    const local =
+      localRooms && typeof localRooms === "object" && !Array.isArray(localRooms)
+        ? { ...localRooms }
+        : {};
+    const owned = readMine(mine);
+    const me = String(playerId || owned?.playerId || "").trim();
+    if (!owned || !me || owned.playerId !== me) return local;
+    Object.entries(owned.rooms || {}).forEach(([id, room]) => {
+      const existing = local[id];
+      const existAt = Number(existing?.updatedAt) || 0;
+      const mineAt = Number(room?.updatedAt) || 0;
+      if (!existing || mineAt >= existAt) local[id] = room;
+    });
+    return local;
+  }
+
   const api = {
     SIGNAL_TTL_MS,
     ROOM_TTL_MS,
     MAX_PEERS,
+    SAVE_KEY,
     roomKey,
     linkKey,
     peerJoined,
     pruneRooms,
     mergeLink,
-    mergePeer
+    mergePeer,
+    canPostSharedCalls,
+    collectMine,
+    readMine,
+    applyMine
   };
   if (root) root.HubCallSignal = api;
   if (typeof module === "object" && module.exports) module.exports = api;

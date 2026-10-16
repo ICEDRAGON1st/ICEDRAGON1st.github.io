@@ -316,10 +316,41 @@
     return signal.mergePeer ? signal.mergePeer(a, b) : b || a || null;
   }
 
+  async function persistCallsMine(rooms) {
+    const api = sb();
+    const me = playerId();
+    if (!signal.collectMine || !api?.upsertSave || !me) return;
+    const snapshot = signal.collectMine(rooms, me);
+    if (!Object.keys(snapshot.rooms || {}).length) return;
+    try {
+      await api.upsertSave(signal.SAVE_KEY || "calls-mine", snapshot, 1);
+    } catch (err) {
+      console.warn("[HubCalls] player_saves write failed", err);
+    }
+  }
+
+  async function pullCallsMine() {
+    const api = sb();
+    const me = playerId();
+    if (!signal.applyMine || !api?.getSave || !me) return;
+    try {
+      const raw = await api.getSave(signal.SAVE_KEY || "calls-mine");
+      const before = Object.keys(cache.rooms || {}).length;
+      const next = signal.applyMine(cache.rooms, raw, me);
+      if (Object.keys(next).length < before) return;
+      cache.rooms = pruneRooms(next);
+    } catch (err) {
+      console.warn("[HubCalls] player_saves read failed", err);
+    }
+  }
+
   async function mutateRooms(mutator) {
     return enqueueWrite(async () => {
-      const doc = (await fetchDoc()) || { rooms: {} };
-      const rooms = JSON.parse(JSON.stringify(doc.rooms || {}));
+      const doc = await fetchDoc();
+      const canPost = signal.canPostSharedCalls
+        ? signal.canPostSharedCalls(doc)
+        : !!(doc && typeof doc === "object");
+      const rooms = JSON.parse(JSON.stringify((canPost ? doc.rooms : cache.rooms) || {}));
       mutator(rooms);
       try {
         const latest = await fetchDoc();
@@ -373,8 +404,14 @@
           });
         }
       } catch {}
+      if (!canPost) {
+        cache.rooms = pruneRooms(rooms);
+        persistCallsMine(rooms);
+        return false;
+      }
       const ok = await postDoc(rooms);
       if (ok) cache.rooms = pruneRooms(rooms);
+      persistCallsMine(ok ? cache.rooms : rooms);
       return ok;
     });
   }
@@ -1722,6 +1759,7 @@
     try {
       const doc = await fetchDoc();
       if (doc) cache.rooms = pruneRooms(doc.rooms || {});
+      await pullCallsMine();
       const me = playerId();
       if (!me) {
         renderCallBar();

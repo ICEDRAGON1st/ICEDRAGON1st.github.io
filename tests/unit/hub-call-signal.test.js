@@ -59,3 +59,52 @@ test("DM rooms, hang-up merges, and stale rooms stay deterministic", () => {
   assert.ok(kept.fresh);
   assert.equal(kept.stale, undefined);
 });
+
+test("owned call rooms dual-write without copying others or shrinking the shared board", () => {
+  const ui = fs.readFileSync(path.join(ROOT, "hub-calls.js"), "utf8");
+  assert.match(ui, /persistCallsMine/);
+  assert.match(ui, /pullCallsMine/);
+  assert.match(ui, /canPostSharedCalls/);
+  assert.match(ui, /if \(!canPost\)/);
+  assert.equal(signal.SAVE_KEY, "calls-mine");
+  assert.equal(signal.canPostSharedCalls(null), false);
+  assert.equal(signal.canPostSharedCalls({ rooms: {} }), true);
+
+  const snapshot = signal.collectMine(
+    {
+      "dm:p-ada:p-bea": {
+        updatedAt: 80,
+        peers: { "p-ada": { joinedAt: 80, left: false, name: "Ada" } }
+      },
+      "dm:p-bea:p-cam": {
+        updatedAt: 90,
+        peers: { "p-bea": { joinedAt: 90, left: false, name: "Bea" } }
+      }
+    },
+    "p-ada"
+  );
+  assert.equal(snapshot.playerId, "p-ada");
+  assert.ok(snapshot.rooms["dm:p-ada:p-bea"]);
+  assert.equal(snapshot.rooms["dm:p-bea:p-cam"], undefined);
+
+  const restored = signal.applyMine({}, snapshot, "p-ada");
+  assert.ok(restored["dm:p-ada:p-bea"]);
+  assert.equal(Object.keys(restored).length, 1);
+
+  const kept = signal.applyMine(
+    {
+      "dm:p-ada:p-bea": {
+        updatedAt: 50,
+        peers: { "p-ada": { joinedAt: 50, left: false, name: "Ada" } }
+      },
+      "dm:p-bea:p-cam": {
+        updatedAt: 90,
+        peers: { "p-bea": { joinedAt: 90, left: false, name: "Bea" } }
+      }
+    },
+    snapshot,
+    "p-ada"
+  );
+  assert.equal(kept["dm:p-ada:p-bea"].updatedAt, 80);
+  assert.equal(kept["dm:p-bea:p-cam"].updatedAt, 90);
+});
