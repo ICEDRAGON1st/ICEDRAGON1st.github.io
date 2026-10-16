@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015by",
+  "build": "20261015bz",
   "notes": [
-    "Friend chat now also lives on your signed-in account as your own row, so a busy device can't wipe someone else's messages."
+    "Leaderboards now also count from your signed-in account as your own row, so a busy device can't wipe someone else's scores."
   ]
 };

@@ -1410,6 +1410,107 @@
     }
   }
 
+  function sanitizeLeaderboardEntry(raw, playerId) {
+    if (!raw || typeof raw !== "object") return null;
+    const score = Number(raw.score);
+    const name = String(raw.name || "")
+      .replace(/[<>&"'`]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 16);
+    if (!name || !Number.isFinite(score)) return null;
+    const owner = String(raw.playerId || "").trim();
+    if (owner && owner !== playerId) return null;
+    const out = {
+      name,
+      score,
+      at: Number(raw.at) || 0,
+      playerId,
+      lowerBetter: !!raw.lowerBetter
+    };
+    if (Number(raw.bornAt) > 0) out.bornAt = Number(raw.bornAt);
+    if (raw.fishing && typeof raw.fishing === "object") {
+      out.fishing = {
+        id: String(raw.fishing.id || "").slice(0, 64),
+        name: String(raw.fishing.name || "").slice(0, 48),
+        rarity: String(raw.fishing.rarity || "").slice(0, 24),
+        value: Number(raw.fishing.value) || 0,
+        variant: String(raw.fishing.variant || "").slice(0, 24),
+        shiny: !!raw.fishing.shiny,
+        mutation: String(raw.fishing.mutation || "").slice(0, 24)
+      };
+    }
+    return out;
+  }
+
+  function sanitizeLeaderboardGames(games, playerId) {
+    const out = {};
+    const me = String(playerId || "");
+    if (!me || !games || typeof games !== "object" || Array.isArray(games)) return out;
+    Object.entries(games).forEach(([gameId, raw]) => {
+      if (Object.keys(out).length >= 80) return;
+      const id = String(gameId || "")
+        .trim()
+        .slice(0, 32);
+      if (!id) return;
+      const entry = sanitizeLeaderboardEntry(raw, me);
+      if (entry) out[id] = entry;
+    });
+    return out;
+  }
+
+  async function listLeaderboardPbContributions() {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const url = `${SUPABASE_URL}/rest/v1/leaderboard_pb_contributions?select=player_id,games,updated_at`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase leaderboard list ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function upsertLeaderboardPbContribution(row) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const playerId = parseLocalPlayerId(row?.playerId);
+    if (!userId || !session?.access_token) throw new Error("supabase leaderboard needs a session");
+    if (!playerId) throw new Error("bad leaderboard player id");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const games = sanitizeLeaderboardGames(row?.games, playerId);
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/leaderboard_pb_contributions`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        player_id: playerId,
+        games,
+        updated_at: new Date().toISOString()
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase leaderboard upsert ${res.status} ${text}`);
+    }
+  }
+
   async function getDoc(id) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -1612,6 +1713,8 @@
     upsertFriendEdgeContribution,
     listChatThreadContributions,
     upsertChatThreadContribution,
+    listLeaderboardPbContributions,
+    upsertLeaderboardPbContribution,
     profile: () => {
       const raw = readSession()?.profile;
       const parsed = parseProfile(raw);

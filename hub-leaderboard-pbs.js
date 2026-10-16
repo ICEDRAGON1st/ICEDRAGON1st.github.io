@@ -94,6 +94,21 @@
     return next;
   }
 
+  function overlayLeaderboardGames(hub, rows, nameKeyFn) {
+    let games = { ...((hub && hub.games) || {}) };
+    const resets = { ...((hub && hub.resets) || {}) };
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const owned = readPbs({
+        playerId: row?.player_id || row?.playerId,
+        games: row?.games,
+        updatedAt: Date.parse(row?.updated_at || "") || Number(row?.updatedAt) || 0
+      });
+      if (!owned.playerId) return;
+      games = applyPersonalBests(games, owned, nameKeyFn);
+    });
+    return { games, resets };
+  }
+
   const api = {
     SAVE_KEY,
     isBetter,
@@ -101,7 +116,8 @@
     cleanEntry,
     readPbs,
     collectMine,
-    applyPersonalBests
+    applyPersonalBests,
+    overlayLeaderboardGames
   };
   if (root) root.HubLeaderboardPbs = api;
   if (typeof module === "object" && module.exports) module.exports = api;

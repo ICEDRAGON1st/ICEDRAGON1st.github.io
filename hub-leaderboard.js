@@ -223,6 +223,36 @@
     }
   }
 
+  async function fetchLeaderboardTableRemote() {
+    const helper = pbsApi();
+    const api = window.HubSupabase;
+    if (!api?.listLeaderboardPbContributions || !helper?.overlayLeaderboardGames) return null;
+    try {
+      const rows = await api.listLeaderboardPbContributions();
+      if (!rows) return null;
+      return helper.overlayLeaderboardGames({ games: {}, resets: {} }, rows, nameKey);
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistLeaderboardPbContribution(data) {
+    const helper = pbsApi();
+    const api = window.HubSupabase;
+    const me = getPlayerId();
+    if (!helper?.collectMine || !api?.upsertLeaderboardPbContribution || !me) return false;
+    const snapshot = helper.collectMine(data?.games, entryBelongsToMe);
+    try {
+      await api.upsertLeaderboardPbContribution({
+        playerId: me,
+        games: snapshot.games
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async function pullMyPbs(merged) {
     const helper = pbsApi();
     const api = window.HubSupabase;
@@ -785,45 +815,45 @@
   }
 
   async function fetchRemote() {
-    // Prefer Supabase when available (Mantle free tier rate-limits under load).
-    if (supabaseReady()) {
-      try {
-        const data = await HubSupabase.getDoc(SUPABASE_DOC_ID);
-        if (data && typeof data === "object") {
-          const games = data.games && typeof data.games === "object" ? data.games : {};
-          const resets = data.resets && typeof data.resets === "object" ? data.resets : {};
-          return { games, resets };
-        }
-        // Empty/missing doc — treat as blank board (table may be freshly created).
-        return { games: {}, resets: {} };
-      } catch (err) {
-        // Fall through to Mantle if Supabase isn't set up yet / offline.
-        console.warn("[HubLeaderboard] Supabase read failed, trying Mantle", err);
+    let parsed = { games: {}, resets: {} };
+    let fetched = false;
+    try {
+      const api = window.HubSupabase;
+      const data = api?.getPrefer
+        ? await api.getPrefer(SUPABASE_DOC_ID, API)
+        : await fetchJson(API);
+      if (data && typeof data === "object") {
+        parsed = {
+          games: data.games && typeof data.games === "object" ? data.games : {},
+          resets: data.resets && typeof data.resets === "object" ? data.resets : {}
+        };
+        fetched = true;
       }
+    } catch {
+      parsed = { games: {}, resets: {} };
     }
-    const data = await fetchJson(API);
-    if (!data || typeof data !== "object") return { games: {}, resets: {} };
-    const games = data.games && typeof data.games === "object" ? data.games : {};
-    const resets = data.resets && typeof data.resets === "object" ? data.resets : {};
-    return { games, resets };
+    const tableRemote = await fetchLeaderboardTableRemote();
+    if (tableRemote) {
+      parsed = {
+        games: mergeBoards(parsed, tableRemote).games,
+        resets: { ...(parsed.resets || {}), ...(tableRemote.resets || {}) }
+      };
+      fetched = true;
+    }
+    if (!fetched) throw new Error("leaderboards-unavailable");
+    return parsed;
   }
 
-  async function pushRemote(merged) {
-    let ok = false;
-    if (supabaseReady()) {
-      try {
-        await HubSupabase.upsertDoc(SUPABASE_DOC_ID, merged);
-        ok = true;
-      } catch (err) {
-        console.warn("[HubLeaderboard] Supabase write failed", err);
-      }
+  async function pushRemote(merged, opts) {
+    const tableWrote = await persistLeaderboardPbContribution(merged);
+    if (tableWrote && !(opts && opts.rewriteShared)) return;
+    if (opts && opts.skipShared) return;
+    const api = window.HubSupabase;
+    if (api?.pushPrefer) {
+      await api.pushPrefer(SUPABASE_DOC_ID, merged, API);
+      return;
     }
-    // Keep Mantle as backup while migrating (ignore failures / rate limits).
-    try {
-      await postJson(API, merged);
-      ok = true;
-    } catch {}
-    if (!ok) throw new Error("push failed");
+    await postJson(API, merged);
   }
 
   function normalizeEntry(entry, fallbackLower) {
@@ -1436,7 +1466,7 @@
         const remote = await fetchRemote();
         const merged = mergeBoards(loadLocal(), remote);
         saveLocal(merged);
-        await pushRemote(merged);
+        await pushRemote(merged, { rewriteShared: true });
       } catch {}
       lastSync = Date.now();
       return true;
@@ -1482,7 +1512,7 @@
         merged.resets = { ...(merged.resets || {}), [`namebind:${id}`]: name };
         const rebound = applyResets(merged);
         saveLocal(rebound);
-        await pushRemote(rebound);
+        await pushRemote(rebound, { rewriteShared: true });
       } catch {}
       lastSync = Date.now();
       return true;
@@ -1495,9 +1525,11 @@
     if (!force && Date.now() - lastSync < SYNC_GAP_MS) return cache;
     const run = async () => {
       let remote = { games: {}, resets: {} };
+      let fetched = true;
       try {
         remote = await fetchRemote();
       } catch {
+        fetched = false;
         remote = { games: {}, resets: {} };
       }
       // Re-read AFTER the network wait so live Time Online bumps aren't wiped.
@@ -1514,7 +1546,7 @@
         await persistMyPbs();
       } catch {}
       try {
-        await pushRemote(merged);
+        await pushRemote(merged, { skipShared: !fetched });
       } catch {
         // offline — local still works
       }
@@ -1749,7 +1781,7 @@
         const merged = mergeBoards(loadLocal(), remote);
         cache = merged;
         saveLocal(merged);
-        await pushRemote(merged);
+        await pushRemote(merged, { skipShared: false });
       } catch {
         // keep local
       }
