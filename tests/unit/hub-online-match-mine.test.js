@@ -16,6 +16,9 @@ test("owned match rooms live in a helper used by the shared room board", () => {
   assert.match(ui, /window\.HubOnlineMatchMine/);
   assert.match(ui, /persistMyRooms/);
   assert.match(ui, /pullMyRooms/);
+  assert.match(ui, /persistMatchRoomContribution/);
+  assert.match(ui, /fetchMatchTableRemote/);
+  assert.match(ui, /skipShared: !fetched/);
   assert.match(index, /hub-online-match-mine\.js/);
   assert.match(ttt, /hub-online-match-mine\.js/);
   assert.match(c4, /hub-online-match-mine\.js/);
@@ -69,4 +72,22 @@ test("owned match rooms restore only when I have no live rooms", () => {
   );
   assert.equal(live.rooms["room-1"], undefined);
   assert.equal(live.rooms["room-live"].id, "room-live");
+
+  const newer = { ...mineRoom, updatedAt: now + 50, turn: 1 };
+  const overlaid = mine.overlayMatchRooms(
+    { rooms: { "room-1": mineRoom } },
+    [
+      { player_id: "p-pal", rooms: { "room-1": newer } },
+      {
+        player_id: "p-other",
+        rooms: {
+          "room-2": other
+        }
+      },
+      { player_id: "", rooms: { "room-skip": { ...mineRoom, id: "room-skip" } } }
+    ]
+  );
+  assert.equal(overlaid.rooms["room-1"].turn, 1);
+  assert.equal(overlaid.rooms["room-2"].host.playerId, "p-other");
+  assert.equal(overlaid.rooms["room-skip"], undefined);
 });

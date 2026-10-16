@@ -118,14 +118,62 @@
     if (!res.ok) throw new Error("push failed");
   }
 
-  async function fetchRemote() {
+  async function fetchMatchTableRemote() {
     const api = sb();
-    const data = api ? await api.getPrefer(DOC_ID, API) : await fetchJson(API);
-    if (!data || typeof data !== "object") return { rooms: {} };
-    return { rooms: data.rooms && typeof data.rooms === "object" ? data.rooms : {} };
+    const helper = mineApi();
+    if (!api?.listMatchRoomContributions || !helper?.overlayMatchRooms) return null;
+    try {
+      const rows = await api.listMatchRoomContributions();
+      if (!rows) return null;
+      return helper.overlayMatchRooms({ rooms: {} }, rows);
+    } catch {
+      return null;
+    }
   }
 
-  async function pushRemote(next) {
+  async function persistMatchRoomContribution(data) {
+    const api = sb();
+    const helper = mineApi();
+    const me = getPlayerId();
+    if (!api?.upsertMatchRoomContribution || !helper?.collectMine || !me) return false;
+    const snapshot = helper.collectMine(data, me);
+    try {
+      await api.upsertMatchRoomContribution({
+        playerId: me,
+        rooms: snapshot.rooms
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function fetchRemote() {
+    let parsed = { rooms: {} };
+    let fetched = false;
+    try {
+      const api = sb();
+      const data = api ? await api.getPrefer(DOC_ID, API) : await fetchJson(API);
+      if (data && typeof data === "object") {
+        parsed = { rooms: data.rooms && typeof data.rooms === "object" ? data.rooms : {} };
+        fetched = true;
+      }
+    } catch {
+      parsed = { rooms: {} };
+    }
+    const tableRemote = await fetchMatchTableRemote();
+    if (tableRemote) {
+      parsed = { rooms: mergeRooms(parsed.rooms, tableRemote.rooms) };
+      fetched = true;
+    }
+    if (!fetched) throw new Error("matches-unavailable");
+    return parsed;
+  }
+
+  async function pushRemote(next, opts) {
+    const tableWrote = await persistMatchRoomContribution(next);
+    if (tableWrote && !(opts && opts.rewriteShared)) return;
+    if (opts && opts.skipShared) return;
     const api = sb();
     if (api) {
       await api.pushPrefer(DOC_ID, next, API);
@@ -223,17 +271,19 @@
       let last = null;
       for (let attempt = 0; attempt < MUTATE_RETRIES; attempt += 1) {
         let remote = cache;
+        let fetched = true;
         try {
           remote = await fetchRemote();
         } catch {
           remote = cache;
+          fetched = false;
         }
         const base = await pullMyRooms({ rooms: mergeRooms(cache.rooms, remote.rooms) });
         const next = updater(base);
         if (!next) return null;
         saveLocal(next);
         try {
-          await pushRemote(next);
+          await pushRemote(next, { skipShared: !fetched });
         } catch {
           await persistMyRooms();
           // Keep local optimistic state; retry merge next loop / poll.

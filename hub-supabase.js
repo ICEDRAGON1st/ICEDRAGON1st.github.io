@@ -1511,6 +1511,109 @@
     }
   }
 
+  function sanitizeMatchSeat(seat) {
+    if (!seat || typeof seat !== "object") return null;
+    const playerId = String(seat.playerId || "").trim();
+    if (!playerId) return null;
+    return {
+      playerId,
+      name:
+        String(seat.name || "Player")
+          .replace(/[<>&"'`]/g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 16) || "Player"
+    };
+  }
+
+  function sanitizeMatchRooms(rooms, playerId) {
+    const me = String(playerId || "");
+    const out = {};
+    if (!me || !rooms || typeof rooms !== "object" || Array.isArray(rooms)) return out;
+    Object.entries(rooms).forEach(([id, raw]) => {
+      if (Object.keys(out).length >= 20) return;
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) return;
+      const roomId = String(raw.id || id || "")
+        .trim()
+        .slice(0, 64);
+      const game = String(raw.game || "").trim();
+      if (!roomId || (game !== "tictactoe" && game !== "connect-four")) return;
+      const host = sanitizeMatchSeat(raw.host);
+      const guest = sanitizeMatchSeat(raw.guest);
+      if (!host) return;
+      if (host.playerId !== me && (!guest || guest.playerId !== me)) return;
+      const status = String(raw.status || "waiting");
+      if (status !== "waiting" && status !== "playing" && status !== "finished") return;
+      out[roomId] = {
+        id: roomId,
+        game,
+        code: String(raw.code || "").trim().slice(0, 8),
+        queue: raw.queue === "quick" ? "quick" : "private",
+        status,
+        state: raw.state && typeof raw.state === "object" ? raw.state : {},
+        turn: raw.turn === 2 ? 2 : 1,
+        host,
+        guest,
+        result: raw.result == null ? null : raw.result,
+        createdAt: Number(raw.createdAt) || 0,
+        updatedAt: Number(raw.updatedAt) || Number(raw.createdAt) || 0
+      };
+    });
+    return out;
+  }
+
+  async function listMatchRoomContributions() {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const url = `${SUPABASE_URL}/rest/v1/match_room_contributions?select=player_id,rooms,updated_at`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase match list ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function upsertMatchRoomContribution(row) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const playerId = parseLocalPlayerId(row?.playerId);
+    if (!userId || !session?.access_token) throw new Error("supabase match needs a session");
+    if (!playerId) throw new Error("bad match player id");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const rooms = sanitizeMatchRooms(row?.rooms, playerId);
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/match_room_contributions`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        player_id: playerId,
+        rooms,
+        updated_at: new Date().toISOString()
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase match upsert ${res.status} ${text}`);
+    }
+  }
+
   async function getDoc(id) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -1715,6 +1818,8 @@
     upsertChatThreadContribution,
     listLeaderboardPbContributions,
     upsertLeaderboardPbContribution,
+    listMatchRoomContributions,
+    upsertMatchRoomContribution,
     profile: () => {
       const raw = readSession()?.profile;
       const parsed = parseProfile(raw);

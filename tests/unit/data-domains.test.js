@@ -320,3 +320,21 @@ test("chat thread contributions are readable by signed-in players and only writa
   );
   assert.match(sql, /revoke all on table public\.chat_thread_contributions from anon, authenticated/);
 });
+
+test("match room contributions are readable by signed-in players and only writable by the owner", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160014_match_room_contributions.sql"),
+    "utf8"
+  );
+  assert.match(sql, /create table if not exists public\.match_room_contributions/);
+  assert.match(sql, /enable row level security/i);
+  assert.match(sql, /force row level security/i);
+  assert.match(sql, /match_room_contributions_read_authenticated/);
+  assert.match(sql, /match_room_contributions_insert_own/);
+  assert.match(sql, /match_room_contributions_update_own/);
+  assert.match(
+    sql,
+    /grant select, insert, update, delete on table public\.match_room_contributions to authenticated/
+  );
+  assert.match(sql, /revoke all on table public\.match_room_contributions from anon, authenticated/);
+});

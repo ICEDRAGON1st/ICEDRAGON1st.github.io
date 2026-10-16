@@ -226,3 +226,11 @@ test("leaderboard personal bests use auth-owned rows instead of rewriting the sh
   assert.match(src, /async function upsertLeaderboardPbContribution/);
   assert.match(src, /leaderboard_pb_contributions/);
 });
+
+test("online match rooms use auth-owned rows instead of rewriting the shared match board", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.match(src, /async function listMatchRoomContributions/);
+  assert.match(src, /async function upsertMatchRoomContribution/);
+  assert.match(src, /match_room_contributions/);
+});

@@ -151,6 +151,32 @@
     return next;
   }
 
+  function mergeOwnedRooms(a, b) {
+    const out = { ...(a || {}) };
+    Object.entries(b || {}).forEach(([id, room]) => {
+      if (!room) return;
+      const existing = out[id];
+      if (!existing || (Number(room.updatedAt) || 0) >= (Number(existing.updatedAt) || 0)) {
+        out[id] = room;
+      }
+    });
+    return out;
+  }
+
+  function overlayMatchRooms(hub, rows) {
+    let rooms = { ...((hub && hub.rooms) || {}) };
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const owned = readMine({
+        playerId: row?.player_id || row?.playerId,
+        rooms: row?.rooms,
+        updatedAt: Date.parse(row?.updated_at || "") || Number(row?.updatedAt) || 0
+      });
+      if (!owned.playerId) return;
+      rooms = mergeOwnedRooms(rooms, owned.rooms);
+    });
+    return { rooms };
+  }
+
   const api = {
     SAVE_KEY,
     involvesMe,
@@ -159,7 +185,8 @@
     myRooms,
     readMine,
     collectMine,
-    applyMine
+    applyMine,
+    overlayMatchRooms
   };
   if (root) root.HubOnlineMatchMine = api;
   if (typeof module === "object" && module.exports) module.exports = api;
