@@ -3,13 +3,12 @@
  * Writes into localStorage fishing-save-v3 so fish are waiting in the cooler.
  *
  * Skips auto-claim on the fishing page (live game handles that).
- * Prefers Supabase; Mantle is fallback.
+ * Shared gifts live on the account server.
  * window.HubFishingGifts: start / stop / poll
  */
 (function () {
   const SAVE_KEY = "fishing-save-v3";
   const CLAIMED_KEY = "fishing-gifts-claimed-v1";
-  const API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-gifts";
   const DOC_ID = "fishing-gifts";
   const TOKEN = "ice-fish-gift-9f3a";
   const POLL_MS = 12_000;
@@ -254,17 +253,12 @@
       const api = sb();
       let data = null;
       let fetched = false;
-      if (api) {
+      if (api?.getPrefer) {
         try {
-          data = await api.getPrefer(DOC_ID, API);
+          data = await api.getPrefer(DOC_ID);
         } catch {
           data = null;
         }
-      } else {
-        const res = await fetch(`${API}?t=${Date.now()}`, { cache: "no-store" });
-        if (res.status === 404) data = { token: TOKEN, gifts: {} };
-        else if (!res.ok) return null;
-        else data = await res.json();
       }
       if (data && typeof data === "object") {
         fetched = true;
@@ -294,16 +288,9 @@
     if (tableWrote && !rewriteShared) return true;
     try {
       const api = sb();
-      if (api) {
-        await api.pushPrefer(DOC_ID, payload, API);
-        return true;
-      }
-      const res = await fetch(API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      return res.ok;
+      if (!api?.pushPrefer) return false;
+      await api.pushPrefer(DOC_ID, payload);
+      return true;
     } catch {
       return false;
     }

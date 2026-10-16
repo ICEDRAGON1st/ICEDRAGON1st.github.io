@@ -1,6 +1,6 @@
 /**
  * hub-calls.js — voice calls for friend DMs and group chats (WebRTC mesh).
- * Signaling via Supabase hub_docs (Mantle fallback). STUN only (no TURN).
+ * Signaling via the account server. STUN only (no TURN).
  *
  * window.HubCalls:
  *   startCall(kind, channelId) / joinCall(roomId) / hangUp()
@@ -10,7 +10,6 @@
  */
 (function () {
   const DOC_ID = "hub-calls";
-  const API = "https://mantledb.sh/v2/icedragon1st-mygames/hub-calls";
   const TOKEN = "ice-hub-call-9f3a";
   const POLL_MS = 1000;
   const signal = window.HubCallSignal || {};
@@ -292,15 +291,7 @@
     let fetched = false;
     try {
       const api = sb();
-      if (api) data = await api.getPrefer(DOC_ID, API);
-      else {
-        const res = await fetch(`${API}?t=${Date.now()}`, { cache: "no-store" });
-        if (res.status === 404) {
-          data = { token: TOKEN, rooms: {} };
-        } else if (res.ok) {
-          data = await res.json();
-        }
-      }
+      if (api?.getPrefer) data = await api.getPrefer(DOC_ID);
       if (data && typeof data === "object") fetched = true;
     } catch {
       data = null;
@@ -331,16 +322,9 @@
     if (tableWrote) return true;
     try {
       const api = sb();
-      if (api) {
-        await api.pushPrefer(DOC_ID, payload, API);
-        return true;
-      }
-      const res = await fetch(API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      return res.ok;
+      if (!api?.pushPrefer) return false;
+      await api.pushPrefer(DOC_ID, payload);
+      return true;
     } catch {
       return false;
     }

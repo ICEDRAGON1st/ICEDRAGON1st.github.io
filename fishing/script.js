@@ -115,7 +115,6 @@
   } catch {}
 
   const ADMIN_EVENT_URL = "admin-event.json";
-  const ADMIN_EVENT_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-admin-events";
   const ADMIN_EVENT_DOC = "fishing-admin-events";
   const ADMIN_EVENT_TOKEN = "ice-fish-evt-9f3a";
   const ADMIN_EVENT_POLL_MS = 15_000;
@@ -130,7 +129,6 @@
   const ADMIN_EVENT_LOCAL_SPEED_KEY = "fishing-admin-speed-v1";
   const ADMIN_EVENT_PENDING_KEY = "fishing-admin-pending-v1";
   const ADMIN_ANNOUNCE_DOC = "fishing-admin-announce";
-  const ADMIN_ANNOUNCE_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-admin-announce";
   const ADMIN_ANNOUNCE_URL = "admin-announce.json";
   const ADMIN_ANNOUNCE_SEEN_KEY = "fishing-admin-announce-seen-v1";
   /** ICE-only log of limited-admin (Hjalte) commands */
@@ -143,12 +141,10 @@
   /** How long a message stays claimable for players who poll in late. */
   const ADMIN_ANNOUNCE_CLAIM_MS = 2 * 60_000;
   const ADMIN_ANNOUNCE_MAX_LEN = 180;
-  const FISH_GIFTS_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-gifts";
   const FISH_GIFTS_DOC = "fishing-gifts";
   const FISH_GIFTS_TOKEN = "ice-fish-gift-9f3a";
 
   const PLAYER_MAIL_DOC = "fishing-player-mail";
-  const PLAYER_MAIL_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-player-mail";
   const PLAYER_MAIL_TOKEN = "ice-fish-mail-9f3a";
   const PLAYER_MAIL_CLAIMED_KEY = "fishing-player-mail-claimed-v1";
   const PLAYER_MAIL_POLL_MS = 5_000;
@@ -158,7 +154,6 @@
   const PLAYER_MAIL_TRADE_TTL_MS = 24 * 60 * 60_000;
 
   const AQUA_SHARE_DOC = "fishing-aquariums";
-  const AQUA_SHARE_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-aquariums";
   const AQUA_SHARE_TOKEN = "ice-fish-aqua-9f3a";
   const AQUA_SHARE_POLL_MS = 20_000;
   const AQUA_SHARE_MAX_TANKS = 120;
@@ -1341,14 +1336,13 @@
     return ownedGear("value").reduce((s, g) => s + g.amount, 0);
   }
 
-  const COMMUNITY_API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-community";
   const COMMUNITY_DOC = "fishing-community";
   const COMMUNITY_PAGES_URL = "community.json";
   const COMMUNITY_TOKEN = "ice-fish-com-9f3a";
   const COMMUNITY_GOAL = 2500;
   const COMMUNITY_REWARD_MS = 30 * 60 * 1000;
   const COMMUNITY_REWARD_MULT = 2;
-  /** Min gap between Mantle round-trips (namespace is tightly rate-limited). */
+  /** Min gap between account-server community writes. */
   const COMMUNITY_SYNC_GAP_MS = 120_000;
   const COMMUNITY_POLL_MS = 180_000;
   const COMMUNITY_FLUSH_CASTS = 12;
@@ -1677,10 +1671,7 @@
 
     if (api?.getPrefer) {
       try {
-        const raw = await api.getPrefer(
-          COMMUNITY_DOC,
-          communityRateLimited() ? "" : COMMUNITY_API
-        );
+        const raw = await api.getPrefer(COMMUNITY_DOC);
         if (raw && typeof raw === "object") {
           remote = normalizeCommunityDoc(raw);
           remoteOk = true;
@@ -1691,12 +1682,6 @@
           markCommunityRateLimited();
         }
       }
-    } else if (!communityRateLimited()) {
-      const mantle = await fetchCommunityJson(COMMUNITY_API, { trackRate: true });
-      rateLimited = !!mantle.rateLimited;
-      remoteOk = !!mantle.ok;
-      if (mantle.ok && !mantle.rateLimited) clearCommunityRateLimited();
-      if (mantle.found) remote = normalizeCommunityDoc(mantle.data);
     }
 
     const tableRows = await fetchCommunityTableRemote();
@@ -1783,31 +1768,9 @@
     if (tableWrote && !rewriteShared) return true;
     const payload = { ...doc, token: COMMUNITY_TOKEN };
     const api = fishingSb();
-    if (api?.pushPrefer) {
-      try {
-        await api.pushPrefer(
-          COMMUNITY_DOC,
-          payload,
-          communityRateLimited() ? "" : COMMUNITY_API
-        );
-        return true;
-      } catch {
-        return false;
-      }
-    }
-    if (communityRateLimited()) return false;
+    if (!api?.pushPrefer) return false;
     try {
-      const res = await fetch(COMMUNITY_API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      if (res.status === 429) {
-        markCommunityRateLimited();
-        return false;
-      }
-      if (!res.ok) return false;
-      clearCommunityRateLimited();
+      await api.pushPrefer(COMMUNITY_DOC, payload);
       return true;
     } catch {
       return false;
@@ -2602,13 +2565,7 @@
     let data = null;
     let fetched = false;
     try {
-      if (api) data = await api.getPrefer(AQUA_SHARE_DOC, AQUA_SHARE_API);
-      else {
-        const res = await fetch(`${AQUA_SHARE_API}?t=${Date.now()}`, { cache: "no-store" });
-        if (res.status === 404) data = { token: AQUA_SHARE_TOKEN, tanks: {} };
-        else if (!res.ok) data = null;
-        else data = await res.json();
-      }
+      if (api?.getPrefer) data = await api.getPrefer(AQUA_SHARE_DOC);
       if (data && typeof data === "object") {
         fetched = true;
         data = {
@@ -2660,16 +2617,9 @@
     };
     const api = fishingSb();
     try {
-      if (api) {
-        await api.pushPrefer(AQUA_SHARE_DOC, payload, AQUA_SHARE_API);
-        return true;
-      }
-      const res = await fetch(AQUA_SHARE_API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      return res.ok;
+      if (!api?.pushPrefer) return false;
+      await api.pushPrefer(AQUA_SHARE_DOC, payload);
+      return true;
     } catch {
       return false;
     }
@@ -4651,44 +4601,16 @@
         supabaseData = null;
       }
     }
-    let mantleData = null;
-    if (!adminEventRateLimited()) {
-      const mantle = await fetchAdminJson(ADMIN_EVENT_API, { trackRate: true });
-      if (mantle.ok && !mantle.rateLimited) clearAdminEventRateLimited();
-      mantleData = mantle.data;
-    }
 
     const remoteSb = parseAdminBundle(supabaseData, false);
-    const remoteA = parseAdminBundle(mantleData, true);
     const remoteB = parseAdminBundle(file.data, false);
-    const remoteBoost = pickBetterAdminEvent(
-      pickBetterAdminEvent(remoteSb.boost, remoteA.boost),
-      remoteB.boost
-    );
-    const remoteVariant = pickBetterAdminEvent(
-      pickBetterAdminEvent(remoteSb.variant, remoteA.variant),
-      remoteB.variant
-    );
-    const remoteChest = pickBetterAdminEvent(
-      pickBetterAdminEvent(remoteSb.chest, remoteA.chest),
-      remoteB.chest
-    );
-    const remoteLb = pickBetterAdminEvent(
-      pickBetterAdminEvent(remoteSb.luckyblock, remoteA.luckyblock),
-      remoteB.luckyblock
-    );
-    const remoteWeather = pickBetterAdminEvent(
-      pickBetterAdminEvent(remoteSb.weather, remoteA.weather),
-      remoteB.weather
-    );
-    const remoteSpeed = pickBetterAdminEvent(
-      pickBetterAdminEvent(remoteSb.speed, remoteA.speed),
-      remoteB.speed
-    );
-    const remoteMutation = mergeMutationMaps(
-      mergeMutationMaps(remoteSb.mutation, remoteA.mutation),
-      remoteB.mutation
-    );
+    const remoteBoost = pickBetterAdminEvent(remoteSb.boost, remoteB.boost);
+    const remoteVariant = pickBetterAdminEvent(remoteSb.variant, remoteB.variant);
+    const remoteChest = pickBetterAdminEvent(remoteSb.chest, remoteB.chest);
+    const remoteLb = pickBetterAdminEvent(remoteSb.luckyblock, remoteB.luckyblock);
+    const remoteWeather = pickBetterAdminEvent(remoteSb.weather, remoteB.weather);
+    const remoteSpeed = pickBetterAdminEvent(remoteSb.speed, remoteB.speed);
+    const remoteMutation = mergeMutationMaps(remoteSb.mutation, remoteB.mutation);
     adminBoostCache = pickBetterAdminEvent(remoteBoost, localAdminBoost());
     adminVariantCache = pickBetterAdminEvent(remoteVariant, localAdminVariant());
     adminChestCache = pickBetterAdminEvent(remoteChest, localAdminChest());
@@ -4827,26 +4749,11 @@
     const api = fishingSb();
     if (api?.getPrefer) {
       try {
-        const data = await api.getPrefer(
-          ADMIN_ANNOUNCE_DOC,
-          adminEventRateLimited() ? "" : ADMIN_ANNOUNCE_API
-        );
+        const data = await api.getPrefer(ADMIN_ANNOUNCE_DOC);
         const fromSb = parseAnnouncePayload(data);
         if (fromSb) return fromSb;
       } catch (err) {
         if (err && err.rateLimited) markAdminEventRateLimited();
-      }
-    } else if (!adminEventRateLimited()) {
-      try {
-        const res = await fetch(`${ADMIN_ANNOUNCE_API}?t=${Date.now()}`, { cache: "no-store" });
-        if (res.status === 429) markAdminEventRateLimited();
-        else if (res.ok) {
-          clearAdminEventRateLimited();
-          const fromMantle = parseAnnouncePayload(await res.json());
-          if (fromMantle) return fromMantle;
-        }
-      } catch {
-        /* file */
       }
     }
     let best = null;
@@ -4877,31 +4784,9 @@
 
   async function pushAdminAnnounceRemote(payload) {
     const api = fishingSb();
-    if (api?.pushPrefer) {
-      try {
-        await api.pushPrefer(
-          ADMIN_ANNOUNCE_DOC,
-          payload,
-          adminEventRateLimited() ? "" : ADMIN_ANNOUNCE_API
-        );
-        return true;
-      } catch {
-        return false;
-      }
-    }
-    if (adminEventRateLimited()) return false;
+    if (!api?.pushPrefer) return false;
     try {
-      const res = await fetch(ADMIN_ANNOUNCE_API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      if (res.status === 429) {
-        markAdminEventRateLimited();
-        return false;
-      }
-      if (!res.ok) return false;
-      clearAdminEventRateLimited();
+      await api.pushPrefer(ADMIN_ANNOUNCE_DOC, payload);
       return true;
     } catch {
       return false;
@@ -5041,36 +4926,18 @@
         await api.upsertAdminDoc(ADMIN_EVENT_DOC, payload);
         ok = true;
       } catch {
-        /* Mantle fallback if the trusted RPC is not live yet */
+        /* Retry via upsertDoc if the trusted RPC is not live yet */
       }
     } else if (api) {
       try {
         await api.upsertDoc(ADMIN_EVENT_DOC, payload);
         ok = true;
       } catch {
-        /* Mantle / retry */
+        /* retry */
       }
     }
     if (ok) return { ok: true, rateLimited: false };
-    if (adminEventRateLimited()) {
-      return { ok: false, rateLimited: true };
-    }
-    try {
-      const res = await fetch(ADMIN_EVENT_API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      if (res.status === 429) {
-        markAdminEventRateLimited();
-        return { ok: false, rateLimited: true };
-      }
-      if (!res.ok) return { ok: false, rateLimited: false };
-      clearAdminEventRateLimited();
-      return { ok: true, rateLimited: false };
-    } catch {
-      return { ok: false, rateLimited: false };
-    }
+    return { ok: false, rateLimited: !!adminEventRateLimited() };
   }
 
   async function maybeRetryPendingAdminPush() {
@@ -6468,17 +6335,12 @@
       const api = fishingSb();
       let data = null;
       let fetched = false;
-      if (api) {
+      if (api?.getPrefer) {
         try {
-          data = await api.getPrefer(FISH_GIFTS_DOC, FISH_GIFTS_API);
+          data = await api.getPrefer(FISH_GIFTS_DOC);
         } catch {
           data = null;
         }
-      } else {
-        const res = await fetch(`${FISH_GIFTS_API}?t=${Date.now()}`, { cache: "no-store" });
-        if (res.status === 404) data = { token: FISH_GIFTS_TOKEN, gifts: {} };
-        else if (!res.ok) data = null;
-        else data = await res.json();
       }
       if (data && typeof data === "object") {
         fetched = true;
@@ -6512,20 +6374,13 @@
     const tableWrote = await persistFishGiftContribution(payload);
     if (tableWrote && !rewriteShared) return true;
     const api = fishingSb();
-    if (api) {
-      try {
-        await api.pushPrefer(FISH_GIFTS_DOC, payload, FISH_GIFTS_API);
-        return true;
-      } catch {
-        return false;
-      }
+    if (!api?.pushPrefer) return false;
+    try {
+      await api.pushPrefer(FISH_GIFTS_DOC, payload);
+      return true;
+    } catch {
+      return false;
     }
-    const res = await fetch(FISH_GIFTS_API, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-    return res.ok;
   }
 
   async function lookupPlayerForGift(username) {
@@ -6536,18 +6391,7 @@
     try {
       const api = fishingSb();
       let data = null;
-      if (api) {
-        data = await api.getPrefer(
-          "name-registry",
-          "https://mantledb.sh/v2/icedragon1st-mygames/name-registry"
-        );
-      } else {
-        const res = await fetch(
-          `https://mantledb.sh/v2/icedragon1st-mygames/name-registry?t=${Date.now()}`,
-          { cache: "no-store" }
-        );
-        if (res.ok) data = await res.json();
-      }
+      if (api?.getPrefer) data = await api.getPrefer("name-registry");
       const names = data?.names && typeof data.names === "object" ? data.names : data || {};
       const claim = names[key];
       if (claim?.playerId) {
@@ -7050,14 +6894,7 @@
     let data = null;
     let fetched = false;
     try {
-      if (api) {
-        data = await api.getPrefer(PLAYER_MAIL_DOC, PLAYER_MAIL_API);
-      } else {
-        const res = await fetch(`${PLAYER_MAIL_API}?t=${Date.now()}`, { cache: "no-store" });
-        if (res.status === 404) data = { token: PLAYER_MAIL_TOKEN, gifts: {}, trades: {} };
-        else if (!res.ok) data = null;
-        else data = await res.json();
-      }
+      if (api?.getPrefer) data = await api.getPrefer(PLAYER_MAIL_DOC);
       if (data && typeof data === "object") {
         fetched = true;
         data = {
@@ -7095,16 +6932,9 @@
     };
     const api = fishingSb();
     try {
-      if (api) {
-        await api.pushPrefer(PLAYER_MAIL_DOC, payload, PLAYER_MAIL_API);
-        return true;
-      }
-      const res = await fetch(PLAYER_MAIL_API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      return res.ok;
+      if (!api?.pushPrefer) return false;
+      await api.pushPrefer(PLAYER_MAIL_DOC, payload);
+      return true;
     } catch {
       return false;
     }

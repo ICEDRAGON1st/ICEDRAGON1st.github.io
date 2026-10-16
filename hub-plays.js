@@ -1,7 +1,7 @@
 /**
  * hub-plays.js — nickname + shared recent-players log.
- * Prefers Supabase hub_docs; Mantle is fallback while migrating.
- * Nicknames are unique (case-insensitive) via a dedicated name-registry store.
+ * Shared maps live on the account server. Nicknames are unique
+ * (case-insensitive) via a dedicated name-registry store.
  */
 (function () {
   const identity = window.HubIdentity || {};
@@ -21,7 +21,6 @@
   const ONLINE_TIME_KEY = "hub-online-time-v1";
   const POPULARITY_LOCAL_KEY = "hub-game-popularity-v1";
   const POPULARITY_DOC = "hub-game-popularity-v1";
-  const NS = "icedragon1st-mygames";
   const PLAYS_PATH = "plays-log";
   const NAMES_PATH = "name-registry";
   const CODES_PATH = "player-codes";
@@ -30,14 +29,6 @@
   const PRESENCE_PATH = "presence";
   const ALLTIME_PATH = "players-alltime";
   const LOCAL_PASSWORDS_KEY = "hub-passwords-local-v1";
-  const PLAYS_API = `https://mantledb.sh/v2/${NS}/${PLAYS_PATH}`;
-  const NAMES_API = `https://mantledb.sh/v2/${NS}/${NAMES_PATH}`;
-  const CODES_API = `https://mantledb.sh/v2/${NS}/${CODES_PATH}`;
-  const PASSWORDS_API = `https://mantledb.sh/v2/${NS}/${PASSWORDS_PATH}`;
-  const RESERVATIONS_API = `https://mantledb.sh/v2/${NS}/${RESERVATIONS_PATH}`;
-  const PRESENCE_API = `https://mantledb.sh/v2/${NS}/${PRESENCE_PATH}`;
-  const ALLTIME_API = `https://mantledb.sh/v2/${NS}/${ALLTIME_PATH}`;
-  const POPULARITY_API = `https://mantledb.sh/v2/${NS}/hub-game-popularity`;
   /** Pages milestone floor when cloud all-time roster can't load (see players-alltime.json). */
   let allTimeFloor = 0;
   let allTimeMilestone = null;
@@ -46,29 +37,24 @@
     return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
   }
 
-  async function fetchDoc(docId, mantleUrl) {
+  async function fetchDoc(docId) {
     const api = sb();
-    if (api) {
-      try {
-        return await api.getPrefer(docId, mantleUrl);
-      } catch (err) {
-        if (err && err.rateLimited) {
-          markRateLimited();
-          throw err;
-        }
+    if (!api?.getPrefer) throw new Error("account-server-unavailable");
+    try {
+      return await api.getPrefer(docId);
+    } catch (err) {
+      if (err && err.rateLimited) {
+        markRateLimited();
         throw err;
       }
+      throw err;
     }
-    return fetchJson(mantleUrl);
   }
 
-  async function pushDoc(docId, data, mantleUrl) {
+  async function pushDoc(docId, data) {
     const api = sb();
-    if (api) {
-      await api.pushPrefer(docId, data, mantleUrl);
-      return;
-    }
-    await postJson(mantleUrl, data);
+    if (!api?.pushPrefer) throw new Error("account-server-unavailable");
+    await api.pushPrefer(docId, data);
   }
   const CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
   /** These names can only be used by the player code that locked them. */
@@ -310,7 +296,7 @@
       let remoteResetAt = 0;
       let fetched = false;
       try {
-        const raw = await fetchDoc(POPULARITY_DOC, POPULARITY_API);
+        const raw = await fetchDoc(POPULARITY_DOC);
         if (raw == null || typeof raw !== "object") throw new Error("popularity-unavailable");
         const parsed = parsePopularityPayload(raw);
         remote = parsed.games;
@@ -354,8 +340,7 @@
           if (fetched && !tableWrote) {
             await pushDoc(
               POPULARITY_DOC,
-              { games: remote, resetAt: remoteResetAt, updated_at: Date.now() },
-              POPULARITY_API
+              { games: remote, resetAt: remoteResetAt, updated_at: Date.now() }
             );
           }
         } catch {}
@@ -386,8 +371,7 @@
         try {
           await pushDoc(
             POPULARITY_DOC,
-            { games: merged, resetAt: remoteResetAt || localResetAt || 0, updated_at: Date.now() },
-            POPULARITY_API
+            { games: merged, resetAt: remoteResetAt || localResetAt || 0, updated_at: Date.now() }
           );
           popularityPending = {};
         } catch {}
@@ -496,7 +480,7 @@
     if (isRateLimited() && !sb()) return;
     let verifiedClean = false;
     try {
-      const data = await fetchDoc("name-registry", NAMES_API);
+      const data = await fetchDoc("name-registry");
       const raw =
         data && typeof data === "object"
           ? data.names && typeof data.names === "object"
@@ -515,7 +499,7 @@
         !Object.values(purged.names).some((c) => isPurgedPlayer(c?.playerId, c?.name));
     } catch {}
     try {
-      const data = await fetchDoc("players-alltime", ALLTIME_API);
+      const data = await fetchDoc("players-alltime");
       const rawPlayers =
         data && typeof data === "object"
           ? data.players && typeof data.players === "object"
@@ -583,7 +567,7 @@
       }
     } catch {}
     try {
-      const data = await fetchDoc("name-registry", NAMES_API);
+      const data = await fetchDoc("name-registry");
       const raw =
         data && typeof data === "object"
           ? data.names && typeof data.names === "object"
@@ -1042,7 +1026,7 @@
     let parsed = {};
     let fetched = false;
     try {
-      const data = await fetchDoc(PASSWORDS_PATH, PASSWORDS_API);
+      const data = await fetchDoc(PASSWORDS_PATH);
       if (data && typeof data === "object") {
         parsed = parsePasswordsMap(data);
         fetched = true;
@@ -1077,7 +1061,7 @@
       if (result === true) tableWrote = true;
     }
     if (tableWrote) return;
-    await pushDoc(PASSWORDS_PATH, { passwords }, PASSWORDS_API);
+    await pushDoc(PASSWORDS_PATH, { passwords });
   }
 
   function markVaultHasPassword(playerId, hasPassword) {
@@ -1402,14 +1386,14 @@
   }
 
   async function fetchCodesRemote() {
-    const data = await fetchDoc("player-codes", CODES_API);
+    const data = await fetchDoc("player-codes");
     if (data == null) throw new Error("codes-unavailable");
     if (!data || typeof data !== "object") return {};
     return identity.parseCodesMap ? identity.parseCodesMap(data) : {};
   }
 
   async function pushCodesRemote(codes) {
-    await pushDoc("player-codes", { codes }, CODES_API);
+    await pushDoc("player-codes", { codes });
   }
 
   async function persistPlayerCodeClaim(norm, name) {
@@ -1484,7 +1468,7 @@
     let parsed = {};
     let fetched = false;
     try {
-      const data = await fetchDoc("name-reservations", RESERVATIONS_API);
+      const data = await fetchDoc("name-reservations");
       if (data && typeof data === "object") {
         parsed = identity.parseReservationsMap ? identity.parseReservationsMap(data) : {};
         fetched = true;
@@ -1526,7 +1510,7 @@
       if (result === true) tableWrote = true;
     }
     if (tableWrote) return;
-    await pushDoc("name-reservations", { reservations }, RESERVATIONS_API);
+    await pushDoc("name-reservations", { reservations });
   }
 
   function reservationAllows(res, playerId, code) {
@@ -2172,9 +2156,8 @@
           .slice(0, 32);
   }
 
-  function netBlocked(url) {
+  function netBlocked() {
     try {
-      if (window.HubNet?.shouldBlock?.(url || POPULARITY_API)) return true;
       if (window.HubNet?.isPaused?.()) return true;
       if (window.HubNet && HubNet.isOnline && !HubNet.isOnline()) return true;
     } catch {}
@@ -2182,34 +2165,6 @@
       if (typeof navigator !== "undefined" && navigator.onLine === false) return true;
     } catch {}
     return false;
-  }
-
-  async function fetchJson(url) {
-    if (netBlocked(url)) throw new Error("hub-net-blocked");
-    if (isRateLimited()) throw new Error("rate limited");
-    const res = await fetch(url, { cache: "no-store" });
-    if (res.status === 404) return null;
-    if (res.status === 429) {
-      markRateLimited();
-      throw new Error("rate limited");
-    }
-    if (!res.ok) throw new Error("fetch failed");
-    return res.json();
-  }
-
-  async function postJson(url, data) {
-    if (netBlocked(url)) throw new Error("hub-net-blocked");
-    if (isRateLimited()) throw new Error("rate limited");
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
-    if (res.status === 429) {
-      markRateLimited();
-      throw new Error("rate limited");
-    }
-    if (!res.ok) throw new Error("push failed");
   }
 
   async function fetchPlaysTableRemote() {
@@ -2245,7 +2200,7 @@
     let parsed = { plays: [], counts: {} };
     let fetched = false;
     try {
-      const data = await fetchDoc("plays-log", PLAYS_API);
+      const data = await fetchDoc("plays-log");
       if (data && typeof data === "object") {
         parsed = {
           plays: Array.isArray(data.plays) ? data.plays : [],
@@ -2269,14 +2224,10 @@
     const tableWrote = await persistPlayLogContribution(data?.plays);
     if (tableWrote && !(opts && opts.rewriteShared)) return;
     if (opts && opts.skipShared) return;
-    await pushDoc(
-      "plays-log",
-      {
-        plays: data.plays || [],
-        counts: data.counts || {}
-      },
-      PLAYS_API
-    );
+    await pushDoc("plays-log", {
+      plays: data.plays || [],
+      counts: data.counts || {}
+    });
   }
 
   async function fetchNamesTableRemote() {
@@ -2314,7 +2265,7 @@
     let parsed = {};
     let fetched = false;
     try {
-      const data = await fetchDoc("name-registry", NAMES_API);
+      const data = await fetchDoc("name-registry");
       if (data && typeof data === "object") {
         parsed = namesApi.parseNameRegistry ? namesApi.parseNameRegistry(data) : {};
         fetched = true;
@@ -2338,7 +2289,7 @@
       throw err;
     }
     if (tableResult === true) return;
-    await pushDoc("name-registry", { names }, NAMES_API);
+    await pushDoc("name-registry", { names });
   }
 
   function mergeLogs(a, b) {
@@ -3290,7 +3241,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   async function fetchPresenceRemote() {
-    const data = await fetchDoc("presence", PRESENCE_API);
+    const data = await fetchDoc("presence");
     if (data == null) throw new Error("presence-unavailable");
     if (typeof data !== "object") return {};
     const players = data.players && typeof data.players === "object" ? data.players : data;
@@ -3367,7 +3318,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     const api = sb();
     if (!api?.subscribePresencePings) return;
     if (presenceRealtimeUnsub) return;
-    if (netBlocked(PRESENCE_API) || window.HubAfk?.isAfk?.()) return;
+    if (netBlocked() || window.HubAfk?.isAfk?.()) return;
     try {
       if (document.hidden) return;
     } catch {}
@@ -3377,7 +3328,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   async function pushPresenceRemote(players) {
-    await pushDoc("presence", { players }, PRESENCE_API);
+    await pushDoc("presence", { players });
   }
 
   function mergePresence(a, b) {
@@ -3627,7 +3578,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
         return getOnlineCount();
       }
       // No WiFi / AFK pause: do not touch Mantle or Supabase from this tab.
-      if (netBlocked(PRESENCE_API) || window.HubAfk?.isAfk?.()) {
+      if (netBlocked() || window.HubAfk?.isAfk?.()) {
         return getOnlineCount();
       }
 
@@ -3725,7 +3676,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     let parsed = {};
     let fetched = false;
     try {
-      const data = await fetchDoc("players-alltime", ALLTIME_API);
+      const data = await fetchDoc("players-alltime");
       if (data && typeof data === "object") {
         parsed = alltimeApi.parseRemotePlayers
           ? alltimeApi.parseRemotePlayers(data, { sanitizeName, isPurgedPlayer })
@@ -3756,14 +3707,10 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     const cleaned = alltimeApi.repairMassStampedLastAt
       ? alltimeApi.repairMassStampedLastAt(players)
       : { ...(players || {}) };
-    await pushDoc(
-      "players-alltime",
-      {
-        players: cleaned,
-        total: Object.keys(cleaned).length
-      },
-      ALLTIME_API
-    );
+    await pushDoc("players-alltime", {
+      players: cleaned,
+      total: Object.keys(cleaned).length
+    });
   }
 
   function rememberAllTime(players) {

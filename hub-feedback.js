@@ -1,5 +1,5 @@
 /**
- * hub-feedback.js — player ideas/bugs via Supabase (Mantle fallback).
+ * hub-feedback.js — player ideas/bugs via the account server.
  *
  * window.HubFeedback:
  *   submit({ text, type, game }) → Promise<{ ok, error?, warning?, queued? }>
@@ -10,9 +10,6 @@
  *   unreadCount() / markAllRead()
  */
 (function () {
-  const NS = "icedragon1st-mygames";
-  const PATH = "player-feedback";
-  const API = `https://mantledb.sh/v2/${NS}/${PATH}`;
   const DOC_ID = "player-feedback";
   const LOCAL_KEY = "hub-feedback-v1";
   const READ_KEY = "hub-feedback-read-at-v1";
@@ -225,44 +222,6 @@
       .slice(0, MAX_ITEMS);
   }
 
-  async function fetchJson(url) {
-    if (isRateLimited()) {
-      const err = new Error("rate limited");
-      err.code = 429;
-      throw err;
-    }
-    const res = await fetch(url, { cache: "no-store" });
-    if (res.status === 429) {
-      markRateLimited();
-      const err = new Error("rate limited");
-      err.code = 429;
-      throw err;
-    }
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error("fetch failed");
-    return res.json();
-  }
-
-  async function postJson(url, data) {
-    if (isRateLimited()) {
-      const err = new Error("rate limited");
-      err.code = 429;
-      throw err;
-    }
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
-    if (res.status === 429) {
-      markRateLimited();
-      const err = new Error("rate limited");
-      err.code = 429;
-      throw err;
-    }
-    if (!res.ok) throw new Error("push failed");
-  }
-
   async function fetchFeedbackTableRemote() {
     const api = sb();
     const helper = mineApi();
@@ -298,7 +257,7 @@
     let fetched = false;
     try {
       const api = sb();
-      const data = api ? await api.getPrefer(DOC_ID, API) : await fetchJson(API);
+      const data = api?.getPrefer ? await api.getPrefer(DOC_ID) : null;
       if (data && typeof data === "object") {
         parsed = {
           items: Array.isArray(data.items) ? data.items : [],
@@ -331,11 +290,8 @@
       deletedIds: loadDeletedIds()
     };
     const api = sb();
-    if (api) {
-      await api.pushPrefer(DOC_ID, payload, API);
-      return;
-    }
-    await postJson(API, payload);
+    if (!api?.pushPrefer) throw new Error("account-server-unavailable");
+    await api.pushPrefer(DOC_ID, payload);
   }
 
   function list() {
@@ -549,7 +505,7 @@
   }
 
   cache = loadLocal();
-  // Soft sync on load — skip only if Mantle is cooling down and Supabase is unavailable
+  // Soft sync on load — skip only if the account server is cooling down and unavailable
   if (!isRateLimited() || sb()) {
     sync().catch(() => {});
   }

@@ -1,6 +1,6 @@
 /**
  * hub-leaderboard.js
- * Global per-game leaderboards via MantleDB.
+ * Global per-game leaderboards via the account server.
  *
  * API (window.HubLeaderboard):
  *   .submit(gameId, score, { lowerBetter? }) — post personal best if improved
@@ -10,9 +10,6 @@
  *   .GAME_IDS — known game ids
  */
 (function () {
-  const NS = "icedragon1st-mygames";
-  const PATH = "leaderboards";
-  const API = `https://mantledb.sh/v2/${NS}/${PATH}`;
   const LOCAL_KEY = "hub-leaderboards-v1";
   const MAX_PER_GAME = 50;
   const SYNC_GAP_MS = 4000;
@@ -798,30 +795,12 @@
     } catch {}
   }
 
-  async function fetchJson(url) {
-    const res = await fetch(url, { cache: "no-store" });
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error("fetch failed");
-    return res.json();
-  }
-
-  async function postJson(url, data) {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error("push failed");
-  }
-
   async function fetchRemote() {
     let parsed = { games: {}, resets: {} };
     let fetched = false;
     try {
       const api = window.HubSupabase;
-      const data = api?.getPrefer
-        ? await api.getPrefer(SUPABASE_DOC_ID, API)
-        : await fetchJson(API);
+      const data = api?.getPrefer ? await api.getPrefer(SUPABASE_DOC_ID) : null;
       if (data && typeof data === "object") {
         parsed = {
           games: data.games && typeof data.games === "object" ? data.games : {},
@@ -849,11 +828,8 @@
     if (tableWrote && !(opts && opts.rewriteShared)) return;
     if (opts && opts.skipShared) return;
     const api = window.HubSupabase;
-    if (api?.pushPrefer) {
-      await api.pushPrefer(SUPABASE_DOC_ID, merged, API);
-      return;
-    }
-    await postJson(API, merged);
+    if (!api?.pushPrefer) throw new Error("account-server-unavailable");
+    await api.pushPrefer(SUPABASE_DOC_ID, merged);
   }
 
   function normalizeEntry(entry, fallbackLower) {

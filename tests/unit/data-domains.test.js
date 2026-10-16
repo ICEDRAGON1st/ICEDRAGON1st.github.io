@@ -7,56 +7,30 @@ const test = require("node:test");
 
 const ROOT = path.resolve(__dirname, "../..");
 
-const REMAINING_MANTLE_DOMAINS = {
-  "hub-plays.js": [
-    "plays-log",
-    "name-registry",
-    "player-codes",
-    "player-passwords",
-    "name-reservations",
-    "presence",
-    "players-alltime",
-    "hub-game-popularity"
-  ],
-  "hub-leaderboard.js": ["leaderboards"],
-  "hub-chat.js": ["friend-chat"],
-  "hub-calls.js": ["hub-calls"],
-  "hub-friends.js": ["friends", "name-registry"],
-  "hub-feedback.js": ["player-feedback"],
-  "hub-online-match.js": ["online-matches"],
-  "hub-fishing-gifts.js": ["fishing-gifts"],
-  "hub-fishing-mail.js": ["fishing-player-mail"],
-  "fishing/script.js": [
-    "fishing-admin-events",
-    "fishing-admin-announce",
-    "fishing-gifts",
-    "fishing-player-mail",
-    "fishing-aquariums",
-    "fishing-community",
-    "name-registry"
-  ]
-};
+const NO_OLD_BACKUP_FILES = [
+  "hub-plays.js",
+  "hub-leaderboard.js",
+  "hub-chat.js",
+  "hub-calls.js",
+  "hub-friends.js",
+  "hub-feedback.js",
+  "hub-online-match.js",
+  "hub-fishing-gifts.js",
+  "hub-fishing-mail.js",
+  "fishing/script.js"
+];
 
-function collectMantlePaths(text) {
-  const fromUrls = [
-    ...text.matchAll(/mantledb\.sh\/v2\/(?:[^/"'`\s]+|\$\{NS\})\/([A-Za-z0-9-]+)/g)
-  ].map((match) => match[1]);
-  const fromConsts = [...text.matchAll(/const [A-Z_]*PATH = "([A-Za-z0-9-]+)"/g)].map(
-    (match) => match[1]
-  );
-  return [...fromUrls, ...fromConsts];
-}
-
-test("remaining Mantle domains stay on the known retirement list", () => {
-  const seen = new Set();
-  for (const [relative, expected] of Object.entries(REMAINING_MANTLE_DOMAINS)) {
+test("shared boards do not talk to the old backup host", () => {
+  for (const relative of NO_OLD_BACKUP_FILES) {
     const text = fs.readFileSync(path.join(ROOT, relative), "utf8");
-    const paths = [...new Set(collectMantlePaths(text))].sort();
-    assert.deepEqual(paths, [...expected].sort(), `${relative} changed Mantle domains`);
-    paths.forEach((name) => seen.add(name));
+    assert.equal(
+      text.includes("mantledb.sh"),
+      false,
+      `${relative} still mentions the old backup host`
+    );
   }
-
-  assert.equal(seen.has("player-passwords"), true);
+  const net = fs.readFileSync(path.join(ROOT, "hub-net.js"), "utf8");
+  assert.match(net, /mantledb\.sh/);
   assert.equal(
     fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8").includes("player-passwords"),
     true

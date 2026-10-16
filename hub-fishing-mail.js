@@ -8,7 +8,6 @@
 (function () {
   const SAVE_KEY = "fishing-save-v3";
   const CLAIMED_KEY = "fishing-player-mail-claimed-v1";
-  const API = "https://mantledb.sh/v2/icedragon1st-mygames/fishing-player-mail";
   const DOC_ID = "fishing-player-mail";
   const TOKEN = "ice-fish-mail-9f3a";
   const POLL_MS = 10_000;
@@ -225,17 +224,12 @@
       const api = sb();
       let data = null;
       let fetched = false;
-      if (api) {
+      if (api?.getPrefer) {
         try {
-          data = await api.getPrefer(DOC_ID, API);
+          data = await api.getPrefer(DOC_ID);
         } catch {
           data = null;
         }
-      } else {
-        const res = await fetch(`${API}?t=${Date.now()}`, { cache: "no-store" });
-        if (res.status === 404) data = { token: TOKEN, gifts: {}, trades: {} };
-        else if (!res.ok) return null;
-        else data = await res.json();
       }
       if (data && typeof data === "object") {
         fetched = true;
@@ -270,16 +264,9 @@
     if (tableWrote && !rewriteShared) return true;
     try {
       const api = sb();
-      if (api) {
-        await api.pushPrefer(DOC_ID, payload, API);
-        return true;
-      }
-      const res = await fetch(API, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
-      });
-      return res.ok;
+      if (!api?.pushPrefer) return false;
+      await api.pushPrefer(DOC_ID, payload);
+      return true;
     } catch {
       return false;
     }

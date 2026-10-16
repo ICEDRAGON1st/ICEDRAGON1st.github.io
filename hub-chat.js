@@ -1,5 +1,5 @@
 /**
- * hub-chat.js — DMs, global chat, and group chats via Supabase (Mantle fallback).
+ * hub-chat.js — DMs, global chat, and group chats via the account server.
  *
  * window.HubChat:
  *   openThread(friendId) / openGlobal() / openGroup(id) / closeThread()
@@ -10,9 +10,6 @@
  *   sync(), startPolling(cb), stopPolling(cb), mountInGameChat()
  */
 (function () {
-  const NS = "icedragon1st-mygames";
-  const PATH = "friend-chat";
-  const API = `https://mantledb.sh/v2/${NS}/${PATH}`;
   const DOC_ID = "friend-chat";
   const LOCAL_KEY = "hub-chat-v1";
   const READ_KEY = "hub-chat-read-v1";
@@ -156,22 +153,6 @@
     } catch {}
   }
 
-  async function fetchJson(url) {
-    const res = await fetch(url, { cache: "no-store" });
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error("fetch failed");
-    return res.json();
-  }
-
-  async function postJson(url, data) {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error("push failed");
-  }
-
   async function fetchChatTableRemote() {
     const api = sb();
     const helper = mineApi();
@@ -207,7 +188,7 @@
     let fetched = false;
     try {
       const api = sb();
-      const data = api ? await api.getPrefer(DOC_ID, API) : await fetchJson(API);
+      const data = api?.getPrefer ? await api.getPrefer(DOC_ID) : null;
       if (data && typeof data === "object") {
         parsed = {
           threads: data.threads && typeof data.threads === "object" ? data.threads : {}
@@ -231,11 +212,8 @@
     if (tableWrote && !(opts && opts.rewriteShared)) return;
     if (opts && opts.skipShared) return;
     const api = sb();
-    if (api) {
-      await api.pushPrefer(DOC_ID, next, API);
-      return;
-    }
-    await postJson(API, next);
+    if (!api?.pushPrefer) throw new Error("account-server-unavailable");
+    await api.pushPrefer(DOC_ID, next);
   }
 
   function normalizeMessage(msg) {

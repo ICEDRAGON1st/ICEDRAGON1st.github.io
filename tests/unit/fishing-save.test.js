@@ -190,7 +190,8 @@ test("fishing community uses account-server prefer and skips the old backup writ
   assert.match(script, /remoteOk = true;/);
   assert.match(script, /api\.pushPrefer\(\s*COMMUNITY_DOC/);
   assert.equal(script.includes("await api.upsertDoc(COMMUNITY_DOC"), false);
-  assert.match(script, /communityRateLimited\(\) \? "" : COMMUNITY_API/);
+  assert.equal(script.includes("mantledb.sh"), false);
+  assert.equal(script.includes("COMMUNITY_API"), false);
   assert.match(script, /persistCommunityCastContribution/);
   assert.match(script, /fetchCommunityTableRemote/);
   assert.match(script, /overlayCommunityCasts/);
