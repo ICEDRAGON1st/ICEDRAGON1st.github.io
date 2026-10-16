@@ -136,6 +136,54 @@
     return !!(locked && mine && locked === mine);
   }
 
+  const IDENTITY_MINE_KEY = "identity-mine";
+
+  function readIdentityMine(payload) {
+    const playerId = String(payload?.playerId || "").trim();
+    const code = normalizePlayerCode(payload?.code || "");
+    return {
+      playerId,
+      code: playerId && code.length === 8 && !isPoisonPlayerCode(code) ? code : "",
+      name: playerId ? sanitizeName(payload?.name || "") : "",
+      locked: !!(playerId && payload?.locked),
+      updatedAt: Number(payload?.updatedAt) || 0
+    };
+  }
+
+  function collectIdentityMine(state, playerId) {
+    const me = String(playerId || "").trim();
+    const code = normalizePlayerCode(state?.code || "");
+    return {
+      playerId: me,
+      code: me && code.length === 8 && !isPoisonPlayerCode(code) ? code : "",
+      name: me ? sanitizeName(state?.name || "") : "",
+      locked: !!(me && state?.locked),
+      updatedAt: Date.now()
+    };
+  }
+
+  function applyIdentityMine(local, mine) {
+    const playerId = String(local?.playerId || "").trim();
+    const owned = readIdentityMine(mine);
+    const localCode = normalizePlayerCode(local?.code || "");
+    const localName = sanitizeName(local?.name || "");
+    const keepLocalCode = localCode.length === 8 && !isPoisonPlayerCode(localCode);
+    if (!playerId || !owned.playerId || owned.playerId !== playerId) {
+      return {
+        playerId,
+        code: keepLocalCode ? localCode : "",
+        name: localName,
+        locked: !!local?.locked
+      };
+    }
+    return {
+      playerId,
+      code: keepLocalCode ? localCode : owned.code,
+      name: localName || owned.name,
+      locked: !!local?.locked || owned.locked
+    };
+  }
+
   function parseReservationsMap(data) {
     if (!data || typeof data !== "object") return {};
     const map =
@@ -169,7 +217,11 @@
     parseAccountTransferKey,
     parseCodesMap,
     reservationAllows,
-    parseReservationsMap
+    parseReservationsMap,
+    IDENTITY_MINE_KEY,
+    readIdentityMine,
+    collectIdentityMine,
+    applyIdentityMine
   };
   root.HubIdentity = api;
   if (typeof module === "object" && module.exports) module.exports = api;

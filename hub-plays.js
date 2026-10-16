@@ -674,6 +674,49 @@
     return identity.parseAccountTransferKey ? identity.parseAccountTransferKey(raw) : null;
   }
 
+  async function persistIdentityMine() {
+    const api = sb();
+    const me = getPlayerId();
+    if (!identity.collectIdentityMine || !api?.upsertSave || !me) return;
+    try {
+      await api.upsertSave(
+        identity.IDENTITY_MINE_KEY,
+        identity.collectIdentityMine(
+          {
+            code: readStoredPlayerCode() || getPlayerCode(),
+            name: getName(),
+            locked: isNameLocked()
+          },
+          me
+        ),
+        1
+      );
+    } catch (err) {
+      console.warn("[HubPlays] player_saves identity write failed", err);
+    }
+  }
+
+  async function pullIdentityMine() {
+    const api = sb();
+    const me = getPlayerId();
+    if (!identity.applyIdentityMine || !api?.getSave || !me) return;
+    try {
+      const raw = await api.getSave(identity.IDENTITY_MINE_KEY);
+      const local = {
+        playerId: me,
+        code: normalizePlayerCode(readStoredPlayerCode()),
+        name: getName(),
+        locked: isNameLocked()
+      };
+      const next = identity.applyIdentityMine(local, identity.readIdentityMine(raw));
+      if (next.code && next.code !== local.code) storePlayerCode(next.code);
+      if (next.name && !local.name) storeLocalName(next.name);
+      if (next.locked && !local.locked) setNameLocked(true);
+    } catch (err) {
+      console.warn("[HubPlays] player_saves identity read failed", err);
+    }
+  }
+
   function normalizePasswordInput(raw) {
     return String(raw || "").trim();
   }
@@ -1182,6 +1225,7 @@
 
     const out = formatPlayerCode(norm) || ensureFreshPlayerCode();
     rememberCurrentAccount({ code: out, playerId: me, name: getName() || "" });
+    persistIdentityMine();
     return out;
   }
 
@@ -4738,9 +4782,18 @@ body.light .menu-credit .player-name-creator {
   };
 
   injectCreatorCredit();
-  getPlayerCode();
-  rememberCurrentAccount();
-  ensurePlayerCodeRegistered().catch(() => {});
+  pullIdentityMine()
+    .catch(() => {})
+    .then(() => {
+      getPlayerCode();
+      rememberCurrentAccount();
+      return ensurePlayerCodeRegistered();
+    })
+    .catch(() => {
+      getPlayerCode();
+      rememberCurrentAccount();
+      ensurePlayerCodeRegistered().catch(() => {});
+    });
   sync(true)
     .then(async () => {
       await ensureIceMasterFisherGrant();

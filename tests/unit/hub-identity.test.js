@@ -72,3 +72,54 @@ test("account transfer keys and player-code maps keep the first owner", () => {
     true
   );
 });
+
+test("owned identity mine restores code and name without reminting a different player id", () => {
+  const plays = require("node:fs").readFileSync(
+    require("node:path").join(__dirname, "../../hub-plays.js"),
+    "utf8"
+  );
+  assert.match(plays, /persistIdentityMine/);
+  assert.match(plays, /pullIdentityMine/);
+  assert.equal(identity.IDENTITY_MINE_KEY, "identity-mine");
+
+  const snapshot = identity.collectIdentityMine(
+    { code: "AB23-CD45", name: "Ada", locked: true },
+    "p-ada"
+  );
+  assert.equal(snapshot.playerId, "p-ada");
+  assert.equal(snapshot.code, "AB23CD45");
+  assert.equal(snapshot.name, "Ada");
+  assert.equal(snapshot.locked, true);
+
+  const poison = identity.collectIdentityMine(
+    { code: "UNDEFNED", name: "undefined", locked: false },
+    "p-ada"
+  );
+  assert.equal(poison.code, "");
+  assert.equal(poison.name, "");
+
+  const restored = identity.applyIdentityMine(
+    { playerId: "p-ada", code: "", name: "", locked: false },
+    snapshot
+  );
+  assert.equal(restored.playerId, "p-ada");
+  assert.equal(restored.code, "AB23CD45");
+  assert.equal(restored.name, "Ada");
+  assert.equal(restored.locked, true);
+
+  const keepLocal = identity.applyIdentityMine(
+    { playerId: "p-ada", code: "ZZ99YY88", name: "LocalAda", locked: false },
+    snapshot
+  );
+  assert.equal(keepLocal.code, "ZZ99YY88");
+  assert.equal(keepLocal.name, "LocalAda");
+  assert.equal(keepLocal.locked, true);
+
+  const otherAccount = identity.applyIdentityMine(
+    { playerId: "p-bea", code: "", name: "", locked: false },
+    snapshot
+  );
+  assert.equal(otherAccount.playerId, "p-bea");
+  assert.equal(otherAccount.code, "");
+  assert.equal(otherAccount.name, "");
+});
