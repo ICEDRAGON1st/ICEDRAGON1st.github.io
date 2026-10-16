@@ -21,6 +21,8 @@
   let timer = 0;
   let lastFetch = 0;
   let started = false;
+  let giftsRealtimeUnsub = null;
+  let giftCache = { gifts: {} };
 
   function isFishingPage() {
     return /\/fishing(\/|$)/i.test(location.pathname || "");
@@ -421,18 +423,19 @@
     } catch {}
   }
 
-  async function poll(force = false) {
-    if (isFishingPage()) return { gained: 0 };
-    const now = Date.now();
-    if (!force && now - lastFetch < POLL_MS) return { gained: 0 };
-    lastFetch = now;
+  function giftsCloudQuiet() {
+    try {
+      if (window.HubAfk?.isAfk?.()) return true;
+      if (window.HubNet?.isPaused?.()) return true;
+      if (window.HubNet && HubNet.isOnline && !HubNet.isOnline()) return true;
+    } catch {}
+    return false;
+  }
 
+  function applyIncomingGifts(doc) {
     const me = playerNameLower();
     const myId = playerId();
     if (!me && !myId) return { gained: 0 };
-
-    const doc = await fetchDoc();
-    if (!doc) return { gained: 0 };
 
     const claimed = readClaimed();
     const toClaim = [];
@@ -493,9 +496,58 @@
     return { gained, sampleId };
   }
 
+  function applyGiftsRealtime(change) {
+    const helper = giftSaveApi();
+    if (!helper?.applyAdminFishGiftsChange) return;
+    const next = helper.applyAdminFishGiftsChange(giftCache, change);
+    giftCache = {
+      gifts: next?.gifts && typeof next.gifts === "object" ? next.gifts : giftCache.gifts
+    };
+    applyIncomingGifts(giftCache);
+  }
+
+  function stopGiftsRealtime() {
+    try {
+      giftsRealtimeUnsub?.();
+    } catch {}
+    giftsRealtimeUnsub = null;
+  }
+
+  function ensureGiftsRealtime() {
+    const api = sb();
+    if (!api?.subscribeFishingGiftContributions) return;
+    if (giftsRealtimeUnsub) return;
+    if (isFishingPage() || giftsCloudQuiet()) return;
+    giftsRealtimeUnsub = api.subscribeFishingGiftContributions((change) => {
+      applyGiftsRealtime(change);
+    });
+  }
+
+  async function poll(force = false) {
+    if (isFishingPage()) return { gained: 0 };
+    if (giftsCloudQuiet()) {
+      stopGiftsRealtime();
+    } else {
+      ensureGiftsRealtime();
+    }
+    const now = Date.now();
+    if (!force && now - lastFetch < POLL_MS) return { gained: 0 };
+    lastFetch = now;
+
+    const me = playerNameLower();
+    const myId = playerId();
+    if (!me && !myId) return { gained: 0 };
+
+    const doc = await fetchDoc();
+    if (!doc) return { gained: 0 };
+    giftCache = { gifts: doc.gifts || {} };
+    return applyIncomingGifts(giftCache);
+  }
+
   function start() {
     if (started || isFishingPage()) return;
     started = true;
+    ensureGiftsRealtime();
     poll(true);
     if (timer) clearInterval(timer);
     timer = setInterval(() => poll(false), POLL_MS);
@@ -508,6 +560,7 @@
     if (timer) clearInterval(timer);
     timer = 0;
     started = false;
+    stopGiftsRealtime();
   }
 
   window.HubFishingGifts = { start, stop, poll };

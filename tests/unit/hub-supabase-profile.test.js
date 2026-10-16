@@ -156,6 +156,7 @@ test("presence pings use auth-owned rows instead of rewriting the shared presenc
   assert.match(src, /function subscribeCallSignalContributions/);
   assert.match(src, /function subscribeMatchRoomContributions/);
   assert.match(src, /function subscribeFishingMailContributions/);
+  assert.match(src, /function subscribeFishingGiftContributions/);
   assert.match(src, /realtime\/v1\/websocket/);
   assert.match(src, /presence_pings/);
   assert.match(src, /chat_thread_contributions/);
@@ -294,6 +295,7 @@ test("fishing admin gifts use auth-owned rows instead of rewriting the shared gi
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
   assert.match(src, /async function listFishingGiftContributions/);
   assert.match(src, /async function upsertFishingGiftContribution/);
+  assert.match(src, /function subscribeFishingGiftContributions/);
   assert.match(src, /fishing_gift_contributions/);
 });
 

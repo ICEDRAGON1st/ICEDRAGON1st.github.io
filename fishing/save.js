@@ -871,6 +871,19 @@
     return { token: hub?.token, gifts: next };
   }
 
+  function applyAdminFishGiftsChange(hub, change, now = Date.now()) {
+    const data = unwrapMailChange(change);
+    const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
+    const current = {
+      token: hub?.token,
+      gifts: { ...((hub && hub.gifts && typeof hub.gifts === "object" ? hub.gifts : {}) || {}) }
+    };
+    if (type === "DELETE") return current;
+    const record = data.record || data.new || {};
+    if (!record || typeof record !== "object") return current;
+    return overlayAdminFishGifts(current, [record], now);
+  }
+
   function overlayCommunityCasts(hub, rows, weekKey) {
     const base = hub && typeof hub === "object" && !Array.isArray(hub) ? { ...hub } : {};
     const key = String(weekKey || base.weekKey || "").slice(0, 64);
@@ -916,7 +929,8 @@
     applyPlayerMailChange,
     ADMIN_GIFT_CAP,
     collectAdminFishGiftsMine,
-    overlayAdminFishGifts
+    overlayAdminFishGifts,
+    applyAdminFishGiftsChange
   };
   root.FishingSave = api;
   if (typeof module === "object" && module.exports) module.exports = api;

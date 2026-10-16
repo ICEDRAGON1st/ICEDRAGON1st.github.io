@@ -812,6 +812,10 @@
     return subscribePostgresChanges("fishing_mail_contributions", onChange);
   }
 
+  function subscribeFishingGiftContributions(onChange) {
+    return subscribePostgresChanges("fishing_gift_contributions", onChange);
+  }
+
   async function listPopularityContributions(resetAt) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -2610,6 +2614,7 @@
     subscribeCallSignalContributions,
     subscribeMatchRoomContributions,
     subscribeFishingMailContributions,
+    subscribeFishingGiftContributions,
     stopPresenceRealtime,
     listPopularityContributions,
     upsertPopularityContribution,

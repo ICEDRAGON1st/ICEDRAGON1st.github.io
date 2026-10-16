@@ -410,6 +410,16 @@ test("fishing admin gifts use account-owned claim rows and skip the shared rewri
   assert.match(gifts, /persistGiftContribution/);
   assert.match(gifts, /listFishingGiftContributions/);
   assert.match(gifts, /if \(tableWrote && !rewriteShared\) return true/);
+  assert.match(gifts, /ensureGiftsRealtime/);
+  assert.match(gifts, /applyGiftsRealtime/);
+  assert.match(gifts, /subscribeFishingGiftContributions/);
+  assert.match(script, /ensureFishGiftsRealtime/);
+  assert.match(script, /applyFishGiftsRealtime/);
+  assert.match(script, /subscribeFishingGiftContributions/);
+  assert.doesNotMatch(
+    gifts.slice(gifts.indexOf("function applyGiftsRealtime"), gifts.indexOf("function stopGiftsRealtime")),
+    /persistGiftContribution|pushPrefer|fetchDoc/
+  );
 });
 
 test("admin fish-gift overlay merges broadcast claims without un-claiming someone else", () => {
@@ -490,4 +500,55 @@ test("admin fish-gift overlay merges broadcast claims without un-claiming someon
   const ice = save.collectAdminFishGiftsMine(overlaid.gifts, "p-icexxxxx");
   assert.equal(ice.gifts["g-hub"].id, "g-hub");
   assert.equal(ice.gifts["g-bea"].id, "g-bea");
+
+  const liveRow = save.applyAdminFishGiftsChange(
+    hub,
+    {
+      type: "UPDATE",
+      new: {
+        player_id: "p-beaxxxxx",
+        gifts: {
+          "g-hub": {
+            id: "g-hub",
+            fromId: "p-icexxxxx",
+            broadcast: true,
+            fishId: "minnow",
+            at: now,
+            claimedBy: { "p-beaxxxxx": now + 4 }
+          }
+        }
+      }
+    },
+    now
+  );
+  assert.equal(liveRow.gifts["g-hub"].claimed, false);
+  assert.equal(liveRow.gifts["g-hub"].claimedBy["p-beaxxxxx"], now + 4);
+
+  const afterDelete = save.applyAdminFishGiftsChange(
+    liveRow,
+    { type: "DELETE", old_record: { player_id: "p-beaxxxxx" } },
+    now
+  );
+  assert.equal(afterDelete.gifts["g-hub"].claimedBy["p-beaxxxxx"], now + 4);
+});
+
+test("fishing admin gift live rows subscribe without rewriting the shared board", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const gifts = fs.readFileSync(path.resolve(__dirname, "../../hub-fishing-gifts.js"), "utf8");
+  const script = fs.readFileSync(path.resolve(__dirname, "../../fishing/script.js"), "utf8");
+  const supabase = fs.readFileSync(path.resolve(__dirname, "../../hub-supabase.js"), "utf8");
+  const sql = fs.readFileSync(
+    path.resolve(
+      __dirname,
+      "../../supabase/migrations/202610160026_fishing_gift_contributions_realtime.sql"
+    ),
+    "utf8"
+  );
+  assert.match(gifts, /ensureGiftsRealtime/);
+  assert.match(script, /ensureFishGiftsRealtime/);
+  assert.match(supabase, /function subscribeFishingGiftContributions/);
+  assert.match(sql, /alter table public\.fishing_gift_contributions replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.fishing_gift_contributions/i);
+  assert.doesNotMatch(sql, /to anon/i);
 });

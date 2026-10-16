@@ -6487,14 +6487,11 @@
 
   let fishGiftPollTimer = 0;
   let fishGiftFetchedAt = 0;
+  let fishGiftRealtimeUnsub = null;
+  let fishGiftCache = { gifts: {} };
 
-  async function pollFishGifts(force = false) {
-    if (fishingCloudQuiet()) return;
-    const now = Date.now();
-    if (!force && now - fishGiftFetchedAt < FISH_GIFTS_POLL_MS) return;
-    fishGiftFetchedAt = now;
-    const doc = await fetchFishGiftsDoc();
-    if (!doc) return;
+  async function ingestFishGiftsDoc(doc) {
+    fishGiftCache = { gifts: doc?.gifts || {} };
     const me = playerNameLower();
     const myId = String(window.HubPlays?.getPlayerId?.() || "");
     if (!me && !myId) return;
@@ -6507,7 +6504,7 @@
     let label = "";
     const toClaim = [];
 
-    Object.values(doc.gifts || {}).forEach((g) => {
+    Object.values(fishGiftCache.gifts || {}).forEach((g) => {
       if (!g || typeof g !== "object") return;
       const broadcast = isBroadcastGift(g);
       if (!broadcast && g.claimed) return;
@@ -6604,7 +6601,45 @@
     });
   }
 
+  function applyFishGiftsRealtime(change) {
+    if (!fishingSaveApi.applyAdminFishGiftsChange) return;
+    const next = fishingSaveApi.applyAdminFishGiftsChange(fishGiftCache, change);
+    ingestFishGiftsDoc(next).catch(() => {});
+  }
+
+  function stopFishGiftsRealtime() {
+    try {
+      fishGiftRealtimeUnsub?.();
+    } catch {}
+    fishGiftRealtimeUnsub = null;
+  }
+
+  function ensureFishGiftsRealtime() {
+    const api = window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
+    if (!api?.subscribeFishingGiftContributions) return;
+    if (fishGiftRealtimeUnsub) return;
+    if (fishingCloudQuiet()) return;
+    fishGiftRealtimeUnsub = api.subscribeFishingGiftContributions((change) => {
+      applyFishGiftsRealtime(change);
+    });
+  }
+
+  async function pollFishGifts(force = false) {
+    if (fishingCloudQuiet()) {
+      stopFishGiftsRealtime();
+      return;
+    }
+    ensureFishGiftsRealtime();
+    const now = Date.now();
+    if (!force && now - fishGiftFetchedAt < FISH_GIFTS_POLL_MS) return;
+    fishGiftFetchedAt = now;
+    const doc = await fetchFishGiftsDoc();
+    if (!doc) return;
+    await ingestFishGiftsDoc(doc);
+  }
+
   function startFishGiftPolling() {
+    ensureFishGiftsRealtime();
     pollFishGifts(true);
     if (fishGiftPollTimer) clearInterval(fishGiftPollTimer);
     fishGiftPollTimer = setInterval(() => pollFishGifts(false), FISH_GIFTS_POLL_MS);
