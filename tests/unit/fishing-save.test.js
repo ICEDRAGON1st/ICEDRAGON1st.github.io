@@ -154,4 +154,38 @@ test("fishing community uses account-server prefer and skips the old backup writ
   assert.match(script, /api\.pushPrefer\(\s*COMMUNITY_DOC/);
   assert.equal(script.includes("await api.upsertDoc(COMMUNITY_DOC"), false);
   assert.match(script, /communityRateLimited\(\) \? "" : COMMUNITY_API/);
+  assert.match(script, /persistCommunityCastContribution/);
+  assert.match(script, /fetchCommunityTableRemote/);
+  assert.match(script, /overlayCommunityCasts/);
+  assert.match(script, /if \(tableWrote && !rewriteShared\) return true/);
+});
+
+test("community cast overlay sums this week's rows without shrinking a richer shared meter", () => {
+  const hub = {
+    weekKey: "2026-10-16",
+    total: 100,
+    goal: 2500,
+    rewardUntil: 0,
+    rewardMult: 2,
+    lbWave: 0
+  };
+  const rows = [
+    { player_id: "p-ada", week_key: "2026-10-16", casts: 40 },
+    { player_id: "p-bea", week_key: "2026-10-16", casts: 80 },
+    { player_id: "p-cal", week_key: "2026-10-9", casts: 999 },
+    { player_id: "", week_key: "2026-10-16", casts: 50 },
+    { playerId: "p-dan", weekKey: "2026-10-16", casts: 5 }
+  ];
+  const overlaid = save.overlayCommunityCasts(hub, rows, "2026-10-16");
+  assert.equal(overlaid.total, 125);
+  assert.equal(overlaid.weekKey, "2026-10-16");
+  assert.equal(overlaid.goal, 2500);
+  assert.equal(overlaid.rewardUntil, 0);
+  assert.equal(overlaid.lbWave, 0);
+  assert.equal(overlaid.rewardMult, 2);
+
+  const kept = save.overlayCommunityCasts({ ...hub, total: 500 }, rows, "2026-10-16");
+  assert.equal(kept.total, 500);
+
+  assert.equal(save.overlayCommunityCasts(hub, rows, "2026-10-9").total, 999);
 });

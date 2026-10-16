@@ -421,6 +421,28 @@
     return !!(remote && typeof remote === "object");
   }
 
+  const COMMUNITY_CASTS_CAP = 10000;
+
+  function overlayCommunityCasts(hub, rows, weekKey) {
+    const base = hub && typeof hub === "object" && !Array.isArray(hub) ? { ...hub } : {};
+    const key = String(weekKey || base.weekKey || "").slice(0, 64);
+    let sum = 0;
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      if (!row || typeof row !== "object") return;
+      const pid = String(row.player_id || row.playerId || "").trim();
+      if (!pid) return;
+      const rowKey = String(row.week_key || row.weekKey || "").slice(0, 64);
+      if (key && rowKey !== key) return;
+      const n = Math.floor(Number(row.casts) || 0);
+      if (n <= 0) return;
+      sum += Math.min(COMMUNITY_CASTS_CAP, n);
+    });
+    const hubTotal = Math.max(0, Math.floor(Number(base.total) || 0));
+    base.total = Math.max(hubTotal, sum);
+    if (key) base.weekKey = key;
+    return base;
+  }
+
   const api = {
     SAVE_KEY,
     SAVE_BACKUP_KEY,
@@ -435,7 +457,9 @@
     collectAquaMine,
     readAquaMine,
     applyAquaMine,
-    canPostSharedAqua
+    canPostSharedAqua,
+    COMMUNITY_CASTS_CAP,
+    overlayCommunityCasts
   };
   root.FishingSave = api;
   if (typeof module === "object" && module.exports) module.exports = api;

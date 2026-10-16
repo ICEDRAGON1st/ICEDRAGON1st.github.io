@@ -1697,28 +1697,88 @@
       if (mantle.found) remote = normalizeCommunityDoc(mantle.data);
     }
 
+    const tableRows = await fetchCommunityTableRemote();
+    const tableFetched = Array.isArray(tableRows);
+    if (tableFetched) remoteOk = true;
+
+    let data = null;
     if (remote) {
-      return { found: true, data: pickBetterCommunityDoc(remote, pagesDoc) || remote };
-    }
-
-    // Shared server down / rate-limited: keep the last good cache so Pages can't wipe progress.
-    if (rateLimited || !remoteOk) {
+      data = pickBetterCommunityDoc(remote, pagesDoc) || remote;
+    } else if (rateLimited || !remoteOk) {
+      // Shared server down / rate-limited: keep the last good cache so Pages can't wipe progress.
       if (communityCache.weekKey || communityCache.total || communityCache.lbWave) {
-        return {
-          found: true,
-          data: normalizeCommunityDoc(communityCache, communityCache.weekKey)
-        };
+        data = normalizeCommunityDoc(communityCache, communityCache.weekKey);
+      } else if (pagesDoc) {
+        data = pagesDoc;
       }
-      if (pagesDoc) return { found: true, data: pagesDoc };
-      return null;
+    } else if (pagesDoc) {
+      data = pagesDoc;
     }
 
-    if (pagesDoc) return { found: true, data: pagesDoc };
+    if (tableFetched && fishingSaveApi.overlayCommunityCasts) {
+      const key = String(
+        (data && data.weekKey) || communityCache.weekKey || communityWeekKey()
+      ).slice(0, 64);
+      const base =
+        data ||
+        normalizeCommunityDoc(
+          {
+            weekKey: key,
+            total: 0,
+            goal: COMMUNITY_GOAL,
+            rewardUntil: 0,
+            rewardMult: 1,
+            lbWave: 0
+          },
+          key
+        );
+      data = fishingSaveApi.overlayCommunityCasts(base, tableRows, key);
+    }
+
+    if (data) return { found: true, data };
     if (pages.ok || remoteOk) return { found: false };
     return null;
   }
 
-  async function pushCommunityDoc(doc) {
+  async function fetchCommunityTableRemote() {
+    const api = fishingSb();
+    if (!api?.listCommunityCastContributions) return null;
+    try {
+      const rows = await api.listCommunityCastContributions();
+      if (!rows) return null;
+      return Array.isArray(rows) ? rows : [];
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistCommunityCastContribution(weekKey, casts) {
+    const api = fishingSb();
+    if (!api?.upsertCommunityCastContribution) return false;
+    const me = api.parseLocalPlayerId
+      ? api.parseLocalPlayerId(window.HubPlays?.getPlayerId?.() || "")
+      : "";
+    if (!me) return false;
+    const key = String(weekKey || "").slice(0, 64);
+    if (!key) return false;
+    try {
+      await api.upsertCommunityCastContribution({
+        playerId: me,
+        weekKey: key,
+        casts: Math.max(0, Math.floor(Number(casts) || 0))
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function pushCommunityDoc(doc, { rewriteShared = false } = {}) {
+    const tableWrote = await persistCommunityCastContribution(
+      doc?.weekKey,
+      state.communityContrib
+    );
+    if (tableWrote && !rewriteShared) return true;
     const payload = { ...doc, token: COMMUNITY_TOKEN };
     const api = fishingSb();
     if (api?.pushPrefer) {
@@ -1893,7 +1953,12 @@
         rewardUntil !== prevRewardUntil ||
         completedNow
       ) {
-        const pushed = await pushCommunityDoc(communityCache);
+        const rewriteShared =
+          meterKey !== prevKey ||
+          lbWave !== prevWave ||
+          rewardUntil !== prevRewardUntil ||
+          completedNow;
+        const pushed = await pushCommunityDoc(communityCache, { rewriteShared });
         if (!pushed && castAdd > 0) {
           // Keep pending so another client/session can retry the flush.
           state.communityPendingAdds = Math.max(

@@ -1709,6 +1709,73 @@
     }
   }
 
+  function sanitizeCommunityWeekKey(raw) {
+    return String(raw || "")
+      .replace(/[^a-zA-Z0-9-]/g, "")
+      .slice(0, 64);
+  }
+
+  function sanitizeCommunityCasts(raw) {
+    const n = Math.floor(Number(raw) || 0);
+    if (n < 0) return 0;
+    return Math.min(10000, n);
+  }
+
+  async function listCommunityCastContributions() {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const url = `${SUPABASE_URL}/rest/v1/community_cast_contributions?select=player_id,week_key,casts,updated_at`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase community list ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function upsertCommunityCastContribution(row) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const playerId = parseLocalPlayerId(row?.playerId);
+    const weekKey = sanitizeCommunityWeekKey(row?.weekKey);
+    if (!userId || !session?.access_token) throw new Error("supabase community needs a session");
+    if (!playerId) throw new Error("bad community player id");
+    if (!weekKey) throw new Error("bad community week key");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const casts = sanitizeCommunityCasts(row?.casts);
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/community_cast_contributions`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        player_id: playerId,
+        week_key: weekKey,
+        casts,
+        updated_at: new Date().toISOString()
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase community upsert ${res.status} ${text}`);
+    }
+  }
+
   async function getDoc(id) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -1917,6 +1984,8 @@
     upsertMatchRoomContribution,
     listFeedbackItemContributions,
     upsertFeedbackItemContribution,
+    listCommunityCastContributions,
+    upsertCommunityCastContribution,
     profile: () => {
       const raw = readSession()?.profile;
       const parsed = parseProfile(raw);

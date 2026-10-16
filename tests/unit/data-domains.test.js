@@ -356,3 +356,21 @@ test("feedback item contributions are readable by signed-in players and only wri
   );
   assert.match(sql, /revoke all on table public\.feedback_item_contributions from anon, authenticated/);
 });
+
+test("community cast contributions are readable by signed-in players and only writable by the owner", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160016_community_cast_contributions.sql"),
+    "utf8"
+  );
+  assert.match(sql, /create table if not exists public\.community_cast_contributions/);
+  assert.match(sql, /enable row level security/i);
+  assert.match(sql, /force row level security/i);
+  assert.match(sql, /community_cast_contributions_read_authenticated/);
+  assert.match(sql, /community_cast_contributions_insert_own/);
+  assert.match(sql, /community_cast_contributions_update_own/);
+  assert.match(
+    sql,
+    /grant select, insert, update, delete on table public\.community_cast_contributions to authenticated/
+  );
+  assert.match(sql, /revoke all on table public\.community_cast_contributions from anon, authenticated/);
+});

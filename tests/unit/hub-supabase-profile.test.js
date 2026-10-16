@@ -242,3 +242,11 @@ test("feedback tickets use auth-owned rows instead of rewriting the shared inbox
   assert.match(src, /async function upsertFeedbackItemContribution/);
   assert.match(src, /feedback_item_contributions/);
 });
+
+test("fishing community casts use auth-owned rows instead of rewriting the shared meter", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.match(src, /async function listCommunityCastContributions/);
+  assert.match(src, /async function upsertCommunityCastContribution/);
+  assert.match(src, /community_cast_contributions/);
+});
