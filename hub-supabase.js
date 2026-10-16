@@ -1957,6 +1957,138 @@
     }
   }
 
+  function isAdminBroadcastGift(g) {
+    if (!g || typeof g !== "object") return false;
+    if (g.broadcast) return true;
+    const toName = String(g.toName || "").toLowerCase();
+    return (
+      toName === "*" ||
+      toName === "everyone" ||
+      toName === "everybody" ||
+      toName === "all" ||
+      toName === "all players" ||
+      toName === "global" ||
+      toName === "players"
+    );
+  }
+
+  function sanitizeAdminFishGifts(gifts, playerId) {
+    const me = String(playerId || "");
+    const out = {};
+    if (!me) return out;
+    Object.entries(gifts && typeof gifts === "object" && !Array.isArray(gifts) ? gifts : {}).forEach(
+      ([key, raw]) => {
+        if (Object.keys(out).length >= 40) return;
+        if (!raw || typeof raw !== "object") return;
+        const id = String(raw.id || key || "")
+          .trim()
+          .slice(0, 64);
+        const fishId = String(raw.fishId || "").slice(0, 32);
+        const item = String(raw.item || "").slice(0, 32);
+        if (!id || (!fishId && !item)) return;
+        const fromId = String(raw.fromId || "").trim();
+        const toPlayerId = String(raw.toPlayerId || "").trim();
+        const broadcast = isAdminBroadcastGift(raw);
+        const claimedByObj =
+          raw.claimedBy && typeof raw.claimedBy === "object" && !Array.isArray(raw.claimedBy)
+            ? raw.claimedBy
+            : null;
+        const claimedMe = !!(
+          (claimedByObj && claimedByObj[me]) ||
+          String(raw.claimedBy || "").trim() === me
+        );
+        if (fromId !== me && toPlayerId !== me && !(broadcast && claimedMe)) return;
+        const claimedAt = Math.max(0, Number(raw.claimedAt) || 0);
+        out[id] = {
+          id,
+          toName: String(raw.toName || "")
+            .toLowerCase()
+            .slice(0, 48),
+          toPlayerId,
+          toDisplay: String(raw.toDisplay || "").slice(0, 48),
+          from: String(raw.from || "ICE_DRAGON").slice(0, 48),
+          fromId,
+          fishId,
+          item,
+          variant: String(raw.variant || "")
+            .toLowerCase()
+            .slice(0, 16),
+          shiny: !!raw.shiny,
+          mutation: String(raw.mutation || "")
+            .toLowerCase()
+            .slice(0, 16),
+          perfect: !!raw.perfect,
+          count: Math.min(50, Math.max(1, Math.floor(Number(raw.count) || 1))),
+          at: Math.max(0, Number(raw.at) || 0),
+          broadcast,
+          onlineOnly: !!raw.onlineOnly,
+          onlineIds: Array.isArray(raw.onlineIds) ? raw.onlineIds.map(String).slice(0, 80) : [],
+          onlineNames: Array.isArray(raw.onlineNames)
+            ? raw.onlineNames.map((name) => String(name || "").toLowerCase()).slice(0, 80)
+            : [],
+          claimed: broadcast ? false : !!raw.claimed,
+          claimedBy: broadcast
+            ? claimedByObj || {}
+            : String(raw.claimedBy || "").slice(0, 64),
+          claimedAt
+        };
+      }
+    );
+    return out;
+  }
+
+  async function listFishingGiftContributions() {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const url = `${SUPABASE_URL}/rest/v1/fishing_gift_contributions?select=player_id,gifts,updated_at`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase fishing gift list ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function upsertFishingGiftContribution(row) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const playerId = parseLocalPlayerId(row?.playerId);
+    if (!userId || !session?.access_token) throw new Error("supabase fishing gift needs a session");
+    if (!playerId) throw new Error("bad fishing gift player id");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const gifts = sanitizeAdminFishGifts(row?.gifts, playerId);
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/fishing_gift_contributions`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        player_id: playerId,
+        gifts,
+        updated_at: new Date().toISOString()
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase fishing gift upsert ${res.status} ${text}`);
+    }
+  }
+
   async function getDoc(id) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -2169,6 +2301,8 @@
     upsertCommunityCastContribution,
     listFishingMailContributions,
     upsertFishingMailContribution,
+    listFishingGiftContributions,
+    upsertFishingGiftContribution,
     profile: () => {
       const raw = readSession()?.profile;
       const parsed = parseProfile(raw);

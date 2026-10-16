@@ -258,3 +258,11 @@ test("fishing player mail uses auth-owned rows instead of rewriting the shared m
   assert.match(src, /async function upsertFishingMailContribution/);
   assert.match(src, /fishing_mail_contributions/);
 });
+
+test("fishing admin gifts use auth-owned rows instead of rewriting the shared gift board", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.match(src, /async function listFishingGiftContributions/);
+  assert.match(src, /async function upsertFishingGiftContribution/);
+  assert.match(src, /fishing_gift_contributions/);
+});

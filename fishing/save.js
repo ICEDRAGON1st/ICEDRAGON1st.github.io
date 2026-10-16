@@ -664,6 +664,156 @@
     };
   }
 
+  const ADMIN_GIFT_CAP = 40;
+  const ADMIN_BROADCAST_NAMES = new Set([
+    "*",
+    "everyone",
+    "everybody",
+    "all",
+    "all players",
+    "global",
+    "players"
+  ]);
+
+  function isAdminBroadcastGift(g) {
+    if (!g || typeof g !== "object") return false;
+    if (g.broadcast) return true;
+    return ADMIN_BROADCAST_NAMES.has(String(g.toName || "").toLowerCase());
+  }
+
+  function claimedByMap(raw, claimedAt) {
+    if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+      const out = {};
+      Object.entries(raw).forEach(([key, value]) => {
+        const id = String(key || "")
+          .trim()
+          .slice(0, 64);
+        if (!id) return;
+        out[id] = Math.max(0, Number(value) || Number(claimedAt) || 0);
+      });
+      return out;
+    }
+    const id = String(raw || "")
+      .trim()
+      .slice(0, 64);
+    if (!id) return {};
+    return { [id]: Math.max(0, Number(claimedAt) || 0) };
+  }
+
+  function mergeClaimedByMaps(a, b) {
+    const out = { ...(a || {}) };
+    Object.entries(b || {}).forEach(([key, value]) => {
+      const n = Math.max(0, Number(value) || 0);
+      if (!out[key] || n >= (Number(out[key]) || 0)) out[key] = n;
+    });
+    return out;
+  }
+
+  function cleanAdminFishGift(raw) {
+    if (!raw || typeof raw !== "object") return null;
+    const id = String(raw.id || "")
+      .trim()
+      .slice(0, 64);
+    const fishId = String(raw.fishId || "").slice(0, 32);
+    const item = String(raw.item || "").slice(0, 32);
+    if (!id || (!fishId && !item)) return null;
+    const broadcast = isAdminBroadcastGift(raw);
+    const claimedAt = Math.max(0, Number(raw.claimedAt) || 0);
+    return {
+      id,
+      toName: String(raw.toName || "")
+        .toLowerCase()
+        .slice(0, 48),
+      toPlayerId: String(raw.toPlayerId || "").trim(),
+      toDisplay: String(raw.toDisplay || "").slice(0, 48),
+      from: String(raw.from || "ICE_DRAGON").slice(0, 48),
+      fromId: String(raw.fromId || "").trim(),
+      fishId,
+      item,
+      variant: String(raw.variant || "")
+        .toLowerCase()
+        .slice(0, 16),
+      shiny: !!raw.shiny,
+      mutation: String(raw.mutation || "")
+        .toLowerCase()
+        .slice(0, 16),
+      perfect: !!raw.perfect,
+      count: Math.min(50, Math.max(1, Math.floor(Number(raw.count) || 1))),
+      at: Math.max(0, Number(raw.at) || 0),
+      broadcast,
+      onlineOnly: !!raw.onlineOnly,
+      onlineIds: Array.isArray(raw.onlineIds) ? raw.onlineIds.map(String).slice(0, 80) : [],
+      onlineNames: Array.isArray(raw.onlineNames)
+        ? raw.onlineNames.map((name) => String(name || "").toLowerCase()).slice(0, 80)
+        : [],
+      claimed: broadcast ? false : !!raw.claimed,
+      claimedBy: broadcast ? claimedByMap(raw.claimedBy, claimedAt) : String(raw.claimedBy || "").slice(0, 64),
+      claimedAt
+    };
+  }
+
+  function adminGiftInvolvesPlayer(gift, playerId) {
+    const me = String(playerId || "").trim();
+    if (!me || !gift) return false;
+    if (String(gift.toPlayerId || "") === me || String(gift.fromId || "") === me) return true;
+    if (!gift.broadcast) return false;
+    const by = claimedByMap(gift.claimedBy, gift.claimedAt);
+    return !!by[me];
+  }
+
+  function mergeAdminFishGift(a, b) {
+    if (!a) return b || null;
+    if (!b) return a;
+    const broadcast = !!(a.broadcast || b.broadcast);
+    if (broadcast) {
+      const base = (Number(a.at) || 0) >= (Number(b.at) || 0) ? a : b;
+      return {
+        ...base,
+        broadcast: true,
+        claimed: false,
+        claimedBy: mergeClaimedByMaps(claimedByMap(a.claimedBy, a.claimedAt), claimedByMap(b.claimedBy, b.claimedAt)),
+        claimedAt: Math.max(Number(a.claimedAt) || 0, Number(b.claimedAt) || 0)
+      };
+    }
+    if (a.claimed !== b.claimed) return a.claimed ? a : b;
+    return (Number(a.claimedAt || a.at) || 0) >= (Number(b.claimedAt || b.at) || 0) ? a : b;
+  }
+
+  function collectAdminFishGiftsMine(gifts, playerId) {
+    const me = String(playerId || "").trim();
+    const mine = {};
+    if (!me) return { playerId: "", gifts: {} };
+    Object.entries(gifts && typeof gifts === "object" && !Array.isArray(gifts) ? gifts : {}).forEach(
+      ([id, raw]) => {
+        const gift = cleanAdminFishGift({ ...(raw || {}), id: raw?.id || id });
+        if (!gift || !adminGiftInvolvesPlayer(gift, me)) return;
+        mine[gift.id] = gift;
+      }
+    );
+    return { playerId: me, gifts: capMailMap(mine, ADMIN_GIFT_CAP) };
+  }
+
+  function overlayAdminFishGifts(hub, rows, now = Date.now()) {
+    let gifts = { ...((hub && hub.gifts && typeof hub.gifts === "object" ? hub.gifts : {}) || {}) };
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const pid = String(row?.player_id || row?.playerId || "").trim();
+      if (!pid) return;
+      const owned = collectAdminFishGiftsMine(row?.gifts, pid);
+      Object.entries(owned.gifts || {}).forEach(([id, gift]) => {
+        gifts[id] = mergeAdminFishGift(gifts[id], gift);
+      });
+    });
+    const next = {};
+    Object.entries(gifts).forEach(([id, gift]) => {
+      if (!gift) return;
+      const at = Number(gift.at) || 0;
+      if (gift.claimed && now - (Number(gift.claimedAt) || at) > MAIL_CLAIMED_TTL_MS) return;
+      if (!gift.claimed && at && now - at > MAIL_GIFT_TTL_MS) return;
+      next[id] = gift;
+    });
+    return { token: hub?.token, gifts: next };
+  }
+
   function overlayCommunityCasts(hub, rows, weekKey) {
     const base = hub && typeof hub === "object" && !Array.isArray(hub) ? { ...hub } : {};
     const key = String(weekKey || base.weekKey || "").slice(0, 64);
@@ -704,7 +854,10 @@
     MAIL_GIFT_CAP,
     MAIL_TRADE_CAP,
     collectPlayerMailMine,
-    overlayPlayerMail
+    overlayPlayerMail,
+    ADMIN_GIFT_CAP,
+    collectAdminFishGiftsMine,
+    overlayAdminFishGifts
   };
   root.FishingSave = api;
   if (typeof module === "object" && module.exports) module.exports = api;

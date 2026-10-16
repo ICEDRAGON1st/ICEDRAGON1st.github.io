@@ -6373,6 +6373,37 @@
     } catch {}
   }
 
+  async function fetchFishGiftsTableRemote() {
+    const api = fishingSb();
+    if (!api?.listFishingGiftContributions) return null;
+    try {
+      const rows = await api.listFishingGiftContributions();
+      if (!rows) return null;
+      return Array.isArray(rows) ? rows : [];
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistFishGiftContribution(doc) {
+    const api = fishingSb();
+    if (!api?.upsertFishingGiftContribution || !fishingSaveApi.collectAdminFishGiftsMine) return false;
+    const me = api.parseLocalPlayerId
+      ? api.parseLocalPlayerId(window.HubPlays?.getPlayerId?.() || "")
+      : "";
+    if (!me) return false;
+    try {
+      const mine = fishingSaveApi.collectAdminFishGiftsMine(doc?.gifts, me);
+      await api.upsertFishingGiftContribution({
+        playerId: me,
+        gifts: mine.gifts
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async function fetchFishGiftsDoc() {
     try {
       const api = fishingSb();
@@ -6385,25 +6416,34 @@
         }
       } else {
         const res = await fetch(`${FISH_GIFTS_API}?t=${Date.now()}`, { cache: "no-store" });
-        if (res.status === 404) return { token: FISH_GIFTS_TOKEN, gifts: {} };
-        if (!res.ok) return null;
-        data = await res.json();
+        if (res.status === 404) data = { token: FISH_GIFTS_TOKEN, gifts: {} };
+        else if (!res.ok) data = null;
+        else data = await res.json();
       }
-      if (!data || typeof data !== "object") return { token: FISH_GIFTS_TOKEN, gifts: {} };
-      return {
-        token: data.token || FISH_GIFTS_TOKEN,
-        gifts: data.gifts && typeof data.gifts === "object" ? data.gifts : {}
-      };
+      if (!data || typeof data !== "object") data = { token: FISH_GIFTS_TOKEN, gifts: {} };
+      else {
+        data = {
+          token: data.token || FISH_GIFTS_TOKEN,
+          gifts: data.gifts && typeof data.gifts === "object" ? data.gifts : {}
+        };
+      }
+      const tableRows = await fetchFishGiftsTableRemote();
+      if (Array.isArray(tableRows) && fishingSaveApi.overlayAdminFishGifts) {
+        data = fishingSaveApi.overlayAdminFishGifts(data, tableRows);
+      }
+      return data;
     } catch {
       return null;
     }
   }
 
-  async function postFishGiftsDoc(doc) {
+  async function postFishGiftsDoc(doc, { rewriteShared = false } = {}) {
     const payload = {
       token: FISH_GIFTS_TOKEN,
       gifts: doc.gifts || {}
     };
+    const tableWrote = await persistFishGiftContribution(payload);
+    if (tableWrote && !rewriteShared) return true;
     const api = fishingSb();
     if (api) {
       try {
@@ -6478,6 +6518,7 @@
       toPlayerId: String(payload.toPlayerId || ""),
       toDisplay: String(payload.toDisplay || payload.toName || ""),
       from: "ICE_DRAGON",
+      fromId: String(window.HubPlays?.getPlayerId?.() || ""),
       fishId: payload.fishId,
       item: payload.item || "",
       variant: normalizeVariant(payload.variant),
@@ -6495,7 +6536,7 @@
       claimed: false,
       claimedBy
     };
-    return postFishGiftsDoc({ gifts });
+    return postFishGiftsDoc({ gifts }, { rewriteShared: true });
   }
 
   async function markFishGiftClaimed(giftId) {

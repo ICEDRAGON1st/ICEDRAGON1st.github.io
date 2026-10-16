@@ -296,3 +296,96 @@ test("player mail overlay merges owned gifts and trades without copying others o
   assert.equal(mine.trades["tr-1"].id, "tr-1");
   assert.equal(save.collectPlayerMailMine(overlaid.gifts, overlaid.trades, "p-calxxxxx").gifts["pg-1"], undefined);
 });
+
+test("fishing admin gifts use account-owned claim rows and skip the shared rewrite after success", () => {
+  const fs = require("node:fs");
+  const script = fs.readFileSync(path.resolve(__dirname, "../../fishing/script.js"), "utf8");
+  const gifts = fs.readFileSync(path.resolve(__dirname, "../../hub-fishing-gifts.js"), "utf8");
+  assert.match(script, /persistFishGiftContribution/);
+  assert.match(script, /fetchFishGiftsTableRemote/);
+  assert.match(script, /overlayAdminFishGifts/);
+  assert.match(script, /postFishGiftsDoc\(\{ gifts \}, \{ rewriteShared: true \}\)/);
+  assert.match(gifts, /persistGiftContribution/);
+  assert.match(gifts, /listFishingGiftContributions/);
+  assert.match(gifts, /if \(tableWrote && !rewriteShared\) return true/);
+});
+
+test("admin fish-gift overlay merges broadcast claims without un-claiming someone else", () => {
+  const now = 1_700_000_000_000;
+  const hub = {
+    gifts: {
+      "g-hub": {
+        id: "g-hub",
+        fromId: "p-icexxxxx",
+        broadcast: true,
+        fishId: "minnow",
+        at: now,
+        claimed: false,
+        claimedBy: {}
+      }
+    }
+  };
+  const rows = [
+    {
+      player_id: "p-adaxxxxx",
+      gifts: {
+        "g-hub": {
+          id: "g-hub",
+          fromId: "p-icexxxxx",
+          broadcast: true,
+          fishId: "minnow",
+          at: now,
+          claimedBy: { "p-adaxxxxx": now + 2 }
+        }
+      }
+    },
+    {
+      player_id: "p-beaxxxxx",
+      gifts: {
+        "g-hub": {
+          id: "g-hub",
+          fromId: "p-icexxxxx",
+          broadcast: true,
+          fishId: "minnow",
+          at: now,
+          claimedBy: { "p-beaxxxxx": now + 4 }
+        },
+        "g-bea": {
+          id: "g-bea",
+          fromId: "p-icexxxxx",
+          toPlayerId: "p-beaxxxxx",
+          fishId: "shark",
+          at: now,
+          claimed: true,
+          claimedBy: "p-beaxxxxx",
+          claimedAt: now + 3
+        }
+      }
+    },
+    {
+      player_id: "",
+      gifts: {
+        "g-skip": {
+          id: "g-skip",
+          fromId: "p-icexxxxx",
+          toPlayerId: "p-adaxxxxx",
+          fishId: "tuna",
+          at: now
+        }
+      }
+    }
+  ];
+  const overlaid = save.overlayAdminFishGifts(hub, rows, now);
+  assert.equal(overlaid.gifts["g-hub"].claimed, false);
+  assert.equal(overlaid.gifts["g-hub"].claimedBy["p-adaxxxxx"], now + 2);
+  assert.equal(overlaid.gifts["g-hub"].claimedBy["p-beaxxxxx"], now + 4);
+  assert.equal(overlaid.gifts["g-bea"].claimed, true);
+  assert.equal(overlaid.gifts["g-skip"], undefined);
+
+  const ada = save.collectAdminFishGiftsMine(overlaid.gifts, "p-adaxxxxx");
+  assert.equal(ada.gifts["g-hub"].id, "g-hub");
+  assert.equal(ada.gifts["g-bea"], undefined);
+  const ice = save.collectAdminFishGiftsMine(overlaid.gifts, "p-icexxxxx");
+  assert.equal(ice.gifts["g-hub"].id, "g-hub");
+  assert.equal(ice.gifts["g-bea"].id, "g-bea");
+});

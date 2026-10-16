@@ -213,6 +213,42 @@
     return count;
   }
 
+  function giftSaveApi() {
+    return window.FishingSave && typeof FishingSave.overlayAdminFishGifts === "function"
+      ? FishingSave
+      : null;
+  }
+
+  async function fetchGiftTableRemote() {
+    const api = sb();
+    if (!api?.listFishingGiftContributions) return null;
+    try {
+      const rows = await api.listFishingGiftContributions();
+      if (!rows) return null;
+      return Array.isArray(rows) ? rows : [];
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistGiftContribution(gifts) {
+    const api = sb();
+    const helper = giftSaveApi();
+    if (!api?.upsertFishingGiftContribution || !helper?.collectAdminFishGiftsMine) return false;
+    const me = api.parseLocalPlayerId ? api.parseLocalPlayerId(playerId()) : "";
+    if (!me) return false;
+    try {
+      const mine = helper.collectAdminFishGiftsMine(gifts, me);
+      await api.upsertFishingGiftContribution({
+        playerId: me,
+        gifts: mine.gifts
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async function fetchDoc() {
     try {
       const api = sb();
@@ -225,22 +261,32 @@
         }
       } else {
         const res = await fetch(`${API}?t=${Date.now()}`, { cache: "no-store" });
-        if (res.status === 404) return { token: TOKEN, gifts: {} };
-        if (!res.ok) return null;
-        data = await res.json();
+        if (res.status === 404) data = { token: TOKEN, gifts: {} };
+        else if (!res.ok) return null;
+        else data = await res.json();
       }
-      if (!data || typeof data !== "object") return { token: TOKEN, gifts: {} };
-      return {
-        token: data.token || TOKEN,
-        gifts: data.gifts && typeof data.gifts === "object" ? data.gifts : {}
-      };
+      if (!data || typeof data !== "object") data = { token: TOKEN, gifts: {} };
+      else {
+        data = {
+          token: data.token || TOKEN,
+          gifts: data.gifts && typeof data.gifts === "object" ? data.gifts : {}
+        };
+      }
+      const tableRows = await fetchGiftTableRemote();
+      const helper = giftSaveApi();
+      if (Array.isArray(tableRows) && helper?.overlayAdminFishGifts) {
+        data = helper.overlayAdminFishGifts(data, tableRows);
+      }
+      return data;
     } catch {
       return null;
     }
   }
 
-  async function postDoc(gifts) {
+  async function postDoc(gifts, { rewriteShared = false } = {}) {
     const payload = { token: TOKEN, gifts };
+    const tableWrote = await persistGiftContribution(gifts);
+    if (tableWrote && !rewriteShared) return true;
     try {
       const api = sb();
       if (api) {
