@@ -819,7 +819,16 @@
   }
 
   /**
-   * Read Supabase first. Falls back to Mantle only if Supabase fails or the row is missing.
+   * After a successful account-server read, skip the old backup GET.
+   * Keep that backup read only when the account-server row is missing.
+   * Account-server errors must not mix a stale backup map into a later save.
+   */
+  function shouldReadMantleBackup(supabaseHit) {
+    return !supabaseHit;
+  }
+
+  /**
+   * Read Supabase first. Falls back to Mantle only if the row is missing.
    * Empty objects from Supabase count as a hit (no Mantle round-trip).
    */
   async function getPrefer(docId, mantleUrl) {
@@ -834,8 +843,9 @@
     } catch (err) {
       if (err && err.hubNetBlocked) throw err;
       console.warn("[HubSupabase] getPrefer", docId, err);
+      throw err;
     }
-    if (!mantleUrl) return null;
+    if (!shouldReadMantleBackup(false) || !mantleUrl) return null;
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
       err.hubNetBlocked = true;
@@ -904,6 +914,7 @@
     upsertAdminDoc,
     getPrefer,
     pushPrefer,
+    shouldReadMantleBackup,
     shouldWriteMantleBackup,
     ensureSession,
     parseProfile,

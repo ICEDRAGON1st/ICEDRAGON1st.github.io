@@ -104,6 +104,15 @@ test("shared docs skip the old backup write after a successful account-server sa
   assert.match(src, /shouldWriteMantleBackup\(wrote\)/);
 });
 
+test("shared docs skip the old backup read when the account server errors", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.equal(supabase.shouldReadMantleBackup(true), false);
+  assert.equal(supabase.shouldReadMantleBackup(false), true);
+  assert.match(src, /shouldReadMantleBackup\(false\)/);
+  assert.match(src, /console\.warn\("\[HubSupabase\] getPrefer", docId, err\);\s*throw err;/);
+});
+
 test("locked admin docs use the trusted RPC instead of a direct hub_docs upsert", () => {
   const fs = require("node:fs");
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");

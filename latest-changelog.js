@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015bq",
+  "build": "20261015br",
   "notes": [
-    "Your unique nickname now also lives on your signed-in account, so another device keeps the same name without taking someone else's."
+    "Shared lists now stay on the account server when that server is busy, instead of mixing in an older backup that could wipe names or scores."
   ]
 };
