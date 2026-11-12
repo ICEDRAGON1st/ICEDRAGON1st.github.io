@@ -14,6 +14,8 @@ test("owned invite status lives in a helper used by referrals", () => {
   assert.match(ui, /window\.HubReferralsMine/);
   assert.match(ui, /persistMine/);
   assert.match(ui, /pullMine/);
+  assert.match(ui, /identity\?\.persistOwnedSave/);
+  assert.match(ui, /identity\?\.readOwnedSave/);
   assert.match(ui, /persistReferralContribution/);
   assert.match(ui, /fetchReferralTableRemote/);
   assert.match(ui, /if \(tableWrote\) \{\s*rememberDoc\(doc\);\s*referralsHydrated = true;\s*return true;/);

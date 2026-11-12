@@ -232,10 +232,16 @@
   async function pushBagCloud(api, playerId, bag) {
     if (!api || !bag) return false;
     const key = bagSaveKey(playerId);
-    if (key && typeof api.upsertSave === "function") {
+    const identity = typeof HubIdentity !== "undefined" ? HubIdentity : null;
+    if (key) {
       try {
-        await api.upsertSave(key, bag, 1);
-        return true;
+        if (identity?.persistOwnedSave) {
+          const ok = await identity.persistOwnedSave(api, key, bag);
+          if (ok) return true;
+        } else if (typeof api.upsertSave === "function") {
+          await api.upsertSave(key, bag, 1);
+          return true;
+        }
       } catch (err) {
         console.warn("[HubAccountBag] player_saves upsert failed", err);
       }
@@ -934,9 +940,15 @@
     try {
       let owned = null;
       const key = bagSaveKey(id);
-      if (key && typeof api.getSave === "function") {
+      if (key) {
         try {
-          owned = asBag(id, await api.getSave(key));
+          const identity = typeof HubIdentity !== "undefined" ? HubIdentity : null;
+          const raw = identity?.readOwnedSave
+            ? await identity.readOwnedSave(api, key)
+            : typeof api.getSave === "function"
+              ? await api.getSave(key)
+              : null;
+          owned = asBag(id, raw);
         } catch (err) {
           console.warn("[HubAccountBag] player_saves pull failed", err);
         }

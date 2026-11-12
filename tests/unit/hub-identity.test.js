@@ -722,8 +722,31 @@ test("identity password, code, and reservation remotes skip leftover shared boar
 test("owned signed-in backups skip leftover shared boards", async () => {
   const fs = require("node:fs");
   const plays = fs.readFileSync(path.join(__dirname, "../../hub-plays.js"), "utf8");
+  const leaderboard = fs.readFileSync(path.join(__dirname, "../../hub-leaderboard.js"), "utf8");
+  const feedback = fs.readFileSync(path.join(__dirname, "../../hub-feedback.js"), "utf8");
+  const friends = fs.readFileSync(path.join(__dirname, "../../hub-friends.js"), "utf8");
+  const chat = fs.readFileSync(path.join(__dirname, "../../hub-chat.js"), "utf8");
+  const callUi = fs.readFileSync(path.join(__dirname, "../../hub-calls.js"), "utf8");
+  const match = fs.readFileSync(path.join(__dirname, "../../hub-online-match.js"), "utf8");
+  const referrals = fs.readFileSync(path.join(__dirname, "../../hub-referrals.js"), "utf8");
+  const notes = fs.readFileSync(path.join(__dirname, "../../hub-notifications.js"), "utf8");
+  const bags = fs.readFileSync(path.join(__dirname, "../../hub-account-bag.js"), "utf8");
   assert.match(plays, /identity\.persistOwnedSave/);
   assert.match(plays, /identity\.readOwnedSave/);
+  assert.match(leaderboard, /identity\?\.persistOwnedSave/);
+  assert.match(leaderboard, /listLeaderboardPbContributions/);
+  assert.doesNotMatch(
+    leaderboard.slice(leaderboard.indexOf("function supabaseReady"), leaderboard.indexOf("try {")),
+    /getDoc|upsertDoc/
+  );
+  assert.match(feedback, /identity\?\.persistOwnedSave/);
+  assert.match(friends, /identity\?\.persistOwnedSave/);
+  assert.match(chat, /identity\?\.persistOwnedSave/);
+  assert.match(callUi, /identity\?\.persistOwnedSave/);
+  assert.match(match, /identity\?\.persistOwnedSave/);
+  assert.match(referrals, /identity\?\.persistOwnedSave/);
+  assert.match(notes, /identity\?\.persistOwnedSave/);
+  assert.match(bags, /identity\?\.persistOwnedSave/);
   const mineSrc = plays.slice(
     plays.indexOf("async function persistPlaysMine"),
     plays.indexOf("function normalizePasswordInput")

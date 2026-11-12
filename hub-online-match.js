@@ -219,9 +219,14 @@
     const helper = mineApi();
     const api = sb();
     const me = getPlayerId();
-    if (!helper || !api?.upsertSave || !me) return;
+    const identity = window.HubIdentity;
+    if (!helper || !me) return;
     try {
-      await api.upsertSave(helper.SAVE_KEY, helper.collectMine(cache, me), 1);
+      if (identity?.persistOwnedSave) {
+        await identity.persistOwnedSave(api, helper.SAVE_KEY, helper.collectMine(cache, me));
+      } else if (api?.upsertSave) {
+        await api.upsertSave(helper.SAVE_KEY, helper.collectMine(cache, me), 1);
+      }
     } catch (err) {
       console.warn("[HubOnlineMatch] player_saves match write failed", err);
     }
@@ -231,9 +236,15 @@
     const helper = mineApi();
     const api = sb();
     const me = getPlayerId();
-    if (!helper || !api?.getSave || !me) return data;
+    const identity = window.HubIdentity;
+    const read = identity?.readOwnedSave
+      ? (key) => identity.readOwnedSave(api, key)
+      : api?.getSave
+        ? (key) => api.getSave(key)
+        : null;
+    if (!helper || !read || !me) return data;
     try {
-      const raw = await api.getSave(helper.SAVE_KEY);
+      const raw = await read(helper.SAVE_KEY);
       const mine = helper.readMine(raw);
       if (!mine || !Object.keys(mine.rooms || {}).length) return data;
       return helper.applyMine(data, mine, me);

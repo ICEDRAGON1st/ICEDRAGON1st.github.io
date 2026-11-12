@@ -23,6 +23,8 @@ test("personal bests live in a helper used by the shared board", () => {
   assert.match(ui, /window\.HubLeaderboardPbs/);
   assert.match(ui, /persistMyPbs/);
   assert.match(ui, /pullMyPbs/);
+  assert.match(ui, /identity\?\.persistOwnedSave/);
+  assert.match(ui, /identity\?\.readOwnedSave/);
   assert.match(ui, /persistLeaderboardPbContribution/);
   assert.match(ui, /fetchLeaderboardTableRemote/);
   assert.match(ui, /fetchLeaderboardResetsRemote/);

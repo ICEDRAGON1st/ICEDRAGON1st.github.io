@@ -143,14 +143,16 @@
     const helper = mineApi();
     const api = sb();
     const me = myPlayerId();
-    if (!helper || !api?.upsertSave || !me) return;
+    const identity = window.HubIdentity;
+    if (!helper || !me) return;
     const local = readLocalStatus();
+    const snapshot = helper.collectMine({ ...local, credited: alreadyCreditedSelf() }, me);
     try {
-      await api.upsertSave(
-        helper.SAVE_KEY,
-        helper.collectMine({ ...local, credited: alreadyCreditedSelf() }, me),
-        1
-      );
+      if (identity?.persistOwnedSave) {
+        await identity.persistOwnedSave(api, helper.SAVE_KEY, snapshot);
+      } else if (api?.upsertSave) {
+        await api.upsertSave(helper.SAVE_KEY, snapshot, 1);
+      }
     } catch (err) {
       console.warn("[HubReferrals] player_saves invite write failed", err);
     }
@@ -160,9 +162,15 @@
     const helper = mineApi();
     const api = sb();
     const me = myPlayerId();
-    if (!helper || !api?.getSave || !me) return;
+    const identity = window.HubIdentity;
+    const read = identity?.readOwnedSave
+      ? (key) => identity.readOwnedSave(api, key)
+      : api?.getSave
+        ? (key) => api.getSave(key)
+        : null;
+    if (!helper || !read || !me) return;
     try {
-      const raw = await api.getSave(helper.SAVE_KEY);
+      const raw = await read(helper.SAVE_KEY);
       const local = readLocalStatus();
       const next = helper.applyMine(
         { ...local, credited: alreadyCreditedSelf() },

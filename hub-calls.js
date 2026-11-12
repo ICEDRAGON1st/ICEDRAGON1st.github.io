@@ -343,11 +343,16 @@
   async function persistCallsMine(rooms) {
     const api = sb();
     const me = playerId();
-    if (!signal.collectMine || !api?.upsertSave || !me) return;
+    const identity = window.HubIdentity;
+    if (!signal.collectMine || !me) return;
     const snapshot = signal.collectMine(rooms, me);
     if (!Object.keys(snapshot.rooms || {}).length) return;
     try {
-      await api.upsertSave(signal.SAVE_KEY || "calls-mine", snapshot, 1);
+      if (identity?.persistOwnedSave) {
+        await identity.persistOwnedSave(api, signal.SAVE_KEY || "calls-mine", snapshot);
+      } else if (api?.upsertSave) {
+        await api.upsertSave(signal.SAVE_KEY || "calls-mine", snapshot, 1);
+      }
     } catch (err) {
       console.warn("[HubCalls] player_saves write failed", err);
     }
@@ -356,9 +361,15 @@
   async function pullCallsMine() {
     const api = sb();
     const me = playerId();
-    if (!signal.applyMine || !api?.getSave || !me) return;
+    const identity = window.HubIdentity;
+    const read = identity?.readOwnedSave
+      ? (key) => identity.readOwnedSave(api, key)
+      : api?.getSave
+        ? (key) => api.getSave(key)
+        : null;
+    if (!signal.applyMine || !read || !me) return;
     try {
-      const raw = await api.getSave(signal.SAVE_KEY || "calls-mine");
+      const raw = await read(signal.SAVE_KEY || "calls-mine");
       const before = Object.keys(cache.rooms || {}).length;
       const next = signal.applyMine(cache.rooms, raw, me);
       if (Object.keys(next).length < before) return;

@@ -47,10 +47,19 @@
     const helper = mineApi();
     const api = sb();
     const me = getPlayerId();
-    if (!helper || !api?.upsertSave || !me) return;
+    const identity = window.HubIdentity;
+    if (!helper || !me) return;
     const mineItems = (cache.items || []).filter((item) => String(item.fromId || "") === me);
     try {
-      await api.upsertSave(helper.SAVE_KEY, helper.collectMine(mineItems, loadPendingIds(), me), 1);
+      if (identity?.persistOwnedSave) {
+        await identity.persistOwnedSave(
+          api,
+          helper.SAVE_KEY,
+          helper.collectMine(mineItems, loadPendingIds(), me)
+        );
+      } else if (api?.upsertSave) {
+        await api.upsertSave(helper.SAVE_KEY, helper.collectMine(mineItems, loadPendingIds(), me), 1);
+      }
     } catch (err) {
       console.warn("[HubFeedback] player_saves feedback write failed", err);
     }
@@ -60,9 +69,15 @@
     const helper = mineApi();
     const api = sb();
     const me = getPlayerId();
-    if (!helper || !api?.getSave || !me) return;
+    const identity = window.HubIdentity;
+    const read = identity?.readOwnedSave
+      ? (key) => identity.readOwnedSave(api, key)
+      : api?.getSave
+        ? (key) => api.getSave(key)
+        : null;
+    if (!helper || !read || !me) return;
     try {
-      const raw = await api.getSave(helper.SAVE_KEY);
+      const raw = await read(helper.SAVE_KEY);
       const mineItems = (cache.items || []).filter((item) => String(item.fromId || "") === me);
       const next = helper.applyMine(mineItems, loadPendingIds(), helper.readMine(raw));
       cache = { items: mergeItems(cache.items, next.items) };

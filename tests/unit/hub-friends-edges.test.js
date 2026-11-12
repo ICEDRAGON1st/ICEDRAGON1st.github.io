@@ -15,6 +15,8 @@ test("friend edges live in a helper used by the shared friends board", () => {
   assert.match(ui, /window\.HubFriendsEdges/);
   assert.match(ui, /persistMyEdges/);
   assert.match(ui, /pullMyEdges/);
+  assert.match(ui, /identity\?\.persistOwnedSave/);
+  assert.match(ui, /identity\?\.readOwnedSave/);
   assert.match(ui, /persistFriendEdgeContribution/);
   assert.match(ui, /fetchFriendsTableRemote/);
   assert.doesNotMatch(

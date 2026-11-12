@@ -22,6 +22,8 @@ test("owned feedback lives in a helper used by the Feedback panel", () => {
   assert.match(ui, /window\.HubFeedbackMine/);
   assert.match(ui, /persistMine/);
   assert.match(ui, /pullMine/);
+  assert.match(ui, /identity\?\.persistOwnedSave/);
+  assert.match(ui, /identity\?\.readOwnedSave/);
   assert.match(ui, /persistFeedbackItemContribution/);
   assert.match(ui, /fetchFeedbackTableRemote/);
   assert.match(ui, /fetchFeedbackDeletesRemote/);

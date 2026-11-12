@@ -16,6 +16,8 @@ test("owned match rooms live in a helper used by the shared room board", () => {
   assert.match(ui, /window\.HubOnlineMatchMine/);
   assert.match(ui, /persistMyRooms/);
   assert.match(ui, /pullMyRooms/);
+  assert.match(ui, /identity\?\.persistOwnedSave/);
+  assert.match(ui, /identity\?\.readOwnedSave/);
   assert.match(ui, /persistMatchRoomContribution/);
   assert.match(ui, /fetchMatchTableRemote/);
   assert.doesNotMatch(

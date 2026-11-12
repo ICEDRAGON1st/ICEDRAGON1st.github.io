@@ -250,6 +250,19 @@ test("contracted leftover boards skip hub_docs on the client after meter and Pap
   assert.doesNotMatch(upsertDocSrc, /rest\/v1\/hub_docs|hubFetch/);
 });
 
+test("ICE leftover wipe tools skip leftover shared boards", () => {
+  for (const relative of [
+    "tools/wipe-mine-leaderboard-remote.js",
+    "tools/wipe-mine-leaderboard-hard.js",
+    "tools/fix-popularity-fishing-top.js"
+  ]) {
+    const src = fs.readFileSync(path.join(ROOT, relative), "utf8");
+    assert.match(src, /leftover-locked/);
+    assert.doesNotMatch(src, /hub_docs/);
+    assert.doesNotMatch(src, /rest\/v1/);
+  }
+});
+
 test("contracted leftover boards cannot be rewritten on hub_docs", () => {
   const sql = fs.readFileSync(
     path.join(ROOT, "supabase/migrations/202610160049_lock_contracted_hub_docs.sql"),

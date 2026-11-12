@@ -2782,12 +2782,17 @@
 
   async function persistAquaMine(tank) {
     const api = fishingSb();
-    if (!api?.upsertSave || !fishingSaveApi.collectAquaMine) return;
+    const identity = window.HubIdentity;
+    if (!fishingSaveApi.collectAquaMine) return;
     const id = String(tank?.playerId || mailMyId() || "").trim();
     const mine = fishingSaveApi.collectAquaMine(tank, id);
     if (!mine) return;
     try {
-      await api.upsertSave(fishingSaveApi.AQUA_MINE_KEY || "aqua-mine", mine, 1);
+      if (identity?.persistOwnedSave) {
+        await identity.persistOwnedSave(api, fishingSaveApi.AQUA_MINE_KEY || "aqua-mine", mine);
+      } else if (api?.upsertSave) {
+        await api.upsertSave(fishingSaveApi.AQUA_MINE_KEY || "aqua-mine", mine, 1);
+      }
     } catch (err) {
       console.warn("[aqua-mine] player_saves write failed", err);
     }
@@ -2796,11 +2801,15 @@
   async function pullAquaMine() {
     const api = fishingSb();
     const me = String(mailMyId() || "").trim();
-    if (!api?.getSave || !fishingSaveApi.readAquaMine || !me) return null;
+    const identity = window.HubIdentity;
+    const read = identity?.readOwnedSave
+      ? (key) => identity.readOwnedSave(api, key)
+      : api?.getSave
+        ? (key) => api.getSave(key)
+        : null;
+    if (!read || !fishingSaveApi.readAquaMine || !me) return null;
     try {
-      return fishingSaveApi.readAquaMine(
-        await api.getSave(fishingSaveApi.AQUA_MINE_KEY || "aqua-mine")
-      );
+      return fishingSaveApi.readAquaMine(await read(fishingSaveApi.AQUA_MINE_KEY || "aqua-mine"));
     } catch (err) {
       console.warn("[aqua-mine] player_saves read failed", err);
       return null;

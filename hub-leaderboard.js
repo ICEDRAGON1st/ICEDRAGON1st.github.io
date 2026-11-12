@@ -17,7 +17,12 @@
   const ADMIN_RESETS_TOKEN = "ice-hub-admin-9f3a";
 
   function supabaseReady() {
-    return !!(window.HubSupabase && HubSupabase.ready && HubSupabase.getDoc && HubSupabase.upsertDoc);
+    return !!(
+      window.HubSupabase &&
+      HubSupabase.ready &&
+      HubSupabase.listLeaderboardPbContributions &&
+      HubSupabase.listReferralContributions
+    );
   }
 
   // One-time: clear local Ramp Rush high score for everyone (leaderboard wipe companion).
@@ -215,9 +220,14 @@
   async function persistMyPbs() {
     const helper = pbsApi();
     const api = window.HubSupabase;
-    if (!helper || !api?.upsertSave) return;
+    const identity = window.HubIdentity;
+    if (!helper) return;
     try {
-      await api.upsertSave(helper.SAVE_KEY, helper.collectMine(cache.games, entryBelongsToMe), 1);
+      if (identity?.persistOwnedSave) {
+        await identity.persistOwnedSave(api, helper.SAVE_KEY, helper.collectMine(cache.games, entryBelongsToMe));
+      } else if (api?.upsertSave) {
+        await api.upsertSave(helper.SAVE_KEY, helper.collectMine(cache.games, entryBelongsToMe), 1);
+      }
     } catch (err) {
       console.warn("[HubLeaderboard] player_saves personal-best write failed", err);
     }
@@ -265,9 +275,16 @@
   async function pullMyPbs(merged) {
     const helper = pbsApi();
     const api = window.HubSupabase;
-    if (!helper || !api?.getSave) return merged;
+    const identity = window.HubIdentity;
+    if (!helper) return merged;
+    const read = identity?.readOwnedSave
+      ? (key) => identity.readOwnedSave(api, key)
+      : api?.getSave
+        ? (key) => api.getSave(key)
+        : null;
+    if (!read) return merged;
     try {
-      const raw = await api.getSave(helper.SAVE_KEY);
+      const raw = await read(helper.SAVE_KEY);
       const pbs = helper.readPbs(raw);
       if (!pbs || !Object.keys(pbs.games || {}).length) return merged;
       return applyResets({

@@ -15,6 +15,8 @@ test("owned notification inbox lives in a helper used by the local bell", () => 
   assert.match(ui, /window\.HubNotificationsMine/);
   assert.match(ui, /persistMyNotes/);
   assert.match(ui, /pullMyNotes/);
+  assert.match(ui, /identity\?\.persistOwnedSave/);
+  assert.match(ui, /identity\?\.readOwnedSave/);
   assert.match(chat, /hub-notifications-mine\.js/);
   assert.match(index, /hub-notifications-mine\.js/);
   assert.equal(mine.SAVE_KEY, "notify-mine");

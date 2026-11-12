@@ -297,6 +297,8 @@ test("account bags prefer player_saves and skip the shared document after a succ
     src.slice(src.indexOf("async function pushBagCloud"), src.indexOf("function isMineBagKey")),
     /upsertDoc/
   );
+  assert.match(src, /identity\?\.persistOwnedSave/);
+  assert.match(src, /identity\?\.readOwnedSave/);
   assert.doesNotMatch(
     src.slice(src.indexOf("async function pullRemote"), src.indexOf("async function pullAndApply")),
     /getDoc/

@@ -63,6 +63,8 @@ test("DM rooms, hang-up merges, and stale rooms stay deterministic", () => {
 test("owned call rooms dual-write without copying others or shrinking the shared board", () => {
   const ui = fs.readFileSync(path.join(ROOT, "hub-calls.js"), "utf8");
   assert.match(ui, /persistCallsMine/);
+  assert.match(ui, /identity\?\.persistOwnedSave/);
+  assert.match(ui, /identity\?\.readOwnedSave/);
   assert.match(ui, /pullCallsMine/);
   assert.match(ui, /persistCallSignalContribution/);
   assert.match(ui, /fetchCallTableRemote/);

@@ -262,9 +262,14 @@
   async function persistMyNotes() {
     const helper = mineApi();
     const api = window.HubSupabase;
-    if (!helper || !api?.upsertSave) return;
+    const identity = window.HubIdentity;
+    if (!helper) return;
     try {
-      await api.upsertSave(helper.SAVE_KEY, helper.collectMine(items, seenAt, getPlayerId()), 1);
+      if (identity?.persistOwnedSave) {
+        await identity.persistOwnedSave(api, helper.SAVE_KEY, helper.collectMine(items, seenAt, getPlayerId()));
+      } else if (api?.upsertSave) {
+        await api.upsertSave(helper.SAVE_KEY, helper.collectMine(items, seenAt, getPlayerId()), 1);
+      }
     } catch (err) {
       console.warn("[HubNotifications] player_saves inbox write failed", err);
     }
@@ -273,9 +278,15 @@
   async function pullMyNotes() {
     const helper = mineApi();
     const api = window.HubSupabase;
-    if (!helper || !api?.getSave) return;
+    const identity = window.HubIdentity;
+    const read = identity?.readOwnedSave
+      ? (key) => identity.readOwnedSave(api, key)
+      : api?.getSave
+        ? (key) => api.getSave(key)
+        : null;
+    if (!helper || !read) return;
     try {
-      const raw = await api.getSave(helper.SAVE_KEY);
+      const raw = await read(helper.SAVE_KEY);
       const next = helper.applyMine(items, seenAt, helper.readMine(raw));
       items = next.items;
       seenAt = next.seenAt;

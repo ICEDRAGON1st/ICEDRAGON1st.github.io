@@ -105,6 +105,8 @@ test("owned aquarium row dual-writes without copying others or shrinking shared 
   const script = fs.readFileSync(path.resolve(__dirname, "../../fishing/script.js"), "utf8");
   assert.match(script, /persistAquaMine/);
   assert.match(script, /pullAquaMine/);
+  assert.match(script, /identity\?\.persistOwnedSave/);
+  assert.match(script, /identity\?\.readOwnedSave/);
   assert.match(script, /canPostSharedAqua/);
   assert.match(script, /if \(!canPost\) return;/);
   assert.doesNotMatch(
