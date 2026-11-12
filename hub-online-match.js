@@ -130,35 +130,33 @@
     }
   }
 
-  async function fetchRemote() {
-    let parsed = { rooms: {} };
-    let fetched = false;
+  function matchLiveJoined() {
     try {
-      const api = sb();
-      const data = api?.getPrefer ? await api.getPrefer(DOC_ID) : null;
-      if (data && typeof data === "object") {
-        parsed = { rooms: data.rooms && typeof data.rooms === "object" ? data.rooms : {} };
-        fetched = true;
-      }
+      return !!sb()?.isRealtimeJoined?.("match_room_contributions");
     } catch {
-      parsed = { rooms: {} };
+      return false;
+    }
+  }
+
+  async function fetchRemote() {
+    if (matchLiveJoined()) {
+      return cache && cache.rooms && typeof cache.rooms === "object" ? cache : { rooms: {} };
     }
     const tableRemote = await fetchMatchTableRemote();
     if (tableRemote) {
-      parsed = { rooms: mergeRooms(parsed.rooms, tableRemote.rooms) };
-      fetched = true;
+      const current = cache && cache.rooms && typeof cache.rooms === "object" ? cache : { rooms: {} };
+      return { rooms: mergeRooms(current.rooms, tableRemote.rooms) };
     }
-    if (!fetched) throw new Error("matches-unavailable");
-    return parsed;
+    if (cache && cache.rooms && typeof cache.rooms === "object" && Object.keys(cache.rooms).length) {
+      return cache;
+    }
+    throw new Error("matches-unavailable");
   }
 
-  async function pushRemote(next, opts) {
+  async function pushRemote(next) {
     const tableWrote = await persistMatchRoomContribution(next);
-    if (tableWrote && !(opts && opts.rewriteShared)) return;
-    if (opts && opts.skipShared) return;
-    const api = sb();
-    if (!api?.pushPrefer) throw new Error("account-server-unavailable");
-    await api.pushPrefer(DOC_ID, next);
+    if (tableWrote) return;
+    throw new Error("matches-unavailable");
   }
 
   function pruneRooms(rooms) {
@@ -250,14 +248,12 @@
       let last = null;
       for (let attempt = 0; attempt < MUTATE_RETRIES; attempt += 1) {
         let remote = cache;
-        let fetched = true;
-        const joined = !!sb()?.isRealtimeJoined?.("match_room_contributions");
+        const joined = matchLiveJoined();
         if (!joined) {
           try {
             remote = await fetchRemote();
           } catch {
             remote = cache;
-            fetched = false;
           }
         }
         const base = await pullMyRooms({ rooms: mergeRooms(cache.rooms, remote.rooms) });
@@ -265,7 +261,7 @@
         if (!next) return null;
         saveLocal(next);
         try {
-          await pushRemote(next, { skipShared: !fetched || joined });
+          await pushRemote(next);
         } catch {
           await persistMyRooms();
           // Keep local optimistic state; retry merge next loop / poll.
@@ -706,7 +702,7 @@
       } else {
         ensureMatchRealtime();
       }
-      if (!sb()?.isRealtimeJoined?.("match_room_contributions")) {
+      if (!matchLiveJoined()) {
         const remote = await fetchRemote();
         const merged = await pullMyRooms({ rooms: mergeRooms(cache.rooms, remote.rooms) });
         saveLocal(merged);

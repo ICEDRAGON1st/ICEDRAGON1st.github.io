@@ -18,7 +18,20 @@ test("owned match rooms live in a helper used by the shared room board", () => {
   assert.match(ui, /pullMyRooms/);
   assert.match(ui, /persistMatchRoomContribution/);
   assert.match(ui, /fetchMatchTableRemote/);
-  assert.match(ui, /skipShared: !fetched/);
+  assert.doesNotMatch(
+    ui.slice(
+      ui.indexOf("async function fetchRemote"),
+      ui.indexOf("async function pushRemote")
+    ),
+    /getPrefer/
+  );
+  assert.doesNotMatch(
+    ui.slice(
+      ui.indexOf("async function pushRemote"),
+      ui.indexOf("function pruneRooms")
+    ),
+    /pushPrefer/
+  );
   assert.match(index, /hub-online-match-mine\.js/);
   assert.match(ttt, /hub-online-match-mine\.js/);
   assert.match(c4, /hub-online-match-mine\.js/);
@@ -119,7 +132,7 @@ test("match live rows subscribe without rewriting the shared board", () => {
   assert.match(ui, /applyMatchRealtime/);
   assert.match(ui, /subscribeMatchRoomContributions/);
   assert.match(ui, /isRealtimeJoined\?\.\("match_room_contributions"\)/);
-  assert.match(ui, /skipShared: !fetched \|\| joined/);
+  assert.match(ui, /function matchLiveJoined/);
   assert.doesNotMatch(
     ui.slice(ui.indexOf("function applyMatchRealtime"), ui.indexOf("function stopMatchRealtime")),
     /persistMatchRoomContribution|pushPrefer|fetchRemote/
