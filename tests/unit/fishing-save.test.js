@@ -451,6 +451,13 @@ test("fishing admin gifts use account-owned claim rows and skip the shared rewri
   const fs = require("node:fs");
   const script = fs.readFileSync(path.resolve(__dirname, "../../fishing/script.js"), "utf8");
   const gifts = fs.readFileSync(path.resolve(__dirname, "../../hub-fishing-gifts.js"), "utf8");
+  assert.match(
+    script.slice(
+      script.indexOf("async function lookupPlayerForGift"),
+      script.indexOf("async function queueFishGift")
+    ),
+    /listNicknameClaims/
+  );
   assert.match(script, /persistFishGiftContribution/);
   assert.match(script, /fetchFishGiftsTableRemote/);
   assert.match(script, /overlayAdminFishGifts/);

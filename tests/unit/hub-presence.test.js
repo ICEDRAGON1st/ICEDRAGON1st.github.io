@@ -49,7 +49,7 @@ test("presence table rows map to the shared online list without dropping other p
   const plays = fs.readFileSync(path.resolve(__dirname, "../../hub-plays.js"), "utf8");
   assert.match(plays, /persistPresencePing/);
   assert.match(plays, /fetchPresenceTableRemote/);
-  assert.match(plays, /if \(!tableWrote\) await pushPresenceRemote/);
+  assert.match(plays, /if \(!tableWrote && !playsLiveJoined\("presence_pings"\)\) await pushPresenceRemote/);
   assert.equal(typeof presence.rowsToMap, "function");
 
   const mapped = presence.rowsToMap([
@@ -80,6 +80,7 @@ test("presence realtime merges a live ping without dropping other players", () =
   const hub = fs.readFileSync(path.resolve(__dirname, "../../script.js"), "utf8");
   assert.match(plays, /ensurePresenceRealtime/);
   assert.match(plays, /applyPresenceRealtime/);
+  assert.match(plays, /playsLiveJoined\("presence_pings"\)/);
   assert.match(plays, /hub-plays-presence/);
   assert.match(plays, /stopPresenceRealtime\(\);/);
   assert.doesNotMatch(

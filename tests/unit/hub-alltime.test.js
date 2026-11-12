@@ -209,6 +209,7 @@ test("all-time live rows subscribe without rewriting the shared player list", ()
   );
   assert.match(plays, /ensureAllTimeRealtime/);
   assert.match(plays, /applyAllTimeRealtime/);
+  assert.match(plays, /playsLiveJoined\("alltime_roster"\)/);
   assert.match(plays, /subscribeAlltimeRoster/);
   assert.doesNotMatch(
     plays.slice(

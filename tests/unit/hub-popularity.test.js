@@ -263,6 +263,7 @@ test("popularity live rows subscribe without rewriting the shared play-count doc
   );
   assert.match(plays, /ensurePopularityRealtime/);
   assert.match(plays, /applyPopularityRealtime/);
+  assert.match(plays, /playsLiveJoined\("popularity_contributions"\)/);
   assert.match(plays, /subscribePopularityContributions/);
   assert.doesNotMatch(
     plays.slice(
@@ -289,6 +290,7 @@ test("play log live rows subscribe without rewriting the shared plays document",
   );
   assert.match(plays, /ensurePlayLogRealtime/);
   assert.match(plays, /applyPlayLogRealtime/);
+  assert.match(plays, /playsLiveJoined\("play_log_contributions"\)/);
   assert.match(plays, /subscribePlayLogContributions/);
   assert.doesNotMatch(
     plays.slice(

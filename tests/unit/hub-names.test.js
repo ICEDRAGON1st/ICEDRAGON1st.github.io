@@ -229,6 +229,7 @@ test("nickname live rows subscribe without rewriting the shared name registry", 
   );
   assert.match(plays, /ensureNamesRealtime/);
   assert.match(plays, /applyNamesRealtime/);
+  assert.match(plays, /playsLiveJoined\("nickname_claims"\)/);
   assert.match(plays, /subscribeNicknameClaims/);
   assert.doesNotMatch(
     plays.slice(

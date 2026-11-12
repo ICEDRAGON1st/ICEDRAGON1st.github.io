@@ -314,6 +314,14 @@
     return false;
   }
 
+  function playsLiveJoined(table) {
+    try {
+      return !!sb()?.isRealtimeJoined?.(table);
+    } catch {
+      return false;
+    }
+  }
+
   function applyPopularityRealtime(change) {
     if (!popularityApi.applyPopularityChange) return;
     const next = popularityApi.applyPopularityChange(
@@ -495,6 +503,19 @@
     if (popularityBusy) return getEffectivePopularity();
     popularityBusy = true;
     try {
+      if (!force && playsLiveJoined("popularity_contributions")) {
+        const pending = { ...(popularityPending || {}) };
+        const hasPending = Object.values(pending).some((v) => (Number(v) || 0) > 0);
+        if (hasPending) {
+          let localResetAt = 0;
+          try {
+            localResetAt = Number(localStorage.getItem("hub-game-popularity-reset-at") || 0);
+          } catch {}
+          const tableWrote = await persistPopularityContribution(localResetAt, false);
+          if (tableWrote) popularityPending = {};
+        }
+        return getEffectivePopularity();
+      }
       let remote = {};
       let remoteResetAt = 0;
       let fetched = false;
@@ -2598,11 +2619,18 @@
       const withMine = loadLocal();
       let remote = { plays: [], counts: {} };
       let fetched = true;
-      try {
-        remote = await fetchPlaysRemote();
-      } catch {
-        remote = { plays: [], counts: {} };
-        fetched = false;
+      if (playsLiveJoined("play_log_contributions")) {
+        remote = {
+          plays: Array.isArray(cache.plays) ? cache.plays : withMine.plays || [],
+          counts: cache.counts && typeof cache.counts === "object" ? cache.counts : withMine.counts || {}
+        };
+      } else {
+        try {
+          remote = await fetchPlaysRemote();
+        } catch {
+          remote = { plays: [], counts: {} };
+          fetched = false;
+        }
       }
       const mergedRaw = mergeLogs(withMine.plays.length ? withMine : local, remote);
       const purgedPlays = purgePlaysList(mergedRaw.plays);
@@ -2610,18 +2638,24 @@
       saveLocal(merged);
       persistPlaysMine();
       try {
-        await pushPlaysRemote(merged, { skipShared: !fetched });
+        await pushPlaysRemote(merged, {
+          skipShared: !fetched || playsLiveJoined("play_log_contributions")
+        });
       } catch {
         // offline — local still works
       }
       try {
         await ensureDragonPurged();
         await ensureRainbowPurged();
-        const remoteNames = await fetchNamesRemote();
         await pullNamesMine();
-        namesCache = applyLocalProfileStyle(
-          purgeNameRegistry(mergeNameMaps(namesCache, remoteNames)).names
-        );
+        if (!playsLiveJoined("nickname_claims")) {
+          const remoteNames = await fetchNamesRemote();
+          namesCache = applyLocalProfileStyle(
+            purgeNameRegistry(mergeNameMaps(namesCache, remoteNames)).names
+          );
+        } else {
+          namesCache = applyLocalProfileStyle(purgeNameRegistry(namesCache).names);
+        }
         persistNamesMine();
         // If local style is ahead of remote, push so refresh stays sticky.
         const key = nameKey(getName());
@@ -2634,7 +2668,11 @@
           (Number(localStyle.profileUpdatedAt) || 0) >= (Number(mine.profileUpdatedAt) || 0)
         ) {
           try {
-            await pushNamesRemote(namesCache);
+            if (playsLiveJoined("nickname_claims")) {
+              await persistNicknameClaim(mine);
+            } else {
+              await pushNamesRemote(namesCache);
+            }
           } catch {}
         }
         refreshCreatorCredits();
@@ -3819,14 +3857,18 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 
       const me = getPlayerId();
       const tableWrote = await persistPresencePing();
-      const tableRemote = await fetchPresenceTableRemote();
       let remote = {};
-      try {
-        remote = await fetchPresenceRemote();
-      } catch {
-        if (!tableRemote) return getOnlineCount();
+      if (playsLiveJoined("presence_pings")) {
+        remote = presenceCache || {};
+      } else {
+        const tableRemote = await fetchPresenceTableRemote();
+        try {
+          remote = await fetchPresenceRemote();
+        } catch {
+          if (!tableRemote) return getOnlineCount();
+        }
+        if (tableRemote) remote = mergePresence(remote, tableRemote);
       }
-      if (tableRemote) remote = mergePresence(remote, tableRemote);
 
       // Don't publish Guest placeholders — they inflate the online count
       let next = prunePresence(remote, now);
@@ -3847,7 +3889,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       });
 
       try {
-        if (!tableWrote) await pushPresenceRemote(next);
+        if (!tableWrote && !playsLiveJoined("presence_pings")) await pushPresenceRemote(next);
         presenceCache = enrichPresenceNames(next);
       } catch {
         presenceCache = enrichPresenceNames(mergePresence(presenceCache, next));
@@ -3900,6 +3942,9 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   async function fetchAllTimeRemote() {
+    if (playsLiveJoined("alltime_roster")) {
+      return allTimeCache && typeof allTimeCache === "object" ? allTimeCache : {};
+    }
     let parsed = {};
     let fetched = false;
     try {
