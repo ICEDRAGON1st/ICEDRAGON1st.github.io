@@ -51,6 +51,16 @@ test("admin broadcast overlay replaces a live channel without shrinking on delet
   });
   assert.equal(ignored.docs["fishing-admin-events"], undefined);
   assert.equal(ignored.docs["hub-admin-announce"].id, "a2");
+
+  const ignoredWipe = broadcasts.applyChange(afterDelete, {
+    type: "UPDATE",
+    record: {
+      doc_id: "hub-leaderboard-resets",
+      data: { token: "ice-hub-admin-9f3a", resets: { "snake:them": 80 } }
+    }
+  });
+  assert.equal(ignoredWipe.docs["hub-leaderboard-resets"], undefined);
+  assert.equal(ignoredWipe.docs["hub-admin-announce"].id, "a2");
 });
 
 test("admin broadcasts subscribe without rewriting hub_docs from the live overlay", () => {

@@ -109,6 +109,44 @@
     return { games, resets };
   }
 
+  const RESETS_DOC_ID = "hub-leaderboard-resets";
+
+  function overlayLeaderboardResets(hub, payload) {
+    const games = { ...((hub && hub.games) || {}) };
+    const resets = { ...((hub && hub.resets) || {}) };
+    const source =
+      payload && typeof payload === "object"
+        ? payload.resets && typeof payload.resets === "object"
+          ? payload.resets
+          : payload
+        : {};
+    Object.entries(source).forEach(([key, value]) => {
+      const k = String(key || "").slice(0, 96);
+      if (!k || k.startsWith("namebind:")) return;
+      const n = Math.max(0, Math.floor(Number(value) || 0));
+      if (!n) return;
+      const prev = Math.max(0, Math.floor(Number(resets[k]) || 0));
+      if (n >= prev) resets[k] = n;
+    });
+    return { games, resets };
+  }
+
+  function applyResetsChange(hub, change) {
+    const data = unwrapChange(change);
+    const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
+    const current = {
+      games: { ...((hub && hub.games) || {}) },
+      resets: { ...((hub && hub.resets) || {}) }
+    };
+    if (type === "DELETE") return current;
+    const record = data.record || data.new || {};
+    if (!record || typeof record !== "object") return current;
+    const docId = String(record.doc_id || record.docId || "").trim();
+    if (docId && docId !== RESETS_DOC_ID) return current;
+    const payload = record.data && typeof record.data === "object" ? record.data : record;
+    return overlayLeaderboardResets(current, payload);
+  }
+
   function unwrapChange(change) {
     const payload = change && typeof change === "object" ? change : {};
     if (payload.data && typeof payload.data === "object") return payload.data;
@@ -142,7 +180,10 @@
     collectMine,
     applyPersonalBests,
     overlayLeaderboardGames,
-    applyChange
+    applyChange,
+    RESETS_DOC_ID,
+    overlayLeaderboardResets,
+    applyResetsChange
   };
   if (root) root.HubLeaderboardPbs = api;
   if (typeof module === "object" && module.exports) module.exports = api;

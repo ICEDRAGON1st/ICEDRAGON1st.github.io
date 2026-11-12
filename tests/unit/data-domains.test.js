@@ -132,6 +132,20 @@ test("fishing admin events join admin_broadcasts without publishing hub_docs", (
   assert.doesNotMatch(sql, /to anon/i);
 });
 
+test("leaderboard wipes join admin_broadcasts without publishing hub_docs", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160045_admin_broadcasts_leaderboard_resets.sql"),
+    "utf8"
+  );
+  assert.match(sql, /hub-leaderboard-resets/);
+  assert.match(sql, /admin_broadcasts_doc_id_allowed/);
+  assert.match(sql, /security definer/i);
+  assert.match(sql, /grant execute on function public\.upsert_admin_hub_doc/);
+  assert.match(sql, /to authenticated/i);
+  assert.doesNotMatch(sql, /add table public\.hub_docs/i);
+  assert.doesNotMatch(sql, /to anon/i);
+});
+
 test("fishing admin announce locks hub_docs writes and joins admin_broadcasts without publishing hub_docs", () => {
   const sql = fs.readFileSync(
     path.join(ROOT, "supabase/migrations/202610160040_admin_broadcasts_fishing_announce.sql"),

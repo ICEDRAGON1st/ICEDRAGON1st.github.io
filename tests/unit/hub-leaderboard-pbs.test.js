@@ -12,12 +12,26 @@ test("personal bests live in a helper used by the shared board", () => {
   const ui = fs.readFileSync(path.join(ROOT, "hub-leaderboard.js"), "utf8");
   const plays = fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8");
   const index = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  const fetchSlice = ui.slice(
+    ui.indexOf("async function fetchRemote"),
+    ui.indexOf("async function pushRemote")
+  );
+  const pushSlice = ui.slice(
+    ui.indexOf("async function pushRemote"),
+    ui.indexOf("function normalizeEntry")
+  );
   assert.match(ui, /window\.HubLeaderboardPbs/);
   assert.match(ui, /persistMyPbs/);
   assert.match(ui, /pullMyPbs/);
   assert.match(ui, /persistLeaderboardPbContribution/);
   assert.match(ui, /fetchLeaderboardTableRemote/);
+  assert.match(ui, /fetchLeaderboardResetsRemote/);
+  assert.match(ui, /persistLeaderboardResets/);
   assert.match(ui, /skipShared: !fetched/);
+  assert.match(fetchSlice, /if \(!adminResetsFetched\)/);
+  assert.match(fetchSlice, /api\.getPrefer/);
+  assert.match(pushSlice, /if \(resetsWrote && opts\.wipe\) return/);
+  assert.match(ui, /rewriteShared: true, wipe: true/);
   assert.match(plays, /hub-leaderboard-pbs\.js/);
   assert.match(index, /hub-leaderboard-pbs\.js/);
   assert.equal(pbs.SAVE_KEY, "lb-pbs");
@@ -94,6 +108,36 @@ test("personal-best merge keeps the better score and restores a missing row", ()
   assert.equal(afterDelete.games.snake.them.score, 120);
 });
 
+test("leaderboard wipe overlay keeps later ICE cuts without shrinking a name bind", () => {
+  const hub = {
+    games: { snake: { them: { name: "Them", score: 90, at: 10, playerId: "p-other" } } },
+    resets: { "snake:them": 50, "namebind:p-other": "Them" }
+  };
+  const live = pbs.applyResetsChange(hub, {
+    type: "UPDATE",
+    record: {
+      doc_id: "hub-leaderboard-resets",
+      data: { token: "ice-hub-admin-9f3a", resets: { "snake:them": 80, "namebind:p-cheat": "Nope" } }
+    }
+  });
+  assert.equal(live.resets["snake:them"], 80);
+  assert.equal(live.resets["namebind:p-other"], "Them");
+  assert.equal(live.resets["namebind:p-cheat"], undefined);
+  assert.equal(live.games.snake.them.score, 90);
+
+  const ignored = pbs.applyResetsChange(live, {
+    type: "UPDATE",
+    record: { doc_id: "hub-admin-announce", data: { resets: { "snake:them": 999 } } }
+  });
+  assert.equal(ignored.resets["snake:them"], 80);
+
+  const afterDelete = pbs.applyResetsChange(live, {
+    type: "DELETE",
+    old_record: { doc_id: "hub-leaderboard-resets" }
+  });
+  assert.equal(afterDelete.resets["snake:them"], 80);
+});
+
 test("leaderboard live rows subscribe without rewriting the shared board", () => {
   const ui = fs.readFileSync(path.join(ROOT, "hub-leaderboard.js"), "utf8");
   const supabase = fs.readFileSync(path.join(ROOT, "hub-supabase.js"), "utf8");
@@ -103,8 +147,11 @@ test("leaderboard live rows subscribe without rewriting the shared board", () =>
   );
   assert.match(ui, /ensureLeaderboardRealtime/);
   assert.match(ui, /applyLeaderboardRealtime/);
+  assert.match(ui, /applyLeaderboardResetsRealtime/);
   assert.match(ui, /subscribeLeaderboardPbContributions/);
+  assert.match(ui, /subscribeAdminBroadcasts/);
   assert.match(ui, /leaderboardLiveJoined\("leaderboard_pb_contributions"\)/);
+  assert.match(ui, /leaderboardLiveJoined\("admin_broadcasts"\)/);
   assert.match(ui, /skipShared: joined/);
   assert.doesNotMatch(
     ui.slice(

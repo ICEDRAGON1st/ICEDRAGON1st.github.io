@@ -14,6 +14,8 @@
   const MAX_PER_GAME = 50;
   const SYNC_GAP_MS = 4000;
   const SUPABASE_DOC_ID = "leaderboards";
+  const ADMIN_RESETS_DOC = "hub-leaderboard-resets";
+  const ADMIN_RESETS_TOKEN = "ice-hub-admin-9f3a";
 
   function supabaseReady() {
     return !!(window.HubSupabase && HubSupabase.ready && HubSupabase.getDoc && HubSupabase.upsertDoc);
@@ -159,6 +161,7 @@
   let submitQueue = Promise.resolve();
   let syncQueue = Promise.resolve();
   let leaderboardRealtimeUnsub = null;
+  let leaderboardResetsRealtimeUnsub = null;
 
   function meta(gameId) {
     return GAME_META[gameId] || { label: gameId, lowerBetter: false, unit: "score" };
@@ -796,22 +799,50 @@
     } catch {}
   }
 
+  function wipeResetsOnly(resets) {
+    const out = {};
+    Object.entries(resets && typeof resets === "object" ? resets : {}).forEach(([key, value]) => {
+      const k = String(key || "").slice(0, 96);
+      if (!k || k.startsWith("namebind:")) return;
+      const n = Math.max(0, Math.floor(Number(value) || 0));
+      if (n) out[k] = n;
+    });
+    return out;
+  }
+
+  async function fetchLeaderboardResetsRemote() {
+    const api = window.HubSupabase;
+    if (!api?.listAdminBroadcasts) return null;
+    try {
+      const rows = await api.listAdminBroadcasts();
+      if (!rows) return null;
+      const row = (Array.isArray(rows) ? rows : []).find(
+        (item) => String(item?.doc_id || item?.docId || "").trim() === ADMIN_RESETS_DOC
+      );
+      if (!row) return null;
+      return row.data && typeof row.data === "object" ? row.data : {};
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistLeaderboardResets(resets) {
+    const api = window.HubSupabase;
+    if (!api?.upsertAdminDoc || !api.isAdminDoc?.(ADMIN_RESETS_DOC)) return false;
+    try {
+      await api.upsertAdminDoc(ADMIN_RESETS_DOC, {
+        token: ADMIN_RESETS_TOKEN,
+        resets: wipeResetsOnly(resets)
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async function fetchRemote() {
     let parsed = { games: {}, resets: {} };
     let fetched = false;
-    try {
-      const api = window.HubSupabase;
-      const data = api?.getPrefer ? await api.getPrefer(SUPABASE_DOC_ID) : null;
-      if (data && typeof data === "object") {
-        parsed = {
-          games: data.games && typeof data.games === "object" ? data.games : {},
-          resets: data.resets && typeof data.resets === "object" ? data.resets : {}
-        };
-        fetched = true;
-      }
-    } catch {
-      parsed = { games: {}, resets: {} };
-    }
     const tableRemote = await fetchLeaderboardTableRemote();
     if (tableRemote) {
       parsed = {
@@ -820,12 +851,47 @@
       };
       fetched = true;
     }
+    const adminResets = await fetchLeaderboardResetsRemote();
+    const adminResetsFetched = !!(adminResets && typeof adminResets === "object");
+    if (adminResetsFetched) {
+      const helper = pbsApi();
+      parsed = helper?.overlayLeaderboardResets
+        ? helper.overlayLeaderboardResets(parsed, adminResets)
+        : {
+            games: parsed.games,
+            resets: { ...(parsed.resets || {}), ...(adminResets.resets || {}) }
+          };
+      fetched = true;
+    }
+    if (!adminResetsFetched) {
+      try {
+        const api = window.HubSupabase;
+        const data = api?.getPrefer ? await api.getPrefer(SUPABASE_DOC_ID) : null;
+        if (data && typeof data === "object") {
+          parsed = {
+            games: mergeBoards(parsed, {
+              games: data.games && typeof data.games === "object" ? data.games : {},
+              resets: {}
+            }).games,
+            resets: { ...(parsed.resets || {}), ...(data.resets && typeof data.resets === "object" ? data.resets : {}) }
+          };
+          fetched = true;
+        }
+      } catch {
+        // keep table/admin overlay
+      }
+    }
     if (!fetched) throw new Error("leaderboards-unavailable");
     return parsed;
   }
 
   async function pushRemote(merged, opts) {
     const tableWrote = await persistLeaderboardPbContribution(merged);
+    let resetsWrote = false;
+    if (opts && opts.rewriteShared) {
+      resetsWrote = await persistLeaderboardResets(merged?.resets);
+      if (resetsWrote && opts.wipe) return;
+    }
     if (tableWrote && !(opts && opts.rewriteShared)) return;
     if (opts && opts.skipShared) return;
     const api = window.HubSupabase;
@@ -1466,7 +1532,7 @@
         const remote = await fetchRemote();
         const merged = mergeBoards(loadLocal(), remote);
         saveLocal(merged);
-        await pushRemote(merged, { rewriteShared: true });
+        await pushRemote(merged, { rewriteShared: true, wipe: true });
       } catch {}
       lastSync = Date.now();
       return true;
@@ -1551,21 +1617,37 @@
     });
   }
 
+  function applyLeaderboardResetsRealtime(change) {
+    const helper = pbsApi();
+    if (!helper?.applyResetsChange) return;
+    const next = helper.applyResetsChange(cache, change);
+    saveLocal(applyResets(next));
+  }
+
   function stopLeaderboardRealtime() {
     try {
       leaderboardRealtimeUnsub?.();
     } catch {}
+    try {
+      leaderboardResetsRealtimeUnsub?.();
+    } catch {}
     leaderboardRealtimeUnsub = null;
+    leaderboardResetsRealtimeUnsub = null;
   }
 
   function ensureLeaderboardRealtime() {
     const api = window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
-    if (!api?.subscribeLeaderboardPbContributions) return;
-    if (leaderboardRealtimeUnsub) return;
     if (leaderboardCloudQuiet()) return;
-    leaderboardRealtimeUnsub = api.subscribeLeaderboardPbContributions((change) => {
-      applyLeaderboardRealtime(change);
-    });
+    if (!leaderboardRealtimeUnsub && api?.subscribeLeaderboardPbContributions) {
+      leaderboardRealtimeUnsub = api.subscribeLeaderboardPbContributions((change) => {
+        applyLeaderboardRealtime(change);
+      });
+    }
+    if (!leaderboardResetsRealtimeUnsub && api?.subscribeAdminBroadcasts) {
+      leaderboardResetsRealtimeUnsub = api.subscribeAdminBroadcasts((change) => {
+        applyLeaderboardResetsRealtime(change);
+      });
+    }
   }
 
   async function sync(force = false) {
@@ -1578,7 +1660,10 @@
     const run = async () => {
       let remote = { games: {}, resets: {} };
       let fetched = true;
-      if (leaderboardLiveJoined("leaderboard_pb_contributions")) {
+      if (
+        leaderboardLiveJoined("leaderboard_pb_contributions") &&
+        leaderboardLiveJoined("admin_broadcasts")
+      ) {
         remote = {
           games: cache.games && typeof cache.games === "object" ? cache.games : {},
           resets: cache.resets && typeof cache.resets === "object" ? cache.resets : {}

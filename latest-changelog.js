@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ef",
+  "build": "20261015eg",
   "notes": [
-    "The Fishing weekend meter keeps luck reward on the signed-in meter, so it isn't copied onto a shared board."
+    "High score wipes stay on the signed-in admin channel, so they aren't copied onto a shared board."
   ]
 };
