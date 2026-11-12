@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015en",
+  "build": "20261015eo",
   "notes": [
-    "High scores and Feedback stay on your signed-in account, so they aren't copied onto a leftover shared board."
+    "Hub and Fishing admin stay on the signed-in admin channel, so leftover shared boards don't get a copy."
   ]
 };

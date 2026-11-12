@@ -208,6 +208,8 @@ test("Fishing admin events subscribe without rewriting hub_docs from the live ov
   );
   assert.match(script, /async function loadAdminAuditEntries/);
   assert.match(script, /upsertAdminDoc\(ADMIN_AUDIT_DOC/);
+  assert.match(script, /function applyAdminAuditRealtime/);
+  assert.match(script, /applyAdminAuditRealtime\(change\)/);
   assert.doesNotMatch(
     script.slice(
       script.indexOf("let adminAuditEntries"),
@@ -215,6 +217,19 @@ test("Fishing admin events subscribe without rewriting hub_docs from the live ov
     ),
     /getDoc|getPrefer|upsertDoc/
   );
+  assert.doesNotMatch(
+    script.slice(
+      script.indexOf("function applyAdminAuditRealtime"),
+      script.indexOf("function stopAdminEventRealtime")
+    ),
+    /upsertAdminDoc|upsertDoc|pushPrefer|getDoc/
+  );
+  const noHubDocs = fs.readFileSync(
+    path.join(__dirname, "../../supabase/migrations/202610160050_admin_broadcasts_no_hub_docs.sql"),
+    "utf8"
+  );
+  assert.match(noHubDocs, /fishing-admin-audit/);
+  assert.doesNotMatch(noHubDocs, /insert into public\.hub_docs/);
   assert.match(sql, /fishing-admin-events/);
   assert.match(sql, /security definer/i);
   assert.doesNotMatch(sql, /add table public\.hub_docs/i);

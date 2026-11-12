@@ -134,6 +134,32 @@ test("fishing admin events join admin_broadcasts without publishing hub_docs", (
   assert.doesNotMatch(sql, /to anon/i);
 });
 
+test("trusted admin writes stay on admin_broadcasts without leftover hub_docs", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160050_admin_broadcasts_no_hub_docs.sql"),
+    "utf8"
+  );
+  assert.match(sql, /fishing-admin-audit/);
+  assert.match(sql, /admin_broadcasts_doc_id_allowed/);
+  assert.match(sql, /security definer/i);
+  assert.match(sql, /grant execute on function public\.upsert_admin_hub_doc/);
+  assert.match(sql, /to authenticated/i);
+  assert.match(sql, /insert into public\.admin_broadcasts/);
+  assert.doesNotMatch(sql, /insert into public\.hub_docs/);
+  assert.doesNotMatch(sql, /add table public\.hub_docs/i);
+  assert.doesNotMatch(sql, /to anon/i);
+  for (const id of [
+    "hub-admin-announce",
+    "fishing-admin-events",
+    "fishing-admin-announce",
+    "fishing-admin-audit",
+    "hub-leaderboard-resets",
+    "hub-feedback-deletes"
+  ]) {
+    assert.match(sql, new RegExp(`'${id.replaceAll("-", "\\-")}'`));
+  }
+});
+
 test("feedback deletes join admin_broadcasts without publishing hub_docs", () => {
   const sql = fs.readFileSync(
     path.join(ROOT, "supabase/migrations/202610160046_admin_broadcasts_feedback_deletes.sql"),

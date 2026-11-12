@@ -4814,6 +4814,24 @@
     applyAdminEventCaches(adminEventBroadcast, null);
   }
 
+  function applyAdminAuditRealtime(change) {
+    const rec = change?.record || change?.new || {};
+    const old = change?.old_record || change?.old || {};
+    const type = String(change?.type || change?.eventType || change?.event || "").toUpperCase();
+    const id = String(rec.doc_id || rec.docId || old.doc_id || old.docId || "").trim();
+    if (id !== ADMIN_AUDIT_DOC) return;
+    if (type === "DELETE") return;
+    const data = rec.data && typeof rec.data === "object" ? rec.data : null;
+    if (!data) return;
+    adminAuditEntries = readAdminAuditEntries(data);
+    if (!isFishingOwner()) return;
+    const entries = adminAuditEntries.slice().reverse();
+    adminAuditCache = entries;
+    renderAdminAuditSummary(entries);
+    renderAdminAuditFilters(entries);
+    renderAdminAuditEntries(entries);
+  }
+
   function stopAdminEventRealtime() {
     try {
       adminEventRealtimeUnsub?.();
@@ -4832,6 +4850,7 @@
     adminEventRealtimeUnsub = api.subscribeAdminBroadcasts((change) => {
       applyAdminEventRealtime(change);
       applyAdminAnnounceRealtime(change);
+      applyAdminAuditRealtime(change);
     });
   }
 
