@@ -90,3 +90,56 @@ test("Fishing admin events parse bundles, commands, and clamps", () => {
   assert.equal(admin.parseAdminCommand("gold + shiny").target, "gold+shiny");
   assert.equal(admin.parseAdminCommand("10x luckyblock 5m").kind, "luckyblock");
 });
+
+test("Fishing admin-event live rows overlay luck without shrinking on delete", () => {
+  const live = admin.applyBroadcastChange(
+    { payload: { token: admin.TOKEN, boost: { kind: "luck", until: LIVE, mult: 2 } } },
+    {
+      type: "UPDATE",
+      record: {
+        doc_id: "fishing-admin-events",
+        data: { token: admin.TOKEN, boost: { kind: "luck", until: LIVE, mult: 5 } }
+      }
+    }
+  );
+  assert.equal(live.replaced, true);
+  assert.equal(live.payload.boost.mult, 5);
+
+  const ignored = admin.applyBroadcastChange(live, {
+    type: "UPDATE",
+    record: { doc_id: "hub-admin-announce", data: { text: "hi" } }
+  });
+  assert.equal(ignored.replaced, false);
+  assert.equal(ignored.payload.boost.mult, 5);
+
+  const afterDelete = admin.applyBroadcastChange(live, {
+    type: "DELETE",
+    old_record: { doc_id: "fishing-admin-events" }
+  });
+  assert.equal(afterDelete.replaced, false);
+  assert.equal(afterDelete.payload.boost.mult, 5);
+});
+
+test("Fishing admin events subscribe without rewriting hub_docs from the live overlay", () => {
+  const fs = require("node:fs");
+  const script = fs.readFileSync(path.join(__dirname, "../../fishing/script.js"), "utf8");
+  const sql = fs.readFileSync(
+    path.join(__dirname, "../../supabase/migrations/202610160039_admin_broadcasts_fishing_events.sql"),
+    "utf8"
+  );
+  assert.match(script, /ensureAdminEventRealtime/);
+  assert.match(script, /applyAdminEventRealtime/);
+  assert.match(script, /subscribeAdminBroadcasts/);
+  assert.match(script, /listAdminBroadcasts/);
+  assert.doesNotMatch(
+    script.slice(
+      script.indexOf("function applyAdminEventRealtime"),
+      script.indexOf("function stopAdminEventRealtime")
+    ),
+    /upsertAdminDoc|upsertDoc|pushPrefer/
+  );
+  assert.match(sql, /fishing-admin-events/);
+  assert.match(sql, /security definer/i);
+  assert.doesNotMatch(sql, /add table public\.hub_docs/i);
+  assert.doesNotMatch(sql, /to anon/i);
+});

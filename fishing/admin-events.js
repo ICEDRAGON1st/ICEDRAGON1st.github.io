@@ -134,6 +134,35 @@
     return (a.mult || 0) >= (b.mult || 0) ? a : b;
   }
 
+  const FISHING_ADMIN_EVENT_DOC = "fishing-admin-events";
+
+  function unwrapChange(change) {
+    const payload = change && typeof change === "object" ? change : {};
+    if (payload.data && typeof payload.data === "object") return payload.data;
+    if (payload.payload && typeof payload.payload === "object") {
+      const inner = payload.payload;
+      if (inner.data && typeof inner.data === "object") return inner.data;
+      return inner;
+    }
+    return payload;
+  }
+
+  function applyBroadcastChange(hub, change) {
+    const current =
+      hub && typeof hub === "object" && Object.prototype.hasOwnProperty.call(hub, "payload")
+        ? hub.payload
+        : null;
+    const data = unwrapChange(change);
+    const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
+    if (type === "DELETE") return { payload: current, replaced: false };
+    const record = data.record || data.new || {};
+    if (!record || typeof record !== "object") return { payload: current, replaced: false };
+    const docId = String(record.doc_id || record.docId || "").trim();
+    if (docId !== FISHING_ADMIN_EVENT_DOC) return { payload: current, replaced: false };
+    const payload = record.data && typeof record.data === "object" ? record.data : {};
+    return { payload, replaced: true };
+  }
+
   function parseAdminEventPayload(data, requireToken = false, opts) {
     const cfg = options(opts);
     if (!data || typeof data !== "object") return null;
@@ -530,6 +559,8 @@
     isWeatherAdminPayload,
     isSpeedAdminPayload,
     pickBetterAdminEvent,
+    FISHING_ADMIN_EVENT_DOC,
+    applyBroadcastChange,
     mergeMutationMaps,
     pruneMutationMap,
     mutationMapHasAny,

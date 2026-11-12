@@ -3585,6 +3585,8 @@
   let adminMutationCache = emptyMutationMap();
   let adminEventFetchedAt = 0;
   let adminEventPollTimer = 0;
+  let adminEventBroadcast = null;
+  let adminEventRealtimeUnsub = null;
   let adminAnnouncePollTimer = 0;
   let adminBusy = false;
   let adminRetryTimer = 0;
@@ -4684,25 +4686,9 @@
     }
   }
 
-  async function pollAdminEvent(force = false) {
-    if (fishingCloudQuiet()) return;
-    const now = Date.now();
-    if (!force && now - adminEventFetchedAt < ADMIN_EVENT_POLL_MS) return;
-    adminEventFetchedAt = now;
-
-    const file = await fetchAdminJson(`${ADMIN_EVENT_URL}?t=${now}`, { trackRate: false });
-    let supabaseData = null;
-    const api = fishingSb();
-    if (api) {
-      try {
-        supabaseData = await api.getDoc(ADMIN_EVENT_DOC);
-      } catch {
-        supabaseData = null;
-      }
-    }
-
+  function applyAdminEventCaches(supabaseData, fileData) {
     const remoteSb = parseAdminBundle(supabaseData, false);
-    const remoteB = parseAdminBundle(file.data, false);
+    const remoteB = parseAdminBundle(fileData, false);
     const remoteBoost = pickBetterAdminEvent(remoteSb.boost, remoteB.boost);
     const remoteVariant = pickBetterAdminEvent(remoteSb.variant, remoteB.variant);
     const remoteChest = pickBetterAdminEvent(remoteSb.chest, remoteB.chest);
@@ -4723,10 +4709,74 @@
     syncAdminSpeedFx();
   }
 
+  function applyAdminEventRealtime(change) {
+    if (!fishingAdminApi.applyBroadcastChange) return;
+    const next = fishingAdminApi.applyBroadcastChange({ payload: adminEventBroadcast }, change);
+    if (!next?.replaced) return;
+    adminEventBroadcast = next.payload;
+    applyAdminEventCaches(adminEventBroadcast, null);
+  }
+
+  function stopAdminEventRealtime() {
+    try {
+      adminEventRealtimeUnsub?.();
+    } catch {}
+    adminEventRealtimeUnsub = null;
+  }
+
+  function ensureAdminEventRealtime() {
+    const api = fishingSb();
+    if (!api?.subscribeAdminBroadcasts) return;
+    if (adminEventRealtimeUnsub) return;
+    if (fishingCloudQuiet()) {
+      stopAdminEventRealtime();
+      return;
+    }
+    adminEventRealtimeUnsub = api.subscribeAdminBroadcasts((change) => {
+      applyAdminEventRealtime(change);
+    });
+  }
+
+  async function pollAdminEvent(force = false) {
+    if (fishingCloudQuiet()) {
+      stopAdminEventRealtime();
+      return;
+    }
+    const now = Date.now();
+    if (!force && now - adminEventFetchedAt < ADMIN_EVENT_POLL_MS) return;
+    adminEventFetchedAt = now;
+
+    const file = await fetchAdminJson(`${ADMIN_EVENT_URL}?t=${now}`, { trackRate: false });
+    let supabaseData = null;
+    const api = fishingSb();
+    if (api) {
+      try {
+        const rows = api.listAdminBroadcasts ? await api.listAdminBroadcasts() : null;
+        if (Array.isArray(rows)) {
+          const hit = rows.find(
+            (row) => String(row.doc_id || row.docId || "") === ADMIN_EVENT_DOC
+          );
+          if (hit && hit.data && typeof hit.data === "object") supabaseData = hit.data;
+        }
+      } catch {}
+      if (supabaseData == null) {
+        try {
+          supabaseData = await api.getDoc(ADMIN_EVENT_DOC);
+        } catch {
+          supabaseData = null;
+        }
+      }
+    }
+    if (supabaseData && typeof supabaseData === "object") adminEventBroadcast = supabaseData;
+    ensureAdminEventRealtime();
+    applyAdminEventCaches(supabaseData, file.data);
+  }
+
   function startAdminEventPolling() {
     migrateLegacyAdminLocal();
     restorePendingAdminPush();
     pollAdminEvent(true);
+    ensureAdminEventRealtime();
     pollAdminAnnounce(true);
     if (adminEventPollTimer) clearInterval(adminEventPollTimer);
     adminEventPollTimer = setInterval(() => {
