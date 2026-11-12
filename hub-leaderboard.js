@@ -1343,29 +1343,48 @@
     return "";
   }
 
-  /** Rebuild Most Invites from hub-referrals-v1 (source of truth). */
+  /** Rebuild Most Invites from owned invite rows, with hub-referrals-v1 as floor. */
   async function hydrateInvitesBoard(data) {
     const games = { ...(data.games || {}) };
     const resets = data.resets && typeof data.resets === "object" ? data.resets : {};
     if (!supabaseReady()) return { games, resets };
-    let byInviter = {};
+    let hubDoc = { byInviter: {}, byInvitee: {} };
     try {
       const doc = await HubSupabase.getDoc("hub-referrals-v1");
-      if (doc && doc.byInviter && typeof doc.byInviter === "object") {
-        byInviter = doc.byInviter;
+      if (doc && typeof doc === "object") {
+        hubDoc = {
+          byInviter: doc.byInviter && typeof doc.byInviter === "object" ? doc.byInviter : {},
+          byInvitee: doc.byInvitee && typeof doc.byInvitee === "object" ? doc.byInvitee : {}
+        };
       }
-    } catch {
-      return { games, resets };
-    }
-    // Warm name map from name-registry when local HubPlays cache is thin.
+    } catch {}
     try {
-      const reg = await HubSupabase.getDoc("name-registry");
-      const names =
-        reg && reg.names && typeof reg.names === "object"
-          ? reg.names
-          : reg && typeof reg === "object"
-            ? reg
-            : {};
+      const rows = await HubSupabase.listReferralContributions?.();
+      const helper = window.HubReferralsMine;
+      if (rows && helper?.overlayReferralDoc) {
+        hubDoc = helper.overlayReferralDoc(hubDoc, rows);
+      }
+    } catch {}
+    const byInviter = hubDoc.byInviter || {};
+    // Warm name map from owned nickname rows, with name-registry as floor.
+    try {
+      let names = {};
+      try {
+        const reg = await HubSupabase.getDoc("name-registry");
+        names =
+          reg && reg.names && typeof reg.names === "object"
+            ? reg.names
+            : reg && typeof reg === "object"
+              ? reg
+              : {};
+      } catch {}
+      try {
+        const rows = await HubSupabase.listNicknameClaims?.();
+        const namesApi = window.HubNames;
+        if (rows && namesApi?.mergeNameMaps && namesApi?.rowsToNameMap) {
+          names = namesApi.mergeNameMaps(names, namesApi.rowsToNameMap(rows));
+        }
+      } catch {}
       Object.values(names).forEach((claim) => {
         if (!claim || typeof claim !== "object") return;
         if (claim.playerId && claim.name) {
@@ -1373,7 +1392,6 @@
           const pid = String(claim.playerId);
           const nm = sanitizeName(claim.name);
           if (!nm) return;
-          const key = `__namehint:${pid}`;
           if (!games.__nameHints) games.__nameHints = {};
           games.__nameHints[pid] = nm;
         }

@@ -190,3 +190,14 @@ test("friend live rows merge without dropping other players' edges", () => {
   assert.match(sql, /alter publication supabase_realtime add table public\.friend_edge_contributions/i);
   assert.doesNotMatch(sql, /to anon/i);
 });
+
+test("friend lookup overlays owned nickname rows onto the name registry", () => {
+  const ui = fs.readFileSync(path.join(ROOT, "hub-friends.js"), "utf8");
+  const fn = ui.slice(
+    ui.indexOf("async function findPlayerByName"),
+    ui.indexOf("async function sendRequest")
+  );
+  assert.match(fn, /listNicknameClaims/);
+  assert.match(fn, /rowsToNameMap/);
+  assert.match(fn, /getPrefer\("name-registry"\)/);
+});

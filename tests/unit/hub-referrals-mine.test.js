@@ -127,3 +127,16 @@ test("invite live rows subscribe without rewriting the shared board", () => {
   );
   assert.doesNotMatch(sql, /to anon/i);
 });
+
+test("invite codes resolve from owned player-code rows before the shared board", () => {
+  const ui = fs.readFileSync(path.join(ROOT, "hub-referrals.js"), "utf8");
+  const fn = ui.slice(
+    ui.indexOf("async function resolveCodeToPlayerId"),
+    ui.indexOf("async function unlockSelfIfNeeded")
+  );
+  assert.match(fn, /getPlayerCodeClaim/);
+  assert.match(fn, /listPlayerCodeClaims/);
+  assert.match(fn, /rowsToCodesMap/);
+  assert.match(fn, /getDoc\("player-codes"\)/);
+  assert.ok(fn.indexOf("getPlayerCodeClaim") < fn.indexOf("getDoc(\"player-codes\")"));
+});

@@ -351,8 +351,18 @@
     }
     try {
       const api = sb();
-      const data = api?.getPrefer ? await api.getPrefer("name-registry") : null;
-      const names = data?.names && typeof data.names === "object" ? data.names : data || {};
+      let names = {};
+      try {
+        const data = api?.getPrefer ? await api.getPrefer("name-registry") : null;
+        names = data?.names && typeof data.names === "object" ? data.names : data || {};
+      } catch {}
+      try {
+        const rows = await api?.listNicknameClaims?.();
+        const namesApi = window.HubNames;
+        if (rows && namesApi?.mergeNameMaps && namesApi?.rowsToNameMap) {
+          names = namesApi.mergeNameMaps(names, namesApi.rowsToNameMap(rows));
+        }
+      } catch {}
       const claim = names[key];
       if (claim?.playerId) {
         return { playerId: claim.playerId, name: claim.name || username };

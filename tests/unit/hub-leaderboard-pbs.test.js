@@ -116,3 +116,17 @@ test("leaderboard live rows subscribe without rewriting the shared board", () =>
   assert.match(sql, /alter publication supabase_realtime add table public\.leaderboard_pb_contributions/i);
   assert.doesNotMatch(sql, /to anon/i);
 });
+
+test("Most Invites hydrates from owned invite rows before the shared board", () => {
+  const ui = fs.readFileSync(path.join(ROOT, "hub-leaderboard.js"), "utf8");
+  const fn = ui.slice(
+    ui.indexOf("async function hydrateInvitesBoard"),
+    ui.indexOf("async function clearPlayer")
+  );
+  assert.match(fn, /listReferralContributions/);
+  assert.match(fn, /overlayReferralDoc/);
+  assert.match(fn, /listNicknameClaims/);
+  assert.match(fn, /rowsToNameMap/);
+  assert.match(fn, /getDoc\("hub-referrals-v1"\)/);
+  assert.match(fn, /getDoc\("name-registry"\)/);
+});

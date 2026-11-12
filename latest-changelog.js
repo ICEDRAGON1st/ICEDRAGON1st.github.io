@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015de",
+  "build": "20261015df",
   "notes": [
-    "Account progress now stays on your signed-in save, so Fishing and coins aren't copied onto a shared board."
+    "Invite leaderboards now update from your signed-in account, so a new friend joining through your link shows up without waiting on the old board."
   ]
 };
