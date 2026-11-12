@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015dj",
+  "build": "20261015dk",
   "notes": [
-    "Adding friends and invite counts stay live from your signed-in account, so they don't keep refreshing the old board while you're already connected."
+    "Chat, friends, calls, and matches stay on your signed-in live connection when you send, so they don't wait on the old board."
   ]
 };

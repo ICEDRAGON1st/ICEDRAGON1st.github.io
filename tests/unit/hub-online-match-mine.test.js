@@ -119,6 +119,7 @@ test("match live rows subscribe without rewriting the shared board", () => {
   assert.match(ui, /applyMatchRealtime/);
   assert.match(ui, /subscribeMatchRoomContributions/);
   assert.match(ui, /isRealtimeJoined\?\.\("match_room_contributions"\)/);
+  assert.match(ui, /skipShared: !fetched \|\| joined/);
   assert.doesNotMatch(
     ui.slice(ui.indexOf("function applyMatchRealtime"), ui.indexOf("function stopMatchRealtime")),
     /persistMatchRoomContribution|pushPrefer|fetchRemote/

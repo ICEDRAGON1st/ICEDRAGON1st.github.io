@@ -288,6 +288,14 @@
   }
 
   async function fetchDoc() {
+    try {
+      if (sb()?.isRealtimeJoined?.("call_signal_contributions")) {
+        return {
+          token: TOKEN,
+          rooms: cache.rooms && typeof cache.rooms === "object" ? cache.rooms : {}
+        };
+      }
+    } catch {}
     let data = null;
     let fetched = false;
     try {

@@ -281,30 +281,43 @@
     }
   }
 
+  function friendsLiveJoined() {
+    try {
+      return !!sb()?.isRealtimeJoined?.("friend_edge_contributions");
+    } catch {
+      return false;
+    }
+  }
+
   async function mutate(updater) {
     const run = async () => {
       let remote = cache;
       let fetched = true;
-      try {
-        remote = await fetchRemote();
-      } catch {
-        remote = cache;
-        fetched = false;
+      const joined = friendsLiveJoined();
+      if (!joined) {
+        try {
+          remote = await fetchRemote();
+        } catch {
+          remote = cache;
+          fetched = false;
+        }
       }
       const base = await pullMyEdges(mergeData(cache, remote));
       const next = updater(base);
       if (!next) return false;
       saveLocal(next);
       try {
-        await pushRemote(next, { skipShared: !fetched });
+        await pushRemote(next, { skipShared: !fetched || joined });
       } catch {
         await persistMyEdges();
         return false;
       }
-      try {
-        const confirmed = await fetchRemote();
-        saveLocal(mergeData(next, confirmed));
-      } catch {}
+      if (!joined) {
+        try {
+          const confirmed = await fetchRemote();
+          saveLocal(mergeData(next, confirmed));
+        } catch {}
+      }
       await persistMyEdges();
       return true;
     };
@@ -319,10 +332,15 @@
       const local = loadLocal();
       let remote = { profiles: {}, invites: {} };
       let fetched = true;
-      try {
-        remote = await fetchRemote();
-      } catch {
-        fetched = false;
+      const joined = friendsLiveJoined();
+      if (joined) {
+        remote = cache;
+      } else {
+        try {
+          remote = await fetchRemote();
+        } catch {
+          fetched = false;
+        }
       }
       const merged = await pullMyEdges(mergeData(local, remote));
       const me = getPlayerId();
@@ -332,7 +350,7 @@
       }
       saveLocal(merged);
       try {
-        await pushRemote(merged, { skipShared: !fetched });
+        await pushRemote(merged, { skipShared: !fetched || joined });
       } catch {}
       await persistMyEdges();
       return cache;

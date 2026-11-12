@@ -796,7 +796,7 @@ body.hub-admin-open{overflow:hidden}
       const missing = [DOC.announce, DOC.maintenance, DOC.moderation, DOC.grants].filter(
         (id) => !Object.prototype.hasOwnProperty.call(docs, id)
       );
-      if (missing.length) {
+      if (missing.length && !sb()?.isRealtimeJoined?.("admin_broadcasts")) {
         const extras = await Promise.all(missing.map((id) => getDoc(id)));
         missing.forEach((id, i) => {
           if (extras[i] != null) docs[id] = extras[i];

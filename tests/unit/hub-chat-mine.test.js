@@ -174,6 +174,8 @@ test("chat live rows merge without dropping other players' messages", () => {
   assert.match(ui, /applyChatRealtime/);
   assert.match(ui, /subscribeChatThreadContributions/);
   assert.match(ui, /isRealtimeJoined\?\.\("chat_thread_contributions"\)/);
+  assert.match(ui, /function chatLiveJoined/);
+  assert.match(ui, /skipShared: !fetched \|\| joined/);
   assert.match(ui, /function chatNetQuiet/);
   assert.match(ui, /HubNotifications\?\.ping\?\.\("chat"\)/);
   assert.doesNotMatch(

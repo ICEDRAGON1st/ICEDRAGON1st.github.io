@@ -251,25 +251,30 @@
       for (let attempt = 0; attempt < MUTATE_RETRIES; attempt += 1) {
         let remote = cache;
         let fetched = true;
-        try {
-          remote = await fetchRemote();
-        } catch {
-          remote = cache;
-          fetched = false;
+        const joined = !!sb()?.isRealtimeJoined?.("match_room_contributions");
+        if (!joined) {
+          try {
+            remote = await fetchRemote();
+          } catch {
+            remote = cache;
+            fetched = false;
+          }
         }
         const base = await pullMyRooms({ rooms: mergeRooms(cache.rooms, remote.rooms) });
         const next = updater(base);
         if (!next) return null;
         saveLocal(next);
         try {
-          await pushRemote(next, { skipShared: !fetched });
+          await pushRemote(next, { skipShared: !fetched || joined });
         } catch {
           await persistMyRooms();
           // Keep local optimistic state; retry merge next loop / poll.
           return next;
         }
         try {
-          const confirmed = await fetchRemote();
+          const confirmed = joined
+            ? next
+            : await fetchRemote();
           const merged = { rooms: mergeRooms(next.rooms, confirmed.rooms) };
           saveLocal(merged);
           // If our active room vanished due to a concurrent overwrite, retry.

@@ -65,6 +65,7 @@ test("admin broadcasts subscribe without rewriting hub_docs from the live overla
   assert.match(admin, /applyAdminBroadcastRealtime/);
   assert.match(admin, /subscribeAdminBroadcasts/);
   assert.match(admin, /isRealtimeJoined\?\.\("admin_broadcasts"\)/);
+  assert.match(admin, /missing\.length && !sb\(\)\?\.isRealtimeJoined\?\.\("admin_broadcasts"\)/);
   assert.match(admin, /listAdminBroadcasts/);
   assert.doesNotMatch(
     admin.slice(

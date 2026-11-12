@@ -400,31 +400,44 @@
     }
   }
 
+  function chatLiveJoined() {
+    try {
+      return !!sb()?.isRealtimeJoined?.("chat_thread_contributions");
+    } catch {
+      return false;
+    }
+  }
+
   async function mutate(updater) {
     const run = async () => {
       let remote = cache;
       let fetched = true;
-      try {
-        remote = await fetchRemote();
-      } catch {
-        remote = cache;
-        fetched = false;
+      const joined = chatLiveJoined();
+      if (!joined) {
+        try {
+          remote = await fetchRemote();
+        } catch {
+          remote = cache;
+          fetched = false;
+        }
       }
       const base = await pullMyChat(mergeData(cache, remote));
       const next = updater(base);
       if (!next) return false;
       saveLocal(next);
       try {
-        await pushRemote(next, { skipShared: !fetched });
+        await pushRemote(next, { skipShared: !fetched || joined });
       } catch {
         await persistMyChat();
         // Keep local write even if remote push fails.
         return true;
       }
-      try {
-        const confirmed = await fetchRemote();
-        saveLocal(mergeData(next, confirmed));
-      } catch {}
+      if (!joined) {
+        try {
+          const confirmed = await fetchRemote();
+          saveLocal(mergeData(next, confirmed));
+        } catch {}
+      }
       await persistMyChat();
       return true;
     };
@@ -440,16 +453,21 @@
         const local = loadLocal();
         let remote = { threads: {} };
         let fetched = true;
-        try {
-          remote = await fetchRemote();
-        } catch {
-          fetched = false;
+        const joined = chatLiveJoined();
+        if (joined) {
+          remote = cache.threads && typeof cache.threads === "object" ? cache : { threads: {} };
+        } else {
+          try {
+            remote = await fetchRemote();
+          } catch {
+            fetched = false;
+          }
         }
         // Merge onto in-memory cache too so in-flight creates aren't dropped.
         const merged = await pullMyChat(mergeData(mergeData(local, cache), remote));
         saveLocal(merged);
         try {
-          await pushRemote(merged, { skipShared: !fetched });
+          await pushRemote(merged, { skipShared: !fetched || joined });
         } catch {}
         await persistMyChat();
         return cache;

@@ -181,6 +181,8 @@ test("friend live rows merge without dropping other players' edges", () => {
   assert.match(ui, /applyFriendsRealtime/);
   assert.match(ui, /subscribeFriendEdgeContributions/);
   assert.match(ui, /isRealtimeJoined\?\.\("friend_edge_contributions"\)/);
+  assert.match(ui, /function friendsLiveJoined/);
+  assert.match(ui, /skipShared: !fetched \|\| joined/);
   assert.doesNotMatch(
     ui.slice(ui.indexOf("function applyFriendsRealtime"), ui.indexOf("function stopFriendsRealtime")),
     /pushRemote/

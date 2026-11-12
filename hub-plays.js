@@ -703,59 +703,76 @@
     } catch {}
     if (isRateLimited() && !sb()) return;
     let verifiedClean = false;
-    try {
-      const data = await fetchDoc("name-registry");
-      const raw =
-        data && typeof data === "object"
-          ? data.names && typeof data.names === "object"
-            ? data.names
-            : data
-          : {};
-      const cleaned = {};
-      Object.entries(raw || {}).forEach(([k, v]) => {
-        if (v && typeof v === "object" && v.playerId && v.name) cleaned[k] = v;
-      });
-      const purged = purgeNameRegistry(cleaned);
-      namesCache = purgeNameRegistry(mergeNameMaps(namesCache, purged.names)).names;
-      if (purged.changed) await pushNamesRemote(purged.names);
+    if (playsLiveJoined("nickname_claims")) {
+      namesCache = purgeNameRegistry(namesCache).names;
       verifiedClean =
-        !purged.names.dragon &&
-        !Object.values(purged.names).some((c) => isPurgedPlayer(c?.playerId, c?.name));
-    } catch {}
-    try {
-      const data = await fetchDoc("players-alltime");
-      const rawPlayers =
-        data && typeof data === "object"
-          ? data.players && typeof data.players === "object"
-            ? data.players
-            : data
-          : {};
-      const normalized = {};
-      Object.entries(rawPlayers || {}).forEach(([id, p]) => {
-        if (!id || id === "players" || id === "total") return;
-        if (!p || typeof p !== "object") return;
-        const firstAt = Number(p.firstAt) || Number(p.at) || 0;
-        if (!firstAt) return;
-        const lastAt = Math.max(Number(p.lastAt) || 0, Number(p.at) || 0, firstAt);
-        normalized[id] = {
-          firstAt,
-          lastAt,
-          name: sanitizeName(p.name || "") || "Guest"
-        };
-      });
-      const purged = purgeAllTimePlayers(normalized);
-      // Trust remote lastAt — never let a polluted local cache win here.
-      allTimeCache = purgeAllTimePlayers(
-        mergeAllTimePreferRemoteLast(purged.players, allTimeCache)
-      ).players;
+        !namesCache.dragon &&
+        !Object.values(namesCache).some((c) => isPurgedPlayer(c?.playerId, c?.name));
+    } else {
+      try {
+        const data = await fetchDoc("name-registry");
+        const raw =
+          data && typeof data === "object"
+            ? data.names && typeof data.names === "object"
+              ? data.names
+              : data
+            : {};
+        const cleaned = {};
+        Object.entries(raw || {}).forEach(([k, v]) => {
+          if (v && typeof v === "object" && v.playerId && v.name) cleaned[k] = v;
+        });
+        const purged = purgeNameRegistry(cleaned);
+        namesCache = purgeNameRegistry(mergeNameMaps(namesCache, purged.names)).names;
+        if (purged.changed) await pushNamesRemote(purged.names);
+        verifiedClean =
+          !purged.names.dragon &&
+          !Object.values(purged.names).some((c) => isPurgedPlayer(c?.playerId, c?.name));
+      } catch {}
+    }
+    if (playsLiveJoined("alltime_roster")) {
+      const purged = purgeAllTimePlayers(allTimeCache);
+      allTimeCache = purged.players;
       saveAllTimeLocal(allTimeCache);
-      if (purged.changed) await pushAllTimeRemote(purged.players, { rewriteShared: true });
       const allClean = !Object.entries(purged.players).some(([id, p]) =>
         isPurgedPlayer(id, p?.name)
       );
       verifiedClean = verifiedClean && allClean;
-    } catch {
-      verifiedClean = false;
+    } else {
+      try {
+        const data = await fetchDoc("players-alltime");
+        const rawPlayers =
+          data && typeof data === "object"
+            ? data.players && typeof data.players === "object"
+              ? data.players
+              : data
+            : {};
+        const normalized = {};
+        Object.entries(rawPlayers || {}).forEach(([id, p]) => {
+          if (!id || id === "players" || id === "total") return;
+          if (!p || typeof p !== "object") return;
+          const firstAt = Number(p.firstAt) || Number(p.at) || 0;
+          if (!firstAt) return;
+          const lastAt = Math.max(Number(p.lastAt) || 0, Number(p.at) || 0, firstAt);
+          normalized[id] = {
+            firstAt,
+            lastAt,
+            name: sanitizeName(p.name || "") || "Guest"
+          };
+        });
+        const purged = purgeAllTimePlayers(normalized);
+        // Trust remote lastAt — never let a polluted local cache win here.
+        allTimeCache = purgeAllTimePlayers(
+          mergeAllTimePreferRemoteLast(purged.players, allTimeCache)
+        ).players;
+        saveAllTimeLocal(allTimeCache);
+        if (purged.changed) await pushAllTimeRemote(purged.players, { rewriteShared: true });
+        const allClean = !Object.entries(purged.players).some(([id, p]) =>
+          isPurgedPlayer(id, p?.name)
+        );
+        verifiedClean = verifiedClean && allClean;
+      } catch {
+        verifiedClean = false;
+      }
     }
     if (verifiedClean) {
       try {
@@ -790,28 +807,37 @@
         });
       }
     } catch {}
-    try {
-      const data = await fetchDoc("name-registry");
-      const raw =
-        data && typeof data === "object"
-          ? data.names && typeof data.names === "object"
-            ? data.names
-            : data
-          : {};
-      const cleaned = {};
-      Object.entries(raw || {}).forEach(([k, v]) => {
-        if (v && typeof v === "object" && v.playerId && v.name) cleaned[k] = v;
-      });
-      const purged = purgeNameRegistry(cleaned);
-      namesCache = purgeNameRegistry(mergeNameMaps(namesCache, purged.names)).names;
-      if (purged.changed) await pushNamesRemote(purged.names);
-      verifiedClean = !Object.values(purged.names).some((c) => {
+    if (playsLiveJoined("nickname_claims")) {
+      namesCache = purgeNameRegistry(namesCache).names;
+      verifiedClean = !Object.values(namesCache).some((c) => {
         const t = String(c?.accentTitle || "").toLowerCase();
         const col = String(c?.accentColor || "").toLowerCase();
         return t === "rainbow" || col === "rainbow";
       });
-    } catch {
-      verifiedClean = false;
+    } else {
+      try {
+        const data = await fetchDoc("name-registry");
+        const raw =
+          data && typeof data === "object"
+            ? data.names && typeof data.names === "object"
+              ? data.names
+              : data
+            : {};
+        const cleaned = {};
+        Object.entries(raw || {}).forEach(([k, v]) => {
+          if (v && typeof v === "object" && v.playerId && v.name) cleaned[k] = v;
+        });
+        const purged = purgeNameRegistry(cleaned);
+        namesCache = purgeNameRegistry(mergeNameMaps(namesCache, purged.names)).names;
+        if (purged.changed) await pushNamesRemote(purged.names);
+        verifiedClean = !Object.values(purged.names).some((c) => {
+          const t = String(c?.accentTitle || "").toLowerCase();
+          const col = String(c?.accentColor || "").toLowerCase();
+          return t === "rainbow" || col === "rainbow";
+        });
+      } catch {
+        verifiedClean = false;
+      }
     }
     if (verifiedClean) {
       try {
@@ -1249,6 +1275,17 @@
   async function fetchPasswordsRemote() {
     let parsed = {};
     let fetched = false;
+    const tableRows = await fetchPasswordsTableRemote();
+    if (tableRows) {
+      parsed = identity.overlayPasswordMaps
+        ? identity.overlayPasswordMaps({}, tableRows)
+        : identity.mergePasswordMaps
+          ? identity.mergePasswordMaps({}, identity.rowsToPasswordMap(tableRows))
+          : identity.rowsToPasswordMap
+            ? identity.rowsToPasswordMap(tableRows)
+            : {};
+      return parsed;
+    }
     try {
       const data = await fetchDoc(PASSWORDS_PATH);
       if (data && typeof data === "object") {
@@ -1257,15 +1294,6 @@
       }
     } catch {
       parsed = {};
-    }
-    const tableRows = await fetchPasswordsTableRemote();
-    if (tableRows) {
-      parsed = identity.overlayPasswordMaps
-        ? identity.overlayPasswordMaps(parsed, tableRows)
-        : identity.mergePasswordMaps
-          ? identity.mergePasswordMaps(parsed, identity.rowsToPasswordMap(tableRows))
-          : parsed;
-      fetched = true;
     }
     if (!fetched) throw new Error("passwords-unavailable");
     return parsed;
