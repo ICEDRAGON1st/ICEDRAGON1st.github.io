@@ -1,6 +1,6 @@
 /**
  * Per-player Feedback tickets (bugs / ideas).
- * Shared player-feedback stays on hub_docs; this row is auth-owned player_saves.
+ * Signed-in Feedback rows overlay the inbox; leftover hub_docs is not rewritten.
  */
 (function (root) {
   const SAVE_KEY = "feedback-mine";

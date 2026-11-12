@@ -1,6 +1,6 @@
 /**
  * Per-player friend edges and invites.
- * Shared friends stay on hub_docs; this row is auth-owned player_saves.
+ * Signed-in friend rows overlay the friends list; leftover hub_docs is not rewritten.
  */
 (function (root) {
   const SAVE_KEY = "friends-edges";

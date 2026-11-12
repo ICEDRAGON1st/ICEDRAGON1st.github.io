@@ -1,6 +1,6 @@
 /**
  * Per-player DM and group chat snapshot.
- * Shared friend-chat stays on hub_docs; this row is auth-owned player_saves.
+ * Signed-in chat rows overlay DMs and groups; leftover hub_docs is not rewritten.
  * Global chat is not copied here.
  */
 (function (root) {

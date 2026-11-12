@@ -23,6 +23,10 @@
     return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
+  function mintPlayerId() {
+    return `p-${makeId()}`;
+  }
+
   function normalizePlayerCode(raw) {
     return String(raw ?? "")
       .toUpperCase()
@@ -291,6 +295,21 @@
     if (/^[0-9a-f]{64}$/i.test(hash)) return hash.toLowerCase();
     if (/^f:[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{16}$/.test(hash)) return hash;
     return "";
+  }
+
+  async function hashPassword(rawPassword) {
+    const pw = String(rawPassword || "").trim();
+    if (!pw) return "";
+    const payload = `ice-hub-pw-v1:${pw}`;
+    try {
+      if (globalThis.crypto?.subtle && typeof TextEncoder !== "undefined") {
+        const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(payload));
+        return Array.from(new Uint8Array(buf))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+      }
+    } catch {}
+    return `f:${hashToCodeParts(payload, "pw1")}${hashToCodeParts(payload, "pw2")}`;
   }
 
   function cleanPasswordEntry(raw, playerId) {
@@ -640,6 +659,7 @@
     sanitizeName,
     nameKey,
     makeId,
+    mintPlayerId,
     normalizePlayerCode,
     isPoisonPlayerCode,
     formatPlayerCode,
@@ -659,6 +679,7 @@
     collectIdentityMine,
     applyIdentityMine,
     PASSWORD_MINE_KEY,
+    hashPassword,
     normalizePasswordHash,
     cleanPasswordEntry,
     readPasswordMine,

@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015es",
+  "build": "20261015et",
   "notes": [
-    "Fishing weekend luck and Paper Claim load on your signed-in account after the hub refreshes the live boards."
+    "Switching saved accounts keeps your existing player. Login passwords stay hashed on your signed-in account."
   ]
 };

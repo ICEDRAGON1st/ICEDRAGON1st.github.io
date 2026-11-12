@@ -758,6 +758,10 @@
       : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   }
 
+  function mintPlayerId() {
+    return identity.mintPlayerId ? identity.mintPlayerId() : `p-${makeId()}`;
+  }
+
   function normalizePlayerCode(raw) {
     return identity.normalizePlayerCode ? identity.normalizePlayerCode(raw) : "";
   }
@@ -1083,16 +1087,9 @@
   }
 
   async function hashPassword(rawPassword) {
+    if (identity.hashPassword) return identity.hashPassword(rawPassword);
     const pw = normalizePasswordInput(rawPassword);
     const payload = `ice-hub-pw-v1:${pw}`;
-    try {
-      if (globalThis.crypto?.subtle && typeof TextEncoder !== "undefined") {
-        const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(payload));
-        return Array.from(new Uint8Array(buf))
-          .map((b) => b.toString(16).padStart(2, "0"))
-          .join("");
-      }
-    } catch {}
     return `f:${hashToCodeParts(payload, "pw1")}${hashToCodeParts(payload, "pw2")}`;
   }
 
@@ -1470,7 +1467,7 @@
         await HubAccountBag.syncUp(prevId);
       } catch {}
     }
-    const id = `p-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    const id = mintPlayerId();
     try {
       if (canUseLocalStorage()) localStorage.setItem(PLAYER_ID_KEY, id);
     } catch {}
@@ -1492,7 +1489,7 @@
         new CustomEvent("hub-player-changed", { detail: { playerId: id, name: "" } })
       );
     } catch {}
-    // Don't block account creation on MantleDB — register in background
+    // Don't block account creation on the signed-in code claim.
     ensurePlayerCodeRegistered().catch(() => {});
     if (window.HubAccountBag?.syncUp) {
       HubAccountBag.syncUp(id).catch(() => {});
@@ -2133,7 +2130,7 @@
               HubSupabase.peekBoundPlayerId &&
               HubSupabase.peekBoundPlayerId()) ||
             "";
-          if (!id) id = `p-${makeId()}`;
+          if (!id) id = mintPlayerId();
           localStorage.setItem(PLAYER_ID_KEY, id);
         }
         sessionPlayerId = id;
@@ -2143,7 +2140,7 @@
     if (!sessionPlayerId) {
       sessionPlayerId =
         (window.HubSupabase && HubSupabase.peekBoundPlayerId && HubSupabase.peekBoundPlayerId()) ||
-        `p-${makeId()}`;
+        mintPlayerId();
     }
     return sessionPlayerId;
   }
@@ -3689,7 +3686,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
 
       const now = Date.now();
       tickOnlineTime(now);
-      // Keep yourself visible even when MantleDB is rate-limited / offline.
+      // Keep yourself visible even when the signed-in presence ping is delayed.
       markSelfOnlineLocal(now);
 
       if (isRateLimited() && !sb()) {
@@ -5128,7 +5125,7 @@ body.light .menu-credit .player-name-creator {
     const current = getName();
     if (!current || isPlaceholderName(current)) return false;
     const key = nameKey(current);
-    // Always keep title/color locally — MantleDB rate limits / offline used to
+    // Always keep title/color locally — a signed-in nickname save used to
     // hard-fail every picker click with "Couldn't save …".
     const finishLocal = (existing) => applyClaimLocally(key, current, me, updater, existing);
 

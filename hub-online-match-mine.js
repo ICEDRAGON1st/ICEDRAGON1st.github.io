@@ -1,6 +1,6 @@
 /**
  * Per-player online match rooms.
- * Shared online-matches stay on hub_docs; this row is auth-owned player_saves.
+ * Signed-in match rows overlay rooms; leftover hub_docs is not rewritten.
  */
 (function (root) {
   const SAVE_KEY = "match-mine";

@@ -592,3 +592,34 @@ test("device account vault keeps existing player ids and drops poison codes", ()
   assert.match(plays, /identity\.removeSavedAccount/);
   assert.doesNotMatch(plays, /const ACCOUNTS_KEY = "hub-accounts-v1"/);
 });
+
+test("identity mints a player id only for new guests and hashes passwords without plaintext", async () => {
+  const fs = require("node:fs");
+  const plays = fs.readFileSync(path.join(__dirname, "../../hub-plays.js"), "utf8");
+  const id = identity.mintPlayerId();
+  assert.match(id, /^p-[a-z0-9][a-z0-9-]{6,80}$/);
+  assert.notEqual(identity.mintPlayerId(), id);
+  const hash = await identity.hashPassword("swordfish-test");
+  assert.match(hash, /^[0-9a-f]{64}$/);
+  assert.equal(hash.includes("swordfish"), false);
+  assert.equal(await identity.hashPassword("swordfish-test"), hash);
+  assert.equal(await identity.hashPassword("  swordfish-test  "), hash);
+  assert.equal(await identity.hashPassword(""), "");
+  assert.match(plays, /identity\.mintPlayerId/);
+  assert.match(plays, /identity\.hashPassword/);
+  assert.doesNotMatch(plays, /MantleDB/);
+  assert.match(
+    plays.slice(
+      plays.indexOf("async function createNewAccount"),
+      plays.indexOf("async function fetchCodesRemote")
+    ),
+    /mintPlayerId\(\)/
+  );
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function restoreWithPlayerCode"),
+      plays.indexOf("let sessionName")
+    ),
+    /mintPlayerId/
+  );
+});

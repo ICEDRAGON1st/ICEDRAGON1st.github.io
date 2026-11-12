@@ -1,6 +1,6 @@
 /**
  * Personal-best snapshot for leaderboards.
- * Shared boards stay on hub_docs; this row is auth-owned player_saves.
+ * Signed-in personal-best rows overlay the board; leftover hub_docs is not rewritten.
  */
 (function (root) {
   const SAVE_KEY = "lb-pbs";
