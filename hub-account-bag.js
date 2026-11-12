@@ -232,11 +232,10 @@
   async function pushBagCloud(api, playerId, bag) {
     if (!api || !bag) return false;
     const key = bagSaveKey(playerId);
-    let ok = false;
     if (key && typeof api.upsertSave === "function") {
       try {
         await api.upsertSave(key, bag, 1);
-        ok = true;
+        return true;
       } catch (err) {
         console.warn("[HubAccountBag] player_saves upsert failed", err);
       }
@@ -244,13 +243,12 @@
     if (typeof api.upsertDoc === "function") {
       try {
         await api.upsertDoc(DOC_PREFIX + playerId, bag);
-        ok = true;
+        return true;
       } catch (err) {
         console.warn("[HubAccountBag] hub_docs upsert failed", err);
       }
     }
-    if (!ok) throw new Error("account bag push failed");
-    return true;
+    throw new Error("account bag push failed");
   }
 
   function isMineBagKey(key) {
@@ -951,13 +949,14 @@
           console.warn("[HubAccountBag] player_saves pull failed", err);
         }
       }
+      if (owned) return owned;
       let shared = null;
       try {
         shared = asBag(id, await api.getDoc(DOC_PREFIX + id));
       } catch (err) {
         console.warn("[HubAccountBag] hub_docs pull failed", err);
       }
-      return mergeBags(owned, shared) || owned || shared;
+      return shared;
     } catch (err) {
       console.warn("[HubAccountBag] pull failed", err);
       return null;

@@ -291,18 +291,21 @@ test("account restore never blends leftover keys or toast queues", () => {
   assert.equal(values.get("hub-achievements-pending"), '["session-toast"]');
 });
 
-test("account bags dual-read player_saves and still write the shared document", async () => {
+test("account bags prefer player_saves and skip the shared document after a successful save", async () => {
   const writes = [];
+  const reads = [];
   const local = loadFixture("account-bag-local.json");
   const remoteDoc = loadFixture("account-bag-remote.json");
   const { api } = loadAccountBagApi({
     supabase: {
       ready: true,
       async getSave(key) {
+        reads.push(["save", key]);
         assert.equal(key, "account-bag:fixture-player");
         return local;
       },
       async getDoc(id) {
+        reads.push(["doc", id]);
         assert.equal(id, "account-bag:fixture-player");
         return remoteDoc;
       },
@@ -324,9 +327,50 @@ test("account bags dual-read player_saves and still write the shared document", 
   });
   assert.equal(pulled.kv["snake-high-score"], "1200");
   assert.equal(
+    reads.some((row) => row[0] === "save" && row[1] === "account-bag:fixture-player"),
+    true
+  );
+  assert.equal(
+    reads.some((row) => row[0] === "doc"),
+    false
+  );
+  assert.equal(
     writes.some((row) => row[0] === "save" && row[1] === "account-bag:fixture-player"),
     true
   );
+  assert.equal(
+    writes.some((row) => row[0] === "doc"),
+    false
+  );
+});
+
+test("account bags still use the shared document when player_saves is missing", async () => {
+  const writes = [];
+  const remoteDoc = loadFixture("account-bag-remote.json");
+  const { api } = loadAccountBagApi({
+    supabase: {
+      ready: true,
+      async getSave() {
+        return null;
+      },
+      async getDoc(id) {
+        assert.equal(id, "account-bag:fixture-player");
+        return remoteDoc;
+      },
+      async upsertSave() {
+        throw new Error("player_saves unavailable");
+      },
+      async upsertDoc(id, bag) {
+        writes.push(["doc", id, bag.kv["snake-high-score"]]);
+      }
+    }
+  });
+
+  const pulled = await api.pullAndApply("fixture-player", {
+    skipLiveSnapshot: true,
+    replace: true
+  });
+  assert.equal(pulled.kv["snake-high-score"], remoteDoc.kv["snake-high-score"]);
   assert.equal(
     writes.some((row) => row[0] === "doc" && row[1] === "account-bag:fixture-player"),
     true
