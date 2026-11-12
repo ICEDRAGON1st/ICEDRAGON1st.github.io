@@ -32,6 +32,8 @@ test("shared boards do not talk to the old backup host", () => {
   const net = fs.readFileSync(path.join(ROOT, "hub-net.js"), "utf8");
   assert.match(net, /mantledb\.sh/);
   const plays = fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8");
+  assert.doesNotMatch(plays, /async function fetchDoc/);
+  assert.doesNotMatch(plays, /async function pushDoc/);
   assert.equal(plays.includes("player-passwords"), true);
   assert.doesNotMatch(
     plays.slice(

@@ -333,6 +333,7 @@
     if (!overlay && !tableFetched && !liveJoined()) return undefined;
     const hit = peekDoc(id);
     if (hit) return hit;
+    if (tableFetched || liveJoined()) return null;
     return undefined;
   }
 

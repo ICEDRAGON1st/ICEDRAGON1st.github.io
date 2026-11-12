@@ -14,6 +14,7 @@ const GUEST = "p-guestaaaaaa";
 test("owned Paper rooms live in a helper used by the online arena", () => {
   const script = fs.readFileSync(path.join(ROOT, "paper-io/script.js"), "utf8");
   const index = fs.readFileSync(path.join(ROOT, "paper-io/index.html"), "utf8");
+  const roomsSrc = fs.readFileSync(path.join(ROOT, "paper-io/rooms-mine.js"), "utf8");
   const getSlice = script.slice(script.indexOf("async function sbGet"), script.indexOf("function encodeGrid"));
   const putSlice = script.slice(script.indexOf("async function sbPut"), script.indexOf("function encodeGrid"));
   assert.match(index, /rooms-mine\.js/);
@@ -22,6 +23,7 @@ test("owned Paper rooms live in a helper used by the online arena", () => {
   assert.match(script, /writeDoc/);
   assert.match(script, /ensureRealtime/);
   assert.match(script, /stopRealtime/);
+  assert.match(roomsSrc, /if \(tableFetched \|\| liveJoined\(\)\) return null/);
   assert.match(getSlice, /if \(hit !== undefined\) return hit/);
   assert.match(putSlice, /if \(wrote\) return/);
   assert.equal(rooms.TABLE, "paper_room_contributions");

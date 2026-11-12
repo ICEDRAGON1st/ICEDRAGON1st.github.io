@@ -37,25 +37,6 @@
     return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
   }
 
-  async function fetchDoc(docId) {
-    const api = sb();
-    if (!api?.getPrefer) throw new Error("account-server-unavailable");
-    try {
-      return await api.getPrefer(docId);
-    } catch (err) {
-      if (err && err.rateLimited) {
-        markRateLimited();
-        throw err;
-      }
-      throw err;
-    }
-  }
-
-  async function pushDoc(docId, data) {
-    const api = sb();
-    if (!api?.pushPrefer) throw new Error("account-server-unavailable");
-    await api.pushPrefer(docId, data);
-  }
   const CODE_ALPHABET = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
   /** These names can only be used by the player code that locked them. */
   const CODE_LOCKED_NAMES = new Set(["ice_dragon"]);

@@ -265,7 +265,7 @@
       const row = (Array.isArray(rows) ? rows : []).find(
         (item) => String(item?.doc_id || item?.docId || "").trim() === ADMIN_DELETES_DOC
       );
-      if (!row) return null;
+      if (!row) return {};
       return row.data && typeof row.data === "object" ? row.data : {};
     } catch {
       return null;

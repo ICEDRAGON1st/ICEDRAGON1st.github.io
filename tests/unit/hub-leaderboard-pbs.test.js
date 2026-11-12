@@ -30,6 +30,7 @@ test("personal bests live in a helper used by the shared board", () => {
   assert.match(ui, /skipShared: !fetched/);
   assert.match(fetchSlice, /if \(!adminResetsFetched\)/);
   assert.match(fetchSlice, /api\.getPrefer/);
+  assert.match(ui, /if \(!row\) return \{\}/);
   assert.match(pushSlice, /if \(opts\.wipe\) \{/);
   assert.match(pushSlice, /if \(resetsWrote\) return/);
   assert.match(pushSlice, /else if \(tableWrote\) \{/);
