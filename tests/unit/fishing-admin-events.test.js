@@ -91,6 +91,36 @@ test("Fishing admin events parse bundles, commands, and clamps", () => {
   assert.equal(admin.parseAdminCommand("10x luckyblock 5m").kind, "luckyblock");
 });
 
+test("Fishing admin announce live rows overlay a popup without shrinking on delete", () => {
+  const live = admin.applyAnnounceChange(
+    { payload: { token: admin.TOKEN, id: "a1", text: "Hi", until: LIVE } },
+    {
+      type: "UPDATE",
+      record: {
+        doc_id: "fishing-admin-announce",
+        data: { token: admin.TOKEN, id: "a2", text: "Live now", until: LIVE }
+      }
+    }
+  );
+  assert.equal(live.replaced, true);
+  assert.equal(live.payload.id, "a2");
+  assert.equal(live.payload.text, "Live now");
+
+  const ignored = admin.applyAnnounceChange(live, {
+    type: "UPDATE",
+    record: { doc_id: "fishing-admin-events", data: { kind: "luck" } }
+  });
+  assert.equal(ignored.replaced, false);
+  assert.equal(ignored.payload.id, "a2");
+
+  const afterDelete = admin.applyAnnounceChange(live, {
+    type: "DELETE",
+    old_record: { doc_id: "fishing-admin-announce" }
+  });
+  assert.equal(afterDelete.replaced, false);
+  assert.equal(afterDelete.payload.id, "a2");
+});
+
 test("Fishing admin-event live rows overlay luck without shrinking on delete", () => {
   const live = admin.applyBroadcastChange(
     { payload: { token: admin.TOKEN, boost: { kind: "luck", until: LIVE, mult: 2 } } },
@@ -129,8 +159,17 @@ test("Fishing admin events subscribe without rewriting hub_docs from the live ov
   );
   assert.match(script, /ensureAdminEventRealtime/);
   assert.match(script, /applyAdminEventRealtime/);
+  assert.match(script, /applyAdminAnnounceRealtime/);
   assert.match(script, /subscribeAdminBroadcasts/);
   assert.match(script, /listAdminBroadcasts/);
+  assert.match(script, /upsertAdminDoc\(ADMIN_ANNOUNCE_DOC/);
+  assert.doesNotMatch(
+    script.slice(
+      script.indexOf("function applyAdminAnnounceRealtime"),
+      script.indexOf("async function fetchAdminAnnounceRemote")
+    ),
+    /upsertAdminDoc|upsertDoc|pushPrefer/
+  );
   assert.doesNotMatch(
     script.slice(
       script.indexOf("function applyAdminEventRealtime"),

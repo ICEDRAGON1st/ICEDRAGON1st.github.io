@@ -120,6 +120,21 @@ test("fishing admin events join admin_broadcasts without publishing hub_docs", (
   assert.doesNotMatch(sql, /to anon/i);
 });
 
+test("fishing admin announce locks hub_docs writes and joins admin_broadcasts without publishing hub_docs", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160040_admin_broadcasts_fishing_announce.sql"),
+    "utf8"
+  );
+  assert.match(sql, /fishing-admin-announce/);
+  assert.match(sql, /admin_broadcasts_doc_id_allowed/);
+  assert.match(sql, /hub_docs_insert_non_admin/);
+  assert.match(sql, /hub_docs_update_non_admin/);
+  assert.match(sql, /security definer/i);
+  assert.match(sql, /grant execute on function public\.upsert_admin_hub_doc/);
+  assert.doesNotMatch(sql, /add table public\.hub_docs/i);
+  assert.doesNotMatch(sql, /to anon/i);
+});
+
 test("admin broadcasts realtime publication stays authenticated and replica-identity full", () => {
   const sql = fs.readFileSync(
     path.join(ROOT, "supabase/migrations/202610160038_admin_broadcasts_realtime.sql"),

@@ -135,13 +135,14 @@ test("locked admin docs use the trusted RPC instead of a direct hub_docs upsert"
   const admin = fs.readFileSync(path.join(__dirname, "../../hub-admin.js"), "utf8");
   const fishing = fs.readFileSync(path.join(__dirname, "../../fishing/script.js"), "utf8");
   assert.equal(supabase.isAdminDoc("fishing-admin-events"), true);
+  assert.equal(supabase.isAdminDoc("fishing-admin-announce"), true);
   assert.equal(supabase.isAdminDoc("hub-admin-grants"), true);
   assert.equal(supabase.isAdminDoc("fishing-community"), false);
   assert.match(src, /upsert_admin_hub_doc/);
   assert.match(admin, /api\.upsertAdminDoc/);
   assert.match(fishing, /upsertAdminDoc\(ADMIN_EVENT_DOC/);
   assert.match(fishing, /if \(ok\) return \{ ok: true, rateLimited: false \}/);
-  assert.match(fishing, /pushPrefer\(\s*ADMIN_ANNOUNCE_DOC/);
+  assert.match(fishing, /upsertAdminDoc\(ADMIN_ANNOUNCE_DOC/);
 });
 
 test("presence pings use auth-owned rows instead of rewriting the shared presence document", () => {

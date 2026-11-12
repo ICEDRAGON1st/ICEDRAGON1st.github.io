@@ -135,6 +135,7 @@
   }
 
   const FISHING_ADMIN_EVENT_DOC = "fishing-admin-events";
+  const FISHING_ADMIN_ANNOUNCE_DOC = "fishing-admin-announce";
 
   function unwrapChange(change) {
     const payload = change && typeof change === "object" ? change : {};
@@ -159,6 +160,22 @@
     if (!record || typeof record !== "object") return { payload: current, replaced: false };
     const docId = String(record.doc_id || record.docId || "").trim();
     if (docId !== FISHING_ADMIN_EVENT_DOC) return { payload: current, replaced: false };
+    const payload = record.data && typeof record.data === "object" ? record.data : {};
+    return { payload, replaced: true };
+  }
+
+  function applyAnnounceChange(hub, change) {
+    const current =
+      hub && typeof hub === "object" && Object.prototype.hasOwnProperty.call(hub, "payload")
+        ? hub.payload
+        : null;
+    const data = unwrapChange(change);
+    const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
+    if (type === "DELETE") return { payload: current, replaced: false };
+    const record = data.record || data.new || {};
+    if (!record || typeof record !== "object") return { payload: current, replaced: false };
+    const docId = String(record.doc_id || record.docId || "").trim();
+    if (docId !== FISHING_ADMIN_ANNOUNCE_DOC) return { payload: current, replaced: false };
     const payload = record.data && typeof record.data === "object" ? record.data : {};
     return { payload, replaced: true };
   }
@@ -560,7 +577,9 @@
     isSpeedAdminPayload,
     pickBetterAdminEvent,
     FISHING_ADMIN_EVENT_DOC,
+    FISHING_ADMIN_ANNOUNCE_DOC,
     applyBroadcastChange,
+    applyAnnounceChange,
     mergeMutationMaps,
     pruneMutationMap,
     mutationMapHasAny,

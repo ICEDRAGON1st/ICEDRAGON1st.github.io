@@ -4734,6 +4734,7 @@
     }
     adminEventRealtimeUnsub = api.subscribeAdminBroadcasts((change) => {
       applyAdminEventRealtime(change);
+      applyAdminAnnounceRealtime(change);
     });
   }
 
@@ -4792,6 +4793,7 @@
   }
 
   let adminAnnounceCache = null;
+  let adminAnnounceBroadcast = null;
   let adminAnnounceFetchedAt = 0;
   let adminAnnounceHideTimer = 0;
   let lastShownAnnounceId = "";
@@ -4893,9 +4895,39 @@
     playSfx("win");
   }
 
+  function applyAdminAnnounceRealtime(change) {
+    if (!fishingAdminApi.applyAnnounceChange) return;
+    const next = fishingAdminApi.applyAnnounceChange({ payload: adminAnnounceBroadcast }, change);
+    if (!next?.replaced) return;
+    adminAnnounceBroadcast = next.payload;
+    const parsed = parseAnnouncePayload(adminAnnounceBroadcast);
+    if (!parsed) {
+      if (Number(adminAnnounceBroadcast?.until) === 0) {
+        adminAnnounceCache = null;
+        hideAdminAnnouncePopup();
+      }
+      return;
+    }
+    showAdminAnnounce(parsed, { alert: parsed.id !== readSeenAnnounceId() });
+  }
+
   async function fetchAdminAnnounceRemote() {
-    // Account server first — exit as soon as we have a live message.
     const api = fishingSb();
+    if (api?.listAdminBroadcasts) {
+      try {
+        const rows = await api.listAdminBroadcasts();
+        if (Array.isArray(rows)) {
+          const hit = rows.find(
+            (row) => String(row.doc_id || row.docId || "") === ADMIN_ANNOUNCE_DOC
+          );
+          if (hit && hit.data && typeof hit.data === "object") {
+            adminAnnounceBroadcast = hit.data;
+            const fromTable = parseAnnouncePayload(hit.data);
+            if (fromTable) return fromTable;
+          }
+        }
+      } catch {}
+    }
     if (api?.getPrefer) {
       try {
         const data = await api.getPrefer(ADMIN_ANNOUNCE_DOC);
@@ -4933,6 +4965,14 @@
 
   async function pushAdminAnnounceRemote(payload) {
     const api = fishingSb();
+    if (api?.upsertAdminDoc && api.isAdminDoc?.(ADMIN_ANNOUNCE_DOC)) {
+      try {
+        await api.upsertAdminDoc(ADMIN_ANNOUNCE_DOC, payload);
+        return true;
+      } catch {
+        return false;
+      }
+    }
     if (!api?.pushPrefer) return false;
     try {
       await api.pushPrefer(ADMIN_ANNOUNCE_DOC, payload);

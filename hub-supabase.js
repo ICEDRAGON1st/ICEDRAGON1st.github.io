@@ -51,6 +51,7 @@
   const ADMIN_DOC_IDS = [
     "fishing-admin-events",
     "fishing-admin-audit",
+    "fishing-admin-announce",
     "hub-admin-announce",
     "hub-admin-maintenance",
     "hub-admin-moderation",
