@@ -421,15 +421,7 @@
         if (entry?.playerId) return String(entry.playerId);
       }
     } catch {}
-    if (api.isRealtimeJoined?.("player_code_claims")) return "";
-    try {
-      const data = await api.getDoc("player-codes");
-      const codes = data?.codes && typeof data.codes === "object" ? data.codes : data || {};
-      const entry = codes[norm] || codes[formatCode(norm)] || null;
-      return entry?.playerId ? String(entry.playerId) : "";
-    } catch {
-      return "";
-    }
+    return "";
   }
 
   async function unlockSelfIfNeeded(count) {

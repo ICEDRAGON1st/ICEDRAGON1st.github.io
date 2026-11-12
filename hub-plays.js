@@ -1614,14 +1614,16 @@
     if (playsLiveJoined("player_code_claims")) {
       return codesCache && typeof codesCache === "object" ? codesCache : {};
     }
-    const data = await fetchDoc("player-codes");
-    if (data == null) throw new Error("codes-unavailable");
-    if (!data || typeof data !== "object") return {};
-    return identity.parseCodesMap ? identity.parseCodesMap(data) : {};
-  }
-
-  async function pushCodesRemote(codes) {
-    await pushDoc("player-codes", { codes });
+    const tableRemote = await fetchCodesTableRemote();
+    if (tableRemote) {
+      return identity.mergeCodesMaps
+        ? identity.mergeCodesMaps(codesCache && typeof codesCache === "object" ? codesCache : {}, tableRemote)
+        : { ...(codesCache || {}), ...tableRemote };
+    }
+    if (codesCache && typeof codesCache === "object" && Object.keys(codesCache).length) {
+      return codesCache;
+    }
+    throw new Error("codes-unavailable");
   }
 
   async function persistPlayerCodeClaim(norm, name) {
@@ -1909,7 +1911,7 @@
         name: getName() || entry?.name || "",
         at: entry?.at || Date.now()
       };
-      if (!tableWrote && fetched) await pushCodesRemote(remote);
+      if (!tableWrote) throw new Error("codes-unavailable");
       if (isCodeLockedName(nameKey(getName()))) {
         lockNameToPlayerCode(nameKey(getName()), me, norm, getName()).catch(() => {});
       }

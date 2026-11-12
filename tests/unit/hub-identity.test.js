@@ -180,7 +180,21 @@ test("owned identity mine restores code and name without reminting a different p
   assert.match(plays, /pullIdentityMine/);
   assert.match(plays, /persistPlayerCodeClaim/);
   assert.match(plays, /fetchCodesTableRemote/);
-  assert.match(plays, /if \(!tableWrote && fetched\) await pushCodesRemote/);
+  assert.match(plays, /if \(!tableWrote\) throw new Error\("codes-unavailable"\)/);
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function fetchCodesRemote"),
+      plays.indexOf("async function persistPlayerCodeClaim")
+    ),
+    /fetchDoc/
+  );
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function ensurePlayerCodeRegistered"),
+      plays.indexOf("async function restoreWithPlayerCode")
+    ),
+    /pushDoc|pushCodesRemote/
+  );
   assert.equal(identity.IDENTITY_MINE_KEY, "identity-mine");
 
   const snapshot = identity.collectIdentityMine(

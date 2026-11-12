@@ -140,7 +140,5 @@ test("invite codes resolve from owned player-code rows before the shared board",
   assert.match(fn, /getPlayerCodeClaim/);
   assert.match(fn, /listPlayerCodeClaims/);
   assert.match(fn, /rowsToCodesMap/);
-  assert.match(fn, /getDoc\("player-codes"\)/);
-  assert.match(fn, /isRealtimeJoined\?\.\("player_code_claims"\)/);
-  assert.ok(fn.indexOf("getPlayerCodeClaim") < fn.indexOf("getDoc(\"player-codes\")"));
+  assert.doesNotMatch(fn, /getDoc\("player-codes"\)/);
 });

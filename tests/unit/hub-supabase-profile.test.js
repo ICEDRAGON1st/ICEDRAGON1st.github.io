@@ -122,7 +122,20 @@ test("shared docs skip the old backup read when the account server errors", () =
   assert.match(getPreferSrc, /return null;/);
   assert.match(src, /console\.warn\("\[HubSupabase\] getPrefer", docId, err\);\s*throw err;/);
   assert.match(plays, /if \(data == null\) throw new Error\("presence-unavailable"\)/);
-  assert.match(plays, /if \(data == null\) throw new Error\("codes-unavailable"\)/);
+  assert.match(
+    plays.slice(
+      plays.indexOf("async function fetchCodesRemote"),
+      plays.indexOf("async function persistPlayerCodeClaim")
+    ),
+    /throw new Error\("codes-unavailable"\)/
+  );
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function fetchCodesRemote"),
+      plays.indexOf("async function persistPlayerCodeClaim")
+    ),
+    /fetchDoc/
+  );
   assert.match(
     plays,
     /if \(raw == null \|\| typeof raw !== "object"\) throw new Error\("popularity-unavailable"\)/

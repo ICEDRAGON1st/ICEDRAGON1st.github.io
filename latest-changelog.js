@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015dn",
+  "build": "20261015do",
   "notes": [
-    "Login passwords stay on your signed-in account, so they aren't copied onto a shared board."
+    "Player codes stay on your signed-in account, so they aren't copied onto a shared board."
   ]
 };
