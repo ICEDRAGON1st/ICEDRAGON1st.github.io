@@ -61,7 +61,20 @@ test("owned play logs dual-write without copying other players or shrinking a ri
   assert.match(plays, /pullPlaysMine/);
   assert.match(plays, /persistPlayLogContribution/);
   assert.match(plays, /fetchPlaysTableRemote/);
-  assert.match(plays, /skipShared: !fetched/);
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function fetchPlaysRemote"),
+      plays.indexOf("async function pushPlaysRemote")
+    ),
+    /fetchDoc/
+  );
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function pushPlaysRemote"),
+      plays.indexOf("async function fetchNamesTableRemote")
+    ),
+    /pushDoc/
+  );
   assert.equal(popularity.SAVE_KEY, "plays-mine");
 
   const snapshot = popularity.collectMine(
@@ -121,8 +134,13 @@ test("popularity contributions sum owned rows without copying another player's p
   const plays = fs.readFileSync(path.resolve(__dirname, "../../hub-plays.js"), "utf8");
   assert.match(plays, /persistPopularityContribution/);
   assert.match(plays, /fetchPopularityTableRemote/);
-  assert.match(plays, /if \(fetched && !tableWrote\)/);
-  assert.match(plays, /if \(fetched && \(hasPending \|\| force\)\)/);
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function syncPopularity"),
+      plays.indexOf("function getMostPopularGameId")
+    ),
+    /fetchDoc|pushDoc/
+  );
   assert.equal(typeof popularity.rowsToCounts, "function");
 
   assert.deepEqual(popularity.sanitizeContributionGames({ "snake!": 2, snake: 3.9, fishing: -1 }), {

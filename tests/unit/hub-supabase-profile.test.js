@@ -149,9 +149,12 @@ test("shared docs skip the old backup read when the account server errors", () =
     ),
     /fetchDoc/
   );
-  assert.match(
-    plays,
-    /if \(raw == null \|\| typeof raw !== "object"\) throw new Error\("popularity-unavailable"\)/
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function syncPopularity"),
+      plays.indexOf("function getMostPopularGameId")
+    ),
+    /fetchDoc|pushDoc/
   );
 });
 

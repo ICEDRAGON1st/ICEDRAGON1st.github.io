@@ -519,21 +519,13 @@
       let remote = {};
       let remoteResetAt = 0;
       let fetched = false;
-      try {
-        const raw = await fetchDoc(POPULARITY_DOC);
-        if (raw == null || typeof raw !== "object") throw new Error("popularity-unavailable");
-        const parsed = parsePopularityPayload(raw);
-        remote = parsed.games;
-        remoteResetAt = parsed.resetAt;
-        fetched = true;
-      } catch {}
-
-      // Mantle/Supabase often 429/402 — Pages seed keeps Fishing Idle as most played.
+      // Pages seed keeps Fishing Idle as most played when live rows are still catching up.
       try {
         const seed = await fetchPagesPopularitySeed();
-        if (seed && seed.resetAt > remoteResetAt && Object.keys(seed.games).length) {
+        if (seed && Object.keys(seed.games || {}).length) {
           remote = seed.games;
-          remoteResetAt = seed.resetAt;
+          remoteResetAt = Number(seed.resetAt) || 0;
+          fetched = true;
         }
       } catch {}
 
@@ -560,14 +552,6 @@
             : { ...popularityCache, ...tableCounts };
         }
         savePopularityLocal();
-        try {
-          if (fetched && !tableWrote) {
-            await pushDoc(
-              POPULARITY_DOC,
-              { games: remote, resetAt: remoteResetAt, updated_at: Date.now() }
-            );
-          }
-        } catch {}
         return getEffectivePopularity();
       }
 
@@ -588,17 +572,8 @@
       }
 
       popularityCache = merged;
-      const hasPending = Object.values(pending).some((v) => (Number(v) || 0) > 0);
       if (tableWrote) {
         popularityPending = {};
-      } else if (fetched && (hasPending || force)) {
-        try {
-          await pushDoc(
-            POPULARITY_DOC,
-            { games: merged, resetAt: remoteResetAt || localResetAt || 0, updated_at: Date.now() }
-          );
-          popularityPending = {};
-        } catch {}
       }
       savePopularityLocal();
       return getEffectivePopularity();
@@ -2382,37 +2357,33 @@
   }
 
   async function fetchPlaysRemote() {
-    let parsed = { plays: [], counts: {} };
-    let fetched = false;
-    try {
-      const data = await fetchDoc("plays-log");
-      if (data && typeof data === "object") {
-        parsed = {
-          plays: Array.isArray(data.plays) ? data.plays : [],
-          counts: data.counts && typeof data.counts === "object" ? data.counts : {}
-        };
-        fetched = true;
-      }
-    } catch {
-      parsed = { plays: [], counts: {} };
+    if (playsLiveJoined("play_log_contributions")) {
+      return {
+        plays: Array.isArray(cache.plays) ? cache.plays : [],
+        counts: cache.counts && typeof cache.counts === "object" ? cache.counts : {}
+      };
     }
     const tableRemote = await fetchPlaysTableRemote();
     if (tableRemote) {
-      parsed = mergeLogs(parsed, tableRemote);
-      fetched = true;
+      const current = {
+        plays: Array.isArray(cache.plays) ? cache.plays : [],
+        counts: cache.counts && typeof cache.counts === "object" ? cache.counts : {}
+      };
+      return mergeLogs(current, tableRemote);
     }
-    if (!fetched) throw new Error("plays-unavailable");
-    return parsed;
+    if (cache && Array.isArray(cache.plays) && cache.plays.length) {
+      return {
+        plays: cache.plays,
+        counts: cache.counts && typeof cache.counts === "object" ? cache.counts : {}
+      };
+    }
+    throw new Error("plays-unavailable");
   }
 
-  async function pushPlaysRemote(data, opts) {
+  async function pushPlaysRemote(data) {
     const tableWrote = await persistPlayLogContribution(data?.plays);
-    if (tableWrote && !(opts && opts.rewriteShared)) return;
-    if (opts && opts.skipShared) return;
-    await pushDoc("plays-log", {
-      plays: data.plays || [],
-      counts: data.counts || {}
-    });
+    if (tableWrote) return;
+    throw new Error("plays-unavailable");
   }
 
   async function fetchNamesTableRemote() {
@@ -2561,7 +2532,6 @@
       await pullPlaysMine();
       const withMine = loadLocal();
       let remote = { plays: [], counts: {} };
-      let fetched = true;
       if (playsLiveJoined("play_log_contributions")) {
         remote = {
           plays: Array.isArray(cache.plays) ? cache.plays : withMine.plays || [],
@@ -2572,7 +2542,6 @@
           remote = await fetchPlaysRemote();
         } catch {
           remote = { plays: [], counts: {} };
-          fetched = false;
         }
       }
       const mergedRaw = mergeLogs(withMine.plays.length ? withMine : local, remote);
@@ -2581,9 +2550,7 @@
       saveLocal(merged);
       persistPlaysMine();
       try {
-        await pushPlaysRemote(merged, {
-          skipShared: !fetched || playsLiveJoined("play_log_contributions")
-        });
+        await pushPlaysRemote(merged);
       } catch {
         // offline — local still works
       }

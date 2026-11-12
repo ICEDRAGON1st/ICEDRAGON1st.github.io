@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ds",
+  "build": "20261015dt",
   "notes": [
-    "The all-time player list stays on your signed-in account, so it isn't copied onto a shared board."
+    "Play counts and recent games stay on your signed-in account, so they aren't copied onto a shared board."
   ]
 };
