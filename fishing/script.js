@@ -1675,10 +1675,8 @@
   async function fetchCommunityDoc() {
     const pages = await fetchCommunityJson(COMMUNITY_PAGES_URL, { trackRate: false });
     const pagesDoc = pages.found ? normalizeCommunityDoc(pages.data) : null;
-    const api = fishingSb();
     let remote = null;
     let remoteOk = false;
-    let rateLimited = false;
 
     const meterRows = await fetchCommunityMeterRemote();
     const meterFetched = Array.isArray(meterRows);
@@ -1688,20 +1686,6 @@
         meterRows.find((row) => String(row?.id || "") === COMMUNITY_DOC) || meterRows[0];
       if (meterRow && fishingSaveApi.overlayCommunityMeter) {
         remote = normalizeCommunityDoc(fishingSaveApi.overlayCommunityMeter(null, meterRow));
-      }
-    }
-    if (!meterFetched && api?.getPrefer) {
-      try {
-        const raw = await api.getPrefer(COMMUNITY_DOC);
-        if (raw && typeof raw === "object") {
-          remote = normalizeCommunityDoc(raw);
-          remoteOk = true;
-        }
-      } catch (err) {
-        if (err && err.rateLimited) {
-          rateLimited = true;
-          markCommunityRateLimited();
-        }
       }
     }
 
@@ -1715,8 +1699,8 @@
     let data = null;
     if (remote) {
       data = pickBetterCommunityDoc(remote, pagesDoc) || remote;
-    } else if (rateLimited || !remoteOk) {
-      // Shared server down / rate-limited: keep the last good cache so Pages can't wipe progress.
+    } else if (!remoteOk) {
+      // Signed-in meter down: keep the last good cache so Pages can't wipe progress.
       if (communityCache.weekKey || communityCache.total || communityCache.lbWave) {
         data = normalizeCommunityDoc(communityCache, communityCache.weekKey);
       } else if (pagesDoc) {
@@ -1744,6 +1728,10 @@
           key
         );
       data = fishingSaveApi.overlayCommunityCasts(base, tableRows, key);
+    }
+
+    if (meterFetched && data && !remote) {
+      persistCommunityMeterState(data).catch(() => {});
     }
 
     if (data) return { found: true, data };
@@ -1829,16 +1817,7 @@
       return true;
     }
     if (!rewriteShared) return tableWrote;
-    if (fishingLiveJoined("community_meter_state")) return meterWrote || tableWrote;
-    const payload = { ...doc, token: COMMUNITY_TOKEN };
-    const api = fishingSb();
-    if (!api?.pushPrefer) return meterWrote || tableWrote;
-    try {
-      await api.pushPrefer(COMMUNITY_DOC, payload);
-      return true;
-    } catch {
-      return meterWrote || tableWrote;
-    }
+    return meterWrote || tableWrote;
   }
 
   function communityDisplayTotal() {

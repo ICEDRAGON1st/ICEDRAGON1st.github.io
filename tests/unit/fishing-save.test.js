@@ -228,9 +228,10 @@ test("owned aquarium row dual-writes without copying others or shrinking shared 
   assert.equal(afterDelete.tanks["p-guestxxx"].level, 9);
 });
 
-test("fishing community uses account-server prefer and skips the old backup write after success", () => {
+test("fishing community uses signed-in meter state and skips leftover shared boards", () => {
   const fs = require("node:fs");
   const script = fs.readFileSync(path.resolve(__dirname, "../../fishing/script.js"), "utf8");
+  const pages = fs.readFileSync(path.resolve(__dirname, "../../fishing/community.json"), "utf8");
   const fetchSlice = script.slice(
     script.indexOf("async function fetchCommunityDoc"),
     script.indexOf("async function fetchCommunityTableRemote")
@@ -240,15 +241,14 @@ test("fishing community uses account-server prefer and skips the old backup writ
     script.indexOf("function communityDisplayTotal")
   );
   assert.match(fetchSlice, /fetchCommunityMeterRemote/);
-  assert.match(fetchSlice, /if \(!meterFetched && api\?\.getPrefer\)/);
-  assert.match(fetchSlice, /api\.getPrefer\(\s*COMMUNITY_DOC/);
-  assert.match(script, /if \(raw && typeof raw === "object"\) \{/);
+  assert.match(fetchSlice, /persistCommunityMeterState\(data\)/);
+  assert.doesNotMatch(fetchSlice, /getPrefer|pushPrefer|upsertDoc/);
   assert.match(script, /remoteOk = true;/);
   assert.match(pushSlice, /persistCommunityMeterState/);
   assert.match(pushSlice, /if \(meterWrote\) return true/);
   assert.match(pushSlice, /if \(!rewriteShared\) return tableWrote/);
-  assert.match(pushSlice, /fishingLiveJoined\("community_meter_state"\)/);
-  assert.match(pushSlice, /api\.pushPrefer\(\s*COMMUNITY_DOC/);
+  assert.match(pushSlice, /return meterWrote \|\| tableWrote/);
+  assert.doesNotMatch(pushSlice, /getPrefer|pushPrefer|upsertDoc/);
   assert.equal(script.includes("await api.upsertDoc(COMMUNITY_DOC"), false);
   assert.equal(script.includes("mantledb.sh"), false);
   assert.equal(script.includes("COMMUNITY_API"), false);
@@ -256,6 +256,8 @@ test("fishing community uses account-server prefer and skips the old backup writ
   assert.match(script, /fetchCommunityTableRemote/);
   assert.match(script, /overlayCommunityCasts/);
   assert.match(script, /overlayCommunityMeter/);
+  assert.match(pages, /"weekKey": "2026-9-20-r1"/);
+  assert.match(pages, /"total": 75/);
 });
 
 test("community cast overlay sums this week's rows without shrinking a richer shared meter", () => {

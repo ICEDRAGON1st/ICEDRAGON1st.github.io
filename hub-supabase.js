@@ -65,8 +65,8 @@
     return ADMIN_DOC_IDS.includes(String(id || "").trim());
   }
 
-  // Contracted leftover boards. Keep fishing-community and paper-io-* writable
-  // until community_meter_state / paper_room_contributions are live.
+  // Leftover hub_docs is closed. Fishing weekend luck and Paper Claim live on
+  // signed-in tables; Pages JSON remains the community floor.
   const LEFTOVER_LOCKED_DOC_IDS = [
     "leaderboards",
     "plays-log",
@@ -93,14 +93,13 @@
     const key = String(id || "").trim();
     if (!key) return false;
     if (key.startsWith("account-bag:")) return true;
+    if (key === "fishing-community") return true;
+    if (key.startsWith("paper-io-")) return true;
     return LEFTOVER_LOCKED_DOC_IDS.includes(key);
   }
 
-  function isLeftoverOpenDoc(id) {
-    const key = String(id || "").trim();
-    if (!key) return false;
-    if (key === "fishing-community") return true;
-    return key.startsWith("paper-io-");
+  function isLeftoverOpenDoc(_id) {
+    return false;
   }
 
   function headers(extra, accessToken) {

@@ -231,12 +231,12 @@ test("remaining leftover tables paste includes meter, Paper, Discord /link, and 
   assert.doesNotMatch(sql, /add table public\.hub_docs/i);
 });
 
-test("contracted leftover boards skip hub_docs on the client until meter and Paper tables are live", () => {
+test("contracted leftover boards skip hub_docs on the client after meter and Paper tables are live", () => {
   const src = fs.readFileSync(path.join(ROOT, "hub-supabase.js"), "utf8");
   const plays = fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8");
   assert.match(src, /function isLeftoverLockedDoc/);
   assert.match(src, /function isLeftoverOpenDoc/);
-  assert.match(src, /Keep fishing-community and paper-io-\* writable/);
+  assert.match(src, /Leftover hub_docs is closed/);
   assert.match(src, /"discord-links-v1"/);
   assert.match(src, /if \(!isLeftoverOpenDoc\(id\) \|\| isLeftoverLockedDoc\(id\)\) return null;/);
   assert.match(src, /throw new Error\("leftover-locked"\)/);
@@ -277,9 +277,19 @@ test("contracted leftover boards cannot be rewritten on hub_docs", () => {
   }
   assert.doesNotMatch(sql, /'fishing-community'/);
   assert.doesNotMatch(sql, /'paper-io-/);
-  assert.doesNotMatch(sql, /'discord-links-v1'/);
-  assert.doesNotMatch(sql, /add table public\.hub_docs/i);
+});
+
+test("Fishing weekend luck and Paper Claim leftover boards lock after signed-in tables are live", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160053_lock_community_paper_hub_docs.sql"),
+    "utf8"
+  );
+  assert.match(sql, /hub_docs_insert_non_admin/);
+  assert.match(sql, /hub_docs_update_non_admin/);
+  assert.match(sql, /'fishing-community'/);
+  assert.match(sql, /id not like 'paper-io-%'/);
   assert.doesNotMatch(sql, /to anon/i);
+  assert.doesNotMatch(sql, /add table public\.hub_docs/i);
 });
 
 test("fishing admin announce locks hub_docs writes and joins admin_broadcasts without publishing hub_docs", () => {

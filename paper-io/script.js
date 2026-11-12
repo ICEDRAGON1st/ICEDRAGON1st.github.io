@@ -3169,12 +3169,7 @@
         if (hit !== undefined) return hit;
       } catch {}
     }
-    if (!window.HubSupabase?.getDoc) return null;
-    try {
-      return await HubSupabase.getDoc(id);
-    } catch {
-      return null;
-    }
+    return null;
   }
 
   async function sbPut(id, data) {
@@ -3185,8 +3180,7 @@
         if (wrote) return;
       } catch {}
     }
-    if (!window.HubSupabase?.upsertDoc) throw new Error("no supabase");
-    await HubSupabase.upsertDoc(id, data);
+    throw new Error("paper-rooms-unavailable");
   }
 
   function encodeGrid() {

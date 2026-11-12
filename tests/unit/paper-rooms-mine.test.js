@@ -27,6 +27,9 @@ test("owned Paper rooms live in a helper used by the online arena", () => {
   assert.match(roomsSrc, /return !!\(tableFetched \|\| liveJoined\(\)\)/);
   assert.match(getSlice, /if \(hit !== undefined\) return hit/);
   assert.match(putSlice, /if \(wrote\) return/);
+  assert.doesNotMatch(getSlice, /HubSupabase\.getDoc|getPrefer/);
+  assert.doesNotMatch(putSlice, /HubSupabase\.upsertDoc|pushPrefer/);
+  assert.match(putSlice, /paper-rooms-unavailable/);
   assert.equal(rooms.TABLE, "paper_room_contributions");
   assert.equal(rooms.LOBBY_DOC, "paper-io-lobbies");
 });
