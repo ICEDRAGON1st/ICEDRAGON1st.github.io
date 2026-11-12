@@ -2965,15 +2965,11 @@
     }
   }
 
-  async function getDoc(id) {
-    if (!isLeftoverOpenDoc(id) || isLeftoverLockedDoc(id)) return null;
+  async function getDoc(_id) {
     return null;
   }
 
-  async function upsertDoc(id, _data) {
-    if (!isLeftoverOpenDoc(id) || isLeftoverLockedDoc(id) || isAdminDoc(id)) {
-      throw new Error("leftover-locked");
-    }
+  async function upsertDoc(_id, _data) {
     throw new Error("leftover-locked");
   }
 

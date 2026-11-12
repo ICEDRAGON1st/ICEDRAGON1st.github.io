@@ -644,6 +644,13 @@ test("identity mints a player id only for new guests and hashes passwords withou
     /mintPlayerId|playerIdForOfflineCode/
   );
   assert.doesNotMatch(plays, /playerIdForOfflineCode/);
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function restoreWithPlayerCode"),
+      plays.indexOf("let sessionName")
+    ),
+    /MG1:/
+  );
   assert.match(plays, /identity\.resolveRestoreEntry/);
   const vaultHit = { playerId: "p-ada", name: "Ada", savedAt: 9, code: "AB23CD45" };
   const remote = { AB23CD45: { playerId: "p-other", name: "Other", at: 1 } };

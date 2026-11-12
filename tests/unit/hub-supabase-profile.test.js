@@ -210,12 +210,10 @@ test("contracted leftover boards skip hub_docs reads and writes", async () => {
     src.indexOf("async function upsertDoc"),
     src.indexOf("async function upsertAdminDoc")
   );
-  assert.match(getDocSrc, /if \(!isLeftoverOpenDoc\(id\) \|\| isLeftoverLockedDoc\(id\)\) return null;/);
-  assert.match(
-    upsertDocSrc,
-    /if \(!isLeftoverOpenDoc\(id\) \|\| isLeftoverLockedDoc\(id\) \|\| isAdminDoc\(id\)\)/
-  );
+  assert.match(getDocSrc, /return null;/);
+  assert.doesNotMatch(getDocSrc, /isLeftoverOpenDoc|isLeftoverLockedDoc|hubFetch/);
   assert.match(upsertDocSrc, /throw new Error\("leftover-locked"\)/);
+  assert.doesNotMatch(upsertDocSrc, /isLeftoverOpenDoc|isLeftoverLockedDoc|isAdminDoc|hubFetch/);
   assert.doesNotMatch(getDocSrc, /rest\/v1\/hub_docs/);
   assert.doesNotMatch(upsertDocSrc, /rest\/v1\/hub_docs/);
   assert.doesNotMatch(getDocSrc, /hubFetch/);

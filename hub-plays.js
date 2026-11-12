@@ -1825,8 +1825,8 @@
       return {
         ok: false,
         error: viaPassword
-          ? "Account server is unreachable right now. On your other device open Settings → Copy transfer, then paste the full MG1:… key here."
-          : "Account server is unreachable right now. On your other device open Settings → Copy transfer, then paste the full MG1:… key here (not just ABCD-EFGH)."
+          ? "Account server is unreachable right now. On your other device open Settings → Copy transfer, then paste the full transfer key here."
+          : "Account server is unreachable right now. On your other device open Settings → Copy transfer, then paste the full transfer key here (not just ABCD-EFGH)."
       };
     }
 
