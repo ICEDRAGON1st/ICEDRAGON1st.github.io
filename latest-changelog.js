@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015et",
+  "build": "20261015eu",
   "notes": [
-    "Switching saved accounts keeps your existing player. Login passwords stay hashed on your signed-in account."
+    "Player codes, reserved names, and login passwords stay on your signed-in account — leftover shared boards aren't asked for them."
   ]
 };

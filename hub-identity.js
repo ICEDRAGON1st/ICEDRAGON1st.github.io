@@ -619,6 +619,114 @@
     return next.slice(0, MAX_SAVED_ACCOUNTS);
   }
 
+  async function fetchPasswordHashRows(api) {
+    if (!api?.listPlayerPasswordHashes) return null;
+    try {
+      const rows = await api.listPlayerPasswordHashes();
+      if (!rows) return null;
+      return Array.isArray(rows) ? rows : [];
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistPlayerPasswordHash(api, playerId, hash, entry, opts) {
+    const me = String(playerId || "").trim();
+    if (!api?.upsertPlayerPasswordHash || !me) return false;
+    const cleared = !!(opts && opts.cleared);
+    const cleaned = !cleared ? cleanPasswordEntry(entry, me) : null;
+    const norm = normalizePasswordHash(hash);
+    if (!cleared && (!norm || !cleaned)) return false;
+    try {
+      await api.upsertPlayerPasswordHash({
+        playerId: me,
+        passwordHash: cleared ? "" : norm,
+        code: cleaned?.code || "",
+        displayName: cleaned?.name || "",
+        hashedAt: cleaned?.at || Date.now(),
+        cleared
+      });
+      return true;
+    } catch (err) {
+      if (err && err.hashTaken) return "taken";
+      return false;
+    }
+  }
+
+  async function pushPasswordHashes(api, playerId, passwords) {
+    const me = String(playerId || "").trim();
+    let tableWrote = false;
+    const mine = Object.entries(passwords || {}).filter(([, entry]) => entry?.playerId === me);
+    for (const [hash, entry] of mine) {
+      const result = await persistPlayerPasswordHash(api, me, hash, entry);
+      if (result === "taken") {
+        const err = new Error("password hash taken");
+        err.hashTaken = true;
+        throw err;
+      }
+      if (result === true) tableWrote = true;
+    }
+    return tableWrote;
+  }
+
+  async function fetchCodeClaimRows(api) {
+    if (!api?.listPlayerCodeClaims) return null;
+    try {
+      const rows = await api.listPlayerCodeClaims();
+      if (!rows) return null;
+      return Array.isArray(rows) ? rows : [];
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistPlayerCodeClaim(api, playerId, norm, name) {
+    const me = String(playerId || "").trim();
+    if (!api?.upsertPlayerCodeClaim || !me) return false;
+    try {
+      await api.upsertPlayerCodeClaim({
+        playerId: me,
+        code: norm,
+        displayName: name || ""
+      });
+      return true;
+    } catch (err) {
+      if (err && err.codeTaken) return "taken";
+      return false;
+    }
+  }
+
+  async function fetchReservationLockRows(api) {
+    if (!api?.listNameReservationLocks) return null;
+    try {
+      const rows = await api.listNameReservationLocks();
+      if (!rows) return null;
+      return Array.isArray(rows) ? rows : [];
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistNameReservationLock(api, playerId, key, entry) {
+    const me = String(playerId || "").trim();
+    if (!api?.upsertNameReservationLock || !me || !entry) return false;
+    const cleaned = cleanReservation(entry, me);
+    if (!cleaned?.code || !cleaned?.name) return false;
+    try {
+      await api.upsertNameReservationLock({
+        playerId: me,
+        nameKey: String(key || nameKey(cleaned.name) || "").toLowerCase(),
+        code: cleaned.code,
+        displayName: cleaned.name,
+        lockedAt: cleaned.lockedAt
+      });
+      return true;
+    } catch (err) {
+      if (err && err.nameTaken) return "taken";
+      return false;
+    }
+  }
+
   function removeSavedAccount(rawCode, list) {
     const norm = normalizePlayerCode(rawCode);
     const current = Array.isArray(list) ? list : [];
@@ -688,6 +796,13 @@
     rowsToPasswordMap,
     mergePasswordMaps,
     overlayPasswordMaps,
+    fetchPasswordHashRows,
+    persistPlayerPasswordHash,
+    pushPasswordHashes,
+    fetchCodeClaimRows,
+    persistPlayerCodeClaim,
+    fetchReservationLockRows,
+    persistNameReservationLock,
     RESERVATIONS_MINE_KEY,
     cleanReservation,
     readReservationsMine,

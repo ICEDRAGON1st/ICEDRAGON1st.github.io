@@ -1122,39 +1122,13 @@
   }
 
   async function fetchPasswordsTableRemote() {
-    const api = sb();
-    if (!api?.listPlayerPasswordHashes || !identity.rowsToPasswordMap) return null;
-    try {
-      const rows = await api.listPlayerPasswordHashes();
-      if (!rows) return null;
-      return rows;
-    } catch {
-      return null;
-    }
+    if (!identity.fetchPasswordHashRows) return null;
+    return identity.fetchPasswordHashRows(sb());
   }
 
   async function persistPlayerPasswordHash(hash, entry, opts) {
-    const api = sb();
-    const me = getPlayerId();
-    if (!api?.upsertPlayerPasswordHash || !me) return false;
-    const cleared = !!(opts && opts.cleared);
-    const cleaned = !cleared && identity.cleanPasswordEntry ? identity.cleanPasswordEntry(entry, me) : null;
-    const norm = identity.normalizePasswordHash ? identity.normalizePasswordHash(hash) : String(hash || "");
-    if (!cleared && (!norm || !cleaned)) return false;
-    try {
-      await api.upsertPlayerPasswordHash({
-        playerId: me,
-        passwordHash: cleared ? "" : norm,
-        code: cleaned?.code || "",
-        displayName: cleaned?.name || "",
-        hashedAt: cleaned?.at || Date.now(),
-        cleared
-      });
-      return true;
-    } catch (err) {
-      if (err && err.hashTaken) return "taken";
-      return false;
-    }
+    if (!identity.persistPlayerPasswordHash) return false;
+    return identity.persistPlayerPasswordHash(sb(), getPlayerId(), hash, entry, opts);
   }
 
   async function fetchPasswordsRemote() {
@@ -1170,19 +1144,9 @@
   }
 
   async function pushPasswordsRemote(passwords) {
-    const me = getPlayerId();
-    let tableWrote = false;
-    const mine = Object.entries(passwords || {}).filter(([, entry]) => entry?.playerId === me);
-    for (const [hash, entry] of mine) {
-      const result = await persistPlayerPasswordHash(hash, entry);
-      if (result === "taken") {
-        const err = new Error("password hash taken");
-        err.hashTaken = true;
-        throw err;
-      }
-      if (result === true) tableWrote = true;
-    }
-    if (tableWrote) return;
+    if (!identity.pushPasswordHashes) throw new Error("passwords-unavailable");
+    const wrote = await identity.pushPasswordHashes(sb(), getPlayerId(), passwords);
+    if (wrote) return;
     throw new Error("passwords-unavailable");
   }
 
@@ -1519,27 +1483,14 @@
   }
 
   async function persistPlayerCodeClaim(norm, name) {
-    const api = sb();
-    const me = getPlayerId();
-    if (!api?.upsertPlayerCodeClaim || !me) return false;
-    try {
-      await api.upsertPlayerCodeClaim({
-        playerId: me,
-        code: norm,
-        displayName: name || ""
-      });
-      return true;
-    } catch (err) {
-      if (err && err.codeTaken) return "taken";
-      return false;
-    }
+    if (!identity.persistPlayerCodeClaim) return false;
+    return identity.persistPlayerCodeClaim(sb(), getPlayerId(), norm, name);
   }
 
   async function fetchCodesTableRemote() {
-    const api = sb();
-    if (!api?.listPlayerCodeClaims || !identity.rowsToCodesMap) return null;
+    if (!identity.fetchCodeClaimRows || !identity.rowsToCodesMap) return null;
     try {
-      const rows = await api.listPlayerCodeClaims();
+      const rows = await identity.fetchCodeClaimRows(sb());
       if (!rows) return null;
       codeRows = Array.isArray(rows) ? rows : [];
       const mapped = identity.rowsToCodesMap(rows);
@@ -1556,10 +1507,9 @@
   }
 
   async function fetchReservationsTableRemote() {
-    const api = sb();
-    if (!api?.listNameReservationLocks || !identity.rowsToReservationsMap) return null;
+    if (!identity.fetchReservationLockRows || !identity.rowsToReservationsMap) return null;
     try {
-      const rows = await api.listNameReservationLocks();
+      const rows = await identity.fetchReservationLockRows(sb());
       if (!rows) return null;
       reservationRows = Array.isArray(rows) ? rows : [];
       return identity.rowsToReservationsMap(rows);
@@ -1569,26 +1519,8 @@
   }
 
   async function persistNameReservationLock(key, entry) {
-    const api = sb();
-    const me = getPlayerId();
-    if (!api?.upsertNameReservationLock || !me || !entry) return false;
-    const cleaned = identity.cleanReservation
-      ? identity.cleanReservation(entry, me)
-      : entry;
-    if (!cleaned?.code || !cleaned?.name) return false;
-    try {
-      await api.upsertNameReservationLock({
-        playerId: me,
-        nameKey: String(key || nameKey(cleaned.name) || "").toLowerCase(),
-        code: cleaned.code,
-        displayName: cleaned.name,
-        lockedAt: cleaned.lockedAt
-      });
-      return true;
-    } catch (err) {
-      if (err && err.nameTaken) return "taken";
-      return false;
-    }
+    if (!identity.persistNameReservationLock) return false;
+    return identity.persistNameReservationLock(sb(), getPlayerId(), key, entry);
   }
 
   async function fetchReservationsRemote() {

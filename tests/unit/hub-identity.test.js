@@ -623,3 +623,98 @@ test("identity mints a player id only for new guests and hashes passwords withou
     /mintPlayerId/
   );
 });
+
+test("identity password, code, and reservation remotes skip leftover shared boards", async () => {
+  const fs = require("node:fs");
+  const identitySrc = fs.readFileSync(path.join(__dirname, "../../hub-identity.js"), "utf8");
+  const plays = fs.readFileSync(path.join(__dirname, "../../hub-plays.js"), "utf8");
+  assert.doesNotMatch(identitySrc, /getPrefer|pushPrefer|fetchDoc|pushDoc|hub_docs/);
+  assert.match(plays, /identity\.fetchPasswordHashRows/);
+  assert.match(plays, /identity\.pushPasswordHashes/);
+  assert.match(plays, /identity\.fetchCodeClaimRows/);
+  assert.match(plays, /identity\.fetchReservationLockRows/);
+  assert.match(plays, /identity\.persistPlayerCodeClaim/);
+  assert.match(plays, /identity\.persistNameReservationLock/);
+
+  const adaHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+  const calls = [];
+  const api = {
+    async listPlayerPasswordHashes() {
+      return [
+        {
+          player_id: "p-ada",
+          password_hash: adaHash,
+          player_code: "AB23CD45",
+          display_name: "Ada",
+          hashed_at: 9
+        }
+      ];
+    },
+    async upsertPlayerPasswordHash(row) {
+      calls.push(["pw", row]);
+    },
+    async listPlayerCodeClaims() {
+      return [{ player_id: "p-ada", code: "AB23CD45", display_name: "Ada" }];
+    },
+    async upsertPlayerCodeClaim(row) {
+      calls.push(["code", row]);
+    },
+    async listNameReservationLocks() {
+      return [];
+    },
+    async upsertNameReservationLock(row) {
+      calls.push(["lock", row]);
+    }
+  };
+
+  const hashes = await identity.fetchPasswordHashRows(api);
+  assert.equal(Array.isArray(hashes), true);
+  assert.equal(hashes.length, 1);
+  assert.equal(
+    await identity.persistPlayerPasswordHash(api, "p-ada", adaHash, {
+      playerId: "p-ada",
+      code: "AB23CD45",
+      name: "Ada",
+      at: 9
+    }),
+    true
+  );
+  assert.equal(
+    await identity.pushPasswordHashes(api, "p-ada", {
+      [adaHash]: { playerId: "p-ada", code: "AB23CD45", name: "Ada", at: 9 }
+    }),
+    true
+  );
+  assert.equal((await identity.fetchCodeClaimRows(api)).length, 1);
+  assert.equal(await identity.persistPlayerCodeClaim(api, "p-ada", "AB23CD45", "Ada"), true);
+  assert.equal(await identity.fetchReservationLockRows(api).then((rows) => rows.length), 0);
+  assert.equal(
+    await identity.persistNameReservationLock(api, "p-ada", "ada", {
+      playerId: "p-ada",
+      code: "AB23CD45",
+      name: "Ada",
+      lockedAt: 9
+    }),
+    true
+  );
+  assert.equal(calls.some((row) => row[0] === "pw"), true);
+  assert.equal(calls.some((row) => row[0] === "code"), true);
+  assert.equal(calls.some((row) => row[0] === "lock"), true);
+
+  const takenApi = {
+    async upsertPlayerPasswordHash() {
+      const err = new Error("taken");
+      err.hashTaken = true;
+      throw err;
+    }
+  };
+  assert.equal(
+    await identity.persistPlayerPasswordHash(takenApi, "p-ada", adaHash, {
+      playerId: "p-ada",
+      code: "AB23CD45",
+      name: "Ada",
+      at: 9
+    }),
+    "taken"
+  );
+});
