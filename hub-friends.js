@@ -107,37 +107,29 @@
   }
 
   async function fetchRemote() {
-    let parsed = { profiles: {}, invites: {} };
-    let fetched = false;
-    try {
-      const api = sb();
-      const data = api?.getPrefer ? await api.getPrefer(DOC_ID) : null;
-      if (data && typeof data === "object") {
-        parsed = {
-          profiles: data.profiles && typeof data.profiles === "object" ? data.profiles : {},
-          invites: data.invites && typeof data.invites === "object" ? data.invites : {}
-        };
-        fetched = true;
-      }
-    } catch {
-      parsed = { profiles: {}, invites: {} };
+    if (friendsLiveJoined()) {
+      return cache && typeof cache === "object" ? cache : { profiles: {}, invites: {} };
     }
     const tableRemote = await fetchFriendsTableRemote();
     if (tableRemote) {
-      parsed = mergeData(parsed, tableRemote);
-      fetched = true;
+      const current = cache && typeof cache === "object" ? cache : { profiles: {}, invites: {} };
+      return mergeData(current, tableRemote);
     }
-    if (!fetched) throw new Error("friends-unavailable");
-    return parsed;
+    if (
+      cache &&
+      typeof cache === "object" &&
+      ((cache.profiles && Object.keys(cache.profiles).length) ||
+        (cache.invites && Object.keys(cache.invites).length))
+    ) {
+      return cache;
+    }
+    throw new Error("friends-unavailable");
   }
 
-  async function pushRemote(next, opts) {
+  async function pushRemote(next) {
     const tableWrote = await persistFriendEdgeContribution(next);
-    if (tableWrote && !(opts && opts.rewriteShared)) return;
-    if (opts && opts.skipShared) return;
-    const api = sb();
-    if (!api?.pushPrefer) throw new Error("account-server-unavailable");
-    await api.pushPrefer(DOC_ID, next);
+    if (tableWrote) return;
+    throw new Error("friends-unavailable");
   }
 
   function ensureProfile(profiles, playerId, name) {
@@ -292,14 +284,12 @@
   async function mutate(updater) {
     const run = async () => {
       let remote = cache;
-      let fetched = true;
       const joined = friendsLiveJoined();
       if (!joined) {
         try {
           remote = await fetchRemote();
         } catch {
           remote = cache;
-          fetched = false;
         }
       }
       const base = await pullMyEdges(mergeData(cache, remote));
@@ -307,7 +297,7 @@
       if (!next) return false;
       saveLocal(next);
       try {
-        await pushRemote(next, { skipShared: !fetched || joined });
+        await pushRemote(next);
       } catch {
         await persistMyEdges();
         return false;
@@ -331,7 +321,6 @@
     try {
       const local = loadLocal();
       let remote = { profiles: {}, invites: {} };
-      let fetched = true;
       const joined = friendsLiveJoined();
       if (joined) {
         remote = cache;
@@ -339,7 +328,7 @@
         try {
           remote = await fetchRemote();
         } catch {
-          fetched = false;
+          remote = { profiles: {}, invites: {} };
         }
       }
       const merged = await pullMyEdges(mergeData(local, remote));
@@ -350,7 +339,7 @@
       }
       saveLocal(merged);
       try {
-        await pushRemote(merged, { skipShared: !fetched || joined });
+        await pushRemote(merged);
       } catch {}
       await persistMyEdges();
       return cache;

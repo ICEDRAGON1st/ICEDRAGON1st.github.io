@@ -17,7 +17,20 @@ test("friend edges live in a helper used by the shared friends board", () => {
   assert.match(ui, /pullMyEdges/);
   assert.match(ui, /persistFriendEdgeContribution/);
   assert.match(ui, /fetchFriendsTableRemote/);
-  assert.match(ui, /skipShared: !fetched/);
+  assert.doesNotMatch(
+    ui.slice(
+      ui.indexOf("async function fetchRemote"),
+      ui.indexOf("async function pushRemote")
+    ),
+    /getPrefer/
+  );
+  assert.doesNotMatch(
+    ui.slice(
+      ui.indexOf("async function pushRemote"),
+      ui.indexOf("function ensureProfile")
+    ),
+    /pushPrefer/
+  );
   assert.match(plays, /hub-friends-edges\.js/);
   assert.match(index, /hub-friends-edges\.js/);
   assert.equal(edges.SAVE_KEY, "friends-edges");
@@ -182,7 +195,6 @@ test("friend live rows merge without dropping other players' edges", () => {
   assert.match(ui, /subscribeFriendEdgeContributions/);
   assert.match(ui, /isRealtimeJoined\?\.\("friend_edge_contributions"\)/);
   assert.match(ui, /function friendsLiveJoined/);
-  assert.match(ui, /skipShared: !fetched \|\| joined/);
   assert.doesNotMatch(
     ui.slice(ui.indexOf("function applyFriendsRealtime"), ui.indexOf("function stopFriendsRealtime")),
     /pushRemote/
