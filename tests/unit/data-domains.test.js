@@ -241,6 +241,13 @@ test("contracted leftover boards skip hub_docs on the client after meter and Pap
   assert.match(src, /if \(!isLeftoverOpenDoc\(id\) \|\| isLeftoverLockedDoc\(id\)\) return null;/);
   assert.match(src, /throw new Error\("leftover-locked"\)/);
   assert.doesNotMatch(plays, /const PLAYS_PATH|const NAMES_PATH|const CODES_PATH|const PRESENCE_PATH/);
+  const getDocSrc = src.slice(src.indexOf("async function getDoc"), src.indexOf("async function upsertDoc"));
+  const upsertDocSrc = src.slice(
+    src.indexOf("async function upsertDoc"),
+    src.indexOf("async function upsertAdminDoc")
+  );
+  assert.doesNotMatch(getDocSrc, /rest\/v1\/hub_docs|hubFetch/);
+  assert.doesNotMatch(upsertDocSrc, /rest\/v1\/hub_docs|hubFetch/);
 });
 
 test("contracted leftover boards cannot be rewritten on hub_docs", () => {

@@ -2992,48 +2992,14 @@
 
   async function getDoc(id) {
     if (!isLeftoverOpenDoc(id) || isLeftoverLockedDoc(id)) return null;
-    if (netBlocked()) {
-      const err = new Error("hub-net-blocked");
-      err.hubNetBlocked = true;
-      throw err;
-    }
-    const url = `${SUPABASE_URL}/rest/v1/hub_docs?id=eq.${encodeURIComponent(id)}&select=data`;
-    const res = await hubFetch(url, { headers: headers({}, await accessToken()), cache: "no-store" });
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`supabase get ${res.status}`);
-    const rows = await res.json();
-    if (!Array.isArray(rows) || !rows.length) return null;
-    return rows[0]?.data ?? null;
+    return null;
   }
 
-  async function upsertDoc(id, data) {
+  async function upsertDoc(id, _data) {
     if (!isLeftoverOpenDoc(id) || isLeftoverLockedDoc(id) || isAdminDoc(id)) {
       throw new Error("leftover-locked");
     }
-    if (netBlocked()) {
-      const err = new Error("hub-net-blocked");
-      err.hubNetBlocked = true;
-      throw err;
-    }
-    const url = `${SUPABASE_URL}/rest/v1/hub_docs`;
-    const res = await hubFetch(url, {
-      method: "POST",
-      headers: headers(
-        {
-          Prefer: "resolution=merge-duplicates,return=minimal"
-        },
-        await accessToken()
-      ),
-      body: JSON.stringify({
-        id,
-        data,
-        updated_at: new Date().toISOString()
-      })
-    });
-    if (!res.ok) {
-      const text = await res.text().catch(() => "");
-      throw new Error(`supabase upsert ${res.status} ${text}`);
-    }
+    throw new Error("leftover-locked");
   }
 
   /**

@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ex",
+  "build": "20261015ey",
   "notes": [
-    "Hub updates post to Discord when they're published — leftover shared boards aren't asked to lock them."
+    "Your signed-in backups stay on your account — leftover shared boards aren't asked for them."
   ]
 };

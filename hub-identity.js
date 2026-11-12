@@ -734,6 +734,19 @@
     return current.filter((row) => normalizePlayerCode(row?.code) !== norm);
   }
 
+  async function persistOwnedSave(api, key, snapshot) {
+    const saveKey = String(key || "").trim();
+    if (!api?.upsertSave || !saveKey || snapshot == null) return false;
+    await api.upsertSave(saveKey, snapshot, 1);
+    return true;
+  }
+
+  async function readOwnedSave(api, key) {
+    const saveKey = String(key || "").trim();
+    if (!api?.getSave || !saveKey) return null;
+    return api.getSave(saveKey);
+  }
+
   function applyReservationsMine(localMap, mine, playerId) {
     const owned = readReservationsMine(mine);
     const me = String(playerId || owned.playerId || "").trim();
@@ -817,7 +830,9 @@
     readSavedAccounts,
     writeSavedAccounts,
     rememberSavedAccount,
-    removeSavedAccount
+    removeSavedAccount,
+    persistOwnedSave,
+    readOwnedSave
   };
   root.HubIdentity = api;
   if (typeof module === "object" && module.exports) module.exports = api;

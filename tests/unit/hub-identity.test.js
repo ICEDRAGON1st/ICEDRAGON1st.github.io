@@ -718,3 +718,34 @@ test("identity password, code, and reservation remotes skip leftover shared boar
     "taken"
   );
 });
+
+test("owned signed-in backups skip leftover shared boards", async () => {
+  const fs = require("node:fs");
+  const plays = fs.readFileSync(path.join(__dirname, "../../hub-plays.js"), "utf8");
+  assert.match(plays, /identity\.persistOwnedSave/);
+  assert.match(plays, /identity\.readOwnedSave/);
+  const mineSrc = plays.slice(
+    plays.indexOf("async function persistPlaysMine"),
+    plays.indexOf("function normalizePasswordInput")
+  );
+  assert.doesNotMatch(mineSrc, /api\.upsertSave|api\.getSave/);
+  assert.doesNotMatch(mineSrc, /getPrefer|pushPrefer|fetchDoc|pushDoc|hub_docs/);
+
+  const calls = [];
+  const api = {
+    async upsertSave(key, snapshot, rev) {
+      calls.push(["put", key, snapshot, rev]);
+    },
+    async getSave(key) {
+      calls.push(["get", key]);
+      return { playerId: "p-ada" };
+    }
+  };
+  assert.equal(await identity.persistOwnedSave(api, "plays-mine", { plays: [] }), true);
+  assert.deepEqual(await identity.readOwnedSave(api, "plays-mine"), { playerId: "p-ada" });
+  assert.equal(await identity.persistOwnedSave(api, "", { plays: [] }), false);
+  assert.equal(await identity.readOwnedSave({}, "plays-mine"), null);
+  assert.equal(calls[0][0], "put");
+  assert.equal(calls[0][1], "plays-mine");
+  assert.equal(calls[1][0], "get");
+});

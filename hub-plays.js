@@ -873,10 +873,10 @@
   async function persistPlaysMine() {
     const api = sb();
     const me = getPlayerId();
-    if (!popularityApi.collectMine || !api?.upsertSave || !me) return;
+    if (!popularityApi.collectMine || !identity.persistOwnedSave || !me) return;
     const plays = (cache.plays && cache.plays.length ? cache.plays : loadLocal().plays) || [];
     try {
-      await api.upsertSave(popularityApi.SAVE_KEY, popularityApi.collectMine(plays, me), 1);
+      await identity.persistOwnedSave(api, popularityApi.SAVE_KEY, popularityApi.collectMine(plays, me));
     } catch (err) {
       console.warn("[HubPlays] player_saves plays write failed", err);
     }
@@ -885,9 +885,9 @@
   async function pullPlaysMine() {
     const api = sb();
     const me = getPlayerId();
-    if (!popularityApi.applyMine || !api?.getSave || !me) return;
+    if (!popularityApi.applyMine || !identity.readOwnedSave || !me) return;
     try {
-      const raw = await api.getSave(popularityApi.SAVE_KEY);
+      const raw = await identity.readOwnedSave(api, popularityApi.SAVE_KEY);
       const local = loadLocal();
       const plays = popularityApi.applyMine(local.plays, popularityApi.readMine(raw), me);
       saveLocal({ plays, counts: local.counts || {} });
@@ -899,14 +899,14 @@
   async function persistNamesMine() {
     const api = sb();
     const me = getPlayerId();
-    if (!namesApi.collectMine || !api?.upsertSave || !me) return;
+    if (!namesApi.collectMine || !identity.persistOwnedSave || !me) return;
     const claim =
       (namesApi.findClaimByPlayerId ? namesApi.findClaimByPlayerId(namesCache, me) : null) ||
       namesCache[nameKey(getName())] ||
       null;
     if (!claim || claim.playerId !== me) return;
     try {
-      await api.upsertSave(namesApi.SAVE_KEY, namesApi.collectMine(claim, me), 1);
+      await identity.persistOwnedSave(api, namesApi.SAVE_KEY, namesApi.collectMine(claim, me));
     } catch (err) {
       console.warn("[HubPlays] player_saves name-claim write failed", err);
     }
@@ -915,9 +915,9 @@
   async function pullNamesMine() {
     const api = sb();
     const me = getPlayerId();
-    if (!namesApi.applyMine || !api?.getSave || !me) return;
+    if (!namesApi.applyMine || !identity.readOwnedSave || !me) return;
     try {
-      const raw = await api.getSave(namesApi.SAVE_KEY);
+      const raw = await identity.readOwnedSave(api, namesApi.SAVE_KEY);
       namesCache = namesApi.applyMine(namesCache, namesApi.readMine(raw), me);
     } catch (err) {
       console.warn("[HubPlays] player_saves name-claim read failed", err);
@@ -927,9 +927,10 @@
   async function persistIdentityMine() {
     const api = sb();
     const me = getPlayerId();
-    if (!identity.collectIdentityMine || !api?.upsertSave || !me) return;
+    if (!identity.collectIdentityMine || !identity.persistOwnedSave || !me) return;
     try {
-      await api.upsertSave(
+      await identity.persistOwnedSave(
+        api,
         identity.IDENTITY_MINE_KEY,
         identity.collectIdentityMine(
           {
@@ -938,8 +939,7 @@
             locked: isNameLocked()
           },
           me
-        ),
-        1
+        )
       );
     } catch (err) {
       console.warn("[HubPlays] player_saves identity write failed", err);
@@ -949,9 +949,9 @@
   async function pullIdentityMine() {
     const api = sb();
     const me = getPlayerId();
-    if (!identity.applyIdentityMine || !api?.getSave || !me) return;
+    if (!identity.applyIdentityMine || !identity.readOwnedSave || !me) return;
     try {
-      const raw = await api.getSave(identity.IDENTITY_MINE_KEY);
+      const raw = await identity.readOwnedSave(api, identity.IDENTITY_MINE_KEY);
       const local = {
         playerId: me,
         code: normalizePlayerCode(readStoredPlayerCode()),
@@ -970,11 +970,11 @@
   async function persistAllTimeMine() {
     const api = sb();
     const me = getPlayerId();
-    if (!alltimeApi.collectMine || !api?.upsertSave || !me) return;
+    if (!alltimeApi.collectMine || !identity.persistOwnedSave || !me) return;
     const snapshot = alltimeApi.collectMine(allTimeCache, me);
     if (!snapshot?.row) return;
     try {
-      await api.upsertSave(alltimeApi.SAVE_KEY, snapshot, 1);
+      await identity.persistOwnedSave(api, alltimeApi.SAVE_KEY, snapshot);
     } catch (err) {
       console.warn("[HubPlays] player_saves alltime write failed", err);
     }
@@ -983,9 +983,9 @@
   async function pullAllTimeMine() {
     const api = sb();
     const me = getPlayerId();
-    if (!alltimeApi.applyMine || !api?.getSave || !me) return;
+    if (!alltimeApi.applyMine || !identity.readOwnedSave || !me) return;
     try {
-      const raw = await api.getSave(alltimeApi.SAVE_KEY);
+      const raw = await identity.readOwnedSave(api, alltimeApi.SAVE_KEY);
       const owned = alltimeApi.readMine(raw);
       if (!owned.row || owned.playerId !== me) return;
       const localCount = Object.keys(allTimeCache || {}).length;
@@ -1000,11 +1000,11 @@
   async function persistPasswordMine(opts) {
     const api = sb();
     const me = getPlayerId();
-    if (!identity.collectPasswordMine || !api?.upsertSave || !me) return;
+    if (!identity.collectPasswordMine || !identity.persistOwnedSave || !me) return;
     const snapshot = identity.collectPasswordMine(loadLocalPasswords(), me, opts);
     if (!Object.keys(snapshot.hashes || {}).length && !snapshot.cleared) return;
     try {
-      await api.upsertSave(identity.PASSWORD_MINE_KEY, snapshot, 1);
+      await identity.persistOwnedSave(api, identity.PASSWORD_MINE_KEY, snapshot);
     } catch (err) {
       console.warn("[HubPlays] player_saves password write failed", err);
     }
@@ -1013,9 +1013,9 @@
   async function pullPasswordMine() {
     const api = sb();
     const me = getPlayerId();
-    if (!identity.applyPasswordMine || !api?.getSave || !me) return;
+    if (!identity.applyPasswordMine || !identity.readOwnedSave || !me) return;
     try {
-      const raw = await api.getSave(identity.PASSWORD_MINE_KEY);
+      const raw = await identity.readOwnedSave(api, identity.PASSWORD_MINE_KEY);
       const owned = identity.readPasswordMine(raw);
       if (!owned.playerId || owned.playerId !== me) return;
       const local = loadLocalPasswords();
@@ -1034,11 +1034,11 @@
   async function persistReservationsMine() {
     const api = sb();
     const me = getPlayerId();
-    if (!identity.collectReservationsMine || !api?.upsertSave || !me) return;
+    if (!identity.collectReservationsMine || !identity.persistOwnedSave || !me) return;
     const snapshot = identity.collectReservationsMine(reservationsCache, me);
     if (!Object.keys(snapshot.reservations || {}).length) return;
     try {
-      await api.upsertSave(identity.RESERVATIONS_MINE_KEY, snapshot, 1);
+      await identity.persistOwnedSave(api, identity.RESERVATIONS_MINE_KEY, snapshot);
     } catch (err) {
       console.warn("[HubPlays] player_saves reservations write failed", err);
     }
@@ -1047,9 +1047,9 @@
   async function pullReservationsMine() {
     const api = sb();
     const me = getPlayerId();
-    if (!identity.applyReservationsMine || !api?.getSave || !me) return;
+    if (!identity.applyReservationsMine || !identity.readOwnedSave || !me) return;
     try {
-      const raw = await api.getSave(identity.RESERVATIONS_MINE_KEY);
+      const raw = await identity.readOwnedSave(api, identity.RESERVATIONS_MINE_KEY);
       const owned = identity.readReservationsMine(raw);
       if (!owned.playerId || owned.playerId !== me) return;
       const localCount = Object.keys(reservationsCache || {}).length;

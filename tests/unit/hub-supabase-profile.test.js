@@ -215,6 +215,10 @@ test("contracted leftover boards skip hub_docs reads and writes", () => {
     /if \(!isLeftoverOpenDoc\(id\) \|\| isLeftoverLockedDoc\(id\) \|\| isAdminDoc\(id\)\)/
   );
   assert.match(upsertDocSrc, /throw new Error\("leftover-locked"\)/);
+  assert.doesNotMatch(getDocSrc, /rest\/v1\/hub_docs/);
+  assert.doesNotMatch(upsertDocSrc, /rest\/v1\/hub_docs/);
+  assert.doesNotMatch(getDocSrc, /hubFetch/);
+  assert.doesNotMatch(upsertDocSrc, /hubFetch/);
 });
 
 test("locked admin docs use the trusted RPC instead of a direct hub_docs upsert", () => {
