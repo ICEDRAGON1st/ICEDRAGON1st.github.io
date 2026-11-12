@@ -1703,36 +1703,19 @@
     if (playsLiveJoined("name_reservation_locks")) {
       return reservationsCache && typeof reservationsCache === "object" ? reservationsCache : {};
     }
-    let parsed = {};
-    let fetched = false;
-    try {
-      const data = await fetchDoc("name-reservations");
-      if (data && typeof data === "object") {
-        parsed = identity.parseReservationsMap ? identity.parseReservationsMap(data) : {};
-        fetched = true;
-      }
-    } catch {
-      parsed = {};
-    }
     const tableRemote = await fetchReservationsTableRemote();
     if (tableRemote) {
-      parsed = { ...parsed };
-      Object.entries(tableRemote).forEach(([key, entry]) => {
-        const existing = parsed[key];
-        if (!existing) {
-          parsed[key] = entry;
-          return;
-        }
-        if (reservationAllows(existing, entry.playerId, entry.code)) parsed[key] = entry;
-      });
+      const current =
+        reservationsCache && typeof reservationsCache === "object" ? reservationsCache : {};
+      const parsed = identity.mergeReservationMaps
+        ? identity.mergeReservationMaps(current, tableRemote)
+        : { ...current, ...tableRemote };
+      reservationsCache = parsed;
+      ensureReservationsRealtime();
+      return parsed;
     }
-    if (!fetched && !tableRemote) {
-      if (reservationsCache && typeof reservationsCache === "object") return reservationsCache;
-      throw new Error("reservations-unavailable");
-    }
-    reservationsCache = parsed;
-    ensureReservationsRealtime();
-    return parsed;
+    if (reservationsCache && typeof reservationsCache === "object") return reservationsCache;
+    throw new Error("reservations-unavailable");
   }
 
   async function pushReservationsRemote(reservations) {
@@ -1749,7 +1732,7 @@
       if (result === true) tableWrote = true;
     }
     if (tableWrote) return;
-    await pushDoc("name-reservations", { reservations });
+    throw new Error("reservations-unavailable");
   }
 
   function reservationAllows(res, playerId, code) {

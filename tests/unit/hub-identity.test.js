@@ -395,6 +395,20 @@ test("owned name reservations dual-write without stealing another player's lock"
   assert.match(plays, /persistNameReservationLock/);
   assert.match(plays, /fetchReservationsTableRemote/);
   assert.match(plays, /if \(tableWrote\) return/);
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function fetchReservationsRemote"),
+      plays.indexOf("async function pushReservationsRemote")
+    ),
+    /fetchDoc/
+  );
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function pushReservationsRemote"),
+      plays.indexOf("function reservationAllows")
+    ),
+    /pushDoc/
+  );
   assert.equal(identity.RESERVATIONS_MINE_KEY, "reservations-mine");
   assert.doesNotMatch(script, /Copied \$\{code\}/);
   assert.doesNotMatch(script, /Your code is \$\{code\}/);
