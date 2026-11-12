@@ -6522,55 +6522,38 @@
 
   async function fetchFishGiftsDoc() {
     try {
-      const api = fishingSb();
-      let data = null;
-      let fetched = false;
-      if (api?.getPrefer) {
-        try {
-          data = await api.getPrefer(FISH_GIFTS_DOC);
-        } catch {
-          data = null;
-        }
-      }
-      if (data && typeof data === "object") {
-        fetched = true;
-        data = {
-          token: data.token || FISH_GIFTS_TOKEN,
-          gifts: data.gifts && typeof data.gifts === "object" ? data.gifts : {}
+      if (fishingLiveJoined("fishing_gift_contributions")) {
+        return {
+          token: FISH_GIFTS_TOKEN,
+          gifts: fishGiftCache.gifts && typeof fishGiftCache.gifts === "object" ? fishGiftCache.gifts : {}
         };
-      } else {
-        data = null;
       }
       const tableRows = await fetchFishGiftsTableRemote();
       if (Array.isArray(tableRows) && fishingSaveApi.overlayAdminFishGifts) {
-        data = fishingSaveApi.overlayAdminFishGifts(
-          data || { token: FISH_GIFTS_TOKEN, gifts: {} },
-          tableRows
-        );
-        fetched = true;
+        const current = {
+          token: FISH_GIFTS_TOKEN,
+          gifts:
+            fishGiftCache.gifts && typeof fishGiftCache.gifts === "object" ? fishGiftCache.gifts : {}
+        };
+        return fishingSaveApi.overlayAdminFishGifts(current, tableRows);
       }
-      if (!fetched) return null;
-      return data;
+      if (fishGiftCache.gifts && Object.keys(fishGiftCache.gifts).length) {
+        return { token: FISH_GIFTS_TOKEN, gifts: fishGiftCache.gifts };
+      }
+      return { token: FISH_GIFTS_TOKEN, gifts: {} };
     } catch {
       return null;
     }
   }
 
-  async function postFishGiftsDoc(doc, { rewriteShared = false } = {}) {
+  async function postFishGiftsDoc(doc) {
     const payload = {
       token: FISH_GIFTS_TOKEN,
       gifts: doc.gifts || {}
     };
     const tableWrote = await persistFishGiftContribution(payload);
-    if (tableWrote && !rewriteShared) return true;
-    const api = fishingSb();
-    if (!api?.pushPrefer) return false;
-    try {
-      await api.pushPrefer(FISH_GIFTS_DOC, payload);
-      return true;
-    } catch {
-      return false;
-    }
+    if (tableWrote) return true;
+    return false;
   }
 
   async function lookupPlayerForGift(username) {
@@ -6643,7 +6626,7 @@
       claimed: false,
       claimedBy
     };
-    return postFishGiftsDoc({ gifts }, { rewriteShared: true });
+    return postFishGiftsDoc({ gifts });
   }
 
   async function markFishGiftClaimed(giftId) {

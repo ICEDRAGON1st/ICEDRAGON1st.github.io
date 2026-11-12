@@ -515,12 +515,34 @@ test("fishing admin gifts use account-owned claim rows and skip the shared rewri
   assert.match(script, /persistFishGiftContribution/);
   assert.match(script, /fetchFishGiftsTableRemote/);
   assert.match(script, /overlayAdminFishGifts/);
-  assert.match(script, /postFishGiftsDoc\(\{ gifts \}, \{ rewriteShared: true \}\)/);
+  assert.match(script, /return postFishGiftsDoc\(\{ gifts \}\)/);
+  assert.doesNotMatch(script, /rewriteShared: true/);
   assert.match(script, /if \(!remote \|\| typeof remote !== "object"\) return false;/);
-  assert.match(gifts, /if \(!fetched\) return null;/);
+  assert.doesNotMatch(
+    script.slice(
+      script.indexOf("async function fetchFishGiftsDoc"),
+      script.indexOf("async function postFishGiftsDoc")
+    ),
+    /getPrefer/
+  );
+  assert.doesNotMatch(
+    script.slice(
+      script.indexOf("async function postFishGiftsDoc"),
+      script.indexOf("async function lookupPlayerForGift")
+    ),
+    /pushPrefer/
+  );
   assert.match(gifts, /persistGiftContribution/);
   assert.match(gifts, /listFishingGiftContributions/);
-  assert.match(gifts, /if \(tableWrote && !rewriteShared\) return true/);
+  assert.match(gifts, /if \(tableWrote\) return true/);
+  assert.doesNotMatch(
+    gifts.slice(gifts.indexOf("async function fetchDoc"), gifts.indexOf("async function postDoc")),
+    /getPrefer/
+  );
+  assert.doesNotMatch(
+    gifts.slice(gifts.indexOf("async function postDoc"), gifts.indexOf("function isBroadcastGift")),
+    /pushPrefer/
+  );
   assert.match(gifts, /ensureGiftsRealtime/);
   assert.match(gifts, /applyGiftsRealtime/);
   assert.match(gifts, /subscribeFishingGiftContributions/);
@@ -657,6 +679,7 @@ test("fishing admin gift live rows subscribe without rewriting the shared board"
     "utf8"
   );
   assert.match(gifts, /ensureGiftsRealtime/);
+  assert.match(gifts, /function giftsLiveJoined/);
   assert.match(gifts, /isRealtimeJoined\?\.\("fishing_gift_contributions"\)/);
   assert.match(script, /ensureFishGiftsRealtime/);
   assert.match(script, /fishingLiveJoined\("fishing_gift_contributions"\)/);

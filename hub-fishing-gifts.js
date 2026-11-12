@@ -250,58 +250,44 @@
     }
   }
 
+  function giftsLiveJoined() {
+    try {
+      return !!sb()?.isRealtimeJoined?.("fishing_gift_contributions");
+    } catch {
+      return false;
+    }
+  }
+
   async function fetchDoc() {
     try {
-      const api = sb();
-      if (api?.isRealtimeJoined?.("fishing_gift_contributions")) {
+      if (giftsLiveJoined()) {
         return {
           token: TOKEN,
           gifts: giftCache.gifts && typeof giftCache.gifts === "object" ? giftCache.gifts : {}
         };
       }
-      let data = null;
-      let fetched = false;
-      if (api?.getPrefer) {
-        try {
-          data = await api.getPrefer(DOC_ID);
-        } catch {
-          data = null;
-        }
-      }
-      if (data && typeof data === "object") {
-        fetched = true;
-        data = {
-          token: data.token || TOKEN,
-          gifts: data.gifts && typeof data.gifts === "object" ? data.gifts : {}
-        };
-      } else {
-        data = null;
-      }
       const tableRows = await fetchGiftTableRemote();
       const helper = giftSaveApi();
       if (Array.isArray(tableRows) && helper?.overlayAdminFishGifts) {
-        data = helper.overlayAdminFishGifts(data || { token: TOKEN, gifts: {} }, tableRows);
-        fetched = true;
+        const current = {
+          token: TOKEN,
+          gifts: giftCache.gifts && typeof giftCache.gifts === "object" ? giftCache.gifts : {}
+        };
+        return helper.overlayAdminFishGifts(current, tableRows);
       }
-      if (!fetched) return null;
-      return data;
+      if (giftCache.gifts && Object.keys(giftCache.gifts).length) {
+        return { token: TOKEN, gifts: giftCache.gifts };
+      }
+      return { token: TOKEN, gifts: {} };
     } catch {
       return null;
     }
   }
 
-  async function postDoc(gifts, { rewriteShared = false } = {}) {
-    const payload = { token: TOKEN, gifts };
+  async function postDoc(gifts) {
     const tableWrote = await persistGiftContribution(gifts);
-    if (tableWrote && !rewriteShared) return true;
-    try {
-      const api = sb();
-      if (!api?.pushPrefer) return false;
-      await api.pushPrefer(DOC_ID, payload);
-      return true;
-    } catch {
-      return false;
-    }
+    if (tableWrote) return true;
+    return false;
   }
 
   function isBroadcastGift(g) {
