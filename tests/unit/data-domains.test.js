@@ -135,6 +135,20 @@ test("fishing admin announce locks hub_docs writes and joins admin_broadcasts wi
   assert.doesNotMatch(sql, /to anon/i);
 });
 
+test("referral contributions realtime publication stays authenticated and replica-identity full", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160042_referral_contributions_realtime.sql"),
+    "utf8"
+  );
+  assert.match(sql, /alter table public\.referral_contributions replica identity full/i);
+  assert.match(
+    sql,
+    /alter publication supabase_realtime add table public\.referral_contributions/i
+  );
+  assert.doesNotMatch(sql, /add table public\.hub_docs/i);
+  assert.doesNotMatch(sql, /to anon/i);
+});
+
 test("admin broadcasts realtime publication stays authenticated and replica-identity full", () => {
   const sql = fs.readFileSync(
     path.join(ROOT, "supabase/migrations/202610160038_admin_broadcasts_realtime.sql"),
@@ -162,7 +176,10 @@ test("name reservation locks realtime publication stays authenticated and replic
     "utf8"
   );
   assert.match(sql, /alter table public\.name_reservation_locks replica identity full/i);
-  assert.match(sql, /alter publication supabase_realtime add table public\.name_reservation_locks/i);
+  assert.match(
+    sql,
+    /alter publication supabase_realtime add table public\.name_reservation_locks/i
+  );
   assert.doesNotMatch(sql, /to anon/i);
 });
 
@@ -192,7 +209,10 @@ test("popularity realtime publication stays authenticated and replica-identity f
     "utf8"
   );
   assert.match(sql, /alter table public\.popularity_contributions replica identity full/i);
-  assert.match(sql, /alter publication supabase_realtime add table public\.popularity_contributions/i);
+  assert.match(
+    sql,
+    /alter publication supabase_realtime add table public\.popularity_contributions/i
+  );
   assert.doesNotMatch(sql, /to anon/i);
 });
 
@@ -202,7 +222,10 @@ test("play log realtime publication stays authenticated and replica-identity ful
     "utf8"
   );
   assert.match(sql, /alter table public\.play_log_contributions replica identity full/i);
-  assert.match(sql, /alter publication supabase_realtime add table public\.play_log_contributions/i);
+  assert.match(
+    sql,
+    /alter publication supabase_realtime add table public\.play_log_contributions/i
+  );
   assert.doesNotMatch(sql, /to anon/i);
 });
 
@@ -212,7 +235,10 @@ test("leaderboard pb realtime publication stays authenticated and replica-identi
     "utf8"
   );
   assert.match(sql, /alter table public\.leaderboard_pb_contributions replica identity full/i);
-  assert.match(sql, /alter publication supabase_realtime add table public\.leaderboard_pb_contributions/i);
+  assert.match(
+    sql,
+    /alter publication supabase_realtime add table public\.leaderboard_pb_contributions/i
+  );
   assert.doesNotMatch(sql, /to anon/i);
 });
 
@@ -222,7 +248,10 @@ test("feedback item realtime publication stays authenticated and replica-identit
     "utf8"
   );
   assert.match(sql, /alter table public\.feedback_item_contributions replica identity full/i);
-  assert.match(sql, /alter publication supabase_realtime add table public\.feedback_item_contributions/i);
+  assert.match(
+    sql,
+    /alter publication supabase_realtime add table public\.feedback_item_contributions/i
+  );
   assert.doesNotMatch(sql, /to anon/i);
 });
 
@@ -232,7 +261,10 @@ test("community cast realtime publication stays authenticated and replica-identi
     "utf8"
   );
   assert.match(sql, /alter table public\.community_cast_contributions replica identity full/i);
-  assert.match(sql, /alter publication supabase_realtime add table public\.community_cast_contributions/i);
+  assert.match(
+    sql,
+    /alter publication supabase_realtime add table public\.community_cast_contributions/i
+  );
   assert.doesNotMatch(sql, /to anon/i);
 });
 
@@ -242,7 +274,10 @@ test("aquarium tank realtime publication stays authenticated and replica-identit
     "utf8"
   );
   assert.match(sql, /alter table public\.aquarium_tank_contributions replica identity full/i);
-  assert.match(sql, /alter publication supabase_realtime add table public\.aquarium_tank_contributions/i);
+  assert.match(
+    sql,
+    /alter publication supabase_realtime add table public\.aquarium_tank_contributions/i
+  );
   assert.doesNotMatch(sql, /to anon/i);
 });
 
@@ -252,7 +287,10 @@ test("fishing gift realtime publication stays authenticated and replica-identity
     "utf8"
   );
   assert.match(sql, /alter table public\.fishing_gift_contributions replica identity full/i);
-  assert.match(sql, /alter publication supabase_realtime add table public\.fishing_gift_contributions/i);
+  assert.match(
+    sql,
+    /alter publication supabase_realtime add table public\.fishing_gift_contributions/i
+  );
   assert.doesNotMatch(sql, /to anon/i);
 });
 
@@ -262,7 +300,10 @@ test("fishing mail realtime publication stays authenticated and replica-identity
     "utf8"
   );
   assert.match(sql, /alter table public\.fishing_mail_contributions replica identity full/i);
-  assert.match(sql, /alter publication supabase_realtime add table public\.fishing_mail_contributions/i);
+  assert.match(
+    sql,
+    /alter publication supabase_realtime add table public\.fishing_mail_contributions/i
+  );
   assert.doesNotMatch(sql, /to anon/i);
 });
 
@@ -272,7 +313,10 @@ test("match room realtime publication stays authenticated and replica-identity f
     "utf8"
   );
   assert.match(sql, /alter table public\.match_room_contributions replica identity full/i);
-  assert.match(sql, /alter publication supabase_realtime add table public\.match_room_contributions/i);
+  assert.match(
+    sql,
+    /alter publication supabase_realtime add table public\.match_room_contributions/i
+  );
   assert.doesNotMatch(sql, /to anon/i);
 });
 
@@ -282,7 +326,10 @@ test("call signal realtime publication stays authenticated and replica-identity 
     "utf8"
   );
   assert.match(sql, /alter table public\.call_signal_contributions replica identity full/i);
-  assert.match(sql, /alter publication supabase_realtime add table public\.call_signal_contributions/i);
+  assert.match(
+    sql,
+    /alter publication supabase_realtime add table public\.call_signal_contributions/i
+  );
   assert.doesNotMatch(sql, /to anon/i);
 });
 
@@ -292,7 +339,10 @@ test("friend edge realtime publication stays authenticated and replica-identity 
     "utf8"
   );
   assert.match(sql, /alter table public\.friend_edge_contributions replica identity full/i);
-  assert.match(sql, /alter publication supabase_realtime add table public\.friend_edge_contributions/i);
+  assert.match(
+    sql,
+    /alter publication supabase_realtime add table public\.friend_edge_contributions/i
+  );
   assert.doesNotMatch(sql, /to anon/i);
 });
 
@@ -302,7 +352,10 @@ test("chat thread realtime publication stays authenticated and replica-identity 
     "utf8"
   );
   assert.match(sql, /alter table public\.chat_thread_contributions replica identity full/i);
-  assert.match(sql, /alter publication supabase_realtime add table public\.chat_thread_contributions/i);
+  assert.match(
+    sql,
+    /alter publication supabase_realtime add table public\.chat_thread_contributions/i
+  );
   assert.doesNotMatch(sql, /to anon/i);
 });
 
@@ -327,7 +380,10 @@ test("presence pings are readable by signed-in players and only writable by the 
   assert.match(sql, /presence_pings_read_authenticated/);
   assert.match(sql, /presence_pings_insert_own/);
   assert.match(sql, /presence_pings_update_own/);
-  assert.match(sql, /grant select, insert, update, delete on table public\.presence_pings to authenticated/);
+  assert.match(
+    sql,
+    /grant select, insert, update, delete on table public\.presence_pings to authenticated/
+  );
   assert.match(sql, /revoke all on table public\.presence_pings from anon, authenticated/);
 });
 
@@ -346,7 +402,10 @@ test("popularity contributions are readable by signed-in players and only writab
     sql,
     /grant select, insert, update, delete on table public\.popularity_contributions to authenticated/
   );
-  assert.match(sql, /revoke all on table public\.popularity_contributions from anon, authenticated/);
+  assert.match(
+    sql,
+    /revoke all on table public\.popularity_contributions from anon, authenticated/
+  );
 });
 
 test("player code claims are readable by signed-in players and only writable by the owner", () => {
@@ -474,7 +533,10 @@ test("call signal contributions are readable by signed-in players and only writa
     sql,
     /grant select, insert, update, delete on table public\.call_signal_contributions to authenticated/
   );
-  assert.match(sql, /revoke all on table public\.call_signal_contributions from anon, authenticated/);
+  assert.match(
+    sql,
+    /revoke all on table public\.call_signal_contributions from anon, authenticated/
+  );
 });
 
 test("friend edge contributions are readable by signed-in players and only writable by the owner", () => {
@@ -492,7 +554,10 @@ test("friend edge contributions are readable by signed-in players and only writa
     sql,
     /grant select, insert, update, delete on table public\.friend_edge_contributions to authenticated/
   );
-  assert.match(sql, /revoke all on table public\.friend_edge_contributions from anon, authenticated/);
+  assert.match(
+    sql,
+    /revoke all on table public\.friend_edge_contributions from anon, authenticated/
+  );
 });
 
 test("leaderboard personal-best contributions are readable by signed-in players and only writable by the owner", () => {
@@ -510,7 +575,10 @@ test("leaderboard personal-best contributions are readable by signed-in players 
     sql,
     /grant select, insert, update, delete on table public\.leaderboard_pb_contributions to authenticated/
   );
-  assert.match(sql, /revoke all on table public\.leaderboard_pb_contributions from anon, authenticated/);
+  assert.match(
+    sql,
+    /revoke all on table public\.leaderboard_pb_contributions from anon, authenticated/
+  );
 });
 
 test("chat thread contributions are readable by signed-in players and only writable by the owner", () => {
@@ -528,7 +596,10 @@ test("chat thread contributions are readable by signed-in players and only writa
     sql,
     /grant select, insert, update, delete on table public\.chat_thread_contributions to authenticated/
   );
-  assert.match(sql, /revoke all on table public\.chat_thread_contributions from anon, authenticated/);
+  assert.match(
+    sql,
+    /revoke all on table public\.chat_thread_contributions from anon, authenticated/
+  );
 });
 
 test("match room contributions are readable by signed-in players and only writable by the owner", () => {
@@ -546,7 +617,10 @@ test("match room contributions are readable by signed-in players and only writab
     sql,
     /grant select, insert, update, delete on table public\.match_room_contributions to authenticated/
   );
-  assert.match(sql, /revoke all on table public\.match_room_contributions from anon, authenticated/);
+  assert.match(
+    sql,
+    /revoke all on table public\.match_room_contributions from anon, authenticated/
+  );
 });
 
 test("feedback item contributions are readable by signed-in players and only writable by the owner", () => {
@@ -564,7 +638,10 @@ test("feedback item contributions are readable by signed-in players and only wri
     sql,
     /grant select, insert, update, delete on table public\.feedback_item_contributions to authenticated/
   );
-  assert.match(sql, /revoke all on table public\.feedback_item_contributions from anon, authenticated/);
+  assert.match(
+    sql,
+    /revoke all on table public\.feedback_item_contributions from anon, authenticated/
+  );
 });
 
 test("aquarium tank contributions are readable by signed-in players and only writable by the owner", () => {
@@ -582,7 +659,10 @@ test("aquarium tank contributions are readable by signed-in players and only wri
     sql,
     /grant select, insert, update, delete on table public\.aquarium_tank_contributions to authenticated/
   );
-  assert.match(sql, /revoke all on table public\.aquarium_tank_contributions from anon, authenticated/);
+  assert.match(
+    sql,
+    /revoke all on table public\.aquarium_tank_contributions from anon, authenticated/
+  );
 });
 
 test("fishing gift contributions are readable by signed-in players and only writable by the owner", () => {
@@ -600,7 +680,10 @@ test("fishing gift contributions are readable by signed-in players and only writ
     sql,
     /grant select, insert, update, delete on table public\.fishing_gift_contributions to authenticated/
   );
-  assert.match(sql, /revoke all on table public\.fishing_gift_contributions from anon, authenticated/);
+  assert.match(
+    sql,
+    /revoke all on table public\.fishing_gift_contributions from anon, authenticated/
+  );
 });
 
 test("fishing mail contributions are readable by signed-in players and only writable by the owner", () => {
@@ -618,7 +701,10 @@ test("fishing mail contributions are readable by signed-in players and only writ
     sql,
     /grant select, insert, update, delete on table public\.fishing_mail_contributions to authenticated/
   );
-  assert.match(sql, /revoke all on table public\.fishing_mail_contributions from anon, authenticated/);
+  assert.match(
+    sql,
+    /revoke all on table public\.fishing_mail_contributions from anon, authenticated/
+  );
 });
 
 test("community cast contributions are readable by signed-in players and only writable by the owner", () => {
@@ -636,5 +722,27 @@ test("community cast contributions are readable by signed-in players and only wr
     sql,
     /grant select, insert, update, delete on table public\.community_cast_contributions to authenticated/
   );
-  assert.match(sql, /revoke all on table public\.community_cast_contributions from anon, authenticated/);
+  assert.match(
+    sql,
+    /revoke all on table public\.community_cast_contributions from anon, authenticated/
+  );
+});
+
+test("referral contributions are readable by signed-in players and only writable by the owner", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160041_referral_contributions.sql"),
+    "utf8"
+  );
+  assert.match(sql, /create table if not exists public\.referral_contributions/);
+  assert.match(sql, /enable row level security/i);
+  assert.match(sql, /force row level security/i);
+  assert.match(sql, /referral_contributions_read_authenticated/);
+  assert.match(sql, /referral_contributions_insert_own/);
+  assert.match(sql, /referral_contributions_update_own/);
+  assert.match(
+    sql,
+    /grant select, insert, update, delete on table public\.referral_contributions to authenticated/
+  );
+  assert.match(sql, /revoke all on table public\.referral_contributions from anon, authenticated/);
+  assert.doesNotMatch(sql, /add table public\.hub_docs/i);
 });

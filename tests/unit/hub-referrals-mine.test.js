@@ -14,6 +14,9 @@ test("owned invite status lives in a helper used by referrals", () => {
   assert.match(ui, /window\.HubReferralsMine/);
   assert.match(ui, /persistMine/);
   assert.match(ui, /pullMine/);
+  assert.match(ui, /persistReferralContribution/);
+  assert.match(ui, /fetchReferralTableRemote/);
+  assert.match(ui, /if \(tableWrote && !\(opts && opts\.rewriteShared\)\) \{\s*rememberDoc\(doc\);\s*return true;/);
   assert.match(index, /hub-referrals-mine\.js/);
   assert.equal(mine.SAVE_KEY, "invite-mine");
 });
@@ -42,4 +45,85 @@ test("invite status merges the higher count and keeps credited/unlocked", () => 
   assert.equal(keepLocalCredit.count, 1);
   assert.equal(keepLocalCredit.credited, true);
   assert.equal(keepLocalCredit.unlocked, false);
+});
+
+test("owned invite rows overlay without stealing an existing credit or shrinking on delete", () => {
+  const hub = {
+    byInviter: {
+      "p-host": {
+        invitees: { "p-old": { name: "Old", code: "ABCD2345", at: 1 } },
+        unlockedAt: 0
+      }
+    },
+    byInvitee: { "p-old": { inviterId: "p-host", inviterCode: "ABCD2345", at: 1 } }
+  };
+  const overlaid = mine.overlayReferralDoc(hub, [
+    {
+      player_id: "p-new",
+      inviter_id: "p-host",
+      inviter_code: "ABCD2345",
+      invitee_name: "New",
+      credited_at: "2026-01-02T00:00:00.000Z"
+    },
+    {
+      player_id: "p-old",
+      inviter_id: "p-thief",
+      inviter_code: "ZZZZ2345",
+      invitee_name: "Stolen",
+      at: 99
+    },
+    { player_id: "", inviter_id: "p-host" }
+  ]);
+  assert.equal(overlaid.byInvitee["p-old"].inviterId, "p-host");
+  assert.equal(overlaid.byInvitee["p-new"].inviterId, "p-host");
+  assert.equal(overlaid.byInviter["p-host"].invitees["p-new"].name, "New");
+  assert.equal(overlaid.byInviter["p-thief"], undefined);
+  assert.equal(Object.keys(overlaid.byInviter["p-host"].invitees).length, 2);
+
+  const liveRow = mine.applyChange(hub, {
+    type: "INSERT",
+    record: {
+      player_id: "p-new",
+      inviter_id: "p-host",
+      inviter_code: "ABCD2345",
+      invitee_name: "New",
+      credited_at: "2026-01-02T00:00:00.000Z"
+    }
+  });
+  assert.equal(liveRow.byInvitee["p-new"].inviterId, "p-host");
+  assert.equal(liveRow.byInvitee["p-old"].inviterId, "p-host");
+
+  const afterDelete = mine.applyChange(liveRow, {
+    type: "DELETE",
+    old_record: { player_id: "p-new", inviter_id: "p-host" }
+  });
+  assert.equal(afterDelete.byInvitee["p-new"].inviterId, "p-host");
+  assert.equal(afterDelete.byInvitee["p-old"].inviterId, "p-host");
+});
+
+test("invite live rows subscribe without rewriting the shared board", () => {
+  const ui = fs.readFileSync(path.join(ROOT, "hub-referrals.js"), "utf8");
+  const supabase = fs.readFileSync(path.join(ROOT, "hub-supabase.js"), "utf8");
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160042_referral_contributions_realtime.sql"),
+    "utf8"
+  );
+  assert.match(ui, /ensureReferralsRealtime/);
+  assert.match(ui, /applyReferralsRealtime/);
+  assert.match(ui, /subscribeReferralContributions/);
+  assert.doesNotMatch(
+    ui.slice(
+      ui.indexOf("function applyReferralsRealtime"),
+      ui.indexOf("function stopReferralsRealtime")
+    ),
+    /upsertDoc|pushDoc/
+  );
+  assert.match(supabase, /function subscribeReferralContributions/);
+  assert.match(supabase, /referral_contributions/);
+  assert.match(sql, /alter table public\.referral_contributions replica identity full/i);
+  assert.match(
+    sql,
+    /alter publication supabase_realtime add table public\.referral_contributions/i
+  );
+  assert.doesNotMatch(sql, /to anon/i);
 });

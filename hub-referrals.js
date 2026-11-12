@@ -14,6 +14,8 @@
   const LOCAL_STATUS_KEY = "hub-invite-status-v1";
   const DOC_ID = "hub-referrals-v1";
   const NEED = 3;
+  let cache = { byInviter: {}, byInvitee: {} };
+  let referralsRealtimeUnsub = null;
 
   function sb() {
     return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
@@ -206,29 +208,157 @@
   }
 
   function emptyDoc() {
+    const helper = mineApi();
+    if (helper?.emptyDoc) return helper.emptyDoc();
     return { byInviter: {}, byInvitee: {} };
+  }
+
+  function rememberDoc(doc) {
+    cache =
+      doc && typeof doc === "object"
+        ? {
+            byInviter: doc.byInviter && typeof doc.byInviter === "object" ? doc.byInviter : {},
+            byInvitee: doc.byInvitee && typeof doc.byInvitee === "object" ? doc.byInvitee : {}
+          }
+        : emptyDoc();
+    return cache;
+  }
+
+  async function fetchReferralTableRemote() {
+    const api = sb();
+    if (!api?.listReferralContributions) return null;
+    try {
+      const rows = await api.listReferralContributions();
+      if (!rows) return null;
+      return Array.isArray(rows) ? rows : [];
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistReferralContribution(doc) {
+    const api = sb();
+    const helper = mineApi();
+    const me = myPlayerId();
+    if (!api?.upsertReferralContribution || !helper || !me) return false;
+    const credit = doc?.byInvitee?.[me];
+    if (!credit || typeof credit !== "object") return false;
+    const inviterId = String(credit.inviterId || "").trim();
+    const inviterCode = helper.cleanCode(credit.inviterCode || credit.code);
+    if (!inviterId || inviterId === me || inviterCode.length !== 8) return false;
+    const inviteeName = String(doc?.byInviter?.[inviterId]?.invitees?.[me]?.name || myName() || "")
+      .trim()
+      .slice(0, 16);
+    try {
+      await api.upsertReferralContribution({
+        playerId: me,
+        inviterId,
+        inviterCode,
+        inviteeName,
+        creditedAt: Number(credit.at) || Date.now()
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function referralsCloudQuiet() {
+    try {
+      if (window.HubAfk?.isAfk?.()) return true;
+      if (window.HubNet?.isPaused?.()) return true;
+      if (window.HubNet && HubNet.isOnline && !HubNet.isOnline()) return true;
+    } catch {}
+    try {
+      if (document.hidden) return true;
+    } catch {}
+    return false;
+  }
+
+  function applyReferralsRealtime(change) {
+    const helper = mineApi();
+    if (!helper?.applyChange) return;
+    const next = helper.applyChange(cache, change);
+    rememberDoc(next);
+    const me = myPlayerId();
+    if (!me) return;
+    const count = countFor(me, cache);
+    const unlocked = count >= NEED || !!cache.byInviter?.[me]?.unlockedAt;
+    const prev = readLocalStatus();
+    if (count === prev.count && unlocked === prev.unlocked) return;
+    writeLocalStatus({ count, unlocked });
+    if (unlocked) {
+      try {
+        window.HubPlays?.markInviter?.(count);
+      } catch {}
+    }
+    try {
+      if (count > 0) window.HubLeaderboard?.submit?.("invites", count);
+    } catch {}
+  }
+
+  function stopReferralsRealtime() {
+    try {
+      referralsRealtimeUnsub?.();
+    } catch {}
+    referralsRealtimeUnsub = null;
+  }
+
+  function ensureReferralsRealtime() {
+    const api = sb();
+    if (!api?.subscribeReferralContributions) return;
+    if (referralsRealtimeUnsub) return;
+    if (referralsCloudQuiet()) return;
+    referralsRealtimeUnsub = api.subscribeReferralContributions((change) => {
+      applyReferralsRealtime(change);
+    });
   }
 
   async function pullDoc() {
     const api = sb();
-    if (!api) return emptyDoc();
-    try {
-      const data = await api.getDoc(DOC_ID);
-      if (!data || typeof data !== "object") return emptyDoc();
-      return {
-        byInviter: data.byInviter && typeof data.byInviter === "object" ? data.byInviter : {},
-        byInvitee: data.byInvitee && typeof data.byInvitee === "object" ? data.byInvitee : {}
-      };
-    } catch {
-      return emptyDoc();
+    const helper = mineApi();
+    let parsed = emptyDoc();
+    let fetched = false;
+    if (api) {
+      try {
+        const data = await api.getDoc(DOC_ID);
+        if (data && typeof data === "object") {
+          parsed = {
+            byInviter: data.byInviter && typeof data.byInviter === "object" ? data.byInviter : {},
+            byInvitee: data.byInvitee && typeof data.byInvitee === "object" ? data.byInvitee : {}
+          };
+          fetched = true;
+        }
+      } catch {}
     }
+    const tableRemote = await fetchReferralTableRemote();
+    if (tableRemote && helper?.overlayReferralDoc) {
+      parsed = helper.overlayReferralDoc(parsed, tableRemote);
+      fetched = true;
+    }
+    rememberDoc(parsed);
+    parsed._fetched = fetched;
+    return parsed;
   }
 
-  async function pushDoc(doc) {
+  async function pushDoc(doc, opts) {
+    const tableWrote = await persistReferralContribution(doc);
+    if (tableWrote && !(opts && opts.rewriteShared)) {
+      rememberDoc(doc);
+      return true;
+    }
+    if (opts && opts.skipShared) {
+      rememberDoc(doc);
+      return true;
+    }
     const api = sb();
     if (!api) return false;
     try {
-      await api.upsertDoc(DOC_ID, doc);
+      await api.upsertDoc(DOC_ID, {
+        byInviter: doc.byInviter || {},
+        byInvitee: doc.byInvitee || {}
+      });
+      rememberDoc(doc);
       return true;
     } catch {
       return false;
@@ -409,6 +539,7 @@
       doc.byInviter[inviterId].unlockedAt = Date.now();
     }
 
+    delete doc._fetched;
     const ok = await pushDoc(doc);
     if (!ok) return { ok: false, reason: "sync-failed" };
 
@@ -444,6 +575,7 @@
 
   // Boot
   captureFromUrl();
+  ensureReferralsRealtime();
   setTimeout(() => {
     refreshMyStatus().catch(() => {});
   }, 2000);
@@ -454,6 +586,13 @@
   });
   document.addEventListener("hub-player-changed", () => {
     refreshMyStatus().catch(() => {});
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      stopReferralsRealtime();
+      return;
+    }
+    ensureReferralsRealtime();
   });
 
   window.HubReferrals = {

@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015dc",
+  "build": "20261015dd",
   "notes": [
-    "Minigames now load the same version as the hub, so a Fishing admin popup isn't stuck on an old cached copy."
+    "Invite counts now update from your signed-in account as they happen, so a new friend joining through your link doesn't wait on the next refresh."
   ]
 };

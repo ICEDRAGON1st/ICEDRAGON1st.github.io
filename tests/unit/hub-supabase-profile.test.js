@@ -354,6 +354,15 @@ test("admin broadcasts use a dedicated table instead of publishing hub_docs", ()
   assert.doesNotMatch(src, /async function upsertAdminBroadcast/);
 });
 
+test("invite credits use auth-owned rows instead of rewriting the shared referral board", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.match(src, /async function listReferralContributions/);
+  assert.match(src, /async function upsertReferralContribution/);
+  assert.match(src, /function subscribeReferralContributions/);
+  assert.match(src, /referral_contributions/);
+});
+
 test("fishing aquariums use auth-owned rows instead of rewriting the shared tank board", () => {
   const fs = require("node:fs");
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");

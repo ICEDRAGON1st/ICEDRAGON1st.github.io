@@ -915,6 +915,10 @@
     return subscribePostgresChanges("admin_broadcasts", onChange);
   }
 
+  function subscribeReferralContributions(onChange) {
+    return subscribePostgresChanges("referral_contributions", onChange);
+  }
+
   async function listAdminBroadcasts() {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -943,8 +947,7 @@
     const session = await ensureSession();
     if (!session?.access_token) return null;
     const reset = Number(resetAt) || 0;
-    let url =
-      `${SUPABASE_URL}/rest/v1/popularity_contributions?select=player_id,games,reset_at`;
+    let url = `${SUPABASE_URL}/rest/v1/popularity_contributions?select=player_id,games,reset_at`;
     if (reset > 0) url += `&reset_at=eq.${encodeURIComponent(String(reset))}`;
     const res = await fetch(url, {
       headers: headers({}, session.access_token),
@@ -1011,15 +1014,17 @@
       out.push({
         id,
         playerId,
-        name: String(raw.name || "")
-          .replace(/[<>&"'`]/g, "")
-          .replace(/\s+/g, " ")
-          .trim()
-          .slice(0, 16) || "Player",
+        name:
+          String(raw.name || "")
+            .replace(/[<>&"'`]/g, "")
+            .replace(/\s+/g, " ")
+            .trim()
+            .slice(0, 16) || "Player",
         game,
-        gameName: String(raw.gameName || game)
-          .trim()
-          .slice(0, 48) || game,
+        gameName:
+          String(raw.gameName || game)
+            .trim()
+            .slice(0, 48) || game,
         at
       });
     });
@@ -1242,8 +1247,7 @@
     }
     const session = await ensureSession();
     if (!session?.access_token) return null;
-    const url =
-      `${SUPABASE_URL}/rest/v1/name_reservation_locks?select=player_id,name_key,code,display_name,locked_at`;
+    const url = `${SUPABASE_URL}/rest/v1/name_reservation_locks?select=player_id,name_key,code,display_name,locked_at`;
     const res = await fetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
@@ -1317,8 +1321,7 @@
     }
     const session = await ensureSession();
     if (!session?.access_token) return null;
-    const url =
-      `${SUPABASE_URL}/rest/v1/player_password_hashes?select=player_id,password_hash,code,display_name,hashed_at,cleared`;
+    const url = `${SUPABASE_URL}/rest/v1/player_password_hashes?select=player_id,password_hash,code,display_name,hashed_at,cleared`;
     const res = await fetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
@@ -1397,8 +1400,7 @@
     }
     const session = await ensureSession();
     if (!session?.access_token) return null;
-    const url =
-      `${SUPABASE_URL}/rest/v1/alltime_roster?select=player_id,display_name,first_at,last_at`;
+    const url = `${SUPABASE_URL}/rest/v1/alltime_roster?select=player_id,display_name,first_at,last_at`;
     const res = await fetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
@@ -1459,9 +1461,10 @@
         .trim()
         .slice(0, 96);
       if (!key || !room || typeof room !== "object" || Array.isArray(room)) return;
-      const peers = room.peers && typeof room.peers === "object" && !Array.isArray(room.peers)
-        ? room.peers
-        : {};
+      const peers =
+        room.peers && typeof room.peers === "object" && !Array.isArray(room.peers)
+          ? room.peers
+          : {};
       if (!Object.prototype.hasOwnProperty.call(peers, me)) return;
       out[key] = {
         kind: String(room.kind || "").slice(0, 16),
@@ -1470,9 +1473,10 @@
         updatedAt: Number(room.updatedAt) || 0,
         peers,
         signals: Array.isArray(room.signals) ? room.signals.slice(-40) : [],
-        links: room.links && typeof room.links === "object" && !Array.isArray(room.links)
-          ? room.links
-          : {}
+        links:
+          room.links && typeof room.links === "object" && !Array.isArray(room.links)
+            ? room.links
+            : {}
       };
     });
     return out;
@@ -1540,11 +1544,12 @@
           .slice(0, 96);
         if (!playerId || !raw || typeof raw !== "object") return;
         const edge = {
-          name: String(raw.name || "Player")
-            .replace(/[<>&"'`]/g, "")
-            .replace(/\s+/g, " ")
-            .trim()
-            .slice(0, 32) || "Player"
+          name:
+            String(raw.name || "Player")
+              .replace(/[<>&"'`]/g, "")
+              .replace(/\s+/g, " ")
+              .trim()
+              .slice(0, 32) || "Player"
         };
         const at = Number(raw.at) || 0;
         const since = Number(raw.since) || 0;
@@ -1572,21 +1577,32 @@
         out[inviteId] = {
           id: inviteId,
           fromId,
-          fromName: String(raw.fromName || "Player")
-            .replace(/[<>&"'`]/g, "")
-            .replace(/\s+/g, " ")
-            .trim()
-            .slice(0, 32) || "Player",
+          fromName:
+            String(raw.fromName || "Player")
+              .replace(/[<>&"'`]/g, "")
+              .replace(/\s+/g, " ")
+              .trim()
+              .slice(0, 32) || "Player",
           toId,
-          toName: String(raw.toName || "Player")
-            .replace(/[<>&"'`]/g, "")
-            .replace(/\s+/g, " ")
+          toName:
+            String(raw.toName || "Player")
+              .replace(/[<>&"'`]/g, "")
+              .replace(/\s+/g, " ")
+              .trim()
+              .slice(0, 32) || "Player",
+          game: String(raw.game || "")
             .trim()
-            .slice(0, 32) || "Player",
-          game: String(raw.game || "").trim().slice(0, 32),
-          roomId: String(raw.roomId || "").trim().slice(0, 64),
-          code: String(raw.code || "").trim().slice(0, 32),
-          status: String(raw.status || "pending").trim().slice(0, 16) || "pending",
+            .slice(0, 32),
+          roomId: String(raw.roomId || "")
+            .trim()
+            .slice(0, 64),
+          code: String(raw.code || "")
+            .trim()
+            .slice(0, 32),
+          status:
+            String(raw.status || "pending")
+              .trim()
+              .slice(0, 16) || "pending",
           at: Number(raw.at) || 0,
           respondedAt: Number(raw.respondedAt) || 0
         };
@@ -1603,8 +1619,7 @@
     }
     const session = await ensureSession();
     if (!session?.access_token) return null;
-    const url =
-      `${SUPABASE_URL}/rest/v1/friend_edge_contributions?select=player_id,display_name,friends,outgoing,incoming,invites,updated_at`;
+    const url = `${SUPABASE_URL}/rest/v1/friend_edge_contributions?select=player_id,display_name,friends,outgoing,incoming,invites,updated_at`;
     const res = await fetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
@@ -1699,7 +1714,11 @@
           .slice(-100);
         if (id === "global") {
           if (!messages.length) return null;
-          return { key: id, activity: messages[messages.length - 1].at, value: { type: "global", messages } };
+          return {
+            key: id,
+            activity: messages[messages.length - 1].at,
+            value: { type: "global", messages }
+          };
         }
         if (id.startsWith("group:")) {
           const members = {};
@@ -1710,17 +1729,20 @@
           ).forEach(([memberId, name]) => {
             const pid = String(memberId || "").trim();
             if (!pid) return;
-            members[pid] = String(name || "Player")
-              .replace(/[<>&"'`]/g, "")
-              .replace(/\s+/g, " ")
-              .trim()
-              .slice(0, 16) || "Player";
+            members[pid] =
+              String(name || "Player")
+                .replace(/[<>&"'`]/g, "")
+                .replace(/\s+/g, " ")
+                .trim()
+                .slice(0, 16) || "Player";
           });
           if (!Object.prototype.hasOwnProperty.call(members, me)) return null;
           if (!messages.length && !Object.keys(members).length) return null;
           return {
             key: id,
-            activity: messages.length ? messages[messages.length - 1].at : Number(thread.createdAt) || 0,
+            activity: messages.length
+              ? messages[messages.length - 1].at
+              : Number(thread.createdAt) || 0,
             value: {
               type: "group",
               name:
@@ -1947,7 +1969,9 @@
       out[roomId] = {
         id: roomId,
         game,
-        code: String(raw.code || "").trim().slice(0, 8),
+        code: String(raw.code || "")
+          .trim()
+          .slice(0, 8),
         queue: raw.queue === "quick" ? "quick" : "private",
         status,
         state: raw.state && typeof raw.state === "object" ? raw.state : {},
@@ -2109,6 +2133,76 @@
     }
   }
 
+  function sanitizeReferralCode(raw) {
+    return String(raw || "")
+      .toUpperCase()
+      .replace(/[^23456789ABCDEFGHJKLMNPQRSTUVWXYZ]/g, "")
+      .slice(0, 8);
+  }
+
+  async function listReferralContributions() {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const url = `${SUPABASE_URL}/rest/v1/referral_contributions?select=player_id,inviter_id,inviter_code,invitee_name,credited_at,updated_at`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase referrals list ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function upsertReferralContribution(row) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const playerId = parseLocalPlayerId(row?.playerId);
+    const inviterId = parseLocalPlayerId(row?.inviterId);
+    const inviterCode = sanitizeReferralCode(row?.inviterCode || row?.code);
+    if (!userId || !session?.access_token) throw new Error("supabase referrals needs a session");
+    if (!playerId) throw new Error("bad referrals player id");
+    if (!inviterId) throw new Error("bad referrals inviter id");
+    if (playerId === inviterId) throw new Error("referrals cannot credit self");
+    if (inviterCode.length !== 8) throw new Error("bad referrals inviter code");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/referral_contributions`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        player_id: playerId,
+        inviter_id: inviterId,
+        inviter_code: inviterCode,
+        invitee_name: String(row?.inviteeName || row?.name || "")
+          .replace(/[<>&"'`]/g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 16),
+        credited_at: new Date(Number(row?.creditedAt) || Date.now()).toISOString(),
+        updated_at: new Date().toISOString()
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase referrals upsert ${res.status} ${text}`);
+    }
+  }
+
   function sanitizeCommunityWeekKey(raw) {
     return String(raw || "")
       .replace(/[^a-zA-Z0-9-]/g, "")
@@ -2219,38 +2313,38 @@
     const me = String(playerId || "");
     const out = {};
     if (!me) return out;
-    Object.entries(gifts && typeof gifts === "object" && !Array.isArray(gifts) ? gifts : {}).forEach(
-      ([key, raw]) => {
-        if (Object.keys(out).length >= 40) return;
-        if (!raw || typeof raw !== "object") return;
-        const id = String(raw.id || key || "")
-          .trim()
-          .slice(0, 64);
-        const fromId = String(raw.fromId || "").trim();
-        const toPlayerId = String(raw.toPlayerId || "").trim();
-        if (!id || (fromId !== me && toPlayerId !== me)) return;
-        const items = (Array.isArray(raw.items) ? raw.items : [])
-          .map(sanitizeFishingMailItem)
-          .filter(Boolean)
-          .slice(0, 8);
-        if (!items.length) return;
-        out[id] = {
-          id,
-          fromId,
-          fromName: String(raw.fromName || "").slice(0, 48),
-          toPlayerId,
-          toName: String(raw.toName || "")
-            .toLowerCase()
-            .slice(0, 48),
-          toDisplay: String(raw.toDisplay || "").slice(0, 48),
-          items,
-          at: Math.max(0, Number(raw.at) || 0),
-          claimed: !!raw.claimed,
-          claimedBy: String(raw.claimedBy || "").slice(0, 64),
-          claimedAt: Math.max(0, Number(raw.claimedAt) || 0)
-        };
-      }
-    );
+    Object.entries(
+      gifts && typeof gifts === "object" && !Array.isArray(gifts) ? gifts : {}
+    ).forEach(([key, raw]) => {
+      if (Object.keys(out).length >= 40) return;
+      if (!raw || typeof raw !== "object") return;
+      const id = String(raw.id || key || "")
+        .trim()
+        .slice(0, 64);
+      const fromId = String(raw.fromId || "").trim();
+      const toPlayerId = String(raw.toPlayerId || "").trim();
+      if (!id || (fromId !== me && toPlayerId !== me)) return;
+      const items = (Array.isArray(raw.items) ? raw.items : [])
+        .map(sanitizeFishingMailItem)
+        .filter(Boolean)
+        .slice(0, 8);
+      if (!items.length) return;
+      out[id] = {
+        id,
+        fromId,
+        fromName: String(raw.fromName || "").slice(0, 48),
+        toPlayerId,
+        toName: String(raw.toName || "")
+          .toLowerCase()
+          .slice(0, 48),
+        toDisplay: String(raw.toDisplay || "").slice(0, 48),
+        items,
+        at: Math.max(0, Number(raw.at) || 0),
+        claimed: !!raw.claimed,
+        claimedBy: String(raw.claimedBy || "").slice(0, 64),
+        claimedAt: Math.max(0, Number(raw.claimedAt) || 0)
+      };
+    });
     return out;
   }
 
@@ -2258,48 +2352,48 @@
     const me = String(playerId || "");
     const out = {};
     if (!me) return out;
-    Object.entries(trades && typeof trades === "object" && !Array.isArray(trades) ? trades : {}).forEach(
-      ([key, raw]) => {
-        if (Object.keys(out).length >= 20) return;
-        if (!raw || typeof raw !== "object") return;
-        const id = String(raw.id || key || "")
-          .trim()
-          .slice(0, 64);
-        const aId = String(raw.aId || "").trim();
-        const bId = String(raw.bId || "").trim();
-        if (!id || !aId || !bId || (aId !== me && bId !== me)) return;
-        const statusRaw = String(raw.status || "open");
-        out[id] = {
-          id,
-          aId,
-          aName: String(raw.aName || "").slice(0, 48),
-          bId,
-          bName: String(raw.bName || "").slice(0, 48),
-          aItems: (Array.isArray(raw.aItems) ? raw.aItems : [])
-            .map(sanitizeFishingMailItem)
-            .filter(Boolean)
-            .slice(0, 8),
-          bItems: (Array.isArray(raw.bItems) ? raw.bItems : [])
-            .map(sanitizeFishingMailItem)
-            .filter(Boolean)
-            .slice(0, 8),
-          aAccept: !!raw.aAccept,
-          bAccept: !!raw.bAccept,
-          status: statusRaw === "done" || statusRaw === "cancelled" ? statusRaw : "open",
-          at: Math.max(0, Number(raw.at) || 0),
-          updatedAt: Math.max(0, Number(raw.updatedAt) || Number(raw.at) || 0),
-          appliedBy:
-            raw.appliedBy && typeof raw.appliedBy === "object" && !Array.isArray(raw.appliedBy)
-              ? raw.appliedBy
-              : {},
-          restoredBy:
-            raw.restoredBy && typeof raw.restoredBy === "object" && !Array.isArray(raw.restoredBy)
-              ? raw.restoredBy
-              : {},
-          note: String(raw.note || "").slice(0, 32)
-        };
-      }
-    );
+    Object.entries(
+      trades && typeof trades === "object" && !Array.isArray(trades) ? trades : {}
+    ).forEach(([key, raw]) => {
+      if (Object.keys(out).length >= 20) return;
+      if (!raw || typeof raw !== "object") return;
+      const id = String(raw.id || key || "")
+        .trim()
+        .slice(0, 64);
+      const aId = String(raw.aId || "").trim();
+      const bId = String(raw.bId || "").trim();
+      if (!id || !aId || !bId || (aId !== me && bId !== me)) return;
+      const statusRaw = String(raw.status || "open");
+      out[id] = {
+        id,
+        aId,
+        aName: String(raw.aName || "").slice(0, 48),
+        bId,
+        bName: String(raw.bName || "").slice(0, 48),
+        aItems: (Array.isArray(raw.aItems) ? raw.aItems : [])
+          .map(sanitizeFishingMailItem)
+          .filter(Boolean)
+          .slice(0, 8),
+        bItems: (Array.isArray(raw.bItems) ? raw.bItems : [])
+          .map(sanitizeFishingMailItem)
+          .filter(Boolean)
+          .slice(0, 8),
+        aAccept: !!raw.aAccept,
+        bAccept: !!raw.bAccept,
+        status: statusRaw === "done" || statusRaw === "cancelled" ? statusRaw : "open",
+        at: Math.max(0, Number(raw.at) || 0),
+        updatedAt: Math.max(0, Number(raw.updatedAt) || Number(raw.at) || 0),
+        appliedBy:
+          raw.appliedBy && typeof raw.appliedBy === "object" && !Array.isArray(raw.appliedBy)
+            ? raw.appliedBy
+            : {},
+        restoredBy:
+          raw.restoredBy && typeof raw.restoredBy === "object" && !Array.isArray(raw.restoredBy)
+            ? raw.restoredBy
+            : {},
+        note: String(raw.note || "").slice(0, 32)
+      };
+    });
     return out;
   }
 
@@ -2376,64 +2470,62 @@
     const me = String(playerId || "");
     const out = {};
     if (!me) return out;
-    Object.entries(gifts && typeof gifts === "object" && !Array.isArray(gifts) ? gifts : {}).forEach(
-      ([key, raw]) => {
-        if (Object.keys(out).length >= 40) return;
-        if (!raw || typeof raw !== "object") return;
-        const id = String(raw.id || key || "")
-          .trim()
-          .slice(0, 64);
-        const fishId = String(raw.fishId || "").slice(0, 32);
-        const item = String(raw.item || "").slice(0, 32);
-        if (!id || (!fishId && !item)) return;
-        const fromId = String(raw.fromId || "").trim();
-        const toPlayerId = String(raw.toPlayerId || "").trim();
-        const broadcast = isAdminBroadcastGift(raw);
-        const claimedByObj =
-          raw.claimedBy && typeof raw.claimedBy === "object" && !Array.isArray(raw.claimedBy)
-            ? raw.claimedBy
-            : null;
-        const claimedMe = !!(
-          (claimedByObj && claimedByObj[me]) ||
-          String(raw.claimedBy || "").trim() === me
-        );
-        if (fromId !== me && toPlayerId !== me && !(broadcast && claimedMe)) return;
-        const claimedAt = Math.max(0, Number(raw.claimedAt) || 0);
-        out[id] = {
-          id,
-          toName: String(raw.toName || "")
-            .toLowerCase()
-            .slice(0, 48),
-          toPlayerId,
-          toDisplay: String(raw.toDisplay || "").slice(0, 48),
-          from: String(raw.from || "ICE_DRAGON").slice(0, 48),
-          fromId,
-          fishId,
-          item,
-          variant: String(raw.variant || "")
-            .toLowerCase()
-            .slice(0, 16),
-          shiny: !!raw.shiny,
-          mutation: String(raw.mutation || "")
-            .toLowerCase()
-            .slice(0, 16),
-          perfect: !!raw.perfect,
-          count: Math.min(50, Math.max(1, Math.floor(Number(raw.count) || 1))),
-          at: Math.max(0, Number(raw.at) || 0),
-          broadcast,
-          onlineOnly: !!raw.onlineOnly,
-          onlineIds: Array.isArray(raw.onlineIds) ? raw.onlineIds.map(String).slice(0, 80) : [],
-          onlineNames: Array.isArray(raw.onlineNames)
-            ? raw.onlineNames.map((name) => String(name || "").toLowerCase()).slice(0, 80)
-            : [],
-          claimed: broadcast ? false : !!raw.claimed,
-          claimedBy: broadcast
-            ? claimedByObj || {}
-            : String(raw.claimedBy || "").slice(0, 64),
-          claimedAt
-        };
-      }
-    );
+    Object.entries(
+      gifts && typeof gifts === "object" && !Array.isArray(gifts) ? gifts : {}
+    ).forEach(([key, raw]) => {
+      if (Object.keys(out).length >= 40) return;
+      if (!raw || typeof raw !== "object") return;
+      const id = String(raw.id || key || "")
+        .trim()
+        .slice(0, 64);
+      const fishId = String(raw.fishId || "").slice(0, 32);
+      const item = String(raw.item || "").slice(0, 32);
+      if (!id || (!fishId && !item)) return;
+      const fromId = String(raw.fromId || "").trim();
+      const toPlayerId = String(raw.toPlayerId || "").trim();
+      const broadcast = isAdminBroadcastGift(raw);
+      const claimedByObj =
+        raw.claimedBy && typeof raw.claimedBy === "object" && !Array.isArray(raw.claimedBy)
+          ? raw.claimedBy
+          : null;
+      const claimedMe = !!(
+        (claimedByObj && claimedByObj[me]) ||
+        String(raw.claimedBy || "").trim() === me
+      );
+      if (fromId !== me && toPlayerId !== me && !(broadcast && claimedMe)) return;
+      const claimedAt = Math.max(0, Number(raw.claimedAt) || 0);
+      out[id] = {
+        id,
+        toName: String(raw.toName || "")
+          .toLowerCase()
+          .slice(0, 48),
+        toPlayerId,
+        toDisplay: String(raw.toDisplay || "").slice(0, 48),
+        from: String(raw.from || "ICE_DRAGON").slice(0, 48),
+        fromId,
+        fishId,
+        item,
+        variant: String(raw.variant || "")
+          .toLowerCase()
+          .slice(0, 16),
+        shiny: !!raw.shiny,
+        mutation: String(raw.mutation || "")
+          .toLowerCase()
+          .slice(0, 16),
+        perfect: !!raw.perfect,
+        count: Math.min(50, Math.max(1, Math.floor(Number(raw.count) || 1))),
+        at: Math.max(0, Number(raw.at) || 0),
+        broadcast,
+        onlineOnly: !!raw.onlineOnly,
+        onlineIds: Array.isArray(raw.onlineIds) ? raw.onlineIds.map(String).slice(0, 80) : [],
+        onlineNames: Array.isArray(raw.onlineNames)
+          ? raw.onlineNames.map((name) => String(name || "").toLowerCase()).slice(0, 80)
+          : [],
+        claimed: broadcast ? false : !!raw.claimed,
+        claimedBy: broadcast ? claimedByObj || {} : String(raw.claimedBy || "").slice(0, 64),
+        claimedAt
+      };
+    });
     return out;
   }
 
@@ -2518,7 +2610,8 @@
       updatedAt: Math.max(0, Number(tank.updatedAt) || Date.now()),
       level: Math.max(0, Math.floor(Number(tank.level) || 0)),
       fish,
-      base: tank.base && typeof tank.base === "object" && !Array.isArray(tank.base) ? tank.base : null
+      base:
+        tank.base && typeof tank.base === "object" && !Array.isArray(tank.base) ? tank.base : null
     };
   }
 
@@ -2747,7 +2840,10 @@
     subscribePlayerCodeClaims,
     subscribeNameReservationLocks,
     subscribeAdminBroadcasts,
+    subscribeReferralContributions,
     listAdminBroadcasts,
+    listReferralContributions,
+    upsertReferralContribution,
     stopPresenceRealtime,
     listPopularityContributions,
     upsertPopularityContribution,
