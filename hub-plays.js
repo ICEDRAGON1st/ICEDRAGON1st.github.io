@@ -1218,24 +1218,6 @@
     } catch {}
   }
 
-  function parsePasswordsMap(data) {
-    if (!data || typeof data !== "object") return {};
-    const passwords = data.passwords && typeof data.passwords === "object" ? data.passwords : data;
-    const out = {};
-    Object.entries(passwords).forEach(([hash, v]) => {
-      if (!hash || !v || typeof v !== "object" || !v.playerId) return;
-      const key = identity.normalizePasswordHash ? identity.normalizePasswordHash(hash) : String(hash);
-      if (!key) return;
-      out[key] = {
-        playerId: String(v.playerId),
-        code: normalizePlayerCode(v.code || ""),
-        name: sanitizeName(v.name || ""),
-        at: Number(v.at) || 0
-      };
-    });
-    return out;
-  }
-
   async function fetchPasswordsTableRemote() {
     const api = sb();
     if (!api?.listPlayerPasswordHashes || !identity.rowsToPasswordMap) return null;
@@ -1273,30 +1255,15 @@
   }
 
   async function fetchPasswordsRemote() {
-    let parsed = {};
-    let fetched = false;
     const tableRows = await fetchPasswordsTableRemote();
-    if (tableRows) {
-      parsed = identity.overlayPasswordMaps
-        ? identity.overlayPasswordMaps({}, tableRows)
-        : identity.mergePasswordMaps
-          ? identity.mergePasswordMaps({}, identity.rowsToPasswordMap(tableRows))
-          : identity.rowsToPasswordMap
-            ? identity.rowsToPasswordMap(tableRows)
-            : {};
-      return parsed;
-    }
-    try {
-      const data = await fetchDoc(PASSWORDS_PATH);
-      if (data && typeof data === "object") {
-        parsed = parsePasswordsMap(data);
-        fetched = true;
-      }
-    } catch {
-      parsed = {};
-    }
-    if (!fetched) throw new Error("passwords-unavailable");
-    return parsed;
+    if (!tableRows) throw new Error("passwords-unavailable");
+    return identity.overlayPasswordMaps
+      ? identity.overlayPasswordMaps({}, tableRows)
+      : identity.mergePasswordMaps
+        ? identity.mergePasswordMaps({}, identity.rowsToPasswordMap(tableRows))
+        : identity.rowsToPasswordMap
+          ? identity.rowsToPasswordMap(tableRows)
+          : {};
   }
 
   async function pushPasswordsRemote(passwords) {
@@ -1313,7 +1280,7 @@
       if (result === true) tableWrote = true;
     }
     if (tableWrote) return;
-    await pushDoc(PASSWORDS_PATH, { passwords });
+    throw new Error("passwords-unavailable");
   }
 
   function markVaultHasPassword(playerId, hasPassword) {

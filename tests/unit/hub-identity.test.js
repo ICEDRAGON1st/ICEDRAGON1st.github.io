@@ -238,7 +238,21 @@ test("owned password hashes dual-write without plaintext or other players' login
       plays.indexOf("async function fetchPasswordsRemote"),
       plays.indexOf("async function pushPasswordsRemote")
     ),
-    /if \(tableRows\)/
+    /if \(!tableRows\) throw/
+  );
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function fetchPasswordsRemote"),
+      plays.indexOf("async function pushPasswordsRemote")
+    ),
+    /fetchDoc/
+  );
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function pushPasswordsRemote"),
+      plays.indexOf("function markVaultHasPassword")
+    ),
+    /pushDoc/
   );
   assert.equal(identity.PASSWORD_MINE_KEY, "password-mine");
   assert.match(plays, /upgradeAnonymousPassword/);

@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015dm",
+  "build": "20261015dn",
   "notes": [
-    "Player titles and colors live with your nickname, so the hub and minigames show the same equipped title."
+    "Login passwords stay on your signed-in account, so they aren't copied onto a shared board."
   ]
 };

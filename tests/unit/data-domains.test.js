@@ -31,9 +31,21 @@ test("shared boards do not talk to the old backup host", () => {
   }
   const net = fs.readFileSync(path.join(ROOT, "hub-net.js"), "utf8");
   assert.match(net, /mantledb\.sh/);
-  assert.equal(
-    fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8").includes("player-passwords"),
-    true
+  const plays = fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8");
+  assert.equal(plays.includes("player-passwords"), true);
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function fetchPasswordsRemote"),
+      plays.indexOf("async function pushPasswordsRemote")
+    ),
+    /fetchDoc/
+  );
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function pushPasswordsRemote"),
+      plays.indexOf("function markVaultHasPassword")
+    ),
+    /pushDoc/
   );
 });
 
