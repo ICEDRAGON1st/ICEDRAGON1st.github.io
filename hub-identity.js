@@ -166,6 +166,50 @@
     return out;
   }
 
+  function contributionRowKey(row) {
+    return String(row?.player_id || row?.playerId || "").trim();
+  }
+
+  function unwrapChange(change) {
+    const payload = change && typeof change === "object" ? change : {};
+    if (payload.data && typeof payload.data === "object") return payload.data;
+    if (payload.payload && typeof payload.payload === "object") {
+      const inner = payload.payload;
+      if (inner.data && typeof inner.data === "object") return inner.data;
+      return inner;
+    }
+    return payload;
+  }
+
+  function mergeContributionRows(rows, change) {
+    const data = unwrapChange(change);
+    const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
+    const list = Array.isArray(rows) ? rows.slice() : [];
+    if (type === "DELETE") return list;
+    const record = data.record || data.new || {};
+    if (!record || typeof record !== "object") return list;
+    const pid = contributionRowKey(record);
+    if (!pid) return list;
+    const idx = list.findIndex((row) => contributionRowKey(row) === pid);
+    if (idx >= 0) list[idx] = record;
+    else list.push(record);
+    return list;
+  }
+
+  function applyCodeChange(hub, change, rows) {
+    const nextRows = mergeContributionRows(rows, change);
+    const current =
+      hub && typeof hub === "object" && !Array.isArray(hub)
+        ? hub.codes && typeof hub.codes === "object"
+          ? hub.codes
+          : hub
+        : {};
+    return {
+      codes: mergeCodesMaps(current, rowsToCodesMap(nextRows)),
+      rows: nextRows
+    };
+  }
+
   function reservationAllows(res, playerId, code) {
     if (!res?.playerId) return true;
     if (res.playerId === playerId) return true;
@@ -447,6 +491,51 @@
     return out;
   }
 
+  function mergeReservationMaps(a, b) {
+    const out = { ...(a || {}) };
+    Object.entries(b || {}).forEach(([key, entry]) => {
+      if (!entry?.playerId) return;
+      const existing = out[key];
+      if (!existing) {
+        out[key] = entry;
+        return;
+      }
+      if (
+        existing.playerId !== entry.playerId &&
+        !reservationAllows(existing, entry.playerId, entry.code)
+      ) {
+        return;
+      }
+      if (existing.playerId === entry.playerId) {
+        const left = Number(existing.lockedAt) || 0;
+        const right = Number(entry.lockedAt) || 0;
+        out[key] = {
+          ...existing,
+          ...entry,
+          playerId: existing.playerId,
+          lockedAt: left && right ? Math.min(left, right) : left || right
+        };
+        return;
+      }
+      out[key] = entry;
+    });
+    return out;
+  }
+
+  function applyReservationChange(hub, change, rows) {
+    const nextRows = mergeContributionRows(rows, change);
+    const current =
+      hub && typeof hub === "object" && !Array.isArray(hub)
+        ? hub.reservations && typeof hub.reservations === "object"
+          ? hub.reservations
+          : hub
+        : {};
+    return {
+      reservations: mergeReservationMaps(current, rowsToReservationsMap(nextRows)),
+      rows: nextRows
+    };
+  }
+
   function applyReservationsMine(localMap, mine, playerId) {
     const owned = readReservationsMine(mine);
     const me = String(playerId || owned.playerId || "").trim();
@@ -491,6 +580,7 @@
     parseCodesMap,
     rowsToCodesMap,
     mergeCodesMaps,
+    applyCodeChange,
     reservationAllows,
     parseReservationsMap,
     IDENTITY_MINE_KEY,
@@ -511,7 +601,9 @@
     readReservationsMine,
     collectReservationsMine,
     applyReservationsMine,
-    rowsToReservationsMap
+    rowsToReservationsMap,
+    mergeReservationMaps,
+    applyReservationChange
   };
   root.HubIdentity = api;
   if (typeof module === "object" && module.exports) module.exports = api;

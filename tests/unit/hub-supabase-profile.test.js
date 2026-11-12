@@ -165,6 +165,8 @@ test("presence pings use auth-owned rows instead of rewriting the shared presenc
   assert.match(src, /function subscribePlayLogContributions/);
   assert.match(src, /function subscribeNicknameClaims/);
   assert.match(src, /function subscribeAlltimeRoster/);
+  assert.match(src, /function subscribePlayerCodeClaims/);
+  assert.match(src, /function subscribeNameReservationLocks/);
   assert.match(src, /realtime\/v1\/websocket/);
   assert.match(src, /presence_pings/);
   assert.match(src, /chat_thread_contributions/);
@@ -195,6 +197,7 @@ test("player code claims use auth-owned rows instead of rewriting the shared cod
   assert.match(src, /async function listPlayerCodeClaims/);
   assert.match(src, /async function getPlayerCodeClaim/);
   assert.match(src, /async function upsertPlayerCodeClaim/);
+  assert.match(src, /function subscribePlayerCodeClaims/);
   assert.match(src, /player_code_claims/);
 });
 
@@ -212,6 +215,7 @@ test("name reservation locks use auth-owned rows instead of rewriting the shared
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
   assert.match(src, /async function listNameReservationLocks/);
   assert.match(src, /async function upsertNameReservationLock/);
+  assert.match(src, /function subscribeNameReservationLocks/);
   assert.match(src, /name_reservation_locks/);
 });
 

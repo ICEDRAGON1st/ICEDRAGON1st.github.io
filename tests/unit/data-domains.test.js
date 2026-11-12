@@ -80,6 +80,26 @@ test("admin hub_docs RPC stays authenticated and locked to admin document ids", 
   assert.doesNotMatch(rpc, /to anon/i);
 });
 
+test("player code claims realtime publication stays authenticated and replica-identity full", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160035_player_code_claims_realtime.sql"),
+    "utf8"
+  );
+  assert.match(sql, /alter table public\.player_code_claims replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.player_code_claims/i);
+  assert.doesNotMatch(sql, /to anon/i);
+});
+
+test("name reservation locks realtime publication stays authenticated and replica-identity full", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160036_name_reservation_locks_realtime.sql"),
+    "utf8"
+  );
+  assert.match(sql, /alter table public\.name_reservation_locks replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.name_reservation_locks/i);
+  assert.doesNotMatch(sql, /to anon/i);
+});
+
 test("nickname claims realtime publication stays authenticated and replica-identity full", () => {
   const sql = fs.readFileSync(
     path.join(ROOT, "supabase/migrations/202610160033_nickname_claims_realtime.sql"),

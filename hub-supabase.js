@@ -902,6 +902,14 @@
     return subscribePostgresChanges("alltime_roster", onChange);
   }
 
+  function subscribePlayerCodeClaims(onChange) {
+    return subscribePostgresChanges("player_code_claims", onChange);
+  }
+
+  function subscribeNameReservationLocks(onChange) {
+    return subscribePostgresChanges("name_reservation_locks", onChange);
+  }
+
   async function listPopularityContributions(resetAt) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -2712,6 +2720,8 @@
     subscribePlayLogContributions,
     subscribeNicknameClaims,
     subscribeAlltimeRoster,
+    subscribePlayerCodeClaims,
+    subscribeNameReservationLocks,
     stopPresenceRealtime,
     listPopularityContributions,
     upsertPopularityContribution,

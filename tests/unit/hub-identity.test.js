@@ -95,6 +95,79 @@ test("account transfer keys and player-code maps keep the first owner", () => {
   );
   assert.equal(merged.AB23CD45.playerId, "p-ada");
   assert.equal(merged.CD45AB23.playerId, "p-bea");
+
+  const liveCode = identity.applyCodeChange(
+    { codes: { AB23CD45: { playerId: "p-ada", name: "Ada", at: 10 } } },
+    {
+      type: "UPDATE",
+      new: {
+        player_id: "p-cal",
+        code: "CD45AB23",
+        display_name: "Cal",
+        claimed_at: "2023-11-14T22:13:20.000Z"
+      }
+    },
+    [
+      {
+        player_id: "p-ada",
+        code: "AB23CD45",
+        display_name: "Ada",
+        claimed_at: "2023-11-14T22:13:20.000Z"
+      }
+    ]
+  );
+  assert.equal(liveCode.codes.AB23CD45.playerId, "p-ada");
+  assert.equal(liveCode.codes.CD45AB23.playerId, "p-cal");
+  assert.equal(liveCode.rows.length, 2);
+
+  const stolenCode = identity.applyCodeChange(
+    liveCode,
+    {
+      type: "UPDATE",
+      new: {
+        player_id: "p-eve",
+        code: "AB23CD45",
+        display_name: "Eve",
+        claimed_at: "2023-11-14T22:13:20.000Z"
+      }
+    },
+    liveCode.rows
+  );
+  assert.equal(stolenCode.codes.AB23CD45.playerId, "p-ada");
+
+  const afterCodeDelete = identity.applyCodeChange(
+    stolenCode,
+    { type: "DELETE", old_record: { player_id: "p-cal" } },
+    stolenCode.rows
+  );
+  assert.equal(afterCodeDelete.codes.CD45AB23.playerId, "p-cal");
+  assert.equal(afterCodeDelete.rows.length, 3);
+});
+
+test("player-code live rows subscribe without rewriting the shared code document", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const ROOT = path.join(__dirname, "../..");
+  const plays = fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8");
+  const supabase = fs.readFileSync(path.join(ROOT, "hub-supabase.js"), "utf8");
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160035_player_code_claims_realtime.sql"),
+    "utf8"
+  );
+  assert.match(plays, /ensureCodesRealtime/);
+  assert.match(plays, /applyCodesRealtime/);
+  assert.match(plays, /subscribePlayerCodeClaims/);
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("function applyCodesRealtime"),
+      plays.indexOf("function stopCodesRealtime")
+    ),
+    /pushCodesRemote|pushDoc/
+  );
+  assert.match(supabase, /function subscribePlayerCodeClaims/);
+  assert.match(sql, /alter table public\.player_code_claims replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.player_code_claims/i);
+  assert.doesNotMatch(sql, /to anon/i);
 });
 
 test("owned identity mine restores code and name without reminting a different player id", () => {
@@ -340,4 +413,84 @@ test("owned name reservations dual-write without stealing another player's lock"
   assert.equal(fromRows.ice_dragon.playerId, "p-ada");
   assert.equal(fromRows.ice_dragon.code, "AB23CD45");
   assert.equal(fromRows.bea, undefined);
+
+  const liveLock = identity.applyReservationChange(
+    {
+      reservations: {
+        ice_dragon: { playerId: "p-ada", code: "AB23CD45", name: "ICE_DRAGON", lockedAt: 20 }
+      }
+    },
+    {
+      type: "UPDATE",
+      new: {
+        player_id: "p-cal",
+        name_key: "cal",
+        code: "CD45AB23",
+        display_name: "Cal",
+        locked_at: "2023-11-14T22:13:20.000Z"
+      }
+    },
+    [
+      {
+        player_id: "p-ada",
+        name_key: "ice_dragon",
+        code: "AB23CD45",
+        display_name: "ICE_DRAGON",
+        locked_at: "2023-11-14T22:13:20.000Z"
+      }
+    ]
+  );
+  assert.equal(liveLock.reservations.ice_dragon.playerId, "p-ada");
+  assert.equal(liveLock.reservations.cal.playerId, "p-cal");
+  assert.equal(liveLock.rows.length, 2);
+
+  const stolenLock = identity.applyReservationChange(
+    liveLock,
+    {
+      type: "UPDATE",
+      new: {
+        player_id: "p-eve",
+        name_key: "ice_dragon",
+        code: "ZZ99YY88",
+        display_name: "Eve",
+        locked_at: "2023-11-14T22:13:20.000Z"
+      }
+    },
+    liveLock.rows
+  );
+  assert.equal(stolenLock.reservations.ice_dragon.playerId, "p-ada");
+
+  const afterLockDelete = identity.applyReservationChange(
+    stolenLock,
+    { type: "DELETE", old_record: { player_id: "p-cal" } },
+    stolenLock.rows
+  );
+  assert.equal(afterLockDelete.reservations.cal.playerId, "p-cal");
+  assert.equal(afterLockDelete.rows.length, 3);
+});
+
+test("name-reservation live rows subscribe without rewriting the shared lock document", () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const ROOT = path.join(__dirname, "../..");
+  const plays = fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8");
+  const supabase = fs.readFileSync(path.join(ROOT, "hub-supabase.js"), "utf8");
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160036_name_reservation_locks_realtime.sql"),
+    "utf8"
+  );
+  assert.match(plays, /ensureReservationsRealtime/);
+  assert.match(plays, /applyReservationsRealtime/);
+  assert.match(plays, /subscribeNameReservationLocks/);
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("function applyReservationsRealtime"),
+      plays.indexOf("function stopReservationsRealtime")
+    ),
+    /pushReservationsRemote|pushDoc/
+  );
+  assert.match(supabase, /function subscribeNameReservationLocks/);
+  assert.match(sql, /alter table public\.name_reservation_locks replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.name_reservation_locks/i);
+  assert.doesNotMatch(sql, /to anon/i);
 });

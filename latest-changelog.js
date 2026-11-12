@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015cw",
+  "build": "20261015cx",
   "notes": [
-    "Nicknames and the all-time player list now update from your signed-in account as they happen, so a new name doesn't wait on the next poll."
+    "Player codes and locked nicknames now update from your signed-in account as they happen, so a claimed code doesn't wait on the next poll."
   ]
 };

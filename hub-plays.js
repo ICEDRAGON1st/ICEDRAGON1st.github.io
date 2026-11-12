@@ -174,6 +174,11 @@
   let alltimeRows = [];
   let namesRealtimeUnsub = null;
   let alltimeRealtimeUnsub = null;
+  let codeRows = [];
+  let reservationRows = [];
+  let codesCache = {};
+  let codesRealtimeUnsub = null;
+  let reservationsRealtimeUnsub = null;
   let namesCache = {};
   let reservationsCache = {};
   let presenceCache = {};
@@ -423,6 +428,61 @@
     if (playsCloudQuiet()) return;
     alltimeRealtimeUnsub = api.subscribeAlltimeRoster((change) => {
       applyAllTimeRealtime(change);
+    });
+  }
+
+  function applyCodesRealtime(change) {
+    if (!identity.applyCodeChange) return;
+    const next = identity.applyCodeChange({ codes: codesCache }, change, codeRows);
+    codeRows = Array.isArray(next.rows) ? next.rows : codeRows;
+    codesCache = next.codes && typeof next.codes === "object" ? next.codes : codesCache;
+  }
+
+  function stopCodesRealtime() {
+    try {
+      codesRealtimeUnsub?.();
+    } catch {}
+    codesRealtimeUnsub = null;
+  }
+
+  function ensureCodesRealtime() {
+    const api = sb();
+    if (!api?.subscribePlayerCodeClaims) return;
+    if (codesRealtimeUnsub) return;
+    if (playsCloudQuiet()) return;
+    codesRealtimeUnsub = api.subscribePlayerCodeClaims((change) => {
+      applyCodesRealtime(change);
+    });
+  }
+
+  function applyReservationsRealtime(change) {
+    if (!identity.applyReservationChange) return;
+    const next = identity.applyReservationChange(
+      { reservations: reservationsCache },
+      change,
+      reservationRows
+    );
+    reservationRows = Array.isArray(next.rows) ? next.rows : reservationRows;
+    reservationsCache =
+      next.reservations && typeof next.reservations === "object"
+        ? next.reservations
+        : reservationsCache;
+  }
+
+  function stopReservationsRealtime() {
+    try {
+      reservationsRealtimeUnsub?.();
+    } catch {}
+    reservationsRealtimeUnsub = null;
+  }
+
+  function ensureReservationsRealtime() {
+    const api = sb();
+    if (!api?.subscribeNameReservationLocks) return;
+    if (reservationsRealtimeUnsub) return;
+    if (playsCloudQuiet()) return;
+    reservationsRealtimeUnsub = api.subscribeNameReservationLocks((change) => {
+      applyReservationsRealtime(change);
     });
   }
 
@@ -1568,7 +1628,11 @@
     try {
       const rows = await api.listPlayerCodeClaims();
       if (!rows) return null;
-      return identity.rowsToCodesMap(rows);
+      codeRows = Array.isArray(rows) ? rows : [];
+      const mapped = identity.rowsToCodesMap(rows);
+      if (identity.mergeCodesMaps) codesCache = identity.mergeCodesMaps(codesCache, mapped);
+      else codesCache = { ...codesCache, ...mapped };
+      return mapped;
     } catch {
       return null;
     }
@@ -1584,6 +1648,7 @@
     try {
       const rows = await api.listNameReservationLocks();
       if (!rows) return null;
+      reservationRows = Array.isArray(rows) ? rows : [];
       return identity.rowsToReservationsMap(rows);
     } catch {
       return null;
@@ -1642,6 +1707,7 @@
       throw new Error("reservations-unavailable");
     }
     reservationsCache = parsed;
+    ensureReservationsRealtime();
     return parsed;
   }
 
@@ -1782,6 +1848,8 @@
       } else if (tableRemote) {
         remote = { ...remote, ...tableRemote };
       }
+      codesCache = remote;
+      ensureCodesRealtime();
       if (!fetched && !tableWrote && !tableRemote) {
         throw new Error("codes-unavailable");
       }
@@ -4407,6 +4475,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     ensurePlayLogRealtime();
     ensureNamesRealtime();
     ensureAllTimeRealtime();
+    ensureCodesRealtime();
+    ensureReservationsRealtime();
     heartbeat().catch(() => {});
     // Pull repaired all-time lastAt immediately (don't wait 10 min).
     registerAllTime().catch(() => {});
@@ -4425,6 +4495,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
         stopPlayLogRealtime();
         stopNamesRealtime();
         stopAllTimeRealtime();
+        stopCodesRealtime();
+        stopReservationsRealtime();
         goOffline().catch(() => {});
         return;
       }
@@ -4435,6 +4507,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       ensurePlayLogRealtime();
       ensureNamesRealtime();
       ensureAllTimeRealtime();
+      ensureCodesRealtime();
+      ensureReservationsRealtime();
     });
     // Resume light presence when WiFi returns (this tab only).
     window.addEventListener("online", () => {
