@@ -65,6 +65,37 @@
     return ADMIN_DOC_IDS.includes(String(id || "").trim());
   }
 
+  // Contracted leftover boards. Keep fishing-community and paper-io-* writable
+  // until community_meter_state / paper_room_contributions are live.
+  const LEFTOVER_LOCKED_DOC_IDS = [
+    "leaderboards",
+    "plays-log",
+    "name-registry",
+    "player-codes",
+    "name-reservations",
+    "presence",
+    "players-alltime",
+    "friend-chat",
+    "friends",
+    "player-feedback",
+    "online-matches",
+    "fishing-gifts",
+    "fishing-player-mail",
+    "fishing-aquariums",
+    "hub-calls",
+    "hub-referrals-v1",
+    "hub-game-popularity-v1",
+    "player-passwords",
+    "discord-links-v1"
+  ];
+
+  function isLeftoverLockedDoc(id) {
+    const key = String(id || "").trim();
+    if (!key) return false;
+    if (key.startsWith("account-bag:")) return true;
+    return LEFTOVER_LOCKED_DOC_IDS.includes(key);
+  }
+
   function headers(extra, accessToken) {
     return {
       apikey: SUPABASE_ANON_KEY,
@@ -2924,6 +2955,7 @@
   }
 
   async function getDoc(id) {
+    if (isLeftoverLockedDoc(id)) return null;
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
       err.hubNetBlocked = true;
@@ -2939,6 +2971,9 @@
   }
 
   async function upsertDoc(id, data) {
+    if (isLeftoverLockedDoc(id) || isAdminDoc(id)) {
+      throw new Error("leftover-locked");
+    }
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
       err.hubNetBlocked = true;
@@ -3056,6 +3091,7 @@
     DOCS,
     ADMIN_DOC_IDS,
     isAdminDoc,
+    isLeftoverLockedDoc,
     getDoc,
     upsertDoc,
     upsertAdminDoc,

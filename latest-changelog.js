@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ep",
+  "build": "20261015eq",
   "notes": [
-    "Discord /link uses your player code on the signed-in account, so leftover shared boards don't get a copy."
+    "Your scores, names, and friends stay on your signed-in account — leftover shared boards aren't asked for them."
   ]
 };

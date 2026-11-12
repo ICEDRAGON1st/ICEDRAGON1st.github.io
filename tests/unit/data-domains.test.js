@@ -215,6 +215,15 @@ test("Discord /link looks up signed-in player codes without leftover hub_docs", 
   assert.doesNotMatch(bot, /discord-links-v1/);
 });
 
+test("contracted leftover boards skip hub_docs on the client until meter and Paper tables are live", () => {
+  const src = fs.readFileSync(path.join(ROOT, "hub-supabase.js"), "utf8");
+  assert.match(src, /function isLeftoverLockedDoc/);
+  assert.match(src, /Keep fishing-community and paper-io-\* writable/);
+  assert.match(src, /"discord-links-v1"/);
+  assert.match(src, /if \(isLeftoverLockedDoc\(id\)\) return null;/);
+  assert.match(src, /throw new Error\("leftover-locked"\)/);
+});
+
 test("contracted leftover boards cannot be rewritten on hub_docs", () => {
   const sql = fs.readFileSync(
     path.join(ROOT, "supabase/migrations/202610160049_lock_contracted_hub_docs.sql"),
