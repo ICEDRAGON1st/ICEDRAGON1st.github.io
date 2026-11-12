@@ -11,12 +11,26 @@ const mine = require(path.join(ROOT, "hub-feedback-mine.js"));
 test("owned feedback lives in a helper used by the Feedback panel", () => {
   const ui = fs.readFileSync(path.join(ROOT, "hub-feedback.js"), "utf8");
   const index = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  const fetchSlice = ui.slice(
+    ui.indexOf("async function fetchRemote"),
+    ui.indexOf("async function pushRemote")
+  );
+  const pushSlice = ui.slice(
+    ui.indexOf("async function pushRemote"),
+    ui.indexOf("function list()")
+  );
   assert.match(ui, /window\.HubFeedbackMine/);
   assert.match(ui, /persistMine/);
   assert.match(ui, /pullMine/);
   assert.match(ui, /persistFeedbackItemContribution/);
   assert.match(ui, /fetchFeedbackTableRemote/);
+  assert.match(ui, /fetchFeedbackDeletesRemote/);
+  assert.match(ui, /persistFeedbackDeletes/);
   assert.match(ui, /skipShared: !fetched/);
+  assert.match(fetchSlice, /if \(!adminDeletesFetched\)/);
+  assert.match(fetchSlice, /api\.getPrefer/);
+  assert.match(pushSlice, /if \(deletesWrote && opts\.wipe\) return/);
+  assert.match(ui, /rewriteShared: true, wipe: true/);
   assert.match(index, /hub-feedback-mine\.js/);
   assert.equal(mine.SAVE_KEY, "feedback-mine");
 });
@@ -162,6 +176,40 @@ test("owned feedback keeps only this player's tickets and never shrinks a richer
   assert.equal(afterDelete.items.some((item) => item.id === "f3"), true);
 });
 
+test("feedback delete overlay unions ICE cuts without shrinking on delete", () => {
+  const hub = {
+    items: [
+      { id: "keep", fromId: "p-me", fromName: "Ada", type: "idea", text: "Keep me", at: 5 },
+      { id: "gone", fromId: "p-pal", fromName: "Pal", type: "bug", text: "Remove me", at: 6 }
+    ],
+    deletedIds: ["old"]
+  };
+  const live = mine.applyDeletesChange(hub, {
+    type: "UPDATE",
+    record: {
+      doc_id: "hub-feedback-deletes",
+      data: { token: "ice-hub-admin-9f3a", deletedIds: ["gone"] }
+    }
+  });
+  assert.equal(live.deletedIds.includes("old"), true);
+  assert.equal(live.deletedIds.includes("gone"), true);
+  assert.equal(live.items.some((item) => item.id === "keep"), true);
+  assert.equal(live.items.some((item) => item.id === "gone"), false);
+
+  const ignored = mine.applyDeletesChange(live, {
+    type: "UPDATE",
+    record: { doc_id: "hub-admin-announce", data: { deletedIds: ["keep"] } }
+  });
+  assert.equal(ignored.items.some((item) => item.id === "keep"), true);
+
+  const afterDelete = mine.applyDeletesChange(live, {
+    type: "DELETE",
+    old_record: { doc_id: "hub-feedback-deletes" }
+  });
+  assert.equal(afterDelete.deletedIds.includes("gone"), true);
+  assert.equal(afterDelete.items.some((item) => item.id === "gone"), false);
+});
+
 test("feedback live rows subscribe without rewriting the shared inbox", () => {
   const ui = fs.readFileSync(path.join(ROOT, "hub-feedback.js"), "utf8");
   const supabase = fs.readFileSync(path.join(ROOT, "hub-supabase.js"), "utf8");
@@ -171,8 +219,11 @@ test("feedback live rows subscribe without rewriting the shared inbox", () => {
   );
   assert.match(ui, /ensureFeedbackRealtime/);
   assert.match(ui, /applyFeedbackRealtime/);
+  assert.match(ui, /applyFeedbackDeletesRealtime/);
   assert.match(ui, /subscribeFeedbackItemContributions/);
-  assert.match(ui, /isRealtimeJoined\?\.\("feedback_item_contributions"\)/);
+  assert.match(ui, /subscribeAdminBroadcasts/);
+  assert.match(ui, /isRealtimeJoined\?\.\(table \|\| "feedback_item_contributions"\)/);
+  assert.match(ui, /feedbackLiveJoined\("admin_broadcasts"\)/);
   assert.match(ui, /skipShared: !fetched \|\| joined/);
   assert.match(ui, /function feedbackNetQuiet/);
   assert.match(ui, /HubNotifications\?\.ping\?\.\("feedback"\)/);

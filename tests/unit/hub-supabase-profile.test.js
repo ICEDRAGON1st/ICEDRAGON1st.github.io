@@ -395,6 +395,7 @@ test("admin broadcasts use a dedicated table instead of publishing hub_docs", ()
   assert.match(src, /function subscribeAdminBroadcasts/);
   assert.match(src, /admin_broadcasts/);
   assert.match(src, /hub-leaderboard-resets/);
+  assert.match(src, /hub-feedback-deletes/);
   assert.match(admin, /api\.upsertAdminDoc/);
   assert.match(admin, /listAdminBroadcasts/);
   assert.doesNotMatch(src, /async function upsertAdminBroadcast/);

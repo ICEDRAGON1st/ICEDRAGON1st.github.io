@@ -57,7 +57,8 @@
     "hub-admin-moderation",
     "hub-admin-grants",
     "hub-discord-site-updates",
-    "hub-leaderboard-resets"
+    "hub-leaderboard-resets",
+    "hub-feedback-deletes"
   ];
 
   function isAdminDoc(id) {

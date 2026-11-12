@@ -23,6 +23,8 @@
   const SEND_COOLDOWN_MS = 20000;
   const RATE_LIMIT_BACKOFF_MS = 20 * 60_000;
   const OWNER_NAME = "ice_dragon";
+  const ADMIN_DELETES_DOC = "hub-feedback-deletes";
+  const ADMIN_DELETES_TOKEN = "ice-hub-admin-9f3a";
 
   function sb() {
     return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
@@ -32,6 +34,7 @@
   let syncing = false;
   let writeQueue = Promise.resolve();
   let feedbackRealtimeUnsub = null;
+  let feedbackDeletesRealtimeUnsub = null;
 
   function getPlayerId() {
     return typeof HubPlays !== "undefined" && HubPlays.getPlayerId ? HubPlays.getPlayerId() : "";
@@ -253,27 +256,88 @@
     }
   }
 
+  async function fetchFeedbackDeletesRemote() {
+    const api = sb();
+    if (!api?.listAdminBroadcasts) return null;
+    try {
+      const rows = await api.listAdminBroadcasts();
+      if (!rows) return null;
+      const row = (Array.isArray(rows) ? rows : []).find(
+        (item) => String(item?.doc_id || item?.docId || "").trim() === ADMIN_DELETES_DOC
+      );
+      if (!row) return null;
+      return row.data && typeof row.data === "object" ? row.data : {};
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistFeedbackDeletes() {
+    const api = sb();
+    if (!api?.upsertAdminDoc || !api.isAdminDoc?.(ADMIN_DELETES_DOC)) return false;
+    const helper = mineApi();
+    const remote = await fetchFeedbackDeletesRemote();
+    const overlay = helper?.overlayFeedbackDeletes
+      ? helper.overlayFeedbackDeletes(
+          { items: [], deletedIds: loadDeletedIds() },
+          remote && typeof remote === "object" ? remote : {}
+        )
+      : { deletedIds: loadDeletedIds() };
+    const ids = (overlay.deletedIds || loadDeletedIds()).slice(0, MAX_DELETED);
+    saveDeletedIds(ids);
+    try {
+      await api.upsertAdminDoc(ADMIN_DELETES_DOC, {
+        token: ADMIN_DELETES_TOKEN,
+        deletedIds: ids
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async function fetchRemote() {
     let parsed = { items: [], deletedIds: [] };
     let fetched = false;
-    try {
-      const api = sb();
-      const data = api?.getPrefer ? await api.getPrefer(DOC_ID) : null;
-      if (data && typeof data === "object") {
-        parsed = {
-          items: Array.isArray(data.items) ? data.items : [],
-          deletedIds: Array.isArray(data.deletedIds) ? data.deletedIds.map(String) : []
-        };
-        fetched = true;
-      }
-    } catch (err) {
-      if (err?.code === 429) throw err;
-      parsed = { items: [], deletedIds: [] };
-    }
     const tableRemote = await fetchFeedbackTableRemote();
     if (tableRemote) {
       parsed.items = mergeItems(parsed.items, tableRemote.items);
       fetched = true;
+    }
+    const adminDeletes = await fetchFeedbackDeletesRemote();
+    const adminDeletesFetched = !!(adminDeletes && typeof adminDeletes === "object");
+    if (adminDeletesFetched) {
+      const helper = mineApi();
+      parsed = helper?.overlayFeedbackDeletes
+        ? helper.overlayFeedbackDeletes(
+            { items: parsed.items, deletedIds: parsed.deletedIds },
+            adminDeletes
+          )
+        : {
+            items: parsed.items,
+            deletedIds: Array.isArray(adminDeletes.deletedIds)
+              ? adminDeletes.deletedIds.map(String)
+              : parsed.deletedIds
+          };
+      fetched = true;
+    }
+    if (!adminDeletesFetched) {
+      try {
+        const api = sb();
+        const data = api?.getPrefer ? await api.getPrefer(DOC_ID) : null;
+        if (data && typeof data === "object") {
+          parsed = {
+            items: mergeItems(parsed.items, Array.isArray(data.items) ? data.items : []),
+            deletedIds: [
+              ...parsed.deletedIds,
+              ...(Array.isArray(data.deletedIds) ? data.deletedIds.map(String) : [])
+            ]
+          };
+          fetched = true;
+        }
+      } catch (err) {
+        if (err?.code === 429) throw err;
+      }
     }
     if (parsed.deletedIds.length) {
       saveDeletedIds([...new Set([...loadDeletedIds(), ...parsed.deletedIds])].slice(0, MAX_DELETED));
@@ -284,6 +348,11 @@
 
   async function pushRemote(items, opts) {
     const tableWrote = await persistFeedbackItemContribution(items);
+    let deletesWrote = false;
+    if (opts && opts.rewriteShared) {
+      deletesWrote = await persistFeedbackDeletes();
+      if (deletesWrote && opts.wipe) return;
+    }
     if (tableWrote && !(opts && opts.rewriteShared)) return;
     if (opts && opts.skipShared) return;
     const payload = {
@@ -356,9 +425,9 @@
     return false;
   }
 
-  function feedbackLiveJoined() {
+  function feedbackLiveJoined(table) {
     try {
-      return !!sb()?.isRealtimeJoined?.("feedback_item_contributions");
+      return !!sb()?.isRealtimeJoined?.(table || "feedback_item_contributions");
     } catch {
       return false;
     }
@@ -383,21 +452,44 @@
     } catch {}
   }
 
+  function applyFeedbackDeletesRealtime(change) {
+    const helper = mineApi();
+    if (!helper?.applyDeletesChange) return;
+    const next = helper.applyDeletesChange(
+      { items: cache.items, deletedIds: loadDeletedIds() },
+      change
+    );
+    if (Array.isArray(next.deletedIds) && next.deletedIds.length) {
+      saveDeletedIds([...new Set([...loadDeletedIds(), ...next.deletedIds])].slice(0, MAX_DELETED));
+    }
+    cache = { items: mergeItems(cache.items, next.items) };
+    saveLocal(cache);
+  }
+
   function stopFeedbackRealtime() {
     try {
       feedbackRealtimeUnsub?.();
     } catch {}
+    try {
+      feedbackDeletesRealtimeUnsub?.();
+    } catch {}
     feedbackRealtimeUnsub = null;
+    feedbackDeletesRealtimeUnsub = null;
   }
 
   function ensureFeedbackRealtime() {
     const api = sb();
-    if (!api?.subscribeFeedbackItemContributions) return;
-    if (feedbackRealtimeUnsub) return;
     if (feedbackNetQuiet()) return;
-    feedbackRealtimeUnsub = api.subscribeFeedbackItemContributions((change) => {
-      applyFeedbackRealtime(change);
-    });
+    if (!feedbackRealtimeUnsub && api?.subscribeFeedbackItemContributions) {
+      feedbackRealtimeUnsub = api.subscribeFeedbackItemContributions((change) => {
+        applyFeedbackRealtime(change);
+      });
+    }
+    if (!feedbackDeletesRealtimeUnsub && api?.subscribeAdminBroadcasts) {
+      feedbackDeletesRealtimeUnsub = api.subscribeAdminBroadcasts((change) => {
+        applyFeedbackDeletesRealtime(change);
+      });
+    }
   }
 
   async function sync(force = false) {
@@ -420,7 +512,7 @@
       cache = { items: mergeItems(local.items, cache.items) };
       await pullMine();
       let remote = { items: [] };
-      if (feedbackLiveJoined()) {
+      if (feedbackLiveJoined() && feedbackLiveJoined("admin_broadcasts")) {
         remote = { items: Array.isArray(cache.items) ? cache.items : [] };
       } else {
         try {
@@ -566,7 +658,7 @@
         cache = { items };
         saveLocal(cache);
         try {
-          await pushRemote(items, { rewriteShared: !joined, skipShared: joined });
+          await pushRemote(items, { rewriteShared: true, wipe: true });
         } catch {
           failed = true;
         }

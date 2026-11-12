@@ -170,6 +170,50 @@
     return overlayFeedbackItems(current, [record]);
   }
 
+  const DELETES_DOC_ID = "hub-feedback-deletes";
+  const MAX_DELETED = 200;
+
+  function overlayFeedbackDeletes(hub, payload) {
+    const items = Array.isArray(hub?.items) ? hub.items.slice() : [];
+    const incoming = Array.isArray(payload?.deletedIds)
+      ? payload.deletedIds
+      : Array.isArray(payload)
+        ? payload
+        : [];
+    const deletedIds = (() => {
+      const out = [];
+      const seen = new Set();
+      [...(Array.isArray(hub?.deletedIds) ? hub.deletedIds : []), ...incoming].forEach((raw) => {
+        const id = String(raw || "").trim();
+        if (!id || seen.has(id)) return;
+        seen.add(id);
+        out.push(id);
+      });
+      return out.slice(0, MAX_DELETED);
+    })();
+    const drop = new Set(deletedIds);
+    return {
+      items: items.filter((item) => !drop.has(String(item?.id || ""))),
+      deletedIds
+    };
+  }
+
+  function applyDeletesChange(hub, change) {
+    const data = unwrapChange(change);
+    const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
+    const current = {
+      items: Array.isArray(hub?.items) ? hub.items.slice() : [],
+      deletedIds: Array.isArray(hub?.deletedIds) ? hub.deletedIds.slice() : []
+    };
+    if (type === "DELETE") return current;
+    const record = data.record || data.new || {};
+    if (!record || typeof record !== "object") return current;
+    const docId = String(record.doc_id || record.docId || "").trim();
+    if (docId && docId !== DELETES_DOC_ID) return current;
+    const payload = record.data && typeof record.data === "object" ? record.data : record;
+    return overlayFeedbackDeletes(current, payload);
+  }
+
   const api = {
     SAVE_KEY,
     MAX_ITEMS,
@@ -179,7 +223,10 @@
     collectMine,
     applyMine,
     overlayFeedbackItems,
-    applyChange
+    applyChange,
+    DELETES_DOC_ID,
+    overlayFeedbackDeletes,
+    applyDeletesChange
   };
   if (root) root.HubFeedbackMine = api;
   if (typeof module === "object" && module.exports) module.exports = api;
