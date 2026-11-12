@@ -3,7 +3,7 @@
  *
  * window.HubNotifications:
  *   start() / stop()
- *   push(note)
+ *   push(note) / ping(kind)
  *   requestPermission()
  *   getItems() / unreadCount() / markAllRead()
  *   openPanel() / closePanel()
@@ -424,9 +424,17 @@
 
   let lastFeedbackSyncAt = 0;
 
+  function ping(kind) {
+    const k = String(kind || "all").toLowerCase();
+    if (k === "all" || k === "streak") checkStreak();
+    if (k === "all" || k === "chat") checkChat();
+    if (k === "all" || k === "feedback") checkFeedback();
+    renderBell();
+  }
+
   async function tick() {
-    // Don't re-sync chat here — HubChat already polls when Friends is open.
-    // Feedback: owner-only, and only every few minutes to avoid Mantle rate limits.
+    // Chat/feedback bells also fire from signed-in live rows via ping().
+    // Keep this tick as fallback (streak clock + missed overlays).
     try {
       const owner = typeof HubFeedback !== "undefined" && HubFeedback.isOwner?.();
       const cooled = typeof HubFeedback !== "undefined" && HubFeedback.isRateLimited?.();
@@ -436,10 +444,7 @@
         await HubFeedback.flushPending?.();
       }
     } catch {}
-    checkStreak();
-    checkChat();
-    checkFeedback();
-    renderBell();
+    ping("all");
   }
 
   function start() {
@@ -477,6 +482,7 @@
     start,
     stop,
     push,
+    ping,
     requestPermission,
     getItems,
     unreadCount,

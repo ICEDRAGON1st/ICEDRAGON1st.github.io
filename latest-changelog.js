@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015cy",
+  "build": "20261015cz",
   "notes": [
-    "Hub announcements, bans, and grants now update from your signed-in account as they happen, so a new notice doesn't wait on the next poll."
+    "Chat and feedback alerts now update from your signed-in account as they happen, so a new message doesn't wait on the next poll."
   ]
 };

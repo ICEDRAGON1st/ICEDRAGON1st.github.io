@@ -20,6 +20,43 @@ test("owned notification inbox lives in a helper used by the local bell", () => 
   assert.equal(mine.SAVE_KEY, "notify-mine");
 });
 
+test("chat and feedback live rows ping the bell without waiting on the 20s tick", () => {
+  const ui = fs.readFileSync(path.join(ROOT, "hub-notifications.js"), "utf8");
+  const chat = fs.readFileSync(path.join(ROOT, "hub-chat.js"), "utf8");
+  const feedback = fs.readFileSync(path.join(ROOT, "hub-feedback.js"), "utf8");
+  assert.match(ui, /function ping\(/);
+  assert.match(ui, /ping: ping|ping,/);
+  assert.match(ui, /POLL_MS = 20000/);
+  assert.match(
+    chat.slice(chat.indexOf("function applyChatRealtime"), chat.indexOf("function stopChatRealtime")),
+    /HubNotifications\?\.ping\?\.\("chat"\)/
+  );
+  assert.doesNotMatch(
+    chat.slice(chat.indexOf("function applyChatRealtime"), chat.indexOf("function stopChatRealtime")),
+    /pushRemote/
+  );
+  assert.match(chat, /function chatNetQuiet/);
+  assert.match(
+    chat.slice(chat.indexOf("function ensureChatRealtime"), chat.indexOf("async function persistMyChat")),
+    /chatNetQuiet/
+  );
+  assert.match(
+    feedback.slice(
+      feedback.indexOf("function applyFeedbackRealtime"),
+      feedback.indexOf("function stopFeedbackRealtime")
+    ),
+    /HubNotifications\?\.ping\?\.\("feedback"\)/
+  );
+  assert.doesNotMatch(
+    feedback.slice(
+      feedback.indexOf("function applyFeedbackRealtime"),
+      feedback.indexOf("function stopFeedbackRealtime")
+    ),
+    /pushRemote/
+  );
+  assert.match(feedback, /function feedbackNetQuiet/);
+});
+
 test("owned inbox restores only when the local list is empty", () => {
   const snapshot = mine.collectMine(
     [

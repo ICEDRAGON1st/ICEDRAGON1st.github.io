@@ -342,12 +342,17 @@
     }
   }
 
-  function feedbackCloudQuiet() {
+  function feedbackNetQuiet() {
     try {
       if (window.HubAfk?.isAfk?.()) return true;
       if (window.HubNet?.isPaused?.()) return true;
       if (window.HubNet && HubNet.isOnline && !HubNet.isOnline()) return true;
     } catch {}
+    return false;
+  }
+
+  function feedbackCloudQuiet() {
+    if (feedbackNetQuiet()) return true;
     try {
       if (document.hidden) return true;
     } catch {}
@@ -360,6 +365,9 @@
     const next = helper.applyChange(cache, change);
     cache = { items: mergeItems(cache.items, next.items) };
     saveLocal(cache);
+    try {
+      window.HubNotifications?.ping?.("feedback");
+    } catch {}
   }
 
   function stopFeedbackRealtime() {
@@ -373,17 +381,20 @@
     const api = sb();
     if (!api?.subscribeFeedbackItemContributions) return;
     if (feedbackRealtimeUnsub) return;
-    if (feedbackCloudQuiet()) return;
+    if (feedbackNetQuiet()) return;
     feedbackRealtimeUnsub = api.subscribeFeedbackItemContributions((change) => {
       applyFeedbackRealtime(change);
     });
   }
 
   async function sync(force = false) {
-    if (feedbackCloudQuiet()) {
+    if (feedbackNetQuiet()) {
       stopFeedbackRealtime();
     } else {
       ensureFeedbackRealtime();
+    }
+    if (feedbackCloudQuiet() && !force) {
+      return cache;
     }
     if (syncing && !force) return cache;
     if (isRateLimited() && !sb() && !force) {
@@ -554,7 +565,7 @@
     sync().catch(() => {});
   }
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) {
+    if (feedbackNetQuiet()) {
       stopFeedbackRealtime();
       return;
     }

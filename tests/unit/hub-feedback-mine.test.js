@@ -172,6 +172,8 @@ test("feedback live rows subscribe without rewriting the shared inbox", () => {
   assert.match(ui, /ensureFeedbackRealtime/);
   assert.match(ui, /applyFeedbackRealtime/);
   assert.match(ui, /subscribeFeedbackItemContributions/);
+  assert.match(ui, /function feedbackNetQuiet/);
+  assert.match(ui, /HubNotifications\?\.ping\?\.\("feedback"\)/);
   assert.doesNotMatch(
     ui.slice(ui.indexOf("function applyFeedbackRealtime"), ui.indexOf("function stopFeedbackRealtime")),
     /pushRemote/

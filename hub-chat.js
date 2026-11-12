@@ -321,12 +321,17 @@
     return window.HubChatMine || null;
   }
 
-  function chatCloudQuiet() {
+  function chatNetQuiet() {
     try {
       if (window.HubAfk?.isAfk?.()) return true;
       if (window.HubNet?.isPaused?.()) return true;
       if (window.HubNet && HubNet.isOnline && !HubNet.isOnline()) return true;
     } catch {}
+    return false;
+  }
+
+  function chatCloudQuiet() {
+    if (chatNetQuiet()) return true;
     try {
       if (document.hidden) return true;
     } catch {}
@@ -345,6 +350,9 @@
         fn();
       } catch {}
     });
+    try {
+      window.HubNotifications?.ping?.("chat");
+    } catch {}
   }
 
   function stopChatRealtime() {
@@ -358,7 +366,7 @@
     const api = sb();
     if (!api?.subscribeChatThreadContributions) return;
     if (chatRealtimeUnsub) return;
-    if (chatCloudQuiet()) return;
+    if (chatNetQuiet()) return;
     chatRealtimeUnsub = api.subscribeChatThreadContributions((change) => {
       applyChatRealtime(change);
     });
@@ -800,11 +808,12 @@
     if (pollTimer) return;
     const tick = async () => {
       try {
-        if (chatCloudQuiet()) {
+        if (chatNetQuiet()) {
           stopChatRealtime();
           return;
         }
         ensureChatRealtime();
+        if (chatCloudQuiet()) return;
         await sync();
         if (active) markRead(active.type, active.id);
         pollCallbacks.forEach((fn) => {
