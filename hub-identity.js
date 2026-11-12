@@ -121,6 +121,48 @@
     };
   }
 
+  function firstRestoreName(...parts) {
+    for (const part of parts) {
+      const name = sanitizeName(part || "");
+      if (name) return name;
+    }
+    return "";
+  }
+
+  function resolveRestoreEntry({ transfer, localHit, localCode, remote, norm } = {}) {
+    const key = normalizePlayerCode(norm || transfer?.code || localHit?.code || "");
+    const remoteEntry = key && remote && typeof remote === "object" ? remote[key] : null;
+    if (transfer?.playerId) {
+      return {
+        playerId: String(transfer.playerId).trim(),
+        name: firstRestoreName(transfer.name, localHit?.name, localCode?.name, remoteEntry?.name),
+        at: Date.now()
+      };
+    }
+    if (localHit?.playerId) {
+      return {
+        playerId: String(localHit.playerId).trim(),
+        name: firstRestoreName(localHit.name, localCode?.name, remoteEntry?.name),
+        at: localHit.savedAt || 0
+      };
+    }
+    if (localCode?.playerId) {
+      return {
+        playerId: String(localCode.playerId).trim(),
+        name: firstRestoreName(localCode.name, remoteEntry?.name),
+        at: localCode.at || 0
+      };
+    }
+    if (remoteEntry?.playerId) {
+      return {
+        playerId: String(remoteEntry.playerId).trim(),
+        name: sanitizeName(remoteEntry.name || ""),
+        at: remoteEntry.at || 0
+      };
+    }
+    return null;
+  }
+
   function parseCodesMap(data) {
     if (!data || typeof data !== "object") return {};
     const codes = data.codes && typeof data.codes === "object" ? data.codes : data;
@@ -831,6 +873,7 @@
     looksLikePlayerCode,
     formatAccountTransferKey,
     parseAccountTransferKey,
+    resolveRestoreEntry,
     parseCodesMap,
     rowsToCodesMap,
     mergeCodesMaps,

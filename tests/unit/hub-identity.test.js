@@ -641,8 +641,35 @@ test("identity mints a player id only for new guests and hashes passwords withou
       plays.indexOf("async function restoreWithPlayerCode"),
       plays.indexOf("let sessionName")
     ),
-    /mintPlayerId/
+    /mintPlayerId|playerIdForOfflineCode/
   );
+  assert.doesNotMatch(plays, /playerIdForOfflineCode/);
+  assert.match(plays, /identity\.resolveRestoreEntry/);
+  const vaultHit = { playerId: "p-ada", name: "Ada", savedAt: 9, code: "AB23CD45" };
+  const remote = { AB23CD45: { playerId: "p-other", name: "Other", at: 1 } };
+  const fromVault = identity.resolveRestoreEntry({
+    localHit: vaultHit,
+    remote,
+    norm: "AB23CD45"
+  });
+  assert.equal(fromVault.playerId, "p-ada");
+  assert.equal(fromVault.name, "Ada");
+  const fromTransfer = identity.resolveRestoreEntry({
+    transfer: { playerId: "p-bea", name: "Bea", code: "ZZ99YY88" },
+    localHit: vaultHit,
+    remote,
+    norm: "ZZ99YY88"
+  });
+  assert.equal(fromTransfer.playerId, "p-bea");
+  assert.equal(fromTransfer.name, "Bea");
+  assert.equal(
+    identity.resolveRestoreEntry({
+      remote,
+      norm: "AB23CD45"
+    }).playerId,
+    "p-other"
+  );
+  assert.equal(identity.resolveRestoreEntry({ norm: "AB23CD45" }), null);
 });
 
 test("identity password, code, and reservation remotes skip leftover shared boards", async () => {

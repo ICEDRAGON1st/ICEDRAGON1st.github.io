@@ -851,11 +851,6 @@
     return loadLocalCodes()[norm] || null;
   }
 
-  /** Stable offline identity when the account server is down and this code is new here. */
-  function playerIdForOfflineCode(norm) {
-    return `p-c-${normalizePlayerCode(norm).toLowerCase()}`;
-  }
-
   function getAccountTransferKey() {
     const code = formatPlayerCode(getPlayerCode());
     const norm = normalizePlayerCode(code);
@@ -1793,64 +1788,45 @@
       }
     } catch {}
 
-    // Local vault / local code map always win — no account server required
-    let entry = null;
+    // Local vault / local code map always win — leftover shared boards aren't asked
+    let entry = identity.resolveRestoreEntry
+      ? identity.resolveRestoreEntry({ transfer, localHit, localCode, remote, norm })
+      : null;
     let adopted = false;
-    if (transfer?.playerId) {
-      entry = {
-        playerId: transfer.playerId,
-        name: transfer.name || localHit?.name || localCode?.name || remote?.[norm]?.name || "",
-        at: Date.now()
-      };
-    } else if (localHit?.playerId) {
-      entry = {
-        playerId: localHit.playerId,
-        name: localHit.name || localCode?.name || remote?.[norm]?.name || "",
-        at: localHit.savedAt || 0
-      };
-    } else if (localCode?.playerId) {
-      entry = {
-        playerId: localCode.playerId,
-        name: localCode.name || remote?.[norm]?.name || "",
-        at: localCode.at || 0
-      };
-    } else if (remote?.[norm]?.playerId) {
+    if (!entry && remote?.[norm]?.playerId) {
       entry = remote[norm];
-    } else if (!viaPassword) {
-      // Code-shaped input missed — try as password (e.g. "password" → PASSWORD)
-      const pwResult = await adoptPasswordHit();
-      if (pwResult.ok && transfer?.playerId) {
-        entry = {
-          playerId: transfer.playerId,
-          name: transfer.name || "",
-          at: Date.now()
-        };
-        norm = transfer.code || norm;
-      } else if (remote != null) {
+    }
+    if (!entry) {
+      if (!viaPassword) {
+        // Code-shaped input missed — try as password (e.g. "password" → PASSWORD)
+        const pwResult = await adoptPasswordHit();
+        if (pwResult.ok && transfer?.playerId) {
+          entry = identity.resolveRestoreEntry
+            ? identity.resolveRestoreEntry({ transfer, localHit, localCode, remote, norm: transfer.code || norm })
+            : {
+                playerId: transfer.playerId,
+                name: transfer.name || "",
+                at: Date.now()
+              };
+          norm = transfer.code || norm;
+        }
+      }
+    }
+    if (!entry) {
+      if (remote != null) {
         return {
           ok: false,
           error:
-            "Code not found. On the device where you're already logged in, use Copy transfer and paste that full key here (or use your password)."
-        };
-      } else {
-        // Server unreachable — don't invent a blank account from a short code.
-        return {
-          ok: false,
-          error:
-            "Account server is unreachable right now. On your other device open Settings → Copy transfer, then paste the full MG1:… key here (not just ABCD-EFGH)."
+            viaPassword
+              ? "Code not found. On the device where you're already logged in, use Copy transfer and paste that full key here."
+              : "Code not found. On the device where you're already logged in, use Copy transfer and paste that full key here (or use your password)."
         };
       }
-    } else if (remote != null) {
       return {
         ok: false,
-        error:
-          "Code not found. On the device where you're already logged in, use Copy transfer and paste that full key here."
-      };
-    } else {
-      return {
-        ok: false,
-        error:
-          "Account server is unreachable right now. On your other device open Settings → Copy transfer, then paste the full MG1:… key here."
+        error: viaPassword
+          ? "Account server is unreachable right now. On your other device open Settings → Copy transfer, then paste the full MG1:… key here."
+          : "Account server is unreachable right now. On your other device open Settings → Copy transfer, then paste the full MG1:… key here (not just ABCD-EFGH)."
       };
     }
 
