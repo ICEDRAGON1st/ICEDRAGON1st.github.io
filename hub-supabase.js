@@ -911,6 +911,10 @@
     return subscribePostgresChanges("match_room_contributions", onChange);
   }
 
+  function subscribePaperRoomContributions(onChange) {
+    return subscribePostgresChanges("paper_room_contributions", onChange);
+  }
+
   function subscribeFishingMailContributions(onChange) {
     return subscribePostgresChanges("fishing_mail_contributions", onChange);
   }
@@ -2100,6 +2104,129 @@
     }
   }
 
+  function sanitizePaperSeat(seat) {
+    if (!seat || typeof seat !== "object") return null;
+    return {
+      name:
+        String(seat.name || "Player")
+          .replace(/[<>&"'`]/g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 16) || "Player",
+      color: Number(seat.color) || 0,
+      joinedAt: Number(seat.joinedAt) || 0
+    };
+  }
+
+  function sanitizePaperRooms(rooms, playerId) {
+    const me = parseLocalPlayerId(playerId);
+    const out = {};
+    if (!me || !rooms || typeof rooms !== "object" || Array.isArray(rooms)) return out;
+    Object.entries(rooms).forEach(([id, raw]) => {
+      if (Object.keys(out).length >= 8) return;
+      if (!raw || typeof raw !== "object" || Array.isArray(raw)) return;
+      const code = String(raw.code || id || "")
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, "")
+        .slice(0, 8);
+      if (code.length < 3) return;
+      const status = String(raw.status || "waiting");
+      if (status !== "waiting" && status !== "playing" && status !== "closed") return;
+      const hostId = parseLocalPlayerId(raw.hostId) || "";
+      const seats = {};
+      Object.entries(raw.seats && typeof raw.seats === "object" ? raw.seats : {}).forEach(
+        ([seatId, seat]) => {
+          if (Object.keys(seats).length >= 12) return;
+          const pid = parseLocalPlayerId(seatId);
+          if (!pid) return;
+          const cleaned = sanitizePaperSeat(seat);
+          if (cleaned) seats[pid] = cleaned;
+        }
+      );
+      const inputs = {};
+      Object.entries(raw.inputs && typeof raw.inputs === "object" ? raw.inputs : {}).forEach(
+        ([inputId, ang]) => {
+          if (Object.keys(inputs).length >= 12) return;
+          const pid = parseLocalPlayerId(inputId);
+          if (!pid) return;
+          const value =
+            typeof ang === "number"
+              ? ang
+              : ang && typeof ang === "object"
+                ? Number(ang.angle)
+                : NaN;
+          if (Number.isFinite(value)) inputs[pid] = value;
+        }
+      );
+      const involved = hostId === me || !!seats[me];
+      if (!involved) return;
+      const guestOnly = hostId !== me;
+      out[code] = {
+        code,
+        hostId,
+        status,
+        createdAt: Number(raw.createdAt) || 0,
+        updatedAt: Number(raw.updatedAt) || Number(raw.createdAt) || 0,
+        seats: guestOnly && seats[me] ? { [me]: seats[me] } : seats,
+        inputs: guestOnly && inputs[me] != null ? { [me]: inputs[me] } : inputs,
+        snap: guestOnly ? null : raw.snap && typeof raw.snap === "object" ? raw.snap : null
+      };
+    });
+    return out;
+  }
+
+  async function listPaperRoomContributions() {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const url = `${SUPABASE_URL}/rest/v1/paper_room_contributions?select=player_id,rooms,updated_at`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase paper list ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function upsertPaperRoomContribution(row) {
+    const session = await ensureSession();
+    const userId = sessionUserId(session);
+    const playerId = parseLocalPlayerId(row?.playerId);
+    if (!userId || !session?.access_token) throw new Error("supabase paper needs a session");
+    if (!playerId) throw new Error("bad paper player id");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const rooms = sanitizePaperRooms(row?.rooms, playerId);
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/paper_room_contributions`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        user_id: userId,
+        player_id: playerId,
+        rooms,
+        updated_at: new Date().toISOString()
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase paper upsert ${res.status} ${text}`);
+    }
+  }
+
   function sanitizeFeedbackItems(items, playerId) {
     const me = String(playerId || "");
     const out = [];
@@ -2956,6 +3083,7 @@
     subscribeFriendEdgeContributions,
     subscribeCallSignalContributions,
     subscribeMatchRoomContributions,
+    subscribePaperRoomContributions,
     subscribeFishingMailContributions,
     subscribeFishingGiftContributions,
     subscribeAquariumTankContributions,
@@ -3002,6 +3130,8 @@
     upsertLeaderboardPbContribution,
     listMatchRoomContributions,
     upsertMatchRoomContribution,
+    listPaperRoomContributions,
+    upsertPaperRoomContribution,
     listFeedbackItemContributions,
     upsertFeedbackItemContribution,
     listCommunityCastContributions,

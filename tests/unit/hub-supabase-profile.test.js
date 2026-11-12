@@ -192,6 +192,7 @@ test("presence pings use auth-owned rows instead of rewriting the shared presenc
   assert.match(src, /function subscribeFriendEdgeContributions/);
   assert.match(src, /function subscribeCallSignalContributions/);
   assert.match(src, /function subscribeMatchRoomContributions/);
+  assert.match(src, /function subscribePaperRoomContributions/);
   assert.match(src, /function subscribeFishingMailContributions/);
   assert.match(src, /function subscribeFishingGiftContributions/);
   assert.match(src, /function subscribeAquariumTankContributions/);
@@ -341,6 +342,16 @@ test("online match rooms use auth-owned rows instead of rewriting the shared mat
   assert.match(src, /async function upsertMatchRoomContribution/);
   assert.match(src, /function subscribeMatchRoomContributions/);
   assert.match(src, /match_room_contributions/);
+});
+
+test("Paper Claim rooms use auth-owned rows instead of rewriting the shared arena documents", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.match(src, /async function listPaperRoomContributions/);
+  assert.match(src, /async function upsertPaperRoomContribution/);
+  assert.match(src, /function subscribePaperRoomContributions/);
+  assert.match(src, /paper_room_contributions/);
+  assert.match(src, /hostId !== me/);
 });
 
 test("feedback tickets use auth-owned rows instead of rewriting the shared inbox", () => {

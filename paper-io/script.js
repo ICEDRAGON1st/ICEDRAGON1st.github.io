@@ -3162,6 +3162,13 @@
 
   // —— Networking ——
   async function sbGet(id) {
+    const rooms = window.PaperClaimRooms;
+    if (rooms?.readDoc) {
+      try {
+        const hit = await rooms.readDoc(id);
+        if (hit !== undefined) return hit;
+      } catch {}
+    }
     if (!window.HubSupabase?.getDoc) return null;
     try {
       return await HubSupabase.getDoc(id);
@@ -3171,6 +3178,13 @@
   }
 
   async function sbPut(id, data) {
+    const rooms = window.PaperClaimRooms;
+    if (rooms?.writeDoc) {
+      try {
+        const wrote = await rooms.writeDoc(id, data);
+        if (wrote) return;
+      } catch {}
+    }
     if (!window.HubSupabase?.upsertDoc) throw new Error("no supabase");
     await HubSupabase.upsertDoc(id, data);
   }
@@ -3438,6 +3452,7 @@
 
   function startNet() {
     stopNet();
+    window.PaperClaimRooms?.ensureRealtime?.();
     netPollTimer = setInterval(() => netTick(), NET_POLL_MS);
   }
 
@@ -3452,6 +3467,7 @@
     roomCode = makeCode();
     isHost = true;
     lobbyAwaiting = true;
+    window.PaperClaimRooms?.ensureRealtime?.();
     await sbPut(roomDocId(roomCode), {
       code: roomCode,
       hostId: me,
@@ -3510,6 +3526,7 @@
       return;
     }
     seats[me] = { name, color: seatCount % COLORS.length, joinedAt: Date.now() };
+    window.PaperClaimRooms?.ensureRealtime?.();
     await sbPut(roomDocId(want), { ...doc, seats, updatedAt: Date.now() });
     roomCode = want;
     localId = me;
@@ -3572,6 +3589,7 @@
 
   async function leaveOnline() {
     stopNet();
+    window.PaperClaimRooms?.stopRealtime?.();
     clearInterval(lobbyWatch);
     lobbyAwaiting = false;
     if (roomCode && isHost) {

@@ -373,6 +373,19 @@ test("match room realtime publication stays authenticated and replica-identity f
   assert.doesNotMatch(sql, /to anon/i);
 });
 
+test("paper room realtime publication stays authenticated and replica-identity full", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160048_paper_room_contributions_realtime.sql"),
+    "utf8"
+  );
+  assert.match(sql, /alter table public\.paper_room_contributions replica identity full/i);
+  assert.match(
+    sql,
+    /alter publication supabase_realtime add table public\.paper_room_contributions/i
+  );
+  assert.doesNotMatch(sql, /to anon/i);
+});
+
 test("call signal realtime publication stays authenticated and replica-identity full", () => {
   const sql = fs.readFileSync(
     path.join(ROOT, "supabase/migrations/202610160023_call_signal_contributions_realtime.sql"),
@@ -674,6 +687,28 @@ test("match room contributions are readable by signed-in players and only writab
     sql,
     /revoke all on table public\.match_room_contributions from anon, authenticated/
   );
+});
+
+test("paper room contributions are readable by signed-in players and only writable by the owner", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160047_paper_room_contributions.sql"),
+    "utf8"
+  );
+  assert.match(sql, /create table if not exists public\.paper_room_contributions/);
+  assert.match(sql, /enable row level security/i);
+  assert.match(sql, /force row level security/i);
+  assert.match(sql, /paper_room_contributions_read_authenticated/);
+  assert.match(sql, /paper_room_contributions_insert_own/);
+  assert.match(sql, /paper_room_contributions_update_own/);
+  assert.match(
+    sql,
+    /grant select, insert, update, delete on table public\.paper_room_contributions to authenticated/
+  );
+  assert.match(
+    sql,
+    /revoke all on table public\.paper_room_contributions from anon, authenticated/
+  );
+  assert.doesNotMatch(sql, /add table public\.hub_docs/i);
 });
 
 test("feedback item contributions are readable by signed-in players and only writable by the owner", () => {

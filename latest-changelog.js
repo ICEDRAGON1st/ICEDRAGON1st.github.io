@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ei",
+  "build": "20261015ej",
   "notes": [
-    "Score names stay on your signed-in account after a rename, so they aren't copied onto a shared board."
+    "Paper Claim online rooms stay on your signed-in account, so they aren't copied onto a shared board."
   ]
 };
