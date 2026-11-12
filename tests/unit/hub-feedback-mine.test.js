@@ -173,6 +173,7 @@ test("feedback live rows subscribe without rewriting the shared inbox", () => {
   assert.match(ui, /applyFeedbackRealtime/);
   assert.match(ui, /subscribeFeedbackItemContributions/);
   assert.match(ui, /isRealtimeJoined\?\.\("feedback_item_contributions"\)/);
+  assert.match(ui, /skipShared: !fetched \|\| joined/);
   assert.match(ui, /function feedbackNetQuiet/);
   assert.match(ui, /HubNotifications\?\.ping\?\.\("feedback"\)/);
   assert.doesNotMatch(

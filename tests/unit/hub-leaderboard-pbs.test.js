@@ -105,6 +105,7 @@ test("leaderboard live rows subscribe without rewriting the shared board", () =>
   assert.match(ui, /applyLeaderboardRealtime/);
   assert.match(ui, /subscribeLeaderboardPbContributions/);
   assert.match(ui, /leaderboardLiveJoined\("leaderboard_pb_contributions"\)/);
+  assert.match(ui, /skipShared: joined/);
   assert.doesNotMatch(
     ui.slice(
       ui.indexOf("function applyLeaderboardRealtime"),

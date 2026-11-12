@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015dk",
+  "build": "20261015dl",
   "notes": [
-    "Chat, friends, calls, and matches stay on your signed-in live connection when you send, so they don't wait on the old board."
+    "High scores and Feedback stay on your signed-in live connection when you post, so they don't wait on the old board."
   ]
 };

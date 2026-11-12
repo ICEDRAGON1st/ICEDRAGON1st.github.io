@@ -324,16 +324,21 @@
     try {
       let remote = { items: [] };
       let fetched = true;
-      try {
-        remote = await fetchRemote();
-      } catch (err) {
-        fetched = false;
-        if (err?.code === 429) return false;
+      const joined = feedbackLiveJoined();
+      if (joined) {
+        remote = { items: Array.isArray(cache.items) ? cache.items : [] };
+      } else {
+        try {
+          remote = await fetchRemote();
+        } catch (err) {
+          fetched = false;
+          if (err?.code === 429) return false;
+        }
       }
       const items = mergeItems(remote.items, localItems);
       cache = { items };
       saveLocal(cache);
-      await pushRemote(items, { skipShared: !fetched });
+      await pushRemote(items, { skipShared: !fetched || joined });
       clearPending(pending);
       persistMine();
       return true;
@@ -485,13 +490,18 @@
       .then(async () => {
         let remote = { items: [] };
         let fetched = true;
-        try {
-          remote = await fetchRemote();
-        } catch (err) {
-          fetched = false;
-          if (err?.code === 429) {
-            queued = true;
-            return;
+        const joined = feedbackLiveJoined();
+        if (joined) {
+          remote = { items: Array.isArray(cache.items) ? cache.items : [] };
+        } else {
+          try {
+            remote = await fetchRemote();
+          } catch (err) {
+            fetched = false;
+            if (err?.code === 429) {
+              queued = true;
+              return;
+            }
           }
         }
         const items = mergeItems(remote.items, cache.items);
@@ -499,7 +509,7 @@
         saveLocal(cache);
         persistMine();
         try {
-          await pushRemote(items, { skipShared: !fetched });
+          await pushRemote(items, { skipShared: !fetched || joined });
           clearPending([item.id]);
           persistMine();
         } catch (err) {
@@ -539,19 +549,24 @@
     writeQueue = writeQueue
       .then(async () => {
         let remote = { items: [] };
-        try {
-          remote = await fetchRemote();
-        } catch (err) {
-          if (err?.code === 429) {
-            failed = true;
-            return;
+        const joined = feedbackLiveJoined();
+        if (!joined) {
+          try {
+            remote = await fetchRemote();
+          } catch (err) {
+            if (err?.code === 429) {
+              failed = true;
+              return;
+            }
           }
+        } else {
+          remote = { items: Array.isArray(cache.items) ? cache.items : [] };
         }
         const items = mergeItems(remote.items, cache.items).filter((item) => item.id !== target);
         cache = { items };
         saveLocal(cache);
         try {
-          await pushRemote(items, { rewriteShared: true });
+          await pushRemote(items, { rewriteShared: !joined, skipShared: joined });
         } catch {
           failed = true;
         }

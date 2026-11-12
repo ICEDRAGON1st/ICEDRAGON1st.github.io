@@ -253,6 +253,12 @@
   async function fetchDoc() {
     try {
       const api = sb();
+      if (api?.isRealtimeJoined?.("fishing_gift_contributions")) {
+        return {
+          token: TOKEN,
+          gifts: giftCache.gifts && typeof giftCache.gifts === "object" ? giftCache.gifts : {}
+        };
+      }
       let data = null;
       let fetched = false;
       if (api?.getPrefer) {

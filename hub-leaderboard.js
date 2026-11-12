@@ -1859,12 +1859,16 @@
       cache = next;
       saveLocal(next);
       try {
-        const remote = await fetchRemote();
-        // Prefer freshest local (includes Time Online ticks during the fetch).
-        const merged = mergeBoards(loadLocal(), remote);
+        const joined = leaderboardLiveJoined("leaderboard_pb_contributions");
+        let merged = next;
+        if (!joined) {
+          const remote = await fetchRemote();
+          // Prefer freshest local (includes Time Online ticks during the fetch).
+          merged = mergeBoards(loadLocal(), remote);
+        }
         cache = merged;
         saveLocal(merged);
-        await pushRemote(merged, { skipShared: false });
+        await pushRemote(merged, { skipShared: joined });
       } catch {
         // keep local
       }

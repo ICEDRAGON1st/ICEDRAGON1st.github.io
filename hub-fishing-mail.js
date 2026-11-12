@@ -224,6 +224,13 @@
   async function fetchDoc() {
     try {
       const api = sb();
+      if (api?.isRealtimeJoined?.("fishing_mail_contributions")) {
+        return {
+          token: TOKEN,
+          gifts: mailCache.gifts && typeof mailCache.gifts === "object" ? mailCache.gifts : {},
+          trades: mailCache.trades && typeof mailCache.trades === "object" ? mailCache.trades : {}
+        };
+      }
       let data = null;
       let fetched = false;
       if (api?.getPrefer) {
