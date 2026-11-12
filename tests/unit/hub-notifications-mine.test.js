@@ -58,6 +58,12 @@ test("chat and feedback live rows ping the bell without waiting on the 20s tick"
   );
   assert.match(feedback, /function feedbackNetQuiet/);
   assert.match(ui, /isRealtimeJoined\?\.\("feedback_item_contributions"\)/);
+  assert.match(ui, /isRealtimeJoined\?\.\("chat_thread_contributions"\)/);
+  const tickSrc = ui.slice(ui.indexOf("async function tick"), ui.indexOf("function start()"));
+  assert.match(tickSrc, /ping\("streak"\)/);
+  assert.match(tickSrc, /if \(!chatLive\) ping\("chat"\)/);
+  assert.match(tickSrc, /if \(!feedbackLive\) ping\("feedback"\)/);
+  assert.doesNotMatch(tickSrc, /ping\("all"\)/);
 });
 
 test("owned inbox restores only when the local list is empty", () => {

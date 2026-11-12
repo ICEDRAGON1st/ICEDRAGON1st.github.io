@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ff",
+  "build": "20261015fg",
   "notes": [
-    "Who's online and play counts stay on your account — leftover shared boards aren't asked for them."
+    "Alerts stay on this device — leftover shared boards aren't asked for them."
   ]
 };

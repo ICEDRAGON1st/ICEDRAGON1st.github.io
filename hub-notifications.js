@@ -445,19 +445,23 @@
 
   async function tick() {
     // Chat/feedback bells also fire from signed-in live rows via ping().
-    // Keep this tick as fallback (streak clock + missed overlays).
+    // Keep this tick as leftover fallback (streak clock + missed overlays).
+    const chatLive = !!window.HubSupabase?.isRealtimeJoined?.("chat_thread_contributions");
+    const feedbackLive = !!window.HubSupabase?.isRealtimeJoined?.("feedback_item_contributions");
     try {
       const owner = typeof HubFeedback !== "undefined" && HubFeedback.isOwner?.();
       const cooled = typeof HubFeedback !== "undefined" && HubFeedback.isRateLimited?.();
       if (owner && !cooled && Date.now() - lastFeedbackSyncAt >= FEEDBACK_SYNC_MS) {
         lastFeedbackSyncAt = Date.now();
-        if (!window.HubSupabase?.isRealtimeJoined?.("feedback_item_contributions")) {
+        if (!feedbackLive) {
           await HubFeedback.sync();
         }
         await HubFeedback.flushPending?.();
       }
     } catch {}
-    ping("all");
+    ping("streak");
+    if (!chatLive) ping("chat");
+    if (!feedbackLive) ping("feedback");
   }
 
   function start() {
