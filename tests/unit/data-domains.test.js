@@ -34,7 +34,7 @@ test("shared boards do not talk to the old backup host", () => {
   const plays = fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8");
   assert.doesNotMatch(plays, /async function fetchDoc/);
   assert.doesNotMatch(plays, /async function pushDoc/);
-  assert.equal(plays.includes("player-passwords"), true);
+  assert.equal(plays.includes("player-passwords"), false);
   assert.doesNotMatch(
     plays.slice(
       plays.indexOf("async function fetchPasswordsRemote"),
@@ -217,11 +217,14 @@ test("Discord /link looks up signed-in player codes without leftover hub_docs", 
 
 test("contracted leftover boards skip hub_docs on the client until meter and Paper tables are live", () => {
   const src = fs.readFileSync(path.join(ROOT, "hub-supabase.js"), "utf8");
+  const plays = fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8");
   assert.match(src, /function isLeftoverLockedDoc/);
+  assert.match(src, /function isLeftoverOpenDoc/);
   assert.match(src, /Keep fishing-community and paper-io-\* writable/);
   assert.match(src, /"discord-links-v1"/);
-  assert.match(src, /if \(isLeftoverLockedDoc\(id\)\) return null;/);
+  assert.match(src, /if \(!isLeftoverOpenDoc\(id\) \|\| isLeftoverLockedDoc\(id\)\) return null;/);
   assert.match(src, /throw new Error\("leftover-locked"\)/);
+  assert.doesNotMatch(plays, /const PLAYS_PATH|const NAMES_PATH|const CODES_PATH|const PRESENCE_PATH/);
 });
 
 test("contracted leftover boards cannot be rewritten on hub_docs", () => {

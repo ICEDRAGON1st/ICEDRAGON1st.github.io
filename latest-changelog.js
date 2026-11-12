@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015eq",
+  "build": "20261015er",
   "notes": [
-    "Your scores, names, and friends stay on your signed-in account — leftover shared boards aren't asked for them."
+    "Fishing weekend luck and Paper Claim are the only leftover shared boards — scores, names, and friends stay on your signed-in account."
   ]
 };

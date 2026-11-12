@@ -96,6 +96,13 @@
     return LEFTOVER_LOCKED_DOC_IDS.includes(key);
   }
 
+  function isLeftoverOpenDoc(id) {
+    const key = String(id || "").trim();
+    if (!key) return false;
+    if (key === "fishing-community") return true;
+    return key.startsWith("paper-io-");
+  }
+
   function headers(extra, accessToken) {
     return {
       apikey: SUPABASE_ANON_KEY,
@@ -2955,7 +2962,7 @@
   }
 
   async function getDoc(id) {
-    if (isLeftoverLockedDoc(id)) return null;
+    if (!isLeftoverOpenDoc(id) || isLeftoverLockedDoc(id)) return null;
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
       err.hubNetBlocked = true;
@@ -2971,7 +2978,7 @@
   }
 
   async function upsertDoc(id, data) {
-    if (isLeftoverLockedDoc(id) || isAdminDoc(id)) {
+    if (!isLeftoverOpenDoc(id) || isLeftoverLockedDoc(id) || isAdminDoc(id)) {
       throw new Error("leftover-locked");
     }
     if (netBlocked()) {
@@ -3092,6 +3099,7 @@
     ADMIN_DOC_IDS,
     isAdminDoc,
     isLeftoverLockedDoc,
+    isLeftoverOpenDoc,
     getDoc,
     upsertDoc,
     upsertAdminDoc,

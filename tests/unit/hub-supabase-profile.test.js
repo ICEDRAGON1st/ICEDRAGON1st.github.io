@@ -162,6 +162,7 @@ test("contracted leftover boards skip hub_docs reads and writes", () => {
   const fs = require("node:fs");
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
   assert.equal(typeof supabase.isLeftoverLockedDoc, "function");
+  assert.equal(typeof supabase.isLeftoverOpenDoc, "function");
   assert.equal(supabase.isLeftoverLockedDoc("leaderboards"), true);
   assert.equal(supabase.isLeftoverLockedDoc("player-feedback"), true);
   assert.equal(supabase.isLeftoverLockedDoc("name-registry"), true);
@@ -173,15 +174,24 @@ test("contracted leftover boards skip hub_docs reads and writes", () => {
   assert.equal(supabase.isLeftoverLockedDoc("paper-io-lobbies"), false);
   assert.equal(supabase.isLeftoverLockedDoc("paper-io-room-AB12"), false);
   assert.equal(supabase.isLeftoverLockedDoc("hub-admin-announce"), false);
+  assert.equal(supabase.isLeftoverOpenDoc("fishing-community"), true);
+  assert.equal(supabase.isLeftoverOpenDoc("paper-io-lobbies"), true);
+  assert.equal(supabase.isLeftoverOpenDoc("paper-io-room-AB12"), true);
+  assert.equal(supabase.isLeftoverOpenDoc("paper-io-input-AB12-p-0123456789ab"), true);
+  assert.equal(supabase.isLeftoverOpenDoc("leaderboards"), false);
+  assert.equal(supabase.isLeftoverOpenDoc("friends"), false);
+  assert.equal(supabase.isLeftoverOpenDoc("hub-admin-announce"), false);
   const getDocSrc = src.slice(src.indexOf("async function getDoc"), src.indexOf("async function upsertDoc"));
   const upsertDocSrc = src.slice(
     src.indexOf("async function upsertDoc"),
     src.indexOf("async function upsertAdminDoc")
   );
-  assert.match(getDocSrc, /if \(isLeftoverLockedDoc\(id\)\) return null;/);
-  assert.match(upsertDocSrc, /if \(isLeftoverLockedDoc\(id\) \|\| isAdminDoc\(id\)\)/);
+  assert.match(getDocSrc, /if \(!isLeftoverOpenDoc\(id\) \|\| isLeftoverLockedDoc\(id\)\) return null;/);
+  assert.match(
+    upsertDocSrc,
+    /if \(!isLeftoverOpenDoc\(id\) \|\| isLeftoverLockedDoc\(id\) \|\| isAdminDoc\(id\)\)/
+  );
   assert.match(upsertDocSrc, /throw new Error\("leftover-locked"\)/);
-  assert.doesNotMatch(getDocSrc, /fishing-community/);
 });
 
 test("locked admin docs use the trusted RPC instead of a direct hub_docs upsert", () => {

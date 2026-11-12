@@ -1,7 +1,7 @@
 /**
  * hub-plays.js — nickname + shared recent-players log.
- * Shared maps live on the account server. Nicknames are unique
- * (case-insensitive) via a dedicated name-registry store.
+ * Shared maps live on signed-in account rows. Nicknames are unique
+ * (case-insensitive) via nickname claims.
  */
 (function () {
   const identity = window.HubIdentity || {};
@@ -18,14 +18,6 @@
   const PROFILE_STYLE_KEY = "hub-profile-style-v1";
   const ONLINE_TIME_KEY = "hub-online-time-v1";
   const POPULARITY_LOCAL_KEY = "hub-game-popularity-v1";
-  const POPULARITY_DOC = "hub-game-popularity-v1";
-  const PLAYS_PATH = "plays-log";
-  const NAMES_PATH = "name-registry";
-  const CODES_PATH = "player-codes";
-  const PASSWORDS_PATH = "player-passwords";
-  const RESERVATIONS_PATH = "name-reservations";
-  const PRESENCE_PATH = "presence";
-  const ALLTIME_PATH = "players-alltime";
   const LOCAL_PASSWORDS_KEY = "hub-passwords-local-v1";
   /** Pages milestone floor when cloud all-time roster can't load (see players-alltime.json). */
   let allTimeFloor = 0;
