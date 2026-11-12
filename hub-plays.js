@@ -12,9 +12,7 @@
   const NAME_KEY = "hub-player-name";
   const PLAYER_ID_KEY = "hub-player-id";
   const PLAYER_CODE_KEY = "hub-player-code";
-  const ACCOUNTS_KEY = "hub-accounts-v1";
   const LOCAL_CODES_KEY = "hub-codes-local-v1";
-  const MAX_SAVED_ACCOUNTS = 12;
   const NAME_LOCK_KEY = "hub-player-name-locked";
   const LOCAL_KEY = "hub-plays-local-v1";
   const PROFILE_STYLE_KEY = "hub-profile-style-v1";
@@ -1394,35 +1392,20 @@
   }
 
   function loadAccountVault() {
+    if (!identity.readSavedAccounts) return [];
     try {
       if (!canUseLocalStorage()) return [];
-      const raw = JSON.parse(localStorage.getItem(ACCOUNTS_KEY) || "[]");
-      if (!Array.isArray(raw)) return [];
-      const cleaned = raw
-        .map((a) => ({
-          code: formatPlayerCode(a?.code || ""),
-          playerId: String(a?.playerId || ""),
-          name: sanitizeName(a?.name || ""),
-          savedAt: Number(a?.savedAt) || 0,
-          hasPassword: !!a?.hasPassword
-        }))
-        .filter(
-          (a) =>
-            normalizePlayerCode(a.code).length === 8 && a.playerId && !isPoisonPlayerCode(a.code)
-        )
-        .slice(0, MAX_SAVED_ACCOUNTS);
-      // Persist scrub if we dropped UNDE-FNED / poison entries
-      if (cleaned.length !== raw.length) saveAccountVault(cleaned);
-      return cleaned;
+      return identity.readSavedAccounts(localStorage);
     } catch {
       return [];
     }
   }
 
   function saveAccountVault(list) {
+    if (!identity.writeSavedAccounts) return;
     try {
       if (!canUseLocalStorage()) return;
-      localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(list.slice(0, MAX_SAVED_ACCOUNTS)));
+      identity.writeSavedAccounts(list, localStorage);
     } catch {}
   }
 
@@ -1444,14 +1427,18 @@
       extra.hasPassword != null
         ? !!extra.hasPassword
         : !!(prev?.hasPassword || accountHasPassword(playerId));
-    const list = loadAccountVault().filter((a) => normalizePlayerCode(a.code) !== norm);
-    list.unshift({
-      code: formatPlayerCode(norm),
-      playerId,
-      name,
-      savedAt: Date.now(),
-      hasPassword
-    });
+    const list = identity.rememberSavedAccount
+      ? identity.rememberSavedAccount(
+          {
+            code: formatPlayerCode(norm),
+            playerId,
+            name,
+            savedAt: Date.now(),
+            hasPassword
+          },
+          loadAccountVault()
+        )
+      : loadAccountVault();
     saveAccountVault(list);
     return list;
   }
@@ -1461,9 +1448,9 @@
   }
 
   function removeSavedAccount(rawCode) {
-    const norm = normalizePlayerCode(rawCode);
-    if (norm.length !== 8) return getSavedAccounts();
-    const list = loadAccountVault().filter((a) => normalizePlayerCode(a.code) !== norm);
+    const list = identity.removeSavedAccount
+      ? identity.removeSavedAccount(rawCode, loadAccountVault())
+      : loadAccountVault();
     saveAccountVault(list);
     return list;
   }

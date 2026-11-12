@@ -536,6 +536,77 @@
     };
   }
 
+  const ACCOUNTS_KEY = "hub-accounts-v1";
+  const MAX_SAVED_ACCOUNTS = 12;
+
+  function defaultAccountStorage() {
+    try {
+      if (typeof localStorage === "undefined") return null;
+      return localStorage;
+    } catch {
+      return null;
+    }
+  }
+
+  function cleanSavedAccount(raw) {
+    if (!raw || typeof raw !== "object") return null;
+    const code = formatPlayerCode(raw.code || "");
+    const playerId = String(raw.playerId || "").trim();
+    if (!playerId || normalizePlayerCode(code).length !== 8 || isPoisonPlayerCode(code)) return null;
+    return {
+      code,
+      playerId,
+      name: sanitizeName(raw.name || ""),
+      savedAt: Number(raw.savedAt) || 0,
+      hasPassword: !!raw.hasPassword
+    };
+  }
+
+  function readSavedAccounts(storage) {
+    const store = storage || defaultAccountStorage();
+    if (!store?.getItem) return [];
+    try {
+      const raw = JSON.parse(store.getItem(ACCOUNTS_KEY) || "[]");
+      if (!Array.isArray(raw)) return [];
+      const cleaned = raw.map(cleanSavedAccount).filter(Boolean).slice(0, MAX_SAVED_ACCOUNTS);
+      if (cleaned.length !== raw.length) writeSavedAccounts(cleaned, store);
+      return cleaned;
+    } catch {
+      return [];
+    }
+  }
+
+  function writeSavedAccounts(list, storage) {
+    const store = storage || defaultAccountStorage();
+    const cleaned = (Array.isArray(list) ? list : [])
+      .map(cleanSavedAccount)
+      .filter(Boolean)
+      .slice(0, MAX_SAVED_ACCOUNTS);
+    if (!store?.setItem) return cleaned;
+    try {
+      store.setItem(ACCOUNTS_KEY, JSON.stringify(cleaned));
+    } catch {}
+    return cleaned;
+  }
+
+  function rememberSavedAccount(entry, list) {
+    const cleaned = cleanSavedAccount({ ...(entry || {}), savedAt: Number(entry?.savedAt) || Date.now() });
+    if (!cleaned) return (Array.isArray(list) ? list : []).slice(0, MAX_SAVED_ACCOUNTS);
+    const norm = normalizePlayerCode(cleaned.code);
+    const next = (Array.isArray(list) ? list : []).filter(
+      (row) => normalizePlayerCode(row?.code) !== norm
+    );
+    next.unshift(cleaned);
+    return next.slice(0, MAX_SAVED_ACCOUNTS);
+  }
+
+  function removeSavedAccount(rawCode, list) {
+    const norm = normalizePlayerCode(rawCode);
+    const current = Array.isArray(list) ? list : [];
+    if (norm.length !== 8) return current.slice();
+    return current.filter((row) => normalizePlayerCode(row?.code) !== norm);
+  }
+
   function applyReservationsMine(localMap, mine, playerId) {
     const owned = readReservationsMine(mine);
     const me = String(playerId || owned.playerId || "").trim();
@@ -603,7 +674,14 @@
     applyReservationsMine,
     rowsToReservationsMap,
     mergeReservationMaps,
-    applyReservationChange
+    applyReservationChange,
+    ACCOUNTS_KEY,
+    MAX_SAVED_ACCOUNTS,
+    cleanSavedAccount,
+    readSavedAccounts,
+    writeSavedAccounts,
+    rememberSavedAccount,
+    removeSavedAccount
   };
   root.HubIdentity = api;
   if (typeof module === "object" && module.exports) module.exports = api;

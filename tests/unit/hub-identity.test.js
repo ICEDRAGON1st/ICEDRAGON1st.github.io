@@ -545,3 +545,50 @@ test("name-reservation live rows subscribe without rewriting the shared lock doc
   assert.match(sql, /alter publication supabase_realtime add table public\.name_reservation_locks/i);
   assert.doesNotMatch(sql, /to anon/i);
 });
+
+test("device account vault keeps existing player ids and drops poison codes", () => {
+  function memStore(initial) {
+    const data = { "hub-accounts-v1": JSON.stringify(initial) };
+    return {
+      getItem(key) {
+        return Object.prototype.hasOwnProperty.call(data, key) ? data[key] : null;
+      },
+      setItem(key, value) {
+        data[key] = String(value);
+      }
+    };
+  }
+
+  const store = memStore([
+    { code: "AB23-CD45", playerId: "p-ada", name: "Ada", savedAt: 9, hasPassword: true },
+    { code: "UNDEFNED", playerId: "p-bad", name: "Bad", savedAt: 8 },
+    { code: "ZZ99YY88", name: "no id", savedAt: 7 }
+  ]);
+  const loaded = identity.readSavedAccounts(store);
+  assert.equal(loaded.length, 1);
+  assert.equal(loaded[0].playerId, "p-ada");
+  assert.equal(loaded[0].code, "AB23-CD45");
+  assert.equal(identity.cleanSavedAccount({ code: "AB23CD45" }), null);
+
+  const remembered = identity.rememberSavedAccount(
+    { code: "zz99-yy88", playerId: "p-bea", name: "Bea", hasPassword: false },
+    loaded
+  );
+  assert.equal(remembered[0].playerId, "p-bea");
+  assert.equal(remembered[1].playerId, "p-ada");
+  const noMint = identity.rememberSavedAccount({ code: "AB23CD45", name: "steal" }, remembered);
+  assert.equal(noMint.length, 2);
+  assert.equal(noMint.find((row) => row.playerId === "p-ada").name, "Ada");
+  assert.equal(identity.removeSavedAccount("ZZ99-YY88", remembered).length, 1);
+  assert.equal(identity.removeSavedAccount("ZZ99-YY88", remembered)[0].playerId, "p-ada");
+
+  const plays = require("node:fs").readFileSync(
+    require("node:path").join(__dirname, "../../hub-plays.js"),
+    "utf8"
+  );
+  assert.match(plays, /identity\.readSavedAccounts/);
+  assert.match(plays, /identity\.writeSavedAccounts/);
+  assert.match(plays, /identity\.rememberSavedAccount/);
+  assert.match(plays, /identity\.removeSavedAccount/);
+  assert.doesNotMatch(plays, /const ACCOUNTS_KEY = "hub-accounts-v1"/);
+});
