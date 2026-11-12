@@ -231,6 +231,14 @@ test("nickname live rows subscribe without rewriting the shared name registry", 
   assert.match(plays, /applyNamesRealtime/);
   assert.match(plays, /playsLiveJoined\("nickname_claims"\)/);
   assert.match(plays, /subscribeNicknameClaims/);
+  assert.match(
+    plays.slice(
+      plays.indexOf("async function fetchNamesRemote"),
+      plays.indexOf("async function pushNamesRemote")
+    ),
+    /playsLiveJoined\("nickname_claims"\)/
+  );
+  assert.match(plays, /getNameRegistry/);
   assert.doesNotMatch(
     plays.slice(
       plays.indexOf("function applyNamesRealtime"),

@@ -111,6 +111,9 @@ test("invite live rows subscribe without rewriting the shared board", () => {
   assert.match(ui, /ensureReferralsRealtime/);
   assert.match(ui, /applyReferralsRealtime/);
   assert.match(ui, /subscribeReferralContributions/);
+  assert.match(ui, /referralsLiveJoined/);
+  assert.match(ui, /referralsHydrated/);
+  assert.match(ui, /peekDoc/);
   assert.doesNotMatch(
     ui.slice(
       ui.indexOf("function applyReferralsRealtime"),
@@ -138,5 +141,6 @@ test("invite codes resolve from owned player-code rows before the shared board",
   assert.match(fn, /listPlayerCodeClaims/);
   assert.match(fn, /rowsToCodesMap/);
   assert.match(fn, /getDoc\("player-codes"\)/);
+  assert.match(fn, /isRealtimeJoined\?\.\("player_code_claims"\)/);
   assert.ok(fn.indexOf("getPlayerCodeClaim") < fn.indexOf("getDoc(\"player-codes\")"));
 });

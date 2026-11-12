@@ -350,12 +350,20 @@
       } catch {}
     }
     try {
+      const live = typeof HubPlays !== "undefined" ? HubPlays.getClaimForName?.(username) : null;
+      if (live?.playerId) {
+        return { playerId: live.playerId, name: live.name || username };
+      }
+    } catch {}
+    try {
       const api = sb();
       let names = {};
-      try {
-        const data = api?.getPrefer ? await api.getPrefer("name-registry") : null;
-        names = data?.names && typeof data.names === "object" ? data.names : data || {};
-      } catch {}
+      if (!api?.isRealtimeJoined?.("nickname_claims")) {
+        try {
+          const data = api?.getPrefer ? await api.getPrefer("name-registry") : null;
+          names = data?.names && typeof data.names === "object" ? data.names : data || {};
+        } catch {}
+      }
       try {
         const rows = await api?.listNicknameClaims?.();
         const namesApi = window.HubNames;

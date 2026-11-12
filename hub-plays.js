@@ -2508,6 +2508,9 @@
   }
 
   async function fetchNamesRemote() {
+    if (playsLiveJoined("nickname_claims")) {
+      return purgeNameRegistry(namesCache && typeof namesCache === "object" ? namesCache : {}).names;
+    }
     let parsed = {};
     let fetched = false;
     try {
@@ -5094,6 +5097,10 @@ body.light .menu-credit .player-name-creator {
     return key ? namesCache[key] || null : null;
   }
 
+  function getNameRegistry() {
+    return namesCache && typeof namesCache === "object" ? namesCache : {};
+  }
+
   const OG_NAME_KEYS = new Set([
     "oscarvr29",
     "ice_dragon",
@@ -5744,6 +5751,7 @@ body.light .menu-credit .player-name-creator {
     markInviterForPlayerId,
     isInviterName,
     getClaimForName,
+    getNameRegistry,
     patchMyClaim,
     getAvailableTitleIds,
     getTitleShowcase,

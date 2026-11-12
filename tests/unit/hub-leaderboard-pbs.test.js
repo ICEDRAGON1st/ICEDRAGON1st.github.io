@@ -132,4 +132,6 @@ test("Most Invites hydrates from owned invite rows before the shared board", () 
   assert.match(fn, /getDoc\("name-registry"\)/);
   assert.match(fn, /leaderboardLiveJoined\("referral_contributions"\)/);
   assert.match(fn, /leaderboardLiveJoined\("nickname_claims"\)/);
+  assert.match(fn, /HubReferrals\?\.peekDoc/);
+  assert.match(fn, /HubPlays\?\.getNameRegistry/);
 });

@@ -1349,46 +1349,69 @@
     const resets = data.resets && typeof data.resets === "object" ? data.resets : {};
     if (!supabaseReady()) return { games, resets };
     let hubDoc = { byInviter: {}, byInvitee: {} };
-    if (!leaderboardLiveJoined("referral_contributions")) {
+    const liveInvites = leaderboardLiveJoined("referral_contributions")
+      ? window.HubReferrals?.peekDoc?.()
+      : null;
+    if (liveInvites && typeof liveInvites === "object") {
+      hubDoc = {
+        byInviter:
+          liveInvites.byInviter && typeof liveInvites.byInviter === "object"
+            ? liveInvites.byInviter
+            : {},
+        byInvitee:
+          liveInvites.byInvitee && typeof liveInvites.byInvitee === "object"
+            ? liveInvites.byInvitee
+            : {}
+      };
+    } else {
+      if (!leaderboardLiveJoined("referral_contributions")) {
+        try {
+          const doc = await HubSupabase.getDoc("hub-referrals-v1");
+          if (doc && typeof doc === "object") {
+            hubDoc = {
+              byInviter: doc.byInviter && typeof doc.byInviter === "object" ? doc.byInviter : {},
+              byInvitee: doc.byInvitee && typeof doc.byInvitee === "object" ? doc.byInvitee : {}
+            };
+          }
+        } catch {}
+      }
       try {
-        const doc = await HubSupabase.getDoc("hub-referrals-v1");
-        if (doc && typeof doc === "object") {
-          hubDoc = {
-            byInviter: doc.byInviter && typeof doc.byInviter === "object" ? doc.byInviter : {},
-            byInvitee: doc.byInvitee && typeof doc.byInvitee === "object" ? doc.byInvitee : {}
-          };
+        const rows = await HubSupabase.listReferralContributions?.();
+        const helper = window.HubReferralsMine;
+        if (rows && helper?.overlayReferralDoc) {
+          hubDoc = helper.overlayReferralDoc(hubDoc, rows);
         }
       } catch {}
     }
-    try {
-      const rows = await HubSupabase.listReferralContributions?.();
-      const helper = window.HubReferralsMine;
-      if (rows && helper?.overlayReferralDoc) {
-        hubDoc = helper.overlayReferralDoc(hubDoc, rows);
-      }
-    } catch {}
     const byInviter = hubDoc.byInviter || {};
     // Warm name map from owned nickname rows, with name-registry as floor.
     try {
       let names = {};
-      if (!leaderboardLiveJoined("nickname_claims")) {
+      const liveNames = leaderboardLiveJoined("nickname_claims")
+        ? window.HubPlays?.getNameRegistry?.()
+        : null;
+      if (liveNames && typeof liveNames === "object" && Object.keys(liveNames).length) {
+        names = liveNames;
+      } else {
+        if (!leaderboardLiveJoined("nickname_claims")) {
+          try {
+            const reg = await HubSupabase.getDoc("name-registry");
+            names =
+              reg && reg.names && typeof reg.names === "object"
+                ? reg.names
+                : reg && typeof reg === "object"
+                  ? reg
+                  : {};
+          } catch {}
+        }
         try {
-          const reg = await HubSupabase.getDoc("name-registry");
-          names =
-            reg && reg.names && typeof reg.names === "object"
-              ? reg.names
-              : reg && typeof reg === "object"
-                ? reg
-                : {};
+          const rows = await HubSupabase.listNicknameClaims?.();
+          const namesApi = window.HubNames;
+          if (rows && namesApi?.mergeNameMaps && namesApi?.rowsToNameMap) {
+            names = namesApi.mergeNameMaps(names, namesApi.rowsToNameMap(rows));
+          }
         } catch {}
       }
-      try {
-        const rows = await HubSupabase.listNicknameClaims?.();
-        const namesApi = window.HubNames;
-        if (rows && namesApi?.mergeNameMaps && namesApi?.rowsToNameMap) {
-          names = namesApi.mergeNameMaps(names, namesApi.rowsToNameMap(rows));
-        }
-      } catch {}
       Object.values(names).forEach((claim) => {
         if (!claim || typeof claim !== "object") return;
         if (claim.playerId && claim.name) {

@@ -314,12 +314,35 @@
     });
   }
 
+  function referralsLiveJoined() {
+    try {
+      return !!sb()?.isRealtimeJoined?.("referral_contributions");
+    } catch {
+      return false;
+    }
+  }
+
+  let referralsHydrated = false;
+
+  function peekDoc() {
+    if (!referralsHydrated) return null;
+    return {
+      byInviter: cache.byInviter && typeof cache.byInviter === "object" ? cache.byInviter : {},
+      byInvitee: cache.byInvitee && typeof cache.byInvitee === "object" ? cache.byInvitee : {}
+    };
+  }
+
   async function pullDoc() {
     const api = sb();
     const helper = mineApi();
+    if (referralsLiveJoined() && referralsHydrated) {
+      const parsed = rememberDoc(cache);
+      parsed._fetched = true;
+      return parsed;
+    }
     let parsed = emptyDoc();
     let fetched = false;
-    if (api) {
+    if (api && !referralsLiveJoined()) {
       try {
         const data = await api.getDoc(DOC_ID);
         if (data && typeof data === "object") {
@@ -335,6 +358,9 @@
     if (tableRemote && helper?.overlayReferralDoc) {
       parsed = helper.overlayReferralDoc(parsed, tableRemote);
       fetched = true;
+      referralsHydrated = true;
+    } else if (fetched) {
+      referralsHydrated = true;
     }
     rememberDoc(parsed);
     parsed._fetched = fetched;
@@ -395,6 +421,7 @@
         if (entry?.playerId) return String(entry.playerId);
       }
     } catch {}
+    if (api.isRealtimeJoined?.("player_code_claims")) return "";
     try {
       const data = await api.getDoc("player-codes");
       const codes = data?.codes && typeof data.codes === "object" ? data.codes : data || {};
@@ -618,6 +645,7 @@
     creditIfPending,
     hasInviterTitle,
     formatCode,
-    normalizeCode
+    normalizeCode,
+    peekDoc
   };
 })();

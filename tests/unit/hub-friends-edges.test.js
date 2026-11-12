@@ -201,4 +201,6 @@ test("friend lookup overlays owned nickname rows onto the name registry", () => 
   assert.match(fn, /listNicknameClaims/);
   assert.match(fn, /rowsToNameMap/);
   assert.match(fn, /getPrefer\("name-registry"\)/);
+  assert.match(fn, /getClaimForName/);
+  assert.match(fn, /isRealtimeJoined\?\.\("nickname_claims"\)/);
 });
