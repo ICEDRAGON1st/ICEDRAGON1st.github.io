@@ -371,3 +371,32 @@ test("fishing aquariums use auth-owned rows instead of rewriting the shared tank
   assert.match(src, /function subscribeAquariumTankContributions/);
   assert.match(src, /aquarium_tank_contributions/);
 });
+
+test("realtime join ack marks a table live and an error unmarks it", () => {
+  assert.equal(typeof supabase.isRealtimeJoined, "function");
+  assert.equal(typeof supabase.applyRealtimeMessage, "function");
+  assert.equal(supabase.isRealtimeJoined("chat_thread_contributions"), false);
+  const unsub = supabase.subscribeChatThreadContributions(() => {});
+  assert.equal(supabase.isRealtimeJoined("chat_thread_contributions"), false);
+  supabase.applyRealtimeMessage({
+    topic: "realtime:chat-thread-contributions",
+    event: "phx_reply",
+    payload: {
+      status: "ok",
+      response: {
+        postgres_changes: [
+          { event: "*", schema: "public", table: "chat_thread_contributions" }
+        ]
+      }
+    }
+  });
+  assert.equal(supabase.isRealtimeJoined("chat_thread_contributions"), true);
+  supabase.applyRealtimeMessage({
+    topic: "realtime:chat-thread-contributions",
+    event: "phx_reply",
+    payload: { status: "error", response: { reason: "Unable to subscribe" } }
+  });
+  assert.equal(supabase.isRealtimeJoined("chat_thread_contributions"), false);
+  unsub();
+  assert.equal(supabase.isRealtimeJoined("chat_thread_contributions"), false);
+});

@@ -631,6 +631,7 @@
     }
     const ws = realtimeSocket;
     realtimeSocket = null;
+    clearRealtimeJoins();
     try {
       ws?.close?.();
     } catch {}
@@ -678,8 +679,54 @@
     });
   }
 
+  function markRealtimeJoin(topic, payload) {
+    const ch = realtimeChannels.get(String(topic || ""));
+    if (!ch) return;
+    const status = String(payload?.status || "").toLowerCase();
+    const bindings = payload?.response?.postgres_changes;
+    ch.joined = status === "ok" && Array.isArray(bindings) && bindings.length > 0;
+  }
+
+  function clearRealtimeJoins() {
+    realtimeChannels.forEach((ch) => {
+      ch.joined = false;
+    });
+  }
+
+  function isRealtimeJoined(table) {
+    const name = String(table || "").trim();
+    if (!name) return false;
+    const ch = realtimeChannels.get(realtimeTopic(name));
+    if (!ch || !ch.joined) return false;
+    if (realtimeSocket && realtimeSocket.readyState !== 1) return false;
+    return true;
+  }
+
+  function applyRealtimeMessage(raw) {
+    let msg = raw;
+    if (typeof raw === "string") {
+      try {
+        msg = JSON.parse(raw);
+      } catch {
+        return;
+      }
+    }
+    if (!msg || typeof msg !== "object") return;
+    const event = String(msg.event || "");
+    const payload = msg.payload && typeof msg.payload === "object" ? msg.payload : {};
+    if (event === "phx_reply") {
+      markRealtimeJoin(msg.topic, payload);
+      return;
+    }
+    const parsed = parseRealtimeEnvelope(msg);
+    if (!parsed) return;
+    notifyRealtimeChange(parsed.topic, parsed.change);
+  }
+
   function joinRealtimeChannel(ws, table, token) {
     if (!ws || ws.readyState !== 1 || !table || !token) return;
+    const ch = realtimeChannels.get(realtimeTopic(table));
+    if (ch) ch.joined = false;
     realtimeRef += 1;
     try {
       ws.send(
@@ -781,14 +828,13 @@
           }, 25_000);
         };
         ws.onmessage = (ev) => {
-          const parsed = parseRealtimeEnvelope(ev && ev.data);
-          if (!parsed) return;
-          notifyRealtimeChange(parsed.topic, parsed.change);
+          applyRealtimeMessage(ev && ev.data);
         };
         ws.onclose = () => {
           if (realtimeSocket === ws) realtimeSocket = null;
           realtimeConnecting = false;
           realtimeAccessToken = "";
+          clearRealtimeJoins();
           if (realtimeHeartbeatTimer) {
             clearInterval(realtimeHeartbeatTimer);
             realtimeHeartbeatTimer = null;
@@ -813,7 +859,7 @@
     const topic = realtimeTopic(name);
     let ch = realtimeChannels.get(topic);
     if (!ch) {
-      ch = { table: name, listeners: new Set() };
+      ch = { table: name, listeners: new Set(), joined: false };
       realtimeChannels.set(topic, ch);
     }
     const first = ch.listeners.size === 0;
@@ -2841,6 +2887,8 @@
     subscribeNameReservationLocks,
     subscribeAdminBroadcasts,
     subscribeReferralContributions,
+    isRealtimeJoined,
+    applyRealtimeMessage,
     listAdminBroadcasts,
     listReferralContributions,
     upsertReferralContribution,

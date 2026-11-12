@@ -161,6 +161,7 @@ test("Fishing admin events subscribe without rewriting hub_docs from the live ov
   assert.match(script, /applyAdminEventRealtime/);
   assert.match(script, /applyAdminAnnounceRealtime/);
   assert.match(script, /subscribeAdminBroadcasts/);
+  assert.match(script, /fishingLiveJoined\("admin_broadcasts"\)/);
   assert.match(script, /listAdminBroadcasts/);
   assert.match(script, /upsertAdminDoc\(ADMIN_ANNOUNCE_DOC/);
   assert.doesNotMatch(

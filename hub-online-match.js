@@ -701,10 +701,12 @@
       } else {
         ensureMatchRealtime();
       }
-      const remote = await fetchRemote();
-      const merged = await pullMyRooms({ rooms: mergeRooms(cache.rooms, remote.rooms) });
-      saveLocal(merged);
-      await persistMyRooms();
+      if (!sb()?.isRealtimeJoined?.("match_room_contributions")) {
+        const remote = await fetchRemote();
+        const merged = await pullMyRooms({ rooms: mergeRooms(cache.rooms, remote.rooms) });
+        saveLocal(merged);
+        await persistMyRooms();
+      }
       if (activeRoomId && !cache.rooms[activeRoomId]) {
         // Room may have been overwritten — try restore from remote after another fetch pass
         activeRoomId = "";

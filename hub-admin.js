@@ -1549,7 +1549,11 @@ body.hub-admin-open{overflow:hidden}
     if (pollTimer) clearInterval(pollTimer);
     pollTimer = setInterval(() => {
       if (document.hidden) return;
-      refreshRemote().catch(() => {});
+      if (!sb()?.isRealtimeJoined?.("admin_broadcasts")) {
+        refreshRemote().catch(() => {});
+      } else {
+        ensureAdminBroadcastRealtime();
+      }
       updateToolbarButton();
       if (!document.getElementById("admin-panel") && isOwner()) ensurePanelDom();
     }, POLL_MS);

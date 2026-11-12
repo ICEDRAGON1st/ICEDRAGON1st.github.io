@@ -814,7 +814,9 @@
         }
         ensureChatRealtime();
         if (chatCloudQuiet()) return;
-        await sync();
+        if (!sb()?.isRealtimeJoined?.("chat_thread_contributions")) {
+          await sync();
+        }
         if (active) markRead(active.type, active.id);
         pollCallbacks.forEach((fn) => {
           try {

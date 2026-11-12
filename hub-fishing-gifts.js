@@ -530,6 +530,7 @@
     } else {
       ensureGiftsRealtime();
     }
+    if (!force && sb()?.isRealtimeJoined?.("fishing_gift_contributions")) return { gained: 0 };
     const now = Date.now();
     if (!force && now - lastFetch < POLL_MS) return { gained: 0 };
     lastFetch = now;

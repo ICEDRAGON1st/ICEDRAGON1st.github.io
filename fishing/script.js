@@ -174,6 +174,14 @@
     } catch {}
     return false;
   }
+
+  function fishingLiveJoined(table) {
+    try {
+      return !!fishingSb()?.isRealtimeJoined?.(table);
+    } catch {
+      return false;
+    }
+  }
   const FISH_GIFTS_CLAIMED_KEY = "fishing-gifts-claimed-v1";
   const FISH_GIFTS_POLL_MS = 12_000;
   const ADMIN_SCOPE_KEY = "fishing-admin-scope-v1";
@@ -1873,6 +1881,9 @@
     }
     const now = Date.now();
     const pending = Math.max(0, Math.floor(Number(state.communityPendingAdds) || 0));
+    if (!force && !pending && fishingLiveJoined("community_cast_contributions")) {
+      return communityCache;
+    }
     if (
       !force &&
       !pending &&
@@ -2792,6 +2803,7 @@
       return aquaShareCache;
     }
     ensureAquaShareRealtime();
+    if (!force && fishingLiveJoined("aquarium_tank_contributions")) return aquaShareCache;
     const now = Date.now();
     if (!force && now - aquaShareFetchedAt < AQUA_SHARE_POLL_MS) return aquaShareCache;
     aquaShareFetchedAt = now;
@@ -4743,6 +4755,8 @@
       stopAdminEventRealtime();
       return;
     }
+    ensureAdminEventRealtime();
+    if (!force && fishingLiveJoined("admin_broadcasts")) return;
     const now = Date.now();
     if (!force && now - adminEventFetchedAt < ADMIN_EVENT_POLL_MS) return;
     adminEventFetchedAt = now;
@@ -4952,6 +4966,8 @@
 
   async function pollAdminAnnounce(force = false) {
     if (fishingCloudQuiet()) return;
+    ensureAdminEventRealtime();
+    if (!force && fishingLiveJoined("admin_broadcasts")) return;
     const now = Date.now();
     if (!force && now - adminAnnounceFetchedAt < ADMIN_ANNOUNCE_POLL_MS) return;
     adminAnnounceFetchedAt = now;
@@ -6819,6 +6835,7 @@
       return;
     }
     ensureFishGiftsRealtime();
+    if (!force && fishingLiveJoined("fishing_gift_contributions")) return;
     const now = Date.now();
     if (!force && now - fishGiftFetchedAt < FISH_GIFTS_POLL_MS) return;
     fishGiftFetchedAt = now;
@@ -7727,6 +7744,7 @@
       return;
     }
     ensurePlayerMailRealtime();
+    if (!force && fishingLiveJoined("fishing_mail_contributions")) return;
     const now = Date.now();
     if (!force && now - playerMailFetchedAt < PLAYER_MAIL_POLL_MS) return;
     playerMailFetchedAt = now;

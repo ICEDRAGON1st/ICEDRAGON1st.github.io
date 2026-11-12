@@ -1843,9 +1843,11 @@
       } else {
         ensureCallsRealtime();
       }
-      const doc = await fetchDoc();
-      if (doc) cache.rooms = pruneRooms(doc.rooms || {});
-      await pullCallsMine();
+      if (!sb()?.isRealtimeJoined?.("call_signal_contributions")) {
+        const doc = await fetchDoc();
+        if (doc) cache.rooms = pruneRooms(doc.rooms || {});
+        await pullCallsMine();
+      }
       const me = playerId();
       if (!me) {
         renderCallBar();

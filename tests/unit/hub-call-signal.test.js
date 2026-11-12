@@ -209,6 +209,7 @@ test("call live rows subscribe without rewriting the shared board", () => {
   assert.match(ui, /ensureCallsRealtime/);
   assert.match(ui, /applyCallsRealtime/);
   assert.match(ui, /subscribeCallSignalContributions/);
+  assert.match(ui, /isRealtimeJoined\?\.\("call_signal_contributions"\)/);
   assert.doesNotMatch(
     ui.slice(ui.indexOf("function applyCallsRealtime"), ui.indexOf("function stopCallsRealtime")),
     /postDoc/

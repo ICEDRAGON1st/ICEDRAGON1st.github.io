@@ -568,7 +568,9 @@
           return;
         }
         ensureFriendsRealtime();
-        await sync();
+        if (!sb()?.isRealtimeJoined?.("friend_edge_contributions")) {
+          await sync();
+        }
         pollOnTick?.(cache);
       } catch {}
     };

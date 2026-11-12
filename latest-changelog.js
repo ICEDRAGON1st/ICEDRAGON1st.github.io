@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015df",
+  "build": "20261015dg",
   "notes": [
-    "Invite leaderboards now update from your signed-in account, so a new friend joining through your link shows up without waiting on the old board."
+    "Chat, friends, calls, and Fishing popups stay live from your signed-in account, so they don't keep refreshing the old board while you're already connected."
   ]
 };

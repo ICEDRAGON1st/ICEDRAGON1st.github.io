@@ -376,6 +376,7 @@
     } else {
       ensureMailRealtime();
     }
+    if (sb()?.isRealtimeJoined?.("fishing_mail_contributions")) return;
     const now = Date.now();
     if (now - lastFetch < POLL_MS) return;
     lastFetch = now;

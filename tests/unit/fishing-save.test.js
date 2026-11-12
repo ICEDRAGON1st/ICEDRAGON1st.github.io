@@ -438,7 +438,9 @@ test("fishing mail live rows subscribe without rewriting the shared board", () =
     "utf8"
   );
   assert.match(mail, /ensureMailRealtime/);
+  assert.match(mail, /isRealtimeJoined\?\.\("fishing_mail_contributions"\)/);
   assert.match(script, /ensurePlayerMailRealtime/);
+  assert.match(script, /fishingLiveJoined\("fishing_mail_contributions"\)/);
   assert.match(supabase, /function subscribeFishingMailContributions/);
   assert.match(sql, /alter table public\.fishing_mail_contributions replica identity full/i);
   assert.match(sql, /alter publication supabase_realtime add table public\.fishing_mail_contributions/i);
@@ -594,7 +596,9 @@ test("fishing admin gift live rows subscribe without rewriting the shared board"
     "utf8"
   );
   assert.match(gifts, /ensureGiftsRealtime/);
+  assert.match(gifts, /isRealtimeJoined\?\.\("fishing_gift_contributions"\)/);
   assert.match(script, /ensureFishGiftsRealtime/);
+  assert.match(script, /fishingLiveJoined\("fishing_gift_contributions"\)/);
   assert.match(supabase, /function subscribeFishingGiftContributions/);
   assert.match(sql, /alter table public\.fishing_gift_contributions replica identity full/i);
   assert.match(sql, /alter publication supabase_realtime add table public\.fishing_gift_contributions/i);
@@ -616,6 +620,7 @@ test("fishing aquarium live rows subscribe without rewriting the shared board", 
   assert.match(script, /ensureAquaShareRealtime/);
   assert.match(script, /applyAquaShareRealtime/);
   assert.match(script, /subscribeAquariumTankContributions/);
+  assert.match(script, /fishingLiveJoined\("aquarium_tank_contributions"\)/);
   assert.match(supabase, /function subscribeAquariumTankContributions/);
   assert.match(sql, /alter table public\.aquarium_tank_contributions replica identity full/i);
   assert.match(sql, /alter publication supabase_realtime add table public\.aquarium_tank_contributions/i);
@@ -637,6 +642,7 @@ test("fishing community live rows subscribe without rewriting the shared meter",
   assert.match(script, /ensureCommunityRealtime/);
   assert.match(script, /applyCommunityCastRealtime/);
   assert.match(script, /subscribeCommunityCastContributions/);
+  assert.match(script, /fishingLiveJoined\("community_cast_contributions"\)/);
   assert.match(supabase, /function subscribeCommunityCastContributions/);
   assert.match(sql, /alter table public\.community_cast_contributions replica identity full/i);
   assert.match(sql, /alter publication supabase_realtime add table public\.community_cast_contributions/i);
