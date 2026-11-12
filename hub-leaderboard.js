@@ -1384,7 +1384,7 @@
       } catch {}
     }
     const byInviter = hubDoc.byInviter || {};
-    // Warm name map from owned nickname rows, with name-registry as floor.
+    // Warm name map from owned nickname rows.
     try {
       let names = {};
       const liveNames = leaderboardLiveJoined("nickname_claims")
@@ -1393,17 +1393,6 @@
       if (liveNames && typeof liveNames === "object" && Object.keys(liveNames).length) {
         names = liveNames;
       } else {
-        if (!leaderboardLiveJoined("nickname_claims")) {
-          try {
-            const reg = await HubSupabase.getDoc("name-registry");
-            names =
-              reg && reg.names && typeof reg.names === "object"
-                ? reg.names
-                : reg && typeof reg === "object"
-                  ? reg
-                  : {};
-          } catch {}
-        }
         try {
           const rows = await HubSupabase.listNicknameClaims?.();
           const namesApi = window.HubNames;

@@ -376,12 +376,6 @@
     try {
       const api = sb();
       let names = {};
-      if (!api?.isRealtimeJoined?.("nickname_claims")) {
-        try {
-          const data = api?.getPrefer ? await api.getPrefer("name-registry") : null;
-          names = data?.names && typeof data.names === "object" ? data.names : data || {};
-        } catch {}
-      }
       try {
         const rows = await api?.listNicknameClaims?.();
         const namesApi = window.HubNames;

@@ -6597,10 +6597,6 @@
       const api = fishingSb();
       let names = {};
       try {
-        const data = api?.getPrefer ? await api.getPrefer("name-registry") : null;
-        names = data?.names && typeof data.names === "object" ? data.names : data || {};
-      } catch {}
-      try {
         const rows = await api?.listNicknameClaims?.();
         const namesApi = window.HubNames;
         if (rows && namesApi?.mergeNameMaps && namesApi?.rowsToNameMap) {

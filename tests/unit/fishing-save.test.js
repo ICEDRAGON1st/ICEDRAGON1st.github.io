@@ -458,6 +458,13 @@ test("fishing admin gifts use account-owned claim rows and skip the shared rewri
     ),
     /listNicknameClaims/
   );
+  assert.doesNotMatch(
+    script.slice(
+      script.indexOf("async function lookupPlayerForGift"),
+      script.indexOf("async function queueFishGift")
+    ),
+    /getPrefer\("name-registry"\)/
+  );
   assert.match(script, /persistFishGiftContribution/);
   assert.match(script, /fetchFishGiftsTableRemote/);
   assert.match(script, /overlayAdminFishGifts/);

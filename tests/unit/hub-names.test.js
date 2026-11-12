@@ -129,6 +129,20 @@ test("owned nickname claims dual-write without stealing another player's name", 
   assert.match(plays, /persistNicknameClaim/);
   assert.match(plays, /fetchNamesTableRemote/);
   assert.match(plays, /if \(tableResult === true\) return/);
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function fetchNamesRemote"),
+      plays.indexOf("async function pushNamesRemote")
+    ),
+    /fetchDoc/
+  );
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function pushNamesRemote"),
+      plays.indexOf("function mergeLogs")
+    ),
+    /pushDoc/
+  );
   assert.equal(names.SAVE_KEY, "names-mine");
 
   const snapshot = names.collectMine(

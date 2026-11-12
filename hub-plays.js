@@ -710,23 +710,13 @@
         !Object.values(namesCache).some((c) => isPurgedPlayer(c?.playerId, c?.name));
     } else {
       try {
-        const data = await fetchDoc("name-registry");
-        const raw =
-          data && typeof data === "object"
-            ? data.names && typeof data.names === "object"
-              ? data.names
-              : data
-            : {};
-        const cleaned = {};
-        Object.entries(raw || {}).forEach(([k, v]) => {
-          if (v && typeof v === "object" && v.playerId && v.name) cleaned[k] = v;
-        });
-        const purged = purgeNameRegistry(cleaned);
+        const remote = await fetchNamesRemote();
+        const purged = purgeNameRegistry(remote);
         namesCache = purgeNameRegistry(mergeNameMaps(namesCache, purged.names)).names;
         if (purged.changed) await pushNamesRemote(purged.names);
         verifiedClean =
-          !purged.names.dragon &&
-          !Object.values(purged.names).some((c) => isPurgedPlayer(c?.playerId, c?.name));
+          !namesCache.dragon &&
+          !Object.values(namesCache).some((c) => isPurgedPlayer(c?.playerId, c?.name));
       } catch {}
     }
     if (playsLiveJoined("alltime_roster")) {
@@ -816,21 +806,11 @@
       });
     } else {
       try {
-        const data = await fetchDoc("name-registry");
-        const raw =
-          data && typeof data === "object"
-            ? data.names && typeof data.names === "object"
-              ? data.names
-              : data
-            : {};
-        const cleaned = {};
-        Object.entries(raw || {}).forEach(([k, v]) => {
-          if (v && typeof v === "object" && v.playerId && v.name) cleaned[k] = v;
-        });
-        const purged = purgeNameRegistry(cleaned);
+        const remote = await fetchNamesRemote();
+        const purged = purgeNameRegistry(remote);
         namesCache = purgeNameRegistry(mergeNameMaps(namesCache, purged.names)).names;
         if (purged.changed) await pushNamesRemote(purged.names);
-        verifiedClean = !Object.values(purged.names).some((c) => {
+        verifiedClean = !Object.values(namesCache).some((c) => {
           const t = String(c?.accentTitle || "").toLowerCase();
           const col = String(c?.accentColor || "").toLowerCase();
           return t === "rainbow" || col === "rainbow";
@@ -2491,21 +2471,15 @@
     if (playsLiveJoined("nickname_claims")) {
       return purgeNameRegistry(namesCache && typeof namesCache === "object" ? namesCache : {}).names;
     }
-    let parsed = {};
-    let fetched = false;
-    try {
-      const data = await fetchDoc("name-registry");
-      if (data && typeof data === "object") {
-        parsed = namesApi.parseNameRegistry ? namesApi.parseNameRegistry(data) : {};
-        fetched = true;
-      }
-    } catch {
-      parsed = {};
-    }
     const tableRemote = await fetchNamesTableRemote();
-    if (tableRemote) parsed = mergeNameMaps(parsed, tableRemote);
-    if (!fetched && !tableRemote) throw new Error("names-unavailable");
-    return purgeNameRegistry(parsed).names;
+    if (tableRemote) {
+      const current = namesCache && typeof namesCache === "object" ? namesCache : {};
+      return purgeNameRegistry(mergeNameMaps(current, tableRemote)).names;
+    }
+    if (namesCache && typeof namesCache === "object" && Object.keys(namesCache).length) {
+      return purgeNameRegistry(namesCache).names;
+    }
+    throw new Error("names-unavailable");
   }
 
   async function pushNamesRemote(names) {
@@ -2518,7 +2492,7 @@
       throw err;
     }
     if (tableResult === true) return;
-    await pushDoc("name-registry", { names });
+    throw new Error("names-unavailable");
   }
 
   function mergeLogs(a, b) {
