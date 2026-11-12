@@ -139,20 +139,26 @@ function buildLinkedNickname(discordName, hubName) {
   return nick.slice(0, 32);
 }
 
-async function getHubDoc(id) {
-  const url = `${SUPABASE_URL}/rest/v1/hub_docs?id=eq.${encodeURIComponent(id)}&select=data`;
-  const res = await fetch(url, {
+async function supabaseRpc(fn, args) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/${encodeURIComponent(fn)}`, {
+    method: "POST",
     headers: {
       apikey: SUPABASE_ANON_KEY,
       Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      Accept: "application/json"
+      Accept: "application/json",
+      "Content-Type": "application/json"
     },
+    body: JSON.stringify(args || {}),
     cache: "no-store"
   });
   if (!res.ok) throw new Error(`supabase ${res.status}`);
-  const rows = await res.json();
-  if (!Array.isArray(rows) || !rows.length) return null;
-  return rows[0]?.data ?? null;
+  const text = await res.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
 }
 
 async function resolveCodeToUsername(rawCode) {
@@ -161,46 +167,16 @@ async function resolveCodeToUsername(rawCode) {
     return { ok: false, error: "Enter your full 8-character player code (like ABCD-EFGH)." };
   }
 
-  const codesDoc = await getHubDoc("player-codes");
-  const codes =
-    codesDoc && codesDoc.codes && typeof codesDoc.codes === "object"
-      ? codesDoc.codes
-      : codesDoc && typeof codesDoc === "object"
-        ? codesDoc
-        : {};
-
-  const entry =
-    codes[code] ||
-    codes[formatPlayerCode(code)] ||
-    Object.entries(codes).find(([k]) => normalizePlayerCode(k) === code)?.[1] ||
-    null;
-
-  if (!entry || typeof entry !== "object" || !entry.playerId) {
+  const found = await supabaseRpc("lookup_player_by_code", { raw_code: code });
+  const playerId = String(found?.playerId || found?.player_id || "").trim();
+  if (!playerId) {
     return {
       ok: false,
       error: `No account found for ${formatPlayerCode(code)}. Open the hub, copy your player code from Settings, then try again.`
     };
   }
 
-  const playerId = String(entry.playerId);
-  let name = sanitizeName(entry.name || "");
-
-  if (!name) {
-    const namesDoc = await getHubDoc("name-registry");
-    const names =
-      namesDoc && namesDoc.names && typeof namesDoc.names === "object"
-        ? namesDoc.names
-        : namesDoc && typeof namesDoc === "object"
-          ? namesDoc
-          : {};
-    for (const claim of Object.values(names)) {
-      if (claim && claim.playerId === playerId && claim.name) {
-        name = sanitizeName(claim.name);
-        break;
-      }
-    }
-  }
-
+  const name = sanitizeName(found?.name || "");
   if (!name || /^guest-/i.test(name) || name.toLowerCase() === "player") {
     return {
       ok: false,
@@ -213,37 +189,10 @@ async function resolveCodeToUsername(rawCode) {
 
 async function saveDiscordLink(discordId, payload) {
   try {
-    const prev = (await getHubDoc("discord-links-v1")) || { byDiscord: {}, byPlayer: {} };
-    const byDiscord =
-      prev.byDiscord && typeof prev.byDiscord === "object" ? { ...prev.byDiscord } : {};
-    const byPlayer =
-      prev.byPlayer && typeof prev.byPlayer === "object" ? { ...prev.byPlayer } : {};
-    byDiscord[String(discordId)] = {
-      ...payload,
-      at: Date.now()
-    };
-    if (payload.playerId) {
-      byPlayer[String(payload.playerId)] = {
-        discordId: String(discordId),
-        name: payload.name,
-        code: payload.code,
-        at: Date.now()
-      };
-    }
-    const url = `${SUPABASE_URL}/rest/v1/hub_docs`;
-    await fetch(url, {
-      method: "POST",
-      headers: {
-        apikey: SUPABASE_ANON_KEY,
-        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-        "Content-Type": "application/json",
-        Prefer: "resolution=merge-duplicates,return=minimal"
-      },
-      body: JSON.stringify({
-        id: "discord-links-v1",
-        data: { byDiscord, byPlayer },
-        updated_at: new Date().toISOString()
-      })
+    await supabaseRpc("upsert_discord_link", {
+      p_discord_id: String(discordId || ""),
+      p_code: normalizePlayerCode(payload?.code),
+      p_discord_tag: String(payload?.discordTag || "").slice(0, 64)
     });
   } catch (err) {
     console.warn("[link] saveDiscordLink failed", err?.message || err);

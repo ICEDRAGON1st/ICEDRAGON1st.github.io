@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015eo",
+  "build": "20261015ep",
   "notes": [
-    "Hub and Fishing admin stay on the signed-in admin channel, so leftover shared boards don't get a copy."
+    "Discord /link uses your player code on the signed-in account, so leftover shared boards don't get a copy."
   ]
 };

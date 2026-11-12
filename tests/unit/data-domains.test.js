@@ -188,6 +188,33 @@ test("leaderboard wipes join admin_broadcasts without publishing hub_docs", () =
   assert.doesNotMatch(sql, /to anon/i);
 });
 
+test("Discord /link looks up signed-in player codes without leftover hub_docs", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160051_discord_links.sql"),
+    "utf8"
+  );
+  const bot = fs.readFileSync(path.join(ROOT, "discord-bot/index.js"), "utf8");
+  assert.match(sql, /create table if not exists public\.discord_links/);
+  assert.match(sql, /function public\.lookup_player_by_code/);
+  assert.match(sql, /function public\.upsert_discord_link/);
+  assert.match(sql, /security definer/i);
+  assert.match(sql, /grant execute on function public\.lookup_player_by_code\(text\) to anon, authenticated/);
+  assert.match(
+    sql,
+    /grant execute on function public\.upsert_discord_link\(text, text, text\) to anon, authenticated/
+  );
+  assert.match(sql, /'discord-links-v1'/);
+  assert.doesNotMatch(sql, /add table public\.hub_docs/i);
+  assert.doesNotMatch(sql, /add table public\.discord_links/i);
+  assert.doesNotMatch(sql, /grant select, insert/i);
+  assert.match(bot, /lookup_player_by_code/);
+  assert.match(bot, /upsert_discord_link/);
+  assert.doesNotMatch(bot, /hub_docs/);
+  assert.doesNotMatch(bot, /player-codes/);
+  assert.doesNotMatch(bot, /name-registry/);
+  assert.doesNotMatch(bot, /discord-links-v1/);
+});
+
 test("contracted leftover boards cannot be rewritten on hub_docs", () => {
   const sql = fs.readFileSync(
     path.join(ROOT, "supabase/migrations/202610160049_lock_contracted_hub_docs.sql"),

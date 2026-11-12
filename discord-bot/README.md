@@ -8,6 +8,7 @@ Links a hub **player code** to a Discord nickname.
    - `DISCORD_TOKEN` — Bot token from Developer Portal
    - `DISCORD_CLIENT_ID` — Application ID (Developer Portal → General Information)
    - `DISCORD_GUILD_ID` — your server ID
+   - `SUPABASE_URL` / `SUPABASE_ANON_KEY` — same public account-server values the hub uses (`/link` looks up signed-in player codes; it does not read leftover shared boards)
 2. Invite the bot with scopes `bot` + `applications.commands` and permission **Manage Nicknames**.
 3. Server Settings → Roles → put the bot role **above** members.
 4. Install & register & run:
