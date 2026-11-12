@@ -59,8 +59,8 @@ test("owned play logs dual-write without copying other players or shrinking a ri
   const plays = fs.readFileSync(path.resolve(__dirname, "../../hub-plays.js"), "utf8");
   assert.match(plays, /persistPlaysMine/);
   assert.match(plays, /pullPlaysMine/);
-  assert.match(plays, /identity\.persistOwnedSave/);
-  assert.match(plays, /identity\.readOwnedSave/);
+  assert.match(plays, /popularityApi\.persistOwnedMine/);
+  assert.match(plays, /popularityApi\.readOwnedMine/);
   assert.match(plays, /persistPlayLogContribution/);
   assert.match(plays, /fetchPlaysTableRemote/);
   assert.doesNotMatch(

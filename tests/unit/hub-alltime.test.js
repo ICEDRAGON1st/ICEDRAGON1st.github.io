@@ -244,6 +244,8 @@ test("all-time remotes skip leftover shared boards", async () => {
   assert.doesNotMatch(src, /getPrefer|pushPrefer|fetchDoc|pushDoc|hub_docs/);
   assert.match(plays, /alltimeApi\.fetchAllTimeRosterRows/);
   assert.match(plays, /alltimeApi\.persistAllTimeRoster/);
+  assert.match(plays, /alltimeApi\.persistOwnedMine/);
+  assert.match(plays, /alltimeApi\.readOwnedMine/);
   const calls = [];
   const api = {
     async listAlltimeRoster() {

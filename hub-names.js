@@ -426,6 +426,24 @@
     return tableResult === true;
   }
 
+  function ownedIdentity() {
+    return root.HubIdentity || null;
+  }
+
+  async function persistOwnedMine(api, playerId, claim) {
+    const identity = ownedIdentity();
+    const me = String(playerId || "").trim();
+    if (!identity?.persistOwnedSave || !me || !claim) return false;
+    await identity.persistOwnedSave(api, SAVE_KEY, collectMine(claim, me));
+    return true;
+  }
+
+  async function readOwnedMine(api) {
+    const identity = ownedIdentity();
+    if (!identity?.readOwnedSave) return null;
+    return identity.readOwnedSave(api, SAVE_KEY);
+  }
+
   const api = {
     parseNameRegistry,
     findClaimByPlayerId,
@@ -441,6 +459,8 @@
     fetchNicknameClaimRows,
     persistNicknameClaim,
     pushNicknameClaims,
+    persistOwnedMine,
+    readOwnedMine,
     TITLE_DEFS,
     TITLE_COLORS,
     EXTRA_COLORS,

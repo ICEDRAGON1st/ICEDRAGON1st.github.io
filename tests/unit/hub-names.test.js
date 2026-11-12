@@ -304,6 +304,8 @@ test("nickname remotes skip leftover shared boards", async () => {
   assert.doesNotMatch(src, /getPrefer|pushPrefer|fetchDoc|pushDoc|hub_docs/);
   assert.match(plays, /namesApi\.fetchNicknameClaimRows/);
   assert.match(plays, /namesApi\.persistNicknameClaim/);
+  assert.match(plays, /namesApi\.persistOwnedMine/);
+  assert.match(plays, /namesApi\.readOwnedMine/);
   const calls = [];
   const api = {
     async listNicknameClaims() {

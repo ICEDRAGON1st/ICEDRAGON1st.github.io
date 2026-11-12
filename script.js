@@ -4782,7 +4782,7 @@ document.getElementById("player-invite-copy-btn")?.addEventListener("click", asy
     await navigator.clipboard.writeText(url);
     setPlayerCodeStatus("Invite link copied — share it with friends", false);
   } catch {
-    setPlayerCodeStatus(url, false);
+    setPlayerCodeStatus("Couldn't copy invite link — try again", false);
   }
   refreshInviteProgressUI();
 });
@@ -4813,7 +4813,7 @@ document.getElementById("player-code-transfer-btn")?.addEventListener("click", a
     await navigator.clipboard.writeText(key);
     setPlayerCodeStatus("Copied transfer key — paste into Log in on another device", false);
   } catch {
-    setPlayerCodeStatus(key, false);
+    setPlayerCodeStatus("Couldn't copy transfer key — try again", false);
   }
 });
 

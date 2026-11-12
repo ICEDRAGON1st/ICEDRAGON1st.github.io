@@ -368,6 +368,26 @@
     return persistAllTimeRoster(api, me, mine);
   }
 
+  function ownedIdentity() {
+    return root.HubIdentity || null;
+  }
+
+  async function persistOwnedMine(api, playerId, players) {
+    const identity = ownedIdentity();
+    const me = String(playerId || "").trim();
+    if (!identity?.persistOwnedSave || !me) return false;
+    const snapshot = collectMine(players, me);
+    if (!snapshot?.row) return false;
+    await identity.persistOwnedSave(api, SAVE_KEY, snapshot);
+    return true;
+  }
+
+  async function readOwnedMine(api) {
+    const identity = ownedIdentity();
+    if (!identity?.readOwnedSave) return null;
+    return identity.readOwnedSave(api, SAVE_KEY);
+  }
+
   const api = {
     MAX_ALLTIME,
     LAST_AT_WRITE_GAP_MS,
@@ -390,7 +410,9 @@
     applyChange,
     fetchAllTimeRosterRows,
     persistAllTimeRoster,
-    pushAllTimeRoster
+    pushAllTimeRoster,
+    persistOwnedMine,
+    readOwnedMine
   };
   if (root) root.HubAllTime = api;
   if (typeof module === "object" && module.exports) module.exports = api;

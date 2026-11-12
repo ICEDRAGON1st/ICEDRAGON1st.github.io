@@ -36,6 +36,22 @@ test("account transfer keys and player-code maps keep the first owner", () => {
   assert.match(plays, /identity\.parseAccountTransferKey/);
   assert.match(plays, /identity\.parseCodesMap/);
   assert.match(plays, /identity\.reservationAllows/);
+  const ui = require("node:fs").readFileSync(
+    require("node:path").join(__dirname, "../../script.js"),
+    "utf8"
+  );
+  const transfer = ui.slice(
+    ui.indexOf("player-code-transfer-btn"),
+    ui.indexOf("player-code-restore-btn")
+  );
+  assert.match(transfer, /Couldn't copy transfer key/);
+  assert.doesNotMatch(transfer, /setPlayerCodeStatus\(key/);
+  const invite = ui.slice(
+    ui.indexOf("player-invite-copy-btn"),
+    ui.indexOf("hub-invite-credited")
+  );
+  assert.match(invite, /Couldn't copy invite link/);
+  assert.doesNotMatch(invite, /setPlayerCodeStatus\(url/);
 
   const key = identity.formatAccountTransferKey("AB23-CD45", "p-ada", "Ada");
   assert.equal(key, "MG1:AB23CD45:p-ada:Ada");
@@ -731,8 +747,12 @@ test("owned signed-in backups skip leftover shared boards", async () => {
   const referrals = fs.readFileSync(path.join(__dirname, "../../hub-referrals.js"), "utf8");
   const notes = fs.readFileSync(path.join(__dirname, "../../hub-notifications.js"), "utf8");
   const bags = fs.readFileSync(path.join(__dirname, "../../hub-account-bag.js"), "utf8");
-  assert.match(plays, /identity\.persistOwnedSave/);
-  assert.match(plays, /identity\.readOwnedSave/);
+  assert.match(plays, /identity\.persistIdentityOwned/);
+  assert.match(plays, /identity\.readIdentityOwned/);
+  assert.match(plays, /identity\.persistPasswordOwned/);
+  assert.match(plays, /identity\.readPasswordOwned/);
+  assert.match(plays, /identity\.persistReservationsOwned/);
+  assert.match(plays, /identity\.readReservationsOwned/);
   assert.match(leaderboard, /identity\?\.persistOwnedSave/);
   assert.match(leaderboard, /listLeaderboardPbContributions/);
   assert.doesNotMatch(

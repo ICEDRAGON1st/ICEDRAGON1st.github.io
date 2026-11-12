@@ -1,4 +1,7 @@
 {
+  "20261015fa": [
+    "Copy transfer stays private if copy fails — leftover shared boards aren't asked for your key."
+  ],
   "20261015ez": [
     "Your high scores, chats, friends, and signed-in backups stay on your account — leftover shared boards aren't asked for them."
   ],

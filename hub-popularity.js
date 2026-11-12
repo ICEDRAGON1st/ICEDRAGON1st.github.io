@@ -321,6 +321,24 @@
     }
   }
 
+  function ownedIdentity() {
+    return root.HubIdentity || null;
+  }
+
+  async function persistOwnedMine(api, playerId, plays) {
+    const identity = ownedIdentity();
+    const me = String(playerId || "").trim();
+    if (!identity?.persistOwnedSave || !me) return false;
+    await identity.persistOwnedSave(api, SAVE_KEY, collectMine(plays, me));
+    return true;
+  }
+
+  async function readOwnedMine(api) {
+    const identity = ownedIdentity();
+    if (!identity?.readOwnedSave) return null;
+    return identity.readOwnedSave(api, SAVE_KEY);
+  }
+
   const api = {
     MAX_PLAYS,
     parsePopularityPayload,
@@ -344,7 +362,9 @@
     fetchPlayLogRows,
     persistPlayLogContribution,
     fetchPopularityRows,
-    persistPopularityContribution
+    persistPopularityContribution,
+    persistOwnedMine,
+    readOwnedMine
   };
   root.HubPopularity = api;
   if (typeof module === "object" && module.exports) module.exports = api;

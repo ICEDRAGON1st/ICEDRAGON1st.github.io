@@ -747,6 +747,40 @@
     return api.getSave(saveKey);
   }
 
+  async function persistIdentityOwned(api, playerId, local) {
+    const me = String(playerId || "").trim();
+    if (!me) return false;
+    return persistOwnedSave(api, IDENTITY_MINE_KEY, collectIdentityMine(local, me));
+  }
+
+  async function readIdentityOwned(api) {
+    return readOwnedSave(api, IDENTITY_MINE_KEY);
+  }
+
+  async function persistPasswordOwned(api, playerId, passwords, opts) {
+    const me = String(playerId || "").trim();
+    if (!me) return false;
+    const snapshot = collectPasswordMine(passwords, me, opts);
+    if (!Object.keys(snapshot.hashes || {}).length && !snapshot.cleared) return false;
+    return persistOwnedSave(api, PASSWORD_MINE_KEY, snapshot);
+  }
+
+  async function readPasswordOwned(api) {
+    return readOwnedSave(api, PASSWORD_MINE_KEY);
+  }
+
+  async function persistReservationsOwned(api, playerId, reservations) {
+    const me = String(playerId || "").trim();
+    if (!me) return false;
+    const snapshot = collectReservationsMine(reservations, me);
+    if (!Object.keys(snapshot.reservations || {}).length) return false;
+    return persistOwnedSave(api, RESERVATIONS_MINE_KEY, snapshot);
+  }
+
+  async function readReservationsOwned(api) {
+    return readOwnedSave(api, RESERVATIONS_MINE_KEY);
+  }
+
   function applyReservationsMine(localMap, mine, playerId) {
     const owned = readReservationsMine(mine);
     const me = String(playerId || owned.playerId || "").trim();
@@ -832,7 +866,13 @@
     rememberSavedAccount,
     removeSavedAccount,
     persistOwnedSave,
-    readOwnedSave
+    readOwnedSave,
+    persistIdentityOwned,
+    readIdentityOwned,
+    persistPasswordOwned,
+    readPasswordOwned,
+    persistReservationsOwned,
+    readReservationsOwned
   };
   root.HubIdentity = api;
   if (typeof module === "object" && module.exports) module.exports = api;
