@@ -200,7 +200,7 @@ test("owned identity mine restores code and name without reminting a different p
   assert.doesNotMatch(
     plays.slice(
       plays.indexOf("async function fetchCodesRemote"),
-      plays.indexOf("async function persistPlayerCodeClaim")
+      plays.indexOf("async function fetchCodesTableRemote")
     ),
     /fetchDoc/
   );

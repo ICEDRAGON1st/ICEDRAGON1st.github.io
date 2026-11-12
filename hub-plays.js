@@ -233,17 +233,6 @@
     }
   }
 
-  async function persistPopularityContribution(resetAt, replace = false) {
-    if (!popularityApi.persistPopularityContribution || !hasRequiredName()) return false;
-    return popularityApi.persistPopularityContribution(
-      sb(),
-      getPlayerId(),
-      popularityPending,
-      resetAt,
-      replace
-    );
-  }
-
   async function fetchPopularityTableRemote(resetAt) {
     if (!popularityApi.fetchPopularityRows || !popularityApi.rowsToCounts) return null;
     try {
@@ -465,7 +454,16 @@
           try {
             localResetAt = Number(localStorage.getItem("hub-game-popularity-reset-at") || 0);
           } catch {}
-          const tableWrote = await persistPopularityContribution(localResetAt, false);
+          const tableWrote =
+            popularityApi.persistPopularityContribution && hasRequiredName()
+              ? await popularityApi.persistPopularityContribution(
+                  sb(),
+                  getPlayerId(),
+                  popularityPending,
+                  localResetAt,
+                  false
+                )
+              : false;
           if (tableWrote) popularityPending = {};
         }
         return getEffectivePopularity();
@@ -490,7 +488,16 @@
 
       const epochReset = remoteResetAt > localResetAt;
       const resetAt = epochReset ? remoteResetAt : remoteResetAt || localResetAt || 0;
-      const tableWrote = await persistPopularityContribution(resetAt, epochReset);
+      const tableWrote =
+        popularityApi.persistPopularityContribution && hasRequiredName()
+          ? await popularityApi.persistPopularityContribution(
+              sb(),
+              getPlayerId(),
+              popularityPending,
+              resetAt,
+              epochReset
+            )
+          : false;
       const tableCounts = await fetchPopularityTableRemote(resetAt);
 
       // Server rebalance / wipe of inflated counts — replace local cache instead of merging up.
@@ -1091,11 +1098,6 @@
     return identity.fetchPasswordHashRows(sb());
   }
 
-  async function persistPlayerPasswordHash(hash, entry, opts) {
-    if (!identity.persistPlayerPasswordHash) return false;
-    return identity.persistPlayerPasswordHash(sb(), getPlayerId(), hash, entry, opts);
-  }
-
   async function fetchPasswordsRemote() {
     const tableRows = await fetchPasswordsTableRemote();
     if (!tableRows) throw new Error("passwords-unavailable");
@@ -1221,7 +1223,9 @@
       return { ok: false, error: "That password is already used — pick another" };
     }
 
-    const persistResult = await persistPlayerPasswordHash(hash, entry);
+    const persistResult = identity.persistPlayerPasswordHash
+      ? await identity.persistPlayerPasswordHash(sb(), getPlayerId(), hash, entry)
+      : false;
     if (persistResult === "taken") {
       return { ok: false, error: "That password is already used — pick another" };
     }
@@ -1287,7 +1291,9 @@
     markVaultHasPassword(me, false);
     rememberCurrentAccount({ hasPassword: false });
     persistPasswordMine({ cleared: true });
-    const persistResult = await persistPlayerPasswordHash("", null, { cleared: true });
+    const persistResult = identity.persistPlayerPasswordHash
+      ? await identity.persistPlayerPasswordHash(sb(), getPlayerId(), "", null, { cleared: true })
+      : false;
     if (persistResult === true) {
       return {
         ok: true,
@@ -1450,11 +1456,6 @@
     throw new Error("codes-unavailable");
   }
 
-  async function persistPlayerCodeClaim(norm, name) {
-    if (!identity.persistPlayerCodeClaim) return false;
-    return identity.persistPlayerCodeClaim(sb(), getPlayerId(), norm, name);
-  }
-
   async function fetchCodesTableRemote() {
     if (!identity.fetchCodeClaimRows || !identity.rowsToCodesMap) return null;
     try {
@@ -1486,11 +1487,6 @@
     }
   }
 
-  async function persistNameReservationLock(key, entry) {
-    if (!identity.persistNameReservationLock) return false;
-    return identity.persistNameReservationLock(sb(), getPlayerId(), key, entry);
-  }
-
   async function fetchReservationsRemote() {
     if (playsLiveJoined("name_reservation_locks")) {
       return reservationsCache && typeof reservationsCache === "object" ? reservationsCache : {};
@@ -1515,7 +1511,9 @@
     let tableWrote = false;
     const mine = Object.entries(reservations || {}).filter(([, entry]) => entry?.playerId === me);
     for (const [key, entry] of mine) {
-      const result = await persistNameReservationLock(key, entry);
+      const result = identity.persistNameReservationLock
+        ? await identity.persistNameReservationLock(sb(), getPlayerId(), key, entry)
+        : false;
       if (result === "taken") {
         const err = new Error("reservation taken");
         err.nameTaken = true;
@@ -1620,7 +1618,9 @@
 
     let tableWrote = false;
     for (let i = 0; i < 7; i += 1) {
-      const result = await persistPlayerCodeClaim(norm, getName());
+      const result = identity.persistPlayerCodeClaim
+        ? await identity.persistPlayerCodeClaim(sb(), getPlayerId(), norm, getName())
+        : false;
       if (result === true) {
         tableWrote = true;
         break;
@@ -1664,7 +1664,9 @@
           if (isPoisonPlayerCode(next)) continue;
           if (!remote[next] || remote[next].playerId === me) {
             if (tableWrote) {
-              const retried = await persistPlayerCodeClaim(next, getName());
+              const retried = identity.persistPlayerCodeClaim
+                ? await identity.persistPlayerCodeClaim(sb(), getPlayerId(), next, getName())
+                : false;
               if (retried !== true && retried === "taken") continue;
               if (retried === true) tableWrote = true;
             }
@@ -2176,11 +2178,6 @@
     }
   }
 
-  async function persistPlayLogContribution(plays) {
-    if (!popularityApi.persistPlayLogContribution) return false;
-    return popularityApi.persistPlayLogContribution(sb(), getPlayerId(), plays);
-  }
-
   async function fetchPlaysRemote() {
     if (playsLiveJoined("play_log_contributions")) {
       return {
@@ -2206,7 +2203,9 @@
   }
 
   async function pushPlaysRemote(data) {
-    const tableWrote = await persistPlayLogContribution(data?.plays);
+    const tableWrote = popularityApi.persistPlayLogContribution
+      ? await popularityApi.persistPlayLogContribution(sb(), getPlayerId(), data?.plays)
+      : false;
     if (tableWrote) return;
     throw new Error("plays-unavailable");
   }
@@ -2221,11 +2220,6 @@
     } catch {
       return null;
     }
-  }
-
-  async function persistNicknameClaim(claim) {
-    if (!namesApi.persistNicknameClaim) return false;
-    return namesApi.persistNicknameClaim(sb(), getPlayerId(), claim);
   }
 
   async function fetchNamesRemote() {
@@ -2246,7 +2240,10 @@
   async function pushNamesRemote(names) {
     const me = getPlayerId();
     const mine = namesApi.findClaimByPlayerId ? namesApi.findClaimByPlayerId(names, me) : null;
-    const tableResult = mine ? await persistNicknameClaim(mine) : false;
+    const tableResult =
+      mine && namesApi.persistNicknameClaim
+        ? await namesApi.persistNicknameClaim(sb(), getPlayerId(), mine)
+        : false;
     if (tableResult === "taken") {
       const err = new Error("nickname taken");
       err.nameTaken = true;
@@ -2389,7 +2386,9 @@
         ) {
           try {
             if (playsLiveJoined("nickname_claims")) {
-              await persistNicknameClaim(mine);
+              if (namesApi.persistNicknameClaim) {
+                await namesApi.persistNicknameClaim(sb(), getPlayerId(), mine);
+              }
             } else {
               await pushNamesRemote(namesCache);
             }
@@ -3250,11 +3249,6 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     }
   }
 
-  async function persistPresencePing() {
-    if (!presenceApi.persistPresencePing || !hasRequiredName()) return false;
-    return presenceApi.persistPresencePing(sb(), getPlayerId(), presenceSelfPayload());
-  }
-
   let presenceRealtimeUnsub = null;
 
   function notifyPresenceUi() {
@@ -3534,7 +3528,9 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       }
 
       const me = getPlayerId();
-      await persistPresencePing();
+      if (presenceApi.persistPresencePing && hasRequiredName()) {
+        await presenceApi.persistPresencePing(sb(), getPlayerId(), presenceSelfPayload());
+      }
       let remote = {};
       try {
         remote = await fetchPresenceRemote();
@@ -3592,11 +3588,6 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     }
   }
 
-  async function persistAllTimeRoster(entry) {
-    if (!alltimeApi.persistAllTimeRoster) return false;
-    return alltimeApi.persistAllTimeRoster(sb(), getPlayerId(), entry);
-  }
-
   async function fetchAllTimeRemote() {
     if (playsLiveJoined("alltime_roster")) {
       return allTimeCache && typeof allTimeCache === "object" ? allTimeCache : {};
@@ -3617,7 +3608,9 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     let tableWrote = false;
     const mine = players?.[me];
     if (mine) {
-      const result = await persistAllTimeRoster(mine);
+      const result = alltimeApi.persistAllTimeRoster
+        ? await alltimeApi.persistAllTimeRoster(sb(), getPlayerId(), mine)
+        : false;
       if (result) tableWrote = true;
     }
     if (tableWrote) return;

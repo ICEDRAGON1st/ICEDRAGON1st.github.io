@@ -139,14 +139,14 @@ test("shared docs skip the old backup read when the account server errors", () =
   assert.match(
     plays.slice(
       plays.indexOf("async function fetchCodesRemote"),
-      plays.indexOf("async function persistPlayerCodeClaim")
+      plays.indexOf("async function fetchCodesTableRemote")
     ),
     /throw new Error\("codes-unavailable"\)/
   );
   assert.doesNotMatch(
     plays.slice(
       plays.indexOf("async function fetchCodesRemote"),
-      plays.indexOf("async function persistPlayerCodeClaim")
+      plays.indexOf("async function fetchCodesTableRemote")
     ),
     /fetchDoc/
   );

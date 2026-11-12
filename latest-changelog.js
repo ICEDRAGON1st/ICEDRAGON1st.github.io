@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015fe",
+  "build": "20261015ff",
   "notes": [
-    "Log in stays private if the server is down — leftover shared boards aren't asked for your key."
+    "Who's online and play counts stay on your account — leftover shared boards aren't asked for them."
   ]
 };
