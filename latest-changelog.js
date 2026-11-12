@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ee",
+  "build": "20261015ef",
   "notes": [
-    "Account progress stays on your signed-in account, so it isn't copied onto a shared board."
+    "The Fishing weekend meter keeps luck reward on the signed-in meter, so it isn't copied onto a shared board."
   ]
 };

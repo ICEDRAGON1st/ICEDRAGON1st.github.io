@@ -948,6 +948,41 @@
     };
   }
 
+  const COMMUNITY_METER_ID = "fishing-community";
+
+  function overlayCommunityMeter(hub, row) {
+    const base = hub && typeof hub === "object" && !Array.isArray(hub) ? { ...hub } : {};
+    if (!row || typeof row !== "object") return base;
+    const id = String(row.id || "").trim();
+    if (id && id !== COMMUNITY_METER_ID) return base;
+    const weekKey = String(row.week_key || row.weekKey || "").slice(0, 64);
+    const prevKey = String(base.weekKey || "");
+    if (weekKey && prevKey && weekKey !== prevKey) {
+      base.total = 0;
+    }
+    if (weekKey) base.weekKey = weekKey;
+    const goal = Math.floor(Number(row.goal) || 0);
+    if (goal >= 500) base.goal = Math.min(100000, goal);
+    else if (base.goal == null) base.goal = 2500;
+    base.rewardUntil = Math.max(0, Math.floor(Number(row.reward_until ?? row.rewardUntil) || 0));
+    const mult = Math.floor(Number(row.reward_mult ?? row.rewardMult) || 0);
+    if (mult >= 1) base.rewardMult = Math.min(10, mult);
+    else if (base.rewardMult == null) base.rewardMult = 2;
+    base.lbWave = Math.max(0, Math.floor(Number(row.lb_wave ?? row.lbWave) || 0));
+    if (base.total == null) base.total = 0;
+    return base;
+  }
+
+  function applyCommunityMeterChange(hub, change) {
+    const data = unwrapMailChange(change);
+    const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
+    const current = hub && typeof hub === "object" && !Array.isArray(hub) ? { ...hub } : {};
+    if (type === "DELETE") return current;
+    const record = data.record || data.new || {};
+    if (!record || typeof record !== "object") return current;
+    return overlayCommunityMeter(current, record);
+  }
+
   const api = {
     SAVE_KEY,
     SAVE_BACKUP_KEY,
@@ -968,6 +1003,8 @@
     COMMUNITY_CASTS_CAP,
     overlayCommunityCasts,
     applyCommunityCastChange,
+    overlayCommunityMeter,
+    applyCommunityMeterChange,
     MAIL_GIFT_CAP,
     MAIL_TRADE_CAP,
     collectPlayerMailMine,

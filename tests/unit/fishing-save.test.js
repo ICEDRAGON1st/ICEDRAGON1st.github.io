@@ -231,17 +231,30 @@ test("owned aquarium row dual-writes without copying others or shrinking shared 
 test("fishing community uses account-server prefer and skips the old backup write after success", () => {
   const fs = require("node:fs");
   const script = fs.readFileSync(path.resolve(__dirname, "../../fishing/script.js"), "utf8");
-  assert.match(script, /api\.getPrefer\(\s*COMMUNITY_DOC/);
+  const fetchSlice = script.slice(
+    script.indexOf("async function fetchCommunityDoc"),
+    script.indexOf("async function fetchCommunityTableRemote")
+  );
+  const pushSlice = script.slice(
+    script.indexOf("async function pushCommunityDoc"),
+    script.indexOf("function communityDisplayTotal")
+  );
+  assert.match(fetchSlice, /fetchCommunityMeterRemote/);
+  assert.match(fetchSlice, /if \(!meterFetched && api\?\.getPrefer\)/);
+  assert.match(fetchSlice, /api\.getPrefer\(\s*COMMUNITY_DOC/);
   assert.match(script, /if \(raw && typeof raw === "object"\) \{/);
   assert.match(script, /remoteOk = true;/);
-  assert.match(script, /api\.pushPrefer\(\s*COMMUNITY_DOC/);
+  assert.match(pushSlice, /persistCommunityMeterState/);
+  assert.match(pushSlice, /if \(meterWrote\) return true/);
+  assert.match(pushSlice, /if \(!rewriteShared\) return tableWrote/);
+  assert.match(pushSlice, /api\.pushPrefer\(\s*COMMUNITY_DOC/);
   assert.equal(script.includes("await api.upsertDoc(COMMUNITY_DOC"), false);
   assert.equal(script.includes("mantledb.sh"), false);
   assert.equal(script.includes("COMMUNITY_API"), false);
   assert.match(script, /persistCommunityCastContribution/);
   assert.match(script, /fetchCommunityTableRemote/);
   assert.match(script, /overlayCommunityCasts/);
-  assert.match(script, /if \(tableWrote && !rewriteShared\) return true/);
+  assert.match(script, /overlayCommunityMeter/);
 });
 
 test("community cast overlay sums this week's rows without shrinking a richer shared meter", () => {
@@ -293,6 +306,51 @@ test("community cast overlay sums this week's rows without shrinking a richer sh
   );
   assert.equal(afterDelete.total, 155);
   assert.equal(afterDelete.rows.length, 5);
+});
+
+test("community meter overlay keeps luck reward without shrinking a new round", () => {
+  const hub = {
+    weekKey: "2026-10-16",
+    total: 2500,
+    goal: 2500,
+    rewardUntil: 9_000,
+    rewardMult: 2,
+    lbWave: 1_700
+  };
+  const live = save.applyCommunityMeterChange(hub, {
+    type: "UPDATE",
+    new: {
+      id: "fishing-community",
+      week_key: "2026-10-16",
+      goal: 2500,
+      reward_until: 9_500,
+      reward_mult: 2,
+      lb_wave: 1_800
+    }
+  });
+  assert.equal(live.weekKey, "2026-10-16");
+  assert.equal(live.total, 2500);
+  assert.equal(live.rewardUntil, 9_500);
+  assert.equal(live.lbWave, 1_800);
+
+  const nextRound = save.overlayCommunityMeter(live, {
+    id: "fishing-community",
+    week_key: "2026-10-16-r2",
+    goal: 2500,
+    reward_until: 0,
+    reward_mult: 2,
+    lb_wave: 0
+  });
+  assert.equal(nextRound.weekKey, "2026-10-16-r2");
+  assert.equal(nextRound.total, 0);
+  assert.equal(nextRound.lbWave, 0);
+
+  const afterDelete = save.applyCommunityMeterChange(nextRound, {
+    type: "DELETE",
+    old_record: { id: "fishing-community", week_key: "2026-10-16-r2" }
+  });
+  assert.equal(afterDelete.weekKey, "2026-10-16-r2");
+  assert.equal(afterDelete.total, 0);
 });
 
 test("fishing player mail uses account-owned rows and skips the shared rewrite after success", () => {
@@ -723,12 +781,26 @@ test("fishing community live rows subscribe without rewriting the shared meter",
     ),
     "utf8"
   );
+  const meterSql = fs.readFileSync(
+    path.resolve(
+      __dirname,
+      "../../supabase/migrations/202610160044_community_meter_state_realtime.sql"
+    ),
+    "utf8"
+  );
   assert.match(script, /ensureCommunityRealtime/);
   assert.match(script, /applyCommunityCastRealtime/);
+  assert.match(script, /applyCommunityMeterRealtime/);
   assert.match(script, /subscribeCommunityCastContributions/);
+  assert.match(script, /subscribeCommunityMeterState/);
   assert.match(script, /fishingLiveJoined\("community_cast_contributions"\)/);
+  assert.match(script, /fishingLiveJoined\("community_meter_state"\)/);
   assert.match(supabase, /function subscribeCommunityCastContributions/);
+  assert.match(supabase, /function subscribeCommunityMeterState/);
   assert.match(sql, /alter table public\.community_cast_contributions replica identity full/i);
   assert.match(sql, /alter publication supabase_realtime add table public\.community_cast_contributions/i);
+  assert.match(meterSql, /alter table public\.community_meter_state replica identity full/i);
+  assert.match(meterSql, /alter publication supabase_realtime add table public\.community_meter_state/i);
   assert.doesNotMatch(sql, /to anon/i);
+  assert.doesNotMatch(meterSql, /to anon/i);
 });

@@ -280,6 +280,19 @@ test("community cast realtime publication stays authenticated and replica-identi
   assert.doesNotMatch(sql, /to anon/i);
 });
 
+test("community meter realtime publication stays authenticated and replica-identity full", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160044_community_meter_state_realtime.sql"),
+    "utf8"
+  );
+  assert.match(sql, /alter table public\.community_meter_state replica identity full/i);
+  assert.match(
+    sql,
+    /alter publication supabase_realtime add table public\.community_meter_state/i
+  );
+  assert.doesNotMatch(sql, /to anon/i);
+});
+
 test("aquarium tank realtime publication stays authenticated and replica-identity full", () => {
   const sql = fs.readFileSync(
     path.join(ROOT, "supabase/migrations/202610160027_aquarium_tank_contributions_realtime.sql"),
@@ -738,6 +751,28 @@ test("community cast contributions are readable by signed-in players and only wr
     sql,
     /revoke all on table public\.community_cast_contributions from anon, authenticated/
   );
+});
+
+test("community meter state is readable and writable by signed-in players", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160043_community_meter_state.sql"),
+    "utf8"
+  );
+  assert.match(sql, /create table if not exists public\.community_meter_state/);
+  assert.match(sql, /enable row level security/i);
+  assert.match(sql, /force row level security/i);
+  assert.match(sql, /community_meter_state_read_authenticated/);
+  assert.match(sql, /community_meter_state_insert_authenticated/);
+  assert.match(sql, /community_meter_state_update_authenticated/);
+  assert.match(
+    sql,
+    /grant select, insert, update on table public\.community_meter_state to authenticated/
+  );
+  assert.match(
+    sql,
+    /revoke all on table public\.community_meter_state from anon, authenticated/
+  );
+  assert.doesNotMatch(sql, /add table public\.hub_docs/i);
 });
 
 test("referral contributions are readable by signed-in players and only writable by the owner", () => {

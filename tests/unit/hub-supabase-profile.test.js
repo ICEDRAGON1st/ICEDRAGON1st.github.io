@@ -360,6 +360,15 @@ test("fishing community casts use auth-owned rows instead of rewriting the share
   assert.match(src, /community_cast_contributions/);
 });
 
+test("fishing community luck reward uses signed-in meter state instead of rewriting the shared meter", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  assert.match(src, /async function listCommunityMeterState/);
+  assert.match(src, /async function upsertCommunityMeterState/);
+  assert.match(src, /function subscribeCommunityMeterState/);
+  assert.match(src, /community_meter_state/);
+});
+
 test("fishing player mail uses auth-owned rows instead of rewriting the shared mail board", () => {
   const fs = require("node:fs");
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");

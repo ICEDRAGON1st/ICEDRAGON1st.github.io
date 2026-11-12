@@ -1366,6 +1366,7 @@
   };
   let communityCastRows = [];
   let communityRealtimeUnsub = null;
+  let communityMeterRealtimeUnsub = null;
   let communityFetchAt = 0;
   let communityRateLimitedUntil = 0;
   let communitySyncTimer = 0;
@@ -1679,7 +1680,17 @@
     let remoteOk = false;
     let rateLimited = false;
 
-    if (api?.getPrefer) {
+    const meterRows = await fetchCommunityMeterRemote();
+    const meterFetched = Array.isArray(meterRows);
+    if (meterFetched) {
+      remoteOk = true;
+      const meterRow =
+        meterRows.find((row) => String(row?.id || "") === COMMUNITY_DOC) || meterRows[0];
+      if (meterRow && fishingSaveApi.overlayCommunityMeter) {
+        remote = normalizeCommunityDoc(fishingSaveApi.overlayCommunityMeter(null, meterRow));
+      }
+    }
+    if (!meterFetched && api?.getPrefer) {
       try {
         const raw = await api.getPrefer(COMMUNITY_DOC);
         if (raw && typeof raw === "object") {
@@ -1752,6 +1763,38 @@
     }
   }
 
+  async function fetchCommunityMeterRemote() {
+    const api = fishingSb();
+    if (!api?.listCommunityMeterState) return null;
+    try {
+      const rows = await api.listCommunityMeterState();
+      if (!rows) return null;
+      return Array.isArray(rows) ? rows : [];
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistCommunityMeterState(doc) {
+    const api = fishingSb();
+    if (!api?.upsertCommunityMeterState) return false;
+    const key = String(doc?.weekKey || "").slice(0, 64);
+    if (!key) return false;
+    try {
+      await api.upsertCommunityMeterState({
+        id: COMMUNITY_DOC,
+        weekKey: key,
+        goal: Math.max(500, Math.floor(Number(doc.goal) || COMMUNITY_GOAL)),
+        rewardUntil: Math.max(0, Math.floor(Number(doc.rewardUntil) || 0)),
+        rewardMult: clampCommunityRewardMult(doc.rewardMult),
+        lbWave: Math.max(0, Math.floor(Number(doc.lbWave) || 0))
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   async function persistCommunityCastContribution(weekKey, casts) {
     const api = fishingSb();
     if (!api?.upsertCommunityCastContribution) return false;
@@ -1778,15 +1821,22 @@
       doc?.weekKey,
       state.communityContrib
     );
-    if (tableWrote && !rewriteShared) return true;
+    let meterWrote = false;
+    if (rewriteShared) {
+      meterWrote = await persistCommunityMeterState(doc);
+      if (meterWrote) return true;
+    } else if (tableWrote) {
+      return true;
+    }
+    if (!rewriteShared) return tableWrote;
     const payload = { ...doc, token: COMMUNITY_TOKEN };
     const api = fishingSb();
-    if (!api?.pushPrefer) return false;
+    if (!api?.pushPrefer) return meterWrote || tableWrote;
     try {
       await api.pushPrefer(COMMUNITY_DOC, payload);
       return true;
     } catch {
-      return false;
+      return meterWrote || tableWrote;
     }
   }
 
@@ -1852,21 +1902,47 @@
     };
   }
 
+  function applyCommunityMeterRealtime(change) {
+    if (!fishingSaveApi.applyCommunityMeterChange) return;
+    const next = fishingSaveApi.applyCommunityMeterChange(communityCache, change);
+    const key = String(next.weekKey || communityCache.weekKey || communityWeekKey()).slice(0, 64);
+    const withCasts = fishingSaveApi.overlayCommunityCasts
+      ? fishingSaveApi.overlayCommunityCasts(next, communityCastRows, key)
+      : next;
+    communityCache = {
+      weekKey: withCasts.weekKey || key,
+      total: Math.max(0, Number(withCasts.total) || 0),
+      goal: Math.max(500, Number(withCasts.goal) || Number(communityCache.goal) || COMMUNITY_GOAL),
+      rewardUntil: clampCommunityRewardUntil(withCasts.rewardUntil, withCasts.lbWave),
+      rewardMult: clampCommunityRewardMult(withCasts.rewardMult || communityCache.rewardMult),
+      lbWave: Math.max(0, Number(withCasts.lbWave) || 0)
+    };
+  }
+
   function stopCommunityRealtime() {
     try {
       communityRealtimeUnsub?.();
     } catch {}
+    try {
+      communityMeterRealtimeUnsub?.();
+    } catch {}
     communityRealtimeUnsub = null;
+    communityMeterRealtimeUnsub = null;
   }
 
   function ensureCommunityRealtime() {
     const api = window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
-    if (!api?.subscribeCommunityCastContributions) return;
-    if (communityRealtimeUnsub) return;
     if (fishingCloudQuiet()) return;
-    communityRealtimeUnsub = api.subscribeCommunityCastContributions((change) => {
-      applyCommunityCastRealtime(change);
-    });
+    if (!communityRealtimeUnsub && api?.subscribeCommunityCastContributions) {
+      communityRealtimeUnsub = api.subscribeCommunityCastContributions((change) => {
+        applyCommunityCastRealtime(change);
+      });
+    }
+    if (!communityMeterRealtimeUnsub && api?.subscribeCommunityMeterState) {
+      communityMeterRealtimeUnsub = api.subscribeCommunityMeterState((change) => {
+        applyCommunityMeterRealtime(change);
+      });
+    }
   }
 
   async function syncCommunity(force = false) {
@@ -1881,7 +1957,12 @@
     }
     const now = Date.now();
     const pending = Math.max(0, Math.floor(Number(state.communityPendingAdds) || 0));
-    if (!force && !pending && fishingLiveJoined("community_cast_contributions")) {
+    if (
+      !force &&
+      !pending &&
+      fishingLiveJoined("community_cast_contributions") &&
+      fishingLiveJoined("community_meter_state")
+    ) {
       return communityCache;
     }
     if (

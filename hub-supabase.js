@@ -925,6 +925,10 @@
     return subscribePostgresChanges("community_cast_contributions", onChange);
   }
 
+  function subscribeCommunityMeterState(onChange) {
+    return subscribePostgresChanges("community_meter_state", onChange);
+  }
+
   function subscribeFeedbackItemContributions(onChange) {
     return subscribePostgresChanges("feedback_item_contributions", onChange);
   }
@@ -2316,6 +2320,73 @@
     }
   }
 
+  const COMMUNITY_METER_ID = "fishing-community";
+
+  function sanitizeCommunityMeterGoal(raw) {
+    const n = Math.floor(Number(raw) || 0);
+    if (n < 500) return 2500;
+    return Math.min(100000, n);
+  }
+
+  function sanitizeCommunityMeterMult(raw) {
+    const n = Math.floor(Number(raw) || 0);
+    if (n < 1) return 2;
+    return Math.min(10, n);
+  }
+
+  async function listCommunityMeterState() {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const url = `${SUPABASE_URL}/rest/v1/community_meter_state?select=id,week_key,goal,reward_until,reward_mult,lb_wave,updated_at`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase community meter list ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
+  async function upsertCommunityMeterState(row) {
+    const session = await ensureSession();
+    if (!session?.access_token) throw new Error("supabase community meter needs a session");
+    const weekKey = sanitizeCommunityWeekKey(row?.weekKey);
+    if (!weekKey) throw new Error("bad community meter week key");
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/community_meter_state`, {
+      method: "POST",
+      headers: headers(
+        {
+          Prefer: "resolution=merge-duplicates,return=minimal"
+        },
+        session.access_token
+      ),
+      body: JSON.stringify({
+        id: COMMUNITY_METER_ID,
+        week_key: weekKey,
+        goal: sanitizeCommunityMeterGoal(row?.goal),
+        reward_until: Math.max(0, Math.floor(Number(row?.rewardUntil) || 0)),
+        reward_mult: sanitizeCommunityMeterMult(row?.rewardMult),
+        lb_wave: Math.max(0, Math.floor(Number(row?.lbWave) || 0)),
+        updated_at: new Date().toISOString()
+      })
+    });
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      throw new Error(`supabase community meter upsert ${res.status} ${text}`);
+    }
+  }
+
   function sanitizeFishingMailItem(raw) {
     if (!raw || typeof raw !== "object") return null;
     const kind = String(raw.kind || "").toLowerCase();
@@ -2877,6 +2948,7 @@
     subscribeFishingGiftContributions,
     subscribeAquariumTankContributions,
     subscribeCommunityCastContributions,
+    subscribeCommunityMeterState,
     subscribeFeedbackItemContributions,
     subscribeLeaderboardPbContributions,
     subscribePopularityContributions,
@@ -2922,6 +2994,8 @@
     upsertFeedbackItemContribution,
     listCommunityCastContributions,
     upsertCommunityCastContribution,
+    listCommunityMeterState,
+    upsertCommunityMeterState,
     listFishingMailContributions,
     upsertFishingMailContribution,
     listFishingGiftContributions,
