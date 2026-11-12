@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015dq",
+  "build": "20261015dr",
   "notes": [
-    "Unique nicknames stay on your signed-in account, so they aren't copied onto a shared board."
+    "Who's online stays on your signed-in account, so it isn't copied onto a shared board."
   ]
 };

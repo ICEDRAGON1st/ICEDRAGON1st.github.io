@@ -121,7 +121,20 @@ test("shared docs skip the old backup read when the account server errors", () =
   assert.doesNotMatch(getPreferSrc, /fetch\(_?mantleUrl/);
   assert.match(getPreferSrc, /return null;/);
   assert.match(src, /console\.warn\("\[HubSupabase\] getPrefer", docId, err\);\s*throw err;/);
-  assert.match(plays, /if \(data == null\) throw new Error\("presence-unavailable"\)/);
+  assert.match(
+    plays.slice(
+      plays.indexOf("async function fetchPresenceRemote"),
+      plays.indexOf("async function fetchPresenceTableRemote")
+    ),
+    /throw new Error\("presence-unavailable"\)/
+  );
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function fetchPresenceRemote"),
+      plays.indexOf("async function fetchPresenceTableRemote")
+    ),
+    /fetchDoc/
+  );
   assert.match(
     plays.slice(
       plays.indexOf("async function fetchCodesRemote"),

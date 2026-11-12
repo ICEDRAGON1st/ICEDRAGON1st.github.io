@@ -49,7 +49,20 @@ test("presence table rows map to the shared online list without dropping other p
   const plays = fs.readFileSync(path.resolve(__dirname, "../../hub-plays.js"), "utf8");
   assert.match(plays, /persistPresencePing/);
   assert.match(plays, /fetchPresenceTableRemote/);
-  assert.match(plays, /if \(!tableWrote && !playsLiveJoined\("presence_pings"\)\) await pushPresenceRemote/);
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function fetchPresenceRemote"),
+      plays.indexOf("async function fetchPresenceTableRemote")
+    ),
+    /fetchDoc/
+  );
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function heartbeat"),
+      plays.indexOf("async function fetchAllTimeTableRemote")
+    ),
+    /pushDoc|pushPresenceRemote/
+  );
   assert.equal(typeof presence.rowsToMap, "function");
 
   const mapped = presence.rowsToMap([
