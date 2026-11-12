@@ -4005,9 +4005,38 @@
     }).catch(() => {});
   }
 
+  let adminAuditEntries = [];
+
+  function readAdminAuditEntries(data) {
+    const entries = Array.isArray(data?.entries) ? data.entries : [];
+    return entries.filter((e) => e && typeof e === "object").slice(-ADMIN_AUDIT_MAX);
+  }
+
+  async function loadAdminAuditEntries() {
+    const api = fishingSb();
+    if (fishingLiveJoined("admin_broadcasts") && adminAuditEntries.length) {
+      return adminAuditEntries.slice();
+    }
+    if (api?.listAdminBroadcasts) {
+      try {
+        const rows = await api.listAdminBroadcasts();
+        if (Array.isArray(rows)) {
+          const hit = rows.find(
+            (row) => String(row.doc_id || row.docId || "") === ADMIN_AUDIT_DOC
+          );
+          if (hit && hit.data && typeof hit.data === "object") {
+            adminAuditEntries = readAdminAuditEntries(hit.data);
+            return adminAuditEntries.slice();
+          }
+        }
+      } catch {}
+    }
+    return adminAuditEntries.slice();
+  }
+
   async function appendAdminAuditLog(payload) {
     const api = fishingSb();
-    if (!api?.getDoc || !api?.upsertDoc) return;
+    if (!api?.upsertAdminDoc || !api.isAdminDoc?.(ADMIN_AUDIT_DOC)) return;
     const {
       cmd,
       raw,
@@ -4034,8 +4063,7 @@
     if (kind) entry.kind = String(kind).slice(0, 40);
     if (target) entry.target = String(target).slice(0, 40);
     try {
-      const data = (await api.getDoc(ADMIN_AUDIT_DOC)) || {};
-      const entries = Array.isArray(data.entries) ? data.entries.slice() : [];
+      const entries = await loadAdminAuditEntries();
       entries.push(entry);
       while (entries.length > ADMIN_AUDIT_MAX) entries.shift();
       const auditPayload = {
@@ -4043,26 +4071,16 @@
         entries,
         updatedAt: Date.now()
       };
-      if (api.upsertAdminDoc) await api.upsertAdminDoc(ADMIN_AUDIT_DOC, auditPayload);
-      else await api.upsertDoc(ADMIN_AUDIT_DOC, auditPayload);
+      await api.upsertAdminDoc(ADMIN_AUDIT_DOC, auditPayload);
+      adminAuditEntries = entries;
     } catch (err) {
       console.warn("[admin-audit] write failed", err);
     }
   }
 
   async function fetchAdminAuditEntries() {
-    const api = fishingSb();
-    if (!api?.getDoc) return [];
-    try {
-      const data = await api.getDoc(ADMIN_AUDIT_DOC);
-      const entries = Array.isArray(data?.entries) ? data.entries : [];
-      return entries
-        .filter((e) => e && typeof e === "object")
-        .slice(-ADMIN_AUDIT_MAX)
-        .reverse();
-    } catch {
-      return [];
-    }
+    const entries = await loadAdminAuditEntries();
+    return entries.slice().reverse();
   }
 
   function syncAdminAuditSection() {

@@ -206,6 +206,15 @@ test("Fishing admin events subscribe without rewriting hub_docs from the live ov
     ),
     /upsertDoc|pushPrefer|getDoc/
   );
+  assert.match(script, /async function loadAdminAuditEntries/);
+  assert.match(script, /upsertAdminDoc\(ADMIN_AUDIT_DOC/);
+  assert.doesNotMatch(
+    script.slice(
+      script.indexOf("let adminAuditEntries"),
+      script.indexOf("function syncAdminAuditSection")
+    ),
+    /getDoc|getPrefer|upsertDoc/
+  );
   assert.match(sql, /fishing-admin-events/);
   assert.match(sql, /security definer/i);
   assert.doesNotMatch(sql, /add table public\.hub_docs/i);

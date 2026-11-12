@@ -72,6 +72,10 @@ test("admin broadcasts subscribe without rewriting hub_docs from the live overla
     /getDoc|getPrefer/
   );
   assert.doesNotMatch(
+    admin.slice(admin.indexOf("async function upsertDoc"), admin.indexOf("function sanitizeAnnounceText")),
+    /api\.upsertDoc/
+  );
+  assert.doesNotMatch(
     admin.slice(
       admin.indexOf("function applyAdminBroadcastRealtime"),
       admin.indexOf("function stopAdminBroadcastRealtime")

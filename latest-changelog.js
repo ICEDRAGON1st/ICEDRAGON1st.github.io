@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ec",
+  "build": "20261015ed",
   "notes": [
-    "Hub and Fishing admin stay on the signed-in admin channel, so they aren't copied onto a shared board."
+    "Fishing admin audit stays on the signed-in admin channel, so it isn't copied onto a shared board."
   ]
 };
