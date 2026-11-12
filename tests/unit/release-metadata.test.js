@@ -39,6 +39,24 @@ test("release build and changelog metadata stay aligned", () => {
   assert.match(worker, /event\.data\?\.type === "SKIP_WAITING"/);
 });
 
+test("fishing Idle local scripts follow the hub build", () => {
+  const index = fs.readFileSync(path.join(ROOT, "index.html"), "utf8");
+  const fishing = fs.readFileSync(path.join(ROOT, "fishing/index.html"), "utf8");
+  const indexBuild = /window\.WORDLE_BUILD = "([^"]+)"/.exec(index)?.[1];
+  const adminEvents = /src=["']admin-events\.js\?v=([^"']+)/.exec(fishing)?.[1];
+  const script = /src=["']script\.js\?v=([^"']+)/.exec(fishing)?.[1];
+  const save = /src=["']save\.js\?v=([^"']+)/.exec(fishing)?.[1];
+  const siteConfig = /src=["']\.\.\/site-config\.js\?v=([^"']+)/.exec(fishing)?.[1];
+  const styles = /href=["']styles\.css\?v=([^"']+)/.exec(fishing)?.[1];
+
+  assert.ok(indexBuild, "index build is present");
+  assert.equal(adminEvents, indexBuild);
+  assert.equal(script, indexBuild);
+  assert.equal(save, indexBuild);
+  assert.equal(siteConfig, indexBuild);
+  assert.equal(styles, indexBuild);
+});
+
 test("service worker install only precaches the offline hub shell", () => {
   const worker = fs.readFileSync(path.join(ROOT, "sw.js"), "utf8");
   const precacheMatch = /const PRECACHE = (\[[\s\S]*?\]);/.exec(worker);

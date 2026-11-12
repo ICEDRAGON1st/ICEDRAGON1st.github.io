@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015db",
+  "build": "20261015dc",
   "notes": [
-    "Fishing admin popups now update from your signed-in account as they happen, so a new message doesn't wait on the next poll."
+    "Minigames now load the same version as the hub, so a Fishing admin popup isn't stuck on an old cached copy."
   ]
 };
