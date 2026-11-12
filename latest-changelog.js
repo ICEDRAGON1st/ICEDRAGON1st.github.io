@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015em",
+  "build": "20261015en",
   "notes": [
-    "Saved accounts on this device keep your existing player, so switching doesn't create a new one."
+    "High scores and Feedback stay on your signed-in account, so they aren't copied onto a leftover shared board."
   ]
 };

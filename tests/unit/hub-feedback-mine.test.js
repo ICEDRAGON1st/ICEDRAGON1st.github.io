@@ -27,11 +27,10 @@ test("owned feedback lives in a helper used by the Feedback panel", () => {
   assert.match(ui, /fetchFeedbackDeletesRemote/);
   assert.match(ui, /persistFeedbackDeletes/);
   assert.match(ui, /skipShared: !fetched/);
-  assert.match(fetchSlice, /if \(!adminDeletesFetched && !tableRemote\)/);
-  assert.match(fetchSlice, /api\.getPrefer/);
+  assert.doesNotMatch(fetchSlice, /getPrefer/);
   assert.match(ui, /if \(!row\) return \{\}/);
   assert.match(pushSlice, /if \(deletesWrote && opts\.wipe\) return/);
-  assert.match(pushSlice, /feedbackLiveJoined\(\) \|\| feedbackLiveJoined\("admin_broadcasts"\)/);
+  assert.doesNotMatch(pushSlice, /pushPrefer/);
   assert.match(ui, /rewriteShared: true, wipe: true/);
   assert.match(index, /hub-feedback-mine\.js/);
   assert.equal(mine.SAVE_KEY, "feedback-mine");

@@ -13,7 +13,6 @@
   const LOCAL_KEY = "hub-leaderboards-v1";
   const MAX_PER_GAME = 50;
   const SYNC_GAP_MS = 4000;
-  const SUPABASE_DOC_ID = "leaderboards";
   const ADMIN_RESETS_DOC = "hub-leaderboard-resets";
   const ADMIN_RESETS_TOKEN = "ice-hub-admin-9f3a";
 
@@ -872,24 +871,6 @@
           };
       fetched = true;
     }
-    if (!adminResetsFetched && !tableRemote) {
-      try {
-        const api = window.HubSupabase;
-        const data = api?.getPrefer ? await api.getPrefer(SUPABASE_DOC_ID) : null;
-        if (data && typeof data === "object") {
-          parsed = {
-            games: mergeBoards(parsed, {
-              games: data.games && typeof data.games === "object" ? data.games : {},
-              resets: {}
-            }).games,
-            resets: { ...(parsed.resets || {}), ...(data.resets && typeof data.resets === "object" ? data.resets : {}) }
-          };
-          fetched = true;
-        }
-      } catch {
-        // keep table/admin overlay
-      }
-    }
     if (!fetched) throw new Error("leaderboards-unavailable");
     return parsed;
   }
@@ -907,15 +888,6 @@
     }
     if (tableWrote && !(opts && opts.rewriteShared)) return;
     if (opts && opts.skipShared) return;
-    if (
-      leaderboardLiveJoined("leaderboard_pb_contributions") ||
-      leaderboardLiveJoined("admin_broadcasts")
-    ) {
-      return;
-    }
-    const api = window.HubSupabase;
-    if (!api?.pushPrefer) throw new Error("account-server-unavailable");
-    await api.pushPrefer(SUPABASE_DOC_ID, merged);
   }
 
   function normalizeEntry(entry, fallbackLower) {

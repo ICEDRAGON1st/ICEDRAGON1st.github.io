@@ -162,6 +162,45 @@ test("leaderboard wipes join admin_broadcasts without publishing hub_docs", () =
   assert.doesNotMatch(sql, /to anon/i);
 });
 
+test("contracted leftover boards cannot be rewritten on hub_docs", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160049_lock_contracted_hub_docs.sql"),
+    "utf8"
+  );
+  assert.match(sql, /hub_docs_insert_non_admin/);
+  assert.match(sql, /hub_docs_update_non_admin/);
+  assert.match(sql, /id not like 'account-bag:%'/);
+  for (const id of [
+    "leaderboards",
+    "player-feedback",
+    "plays-log",
+    "name-registry",
+    "player-codes",
+    "name-reservations",
+    "presence",
+    "players-alltime",
+    "friend-chat",
+    "friends",
+    "online-matches",
+    "fishing-gifts",
+    "fishing-player-mail",
+    "fishing-aquariums",
+    "hub-calls",
+    "hub-referrals-v1",
+    "hub-game-popularity-v1",
+    "player-passwords",
+    "hub-leaderboard-resets",
+    "hub-feedback-deletes"
+  ]) {
+    assert.match(sql, new RegExp(`'${id.replaceAll("-", "\\-")}'`));
+  }
+  assert.doesNotMatch(sql, /'fishing-community'/);
+  assert.doesNotMatch(sql, /'paper-io-/);
+  assert.doesNotMatch(sql, /'discord-links-v1'/);
+  assert.doesNotMatch(sql, /add table public\.hub_docs/i);
+  assert.doesNotMatch(sql, /to anon/i);
+});
+
 test("fishing admin announce locks hub_docs writes and joins admin_broadcasts without publishing hub_docs", () => {
   const sql = fs.readFileSync(
     path.join(ROOT, "supabase/migrations/202610160040_admin_broadcasts_fishing_announce.sql"),

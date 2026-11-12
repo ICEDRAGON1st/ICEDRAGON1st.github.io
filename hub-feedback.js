@@ -10,7 +10,6 @@
  *   unreadCount() / markAllRead()
  */
 (function () {
-  const DOC_ID = "player-feedback";
   const LOCAL_KEY = "hub-feedback-v1";
   const READ_KEY = "hub-feedback-read-at-v1";
   const LAST_SEND_KEY = "hub-feedback-last-send-v1";
@@ -321,24 +320,6 @@
           };
       fetched = true;
     }
-    if (!adminDeletesFetched && !tableRemote) {
-      try {
-        const api = sb();
-        const data = api?.getPrefer ? await api.getPrefer(DOC_ID) : null;
-        if (data && typeof data === "object") {
-          parsed = {
-            items: mergeItems(parsed.items, Array.isArray(data.items) ? data.items : []),
-            deletedIds: [
-              ...parsed.deletedIds,
-              ...(Array.isArray(data.deletedIds) ? data.deletedIds.map(String) : [])
-            ]
-          };
-          fetched = true;
-        }
-      } catch (err) {
-        if (err?.code === 429) throw err;
-      }
-    }
     if (parsed.deletedIds.length) {
       saveDeletedIds([...new Set([...loadDeletedIds(), ...parsed.deletedIds])].slice(0, MAX_DELETED));
     }
@@ -355,14 +336,6 @@
     }
     if (tableWrote && !(opts && opts.rewriteShared)) return;
     if (opts && opts.skipShared) return;
-    if (feedbackLiveJoined() || feedbackLiveJoined("admin_broadcasts")) return;
-    const payload = {
-      items: items.slice(0, MAX_ITEMS),
-      deletedIds: loadDeletedIds()
-    };
-    const api = sb();
-    if (!api?.pushPrefer) throw new Error("account-server-unavailable");
-    await api.pushPrefer(DOC_ID, payload);
   }
 
   function list() {

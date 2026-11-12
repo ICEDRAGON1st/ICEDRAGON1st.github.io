@@ -28,14 +28,12 @@ test("personal bests live in a helper used by the shared board", () => {
   assert.match(ui, /fetchLeaderboardResetsRemote/);
   assert.match(ui, /persistLeaderboardResets/);
   assert.match(ui, /skipShared: !fetched/);
-  assert.match(fetchSlice, /if \(!adminResetsFetched && !tableRemote\)/);
-  assert.match(fetchSlice, /api\.getPrefer/);
+  assert.doesNotMatch(fetchSlice, /getPrefer/);
   assert.match(ui, /if \(!row\) return \{\}/);
   assert.match(pushSlice, /if \(opts\.wipe\) \{/);
   assert.match(pushSlice, /if \(resetsWrote\) return/);
   assert.match(pushSlice, /else if \(tableWrote\) \{/);
-  assert.match(pushSlice, /leaderboardLiveJoined\("leaderboard_pb_contributions"\)/);
-  assert.match(pushSlice, /leaderboardLiveJoined\("admin_broadcasts"\)/);
+  assert.doesNotMatch(pushSlice, /pushPrefer/);
   assert.match(ui, /rewriteShared: true, wipe: true/);
   assert.match(plays, /hub-leaderboard-pbs\.js/);
   assert.match(index, /hub-leaderboard-pbs\.js/);
