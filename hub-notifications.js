@@ -440,7 +440,9 @@
       const cooled = typeof HubFeedback !== "undefined" && HubFeedback.isRateLimited?.();
       if (owner && !cooled && Date.now() - lastFeedbackSyncAt >= FEEDBACK_SYNC_MS) {
         lastFeedbackSyncAt = Date.now();
-        await HubFeedback.sync();
+        if (!window.HubSupabase?.isRealtimeJoined?.("feedback_item_contributions")) {
+          await HubFeedback.sync();
+        }
         await HubFeedback.flushPending?.();
       }
     } catch {}

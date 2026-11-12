@@ -104,6 +104,7 @@ test("leaderboard live rows subscribe without rewriting the shared board", () =>
   assert.match(ui, /ensureLeaderboardRealtime/);
   assert.match(ui, /applyLeaderboardRealtime/);
   assert.match(ui, /subscribeLeaderboardPbContributions/);
+  assert.match(ui, /leaderboardLiveJoined\("leaderboard_pb_contributions"\)/);
   assert.doesNotMatch(
     ui.slice(
       ui.indexOf("function applyLeaderboardRealtime"),
@@ -129,4 +130,6 @@ test("Most Invites hydrates from owned invite rows before the shared board", () 
   assert.match(fn, /rowsToNameMap/);
   assert.match(fn, /getDoc\("hub-referrals-v1"\)/);
   assert.match(fn, /getDoc\("name-registry"\)/);
+  assert.match(fn, /leaderboardLiveJoined\("referral_contributions"\)/);
+  assert.match(fn, /leaderboardLiveJoined\("nickname_claims"\)/);
 });

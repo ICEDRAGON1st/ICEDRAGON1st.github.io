@@ -351,6 +351,14 @@
     return false;
   }
 
+  function feedbackLiveJoined() {
+    try {
+      return !!sb()?.isRealtimeJoined?.("feedback_item_contributions");
+    } catch {
+      return false;
+    }
+  }
+
   function feedbackCloudQuiet() {
     if (feedbackNetQuiet()) return true;
     try {
@@ -407,16 +415,20 @@
       cache = { items: mergeItems(local.items, cache.items) };
       await pullMine();
       let remote = { items: [] };
-      try {
-        remote = await fetchRemote();
-      } catch (err) {
-        cache = { items: mergeItems(local.items, cache.items) };
-        saveLocal(cache);
-        persistMine();
-        if (err?.code !== 429) {
-          /* keep local */
+      if (feedbackLiveJoined()) {
+        remote = { items: Array.isArray(cache.items) ? cache.items : [] };
+      } else {
+        try {
+          remote = await fetchRemote();
+        } catch (err) {
+          cache = { items: mergeItems(local.items, cache.items) };
+          saveLocal(cache);
+          persistMine();
+          if (err?.code !== 429) {
+            /* keep local */
+          }
+          return cache;
         }
-        return cache;
       }
       const items = mergeItems(local.items, remote.items);
       cache = { items: mergeItems(items, cache.items) };

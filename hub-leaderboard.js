@@ -1349,15 +1349,17 @@
     const resets = data.resets && typeof data.resets === "object" ? data.resets : {};
     if (!supabaseReady()) return { games, resets };
     let hubDoc = { byInviter: {}, byInvitee: {} };
-    try {
-      const doc = await HubSupabase.getDoc("hub-referrals-v1");
-      if (doc && typeof doc === "object") {
-        hubDoc = {
-          byInviter: doc.byInviter && typeof doc.byInviter === "object" ? doc.byInviter : {},
-          byInvitee: doc.byInvitee && typeof doc.byInvitee === "object" ? doc.byInvitee : {}
-        };
-      }
-    } catch {}
+    if (!leaderboardLiveJoined("referral_contributions")) {
+      try {
+        const doc = await HubSupabase.getDoc("hub-referrals-v1");
+        if (doc && typeof doc === "object") {
+          hubDoc = {
+            byInviter: doc.byInviter && typeof doc.byInviter === "object" ? doc.byInviter : {},
+            byInvitee: doc.byInvitee && typeof doc.byInvitee === "object" ? doc.byInvitee : {}
+          };
+        }
+      } catch {}
+    }
     try {
       const rows = await HubSupabase.listReferralContributions?.();
       const helper = window.HubReferralsMine;
@@ -1369,15 +1371,17 @@
     // Warm name map from owned nickname rows, with name-registry as floor.
     try {
       let names = {};
-      try {
-        const reg = await HubSupabase.getDoc("name-registry");
-        names =
-          reg && reg.names && typeof reg.names === "object"
-            ? reg.names
-            : reg && typeof reg === "object"
-              ? reg
-              : {};
-      } catch {}
+      if (!leaderboardLiveJoined("nickname_claims")) {
+        try {
+          const reg = await HubSupabase.getDoc("name-registry");
+          names =
+            reg && reg.names && typeof reg.names === "object"
+              ? reg.names
+              : reg && typeof reg === "object"
+                ? reg
+                : {};
+        } catch {}
+      }
       try {
         const rows = await HubSupabase.listNicknameClaims?.();
         const namesApi = window.HubNames;
@@ -1528,6 +1532,14 @@
     return false;
   }
 
+  function leaderboardLiveJoined(table) {
+    try {
+      return !!window.HubSupabase?.isRealtimeJoined?.(table);
+    } catch {
+      return false;
+    }
+  }
+
   function applyLeaderboardRealtime(change) {
     const helper = pbsApi();
     if (!helper?.applyChange) return;
@@ -1565,11 +1577,18 @@
     const run = async () => {
       let remote = { games: {}, resets: {} };
       let fetched = true;
-      try {
-        remote = await fetchRemote();
-      } catch {
-        fetched = false;
-        remote = { games: {}, resets: {} };
+      if (leaderboardLiveJoined("leaderboard_pb_contributions")) {
+        remote = {
+          games: cache.games && typeof cache.games === "object" ? cache.games : {},
+          resets: cache.resets && typeof cache.resets === "object" ? cache.resets : {}
+        };
+      } else {
+        try {
+          remote = await fetchRemote();
+        } catch {
+          fetched = false;
+          remote = { games: {}, resets: {} };
+        }
       }
       // Re-read AFTER the network wait so live Time Online bumps aren't wiped.
       const local = loadLocal();
@@ -1585,7 +1604,9 @@
         await persistMyPbs();
       } catch {}
       try {
-        await pushRemote(merged, { skipShared: !fetched });
+        await pushRemote(merged, {
+          skipShared: !fetched || leaderboardLiveJoined("leaderboard_pb_contributions")
+        });
       } catch {
         // offline — local still works
       }

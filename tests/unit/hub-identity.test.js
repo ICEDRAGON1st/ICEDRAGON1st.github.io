@@ -156,6 +156,7 @@ test("player-code live rows subscribe without rewriting the shared code document
   );
   assert.match(plays, /ensureCodesRealtime/);
   assert.match(plays, /applyCodesRealtime/);
+  assert.match(plays, /playsLiveJoined\("player_code_claims"\)/);
   assert.match(plays, /subscribePlayerCodeClaims/);
   assert.doesNotMatch(
     plays.slice(
@@ -482,6 +483,7 @@ test("name-reservation live rows subscribe without rewriting the shared lock doc
   assert.match(plays, /ensureReservationsRealtime/);
   assert.match(plays, /applyReservationsRealtime/);
   assert.match(plays, /subscribeNameReservationLocks/);
+  assert.match(plays, /playsLiveJoined\("name_reservation_locks"\)/);
   assert.doesNotMatch(
     plays.slice(
       plays.indexOf("function applyReservationsRealtime"),

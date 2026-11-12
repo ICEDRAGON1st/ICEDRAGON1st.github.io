@@ -55,6 +55,7 @@ test("chat and feedback live rows ping the bell without waiting on the 20s tick"
     /pushRemote/
   );
   assert.match(feedback, /function feedbackNetQuiet/);
+  assert.match(ui, /isRealtimeJoined\?\.\("feedback_item_contributions"\)/);
 });
 
 test("owned inbox restores only when the local list is empty", () => {

@@ -1616,6 +1616,9 @@
   }
 
   async function fetchCodesRemote() {
+    if (playsLiveJoined("player_code_claims")) {
+      return codesCache && typeof codesCache === "object" ? codesCache : {};
+    }
     const data = await fetchDoc("player-codes");
     if (data == null) throw new Error("codes-unavailable");
     if (!data || typeof data !== "object") return {};
@@ -1700,6 +1703,9 @@
   }
 
   async function fetchReservationsRemote() {
+    if (playsLiveJoined("name_reservation_locks")) {
+      return reservationsCache && typeof reservationsCache === "object" ? reservationsCache : {};
+    }
     let parsed = {};
     let fetched = false;
     try {
