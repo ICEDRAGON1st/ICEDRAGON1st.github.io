@@ -287,38 +287,33 @@
     }
   }
 
-  async function fetchDoc() {
+  function callsLiveJoined() {
     try {
-      if (sb()?.isRealtimeJoined?.("call_signal_contributions")) {
-        return {
-          token: TOKEN,
-          rooms: cache.rooms && typeof cache.rooms === "object" ? cache.rooms : {}
-        };
-      }
-    } catch {}
-    let data = null;
-    let fetched = false;
-    try {
-      const api = sb();
-      if (api?.getPrefer) data = await api.getPrefer(DOC_ID);
-      if (data && typeof data === "object") fetched = true;
+      return !!sb()?.isRealtimeJoined?.("call_signal_contributions");
     } catch {
-      data = null;
+      return false;
     }
-    let rooms =
-      fetched && data.rooms && typeof data.rooms === "object" && !Array.isArray(data.rooms)
-        ? data.rooms
-        : {};
+  }
+
+  async function fetchDoc() {
+    if (callsLiveJoined()) {
+      return {
+        token: TOKEN,
+        rooms: cache.rooms && typeof cache.rooms === "object" ? cache.rooms : {}
+      };
+    }
     const tableRooms = await fetchCallTableRemote();
     if (tableRooms) {
-      rooms = signal.mergeRooms ? signal.mergeRooms(rooms, tableRooms) : { ...rooms, ...tableRooms };
-      fetched = true;
+      const current = cache.rooms && typeof cache.rooms === "object" ? cache.rooms : {};
+      const rooms = signal.mergeRooms
+        ? signal.mergeRooms(current, tableRooms)
+        : { ...current, ...tableRooms };
+      return { token: TOKEN, rooms };
     }
-    if (!fetched) return null;
-    return {
-      token: (data && data.token) || TOKEN,
-      rooms
-    };
+    if (cache.rooms && typeof cache.rooms === "object" && Object.keys(cache.rooms).length) {
+      return { token: TOKEN, rooms: cache.rooms };
+    }
+    return null;
   }
 
   function pruneRooms(rooms) {
@@ -329,14 +324,7 @@
     const payload = { token: TOKEN, rooms: pruneRooms(rooms) };
     const tableWrote = await persistCallSignalContribution(payload.rooms);
     if (tableWrote) return true;
-    try {
-      const api = sb();
-      if (!api?.pushPrefer) return false;
-      await api.pushPrefer(DOC_ID, payload);
-      return true;
-    } catch {
-      return false;
-    }
+    return false;
   }
 
   function enqueueWrite(fn) {

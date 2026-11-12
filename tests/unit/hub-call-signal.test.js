@@ -67,6 +67,20 @@ test("owned call rooms dual-write without copying others or shrinking the shared
   assert.match(ui, /persistCallSignalContribution/);
   assert.match(ui, /fetchCallTableRemote/);
   assert.match(ui, /if \(tableWrote\) return true/);
+  assert.doesNotMatch(
+    ui.slice(
+      ui.indexOf("async function fetchDoc"),
+      ui.indexOf("function pruneRooms")
+    ),
+    /getPrefer/
+  );
+  assert.doesNotMatch(
+    ui.slice(
+      ui.indexOf("async function postDoc"),
+      ui.indexOf("function enqueueWrite")
+    ),
+    /pushPrefer/
+  );
   assert.match(ui, /canPostSharedCalls/);
   assert.match(ui, /if \(!canPost\)/);
   assert.equal(signal.SAVE_KEY, "calls-mine");
@@ -210,9 +224,10 @@ test("call live rows subscribe without rewriting the shared board", () => {
   assert.match(ui, /applyCallsRealtime/);
   assert.match(ui, /subscribeCallSignalContributions/);
   assert.match(ui, /isRealtimeJoined\?\.\("call_signal_contributions"\)/);
+  assert.match(ui, /function callsLiveJoined/);
   assert.match(
     ui.slice(ui.indexOf("async function fetchDoc"), ui.indexOf("function pruneRooms")),
-    /isRealtimeJoined\?\.\("call_signal_contributions"\)/
+    /callsLiveJoined/
   );
   assert.doesNotMatch(
     ui.slice(ui.indexOf("function applyCallsRealtime"), ui.indexOf("function stopCallsRealtime")),
