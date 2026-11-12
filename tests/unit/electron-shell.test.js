@@ -25,10 +25,13 @@ test("desktop shell keep-alive refresh and allowlist stay aligned", () => {
 });
 
 test("browser clients no longer target the retired Supabase hostname", () => {
-  const files = ["hub-supabase.js", "hub-discord.js", "hub-net.js", "tools/announce-hub-update.js"];
+  const files = ["hub-supabase.js", "hub-discord.js", "hub-net.js"];
   for (const relative of files) {
     const text = fs.readFileSync(path.join(ROOT, relative), "utf8");
     assert.doesNotMatch(text, /clkamsflzyvdcepvelks/, `${relative} left the retired host`);
     assert.match(text, /uqyhomsydmnglbaemwbu/, `${relative} uses the replacement project`);
   }
+  const announce = fs.readFileSync(path.join(ROOT, "tools/announce-hub-update.js"), "utf8");
+  assert.doesNotMatch(announce, /clkamsflzyvdcepvelks/);
+  assert.doesNotMatch(announce, /hub_docs/);
 });

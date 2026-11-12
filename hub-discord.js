@@ -372,77 +372,16 @@
     });
   }
 
-  async function readUpdateAnnounceDoc() {
-    try {
-      const url = `${SUPABASE_URL}/rest/v1/hub_docs?id=eq.hub-discord-site-updates&select=data`;
-      const res = await fetch(url, {
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          Accept: "application/json"
-        },
-        cache: "no-store"
-      });
-      if (!res.ok) return null;
-      const rows = await res.json();
-      return rows?.[0]?.data && typeof rows[0].data === "object" ? rows[0].data : null;
-    } catch {
-      return null;
-    }
-  }
-
-  async function writeUpdateAnnounceDoc(data) {
-    try {
-      const res = await fetch(`${SUPABASE_URL}/rest/v1/hub_docs`, {
-        method: "POST",
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-          Accept: "application/json",
-          "Content-Type": "application/json",
-          Prefer: "resolution=merge-duplicates,return=minimal"
-        },
-        body: JSON.stringify({
-          id: "hub-discord-site-updates",
-          data,
-          updated_at: new Date().toISOString()
-        })
-      });
-      return res.ok;
-    } catch {
-      return false;
-    }
-  }
-
   /**
-   * Post hub changelog to #updates once per build (shared claim via Supabase).
+   * Hub changelog posts to #updates at publish time. Browsers must not claim
+   * leftover shared boards or post Discord — that double-posts with node.
    */
   async function maybeAnnounceHubBuild(build, notes) {
     const id = String(build || "").trim();
     const list = Array.isArray(notes) ? notes.filter(Boolean) : [];
     if (!id || !list.length) return { ok: false, reason: "empty" };
     if (!cfg().webhookUpdatesUrl) return { ok: false, reason: "no-webhook" };
-
-    const existing = await readUpdateAnnounceDoc();
-    const last = String(existing?.lastBuild || "");
-    if (last && last.localeCompare(id) >= 0) {
-      return { ok: false, reason: "already" };
-    }
-
-    const claimed = await writeUpdateAnnounceDoc({
-      lastBuild: id,
-      at: Date.now(),
-      notes: list.slice(0, 12)
-    });
-    if (!claimed) return { ok: false, reason: "claim-failed" };
-
-    // Re-read to reduce double-posts if two tabs raced
-    const again = await readUpdateAnnounceDoc();
-    if (again?.lastBuild && again.lastBuild !== id && String(again.lastBuild).localeCompare(id) > 0) {
-      return { ok: false, reason: "lost-race" };
-    }
-
-    return announceSiteUpdate(id, list);
+    return { ok: false, reason: "publish-announces" };
   }
 
   const api = {

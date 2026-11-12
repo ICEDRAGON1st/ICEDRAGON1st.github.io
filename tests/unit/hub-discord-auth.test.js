@@ -48,3 +48,22 @@ test("Discord callback tokens and identities stay attached to the local player",
   assert.equal(discord.discordIdentityFromUser({ identities: [] }), null);
   assert.equal(discord.discordIdentityFromUser(null), null);
 });
+
+test("hub updates post to Discord at publish time without leftover shared boards", async () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.resolve(__dirname, "../../hub-discord.js"), "utf8");
+  const announce = fs.readFileSync(path.resolve(__dirname, "../../tools/announce-hub-update.js"), "utf8");
+  const boot = fs.readFileSync(path.resolve(__dirname, "../../script.js"), "utf8");
+  assert.doesNotMatch(src, /hub_docs|hub-discord-site-updates/);
+  assert.match(src, /publish-announces/);
+  assert.doesNotMatch(
+    src.slice(src.indexOf("async function maybeAnnounceHubBuild"), src.indexOf("const api = {")),
+    /announceSiteUpdate/
+  );
+  assert.doesNotMatch(announce, /hub_docs|hub-discord-site-updates/);
+  assert.match(announce, /ok announced/);
+  assert.match(boot, /announceHubBuildOnBoot/);
+  const result = await discord.maybeAnnounceHubBuild("20261015ex", ["note"]);
+  assert.equal(result.ok, false);
+  assert.equal(result.reason === "publish-announces" || result.reason === "no-webhook", true);
+});
