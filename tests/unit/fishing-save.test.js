@@ -107,7 +107,13 @@ test("owned aquarium row dual-writes without copying others or shrinking shared 
   assert.match(script, /pullAquaMine/);
   assert.match(script, /canPostSharedAqua/);
   assert.match(script, /if \(!canPost\) return;/);
-  assert.match(script, /if \(!fetched\) return null;/);
+  assert.doesNotMatch(
+    script.slice(
+      script.indexOf("async function fetchAquaShareDoc"),
+      script.indexOf("function pruneAquaShareTanks")
+    ),
+    /getPrefer/
+  );
   assert.equal(save.AQUA_MINE_KEY, "aqua-mine");
   assert.equal(save.canPostSharedAqua(null), false);
   assert.equal(save.canPostSharedAqua({ tanks: {} }), true);
@@ -150,7 +156,20 @@ test("owned aquarium row dual-writes without copying others or shrinking shared 
   assert.match(script, /persistAquaTankContribution/);
   assert.match(script, /fetchAquaShareTableRemote/);
   assert.match(script, /overlayAquaTanks/);
-  assert.match(script, /if \(tableWrote && !rewriteShared\) return true/);
+  assert.match(
+    script.slice(
+      script.indexOf("async function postAquaShareDoc"),
+      script.indexOf("async function publishAquariumShare")
+    ),
+    /if \(tableWrote\) return true/
+  );
+  assert.doesNotMatch(
+    script.slice(
+      script.indexOf("async function postAquaShareDoc"),
+      script.indexOf("async function publishAquariumShare")
+    ),
+    /pushPrefer/
+  );
 
   const now = Date.now();
   const overlaid = save.overlayAquaTanks(

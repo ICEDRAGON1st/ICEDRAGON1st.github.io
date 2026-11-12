@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015dy",
+  "build": "20261015dz",
   "notes": [
-    "Fishing mail stays on your signed-in account, so it isn't copied onto a shared board."
+    "Fishing aquariums stay on your signed-in account, so they aren't copied onto a shared board."
   ]
 };

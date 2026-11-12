@@ -2618,34 +2618,30 @@
   }
 
   async function fetchAquaShareDoc() {
-    const api = fishingSb();
-    let data = null;
-    let fetched = false;
-    try {
-      if (api?.getPrefer) data = await api.getPrefer(AQUA_SHARE_DOC);
-      if (data && typeof data === "object") {
-        fetched = true;
-        data = {
-          token: data.token || AQUA_SHARE_TOKEN,
-          tanks: data.tanks && typeof data.tanks === "object" ? data.tanks : {}
-        };
-      } else {
-        data = null;
-      }
-    } catch {
-      data = null;
-      fetched = false;
+    if (fishingLiveJoined("aquarium_tank_contributions")) {
+      return {
+        token: AQUA_SHARE_TOKEN,
+        tanks:
+          aquaShareCache.tanks && typeof aquaShareCache.tanks === "object"
+            ? aquaShareCache.tanks
+            : {}
+      };
     }
     const tableRows = await fetchAquaShareTableRemote();
     if (Array.isArray(tableRows) && fishingSaveApi.overlayAquaTanks) {
-      data = fishingSaveApi.overlayAquaTanks(
-        data || { token: AQUA_SHARE_TOKEN, tanks: {} },
-        tableRows
-      );
-      fetched = true;
+      const current = {
+        token: AQUA_SHARE_TOKEN,
+        tanks:
+          aquaShareCache.tanks && typeof aquaShareCache.tanks === "object"
+            ? aquaShareCache.tanks
+            : {}
+      };
+      return fishingSaveApi.overlayAquaTanks(current, tableRows);
     }
-    if (!fetched) return null;
-    return data;
+    if (aquaShareCache.tanks && Object.keys(aquaShareCache.tanks).length) {
+      return { token: AQUA_SHARE_TOKEN, tanks: aquaShareCache.tanks };
+    }
+    return null;
   }
 
   function pruneAquaShareTanks(tanks) {
@@ -2663,23 +2659,12 @@
     return next;
   }
 
-  async function postAquaShareDoc(tanks, { rewriteShared = false } = {}) {
+  async function postAquaShareDoc(tanks) {
     const me = String(mailMyId() || "").trim();
     const mineTank = me && tanks && typeof tanks === "object" ? tanks[me] : null;
     const tableWrote = mineTank ? await persistAquaTankContribution(mineTank) : false;
-    if (tableWrote && !rewriteShared) return true;
-    const payload = {
-      token: AQUA_SHARE_TOKEN,
-      tanks: pruneAquaShareTanks(tanks)
-    };
-    const api = fishingSb();
-    try {
-      if (!api?.pushPrefer) return false;
-      await api.pushPrefer(AQUA_SHARE_DOC, payload);
-      return true;
-    } catch {
-      return false;
-    }
+    if (tableWrote) return true;
+    return false;
   }
 
   async function publishAquariumShare(force = false) {
