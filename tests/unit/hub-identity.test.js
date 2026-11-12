@@ -622,14 +622,19 @@ test("identity mints a player id only for new guests and hashes passwords withou
   assert.equal(await identity.hashPassword("  swordfish-test  "), hash);
   assert.equal(await identity.hashPassword(""), "");
   assert.match(plays, /identity\.mintPlayerId/);
+  assert.match(plays, /identity\.mintGuestAccount/);
   assert.match(plays, /identity\.hashPassword/);
   assert.doesNotMatch(plays, /MantleDB/);
+  const guest = identity.mintGuestAccount();
+  assert.match(guest.playerId, /^p-[a-z0-9][a-z0-9-]{6,80}$/);
+  assert.match(guest.code, /^[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}-[23456789ABCDEFGHJKLMNPQRSTUVWXYZ]{4}$/);
+  assert.notEqual(identity.mintGuestAccount().playerId, guest.playerId);
   assert.match(
     plays.slice(
       plays.indexOf("async function createNewAccount"),
       plays.indexOf("async function fetchCodesRemote")
     ),
-    /mintPlayerId\(\)/
+    /identity\.mintGuestAccount/
   );
   assert.doesNotMatch(
     plays.slice(

@@ -1401,7 +1401,10 @@
         await HubAccountBag.syncUp(prevId);
       } catch {}
     }
-    const id = mintPlayerId();
+    const guest = identity.mintGuestAccount
+      ? identity.mintGuestAccount()
+      : { playerId: mintPlayerId(), code: formatPlayerCode(randomCodeParts()) };
+    const id = guest.playerId;
     try {
       if (canUseLocalStorage()) localStorage.setItem(PLAYER_ID_KEY, id);
     } catch {}
@@ -1415,7 +1418,7 @@
     try {
       window.HubAccountBag?.setBagOwner?.(id);
     } catch {}
-    const code = formatPlayerCode(randomCodeParts());
+    const code = formatPlayerCode(guest.code || randomCodeParts());
     storePlayerCode(code);
     rememberCurrentAccount({ code, playerId: id, name: "" });
     try {

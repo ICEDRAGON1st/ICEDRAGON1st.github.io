@@ -84,6 +84,13 @@
     return out;
   }
 
+  function mintGuestAccount() {
+    return {
+      playerId: mintPlayerId(),
+      code: formatPlayerCode(randomCodeParts())
+    };
+  }
+
   function looksLikePlayerCode(raw) {
     const s = String(raw || "").trim();
     if (!s || /^MG1:/i.test(s)) return false;
@@ -815,6 +822,7 @@
     nameKey,
     makeId,
     mintPlayerId,
+    mintGuestAccount,
     normalizePlayerCode,
     isPoisonPlayerCode,
     formatPlayerCode,

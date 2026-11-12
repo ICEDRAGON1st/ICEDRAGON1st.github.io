@@ -1,4 +1,7 @@
 {
+  "20261015fb": [
+    "New accounts stay on this device — leftover shared boards aren't asked for them."
+  ],
   "20261015fa": [
     "Copy transfer stays private if copy fails — leftover shared boards aren't asked for your key."
   ],

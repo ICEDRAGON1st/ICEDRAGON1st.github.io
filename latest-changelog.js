@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015fa",
+  "build": "20261015fb",
   "notes": [
-    "Copy transfer stays private if copy fails — leftover shared boards aren't asked for your key."
+    "New accounts stay on this device — leftover shared boards aren't asked for them."
   ]
 };

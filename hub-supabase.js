@@ -2,8 +2,8 @@
  * hub-supabase.js — shared Supabase REST helpers for the hub.
  * Uses the public anon key (safe in the browser when RLS is enabled).
  *
- * Prefer getPrefer / pushPrefer. The old backup is not read or written.
- * Doc ids match former Mantle paths (plays-log, presence, fishing-admin-events, …).
+ * Leftover hub_docs is closed. Prefer signed-in tables. The old backup is not
+ * read or written.
  */
 (function (root) {
   const SUPABASE_URL = "https://uqyhomsydmnglbaemwbu.supabase.co";
@@ -22,31 +22,6 @@
     } catch {}
     return false;
   }
-
-  const DOCS = {
-    leaderboards: "leaderboards",
-    plays: "plays-log",
-    names: "name-registry",
-    codes: "player-codes",
-    reservations: "name-reservations",
-    presence: "presence",
-    alltime: "players-alltime",
-    chat: "friend-chat",
-    friends: "friends",
-    feedback: "player-feedback",
-    matches: "online-matches",
-    fishingAdmin: "fishing-admin-events",
-    fishingAdminAudit: "fishing-admin-audit",
-    fishingCommunity: "fishing-community",
-    fishingGifts: "fishing-gifts",
-    fishingMail: "fishing-player-mail",
-    fishingAquariums: "fishing-aquariums",
-    calls: "hub-calls",
-    hubAdminAnnounce: "hub-admin-announce",
-    hubAdminMaintenance: "hub-admin-maintenance",
-    hubAdminModeration: "hub-admin-moderation",
-    hubAdminGrants: "hub-admin-grants"
-  };
 
   const ADMIN_DOC_IDS = [
     "fishing-admin-events",
@@ -3090,7 +3065,6 @@
 
   const api = {
     url: SUPABASE_URL,
-    DOCS,
     ADMIN_DOC_IDS,
     isAdminDoc,
     isLeftoverLockedDoc,

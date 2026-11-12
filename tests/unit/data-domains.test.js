@@ -237,6 +237,7 @@ test("contracted leftover boards skip hub_docs on the client after meter and Pap
   assert.match(src, /function isLeftoverLockedDoc/);
   assert.match(src, /function isLeftoverOpenDoc/);
   assert.match(src, /Leftover hub_docs is closed/);
+  assert.doesNotMatch(src, /const DOCS = \{/);
   assert.match(src, /"discord-links-v1"/);
   assert.match(src, /if \(!isLeftoverOpenDoc\(id\) \|\| isLeftoverLockedDoc\(id\)\) return null;/);
   assert.match(src, /throw new Error\("leftover-locked"\)/);
