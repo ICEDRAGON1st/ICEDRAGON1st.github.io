@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015dt",
+  "build": "20261015du",
   "notes": [
-    "Play counts and recent games stay on your signed-in account, so they aren't copied onto a shared board."
+    "Friend chat stays on your signed-in account, so it isn't copied onto a shared board."
   ]
 };

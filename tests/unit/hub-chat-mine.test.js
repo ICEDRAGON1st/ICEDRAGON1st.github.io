@@ -17,7 +17,20 @@ test("owned chat lives in a helper used by the shared friend-chat board", () => 
   assert.match(ui, /pullMyChat/);
   assert.match(ui, /persistChatThreadContribution/);
   assert.match(ui, /fetchChatTableRemote/);
-  assert.match(ui, /skipShared: !fetched/);
+  assert.doesNotMatch(
+    ui.slice(
+      ui.indexOf("async function fetchRemote"),
+      ui.indexOf("async function pushRemote")
+    ),
+    /getPrefer/
+  );
+  assert.doesNotMatch(
+    ui.slice(
+      ui.indexOf("async function pushRemote"),
+      ui.indexOf("function normalizeMessage")
+    ),
+    /pushPrefer/
+  );
   assert.match(plays, /hub-chat-mine\.js/);
   assert.match(index, /hub-chat-mine\.js/);
   assert.equal(mine.SAVE_KEY, "chat-mine");
@@ -175,7 +188,6 @@ test("chat live rows merge without dropping other players' messages", () => {
   assert.match(ui, /subscribeChatThreadContributions/);
   assert.match(ui, /isRealtimeJoined\?\.\("chat_thread_contributions"\)/);
   assert.match(ui, /function chatLiveJoined/);
-  assert.match(ui, /skipShared: !fetched \|\| joined/);
   assert.match(ui, /function chatNetQuiet/);
   assert.match(ui, /HubNotifications\?\.ping\?\.\("chat"\)/);
   assert.doesNotMatch(
