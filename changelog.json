@@ -1,4 +1,7 @@
 {
+  "20261015ei": [
+    "Score names stay on your signed-in account after a rename, so they aren't copied onto a shared board."
+  ],
   "20261015eh": [
     "Feedback deletes stay on the signed-in admin channel, so they aren't copied onto a shared board."
   ],

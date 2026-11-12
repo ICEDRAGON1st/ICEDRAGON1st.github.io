@@ -331,6 +331,7 @@ test("leaderboard personal bests use auth-owned rows instead of rewriting the sh
   assert.match(src, /async function upsertLeaderboardPbContribution/);
   assert.match(src, /function subscribeLeaderboardPbContributions/);
   assert.match(src, /leaderboard_pb_contributions/);
+  assert.match(src, /id === "__namebind"/);
 });
 
 test("online match rooms use auth-owned rows instead of rewriting the shared match board", () => {

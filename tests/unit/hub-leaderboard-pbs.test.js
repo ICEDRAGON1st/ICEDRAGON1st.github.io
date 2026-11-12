@@ -30,7 +30,9 @@ test("personal bests live in a helper used by the shared board", () => {
   assert.match(ui, /skipShared: !fetched/);
   assert.match(fetchSlice, /if \(!adminResetsFetched\)/);
   assert.match(fetchSlice, /api\.getPrefer/);
-  assert.match(pushSlice, /if \(resetsWrote && opts\.wipe\) return/);
+  assert.match(pushSlice, /if \(opts\.wipe\) \{/);
+  assert.match(pushSlice, /if \(resetsWrote\) return/);
+  assert.match(pushSlice, /else if \(tableWrote\) \{/);
   assert.match(ui, /rewriteShared: true, wipe: true/);
   assert.match(plays, /hub-leaderboard-pbs\.js/);
   assert.match(index, /hub-leaderboard-pbs\.js/);
@@ -106,6 +108,42 @@ test("personal-best merge keeps the better score and restores a missing row", ()
     old_record: { player_id: "p-other" }
   });
   assert.equal(afterDelete.games.snake.them.score, 120);
+});
+
+test("owned name binds overlay onto the board without becoming a fake game", () => {
+  const overlaid = pbs.overlayLeaderboardGames(
+    {
+      games: {
+        snake: {
+          oldname: { name: "OldName", score: 40, at: 20, playerId: "p-local" }
+        }
+      },
+      resets: {}
+    },
+    [
+      {
+        player_id: "p-local",
+        games: {
+          snake: { name: "NewName", score: 40, at: 20, playerId: "p-local" },
+          __namebind: { name: "NewName", score: 0, at: 0, playerId: "p-local" }
+        }
+      }
+    ],
+    (name) => String(name || "").toLowerCase()
+  );
+  assert.equal(overlaid.resets["namebind:p-local"], "NewName");
+  assert.equal(overlaid.games.__namebind, undefined);
+  assert.equal(overlaid.games.snake.newname.score, 40);
+
+  const mine = pbs.collectMine(
+    {
+      snake: { newname: { name: "NewName", score: 40, at: 20, playerId: "p-local" } },
+      __namebind: { name: "NewName", score: 0, at: 0, playerId: "p-local" }
+    },
+    (entry) => entry.playerId === "p-local"
+  );
+  assert.equal(mine.games.__namebind, undefined);
+  assert.equal(mine.games.snake.score, 40);
 });
 
 test("leaderboard wipe overlay keeps later ICE cuts without shrinking a name bind", () => {

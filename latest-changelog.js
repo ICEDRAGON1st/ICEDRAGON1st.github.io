@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015eh",
+  "build": "20261015ei",
   "notes": [
-    "Feedback deletes stay on the signed-in admin channel, so they aren't copied onto a shared board."
+    "Score names stay on your signed-in account after a rename, so they aren't copied onto a shared board."
   ]
 };

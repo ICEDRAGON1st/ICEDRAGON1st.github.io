@@ -1927,6 +1927,16 @@
         .trim()
         .slice(0, 32);
       if (!id) return;
+      if (id === "__namebind") {
+        const name = String(typeof raw === "string" ? raw : raw?.name || "")
+          .replace(/[<>&"'`]/g, "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 16);
+        if (!name || /^guest-/i.test(name) || name.toLowerCase() === "player") return;
+        out.__namebind = { name, score: 0, at: 0, playerId: me, lowerBetter: false };
+        return;
+      }
       const entry = sanitizeLeaderboardEntry(raw, me);
       if (entry) out[id] = entry;
     });

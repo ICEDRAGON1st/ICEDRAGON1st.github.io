@@ -243,10 +243,19 @@
     const me = getPlayerId();
     if (!helper?.collectMine || !api?.upsertLeaderboardPbContribution || !me) return false;
     const snapshot = helper.collectMine(data?.games, entryBelongsToMe);
+    const games = { ...(snapshot.games || {}) };
+    const bind = String((data?.resets && data.resets[`namebind:${me}`]) || "")
+      .replace(/[<>&"'`]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 16);
+    if (bind && helper.NAMEBIND_KEY) {
+      games[helper.NAMEBIND_KEY] = { name: bind, score: 0, at: 0, playerId: me, lowerBetter: false };
+    }
     try {
       await api.upsertLeaderboardPbContribution({
         playerId: me,
-        games: snapshot.games
+        games
       });
       return true;
     } catch {
@@ -889,8 +898,12 @@
     const tableWrote = await persistLeaderboardPbContribution(merged);
     let resetsWrote = false;
     if (opts && opts.rewriteShared) {
-      resetsWrote = await persistLeaderboardResets(merged?.resets);
-      if (resetsWrote && opts.wipe) return;
+      if (opts.wipe) {
+        resetsWrote = await persistLeaderboardResets(merged?.resets);
+        if (resetsWrote) return;
+      } else if (tableWrote) {
+        return;
+      }
     }
     if (tableWrote && !(opts && opts.rewriteShared)) return;
     if (opts && opts.skipShared) return;

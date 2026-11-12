@@ -46,10 +46,13 @@
     return out;
   }
 
+  const NAMEBIND_KEY = "__namebind";
+
   function readPbs(payload) {
     const games = payload && payload.games && typeof payload.games === "object" ? payload.games : {};
     const out = {};
     Object.keys(games).forEach((gameId) => {
+      if (gameId === NAMEBIND_KEY) return;
       const entry = cleanEntry(games[gameId]);
       if (entry) out[gameId] = entry;
     });
@@ -63,6 +66,7 @@
   function collectMine(games, belongsToMe) {
     const mine = {};
     Object.entries(games && typeof games === "object" ? games : {}).forEach(([gameId, board]) => {
+      if (gameId === NAMEBIND_KEY) return;
       if (!board || typeof board !== "object") return;
       let best = null;
       Object.values(board).forEach((raw) => {
@@ -83,6 +87,7 @@
     const next = { ...(games && typeof games === "object" ? games : {}) };
     const rows = pbs && pbs.games && typeof pbs.games === "object" ? pbs.games : {};
     Object.entries(rows).forEach(([gameId, raw]) => {
+      if (gameId === NAMEBIND_KEY) return;
       const entry = cleanEntry(raw);
       if (!entry) return;
       const key = typeof nameKeyFn === "function" ? nameKeyFn(entry.name) : String(entry.name || "").toLowerCase();
@@ -103,8 +108,17 @@
         games: row?.games,
         updatedAt: Date.parse(row?.updated_at || "") || Number(row?.updatedAt) || 0
       });
-      if (!owned.playerId) return;
-      games = applyPersonalBests(games, owned, nameKeyFn);
+      const pid = owned.playerId || String(row?.player_id || row?.playerId || "").trim();
+      if (owned.playerId) games = applyPersonalBests(games, owned, nameKeyFn);
+      const bindRaw = row?.games && typeof row.games === "object" ? row.games[NAMEBIND_KEY] : null;
+      const bindName = String(typeof bindRaw === "string" ? bindRaw : bindRaw?.name || "")
+        .replace(/[<>&"'`]/g, "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 16);
+      if (pid && bindName && !/^guest-/i.test(bindName) && bindName.toLowerCase() !== "player") {
+        resets[`namebind:${pid}`] = bindName;
+      }
     });
     return { games, resets };
   }
@@ -179,6 +193,7 @@
     readPbs,
     collectMine,
     applyPersonalBests,
+    NAMEBIND_KEY,
     overlayLeaderboardGames,
     applyChange,
     RESETS_DOC_ID,
