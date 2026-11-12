@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015fc",
+  "build": "20261015fd",
   "notes": [
-    "Log in with a code stays on this device — leftover shared boards aren't asked for it."
+    "Signed-in play stays on your account — leftover shared boards aren't asked for it."
   ]
 };

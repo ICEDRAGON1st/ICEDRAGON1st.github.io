@@ -105,6 +105,7 @@ test("shared docs skip the old backup write after a successful account-server sa
     src.indexOf("const api = {")
   );
   assert.doesNotMatch(pushPreferSrc, /fetch\(_?mantleUrl/);
+  assert.doesNotMatch(pushPreferSrc, /upsertDoc\(/);
   assert.match(pushPreferSrc, /throw new Error\("push failed"\)/);
 });
 
@@ -119,8 +120,8 @@ test("shared docs skip the old backup read when the account server errors", () =
     src.indexOf("function shouldWriteMantleBackup")
   );
   assert.doesNotMatch(getPreferSrc, /fetch\(_?mantleUrl/);
+  assert.doesNotMatch(getPreferSrc, /getDoc\(/);
   assert.match(getPreferSrc, /return null;/);
-  assert.match(src, /console\.warn\("\[HubSupabase\] getPrefer", docId, err\);\s*throw err;/);
   assert.match(
     plays.slice(
       plays.indexOf("async function fetchPresenceRemote"),
@@ -181,7 +182,7 @@ test("signed-in leftover tables retry once after a PostgREST schema reload", () 
   assert.doesNotMatch(sql, /grant execute on function public\.reload_postgrest_schema\(\) to anon/);
 });
 
-test("contracted leftover boards skip hub_docs reads and writes", () => {
+test("contracted leftover boards skip hub_docs reads and writes", async () => {
   const fs = require("node:fs");
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
   assert.equal(typeof supabase.isLeftoverLockedDoc, "function");
@@ -219,6 +220,18 @@ test("contracted leftover boards skip hub_docs reads and writes", () => {
   assert.doesNotMatch(upsertDocSrc, /rest\/v1\/hub_docs/);
   assert.doesNotMatch(getDocSrc, /hubFetch/);
   assert.doesNotMatch(upsertDocSrc, /hubFetch/);
+  const getPreferSrc = src.slice(
+    src.indexOf("async function getPrefer"),
+    src.indexOf("function shouldWriteMantleBackup")
+  );
+  const pushPreferSrc = src.slice(
+    src.indexOf("async function pushPrefer"),
+    src.indexOf("const api = {")
+  );
+  assert.doesNotMatch(getPreferSrc, /getDoc\(/);
+  assert.doesNotMatch(pushPreferSrc, /upsertDoc\(/);
+  assert.equal(await supabase.getPrefer("fishing-community"), null);
+  await assert.rejects(() => supabase.pushPrefer("fishing-community", {}), /push failed/);
 });
 
 test("locked admin docs use the trusted RPC instead of a direct hub_docs upsert", () => {

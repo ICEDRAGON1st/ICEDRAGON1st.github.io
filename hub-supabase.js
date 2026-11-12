@@ -3007,60 +3007,41 @@
   }
 
   /**
-   * Never GET the old backup. A missing account-server row is "not fetched"
-   * (null), not an empty map — callers must skip the shared rewrite.
-   * Empty objects from an existing row still count as a hit.
+   * Leftover hub_docs is closed. Signed-in tables are the live path.
    */
   function shouldReadMantleBackup(_supabaseHit) {
     return false;
   }
 
   /**
-   * Read the account server only. Missing rows return null (do not seed from
-   * the old backup). Errors still throw so a later save cannot mix a stale map.
+   * Leftover shared boards are closed. Signed-in tables are the live path.
    */
-  async function getPrefer(docId, _mantleUrl) {
+  async function getPrefer(_docId, _mantleUrl) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
       err.hubNetBlocked = true;
-      throw err;
-    }
-    try {
-      const data = await getDoc(docId);
-      if (data != null) return data;
-    } catch (err) {
-      if (err && err.hubNetBlocked) throw err;
-      console.warn("[HubSupabase] getPrefer", docId, err);
       throw err;
     }
     return null;
   }
 
   /**
-   * Never POST the old backup. A failed account-server save must not park a
-   * partial map on the leftover store for a later mix-in.
+   * Leftover hub_docs is closed. A leftover write stays local.
    */
   function shouldWriteMantleBackup(_supabaseWrote) {
     return false;
   }
 
   /**
-   * Write the account server only. Callers already skip the shared rewrite
-   * after a table row succeeds, so a failed upsert stays local.
+   * Leftover shared boards are closed. Signed-in tables are the live path.
    */
-  async function pushPrefer(docId, data, _mantleUrl) {
+  async function pushPrefer(_docId, _data, _mantleUrl) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
       err.hubNetBlocked = true;
       throw err;
     }
-    try {
-      await upsertDoc(docId, data);
-    } catch (err) {
-      if (err && err.hubNetBlocked) throw err;
-      console.warn("[HubSupabase] pushPrefer", docId, err);
-      throw new Error("push failed");
-    }
+    throw new Error("push failed");
   }
 
   const api = {
