@@ -872,7 +872,7 @@
           };
       fetched = true;
     }
-    if (!adminResetsFetched) {
+    if (!adminResetsFetched && !tableRemote) {
       try {
         const api = window.HubSupabase;
         const data = api?.getPrefer ? await api.getPrefer(SUPABASE_DOC_ID) : null;
@@ -907,6 +907,12 @@
     }
     if (tableWrote && !(opts && opts.rewriteShared)) return;
     if (opts && opts.skipShared) return;
+    if (
+      leaderboardLiveJoined("leaderboard_pb_contributions") ||
+      leaderboardLiveJoined("admin_broadcasts")
+    ) {
+      return;
+    }
     const api = window.HubSupabase;
     if (!api?.pushPrefer) throw new Error("account-server-unavailable");
     await api.pushPrefer(SUPABASE_DOC_ID, merged);

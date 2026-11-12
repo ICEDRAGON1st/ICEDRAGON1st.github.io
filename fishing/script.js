@@ -1829,6 +1829,7 @@
       return true;
     }
     if (!rewriteShared) return tableWrote;
+    if (fishingLiveJoined("community_meter_state")) return meterWrote || tableWrote;
     const payload = { ...doc, token: COMMUNITY_TOKEN };
     const api = fishingSb();
     if (!api?.pushPrefer) return meterWrote || tableWrote;

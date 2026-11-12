@@ -24,6 +24,7 @@ test("owned Paper rooms live in a helper used by the online arena", () => {
   assert.match(script, /ensureRealtime/);
   assert.match(script, /stopRealtime/);
   assert.match(roomsSrc, /if \(tableFetched \|\| liveJoined\(\)\) return null/);
+  assert.match(roomsSrc, /return !!\(tableFetched \|\| liveJoined\(\)\)/);
   assert.match(getSlice, /if \(hit !== undefined\) return hit/);
   assert.match(putSlice, /if \(wrote\) return/);
   assert.equal(rooms.TABLE, "paper_room_contributions");

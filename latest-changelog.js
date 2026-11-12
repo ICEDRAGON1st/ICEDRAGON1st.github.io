@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ek",
+  "build": "20261015el",
   "notes": [
-    "High scores, Feedback, and Paper Claim skip leftover shared boards after the signed-in channels load."
+    "High scores, Feedback, Fishing weekend luck, and Paper Claim stay on signed-in channels instead of leftover shared boards."
   ]
 };

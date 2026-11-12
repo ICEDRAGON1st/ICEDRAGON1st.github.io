@@ -321,7 +321,7 @@
           };
       fetched = true;
     }
-    if (!adminDeletesFetched) {
+    if (!adminDeletesFetched && !tableRemote) {
       try {
         const api = sb();
         const data = api?.getPrefer ? await api.getPrefer(DOC_ID) : null;
@@ -355,6 +355,7 @@
     }
     if (tableWrote && !(opts && opts.rewriteShared)) return;
     if (opts && opts.skipShared) return;
+    if (feedbackLiveJoined() || feedbackLiveJoined("admin_broadcasts")) return;
     const payload = {
       items: items.slice(0, MAX_ITEMS),
       deletedIds: loadDeletedIds()

@@ -340,8 +340,11 @@
   async function writeDoc(id, data) {
     remember(id, data);
     const wrote = await persistMine();
-    if (wrote) tableFetched = true;
-    return wrote;
+    if (wrote) {
+      tableFetched = true;
+      return true;
+    }
+    return !!(tableFetched || liveJoined());
   }
 
   function ensureRealtime() {

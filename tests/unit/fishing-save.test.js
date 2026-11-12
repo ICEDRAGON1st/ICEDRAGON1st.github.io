@@ -247,6 +247,7 @@ test("fishing community uses account-server prefer and skips the old backup writ
   assert.match(pushSlice, /persistCommunityMeterState/);
   assert.match(pushSlice, /if \(meterWrote\) return true/);
   assert.match(pushSlice, /if \(!rewriteShared\) return tableWrote/);
+  assert.match(pushSlice, /fishingLiveJoined\("community_meter_state"\)/);
   assert.match(pushSlice, /api\.pushPrefer\(\s*COMMUNITY_DOC/);
   assert.equal(script.includes("await api.upsertDoc(COMMUNITY_DOC"), false);
   assert.equal(script.includes("mantledb.sh"), false);
