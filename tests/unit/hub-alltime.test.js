@@ -99,7 +99,21 @@ test("owned all-time row dual-writes without copying others or shrinking the ros
   assert.match(plays, /pullAllTimeMine/);
   assert.match(plays, /persistAllTimeRoster/);
   assert.match(plays, /fetchAllTimeTableRemote/);
-  assert.match(plays, /if \(tableWrote && !\(opts && opts\.rewriteShared\)\) return/);
+  assert.match(plays, /if \(tableWrote\) return/);
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function fetchAllTimeRemote"),
+      plays.indexOf("async function pushAllTimeRemote")
+    ),
+    /fetchDoc/
+  );
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function pushAllTimeRemote"),
+      plays.indexOf("function rememberAllTime")
+    ),
+    /pushDoc/
+  );
   assert.equal(alltime.SAVE_KEY, "alltime-mine");
 
   const snapshot = alltime.collectMine(

@@ -729,33 +729,13 @@
       verifiedClean = verifiedClean && allClean;
     } else {
       try {
-        const data = await fetchDoc("players-alltime");
-        const rawPlayers =
-          data && typeof data === "object"
-            ? data.players && typeof data.players === "object"
-              ? data.players
-              : data
-            : {};
-        const normalized = {};
-        Object.entries(rawPlayers || {}).forEach(([id, p]) => {
-          if (!id || id === "players" || id === "total") return;
-          if (!p || typeof p !== "object") return;
-          const firstAt = Number(p.firstAt) || Number(p.at) || 0;
-          if (!firstAt) return;
-          const lastAt = Math.max(Number(p.lastAt) || 0, Number(p.at) || 0, firstAt);
-          normalized[id] = {
-            firstAt,
-            lastAt,
-            name: sanitizeName(p.name || "") || "Guest"
-          };
-        });
-        const purged = purgeAllTimePlayers(normalized);
-        // Trust remote lastAt — never let a polluted local cache win here.
+        const remote = await fetchAllTimeRemote();
+        const purged = purgeAllTimePlayers(remote);
         allTimeCache = purgeAllTimePlayers(
           mergeAllTimePreferRemoteLast(purged.players, allTimeCache)
         ).players;
         saveAllTimeLocal(allTimeCache);
-        if (purged.changed) await pushAllTimeRemote(purged.players, { rewriteShared: true });
+        if (purged.changed) await pushAllTimeRemote(purged.players);
         const allClean = !Object.entries(purged.players).some(([id, p]) =>
           isPurgedPlayer(id, p?.name)
         );
@@ -3872,29 +3852,18 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     if (playsLiveJoined("alltime_roster")) {
       return allTimeCache && typeof allTimeCache === "object" ? allTimeCache : {};
     }
-    let parsed = {};
-    let fetched = false;
-    try {
-      const data = await fetchDoc("players-alltime");
-      if (data && typeof data === "object") {
-        parsed = alltimeApi.parseRemotePlayers
-          ? alltimeApi.parseRemotePlayers(data, { sanitizeName, isPurgedPlayer })
-          : {};
-        fetched = true;
-      }
-    } catch {
-      parsed = {};
-    }
     const tableRemote = await fetchAllTimeTableRemote();
     if (tableRemote) {
-      parsed = mergeAllTime(parsed, tableRemote);
-      fetched = true;
+      const current = allTimeCache && typeof allTimeCache === "object" ? allTimeCache : {};
+      return purgeAllTimePlayers(mergeAllTime(current, tableRemote)).players;
     }
-    if (!fetched) throw new Error("alltime-unavailable");
-    return purgeAllTimePlayers(parsed).players;
+    if (allTimeCache && typeof allTimeCache === "object" && Object.keys(allTimeCache).length) {
+      return purgeAllTimePlayers(allTimeCache).players;
+    }
+    throw new Error("alltime-unavailable");
   }
 
-  async function pushAllTimeRemote(players, opts) {
+  async function pushAllTimeRemote(players) {
     const me = getPlayerId();
     let tableWrote = false;
     const mine = players?.[me];
@@ -3902,14 +3871,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       const result = await persistAllTimeRoster(mine);
       if (result) tableWrote = true;
     }
-    if (tableWrote && !(opts && opts.rewriteShared)) return;
-    const cleaned = alltimeApi.repairMassStampedLastAt
-      ? alltimeApi.repairMassStampedLastAt(players)
-      : { ...(players || {}) };
-    await pushDoc("players-alltime", {
-      players: cleaned,
-      total: Object.keys(cleaned).length
-    });
+    if (tableWrote) return;
+    throw new Error("alltime-unavailable");
   }
 
   function rememberAllTime(players) {
