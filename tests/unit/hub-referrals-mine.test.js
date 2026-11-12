@@ -16,7 +16,15 @@ test("owned invite status lives in a helper used by referrals", () => {
   assert.match(ui, /pullMine/);
   assert.match(ui, /persistReferralContribution/);
   assert.match(ui, /fetchReferralTableRemote/);
-  assert.match(ui, /if \(tableWrote && !\(opts && opts\.rewriteShared\)\) \{\s*rememberDoc\(doc\);\s*return true;/);
+  assert.match(ui, /if \(tableWrote\) \{\s*rememberDoc\(doc\);\s*referralsHydrated = true;\s*return true;/);
+  assert.doesNotMatch(
+    ui.slice(ui.indexOf("async function pullDoc"), ui.indexOf("async function pushDoc")),
+    /getDoc|getPrefer/
+  );
+  assert.doesNotMatch(
+    ui.slice(ui.indexOf("async function pushDoc"), ui.indexOf("async function resolveCodeToPlayerId")),
+    /upsertDoc|pushPrefer|rewriteShared/
+  );
   assert.match(index, /hub-referrals-mine\.js/);
   assert.equal(mine.SAVE_KEY, "invite-mine");
 });

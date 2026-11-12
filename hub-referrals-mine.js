@@ -1,6 +1,6 @@
 /**
  * Per-player invite status (count, INVITER unlock, credited).
- * Shared hub-referrals-v1 stays on hub_docs; this row is auth-owned player_saves.
+ * Invite credits stay on the signed-in account; this row is auth-owned player_saves.
  */
 (function (root) {
   const SAVE_KEY = "invite-mine";

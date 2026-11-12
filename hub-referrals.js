@@ -333,62 +333,43 @@
   }
 
   async function pullDoc() {
-    const api = sb();
     const helper = mineApi();
     if (referralsLiveJoined() && referralsHydrated) {
       const parsed = rememberDoc(cache);
       parsed._fetched = true;
       return parsed;
     }
-    let parsed = emptyDoc();
-    let fetched = false;
-    if (api && !referralsLiveJoined()) {
-      try {
-        const data = await api.getDoc(DOC_ID);
-        if (data && typeof data === "object") {
-          parsed = {
-            byInviter: data.byInviter && typeof data.byInviter === "object" ? data.byInviter : {},
-            byInvitee: data.byInvitee && typeof data.byInvitee === "object" ? data.byInvitee : {}
-          };
-          fetched = true;
-        }
-      } catch {}
-    }
     const tableRemote = await fetchReferralTableRemote();
     if (tableRemote && helper?.overlayReferralDoc) {
-      parsed = helper.overlayReferralDoc(parsed, tableRemote);
-      fetched = true;
+      const current =
+        cache && (cache.byInviter || cache.byInvitee) ? cache : emptyDoc();
+      const parsed = helper.overlayReferralDoc(current, tableRemote);
       referralsHydrated = true;
-    } else if (fetched) {
-      referralsHydrated = true;
+      rememberDoc(parsed);
+      parsed._fetched = true;
+      return parsed;
     }
-    rememberDoc(parsed);
-    parsed._fetched = fetched;
+    if (
+      (cache.byInviter && Object.keys(cache.byInviter).length) ||
+      (cache.byInvitee && Object.keys(cache.byInvitee).length)
+    ) {
+      const parsed = rememberDoc(cache);
+      parsed._fetched = true;
+      return parsed;
+    }
+    const parsed = rememberDoc(emptyDoc());
+    parsed._fetched = false;
     return parsed;
   }
 
-  async function pushDoc(doc, opts) {
+  async function pushDoc(doc) {
     const tableWrote = await persistReferralContribution(doc);
-    if (tableWrote && !(opts && opts.rewriteShared)) {
+    if (tableWrote) {
       rememberDoc(doc);
+      referralsHydrated = true;
       return true;
     }
-    if (opts && opts.skipShared) {
-      rememberDoc(doc);
-      return true;
-    }
-    const api = sb();
-    if (!api) return false;
-    try {
-      await api.upsertDoc(DOC_ID, {
-        byInviter: doc.byInviter || {},
-        byInvitee: doc.byInvitee || {}
-      });
-      rememberDoc(doc);
-      return true;
-    } catch {
-      return false;
-    }
+    return false;
   }
 
   async function resolveCodeToPlayerId(code) {

@@ -1343,7 +1343,7 @@
     return "";
   }
 
-  /** Rebuild Most Invites from owned invite rows, with hub-referrals-v1 as floor. */
+  /** Rebuild Most Invites from owned invite rows. */
   async function hydrateInvitesBoard(data) {
     const games = { ...(data.games || {}) };
     const resets = data.resets && typeof data.resets === "object" ? data.resets : {};
@@ -1364,17 +1364,6 @@
             : {}
       };
     } else {
-      if (!leaderboardLiveJoined("referral_contributions")) {
-        try {
-          const doc = await HubSupabase.getDoc("hub-referrals-v1");
-          if (doc && typeof doc === "object") {
-            hubDoc = {
-              byInviter: doc.byInviter && typeof doc.byInviter === "object" ? doc.byInviter : {},
-              byInvitee: doc.byInvitee && typeof doc.byInvitee === "object" ? doc.byInvitee : {}
-            };
-          }
-        } catch {}
-      }
       try {
         const rows = await HubSupabase.listReferralContributions?.();
         const helper = window.HubReferralsMine;
