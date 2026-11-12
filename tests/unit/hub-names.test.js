@@ -15,8 +15,33 @@ test("unique nickname claims live outside hub-plays and load before it", () => {
   const boot = fs.readFileSync(path.join(ROOT, "hub-game-boot.js"), "utf8");
   assert.match(plays, /window\.HubNames/);
   assert.match(plays, /namesApi\.mergeNameMaps/);
+  assert.match(plays, /namesApi\.TITLE_DEFS/);
+  assert.match(plays, /namesApi\.sanitizeColor/);
+  assert.match(plays, /namesApi\.extraColorIdsForName/);
+  assert.doesNotMatch(plays, /const TITLE_DEFS = \{/);
   assert.match(index, /hub-names\.js/);
   assert.match(boot, /hub-names\.js/);
+});
+
+test("player titles and colors live with unique nicknames", () => {
+  assert.equal(names.TITLE_DEFS.owner.label, "OWNER");
+  assert.equal(names.TITLE_DEFS.master_fisher.className, "player-title-master-fisher");
+  assert.equal(names.TITLE_COLORS.legend, "#f1c40f");
+  assert.equal(names.TITLE_COLORS.inviter, "#7c3aed");
+  assert.equal(names.EXTRA_COLORS.aurora.animated, true);
+  assert.equal(names.sanitizeColor("#F1C40F"), "#f1c40f");
+  assert.equal(names.sanitizeColor("red"), "");
+  assert.equal(names.sanitizeColor("aurora"), "");
+  assert.equal(names.contrastText("#f1c40f"), "#1a1a1a");
+  assert.equal(names.contrastText("#1c7ed6"), "#ffffff");
+  assert.deepEqual(names.extraColorIdsForName("ice_dragon").sort(), ["aurora", "mono", "tide"]);
+  assert.deepEqual(names.extraColorIdsForName("hjalte"), ["mono"]);
+  assert.deepEqual(names.extraColorIdsForName("oscarvr29").sort(), ["aurora", "tide"]);
+  assert.deepEqual(names.extraColorIdsForName(""), []);
+  assert.equal(names.isCheesyColor("#f0b429"), true);
+  assert.equal(names.isCheesyColor("#1c7ed6"), false);
+  assert.deepEqual(names.HUB_POINTS_TITLE_IDS, ["hub1", "hub2", "hub3"]);
+  assert.equal(names.COLOR_OPTIONS[1].value, "#1c7ed6");
 });
 
 test("first claimer keeps a nickname and same-player titles merge", () => {

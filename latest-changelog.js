@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015dl",
+  "build": "20261015dm",
   "notes": [
-    "High scores and Feedback stay on your signed-in live connection when you post, so they don't wait on the old board."
+    "Player titles and colors live with your nickname, so the hub and minigames show the same equipped title."
   ]
 };
