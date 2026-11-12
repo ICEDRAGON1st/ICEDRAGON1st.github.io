@@ -170,7 +170,14 @@ test("locked admin docs use the trusted RPC instead of a direct hub_docs upsert"
   assert.match(src, /upsert_admin_hub_doc/);
   assert.match(admin, /api\.upsertAdminDoc/);
   assert.match(fishing, /upsertAdminDoc\(ADMIN_EVENT_DOC/);
-  assert.match(fishing, /if \(ok\) return \{ ok: true, rateLimited: false \}/);
+  assert.match(fishing, /return \{ ok: true, rateLimited: false \}/);
+  assert.doesNotMatch(
+    fishing.slice(
+      fishing.indexOf("async function pushAdminBundleRemote"),
+      fishing.indexOf("async function maybeRetryPendingAdminPush")
+    ),
+    /upsertDoc|pushPrefer/
+  );
   assert.match(fishing, /upsertAdminDoc\(ADMIN_ANNOUNCE_DOC/);
 });
 

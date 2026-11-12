@@ -64,9 +64,13 @@ test("admin broadcasts subscribe without rewriting hub_docs from the live overla
   assert.match(admin, /ensureAdminBroadcastRealtime/);
   assert.match(admin, /applyAdminBroadcastRealtime/);
   assert.match(admin, /subscribeAdminBroadcasts/);
+  assert.match(admin, /function adminLiveJoined/);
   assert.match(admin, /isRealtimeJoined\?\.\("admin_broadcasts"\)/);
-  assert.match(admin, /missing\.length && !sb\(\)\?\.isRealtimeJoined\?\.\("admin_broadcasts"\)/);
   assert.match(admin, /listAdminBroadcasts/);
+  assert.doesNotMatch(
+    admin.slice(admin.indexOf("async function refreshRemote"), admin.indexOf("function setStatus")),
+    /getDoc|getPrefer/
+  );
   assert.doesNotMatch(
     admin.slice(
       admin.indexOf("function applyAdminBroadcastRealtime"),

@@ -1,4 +1,7 @@
 {
+  "20261015ec": [
+    "Hub and Fishing admin stay on the signed-in admin channel, so they aren't copied onto a shared board."
+  ],
   "20261015eb": [
     "Invite credits stay on your signed-in account, so they aren't copied onto a shared board."
   ],

@@ -178,6 +178,34 @@ test("Fishing admin events subscribe without rewriting hub_docs from the live ov
     ),
     /upsertAdminDoc|upsertDoc|pushPrefer/
   );
+  assert.doesNotMatch(
+    script.slice(
+      script.indexOf("async function pollAdminEvent"),
+      script.indexOf("function startAdminEventPolling")
+    ),
+    /getDoc|getPrefer/
+  );
+  assert.doesNotMatch(
+    script.slice(
+      script.indexOf("async function fetchAdminAnnounceRemote"),
+      script.indexOf("async function pollAdminAnnounce")
+    ),
+    /getPrefer|getDoc/
+  );
+  assert.doesNotMatch(
+    script.slice(
+      script.indexOf("async function pushAdminAnnounceRemote"),
+      script.indexOf("async function publishAdminAnnounce")
+    ),
+    /pushPrefer|upsertDoc/
+  );
+  assert.doesNotMatch(
+    script.slice(
+      script.indexOf("async function pushAdminBundleRemote"),
+      script.indexOf("async function maybeRetryPendingAdminPush")
+    ),
+    /upsertDoc|pushPrefer|getDoc/
+  );
   assert.match(sql, /fishing-admin-events/);
   assert.match(sql, /security definer/i);
   assert.doesNotMatch(sql, /add table public\.hub_docs/i);

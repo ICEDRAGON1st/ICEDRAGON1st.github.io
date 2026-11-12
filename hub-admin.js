@@ -94,13 +94,11 @@
     return Math.max(1, Math.min(1440, n));
   }
 
-  async function getDoc(id) {
-    const api = sb();
-    if (!api) return null;
+  function adminLiveJoined() {
     try {
-      return await api.getDoc(id);
+      return !!sb()?.isRealtimeJoined?.("admin_broadcasts");
     } catch {
-      return null;
+      return false;
     }
   }
 
@@ -766,12 +764,20 @@ body.hub-admin-open{overflow:hidden}
   }
 
   async function refreshRemote() {
-    let docs = null;
+    if (adminLiveJoined() && Object.keys(broadcastDocs).length) {
+      applyBroadcastDocs(broadcastDocs);
+      ensureAdminBroadcastRealtime();
+      paintMaintenance();
+      maybeShowAnnounce();
+      await applyPendingGrants();
+      if (isOpen()) refreshUi();
+      return;
+    }
+    let docs = { ...broadcastDocs };
     try {
       const api = sb();
       const rows = api?.listAdminBroadcasts ? await api.listAdminBroadcasts() : null;
       if (Array.isArray(rows)) {
-        docs = { ...broadcastDocs };
         rows.forEach((row) => {
           const id = String(row.doc_id || row.docId || "").trim();
           if (!id) return;
@@ -779,30 +785,6 @@ body.hub-admin-open{overflow:hidden}
         });
       }
     } catch {}
-    if (!docs) {
-      const [a, m, mod, g] = await Promise.all([
-        getDoc(DOC.announce),
-        getDoc(DOC.maintenance),
-        getDoc(DOC.moderation),
-        getDoc(DOC.grants)
-      ]);
-      docs = {
-        [DOC.announce]: a,
-        [DOC.maintenance]: m,
-        [DOC.moderation]: mod || {},
-        [DOC.grants]: g || {}
-      };
-    } else {
-      const missing = [DOC.announce, DOC.maintenance, DOC.moderation, DOC.grants].filter(
-        (id) => !Object.prototype.hasOwnProperty.call(docs, id)
-      );
-      if (missing.length && !sb()?.isRealtimeJoined?.("admin_broadcasts")) {
-        const extras = await Promise.all(missing.map((id) => getDoc(id)));
-        missing.forEach((id, i) => {
-          if (extras[i] != null) docs[id] = extras[i];
-        });
-      }
-    }
     broadcastDocs = docs;
     applyBroadcastDocs(docs);
     ensureAdminBroadcastRealtime();

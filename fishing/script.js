@@ -4759,13 +4759,6 @@
           if (hit && hit.data && typeof hit.data === "object") supabaseData = hit.data;
         }
       } catch {}
-      if (supabaseData == null) {
-        try {
-          supabaseData = await api.getDoc(ADMIN_EVENT_DOC);
-        } catch {
-          supabaseData = null;
-        }
-      }
     }
     if (supabaseData && typeof supabaseData === "object") adminEventBroadcast = supabaseData;
     ensureAdminEventRealtime();
@@ -4927,15 +4920,6 @@
         }
       } catch {}
     }
-    if (api?.getPrefer) {
-      try {
-        const data = await api.getPrefer(ADMIN_ANNOUNCE_DOC);
-        const fromSb = parseAnnouncePayload(data);
-        if (fromSb) return fromSb;
-      } catch (err) {
-        if (err && err.rateLimited) markAdminEventRateLimited();
-      }
-    }
     let best = null;
     try {
       const res = await fetch(`${ADMIN_ANNOUNCE_URL}?t=${Date.now()}`, { cache: "no-store" });
@@ -4974,13 +4958,7 @@
         return false;
       }
     }
-    if (!api?.pushPrefer) return false;
-    try {
-      await api.pushPrefer(ADMIN_ANNOUNCE_DOC, payload);
-      return true;
-    } catch {
-      return false;
-    }
+    return false;
   }
 
   async function publishAdminAnnounce(text) {
@@ -5109,24 +5087,15 @@
   }
 
   async function pushAdminBundleRemote(payload) {
-    let ok = false;
     const api = fishingSb();
     if (api?.upsertAdminDoc) {
       try {
         await api.upsertAdminDoc(ADMIN_EVENT_DOC, payload);
-        ok = true;
-      } catch {
-        /* Retry via upsertDoc if the trusted RPC is not live yet */
-      }
-    } else if (api) {
-      try {
-        await api.upsertDoc(ADMIN_EVENT_DOC, payload);
-        ok = true;
+        return { ok: true, rateLimited: false };
       } catch {
         /* retry */
       }
     }
-    if (ok) return { ok: true, rateLimited: false };
     return { ok: false, rateLimited: !!adminEventRateLimited() };
   }
 
