@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015er",
+  "build": "20261015es",
   "notes": [
-    "Fishing weekend luck and Paper Claim are the only leftover shared boards — scores, names, and friends stay on your signed-in account."
+    "Fishing weekend luck and Paper Claim load on your signed-in account after the hub refreshes the live boards."
   ]
 };

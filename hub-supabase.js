@@ -113,6 +113,36 @@
     };
   }
 
+  const nativeFetch = globalThis.fetch.bind(globalThis);
+  let schemaReloadAttempted = false;
+
+  async function hubFetch(url, opts) {
+    const href = String(url || "");
+    const res = await nativeFetch(url, opts);
+    if (!href.includes("/rest/v1/") || href.includes("reload_postgrest_schema")) return res;
+    if (res.status !== 404 || schemaReloadAttempted) return res;
+    let body = "";
+    try {
+      body = await res.clone().text();
+    } catch {}
+    if (!/PGRST205/.test(body)) return res;
+    schemaReloadAttempted = true;
+    try {
+      const headerBag = (opts && opts.headers) || {};
+      const auth = String(headerBag.Authorization || headerBag.authorization || "");
+      const token = auth.replace(/^Bearer\s+/i, "");
+      const reload = await nativeFetch(`${SUPABASE_URL}/rest/v1/rpc/reload_postgrest_schema`, {
+        method: "POST",
+        headers: headers({}, token),
+        body: "{}"
+      });
+      if (!reload.ok) return res;
+    } catch {
+      return res;
+    }
+    return nativeFetch(url, opts);
+  }
+
   function readSession() {
     try {
       const raw = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
@@ -238,7 +268,7 @@
     const userId = sessionUserId(session);
     if (!userId || !session?.access_token) return null;
     const url = `${SUPABASE_URL}/rest/v1/player_profiles?user_id=eq.${encodeURIComponent(userId)}&select=user_id,player_id,display_name`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -252,7 +282,7 @@
     const nextName = localDisplayName();
     if (!nextName) return profile;
     const url = `${SUPABASE_URL}/rest/v1/player_profiles?user_id=eq.${encodeURIComponent(profile.userId)}`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       method: "PATCH",
       headers: headers({ Prefer: "return=representation" }, session.access_token),
       body: JSON.stringify({ display_name: nextName })
@@ -270,7 +300,7 @@
     const url =
       `${SUPABASE_URL}/rest/v1/player_saves?user_id=eq.${encodeURIComponent(userId)}` +
       `&save_key=eq.${encodeURIComponent(IDENTITY_SAVE_KEY)}&select=save_key,payload,schema_version,updated_at`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -283,7 +313,7 @@
     const userId = sessionUserId(session);
     const id = parseLocalPlayerId(playerId);
     if (!userId || !session?.access_token || !id) return;
-    await fetch(`${SUPABASE_URL}/rest/v1/player_saves`, {
+    await hubFetch(`${SUPABASE_URL}/rest/v1/player_saves`, {
       method: "POST",
       headers: headers(
         { Prefer: "resolution=merge-duplicates,return=minimal" },
@@ -301,7 +331,7 @@
   async function persistUserMetadata(session, playerId) {
     const id = parseLocalPlayerId(playerId);
     if (!session?.access_token || !id) return;
-    await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    await hubFetch(`${SUPABASE_URL}/auth/v1/user`, {
       method: "PUT",
       headers: headers({}, session.access_token),
       body: JSON.stringify({ data: { hub_player_id: id } })
@@ -354,7 +384,7 @@
   }
 
   async function refreshSession(existing) {
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
+    const res = await hubFetch(`${SUPABASE_URL}/auth/v1/token?grant_type=refresh_token`, {
       method: "POST",
       headers: headers(),
       body: JSON.stringify({ refresh_token: existing.refresh_token })
@@ -365,7 +395,7 @@
   }
 
   async function signInAnonymously() {
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/signup`, {
+    const res = await hubFetch(`${SUPABASE_URL}/auth/v1/signup`, {
       method: "POST",
       headers: headers(),
       body: JSON.stringify({ data: {} })
@@ -431,7 +461,7 @@
     const pw = String(password || "");
     if (!email || pw.length < 4 || pw.length > 48) return null;
     if (netBlocked()) return null;
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
+    const res = await hubFetch(`${SUPABASE_URL}/auth/v1/token?grant_type=password`, {
       method: "POST",
       headers: headers(),
       body: JSON.stringify({ email, password: pw })
@@ -454,7 +484,7 @@
     if (netBlocked()) return null;
     const session = await ensureSession();
     if (!session?.access_token) return null;
-    const res = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+    const res = await hubFetch(`${SUPABASE_URL}/auth/v1/user`, {
       method: "PUT",
       headers: headers({}, session.access_token),
       body: JSON.stringify({
@@ -505,7 +535,7 @@
     const url =
       `${SUPABASE_URL}/rest/v1/player_saves?user_id=eq.${encodeURIComponent(userId)}` +
       `&save_key=eq.${encodeURIComponent(key)}&select=save_key,payload,schema_version,updated_at`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -525,7 +555,7 @@
       err.hubNetBlocked = true;
       throw err;
     }
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/player_saves`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/player_saves`, {
       method: "POST",
       headers: headers(
         {
@@ -558,7 +588,7 @@
     const url =
       `${SUPABASE_URL}/rest/v1/presence_pings?pinged_at=gte.${encodeURIComponent(since)}` +
       `&select=player_id,display_name,game,pinged_at`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -579,7 +609,7 @@
       err.hubNetBlocked = true;
       throw err;
     }
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/presence_pings`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/presence_pings`, {
       method: "POST",
       headers: headers(
         {
@@ -616,7 +646,7 @@
       err.hubNetBlocked = true;
       throw err;
     }
-    const res = await fetch(
+    const res = await hubFetch(
       `${SUPABASE_URL}/rest/v1/presence_pings?user_id=eq.${encodeURIComponent(userId)}`,
       {
         method: "DELETE",
@@ -1022,7 +1052,7 @@
     const session = await ensureSession();
     if (!session?.access_token) return null;
     const url = `${SUPABASE_URL}/rest/v1/admin_broadcasts?select=doc_id,data,updated_at`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -1043,7 +1073,7 @@
     const reset = Number(resetAt) || 0;
     let url = `${SUPABASE_URL}/rest/v1/popularity_contributions?select=player_id,games,reset_at`;
     if (reset > 0) url += `&reset_at=eq.${encodeURIComponent(String(reset))}`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -1066,7 +1096,7 @@
     }
     const games =
       row?.games && typeof row.games === "object" && !Array.isArray(row.games) ? row.games : {};
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/popularity_contributions`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/popularity_contributions`, {
       method: "POST",
       headers: headers(
         {
@@ -1134,7 +1164,7 @@
     const session = await ensureSession();
     if (!session?.access_token) return null;
     const url = `${SUPABASE_URL}/rest/v1/play_log_contributions?select=player_id,plays`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -1156,7 +1186,7 @@
       throw err;
     }
     const plays = sanitizePlayLog(row?.plays, playerId);
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/play_log_contributions`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/play_log_contributions`, {
       method: "POST",
       headers: headers(
         {
@@ -1186,7 +1216,7 @@
     const session = await ensureSession();
     if (!session?.access_token) return null;
     const url = `${SUPABASE_URL}/rest/v1/player_code_claims?select=player_id,code,display_name,claimed_at`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -1212,7 +1242,7 @@
     const url =
       `${SUPABASE_URL}/rest/v1/player_code_claims?code=eq.${encodeURIComponent(norm)}` +
       `&select=player_id,code,display_name,claimed_at`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -1238,7 +1268,7 @@
       err.hubNetBlocked = true;
       throw err;
     }
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/player_code_claims`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/player_code_claims`, {
       method: "POST",
       headers: headers(
         {
@@ -1278,7 +1308,7 @@
     const session = await ensureSession();
     if (!session?.access_token) return null;
     const url = `${SUPABASE_URL}/rest/v1/nickname_claims?select=player_id,name_key,claim`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -1306,7 +1336,7 @@
     }
     const claim =
       row?.claim && typeof row.claim === "object" && !Array.isArray(row.claim) ? row.claim : {};
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/nickname_claims`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/nickname_claims`, {
       method: "POST",
       headers: headers(
         {
@@ -1342,7 +1372,7 @@
     const session = await ensureSession();
     if (!session?.access_token) return null;
     const url = `${SUPABASE_URL}/rest/v1/name_reservation_locks?select=player_id,name_key,code,display_name,locked_at`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -1373,7 +1403,7 @@
       err.hubNetBlocked = true;
       throw err;
     }
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/name_reservation_locks`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/name_reservation_locks`, {
       method: "POST",
       headers: headers(
         {
@@ -1416,7 +1446,7 @@
     const session = await ensureSession();
     if (!session?.access_token) return null;
     const url = `${SUPABASE_URL}/rest/v1/player_password_hashes?select=player_id,password_hash,code,display_name,hashed_at,cleared`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -1451,7 +1481,7 @@
       .toUpperCase()
       .replace(/[^23456789ABCDEFGHJKLMNPQRSTUVWXYZ]/g, "")
       .slice(0, 8);
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/player_password_hashes`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/player_password_hashes`, {
       method: "POST",
       headers: headers(
         {
@@ -1495,7 +1525,7 @@
     const session = await ensureSession();
     if (!session?.access_token) return null;
     const url = `${SUPABASE_URL}/rest/v1/alltime_roster?select=player_id,display_name,first_at,last_at`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -1519,7 +1549,7 @@
       err.hubNetBlocked = true;
       throw err;
     }
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/alltime_roster`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/alltime_roster`, {
       method: "POST",
       headers: headers(
         {
@@ -1585,7 +1615,7 @@
     const session = await ensureSession();
     if (!session?.access_token) return null;
     const url = `${SUPABASE_URL}/rest/v1/call_signal_contributions?select=player_id,rooms`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -1607,7 +1637,7 @@
       throw err;
     }
     const rooms = sanitizeCallRooms(row?.rooms, playerId);
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/call_signal_contributions`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/call_signal_contributions`, {
       method: "POST",
       headers: headers(
         {
@@ -1714,7 +1744,7 @@
     const session = await ensureSession();
     if (!session?.access_token) return null;
     const url = `${SUPABASE_URL}/rest/v1/friend_edge_contributions?select=player_id,display_name,friends,outgoing,incoming,invites,updated_at`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -1735,7 +1765,7 @@
       err.hubNetBlocked = true;
       throw err;
     }
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/friend_edge_contributions`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/friend_edge_contributions`, {
       method: "POST",
       headers: headers(
         {
@@ -1883,7 +1913,7 @@
     const session = await ensureSession();
     if (!session?.access_token) return null;
     const url = `${SUPABASE_URL}/rest/v1/chat_thread_contributions?select=player_id,threads,updated_at`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -1905,7 +1935,7 @@
       throw err;
     }
     const threads = sanitizeChatThreads(row?.threads, playerId);
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/chat_thread_contributions`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/chat_thread_contributions`, {
       method: "POST",
       headers: headers(
         {
@@ -1994,7 +2024,7 @@
     const session = await ensureSession();
     if (!session?.access_token) return null;
     const url = `${SUPABASE_URL}/rest/v1/leaderboard_pb_contributions?select=player_id,games,updated_at`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -2016,7 +2046,7 @@
       throw err;
     }
     const games = sanitizeLeaderboardGames(row?.games, playerId);
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/leaderboard_pb_contributions`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/leaderboard_pb_contributions`, {
       method: "POST",
       headers: headers(
         {
@@ -2099,7 +2129,7 @@
     const session = await ensureSession();
     if (!session?.access_token) return null;
     const url = `${SUPABASE_URL}/rest/v1/match_room_contributions?select=player_id,rooms,updated_at`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -2121,7 +2151,7 @@
       throw err;
     }
     const rooms = sanitizeMatchRooms(row?.rooms, playerId);
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/match_room_contributions`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/match_room_contributions`, {
       method: "POST",
       headers: headers(
         {
@@ -2222,7 +2252,7 @@
     const session = await ensureSession();
     if (!session?.access_token) return null;
     const url = `${SUPABASE_URL}/rest/v1/paper_room_contributions?select=player_id,rooms,updated_at`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -2244,7 +2274,7 @@
       throw err;
     }
     const rooms = sanitizePaperRooms(row?.rooms, playerId);
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/paper_room_contributions`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/paper_room_contributions`, {
       method: "POST",
       headers: headers(
         {
@@ -2317,7 +2347,7 @@
     const session = await ensureSession();
     if (!session?.access_token) return null;
     const url = `${SUPABASE_URL}/rest/v1/feedback_item_contributions?select=player_id,items,updated_at`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -2339,7 +2369,7 @@
       throw err;
     }
     const items = sanitizeFeedbackItems(row?.items, playerId);
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/feedback_item_contributions`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/feedback_item_contributions`, {
       method: "POST",
       headers: headers(
         {
@@ -2376,7 +2406,7 @@
     const session = await ensureSession();
     if (!session?.access_token) return null;
     const url = `${SUPABASE_URL}/rest/v1/referral_contributions?select=player_id,inviter_id,inviter_code,invitee_name,credited_at,updated_at`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -2402,7 +2432,7 @@
       err.hubNetBlocked = true;
       throw err;
     }
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/referral_contributions`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/referral_contributions`, {
       method: "POST",
       headers: headers(
         {
@@ -2451,7 +2481,7 @@
     const session = await ensureSession();
     if (!session?.access_token) return null;
     const url = `${SUPABASE_URL}/rest/v1/community_cast_contributions?select=player_id,week_key,casts,updated_at`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -2475,7 +2505,7 @@
       throw err;
     }
     const casts = sanitizeCommunityCasts(row?.casts);
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/community_cast_contributions`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/community_cast_contributions`, {
       method: "POST",
       headers: headers(
         {
@@ -2520,7 +2550,7 @@
     const session = await ensureSession();
     if (!session?.access_token) return null;
     const url = `${SUPABASE_URL}/rest/v1/community_meter_state?select=id,week_key,goal,reward_until,reward_mult,lb_wave,updated_at`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -2540,7 +2570,7 @@
       err.hubNetBlocked = true;
       throw err;
     }
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/community_meter_state`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/community_meter_state`, {
       method: "POST",
       headers: headers(
         {
@@ -2700,7 +2730,7 @@
     const session = await ensureSession();
     if (!session?.access_token) return null;
     const url = `${SUPABASE_URL}/rest/v1/fishing_mail_contributions?select=player_id,gifts,trades,updated_at`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -2723,7 +2753,7 @@
     }
     const gifts = sanitizeFishingMailGifts(row?.gifts, playerId);
     const trades = sanitizeFishingMailTrades(row?.trades, playerId);
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/fishing_mail_contributions`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/fishing_mail_contributions`, {
       method: "POST",
       headers: headers(
         {
@@ -2832,7 +2862,7 @@
     const session = await ensureSession();
     if (!session?.access_token) return null;
     const url = `${SUPABASE_URL}/rest/v1/fishing_gift_contributions?select=player_id,gifts,updated_at`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -2854,7 +2884,7 @@
       throw err;
     }
     const gifts = sanitizeAdminFishGifts(row?.gifts, playerId);
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/fishing_gift_contributions`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/fishing_gift_contributions`, {
       method: "POST",
       headers: headers(
         {
@@ -2918,7 +2948,7 @@
     const session = await ensureSession();
     if (!session?.access_token) return null;
     const url = `${SUPABASE_URL}/rest/v1/aquarium_tank_contributions?select=player_id,tank,updated_at`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
@@ -2940,7 +2970,7 @@
       throw err;
     }
     const tank = sanitizeAquariumTank(row?.tank, playerId);
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/aquarium_tank_contributions`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/aquarium_tank_contributions`, {
       method: "POST",
       headers: headers(
         {
@@ -2969,7 +2999,7 @@
       throw err;
     }
     const url = `${SUPABASE_URL}/rest/v1/hub_docs?id=eq.${encodeURIComponent(id)}&select=data`;
-    const res = await fetch(url, { headers: headers({}, await accessToken()), cache: "no-store" });
+    const res = await hubFetch(url, { headers: headers({}, await accessToken()), cache: "no-store" });
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`supabase get ${res.status}`);
     const rows = await res.json();
@@ -2987,7 +3017,7 @@
       throw err;
     }
     const url = `${SUPABASE_URL}/rest/v1/hub_docs`;
-    const res = await fetch(url, {
+    const res = await hubFetch(url, {
       method: "POST",
       headers: headers(
         {
@@ -3022,7 +3052,7 @@
       err.hubNetBlocked = true;
       throw err;
     }
-    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/upsert_admin_hub_doc`, {
+    const res = await hubFetch(`${SUPABASE_URL}/rest/v1/rpc/upsert_admin_hub_doc`, {
       method: "POST",
       headers: headers({}, session.access_token),
       body: JSON.stringify({

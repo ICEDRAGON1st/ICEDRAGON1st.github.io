@@ -215,6 +215,22 @@ test("Discord /link looks up signed-in player codes without leftover hub_docs", 
   assert.doesNotMatch(bot, /discord-links-v1/);
 });
 
+test("remaining leftover tables paste includes meter, Paper, Discord /link, and schema reload", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160052_remaining_leftover.sql"),
+    "utf8"
+  );
+  assert.match(sql, /community_meter_state/);
+  assert.match(sql, /paper_room_contributions/);
+  assert.match(sql, /community_cast_contributions/);
+  assert.match(sql, /discord_links/);
+  assert.match(sql, /reload_postgrest_schema/);
+  assert.match(sql, /notify pgrst, 'reload schema'/);
+  assert.match(sql, /grant execute on function public\.reload_postgrest_schema\(\) to authenticated/);
+  assert.doesNotMatch(sql, /grant execute on function public\.reload_postgrest_schema\(\) to anon/);
+  assert.doesNotMatch(sql, /add table public\.hub_docs/i);
+});
+
 test("contracted leftover boards skip hub_docs on the client until meter and Paper tables are live", () => {
   const src = fs.readFileSync(path.join(ROOT, "hub-supabase.js"), "utf8");
   const plays = fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8");

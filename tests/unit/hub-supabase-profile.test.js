@@ -158,6 +158,29 @@ test("shared docs skip the old backup read when the account server errors", () =
   );
 });
 
+test("signed-in leftover tables retry once after a PostgREST schema reload", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  const sql = fs.readFileSync(
+    path.join(__dirname, "../../supabase/migrations/202610160052_remaining_leftover.sql"),
+    "utf8"
+  );
+  assert.match(src, /async function hubFetch/);
+  assert.match(src, /reload_postgrest_schema/);
+  assert.match(src, /PGRST205/);
+  assert.match(src, /schemaReloadAttempted/);
+  assert.match(src, /await hubFetch\(`\$\{SUPABASE_URL\}\/rest\/v1\/community_meter_state`/);
+  assert.match(src, /await hubFetch\(`\$\{SUPABASE_URL\}\/rest\/v1\/paper_room_contributions`/);
+  assert.match(sql, /create or replace function public\.reload_postgrest_schema/);
+  assert.match(sql, /notify pgrst, 'reload schema'/);
+  assert.match(sql, /create table if not exists public\.community_meter_state/);
+  assert.match(sql, /create table if not exists public\.paper_room_contributions/);
+  assert.match(sql, /create table if not exists public\.community_cast_contributions/);
+  assert.match(sql, /create table if not exists public\.discord_links/);
+  assert.doesNotMatch(sql, /add table public\.hub_docs/i);
+  assert.doesNotMatch(sql, /grant execute on function public\.reload_postgrest_schema\(\) to anon/);
+});
+
 test("contracted leftover boards skip hub_docs reads and writes", () => {
   const fs = require("node:fs");
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
