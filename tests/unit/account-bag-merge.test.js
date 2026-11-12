@@ -292,6 +292,15 @@ test("account restore never blends leftover keys or toast queues", () => {
 });
 
 test("account bags prefer player_saves and skip the shared document after a successful save", async () => {
+  const src = fs.readFileSync(path.join(ROOT, "hub-account-bag.js"), "utf8");
+  assert.doesNotMatch(
+    src.slice(src.indexOf("async function pushBagCloud"), src.indexOf("function isMineBagKey")),
+    /upsertDoc/
+  );
+  assert.doesNotMatch(
+    src.slice(src.indexOf("async function pullRemote"), src.indexOf("async function pullAndApply")),
+    /getDoc/
+  );
   const writes = [];
   const reads = [];
   const local = loadFixture("account-bag-local.json");
@@ -344,18 +353,19 @@ test("account bags prefer player_saves and skip the shared document after a succ
   );
 });
 
-test("account bags still use the shared document when player_saves is missing", async () => {
+test("account bags stay local when player_saves is missing and skip the shared document", async () => {
   const writes = [];
-  const remoteDoc = loadFixture("account-bag-remote.json");
+  const reads = [];
   const { api } = loadAccountBagApi({
     supabase: {
       ready: true,
-      async getSave() {
+      async getSave(key) {
+        reads.push(["save", key]);
         return null;
       },
       async getDoc(id) {
-        assert.equal(id, "account-bag:fixture-player");
-        return remoteDoc;
+        reads.push(["doc", id]);
+        return { playerId: "fixture-player", kv: { "snake-high-score": "9999" } };
       },
       async upsertSave() {
         throw new Error("player_saves unavailable");
@@ -370,9 +380,17 @@ test("account bags still use the shared document when player_saves is missing", 
     skipLiveSnapshot: true,
     replace: true
   });
-  assert.equal(pulled.kv["snake-high-score"], remoteDoc.kv["snake-high-score"]);
+  assert.equal(pulled == null || pulled.kv == null || pulled.kv["snake-high-score"] == null, true);
   assert.equal(
-    writes.some((row) => row[0] === "doc" && row[1] === "account-bag:fixture-player"),
+    reads.some((row) => row[0] === "save"),
     true
+  );
+  assert.equal(
+    reads.some((row) => row[0] === "doc"),
+    false
+  );
+  assert.equal(
+    writes.some((row) => row[0] === "doc"),
+    false
   );
 });

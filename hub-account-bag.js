@@ -240,14 +240,6 @@
         console.warn("[HubAccountBag] player_saves upsert failed", err);
       }
     }
-    if (typeof api.upsertDoc === "function") {
-      try {
-        await api.upsertDoc(DOC_PREFIX + playerId, bag);
-        return true;
-      } catch (err) {
-        console.warn("[HubAccountBag] hub_docs upsert failed", err);
-      }
-    }
     throw new Error("account bag push failed");
   }
 
@@ -950,13 +942,7 @@
         }
       }
       if (owned) return owned;
-      let shared = null;
-      try {
-        shared = asBag(id, await api.getDoc(DOC_PREFIX + id));
-      } catch (err) {
-        console.warn("[HubAccountBag] hub_docs pull failed", err);
-      }
-      return shared;
+      return null;
     } catch (err) {
       console.warn("[HubAccountBag] pull failed", err);
       return null;
