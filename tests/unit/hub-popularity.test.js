@@ -322,3 +322,42 @@ test("play log live rows subscribe without rewriting the shared plays document",
   assert.match(sql, /alter publication supabase_realtime add table public\.play_log_contributions/i);
   assert.doesNotMatch(sql, /to anon/i);
 });
+
+test("play-count remotes skip leftover shared boards", async () => {
+  const fs = require("node:fs");
+  const path = require("node:path");
+  const ROOT = path.resolve(__dirname, "../..");
+  const src = fs.readFileSync(path.join(ROOT, "hub-popularity.js"), "utf8");
+  const plays = fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8");
+  assert.doesNotMatch(src, /getPrefer|pushPrefer|fetchDoc|pushDoc|hub_docs/);
+  assert.match(plays, /popularityApi\.fetchPlayLogRows/);
+  assert.match(plays, /popularityApi\.persistPlayLogContribution/);
+  assert.match(plays, /popularityApi\.fetchPopularityRows/);
+  assert.match(plays, /popularityApi\.persistPopularityContribution/);
+  const calls = [];
+  const api = {
+    async listPlayLogContributions() {
+      return [{ player_id: "p-ada", plays: [] }];
+    },
+    async upsertPlayLogContribution(row) {
+      calls.push(["plays", row]);
+    },
+    async listPopularityContributions() {
+      return [{ player_id: "p-ada", games: { snake: 2 }, reset_at: 0 }];
+    },
+    async upsertPopularityContribution(row) {
+      calls.push(["pop", row]);
+    }
+  };
+  assert.equal((await popularity.fetchPlayLogRows(api)).length, 1);
+  assert.equal(
+    await popularity.persistPlayLogContribution(api, "p-ada", [
+      { id: "mine-1", playerId: "p-ada", name: "Ada", game: "snake", gameName: "Snake", at: 20 }
+    ]),
+    true
+  );
+  assert.equal((await popularity.fetchPopularityRows(api, 0)).length, 1);
+  assert.equal(await popularity.persistPopularityContribution(api, "p-ada", { snake: 1 }, 0, false), true);
+  assert.equal(calls.some((row) => row[0] === "plays"), true);
+  assert.equal(calls.some((row) => row[0] === "pop"), true);
+});

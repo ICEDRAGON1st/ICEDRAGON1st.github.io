@@ -150,3 +150,26 @@ test("presence realtime merges a live ping without dropping other players", () =
   );
   assert.equal(skipped["p-keepxxxx"].name, "Cee");
 });
+
+test("presence remotes skip leftover shared boards", async () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.resolve(__dirname, "../../hub-presence.js"), "utf8");
+  const plays = fs.readFileSync(path.resolve(__dirname, "../../hub-plays.js"), "utf8");
+  assert.doesNotMatch(src, /getPrefer|pushPrefer|fetchDoc|pushDoc|hub_docs/);
+  assert.match(plays, /presenceApi\.fetchPresencePingRows/);
+  assert.match(plays, /presenceApi\.persistPresencePing/);
+  const calls = [];
+  const api = {
+    async listPresencePings() {
+      return [{ player_id: "p-ada", display_name: "Ada", game: "hub", pinged_at: 9 }];
+    },
+    async upsertPresencePing(row) {
+      calls.push(row);
+    }
+  };
+  assert.equal((await presence.fetchPresencePingRows(api)).length, 1);
+  assert.equal(await presence.persistPresencePing(api, "p-ada", { name: "Ada", game: "snake" }), true);
+  assert.equal(await presence.persistPresencePing(api, "p-ada", { name: "Guest", game: "hub" }), false);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].displayName, "Ada");
+});

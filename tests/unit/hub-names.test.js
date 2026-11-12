@@ -297,3 +297,37 @@ test("nickname live rows subscribe without rewriting the shared name registry", 
   assert.match(sql, /alter publication supabase_realtime add table public\.nickname_claims/i);
   assert.doesNotMatch(sql, /to anon/i);
 });
+
+test("nickname remotes skip leftover shared boards", async () => {
+  const src = fs.readFileSync(path.join(ROOT, "hub-names.js"), "utf8");
+  const plays = fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8");
+  assert.doesNotMatch(src, /getPrefer|pushPrefer|fetchDoc|pushDoc|hub_docs/);
+  assert.match(plays, /namesApi\.fetchNicknameClaimRows/);
+  assert.match(plays, /namesApi\.persistNicknameClaim/);
+  const calls = [];
+  const api = {
+    async listNicknameClaims() {
+      return [{ player_id: "p-ada", name_key: "ada", claim: { playerId: "p-ada", name: "Ada" } }];
+    },
+    async upsertNicknameClaim(row) {
+      calls.push(row);
+    }
+  };
+  assert.equal((await names.fetchNicknameClaimRows(api)).length, 1);
+  assert.equal(
+    await names.persistNicknameClaim(api, "p-ada", {
+      playerId: "p-ada",
+      name: "Ada",
+      claimedAt: 9
+    }),
+    true
+  );
+  assert.equal(
+    await names.pushNicknameClaims(api, "p-ada", {
+      ada: { playerId: "p-ada", name: "Ada", claimedAt: 9 }
+    }),
+    true
+  );
+  assert.equal(calls.length >= 1, true);
+  assert.equal(calls[0].playerId, "p-ada");
+});

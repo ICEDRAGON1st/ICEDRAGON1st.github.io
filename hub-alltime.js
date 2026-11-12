@@ -331,6 +331,43 @@
     };
   }
 
+  async function fetchAllTimeRosterRows(api) {
+    if (!api?.listAlltimeRoster) return null;
+    try {
+      const rows = await api.listAlltimeRoster();
+      if (!rows) return null;
+      return Array.isArray(rows) ? rows : [];
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistAllTimeRoster(api, playerId, entry) {
+    const me = String(playerId || "").trim();
+    if (!api?.upsertAlltimeRoster || !me || !entry) return false;
+    const cleaned = cleanRow(entry, me);
+    if (!cleaned) return false;
+    if (root.HubPresence?.isPlaceholderName?.(cleaned.name)) return false;
+    try {
+      await api.upsertAlltimeRoster({
+        playerId: me,
+        displayName: cleaned.name,
+        firstAt: cleaned.firstAt,
+        lastAt: cleaned.lastAt
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function pushAllTimeRoster(api, playerId, players) {
+    const me = String(playerId || "").trim();
+    const mine = players?.[me];
+    if (!mine) return false;
+    return persistAllTimeRoster(api, me, mine);
+  }
+
   const api = {
     MAX_ALLTIME,
     LAST_AT_WRITE_GAP_MS,
@@ -350,7 +387,10 @@
     collectMine,
     applyMine,
     rowsToMap,
-    applyChange
+    applyChange,
+    fetchAllTimeRosterRows,
+    persistAllTimeRoster,
+    pushAllTimeRoster
   };
   if (root) root.HubAllTime = api;
   if (typeof module === "object" && module.exports) module.exports = api;

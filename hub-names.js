@@ -385,6 +385,47 @@
     return value === TITLE_COLORS.cheesy || value === "#f0b429";
   }
 
+  async function fetchNicknameClaimRows(api) {
+    if (!api?.listNicknameClaims) return null;
+    try {
+      const rows = await api.listNicknameClaims();
+      if (!rows) return null;
+      return Array.isArray(rows) ? rows : [];
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistNicknameClaim(api, playerId, claim) {
+    const me = String(playerId || "").trim();
+    if (!api?.upsertNicknameClaim || !me) return false;
+    const cleaned = cleanClaim(claim, me);
+    if (!cleaned?.name) return false;
+    try {
+      await api.upsertNicknameClaim({
+        playerId: me,
+        nameKey: nameKey(cleaned.name),
+        claim: cleaned
+      });
+      return true;
+    } catch (err) {
+      if (err && err.nameTaken) return "taken";
+      return false;
+    }
+  }
+
+  async function pushNicknameClaims(api, playerId, names) {
+    const me = String(playerId || "").trim();
+    const mine = findClaimByPlayerId(names, me);
+    const tableResult = mine ? await persistNicknameClaim(api, me, mine) : false;
+    if (tableResult === "taken") {
+      const err = new Error("nickname taken");
+      err.nameTaken = true;
+      throw err;
+    }
+    return tableResult === true;
+  }
+
   const api = {
     parseNameRegistry,
     findClaimByPlayerId,
@@ -397,6 +438,9 @@
     applyMine,
     rowsToNameMap,
     applyChange,
+    fetchNicknameClaimRows,
+    persistNicknameClaim,
+    pushNicknameClaims,
     TITLE_DEFS,
     TITLE_COLORS,
     EXTRA_COLORS,

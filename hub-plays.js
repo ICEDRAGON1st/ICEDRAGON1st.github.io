@@ -234,37 +234,20 @@
   }
 
   async function persistPopularityContribution(resetAt, replace = false) {
-    const api = sb();
-    const me = getPlayerId();
-    if (!api?.upsertPopularityContribution || !me || !hasRequiredName()) return false;
-    const pending = { ...(popularityPending || {}) };
-    try {
-      let mine = {};
-      if (!replace && api.listPopularityContributions && popularityApi.readOwnContribution) {
-        try {
-          const rows = await api.listPopularityContributions(resetAt);
-          if (rows) mine = popularityApi.readOwnContribution(rows, me);
-        } catch {}
-      }
-      const games = popularityApi.addContributionGames
-        ? popularityApi.addContributionGames(mine, pending)
-        : { ...pending };
-      await api.upsertPopularityContribution({
-        playerId: me,
-        games,
-        resetAt: Number(resetAt) || 0
-      });
-      return true;
-    } catch {
-      return false;
-    }
+    if (!popularityApi.persistPopularityContribution || !hasRequiredName()) return false;
+    return popularityApi.persistPopularityContribution(
+      sb(),
+      getPlayerId(),
+      popularityPending,
+      resetAt,
+      replace
+    );
   }
 
   async function fetchPopularityTableRemote(resetAt) {
-    const api = sb();
-    if (!api?.listPopularityContributions || !popularityApi.rowsToCounts) return null;
+    if (!popularityApi.fetchPopularityRows || !popularityApi.rowsToCounts) return null;
     try {
-      const rows = await api.listPopularityContributions(resetAt);
+      const rows = await popularityApi.fetchPopularityRows(sb(), resetAt);
       if (!rows) return null;
       popularityRows = Array.isArray(rows) ? rows : [];
       return popularityApi.rowsToCounts(rows);
@@ -2216,10 +2199,9 @@
   }
 
   async function fetchPlaysTableRemote() {
-    const api = sb();
-    if (!api?.listPlayLogContributions || !popularityApi.rowsToPlayLogs) return null;
+    if (!popularityApi.fetchPlayLogRows || !popularityApi.rowsToPlayLogs) return null;
     try {
-      const rows = await api.listPlayLogContributions();
+      const rows = await popularityApi.fetchPlayLogRows(sb());
       if (!rows) return null;
       playLogRows = Array.isArray(rows) ? rows : [];
       return popularityApi.rowsToPlayLogs(rows, MAX_PLAYS);
@@ -2229,20 +2211,8 @@
   }
 
   async function persistPlayLogContribution(plays) {
-    const api = sb();
-    const me = getPlayerId();
-    if (!api?.upsertPlayLogContribution || !me) return false;
-    const mine = popularityApi.collectMine ? popularityApi.collectMine(plays, me) : null;
-    if (!mine) return false;
-    try {
-      await api.upsertPlayLogContribution({
-        playerId: me,
-        plays: mine.plays
-      });
-      return true;
-    } catch {
-      return false;
-    }
+    if (!popularityApi.persistPlayLogContribution) return false;
+    return popularityApi.persistPlayLogContribution(sb(), getPlayerId(), plays);
   }
 
   async function fetchPlaysRemote() {
@@ -2276,10 +2246,9 @@
   }
 
   async function fetchNamesTableRemote() {
-    const api = sb();
-    if (!api?.listNicknameClaims || !namesApi.rowsToNameMap) return null;
+    if (!namesApi.fetchNicknameClaimRows || !namesApi.rowsToNameMap) return null;
     try {
-      const rows = await api.listNicknameClaims();
+      const rows = await namesApi.fetchNicknameClaimRows(sb());
       if (!rows) return null;
       nicknameRows = Array.isArray(rows) ? rows : [];
       return namesApi.rowsToNameMap(rows);
@@ -2289,22 +2258,8 @@
   }
 
   async function persistNicknameClaim(claim) {
-    const api = sb();
-    const me = getPlayerId();
-    if (!api?.upsertNicknameClaim || !me) return false;
-    const cleaned = namesApi.cleanClaim ? namesApi.cleanClaim(claim, me) : claim;
-    if (!cleaned?.name) return false;
-    try {
-      await api.upsertNicknameClaim({
-        playerId: me,
-        nameKey: nameKey(cleaned.name),
-        claim: cleaned
-      });
-      return true;
-    } catch (err) {
-      if (err && err.nameTaken) return "taken";
-      return false;
-    }
+    if (!namesApi.persistNicknameClaim) return false;
+    return namesApi.persistNicknameClaim(sb(), getPlayerId(), claim);
   }
 
   async function fetchNamesRemote() {
@@ -3319,10 +3274,9 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   async function fetchPresenceTableRemote() {
-    const api = sb();
-    if (!api?.listPresencePings || !presenceApi.rowsToMap) return null;
+    if (!presenceApi.fetchPresencePingRows || !presenceApi.rowsToMap) return null;
     try {
-      const rows = await api.listPresencePings();
+      const rows = await presenceApi.fetchPresencePingRows(sb());
       if (!rows) return null;
       return presenceApi.rowsToMap(rows);
     } catch {
@@ -3331,20 +3285,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   async function persistPresencePing() {
-    const api = sb();
-    const me = getPlayerId();
-    if (!api?.upsertPresencePing || !me || !hasRequiredName()) return false;
-    try {
-      const self = presenceSelfPayload();
-      await api.upsertPresencePing({
-        playerId: me,
-        displayName: self.name,
-        game: self.game
-      });
-      return true;
-    } catch {
-      return false;
-    }
+    if (!presenceApi.persistPresencePing || !hasRequiredName()) return false;
+    return presenceApi.persistPresencePing(sb(), getPlayerId(), presenceSelfPayload());
   }
 
   let presenceRealtimeUnsub = null;
@@ -3673,10 +3615,9 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   async function fetchAllTimeTableRemote() {
-    const api = sb();
-    if (!api?.listAlltimeRoster || !alltimeApi.rowsToMap) return null;
+    if (!alltimeApi.fetchAllTimeRosterRows || !alltimeApi.rowsToMap) return null;
     try {
-      const rows = await api.listAlltimeRoster();
+      const rows = await alltimeApi.fetchAllTimeRosterRows(sb());
       if (!rows) return null;
       alltimeRows = Array.isArray(rows) ? rows : [];
       return alltimeApi.rowsToMap(rows);
@@ -3686,22 +3627,8 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
   }
 
   async function persistAllTimeRoster(entry) {
-    const api = sb();
-    const me = getPlayerId();
-    if (!api?.upsertAlltimeRoster || !me || !entry) return false;
-    const cleaned = alltimeApi.cleanRow ? alltimeApi.cleanRow(entry, me) : entry;
-    if (!cleaned || isPlaceholderName(cleaned.name)) return false;
-    try {
-      await api.upsertAlltimeRoster({
-        playerId: me,
-        displayName: cleaned.name,
-        firstAt: cleaned.firstAt,
-        lastAt: cleaned.lastAt
-      });
-      return true;
-    } catch {
-      return false;
-    }
+    if (!alltimeApi.persistAllTimeRoster) return false;
+    return alltimeApi.persistAllTimeRoster(sb(), getPlayerId(), entry);
   }
 
   async function fetchAllTimeRemote() {

@@ -259,6 +259,68 @@
     return { ...mergePlayLogs(hub, fromRows, maxPlays), rows: nextRows };
   }
 
+  async function fetchPlayLogRows(api) {
+    if (!api?.listPlayLogContributions) return null;
+    try {
+      const rows = await api.listPlayLogContributions();
+      if (!rows) return null;
+      return Array.isArray(rows) ? rows : [];
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistPlayLogContribution(api, playerId, plays) {
+    const me = String(playerId || "").trim();
+    if (!api?.upsertPlayLogContribution || !me) return false;
+    const mine = collectMine(plays, me);
+    if (!mine) return false;
+    try {
+      await api.upsertPlayLogContribution({
+        playerId: me,
+        plays: mine.plays
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function fetchPopularityRows(api, resetAt) {
+    if (!api?.listPopularityContributions) return null;
+    try {
+      const rows = await api.listPopularityContributions(resetAt);
+      if (!rows) return null;
+      return Array.isArray(rows) ? rows : [];
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistPopularityContribution(api, playerId, pending, resetAt, replace) {
+    const me = String(playerId || "").trim();
+    if (!api?.upsertPopularityContribution || !me) return false;
+    const pendingGames = pending && typeof pending === "object" ? { ...pending } : {};
+    try {
+      let mine = {};
+      if (!replace) {
+        try {
+          const rows = await fetchPopularityRows(api, resetAt);
+          if (rows) mine = readOwnContribution(rows, me);
+        } catch {}
+      }
+      const games = addContributionGames(mine, pendingGames);
+      await api.upsertPopularityContribution({
+        playerId: me,
+        games,
+        resetAt: Number(resetAt) || 0
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   const api = {
     MAX_PLAYS,
     parsePopularityPayload,
@@ -278,7 +340,11 @@
     cleanPlay,
     readMine,
     collectMine,
-    applyMine
+    applyMine,
+    fetchPlayLogRows,
+    persistPlayLogContribution,
+    fetchPopularityRows,
+    persistPopularityContribution
   };
   root.HubPopularity = api;
   if (typeof module === "object" && module.exports) module.exports = api;

@@ -108,6 +108,34 @@
     return prunePresence(mergePresence(next, mapped), now);
   }
 
+  async function fetchPresencePingRows(api) {
+    if (!api?.listPresencePings) return null;
+    try {
+      const rows = await api.listPresencePings();
+      if (!rows) return null;
+      return Array.isArray(rows) ? rows : [];
+    } catch {
+      return null;
+    }
+  }
+
+  async function persistPresencePing(api, playerId, payload) {
+    const me = String(playerId || "").trim();
+    if (!api?.upsertPresencePing || !me) return false;
+    const displayName = sanitizeName(payload?.name || payload?.displayName || "");
+    if (isPlaceholderName(displayName)) return false;
+    try {
+      await api.upsertPresencePing({
+        playerId: me,
+        displayName,
+        game: sanitizePresenceGame(payload?.game || "", null)
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   const api = {
     ONLINE_TTL_MS,
     PRESENCE_KEEP_MS,
@@ -118,7 +146,9 @@
     prunePresence,
     countOnline,
     rowsToMap,
-    applyChange
+    applyChange,
+    fetchPresencePingRows,
+    persistPresencePing
   };
   root.HubPresence = api;
   if (typeof module === "object" && module.exports) module.exports = api;

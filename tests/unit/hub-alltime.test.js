@@ -237,3 +237,33 @@ test("all-time live rows subscribe without rewriting the shared player list", ()
   assert.match(sql, /alter publication supabase_realtime add table public\.alltime_roster/i);
   assert.doesNotMatch(sql, /to anon/i);
 });
+
+test("all-time remotes skip leftover shared boards", async () => {
+  const src = fs.readFileSync(path.join(ROOT, "hub-alltime.js"), "utf8");
+  const plays = fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8");
+  assert.doesNotMatch(src, /getPrefer|pushPrefer|fetchDoc|pushDoc|hub_docs/);
+  assert.match(plays, /alltimeApi\.fetchAllTimeRosterRows/);
+  assert.match(plays, /alltimeApi\.persistAllTimeRoster/);
+  const calls = [];
+  const api = {
+    async listAlltimeRoster() {
+      return [{ player_id: "p-ada", display_name: "Ada", first_at: 80, last_at: 250 }];
+    },
+    async upsertAlltimeRoster(row) {
+      calls.push(row);
+    }
+  };
+  assert.equal((await alltime.fetchAllTimeRosterRows(api)).length, 1);
+  assert.equal(
+    await alltime.persistAllTimeRoster(api, "p-ada", { firstAt: 80, lastAt: 250, name: "Ada" }),
+    true
+  );
+  assert.equal(
+    await alltime.pushAllTimeRoster(api, "p-ada", {
+      "p-ada": { firstAt: 80, lastAt: 250, name: "Ada" }
+    }),
+    true
+  );
+  assert.equal(calls.length >= 1, true);
+  assert.equal(calls[0].playerId, "p-ada");
+});
