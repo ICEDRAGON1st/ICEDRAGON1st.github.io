@@ -80,6 +80,43 @@ test("admin hub_docs RPC stays authenticated and locked to admin document ids", 
   assert.doesNotMatch(rpc, /to anon/i);
 });
 
+test("admin broadcasts stay readable by signed-in players and writable only through the trusted RPC", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160037_admin_broadcasts.sql"),
+    "utf8"
+  );
+  assert.match(sql, /create table if not exists public\.admin_broadcasts/);
+  assert.match(sql, /enable row level security/i);
+  assert.match(sql, /force row level security/i);
+  assert.match(sql, /admin_broadcasts_read_authenticated/);
+  assert.match(sql, /grant select on table public\.admin_broadcasts to authenticated/i);
+  assert.match(sql, /revoke all on table public\.admin_broadcasts from anon, authenticated/);
+  assert.match(sql, /insert into public\.admin_broadcasts/);
+  assert.match(sql, /security definer/i);
+  assert.doesNotMatch(sql, /grant select, insert/i);
+  assert.doesNotMatch(sql, /to anon/i);
+  assert.doesNotMatch(sql, /add table public\.hub_docs/i);
+  for (const id of [
+    "hub-admin-announce",
+    "hub-admin-maintenance",
+    "hub-admin-moderation",
+    "hub-admin-grants"
+  ]) {
+    assert.match(sql, new RegExp(id.replaceAll("-", "\\-")));
+  }
+});
+
+test("admin broadcasts realtime publication stays authenticated and replica-identity full", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160038_admin_broadcasts_realtime.sql"),
+    "utf8"
+  );
+  assert.match(sql, /alter table public\.admin_broadcasts replica identity full/i);
+  assert.match(sql, /alter publication supabase_realtime add table public\.admin_broadcasts/i);
+  assert.doesNotMatch(sql, /add table public\.hub_docs/i);
+  assert.doesNotMatch(sql, /to anon/i);
+});
+
 test("player code claims realtime publication stays authenticated and replica-identity full", () => {
   const sql = fs.readFileSync(
     path.join(ROOT, "supabase/migrations/202610160035_player_code_claims_realtime.sql"),

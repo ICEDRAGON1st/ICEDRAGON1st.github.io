@@ -167,6 +167,7 @@ test("presence pings use auth-owned rows instead of rewriting the shared presenc
   assert.match(src, /function subscribeAlltimeRoster/);
   assert.match(src, /function subscribePlayerCodeClaims/);
   assert.match(src, /function subscribeNameReservationLocks/);
+  assert.match(src, /function subscribeAdminBroadcasts/);
   assert.match(src, /realtime\/v1\/websocket/);
   assert.match(src, /presence_pings/);
   assert.match(src, /chat_thread_contributions/);
@@ -338,6 +339,18 @@ test("fishing admin gifts use auth-owned rows instead of rewriting the shared gi
   assert.match(src, /async function upsertFishingGiftContribution/);
   assert.match(src, /function subscribeFishingGiftContributions/);
   assert.match(src, /fishing_gift_contributions/);
+});
+
+test("admin broadcasts use a dedicated table instead of publishing hub_docs", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  const admin = fs.readFileSync(path.join(__dirname, "../../hub-admin.js"), "utf8");
+  assert.match(src, /async function listAdminBroadcasts/);
+  assert.match(src, /function subscribeAdminBroadcasts/);
+  assert.match(src, /admin_broadcasts/);
+  assert.match(admin, /api\.upsertAdminDoc/);
+  assert.match(admin, /listAdminBroadcasts/);
+  assert.doesNotMatch(src, /async function upsertAdminBroadcast/);
 });
 
 test("fishing aquariums use auth-owned rows instead of rewriting the shared tank board", () => {

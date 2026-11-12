@@ -5906,10 +5906,16 @@ body.light .menu-credit .player-name-creator {
           }
         }
         if (!base) base = "";
-        const el = document.createElement("script");
-        el.src = `${base}hub-admin.js?v=${v}`;
-        el.async = true;
-        document.head.appendChild(el);
+        const load = (file) =>
+          new Promise((resolve) => {
+            const el = document.createElement("script");
+            el.src = `${base}${file}?v=${v}`;
+            el.async = true;
+            el.onload = () => resolve();
+            el.onerror = () => resolve();
+            document.head.appendChild(el);
+          });
+        load("hub-admin-broadcasts.js").then(() => load("hub-admin.js"));
       } catch {}
     })();
   }

@@ -910,6 +910,29 @@
     return subscribePostgresChanges("name_reservation_locks", onChange);
   }
 
+  function subscribeAdminBroadcasts(onChange) {
+    return subscribePostgresChanges("admin_broadcasts", onChange);
+  }
+
+  async function listAdminBroadcasts() {
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    const url = `${SUPABASE_URL}/rest/v1/admin_broadcasts?select=doc_id,data,updated_at`;
+    const res = await fetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase admin broadcasts ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) ? rows : [];
+  }
+
   async function listPopularityContributions(resetAt) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -2722,6 +2745,8 @@
     subscribeAlltimeRoster,
     subscribePlayerCodeClaims,
     subscribeNameReservationLocks,
+    subscribeAdminBroadcasts,
+    listAdminBroadcasts,
     stopPresenceRealtime,
     listPopularityContributions,
     upsertPopularityContribution,

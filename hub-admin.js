@@ -6,9 +6,10 @@
  *   isOwner() · start() · open()/close()/toggle()/isOpen()
  *   getBan(name) · getMute(name) · isSoftLocked() · getMaintenance()
  *   getUnlocksFor(name) · applyPendingGrants()
- *   refreshUi() · ping()
+ *   refreshUi() ·    ping() · applyChange()
  */
 (function () {
+  if (typeof window === "undefined") return;
   if (window.HubAdmin) return;
 
   const OWNER_KEY = "ice_dragon";
@@ -32,7 +33,9 @@
   let maintenanceCache = null;
   let moderationCache = { bans: {}, mutes: {} };
   let grantsCache = { grants: [] };
+  let broadcastDocs = {};
   let pollTimer = 0;
+  let adminBroadcastRealtimeUnsub = null;
   let announceHideTimer = 0;
   let lastShownAnnounceId = "";
   let panelBound = false;
@@ -712,17 +715,97 @@ body.hub-admin-open{overflow:hidden}
     }
   }
 
+  function applyBroadcastDocs(docs) {
+    if (!docs || typeof docs !== "object") return;
+    if (Object.prototype.hasOwnProperty.call(docs, DOC.announce)) {
+      announceCache = parseAnnounce(docs[DOC.announce]);
+    }
+    if (Object.prototype.hasOwnProperty.call(docs, DOC.maintenance)) {
+      maintenanceCache = parseMaintenance(docs[DOC.maintenance]);
+    }
+    if (Object.prototype.hasOwnProperty.call(docs, DOC.moderation)) {
+      moderationCache = parseModeration(docs[DOC.moderation] || {});
+    }
+    if (Object.prototype.hasOwnProperty.call(docs, DOC.grants)) {
+      grantsCache = parseGrants(docs[DOC.grants] || {});
+    }
+  }
+
+  function applyChange(hub, change) {
+    const helper = window.HubAdminBroadcasts;
+    if (!helper?.applyChange) {
+      return { docs: hub?.docs && typeof hub.docs === "object" ? hub.docs : {} };
+    }
+    return helper.applyChange(hub, change);
+  }
+
+  function applyAdminBroadcastRealtime(change) {
+    const next = applyChange({ docs: broadcastDocs }, change);
+    broadcastDocs = next.docs && typeof next.docs === "object" ? next.docs : broadcastDocs;
+    applyBroadcastDocs(broadcastDocs);
+    paintMaintenance();
+    maybeShowAnnounce();
+    applyPendingGrants().catch(() => {});
+    if (isOpen()) refreshUi();
+  }
+
+  function stopAdminBroadcastRealtime() {
+    try {
+      adminBroadcastRealtimeUnsub?.();
+    } catch {}
+    adminBroadcastRealtimeUnsub = null;
+  }
+
+  function ensureAdminBroadcastRealtime() {
+    const api = sb();
+    if (!api?.subscribeAdminBroadcasts) return;
+    if (adminBroadcastRealtimeUnsub) return;
+    adminBroadcastRealtimeUnsub = api.subscribeAdminBroadcasts((change) => {
+      applyAdminBroadcastRealtime(change);
+    });
+  }
+
   async function refreshRemote() {
-    const [a, m, mod, g] = await Promise.all([
-      getDoc(DOC.announce),
-      getDoc(DOC.maintenance),
-      getDoc(DOC.moderation),
-      getDoc(DOC.grants)
-    ]);
-    announceCache = parseAnnounce(a);
-    maintenanceCache = parseMaintenance(m);
-    moderationCache = parseModeration(mod || {});
-    grantsCache = parseGrants(g || {});
+    let docs = null;
+    try {
+      const api = sb();
+      const rows = api?.listAdminBroadcasts ? await api.listAdminBroadcasts() : null;
+      if (Array.isArray(rows)) {
+        docs = { ...broadcastDocs };
+        rows.forEach((row) => {
+          const id = String(row.doc_id || row.docId || "").trim();
+          if (!id) return;
+          docs[id] = row.data && typeof row.data === "object" ? row.data : {};
+        });
+      }
+    } catch {}
+    if (!docs) {
+      const [a, m, mod, g] = await Promise.all([
+        getDoc(DOC.announce),
+        getDoc(DOC.maintenance),
+        getDoc(DOC.moderation),
+        getDoc(DOC.grants)
+      ]);
+      docs = {
+        [DOC.announce]: a,
+        [DOC.maintenance]: m,
+        [DOC.moderation]: mod || {},
+        [DOC.grants]: g || {}
+      };
+    } else {
+      const missing = [DOC.announce, DOC.maintenance, DOC.moderation, DOC.grants].filter(
+        (id) => !Object.prototype.hasOwnProperty.call(docs, id)
+      );
+      if (missing.length) {
+        const extras = await Promise.all(missing.map((id) => getDoc(id)));
+        missing.forEach((id, i) => {
+          if (extras[i] != null) docs[id] = extras[i];
+        });
+      }
+    }
+    broadcastDocs = docs;
+    applyBroadcastDocs(docs);
+    ensureAdminBroadcastRealtime();
     paintMaintenance();
     maybeShowAnnounce();
     await applyPendingGrants();
@@ -1462,6 +1545,7 @@ body.hub-admin-open{overflow:hidden}
     if (!document.getElementById("admin-panel") && isOwner()) ensurePanelDom();
     updateToolbarButton();
     refreshRemote().catch(() => {});
+    ensureAdminBroadcastRealtime();
     if (pollTimer) clearInterval(pollTimer);
     pollTimer = setInterval(() => {
       if (document.hidden) return;
@@ -1489,6 +1573,7 @@ body.hub-admin-open{overflow:hidden}
     isSoftLocked,
     getUnlocksFor,
     applyPendingGrants,
+    applyChange,
     refreshUi,
     ping: refreshRemote
   };

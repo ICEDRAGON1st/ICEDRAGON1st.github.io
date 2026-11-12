@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015cx",
+  "build": "20261015cy",
   "notes": [
-    "Player codes and locked nicknames now update from your signed-in account as they happen, so a claimed code doesn't wait on the next poll."
+    "Hub announcements, bans, and grants now update from your signed-in account as they happen, so a new notice doesn't wait on the next poll."
   ]
 };
