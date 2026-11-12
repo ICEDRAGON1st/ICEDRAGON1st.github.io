@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015dx",
+  "build": "20261015dy",
   "notes": [
-    "Voice calls stay on your signed-in account, so they aren't copied onto a shared board."
+    "Fishing mail stays on your signed-in account, so it isn't copied onto a shared board."
   ]
 };

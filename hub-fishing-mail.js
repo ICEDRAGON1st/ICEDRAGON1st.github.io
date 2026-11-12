@@ -221,64 +221,59 @@
     }
   }
 
+  function mailLiveJoined() {
+    try {
+      return !!sb()?.isRealtimeJoined?.("fishing_mail_contributions");
+    } catch {
+      return false;
+    }
+  }
+
   async function fetchDoc() {
     try {
-      const api = sb();
-      if (api?.isRealtimeJoined?.("fishing_mail_contributions")) {
+      if (mailLiveJoined()) {
         return {
           token: TOKEN,
           gifts: mailCache.gifts && typeof mailCache.gifts === "object" ? mailCache.gifts : {},
           trades: mailCache.trades && typeof mailCache.trades === "object" ? mailCache.trades : {}
         };
       }
-      let data = null;
-      let fetched = false;
-      if (api?.getPrefer) {
-        try {
-          data = await api.getPrefer(DOC_ID);
-        } catch {
-          data = null;
-        }
-      }
-      if (data && typeof data === "object") {
-        fetched = true;
-        data = {
-          token: data.token || TOKEN,
-          gifts: data.gifts && typeof data.gifts === "object" ? data.gifts : {},
-          trades: data.trades && typeof data.trades === "object" ? data.trades : {}
-        };
-      } else {
-        data = null;
-      }
       const tableRows = await fetchMailTableRemote();
       const helper = mailSaveApi();
       if (Array.isArray(tableRows) && helper?.overlayPlayerMail) {
-        data = helper.overlayPlayerMail(data || { token: TOKEN, gifts: {}, trades: {} }, tableRows);
-        fetched = true;
+        const current = {
+          token: TOKEN,
+          gifts: mailCache.gifts && typeof mailCache.gifts === "object" ? mailCache.gifts : {},
+          trades: mailCache.trades && typeof mailCache.trades === "object" ? mailCache.trades : {}
+        };
+        return helper.overlayPlayerMail(current, tableRows);
       }
-      if (!fetched) return null;
-      return data;
+      if (
+        mailCache &&
+        ((mailCache.gifts && Object.keys(mailCache.gifts).length) ||
+          (mailCache.trades && Object.keys(mailCache.trades).length))
+      ) {
+        return {
+          token: TOKEN,
+          gifts: mailCache.gifts,
+          trades: mailCache.trades
+        };
+      }
+      return null;
     } catch {
       return null;
     }
   }
 
-  async function postDoc(doc, { rewriteShared = false } = {}) {
+  async function postDoc(doc) {
     const payload = {
       token: TOKEN,
       gifts: doc.gifts || {},
       trades: doc.trades || {}
     };
     const tableWrote = await persistMailContribution(payload);
-    if (tableWrote && !rewriteShared) return true;
-    try {
-      const api = sb();
-      if (!api?.pushPrefer) return false;
-      await api.pushPrefer(DOC_ID, payload);
-      return true;
-    } catch {
-      return false;
-    }
+    if (tableWrote) return true;
+    return false;
   }
 
   function mailCloudQuiet() {

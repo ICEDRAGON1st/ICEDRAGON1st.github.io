@@ -7137,54 +7137,45 @@
   }
 
   async function fetchPlayerMailDoc() {
-    const api = fishingSb();
-    let data = null;
-    let fetched = false;
-    try {
-      if (api?.getPrefer) data = await api.getPrefer(PLAYER_MAIL_DOC);
-      if (data && typeof data === "object") {
-        fetched = true;
-        data = {
-          token: data.token || PLAYER_MAIL_TOKEN,
-          gifts: data.gifts && typeof data.gifts === "object" ? data.gifts : {},
-          trades: data.trades && typeof data.trades === "object" ? data.trades : {}
-        };
-      } else {
-        data = null;
-      }
-    } catch {
-      data = null;
-      fetched = false;
+    if (fishingLiveJoined("fishing_mail_contributions")) {
+      return {
+        token: PLAYER_MAIL_TOKEN,
+        gifts: playerMailCache.gifts && typeof playerMailCache.gifts === "object" ? playerMailCache.gifts : {},
+        trades: playerMailCache.trades && typeof playerMailCache.trades === "object" ? playerMailCache.trades : {}
+      };
     }
     const tableRows = await fetchPlayerMailTableRemote();
     if (Array.isArray(tableRows) && fishingSaveApi.overlayPlayerMail) {
-      data = fishingSaveApi.overlayPlayerMail(
-        data || { token: PLAYER_MAIL_TOKEN, gifts: {}, trades: {} },
-        tableRows
-      );
-      fetched = true;
+      const current = {
+        token: PLAYER_MAIL_TOKEN,
+        gifts:
+          playerMailCache.gifts && typeof playerMailCache.gifts === "object" ? playerMailCache.gifts : {},
+        trades:
+          playerMailCache.trades && typeof playerMailCache.trades === "object"
+            ? playerMailCache.trades
+            : {}
+      };
+      return fishingSaveApi.overlayPlayerMail(current, tableRows);
     }
-    if (!fetched) return null;
-    return data;
+    if (
+      playerMailCache &&
+      ((playerMailCache.gifts && Object.keys(playerMailCache.gifts).length) ||
+        (playerMailCache.trades && Object.keys(playerMailCache.trades).length))
+    ) {
+      return {
+        token: PLAYER_MAIL_TOKEN,
+        gifts: playerMailCache.gifts,
+        trades: playerMailCache.trades
+      };
+    }
+    return null;
   }
 
-  async function postPlayerMailDoc(doc, { rewriteShared = false } = {}) {
+  async function postPlayerMailDoc(doc) {
     const pruned = prunePlayerMailDoc(doc);
     const tableWrote = await persistFishingMailContribution(pruned);
-    if (tableWrote && !rewriteShared) return true;
-    const payload = {
-      token: PLAYER_MAIL_TOKEN,
-      gifts: pruned.gifts,
-      trades: pruned.trades
-    };
-    const api = fishingSb();
-    try {
-      if (!api?.pushPrefer) return false;
-      await api.pushPrefer(PLAYER_MAIL_DOC, payload);
-      return true;
-    } catch {
-      return false;
-    }
+    if (tableWrote) return true;
+    return false;
   }
 
   function ensureMailCompose(mode) {

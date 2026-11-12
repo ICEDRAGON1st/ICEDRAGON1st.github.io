@@ -284,11 +284,38 @@ test("fishing player mail uses account-owned rows and skips the shared rewrite a
   assert.match(script, /persistFishingMailContribution/);
   assert.match(script, /fetchPlayerMailTableRemote/);
   assert.match(script, /overlayPlayerMail/);
-  assert.match(script, /if \(tableWrote && !rewriteShared\) return true/);
+  assert.match(
+    script.slice(
+      script.indexOf("async function postPlayerMailDoc"),
+      script.indexOf("function ensureMailCompose")
+    ),
+    /if \(tableWrote\) return true/
+  );
+  assert.doesNotMatch(
+    script.slice(
+      script.indexOf("async function fetchPlayerMailDoc"),
+      script.indexOf("async function postPlayerMailDoc")
+    ),
+    /getPrefer/
+  );
+  assert.doesNotMatch(
+    script.slice(
+      script.indexOf("async function postPlayerMailDoc"),
+      script.indexOf("function ensureMailCompose")
+    ),
+    /pushPrefer/
+  );
   assert.match(mail, /persistMailContribution/);
   assert.match(mail, /listFishingMailContributions/);
-  assert.match(mail, /if \(tableWrote && !rewriteShared\) return true/);
-  assert.match(mail, /if \(!fetched\) return null;/);
+  assert.match(mail, /if \(tableWrote\) return true/);
+  assert.doesNotMatch(
+    mail.slice(mail.indexOf("async function fetchDoc"), mail.indexOf("async function postDoc")),
+    /getPrefer/
+  );
+  assert.doesNotMatch(
+    mail.slice(mail.indexOf("async function postDoc"), mail.indexOf("function mailCloudQuiet")),
+    /pushPrefer/
+  );
   assert.match(mail, /ensureMailRealtime/);
   assert.match(mail, /applyMailRealtime/);
   assert.match(mail, /subscribeFishingMailContributions/);
@@ -439,6 +466,7 @@ test("fishing mail live rows subscribe without rewriting the shared board", () =
   );
   assert.match(mail, /ensureMailRealtime/);
   assert.match(mail, /isRealtimeJoined\?\.\("fishing_mail_contributions"\)/);
+  assert.match(mail, /function mailLiveJoined/);
   assert.match(script, /ensurePlayerMailRealtime/);
   assert.match(script, /fishingLiveJoined\("fishing_mail_contributions"\)/);
   assert.match(supabase, /function subscribeFishingMailContributions/);
