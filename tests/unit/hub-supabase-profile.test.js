@@ -338,6 +338,8 @@ test("player code claims use auth-owned rows instead of rewriting the shared cod
   assert.match(byPlayer, /select=player_id,user_id,display_name,claimed_at/);
   assert.match(byPlayer, /row\.user_id === sessionUserId\(session\)/);
   assert.match(byPlayer, /select=player_id,code,display_name,claimed_at/);
+  assert.match(byPlayer, /coded\.status === 401 \|\| coded\.status === 403/);
+  assert.match(codeLookup, /res\.status === 401 \|\| res\.status === 403/);
   assert.match(src, /async function upsertPlayerCodeClaim/);
   assert.match(src, /function subscribePlayerCodeClaims/);
   assert.match(src, /player_code_claims/);

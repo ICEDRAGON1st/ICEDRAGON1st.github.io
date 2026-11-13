@@ -1,4 +1,7 @@
 {
+  "20261015gk": [
+    "Login codes can no longer be listed from the account table once the new database script is applied. Signing in with a code still works."
+  ],
   "20261015gj": [
     "The name list and invite list no longer download other players login codes. Your own code still loads."
   ],

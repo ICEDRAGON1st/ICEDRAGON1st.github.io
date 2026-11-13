@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015gj",
+  "build": "20261015gk",
   "notes": [
-    "The name list and invite list no longer download other players login codes. Your own code still loads."
+    "Login codes can no longer be listed from the account table once the new database script is applied. Signing in with a code still works."
   ]
 };

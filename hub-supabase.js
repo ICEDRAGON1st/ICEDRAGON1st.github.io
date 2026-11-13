@@ -1233,7 +1233,7 @@
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
-    if (res.status === 404) return null;
+    if (res.status === 404 || res.status === 401 || res.status === 403) return null;
     if (!res.ok) throw new Error(`supabase player code get ${res.status}`);
     const rows = await res.json();
     return Array.isArray(rows) && rows[0] ? rows[0] : null;
@@ -1273,7 +1273,7 @@
         cache: "no-store"
       }
     );
-    if (coded.status === 404) return row;
+    if (coded.status === 404 || coded.status === 401 || coded.status === 403) return row;
     if (!coded.ok) throw new Error(`supabase player code get ${coded.status}`);
     const codedRows = await coded.json();
     return Array.isArray(codedRows) && codedRows[0] ? codedRows[0] : row;
