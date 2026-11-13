@@ -311,6 +311,26 @@ test("player code claims use auth-owned rows instead of rewriting the shared cod
   assert.match(src, /async function getPlayerCodeClaim/);
   assert.match(src, /async function getPlayerCodeClaimByPlayerId/);
   assert.match(src, /player_id=eq\.\$\{encodeURIComponent\(id\)\}/);
+  const codeLookup = src.slice(
+    src.indexOf("async function getPlayerCodeClaim"),
+    src.indexOf("async function getPlayerCodeClaimByPlayerId")
+  );
+  assert.match(codeLookup, /rpc\/lookup_player_by_code/);
+  assert.match(codeLookup, /raw_code: norm/);
+  assert.match(codeLookup, /if \(rpc\.status !== 404\)/);
+  assert.match(codeLookup, /code=eq\.\$\{encodeURIComponent\(norm\)\}/);
+  const codeList = src.slice(
+    src.indexOf("async function listPlayerCodeClaims"),
+    src.indexOf("async function getPlayerCodeClaim")
+  );
+  assert.match(codeList, /return null/);
+  assert.doesNotMatch(codeList, /player_code_claims\?select=/);
+  const lockList = src.slice(
+    src.indexOf("async function listNameReservationLocks"),
+    src.indexOf("async function getNameReservationLock")
+  );
+  assert.match(lockList, /return null/);
+  assert.doesNotMatch(lockList, /name_reservation_locks\?select=/);
   assert.match(src, /async function upsertPlayerCodeClaim/);
   assert.match(src, /function subscribePlayerCodeClaims/);
   assert.match(src, /player_code_claims/);

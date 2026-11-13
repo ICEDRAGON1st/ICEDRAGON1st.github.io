@@ -1182,22 +1182,7 @@
   }
 
   async function listPlayerCodeClaims() {
-    if (netBlocked()) {
-      const err = new Error("hub-net-blocked");
-      err.hubNetBlocked = true;
-      throw err;
-    }
-    const session = await ensureSession();
-    if (!session?.access_token) return null;
-    const url = `${SUPABASE_URL}/rest/v1/player_code_claims?select=player_id,code,display_name,claimed_at`;
-    const res = await hubFetch(url, {
-      headers: headers({}, session.access_token),
-      cache: "no-store"
-    });
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`supabase player code list ${res.status}`);
-    const rows = await res.json();
-    return Array.isArray(rows) ? rows : [];
+    return null;
   }
 
   async function getPlayerCodeClaim(code) {
@@ -1213,6 +1198,19 @@
       err.hubNetBlocked = true;
       throw err;
     }
+    const rpc = await hubFetch(`${SUPABASE_URL}/rest/v1/rpc/lookup_player_by_code`, {
+      method: "POST",
+      headers: headers({}, session.access_token),
+      cache: "no-store",
+      body: JSON.stringify({ raw_code: norm })
+    });
+    if (rpc.ok) {
+      const body = await rpc.json();
+      if (!body || typeof body !== "object") return null;
+      if (!body.playerId && !body.player_id) return null;
+      return body;
+    }
+    if (rpc.status !== 404) throw new Error(`supabase player code get ${rpc.status}`);
     const url =
       `${SUPABASE_URL}/rest/v1/player_code_claims?code=eq.${encodeURIComponent(norm)}` +
       `&select=player_id,code,display_name,claimed_at`;
@@ -1361,22 +1359,7 @@
   }
 
   async function listNameReservationLocks() {
-    if (netBlocked()) {
-      const err = new Error("hub-net-blocked");
-      err.hubNetBlocked = true;
-      throw err;
-    }
-    const session = await ensureSession();
-    if (!session?.access_token) return null;
-    const url = `${SUPABASE_URL}/rest/v1/name_reservation_locks?select=player_id,name_key,code,display_name,locked_at`;
-    const res = await hubFetch(url, {
-      headers: headers({}, session.access_token),
-      cache: "no-store"
-    });
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`supabase reservation list ${res.status}`);
-    const rows = await res.json();
-    return Array.isArray(rows) ? rows : [];
+    return null;
   }
 
   async function getNameReservationLock(nameKey) {

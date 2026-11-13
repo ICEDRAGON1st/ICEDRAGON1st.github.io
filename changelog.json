@@ -1,4 +1,7 @@
 {
+  "20261015fu": [
+    "Logging in with a player code uses the account server lookup, and the hub no longer downloads every saved code."
+  ],
   "20261015ft": [
     "Password sign-in asks the account server for one saved login, and still works if that lookup is not installed yet."
   ],

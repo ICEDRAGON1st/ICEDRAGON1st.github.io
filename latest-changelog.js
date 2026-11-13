@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ft",
+  "build": "20261015fu",
   "notes": [
-    "Password sign-in asks the account server for one saved login, and still works if that lookup is not installed yet."
+    "Logging in with a player code uses the account server lookup, and the hub no longer downloads every saved code."
   ]
 };
