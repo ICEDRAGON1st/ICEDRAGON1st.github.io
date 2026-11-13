@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015fz",
+  "build": "20261015ga",
   "notes": [
-    "Other players' calls and fishing mail stay off this device. Broadcast fish gifts still show."
+    "Friend lists on this device keep only the people connected to you. The account server can return that smaller list once its lookup is installed."
   ]
 };

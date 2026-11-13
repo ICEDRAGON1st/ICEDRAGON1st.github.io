@@ -433,6 +433,27 @@ test("friend edges use auth-owned rows instead of rewriting the shared friends b
   assert.match(src, /async function upsertFriendEdgeContribution/);
   assert.match(src, /function subscribeFriendEdgeContributions/);
   assert.match(src, /friend_edge_contributions/);
+  const list = src.slice(
+    src.indexOf("async function listFriendEdgeContributions"),
+    src.indexOf("async function upsertFriendEdgeContribution")
+  );
+  assert.match(list, /rpc\/list_visible_friend_edges/);
+  assert.match(list, /if \(rpc\.status !== 404\)/);
+  assert.match(list, /visibleFriendsReady = true/);
+  assert.match(
+    list,
+    /friend_edge_contributions\?select=player_id,display_name,friends,outgoing,incoming,invites,updated_at/
+  );
+  const sql = fs.readFileSync(
+    path.join(__dirname, "../../supabase/migrations/202610160056_list_visible_friend_edges.sql"),
+    "utf8"
+  );
+  assert.match(sql, /function public\.list_visible_friend_edges/);
+  assert.match(sql, /security definer/);
+  assert.match(sql, /identity-bind/);
+  assert.match(sql, /jsonb_exists/);
+  assert.match(sql, /grant execute on function public\.list_visible_friend_edges\(\) to authenticated/);
+  assert.doesNotMatch(sql, /drop policy/i);
 });
 
 test("friend chat uses auth-owned rows instead of rewriting the shared chat board", () => {

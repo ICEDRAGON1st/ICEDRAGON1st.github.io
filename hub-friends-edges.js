@@ -121,7 +121,38 @@
     };
   }
 
-  function overlayFriendsData(hub, rows) {
+  function mapTouching(map, viewer) {
+    const cleaned = cleanMap(map);
+    if (!viewer || !cleaned[viewer]) return {};
+    return { [viewer]: cleaned[viewer] };
+  }
+
+  function inviteTouches(inv, viewer) {
+    return !!(inv && (inv.fromId === viewer || inv.toId === viewer));
+  }
+
+  function visibleFriendsData(data, viewerId) {
+    const viewer = String(viewerId || "").trim();
+    const profiles = {};
+    const invites = {};
+    Object.entries((data && data.profiles) || {}).forEach(([id, profile]) => {
+      const src = profile && typeof profile === "object" ? profile : {};
+      const mine = id === viewer;
+      profiles[id] = {
+        name: String(src.name || "Player").trim() || "Player",
+        friends: mine || !viewer ? cleanMap(src.friends) : mapTouching(src.friends, viewer),
+        outgoing: mine || !viewer ? cleanMap(src.outgoing) : mapTouching(src.outgoing, viewer),
+        incoming: mine || !viewer ? cleanMap(src.incoming) : mapTouching(src.incoming, viewer),
+        updatedAt: Number(src.updatedAt) || 0
+      };
+    });
+    Object.entries((data && data.invites) || {}).forEach(([id, inv]) => {
+      if (!viewer || inviteTouches(inv, viewer)) invites[id] = inv;
+    });
+    return { profiles, invites };
+  }
+
+  function overlayFriendsData(hub, rows, viewerId) {
     const out = {
       profiles: { ...((hub && hub.profiles) || {}) },
       invites: { ...((hub && hub.invites) || {}) }
@@ -152,7 +183,7 @@
         }
       });
     });
-    return out;
+    return visibleFriendsData(out, viewerId);
   }
 
   function unwrapChange(change) {
@@ -166,7 +197,7 @@
     return payload;
   }
 
-  function applyChange(hub, change) {
+  function applyChange(hub, change, viewerId) {
     const data = unwrapChange(change);
     const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
     const current = hub && typeof hub === "object" ? hub : { profiles: {}, invites: {} };
@@ -174,10 +205,10 @@
       profiles: { ...(current.profiles || {}) },
       invites: { ...(current.invites || {}) }
     };
-    if (type === "DELETE") return base;
+    if (type === "DELETE") return visibleFriendsData(base, viewerId);
     const record = data.record || data.new || {};
-    if (!record || typeof record !== "object") return base;
-    return overlayFriendsData(base, [record]);
+    if (!record || typeof record !== "object") return visibleFriendsData(base, viewerId);
+    return overlayFriendsData(base, [record], viewerId);
   }
 
   function applyMine(data, mine, playerId) {
@@ -214,6 +245,7 @@
     readEdges,
     collectMine,
     applyMine,
+    visibleFriendsData,
     overlayFriendsData,
     applyChange
   };

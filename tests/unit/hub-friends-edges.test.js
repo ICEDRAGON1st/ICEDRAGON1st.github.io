@@ -22,6 +22,9 @@ test("friend edges live in a helper used by the shared friends board", () => {
   assert.match(syncSlice, /emptyEdges/);
   assert.match(syncSlice, /if \(emptyEdges\) return cache/);
   assert.match(ui, /fetchFriendsTableRemote/);
+  assert.match(ui, /overlayFriendsData\(\{ profiles: \{\}, invites: \{\} \}, rows, getPlayerId\(\)\)/);
+  assert.match(ui, /applyChange\(cache, change, getPlayerId\(\)\)/);
+  assert.match(ui, /visibleFriendsData/);
   assert.doesNotMatch(
     ui.slice(
       ui.indexOf("async function fetchRemote"),
@@ -147,6 +150,39 @@ test("owned friend edges restore only when the shared profile is empty", () => {
   assert.equal(overlaid.invites["inv-1"].game, "snake");
   assert.equal(overlaid.profiles["p-skip"], undefined);
 
+  const scoped = edges.overlayFriendsData(
+    { profiles: {}, invites: {} },
+    [
+      {
+        player_id: "p-other",
+        display_name: "Other",
+        friends: {
+          "p-me": { name: "Ada", since: 10 },
+          "p-stranger": { name: "Stranger", since: 11 }
+        },
+        outgoing: { "p-secret": { name: "Secret", at: 12 } },
+        incoming: {},
+        invites: {
+          "inv-secret": {
+            id: "inv-secret",
+            fromId: "p-other",
+            toId: "p-stranger",
+            fromName: "Other",
+            toName: "Stranger",
+            game: "quiz",
+            at: 13
+          }
+        }
+      }
+    ],
+    "p-me"
+  );
+  assert.equal(scoped.profiles["p-other"].name, "Other");
+  assert.equal(scoped.profiles["p-other"].friends["p-me"].name, "Ada");
+  assert.equal(scoped.profiles["p-other"].friends["p-stranger"], undefined);
+  assert.equal(scoped.profiles["p-other"].outgoing["p-secret"], undefined);
+  assert.equal(scoped.invites["inv-secret"], undefined);
+
   const liveRow = edges.applyChange(
     {
       profiles: {
@@ -196,6 +232,10 @@ test("friend live rows merge without dropping other players' edges", () => {
     "utf8"
   );
   assert.match(ui, /ensureFriendsRealtime/);
+  assert.match(
+    ui.slice(ui.indexOf("function startPolling"), ui.indexOf("function stopPolling")),
+    /friendEdgesAreScoped/
+  );
   assert.match(ui, /applyFriendsRealtime/);
   assert.match(ui, /subscribeFriendEdgeContributions/);
   assert.match(ui, /isRealtimeJoined\?\.\("friend_edge_contributions"\)/);

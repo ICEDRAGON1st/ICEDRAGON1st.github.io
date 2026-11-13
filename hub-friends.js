@@ -53,19 +53,34 @@
     try {
       const data = JSON.parse(localStorage.getItem(LOCAL_KEY));
       if (data && typeof data === "object") {
-        return {
+        const loaded = {
           profiles: data.profiles && typeof data.profiles === "object" ? data.profiles : {},
           invites: data.invites && typeof data.invites === "object" ? data.invites : {}
         };
+        const me = getPlayerId();
+        const helper = edgesApi();
+        return me && helper?.visibleFriendsData ? helper.visibleFriendsData(loaded, me) : loaded;
       }
     } catch {}
     return { profiles: {}, invites: {} };
   }
 
   function saveLocal(data) {
+    const me = getPlayerId();
+    const helper = edgesApi();
+    const visible =
+      me && helper?.visibleFriendsData
+        ? helper.visibleFriendsData(
+            {
+              profiles: data?.profiles || {},
+              invites: data?.invites || {}
+            },
+            me
+          )
+        : { profiles: data?.profiles || {}, invites: data?.invites || {} };
     cache = {
-      profiles: data.profiles || {},
-      invites: data.invites || {}
+      profiles: visible.profiles || {},
+      invites: visible.invites || {}
     };
     try {
       localStorage.setItem(LOCAL_KEY, JSON.stringify(cache));
@@ -79,7 +94,7 @@
     try {
       const rows = await api.listFriendEdgeContributions();
       if (!rows) return null;
-      return helper.overlayFriendsData({ profiles: {}, invites: {} }, rows);
+      return helper.overlayFriendsData({ profiles: {}, invites: {} }, rows, getPlayerId());
     } catch {
       return null;
     }
@@ -218,7 +233,7 @@
   function applyFriendsRealtime(change) {
     const helper = edgesApi();
     if (!helper?.applyChange) return;
-    const next = helper.applyChange(cache, change);
+    const next = helper.applyChange(cache, change, getPlayerId());
     saveLocal({
       profiles: next?.profiles && typeof next.profiles === "object" ? next.profiles : {},
       invites: next?.invites && typeof next.invites === "object" ? next.invites : {}
@@ -238,6 +253,10 @@
   function ensureFriendsRealtime() {
     const api = sb();
     if (!api?.subscribeFriendEdgeContributions) return;
+    if (api.friendEdgesAreScoped?.()) {
+      stopFriendsRealtime();
+      return;
+    }
     if (friendsRealtimeUnsub) return;
     if (friendsCloudQuiet()) return;
     friendsRealtimeUnsub = api.subscribeFriendEdgeContributions((change) => {
@@ -589,17 +608,15 @@
   function startPolling(onTick) {
     stopPolling();
     pollOnTick = typeof onTick === "function" ? onTick : null;
-    ensureFriendsRealtime();
     const tick = async () => {
       try {
         if (friendsCloudQuiet()) {
           stopFriendsRealtime();
           return;
         }
-        ensureFriendsRealtime();
-        if (!sb()?.isRealtimeJoined?.("friend_edge_contributions")) {
-          await sync();
-        }
+        if (!sb()?.isRealtimeJoined?.("friend_edge_contributions")) await sync();
+        if (sb()?.friendEdgesAreScoped?.()) stopFriendsRealtime();
+        else ensureFriendsRealtime();
         pollOnTick?.(cache);
       } catch {}
     };
@@ -614,8 +631,12 @@
   }
 
   cache = loadLocal();
-  sync().catch(() => {});
-  ensureFriendsRealtime();
+  sync()
+    .catch(() => {})
+    .finally(() => {
+      if (sb()?.friendEdgesAreScoped?.()) stopFriendsRealtime();
+      else ensureFriendsRealtime();
+    });
 
   window.HubFriends = {
     sendRequest,

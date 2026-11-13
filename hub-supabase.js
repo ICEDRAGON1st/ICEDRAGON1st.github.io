@@ -1772,6 +1772,12 @@
     return out;
   }
 
+  let visibleFriendsReady = false;
+
+  function friendEdgesAreScoped() {
+    return visibleFriendsReady;
+  }
+
   async function listFriendEdgeContributions() {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -1780,6 +1786,18 @@
     }
     const session = await ensureSession();
     if (!session?.access_token) return null;
+    const rpc = await hubFetch(`${SUPABASE_URL}/rest/v1/rpc/list_visible_friend_edges`, {
+      method: "POST",
+      headers: headers({}, session.access_token),
+      cache: "no-store",
+      body: JSON.stringify({})
+    });
+    if (rpc.ok) {
+      visibleFriendsReady = true;
+      const rows = await rpc.json();
+      return Array.isArray(rows) ? rows : [];
+    }
+    if (rpc.status !== 404) throw new Error(`supabase friends list ${rpc.status}`);
     const url = `${SUPABASE_URL}/rest/v1/friend_edge_contributions?select=player_id,display_name,friends,outgoing,incoming,invites,updated_at`;
     const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
@@ -3198,6 +3216,7 @@
     listCallSignalContributions,
     upsertCallSignalContribution,
     listFriendEdgeContributions,
+    friendEdgesAreScoped,
     upsertFriendEdgeContribution,
     listChatThreadContributions,
     chatThreadsAreScoped,
