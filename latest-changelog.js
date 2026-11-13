@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015fi",
+  "build": "20261015fj",
   "notes": [
-    "Live notes stay on this device — leftover shared boards aren't named in them."
+    "Most played stays on the milestone until signed-in play counts pass it."
   ]
 };

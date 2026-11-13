@@ -472,7 +472,7 @@
       let remote = {};
       let remoteResetAt = 0;
       let fetched = false;
-      // Pages seed keeps Fishing Idle as most played when live rows are still catching up.
+      // Pages milestone is a floor. Signed-in rows raise a game only when they pass it.
       try {
         const seed = await fetchPagesPopularitySeed();
         if (seed && Object.keys(seed.games || {}).length) {
@@ -509,8 +509,8 @@
           localStorage.setItem("hub-game-popularity-reset-at", String(remoteResetAt));
         } catch {}
         if (tableCounts) {
-          popularityCache = popularityApi.combinePopularity
-            ? popularityApi.combinePopularity(popularityCache, tableCounts)
+          popularityCache = popularityApi.maxCounts
+            ? popularityApi.maxCounts(popularityCache, tableCounts)
             : { ...popularityCache, ...tableCounts };
         }
         savePopularityLocal();
@@ -518,19 +518,20 @@
       }
 
       const pending = { ...(popularityPending || {}) };
-      let merged = popularityApi.mergePopularityRemote
-        ? popularityApi.mergePopularityRemote(
-            remote,
-            tableWrote ? {} : pending,
-            tableWrote || !fetched ? remote : popularityCache
-          )
-        : { ...remote };
-      if (tableCounts && popularityApi.combinePopularity) {
-        merged = popularityApi.combinePopularity(merged, tableCounts);
-      } else if (!fetched) {
-        merged = popularityApi.mergePopularityRemote
-          ? popularityApi.mergePopularityRemote(popularityCache, pending, popularityCache)
-          : getEffectivePopularity();
+      const floor = popularityApi.maxCounts
+        ? (a, b) => popularityApi.maxCounts(a, b)
+        : (a, b) => ({ ...(a || {}), ...(b || {}) });
+      let merged;
+      if (tableCounts) {
+        // Live rows and the Pages milestone share one total. Adding them double-counts.
+        merged = floor(fetched ? remote : popularityCache, tableCounts);
+      } else if (fetched) {
+        merged = floor(remote, popularityCache);
+      } else {
+        merged = { ...(popularityCache || {}) };
+      }
+      if (!tableWrote && popularityApi.combinePopularity) {
+        merged = popularityApi.combinePopularity(merged, pending);
       }
 
       popularityCache = merged;

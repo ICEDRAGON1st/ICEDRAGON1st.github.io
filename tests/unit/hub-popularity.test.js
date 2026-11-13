@@ -25,6 +25,11 @@ test("hub popularity merges pending counts and recent play logs", () => {
     popularity.mergePopularityRemote({ fishing: 10 }, { snake: 2 }, { fishing: 1, mine: 4 }),
     { fishing: 10, snake: 2, mine: 4 }
   );
+  assert.deepEqual(popularity.maxCounts({ fishing: 320 }, { fishing: 40, snake: 10 }), {
+    fishing: 320,
+    snake: 10
+  });
+  assert.deepEqual(popularity.maxCounts({ fishing: 10 }, { fishing: 400 }), { fishing: 400 });
   assert.equal(popularity.mostPopularGameId({ fishing: 10, snake: 2 }), "fishing");
   assert.equal(popularity.mostPopularGameId({ fishing: 10, snake: 2 }, ["snake"]), "snake");
   assert.equal(popularity.mostPopularGameId({}), "");
@@ -336,6 +341,13 @@ test("play-count remotes skip leftover shared boards", async () => {
   assert.match(plays, /popularityApi\.persistPlayLogContribution/);
   assert.match(plays, /popularityApi\.fetchPopularityRows/);
   assert.match(plays, /popularityApi\.persistPopularityContribution/);
+  const syncSlice = plays.slice(
+    plays.indexOf("async function syncPopularity"),
+    plays.indexOf("function getPopularityCounts")
+  );
+  assert.match(syncSlice, /popularityApi\.maxCounts/);
+  assert.doesNotMatch(syncSlice, /combinePopularity\(merged, tableCounts\)/);
+  assert.doesNotMatch(syncSlice, /combinePopularity\(popularityCache, tableCounts\)/);
   const calls = [];
   const api = {
     async listPlayLogContributions() {

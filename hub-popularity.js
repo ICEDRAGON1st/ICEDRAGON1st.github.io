@@ -345,6 +345,7 @@
     combinePopularity,
     mergePopularityRemote,
     mostPopularGameId,
+    maxCounts,
     sanitizeContributionGames,
     addContributionGames,
     readOwnContribution,
