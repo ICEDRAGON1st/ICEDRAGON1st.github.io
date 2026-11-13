@@ -577,6 +577,14 @@ test("fishing mail live rows subscribe without rewriting the shared board", () =
   assert.match(script, /overlayPlayerMail\(current, tableRows, undefined, mailMyId\(\)\)/);
   assert.match(script, /applyPlayerMailChange\(playerMailCache, change, undefined, mailMyId\(\)\)/);
   assert.match(mail, /isRealtimeJoined\?\.\("fishing_mail_contributions"\)/);
+  assert.match(
+    mail.slice(mail.indexOf("async function poll"), mail.indexOf("function start")),
+    /fishingMailIsScoped/
+  );
+  assert.match(
+    script.slice(script.indexOf("async function pollPlayerMail"), script.indexOf("function updateMailBadge")),
+    /fishingMailIsScoped/
+  );
   assert.match(mail, /function mailLiveJoined/);
   assert.match(script, /ensurePlayerMailRealtime/);
   assert.match(script, /fishingLiveJoined\("fishing_mail_contributions"\)/);

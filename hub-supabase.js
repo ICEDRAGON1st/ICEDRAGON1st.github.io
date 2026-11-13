@@ -2814,6 +2814,12 @@
     return out;
   }
 
+  let visibleMailReady = false;
+
+  function fishingMailIsScoped() {
+    return visibleMailReady;
+  }
+
   async function listFishingMailContributions() {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -2822,6 +2828,18 @@
     }
     const session = await ensureSession();
     if (!session?.access_token) return null;
+    const rpc = await hubFetch(`${SUPABASE_URL}/rest/v1/rpc/list_visible_fishing_mail`, {
+      method: "POST",
+      headers: headers({}, session.access_token),
+      cache: "no-store",
+      body: JSON.stringify({})
+    });
+    if (rpc.ok) {
+      visibleMailReady = true;
+      const rows = await rpc.json();
+      return Array.isArray(rows) ? rows : [];
+    }
+    if (rpc.status !== 404) throw new Error(`supabase fishing mail list ${rpc.status}`);
     const url = `${SUPABASE_URL}/rest/v1/fishing_mail_contributions?select=player_id,gifts,trades,updated_at`;
     const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
@@ -3253,6 +3271,7 @@
     listCommunityMeterState,
     upsertCommunityMeterState,
     listFishingMailContributions,
+    fishingMailIsScoped,
     upsertFishingMailContribution,
     listFishingGiftContributions,
     upsertFishingGiftContribution,

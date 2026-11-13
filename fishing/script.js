@@ -7777,6 +7777,10 @@
   function ensurePlayerMailRealtime() {
     const api = window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
     if (!api?.subscribeFishingMailContributions) return;
+    if (api.fishingMailIsScoped?.()) {
+      stopPlayerMailRealtime();
+      return;
+    }
     if (playerMailRealtimeUnsub) return;
     if (fishingCloudQuiet()) return;
     playerMailRealtimeUnsub = api.subscribeFishingMailContributions((change) => {
@@ -7789,7 +7793,8 @@
       stopPlayerMailRealtime();
       return;
     }
-    ensurePlayerMailRealtime();
+    if (window.HubSupabase?.fishingMailIsScoped?.()) stopPlayerMailRealtime();
+    else ensurePlayerMailRealtime();
     if (!force && fishingLiveJoined("fishing_mail_contributions")) return;
     const now = Date.now();
     if (!force && now - playerMailFetchedAt < PLAYER_MAIL_POLL_MS) return;

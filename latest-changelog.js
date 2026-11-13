@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015gb",
+  "build": "20261015gc",
   "notes": [
-    "Voice calls ask the account server for rooms you are in, and still load if that lookup is not installed yet."
+    "Fishing mail asks the account server for gifts and trades you are in, and still loads if that lookup is not installed yet."
   ]
 };

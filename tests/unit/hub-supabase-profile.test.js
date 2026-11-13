@@ -570,6 +570,24 @@ test("fishing player mail uses auth-owned rows instead of rewriting the shared m
   assert.match(src, /async function upsertFishingMailContribution/);
   assert.match(src, /function subscribeFishingMailContributions/);
   assert.match(src, /fishing_mail_contributions/);
+  const list = src.slice(
+    src.indexOf("async function listFishingMailContributions"),
+    src.indexOf("async function upsertFishingMailContribution")
+  );
+  assert.match(list, /rpc\/list_visible_fishing_mail/);
+  assert.match(list, /if \(rpc\.status !== 404\)/);
+  assert.match(list, /visibleMailReady = true/);
+  assert.match(list, /fishing_mail_contributions\?select=player_id,gifts,trades,updated_at/);
+  const sql = fs.readFileSync(
+    path.join(__dirname, "../../supabase/migrations/202610160058_list_visible_fishing_mail.sql"),
+    "utf8"
+  );
+  assert.match(sql, /function public\.list_visible_fishing_mail/);
+  assert.match(sql, /security definer/);
+  assert.match(sql, /identity-bind/);
+  assert.match(sql, /toPlayerId/);
+  assert.match(sql, /grant execute on function public\.list_visible_fishing_mail\(\) to authenticated/);
+  assert.doesNotMatch(sql, /drop policy/i);
 });
 
 test("fishing admin gifts use auth-owned rows instead of rewriting the shared gift board", () => {

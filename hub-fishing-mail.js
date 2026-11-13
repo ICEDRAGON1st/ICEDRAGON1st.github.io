@@ -364,6 +364,10 @@
   function ensureMailRealtime() {
     const api = sb();
     if (!api?.subscribeFishingMailContributions) return;
+    if (api.fishingMailIsScoped?.()) {
+      stopMailRealtime();
+      return;
+    }
     if (mailRealtimeUnsub) return;
     if (isFishingPage() || mailCloudQuiet()) return;
     mailRealtimeUnsub = api.subscribeFishingMailContributions((change) => {
@@ -374,6 +378,8 @@
   async function poll() {
     if (isFishingPage()) return;
     if (mailCloudQuiet()) {
+      stopMailRealtime();
+    } else if (sb()?.fishingMailIsScoped?.()) {
       stopMailRealtime();
     } else {
       ensureMailRealtime();
@@ -391,7 +397,6 @@
   function start() {
     if (started || isFishingPage()) return;
     started = true;
-    ensureMailRealtime();
     poll();
     if (timer) clearInterval(timer);
     timer = setInterval(poll, POLL_MS);
