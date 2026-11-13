@@ -394,6 +394,9 @@ test("password Auth uses a derived email and never stores the typed password", (
   assert.equal(supabase.playerAuthEmail("p-abc"), "");
   assert.equal(supabase.playerAuthEmail(""), "");
   assert.match(src, /function playerAuthEmail/);
+  const sessionSlice = src.slice(src.indexOf("async function ensureSession"), src.indexOf("async function accessToken"));
+  assert.match(sessionSlice, /if \(sessionPromise\) return sessionPromise/);
+  assert.match(sessionSlice, /if \(sessionPromise === pending\) sessionPromise = null/);
   assert.match(src, /async function signInWithPasswordAccount/);
   assert.match(src, /async function upgradeAnonymousPassword/);
   assert.match(src, /grant_type=password/);

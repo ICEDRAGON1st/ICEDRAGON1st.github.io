@@ -385,24 +385,29 @@
 
   async function ensureSession() {
     if (sessionPromise) return sessionPromise;
-    sessionPromise = (async function () {
-      const existing = readSession();
-      if (existing) {
-        let exp = 0;
-        try {
-          exp = Number(JSON.parse(atob(existing.access_token.split(".")[1] || "e30=")).exp) || 0;
-        } catch {}
-        if (exp * 1000 > Date.now() + 60_000) return attachProfile(existing);
-        const refreshed = await refreshSession(existing);
-        if (refreshed) return attachProfile(refreshed);
+    let pending;
+    pending = (async function () {
+      try {
+        const existing = readSession();
+        if (existing) {
+          let exp = 0;
+          try {
+            exp = Number(JSON.parse(atob(existing.access_token.split(".")[1] || "e30=")).exp) || 0;
+          } catch {}
+          if (exp * 1000 > Date.now() + 60_000) return attachProfile(existing);
+          const refreshed = await refreshSession(existing);
+          if (refreshed) return attachProfile(refreshed);
+        }
+        const created = await signInAnonymously();
+        return created ? attachProfile(created) : null;
+      } catch {
+        return null;
+      } finally {
+        if (sessionPromise === pending) sessionPromise = null;
       }
-      const created = await signInAnonymously();
-      return created ? attachProfile(created) : null;
-    })().catch(() => {
-      sessionPromise = null;
-      return null;
-    });
-    return sessionPromise;
+    })();
+    sessionPromise = pending;
+    return pending;
   }
 
   async function accessToken() {
@@ -415,19 +420,24 @@
     const refresh = String(tokens?.refresh_token || "").trim();
     if (!access) return null;
     const existing = readSession() || {};
-    sessionPromise = (async function () {
-      const next = writeSession({
-        access_token: access,
-        refresh_token: refresh || existing.refresh_token,
-        user: tokens.user || existing.user || null,
-        profile: existing.profile || null
-      });
-      return next ? attachProfile(next) : null;
-    })().catch(() => {
-      sessionPromise = null;
-      return null;
-    });
-    return sessionPromise;
+    let pending;
+    pending = (async function () {
+      try {
+        const next = writeSession({
+          access_token: access,
+          refresh_token: refresh || existing.refresh_token,
+          user: tokens.user || existing.user || null,
+          profile: existing.profile || null
+        });
+        return next ? attachProfile(next) : null;
+      } catch {
+        return null;
+      } finally {
+        if (sessionPromise === pending) sessionPromise = null;
+      }
+    })();
+    sessionPromise = pending;
+    return pending;
   }
 
   async function signInWithPasswordAccount({ playerId, password } = {}) {

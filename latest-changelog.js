@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015fv",
+  "build": "20261015fw",
   "notes": [
-    "Other players' feedback stays on the account server. ICE still sees the inbox."
+    "The account server sign-in refreshes when the saved login expires, instead of keeping the first one forever."
   ]
 };
