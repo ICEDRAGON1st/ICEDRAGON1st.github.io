@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015gk",
+  "build": "20261015gl",
   "notes": [
-    "Login codes can no longer be listed from the account table once the new database script is applied. Signing in with a code still works."
+    "The friends list no longer downloads unrelated friend lists. Requests and game invites that include you still show up."
   ]
 };

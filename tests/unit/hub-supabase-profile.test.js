@@ -519,10 +519,38 @@ test("friend edges use auth-owned rows instead of rewriting the shared friends b
   assert.match(list, /rpc\/list_visible_friend_edges/);
   assert.match(list, /if \(rpc\.status !== 404\)/);
   assert.match(list, /visibleFriendsReady = true/);
-  assert.match(
-    list,
-    /friend_edge_contributions\?select=player_id,display_name,friends,outgoing,incoming,invites,updated_at/
+  assert.match(list, /player_id,display_name,friends,outgoing,incoming,invites,updated_at/);
+  assert.match(list, /player_id=eq\.\$\{encodeURIComponent\(viewerId\)\}/);
+  assert.match(list, /player_id=neq\.\$\{encodeURIComponent\(viewerId\)\}/);
+  assert.match(list, /mine_friends:friends->/);
+  assert.match(list, /friends->>\$\{encodeURIComponent\(viewerId\)\}\.not\.is\.null/);
+  assert.equal(
+    supabase.shapeTouchedFriendEdge("p-0123456789abcdef", {
+      player_id: "p-0123456789abcdef",
+      display_name: "Ada",
+      friends: { "p-otherplayer01": { name: "Pal" } },
+      outgoing: {},
+      incoming: {},
+      invites: {}
+    }).friends["p-otherplayer01"].name,
+    "Pal"
   );
+  const touched = supabase.shapeTouchedFriendEdge("p-0123456789abcdef", {
+    player_id: "p-otherplayer01",
+    display_name: "Pal",
+    mine_friends: { name: "Ada" },
+    mine_outgoing: null,
+    mine_incoming: { name: "Ada", at: 5 },
+    invites: {
+      "inv-1": { id: "inv-1", fromId: "p-otherplayer01", toId: "p-0123456789abcdef" }
+    }
+  });
+  assert.deepEqual(Object.keys(touched.friends), ["p-0123456789abcdef"]);
+  assert.equal(touched.friends["p-0123456789abcdef"].name, "Ada");
+  assert.deepEqual(touched.outgoing, {});
+  assert.equal(touched.incoming["p-0123456789abcdef"].at, 5);
+  assert.equal(touched.invites["inv-1"].toId, "p-0123456789abcdef");
+  assert.equal(supabase.shapeTouchedFriendEdge("p-abc", { player_id: "p-otherplayer01" }), null);
   const sql = fs.readFileSync(
     path.join(__dirname, "../../supabase/migrations/202610160056_list_visible_friend_edges.sql"),
     "utf8"

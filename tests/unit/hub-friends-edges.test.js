@@ -232,6 +232,10 @@ test("friend live rows merge without dropping other players' edges", () => {
     "utf8"
   );
   assert.match(ui, /ensureFriendsRealtime/);
+  assert.doesNotMatch(
+    ui.slice(ui.indexOf("function ensureFriendsRealtime"), ui.indexOf("async function persistMyEdges")),
+    /subscribeFriendEdgeContributions\(/
+  );
   assert.match(
     ui.slice(ui.indexOf("function startPolling"), ui.indexOf("function stopPolling")),
     /friendEdgesAreScoped/

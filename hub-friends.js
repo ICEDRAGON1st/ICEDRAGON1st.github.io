@@ -257,11 +257,8 @@
       stopFriendsRealtime();
       return;
     }
-    if (friendsRealtimeUnsub) return;
-    if (friendsCloudQuiet()) return;
-    friendsRealtimeUnsub = api.subscribeFriendEdgeContributions((change) => {
-      applyFriendsRealtime(change);
-    });
+    // The open channel delivers every friend list, including people you do not know.
+    stopFriendsRealtime();
   }
 
   async function persistMyEdges() {

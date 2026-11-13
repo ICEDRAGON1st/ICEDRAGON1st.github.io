@@ -1961,6 +1961,38 @@
     return visibleFriendsReady;
   }
 
+  function shapeTouchedFriendEdge(viewerId, row) {
+    const viewer = parseLocalPlayerId(viewerId);
+    const playerId = parseLocalPlayerId(row?.player_id || row?.playerId);
+    if (!viewer || !playerId) return null;
+    const mapOrEmpty = (value) =>
+      value && typeof value === "object" && !Array.isArray(value) ? value : {};
+    if (playerId === viewer) {
+      return {
+        player_id: playerId,
+        display_name: String(row.display_name || row.displayName || ""),
+        friends: mapOrEmpty(row.friends),
+        outgoing: mapOrEmpty(row.outgoing),
+        incoming: mapOrEmpty(row.incoming),
+        invites: mapOrEmpty(row.invites),
+        updated_at: row.updated_at || row.updatedAt || null
+      };
+    }
+    const oneEdge = (value) => {
+      const edge = mapOrEmpty(value);
+      return Object.keys(edge).length ? { [viewer]: edge } : {};
+    };
+    return {
+      player_id: playerId,
+      display_name: String(row.display_name || row.displayName || ""),
+      friends: oneEdge(row.mine_friends),
+      outgoing: oneEdge(row.mine_outgoing),
+      incoming: oneEdge(row.mine_incoming),
+      invites: mapOrEmpty(row.invites),
+      updated_at: row.updated_at || row.updatedAt || null
+    };
+  }
+
   async function listFriendEdgeContributions() {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -1981,15 +2013,46 @@
       return Array.isArray(rows) ? rows : [];
     }
     if (rpc.status !== 404) throw new Error(`supabase friends list ${rpc.status}`);
-    const url = `${SUPABASE_URL}/rest/v1/friend_edge_contributions?select=player_id,display_name,friends,outgoing,incoming,invites,updated_at`;
-    const res = await hubFetch(url, {
-      headers: headers({}, session.access_token),
-      cache: "no-store"
-    });
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`supabase friends list ${res.status}`);
-    const rows = await res.json();
-    return Array.isArray(rows) ? rows : [];
+    const table = `${SUPABASE_URL}/rest/v1/friend_edge_contributions`;
+    const fullSelect = "player_id,display_name,friends,outgoing,incoming,invites,updated_at";
+    const viewerId =
+      readStoredPlayerId() ||
+      peekBoundPlayerId() ||
+      (await fetchOwnProfile(session))?.playerId ||
+      "";
+    const loadRows = async (url) => {
+      const res = await hubFetch(url, {
+        headers: headers({}, session.access_token),
+        cache: "no-store"
+      });
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error(`supabase friends list ${res.status}`);
+      const rows = await res.json();
+      return Array.isArray(rows) ? rows : [];
+    };
+    if (!viewerId) {
+      return loadRows(`${table}?select=${fullSelect}`);
+    }
+    const ownUrl = `${table}?select=${fullSelect}&player_id=eq.${encodeURIComponent(viewerId)}&limit=1`;
+    const touchedSelect = encodeURIComponent(
+      `player_id,display_name,updated_at,mine_friends:friends->"${viewerId}",mine_outgoing:outgoing->"${viewerId}",mine_incoming:incoming->"${viewerId}",invites`
+    );
+    const touchedFilter =
+      `or=(friends->>${encodeURIComponent(viewerId)}.not.is.null,` +
+      `outgoing->>${encodeURIComponent(viewerId)}.not.is.null,` +
+      `incoming->>${encodeURIComponent(viewerId)}.not.is.null)`;
+    const touchedUrl =
+      `${table}?select=${touchedSelect}&player_id=neq.${encodeURIComponent(viewerId)}&${touchedFilter}`;
+    let ownRows;
+    let touchedRows;
+    try {
+      [ownRows, touchedRows] = await Promise.all([loadRows(ownUrl), loadRows(touchedUrl)]);
+    } catch (err) {
+      console.warn("[HubSupabase] scoped friend list failed", err);
+      return loadRows(`${table}?select=${fullSelect}`);
+    }
+    if (ownRows == null || touchedRows == null) return null;
+    return ownRows.concat(touchedRows).map((row) => shapeTouchedFriendEdge(viewerId, row)).filter(Boolean);
   }
 
   async function upsertFriendEdgeContribution(row) {
@@ -3481,6 +3544,7 @@
     callSignalsAreScoped,
     upsertCallSignalContribution,
     listFriendEdgeContributions,
+    shapeTouchedFriendEdge,
     friendEdgesAreScoped,
     upsertFriendEdgeContribution,
     listChatThreadContributions,

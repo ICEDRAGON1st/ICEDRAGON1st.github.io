@@ -1,4 +1,7 @@
 {
+  "20261015gl": [
+    "The friends list no longer downloads unrelated friend lists. Requests and game invites that include you still show up."
+  ],
   "20261015gk": [
     "Login codes can no longer be listed from the account table once the new database script is applied. Signing in with a code still works."
   ],
