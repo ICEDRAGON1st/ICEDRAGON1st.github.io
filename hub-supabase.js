@@ -1352,15 +1352,80 @@
       return Array.isArray(rows) ? rows : [];
     }
     if (rpc.status !== 404) throw new Error(`supabase nickname list ${rpc.status}`);
-    const url = `${SUPABASE_URL}/rest/v1/nickname_claims?select=player_id,name_key,claim`;
-    const res = await hubFetch(url, {
-      headers: headers({}, session.access_token),
-      cache: "no-store"
-    });
+    const res = await hubFetch(
+      `${SUPABASE_URL}/rest/v1/nickname_claims?select=player_id,name_key,` +
+        "name:claim->name,claimedAt:claim->claimedAt,legend:claim->legend," +
+        "masterFisher:claim->masterFisher,inviter:claim->inviter,inviteCount:claim->inviteCount," +
+        "activeTitle:claim->activeTitle,accentTitle:claim->accentTitle,accentColor:claim->accentColor," +
+        "profileUpdatedAt:claim->profileUpdatedAt,legendAt:claim->legendAt," +
+        "masterFisherAt:claim->masterFisherAt,inviterAt:claim->inviterAt",
+      {
+        headers: headers({}, session.access_token),
+        cache: "no-store"
+      }
+    );
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`supabase nickname list ${res.status}`);
-    const rows = await res.json();
-    return Array.isArray(rows) ? rows : [];
+    const body = await res.json();
+    const rows = (Array.isArray(body) ? body : []).map(publicNicknameRow).filter(Boolean);
+    const ownRes = await hubFetch(
+      `${SUPABASE_URL}/rest/v1/nickname_claims?select=player_id,name_key,claim` +
+        `&user_id=eq.${encodeURIComponent(sessionUserId(session))}&limit=1`,
+      {
+        headers: headers({}, session.access_token),
+        cache: "no-store"
+      }
+    );
+    if (ownRes.status === 404) return rows;
+    if (!ownRes.ok) return rows;
+    const ownRows = await ownRes.json();
+    const own = Array.isArray(ownRows) ? ownRows[0] : null;
+    if (own && String(own.name_key || "") === "ice_dragon") {
+      const full = await hubFetch(
+        `${SUPABASE_URL}/rest/v1/nickname_claims?select=player_id,name_key,claim`,
+        {
+          headers: headers({}, session.access_token),
+          cache: "no-store"
+        }
+      );
+      if (full.status === 404) return rows;
+      if (!full.ok) return rows;
+      const fullRows = await full.json();
+      return Array.isArray(fullRows) ? fullRows : rows;
+    }
+    if (!own?.player_id || !own.claim) return rows;
+    return rows.map((row) =>
+      row.player_id === own.player_id ? { ...row, claim: own.claim } : row
+    );
+  }
+
+  function publicNicknameRow(row) {
+    if (!row || typeof row !== "object") return null;
+    const playerId = String(row.player_id || "").trim();
+    const nameKey = String(row.name_key || "")
+      .toLowerCase()
+      .trim()
+      .slice(0, 16);
+    if (!playerId || !nameKey) return null;
+    const claim = {
+      playerId,
+      name: String(row.name || ""),
+      claimedAt: Number(row.claimedAt) || 0,
+      legend: row.legend === true || row.legend === "true",
+      masterFisher: row.masterFisher === true || row.masterFisher === "true",
+      inviter: row.inviter === true || row.inviter === "true",
+      inviteCount: Math.max(0, Math.floor(Number(row.inviteCount) || 0)),
+      activeTitle: String(row.activeTitle || ""),
+      accentTitle: String(row.accentTitle || ""),
+      accentColor: String(row.accentColor || ""),
+      profileUpdatedAt: Number(row.profileUpdatedAt) || 0
+    };
+    if (Number(row.legendAt)) claim.legendAt = Number(row.legendAt);
+    if (Number(row.masterFisherAt)) claim.masterFisherAt = Number(row.masterFisherAt);
+    if (Number(row.inviterAt)) claim.inviterAt = Number(row.inviterAt);
+    if (!claim.inviteCount) delete claim.inviteCount;
+    if (!claim.profileUpdatedAt) delete claim.profileUpdatedAt;
+    return { player_id: playerId, name_key: nameKey, claim };
   }
 
   async function upsertNicknameClaim(row) {
@@ -2616,15 +2681,40 @@
       return Array.isArray(rows) ? rows : [];
     }
     if (rpc.status !== 404) throw new Error(`supabase referrals list ${rpc.status}`);
-    const url = `${SUPABASE_URL}/rest/v1/referral_contributions?select=player_id,inviter_id,inviter_code,invitee_name,credited_at,updated_at`;
-    const res = await hubFetch(url, {
-      headers: headers({}, session.access_token),
-      cache: "no-store"
-    });
+    const res = await hubFetch(
+      `${SUPABASE_URL}/rest/v1/referral_contributions?select=player_id,inviter_id,invitee_name,credited_at,updated_at`,
+      {
+        headers: headers({}, session.access_token),
+        cache: "no-store"
+      }
+    );
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`supabase referrals list ${res.status}`);
-    const rows = await res.json();
-    return Array.isArray(rows) ? rows : [];
+    const body = await res.json();
+    const rows = Array.isArray(body) ? body : [];
+    const me = readStoredPlayerId();
+    if (!me) return rows.map((row) => ({ ...row, inviter_code: "" }));
+    const mineRes = await hubFetch(
+      `${SUPABASE_URL}/rest/v1/referral_contributions?select=player_id,inviter_id,inviter_code,invitee_name,credited_at,updated_at` +
+        `&or=(player_id.eq.${encodeURIComponent(me)},inviter_id.eq.${encodeURIComponent(me)})`,
+      {
+        headers: headers({}, session.access_token),
+        cache: "no-store"
+      }
+    );
+    if (mineRes.status === 404 || !mineRes.ok) {
+      return rows.map((row) => ({ ...row, inviter_code: "" }));
+    }
+    const mineRows = await mineRes.json();
+    const codes = new Map();
+    (Array.isArray(mineRows) ? mineRows : []).forEach((row) => {
+      if (!row?.player_id) return;
+      codes.set(row.player_id, String(row.inviter_code || ""));
+    });
+    return rows.map((row) => ({
+      ...row,
+      inviter_code: codes.has(row.player_id) ? codes.get(row.player_id) : ""
+    }));
   }
 
   async function upsertReferralContribution(row) {

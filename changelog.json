@@ -1,4 +1,7 @@
 {
+  "20261015gj": [
+    "The name list and invite list no longer download other players login codes. Your own code still loads."
+  ],
   "20261015gi": [
     "A locked name check no longer downloads the owner login code. A code you already have still matches."
   ],

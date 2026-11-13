@@ -349,11 +349,8 @@
       stopNamesRealtime();
       return;
     }
-    if (namesRealtimeUnsub) return;
-    if (playsCloudQuiet()) return;
-    namesRealtimeUnsub = api.subscribeNicknameClaims((change) => {
-      applyNamesRealtime(change);
-    });
+    // The open channel delivers every claim, including other players' login codes.
+    stopNamesRealtime();
   }
 
   function applyAllTimeRealtime(change) {
@@ -4244,7 +4241,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       heartbeat().catch(() => {});
     }, HEARTBEAT_MS);
     setInterval(() => {
-      if (document.hidden || playsCloudQuiet() || !sb()?.nicknamesAreScoped?.()) return;
+      if (document.hidden || playsCloudQuiet()) return;
       stopNamesRealtime();
       fetchNamesRemote()
         .then((names) => {

@@ -319,11 +319,8 @@
       stopReferralsRealtime();
       return;
     }
-    if (referralsRealtimeUnsub) return;
-    if (referralsCloudQuiet()) return;
-    referralsRealtimeUnsub = api.subscribeReferralContributions((change) => {
-      applyReferralsRealtime(change);
-    });
+    // The open channel delivers every invite, including other players' login codes.
+    stopReferralsRealtime();
   }
 
   function referralsLiveJoined() {
@@ -596,8 +593,7 @@
     refreshMyStatus()
       .catch(() => {})
       .finally(() => {
-        if (sb()?.referralsAreScoped?.()) stopReferralsRealtime();
-        else ensureReferralsRealtime();
+        stopReferralsRealtime();
       });
   }, 2000);
   setInterval(() => {
@@ -605,12 +601,8 @@
       stopReferralsRealtime();
       return;
     }
-    if (sb()?.referralsAreScoped?.()) {
-      stopReferralsRealtime();
-      refreshMyStatus().catch(() => {});
-      return;
-    }
-    ensureReferralsRealtime();
+    stopReferralsRealtime();
+    refreshMyStatus().catch(() => {});
   }, 15000);
   document.addEventListener("hub-username-ready", () => {
     creditIfPending()
@@ -625,7 +617,7 @@
       stopReferralsRealtime();
       return;
     }
-    ensureReferralsRealtime();
+    refreshMyStatus().catch(() => {});
   });
 
   window.HubReferrals = {

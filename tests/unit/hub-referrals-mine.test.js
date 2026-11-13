@@ -143,6 +143,10 @@ test("invite live rows subscribe without rewriting the shared board", () => {
   assert.match(ui, /referralsAreScoped/);
   assert.match(ui, /applyReferralsRealtime/);
   assert.match(ui, /subscribeReferralContributions/);
+  assert.doesNotMatch(
+    ui.slice(ui.indexOf("function ensureReferralsRealtime"), ui.indexOf("function referralsLiveJoined")),
+    /subscribeReferralContributions\(/
+  );
   assert.match(ui, /referralsLiveJoined/);
   assert.match(ui, /referralsHydrated/);
   assert.match(ui, /peekDoc/);

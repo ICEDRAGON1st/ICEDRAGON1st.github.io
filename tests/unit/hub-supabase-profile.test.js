@@ -358,6 +358,9 @@ test("nickname claims use auth-owned rows instead of rewriting the shared name r
   assert.match(list, /if \(rpc\.status !== 404\)/);
   assert.match(list, /visibleNicknamesReady = true/);
   assert.match(list, /nickname_claims\?select=player_id,name_key,claim/);
+  assert.match(list, /name:claim->name/);
+  assert.match(list, /user_id=eq\.\$\{encodeURIComponent\(sessionUserId\(session\)\)\}/);
+  assert.match(list, /name_key \|\| ""\) === "ice_dragon"/);
   const sql = fs.readFileSync(
     path.join(__dirname, "../../supabase/migrations/202610160061_list_visible_nickname_claims.sql"),
     "utf8"
@@ -703,8 +706,13 @@ test("invite credits use auth-owned rows instead of rewriting the shared referra
   assert.match(list, /visibleReferralsReady = true/);
   assert.match(
     list,
+    /referral_contributions\?select=player_id,inviter_id,invitee_name,credited_at,updated_at/
+  );
+  assert.match(
+    list,
     /referral_contributions\?select=player_id,inviter_id,inviter_code,invitee_name,credited_at,updated_at/
   );
+  assert.match(list, /or=\(player_id\.eq\.\$\{encodeURIComponent\(me\)\}/);
   const sql = fs.readFileSync(
     path.join(__dirname, "../../supabase/migrations/202610160060_list_visible_referral_credits.sql"),
     "utf8"
