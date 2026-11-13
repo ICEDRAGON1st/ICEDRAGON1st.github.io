@@ -1,4 +1,7 @@
 {
+  "20261015fv": [
+    "Other players' feedback stays on the account server. ICE still sees the inbox."
+  ],
   "20261015fu": [
     "Logging in with a player code uses the account server lookup, and the hub no longer downloads every saved code."
   ],

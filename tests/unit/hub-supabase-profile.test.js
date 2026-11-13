@@ -477,6 +477,12 @@ test("feedback tickets use auth-owned rows instead of rewriting the shared inbox
   assert.match(src, /async function upsertFeedbackItemContribution/);
   assert.match(src, /function subscribeFeedbackItemContributions/);
   assert.match(src, /feedback_item_contributions/);
+  const feedbackList = src.slice(
+    src.indexOf("async function listFeedbackItemContributions"),
+    src.indexOf("async function upsertFeedbackItemContribution")
+  );
+  assert.match(feedbackList, /player_id=eq\.\$\{encodeURIComponent\(id\)\}/);
+  assert.match(feedbackList, /if \(id\) url \+=/);
 });
 
 test("fishing community casts use auth-owned rows instead of rewriting the shared meter", () => {

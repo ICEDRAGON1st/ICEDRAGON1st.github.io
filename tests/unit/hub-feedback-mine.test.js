@@ -28,6 +28,9 @@ test("owned feedback lives in a helper used by the Feedback panel", () => {
   assert.match(ui, /!snapshot\?\.items\?\.length/);
   assert.match(ui, /!snapshot\.items\.length && !\(snapshot\.pendingIds && snapshot\.pendingIds\.length\)/);
   assert.match(ui, /fetchFeedbackTableRemote/);
+  assert.match(ui, /listFeedbackItemContributions\(isOwner\(\) \? "" : me\)/);
+  assert.match(ui, /if \(!isOwner\(\) && !me\) return null/);
+  assert.match(ui, /player_id=eq\.\$\{me\}/);
   assert.match(ui, /fetchFeedbackDeletesRemote/);
   assert.match(ui, /persistFeedbackDeletes/);
   assert.match(ui, /skipShared: !fetched/);

@@ -772,6 +772,9 @@
     const ch = realtimeChannels.get(realtimeTopic(table));
     if (ch) ch.joined = false;
     realtimeRef += 1;
+    const binding = { event: "*", schema: "public", table };
+    const filter = String(ch?.filter || "").trim();
+    if (filter) binding.filter = filter;
     try {
       ws.send(
         JSON.stringify({
@@ -781,7 +784,7 @@
             config: {
               broadcast: { ack: false, self: false },
               presence: { key: "" },
-              postgres_changes: [{ event: "*", schema: "public", table }]
+              postgres_changes: [binding]
             },
             access_token: token
           },
@@ -897,15 +900,17 @@
       });
   }
 
-  function subscribePostgresChanges(table, onChange) {
+  function subscribePostgresChanges(table, onChange, filter) {
     const name = String(table || "").trim();
     if (!name || typeof onChange !== "function") return () => {};
     const topic = realtimeTopic(name);
     let ch = realtimeChannels.get(topic);
     if (!ch) {
-      ch = { table: name, listeners: new Set(), joined: false };
+      ch = { table: name, listeners: new Set(), joined: false, filter: "" };
       realtimeChannels.set(topic, ch);
     }
+    const nextFilter = String(filter || "").trim();
+    if (nextFilter) ch.filter = nextFilter;
     const first = ch.listeners.size === 0;
     ch.listeners.add(onChange);
     realtimeWanted = true;
@@ -977,8 +982,8 @@
     return subscribePostgresChanges("community_meter_state", onChange);
   }
 
-  function subscribeFeedbackItemContributions(onChange) {
-    return subscribePostgresChanges("feedback_item_contributions", onChange);
+  function subscribeFeedbackItemContributions(onChange, filter) {
+    return subscribePostgresChanges("feedback_item_contributions", onChange, filter);
   }
 
   function subscribeLeaderboardPbContributions(onChange) {
@@ -2360,7 +2365,7 @@
     return out.sort((a, b) => b.at - a.at).slice(0, 40);
   }
 
-  async function listFeedbackItemContributions() {
+  async function listFeedbackItemContributions(playerId) {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
       err.hubNetBlocked = true;
@@ -2368,7 +2373,9 @@
     }
     const session = await ensureSession();
     if (!session?.access_token) return null;
-    const url = `${SUPABASE_URL}/rest/v1/feedback_item_contributions?select=player_id,items,updated_at`;
+    const id = parseLocalPlayerId(playerId);
+    let url = `${SUPABASE_URL}/rest/v1/feedback_item_contributions?select=player_id,items,updated_at`;
+    if (id) url += `&player_id=eq.${encodeURIComponent(id)}`;
     const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"

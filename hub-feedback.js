@@ -249,8 +249,10 @@
     const api = sb();
     const helper = mineApi();
     if (!api?.listFeedbackItemContributions || !helper?.overlayFeedbackItems) return null;
+    const me = getPlayerId();
+    if (!isOwner() && !me) return null;
     try {
-      const rows = await api.listFeedbackItemContributions();
+      const rows = await api.listFeedbackItemContributions(isOwner() ? "" : me);
       if (!rows) return null;
       return helper.overlayFeedbackItems({ items: [] }, rows);
     } catch {
@@ -476,9 +478,11 @@
     const api = sb();
     if (feedbackNetQuiet()) return;
     if (!feedbackRealtimeUnsub && api?.subscribeFeedbackItemContributions) {
+      const me = getPlayerId();
+      const filter = !isOwner() && me ? `player_id=eq.${me}` : "";
       feedbackRealtimeUnsub = api.subscribeFeedbackItemContributions((change) => {
         applyFeedbackRealtime(change);
-      });
+      }, filter);
     }
     if (!feedbackDeletesRealtimeUnsub && api?.subscribeAdminBroadcasts) {
       feedbackDeletesRealtimeUnsub = api.subscribeAdminBroadcasts((change) => {
