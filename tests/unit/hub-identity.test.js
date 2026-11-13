@@ -209,7 +209,21 @@ test("owned identity mine restores code and name without reminting a different p
       plays.indexOf("async function ensurePlayerCodeRegistered"),
       plays.indexOf("async function restoreWithPlayerCode")
     ),
-    /pushDoc|pushCodesRemote/
+    /pushDoc|pushCodesRemote|fetchCodesRemote/
+  );
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function restoreWithPlayerCode"),
+      plays.indexOf("let sessionName")
+    ),
+    /fetchCodesRemote/
+  );
+  assert.match(
+    plays.slice(
+      plays.indexOf("async function restoreWithPlayerCode"),
+      plays.indexOf("let sessionName")
+    ),
+    /getPlayerCodeClaim\?\.\(norm\)/
   );
   assert.equal(identity.IDENTITY_MINE_KEY, "identity-mine");
 

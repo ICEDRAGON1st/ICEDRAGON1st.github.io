@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015fq",
+  "build": "20261015fr",
   "notes": [
-    "Signing in with a password checks that one login instead of loading every saved login."
+    "Logging in with a player code checks that one code instead of loading every saved code."
   ]
 };

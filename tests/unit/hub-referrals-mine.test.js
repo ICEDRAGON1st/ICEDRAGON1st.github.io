@@ -148,7 +148,6 @@ test("invite codes resolve from owned player-code rows before the shared board",
     ui.indexOf("async function unlockSelfIfNeeded")
   );
   assert.match(fn, /getPlayerCodeClaim/);
-  assert.match(fn, /listPlayerCodeClaims/);
-  assert.match(fn, /rowsToCodesMap/);
+  assert.doesNotMatch(fn, /listPlayerCodeClaims/);
   assert.doesNotMatch(fn, /getDoc\("player-codes"\)/);
 });

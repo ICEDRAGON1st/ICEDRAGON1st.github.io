@@ -1226,6 +1226,29 @@
     return Array.isArray(rows) && rows[0] ? rows[0] : null;
   }
 
+  async function getPlayerCodeClaimByPlayerId(playerId) {
+    const id = parseLocalPlayerId(playerId);
+    if (!id) return null;
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const url =
+      `${SUPABASE_URL}/rest/v1/player_code_claims?player_id=eq.${encodeURIComponent(id)}` +
+      `&select=player_id,code,display_name,claimed_at&limit=1`;
+    const res = await hubFetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase player code get ${res.status}`);
+    const rows = await res.json();
+    return Array.isArray(rows) && rows[0] ? rows[0] : null;
+  }
+
   async function upsertPlayerCodeClaim(row) {
     const session = await ensureSession();
     const userId = sessionUserId(session);
@@ -3105,6 +3128,7 @@
     upsertPlayLogContribution,
     listPlayerCodeClaims,
     getPlayerCodeClaim,
+    getPlayerCodeClaimByPlayerId,
     upsertPlayerCodeClaim,
     listNicknameClaims,
     upsertNicknameClaim,

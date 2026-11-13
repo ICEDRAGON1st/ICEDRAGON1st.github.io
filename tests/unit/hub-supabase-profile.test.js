@@ -309,6 +309,8 @@ test("player code claims use auth-owned rows instead of rewriting the shared cod
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
   assert.match(src, /async function listPlayerCodeClaims/);
   assert.match(src, /async function getPlayerCodeClaim/);
+  assert.match(src, /async function getPlayerCodeClaimByPlayerId/);
+  assert.match(src, /player_id=eq\.\$\{encodeURIComponent\(id\)\}/);
   assert.match(src, /async function upsertPlayerCodeClaim/);
   assert.match(src, /function subscribePlayerCodeClaims/);
   assert.match(src, /player_code_claims/);

@@ -401,15 +401,6 @@
       const playerId = String(row?.player_id || row?.playerId || "").trim();
       if (playerId) return playerId;
     } catch {}
-    try {
-      const rows = await api.listPlayerCodeClaims?.();
-      const codesApi = window.HubIdentity;
-      if (rows && codesApi?.rowsToCodesMap) {
-        const codes = codesApi.rowsToCodesMap(rows);
-        const entry = codes[norm] || codes[formatCode(norm)] || null;
-        if (entry?.playerId) return String(entry.playerId);
-      }
-    } catch {}
     return "";
   }
 

@@ -1613,9 +1613,9 @@
       let code = normalizePlayerCode(claim.playerCode || "");
       if (code.length !== 8) {
         try {
-          const codes = await fetchCodesRemote();
-          const hit = Object.entries(codes).find(([, v]) => v.playerId === claim.playerId);
-          if (hit) code = hit[0];
+          const row = await sb()?.getPlayerCodeClaimByPlayerId?.(claim.playerId);
+          const found = normalizePlayerCode(row?.code || "");
+          if (found.length === 8) code = found;
         } catch {}
       }
       res = {
@@ -1695,36 +1695,26 @@
     }
 
     try {
-      let remote = {};
-      let fetched = false;
-      try {
-        remote = await fetchCodesRemote();
-        fetched = true;
-      } catch {
-        remote = {};
-      }
-      const tableRemote = await fetchCodesTableRemote();
-      if (tableRemote && identity.mergeCodesMaps) {
-        remote = identity.mergeCodesMaps(remote, tableRemote);
-      } else if (tableRemote) {
-        remote = { ...remote, ...tableRemote };
-      }
-      codesCache = remote;
       ensureCodesRealtime();
-      if (!fetched && !tableWrote && !tableRemote) {
-        throw new Error("codes-unavailable");
-      }
-      // Never keep the UNDE-FNED poison code in the shared registry
-      Object.keys(remote).forEach((k) => {
-        if (isPoisonPlayerCode(k)) delete remote[k];
-      });
-      let entry = remote[norm];
+      let entry = null;
+      try {
+        const row = await sb()?.getPlayerCodeClaim?.(norm);
+        if (row && identity.rowsToCodesMap) {
+          entry = identity.rowsToCodesMap([row])[norm] || null;
+        }
+      } catch {}
       if (entry && entry.playerId !== me) {
-        // Rare collision — pick a free code
         for (let i = 0; i < 6; i += 1) {
           const next = i === 0 ? hashToCodeParts(me, "alt") : randomCodeParts();
           if (isPoisonPlayerCode(next)) continue;
-          if (!remote[next] || remote[next].playerId === me) {
+          let taken = null;
+          try {
+            const takenRow = await sb()?.getPlayerCodeClaim?.(next);
+            if (takenRow && identity.rowsToCodesMap) {
+              taken = identity.rowsToCodesMap([takenRow])[next] || null;
+            }
+          } catch {}
+          if (!taken || taken.playerId === me) {
             if (tableWrote) {
               const retried = identity.persistPlayerCodeClaim
                 ? await identity.persistPlayerCodeClaim(sb(), getPlayerId(), next, getName())
@@ -1734,22 +1724,26 @@
             }
             norm = next;
             formatted = storePlayerCode(next);
-            entry = remote[next];
+            entry = taken;
             break;
           }
         }
       }
-
-      // Drop stale rows for this player that point at an old code
-      Object.keys(remote).forEach((k) => {
-        if (remote[k]?.playerId === me && k !== norm) delete remote[k];
+      Object.keys(codesCache || {}).forEach((k) => {
+        if (isPoisonPlayerCode(k) || (codesCache[k]?.playerId === me && k !== norm)) {
+          delete codesCache[k];
+        }
       });
-
-      remote[norm] = {
-        playerId: me,
-        name: getName() || entry?.name || "",
-        at: entry?.at || Date.now()
+      const mine = {
+        [norm]: {
+          playerId: me,
+          name: getName() || entry?.name || "",
+          at: entry?.at || Date.now()
+        }
       };
+      codesCache = identity.mergeCodesMaps
+        ? identity.mergeCodesMaps(codesCache, mine)
+        : { ...(codesCache || {}), ...mine };
       if (!tableWrote) throw new Error("codes-unavailable");
       if (isCodeLockedName(nameKey(getName()))) {
         lockNameToPlayerCode(nameKey(getName()), me, norm, getName()).catch(() => {});
@@ -1838,19 +1832,11 @@
 
     let remote = null;
     try {
-      remote = await fetchCodesRemote();
+      const row = await sb()?.getPlayerCodeClaim?.(norm);
+      if (row && identity.rowsToCodesMap) remote = identity.rowsToCodesMap([row]);
     } catch {
       remote = null;
     }
-    try {
-      const row = await sb()?.getPlayerCodeClaim?.(norm);
-      if (row && identity.rowsToCodesMap) {
-        const extra = identity.rowsToCodesMap([row]);
-        remote = identity.mergeCodesMaps
-          ? identity.mergeCodesMaps(remote || {}, extra)
-          : { ...(remote || {}), ...extra };
-      }
-    } catch {}
 
     // Local vault / local code map always win — leftover shared boards aren't asked
     let entry = identity.resolveRestoreEntry
