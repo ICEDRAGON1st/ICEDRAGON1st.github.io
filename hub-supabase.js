@@ -1814,6 +1814,73 @@
     return visibleCallsReady;
   }
 
+  function shapeScopedCallRow(row, keyMap) {
+    const playerId = parseLocalPlayerId(row?.player_id || row?.playerId);
+    if (!playerId) return null;
+    if (row?.rooms && typeof row.rooms === "object" && !Array.isArray(row.rooms)) {
+      return { player_id: playerId, rooms: row.rooms };
+    }
+    const rooms = {};
+    Object.entries(keyMap && typeof keyMap === "object" ? keyMap : {}).forEach(([alias, key]) => {
+      const value = row?.[alias];
+      const roomKey = String(key || "");
+      if (!roomKey || !value || typeof value !== "object" || Array.isArray(value)) return;
+      rooms[roomKey] = value;
+    });
+    if (!Object.keys(rooms).length) return null;
+    return { player_id: playerId, rooms };
+  }
+
+  function callReadTargets(viewerId, friendIds, groupIds, ownRooms) {
+    const viewer = parseLocalPlayerId(viewerId);
+    const ids = new Set();
+    const keys = new Set();
+    if (!viewer) return { playerIds: [], keys: [] };
+    const addPerson = (id) => {
+      const parsed = parseLocalPlayerId(id);
+      if (parsed && parsed !== viewer) ids.add(parsed);
+    };
+    (Array.isArray(friendIds) ? friendIds : []).forEach(addPerson);
+    (Array.isArray(groupIds) ? groupIds : []).forEach((id) => {
+      const groupId = String(id || "").trim().slice(0, 80);
+      if (groupId) keys.add(`group:${groupId}`.slice(0, 96));
+    });
+    Object.keys(ownRooms && typeof ownRooms === "object" ? ownRooms : {}).forEach((key) => {
+      const id = String(key || "");
+      if (!id) return;
+      if (id.startsWith("group:")) {
+        keys.add(id.slice(0, 96));
+        return;
+      }
+      if (!id.startsWith("dm:")) return;
+      keys.add(id.slice(0, 96));
+      const parts = id.slice(3).split(":");
+      if (parts.length === 2) addPerson(parts[0] === viewer ? parts[1] : parts[0]);
+    });
+    ids.forEach((other) => keys.add(`dm:${[viewer, other].sort().join(":")}`));
+    return {
+      playerIds: [...ids].slice(0, 80),
+      keys: [...keys].slice(0, 40)
+    };
+  }
+
+  function cachedCallPeers(viewerId) {
+    const friends = [];
+    const groups = [];
+    try {
+      const raw = JSON.parse(localStorage.getItem("hub-friends-v1") || "null");
+      const profile = raw?.profiles?.[viewerId] || {};
+      Object.keys(profile.friends || {}).forEach((id) => friends.push(id));
+    } catch {}
+    try {
+      const raw = JSON.parse(localStorage.getItem("hub-chat-v1") || "null");
+      Object.keys(raw?.threads || {}).forEach((key) => {
+        if (String(key).startsWith("group:")) groups.push(String(key).slice("group:".length));
+      });
+    } catch {}
+    return { friends, groups };
+  }
+
   async function listCallSignalContributions() {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -1834,15 +1901,63 @@
       return Array.isArray(rows) ? rows : [];
     }
     if (rpc.status !== 404) throw new Error(`supabase call list ${rpc.status}`);
-    const url = `${SUPABASE_URL}/rest/v1/call_signal_contributions?select=player_id,rooms`;
-    const res = await hubFetch(url, {
-      headers: headers({}, session.access_token),
-      cache: "no-store"
-    });
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`supabase call list ${res.status}`);
-    const rows = await res.json();
-    return Array.isArray(rows) ? rows : [];
+    const table = `${SUPABASE_URL}/rest/v1/call_signal_contributions`;
+    const viewerId =
+      readStoredPlayerId() ||
+      peekBoundPlayerId() ||
+      (await fetchOwnProfile(session))?.playerId ||
+      "";
+    const loadRows = async (url) => {
+      const res = await hubFetch(url, {
+        headers: headers({}, session.access_token),
+        cache: "no-store"
+      });
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error(`supabase call list ${res.status}`);
+      const rows = await res.json();
+      return Array.isArray(rows) ? rows : [];
+    };
+    if (!viewerId) return loadRows(`${table}?select=player_id,rooms`);
+    const ownUrl = `${SUPABASE_URL}/rest/v1/call_signal_contributions?select=player_id,rooms&player_id=eq.${encodeURIComponent(viewerId)}&limit=1`;
+    try {
+      const ownRows = await loadRows(ownUrl);
+      if (ownRows == null) return null;
+      const cached = cachedCallPeers(viewerId);
+      const targets = callReadTargets(
+        viewerId,
+        cached.friends,
+        cached.groups,
+        ownRows[0]?.rooms || {}
+      );
+      let keyedRows = [];
+      let keyMap = {};
+      if (targets.playerIds.length && targets.keys.length) {
+        const selectParts = ["player_id"];
+        targets.keys.forEach((key, index) => {
+          const alias = `k${index}`;
+          keyMap[alias] = key;
+          selectParts.push(`${alias}:rooms->"${key}"`);
+        });
+        const keyedUrl =
+          `${table}?select=${encodeURIComponent(selectParts.join(","))}` +
+          `&player_id=in.(${targets.playerIds.map((id) => encodeURIComponent(id)).join(",")})`;
+        keyedRows = await loadRows(keyedUrl);
+        if (keyedRows == null) return null;
+      }
+      const shaped = [];
+      ownRows.forEach((row) => {
+        const next = shapeScopedCallRow(row);
+        if (next) shaped.push(next);
+      });
+      keyedRows.forEach((row) => {
+        const next = shapeScopedCallRow(row, keyMap);
+        if (next) shaped.push(next);
+      });
+      return shaped;
+    } catch (err) {
+      console.warn("[HubSupabase] scoped call list failed", err);
+      return loadRows(`${table}?select=player_id,rooms`);
+    }
   }
 
   async function upsertCallSignalContribution(row) {
@@ -3671,6 +3786,8 @@
     listAlltimeRoster,
     upsertAlltimeRoster,
     listCallSignalContributions,
+    shapeScopedCallRow,
+    callReadTargets,
     callSignalsAreScoped,
     upsertCallSignalContribution,
     listFriendEdgeContributions,

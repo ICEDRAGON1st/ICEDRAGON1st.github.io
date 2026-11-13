@@ -493,6 +493,26 @@ test("call signaling uses auth-owned rows instead of rewriting the shared call b
   assert.match(list, /if \(rpc\.status !== 404\)/);
   assert.match(list, /visibleCallsReady = true/);
   assert.match(list, /call_signal_contributions\?select=player_id,rooms/);
+  assert.match(list, /rooms->/);
+  assert.match(list, /player_id=in\./);
+  const callRow = supabase.shapeScopedCallRow(
+    {
+      player_id: "p-otherplayer01",
+      k0: { peers: { "p-0123456789abcdef": { name: "Ada" } } },
+      other: { peers: {} }
+    },
+    { k0: "dm:p-0123456789abcdef:p-otherplayer01" }
+  );
+  assert.deepEqual(Object.keys(callRow.rooms), ["dm:p-0123456789abcdef:p-otherplayer01"]);
+  const callTargets = supabase.callReadTargets(
+    "p-0123456789abcdef",
+    ["p-otherplayer01"],
+    ["room1"],
+    {}
+  );
+  assert.ok(callTargets.keys.includes("dm:p-0123456789abcdef:p-otherplayer01"));
+  assert.ok(callTargets.keys.includes("group:room1"));
+  assert.ok(callTargets.playerIds.includes("p-otherplayer01"));
   const sql = fs.readFileSync(
     path.join(__dirname, "../../supabase/migrations/202610160057_list_visible_call_signals.sql"),
     "utf8"

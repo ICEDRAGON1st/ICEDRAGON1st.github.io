@@ -251,6 +251,10 @@ test("call live rows subscribe without rewriting the shared board", () => {
     "utf8"
   );
   assert.match(ui, /ensureCallsRealtime/);
+  assert.doesNotMatch(
+    ui.slice(ui.indexOf("function ensureCallsRealtime"), ui.indexOf("async function poll")),
+    /subscribeCallSignalContributions\(/
+  );
   assert.match(
     ui.slice(ui.indexOf("async function poll"), ui.indexOf("function startPolling")),
     /callSignalsAreScoped/

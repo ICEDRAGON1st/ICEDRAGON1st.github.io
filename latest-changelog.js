@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015gm",
+  "build": "20261015gn",
   "notes": [
-    "Chat no longer downloads every private thread. Global chat, direct messages, and groups still load."
+    "Voice calls no longer download every player's call signals. Calls with friends and groups still connect."
   ]
 };

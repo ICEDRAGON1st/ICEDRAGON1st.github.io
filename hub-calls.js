@@ -1837,11 +1837,8 @@
       stopCallsRealtime();
       return;
     }
-    if (callsRealtimeUnsub) return;
-    if (callsCloudQuiet()) return;
-    callsRealtimeUnsub = api.subscribeCallSignalContributions((change) => {
-      applyCallsRealtime(change);
-    });
+    // The open channel delivers every call room, including other players' signals.
+    stopCallsRealtime();
   }
 
   async function poll() {
