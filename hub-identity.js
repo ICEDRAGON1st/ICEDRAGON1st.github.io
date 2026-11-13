@@ -266,6 +266,8 @@
   function reservationAllows(res, playerId, code) {
     if (!res?.playerId) return true;
     if (res.playerId === playerId) return true;
+    if (res.allowed === true) return true;
+    if (res.allowed === false) return false;
     const locked = normalizePlayerCode(res.code || "");
     const mine = normalizePlayerCode(code || "");
     return !!(locked && mine && locked === mine);
@@ -539,21 +541,35 @@
     (Array.isArray(rows) ? rows : []).forEach((row) => {
       if (!row || typeof row !== "object") return;
       const playerId = String(row.player_id || row.playerId || "").trim();
-      const entry = cleanReservation(
-        {
-          playerId,
-          code: row.code || "",
-          name: row.display_name || row.name || "",
-          lockedAt: Date.parse(row.locked_at || row.lockedAt || "") || Number(row.lockedAt) || 0
-        },
-        playerId
-      );
       const key = String(row.name_key || row.nameKey || "")
         .toLowerCase()
         .trim()
         .slice(0, 16);
-      const mappedKey = key || (entry ? nameKey(entry.name) : "");
-      if (!mappedKey || !entry) return;
+      const name = sanitizeName(row.display_name || row.name || "");
+      const lockedAt = Date.parse(row.locked_at || row.lockedAt || "") || Number(row.lockedAt) || 0;
+      const mappedKey = key || nameKey(name);
+      if (!playerId || !mappedKey) return;
+      if (row.allowed === true || row.allowed === false) {
+        const code = normalizePlayerCode(row.code || "");
+        out[mappedKey] = {
+          playerId,
+          code: row.allowed === true && code.length === 8 && !isPoisonPlayerCode(code) ? code : "",
+          name: name || mappedKey,
+          lockedAt,
+          allowed: row.allowed === true
+        };
+        return;
+      }
+      const entry = cleanReservation(
+        {
+          playerId,
+          code: row.code || "",
+          name,
+          lockedAt
+        },
+        playerId
+      );
+      if (!entry) return;
       out[mappedKey] = entry;
     });
     return out;

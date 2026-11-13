@@ -87,6 +87,18 @@ test("account transfer keys and player-code maps keep the first owner", () => {
     identity.reservationAllows({ playerId: "p-bea", code: "AB23CD45" }, "p-ada", "AB23-CD45"),
     true
   );
+  assert.equal(
+    identity.reservationAllows({ playerId: "p-bea", code: "", allowed: true }, "p-ada", "ZZ99YY88"),
+    true
+  );
+  assert.equal(
+    identity.reservationAllows(
+      { playerId: "p-bea", code: "AB23CD45", allowed: false },
+      "p-ada",
+      "AB23CD45"
+    ),
+    false
+  );
 
   const fromRows = identity.rowsToCodesMap([
     {
@@ -516,6 +528,28 @@ test("owned name reservations dual-write without stealing another player's lock"
   assert.equal(fromRows.ice_dragon.playerId, "p-ada");
   assert.equal(fromRows.ice_dragon.code, "AB23CD45");
   assert.equal(fromRows.bea, undefined);
+
+  const checked = identity.rowsToReservationsMap([
+    {
+      player_id: "p-bea",
+      name_key: "ice_dragon",
+      code: "",
+      display_name: "ICE_DRAGON",
+      allowed: false
+    },
+    {
+      player_id: "p-ada",
+      name_key: "ada",
+      code: "AB23CD45",
+      display_name: "Ada",
+      allowed: true
+    }
+  ]);
+  assert.equal(checked.ice_dragon.playerId, "p-bea");
+  assert.equal(checked.ice_dragon.code, "");
+  assert.equal(checked.ice_dragon.allowed, false);
+  assert.equal(checked.ada.code, "AB23CD45");
+  assert.equal(checked.ada.allowed, true);
 
   const liveLock = identity.applyReservationChange(
     {

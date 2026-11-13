@@ -373,12 +373,39 @@ test("nickname claims use auth-owned rows instead of rewriting the shared name r
 test("name reservation locks use auth-owned rows instead of rewriting the shared lock document", () => {
   const fs = require("node:fs");
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
+  const plays = fs.readFileSync(path.join(__dirname, "../../hub-plays.js"), "utf8");
   assert.match(src, /async function listNameReservationLocks/);
   assert.match(src, /async function getNameReservationLock/);
   assert.match(src, /name_key=eq\.\$\{encodeURIComponent\(key\)\}/);
   assert.match(src, /async function upsertNameReservationLock/);
   assert.match(src, /function subscribeNameReservationLocks/);
   assert.match(src, /name_reservation_locks/);
+  const lookup = src.slice(
+    src.indexOf("async function getNameReservationLock"),
+    src.indexOf("async function upsertNameReservationLock")
+  );
+  assert.match(lookup, /rpc\/lookup_name_reservation/);
+  assert.match(lookup, /raw_name: key/);
+  assert.match(lookup, /raw_code: submitted/);
+  assert.match(lookup, /if \(rpc\.status !== 404\)/);
+  assert.match(lookup, /select=player_id,name_key,code,display_name,locked_at/);
+  assert.match(lookup, /code: ownCode\.length === 8 \? ownCode : allowed && submitted\.length === 8 \? submitted : ""/);
+  assert.match(plays, /resolveNameReservation\(key, myCode\)/);
+  assert.match(plays, /fetchReservationsRemote\(name, norm\)/);
+  const sql = fs.readFileSync(
+    path.join(__dirname, "../../supabase/migrations/202610160064_lookup_name_reservation.sql"),
+    "utf8"
+  );
+  assert.match(sql, /function public\.lookup_name_reservation\(text, text\)/);
+  assert.match(sql, /security definer/);
+  assert.match(sql, /owner = auth\.uid\(\) or \(norm <> '' and stored = norm\)/);
+  assert.match(sql, /case when owner = auth\.uid\(\) then stored else '' end/);
+  assert.match(
+    sql,
+    /grant execute on function public\.lookup_name_reservation\(text, text\) to authenticated/
+  );
+  assert.doesNotMatch(sql, /drop policy/i);
+  assert.doesNotMatch(sql, /to anon/i);
 });
 
 test("player password hashes use auth-owned rows instead of rewriting the shared password document", () => {

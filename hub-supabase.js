@@ -1412,7 +1412,7 @@
     return null;
   }
 
-  async function getNameReservationLock(nameKey) {
+  async function getNameReservationLock(nameKey, rawCode) {
     const key = String(nameKey || "")
       .toLowerCase()
       .trim()
@@ -1420,11 +1420,44 @@
     if (!key) return null;
     const session = await ensureSession();
     if (!session?.access_token) return null;
+    const submitted = String(rawCode || "")
+      .toUpperCase()
+      .replace(/[^23456789ABCDEFGHJKLMNPQRSTUVWXYZ]/g, "")
+      .slice(0, 8);
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
       err.hubNetBlocked = true;
       throw err;
     }
+    const rpc = await hubFetch(`${SUPABASE_URL}/rest/v1/rpc/lookup_name_reservation`, {
+      method: "POST",
+      headers: headers({}, session.access_token),
+      cache: "no-store",
+      body: JSON.stringify({ raw_name: key, raw_code: submitted })
+    });
+    if (rpc.ok) {
+      const body = await rpc.json();
+      if (!body || typeof body !== "object" || Array.isArray(body)) return null;
+      if (body.found === false) return false;
+      const playerId = String(body.playerId || body.player_id || "").trim();
+      if (!playerId) return false;
+      const ownCode = String(body.code || "")
+        .toUpperCase()
+        .replace(/[^23456789ABCDEFGHJKLMNPQRSTUVWXYZ]/g, "")
+        .slice(0, 8);
+      const allowed = body.allowed === true;
+      return {
+        player_id: playerId,
+        name_key: String(body.nameKey || body.name_key || key)
+          .toLowerCase()
+          .slice(0, 16),
+        display_name: String(body.displayName || body.display_name || ""),
+        locked_at: body.lockedAt || body.locked_at || null,
+        code: ownCode.length === 8 ? ownCode : allowed && submitted.length === 8 ? submitted : "",
+        allowed
+      };
+    }
+    if (rpc.status !== 404) throw new Error(`supabase reservation get ${rpc.status}`);
     const url =
       `${SUPABASE_URL}/rest/v1/name_reservation_locks?name_key=eq.${encodeURIComponent(key)}` +
       `&select=player_id,name_key,code,display_name,locked_at&limit=1`;

@@ -1554,7 +1554,7 @@
     }
   }
 
-  async function fetchReservationsRemote(name) {
+  async function fetchReservationsRemote(name, code) {
     const key = nameKey(name);
     if (!key) throw new Error("reservations-unavailable");
     if (playsLiveJoined("name_reservation_locks") && reservationsCache?.[key]) {
@@ -1565,7 +1565,7 @@
       if (reservationsCache?.[key]) return reservationsCache;
       throw new Error("reservations-unavailable");
     }
-    const row = await lookup(key);
+    const row = await lookup(key, code);
     if (row == null) {
       if (reservationsCache && typeof reservationsCache === "object") return reservationsCache;
       throw new Error("reservations-unavailable");
@@ -1604,12 +1604,12 @@
     return identity.reservationAllows ? identity.reservationAllows(res, playerId, code) : true;
   }
 
-  async function resolveNameReservation(key) {
+  async function resolveNameReservation(key, code) {
     const name = String(key || "").toLowerCase();
     if (!name) return null;
     let remote = {};
     try {
-      remote = await fetchReservationsRemote(name);
+      remote = await fetchReservationsRemote(name, code);
     } catch {
       remote = { ...(reservationsCache || {}) };
     }
@@ -1653,7 +1653,7 @@
     let remote = {};
     let fetchedOk = false;
     try {
-      remote = await fetchReservationsRemote(name);
+      remote = await fetchReservationsRemote(name, norm);
       fetchedOk = true;
     } catch {
       remote = { ...(reservationsCache || {}) };
@@ -2527,7 +2527,7 @@
     let reservation = null;
     if (isCodeLockedName(key)) {
       try {
-        reservation = await resolveNameReservation(key);
+        reservation = await resolveNameReservation(key, myCode);
       } catch {
         reservation = null;
       }
