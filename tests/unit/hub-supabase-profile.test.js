@@ -722,6 +722,23 @@ test("fishing player mail uses auth-owned rows instead of rewriting the shared m
   assert.match(list, /if \(rpc\.status !== 404\)/);
   assert.match(list, /visibleMailReady = true/);
   assert.match(list, /fishing_mail_contributions\?select=player_id,gifts,trades,updated_at/);
+  assert.match(list, /player_id=eq\.\$\{encodeURIComponent\(viewerId\)\}/);
+  assert.match(list, /player_id=in\.\(/);
+  assert.match(list, /cachedMailPeers\(viewerId\)/);
+  assert.match(src, /hub-friends-v1/);
+  const mailTargets = supabase.mailReadTargets(
+    "p-viewer01",
+    ["p-friend01", "p-viewer01", "not-a-player"],
+    {
+      gifts: {
+        mine: { fromId: "p-viewer01", toPlayerId: "p-oldmail1" },
+        stranger: { fromId: "p-stranger", toPlayerId: "p-someone1" }
+      },
+      trades: { open: { aId: "p-viewer01", bId: "p-trader01" } }
+    }
+  );
+  assert.deepEqual(mailTargets.slice().sort(), ["p-friend01", "p-oldmail1", "p-trader01"].sort());
+  assert.equal(supabase.mailReadTargets("", ["p-friend01"], {}).length, 0);
   const sql = fs.readFileSync(
     path.join(__dirname, "../../supabase/migrations/202610160058_list_visible_fishing_mail.sql"),
     "utf8"
@@ -757,6 +774,7 @@ test("fishing admin gifts use auth-owned rows instead of rewriting the shared gi
   assert.match(sql, /security definer/);
   assert.match(sql, /identity-bind/);
   assert.match(sql, /broadcast/);
+  assert.match(sql, /toName/);
   assert.match(sql, /grant execute on function public\.list_visible_fishing_gifts\(\) to authenticated/);
   assert.doesNotMatch(sql, /drop policy/i);
 });

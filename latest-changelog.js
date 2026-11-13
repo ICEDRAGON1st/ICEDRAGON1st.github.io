@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015gn",
+  "build": "20261015go",
   "notes": [
-    "Voice calls no longer download every player's call signals. Calls with friends and groups still connect."
+    "Fishing mail no longer downloads gifts and trades from people who are not your friends."
   ]
 };

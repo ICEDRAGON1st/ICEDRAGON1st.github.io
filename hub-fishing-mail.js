@@ -368,11 +368,8 @@
       stopMailRealtime();
       return;
     }
-    if (mailRealtimeUnsub) return;
-    if (isFishingPage() || mailCloudQuiet()) return;
-    mailRealtimeUnsub = api.subscribeFishingMailContributions((change) => {
-      applyMailRealtime(change);
-    });
+    // The open channel delivers every gift and trade, including people you do not know.
+    stopMailRealtime();
   }
 
   async function poll() {

@@ -7785,11 +7785,8 @@
       stopPlayerMailRealtime();
       return;
     }
-    if (playerMailRealtimeUnsub) return;
-    if (fishingCloudQuiet()) return;
-    playerMailRealtimeUnsub = api.subscribeFishingMailContributions((change) => {
-      applyPlayerMailRealtime(change);
-    });
+    // The open channel delivers every gift and trade, including people you do not know.
+    stopPlayerMailRealtime();
   }
 
   async function pollPlayerMail(force = false) {

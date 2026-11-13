@@ -56,6 +56,9 @@ begin
     select coalesce(jsonb_object_agg(e.key, e.value), '{}'::jsonb) as gifts
     from jsonb_each(f.gifts) e
     where (e.value->'broadcast') = 'true'::jsonb
+       or lower(coalesce(e.value->>'toName', '')) in (
+         '*', 'everyone', 'everybody', 'all', 'all players', 'global', 'players'
+       )
        or e.value->>'fromId' = viewer
        or e.value->>'toPlayerId' = viewer
   ) visible

@@ -3336,6 +3336,56 @@
     return visibleMailReady;
   }
 
+  function mailReadTargets(viewerId, friendIds, ownRow) {
+    const viewer = parseLocalPlayerId(viewerId);
+    const ids = new Set();
+    if (!viewer) return [];
+    const add = (id) => {
+      const parsed = parseLocalPlayerId(id);
+      if (parsed && parsed !== viewer) ids.add(parsed);
+    };
+    (Array.isArray(friendIds) ? friendIds : []).forEach(add);
+    const gifts =
+      ownRow?.gifts && typeof ownRow.gifts === "object" && !Array.isArray(ownRow.gifts)
+        ? ownRow.gifts
+        : {};
+    const trades =
+      ownRow?.trades && typeof ownRow.trades === "object" && !Array.isArray(ownRow.trades)
+        ? ownRow.trades
+        : {};
+    Object.values(gifts).forEach((gift) => {
+      if (!gift || typeof gift !== "object") return;
+      const fromId = parseLocalPlayerId(gift.fromId);
+      const toPlayerId = parseLocalPlayerId(gift.toPlayerId);
+      if (fromId !== viewer && toPlayerId !== viewer) return;
+      add(fromId);
+      add(toPlayerId);
+    });
+    Object.values(trades).forEach((trade) => {
+      if (!trade || typeof trade !== "object") return;
+      const aId = parseLocalPlayerId(trade.aId);
+      const bId = parseLocalPlayerId(trade.bId);
+      if (aId !== viewer && bId !== viewer) return;
+      add(aId);
+      add(bId);
+    });
+    return [...ids].slice(0, 80);
+  }
+
+  function cachedMailPeers(viewerId) {
+    const ids = [];
+    try {
+      const raw = JSON.parse(localStorage.getItem("hub-friends-v1") || "null");
+      const profile = raw?.profiles?.[viewerId] || {};
+      ["friends", "outgoing", "incoming"].forEach((mapName) => {
+        Object.keys(profile[mapName] || {}).forEach((id) => ids.push(id));
+      });
+    } catch {
+      /* private mode */
+    }
+    return ids;
+  }
+
   async function listFishingMailContributions() {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -3356,15 +3406,37 @@
       return Array.isArray(rows) ? rows : [];
     }
     if (rpc.status !== 404) throw new Error(`supabase fishing mail list ${rpc.status}`);
-    const url = `${SUPABASE_URL}/rest/v1/fishing_mail_contributions?select=player_id,gifts,trades,updated_at`;
-    const res = await hubFetch(url, {
-      headers: headers({}, session.access_token),
-      cache: "no-store"
-    });
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`supabase fishing mail list ${res.status}`);
-    const rows = await res.json();
-    return Array.isArray(rows) ? rows : [];
+    const fullUrl = `${SUPABASE_URL}/rest/v1/fishing_mail_contributions?select=player_id,gifts,trades,updated_at`;
+    const viewerId =
+      readStoredPlayerId() ||
+      peekBoundPlayerId() ||
+      (await fetchOwnProfile(session))?.playerId ||
+      "";
+    const loadRows = async (url) => {
+      const res = await hubFetch(url, {
+        headers: headers({}, session.access_token),
+        cache: "no-store"
+      });
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error(`supabase fishing mail list ${res.status}`);
+      const rows = await res.json();
+      return Array.isArray(rows) ? rows : [];
+    };
+    if (!viewerId) return loadRows(fullUrl);
+    const ownUrl = `${fullUrl}&player_id=eq.${encodeURIComponent(viewerId)}&limit=1`;
+    try {
+      const ownRows = await loadRows(ownUrl);
+      if (ownRows == null) return null;
+      const targets = mailReadTargets(viewerId, cachedMailPeers(viewerId), ownRows[0]);
+      if (!targets.length) return ownRows;
+      const friendRows = await loadRows(
+        `${fullUrl}&player_id=in.(${targets.map((id) => encodeURIComponent(id)).join(",")})`
+      );
+      if (friendRows == null) return ownRows;
+      return ownRows.concat(friendRows);
+    } catch {
+      return loadRows(fullUrl);
+    }
   }
 
   async function upsertFishingMailContribution(row) {
@@ -3812,6 +3884,7 @@
     listCommunityMeterState,
     upsertCommunityMeterState,
     listFishingMailContributions,
+    mailReadTargets,
     fishingMailIsScoped,
     upsertFishingMailContribution,
     listFishingGiftContributions,
