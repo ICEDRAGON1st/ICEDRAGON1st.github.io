@@ -1,4 +1,7 @@
 {
+  "20261015fp": [
+    "A missed friends or match load no longer replaces that list with an empty one."
+  ],
   "20261015fo": [
     "A missed load no longer replaces recent plays, scores, chat, or feedback with an empty list."
   ],

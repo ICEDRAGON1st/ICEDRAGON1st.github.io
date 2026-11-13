@@ -18,6 +18,9 @@ test("friend edges live in a helper used by the shared friends board", () => {
   assert.match(ui, /identity\?\.persistOwnedSave/);
   assert.match(ui, /identity\?\.readOwnedSave/);
   assert.match(ui, /persistFriendEdgeContribution/);
+  const syncSlice = ui.slice(ui.indexOf("async function sync"), ui.indexOf("async function findPlayerByName"));
+  assert.match(syncSlice, /emptyEdges/);
+  assert.match(syncSlice, /if \(emptyEdges\) return cache/);
   assert.match(ui, /fetchFriendsTableRemote/);
   assert.doesNotMatch(
     ui.slice(

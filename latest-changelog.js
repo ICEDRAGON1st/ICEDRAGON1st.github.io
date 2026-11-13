@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015fo",
+  "build": "20261015fp",
   "notes": [
-    "A missed load no longer replaces recent plays, scores, chat, or feedback with an empty list."
+    "A missed friends or match load no longer replaces that list with an empty one."
   ]
 };

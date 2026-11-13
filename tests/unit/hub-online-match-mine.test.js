@@ -15,6 +15,8 @@ test("owned match rooms live in a helper used by the shared room board", () => {
   const c4 = fs.readFileSync(path.join(ROOT, "connect-four/index.html"), "utf8");
   assert.match(ui, /window\.HubOnlineMatchMine/);
   assert.match(ui, /persistMyRooms/);
+  assert.match(ui, /!Object\.keys\(snapshot\?\.rooms \|\| \{\}\)\.length && !\(opts && opts\.allowEmpty\)/);
+  assert.match(ui, /persistMyRooms\(\{ allowEmpty: true \}\)/);
   assert.match(ui, /pullMyRooms/);
   assert.match(ui, /identity\?\.persistOwnedSave/);
   assert.match(ui, /identity\?\.readOwnedSave/);

@@ -85,6 +85,7 @@ test("owned call rooms dual-write without copying others or shrinking the shared
   );
   assert.match(ui, /canPostSharedCalls/);
   assert.match(ui, /if \(!canPost\)/);
+  assert.match(ui, /if \(Object\.keys\(cache\.rooms\)\.length\) persistCallsMine\(rooms\)/);
   assert.equal(signal.SAVE_KEY, "calls-mine");
   assert.equal(signal.canPostSharedCalls(null), false);
   assert.equal(signal.canPostSharedCalls({ rooms: {} }), true);

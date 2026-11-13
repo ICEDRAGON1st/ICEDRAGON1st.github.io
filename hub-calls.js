@@ -441,7 +441,7 @@
       } catch {}
       if (!canPost) {
         cache.rooms = pruneRooms(rooms);
-        persistCallsMine(rooms);
+        if (Object.keys(cache.rooms).length) persistCallsMine(rooms);
         return false;
       }
       const ok = await postDoc(rooms);

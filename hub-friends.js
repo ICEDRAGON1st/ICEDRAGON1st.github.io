@@ -349,6 +349,15 @@
         merged.profiles = ensureProfile(merged.profiles, me, name);
       }
       saveLocal(merged);
+      const helper = edgesApi();
+      const mine = helper?.collectMine ? helper.collectMine(merged, me) : null;
+      const emptyEdges =
+        !mine ||
+        ((helper.isEmptyProfile ? helper.isEmptyProfile(mine) : true) &&
+          !Object.keys(mine.invites || {}).length);
+      // A missed load must not replace this player's friends with an empty list.
+      // Removing the last friend still publishes through mutate().
+      if (emptyEdges) return cache;
       try {
         await pushRemote(merged);
       } catch {}

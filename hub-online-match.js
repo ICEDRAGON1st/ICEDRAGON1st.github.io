@@ -215,17 +215,19 @@
     return window.HubOnlineMatchMine || null;
   }
 
-  async function persistMyRooms() {
+  async function persistMyRooms(opts) {
     const helper = mineApi();
     const api = sb();
     const me = getPlayerId();
     const identity = window.HubIdentity;
     if (!helper || !me) return;
+    const snapshot = helper.collectMine(cache, me);
+    if (!Object.keys(snapshot?.rooms || {}).length && !(opts && opts.allowEmpty)) return;
     try {
       if (identity?.persistOwnedSave) {
-        await identity.persistOwnedSave(api, helper.SAVE_KEY, helper.collectMine(cache, me));
+        await identity.persistOwnedSave(api, helper.SAVE_KEY, snapshot);
       } else if (api?.upsertSave) {
-        await api.upsertSave(helper.SAVE_KEY, helper.collectMine(cache, me), 1);
+        await api.upsertSave(helper.SAVE_KEY, snapshot, 1);
       }
     } catch (err) {
       console.warn("[HubOnlineMatch] player_saves match write failed", err);
@@ -274,7 +276,7 @@
         try {
           await pushRemote(next);
         } catch {
-          await persistMyRooms();
+          await persistMyRooms({ allowEmpty: true });
           // Keep local optimistic state; retry merge next loop / poll.
           return next;
         }
@@ -289,16 +291,16 @@
             last = merged;
             continue;
           }
-          await persistMyRooms();
+          await persistMyRooms({ allowEmpty: true });
           emit();
           return cache;
         } catch {
-          await persistMyRooms();
+          await persistMyRooms({ allowEmpty: true });
           emit();
           return cache;
         }
       }
-      await persistMyRooms();
+      await persistMyRooms({ allowEmpty: true });
       emit();
       return last || cache;
     };
