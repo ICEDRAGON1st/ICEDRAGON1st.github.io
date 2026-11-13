@@ -331,6 +331,13 @@ test("player code claims use auth-owned rows instead of rewriting the shared cod
   );
   assert.match(lockList, /return null/);
   assert.doesNotMatch(lockList, /name_reservation_locks\?select=/);
+  const byPlayer = src.slice(
+    src.indexOf("async function getPlayerCodeClaimByPlayerId"),
+    src.indexOf("async function upsertPlayerCodeClaim")
+  );
+  assert.match(byPlayer, /select=player_id,user_id,display_name,claimed_at/);
+  assert.match(byPlayer, /row\.user_id === sessionUserId\(session\)/);
+  assert.match(byPlayer, /select=player_id,code,display_name,claimed_at/);
   assert.match(src, /async function upsertPlayerCodeClaim/);
   assert.match(src, /function subscribePlayerCodeClaims/);
   assert.match(src, /player_code_claims/);

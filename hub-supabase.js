@@ -1249,17 +1249,34 @@
       err.hubNetBlocked = true;
       throw err;
     }
-    const url =
-      `${SUPABASE_URL}/rest/v1/player_code_claims?player_id=eq.${encodeURIComponent(id)}` +
-      `&select=player_id,code,display_name,claimed_at&limit=1`;
-    const res = await hubFetch(url, {
-      headers: headers({}, session.access_token),
-      cache: "no-store"
-    });
+    const base =
+      `${SUPABASE_URL}/rest/v1/player_code_claims?player_id=eq.${encodeURIComponent(id)}`;
+    const res = await hubFetch(
+      `${base}&select=player_id,user_id,display_name,claimed_at&limit=1`,
+      {
+        headers: headers({}, session.access_token),
+        cache: "no-store"
+      }
+    );
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`supabase player code get ${res.status}`);
     const rows = await res.json();
-    return Array.isArray(rows) && rows[0] ? rows[0] : null;
+    const row = Array.isArray(rows) && rows[0] ? rows[0] : null;
+    if (!row) return null;
+    const mine = sessionUserId(session) && row.user_id === sessionUserId(session);
+    delete row.user_id;
+    if (!mine) return row;
+    const coded = await hubFetch(
+      `${base}&select=player_id,code,display_name,claimed_at&limit=1`,
+      {
+        headers: headers({}, session.access_token),
+        cache: "no-store"
+      }
+    );
+    if (coded.status === 404) return row;
+    if (!coded.ok) throw new Error(`supabase player code get ${coded.status}`);
+    const codedRows = await coded.json();
+    return Array.isArray(codedRows) && codedRows[0] ? codedRows[0] : row;
   }
 
   async function upsertPlayerCodeClaim(row) {

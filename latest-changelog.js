@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015gf",
+  "build": "20261015gg",
   "notes": [
-    "Nicknames stay public. Login codes stay on your own name. The owner account still sees every code, and the account lookup can do the same once it is installed."
+    "A player id lookup no longer returns someone else's login code. Your own code still loads."
   ]
 };

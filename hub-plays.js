@@ -1623,8 +1623,9 @@
       const names = Object.keys(namesCache || {}).length ? namesCache : await fetchNamesRemote();
       const claim = names?.[name];
       if (!claim?.playerId) return res;
-      let code = normalizePlayerCode(claim.playerCode || "");
-      if (code.length !== 8) {
+      const ownsClaim = claim.playerId === getPlayerId();
+      let code = ownsClaim ? normalizePlayerCode(claim.playerCode || "") : "";
+      if (ownsClaim && code.length !== 8) {
         try {
           const row = await sb()?.getPlayerCodeClaimByPlayerId?.(claim.playerId);
           const found = normalizePlayerCode(row?.code || "");
