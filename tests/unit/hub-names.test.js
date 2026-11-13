@@ -214,6 +214,19 @@ test("owned nickname claims dual-write without stealing another player's name", 
   assert.equal(fromRows.ada.legend, true);
   assert.equal(fromRows.skip, undefined);
 
+  const hidden = names.visibleNameMap(
+    {
+      ada: { playerId: "p-ada", name: "Ada", playerCode: "ABCD2345", activeTitle: "legend" },
+      bea: { playerId: "p-bea", name: "Bea", playerCode: "ZZZZ2345", activeTitle: "og" }
+    },
+    "p-ada"
+  );
+  assert.equal(hidden.ada.playerCode, "ABCD2345");
+  assert.equal(hidden.ada.activeTitle, "legend");
+  assert.equal(hidden.bea.playerCode, undefined);
+  assert.equal(hidden.bea.name, "Bea");
+  assert.equal(hidden.bea.activeTitle, "og");
+
   const liveRow = names.applyChange(
     { names: { ada: { playerId: "p-ada", name: "Ada", claimedAt: 10 } } },
     {
@@ -267,6 +280,12 @@ test("nickname live rows subscribe without rewriting the shared name registry", 
     "utf8"
   );
   assert.match(plays, /ensureNamesRealtime/);
+  assert.match(plays, /visibleNameMap/);
+  assert.match(plays, /nicknamesAreScoped/);
+  assert.match(
+    plays.slice(plays.indexOf("function ensureNamesRealtime"), plays.indexOf("function applyAllTimeRealtime")),
+    /nicknamesAreScoped/
+  );
   assert.match(plays, /applyNamesRealtime/);
   assert.match(plays, /playsLiveJoined\("nickname_claims"\)/);
   assert.match(

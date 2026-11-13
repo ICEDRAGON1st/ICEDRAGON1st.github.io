@@ -343,6 +343,24 @@ test("nickname claims use auth-owned rows instead of rewriting the shared name r
   assert.match(src, /async function upsertNicknameClaim/);
   assert.match(src, /function subscribeNicknameClaims/);
   assert.match(src, /nickname_claims/);
+  const list = src.slice(
+    src.indexOf("async function listNicknameClaims"),
+    src.indexOf("async function upsertNicknameClaim")
+  );
+  assert.match(list, /rpc\/list_visible_nickname_claims/);
+  assert.match(list, /if \(rpc\.status !== 404\)/);
+  assert.match(list, /visibleNicknamesReady = true/);
+  assert.match(list, /nickname_claims\?select=player_id,name_key,claim/);
+  const sql = fs.readFileSync(
+    path.join(__dirname, "../../supabase/migrations/202610160061_list_visible_nickname_claims.sql"),
+    "utf8"
+  );
+  assert.match(sql, /function public\.list_visible_nickname_claims/);
+  assert.match(sql, /security definer/);
+  assert.match(sql, /ice_dragon/);
+  assert.match(sql, /playerCode/);
+  assert.match(sql, /grant execute on function public\.list_visible_nickname_claims\(\) to authenticated/);
+  assert.doesNotMatch(sql, /drop policy/i);
 });
 
 test("name reservation locks use auth-owned rows instead of rewriting the shared lock document", () => {

@@ -327,8 +327,9 @@
   function applyNamesRealtime(change) {
     if (!namesApi.applyChange) return;
     const next = namesApi.applyChange({ names: namesCache }, change, nicknameRows);
-    nicknameRows = Array.isArray(next.rows) ? next.rows : nicknameRows;
-    namesCache = next.names && typeof next.names === "object" ? next.names : namesCache;
+    nicknameRows = shieldNameRows(Array.isArray(next.rows) ? next.rows : nicknameRows);
+    const names = next.names && typeof next.names === "object" ? next.names : namesCache;
+    namesCache = shieldNames(names);
     try {
       window.dispatchEvent(new CustomEvent("hub-plays-profile"));
     } catch {}
@@ -344,6 +345,10 @@
   function ensureNamesRealtime() {
     const api = sb();
     if (!api?.subscribeNicknameClaims) return;
+    if (api.nicknamesAreScoped?.()) {
+      stopNamesRealtime();
+      return;
+    }
     if (namesRealtimeUnsub) return;
     if (playsCloudQuiet()) return;
     namesRealtimeUnsub = api.subscribeNicknameClaims((change) => {
@@ -2270,24 +2275,45 @@
     try {
       const rows = await namesApi.fetchNicknameClaimRows(sb());
       if (!rows) return null;
-      nicknameRows = Array.isArray(rows) ? rows : [];
-      return namesApi.rowsToNameMap(rows);
+      nicknameRows = shieldNameRows(Array.isArray(rows) ? rows : []);
+      if (sb()?.nicknamesAreScoped?.()) stopNamesRealtime();
+      return namesApi.rowsToNameMap(nicknameRows);
     } catch {
       return null;
     }
   }
 
+  function keepForeignNameCodes() {
+    return String(getName() || "").toLowerCase() === "ice_dragon";
+  }
+
+  function shieldNames(names) {
+    if (!names || keepForeignNameCodes() || !namesApi.visibleNameMap) return names;
+    const viewer = getPlayerId();
+    if (!viewer) return names;
+    return namesApi.visibleNameMap(names, viewer);
+  }
+
+  function shieldNameRows(rows) {
+    if (!Array.isArray(rows) || keepForeignNameCodes() || !namesApi.visibleNameRows) return rows;
+    const viewer = getPlayerId();
+    if (!viewer) return rows;
+    return namesApi.visibleNameRows(rows, viewer);
+  }
+
   async function fetchNamesRemote() {
     if (playsLiveJoined("nickname_claims")) {
-      return purgeNameRegistry(namesCache && typeof namesCache === "object" ? namesCache : {}).names;
+      return shieldNames(
+        purgeNameRegistry(namesCache && typeof namesCache === "object" ? namesCache : {}).names
+      );
     }
     const tableRemote = await fetchNamesTableRemote();
     if (tableRemote) {
       const current = namesCache && typeof namesCache === "object" ? namesCache : {};
-      return purgeNameRegistry(mergeNameMaps(current, tableRemote)).names;
+      return shieldNames(purgeNameRegistry(mergeNameMaps(current, tableRemote)).names);
     }
     if (namesCache && typeof namesCache === "object" && Object.keys(namesCache).length) {
-      return purgeNameRegistry(namesCache).names;
+      return shieldNames(purgeNameRegistry(namesCache).names);
     }
     throw new Error("names-unavailable");
   }
@@ -2315,7 +2341,8 @@
   }
 
   function mergeNameMaps(a, b) {
-    return namesApi.mergeNameMaps ? namesApi.mergeNameMaps(a, b) : { ...(a || {}), ...(b || {}) };
+    const merged = namesApi.mergeNameMaps ? namesApi.mergeNameMaps(a, b) : { ...(a || {}), ...(b || {}) };
+    return shieldNames(merged);
   }
 
   function loadLocalProfileStyle() {
@@ -4215,6 +4242,15 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     presenceTimer = setInterval(() => {
       heartbeat().catch(() => {});
     }, HEARTBEAT_MS);
+    setInterval(() => {
+      if (document.hidden || playsCloudQuiet() || !sb()?.nicknamesAreScoped?.()) return;
+      stopNamesRealtime();
+      fetchNamesRemote()
+        .then((names) => {
+          if (names && typeof names === "object") namesCache = names;
+        })
+        .catch(() => {});
+    }, 15000);
     // Keep Time Online moving even when Leaderboards isn't open.
     setInterval(() => {
       tickOnlineTime(Date.now());

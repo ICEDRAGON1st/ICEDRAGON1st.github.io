@@ -192,6 +192,40 @@
     };
   }
 
+  function visibleNameMap(names, viewerId) {
+    const viewer = String(viewerId || "").trim();
+    const source = names && typeof names === "object" ? names : {};
+    if (!viewer) return source;
+    const out = {};
+    Object.entries(source).forEach(([key, claim]) => {
+      if (!claim || typeof claim !== "object") return;
+      if (String(claim.playerId || "") === viewer || !claim.playerCode) {
+        out[key] = claim;
+        return;
+      }
+      const copy = { ...claim };
+      delete copy.playerCode;
+      out[key] = copy;
+    });
+    return out;
+  }
+
+  function visibleNameRows(rows, viewerId) {
+    const viewer = String(viewerId || "").trim();
+    const list = Array.isArray(rows) ? rows : [];
+    if (!viewer) return list;
+    return list.map((row) => {
+      if (!row || typeof row !== "object") return row;
+      const owner = String(row.player_id || row.playerId || row.claim?.playerId || "");
+      if (owner === viewer || !row.claim || typeof row.claim !== "object" || !row.claim.playerCode) {
+        return row;
+      }
+      const claim = { ...row.claim };
+      delete claim.playerCode;
+      return { ...row, claim };
+    });
+  }
+
   function rowsToNameMap(rows) {
     const out = {};
     (Array.isArray(rows) ? rows : []).forEach((row) => {
@@ -455,6 +489,8 @@
     collectMine,
     applyMine,
     rowsToNameMap,
+    visibleNameMap,
+    visibleNameRows,
     applyChange,
     fetchNicknameClaimRows,
     persistNicknameClaim,

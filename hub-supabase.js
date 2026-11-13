@@ -1309,6 +1309,12 @@
     }
   }
 
+  let visibleNicknamesReady = false;
+
+  function nicknamesAreScoped() {
+    return visibleNicknamesReady;
+  }
+
   async function listNicknameClaims() {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -1317,6 +1323,18 @@
     }
     const session = await ensureSession();
     if (!session?.access_token) return null;
+    const rpc = await hubFetch(`${SUPABASE_URL}/rest/v1/rpc/list_visible_nickname_claims`, {
+      method: "POST",
+      headers: headers({}, session.access_token),
+      cache: "no-store",
+      body: JSON.stringify({})
+    });
+    if (rpc.ok) {
+      visibleNicknamesReady = true;
+      const rows = await rpc.json();
+      return Array.isArray(rows) ? rows : [];
+    }
+    if (rpc.status !== 404) throw new Error(`supabase nickname list ${rpc.status}`);
     const url = `${SUPABASE_URL}/rest/v1/nickname_claims?select=player_id,name_key,claim`;
     const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
@@ -3278,6 +3296,7 @@
     getPlayerCodeClaimByPlayerId,
     upsertPlayerCodeClaim,
     listNicknameClaims,
+    nicknamesAreScoped,
     upsertNicknameClaim,
     listNameReservationLocks,
     getNameReservationLock,
