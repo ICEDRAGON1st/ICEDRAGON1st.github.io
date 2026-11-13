@@ -346,6 +346,8 @@ test("play-count remotes skip leftover shared boards", async () => {
     plays.indexOf("function getPopularityCounts")
   );
   assert.match(syncSlice, /popularityApi\.maxCounts/);
+  assert.match(syncSlice, /popularityFloorHealed/);
+  assert.match(syncSlice, /popularityApi\.maxCounts\(pagesGames, tableCounts\)/);
   assert.doesNotMatch(syncSlice, /combinePopularity\(merged, tableCounts\)/);
   assert.doesNotMatch(syncSlice, /combinePopularity\(popularityCache, tableCounts\)/);
   const calls = [];

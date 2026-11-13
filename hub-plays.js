@@ -138,6 +138,7 @@
   let popularityCache = {};
   let popularityPending = {};
   let popularityBusy = false;
+  let popularityFloorHealed = false;
   let popularityRows = [];
   let playLogRows = [];
   let popularityRealtimeUnsub = null;
@@ -448,13 +449,13 @@
     popularityBusy = true;
     try {
       if (!force && playsLiveJoined("popularity_contributions")) {
+        let localResetAt = 0;
+        try {
+          localResetAt = Number(localStorage.getItem("hub-game-popularity-reset-at") || 0);
+        } catch {}
         const pending = { ...(popularityPending || {}) };
         const hasPending = Object.values(pending).some((v) => (Number(v) || 0) > 0);
         if (hasPending) {
-          let localResetAt = 0;
-          try {
-            localResetAt = Number(localStorage.getItem("hub-game-popularity-reset-at") || 0);
-          } catch {}
           const tableWrote =
             popularityApi.persistPopularityContribution && hasRequiredName()
               ? await popularityApi.persistPopularityContribution(
@@ -466,6 +467,19 @@
                 )
               : false;
           if (tableWrote) popularityPending = {};
+        }
+        if (!popularityFloorHealed) {
+          const seed = await fetchPagesPopularitySeed();
+          const pagesGames =
+            seed && seed.games && Object.keys(seed.games).length ? seed.games : null;
+          const resetAt = Number(seed?.resetAt) || localResetAt || 0;
+          const tableCounts = await fetchPopularityTableRemote(resetAt);
+          if (tableCounts && pagesGames && popularityApi.maxCounts) {
+            // Drop a cached total that added the milestone on top of signed-in rows.
+            popularityCache = popularityApi.maxCounts(pagesGames, tableCounts);
+            savePopularityLocal();
+            popularityFloorHealed = true;
+          }
         }
         return getEffectivePopularity();
       }
@@ -513,6 +527,7 @@
             ? popularityApi.maxCounts(popularityCache, tableCounts)
             : { ...popularityCache, ...tableCounts };
         }
+        popularityFloorHealed = true;
         savePopularityLocal();
         return getEffectivePopularity();
       }
@@ -535,6 +550,7 @@
       }
 
       popularityCache = merged;
+      if (tableCounts && fetched) popularityFloorHealed = true;
       if (tableWrote) {
         popularityPending = {};
       }

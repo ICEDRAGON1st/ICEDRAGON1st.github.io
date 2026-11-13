@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015fj",
+  "build": "20261015fk",
   "notes": [
-    "Most played stays on the milestone until signed-in play counts pass it."
+    "A doubled most-played total drops back to the milestone once signed-in rows are live."
   ]
 };
