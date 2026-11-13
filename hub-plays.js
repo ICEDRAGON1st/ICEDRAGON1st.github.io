@@ -472,13 +472,15 @@
           const seed = await fetchPagesPopularitySeed();
           const pagesGames =
             seed && seed.games && Object.keys(seed.games).length ? seed.games : null;
-          const resetAt = Number(seed?.resetAt) || localResetAt || 0;
-          const tableCounts = await fetchPopularityTableRemote(resetAt);
-          if (tableCounts && pagesGames && popularityApi.maxCounts) {
-            // Drop a cached total that added the milestone on top of signed-in rows.
-            popularityCache = popularityApi.maxCounts(pagesGames, tableCounts);
-            savePopularityLocal();
-            popularityFloorHealed = true;
+          const remoteResetAt = Number(seed?.resetAt) || 0;
+          if (!(remoteResetAt > localResetAt) && pagesGames && popularityApi.maxCounts) {
+            const tableCounts = await fetchPopularityTableRemote(localResetAt || 0);
+            if (tableCounts) {
+              // Drop a cached total that added the milestone on top of signed-in rows.
+              popularityCache = popularityApi.maxCounts(pagesGames, tableCounts);
+              savePopularityLocal();
+              popularityFloorHealed = true;
+            }
           }
         }
         return getEffectivePopularity();

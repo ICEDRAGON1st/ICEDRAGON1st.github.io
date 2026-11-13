@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015fk",
+  "build": "20261015fl",
   "notes": [
-    "A doubled most-played total drops back to the milestone once signed-in rows are live."
+    "Most played drops a doubled total without hiding this reset's signed-in rows."
   ]
 };

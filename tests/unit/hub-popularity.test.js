@@ -348,6 +348,8 @@ test("play-count remotes skip leftover shared boards", async () => {
   assert.match(syncSlice, /popularityApi\.maxCounts/);
   assert.match(syncSlice, /popularityFloorHealed/);
   assert.match(syncSlice, /popularityApi\.maxCounts\(pagesGames, tableCounts\)/);
+  assert.match(syncSlice, /fetchPopularityTableRemote\(localResetAt \|\| 0\)/);
+  assert.match(syncSlice, /remoteResetAt > localResetAt/);
   assert.doesNotMatch(syncSlice, /combinePopularity\(merged, tableCounts\)/);
   assert.doesNotMatch(syncSlice, /combinePopularity\(popularityCache, tableCounts\)/);
   const calls = [];
