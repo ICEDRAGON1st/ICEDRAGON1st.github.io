@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015fm",
+  "build": "20261015fn",
   "notes": [
-    "A newer most-played milestone shows while you're signed in, without writing an empty list over saved counts."
+    "A newer most-played milestone keeps saved counts when this device has no new plays, even before live rows connect."
   ]
 };

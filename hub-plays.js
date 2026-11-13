@@ -544,34 +544,40 @@
         localResetAt = Number(localStorage.getItem("hub-game-popularity-reset-at") || 0);
       } catch {}
 
+      const epochPending = { ...(popularityPending || {}) };
+      const hasUnsentEpoch = Object.values(epochPending).some((v) => (Number(v) || 0) > 0);
       const epochReset = remoteResetAt > localResetAt;
       const resetAt = epochReset ? remoteResetAt : remoteResetAt || localResetAt || 0;
-      const tableWrote =
-        popularityApi.persistPopularityContribution && hasRequiredName()
-          ? await popularityApi.persistPopularityContribution(
-              sb(),
-              getPlayerId(),
-              popularityPending,
-              resetAt,
-              epochReset
-            )
-          : false;
+      let tableWrote = false;
+      if (
+        popularityApi.persistPopularityContribution &&
+        hasRequiredName() &&
+        (!epochReset || hasUnsentEpoch)
+      ) {
+        tableWrote = await popularityApi.persistPopularityContribution(
+          sb(),
+          getPlayerId(),
+          popularityPending,
+          resetAt,
+          epochReset
+        );
+      }
       const tableCounts = await fetchPopularityTableRemote(resetAt);
 
-      // Server rebalance / wipe of inflated counts — replace local cache instead of merging up.
+      // A newer published reset replaces the shown total. Skip the write when
+      // this device has no new plays — an empty list would erase the saved row.
       if (epochReset) {
-        popularityCache = { ...remote };
-        popularityPending = {};
-        try {
-          localStorage.setItem("hub-game-popularity-reset-at", String(remoteResetAt));
-        } catch {}
         if (tableCounts) {
           popularityCache = popularityApi.maxCounts
-            ? popularityApi.maxCounts(popularityCache, tableCounts)
-            : { ...popularityCache, ...tableCounts };
+            ? popularityApi.maxCounts(remote, tableCounts)
+            : { ...remote, ...tableCounts };
+          try {
+            localStorage.setItem("hub-game-popularity-reset-at", String(remoteResetAt));
+          } catch {}
+          if (tableWrote || !hasUnsentEpoch) popularityPending = {};
+          popularityFloorHealed = true;
+          savePopularityLocal();
         }
-        popularityFloorHealed = true;
-        savePopularityLocal();
         return getEffectivePopularity();
       }
 

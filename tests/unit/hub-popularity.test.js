@@ -356,6 +356,8 @@ test("play-count remotes skip leftover shared boards", async () => {
     syncSlice,
     /hasEpochPending &&[\s\S]*persistPopularityContribution\([\s\S]*remoteResetAt,\s*true/
   );
+  assert.match(syncSlice, /hasUnsentEpoch/);
+  assert.match(syncSlice, /\(!epochReset \|\| hasUnsentEpoch\)/);
   assert.doesNotMatch(syncSlice, /combinePopularity\(merged, tableCounts\)/);
   assert.doesNotMatch(syncSlice, /combinePopularity\(popularityCache, tableCounts\)/);
   const calls = [];
@@ -382,6 +384,15 @@ test("play-count remotes skip leftover shared boards", async () => {
   );
   assert.equal((await popularity.fetchPopularityRows(api, 0)).length, 1);
   assert.equal(await popularity.persistPopularityContribution(api, "p-ada", { snake: 1 }, 0, false), true);
+  const popCalls = () => calls.filter((row) => row[0] === "pop").length;
+  const beforeEmpty = popCalls();
+  assert.equal(await popularity.persistPopularityContribution(api, "p-ada", {}, 9, true), false);
+  assert.equal(await popularity.persistPopularityContribution(api, "p-ada", { snake: 0 }, 9, true), false);
+  assert.equal(popCalls(), beforeEmpty);
+  assert.equal(await popularity.persistPopularityContribution(api, "p-ada", { snake: 3 }, 9, true), true);
+  const replaced = calls.filter((row) => row[0] === "pop").pop()[1];
+  assert.deepEqual(replaced.games, { snake: 3 });
+  assert.equal(replaced.resetAt, 9);
   assert.equal(calls.some((row) => row[0] === "plays"), true);
   assert.equal(calls.some((row) => row[0] === "pop"), true);
 });

@@ -297,10 +297,19 @@
     }
   }
 
+  function contributionHasPlays(games) {
+    return Object.values(games && typeof games === "object" ? games : {}).some(
+      (value) => (Number(value) || 0) > 0
+    );
+  }
+
   async function persistPopularityContribution(api, playerId, pending, resetAt, replace) {
     const me = String(playerId || "").trim();
     if (!api?.upsertPopularityContribution || !me) return false;
     const pendingGames = pending && typeof pending === "object" ? { ...pending } : {};
+    // Replacing with an empty list would erase the saved row. A new reset waits
+    // for a real play instead of writing that empty list.
+    if (replace && !contributionHasPlays(pendingGames)) return false;
     try {
       let mine = {};
       if (!replace) {
