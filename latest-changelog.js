@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015fy",
+  "build": "20261015fz",
   "notes": [
-    "Chat asks the account server for the threads you are in, and still loads if that lookup is not installed yet."
+    "Other players' calls and fishing mail stay off this device. Broadcast fish gifts still show."
   ]
 };

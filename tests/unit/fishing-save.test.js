@@ -496,6 +496,31 @@ test("player mail overlay merges owned gifts and trades without copying others o
   assert.equal(overlaid.trades["tr-1"].status, "done");
   assert.equal(overlaid.trades["tr-1"].appliedBy["p-beaxxxxx"], now + 8);
 
+  const scopedMail = save.overlayPlayerMail(
+    hub,
+    rows.concat([
+      {
+        player_id: "p-beaxxxxx",
+        gifts: {
+          "pg-secret": {
+            id: "pg-secret",
+            fromId: "p-beaxxxxx",
+            toPlayerId: "p-calxxxxx",
+            items: [{ kind: "fish", fishId: "eel" }],
+            at: now
+          }
+        },
+        trades: {}
+      }
+    ]),
+    now,
+    "p-adaxxxxx"
+  );
+  assert.equal(scopedMail.gifts["pg-1"].id, "pg-1");
+  assert.equal(scopedMail.gifts["pg-hub"].id, "pg-hub");
+  assert.equal(scopedMail.gifts["pg-secret"], undefined);
+  assert.equal(scopedMail.trades["tr-1"].id, "tr-1");
+
   const mine = save.collectPlayerMailMine(overlaid.gifts, overlaid.trades, "p-adaxxxxx");
   assert.equal(mine.gifts["pg-1"].id, "pg-1");
   assert.equal(mine.gifts["pg-hub"].id, "pg-hub");
@@ -547,6 +572,10 @@ test("fishing mail live rows subscribe without rewriting the shared board", () =
     "utf8"
   );
   assert.match(mail, /ensureMailRealtime/);
+  assert.match(mail, /overlayPlayerMail\(current, tableRows, undefined, playerId\(\)\)/);
+  assert.match(mail, /applyPlayerMailChange\(mailCache, change, undefined, playerId\(\)\)/);
+  assert.match(script, /overlayPlayerMail\(current, tableRows, undefined, mailMyId\(\)\)/);
+  assert.match(script, /applyPlayerMailChange\(playerMailCache, change, undefined, mailMyId\(\)\)/);
   assert.match(mail, /isRealtimeJoined\?\.\("fishing_mail_contributions"\)/);
   assert.match(mail, /function mailLiveJoined/);
   assert.match(script, /ensurePlayerMailRealtime/);
@@ -690,6 +719,10 @@ test("admin fish-gift overlay merges broadcast claims without un-claiming someon
   assert.equal(overlaid.gifts["g-bea"].claimed, true);
   assert.equal(overlaid.gifts["g-skip"], undefined);
 
+  const scopedGifts = save.overlayAdminFishGifts(hub, rows, now, "p-adaxxxxx");
+  assert.equal(scopedGifts.gifts["g-hub"].broadcast, true);
+  assert.equal(scopedGifts.gifts["g-bea"], undefined);
+
   const ada = save.collectAdminFishGiftsMine(overlaid.gifts, "p-adaxxxxx");
   assert.equal(ada.gifts["g-hub"].id, "g-hub");
   assert.equal(ada.gifts["g-bea"], undefined);
@@ -742,6 +775,10 @@ test("fishing admin gift live rows subscribe without rewriting the shared board"
     "utf8"
   );
   assert.match(gifts, /ensureGiftsRealtime/);
+  assert.match(gifts, /overlayAdminFishGifts\(current, tableRows, undefined, playerId\(\)\)/);
+  assert.match(gifts, /applyAdminFishGiftsChange\(giftCache, change, undefined, playerId\(\)\)/);
+  assert.match(script, /overlayAdminFishGifts\(current, tableRows, undefined, mailMyId\(\)\)/);
+  assert.match(script, /applyAdminFishGiftsChange\(fishGiftCache, change, undefined, mailMyId\(\)\)/);
   assert.match(gifts, /function giftsLiveJoined/);
   assert.match(gifts, /isRealtimeJoined\?\.\("fishing_gift_contributions"\)/);
   assert.match(script, /ensureFishGiftsRealtime/);

@@ -273,7 +273,7 @@
           token: TOKEN,
           gifts: giftCache.gifts && typeof giftCache.gifts === "object" ? giftCache.gifts : {}
         };
-        return helper.overlayAdminFishGifts(current, tableRows);
+        return helper.overlayAdminFishGifts(current, tableRows, undefined, playerId());
       }
       if (giftCache.gifts && Object.keys(giftCache.gifts).length) {
         return { token: TOKEN, gifts: giftCache.gifts };
@@ -491,7 +491,7 @@
   function applyGiftsRealtime(change) {
     const helper = giftSaveApi();
     if (!helper?.applyAdminFishGiftsChange) return;
-    const next = helper.applyAdminFishGiftsChange(giftCache, change);
+    const next = helper.applyAdminFishGiftsChange(giftCache, change, undefined, playerId());
     giftCache = {
       gifts: next?.gifts && typeof next.gifts === "object" ? next.gifts : giftCache.gifts
     };

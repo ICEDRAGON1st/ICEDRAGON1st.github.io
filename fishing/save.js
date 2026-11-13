@@ -676,23 +676,27 @@
     };
   }
 
-  function overlayPlayerMail(hub, rows, now = Date.now()) {
+  function overlayPlayerMail(hub, rows, now = Date.now(), viewerId) {
     let gifts = { ...((hub && hub.gifts && typeof hub.gifts === "object" ? hub.gifts : {}) || {}) };
     let trades = { ...((hub && hub.trades && typeof hub.trades === "object" ? hub.trades : {}) || {}) };
+    const viewer = String(viewerId || "").trim();
     (Array.isArray(rows) ? rows : []).forEach((row) => {
       const pid = String(row?.player_id || row?.playerId || "").trim();
       if (!pid) return;
       const owned = collectPlayerMailMine(row?.gifts, row?.trades, pid);
       Object.entries(owned.gifts || {}).forEach(([id, gift]) => {
+        if (viewer && !mailInvolvesPlayer(gift, viewer, "gift")) return;
         gifts[id] = mergeMailGift(gifts[id], gift);
       });
       Object.entries(owned.trades || {}).forEach(([id, trade]) => {
+        if (viewer && !mailInvolvesPlayer(trade, viewer, "trade")) return;
         trades[id] = mergeMailTrade(trades[id], trade);
       });
     });
     const nextGifts = {};
     Object.entries(gifts).forEach(([id, gift]) => {
       if (!gift) return;
+      if (viewer && !mailInvolvesPlayer(gift, viewer, "gift")) return;
       const at = Number(gift.at) || 0;
       if (gift.claimed && now - (Number(gift.claimedAt) || at) > MAIL_CLAIMED_TTL_MS) return;
       if (!gift.claimed && at && now - at > MAIL_GIFT_TTL_MS) return;
@@ -701,6 +705,7 @@
     const nextTrades = {};
     Object.entries(trades).forEach(([id, trade]) => {
       if (!trade) return;
+      if (viewer && !mailInvolvesPlayer(trade, viewer, "trade")) return;
       const at = Number(trade.updatedAt || trade.at) || 0;
       const done = trade.status === "done" || trade.status === "cancelled";
       if (done && at && now - at > MAIL_TRADE_DONE_TTL_MS) return;
@@ -724,7 +729,7 @@
     return payload;
   }
 
-  function applyPlayerMailChange(hub, change, now = Date.now()) {
+  function applyPlayerMailChange(hub, change, now = Date.now(), viewerId) {
     const data = unwrapMailChange(change);
     const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
     const current = {
@@ -732,10 +737,10 @@
       gifts: { ...((hub && hub.gifts && typeof hub.gifts === "object" ? hub.gifts : {}) || {}) },
       trades: { ...((hub && hub.trades && typeof hub.trades === "object" ? hub.trades : {}) || {}) }
     };
-    if (type === "DELETE") return current;
+    if (type === "DELETE") return overlayPlayerMail(current, [], now, viewerId);
     const record = data.record || data.new || {};
-    if (!record || typeof record !== "object") return current;
-    return overlayPlayerMail(current, [record], now);
+    if (!record || typeof record !== "object") return overlayPlayerMail(current, [], now, viewerId);
+    return overlayPlayerMail(current, [record], now, viewerId);
   }
 
   const ADMIN_GIFT_CAP = 40;
@@ -867,19 +872,27 @@
     return { playerId: me, gifts: capMailMap(mine, ADMIN_GIFT_CAP) };
   }
 
-  function overlayAdminFishGifts(hub, rows, now = Date.now()) {
+  function adminGiftVisibleTo(gift, viewerId) {
+    const viewer = String(viewerId || "").trim();
+    if (!viewer) return true;
+    if (gift && gift.broadcast) return true;
+    return adminGiftInvolvesPlayer(gift, viewer);
+  }
+
+  function overlayAdminFishGifts(hub, rows, now = Date.now(), viewerId) {
     let gifts = { ...((hub && hub.gifts && typeof hub.gifts === "object" ? hub.gifts : {}) || {}) };
     (Array.isArray(rows) ? rows : []).forEach((row) => {
       const pid = String(row?.player_id || row?.playerId || "").trim();
       if (!pid) return;
       const owned = collectAdminFishGiftsMine(row?.gifts, pid);
       Object.entries(owned.gifts || {}).forEach(([id, gift]) => {
+        if (!adminGiftVisibleTo(gift, viewerId)) return;
         gifts[id] = mergeAdminFishGift(gifts[id], gift);
       });
     });
     const next = {};
     Object.entries(gifts).forEach(([id, gift]) => {
-      if (!gift) return;
+      if (!gift || !adminGiftVisibleTo(gift, viewerId)) return;
       const at = Number(gift.at) || 0;
       if (gift.claimed && now - (Number(gift.claimedAt) || at) > MAIL_CLAIMED_TTL_MS) return;
       if (!gift.claimed && at && now - at > MAIL_GIFT_TTL_MS) return;
@@ -888,17 +901,17 @@
     return { token: hub?.token, gifts: next };
   }
 
-  function applyAdminFishGiftsChange(hub, change, now = Date.now()) {
+  function applyAdminFishGiftsChange(hub, change, now = Date.now(), viewerId) {
     const data = unwrapMailChange(change);
     const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
     const current = {
       token: hub?.token,
       gifts: { ...((hub && hub.gifts && typeof hub.gifts === "object" ? hub.gifts : {}) || {}) }
     };
-    if (type === "DELETE") return current;
+    if (type === "DELETE") return overlayAdminFishGifts(current, [], now, viewerId);
     const record = data.record || data.new || {};
-    if (!record || typeof record !== "object") return current;
-    return overlayAdminFishGifts(current, [record], now);
+    if (!record || typeof record !== "object") return overlayAdminFishGifts(current, [], now, viewerId);
+    return overlayAdminFishGifts(current, [record], now, viewerId);
   }
 
   function overlayCommunityCasts(hub, rows, weekKey) {

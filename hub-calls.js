@@ -265,7 +265,7 @@
     try {
       const rows = await api.listCallSignalContributions();
       if (!rows) return null;
-      return signal.rowsToRooms(rows);
+      return signal.rowsToRooms(rows, playerId());
     } catch {
       return null;
     }
@@ -1800,7 +1800,7 @@
 
   function applyCallsRealtime(change) {
     if (!signal.applyChange) return;
-    const next = signal.applyChange({ rooms: cache.rooms }, change);
+    const next = signal.applyChange({ rooms: cache.rooms }, change, playerId());
     const rooms =
       next?.rooms && typeof next.rooms === "object" && !Array.isArray(next.rooms)
         ? next.rooms

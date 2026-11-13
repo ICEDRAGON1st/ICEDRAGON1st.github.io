@@ -201,7 +201,17 @@
     return out;
   }
 
-  function rowsToRooms(rows) {
+  function roomsForViewer(rooms, viewerId) {
+    const viewer = String(viewerId || "").trim();
+    if (!viewer) return rooms && typeof rooms === "object" ? rooms : {};
+    const out = {};
+    Object.entries(rooms && typeof rooms === "object" ? rooms : {}).forEach(([id, room]) => {
+      if (roomIncludesPlayer(room, viewer)) out[id] = room;
+    });
+    return out;
+  }
+
+  function rowsToRooms(rows, viewerId) {
     let rooms = {};
     (Array.isArray(rows) ? rows : []).forEach((row) => {
       const playerId = String(row?.player_id || row?.playerId || "").trim();
@@ -214,7 +224,7 @@
       );
       rooms = mergeRooms(rooms, owned);
     });
-    return pruneRooms(rooms);
+    return pruneRooms(roomsForViewer(rooms, viewerId));
   }
 
   function unwrapChange(change) {
@@ -228,7 +238,7 @@
     return payload;
   }
 
-  function applyChange(hub, change) {
+  function applyChange(hub, change, viewerId) {
     const data = unwrapChange(change);
     const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
     const current =
@@ -238,10 +248,12 @@
           ? hub
           : {};
     const rooms = { ...current };
-    if (type === "DELETE") return { rooms };
+    if (type === "DELETE") return { rooms: pruneRooms(roomsForViewer(rooms, viewerId)) };
     const record = data.record || data.new || {};
-    if (!record || typeof record !== "object") return { rooms };
-    return { rooms: pruneRooms(mergeRooms(rooms, rowsToRooms([record]))) };
+    if (!record || typeof record !== "object") return { rooms: pruneRooms(roomsForViewer(rooms, viewerId)) };
+    return {
+      rooms: pruneRooms(roomsForViewer(mergeRooms(rooms, rowsToRooms([record], viewerId)), viewerId))
+    };
   }
 
   function collectMine(rooms, playerId) {

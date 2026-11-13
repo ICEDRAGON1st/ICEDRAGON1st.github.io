@@ -246,7 +246,7 @@
           gifts: mailCache.gifts && typeof mailCache.gifts === "object" ? mailCache.gifts : {},
           trades: mailCache.trades && typeof mailCache.trades === "object" ? mailCache.trades : {}
         };
-        return helper.overlayPlayerMail(current, tableRows);
+        return helper.overlayPlayerMail(current, tableRows, undefined, playerId());
       }
       if (
         mailCache &&
@@ -346,7 +346,7 @@
   function applyMailRealtime(change) {
     const helper = mailSaveApi();
     if (!helper?.applyPlayerMailChange) return;
-    const next = helper.applyPlayerMailChange(mailCache, change);
+    const next = helper.applyPlayerMailChange(mailCache, change, undefined, playerId());
     mailCache = {
       gifts: next?.gifts && typeof next.gifts === "object" ? next.gifts : mailCache.gifts,
       trades: next?.trades && typeof next.trades === "object" ? next.trades : mailCache.trades

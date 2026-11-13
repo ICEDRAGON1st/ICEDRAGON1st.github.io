@@ -6617,7 +6617,7 @@
           gifts:
             fishGiftCache.gifts && typeof fishGiftCache.gifts === "object" ? fishGiftCache.gifts : {}
         };
-        return fishingSaveApi.overlayAdminFishGifts(current, tableRows);
+        return fishingSaveApi.overlayAdminFishGifts(current, tableRows, undefined, mailMyId());
       }
       if (fishGiftCache.gifts && Object.keys(fishGiftCache.gifts).length) {
         return { token: FISH_GIFTS_TOKEN, gifts: fishGiftCache.gifts };
@@ -6863,7 +6863,7 @@
 
   function applyFishGiftsRealtime(change) {
     if (!fishingSaveApi.applyAdminFishGiftsChange) return;
-    const next = fishingSaveApi.applyAdminFishGiftsChange(fishGiftCache, change);
+    const next = fishingSaveApi.applyAdminFishGiftsChange(fishGiftCache, change, undefined, mailMyId());
     ingestFishGiftsDoc(next).catch(() => {});
   }
 
@@ -7205,7 +7205,7 @@
             ? playerMailCache.trades
             : {}
       };
-      return fishingSaveApi.overlayPlayerMail(current, tableRows);
+      return fishingSaveApi.overlayPlayerMail(current, tableRows, undefined, mailMyId());
     }
     if (
       playerMailCache &&
@@ -7763,7 +7763,7 @@
 
   function applyPlayerMailRealtime(change) {
     if (!fishingSaveApi.applyPlayerMailChange) return;
-    const next = fishingSaveApi.applyPlayerMailChange(playerMailCache, change);
+    const next = fishingSaveApi.applyPlayerMailChange(playerMailCache, change, undefined, mailMyId());
     ingestPlayerMailDoc(next).catch(() => {});
   }
 

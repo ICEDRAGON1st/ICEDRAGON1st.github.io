@@ -174,6 +174,33 @@ test("owned call rooms dual-write without copying others or shrinking the shared
   assert.ok(fromRows["dm:p-ada:p-bea"]);
   assert.equal(fromRows["dm:p-bea:p-cam"], undefined);
 
+  const visible = signal.rowsToRooms(
+    [
+      {
+        player_id: "p-bea",
+        rooms: {
+          "dm:p-ada:p-bea": {
+            updatedAt: Date.now(),
+            peers: {
+              "p-ada": { joinedAt: Date.now(), left: false, name: "Ada" },
+              "p-bea": { joinedAt: Date.now(), left: false, name: "Bea" }
+            }
+          },
+          "dm:p-bea:p-cam": {
+            updatedAt: Date.now(),
+            peers: {
+              "p-bea": { joinedAt: Date.now(), left: false, name: "Bea" },
+              "p-cam": { joinedAt: Date.now(), left: false, name: "Cam" }
+            }
+          }
+        }
+      }
+    ],
+    "p-ada"
+  );
+  assert.ok(visible["dm:p-ada:p-bea"]);
+  assert.equal(visible["dm:p-bea:p-cam"], undefined);
+
   const now = Date.now();
   const live = {
     rooms: {
@@ -225,6 +252,8 @@ test("call live rows subscribe without rewriting the shared board", () => {
   );
   assert.match(ui, /ensureCallsRealtime/);
   assert.match(ui, /applyCallsRealtime/);
+  assert.match(ui, /rowsToRooms\(rows, playerId\(\)\)/);
+  assert.match(ui, /applyChange\(\{ rooms: cache\.rooms \}, change, playerId\(\)\)/);
   assert.match(ui, /subscribeCallSignalContributions/);
   assert.match(ui, /isRealtimeJoined\?\.\("call_signal_contributions"\)/);
   assert.match(ui, /function callsLiveJoined/);
