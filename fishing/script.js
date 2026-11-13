@@ -62,7 +62,7 @@
   const CHEST_MONEY_BONUS = TREASURE_MULT - 1; // +1 → 2×
   const CHEST_LUCK_BONUS = TREASURE_LUCK_MULT - 1; // +0.5 → 1.5×
   // Chest + matching event stacks additively with the rolled event mult
-  // Global admin override: Mantle (ICE in-game) + admin-event.json (chat push)
+  // Global admin override: signed-in admin rows (ICE in-game) + admin-event.json (chat push)
   const OWNER_NAME = "ice_dragon";
   const FISHING_ADMIN_NAMES = new Set(["ice_dragon", "ice_dragon alt"]);
   /** Local-only admin: events on their device + self gifts. No global, no gifts to others. */
@@ -165,7 +165,7 @@
     return window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
   }
 
-  /** This tab only — AFK / no WiFi skips Mantle+Supabase polls. */
+  /** This tab only — AFK / no WiFi skips signed-in polls. */
   function fishingCloudQuiet() {
     try {
       if (window.HubAfk?.isAfk?.()) return true;
@@ -1828,10 +1828,10 @@
     return base + pending;
   }
 
-  /** Queue a cast locally; Mantle is flushed in batches to survive rate limits. */
+  /** Queue a cast locally; signed-in rows are flushed in batches to survive rate limits. */
   function noteCommunityCast() {
     if (!communityAcceptsCasts()) return;
-    // Local restart if reward already ended but Mantle hasn't cleared yet.
+    // Local restart if reward already ended but the shared meter hasn't cleared yet.
     if (communityMeterFinished() && !communityRewardLive()) {
       communityCache = {
         weekKey: `${communityWeekKey()}-local-${Date.now()}`,

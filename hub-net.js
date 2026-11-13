@@ -1,5 +1,5 @@
 /**
- * hub-net.js — per-tab gate for Mantle / Supabase traffic.
+ * hub-net.js — per-tab gate for signed-in traffic.
  * AFK / offline only pauses THIS browser. Never writes a global freeze.
  */
 (function () {

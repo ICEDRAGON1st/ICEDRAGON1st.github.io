@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015fh",
+  "build": "20261015fi",
   "notes": [
-    "Busy-server waits stay on this device — leftover shared boards aren't asked for them."
+    "Live notes stay on this device — leftover shared boards aren't named in them."
   ]
 };

@@ -1,6 +1,6 @@
 /**
  * hub-afk.js — per-tab AFK overlay after 10 minutes idle, or via AFK button.
- * Pauses only THIS client's Mantle/Supabase usage. Other players are unaffected.
+ * Pauses only THIS client's signed-in traffic. Other players are unaffected.
  */
 (function () {
   if (window.HubAfk) return;

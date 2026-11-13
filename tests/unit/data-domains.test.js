@@ -34,6 +34,19 @@ test("busy-server waits keep an older cooldown without leftover shared boards", 
   assert.doesNotMatch(plays, /Mantle/);
 });
 
+test("live comments do not name leftover shared boards after the old backup", () => {
+  const fishing = fs.readFileSync(path.join(ROOT, "fishing/script.js"), "utf8");
+  const afk = fs.readFileSync(path.join(ROOT, "hub-afk.js"), "utf8");
+  const net = fs.readFileSync(path.join(ROOT, "hub-net.js"), "utf8");
+  const hub = fs.readFileSync(path.join(ROOT, "script.js"), "utf8");
+  assert.doesNotMatch(fishing, /Mantle/);
+  assert.doesNotMatch(afk, /Mantle/);
+  assert.doesNotMatch(net, /Mantle/);
+  assert.doesNotMatch(hub, /Mantle/);
+  assert.match(fishing, /const ADMIN_EVENT_LEGACY_RATE_KEY = "fishing-admin-mantle-until-v1"/);
+  assert.match(net, /mantledb\.sh/);
+});
+
 test("shared boards do not talk to the old backup host", () => {
   for (const relative of NO_OLD_BACKUP_FILES) {
     const text = fs.readFileSync(path.join(ROOT, relative), "utf8");

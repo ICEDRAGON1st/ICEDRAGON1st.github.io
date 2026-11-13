@@ -4245,7 +4245,7 @@ async function refreshOnlineCount() {
   try {
     const n = await HubPlays.heartbeat();
     // All-time roster is refreshed inside heartbeat (~10 min). Avoid extra
-    // MantleDB traffic here — that was blowing the free rate limit.
+    // shared-board traffic here — that was blowing the free rate limit.
     updateOnlineCountDisplay(n, HubPlays.getAllTimeCount());
   } catch {
     updateOnlineCountDisplay(HubPlays.getOnlineCount(), HubPlays.getAllTimeCount());
