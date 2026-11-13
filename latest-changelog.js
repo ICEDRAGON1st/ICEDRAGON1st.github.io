@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015gd",
+  "build": "20261015ge",
   "notes": [
-    "Admin fish gifts ask the account server for broadcasts and gifts meant for you, and still load if that lookup is not installed yet."
+    "Invite counts stay public. Login codes stay only on the invites you sent or received, and the account lookup can do the same once it is installed."
   ]
 };

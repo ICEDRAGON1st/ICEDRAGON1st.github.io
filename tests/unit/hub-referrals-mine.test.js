@@ -90,6 +90,25 @@ test("owned invite rows overlay without stealing an existing credit or shrinking
   assert.equal(overlaid.byInviter["p-thief"], undefined);
   assert.equal(Object.keys(overlaid.byInviter["p-host"].invitees).length, 2);
 
+  const hidden = mine.overlayReferralDoc(
+    hub,
+    [
+      {
+        player_id: "p-new",
+        inviter_id: "p-host",
+        inviter_code: "ABCD2345",
+        invitee_name: "New",
+        credited_at: "2026-01-02T00:00:00.000Z"
+      }
+    ],
+    "p-viewerx"
+  );
+  assert.equal(hidden.byInvitee["p-new"].inviterId, "p-host");
+  assert.equal(hidden.byInvitee["p-new"].inviterCode, "");
+  assert.equal(hidden.byInviter["p-host"].invitees["p-new"].name, "");
+  assert.equal(hidden.byInviter["p-host"].invitees["p-old"].code, "");
+  assert.equal(Object.keys(hidden.byInviter["p-host"].invitees).length, 2);
+
   const liveRow = mine.applyChange(hub, {
     type: "INSERT",
     record: {
@@ -119,6 +138,9 @@ test("invite live rows subscribe without rewriting the shared board", () => {
     "utf8"
   );
   assert.match(ui, /ensureReferralsRealtime/);
+  assert.match(ui, /overlayReferralDoc\(current, tableRemote, myPlayerId\(\)\)/);
+  assert.match(ui, /applyChange\(cache, change, myPlayerId\(\)\)/);
+  assert.match(ui, /referralsAreScoped/);
   assert.match(ui, /applyReferralsRealtime/);
   assert.match(ui, /subscribeReferralContributions/);
   assert.match(ui, /referralsLiveJoined/);

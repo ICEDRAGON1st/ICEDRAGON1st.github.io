@@ -638,6 +638,27 @@ test("invite credits use auth-owned rows instead of rewriting the shared referra
   assert.match(src, /async function upsertReferralContribution/);
   assert.match(src, /function subscribeReferralContributions/);
   assert.match(src, /referral_contributions/);
+  const list = src.slice(
+    src.indexOf("async function listReferralContributions"),
+    src.indexOf("async function upsertReferralContribution")
+  );
+  assert.match(list, /rpc\/list_visible_referral_credits/);
+  assert.match(list, /if \(rpc\.status !== 404\)/);
+  assert.match(list, /visibleReferralsReady = true/);
+  assert.match(
+    list,
+    /referral_contributions\?select=player_id,inviter_id,inviter_code,invitee_name,credited_at,updated_at/
+  );
+  const sql = fs.readFileSync(
+    path.join(__dirname, "../../supabase/migrations/202610160060_list_visible_referral_credits.sql"),
+    "utf8"
+  );
+  assert.match(sql, /function public\.list_visible_referral_credits/);
+  assert.match(sql, /security definer/);
+  assert.match(sql, /identity-bind/);
+  assert.match(sql, /inviter_code/);
+  assert.match(sql, /grant execute on function public\.list_visible_referral_credits\(\) to authenticated/);
+  assert.doesNotMatch(sql, /drop policy/i);
 });
 
 test("fishing aquariums use auth-owned rows instead of rewriting the shared tank board", () => {

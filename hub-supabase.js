@@ -2490,6 +2490,12 @@
       .slice(0, 8);
   }
 
+  let visibleReferralsReady = false;
+
+  function referralsAreScoped() {
+    return visibleReferralsReady;
+  }
+
   async function listReferralContributions() {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -2498,6 +2504,18 @@
     }
     const session = await ensureSession();
     if (!session?.access_token) return null;
+    const rpc = await hubFetch(`${SUPABASE_URL}/rest/v1/rpc/list_visible_referral_credits`, {
+      method: "POST",
+      headers: headers({}, session.access_token),
+      cache: "no-store",
+      body: JSON.stringify({})
+    });
+    if (rpc.ok) {
+      visibleReferralsReady = true;
+      const rows = await rpc.json();
+      return Array.isArray(rows) ? rows : [];
+    }
+    if (rpc.status !== 404) throw new Error(`supabase referrals list ${rpc.status}`);
     const url = `${SUPABASE_URL}/rest/v1/referral_contributions?select=player_id,inviter_id,inviter_code,invitee_name,credited_at,updated_at`;
     const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
@@ -3248,6 +3266,7 @@
     applyRealtimeMessage,
     listAdminBroadcasts,
     listReferralContributions,
+    referralsAreScoped,
     upsertReferralContribution,
     stopPresenceRealtime,
     listPopularityContributions,

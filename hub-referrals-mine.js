@@ -144,13 +144,39 @@
     return doc;
   }
 
-  function overlayReferralDoc(hub, rows) {
+  function visibleReferralDoc(doc, viewerId) {
+    const viewer = String(viewerId || "").trim();
+    const copied = copyDoc(doc);
+    if (!viewer) return copied;
+    const byInvitee = {};
+    Object.entries(copied.byInvitee || {}).forEach(([id, row]) => {
+      const touches = id === viewer || row.inviterId === viewer;
+      byInvitee[id] = touches ? row : { ...row, inviterCode: "" };
+    });
+    const byInviter = {};
+    Object.entries(copied.byInviter || {}).forEach(([inviterId, row]) => {
+      const invitees = {};
+      Object.entries(row.invitees || {}).forEach(([inviteeId, info]) => {
+        const touches = inviteeId === viewer || inviterId === viewer;
+        invitees[inviteeId] = touches
+          ? info
+          : { name: "", code: "", at: Number(info?.at) || 0 };
+      });
+      byInviter[inviterId] = {
+        invitees,
+        unlockedAt: Number(row.unlockedAt) || 0
+      };
+    });
+    return { byInviter, byInvitee };
+  }
+
+  function overlayReferralDoc(hub, rows, viewerId) {
     let next = copyDoc(hub);
     (Array.isArray(rows) ? rows : []).forEach((row) => {
       const credit = readCredit(row);
       if (credit) next = applyInviteeCredit(next, credit);
     });
-    return next;
+    return visibleReferralDoc(next, viewerId);
   }
 
   function unwrapChange(change) {
@@ -164,15 +190,15 @@
     return payload;
   }
 
-  function applyChange(hub, change) {
+  function applyChange(hub, change, viewerId) {
     const current = copyDoc(hub);
     const data = unwrapChange(change);
     const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
-    if (type === "DELETE") return current;
+    if (type === "DELETE") return visibleReferralDoc(current, viewerId);
     const record = data.record || data.new || {};
     const credit = readCredit(record);
-    if (!credit) return current;
-    return applyInviteeCredit(current, credit);
+    if (!credit) return visibleReferralDoc(current, viewerId);
+    return visibleReferralDoc(applyInviteeCredit(current, credit), viewerId);
   }
 
   const api = {
@@ -185,6 +211,7 @@
     emptyDoc,
     copyDoc,
     readCredit,
+    visibleReferralDoc,
     overlayReferralDoc,
     applyChange
   };

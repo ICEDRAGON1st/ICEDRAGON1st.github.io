@@ -286,7 +286,7 @@
   function applyReferralsRealtime(change) {
     const helper = mineApi();
     if (!helper?.applyChange) return;
-    const next = helper.applyChange(cache, change);
+    const next = helper.applyChange(cache, change, myPlayerId());
     rememberDoc(next);
     const me = myPlayerId();
     if (!me) return;
@@ -315,6 +315,10 @@
   function ensureReferralsRealtime() {
     const api = sb();
     if (!api?.subscribeReferralContributions) return;
+    if (api.referralsAreScoped?.()) {
+      stopReferralsRealtime();
+      return;
+    }
     if (referralsRealtimeUnsub) return;
     if (referralsCloudQuiet()) return;
     referralsRealtimeUnsub = api.subscribeReferralContributions((change) => {
@@ -351,7 +355,7 @@
     if (tableRemote && helper?.overlayReferralDoc) {
       const current =
         cache && (cache.byInviter || cache.byInvitee) ? cache : emptyDoc();
-      const parsed = helper.overlayReferralDoc(current, tableRemote);
+      const parsed = helper.overlayReferralDoc(current, tableRemote, myPlayerId());
       referralsHydrated = true;
       rememberDoc(parsed);
       parsed._fetched = true;
@@ -588,10 +592,26 @@
 
   // Boot
   captureFromUrl();
-  ensureReferralsRealtime();
   setTimeout(() => {
-    refreshMyStatus().catch(() => {});
+    refreshMyStatus()
+      .catch(() => {})
+      .finally(() => {
+        if (sb()?.referralsAreScoped?.()) stopReferralsRealtime();
+        else ensureReferralsRealtime();
+      });
   }, 2000);
+  setInterval(() => {
+    if (referralsCloudQuiet()) {
+      stopReferralsRealtime();
+      return;
+    }
+    if (sb()?.referralsAreScoped?.()) {
+      stopReferralsRealtime();
+      refreshMyStatus().catch(() => {});
+      return;
+    }
+    ensureReferralsRealtime();
+  }, 15000);
   document.addEventListener("hub-username-ready", () => {
     creditIfPending()
       .then(() => refreshMyStatus())

@@ -1445,7 +1445,11 @@
         const rows = await HubSupabase.listReferralContributions?.();
         const helper = window.HubReferralsMine;
         if (rows && helper?.overlayReferralDoc) {
-          hubDoc = helper.overlayReferralDoc(hubDoc, rows);
+          hubDoc = helper.overlayReferralDoc(
+            hubDoc,
+            rows,
+            window.HubPlays?.getPlayerId?.() || ""
+          );
         }
       } catch {}
     }
