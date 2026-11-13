@@ -196,6 +196,11 @@ test("chat live rows merge without dropping other players' messages", () => {
     "utf8"
   );
   assert.match(ui, /ensureChatRealtime/);
+  assert.doesNotMatch(
+    ui.slice(ui.indexOf("function ensureChatRealtime"), ui.indexOf("async function persistMyChat")),
+    /subscribeChatThreadContributions\(/
+  );
+  assert.match(ui, /noteChatGroups/);
   assert.match(ui, /chatThreadsAreScoped/);
   assert.match(
     ui.slice(ui.indexOf("function startPolling"), ui.indexOf("function stopPolling")),

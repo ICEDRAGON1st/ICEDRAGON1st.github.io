@@ -2211,6 +2211,82 @@
     return visibleChatReady;
   }
 
+  function shapeScopedChatRow(row, keyMap) {
+    const playerId = parseLocalPlayerId(row?.player_id || row?.playerId);
+    if (!playerId) return null;
+    if (row?.threads && typeof row.threads === "object" && !Array.isArray(row.threads)) {
+      return {
+        player_id: playerId,
+        threads: row.threads,
+        updated_at: row.updated_at || row.updatedAt || null
+      };
+    }
+    const threads = {};
+    Object.entries(keyMap && typeof keyMap === "object" ? keyMap : {}).forEach(([alias, key]) => {
+      const value = row?.[alias];
+      const threadKey = String(key || "");
+      if (!threadKey || !value || typeof value !== "object" || Array.isArray(value)) return;
+      threads[threadKey] = value;
+    });
+    if (!Object.keys(threads).length) return null;
+    return {
+      player_id: playerId,
+      threads,
+      updated_at: row.updated_at || row.updatedAt || null
+    };
+  }
+
+  function chatReadTargets(viewerId, friendRows, ownThreads) {
+    const viewer = parseLocalPlayerId(viewerId);
+    const ids = new Set();
+    const keys = new Set();
+    if (!viewer) return { playerIds: [], keys: [] };
+    const addPerson = (id) => {
+      const parsed = parseLocalPlayerId(id);
+      if (parsed && parsed !== viewer) ids.add(parsed);
+    };
+    const addThreadKey = (key) => {
+      const id = String(key || "");
+      if (!id || id === "global") return;
+      if (id.startsWith("group:")) {
+        keys.add(id.slice(0, 96));
+        return;
+      }
+      const parts = id.split(":");
+      if (parts.length === 2 && (parts[0] === viewer || parts[1] === viewer)) {
+        keys.add(parts.slice().sort().join(":").slice(0, 96));
+        addPerson(parts[0] === viewer ? parts[1] : parts[0]);
+      }
+    };
+    Object.keys(ownThreads && typeof ownThreads === "object" ? ownThreads : {}).forEach(addThreadKey);
+    (Array.isArray(friendRows) ? friendRows : []).forEach((row) => {
+      const pid = parseLocalPlayerId(row?.player_id || row?.playerId);
+      if (pid === viewer) {
+        ["friends", "outgoing", "incoming"].forEach((mapName) => {
+          Object.keys(row?.[mapName] || {}).forEach(addPerson);
+        });
+      } else if (
+        pid &&
+        ((row?.friends && row.friends[viewer]) ||
+          (row?.outgoing && row.outgoing[viewer]) ||
+          (row?.incoming && row.incoming[viewer]))
+      ) {
+        addPerson(pid);
+      }
+      Object.values(row?.invites || {}).forEach((inv) => {
+        if (!inv || inv.status !== "chat-group" || inv.toId !== viewer) return;
+        addPerson(inv.fromId);
+        const room = String(inv.roomId || "").trim();
+        if (room) keys.add(`group:${room}`.slice(0, 96));
+      });
+    });
+    ids.forEach((other) => keys.add([viewer, other].sort().join(":")));
+    return {
+      playerIds: [...ids].slice(0, 80),
+      keys: [...keys].slice(0, 40)
+    };
+  }
+
   async function listChatThreadContributions() {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -2231,15 +2307,69 @@
       return Array.isArray(rows) ? rows : [];
     }
     if (rpc.status !== 404) throw new Error(`supabase chat list ${rpc.status}`);
-    const url = `${SUPABASE_URL}/rest/v1/chat_thread_contributions?select=player_id,threads,updated_at`;
-    const res = await hubFetch(url, {
-      headers: headers({}, session.access_token),
-      cache: "no-store"
-    });
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`supabase chat list ${res.status}`);
-    const rows = await res.json();
-    return Array.isArray(rows) ? rows : [];
+    const table = `${SUPABASE_URL}/rest/v1/chat_thread_contributions`;
+    const viewerId =
+      readStoredPlayerId() ||
+      peekBoundPlayerId() ||
+      (await fetchOwnProfile(session))?.playerId ||
+      "";
+    const loadRows = async (url) => {
+      const res = await hubFetch(url, {
+        headers: headers({}, session.access_token),
+        cache: "no-store"
+      });
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error(`supabase chat list ${res.status}`);
+      const rows = await res.json();
+      return Array.isArray(rows) ? rows : [];
+    };
+    if (!viewerId) return loadRows(`${table}?select=player_id,threads,updated_at`);
+    const ownUrl = `${table}?select=player_id,threads,updated_at&player_id=eq.${encodeURIComponent(viewerId)}&limit=1`;
+    const globalUrl = `${table}?select=${encodeURIComponent("player_id,updated_at,hub_global:threads->global")}`;
+    try {
+      const [ownRows, globalRows] = await Promise.all([loadRows(ownUrl), loadRows(globalUrl)]);
+      if (ownRows == null || globalRows == null) return null;
+      let friendRows = [];
+      try {
+        friendRows = (await listFriendEdgeContributions()) || [];
+      } catch {
+        friendRows = [];
+      }
+      const targets = chatReadTargets(viewerId, friendRows, ownRows[0]?.threads || {});
+      let keyedRows = [];
+      let keyMap = { hub_global: "global" };
+      if (targets.playerIds.length && targets.keys.length) {
+        const selectParts = ["player_id", "updated_at"];
+        keyMap = {};
+        targets.keys.forEach((key, index) => {
+          const alias = `k${index}`;
+          keyMap[alias] = key;
+          selectParts.push(`${alias}:threads->"${key}"`);
+        });
+        const keyedUrl =
+          `${table}?select=${encodeURIComponent(selectParts.join(","))}` +
+          `&player_id=in.(${targets.playerIds.map((id) => encodeURIComponent(id)).join(",")})`;
+        keyedRows = await loadRows(keyedUrl);
+        if (keyedRows == null) return null;
+      }
+      const shaped = [];
+      ownRows.forEach((row) => {
+        const next = shapeScopedChatRow(row);
+        if (next) shaped.push(next);
+      });
+      globalRows.forEach((row) => {
+        const next = shapeScopedChatRow(row, { hub_global: "global" });
+        if (next) shaped.push(next);
+      });
+      keyedRows.forEach((row) => {
+        const next = shapeScopedChatRow(row, keyMap);
+        if (next) shaped.push(next);
+      });
+      return shaped;
+    } catch (err) {
+      console.warn("[HubSupabase] scoped chat list failed", err);
+      return loadRows(`${table}?select=player_id,threads,updated_at`);
+    }
   }
 
   async function upsertChatThreadContribution(row) {
@@ -3548,6 +3678,8 @@
     friendEdgesAreScoped,
     upsertFriendEdgeContribution,
     listChatThreadContributions,
+    shapeScopedChatRow,
+    chatReadTargets,
     chatThreadsAreScoped,
     upsertChatThreadContribution,
     listLeaderboardPbContributions,

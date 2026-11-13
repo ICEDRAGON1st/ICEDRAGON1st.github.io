@@ -191,6 +191,9 @@
         playerId: me,
         threads
       });
+      try {
+        await window.HubFriends?.noteChatGroups?.(threads);
+      } catch {}
       return true;
     } catch {
       return false;
@@ -366,15 +369,12 @@
   function ensureChatRealtime() {
     const api = sb();
     if (!api?.subscribeChatThreadContributions) return;
-    if (chatNetQuiet()) return;
     if (api.chatThreadsAreScoped?.()) {
       stopChatRealtime();
       return;
     }
-    if (chatRealtimeUnsub) return;
-    chatRealtimeUnsub = api.subscribeChatThreadContributions((change) => {
-      applyChatRealtime(change);
-    });
+    // The open channel delivers every thread, including other players' direct messages.
+    stopChatRealtime();
   }
 
   async function persistMyChat() {

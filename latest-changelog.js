@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015gl",
+  "build": "20261015gm",
   "notes": [
-    "The friends list no longer downloads unrelated friend lists. Requests and game invites that include you still show up."
+    "Chat no longer downloads every private thread. Global chat, direct messages, and groups still load."
   ]
 };

@@ -577,7 +577,42 @@ test("friend chat uses auth-owned rows instead of rewriting the shared chat boar
   assert.match(list, /rpc\/list_visible_chat_threads/);
   assert.match(list, /if \(rpc\.status !== 404\)/);
   assert.match(list, /visibleChatReady = true/);
-  assert.match(list, /chat_thread_contributions\?select=player_id,threads,updated_at/);
+  assert.match(list, /chat_thread_contributions/);
+  assert.match(list, /select=player_id,threads,updated_at/);
+  assert.match(list, /hub_global:threads->global/);
+  assert.match(list, /player_id=in\./);
+  const shaped = supabase.shapeScopedChatRow(
+    { player_id: "p-otherplayer01", hub_global: { messages: [{ id: "g1" }] }, secret: { messages: [] } },
+    { hub_global: "global" }
+  );
+  assert.deepEqual(Object.keys(shaped.threads), ["global"]);
+  assert.equal(shaped.threads.global.messages[0].id, "g1");
+  const targets = supabase.chatReadTargets(
+    "p-0123456789abcdef",
+    [
+      {
+        player_id: "p-0123456789abcdef",
+        friends: { "p-otherplayer01": { name: "Pal" } },
+        invites: {}
+      },
+      {
+        player_id: "p-otherplayer01",
+        invites: {
+          "chat-group:room1:p-0123456789abcdef": {
+            status: "chat-group",
+            toId: "p-0123456789abcdef",
+            fromId: "p-otherplayer01",
+            roomId: "room1"
+          }
+        }
+      }
+    ],
+    { "group:kept": { members: {} } }
+  );
+  assert.ok(targets.playerIds.includes("p-otherplayer01"));
+  assert.ok(targets.keys.includes("group:room1"));
+  assert.ok(targets.keys.includes("group:kept"));
+  assert.ok(targets.keys.includes("p-0123456789abcdef:p-otherplayer01"));
   const sql = fs.readFileSync(
     path.join(__dirname, "../../supabase/migrations/202610160055_list_visible_chat_threads.sql"),
     "utf8"

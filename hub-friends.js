@@ -572,6 +572,56 @@
     return ok ? { ok: true, inviteId } : { ok: false, error: "Couldn't send invite" };
   }
 
+  async function noteChatGroups(threads) {
+    const me = getPlayerId();
+    const myName = getPlayerName() || "Player";
+    if (!me || !threads || typeof threads !== "object") return false;
+    const groups = Object.entries(threads)
+      .filter(([key, thread]) => String(key).startsWith("group:") && thread && thread.members)
+      .map(([key, thread]) => ({
+        groupId: key.slice("group:".length).slice(0, 48),
+        members: thread.members || {}
+      }))
+      .filter((group) => group.groupId && Object.keys(group.members).some((id) => id && id !== me));
+    if (!groups.length) return false;
+    return mutate((data) => {
+      const invites = { ...(data.invites || {}) };
+      let changed = false;
+      const now = Date.now();
+      groups.forEach((group) => {
+        Object.entries(group.members).forEach(([memberId, memberName]) => {
+          if (!memberId || memberId === me) return;
+          const id = `chat-group:${group.groupId}:${memberId}`.slice(0, 64);
+          const prev = invites[id];
+          const age = now - (Number(prev?.at) || 0);
+          if (
+            prev &&
+            prev.status === "chat-group" &&
+            prev.roomId === group.groupId &&
+            prev.toId === memberId &&
+            age < 12 * 60 * 60 * 1000
+          ) {
+            return;
+          }
+          invites[id] = {
+            id,
+            fromId: me,
+            fromName: myName,
+            toId: memberId,
+            toName: String(memberName || "Player").slice(0, 32) || "Player",
+            game: "chat-group",
+            roomId: group.groupId,
+            status: "chat-group",
+            at: now
+          };
+          changed = true;
+        });
+      });
+      if (!changed) return null;
+      return { ...data, invites };
+    });
+  }
+
   function getInvites() {
     const me = getPlayerId();
     if (!me) return [];
@@ -645,6 +695,7 @@
     getOutgoing,
     isFriend,
     inviteToGame,
+    noteChatGroups,
     getInvites,
     respondInvite,
     sync,
