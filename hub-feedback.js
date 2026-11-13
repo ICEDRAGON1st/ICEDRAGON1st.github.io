@@ -15,7 +15,8 @@
   const LAST_SEND_KEY = "hub-feedback-last-send-v1";
   const PENDING_KEY = "hub-feedback-pending-v1";
   const DELETED_KEY = "hub-feedback-deleted-v1";
-  const RATE_KEY = "mantle-rate-limit-until-v1";
+  const RATE_KEY = "hub-rate-limit-until-v1";
+  const LEGACY_RATE_KEY = "mantle-rate-limit-until-v1";
   const MAX_ITEMS = 120;
   const MAX_DELETED = 200;
   const MAX_TEXT = 400;
@@ -134,7 +135,13 @@
   }
 
   function isRateLimited() {
-    return Date.now() < Math.max(0, Number(localStorage.getItem(RATE_KEY)) || 0);
+    try {
+      const current = Math.max(0, Number(localStorage.getItem(RATE_KEY)) || 0);
+      const legacy = Math.max(0, Number(localStorage.getItem(LEGACY_RATE_KEY)) || 0);
+      return Date.now() < Math.max(current, legacy);
+    } catch {
+      return false;
+    }
   }
 
   function loadLocal() {

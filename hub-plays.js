@@ -42,7 +42,8 @@
   // v3: drop heartbeat-polluted lastAt caches that kept rewriting remote.
   const ALLTIME_LOCAL_KEY = "hub-alltime-cache-v3";
   const RATE_LIMIT_BACKOFF_MS = 15 * 60_000;
-  const RATE_KEY = "mantle-rate-limit-until-v1";
+  const RATE_KEY = "hub-rate-limit-until-v1";
+  const LEGACY_RATE_KEY = "mantle-rate-limit-until-v1";
   // One-time: remove unused nickname "dragon" from roster + name registry.
   const PURGED_PLAYER_IDS = new Set(["p-mtt6cbk7-hg3bcj"]);
   const PURGED_NAME_KEYS = new Set(["dragon"]);
@@ -574,6 +575,16 @@
     } catch {}
   }
 
+  function readSharedRateUntil() {
+    try {
+      const current = Math.max(0, Number(localStorage.getItem(RATE_KEY)) || 0);
+      const legacy = Math.max(0, Number(localStorage.getItem(LEGACY_RATE_KEY)) || 0);
+      return Math.max(current, legacy);
+    } catch {
+      return 0;
+    }
+  }
+
   function markRateLimited() {
     rateLimitedUntil = Date.now() + RATE_LIMIT_BACKOFF_MS;
     try {
@@ -582,8 +593,7 @@
   }
 
   function isRateLimited() {
-    const shared = Math.max(0, Number(localStorage.getItem(RATE_KEY)) || 0);
-    rateLimitedUntil = Math.max(rateLimitedUntil, shared);
+    rateLimitedUntil = Math.max(rateLimitedUntil, readSharedRateUntil());
     return Date.now() < rateLimitedUntil;
   }
 
@@ -3513,7 +3523,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       if (document.hidden) {
         return getOnlineCount();
       }
-      // No WiFi / AFK pause: do not touch Mantle or Supabase from this tab.
+      // No WiFi / AFK pause: do not touch signed-in rows from this tab.
       if (netBlocked() || window.HubAfk?.isAfk?.()) {
         return getOnlineCount();
       }
@@ -4157,7 +4167,7 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     heartbeat().catch(() => {});
     // Pull repaired all-time lastAt immediately (don't wait 10 min).
     registerAllTime().catch(() => {});
-    // Pages milestone floor (45 all-time, etc.) when Supabase/Mantle are down.
+    // Pages milestone floor (45 all-time, etc.) when signed-in rows are down.
     syncAlltimeFloor().catch(() => {});
     presenceTimer = setInterval(() => {
       heartbeat().catch(() => {});

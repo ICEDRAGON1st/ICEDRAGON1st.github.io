@@ -118,7 +118,8 @@
   const ADMIN_EVENT_DOC = "fishing-admin-events";
   const ADMIN_EVENT_TOKEN = "ice-fish-evt-9f3a";
   const ADMIN_EVENT_POLL_MS = 15_000;
-  const ADMIN_EVENT_RATE_KEY = "fishing-admin-mantle-until-v1";
+  const ADMIN_EVENT_RATE_KEY = "fishing-admin-rate-until-v1";
+  const ADMIN_EVENT_LEGACY_RATE_KEY = "fishing-admin-mantle-until-v1";
   const ADMIN_EVENT_LOCAL_KEY = "fishing-admin-override-v1"; // legacy single-slot
   const ADMIN_EVENT_LOCAL_BOOST_KEY = "fishing-admin-boost-v1";
   const ADMIN_EVENT_LOCAL_VARIANT_KEY = "fishing-admin-variant-v1";
@@ -4180,8 +4181,13 @@
 
   function adminEventRateLimited() {
     try {
-      const until = Number(localStorage.getItem(ADMIN_EVENT_RATE_KEY) || 0);
-      return Number.isFinite(until) && until > Date.now();
+      const current = Number(localStorage.getItem(ADMIN_EVENT_RATE_KEY) || 0);
+      const legacy = Number(localStorage.getItem(ADMIN_EVENT_LEGACY_RATE_KEY) || 0);
+      const until = Math.max(
+        Number.isFinite(current) ? current : 0,
+        Number.isFinite(legacy) ? legacy : 0
+      );
+      return until > Date.now();
     } catch {
       return false;
     }

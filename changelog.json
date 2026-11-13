@@ -1,4 +1,7 @@
 {
+  "20261015fh": [
+    "Busy-server waits stay on this device — leftover shared boards aren't asked for them."
+  ],
   "20261015fg": [
     "Alerts stay on this device — leftover shared boards aren't asked for them."
   ],

@@ -20,6 +20,20 @@ const NO_OLD_BACKUP_FILES = [
   "fishing/script.js"
 ];
 
+test("busy-server waits keep an older cooldown without leftover shared boards", () => {
+  const plays = fs.readFileSync(path.join(ROOT, "hub-plays.js"), "utf8");
+  const feedback = fs.readFileSync(path.join(ROOT, "hub-feedback.js"), "utf8");
+  const fishing = fs.readFileSync(path.join(ROOT, "fishing/script.js"), "utf8");
+  assert.match(plays, /const RATE_KEY = "hub-rate-limit-until-v1"/);
+  assert.match(plays, /const LEGACY_RATE_KEY = "mantle-rate-limit-until-v1"/);
+  assert.match(plays, /readSharedRateUntil/);
+  assert.match(feedback, /const RATE_KEY = "hub-rate-limit-until-v1"/);
+  assert.match(feedback, /LEGACY_RATE_KEY/);
+  assert.match(fishing, /const ADMIN_EVENT_RATE_KEY = "fishing-admin-rate-until-v1"/);
+  assert.match(fishing, /ADMIN_EVENT_LEGACY_RATE_KEY/);
+  assert.doesNotMatch(plays, /Mantle/);
+});
+
 test("shared boards do not talk to the old backup host", () => {
   for (const relative of NO_OLD_BACKUP_FILES) {
     const text = fs.readFileSync(path.join(ROOT, relative), "utf8");
