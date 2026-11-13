@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015fw",
+  "build": "20261015fx",
   "notes": [
-    "The account server sign-in refreshes when the saved login expires, instead of keeping the first one forever."
+    "Private chats that are not yours stay off this device."
   ]
 };

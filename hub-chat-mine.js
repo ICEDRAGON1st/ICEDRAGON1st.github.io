@@ -227,7 +227,22 @@
     return collectMine(data, playerId, { includeGlobal: true });
   }
 
-  function overlayChatData(hub, rows) {
+  function visibleThreads(threads, viewerId) {
+    const me = String(viewerId || "").trim();
+    const out = {};
+    Object.entries(threads && typeof threads === "object" ? threads : {}).forEach(([key, thread]) => {
+      if (!thread || typeof thread !== "object") return;
+      if (key === "global") {
+        out[key] = thread;
+        return;
+      }
+      if (!me || !involvesMe(key, thread, me)) return;
+      out[key] = thread;
+    });
+    return out;
+  }
+
+  function overlayChatData(hub, rows, viewerId) {
     let threads = { ...((hub && hub.threads) || {}) };
     (Array.isArray(rows) ? rows : []).forEach((row) => {
       const owned = readMine(
@@ -239,7 +254,7 @@
         { includeGlobal: true }
       );
       if (!owned.playerId) return;
-      threads = mergeThreads(threads, owned.threads);
+      threads = mergeThreads(threads, visibleThreads(owned.threads, viewerId));
     });
     return { threads };
   }
@@ -255,14 +270,14 @@
     return payload;
   }
 
-  function applyChange(hub, change) {
+  function applyChange(hub, change, viewerId) {
     const data = unwrapChange(change);
     const type = String(data.type || data.eventType || change?.event || "").toUpperCase();
     const current = hub && typeof hub === "object" ? hub : { threads: {} };
     if (type === "DELETE") return { threads: { ...(current.threads || {}) } };
     const record = data.record || data.new || {};
     if (!record || typeof record !== "object") return { threads: { ...(current.threads || {}) } };
-    return overlayChatData(current, [record]);
+    return overlayChatData(current, [record], viewerId);
   }
 
   function applyMine(data, mine, playerId) {
@@ -288,6 +303,7 @@
     readMine,
     collectMine,
     collectTableMine,
+    visibleThreads,
     overlayChatData,
     applyChange,
     applyMine

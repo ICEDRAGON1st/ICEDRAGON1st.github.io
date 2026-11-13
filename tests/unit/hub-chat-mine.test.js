@@ -20,6 +20,9 @@ test("owned chat lives in a helper used by the shared friend-chat board", () => 
   assert.match(ui, /persistChatThreadContribution/);
   assert.match(ui, /!Object\.keys\(threads\)\.length/);
   assert.match(ui, /fetchChatTableRemote/);
+  assert.match(ui, /overlayChatData\(\{ threads: \{\} \}, rows, getPlayerId\(\)\)/);
+  assert.match(ui, /applyChange\(cache, change, getPlayerId\(\)\)/);
+  assert.match(ui, /visibleThreads/);
   assert.doesNotMatch(
     ui.slice(
       ui.indexOf("async function fetchRemote"),
@@ -139,14 +142,19 @@ test("owned chat restores missing DMs and groups but never global", () => {
         threads: {
           "p-me:p-pal": {
             messages: [{ id: "d2", from: "p-pal", name: "Pal", text: "yo", at: 3 }]
+          },
+          "p-pal:p-stranger": {
+            messages: [{ id: "secret", from: "p-pal", name: "Pal", text: "private", at: 4 }]
           }
         }
       },
       { player_id: "", threads: { "p-skip:p-x": { messages: [{ id: "s", from: "p-skip", text: "no", at: 9 }] } } }
-    ]
+    ],
+    "p-me"
   );
   assert.equal(overlaid.threads.global.messages.map((m) => m.id).join(","), "g0,g1");
   assert.equal(overlaid.threads["p-me:p-pal"].messages.map((m) => m.id).join(","), "d1,d2");
+  assert.equal(overlaid.threads["p-pal:p-stranger"], undefined);
   assert.equal(overlaid.threads["p-skip:p-x"], undefined);
 
   const liveRow = mine.applyChange(
@@ -167,7 +175,8 @@ test("owned chat restores missing DMs and groups but never global", () => {
           }
         }
       }
-    }
+    },
+    "p-me"
   );
   assert.equal(liveRow.threads["p-me:p-pal"].messages.map((m) => m.id).join(","), "d1,d2");
 

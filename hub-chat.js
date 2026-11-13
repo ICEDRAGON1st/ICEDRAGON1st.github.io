@@ -127,14 +127,24 @@
     try {
       const data = JSON.parse(localStorage.getItem(LOCAL_KEY));
       if (data && typeof data === "object" && data.threads && typeof data.threads === "object") {
-        return { threads: data.threads };
+        const me = getPlayerId();
+        const helper = mineApi();
+        const threads =
+          me && helper?.visibleThreads ? helper.visibleThreads(data.threads, me) : data.threads;
+        return { threads };
       }
     } catch {}
     return { threads: {} };
   }
 
   function saveLocal(data) {
-    cache = { threads: data.threads || {} };
+    const me = getPlayerId();
+    const helper = mineApi();
+    const threads =
+      me && helper?.visibleThreads
+        ? helper.visibleThreads(data?.threads || {}, me)
+        : data?.threads || {};
+    cache = { threads };
     try {
       localStorage.setItem(LOCAL_KEY, JSON.stringify(cache));
     } catch {}
@@ -162,7 +172,7 @@
     try {
       const rows = await api.listChatThreadContributions();
       if (!rows) return null;
-      return helper.overlayChatData({ threads: {} }, rows);
+      return helper.overlayChatData({ threads: {} }, rows, getPlayerId());
     } catch {
       return null;
     }
@@ -332,7 +342,7 @@
   function applyChatRealtime(change) {
     const helper = mineApi();
     if (!helper?.applyChange) return;
-    const next = helper.applyChange(cache, change);
+    const next = helper.applyChange(cache, change, getPlayerId());
     cache = { threads: next?.threads && typeof next.threads === "object" ? next.threads : {} };
     saveLocal(cache);
     if (active) markRead(active.type, active.id);

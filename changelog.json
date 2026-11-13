@@ -1,4 +1,7 @@
 {
+  "20261015fx": [
+    "Private chats that are not yours stay off this device."
+  ],
   "20261015fw": [
     "The account server sign-in refreshes when the saved login expires, instead of keeping the first one forever."
   ],
