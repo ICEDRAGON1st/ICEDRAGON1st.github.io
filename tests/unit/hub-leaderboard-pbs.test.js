@@ -26,6 +26,8 @@ test("personal bests live in a helper used by the shared board", () => {
   assert.match(ui, /identity\?\.persistOwnedSave/);
   assert.match(ui, /identity\?\.readOwnedSave/);
   assert.match(ui, /persistLeaderboardPbContribution/);
+  assert.match(ui, /!Object\.keys\(games\)\.length && !\(opts && opts\.allowEmpty\)/);
+  assert.match(pushSlice, /allowEmpty: !!\(opts && opts\.wipe\)/);
   assert.match(ui, /fetchLeaderboardTableRemote/);
   assert.match(ui, /fetchLeaderboardResetsRemote/);
   assert.match(ui, /persistLeaderboardResets/);

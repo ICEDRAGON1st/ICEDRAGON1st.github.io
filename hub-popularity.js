@@ -274,7 +274,8 @@
     const me = String(playerId || "").trim();
     if (!api?.upsertPlayLogContribution || !me) return false;
     const mine = collectMine(plays, me);
-    if (!mine) return false;
+    // An empty list is a missed load, not a request to erase recent plays.
+    if (!mine || !Array.isArray(mine.plays) || !mine.plays.length) return false;
     try {
       await api.upsertPlayLogContribution({
         playerId: me,
@@ -338,7 +339,9 @@
     const identity = ownedIdentity();
     const me = String(playerId || "").trim();
     if (!identity?.persistOwnedSave || !me) return false;
-    await identity.persistOwnedSave(api, SAVE_KEY, collectMine(plays, me));
+    const snapshot = collectMine(plays, me);
+    if (!snapshot.plays.length) return false;
+    await identity.persistOwnedSave(api, SAVE_KEY, snapshot);
     return true;
   }
 

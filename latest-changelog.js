@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015fn",
+  "build": "20261015fo",
   "notes": [
-    "A newer most-played milestone keeps saved counts when this device has no new plays, even before live rows connect."
+    "A missed load no longer replaces recent plays, scores, chat, or feedback with an empty list."
   ]
 };

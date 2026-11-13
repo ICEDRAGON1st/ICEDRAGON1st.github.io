@@ -51,15 +51,13 @@
     const identity = window.HubIdentity;
     if (!helper || !me) return;
     const mineItems = (cache.items || []).filter((item) => String(item.fromId || "") === me);
+    const snapshot = helper.collectMine(mineItems, loadPendingIds(), me);
+    if (!snapshot.items.length && !(snapshot.pendingIds && snapshot.pendingIds.length)) return;
     try {
       if (identity?.persistOwnedSave) {
-        await identity.persistOwnedSave(
-          api,
-          helper.SAVE_KEY,
-          helper.collectMine(mineItems, loadPendingIds(), me)
-        );
+        await identity.persistOwnedSave(api, helper.SAVE_KEY, snapshot);
       } else if (api?.upsertSave) {
-        await api.upsertSave(helper.SAVE_KEY, helper.collectMine(mineItems, loadPendingIds(), me), 1);
+        await api.upsertSave(helper.SAVE_KEY, snapshot, 1);
       }
     } catch (err) {
       console.warn("[HubFeedback] player_saves feedback write failed", err);
@@ -266,6 +264,7 @@
     const me = getPlayerId();
     if (!api?.upsertFeedbackItemContribution || !helper?.collectMine || !me) return false;
     const snapshot = helper.collectMine(items, loadPendingIds(), me);
+    if (!snapshot?.items?.length) return false;
     try {
       await api.upsertFeedbackItemContribution({
         playerId: me,

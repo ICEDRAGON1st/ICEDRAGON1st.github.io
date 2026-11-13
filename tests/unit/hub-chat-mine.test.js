@@ -18,6 +18,7 @@ test("owned chat lives in a helper used by the shared friend-chat board", () => 
   assert.match(ui, /identity\?\.persistOwnedSave/);
   assert.match(ui, /identity\?\.readOwnedSave/);
   assert.match(ui, /persistChatThreadContribution/);
+  assert.match(ui, /!Object\.keys\(threads\)\.length/);
   assert.match(ui, /fetchChatTableRemote/);
   assert.doesNotMatch(
     ui.slice(

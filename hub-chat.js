@@ -174,10 +174,12 @@
     const me = getPlayerId();
     if (!api?.upsertChatThreadContribution || !helper?.collectTableMine || !me) return false;
     const snapshot = helper.collectTableMine(data, me);
+    const threads = snapshot?.threads && typeof snapshot.threads === "object" ? snapshot.threads : {};
+    if (!Object.keys(threads).length) return false;
     try {
       await api.upsertChatThreadContribution({
         playerId: me,
-        threads: snapshot.threads
+        threads
       });
       return true;
     } catch {
@@ -367,11 +369,14 @@
     const me = getPlayerId();
     const identity = window.HubIdentity;
     if (!helper || !me) return;
+    const snapshot = helper.collectMine(cache, me);
+    const threads = snapshot?.threads && typeof snapshot.threads === "object" ? snapshot.threads : {};
+    if (!Object.keys(threads).length) return;
     try {
       if (identity?.persistOwnedSave) {
-        await identity.persistOwnedSave(api, helper.SAVE_KEY, helper.collectMine(cache, me));
+        await identity.persistOwnedSave(api, helper.SAVE_KEY, snapshot);
       } else if (api?.upsertSave) {
-        await api.upsertSave(helper.SAVE_KEY, helper.collectMine(cache, me), 1);
+        await api.upsertSave(helper.SAVE_KEY, snapshot, 1);
       }
     } catch (err) {
       console.warn("[HubChat] player_saves chat write failed", err);

@@ -25,6 +25,8 @@ test("owned feedback lives in a helper used by the Feedback panel", () => {
   assert.match(ui, /identity\?\.persistOwnedSave/);
   assert.match(ui, /identity\?\.readOwnedSave/);
   assert.match(ui, /persistFeedbackItemContribution/);
+  assert.match(ui, /!snapshot\?\.items\?\.length/);
+  assert.match(ui, /!snapshot\.items\.length && !\(snapshot\.pendingIds && snapshot\.pendingIds\.length\)/);
   assert.match(ui, /fetchFeedbackTableRemote/);
   assert.match(ui, /fetchFeedbackDeletesRemote/);
   assert.match(ui, /persistFeedbackDeletes/);

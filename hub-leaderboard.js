@@ -246,7 +246,7 @@
     }
   }
 
-  async function persistLeaderboardPbContribution(data) {
+  async function persistLeaderboardPbContribution(data, opts) {
     const helper = pbsApi();
     const api = window.HubSupabase;
     const me = getPlayerId();
@@ -261,6 +261,7 @@
     if (bind && helper.NAMEBIND_KEY) {
       games[helper.NAMEBIND_KEY] = { name: bind, score: 0, at: 0, playerId: me, lowerBetter: false };
     }
+    if (!Object.keys(games).length && !(opts && opts.allowEmpty)) return false;
     try {
       await api.upsertLeaderboardPbContribution({
         playerId: me,
@@ -893,7 +894,9 @@
   }
 
   async function pushRemote(merged, opts) {
-    const tableWrote = await persistLeaderboardPbContribution(merged);
+    const tableWrote = await persistLeaderboardPbContribution(merged, {
+      allowEmpty: !!(opts && opts.wipe)
+    });
     let resetsWrote = false;
     if (opts && opts.rewriteShared) {
       if (opts.wipe) {

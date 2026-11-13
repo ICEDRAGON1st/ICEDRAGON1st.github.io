@@ -6,7 +6,7 @@ const path = require("node:path");
 
 const popularity = require(path.resolve(__dirname, "../../hub-popularity.js"));
 
-test("hub popularity merges pending counts and recent play logs", () => {
+test("hub popularity merges pending counts and recent play logs", async () => {
   assert.deepEqual(popularity.parsePopularityPayload(null), { games: {}, resetAt: 0 });
   assert.deepEqual(popularity.parsePopularityPayload({ fishing: 9, resetAt: 12, note: "x" }), {
     games: { fishing: 9 },
@@ -59,7 +59,7 @@ test("hub popularity merges pending counts and recent play logs", () => {
   assert.equal(merged.counts.fishing, 1);
 });
 
-test("owned play logs dual-write without copying other players or shrinking a richer local list", () => {
+test("owned play logs dual-write without copying other players or shrinking a richer local list", async () => {
   const fs = require("node:fs");
   const plays = fs.readFileSync(path.resolve(__dirname, "../../hub-plays.js"), "utf8");
   assert.match(plays, /persistPlaysMine/);
@@ -134,6 +134,28 @@ test("owned play logs dual-write without copying other players or shrinking a ri
   );
   assert.equal(blocked.length, 1);
   assert.equal(blocked[0].id, "keep");
+
+  const saves = [];
+  const previousIdentity = globalThis.HubIdentity;
+  globalThis.HubIdentity = {
+    async persistOwnedSave(_api, key, snapshot) {
+      saves.push([key, snapshot.plays.length]);
+      return true;
+    }
+  };
+  try {
+    assert.equal(await popularity.persistOwnedMine({}, "p-ada", []), false);
+    assert.equal(saves.length, 0);
+    assert.equal(
+      await popularity.persistOwnedMine({}, "p-ada", [
+        { id: "mine-1", playerId: "p-ada", name: "Ada", game: "snake", gameName: "Snake", at: 20 }
+      ]),
+      true
+    );
+    assert.deepEqual(saves, [["plays-mine", 1]]);
+  } finally {
+    globalThis.HubIdentity = previousIdentity;
+  }
 });
 
 test("popularity contributions sum owned rows without copying another player's pending", () => {
@@ -382,6 +404,11 @@ test("play-count remotes skip leftover shared boards", async () => {
     ]),
     true
   );
+  const playWrites = () => calls.filter((row) => row[0] === "plays").length;
+  const beforeEmptyPlays = playWrites();
+  assert.equal(await popularity.persistPlayLogContribution(api, "p-ada", []), false);
+  assert.equal(await popularity.persistPlayLogContribution(api, "p-ada", null), false);
+  assert.equal(playWrites(), beforeEmptyPlays);
   assert.equal((await popularity.fetchPopularityRows(api, 0)).length, 1);
   assert.equal(await popularity.persistPopularityContribution(api, "p-ada", { snake: 1 }, 0, false), true);
   const popCalls = () => calls.filter((row) => row[0] === "pop").length;
