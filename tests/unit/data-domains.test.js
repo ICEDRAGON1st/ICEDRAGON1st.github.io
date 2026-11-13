@@ -242,6 +242,17 @@ test("Discord /link looks up signed-in player codes without leftover hub_docs", 
   assert.doesNotMatch(bot, /discord-links-v1/);
 });
 
+test("discord link rows are not a public login-code list", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160063_lock_discord_link_reads.sql"),
+    "utf8"
+  );
+  assert.match(sql, /revoke select on table public\.discord_links from anon, authenticated/i);
+  assert.match(sql, /drop policy if exists discord_links_read_authenticated/);
+  assert.doesNotMatch(sql, /grant select/i);
+  assert.doesNotMatch(sql, /drop table/i);
+});
+
 test("remaining leftover tables paste includes meter, Paper, Discord /link, and schema reload", () => {
   const sql = fs.readFileSync(
     path.join(ROOT, "supabase/migrations/202610160052_remaining_leftover.sql"),
