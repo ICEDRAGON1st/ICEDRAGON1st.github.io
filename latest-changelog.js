@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015ga",
+  "build": "20261015gb",
   "notes": [
-    "Friend lists on this device keep only the people connected to you. The account server can return that smaller list once its lookup is installed."
+    "Voice calls ask the account server for rooms you are in, and still load if that lookup is not installed yet."
   ]
 };

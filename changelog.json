@@ -1,4 +1,7 @@
 {
+  "20261015gb": [
+    "Voice calls ask the account server for rooms you are in, and still load if that lookup is not installed yet."
+  ],
   "20261015ga": [
     "Friend lists on this device keep only the people connected to you. The account server can return that smaller list once its lookup is installed."
   ],

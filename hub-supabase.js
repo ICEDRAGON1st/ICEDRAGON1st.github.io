@@ -1643,6 +1643,12 @@
     return out;
   }
 
+  let visibleCallsReady = false;
+
+  function callSignalsAreScoped() {
+    return visibleCallsReady;
+  }
+
   async function listCallSignalContributions() {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -1651,6 +1657,18 @@
     }
     const session = await ensureSession();
     if (!session?.access_token) return null;
+    const rpc = await hubFetch(`${SUPABASE_URL}/rest/v1/rpc/list_visible_call_signals`, {
+      method: "POST",
+      headers: headers({}, session.access_token),
+      cache: "no-store",
+      body: JSON.stringify({})
+    });
+    if (rpc.ok) {
+      visibleCallsReady = true;
+      const rows = await rpc.json();
+      return Array.isArray(rows) ? rows : [];
+    }
+    if (rpc.status !== 404) throw new Error(`supabase call list ${rpc.status}`);
     const url = `${SUPABASE_URL}/rest/v1/call_signal_contributions?select=player_id,rooms`;
     const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
@@ -3214,6 +3232,7 @@
     listAlltimeRoster,
     upsertAlltimeRoster,
     listCallSignalContributions,
+    callSignalsAreScoped,
     upsertCallSignalContribution,
     listFriendEdgeContributions,
     friendEdgesAreScoped,

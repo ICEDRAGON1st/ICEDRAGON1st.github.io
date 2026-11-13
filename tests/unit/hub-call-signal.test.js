@@ -251,6 +251,10 @@ test("call live rows subscribe without rewriting the shared board", () => {
     "utf8"
   );
   assert.match(ui, /ensureCallsRealtime/);
+  assert.match(
+    ui.slice(ui.indexOf("async function poll"), ui.indexOf("function startPolling")),
+    /callSignalsAreScoped/
+  );
   assert.match(ui, /applyCallsRealtime/);
   assert.match(ui, /rowsToRooms\(rows, playerId\(\)\)/);
   assert.match(ui, /applyChange\(\{ rooms: cache\.rooms \}, change, playerId\(\)\)/);

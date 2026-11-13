@@ -424,6 +424,24 @@ test("call signaling uses auth-owned rows instead of rewriting the shared call b
   assert.match(src, /async function upsertCallSignalContribution/);
   assert.match(src, /function subscribeCallSignalContributions/);
   assert.match(src, /call_signal_contributions/);
+  const list = src.slice(
+    src.indexOf("async function listCallSignalContributions"),
+    src.indexOf("async function upsertCallSignalContribution")
+  );
+  assert.match(list, /rpc\/list_visible_call_signals/);
+  assert.match(list, /if \(rpc\.status !== 404\)/);
+  assert.match(list, /visibleCallsReady = true/);
+  assert.match(list, /call_signal_contributions\?select=player_id,rooms/);
+  const sql = fs.readFileSync(
+    path.join(__dirname, "../../supabase/migrations/202610160057_list_visible_call_signals.sql"),
+    "utf8"
+  );
+  assert.match(sql, /function public\.list_visible_call_signals/);
+  assert.match(sql, /security definer/);
+  assert.match(sql, /identity-bind/);
+  assert.match(sql, /jsonb_exists/);
+  assert.match(sql, /grant execute on function public\.list_visible_call_signals\(\) to authenticated/);
+  assert.doesNotMatch(sql, /drop policy/i);
 });
 
 test("friend edges use auth-owned rows instead of rewriting the shared friends board", () => {

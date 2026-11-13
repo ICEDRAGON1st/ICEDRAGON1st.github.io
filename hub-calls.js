@@ -1833,6 +1833,10 @@
   function ensureCallsRealtime() {
     const api = sb();
     if (!api?.subscribeCallSignalContributions) return;
+    if (api.callSignalsAreScoped?.()) {
+      stopCallsRealtime();
+      return;
+    }
     if (callsRealtimeUnsub) return;
     if (callsCloudQuiet()) return;
     callsRealtimeUnsub = api.subscribeCallSignalContributions((change) => {
@@ -1847,6 +1851,8 @@
     try {
       if (callsCloudQuiet()) {
         if (!active) stopCallsRealtime();
+      } else if (sb()?.callSignalsAreScoped?.()) {
+        stopCallsRealtime();
       } else {
         ensureCallsRealtime();
       }
@@ -2066,7 +2072,6 @@
   }
 
   function startPolling() {
-    ensureCallsRealtime();
     poll();
     if (pollTimer) clearInterval(pollTimer);
     pollTimer = setInterval(poll, POLL_MS);
