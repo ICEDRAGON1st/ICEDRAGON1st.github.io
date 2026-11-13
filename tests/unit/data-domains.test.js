@@ -1036,3 +1036,33 @@ test("referral contributions are readable by signed-in players and only writable
   assert.match(sql, /revoke all on table public\.referral_contributions from anon, authenticated/);
   assert.doesNotMatch(sql, /add table public\.hub_docs/i);
 });
+
+test("missing live tables can be restored without dropping existing rows", () => {
+  const sql = fs.readFileSync(
+    path.join(ROOT, "supabase/migrations/202610160062_restore_missing_tables.sql"),
+    "utf8"
+  );
+  for (const table of [
+    "nickname_claims",
+    "name_reservation_locks",
+    "player_password_hashes",
+    "alltime_roster",
+    "play_log_contributions",
+    "call_signal_contributions",
+    "friend_edge_contributions",
+    "chat_thread_contributions",
+    "leaderboard_pb_contributions",
+    "match_room_contributions",
+    "feedback_item_contributions",
+    "fishing_mail_contributions",
+    "aquarium_tank_contributions",
+    "admin_broadcasts",
+    "referral_contributions"
+  ]) {
+    assert.match(sql, new RegExp(`create table if not exists public\\.${table}`));
+    assert.match(sql, new RegExp(`grant select[\\s\\S]{0,80}public\\.${table} to authenticated`));
+  }
+  assert.doesNotMatch(sql, /drop table/i);
+  assert.doesNotMatch(sql, /truncate/i);
+  assert.doesNotMatch(sql, /delete from/i);
+});
