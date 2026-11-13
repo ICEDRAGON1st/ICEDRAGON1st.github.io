@@ -769,6 +769,10 @@ test("fishing admin gifts use auth-owned rows instead of rewriting the shared gi
   assert.match(list, /player_id=eq\.\$\{encodeURIComponent\(viewerId\)\}/);
   assert.match(list, /player_id=in\.\(/);
   assert.match(list, /fishingGiftOwnerIds\(session\)/);
+  assert.match(
+    src.slice(src.indexOf("async function fishingGiftOwnerIds"), src.indexOf("async function listFishingGiftContributions")),
+    /player_profiles/
+  );
   assert.match(src, /nickname_claims/);
   assert.match(src, /name_key/);
   assert.match(src, /ice_dragon alt/);

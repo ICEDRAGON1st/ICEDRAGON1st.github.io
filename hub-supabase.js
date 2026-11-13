@@ -3603,7 +3603,8 @@
     for (const name of FISHING_GIFT_OWNER_KEYS) {
       const claimed = await lookupGiftPlayerIds(session, "nickname_claims", "name_key", name);
       const listed = await lookupGiftPlayerIds(session, "alltime_roster", "display_name", name);
-      ids.push(...claimed, ...listed);
+      const profiles = await lookupGiftPlayerIds(session, "player_profiles", "display_name", name);
+      ids.push(...claimed, ...listed, ...profiles);
     }
     return ids;
   }

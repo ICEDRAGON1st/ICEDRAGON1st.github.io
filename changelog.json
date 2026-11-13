@@ -1,4 +1,7 @@
 {
+  "20261015gq": [
+    "Fishing gifts load from the owner accounts instead of every player's gift list."
+  ],
   "20261015gp": [
     "Fishing gifts no longer download every player's gift list. Broadcasts still load from the owner accounts."
   ],
