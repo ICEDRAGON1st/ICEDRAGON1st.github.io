@@ -347,9 +347,20 @@ test("player password hashes use auth-owned rows instead of rewriting the shared
     src.indexOf("async function listPlayerPasswordHashes"),
     src.indexOf("function normalizeStoredPasswordHash")
   );
+  assert.match(lookup, /rpc\/lookup_player_password_hash/);
+  assert.match(lookup, /p_hash: passwordHash/);
+  assert.match(lookup, /if \(rpc\.status !== 404\)/);
   assert.match(lookup, /password_hash=eq\.\$\{encodeURIComponent\(passwordHash\)\}/);
   assert.match(lookup, /if \(!passwordHash\) return \[\]/);
   assert.doesNotMatch(lookup, /player_password_hashes\?select=/);
+  const sql = fs.readFileSync(
+    path.join(__dirname, "../../supabase/migrations/202610160054_lookup_player_password_hash.sql"),
+    "utf8"
+  );
+  assert.match(sql, /function public\.lookup_player_password_hash/);
+  assert.match(sql, /security definer/);
+  assert.match(sql, /grant execute on function public\.lookup_player_password_hash\(text\) to authenticated/);
+  assert.doesNotMatch(sql, /drop policy/i);
 });
 
 test("password Auth uses a derived email and never stores the typed password", () => {

@@ -1471,6 +1471,17 @@
     }
     const session = await ensureSession();
     if (!session?.access_token) return null;
+    const rpc = await hubFetch(`${SUPABASE_URL}/rest/v1/rpc/lookup_player_password_hash`, {
+      method: "POST",
+      headers: headers({}, session.access_token),
+      cache: "no-store",
+      body: JSON.stringify({ p_hash: passwordHash })
+    });
+    if (rpc.ok) {
+      const rows = await rpc.json();
+      return Array.isArray(rows) ? rows : [];
+    }
+    if (rpc.status !== 404) throw new Error(`supabase password lookup ${rpc.status}`);
     const url =
       `${SUPABASE_URL}/rest/v1/player_password_hashes?password_hash=eq.${encodeURIComponent(passwordHash)}` +
       `&select=player_id,password_hash,code,display_name,hashed_at,cleared&limit=1`;

@@ -1,4 +1,7 @@
 {
+  "20261015ft": [
+    "Password sign-in asks the account server for one saved login, and still works if that lookup is not installed yet."
+  ],
   "20261015fs": [
     "Opening the hub no longer listens to every player code and name lock."
   ],
