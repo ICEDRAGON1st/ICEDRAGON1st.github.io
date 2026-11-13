@@ -2964,6 +2964,12 @@
     return out;
   }
 
+  let visibleGiftsReady = false;
+
+  function fishingGiftsAreScoped() {
+    return visibleGiftsReady;
+  }
+
   async function listFishingGiftContributions() {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -2972,6 +2978,18 @@
     }
     const session = await ensureSession();
     if (!session?.access_token) return null;
+    const rpc = await hubFetch(`${SUPABASE_URL}/rest/v1/rpc/list_visible_fishing_gifts`, {
+      method: "POST",
+      headers: headers({}, session.access_token),
+      cache: "no-store",
+      body: JSON.stringify({})
+    });
+    if (rpc.ok) {
+      visibleGiftsReady = true;
+      const rows = await rpc.json();
+      return Array.isArray(rows) ? rows : [];
+    }
+    if (rpc.status !== 404) throw new Error(`supabase fishing gift list ${rpc.status}`);
     const url = `${SUPABASE_URL}/rest/v1/fishing_gift_contributions?select=player_id,gifts,updated_at`;
     const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
@@ -3274,6 +3292,7 @@
     fishingMailIsScoped,
     upsertFishingMailContribution,
     listFishingGiftContributions,
+    fishingGiftsAreScoped,
     upsertFishingGiftContribution,
     listAquariumTankContributions,
     upsertAquariumTankContribution,

@@ -508,6 +508,10 @@
   function ensureGiftsRealtime() {
     const api = sb();
     if (!api?.subscribeFishingGiftContributions) return;
+    if (api.fishingGiftsAreScoped?.()) {
+      stopGiftsRealtime();
+      return;
+    }
     if (giftsRealtimeUnsub) return;
     if (isFishingPage() || giftsCloudQuiet()) return;
     giftsRealtimeUnsub = api.subscribeFishingGiftContributions((change) => {
@@ -518,6 +522,8 @@
   async function poll(force = false) {
     if (isFishingPage()) return { gained: 0 };
     if (giftsCloudQuiet()) {
+      stopGiftsRealtime();
+    } else if (sb()?.fishingGiftsAreScoped?.()) {
       stopGiftsRealtime();
     } else {
       ensureGiftsRealtime();
@@ -540,7 +546,6 @@
   function start() {
     if (started || isFishingPage()) return;
     started = true;
-    ensureGiftsRealtime();
     poll(true);
     if (timer) clearInterval(timer);
     timer = setInterval(() => poll(false), POLL_MS);

@@ -1,4 +1,7 @@
 {
+  "20261015gd": [
+    "Admin fish gifts ask the account server for broadcasts and gifts meant for you, and still load if that lookup is not installed yet."
+  ],
   "20261015gc": [
     "Fishing mail asks the account server for gifts and trades you are in, and still loads if that lookup is not installed yet."
   ],

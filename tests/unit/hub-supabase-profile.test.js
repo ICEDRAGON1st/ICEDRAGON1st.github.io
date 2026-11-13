@@ -597,6 +597,24 @@ test("fishing admin gifts use auth-owned rows instead of rewriting the shared gi
   assert.match(src, /async function upsertFishingGiftContribution/);
   assert.match(src, /function subscribeFishingGiftContributions/);
   assert.match(src, /fishing_gift_contributions/);
+  const list = src.slice(
+    src.indexOf("async function listFishingGiftContributions"),
+    src.indexOf("async function upsertFishingGiftContribution")
+  );
+  assert.match(list, /rpc\/list_visible_fishing_gifts/);
+  assert.match(list, /if \(rpc\.status !== 404\)/);
+  assert.match(list, /visibleGiftsReady = true/);
+  assert.match(list, /fishing_gift_contributions\?select=player_id,gifts,updated_at/);
+  const sql = fs.readFileSync(
+    path.join(__dirname, "../../supabase/migrations/202610160059_list_visible_fishing_gifts.sql"),
+    "utf8"
+  );
+  assert.match(sql, /function public\.list_visible_fishing_gifts/);
+  assert.match(sql, /security definer/);
+  assert.match(sql, /identity-bind/);
+  assert.match(sql, /broadcast/);
+  assert.match(sql, /grant execute on function public\.list_visible_fishing_gifts\(\) to authenticated/);
+  assert.doesNotMatch(sql, /drop policy/i);
 });
 
 test("admin broadcasts use a dedicated table instead of publishing hub_docs", () => {

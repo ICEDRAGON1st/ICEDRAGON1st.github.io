@@ -6877,6 +6877,10 @@
   function ensureFishGiftsRealtime() {
     const api = window.HubSupabase && HubSupabase.ready ? HubSupabase : null;
     if (!api?.subscribeFishingGiftContributions) return;
+    if (api.fishingGiftsAreScoped?.()) {
+      stopFishGiftsRealtime();
+      return;
+    }
     if (fishGiftRealtimeUnsub) return;
     if (fishingCloudQuiet()) return;
     fishGiftRealtimeUnsub = api.subscribeFishingGiftContributions((change) => {
@@ -6889,7 +6893,8 @@
       stopFishGiftsRealtime();
       return;
     }
-    ensureFishGiftsRealtime();
+    if (window.HubSupabase?.fishingGiftsAreScoped?.()) stopFishGiftsRealtime();
+    else ensureFishGiftsRealtime();
     if (!force && fishingLiveJoined("fishing_gift_contributions")) return;
     const now = Date.now();
     if (!force && now - fishGiftFetchedAt < FISH_GIFTS_POLL_MS) return;
@@ -6900,7 +6905,6 @@
   }
 
   function startFishGiftPolling() {
-    ensureFishGiftsRealtime();
     pollFishGifts(true);
     if (fishGiftPollTimer) clearInterval(fishGiftPollTimer);
     fishGiftPollTimer = setInterval(() => pollFishGifts(false), FISH_GIFTS_POLL_MS);

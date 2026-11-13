@@ -789,6 +789,14 @@ test("fishing admin gift live rows subscribe without rewriting the shared board"
   assert.match(script, /applyAdminFishGiftsChange\(fishGiftCache, change, undefined, mailMyId\(\)\)/);
   assert.match(gifts, /function giftsLiveJoined/);
   assert.match(gifts, /isRealtimeJoined\?\.\("fishing_gift_contributions"\)/);
+  assert.match(
+    gifts.slice(gifts.indexOf("async function poll"), gifts.indexOf("function start")),
+    /fishingGiftsAreScoped/
+  );
+  assert.match(
+    script.slice(script.indexOf("async function pollFishGifts"), script.indexOf("function startFishGiftPolling")),
+    /fishingGiftsAreScoped/
+  );
   assert.match(script, /ensureFishGiftsRealtime/);
   assert.match(script, /fishingLiveJoined\("fishing_gift_contributions"\)/);
   assert.match(supabase, /function subscribeFishingGiftContributions/);
