@@ -262,7 +262,15 @@ test("owned password hashes dual-write without plaintext or other players' login
   assert.match(plays, /pullPasswordMine/);
   assert.match(plays, /persistPlayerPasswordHash/);
   assert.match(plays, /fetchPasswordsTableRemote/);
+  assert.match(plays, /fetchPasswordsRemote\(hash\)/);
   assert.match(plays, /if \(tableWrote\) return/);
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function clearAccountPassword"),
+      plays.indexOf("function loadAccountVault")
+    ),
+    /fetchPasswordsRemote/
+  );
   assert.match(
     plays.slice(
       plays.indexOf("async function fetchPasswordsRemote"),
@@ -694,7 +702,9 @@ test("identity password, code, and reservation remotes skip leftover shared boar
   const adaHash = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
   const calls = [];
   const api = {
-    async listPlayerPasswordHashes() {
+    async listPlayerPasswordHashes(hash) {
+      calls.push(["list-pw", hash]);
+      if (hash !== adaHash) return [];
       return [
         {
           player_id: "p-ada",
@@ -722,9 +732,11 @@ test("identity password, code, and reservation remotes skip leftover shared boar
     }
   };
 
-  const hashes = await identity.fetchPasswordHashRows(api);
+  assert.deepEqual(await identity.fetchPasswordHashRows(api), []);
+  const hashes = await identity.fetchPasswordHashRows(api, adaHash);
   assert.equal(Array.isArray(hashes), true);
   assert.equal(hashes.length, 1);
+  assert.equal(calls.some((row) => row[0] === "list-pw" && row[1] === adaHash), true);
   assert.equal(
     await identity.persistPlayerPasswordHash(api, "p-ada", adaHash, {
       playerId: "p-ada",

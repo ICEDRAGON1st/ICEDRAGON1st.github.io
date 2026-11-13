@@ -1169,13 +1169,13 @@
     } catch {}
   }
 
-  async function fetchPasswordsTableRemote() {
+  async function fetchPasswordsTableRemote(hash) {
     if (!identity.fetchPasswordHashRows) return null;
-    return identity.fetchPasswordHashRows(sb());
+    return identity.fetchPasswordHashRows(sb(), hash);
   }
 
-  async function fetchPasswordsRemote() {
-    const tableRows = await fetchPasswordsTableRemote();
+  async function fetchPasswordsRemote(hash) {
+    const tableRows = await fetchPasswordsTableRemote(hash);
     if (!tableRows) throw new Error("passwords-unavailable");
     return identity.overlayPasswordMaps
       ? identity.overlayPasswordMaps({}, tableRows)
@@ -1223,7 +1223,7 @@
     }
     if (!entry?.playerId) {
       try {
-        const remote = await fetchPasswordsRemote();
+        const remote = await fetchPasswordsRemote(hash);
         entry = remote[hash] || null;
         if (entry?.playerId) {
           const local = loadLocalPasswords();
@@ -1284,7 +1284,7 @@
     let remote = {};
     let remoteFetched = true;
     try {
-      remote = await fetchPasswordsRemote();
+      remote = await fetchPasswordsRemote(hash);
     } catch {
       remote = {};
       remoteFetched = false;
@@ -1367,23 +1367,9 @@
     markVaultHasPassword(me, false);
     rememberCurrentAccount({ hasPassword: false });
     persistPasswordMine({ cleared: true });
-    const persistResult = identity.persistPlayerPasswordHash
-      ? await identity.persistPlayerPasswordHash(sb(), getPlayerId(), "", null, { cleared: true })
-      : false;
-    if (persistResult === true) {
-      return {
-        ok: true,
-        keptProgress: true,
-        message: "Password cleared — use your player code to log in"
-      };
+    if (identity.persistPlayerPasswordHash) {
+      await identity.persistPlayerPasswordHash(sb(), getPlayerId(), "", null, { cleared: true });
     }
-    try {
-      const remote = await fetchPasswordsRemote();
-      Object.keys(remote).forEach((h) => {
-        if (remote[h]?.playerId === me) delete remote[h];
-      });
-      await pushPasswordsRemote(remote);
-    } catch {}
     return {
       ok: true,
       keptProgress: true,

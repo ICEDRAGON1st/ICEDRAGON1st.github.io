@@ -339,6 +339,13 @@ test("player password hashes use auth-owned rows instead of rewriting the shared
   assert.match(src, /async function upsertPlayerPasswordHash/);
   assert.match(src, /player_password_hashes/);
   assert.doesNotMatch(src, /password_hash: String\(row\?\.password\)/);
+  const lookup = src.slice(
+    src.indexOf("async function listPlayerPasswordHashes"),
+    src.indexOf("function normalizeStoredPasswordHash")
+  );
+  assert.match(lookup, /password_hash=eq\.\$\{encodeURIComponent\(passwordHash\)\}/);
+  assert.match(lookup, /if \(!passwordHash\) return \[\]/);
+  assert.doesNotMatch(lookup, /player_password_hashes\?select=/);
 });
 
 test("password Auth uses a derived email and never stores the typed password", () => {

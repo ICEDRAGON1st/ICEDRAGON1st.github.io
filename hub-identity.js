@@ -668,10 +668,11 @@
     return next.slice(0, MAX_SAVED_ACCOUNTS);
   }
 
-  async function fetchPasswordHashRows(api) {
-    if (!api?.listPlayerPasswordHashes) return null;
+  async function fetchPasswordHashRows(api, hash) {
+    const norm = normalizePasswordHash(hash);
+    if (!norm || !api?.listPlayerPasswordHashes) return [];
     try {
-      const rows = await api.listPlayerPasswordHashes();
+      const rows = await api.listPlayerPasswordHashes(norm);
       if (!rows) return null;
       return Array.isArray(rows) ? rows : [];
     } catch {

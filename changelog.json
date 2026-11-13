@@ -1,4 +1,7 @@
 {
+  "20261015fq": [
+    "Signing in with a password checks that one login instead of loading every saved login."
+  ],
   "20261015fp": [
     "A missed friends or match load no longer replaces that list with an empty one."
   ],

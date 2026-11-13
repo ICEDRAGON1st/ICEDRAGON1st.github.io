@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015fp",
+  "build": "20261015fq",
   "notes": [
-    "A missed friends or match load no longer replaces that list with an empty one."
+    "Signing in with a password checks that one login instead of loading every saved login."
   ]
 };

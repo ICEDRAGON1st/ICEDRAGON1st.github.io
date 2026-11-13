@@ -1411,7 +1411,9 @@
     }
   }
 
-  async function listPlayerPasswordHashes() {
+  async function listPlayerPasswordHashes(hash) {
+    const passwordHash = normalizeStoredPasswordHash(hash);
+    if (!passwordHash) return [];
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
       err.hubNetBlocked = true;
@@ -1419,13 +1421,15 @@
     }
     const session = await ensureSession();
     if (!session?.access_token) return null;
-    const url = `${SUPABASE_URL}/rest/v1/player_password_hashes?select=player_id,password_hash,code,display_name,hashed_at,cleared`;
+    const url =
+      `${SUPABASE_URL}/rest/v1/player_password_hashes?password_hash=eq.${encodeURIComponent(passwordHash)}` +
+      `&select=player_id,password_hash,code,display_name,hashed_at,cleared&limit=1`;
     const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
       cache: "no-store"
     });
     if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`supabase password list ${res.status}`);
+    if (!res.ok) throw new Error(`supabase password lookup ${res.status}`);
     const rows = await res.json();
     return Array.isArray(rows) ? rows : [];
   }
