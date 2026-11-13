@@ -1458,18 +1458,50 @@
       };
     }
     if (rpc.status !== 404) throw new Error(`supabase reservation get ${rpc.status}`);
-    const url =
-      `${SUPABASE_URL}/rest/v1/name_reservation_locks?name_key=eq.${encodeURIComponent(key)}` +
-      `&select=player_id,name_key,code,display_name,locked_at&limit=1`;
-    const res = await hubFetch(url, {
-      headers: headers({}, session.access_token),
-      cache: "no-store"
-    });
+    const base =
+      `${SUPABASE_URL}/rest/v1/name_reservation_locks?name_key=eq.${encodeURIComponent(key)}`;
+    const res = await hubFetch(
+      `${base}&select=player_id,user_id,name_key,display_name,locked_at&limit=1`,
+      {
+        headers: headers({}, session.access_token),
+        cache: "no-store"
+      }
+    );
     if (res.status === 404) return null;
     if (!res.ok) throw new Error(`supabase reservation get ${res.status}`);
     const rows = await res.json();
-    if (!Array.isArray(rows)) return null;
-    return rows[0] || false;
+    const row = Array.isArray(rows) && rows[0] ? rows[0] : null;
+    if (!row) return false;
+    const mine = sessionUserId(session) && row.user_id === sessionUserId(session);
+    delete row.user_id;
+    if (mine) {
+      const coded = await hubFetch(
+        `${base}&select=player_id,name_key,code,display_name,locked_at&limit=1`,
+        {
+          headers: headers({}, session.access_token),
+          cache: "no-store"
+        }
+      );
+      if (coded.status === 404) return { ...row, allowed: true };
+      if (!coded.ok) throw new Error(`supabase reservation get ${coded.status}`);
+      const codedRows = await coded.json();
+      const owned = Array.isArray(codedRows) && codedRows[0] ? codedRows[0] : row;
+      return { ...owned, allowed: true };
+    }
+    if (submitted.length !== 8) return { ...row, code: "", allowed: false };
+    const matched = await hubFetch(
+      `${base}&code=eq.${encodeURIComponent(submitted)}` +
+        `&select=player_id,name_key,display_name,locked_at&limit=1`,
+      {
+        headers: headers({}, session.access_token),
+        cache: "no-store"
+      }
+    );
+    if (matched.status === 404) return { ...row, code: "", allowed: false };
+    if (!matched.ok) throw new Error(`supabase reservation get ${matched.status}`);
+    const matchedRows = await matched.json();
+    const hit = Array.isArray(matchedRows) && matchedRows[0];
+    return { ...row, code: hit ? submitted : "", allowed: !!hit };
   }
 
   async function upsertNameReservationLock(row) {

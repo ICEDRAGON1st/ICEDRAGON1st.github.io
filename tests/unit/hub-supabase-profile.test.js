@@ -388,6 +388,10 @@ test("name reservation locks use auth-owned rows instead of rewriting the shared
   assert.match(lookup, /raw_name: key/);
   assert.match(lookup, /raw_code: submitted/);
   assert.match(lookup, /if \(rpc\.status !== 404\)/);
+  assert.match(lookup, /select=player_id,user_id,name_key,display_name,locked_at/);
+  assert.match(lookup, /row\.user_id === sessionUserId\(session\)/);
+  assert.match(lookup, /code=eq\.\$\{encodeURIComponent\(submitted\)\}/);
+  assert.match(lookup, /select=player_id,name_key,display_name,locked_at&limit=1/);
   assert.match(lookup, /select=player_id,name_key,code,display_name,locked_at/);
   assert.match(lookup, /code: ownCode\.length === 8 \? ownCode : allowed && submitted\.length === 8 \? submitted : ""/);
   assert.match(plays, /resolveNameReservation\(key, myCode\)/);
