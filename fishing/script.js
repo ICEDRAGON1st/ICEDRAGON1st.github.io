@@ -6881,11 +6881,8 @@
       stopFishGiftsRealtime();
       return;
     }
-    if (fishGiftRealtimeUnsub) return;
-    if (fishingCloudQuiet()) return;
-    fishGiftRealtimeUnsub = api.subscribeFishingGiftContributions((change) => {
-      applyFishGiftsRealtime(change);
-    });
+    // The open channel delivers every admin gift, including direct gifts to other players.
+    stopFishGiftsRealtime();
   }
 
   async function pollFishGifts(force = false) {

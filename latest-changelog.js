@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015go",
+  "build": "20261015gp",
   "notes": [
-    "Fishing mail no longer downloads gifts and trades from people who are not your friends."
+    "Fishing gifts no longer download every player's gift list. Broadcasts still load from the owner accounts."
   ]
 };

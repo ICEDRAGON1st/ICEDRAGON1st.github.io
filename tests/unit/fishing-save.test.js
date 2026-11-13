@@ -794,6 +794,17 @@ test("fishing admin gift live rows subscribe without rewriting the shared board"
     "utf8"
   );
   assert.match(gifts, /ensureGiftsRealtime/);
+  assert.doesNotMatch(
+    gifts.slice(gifts.indexOf("function ensureGiftsRealtime"), gifts.indexOf("async function poll")),
+    /subscribeFishingGiftContributions\(/
+  );
+  assert.doesNotMatch(
+    script.slice(
+      script.indexOf("function ensureFishGiftsRealtime"),
+      script.indexOf("async function pollFishGifts")
+    ),
+    /subscribeFishingGiftContributions\(/
+  );
   assert.match(gifts, /overlayAdminFishGifts\(current, tableRows, undefined, playerId\(\)\)/);
   assert.match(gifts, /applyAdminFishGiftsChange\(giftCache, change, undefined, playerId\(\)\)/);
   assert.match(script, /overlayAdminFishGifts\(current, tableRows, undefined, mailMyId\(\)\)/);

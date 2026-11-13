@@ -766,6 +766,18 @@ test("fishing admin gifts use auth-owned rows instead of rewriting the shared gi
   assert.match(list, /if \(rpc\.status !== 404\)/);
   assert.match(list, /visibleGiftsReady = true/);
   assert.match(list, /fishing_gift_contributions\?select=player_id,gifts,updated_at/);
+  assert.match(list, /player_id=eq\.\$\{encodeURIComponent\(viewerId\)\}/);
+  assert.match(list, /player_id=in\.\(/);
+  assert.match(list, /fishingGiftOwnerIds\(session\)/);
+  assert.match(src, /nickname_claims/);
+  assert.match(src, /name_key/);
+  assert.match(src, /ice_dragon alt/);
+  const giftTargets = supabase.giftReadTargets("p-viewer01", ["p-owner001", "p-viewer01"], {
+    mine: { fromId: "p-viewer01", toPlayerId: "p-sender01" },
+    other: { fromId: "p-nope0001", toPlayerId: "p-else0001" }
+  });
+  assert.deepEqual(giftTargets.slice().sort(), ["p-owner001", "p-sender01"].sort());
+  assert.equal(supabase.giftReadTargets("", ["p-owner001"], {}).length, 0);
   const sql = fs.readFileSync(
     path.join(__dirname, "../../supabase/migrations/202610160059_list_visible_fishing_gifts.sql"),
     "utf8"

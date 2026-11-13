@@ -3558,6 +3558,56 @@
     return visibleGiftsReady;
   }
 
+  const FISHING_GIFT_OWNER_KEYS = ["ice_dragon", "ice_dragon alt"];
+
+  function giftReadTargets(viewerId, ownerIds, ownGifts) {
+    const viewer = parseLocalPlayerId(viewerId);
+    const ids = new Set();
+    if (!viewer) return [];
+    const add = (id) => {
+      const parsed = parseLocalPlayerId(id);
+      if (parsed && parsed !== viewer) ids.add(parsed);
+    };
+    (Array.isArray(ownerIds) ? ownerIds : []).forEach(add);
+    const gifts =
+      ownGifts && typeof ownGifts === "object" && !Array.isArray(ownGifts) ? ownGifts : {};
+    Object.values(gifts).forEach((gift) => {
+      if (!gift || typeof gift !== "object") return;
+      const fromId = parseLocalPlayerId(gift.fromId);
+      const toPlayerId = parseLocalPlayerId(gift.toPlayerId);
+      if (fromId !== viewer && toPlayerId !== viewer) return;
+      add(fromId);
+      add(toPlayerId);
+    });
+    return [...ids].slice(0, 80);
+  }
+
+  async function lookupGiftPlayerIds(session, table, column, name) {
+    const res = await hubFetch(
+      `${SUPABASE_URL}/rest/v1/${table}?select=player_id&${column}=ilike.${encodeURIComponent(name)}&limit=4`,
+      {
+        headers: headers({}, session.access_token),
+        cache: "no-store"
+      }
+    );
+    if (res.status === 404) return [];
+    if (!res.ok) throw new Error(`supabase fishing gift owners ${res.status}`);
+    const rows = await res.json();
+    return (Array.isArray(rows) ? rows : [])
+      .map((row) => parseLocalPlayerId(row?.player_id))
+      .filter(Boolean);
+  }
+
+  async function fishingGiftOwnerIds(session) {
+    const ids = [];
+    for (const name of FISHING_GIFT_OWNER_KEYS) {
+      const claimed = await lookupGiftPlayerIds(session, "nickname_claims", "name_key", name);
+      const listed = await lookupGiftPlayerIds(session, "alltime_roster", "display_name", name);
+      ids.push(...claimed, ...listed);
+    }
+    return ids;
+  }
+
   async function listFishingGiftContributions() {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -3578,15 +3628,38 @@
       return Array.isArray(rows) ? rows : [];
     }
     if (rpc.status !== 404) throw new Error(`supabase fishing gift list ${rpc.status}`);
-    const url = `${SUPABASE_URL}/rest/v1/fishing_gift_contributions?select=player_id,gifts,updated_at`;
-    const res = await hubFetch(url, {
-      headers: headers({}, session.access_token),
-      cache: "no-store"
-    });
-    if (res.status === 404) return null;
-    if (!res.ok) throw new Error(`supabase fishing gift list ${res.status}`);
-    const rows = await res.json();
-    return Array.isArray(rows) ? rows : [];
+    const fullUrl = `${SUPABASE_URL}/rest/v1/fishing_gift_contributions?select=player_id,gifts,updated_at`;
+    const viewerId =
+      readStoredPlayerId() ||
+      peekBoundPlayerId() ||
+      (await fetchOwnProfile(session))?.playerId ||
+      "";
+    const loadRows = async (url) => {
+      const res = await hubFetch(url, {
+        headers: headers({}, session.access_token),
+        cache: "no-store"
+      });
+      if (res.status === 404) return null;
+      if (!res.ok) throw new Error(`supabase fishing gift list ${res.status}`);
+      const rows = await res.json();
+      return Array.isArray(rows) ? rows : [];
+    };
+    if (!viewerId) return loadRows(fullUrl);
+    try {
+      const ownRows = await loadRows(`${fullUrl}&player_id=eq.${encodeURIComponent(viewerId)}&limit=1`);
+      if (ownRows == null) return null;
+      const owners = await fishingGiftOwnerIds(session);
+      const targets = giftReadTargets(viewerId, owners, ownRows[0]?.gifts);
+      if (!owners.length) return loadRows(fullUrl);
+      if (!targets.length) return ownRows;
+      const ownerRows = await loadRows(
+        `${fullUrl}&player_id=in.(${targets.map((id) => encodeURIComponent(id)).join(",")})`
+      );
+      if (ownerRows == null) return ownRows;
+      return ownRows.concat(ownerRows);
+    } catch {
+      return loadRows(fullUrl);
+    }
   }
 
   async function upsertFishingGiftContribution(row) {
@@ -3888,6 +3961,7 @@
     fishingMailIsScoped,
     upsertFishingMailContribution,
     listFishingGiftContributions,
+    giftReadTargets,
     fishingGiftsAreScoped,
     upsertFishingGiftContribution,
     listAquariumTankContributions,

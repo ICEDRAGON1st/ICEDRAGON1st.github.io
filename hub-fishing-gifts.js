@@ -512,11 +512,8 @@
       stopGiftsRealtime();
       return;
     }
-    if (giftsRealtimeUnsub) return;
-    if (isFishingPage() || giftsCloudQuiet()) return;
-    giftsRealtimeUnsub = api.subscribeFishingGiftContributions((change) => {
-      applyGiftsRealtime(change);
-    });
+    // The open channel delivers every admin gift, including direct gifts to other players.
+    stopGiftsRealtime();
   }
 
   async function poll(force = false) {
