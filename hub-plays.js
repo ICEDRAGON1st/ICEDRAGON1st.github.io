@@ -454,8 +454,50 @@
           localResetAt = Number(localStorage.getItem("hub-game-popularity-reset-at") || 0);
         } catch {}
         const pending = { ...(popularityPending || {}) };
-        const hasPending = Object.values(pending).some((v) => (Number(v) || 0) > 0);
-        if (hasPending) {
+        const hasEpochPending = Object.values(pending).some((v) => (Number(v) || 0) > 0);
+        let pagesGames = null;
+        let remoteResetAt = 0;
+        if (!popularityFloorHealed) {
+          const seed = await fetchPagesPopularitySeed();
+          pagesGames =
+            seed && seed.games && Object.keys(seed.games).length ? seed.games : null;
+          remoteResetAt = Number(seed?.resetAt) || 0;
+        }
+        // A newer published reset replaces the shown total. Skip the write when
+        // this device has no new plays — an empty list would erase the saved row.
+        if (
+          !popularityFloorHealed &&
+          remoteResetAt > localResetAt &&
+          pagesGames &&
+          popularityApi.maxCounts
+        ) {
+          let epochWrote = false;
+          if (
+            hasEpochPending &&
+            popularityApi.persistPopularityContribution &&
+            hasRequiredName()
+          ) {
+            epochWrote = await popularityApi.persistPopularityContribution(
+              sb(),
+              getPlayerId(),
+              popularityPending,
+              remoteResetAt,
+              true
+            );
+          }
+          const tableCounts = await fetchPopularityTableRemote(remoteResetAt);
+          if (tableCounts) {
+            popularityCache = popularityApi.maxCounts(pagesGames, tableCounts);
+            try {
+              localStorage.setItem("hub-game-popularity-reset-at", String(remoteResetAt));
+            } catch {}
+            if (epochWrote) popularityPending = {};
+            popularityFloorHealed = true;
+            savePopularityLocal();
+          }
+          return getEffectivePopularity();
+        }
+        if (hasEpochPending) {
           const tableWrote =
             popularityApi.persistPopularityContribution && hasRequiredName()
               ? await popularityApi.persistPopularityContribution(
@@ -468,19 +510,18 @@
               : false;
           if (tableWrote) popularityPending = {};
         }
-        if (!popularityFloorHealed) {
-          const seed = await fetchPagesPopularitySeed();
-          const pagesGames =
-            seed && seed.games && Object.keys(seed.games).length ? seed.games : null;
-          const remoteResetAt = Number(seed?.resetAt) || 0;
-          if (!(remoteResetAt > localResetAt) && pagesGames && popularityApi.maxCounts) {
-            const tableCounts = await fetchPopularityTableRemote(localResetAt || 0);
-            if (tableCounts) {
-              // Drop a cached total that added the milestone on top of signed-in rows.
-              popularityCache = popularityApi.maxCounts(pagesGames, tableCounts);
-              savePopularityLocal();
-              popularityFloorHealed = true;
-            }
+        if (
+          !popularityFloorHealed &&
+          !(remoteResetAt > localResetAt) &&
+          pagesGames &&
+          popularityApi.maxCounts
+        ) {
+          const tableCounts = await fetchPopularityTableRemote(localResetAt || 0);
+          if (tableCounts) {
+            // Drop a cached total that added the milestone on top of signed-in rows.
+            popularityCache = popularityApi.maxCounts(pagesGames, tableCounts);
+            savePopularityLocal();
+            popularityFloorHealed = true;
           }
         }
         return getEffectivePopularity();
