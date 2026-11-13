@@ -1,4 +1,7 @@
 {
+  "20261015fy": [
+    "Chat asks the account server for the threads you are in, and still loads if that lookup is not installed yet."
+  ],
   "20261015fx": [
     "Private chats that are not yours stay off this device."
   ],

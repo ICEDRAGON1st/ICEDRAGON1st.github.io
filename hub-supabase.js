@@ -1941,6 +1941,12 @@
     return out;
   }
 
+  let visibleChatReady = false;
+
+  function chatThreadsAreScoped() {
+    return visibleChatReady;
+  }
+
   async function listChatThreadContributions() {
     if (netBlocked()) {
       const err = new Error("hub-net-blocked");
@@ -1949,6 +1955,18 @@
     }
     const session = await ensureSession();
     if (!session?.access_token) return null;
+    const rpc = await hubFetch(`${SUPABASE_URL}/rest/v1/rpc/list_visible_chat_threads`, {
+      method: "POST",
+      headers: headers({}, session.access_token),
+      cache: "no-store",
+      body: JSON.stringify({})
+    });
+    if (rpc.ok) {
+      visibleChatReady = true;
+      const rows = await rpc.json();
+      return Array.isArray(rows) ? rows : [];
+    }
+    if (rpc.status !== 404) throw new Error(`supabase chat list ${rpc.status}`);
     const url = `${SUPABASE_URL}/rest/v1/chat_thread_contributions?select=player_id,threads,updated_at`;
     const res = await hubFetch(url, {
       headers: headers({}, session.access_token),
@@ -3182,6 +3200,7 @@
     listFriendEdgeContributions,
     upsertFriendEdgeContribution,
     listChatThreadContributions,
+    chatThreadsAreScoped,
     upsertChatThreadContribution,
     listLeaderboardPbContributions,
     upsertLeaderboardPbContribution,

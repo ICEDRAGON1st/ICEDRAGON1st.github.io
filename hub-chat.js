@@ -366,8 +366,12 @@
   function ensureChatRealtime() {
     const api = sb();
     if (!api?.subscribeChatThreadContributions) return;
-    if (chatRealtimeUnsub) return;
     if (chatNetQuiet()) return;
+    if (api.chatThreadsAreScoped?.()) {
+      stopChatRealtime();
+      return;
+    }
+    if (chatRealtimeUnsub) return;
     chatRealtimeUnsub = api.subscribeChatThreadContributions((change) => {
       applyChatRealtime(change);
     });
@@ -834,7 +838,6 @@
 
   function startPolling(cb) {
     if (typeof cb === "function") pollCallbacks.add(cb);
-    ensureChatRealtime();
     if (pollTimer) return;
     const tick = async () => {
       try {
@@ -842,11 +845,12 @@
           stopChatRealtime();
           return;
         }
-        ensureChatRealtime();
         if (chatCloudQuiet()) return;
         if (!sb()?.isRealtimeJoined?.("chat_thread_contributions")) {
           await sync();
         }
+        if (sb()?.chatThreadsAreScoped?.()) stopChatRealtime();
+        else ensureChatRealtime();
         if (active) markRead(active.type, active.id);
         pollCallbacks.forEach((fn) => {
           try {

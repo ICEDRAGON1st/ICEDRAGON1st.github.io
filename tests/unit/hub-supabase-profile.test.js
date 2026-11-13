@@ -442,6 +442,24 @@ test("friend chat uses auth-owned rows instead of rewriting the shared chat boar
   assert.match(src, /async function upsertChatThreadContribution/);
   assert.match(src, /function subscribeChatThreadContributions/);
   assert.match(src, /chat_thread_contributions/);
+  const list = src.slice(
+    src.indexOf("async function listChatThreadContributions"),
+    src.indexOf("async function upsertChatThreadContribution")
+  );
+  assert.match(list, /rpc\/list_visible_chat_threads/);
+  assert.match(list, /if \(rpc\.status !== 404\)/);
+  assert.match(list, /visibleChatReady = true/);
+  assert.match(list, /chat_thread_contributions\?select=player_id,threads,updated_at/);
+  const sql = fs.readFileSync(
+    path.join(__dirname, "../../supabase/migrations/202610160055_list_visible_chat_threads.sql"),
+    "utf8"
+  );
+  assert.match(sql, /function public\.list_visible_chat_threads/);
+  assert.match(sql, /security definer/);
+  assert.match(sql, /identity-bind/);
+  assert.match(sql, /jsonb_exists/);
+  assert.match(sql, /grant execute on function public\.list_visible_chat_threads\(\) to authenticated/);
+  assert.doesNotMatch(sql, /drop policy/i);
 });
 
 test("leaderboard personal bests use auth-owned rows instead of rewriting the shared board", () => {
