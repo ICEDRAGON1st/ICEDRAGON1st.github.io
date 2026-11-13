@@ -1,6 +1,6 @@
 window.MYGAMES_LATEST_CHANGELOG = {
-  "build": "20261015fr",
+  "build": "20261015fs",
   "notes": [
-    "Logging in with a player code checks that one code instead of loading every saved code."
+    "Opening the hub no longer listens to every player code and name lock."
   ]
 };

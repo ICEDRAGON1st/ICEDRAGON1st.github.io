@@ -1549,23 +1549,31 @@
     }
   }
 
-  async function fetchReservationsRemote() {
-    if (playsLiveJoined("name_reservation_locks")) {
-      return reservationsCache && typeof reservationsCache === "object" ? reservationsCache : {};
+  async function fetchReservationsRemote(name) {
+    const key = nameKey(name);
+    if (!key) throw new Error("reservations-unavailable");
+    if (playsLiveJoined("name_reservation_locks") && reservationsCache?.[key]) {
+      return reservationsCache;
     }
-    const tableRemote = await fetchReservationsTableRemote();
-    if (tableRemote) {
-      const current =
-        reservationsCache && typeof reservationsCache === "object" ? reservationsCache : {};
-      const parsed = identity.mergeReservationMaps
-        ? identity.mergeReservationMaps(current, tableRemote)
-        : { ...current, ...tableRemote };
-      reservationsCache = parsed;
-      ensureReservationsRealtime();
-      return parsed;
+    const lookup = sb()?.getNameReservationLock;
+    if (!lookup || !identity.rowsToReservationsMap) {
+      if (reservationsCache?.[key]) return reservationsCache;
+      throw new Error("reservations-unavailable");
     }
-    if (reservationsCache && typeof reservationsCache === "object") return reservationsCache;
-    throw new Error("reservations-unavailable");
+    const row = await lookup(key);
+    if (row == null) {
+      if (reservationsCache && typeof reservationsCache === "object") return reservationsCache;
+      throw new Error("reservations-unavailable");
+    }
+    const mapped = row ? identity.rowsToReservationsMap([row]) : {};
+    const current =
+      reservationsCache && typeof reservationsCache === "object" ? reservationsCache : {};
+    if (!row && current[key] && current[key].playerId !== getPlayerId()) delete current[key];
+    const parsed = identity.mergeReservationMaps
+      ? identity.mergeReservationMaps(current, mapped)
+      : { ...current, ...mapped };
+    reservationsCache = parsed;
+    return parsed;
   }
 
   async function pushReservationsRemote(reservations) {
@@ -1596,7 +1604,7 @@
     if (!name) return null;
     let remote = {};
     try {
-      remote = await fetchReservationsRemote();
+      remote = await fetchReservationsRemote(name);
     } catch {
       remote = { ...(reservationsCache || {}) };
     }
@@ -1639,7 +1647,7 @@
     let remote = {};
     let fetchedOk = false;
     try {
-      remote = await fetchReservationsRemote();
+      remote = await fetchReservationsRemote(name);
       fetchedOk = true;
     } catch {
       remote = { ...(reservationsCache || {}) };
@@ -1695,7 +1703,6 @@
     }
 
     try {
-      ensureCodesRealtime();
       let entry = null;
       try {
         const row = await sb()?.getPlayerCodeClaim?.(norm);
@@ -4200,8 +4207,6 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
     ensurePlayLogRealtime();
     ensureNamesRealtime();
     ensureAllTimeRealtime();
-    ensureCodesRealtime();
-    ensureReservationsRealtime();
     heartbeat().catch(() => {});
     // Pull repaired all-time lastAt immediately (don't wait 10 min).
     registerAllTime().catch(() => {});
@@ -4232,8 +4237,6 @@ body.username-gate-open > *:not(#username-gate-modal):not(#player-name-modal):no
       ensurePlayLogRealtime();
       ensureNamesRealtime();
       ensureAllTimeRealtime();
-      ensureCodesRealtime();
-      ensureReservationsRealtime();
     });
     // Resume light presence when WiFi returns (this tab only).
     window.addEventListener("online", () => {

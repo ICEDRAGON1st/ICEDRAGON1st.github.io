@@ -1,4 +1,7 @@
 {
+  "20261015fs": [
+    "Opening the hub no longer listens to every player code and name lock."
+  ],
   "20261015fr": [
     "Logging in with a player code checks that one code instead of loading every saved code."
   ],

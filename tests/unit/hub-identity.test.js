@@ -432,7 +432,22 @@ test("owned name reservations dual-write without stealing another player's lock"
   assert.match(plays, /pullReservationsMine/);
   assert.match(plays, /persistNameReservationLock/);
   assert.match(plays, /fetchReservationsTableRemote/);
+  assert.match(plays, /getNameReservationLock/);
   assert.match(plays, /if \(tableWrote\) return/);
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("function startPresence"),
+      plays.indexOf("function creatorCreditHtml")
+    ),
+    /ensureCodesRealtime|ensureReservationsRealtime/
+  );
+  assert.doesNotMatch(
+    plays.slice(
+      plays.indexOf("async function ensurePlayerCodeRegistered"),
+      plays.indexOf("async function restoreWithPlayerCode")
+    ),
+    /ensureCodesRealtime/
+  );
   assert.doesNotMatch(
     plays.slice(
       plays.indexOf("async function fetchReservationsRemote"),

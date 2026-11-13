@@ -329,6 +329,8 @@ test("name reservation locks use auth-owned rows instead of rewriting the shared
   const fs = require("node:fs");
   const src = fs.readFileSync(path.join(__dirname, "../../hub-supabase.js"), "utf8");
   assert.match(src, /async function listNameReservationLocks/);
+  assert.match(src, /async function getNameReservationLock/);
+  assert.match(src, /name_key=eq\.\$\{encodeURIComponent\(key\)\}/);
   assert.match(src, /async function upsertNameReservationLock/);
   assert.match(src, /function subscribeNameReservationLocks/);
   assert.match(src, /name_reservation_locks/);

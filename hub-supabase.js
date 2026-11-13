@@ -1379,6 +1379,33 @@
     return Array.isArray(rows) ? rows : [];
   }
 
+  async function getNameReservationLock(nameKey) {
+    const key = String(nameKey || "")
+      .toLowerCase()
+      .trim()
+      .slice(0, 16);
+    if (!key) return null;
+    const session = await ensureSession();
+    if (!session?.access_token) return null;
+    if (netBlocked()) {
+      const err = new Error("hub-net-blocked");
+      err.hubNetBlocked = true;
+      throw err;
+    }
+    const url =
+      `${SUPABASE_URL}/rest/v1/name_reservation_locks?name_key=eq.${encodeURIComponent(key)}` +
+      `&select=player_id,name_key,code,display_name,locked_at&limit=1`;
+    const res = await hubFetch(url, {
+      headers: headers({}, session.access_token),
+      cache: "no-store"
+    });
+    if (res.status === 404) return null;
+    if (!res.ok) throw new Error(`supabase reservation get ${res.status}`);
+    const rows = await res.json();
+    if (!Array.isArray(rows)) return null;
+    return rows[0] || false;
+  }
+
   async function upsertNameReservationLock(row) {
     const session = await ensureSession();
     const userId = sessionUserId(session);
@@ -3133,6 +3160,7 @@
     listNicknameClaims,
     upsertNicknameClaim,
     listNameReservationLocks,
+    getNameReservationLock,
     upsertNameReservationLock,
     listPlayerPasswordHashes,
     upsertPlayerPasswordHash,
